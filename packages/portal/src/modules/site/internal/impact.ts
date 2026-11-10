@@ -1,23 +1,23 @@
-/** "If this changes": what depends on a record, as the page models carry it. The rule is `impactOf` in `@capxul/book`. */
-import { impactOf } from "@capxul/book";
+/** "If this changes": what depends on a record, as the page models carry it. The rule is `impactOf` in `@capxul/blueprint-engine`. */
+import { impactOf } from "@capxul/blueprint-engine";
 
 import type { ImpactBlock, ImpactRow, Ref } from "../types.ts";
 import type { Ctx } from "./context.ts";
 import { refOf } from "./locate.ts";
 
-/** The most dependents a page's twins list, nearest first. A record that more depend on is listed up to here; `packages/book/scripts/impact.ts` has the rest. */
+/** The most dependents a page's twins list, nearest first. A record that more depend on is listed up to here; `packages/blueprint-engine/scripts/impact.ts` has the rest. */
 const LISTED = 500;
 
 const EMPTY: ImpactBlock = { total: 0, byKind: [], all: [], complete: true, decisions: 0, decisionsOnDependents: 0, evals: 0 };
 
 const refAt = (ctx: Ctx, key: string): Ref | null => {
-  const r = ctx.input.book.records.get(key);
+  const r = ctx.input.blueprint.records.get(key);
   return r ? refOf(r) : null;
 };
 
 /** Every record that depends on the page's record, nearest first, counted by kind. */
 export const impactBlock = (ctx: Ctx, key: string): ImpactBlock => {
-  const found = impactOf(ctx.input.book, key, { index: ctx.impacts });
+  const found = impactOf(ctx.input.blueprint, key, { index: ctx.impacts });
   if (!found) return EMPTY;
   const whole = !key.startsWith("decision:");
   const all = found.dependents.filter((d) => whole || d.distance === 1).slice(0, LISTED).flatMap((d): readonly ImpactRow[] => {

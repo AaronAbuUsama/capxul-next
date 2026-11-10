@@ -1,5 +1,5 @@
 /**
- * The shape of the hand-written content in `direction.ts`: the words and the picture the book does not hold yet.
+ * The shape of the hand-written content in `direction.ts`: the words and the picture the blueprint does not hold yet.
  * The site module reads it as part of its input and re-exports these types beside its own.
  */
 
@@ -30,7 +30,7 @@ export interface Direction {
   readonly settings: { readonly repo: string; readonly reviewer: string; readonly issueLabel: string };
   readonly hero: { readonly eyebrow: string; readonly title: string; readonly lead: string; readonly sub: string };
   readonly needsYou: string;
-  /** The status lines of the climb's cards that the book cannot compute. */
+  /** The status lines of the climb's cards that the blueprint cannot compute. */
   readonly climb: { readonly specify: string; readonly build: string; readonly prove: string };
   readonly banner: { readonly title: string; readonly text: string };
   /** One verdict per concept id. A concept not named here has none. */

@@ -1,6 +1,6 @@
 # @capxul/portal
 
-Generates the portal, a static site, from the blueprint (today in `books/`), the plan and the scoreboard, and serves it with the form the
+Generates the portal, a static site, from the blueprint, the plan and the scoreboard, and serves it with the form the
 owner answers questions through.
 
 ```bash
@@ -9,10 +9,10 @@ pnpm portal:serve    # serve it; the owner's answers are appended to plan/answer
 pnpm portal:check    # the pages are complete and every link resolves
 ```
 
-- `src/main.ts`: the entry (`generate`, `check`, `serve`). `src/load.ts` reads the book, plan and status.
+- `src/main.ts`: the entry (`generate`, `check`, `serve`). `src/load.ts` reads the blueprint, plan and status.
 - `src/modules/site`: the pages as data; `render`: data to HTML; `check`: the portal's own checks;
   `answers`: the owner's answers; `twins`: the same site as plain text for agents and scripts (`llms.txt`).
 - `content/`, `assets/`: fixed text, CSS and the one script.
 
 Nothing here is a source of truth: change the blueprint or the plan and generate again. Its design is
-`docs/design/portal.md` and the records in `books/target/shared/portal.ts`.
+`docs/design/portal.md` and the records in `blueprint/shared/portal.ts`.

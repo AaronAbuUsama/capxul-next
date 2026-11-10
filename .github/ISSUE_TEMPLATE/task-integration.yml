@@ -122,7 +122,7 @@ body:
     id: record
     attributes:
       label: "Record"
-      description: "TaskDef.record and brief.record: the book record it builds."
+      description: "TaskDef.record and brief.record: the blueprint record it builds."
       placeholder: "integration:bridge"
     validations:
       required: true

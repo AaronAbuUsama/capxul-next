@@ -1,9 +1,9 @@
 // node --experimental-strip-types packages/plan/src/tasks.ts           → writes docs/mission/tasks.json and prints counts
 // node --experimental-strip-types packages/plan/src/tasks.ts --check   → exits 1 if docs/mission/tasks.json is stale
 //
-// The build's task tree, derived from the design book (docs/design/swarm.md, section 5). Nothing here is written by hand
+// The build's task tree, derived from the blueprint (docs/design/swarm.md, section 5). Nothing here is written by hand
 // except the milestones, which are the milestones of plan/plan.json (the coordinator's plan, read from the file, so there is
-// one list; portal.plan-page). Every other task is a record of the book, and its done is the book's own eval ids:
+// one list; portal.plan-page). Every other task is a record of the blueprint, and its done is the blueprint's own eval ids:
 //
 // - one lane per concept, in the layers of decision system.build-order (the concepts' dependsOn depth, equity last);
 // - in each lane: the door (its tables, machines and procedures), one task per durable process, one per operation, and
@@ -13,23 +13,23 @@
 //   write and invoke, the integrations they call, and the processes they start or wake (swarm.process-order); never on
 //   an event (swarm.events-not-needs), and never on a task in a later layer (swarm.layers).
 //
-// It fails (exit 1) if the book has problems, an eval is owned twice or not at all, an operation has no task or two, a
+// It fails (exit 1) if the blueprint has problems, an eval is owned twice or not at all, an operation has no task or two, a
 // need points at a later layer, or the needs (with each parent waiting on its children) have a cycle.
 //
 // A task with evals but no paths is a watch task (swarm.watch-tasks): no maker could change anything for it, so it has no
 // checkers and no budget, never gets a pair, and is done when its evals pass (the journeys).
 //
-// The file holds the tasks and nothing aggregated over the book: no record or eval counts, which change with every
+// The file holds the tasks and nothing aggregated over the blueprint: no record or eval counts, which change with every
 // decision record a lane adds. So two lanes that change different tasks regenerate it without a conflict, and a merge of
 // both is the file plan-tasks writes at the merged head (swarm.task-tree). The counts are printed instead.
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { name, records, stage } from "../../../books/target/index.ts";
-import { CONCEPTS } from "../../../books/target/shared/foundation.ts";
-import { recordsOf } from "../../../books/target/shared/index.ts";
-import { WORLDS } from "../../../books/target/devnet/worlds.ts";
+import { name, records, stage } from "../../../blueprint/index.ts";
+import { CONCEPTS } from "../../../blueprint/shared/foundation.ts";
+import { recordsOf } from "../../../blueprint/shared/index.ts";
+import { WORLDS } from "../../../blueprint/devnet/worlds.ts";
 import { parsePlan } from "./modules/plan/service.ts";
-import { buildBook, keyOf, type AnyRecord, type EvalDef } from "@capxul/book";
+import { buildBlueprint, keyOf, type AnyRecord, type EvalDef } from "@capxul/blueprint-engine";
 
 const OUT = "docs/mission/tasks.json";
 const PLAN = "plan/plan.json";
@@ -37,27 +37,27 @@ const check = process.argv.includes("--check");
 const failures: string[] = [];
 const warnings: string[] = [];
 
-// ── the book ────────────────────────────────────────────────────────────────────────────────
+// ── the blueprint ────────────────────────────────────────────────────────────────────────────────
 
-const book = buildBook({ name, stage, records });
-if (book.problems.length) {
-  console.error(`the book has ${book.problems.length} problems; build it to 0 first`);
+const blueprint = buildBlueprint({ name, stage, records });
+if (blueprint.problems.length) {
+  console.error(`the blueprint has ${blueprint.problems.length} problems; build it to 0 first`);
   process.exit(1);
 }
 const get = (key: string): AnyRecord => {
-  const r = book.records.get(key);
+  const r = blueprint.records.get(key);
   if (!r) throw new Error(`no record ${key}`);
   return r;
 };
-const all = [...book.records.values()];
+const all = [...blueprint.records.values()];
 const ofKind = (kind: string) => all.filter((r) => r._kind === kind).sort((a, b) => a.id.localeCompare(b.id));
 const linksFrom = (key: string, field?: string) =>
-  book.links.filter((l) => l.from === key && (field === undefined || l.field === field)).map((l) => l.to);
+  blueprint.links.filter((l) => l.from === key && (field === undefined || l.field === field)).map((l) => l.to);
 
 /** The concept whose folder exports a record (a machine's transitions come with it). */
 const conceptOf = new Map<string, string>();
 for (const c of CONCEPTS) {
-  const m = (await import(`../../../books/target/${c.id}/index.ts`)) as { modules: readonly object[] };
+  const m = (await import(`../../../blueprint/${c.id}/index.ts`)) as { modules: readonly object[] };
   for (const r of recordsOf(m.modules) as AnyRecord[]) {
     conceptOf.set(keyOf(r), c.id);
     if (r._kind === "machine") for (const t of Object.values(r.t as object) as AnyRecord[]) conceptOf.set(keyOf(t), c.id);
@@ -65,7 +65,7 @@ for (const c of CONCEPTS) {
 }
 // The pay agreements moved from payroll into payments (cut.agreements-in-payments); they keep their own folder inside it.
 {
-  const m = (await import("../../../books/target/payments/agreements/index.ts")) as { modules: readonly object[] };
+  const m = (await import("../../../blueprint/payments/agreements/index.ts")) as { modules: readonly object[] };
   for (const r of recordsOf(m.modules) as AnyRecord[]) {
     conceptOf.set(keyOf(r), "payments");
     if (r._kind === "machine") for (const t of Object.values(r.t as object) as AnyRecord[]) conceptOf.set(keyOf(t), "payments");
@@ -77,14 +77,14 @@ const concept = (key: string): string => {
   return c;
 };
 
-// The evals, by id. The book derives a few ids twice (a refusal under two worlds; an integration error listed twice):
-// swarmD's catalog.sync refuses a duplicate, so they are reported here and fixed in packages/book by D0, whose
+// The evals, by id. The blueprint derives a few ids twice (a refusal under two worlds; an integration error listed twice):
+// swarmD's catalog.sync refuses a duplicate, so they are reported here and fixed in packages/blueprint-engine by D0, whose
 // portal.eval-ids makes every id unique and adds the duplicate-eval problem (ms:D0/unique).
 const evalsById = new Map<string, EvalDef[]>();
-for (const e of book.evals) evalsById.set(e.id, [...(evalsById.get(e.id) ?? []), e]);
+for (const e of blueprint.evals) evalsById.set(e.id, [...(evalsById.get(e.id) ?? []), e]);
 const duplicated = [...evalsById].filter(([, v]) => v.length > 1).map(([id]) => id);
 if (duplicated.length)
-  warnings.push(`${duplicated.length} eval ids occur more than once in the book's evals (catalog.sync refuses them; ms:D0/unique): ${duplicated.slice(0, 4).join(", ")}, …`);
+  warnings.push(`${duplicated.length} eval ids occur more than once in the blueprint's evals (catalog.sync refuses them; ms:D0/unique): ${duplicated.slice(0, 4).join(", ")}, …`);
 const evalsOf = new Map<string, string[]>(); // subject record key → unique eval ids
 for (const [id, [e]] of evalsById) evalsOf.set(e!.subject, [...(evalsOf.get(e!.subject) ?? []), id]);
 const evalIdsOf = (subject: string) => evalsOf.get(subject) ?? [];
@@ -169,10 +169,10 @@ const needs = (from: string, ...to: string[]) => {
   const s = need.get(from)!;
   for (const k of to) if (k !== from) s.add(k);
 };
-/** Where a concept's hand-written code lives (system.layout): its book folder and src/<concept>/ in the backend and the
+/** Where a concept's hand-written code lives (system.layout): its blueprint folder and src/<concept>/ in the backend and the
  * SDK; indexing's views are Ponder's (packages/indexer), and devnet's supervisor and world builder are packages/devnet. */
 const OWN_PACKAGE: Record<string, string> = { indexing: "packages/indexer/", devnet: "packages/devnet/" };
-const lanePaths = (c: string) => [`books/target/${c}/`, `packages/backend/src/${c}/`, `packages/sdk/src/${c}/`, ...(OWN_PACKAGE[c] ? [OWN_PACKAGE[c]!] : [])];
+const lanePaths = (c: string) => [`blueprint/${c}/`, `packages/backend/src/${c}/`, `packages/sdk/src/${c}/`, ...(OWN_PACKAGE[c] ? [OWN_PACKAGE[c]!] : [])];
 /** What every task may also change, but only to what the generators write at its version (swarm.scope): the gate admits a
  * change here when `pnpm generate:check` and `plan-tasks --check` pass, so a book-first change carries its outputs. */
 const REGENERATED = ["docs/mission/tasks.json", "packages/*/src/generated/"];
@@ -202,7 +202,7 @@ const MILESTONES: Milestone[] = planMilestones.map((m, i) => ({
 /** The milestone the concepts' lanes sit under, and the ones a lane waits for: the real chain, then the door. */
 const CLIMB = "milestone:m4";
 for (const k of [CLIMB, "milestone:m2", "milestone:m3"]) if (!MILESTONES.some((m) => `milestone:${m.key}` === k)) failures.push(`plan/plan.json has no milestone ${k.slice("milestone:".length)}`);
-/** Book records whose evals no lane owns: the system's own, and the environments the plan's milestones stand up. */
+/** Blueprint records whose evals no lane owns: the system's own, and the environments the plan's milestones stand up. */
 const MILESTONE_BOOK: Readonly<Record<string, readonly string[]>> = {
   m1: ["system:capxul"],
   // the devnet's own environment and the invariants over no table (the clock's among them) are stood up with the door and the clock
@@ -211,7 +211,7 @@ const MILESTONE_BOOK: Readonly<Record<string, readonly string[]>> = {
 };
 
 add({ key: "capxul", kind: "root", title: "Capxul rebuilt", priority: "critical", evals: ["ok:capxul"], checkers: [], paths: [],
-  goal: "Capxul runs on the new stack and does everything the built book's operations promise (the old 215 less what the cut classified, plus the plugs and the door): every eval passes at the head of integration/build on a devnet, the system evals and the size budget hold, and staging's live evals hold for a week.",
+  goal: "Capxul runs on the new stack and does everything the built blueprint's operations promise (the old 215 less what the cut classified, plus the plugs and the door): every eval passes at the head of integration/build on a devnet, the system evals and the size budget hold, and staging's live evals hold for a week.",
   exit: [{ id: "ok:capxul", claim: "Aaron accepts the rebuild." }] });
 const owned = new Map<string, string>(); // eval id → task key
 const own = (task: string, ids: string[]) => {
@@ -227,7 +227,7 @@ for (const m of MILESTONES) {
   add({ key, kind: "milestone", title: m.title, goal: m.goal, parent: "capxul", priority: "critical", evals: [], checkers: [], paths: [], needs: m.needs,
     exit: m.exit.map(([id, claim]) => ({ id, claim })) });
   own(key, m.exit.map(([id]) => id));
-  for (const r of MILESTONE_BOOK[m.key] ?? []) if (book.records.has(r)) own(key, evalIdsOf(r));
+  for (const r of MILESTONE_BOOK[m.key] ?? []) if (blueprint.records.has(r)) own(key, evalIdsOf(r));
 }
 
 // ── lanes, doors, processes, rpcs, flows and operations ────────────────────────────────────
@@ -334,7 +334,7 @@ for (const o of ops) {
  * "devnet's own dev commands alongside the harness", and no world, so no pilot refusal or claim that starts from one, can
  * be built without them. Read from the worlds' steps, so a new step command joins the pilots by itself. */
 const worldCommands = new Set([
-  // the builder's own: restore `from`, run the steps, then `dev snapshot save <name> --replace` (books/target/devnet/worlds.ts)
+  // the builder's own: restore `from`, run the steps, then `dev snapshot save <name> --replace` (blueprint/devnet/worlds.ts)
   "dev snapshot save",
   "dev snapshot restore",
   ...WORLDS.flatMap((w) => w.steps.flatMap((s) => [...s.run.matchAll(/capxul (dev [a-z-]+(?: [a-z-]+)?)/g)].map((m) => m[1]!))),
@@ -343,7 +343,7 @@ const worldCommands = new Set([
 const commandOf = (c: string) =>
   ops.filter((o) => c === String(o.command) || c.startsWith(`${String(o.command)} `)).sort((a, b) => String(b.command).length - String(a.command).length)[0];
 const WORLD_OPS = [...new Set([...worldCommands].map(commandOf).filter((o) => o !== undefined).map((o) => keyOf(o!)))].sort();
-/** Pilots: the book's critical operations, the web app's setup flow, which starts an Account's setup
+/** Pilots: the blueprint's critical operations, the web app's setup flow, which starts an Account's setup
  * (accounts.setup-in-web-app), and the world builder's devnet commands. */
 const PILOTS = [...ops.filter((o) => o.priority === "critical").map(keyOf), "flow:client.account.setup", ...WORLD_OPS];
 const helperFlows = flows.filter((f) => !implementers.has(keyOf(f)));
@@ -532,8 +532,8 @@ const counts = {
   journeys: count((t) => t.kind === "journey"),
   pilotClosure: closure.size,
   money: count((t) => t.checkers.includes("adversary")),
-  bookEvals: book.evals.length,
-  uniqueBookEvals: evalsById.size,
+  blueprintEvals: blueprint.evals.length,
+  uniqueBlueprintEvals: evalsById.size,
   duplicateEvalIds: duplicated.length,
   milestoneEvals: [...owned.keys()].filter((id) => !evalsById.has(id)).length,
   needs: out.reduce((n, t) => n + t.needs.length, 0),
@@ -541,10 +541,10 @@ const counts = {
   worldPilots: WORLD_OPS.length,
   frontierAfterM3: frontierAfterM3.length,
   frontierLanesAfterM3: new Set(frontierAfterM3.map((t) => t.lane)).size,
-  bookRecords: book.records.size,
+  blueprintRecords: blueprint.records.size,
 };
 const doc = {
-  about: "The build's task tree, derived from books/target by packages/plan/src/tasks.ts (docs/design/swarm.md, section 5). Do not edit: change the book or the script, then regenerate. It holds no counts over the book, so lanes that change different tasks never conflict here.",
+  about: "The build's task tree, derived from blueprint by packages/plan/src/tasks.ts (docs/design/swarm.md, section 5). Do not edit: change the blueprint or the script, then regenerate. It holds no counts over the blueprint, so lanes that change different tasks never conflict here.",
   regenerated: REGENERATED,
   layers: [[INTEGRATIONS], ...computed, [JOURNEYS]],
   tasks: out,

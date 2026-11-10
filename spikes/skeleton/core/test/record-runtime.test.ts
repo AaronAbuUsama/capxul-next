@@ -5,7 +5,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Schema } from "effect";
-import { CommandRecordEntry } from "../../../../books/target/devnet/record-entry.ts";
+import { CommandRecordEntry } from "../../../../blueprint/devnet/record-entry.ts";
 
 test("real recorder outputs validate, redacts, and chains success, refusal and failure", async () => {
   const dir = mkdtempSync(join(tmpdir(), "record-schema-"));

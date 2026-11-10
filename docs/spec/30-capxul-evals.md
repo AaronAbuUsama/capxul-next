@@ -2,10 +2,10 @@
 
 > **Read with the design book.** This spec was written before the design book. Where the two differ,
 > the book wins:
-> - The eval catalogue is derived by `packages/book` from the target records: `evals.json` of a
+> - The eval catalogue is derived by `packages/blueprint-engine` from the target records: `evals.json` of a
 >   build. There is no `pnpm eval`. The repository uses npm workspaces, and the harness's command
 >   is the build session's to name (B2).
-> - Worlds are the named snapshots in `books/target/devnet/worlds.ts`, and a refusal names one in
+> - Worlds are the named snapshots in `blueprint/devnet/worlds.ts`, and a refusal names one in
 >   its `given`.
 > - `sys:loc` is per concept (`system.size`, `system.layout`). The harness keeps its own budget
 >   of 2,000 lines.
@@ -101,7 +101,7 @@ HogQL, through the scout worker's sandbox.
 
 ## Where evals come from in the design book
 
-The design book (`50-design-book.md`, code in `packages/book`) derives every eval from records;
+The design book (`50-design-book.md`, code in `packages/blueprint-engine`) derives every eval from records;
 nobody writes an eval list by hand. The operation is the frozen unit and keeps its book text; its
 implementation is one rpc or one Core SDK flow, and the server and data records below it carry the
 rest:

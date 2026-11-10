@@ -30,7 +30,7 @@ export const cell = (at: string, c: Cell, cites: Cites): string => {
   }
 };
 
-/** A section's heading, caption and table. A table with no rows says what the book is silent on. */
+/** A section's heading, caption and table. A table with no rows says what the blueprint is silent on. */
 export const tableSection = (at: string, s: TableSection, cites: Cites): string => {
   const head = `<h2 id="${esc(s.anchor)}">${esc(s.title)}</h2>${s.caption === "" ? "" : `<p class="caption">${rich(at, s.caption, cites)}</p>`}`;
   if (s.rows.length === 0) return `<section class="block">${head}<p class="silent">${rich(at, s.empty, cites)}</p></section>`;

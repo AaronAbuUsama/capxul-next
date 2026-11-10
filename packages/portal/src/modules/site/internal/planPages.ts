@@ -1,5 +1,5 @@
 /** The page of one task and of one milestone of the plan, with their history from the log. */
-import { keyOf } from "@capxul/book";
+import { keyOf } from "@capxul/blueprint-engine";
 
 import type { LogEntry } from "@capxul/plan";
 import type { PlanMilestonePage, PlanTaskPage } from "../types.ts";
@@ -21,7 +21,7 @@ export const taskPage = (ctx: Ctx, id: string): PlanTaskPage | null => {
   if (!m) return null;
   const at = held.plan.path.tasks.indexOf(id);
   const post = (x: string): ReturnType<typeof taskOf> | null => { const f = held.plan.tasks.find((y) => y.id === x); return f ? taskOf(ctx, f) : null; };
-  const named = t.records.flatMap((k) => { const r = ctx.input.book.records.get(k); return r ? [{ ref: refOf(r), evals: (ctx.evals.get(keyOf(r)) ?? []).length }] : []; });
+  const named = t.records.flatMap((k) => { const r = ctx.input.blueprint.records.get(k); return r ? [{ ref: refOf(r), evals: (ctx.evals.get(keyOf(r)) ?? []).length }] : []; });
   return {
     ...head(`plan/task/${id}`, t.title, SOURCE, null), type: "plan-task", commit: ctx.input.commit, task: taskOf(ctx, t), milestone: milestoneOf(ctx, m),
     sections: sections(fileOf(ctx, id)), needs: t.needs.flatMap((x) => post(x) ?? []), neededBy: held.plan.tasks.filter((x) => x.needs.includes(id)).map((x) => taskOf(ctx, x)),

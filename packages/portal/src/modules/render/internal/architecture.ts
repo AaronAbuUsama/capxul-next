@@ -1,7 +1,7 @@
 /**
  * The Architecture page. The hand-drawn picture is first and is labelled as hand-written; every section after it
- * is drawn from the book: what runs where, what depends on what, one request traced end to end, what crosses the
- * Frappe boundary, and what the book is silent on.
+ * is drawn from the blueprint: what runs where, what depends on what, one request traced end to end, what crosses the
+ * Frappe boundary, and what the blueprint is silent on.
  */
 import type { ArchitecturePage, Diagram, DiagramEdge, DiagramNode } from "#src/modules/site/types.ts";
 
@@ -37,7 +37,7 @@ const marker = (tone: string): string =>
 
 const diagram = (d: Diagram, title: string): string =>
   `<figure class="diagram"><figcaption class="diagram-label"><span class="chip chip-orange">Direction, hand-written</span>` +
-  `<span>This one picture is drawn by hand in <code>content/direction.ts</code>. It is where the design is heading, not what the book records; everything below it is generated from the book.</span></figcaption>` +
+  `<span>This one picture is drawn by hand in <code>content/direction.ts</code>. It is where the design is heading, not what the blueprint records; everything below it is generated from the blueprint.</span></figcaption>` +
   `<div class="diagram-scroll"><svg class="diagram-svg" width="${d.width}" height="${d.height}" viewBox="0 0 ${d.width} ${d.height}" role="img" aria-label="${esc(title)}">` +
   `<defs>${marker("grey")}${marker("blue")}</defs>${d.edges.map(edge).join("")}${d.nodes.map(node).join("")}</svg></div></figure>`;
 
@@ -52,11 +52,11 @@ const traced = (p: ArchitecturePage, cites: Cites): string =>
   p.traced
     ? section("request", "One request, end to end",
       `<p class="trace-top">The operation ${link(p.id, p.traced.operation, "ref")}: ${prose(p.traced.title)}.</p>${traceView(p.id, p.traced.trace, cites)}`,
-      "The same trace as on the operation's own page: the steps of the record that implements it, and what the book lists under each.")
+      "The same trace as on the operation's own page: the steps of the record that implements it, and what the blueprint lists under each.")
     : "";
 
 const silent = (p: ArchitecturePage, cites: Cites): string =>
-  section("silent", "What the book is silent on", p.silent.length === 0 ? "" :
+  section("silent", "What the blueprint is silent on", p.silent.length === 0 ? "" :
     `<ul class="silent-list">${p.silent.map((s) => `<li>${rich(p.id, s, cites)}</li>`).join("")}</ul>`,
   "Found by counting the records above. Each line is a gap in the design, not in this page.");
 

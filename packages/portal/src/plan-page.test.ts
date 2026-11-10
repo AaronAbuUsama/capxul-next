@@ -16,13 +16,13 @@ const ctx = { by: "coordinator", date: "2026-11-10", at: "2026-11-10T09:00:00.00
 
 const planOf = (input = fixtureInput()): { readonly plan: Plan; readonly facts: Facts } => {
   const facts: Facts = {
-    decisions: new Set([...input.book.records.values()].filter((r) => r._kind === "decision").map((r) => r.id)),
-    records: new Set(input.book.records.keys()), evals: new Set(input.book.evals.map((e) => e.id)), concepts: new Set(input.concepts),
+    decisions: new Set([...input.blueprint.records.values()].filter((r) => r._kind === "decision").map((r) => r.id)),
+    records: new Set(input.blueprint.records.keys()), evals: new Set(input.blueprint.evals.map((e) => e.id)), concepts: new Set(input.concepts),
   };
   const commands: Command[] = [
     { kind: "goal.set", title: "The goal title", why: "Because." },
     { kind: "exit.add", owner: "goal", id: "g1", claim: "Everything is a record." },
-    { kind: "milestone.add", id: "m1", title: "Foundation", goal: "Get the book fit.", concepts: ["access"] },
+    { kind: "milestone.add", id: "m1", title: "Foundation", goal: "Get the blueprint fit.", concepts: ["access"] },
     { kind: "milestone.current", id: "m1" },
     { kind: "task.add", what: "What it is.", doneWhen: ["It is done."], id: "t-decide", title: "Settle who invites", why: "Invitations are grants.", milestone: "m1" },
     { kind: "task.add", what: "What it is.", doneWhen: ["It is done."], id: "t-need", title: "Sign in to the cloud", why: "A machine needs an account.", milestone: "m1" },
@@ -31,7 +31,7 @@ const planOf = (input = fixtureInput()): { readonly plan: Plan; readonly facts: 
     { kind: "task.block", id: "t-need", blocker: { need: "sign in on this Mac", who: "Aaron" } },
     { kind: "task.start", id: "t-doing", thread: "plan-page" },
     { kind: "path.set", tasks: ["t-doing", "t-need"], why: "The page first, then the sign-in." },
-    { kind: "note", text: "First note: the book is cut." },
+    { kind: "note", text: "First note: the blueprint is cut." },
     { kind: "note", text: "Latest note: three things wait." },
   ];
   const plan = commands.reduce((p, c) => {
@@ -45,8 +45,8 @@ const planOf = (input = fixtureInput()): { readonly plan: Plan; readonly facts: 
 
 const OUTLINE = [
   "# The plan", "", "## Where we are going", "Capxul is the on-chain company. It runs on **Frappe** with `Core` built in.", "",
-  "## What this goal is", "Two things.", "", "1. **The book fully specifies it.** Every operation.", "2. **One shared world runs a thin line.** On a machine.", "",
-  "## How we get there", "Six milestones.", "", "## How the work runs", "- One coordinator writes the plan.", "- See [the book](docs/design-book.md) and `plan/plan.json`.", "",
+  "## What this goal is", "Two things.", "", "1. **The blueprint fully specifies it.** Every operation.", "2. **One shared world runs a thin line.** On a machine.", "",
+  "## How we get there", "Six milestones.", "", "## How the work runs", "- One coordinator writes the plan.", "- See [the blueprint](docs/blueprint.md) and `plan/plan.json`.", "",
   "## What is not in this goal", "OpenFort sign-in.", "",
 ].join("\n");
 const taskFile = (what: string): string => `## What\n${what}\n\n## Why\nBecause.\n\n## Done when\n- It works.\n- It is tested.\n\n## Links\n- \`docs/mission/cloud.md\`\n`;
@@ -56,7 +56,7 @@ const withPlan = (): { readonly site: Site; readonly page: PlanPage; readonly in
   const { plan } = planOf(base);
   const log = [{ at: "2026-11-10T09:00:00.000Z", by: "coordinator", action: "task.add", args: { id: "t-doing" }, commit: "abc1234" }];
   const files = {
-    outline: OUTLINE, milestones: { m1: "## What it delivers\nA book that is fit. Nothing is guessed.\n\n## How we know it is done\nThe exit lines." },
+    outline: OUTLINE, milestones: { m1: "## What it delivers\nA blueprint that is fit. Nothing is guessed.\n\n## How we know it is done\nThe exit lines." },
     tasks: { "t-decide": taskFile("Decide who invites. Then write it down."), "t-need": taskFile("Sign in to the cloud."), "t-doing": taskFile("Write the page. It reads top to bottom. Then more.") },
   };
   const held: PlanInput = { plan, files, log, problems: [] };
@@ -121,11 +121,11 @@ test("the portal check compares the Questions list with the judgments list plus 
   const site = buildSite(input);
   const files = new Map([...renderSite(site, fixtureAssets), ...twinsOf(site)]);
   const want = { problems: [], tasks: 3, ownerNeeds: ["t-need"], pages: planPagesOf(input) };
-  const ok = portalCheck(files, files, expect(input.book, input.waits, null, want));
+  const ok = portalCheck(files, files, expect(input.blueprint, input.waits, null, want));
   assert.deepEqual(ok.filter((o) => o.failures > 0).map((o) => o.check), []);
-  const missing = portalCheck(files, files, expect(input.book, input.waits, null, { ...want, ownerNeeds: ["t-need", "t-other"] }));
+  const missing = portalCheck(files, files, expect(input.blueprint, input.waits, null, { ...want, ownerNeeds: ["t-need", "t-other"] }));
   assert.ok(missing.some((o) => o.failures > 0 && o.check.includes("Questions list")));
-  const bad = portalCheck(files, files, expect(input.book, input.waits, null, { ...want, problems: ["t1: it is doing, and names no thread"], tasks: 4 }));
+  const bad = portalCheck(files, files, expect(input.blueprint, input.waits, null, { ...want, problems: ["t1: it is doing, and names no thread"], tasks: 4 }));
   assert.equal(bad.filter((o) => o.failures > 0).length, 2);
   assert.equal(passed(bad), false);
 });
@@ -149,12 +149,12 @@ test("the plan page reads top to bottom: where we are going, where we are, what 
   assert.match(html, /<strong>Frappe<\/strong>/, "the outline is rendered as Markdown");
   assert.match(html, /<code>Core<\/code>/);
   assert.match(html, /<code class="path">plan\/plan\.json<\/code>/, "a repository path is shown as a path");
-  assert.match(html, /the book <code class="path">docs\/design-book\.md<\/code>/, "a link to a repository path is shown as a path");
+  assert.match(html, /the blueprint <code class="path">docs\/blueprint\.md<\/code>/, "a link to a repository path is shown as a path");
   assert.match(html, /Write the page\. It reads top to bottom\./, "a step shows the first two sentences of its What");
   assert.doesNotMatch(html, /Then more\./);
   assert.match(html, /<li>It works\.<\/li><li>It is tested\.<\/li>/, "and its Done-when bullets");
   assert.match(html, /href="task\/t-doing\/index\.html"|href="\.\/task\/t-doing\/index\.html"|href="task\/t-doing\//, "a step links to its page");
-  assert.match(html, /A book that is fit\./, "the milestone row shows the first sentence of What it delivers");
+  assert.match(html, /A blueprint that is fit\./, "the milestone row shows the first sentence of What it delivers");
   assert.match(html, /2 things wait on you: /);
   assert.equal(html.split("The exit lines.").length - 1, 1, "How we know it is done appears once");
   assert.equal(html.split("Because.").length - 1, 0, "a task's Why is on its page, not repeated here");
@@ -189,7 +189,7 @@ test("the Overview's plan block gives the goal in two sentences, the latest note
   const { site } = withPlan();
   const page = site.pages.find((p) => p.id === "index");
   assert.ok(page?.type === "overview");
-  assert.equal(page.planGoal, "The book fully specifies it. One shared world runs a thin line.");
+  assert.equal(page.planGoal, "The blueprint fully specifies it. One shared world runs a thin line.");
   const html = renderSite(site, fixtureAssets).get("index.html") ?? "";
   assert.match(html, /Latest note: three things wait\./);
   assert.match(html, /href="plan\/index\.html"/);

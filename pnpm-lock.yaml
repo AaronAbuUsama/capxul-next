@@ -191,7 +191,7 @@ importers:
         specifier: 'catalog:'
         version: 5.9.3
 
-  packages/book:
+  packages/blueprint-engine:
     dependencies:
       effect:
         specifier: 'catalog:'
@@ -224,9 +224,9 @@ importers:
 
   packages/evals:
     dependencies:
-      '@capxul/book':
+      '@capxul/blueprint-engine':
         specifier: workspace:*
-        version: link:../book
+        version: link:../blueprint-engine
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -271,9 +271,9 @@ importers:
 
   packages/plan:
     dependencies:
-      '@capxul/book':
+      '@capxul/blueprint-engine':
         specifier: workspace:*
-        version: link:../book
+        version: link:../blueprint-engine
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -284,9 +284,9 @@ importers:
 
   packages/portal:
     dependencies:
-      '@capxul/book':
+      '@capxul/blueprint-engine':
         specifier: workspace:*
-        version: link:../book
+        version: link:../blueprint-engine
       '@capxul/plan':
         specifier: workspace:*
         version: link:../plan

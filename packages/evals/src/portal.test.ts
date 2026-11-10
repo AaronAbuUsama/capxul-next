@@ -1,6 +1,6 @@
 // A failing result written into a status file must show as failing on the portal, and a pass as passing.
 // The status file is a temporary one made by packages/evals/src/record-status.ts (the only writer); the portal is read from a temporary
-// root that points at the real books and plan, and generated into a temporary directory.
+// root that points at the real blueprint and plan, and generated into a temporary directory.
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -19,7 +19,7 @@ test("a failing result shows as fail on the operation's page, a passing one as p
   const tmp = mkdtempSync(join(tmpdir(), "evals-portal-"));
   const root = join(tmp, "root");
   mkdirSync(join(root, "status"), { recursive: true });
-  symlinkSync(join(REPO, "books"), join(root, "books"));
+  symlinkSync(join(REPO, "blueprint"), join(root, "blueprint"));
   symlinkSync(join(REPO, "plan"), join(root, "plan"));
 
   const results = join(tmp, "results.json");

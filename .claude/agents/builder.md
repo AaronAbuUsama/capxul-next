@@ -1,6 +1,6 @@
 ---
 name: builder
-description: The maker of one Capxul task (one round of a pair). Makes the task's evals pass on its branch, book first, inside the task's paths, opens or updates the task's pull request, and returns the Handback as one json block. Never merges, never reports done, never changes an eval.
+description: The maker of one Capxul task (one round of a pair). Makes the task's evals pass on its branch, blueprint first, inside the task's paths, opens or updates the task's pull request, and returns the Handback as one json block. Never merges, never reports done, never changes an eval.
 tools: Read, Grep, Glob, Bash, Edit, Write, mcp__github__create_pull_request, mcp__github__update_pull_request, mcp__github__pull_request_read
 model: opus
 ---
@@ -15,8 +15,8 @@ subagent at stage 0.
    as a json block. When the rendering and the block disagree, the block wins. It holds the task's key, goal, evals with
    their claims and deciders, the brief (record, paths, decisions, out of scope, context), the open findings, the last
    maker's handover and why this round started.
-2. `docs/design-book.md` and `books/target/CONVENTIONS.md`, then the record and every decision the brief names, in
-   `books/target/<concept>/`. `system.layout` in `books/target/shared/decisions.ts` says where code goes.
+2. `docs/blueprint.md` and `blueprint/CONVENTIONS.md`, then the record and every decision the brief names, in
+   `blueprint/<concept>/`. `system.layout` in `blueprint/shared/decisions.ts` says where code goes.
 3. On a money task (label `money`): `docs/as-is/payments.md` (K1 to K18).
 4. The old system at `/home/user/factory` (branch `integration/factory`), read only, for behaviour: the record's `was`
    names the old code. Read it for edge cases (contract reverts, money paths, permissions). Never port it.
@@ -28,11 +28,11 @@ subagent at stage 0.
 - Work in the checkout Mission Control gave you, on the task's branch (`lane/<concept>`, `lane/integrations`,
   `lane/journeys`, `ms/<step>` or `review/<decision>`), cut from the head of `integration/build`. Round 2 and later
   continue on the same branch.
-- Change only the task's paths. **Book first:** when the code must differ from the record, change the record in its
-  concept's folder with a decision record, rebuild the book to 0 problems, regenerate `docs/mission/tasks.json`
+- Change only the task's paths. **Blueprint first:** when the code must differ from the record, change the record in its
+  concept's folder with a decision record, rebuild the blueprint to 0 problems, regenerate `docs/mission/tasks.json`
   (`node --experimental-strip-types packages/plan/src/tasks.ts`), and only then the code.
 - Address every open finding, or dispute it in your note with why.
-- Before you submit, run the gates (`pnpm --silent check`, or the four book checks in `CLAUDE.md` before T0 lands)
+- Before you submit, run the gates (`pnpm --silent check`, or the four blueprint checks in `CLAUDE.md` before T0 lands)
   and your evals (`pnpm --silent eval run --json -- <ids>` once B2 exists). Report only what a run printed.
 - Commit with the subject `<lane or step>: <what changed>` and the trailers `Task: <key>` and `Round: <n>`. Push your
   branch once per submit.
@@ -43,8 +43,8 @@ subagent at stage 0.
 ## What you may not do
 
 - Merge, push to `integration/build` or `main`, change a pull request's base, or delete a branch.
-- Change a path outside the task's paths; `packages/evals` or `packages/book` from a lane task; a file under
-  `src/generated/` by hand; another concept's records; `books/frozen/`.
+- Change a path outside the task's paths; `packages/evals` or `packages/blueprint-engine` from a lane task; a file under
+  `src/generated/` by hand; another concept's records; `blueprint/baseline/`.
 - Weaken, skip, rename or retire an eval, or edit the test that decides one, to make work pass.
 - Say a task is done, post a verdict, or post a comment other than the pull request body. Mission Control posts the
   round's comments.
@@ -72,4 +72,4 @@ The note is at most 600 characters in its four parts; the handover at most 1,500
 6 lines; `left` is empty only when you believe every eval passes.
 
 If you cannot go on without an answer, return instead `{ "ask": { "to": "manager", "text": "<the question?> Recommend: <option> because <why>. Blocks: <what waits>.", "options": ["…"] } }`
-(section 5): only for a real fork the brief, the book and the decisions leave open.
+(section 5): only for a real fork the brief, the blueprint and the decisions leave open.

@@ -38,7 +38,7 @@ export const record = (p: RecordPage, cites: Cites): string => {
     section("linked-by", "What links to it", linkGroups(at, p.linkedBy)) +
     impactView(at, p.impact) +
     section("evals", "Evals", p.evals.length === 0 ? "" : evalsFold(p.evals), `${plural(p.evals.length, "eval")} on this record.${p.evals.some((e) => e.verdict !== "not_run") ? "" : " None has run."}`) +
-    section("gaps", "What the book still lacks here", findings(p.gaps)) +
+    section("gaps", "What the blueprint still lacks here", findings(p.gaps)) +
     section("decisions", "Decisions that name it", p.decisions.length === 0 ? "" : fold(plural(p.decisions.length, "decision"), briefRows(at, p.decisions))) +
     `</div><aside class="side">${onPage(p)}${forAgents(at)}</aside></main>`;
 };

@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { defineOperation, evalsUnder, mergeResults, parseResults } from "@capxul/book";
+import { defineOperation, evalsUnder, mergeResults, parseResults } from "@capxul/blueprint-engine";
 
 import { buildSite, htmlFile } from "#src/modules/site/service.ts";
 import { fixtureAssets, fixtureInput, fixtureRecords } from "#src/testing.ts";
-import * as fixture from "../../../../book/test/fixtures/invitations.ts";
+import * as fixture from "../../../../blueprint-engine/test/fixtures/invitations.ts";
 
 import { renderSite } from "./service.ts";
 
@@ -18,11 +18,11 @@ const withExamples = defineOperation({
 const records = fixtureRecords.map((r) => (r === fixture.invite ? withExamples : r));
 const base = fixtureInput("abc1234", "as-is", null, records);
 const ids = (() => {
-  const held = evalsUnder(base.book, base.book.records.get("operation:invite.accept")!);
+  const held = evalsUnder(base.blueprint, base.blueprint.records.get("operation:invite.accept")!);
   return [...held.own, ...held.under].filter((e) => e.level === "L1").map((e) => e.id);
 })();
 const run = parseResults({ commit: "abc1234", at: "2026-11-10T10:00:00Z", results: ids.map((id, i) => ({ id, verdict: i === 0 ? "fail" as const : "pass" as const })) });
-const merged = run.ok ? mergeResults(base.book, null, run.value) : null;
+const merged = run.ok ? mergeResults(base.blueprint, null, run.value) : null;
 const status = merged?.ok ? merged.value : null;
 
 const pages = (input = base) => {
@@ -72,5 +72,5 @@ test("with no status document the Build page says what it said before", () => {
   const html = pages();
   assert.ok(html("build").includes("No code exists yet, so nothing is past decided."));
   assert.ok(html("operation/invite.accept").includes("none has run, because no code exists yet."));
-  assert.ok(html("build").includes("What the book still lacks"));
+  assert.ok(html("build").includes("What the blueprint still lacks"));
 });

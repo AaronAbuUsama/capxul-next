@@ -1,5 +1,5 @@
 /** The files a run leaves: the results file `packages/evals/src/record-status.ts` merges, and the evidence behind each verdict. */
-import type { ResultsFile } from "@capxul/book";
+import type { ResultsFile } from "@capxul/blueprint-engine";
 import type { Row, RunInfo } from "../types.ts";
 
 /** An eval id as a file name: `acc:doc.submit/1` is `acc-doc.submit-1`. */

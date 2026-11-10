@@ -39,7 +39,7 @@ test("no link starts at the host's root, so the site works from a folder and fro
   assert.ok(html("index").includes('href="assets/style.css"'));
 });
 
-test("text from the book is escaped", () => {
+test("text from the blueprint is escaped", () => {
   assert.equal(html("index").includes("<script>alert"), false);
   for (const page of site.pages) assert.equal(/<td[^>]*>[^<]*<(?!\/?(?:a|span|code|b|em|br|div|ul|li|ol|p|table|tr|td|th|thead|tbody|details|summary|strong|small|svg|h3|h4)\b)/.test(html(page.id)), false, `${page.id}: an unknown tag in a cell`);
 });
@@ -106,7 +106,7 @@ test("an operation page shows the call twice, the skeleton, the trace and every 
   const text = html("operation/invite.accept");
   for (const id of ['id="call-cli"', 'id="call-sdk"', 'id="run"', 'id="evals-acc"', 'id="evals-ret"']) assert.ok(text.includes(id), `no ${id}`);
   assert.ok(text.includes("generated from the schema, not a recorded response"));
-  assert.ok(text.includes("the book names none"), "an empty row of the trace is left out");
+  assert.ok(text.includes("the blueprint names none"), "an empty row of the trace is left out");
   assert.equal(text.includes("All ") && text.includes("evals, with their ids"), false, "the evals are still folded");
   assert.ok(html("review").includes('class="tk-') === false && html("review").includes("answer-json"));
 });

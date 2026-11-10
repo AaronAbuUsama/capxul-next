@@ -62,12 +62,12 @@ test("a doing task has a thread; a blocked task says what blocks it, and a decis
   assert.ok(has(edit(plan, (p) => ({ ...p, tasks: p.tasks.map((t) => (t.id === "t1" ? { ...t, state: "doing" } : t)) })), /t1: it is doing, and names no thread/));
   assert.ok(has(edit(plan, (p) => ({ ...p, tasks: p.tasks.map((t) => (t.id === "t1" ? { ...t, state: "blocked" } : t)) })), /t1: it is blocked, and says what blocks it/));
   const gone = edit(plan, (p) => ({ ...p, tasks: p.tasks.map((t) => (t.id === "t1" ? { ...t, state: "blocked", blockedBy: { decision: "d.gone" } } : t)) }));
-  assert.ok(has(gone, /t1: it is blocked on decision d\.gone, which the book does not hold/));
+  assert.ok(has(gone, /t1: it is blocked on decision d\.gone, which the blueprint does not hold/));
   assert.deepEqual(problemsOf(run(...base, { kind: "task.block", id: "t1", blocker: { decision: "d.one" } })), []);
   assert.deepEqual(problemsOf(run(...base, { kind: "task.block", id: "t1", blocker: { need: "a key", who: "Aaron" } })), []);
 });
 
-test("record keys, eval ids and concepts must resolve in the book", () => {
+test("record keys, eval ids and concepts must resolve in the blueprint", () => {
   const plan = run(...base);
   assert.ok(has(edit(plan, (p) => ({ ...p, tasks: p.tasks.map((t) => (t.id === "t1" ? { ...t, records: ["operation:no.such"] } : t)) })), /t1: it names record operation:no\.such/));
   assert.equal(apply(plan, { kind: "task.edit", id: "t1", fields: { records: ["operation:no.such"] } }, ctx, facts).ok, false);
@@ -154,17 +154,17 @@ test("answers: unapplied ones are listed, applying is a log line and never a rew
   const lines = parseAnswerLines(text);
   assert.equal(lines.length, 3, "lines that are not answers are ignored, not repaired");
   assert.deepEqual(unapplied(lines, []).map((a) => a.id), ["a-1"], "a withdrawn answer is not listed");
-  const entry = applyAnswer(lines, [], "a-1", "ruling in books/target/shared/rulings.ts", "coordinator", "2026-11-10T10:00:00Z", "abc");
+  const entry = applyAnswer(lines, [], "a-1", "ruling in blueprint/shared/rulings.ts", "coordinator", "2026-11-10T10:00:00Z", "abc");
   assert.ok(entry.ok);
   if (!entry.ok) return;
-  assert.deepEqual(entry.value.args, { answer: "a-1", target: { kind: "decision", id: "d.one" }, evidence: "ruling in books/target/shared/rulings.ts" });
+  assert.deepEqual(entry.value.args, { answer: "a-1", target: { kind: "decision", id: "d.one" }, evidence: "ruling in blueprint/shared/rulings.ts" });
   assert.deepEqual(unapplied(lines, [entry.value]), [], "the log, not the answers file, says it is applied");
   assert.equal(applyAnswer(lines, [entry.value], "a-1", "x", "c", "t", "c").ok, false, "twice");
   assert.equal(applyAnswer(lines, [], "a-1", " ", "c", "t", "c").ok, false, "without evidence");
   assert.equal(applyAnswer(lines, [], "a-2", "x", "c", "t", "c").ok, false, "a withdrawn answer");
   const plan = run(...base);
   const still = check(plan, { ...facts, waiting: new Set(["d.one"]), applied: appliedTargets([entry.value]) }).map((p) => p.why);
-  assert.ok(still.some((w) => /decision d\.one still waits in the book with no ruling/.test(w)));
+  assert.ok(still.some((w) => /decision d\.one still waits in the blueprint with no ruling/.test(w)));
   assert.deepEqual(check(plan, { ...facts, waiting: new Set(), applied: appliedTargets([entry.value]) }), []);
   assert.match(show(plan, [], unapplied(lines, [])), /^1 answers from Aaron to apply/);
   assert.deepEqual(parseArgs(["answers", "apply", "a-1", "--evidence", "e"]), { ok: true, value: { kind: "answers.apply", answer: "a-1", evidence: "e", by: "coordinator" } });

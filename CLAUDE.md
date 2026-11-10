@@ -1,36 +1,36 @@
 # CLAUDE.md
 
 > **The map of this repository is [README.md](README.md).** What is current is the plan (`pnpm plan show`) and the
-> rulings in the book. [START-HERE.md](START-HERE.md) is the owner's direction of 9 November 2026, kept as a record:
+> rulings in the blueprint. [START-HERE.md](START-HERE.md) is the owner's direction of 9 November 2026, kept as a record:
 > capxul-next is the rebuild of Capxul Core, Frappe-native, coordinated through the plan, the portal and the loop (no
 > swarmD). Where an older document disagrees with the plan or a ruling, the plan and the ruling win.
 
-This repository holds the Capxul rebuild: a typed design book (`books/target`, `packages/book`) and,
+This repository holds the Capxul rebuild: a typed blueprint (`blueprint/`, built by `packages/blueprint-engine`) and,
 from the build session on, the product code it describes.
 
 - **Start here.** Run `pnpm plan show`: it gives the goal, the critical path and the task you are on. Read
-  `docs/design-book.md` before you add or change a record.
-- **The book changes first.** When code needs to differ from the book:
+  `docs/blueprint.md` before you add or change a record.
+- **The blueprint changes first.** When code needs to differ from the blueprint:
   1. change the record and add a decision record;
   2. rebuild to zero problems;
   3. change the code.
 
-  Never edit `books/frozen/` or any file under a `src/generated/` folder. For the contracts in `packages/contracts` the code
+  Never edit `blueprint/baseline/` or any file under a `src/generated/` folder. For the contracts in `packages/contracts` the code
   is the truth for what exists: change a contract's source, run `pnpm contracts:export-abi`, and reconcile the contract records
-  until `pnpm contracts:check-book` passes (`docs/design-book.md`, "Contract records and the contract code").
+  until `pnpm contracts:check-blueprint` passes (`docs/blueprint.md`, "Contract records and the contract code").
 - **What is fixed is behaviour, not spelling** (`system.frozen-behaviour`). Each of the 215 old
-  operations is either booked in the book or classified by the cut (reached, dropped or parked: `books/target/shared/cut.ts`,
+  operations is either booked in the blueprint or classified by the cut (reached, dropped or parked: `blueprint/shared/cut.ts`,
   `docs/cut-archive/INDEX.md`), never both and never neither. A booked operation's acceptance claims are the evals. Commands, flags,
-  `--json` shapes, refusal codes and wording are the target book's to design as one system. A
-  change to any of them goes into the book first, with a decision.
+  `--json` shapes, refusal codes and wording are the blueprint's to design as one system. A
+  change to any of them goes into the blueprint first, with a decision.
 - **Every change passes these checks before it merges:**
 
   ```bash
-  pnpm exec tsc -p packages/book && pnpm test
-  pnpm exec tsc -p books
-  node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 0 problems
-  node --experimental-strip-types packages/book/scripts/check-frozen.ts                                           # 0 breaches: every behaviour kept
-  pnpm contracts:check-book                                                                       # 0 undeclared differences: the contract records match the code
+  pnpm exec tsc -p packages/blueprint-engine && pnpm test
+  pnpm exec tsc -p blueprint
+  node --experimental-strip-types packages/blueprint-engine/src/main.ts blueprint/index.ts /tmp/target   # 0 problems
+  node --experimental-strip-types packages/blueprint-engine/scripts/check-frozen.ts                                           # 0 breaches: every behaviour kept
+  pnpm contracts:check-blueprint                                                                       # 0 undeclared differences: the contract records match the code
   pnpm layout                                                                                     # the top level, file sizes and package READMEs (also in pnpm test)
   ```
 
@@ -46,9 +46,9 @@ from the build session on, the product code it describes.
   `--why` and `--done-when`. The owner's answers arrive in `plan/answers.jsonl` through `pnpm portal:serve`; `pnpm plan answers`
   lists them, and after writing the ruling or unblocking the task you run `pnpm plan answers apply <id> --evidence <ref>`. Only the coordinator writes `path set` and `note`: the critical path is written, never
   computed. `pnpm test` runs `plan check` and `plan-tasks --check` too.
-- **Where code goes:** decision `system.layout` in `books/target/shared/decisions.ts`. In short:
+- **Where code goes:** decision `system.layout` in `blueprint/shared/decisions.ts`. In short:
   - one package per component;
-  - `src/<concept>/` mirrors `books/target/<concept>/`;
+  - `src/<concept>/` mirrors `blueprint/<concept>/`;
   - another concept's code is imported only through its `door.ts`;
   - lanes `lane/<concept>` merge into `integration/build`.
 - **Tracking work.** Work is tracked in the plan (above) and proven on the scoreboard (below). This old Capxul
@@ -57,7 +57,7 @@ from the build session on, the product code it describes.
   says so. `pnpm evals -- <eval ids | all | --journey id | --milestone id>` runs the checks bound to
   evals (`evals/bindings/`) and is the only thing that writes `status/status.json`; never edit that
   file or an eval's verdict by hand. A claim with no check is `not_run` until a check proves all of
-  it (`pnpm evals -- gaps` lists what has none). `docs/design-book.md`, "Evals run", has the rules.
+  it (`pnpm evals -- gaps` lists what has none). `docs/blueprint.md`, "Evals run", has the rules.
 - **Decisions.** Every judgment is a decision record. Bring Aaron only what is truly his: a question goes to him
   as a blocked plan task, and his answer arrives through `pnpm plan answers`.
 - **Old system.** `Xelmar-tech/infrastructure` (branch `integration/factory`) is a reference for

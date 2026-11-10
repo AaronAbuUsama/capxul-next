@@ -3,7 +3,7 @@
  * are here: an eval with no check is `not_run` and never `pass`; a check that failed fails its eval; a check that did not
  * run leaves its eval as it was. Nothing here reads a file, the clock or the process.
  */
-import type { Verdict } from "@capxul/book";
+import type { Verdict } from "@capxul/blueprint-engine";
 
 /** One `@check` line of a script's output. */
 export interface CheckLine {

@@ -29,7 +29,7 @@ body:
     id: goal
     attributes:
       label: "Goal"
-      description: "TaskDef.goal: 'Decision <id> records the answer of #<issue> (seen at <7 hex>), and every record it ripples to says the same; the book builds to 0 problems and check-frozen reports 0 breaches.'"
+      description: "TaskDef.goal: 'Decision <id> records the answer of #<issue> (seen at <7 hex>), and every record it ripples to says the same; the blueprint builds to 0 problems and check-frozen reports 0 breaches.'"
     validations:
       required: true
   - type: input
@@ -54,7 +54,7 @@ body:
     id: evals
     attributes:
       label: "Evals"
-      description: "TaskDef.evals: dec:<decision>/review (swarm.hand-tasks). Until the book derives it, Mission Control counts the task done at its merge."
+      description: "TaskDef.evals: dec:<decision>/review (swarm.hand-tasks). Until the blueprint derives it, Mission Control counts the task done at its merge."
       placeholder: "dec:payments.birth-width/review"
     validations:
       required: true
@@ -88,8 +88,8 @@ body:
     id: paths
     attributes:
       label: "Paths"
-      description: "TaskDef.paths: the book folders of the decision and the records it ripples to; docs/decisions/accepted-surface.json for surface."
-      placeholder: "books/target/payments/"
+      description: "TaskDef.paths: the blueprint folders of the decision and the records it ripples to; docs/decisions/accepted-surface.json for surface."
+      placeholder: "blueprint/payments/"
     validations:
       required: true
   - type: input

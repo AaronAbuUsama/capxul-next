@@ -59,7 +59,7 @@
 .variant + .variant { margin-top: 12px; }
 .variant-label { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
 
-/* number cells: what the book holds, a concept's counts, the build totals */
+/* number cells: what the blueprint holds, a concept's counts, the build totals */
 .cells { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .cells-small { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); margin-top: 24px; }
 .cell { background: #FFF; padding: 14px 16px; display: flex; flex-direction: column; box-shadow: 1px 1px 0 var(--line); }

@@ -21,10 +21,10 @@ const TYPES: Readonly<Record<string, string>> = {
 
 const lines = (file: string): string => (existsSync(file) ? readFileSync(file, "utf8") : "");
 
-/** What waits on the owner now: the book's decisions (as loaded) and the plan's tasks blocked on a need of his (read afresh). */
+/** What waits on the owner now: the blueprint's decisions (as loaded) and the plan's tasks blocked on a need of his (read afresh). */
 const waitingOf = (input: SiteInput, root: string): Waiting => {
   const owner = input.direction.settings.reviewer.toLowerCase();
-  const decisions = new Map([...input.book.records.values()].filter((r) => r._kind === "decision" && input.waits(r)).map((d) => {
+  const decisions = new Map([...input.blueprint.records.values()].filter((r) => r._kind === "decision" && input.waits(r)).map((d) => {
     const options = Array.isArray(d["options"]) ? (d["options"] as readonly { label?: unknown }[]).map((o) => String(o.label)) : [];
     return [d.id, options] as const;
   }));

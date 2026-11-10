@@ -23,7 +23,7 @@ He accepted every recommendation below that he did not mention. He changed two:
 the v4 contracts.
 
 The open decisions, numbered as they were put to Aaron (in text written for text-to-speech). Each recommendation
-stands, and the build follows it, until he answers. His answers go into `books/target/shared/rulings.ts`, book first.
+stands, and the build follows it, until he answers. His answers go into `blueprint/shared/rulings.ts`, book first.
 
 ## His direction of 8 November 2026, evening (recorded in the eighth batch; applied in the world pass, 9 November 2026)
 
@@ -152,7 +152,7 @@ questions; each recommendation stands, and the build follows it, until he answer
 | 48 | HR: the 45 commands of section 5.9 (holidays, leave types, allocations and applications, shifts, check-ins and attendance, expense types, claims and advances)? | As booked; HR is part of payroll, not a concept of its own | `payroll.hr-commands`, `payroll.hr-in-payroll`, section 5.9 |
 | 49 | Nobody approves their own expense claim or advance, so a department's only hat wearer waits for someone else to wear that hat or one above it. Should the Board decide those instead? | No: keep refusing; a sole holder who spends for the department pays it as a department payment | `payroll.hr-approvers` |
 
-To record in `books/target/shared/rulings.ts` (its owner's, not the pass's): "payroll means HR" as a ruling of its own
+To record in `blueprint/shared/rulings.ts` (its owner's, not the pass's): "payroll means HR" as a ruling of its own
 (for example `aaron.payroll-means-hr`), which the `payroll.hr-*` decisions would then cite; and the CARRIES_OUT and
 SUPERSEDED entries the pass's records ask for (see its build report).
 

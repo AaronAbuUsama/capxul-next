@@ -1,4 +1,4 @@
-/** Validates parsed binding files against the book's evals and the scripts' checks, and indexes them by eval. */
+/** Validates parsed binding files against the blueprint's evals and the scripts' checks, and indexes them by eval. */
 import type { Binding, BindingFile, Bindings, Known, Result } from "../types.ts";
 
 export const load = (files: readonly BindingFile[], known: Known): Result<Bindings> => {
@@ -9,7 +9,7 @@ export const load = (files: readonly BindingFile[], known: Known): Result<Bindin
     const script = known.scripts.get(file.script);
     if (!script) errors.push(`${file.source}: script ${file.script} is not one the runner knows`);
     const checkNames = (where: string, id: string, names: readonly string[]): void => {
-      if (!known.evals.has(id)) errors.push(`${file.source}: ${where} ${id}: the book derives no such eval`);
+      if (!known.evals.has(id)) errors.push(`${file.source}: ${where} ${id}: the blueprint derives no such eval`);
       names.forEach((name, i) => {
         if (names.indexOf(name) !== i) errors.push(`${file.source}: ${where} ${id}: check ${name} is named twice`);
         else if (script?.guards.has(name)) errors.push(`${file.source}: ${where} ${id}: ${name} is a guard, which only ever fails, so it proves nothing`);

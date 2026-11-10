@@ -15,7 +15,7 @@ const generate = (): Map<string, string> => {
   return new Map([...renderSite(site, fixtureAssets), ...twinsOf(site)]);
 };
 const files = generate();
-const expected = expect(input.book, input.waits);
+const expected = expect(input.blueprint, input.waits);
 const run = (changed: ReadonlyMap<string, string>, again: ReadonlyMap<string, string> = changed, want = expected): readonly Outcome[] =>
   check(changed, again, want);
 /** The names of the parts that failed. */
@@ -31,7 +31,7 @@ const replaceIn = (file: string, from: string, to: string) => (copy: Map<string,
   copy.set(file, text.replace(from, to));
 };
 
-test("what the book expects: a page per record that has one, the waiting list, the operations", () => {
+test("what the blueprint expects: a page per record that has one, the waiting list, the operations", () => {
   assert.deepEqual(expected.pages.slice(0, 6), ["index", "plan", "review", "design", "build", "docs"]);
   assert.ok(expected.pages.includes("operation/org.member.invite") && expected.pages.includes("concept/access"));
   assert.equal(expected.pages.some((p) => /^(transition|call|function|chainEvent|system)\//.test(p)), false);
@@ -40,7 +40,7 @@ test("what the book expects: a page per record that has one, the waiting list, t
   for (const page of ["docs/commands", "docs/events", "docs/errors", "docs/spans", "docs/decisions", "eval", "eval/acc", "eval/ref"]) {
     assert.ok(expected.pages.includes(page), `no page ${page}`);
   }
-  assert.equal(expected.evals, input.book.evals.length);
+  assert.equal(expected.evals, input.blueprint.evals.length);
 });
 
 test("a generated site passes every part", () => {
@@ -99,21 +99,21 @@ test("an operation without a stand fails", () => {
 
 test("an eval catalogue that drops an eval, or a catalogue page that is missing, fails", () => {
   const dropped = run(files, files, { ...expected, evals: expected.evals + 1 });
-  assert.deepEqual(failed(dropped), ["the eval catalogue lists every eval the book derives"]);
+  assert.deepEqual(failed(dropped), ["the eval catalogue lists every eval the blueprint derives"]);
   const gone = run(change((copy) => void copy.delete("docs/events/index.html")));
   assert.ok(failed(gone).includes("every record has a page and both twins, and every page belongs to a record"));
 });
 
-test("a status entry for an eval the book does not derive fails the check; a known one passes", () => {
+test("a status entry for an eval the blueprint does not derive fails the check; a known one passes", () => {
   const at = "2026-11-10T10:00:00Z";
   const entry = { verdict: "pass", commit: "abc1234", at } as const;
-  const known = expect(input.book, input.waits, { version: 1, evals: { "ret:invite.accept": entry } });
+  const known = expect(input.blueprint, input.waits, { version: 1, evals: { "ret:invite.accept": entry } });
   assert.deepEqual(known.unknownStatus, []);
   assert.deepEqual(failed(run(files, files, known)), []);
-  const unknown = expect(input.book, input.waits, { version: 1, evals: { "ret:invite.accept": entry, "ret:ghost": entry } });
+  const unknown = expect(input.blueprint, input.waits, { version: 1, evals: { "ret:invite.accept": entry, "ret:ghost": entry } });
   assert.deepEqual(unknown.unknownStatus, ["ret:ghost"]);
   const outcomes = run(files, files, unknown);
-  assert.deepEqual(failed(outcomes), ["every status entry names an eval the book derives"]);
+  assert.deepEqual(failed(outcomes), ["every status entry names an eval the blueprint derives"]);
   assert.match(outcomes.find((o) => o.failures > 0)?.detail[0] ?? "", /ret:ghost/);
   assert.deepEqual(expected.unknownStatus, [], "no status document, no unknown entry");
 });

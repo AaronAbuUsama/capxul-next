@@ -1,5 +1,5 @@
 /**
- * Long text from the book, made readable without changing a word: split into short paragraphs, `code` drawn as
+ * Long text from the blueprint, made readable without changing a word: split into short paragraphs, `code` drawn as
  * code, and a bracketed citation such as "(old S3)" or "(payments.claim-escrow-routes)" drawn quieter, as a link
  * when it names a record. The splitter never cuts inside backticks or brackets, or after an abbreviation.
  */
@@ -79,7 +79,7 @@ const cite = (at: string, inner: string, cites: Cites): string | null => {
   }).join("");
 };
 
-/** One line of the book's text as HTML: escaped, `code` as code, and citations quiet. */
+/** One line of the blueprint's text as HTML: escaped, `code` as code, and citations quiet. */
 export const rich = (at: string, text: string, cites: Cites): string =>
   text.split("`").map((piece, i) => {
     if (i % 2 === 1) return `<code>${esc(piece)}</code>`;

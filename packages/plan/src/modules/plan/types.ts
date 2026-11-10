@@ -1,5 +1,5 @@
 /**
- * The plan module's types: the plan as the coordinator writes it, the facts about the book it is checked against, the
+ * The plan module's types: the plan as the coordinator writes it, the facts about the blueprint it is checked against, the
  * commands that change it, and what comes back. Nothing here reads a file or the clock.
  *
  * The plan is authored, never computed: the critical path is the coordinator's own ordered list and its own words
@@ -9,7 +9,7 @@
 export type Result<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: string };
 
 export type ExitState = "open" | "met";
-/** One line of what must be true: a goal's or a milestone's. `evals` names eval ids of the book that count towards it. */
+/** One line of what must be true: a goal's or a milestone's. `evals` names eval ids of the blueprint that count towards it. */
 export interface ExitLine {
   readonly id: string;
   readonly claim: string;
@@ -33,7 +33,7 @@ export interface Milestone {
   readonly state: MilestoneState;
   /** Position in the plan, from 1. A milestone is "before" another when its order is lower. */
   readonly order: number;
-  /** Book concepts whose derived evals count towards this milestone. */
+  /** Blueprint concepts whose derived evals count towards this milestone. */
   readonly concepts?: readonly string[];
 }
 
@@ -51,9 +51,9 @@ export interface Task {
   readonly thread?: string;
   readonly needs: readonly string[];
   readonly blockedBy?: Blocker;
-  /** Book record keys it concerns, as `kind:id`. */
+  /** Blueprint record keys it concerns, as `kind:id`. */
   readonly records: readonly string[];
-  /** Eval ids of the book that say it is done: it is done when they pass in a run (`pnpm evals`), not when an agent says so. */
+  /** Eval ids of the blueprint that say it is done: it is done when they pass in a run (`pnpm evals`), not when an agent says so. */
   readonly evals?: readonly string[];
   /** Commits or paths. */
   readonly evidence: readonly string[];
@@ -86,7 +86,7 @@ export interface Plan {
 
 // ── the owner's answers (plan/answers.jsonl, append only) ───────────────────────────────────
 
-/** What an answer is about: a decision that waits in the book, or a task of the plan blocked on a need. */
+/** What an answer is about: a decision that waits in the blueprint, or a task of the plan blocked on a need. */
 export interface Target { readonly kind: "decision" | "task"; readonly id: string }
 /** The owner's answer: accept the recommendation, choose another option, change it in words; or for a task, done or words. */
 export type How =
@@ -101,14 +101,14 @@ export interface Answer { readonly type: "answer"; readonly id: string; readonly
 export interface Withdrawal { readonly type: "withdraw"; readonly id: string; readonly at: string; readonly answer: string }
 export type AnswerLine = Answer | Withdrawal;
 
-/** What the plan is checked against: the book, as sets of names. */
+/** What the plan is checked against: the blueprint, as sets of names. */
 export interface Facts {
   readonly decisions: ReadonlySet<string>;
   /** Record keys, `kind:id`. */
   readonly records: ReadonlySet<string>;
   readonly evals: ReadonlySet<string>;
   readonly concepts: ReadonlySet<string>;
-  /** Decisions that still wait for the owner in the book (shared/waiting.ts): none yet when absent. */
+  /** Decisions that still wait for the owner in the blueprint (shared/waiting.ts): none yet when absent. */
   readonly waiting?: ReadonlySet<string>;
   /** The targets of answers the log says were applied. */
   readonly applied?: readonly Target[];

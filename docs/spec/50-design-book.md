@@ -2,11 +2,11 @@
 
 The book holds the whole design, not only operations. Every part of the system is a record:
 typed, checked, linked to the records it depends on, and carrying the evals that say when it
-is done. The code is in [`packages/book`](../../packages/book), about 1,500 lines; its tests pass. How the book
-fits into the wider system, and how it is used end to end, is in [`docs/design-book.md`](../design-book.md).
+is done. The code is in [`packages/blueprint-engine`](../../packages/blueprint-engine), about 1,500 lines; its tests pass. How the book
+fits into the wider system, and how it is used end to end, is in [`docs/blueprint.md`](../blueprint.md).
 
 This page is the schema's reading guide. The schema itself is
-`packages/book/src/records/*.ts`, written in Effect Schema, and where they differ the code wins.
+`packages/blueprint-engine/src/records/*.ts`, written in Effect Schema, and where they differ the code wins.
 
 ## Records are TypeScript, links are imports
 
@@ -140,7 +140,7 @@ book adds evals for the other record kinds:
 
 ## Views: generated, never drawn
 
-`node --experimental-strip-types packages/book/src/main.ts <book module> <out>` writes:
+`node --experimental-strip-types packages/blueprint-engine/src/main.ts <book module> <out>` writes:
 
 - `README.md`: counts, the component diagram, the concept diagram, problems, gaps by rule
 - `concepts/<id>.md`: per concept, its tables, its state diagrams, operations, workflows and gaps

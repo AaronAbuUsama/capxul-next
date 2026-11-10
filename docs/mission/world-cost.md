@@ -48,7 +48,7 @@ Measured on this Mac (10 cores, 16 GiB). The anvil on 8545 holds the skeleton's 
 
 ## 3. Cloudflare
 
-**What the book decided.** Only the portal: one Worker `capxul-portal`, static assets, status from R2, Access in front (`books/target/shared/portal.ts:555-582`). swarmD already runs as Workers on Aaron's account. Nothing about worlds on Cloudflare.
+**What the book decided.** Only the portal: one Worker `capxul-portal`, static assets, status from R2, Access in front (`blueprint/shared/portal.ts:555-582`). swarmD already runs as Workers on Aaron's account. Nothing about worlds on Cloudflare.
 
 **Prices and limits** (read 10 November 2026):
 

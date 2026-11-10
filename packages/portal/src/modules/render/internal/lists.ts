@@ -9,10 +9,10 @@ const TELEMETRY: Readonly<Record<string, string>> = {
   "no-span": "operations naming no span", "state-change-without-event": "operations that change state and send no event",
 };
 
-/** The gaps the book counts for what an operation shows beyond its design, apart from every other gap. */
+/** The gaps the blueprint counts for what an operation shows beyond its design, apart from every other gap. */
 const gaps = (p: BuildPage): string => {
   const g = p.gapCounts;
-  return `<section class="block"><h2 id="gaps">What the book still lacks</h2>` +
+  return `<section class="block"><h2 id="gaps">What the blueprint still lacks</h2>` +
     `<p class="caption">${plural(g.total, "gap")} in all. Telemetry and examples are counted by their own rules, so none of them hides in the rest.</p>` +
     tiles(p.id, [
       ...g.telemetry.map((t) => ({ big: String(t.count), name: TELEMETRY[t.rule] ?? t.rule, to: null })),
@@ -36,7 +36,7 @@ const byConcept = (p: BuildPage): string =>
 
 export const build = (p: BuildPage): string =>
   `<main class="page"><p class="eyebrow eyebrow-muted">Build</p><h1 class="title">Where every operation stands</h1>` +
-  `<p class="lead lead-wide">An operation is specified when the book has no gap on it, decided when no question about it waits for you, ` +
+  `<p class="lead lead-wide">An operation is specified when the blueprint has no gap on it, decided when no question about it waits for you, ` +
   `built when its code exists, and proven when its evals pass against that code. ` +
   (p.recorded ? `${plural(p.passing.passing, "eval")} of ${plural(p.passing.total, "eval")} pass in the status document.` : "No code exists yet, so nothing is past decided.") +
   `</p>${tiles(p.id, p.tiles)}${gaps(p)}${byStand(p)}${byConcept(p)}</main>`;

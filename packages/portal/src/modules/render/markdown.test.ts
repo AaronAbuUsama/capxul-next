@@ -26,6 +26,6 @@ test("a fenced block is code, escaped, and a pipe table is a table (the Worlds p
 test("a repository path is shown as a path, in code or as a link, and is never linked", () => {
   assert.equal(inline("`docs/mission/cloud.md`"), '<code class="path">docs/mission/cloud.md</code>');
   assert.equal(inline("`pnpm plan show`"), "<code>pnpm plan show</code>");
-  assert.equal(inline("see [the book](docs/design-book.md)"), 'see the book <code class="path">docs/design-book.md</code>');
+  assert.equal(inline("see [the blueprint](docs/blueprint.md)"), 'see the blueprint <code class="path">docs/blueprint.md</code>');
   assert.doesNotMatch(inline("[x](javascript:alert(1))"), /<a /);
 });

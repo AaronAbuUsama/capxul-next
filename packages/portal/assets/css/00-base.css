@@ -1,5 +1,5 @@
 /* Capxul portal. One stylesheet, built from the parts in packages/portal/assets/css in file order.
-   Blue is the book and what is done; orange is what waits for a person; grey is everything else. */
+   Blue is the blueprint and what is done; orange is what waits for a person; grey is everything else. */
 :root {
   --ink: #14161A; --muted: #5B6270; --body-2: #3A3F4A; --line: #E3E5EA; --line-strong: #C9CDD6; --surface: #F5F6F8;
   --blue: #2447D8; --blue-soft: #EEF2FE; --blue-line: #C8D3F7;

@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Schema } from "effect";
-import { CommandRecordEntry } from "../../../../books/target/devnet/record-entry.ts";
-import { records } from "../../../../books/target/index.ts";
-import { buildBook } from "../../../../packages/book/src/build.ts";
+import { CommandRecordEntry } from "../../../../blueprint/devnet/record-entry.ts";
+import { records } from "../../../../blueprint/index.ts";
+import { buildBlueprint } from "../../../../packages/blueprint-engine/src/build.ts";
 
 const entry = {
   v: 1, id: "rec_example", seq: 1, prev: "0".repeat(64), trace: "trace_example",
@@ -26,7 +26,7 @@ test("command record wire schema covers success, refusal, failure and restore ex
   assert.throws(() => decode({ ...entry, changes: { tx: [] } }));
 });
 test("every target operation declares spans and every state change declares events", () => {
-  const b = buildBook({ name: "target", stage: "target", records });
+  const b = buildBlueprint({ name: "target", stage: "target", records });
   assert.deepEqual(b.gaps.filter(g => ["no-span", "state-change-without-event"].includes(g.rule)), []);
   console.log(`telemetry: ${[...b.records.values()].filter(r => r._kind === "operation").length} operations, 0 no-span, 0 state-change-without-event`);
 });

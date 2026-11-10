@@ -96,7 +96,7 @@ implementer's. A user and an agent never see them, and never see the words Frapp
 | System | Holds | Never holds |
 |---|---|---|
 | **Frappe** (one site per Organization, hosted by Capxul) | The business documents: invoices, orders, claims, advances, salary slips, payroll entries. The parties and their bank accounts. The chart. Every voucher. The **asks** (what should be paid or collected, from which account, when). The **gateway record** of each Capxul payment and its postings. The Safe's statement. | Keys. The power to move a Safe's money. A posting to a Safe account that Capxul did not make. |
-| **Capxul** | Identity, Seats, agents, departments and budgets, approvals and Board proposals, the payment ledger (the `payments` table and its machine, `books/target/payments/data.ts:137-289`), the advice documents, the settlement from the chain, Bridge's records, the world clock, and the per-Organization feed of money events. | Business documents of its own: those are Frappe's. A copy of the ledger: Frappe's GL is the ledger. |
+| **Capxul** | Identity, Seats, agents, departments and budgets, approvals and Board proposals, the payment ledger (the `payments` table and its machine, `blueprint/payments/data.ts:137-289`), the advice documents, the settlement from the chain, Bridge's records, the world clock, and the per-Organization feed of money events. | Business documents of its own: those are Frappe's. A copy of the ledger: Frappe's GL is the ledger. |
 | **The chain** | Each payment's terms and its document hash, bound into its id; budgets, schedules, escrows and agreements; balances. | Meaning, fiat, fees, tax, dates other than block time. |
 | **Bridge** | Fiat deposits and payouts, their fees, the bank's sender and description, delivery and returns. | Anything Capxul's books need without Capxul's join (its deposit names the chain transaction, `destination_tx_hash`; `bridge/prior-art.md` section 4.2). |
 
@@ -218,7 +218,7 @@ the app's service user holds the Company's `role_allowed_for_frozen_entries` (`e
 | Account (role) | Type and currency | Its statement is | Why |
 |---|---|---|---|
 | **The Safe**, one per Safe and token | Bank, the token's currency (USDC, EURC) | every ERC-20 Transfer touching the Safe at finality | The bank is the chain (`docs/design/frappe/accounting.md:125-128`) |
-| **Money waiting to be claimed** | Bank, the token | Transfers into and out of escrows the Organization funded | Escrowed money is still the company's: its sender can take it back (G6, `docs/design/escrow.md:161`). The books should show it as the company's asset, not as paid and not as vanished. This replaces `books.escrow-held` (`books/target/books/decisions.ts:1427-1455`). |
+| **Money waiting to be claimed** | Bank, the token | Transfers into and out of escrows the Organization funded | Escrowed money is still the company's: its sender can take it back (G6, `docs/design/escrow.md:161`). The books should show it as the company's asset, not as paid and not as vanished. This replaces `books.escrow-held` (`blueprint/books/decisions.ts:1427-1455`). |
 | **Bank payouts in transit** | Bank, the token | Transfers to Bridge's deposit addresses, Bridge's deliveries, and returns | A Bridge payout has left the Safe on the chain's word but has not reached the supplier until Bridge says so. This is the Stripe and Xero practice for processor payouts (`bridge/prior-art.md` section 4.2). |
 | **Transfers in transit** | Bank, the Company's currency | none of its own: it is cleared on both sides | Money moving between an outside bank account and a Safe through Bridge (P12) |
 | **Capxul fees** | Expense, under Bank charges | — | Capxul's developer fee inside a Bridge deposit or payout. This is how Capxul is paid. |
@@ -244,7 +244,7 @@ needs exactly this: an exact reference match is its hard filter (`bank_reconcili
 The result:
 
 - A Transfer nobody explains stays an **Unreconciled** Bank Transaction. That is the book's Movement
-  (`books/target/payments/data.ts:293-303`), now shown in the screen accountants already use.
+  (`blueprint/payments/data.ts:293-303`), now shown in the screen accountants already use.
 - The book's choice to leave Bank Transaction out ("a Capxul voucher is cleared on its posting date",
   `accounting.md:76-77`) is reversed.
 
@@ -315,7 +315,7 @@ The re-skin and the SDK mapping keep Frappe invisible:
 
 ### 3.1 Why an advice
 
-Today the hash is one of five things (`books/target/documents/data.ts:29-31`):
+Today the hash is one of five things (`blueprint/documents/data.ts:29-31`):
 
 - a Memo;
 - a request's Invoice, Capxul's own and without tax;
@@ -325,7 +325,7 @@ Today the hash is one of five things (`books/target/documents/data.ts:29-31`):
 
 None of them lists several documents with amounts (`bridge/v4.md` section 6). Paying a supplier's invoice that lives
 in Frappe therefore commits only to a Memo. A Bridge payout commits to `keccak256(payout id)`, which names no
-document (`books/target/banking/decisions.ts:917-945`).
+document (`blueprint/banking/decisions.ts:917-945`).
 
 The advice replaces all of these **for payments**. Every `PaymentSent` that Capxul prepares carries an advice hash.
 Terms stay for Agreements' offers, whose contract checks the terms hash on accept (`v4/money/Agreements.sol:199`).
@@ -424,7 +424,7 @@ It never uses Frappe names.
 - **Other doctypes.**
   - An Expense Claim: its expense rows (date, type, description, amount, sanctioned amount), its taxes, and the
     advances it uses.
-  - A Salary Slip: the book's payslip content (`books/target/documents/procedures.ts:86-117`) plus the Payroll
+  - A Salary Slip: the book's payslip content (`blueprint/documents/procedures.ts:86-117`) plus the Payroll
     Entry's Capxul id.
   - An Employee Advance: employee, purpose, amount, currency and date.
 - **Versioning.** The schema name is inside the bytes, so a later ERPNext field change bumps the schema. It never
@@ -457,7 +457,7 @@ At prepare, refused with `INVALID_INPUT` and nothing written:
   - 3 for an expense or an advance;
   - 0 otherwise.
 
-  This replaces the book's "one-off" kind for salaries (`books/target/payroll/staged.ts:75`). Budgets accepts kinds
+  This replaces the book's "one-off" kind for salaries (`blueprint/payroll/staged.ts:75`). Budgets accepts kinds
   0 to 3 (`v4/money/Budgets.sol:448-450`). Books never classify by kind (`accounting.md:450`).
 
 ### 3.6 The proof: how either side shows "this payment pays these lines of these documents"
@@ -524,9 +524,9 @@ Every event carries the Organization's `seq`, the `payment_id` or `transfer_key`
 
 | Boundary | Fence | Code |
 |---|---|---|
-| Frappe ask → Capxul | Request key `ask:<org>:<doctype>:<name>`. An amendment has a new name and so a new key. A repeat answers the same command. | Capxul's command key (K1: `request_key` and its index, `books/target/payments/data.ts:112`, `:126`) |
+| Frappe ask → Capxul | Request key `ask:<org>:<doctype>:<name>`. An amendment has a new name and so a new key. A repeat answers the same command. | Capxul's command key (K1: `request_key` and its index, `blueprint/payments/data.ts:112`, `:126`) |
 | Capxul → chain | The payment id is consumed once. A lapsed approval is retried with the same ids. | `Payments.sol:64`; `docs/design/frappe/payroll.md:396-401` |
-| Chain → Capxul | One settlement per (chain, payment id), and one per log | the unique indexes `by-chain-payment-id` and `by-settled-log` (`books/target/payments/data.ts:259-279`) |
+| Chain → Capxul | One settlement per (chain, payment id), and one per log | the unique indexes `by-chain-payment-id` and `by-settled-log` (`blueprint/payments/data.ts:259-279`) |
 | Capxul → Frappe | `seq == last_applied + 1`, applied in the same transaction as the gateway record (unique `payment_id`), its posting row (unique per kind and generation), the voucher and the statement line (unique `capxul_transfer_key`) | section 2.3, 2.5 and 2.7 |
 
 **The completer** runs hourly on the world's clock. It compares three things:
@@ -597,7 +597,7 @@ Base has three stages (`bridge/prior-art.md` section 6):
 - about 2 minutes: `safe`, once batched to L1. No batched L2 block has ever been reorged.
 - about 20 minutes: `finalized`.
 
-The book waits a time window ("the deployment's finality depth", `books/target/indexing/decisions.ts:257-274`), and
+The book waits a time window ("the deployment's finality depth", `blueprint/indexing/decisions.ts:257-274`), and
 Ponder's default window is 180 s.
 
 **This design posts at the `safe` tag**, read through the RPC's block tag, never a time window. It keeps a reversal
@@ -864,7 +864,7 @@ transaction (2.5). That is not repeated in each path.
   Then Bridge sends the USDC and names `destination_tx_hash` (`bridge/prior-art.md` section 4.2).
 - **Capxul.**
   - The deposit is arriving: `deposit.arriving`, shown only, never posted.
-  - At finality it credits the deposit, on the exact Transfer of the net into the Safe (`books/target/banking/processes.ts:229-262`).
+  - At finality it credits the deposit, on the exact Transfer of the net into the Safe (`blueprint/banking/processes.ts:229-262`).
   - It matches the description to the Payment Request.
 - **Chain.** `Transfer`(Bridge → Safe, 1,994 USDC). There is no `PaymentSent`. Bridge does not call Payments.
 - **Event.** `deposit.credited`, with the match.
@@ -878,7 +878,7 @@ transaction (2.5). That is not repeated in each path.
   SINV-0050 is Paid.
 - **Unmatched.** Only the statement line, Unreconciled, with the bank's sender and description. Then `bank match`, or
   the Organization's agent, gives it meaning, and Capxul posts.
-- **Exactly once.** Bridge's event id (applied only when newer, `books/target/banking/processes.ts:211-213`) and the
+- **Exactly once.** Bridge's event id (applied only when newer, `blueprint/banking/processes.ts:211-213`) and the
   unique transfer key.
 - **Proof.** This proof is Bridge's word plus the chain Transfer. There is no advice: the payer was a bank.
 
@@ -889,7 +889,7 @@ transaction (2.5). That is not repeated in each path.
   - S's Bank Account (party Supplier, IBAN), registered at Bridge.
 - **Ask.** One line, rail bank payout: payee S, S's bank account, 920 EUR, from Marketing.
 - **Capxul.**
-  1. Gets Bridge's quote (`books/target/banking/payouts.ts`): 1,003.40 USDC including a fee of 3.40, with the rate and
+  1. Gets Bridge's quote (`blueprint/banking/payouts.ts`): 1,003.40 USDC including a fee of 3.40, with the rate and
      the expiry.
   2. Builds the advice:
      - payee S, not Bridge;
@@ -914,7 +914,7 @@ transaction (2.5). That is not repeated in each path.
   - Before delivery: Dr the Safe; Cr in transit.
   - After delivery (a bank's return within 60 days): a Payment Entry Receive from S against PINV-0020, which re-opens
     it.
-- **Exactly once.** The payout id (Bridge's `Idempotency-Key`, `books/target/shared/external.ts:234`), the payment id,
+- **Exactly once.** The payout id (Bridge's `Idempotency-Key`, `blueprint/shared/external.ts:234`), the payment id,
   and Bridge's event id, newer-wins.
 
 ### P12. An outside bank account the company also keeps (`aaron.other-accounts`)
@@ -1006,7 +1006,7 @@ route, and only its answer moves the Frappe document to cancelled:
 | Fee | Where it is on record | How it posts |
 |---|---|---|
 | Bridge's exchange or rail fee, deposit | Bridge's deposit record | A deduction on Bank charges (P10) |
-| Capxul's developer fee, deposit or payout | Bridge's record (`developer_fee_amount`); the Bridge account's percentage (`books/target/banking/data.ts:363`) | A deduction on Capxul fees. It is how Capxul is paid. |
+| Capxul's developer fee, deposit or payout | Bridge's record (`developer_fee_amount`); the Bridge account's percentage (`blueprint/banking/data.ts:363`) | A deduction on Capxul fees. It is how Capxul is paid. |
 | Bridge's payout fee | The quote, and the advice's `fiat.fee` | A deduction at delivery (P11) |
 | Capxul's own charges (seats, the hosted FDE) | Capxul's Sales Invoice to the Organization; in the Organization's books a Purchase Invoice from Supplier "Capxul" | An ordinary P1 payment, whose advice names Capxul's invoice (`org seats buy`, `org fde pay`) |
 | Gas | Capxul's paymaster pays it | Nothing in the Organization's books, unless Capxul bills it |
@@ -1250,7 +1250,7 @@ The book is not edited here. These are the changes this design implies.
 - **payroll.** HRMS computes and accrues. Capxul pays, with kind 2, and writes the paid status back to each slip.
 - **indexing.** Posting waits for the `safe` tag, not a time window (`indexing/decisions.ts:257-274`). It reads
   `EscrowRefunded` and the surplus Transfers for Money waiting. The claim "every movement ends in a PaymentSent"
-  (`books/target/shared/external.ts:1224-1225`) is false: deposits, escrow refunds and direct transfers do not.
+  (`blueprint/shared/external.ts:1224-1225`) is false: deposits, escrow refunds and direct transfers do not.
 - **organizations.** "head" disappears from every name, under `aaron.one-product`.
 
 ---

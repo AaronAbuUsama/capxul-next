@@ -1,5 +1,5 @@
 /**
- * Bindings: which checks prove which evals. An eval is a claim the book derives; a check is a named step of an executable
+ * Bindings: which checks prove which evals. An eval is a claim the blueprint derives; a check is a named step of an executable
  * script, expected to pass. A binding says "this eval holds when all of these checks pass", with the reason in words.
  * A near-miss says "these checks prove part of the eval": it is recorded so the gap is visible and never scores.
  * Nothing here reads a file or runs anything.
@@ -47,7 +47,7 @@ export interface Bindings {
   readonly byEval: ReadonlyMap<string, { readonly file: BindingFile; readonly binding: Binding }>;
 }
 
-/** What the book and the scripts say exists, for validating bindings. */
+/** What the blueprint and the scripts say exists, for validating bindings. */
 export interface Known {
   readonly evals: ReadonlySet<string>;
   /** Script path to what it lists. */
@@ -61,7 +61,7 @@ export type What =
   | { readonly kind: "milestone"; readonly id: string }
   | { readonly kind: "all" };
 
-/** The eval ids that journeys and milestones stand for, read from the book and the plan by the caller. */
+/** The eval ids that journeys and milestones stand for, read from the blueprint and the plan by the caller. */
 export interface Index {
   readonly journey: (id: string) => readonly string[] | null;
   readonly milestone: (id: string) => readonly string[] | null;
@@ -69,7 +69,7 @@ export interface Index {
 
 /** The three lists `gaps` prints. */
 export interface Gaps {
-  /** Checks that no binding and no near-miss names: nothing in the book says what they prove. */
+  /** Checks that no binding and no near-miss names: nothing in the blueprint says what they prove. */
   readonly checksWithNoEval: readonly string[];
   /** Checks that only a near-miss names: they prove part of a claim. */
   readonly checksInNearMisses: readonly string[];

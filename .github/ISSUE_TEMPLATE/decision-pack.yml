@@ -28,7 +28,7 @@ body:
     id: body
     attributes:
       label: "Body"
-      description: "Matter.body: the context, with ids: what the book says, what the diagnosis found. At most 2,000 characters. The question itself is this issue's title (at most 80 characters, ending in ?)."
+      description: "Matter.body: the context, with ids: what the blueprint says, what the diagnosis found. At most 2,000 characters. The question itself is this issue's title (at most 80 characters, ending in ?)."
     validations:
       required: true
   - type: input
@@ -232,7 +232,7 @@ body:
     id: records
     attributes:
       label: "Records"
-      description: "Matter.records (SD-10): the book keys and repository paths it touches, one per line; a flagged judgment's decision id first."
+      description: "Matter.records (SD-10): the blueprint keys and repository paths it touches, one per line; a flagged judgment's decision id first."
       placeholder: |
         swarm.checker-family
         .swarmd/workers/adversary.ts

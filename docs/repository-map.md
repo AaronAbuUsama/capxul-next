@@ -4,8 +4,8 @@ What every entry is, what uses it, and why it is where it is. First written 10 N
 task `m1-tidy`); the rule behind it is decision `system.repository-layout`. "Uses" were found by searching the tracked
 files for each path, not assumed.
 
-**Words.** "The blueprint" is the typed design, in `books/` and until 10 November called "the design book" or "the
-book"; both words mean the same thing on this page.
+**Words.** "The blueprint" is the typed design, in `blueprint/`. Until 10 November 2026 it was called "the design
+book" or "the book" and lived in `books/`; older documents and records still say so (ruling `aaron.blueprint`).
 
 **The rules.**
 
@@ -24,7 +24,7 @@ book"; both words mean the same thing on this page.
 | `CLAUDE.md` | The rules an agent follows here, and the checks | every agent session |
 | `START-HERE.md` | The owner's direction of 9 November, kept as a record | the blueprint cites it as evidence |
 | `GROUNDING.md` | The four fixed points of the product, in Aaron's words | the blueprint and the plan cite it |
-| `books/` | The blueprint: `target/` (what is being built) and `frozen/` (the baseline: the old system's behaviour, never edited) | `packages/book` builds it; every check reads it |
+| `blueprint/` | The design, as typed records: one folder per concept and `shared/`; `baseline/` is the old system's behaviour, never edited | `packages/blueprint-engine` builds it; every check reads it |
 | `packages/` | The code, one package per component (below) | pnpm workspace |
 | `plan/` | The coordinator's plan: `plan.json`, the log, the owner's answers, one file per task | `pnpm plan`, the portal's Plan page, the loop |
 | `evals/` | `bindings/`: which check proves which eval of the blueprint | `pnpm evals` |
@@ -41,18 +41,18 @@ book"; both words mean the same thing on this page.
 | | Directories | Documents |
 |---|---|---|
 | 10 November, before | `books demo docs evals kit loops packages plan runs spikes status tools` | `CLAUDE.md GROUNDING.md HANDOFF.md README.md START-HERE.md` |
-| Now | `archive books docs evals loops packages plan spikes status` (+ `var/`, ignored) | `CLAUDE.md GROUNDING.md README.md START-HERE.md` |
+| Now | `archive blueprint docs evals loops packages plan spikes status` (+ `var/`, ignored) | `CLAUDE.md GROUNDING.md README.md START-HERE.md` |
 
 ## `packages/`
 
 | Package | What it is | Scripts that live here |
 |---|---|---|
-| `book` | The blueprint's engine: record types, the builder, its checks | `scripts/`: `check-frozen.ts` (`pnpm frozen`), `report-cut.ts`, `report-surface.ts`, `report-judgments.ts` (`pnpm judgments`), `impact.ts`, `target.ts` (loads the blueprint for the others) |
+| `blueprint` | The blueprint's engine: record types, the builder, its checks | `scripts/`: `check-frozen.ts` (`pnpm frozen`), `report-cut.ts`, `report-surface.ts`, `report-judgments.ts` (`pnpm judgments`), `impact.ts`, `target.ts` (loads the blueprint for the others) |
 | `portal` | Generates and serves the portal from the blueprint, the plan and the scoreboard | |
 | `plan` | The plan CLI, the plan's checks and the task tree | `src/main.ts` (`pnpm plan`), `src/tasks.ts` (`pnpm tasks`) |
 | `evals` | Runs the checks bound to evals; the only writer of `status/` | `src/record-status.ts` |
 | `loop` | The agent runner on pi-durable; this is where pi-durable is used | |
-| `contracts` | The product's contracts (Foundry) | `abi-check/`: `main.ts` (`pnpm contracts:check-book`), `export-abi.ts` (`pnpm contracts:export-abi`) |
+| `contracts` | The product's contracts (Foundry) | `abi-check/`: `main.ts` (`pnpm contracts:check-blueprint`), `export-abi.ts` (`pnpm contracts:export-abi`) |
 | `sdk` | The product SDK | |
 | `devnet` | The local chain and worlds | |
 | `layout` | The layout check | `src/main.ts` (`pnpm layout`), `oversize.json` |
@@ -62,8 +62,8 @@ book"; both words mean the same thing on this page.
 | Was | Is now |
 |---|---|
 | `tools/plan.ts`, `tools/plan/`, `tools/plan-files.ts`, `tools/plan-tasks.ts` | `packages/plan/src/main.ts`, `src/modules/plan/`, `src/files.ts`, `src/tasks.ts` |
-| `tools/check-frozen.ts`, `report-cut.ts`, `report-surface.ts`, `report-judgments.ts`, `impact.ts` | `packages/book/scripts/` (same names) |
-| `tools/book-target.ts` | `packages/book/scripts/target.ts` |
+| `tools/check-frozen.ts`, `report-cut.ts`, `report-surface.ts`, `report-judgments.ts`, `impact.ts` | `packages/blueprint-engine/scripts/` (same names) |
+| `tools/book-target.ts` | `packages/blueprint-engine/scripts/target.ts` |
 | `tools/record-status.ts` | `packages/evals/src/record-status.ts` |
 | `tools/check-contracts.ts`, `tools/check-contracts/`, `tools/export-contract-abi.ts` | `packages/contracts/abi-check/main.ts`, `abi-check/`, `abi-check/export-abi.ts` |
 | `tools/check-layout.ts`, `tools/check-layout/` | `packages/layout/src/main.ts`, `src/modules/layout/` |
@@ -75,12 +75,12 @@ Every `pnpm` script name is unchanged.
 
 | Entry | What it is | What uses it |
 |---|---|---|
-| `design-book.md` | How the blueprint works, end to end | `CLAUDE.md`, the blueprint, three packages |
+| `blueprint.md` | How the blueprint works, end to end | `CLAUDE.md`, the blueprint, three packages |
 | `repository-map.md` | This page | `README.md` |
 | `as-is/archive/` | The old system written as records (133 files) | 99 blueprint files, `docs/cut-archive` |
 | `as-is/lane-reports/` | Reviews of the old system by lane (46 files) | 4 blueprint files |
 | `as-is/payments.md` | The reviewed payments lane, K1 to K18 | 14 blueprint files, `.claude/agents` |
-| `cut-archive/` | Every record the cut removed from the blueprint, with its index (142 files) | `packages/book/scripts/report-cut.ts` checks it |
+| `cut-archive/` | Every record the cut removed from the blueprint, with its index (142 files) | `packages/blueprint-engine/scripts/report-cut.ts` checks it |
 | `decisions/` | The first decisions, of 7 November, and the policy pack | 4 to 13 blueprint files each |
 | `design/` | The written designs behind the blueprint's records | 1 to 18 blueprint files each; the portal reads `worlds-platform.md` |
 | `design/command-surface.md` | The command tree of 9 November | 4 blueprint files. **Overtaken by the cut**: see its banner |
@@ -92,8 +92,8 @@ Every `pnpm` script name is unchanged.
 
 ## What is known to be out of date
 
-- `books/target/shared/surface.ts` (`SURFACE`) and `docs/design/command-surface.md` list the 394 operations of
-  9 November; the cut left 169. `packages/book/scripts/report-surface.ts` reports 281 differences. Redoing the tree is
+- `blueprint/shared/surface.ts` (`SURFACE`) and `docs/design/command-surface.md` list the 394 operations of
+  9 November; the cut left 169. `packages/blueprint-engine/scripts/report-surface.ts` reports 281 differences. Redoing the tree is
   design work under plan task `m1-old-decisions`.
 - `.github/ISSUE_TEMPLATE/` holds issue forms for the swarmD ledger, which is not used. Three blueprint files cite
   them, so they stay until `m1-old-decisions` settles those records.
