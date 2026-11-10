@@ -2,6 +2,7 @@
 // portal's Questions page, so the three lists cannot disagree. It reads the lists in ./rulings.ts and nothing else.
 
 import { ACCEPTED, CARRIES_OUT as CARRIES_OUT_RULINGS, REOPENED, SUPERSEDED } from "./rulings.ts";
+import { CUT_FOR_AARON } from "./cut.ts";
 
 /** The fields of a decision the predicate reads. Any decision record satisfies it. */
 export type Judged = {
@@ -34,8 +35,9 @@ export const byAaron = (d: Judged): boolean => /^Aaron\b/.test(String(d.source ?
 
 /** True when the decision waits for Aaron: flagged, reopened, or its text names a call that is his. */
 export const forAaron = (d: Judged): boolean =>
-  !byAaron(d) && !CARRIES_OUT.includes(d.id) && !ACCEPTED.includes(d.id) && !(d.id in SUPERSEDED) &&
-  (REOPENED.includes(d.id) || FLAGGED.includes(d.id) || /\baaron\b/i.test(`${d.title} ${d.question} ${d.why} ${d.chosen}`));
+  // the coordinator's cut decisions (shared/cut.ts) carry out his rulings; only the four it names wait for him
+  (d.id.startsWith("cut.") ? CUT_FOR_AARON.includes(d.id) : true) && !byAaron(d) && !CARRIES_OUT.includes(d.id) && !ACCEPTED.includes(d.id) && !(d.id in SUPERSEDED) &&
+  (REOPENED.includes(d.id) || FLAGGED.includes(d.id) || d.id.startsWith("cut.") || /\baaron\b/i.test(`${d.title} ${d.question} ${d.why} ${d.chosen}`));
 
 /** The one state of a decision, in the order the judgments report lists them. */
 export const stateOf = (d: Judged): DecisionState =>

@@ -14,8 +14,9 @@ from the build session on, the product code it describes.
   3. change the code.
 
   Never edit `books/frozen/` or any file under a `src/generated/` folder.
-- **What is fixed is behaviour, not spelling** (`system.frozen-behaviour`). The 215 operations
-  stay as the list of capabilities, and their acceptance claims are the evals. Commands, flags,
+- **What is fixed is behaviour, not spelling** (`system.frozen-behaviour`). Each of the 215 old
+  operations is either booked in the book or classified by the cut (reached, dropped or parked: `books/target/shared/cut.ts`,
+  `docs/cut-archive/INDEX.md`), never both and never neither. A booked operation's acceptance claims are the evals. Commands, flags,
   `--json` shapes, refusal codes and wording are the target book's to design as one system. A
   change to any of them goes into the book first, with a decision.
 - **Every change passes these checks before it merges:**

@@ -12,9 +12,14 @@ it is used from a record to production. Then read `HANDOFF.md` to set up the ses
 
 ## The goal
 
-Capxul runs on the new stack and does everything the old system's **215 operations** promise.
+> **10 November 2026: the direction changed. Read `START-HERE.md` and `docs/design/cut-proposal.md` first.** Capxul Core
+> is rebuilt on chain and sits inside a Frappe site that Capxul hosts. Each of the old system's **215 operations** is now
+> either booked in the book or classified by the cut (reached through the door, dropped or parked: `books/target/shared/cut.ts`,
+> `docs/cut-archive/INDEX.md`). Where this file says "the 215", read "the operations the built book keeps".
+
+Capxul runs on the new stack and does everything the old system's **215 operations** promise, less what the cut classified.
 What is fixed is their **behaviour, not their spelling** (Aaron's decision
-`system.frozen-behaviour`):
+`system.frozen-behaviour`, extended by the cut):
 
 - **Fixed:** the list of capabilities, which is the 215 operations in `books/frozen/operations.ts`
   (generated; never edit it). Also fixed is what each acceptance claim requires to happen,
@@ -26,7 +31,7 @@ What is fixed is their **behaviour, not their spelling** (Aaron's decision
 
 Done means all four of these hold:
 
-1. **Every operation passes.** Each of the 215 operations has every eval of its target record
+1. **Every operation passes.** Each operation the built book keeps (of the 215, those not classified by the cut) has every eval of its target record
    passing at the head of `integration/build`, on a devnet:
    - its acceptance claims, which carry the old behaviour;
    - its returns and refusals, as the target designs them;

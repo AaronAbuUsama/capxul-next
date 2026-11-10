@@ -297,7 +297,7 @@ const MILESTONES: Milestone[] = [
   },
   {
     key: "B4", title: "B4 Concepts on the critical path", needs: [], steps: [],
-    goal: "Every concept's lane is done: each of the 215 operations has every eval of its record, and of every record under it, passing at the head of integration/build.",
+    goal: "Every concept's lane is done: each operation the built book keeps (the old 215 less what the cut classified: Frappe's, dropped or parked) has every eval of its record, and of every record under it, passing at the head of integration/build.",
   },
   {
     key: "B5", title: "B5 New staging", needs: ["milestone:B4"],
@@ -317,7 +317,7 @@ const MILESTONES: Milestone[] = [
 ];
 
 add({ key: "capxul", kind: "root", title: "Capxul rebuilt", priority: "critical", evals: ["ok:capxul"], checkers: [], paths: [],
-  goal: "Capxul runs on the new stack and does everything its 215 operations promise: every eval passes at the head of integration/build on a devnet, the system evals and the size budget hold, and staging's live evals hold for a week.",
+  goal: "Capxul runs on the new stack and does everything the built book's operations promise (the old 215 less what the cut classified, plus the plugs and the door): every eval passes at the head of integration/build on a devnet, the system evals and the size budget hold, and staging's live evals hold for a week.",
   exit: [{ id: "ok:capxul", claim: "Aaron accepts the rebuild." }] });
 const owned = new Map<string, string>(); // eval id → task key
 const own = (task: string, ids: string[]) => {

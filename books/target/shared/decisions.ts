@@ -2933,19 +2933,24 @@ export const decision_rules_frozen_flags_boolean_forms = defineDecision({
 
 export const decision_system_frozen_behaviour = defineDecision({
   id: "system.frozen-behaviour",
-  title: "The freeze keeps behaviour, not spelling",
+  title: "The freeze keeps behaviour; each old operation is booked or classified",
   question:
     "The old book's 215 operations were frozen word for word: commands, flags, `--json` shapes, refusal codes and text, with P10 " +
-    "making the frozen text win wherever it disagreed with the code. Does the rebuild keep that spelling, or only what it does?",
+    "making the frozen text win wherever it disagreed with the code. Does the rebuild keep that spelling, or only what it does? " +
+    "And since 10 November 2026, when Frappe owns accounts, payroll, HR, CRM and projects, must every one of the 215 stay booked?",
   options: [
     {
       label: "behaviour",
       text:
-        "Keep the behaviour, free the spelling. The 215 operations stay as the list of capabilities, and what each acceptance claim " +
+        "Keep the behaviour, free the spelling. The 215 operations are the list of capabilities, and what each acceptance claim " +
         "requires to happen stays as its evals: that is the hill. The exact flags, `--json` shapes, refusal codes and wording are no " +
         "longer frozen; the target book designs them as one consistent system. A refusal is a behaviour (a signed-out caller is " +
         "refused; a payment over the balance is refused), checked by its code only where the target's own error vocabulary keeps it. " +
-        "A renamed command, a rewritten claim or a retired one carries a decision.",
+        "A renamed command, a rewritten claim or a retired one carries a decision. Since the cut (START-HERE section 6, " +
+        "aaron.frappe-native, aaron.one-door), each of the 215 is either booked in the built book, where its claims and refusals " +
+        "are checked as above, or classified in shared/cut.ts as reached (Frappe owns it), dropped or parked, by a `cut.*` decision " +
+        "that names the operation and what carries it. An operation is never both, and never neither. What a classified " +
+        "operation did that moves money or changes authority is carried by a named Core operation or plug.",
     },
     { label: "strict", text: "Keep the frozen text as the public surface word for word, as P10's first rung said." },
     { label: "nothing", text: "Free everything, the list of operations and the acceptance claims included." },
@@ -2957,9 +2962,12 @@ export const decision_system_frozen_behaviour = defineDecision({
     "and bought nobody anything. What must survive is what the system does, and the acceptance claims say that. This supersedes " +
     "the strict reading of the freeze and P10's 'the frozen text wins' for spelling; P10's rungs still decide behaviour, money and " +
     "internals. books/frozen stays as the list of capabilities and the source of each claim, and books/frozen/flags.ts is reference " +
-    "for designing the new flags, not surface to preserve. tools/check-frozen.ts checks that every operation is booked once and " +
-    "that every acceptance claim and refusal behaviour is kept in intent, or rewritten or retired with a decision.",
-  source: "Aaron, 8 November 2026, in the build-preparation conversation",
+    "for designing the new flags, not surface to preserve. tools/check-frozen.ts checks that every operation is booked once or " +
+    "classified by the cut, and that every booked operation's acceptance claims and refusal behaviours are kept in intent, or " +
+    "rewritten or retired with a decision. Extended on 10 November 2026 by the coordinator, on Aaron's delegation, as START-HERE " +
+    "section 6 asks: the old rule said all 215 stay, which would force the book to keep rebuilding what Frappe owns.",
+  source:
+    "Aaron, 8 November 2026, in the build-preparation conversation; extended 10 November 2026 by the coordinator, on Aaron's delegation (cut.principle)",
   affects: [f.system_capxul, f.component_cli, f.component_core_sdk, f.component_mcp_server],
 });
 
