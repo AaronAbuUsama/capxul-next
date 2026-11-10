@@ -1,3 +1,50 @@
+# Coordinator handoff, 10 November 2026, evening
+
+**Read this section first.** The coordinator in the Capxul Next Claude project wrote it. That coordinator ran from about 16:30 to 17:45 UTC, then handed over to a fresh coordinator thread on the Mac, as Aaron asked. The older handoff (from the first coordinator session, 9 and 10 November) follows below, unchanged. Its open items still stand, except where this section says otherwise.
+
+## What landed
+
+| Commit | What |
+|---|---|
+| `3147463` | The orchestration kit: `AGENTS.md`, `docs/philosophy.md`, and the coordinator's skills in `.claude/skills` (`coordinate`, `plan-tasks`, `dispatch`, `ask-aaron`, `portal-ops`). `AGENTS.md` is now the real rules file, and `CLAUDE.md` is a symlink to it. Aaron agreed to the kit as a delta, with one change of his: optimize for movement, as much in parallel as the limits allow. These five skills are the ones Aaron calls his improved skills |
+| `6ebfdd2` | The five agent profiles in `.claude/agents`, rewritten for the loop as it is, with the same json contracts. They no longer mention swarmD, Mission Control, stage 0, pull requests or `/home/user/factory`. The loop's prompts now point at `AGENTS.md`. This is post-mortem change 1 |
+| `9162373` | Three new tasks, and the path re-set with the layer first (see below) |
+
+**Still waiting on Aaron:** the change from `CLAUDE.md` to `AGENTS.md` was merged before he saw the diff, which breaks the rule. He has the diff now, and his review is still open.
+
+**An unapplied answer:** at 17:41:21 Aaron answered `m1-entry-docs` with "done" (answer `a-20261110T174121-54be8c`, in `9162373`). It is not applied yet. Its ready run (`m1-entry-docs-11101507`) was cut before `AGENTS.md` existed, and it rewrites the banner of `CLAUDE.md`, which is now a symlink. Before you merge it, read what his answer means, then rebase or re-run it.
+
+## The critical path as written
+
+1. `m1-loop-policy`
+2. `m1-loop-visibility`
+3. `m1-loop-watched-run`
+4. `m1-model-gateway`
+5. `m1-loop-hardening`
+6. `m1-eval-coverage`
+7. `m1-time-proof`
+8. `m1-aaron-accepts`
+
+Why: Aaron ruled on 10 November that the orchestration layer must fully work before any task work.
+
+Off the path, in parallel:
+- Split `m1-old-decisions`, so that his rulings go to him as questions.
+- `m1-entry-docs`: see the answer above.
+- Exit g8's chain: `m2-contracts-under-sites`, then `m3b-first-shared-world`.
+
+## Step 2, the command policy
+
+This is task `m1-loop-policy`. It is not started, and no partial work exists. The 226 refused calls are in the runs' storage under `var/runs`; read them with `pnpm loop show <run> --json --full`. The post-mortem gives the counts by kind.
+
+## Processes
+
+- The portal (`pnpm portal:serve --port 4391`, PID 19859) runs under `nohup` from the main checkout. Its log is `var/portal.log`, and Tailscale `:8443` reaches it.
+- The loop host (`pnpm loop serve --port 4392`, PID 19858) also runs under `nohup` from the main checkout. Its log is `var/host.log`.
+- No loop run has started since the stop. None may start without Aaron's go-ahead (`m1-loop-watched-run`).
+- `var/aaron-skills/` holds copies made while looking for skill edits outside the repository. None were found, and the folder may be deleted.
+
+---
+
 # Coordinator handoff, 10 November 2026
 
 Written by the coordinator session that ran 9 and 10 November, for the coordinator that takes over. Aaron asked for a
