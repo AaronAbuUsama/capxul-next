@@ -92,6 +92,30 @@ test("a Questions page that is not the judgments list fails", () => {
   assert.deepEqual(failed(run(files, files, { ...expected, waiting: [WAITING, "access.one-open"] })), [part]);
 });
 
+test("a settled blueprint has an empty Questions list; another generation cannot change it", () => {
+  // The real-blueprint test used to require waiting.length > 0. A settled
+  // blueprint is valid too; keep this case independent of today's rulings.
+  const settled = { ...fixtureInput(), waits: () => false };
+  const make = () => {
+    const site = buildSite(settled);
+    return new Map([...renderSite(site, fixtureAssets), ...twinsOf(site)]);
+  };
+  const first = make();
+  const want = expect(settled.blueprint, settled.waits);
+  assert.deepEqual(want.waiting, []);
+  assert.deepEqual(JSON.parse(first.get("data/review.json") ?? "{}").questions, []);
+  // Interleave an unrelated, nonempty generation: neither generation shares
+  // output files or a mutable question list with the other.
+  assert.deepEqual(failed(run(files, generate())), []);
+  assert.deepEqual(failed(check(first, make(), want)), []);
+  assert.deepEqual(failed(check(first, first, expected)), [
+    "the Questions list equals the judgments list plus the plan's needs of the owner",
+  ]);
+  assert.deepEqual(failed(check(files, files, want)), [
+    "the Questions list equals the judgments list plus the plan's needs of the owner",
+  ]);
+});
+
 test("an operation without a stand fails", () => {
   const outcomes = run(change(replaceIn("data/operation/invite.accept.json", '"stand": "build"', '"stand": "later"')));
   assert.deepEqual(failed(outcomes), ["every operation has a stand"]);
