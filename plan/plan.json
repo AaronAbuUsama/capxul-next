@@ -1157,6 +1157,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "Models, Aaron's ruling of 10 November (later than the Sol-and-Terra-only rule, which it replaces): 'Yes, it can use any model the proxy serves.' The loop accepts any model the gateway lists; gpt-6.1-sol stays the default builder and gpt-6.1-terra the default checker, and another model is used only where a run names one."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "Handoff, 10 November: the coordinator session of 9 and 10 November is wrapped up at Aaron's request; a new coordinator takes over. Everything open, the merge routine, how to run the loop, the processes to restart and what was left behind are in docs/mission/coordinator-handoff.md. Open with Aaron: m1-entry-docs (his yes or no, in Questions). Held for the coordinator: m1-old-decisions (a ready run that rewrites Aaron's rulings; split it before merging)."
     }
   ]
 }
