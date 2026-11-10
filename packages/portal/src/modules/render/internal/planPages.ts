@@ -26,12 +26,22 @@ const blocker = (at: string, b: PlanBlocked | null): string =>
       `${b.decisionRef === null ? "" : ` ${link(at, b.decisionRef, "ref")}`}</p>` +
       (b.inbox === null ? "" : `<p class="plan-claim">${link(at, { ...b.inbox, label: "Answer it on the Questions page" })}</p>`));
 
+/**
+ * Where a task's runs show: every attempt at it by the loop, newest first. The generator knows no run (they are working
+ * data, and live); the page's script asks the loop's host and fills this in, and until it answers the block says so.
+ */
+const runsBlock = (taskId: string): string =>
+  `<section class="block" id="runs-block" data-task="${esc(taskId)}"><h2 id="runs">Runs</h2>` +
+  `<p class="caption">Every attempt at this task by the loop, newest first. Open one for its steps and each agent's conversation.</p>` +
+  `<div class="rows" id="runs-rows" hidden></div>` +
+  `<p class="note" id="runs-none">The loop's host is not answering, so this task's runs are not listed here. Start it with <code>pnpm loop serve</code>; the history below names the runs.</p></section>`;
+
 export const task = (p: PlanTaskPage): string => {
   const t = p.task;
   return `<main class="page plan"><div class="main-col">${crumbs([link(p.id, PLAN), link(p.id, p.milestone.ref), esc(t.id)])}` +
     `<h1 class="title">${esc(t.title)}</h1><p class="plan-state">${taskState(t)} ${chip(p.milestone.id, "chip chip-strong")}` +
     `${p.pathPosition === null ? "" : ` <span class="muted">Step ${p.pathPosition} of ${p.pathLength} on the critical path.</span>`}</p>` +
-    `${sectionsHtml(p.sections)}${blocker(p.id, p.blocker)}` +
+    `${runsBlock(t.id)}${sectionsHtml(p.sections)}${blocker(p.id, p.blocker)}` +
     (p.task.droppedWhy === "" ? "" : section("dropped", "Why it was dropped", `<p class="plan-claim">${prose(p.task.droppedWhy)}</p>`)) +
     (p.needs.length === 0 ? "" : section("needs", "It needs", taskList(p.id, p.needs))) +
     (p.neededBy.length === 0 ? "" : section("needed-by", "Waiting on it", taskList(p.id, p.neededBy))) +

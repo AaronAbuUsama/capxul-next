@@ -25,6 +25,15 @@ export const gatesOf = (dir: string): readonly GateSpec[] => {
   ];
 };
 
+/**
+ * Where the design's build leaves its problems and gaps in this checkout: the folder the root script builds into (its
+ * last word), which is inside the checkout, so every lane has its own. Null when the script names none.
+ */
+export const findingsOf = (dir: string): string | null => {
+  const scripts = scriptsOf(dir), out = (scripts["blueprint"] ?? scripts["book"] ?? "").trim().split(/\s+/).at(-1) ?? "";
+  return /^[A-Za-z0-9_][A-Za-z0-9_.\/-]*$/.test(out) && !out.endsWith(".ts") ? `${out}/findings.json` : null;
+};
+
 /** The gates, plus `pnpm evals -- <the task's eval ids>` when the lane has an `evals` script and the task has evals. */
 export const gatesFor = (ctx: Ctx, dir: string, task: Task): readonly GateSpec[] => {
   const evals = task.evals.length > 0 && "evals" in scriptsOf(dir);

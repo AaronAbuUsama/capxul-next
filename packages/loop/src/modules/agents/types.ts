@@ -9,8 +9,8 @@ import type { Conversation, Extension, Harness, Registry, ToolRegistration } fro
 
 /** A model entry as `~/.pi/agent/models.json` writes it; the fields are pi-ai's `Model`. */
 export interface ModelEntry { id: string; name?: string; reasoning?: boolean; input?: ("text" | "image")[]; cost?: { input: number; output: number; cacheRead: number; cacheWrite: number }; contextWindow?: number; maxTokens?: number; compat?: Record<string, unknown> }
-/** An OpenAI-compatible provider: the endpoint, the NAME of the variable that holds its key, its models. */
-export interface ProviderConfig { baseUrl: string; apiKeyEnv: string; models: ModelEntry[] }
+/** An OpenAI-compatible provider: the endpoint, the NAME of the variable that holds its key (null when the endpoint needs none), its models. */
+export interface ProviderConfig { baseUrl: string; apiKeyEnv: string | null; models: ModelEntry[] }
 
 /** Which tools an agent gets: `write` is read, write, edit and a limited bash; `read` is read and a bash that only reads git. */
 export type Profile = "write" | "read";

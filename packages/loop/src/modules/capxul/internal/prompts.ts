@@ -17,17 +17,18 @@ const handover = (h?: Handover): string => {
 };
 
 /** What the runner tells every agent about the ground rules, whoever it is. */
-const GROUND = (sandbox: string, checks: readonly string[]): string => [
+const GROUND = (sandbox: string, checks: readonly string[], findings: string | null): string => [
   "## Where you are",
   "You are inside a git worktree (a lane) on its own branch. Change files only inside it. Never push, never touch another branch, never change the frozen baseline (`books/frozen/`, or `blueprint/baseline/` once the design folder is renamed) or any `src/generated/` folder.",
   "Read `CLAUDE.md` first. The book changes first: change the record and add a decision record, rebuild the book to 0 problems, then the code.",
   "The runner runs these checks after you, and you may run them yourself first (your shell is limited to `pnpm`'s scripts, `node`, `git` and a few file commands). The design must build with 0 problems and the frozen check must find 0 breaches:",
   ...checks.map((c) => `- \`${c}\``),
+  findings ? `The design's build writes what it found to \`${findings}\` inside your lane. Read that file and no other copy: every lane has its own.` : "",
   sandbox ? `\n## Sandbox\n${sandbox}` : "",
 ].join("\n");
 
 /** `checks` are the commands the runner runs after the maker (the lane's gates), told to it so it can run them first. */
-export const makerPrompt = (i: MakerInput, checks: readonly string[]): string => [
+export const makerPrompt = (i: MakerInput, checks: readonly string[], findingsFile: string | null = null): string => [
   `# Task \`${i.task.id}\`: ${i.task.title}`,
   `Round ${i.round} of the run · budget $${i.budgetUsd.toFixed(2)}, used so far ${i.spentUsd > 0 || i.spentTokens > 0 ? spendText(i.spentUsd, i.spentTokens) : "nothing"} · target integration/build · branch ${i.branch}`,
   i.round > 1 ? "Revise: the last round did not pass. The open findings below are what to fix; a failing check is a finding." : "",
@@ -36,7 +37,7 @@ export const makerPrompt = (i: MakerInput, checks: readonly string[]): string =>
   "\n## Brief", i.task.paths.length ? `Paths you may change: ${i.task.paths.join(", ")}` : "Paths you may change: only what the task needs.",
   "\n## Open findings", findings(i.open),
   "\n## Handover from the last maker", handover(i.handover),
-  "\n" + GROUND(i.sandbox, checks),
+  "\n" + GROUND(i.sandbox, checks, findingsFile),
   "\n## How this differs from your definition",
   "You may `git add` and `git commit` on the current branch (subject `<what changed>`, trailers `Task:` and `Round:`); the runner commits what you leave. You cannot push, and must not try. There is no pull request: set `pr` to 0.",
   "Your last message is the Handback as one fenced json block and nothing after it.",

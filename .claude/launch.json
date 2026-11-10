@@ -14,6 +14,19 @@
       "port": 4391
     },
     {
+      "name": "host",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "LOOP_HOST_ORIGINS=https://macbook.tail4b9a40.ts.net:8443",
+        "pnpm",
+        "loop",
+        "serve",
+        "--port",
+        "4392"
+      ],
+      "port": 4392
+    },
+    {
       "name": "runs",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [

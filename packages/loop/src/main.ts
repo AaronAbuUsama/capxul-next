@@ -65,7 +65,7 @@ const main = async (argv: readonly string[]): Promise<number> => {
     }
     case "serve": {
       const served = await serve(ctx, { port: Number(f.get("port") ?? 4392), ...(f.get("since-hours") ? { sinceHours: Number(f.get("since-hours")) } : {}) });
-      console.log(`the host is at ${served.url} (this machine only). A page or a terminal attaches there; Ctrl-C ends it.`);
+      console.log(`the host is up, on this machine only. Open ${served.http} in a browser; a client attaches at ${served.url}. Ctrl-C ends it.`);
       await new Promise(() => undefined);
       return 0;
     }

@@ -44,15 +44,43 @@ export const defaultModel = (ctx: Ctx): string => qualify(ctx.env.LOOP_MODEL ?? 
 export const defaultCheckerModel = (ctx: Ctx): string => qualify(ctx.env.LOOP_CHECKER_MODEL ?? CHECKER_MODEL);
 
 /**
- * The models: tests hand in a fake provider. Otherwise one OpenAI-compatible gateway (LOOP_MODEL_BASE_URL, default
- * https://llm.capxul.com/v1) whose key is read, when a request is made, from the environment variable named by
- * LOOP_MODEL_KEY_ENV (default LLM_ROUTER_API_KEY). The key is never stored, logged or written anywhere.
+ * Every request carries `x-session-id`: pi-durable's own id of the conversation, one per agent of a run, the same after
+ * a retry, a resume or a restart. A gateway that binds a session to one upstream account (CLIProxyAPI's
+ * `routing.session-affinity`) keeps an agent on that account, so its prompt cache holds. pi-ai sends it only when
+ * asked for an endpoint that is not OpenRouter; `openrouter` is the format whose header is the generic `x-session-id`.
+ */
+const SESSION = { sendSessionAffinityHeaders: true, sessionAffinityFormat: "openrouter" } as const;
+
+/** A model gateway by name: where it is, and the NAME of the variable that holds its key, or null when it asks for none. */
+export interface Gateway { readonly name: string; readonly baseUrl: string; readonly keyEnv: string | null }
+
+/**
+ * The gateways the loop knows. `local` is the CLI proxy that runs on this Mac (CLIProxyAPI, through VibeProxy), which
+ * the owner allowed for the loop on 10 November 2026 and which asks for no key: it is the default. `router` is the
+ * LiteLLM router the loop used before; the same ruling took it out of the loop's path, and it is here only by name.
+ */
+export const GATEWAYS: Readonly<Record<string, Omit<Gateway, "name">>> = {
+  local: { baseUrl: "http://127.0.0.1:8317/v1", keyEnv: null },
+  router: { baseUrl: "https://llm.capxul.com/v1", keyEnv: "LLM_ROUTER_API_KEY" },
+};
+
+/** The gateway this process uses: `LOOP_GATEWAY` names one (default `local`); `LOOP_MODEL_BASE_URL` and `LOOP_MODEL_KEY_ENV` still override its two parts. */
+export const gatewayOf = (ctx: Ctx): Gateway => {
+  const name = ctx.env.LOOP_GATEWAY ?? "local", known = GATEWAYS[name];
+  if (!known) throw new Error(`there is no gateway named ${name}: LOOP_GATEWAY is one of ${Object.keys(GATEWAYS).join(", ")}`);
+  return { name, baseUrl: ctx.env.LOOP_MODEL_BASE_URL ?? known.baseUrl, keyEnv: ctx.env.LOOP_MODEL_KEY_ENV ?? known.keyEnv };
+};
+
+/**
+ * The models: tests hand in a fake provider. Otherwise the one OpenAI-compatible gateway `gatewayOf` names. Its key, when
+ * it has one, is read from its variable when a request is made, and is never stored, logged or written anywhere.
  */
 export const modelsOf = (ctx: Ctx, wanted: readonly string[] = []): Models => {
   if (ctx.models) return ctx.models;
   const ids = [...new Set([...wanted, defaultModel(ctx), defaultCheckerModel(ctx)].map((m) => m.replace(/^gateway\//, "")))];
+  const gateway = gatewayOf(ctx);
   return modelsFrom({ gateway: {
-    baseUrl: ctx.env.LOOP_MODEL_BASE_URL ?? "https://llm.capxul.com/v1", apiKeyEnv: ctx.env.LOOP_MODEL_KEY_ENV ?? "LLM_ROUTER_API_KEY",
-    models: ids.map((id) => ({ id, contextWindow: 200_000, maxTokens: 16_000, compat: { supportsStore: false, supportsDeveloperRole: false } })),
+    baseUrl: gateway.baseUrl, apiKeyEnv: gateway.keyEnv,
+    models: ids.map((id) => ({ id, contextWindow: 200_000, maxTokens: 16_000, compat: { supportsStore: false, supportsDeveloperRole: false, ...SESSION } })),
   } });
 };

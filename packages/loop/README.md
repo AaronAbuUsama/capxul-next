@@ -93,6 +93,14 @@ files outside the lane or call `git push` through them. The list narrows what a 
 the runner never pushes anything but `lane/<task>` and never merges by itself; it does not contain a hostile one. Real
 containment needs an OS-level sandbox around the whole runner.
 
+## What the gateway is told about a conversation
+
+Every model request carries `x-session-id`: pi-durable's own id of the conversation (one per agent of a run, the same
+after a retry, a resume or a restart). A gateway that binds a session to one upstream account, as CLIProxyAPI's
+`routing.session-affinity` does, then keeps an agent on that account and its prompt cache holds. The id is pi's, not
+`<run id>/<agent>`: pi-ai 1.5.0 sends its session id when a model's `compat.sendSessionAffinityHeaders` is set
+(`internal/config.ts`) and offers no per-conversation header of our own choosing.
+
 ## When the gateway struggles
 
 - **A model that fails.** pi retries a request three times. If it still fails, the loop waits 20 s, then 60 s, then
@@ -118,8 +126,15 @@ picks its own ports (`8545 + 100n`), so "free ports are found" holds for light o
 
 ## Models
 
-One OpenAI-compatible gateway: `LOOP_MODEL_BASE_URL` (default `https://llm.capxul.com/v1`), key from the variable named by
-`LOOP_MODEL_KEY_ENV` (default `LLM_ROUTER_API_KEY`; `source ~/.zshenv` if unset). Only `gpt-6.1-sol` and `gpt-6.1-terra` are accepted (Aaron's ruling); any other id is refused before a call is made. Defaults: maker `gpt-6.1-sol` (Aaron's ruling: Sol 6.1 for coding),
+One OpenAI-compatible gateway, by name (`internal/config.ts`, `GATEWAYS`). `LOOP_GATEWAY` picks it:
+
+| Name | Where | Key |
+|---|---|---|
+| `local` (default) | `http://127.0.0.1:8317/v1`: the CLI proxy on this Mac (CLIProxyAPI, through VibeProxy) | none |
+| `router` | `https://llm.capxul.com/v1`: the LiteLLM router, out of the loop's path by the owner's ruling of 10 November | `LLM_ROUTER_API_KEY` |
+
+`LOOP_MODEL_BASE_URL` and `LOOP_MODEL_KEY_ENV` still override the two parts. A run records which gateway it used.
+Only `gpt-6.1-sol` and `gpt-6.1-terra` are accepted (Aaron's ruling); any other id is refused before a call is made. Defaults: maker `gpt-6.1-sol` (Aaron's ruling: Sol 6.1 for coding),
 checker `gpt-6.1-terra`: a strong coding model, and a different family so the review is independent. They were picked from
 what the gateway lists and answers (the newer Claude ids, kimi and deepseek returned 401 from the gateway on 10 November).
 Override with `--model` / `--checker-model` or `LOOP_MODEL` / `LOOP_CHECKER_MODEL`. The gateway reports no prices, so pi
