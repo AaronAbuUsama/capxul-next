@@ -43,11 +43,11 @@ export const rpc_devnet_worlds_create = rpc({
   title: "Make a whole world",
   about:
     "Asks for a world: an id (no hyphen), a name, a kind (local, simulated, staging or production), a profile (`core`: chain, lean service and record, no company sites; `full`: also a Frappe site per company on the one shared bench), an optional template, and a clock (frozen or running, a rate of 1 to 60). A simulated world gets its service address `core-<world>.<base>` and each company's site `<company>-<world>.<base>` (docs/design/worlds-platform.md). Staging and production are made by the same call: they run on a public chain with the real clock and real services, are always `full`, take no snapshot or clock verbs, and creating production needs the platform owner's one-time approval (devnet.production-is-a-world). The machine refuses a world it has no room for (CAPACITY_REACHED, devnet.world-capacity). It writes the world creating and the `born` entry, and its creation process asks the supervisor to make the chain, the service, the " +
-    "clock, the record and the stand-ins. A world with a template restores the template's chain state and one site backup per company under the new addresses; without one it deploys the contracts (25 s in the old product). Companies are made after, with `org create --world`.",
+    "clock, the record and the stand-ins. A world with a template restores the template's chain state and one site backup per company under the new addresses; without one it deploys the contracts (25 s in the old product). An optional startAt date sets the initial epoch before anything runs, including before host time; it cannot reset an existing world. Companies are made after, with `org create --world`.",
   concept: concept_devnet,
   kind: "mutation",
   who: "Anyone on a local devnet's machine; on the hosted service, a signed-in holder of a key the worlds service admits as an organiser (assumption: a per-organiser world quota is not designed; settled when the hosted service is built, m3b-first-shared-world); production only with the platform owner's approval.",
-  input: Schema.Struct({ worldId: S, name: S, kind: WorldKind, profile: WorldProfile, template: Null(S), clock: ClockMode, rate: N, ownerApproval: Null(S) }),
+  input: Schema.Struct({ worldId: S, name: S, kind: WorldKind, profile: WorldProfile, template: Null(S), clock: ClockMode, rate: N, startAt: Schema.optionalKey(S), ownerApproval: Null(S) }),
   output: Schema.Struct({ worldId: S, state: Schema.Literal("creating") }),
   errors: errorsOf("worldCreate", [error_INVALID_INPUT, error_CAPACITY_REACHED]),
   reads: [table_worlds],
@@ -82,7 +82,7 @@ const clockRpc = (verb: "set" | "freeze" | "resume" | "warp", call: "timeRate" |
   });
 
 export const rpc_devnet_worlds_clock_set = clockRpc("set", "timeRate", "Set the world's clock running at a rate",
-  "Runs the world's clock at a rate of world seconds per real second, 1 to 60 (devnet.clock-rate; the bound is the coordinator's, accepted on Aaron's delegation, and the owner has not ruled on it). The chain, the service and every company's site follow (devnet.site-follows-world).",
+  "Sets the world's clock rate without changing frozen or running mode, in world seconds per real second, 1 to 60 (devnet.clock-rate; the bound is the coordinator's, accepted on Aaron's delegation, and the owner has not ruled on it). The chain, the service and every company's site follow (devnet.site-follows-world).",
   Schema.Struct({ world: S, rate: N }));
 export const rpc_devnet_worlds_clock_freeze = clockRpc("freeze", "timeFreeze", "Freeze the world's clock",
   "Stops the clock at the world's now. A frozen world moves only by warp or step, which is how a long history runs deterministically: 22 months in minutes of wall time, speed being commands per minute, not clock rate.",

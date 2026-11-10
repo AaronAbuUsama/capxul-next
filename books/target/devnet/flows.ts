@@ -6,7 +6,7 @@
 // the supervisor's public control protocol, and no backend rpc. The schema's local step kinds have no
 // "outside call", so each supervisor call is a `cache` step (this machine's devnet state), or a `poll`
 // step for an event stream, and the flow's `calls` names it (decision devnet.supervisor-steps). Three
-// clock flows implement the frozen `dev time` commands, and one the new `dev time set`, which sets the
+// clock flows are now SDK-only helpers (devnet.one-world-command-surface), including setting the
 // rate a running clock runs at (decision devnet.clock-rate, for aaron.world-clock); six more are the
 // protocol's other verbs, for people building on Capxul (surface `sdk`; the supervisor's
 // `capxul-devnet time` commands are thin clients of the same protocol). In a shared world the same
@@ -146,6 +146,7 @@ const BARRIER =
 // ── the clock: the frozen `dev time` commands ───────────────────────────────────────────────
 
 export const flow_devnet_time_show = defineFlow({
+  surfaces: ["sdk"],
   id: "devnet.time.show",
   title: "Read the devnet's one clock, the chain head and how far Ponder has indexed",
   about:
@@ -174,6 +175,7 @@ export const flow_devnet_time_show = defineFlow({
 });
 
 export const flow_devnet_time_warp = defineFlow({
+  surfaces: ["sdk"],
   id: "devnet.time.warp",
   title: "Move the devnet's clock forward, running what falls due on the way",
   about:
@@ -201,6 +203,7 @@ export const flow_devnet_time_warp = defineFlow({
 });
 
 export const flow_devnet_time_start_at = defineFlow({
+  surfaces: ["sdk"],
   id: "devnet.time.start-at",
   title: "Set a fresh devnet's story in the past",
   about:
@@ -228,6 +231,7 @@ export const flow_devnet_time_start_at = defineFlow({
 const RATE_RULE = "a whole number from 1 to 60";
 
 export const flow_devnet_time_set = defineFlow({
+  surfaces: ["sdk"],
   id: "devnet.time.set",
   title: "Set how fast the devnet's clock runs: world seconds per real second",
   about:
@@ -401,6 +405,7 @@ export const flow_devnet_time_follow = defineFlow({
 const NAME_RULE = "lowercase letters, digits and hyphens, up to 40 characters";
 
 export const flow_devnet_snapshots_list = defineFlow({
+  surfaces: ["sdk"],
   id: "devnet.snapshots.list",
   title: "List the worlds saved on this machine, by world time",
   about:
@@ -423,6 +428,7 @@ export const flow_devnet_snapshots_list = defineFlow({
 });
 
 export const flow_devnet_snapshots_save = defineFlow({
+  surfaces: ["sdk"],
   id: "devnet.snapshots.save",
   title: "Save the whole devnet world under a name",
   about:
@@ -449,6 +455,7 @@ export const flow_devnet_snapshots_save = defineFlow({
 });
 
 export const flow_devnet_snapshots_restore = defineFlow({
+  surfaces: ["sdk"],
   id: "devnet.snapshots.restore",
   title: "Put the devnet back to a saved world",
   about:

@@ -11,3 +11,5 @@ status/runs/*/run.log
 
 # working data, never committed: loop run folders are written to var/runs/
 var/
+
+.DS_Store

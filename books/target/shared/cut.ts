@@ -22,6 +22,13 @@ export interface Cut {
 }
 
 export const CUT = {
+  "dev.time": { fate: "reached", decision: "devnet.one-world-command-surface", carriedBy: "world show; SDK helpers retained, no dev alias" },
+  "dev.time.warp": { fate: "reached", decision: "devnet.one-world-command-surface", carriedBy: "world clock warp; SDK helpers retained, no dev alias" },
+  "dev.time.start-at": { fate: "reached", decision: "devnet.one-world-command-surface", carriedBy: "world create --start-at; SDK helpers retained, no dev alias" },
+  "dev.snapshot.save": { fate: "reached", decision: "devnet.one-world-command-surface", carriedBy: "world snapshot save; SDK helpers retained, no dev alias" },
+  "dev.snapshot.list": { fate: "reached", decision: "devnet.one-world-command-surface", carriedBy: "world snapshot list; SDK helpers retained, no dev alias" },
+  "dev.snapshot.restore": { fate: "reached", decision: "devnet.one-world-command-surface", carriedBy: "world snapshot restore; SDK helpers retained, no dev alias" },
+
   "org.books.accounts.import": { fate: "reached", decision: "cut.books", carriedBy: "ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer)" },
   "org.books.accounts.list": { fate: "reached", decision: "cut.books", carriedBy: "ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer)" },
   "org.books.accounts.add": { fate: "reached", decision: "cut.books", carriedBy: "ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer)" },
