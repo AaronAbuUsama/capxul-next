@@ -389,10 +389,12 @@
       "title": "Find the portal test that fails intermittently",
       "why": "A gate that sometimes fails teaches everyone to ignore it.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "05076d1"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "m1-flaky-portal-test-11101453"
@@ -738,13 +740,17 @@
       "title": "Rewrite or archive the decisions that still assume the old design",
       "why": "About 200 decisions were flagged in the cut as written on the old model. They read as current and are not.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "blocked",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10",
-      "thread": "m1-old-decisions-11101453"
+      "thread": "m1-old-decisions-11101453",
+      "blockedBy": {
+        "need": "loop run m1-old-decisions-11101555: the maker asked: F-2.1 requires implementing the already-recorded system.eval-identity rule in packages/blueprint-engine/src/evals.ts, but the builder instructions explicitly prohibit lane tasks from changing that package. Changing error vocabulary or discarding claims would violate the decision. Recommend: assign the source fix and regression tests to an engine",
+        "who": "coordinator"
+      }
     },
     {
       "id": "m1-loop-runner",
@@ -977,10 +983,12 @@
       "title": "Close the gaps on transitions, tables and errors",
       "why": "Exit line g2: the blueprint builds with no problems and every open gap is closed or has a recorded reason. 162 gaps are open after the telemetry work; they are listed in the findings file the blueprint build writes (pnpm blueprint, then findings.json in the output folder, under gaps, each with record, rule and detail).",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "de353b5"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "m1-gaps-states-11101453"
@@ -990,10 +998,12 @@
       "title": "Close the gaps on calls, components and operations",
       "why": "Exit line g2: the blueprint builds with no problems and every open gap is closed or has a recorded reason. 162 gaps are open after the telemetry work; they are listed in the findings file the blueprint build writes (pnpm blueprint, then findings.json in the output folder, under gaps, each with record, rule and detail).",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "c0e302b"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "m1-gaps-surface-11101555"
@@ -1009,10 +1019,23 @@
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-engine-rules",
+      "title": "The engine: unique eval ids, and gaps that stand for a recorded reason",
+      "why": "Two loop runs on 10 November stopped at the engine. m1-old-decisions blocked because giving every eval a unique id means implementing the recorded rule system.eval-identity in the engine, which a blueprint task may not touch. And the three gap tasks could only write reasons as decisions: the build still counts those gaps as open, so exit line g2 (every gap closed or with a recorded reason) cannot be read off the build.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
     }
   ],
   "path": {
     "tasks": [
+      "m1-engine-rules",
       "m1-loop-hardening",
       "m1-eval-coverage",
       "m1-time-proof",
@@ -1020,7 +1043,7 @@
       "m1-entry-docs",
       "m1-aaron-accepts"
     ],
-    "why": "Telemetry and the AWS side are done by the loop. Next the loop is made trustworthy (it cannot yet install the spike's dependencies or run the test sites in a lane, which blocked the telemetry run on a finding that was only its environment), then the checks are lined up with the blueprint's tests so the score is real, time is proved on the scoreboard, the old decisions and entry documents are rewritten, and Aaron reads the portal.",
+    "why": "Two runs stopped at the engine on 10 November, so its two missing rules come first: unique eval ids and gaps that stand for a recorded reason. Then the loop is made trustworthy for tasks that need the test sites, the checks are lined up with the blueprint's tests, time is proved, the old decisions and entry documents are finished, and Aaron reads the portal.",
     "written": "2026-11-10"
   },
   "notes": [
