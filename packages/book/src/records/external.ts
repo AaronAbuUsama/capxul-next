@@ -53,10 +53,23 @@ export type Integration = ReturnType<typeof defineIntegration>;
 
 export const ContractSpec = Schema.Struct({
   ...Common,
-  /** Deployed addresses by environment. */
+  /**
+   * Where the contract's code is (`tools/check-contracts.ts` requires it of every record): `built` is in
+   * `packages/contracts` and compared with its compiled ABI, `designed` is designed and not built, `third-party` is
+   * someone else's code, deployed by the install and not compared.
+   */
+  code: Schema.optionalKey(Schema.Literals(["built", "designed", "third-party"])),
+  /** For a `built` contract: its Solidity name in `packages/contracts/src`, the name of its compiled artifact. */
+  artifact: Schema.optionalKey(Schema.String),
+  /**
+   * Deployed addresses by environment, for a contract at one fixed address on a real network. A devnet address is not kept
+   * here: it comes from the deployment file the deploy tool writes (`packages/contracts/deployments/devnet.json`).
+   */
   addresses: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
   functions: Schema.Record(Schema.String, Schema.Struct({ signature: Schema.String, about: Line })),
   events: Schema.Record(Schema.String, Schema.Struct({ signature: Schema.String, about: Line })),
+  /** The custom errors the contract reverts with: the refusals an operation depends on. */
+  errors: Schema.optionalKey(Schema.Record(Schema.String, Schema.Struct({ signature: Schema.String, about: Line }))),
 });
 
 export interface FunctionRef extends Ref<"function"> {
