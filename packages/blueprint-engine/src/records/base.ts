@@ -99,11 +99,31 @@ export const Budget = Schema.Struct({
   why: Schema.optionalKey(Line),
 });
 
+const describeId = (spec: unknown): string => {
+  const id = typeof spec === "object" && spec !== null ? (spec as { id?: unknown }).id : undefined;
+  return typeof id === "string" ? id : "(no id)";
+};
+
+/** The blueprint file that called a define function: the first stack frame outside the engine. */
+const callerFile = (): string => {
+  const frames = (new Error().stack ?? "").split("\n").slice(1);
+  const own = frames[0]?.match(/\((.*?):\d+:\d+\)$/)?.[1] ?? frames[0]?.match(/at (.*?):\d+:\d+$/)?.[1];
+  for (const f of frames) {
+    const file = f.match(/\((.*?):\d+:\d+\)$/)?.[1] ?? f.match(/at (.*?):\d+:\d+$/)?.[1];
+    if (file && file !== own && !file.includes("/blueprint-engine/src/")) return file.replace(/^file:\/\//, "");
+  }
+  return "an unknown file";
+};
+
 /** Validate a record's fields, then return the record with its kind stamped on. */
 export const make =
   <K extends Kind>(kind: K) =>
   <S extends Schema.Top>(schema: S) =>
   <const T extends S["Type"]>(spec: T): T & Ref<K> => {
-    Schema.decodeUnknownSync(schema as never)(spec);
+    try {
+      Schema.decodeUnknownSync(schema as never)(spec);
+    } catch (e) {
+      throw new Error(`${kind} ${describeId(spec)} in ${callerFile()}: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
+    }
     return { ...(spec as object), _kind: kind } as T & Ref<K>;
   };

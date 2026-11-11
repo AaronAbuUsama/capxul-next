@@ -7,6 +7,8 @@ import { BUDGET_DEFAULTS } from "./budgets.ts";
 import { exampleGaps, exampleProblems } from "./examples.ts";
 import { classifyFindings, isErrorProducer } from "./findings.ts";
 import { telemetryGaps } from "./telemetry.ts";
+import { argsOf, chosenProblem, reachedStates, sendsEvent } from "./reach.ts";
+export { argsOf };
 
 export interface AnyRecord {
   readonly _kind: Kind;
@@ -130,22 +132,6 @@ export const propsOf = (s: unknown): Set<string> | undefined => {
 
 /** The columns every indexed log carries besides its arguments, as Ponder's rows name them. */
 export const LOG_ENVELOPE = ["chain_id", "contract_address", "block_number", "block_hash", "tx_hash", "log_index"] as const;
-
-/** A chain event's argument names, read from its signature: `Transfer(address indexed from, address indexed to, uint256 value)`. */
-export const argsOf = (signature: string): string[] => {
-  const open = signature.indexOf("(");
-  const body = open < 0 ? "" : signature.slice(open + 1, signature.lastIndexOf(")"));
-  const parts: string[] = [];
-  let depth = 0;
-  let cur = "";
-  for (const ch of body) {
-    if (ch === "(") depth++;
-    if (ch === ")") depth--;
-    if (ch === "," && depth === 0) { parts.push(cur); cur = ""; } else cur += ch;
-  }
-  if (cur.trim()) parts.push(cur);
-  return parts.map((p) => p.trim().split(/\s+/).pop() ?? "").filter(Boolean);
-};
 
 /** What a wait key's carrier carries, by name; undefined when the blueprint cannot tell (a call has no input schema). */
 const carried = (b: Draft, on: AnyRecord): Set<string> | undefined => {
@@ -350,6 +336,8 @@ const checkRules = (b: Draft, problems: Finding[]) => {
       }
     });
   }
+
+  for (const d of all(b, "decision")) { const c = chosenProblem(d); if (c) problems.push(c); }
 };
 
 // ── target rules: what a rebuilt design must satisfy (the accepted policies) ────────────────
@@ -435,11 +423,10 @@ const deriveGaps = (b: Draft, stage: "as-is" | "target"): Finding[] => {
   for (const t of all(b, "table")) if (t.tenancy !== "chain" && by(t, "writes").length === 0) g(t, "unwritten-table", "no operation or workflow writes it");
   for (const t of all(b, "transition")) if (by(t, "drives").length === 0) g(t, "undriven-transition", "no operation or workflow drives it");
   for (const m of all(b, "machine")) {
-    const reached = new Set([m.initial as string, ...Object.values(m.transitions as Record<string, { to: string }>).map((t) => t.to)]);
+    const reached = reachedStates(m);
     for (const s of m.states as { id: string }[]) if (!reached.has(s.id)) g(m, "unreachable-state", `no transition reaches ${s.id}`);
   }
-  // A wait that is woken by an event listens to it; it does not send it.
-  for (const e of all(b, "event")) if (by(e).filter((l) => l.field !== "waits").length === 0) g(e, "unsent-event", "no transition, operation or workflow sends it");
+  for (const e of all(b, "event")) if (!by(e).some(sendsEvent)) g(e, "unsent-event", "no transition, operation or workflow sends it");
   for (const e of all(b, "error")) if (!by(e).some(isErrorProducer)) g(e, "unproduced-error", "nothing produces it");
   for (const c of all(b, "call")) if (by(c, "calls").length === 0) g(c, "unused-call", "nothing calls it");
   for (const f of all(b, "function")) if (by(f, "chain").length === 0) g(f, "uncalled-function", "nothing calls it");

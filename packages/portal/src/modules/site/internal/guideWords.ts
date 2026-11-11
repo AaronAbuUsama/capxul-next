@@ -63,6 +63,7 @@ export const RULE_WORDS: readonly RuleWords[] = [
   { rule: "acceptance-claim", kind: "problem", means: "An acceptance line is plain text, not a claim with what an eval observes." },
   { rule: "stale-standing-gap", kind: "problem", means: "A decision excuses a gap that no longer exists, or gives no reason." },
   { rule: "eval-identity", kind: "problem", means: "Two evals would have the same id." },
+  { rule: "decision-chosen", kind: "problem", means: "A decision's choice is not one of the options it offers." },
   { rule: "admission-in-prose", kind: "gap", means: "A table's words say someone else may read its rows, but no rule records who." },
   { rule: "unwritten-table", kind: "gap", means: "Nothing writes a table." },
   { rule: "undriven-transition", kind: "gap", means: "Nothing makes a state machine take this move." },
