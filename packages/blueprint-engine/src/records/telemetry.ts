@@ -9,8 +9,9 @@ export const LogSpec = Schema.Struct({
   /** The component that writes it: the Core service, a site, the CLI, the indexer. */
   component: Ref("component"),
   level: Schema.Literals(["info", "warn", "error"]),
-  /** One row per call of every record of this kind (`rpc`: every rpc writes one), or `once` for a single writer. */
-  per: Schema.Literals(["rpc", "flow", "workflow", "procedure", "call", "once"]),
+  /** One row per call of every record of this kind (`rpc`: every rpc writes one; `operation`: every CLI command, so
+   * a step proven by its operation's success has a signal of its own), or `once` for a single writer. */
+  per: Schema.Literals(["operation", "rpc", "flow", "workflow", "procedure", "call", "once"]),
   /** With `once`: what writes it. */
   producer: Schema.optionalKey(Producer),
   /** The row's attributes beyond the system's envelope, as an Effect Schema Struct. */
