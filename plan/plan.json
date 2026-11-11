@@ -1868,16 +1868,14 @@
       "title": "What \"done\" means for an operation",
       "why": "PR #5's record-kinds spec leaves this call to Aaron: it defines done",
       "milestone": "m1",
-      "state": "blocked",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "82912fa"
+      ],
       "created": "2026-11-11",
-      "updated": "2026-11-11",
-      "blockedBy": {
-        "need": "When can we call one operation (for example \"send a payment\") done? Pick one:\nA. (recommended) Its tests pass, AND its alerts stay quiet on the shared test machine, AND each of its alerts has been shown to fire once when we deliberately break the thing it watches. Done then means it works, it stays healthy, and we would know if it broke.\nB. Its tests pass. Simpler and faster, but an operation can be \"done\" while broken in ways only its alerts would catch.\nC. Tests pass and alerts stay quiet, without proving each alert can fire. Middle ground, but an alert that never fires looks the same as one that is broken.\nMark done to take A, or tell the coordinator B or C (or your own words).",
-        "who": "aaron"
-      }
+      "updated": "2026-11-11"
     }
   ],
   "path": {
