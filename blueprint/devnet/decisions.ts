@@ -1222,44 +1222,21 @@ export const decision_devnet_clock_rate = defineDecision({
   id: "devnet.clock-rate",
   title: "A running clock has a rate, world seconds per real second, set by `dev time set`",
   question:
-    "aaron.world-clock: a shared world may run faster than real time (every real hour moves its clock four), so the " +
-    "clock gains a rate beside frozen and running. How is the rate set and changed, what bounds it, and what keeps it?",
+    "aaron.world-clock: a shared world may run faster than real time (every real hour moves its clock four), so the clock gains a rate beside frozen and running. How is the rate set and changed, what bounds it, and what keeps it?",
   options: [
-    {
-      label: "rate",
-      text:
-        "The clock carries `rate`, the seconds of world time that pass in each real second while it runs: a whole number " +
-        "from 1 to 60, 1 at `up` unless `capxul-devnet up --rate <n>`. The protocol sets it with `POST /v1/time/rate " +
-        "{rate}` (devnet-control's timeRate); its CLI command is `dev time set --rate <n>` (operation dev.time.set, SDK " +
-        "method devnet.time.set) and the supervisor's own client, which mirrors `dev time`'s verbs, is `capxul-devnet " +
-        "time set --rate <n>`. A change takes effect " +
-        "at once: the authority reads now at the change and sends a `rate` event (a new version, now, realAt and the " +
-        "rate), so every follower runs on at the new rate from the same instant; nothing moves back and nothing is mined. " +
-        "A real hour at rate r moves the world at most r hours, less the moments it stands at stops " +
-        "(devnet.running-stops). It is a move: while a warp, step, settle, start-at, freeze or resume runs it is WRONG_STATE, " +
-        "a race no saved world holds, so it is not a booked refusal, as the frozen `dev time` commands' is not. A frozen clock " +
-        "keeps its rate for when it runs again; freeze, resume and every warp keep it; a saved world keeps its rate with " +
-        "its now and mode, and a restore sets it; a season sets it when it starts (devnet.seasons). `dev time` shows it. " +
-        "In a shared world only its owner sets it: a joiner's call is ROLE_PERMISSION_DENIED (world shared-world-joiner). A rate " +
-        "never changes a warp: a warp moves as far as it is told, at the barrier's pace.",
-    },
-    { label: "fast-mode", text: "A third mode, `fast`, beside frozen and running, at a fixed multiple." },
-    { label: "timed-warps", text: "No standing rate: a program warps an hour every quarter of an hour." },
-  ],
-  chosen: "rate",
+  {
+    "label": "current-scope",
+    "text": "Keep rate as world seconds per real second (1 to 60), preserved by freeze, warp and snapshots; it never changes transport/session elapsed time. Clock moves serialize and shared-world rate changes require the owner. Seasons are parked; lean service and real site jobs, not optional heads, consume rate events."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to devnet.clock-rate is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Aaron's ruling aaron.world-clock asks for a world whose clock moves four hours each real hour, beside the frozen " +
-    "and running modes. A rate is the one number a running clock lacked: running at rate 1 is the running clock as it " +
-    "was, so the modes stay two and every reader computes now one way. A fixed fast mode could not be four for one " +
-    "world and ten for another; timed warps would jump, which is what the barrier replaced, and leave the head behind " +
-    "between them. The bound protects what still runs on real time (time.real-elapsed): at 60 a Ponder poll of 100 ms " +
-    "is six world seconds and a vendor's 2 s p95 two world minutes; past it the story stops reading as time passing, " +
-    "and a faster story is a warp, which is a barrier. A rate also shortens in real time everything a person is " +
-    "promised on now: at rate 4 a sign-in code's five minutes last 75 real seconds, so a world whose people sign in by " +
-    "emailed codes runs at 5 or less. That is its owner's choice, not a refusal. For Aaron: the command (`dev time set " +
-    "--rate <n>`, one operation beyond the 215 under rules.new-operations) and the bound of 60. The recommendation " +
-    "stands until he answers.",
-  source: WORLD_CLOCK("blueprint/shared/rulings.ts (aaron.world-clock); blueprint/access/decisions.ts (a code lasts five minutes); docs/design/new-commands.md (G3 `set`)"),
+    "Review, 11 November 2026: Keep rate as world seconds per real second (1 to 60), preserved by freeze, warp and snapshots; it never changes transport/session elapsed time. Clock moves serialize and shared-world rate changes require the owner. Seasons are parked; lean service and real site jobs, not optional heads, consume rate events. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [
     flow_devnet_time_set, worldOps.operation_world_clock_set, flow_devnet_time_show, flow_devnet_time_resume, flow_devnet_time_freeze,
     flow_devnet_snapshots_save, flow_devnet_snapshots_restore, integration_devnet_control, component_devnet, environment_devnet,

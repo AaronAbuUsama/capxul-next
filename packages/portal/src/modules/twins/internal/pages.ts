@@ -31,6 +31,7 @@ export const questions = (p: QuestionsPage): readonly string[] => [
   plain(p.lead), "", `${p.questions.length} decisions wait for ${p.reviewer}. An answer is filed as an issue on ${p.repo} with the label \`${p.issueLabel}\`.`, "",
   ...p.questions.flatMap((q) => [
     `## ${q.id}`, "", `**${plain(q.title)}** (${q.concept})`, "", plain(q.question), "",
+    ...(q.details === "" ? [] : [q.details.replace(/^## /gm, "#### "), ""]),
     ...q.options.map((o) => `- **${plain(o.label)}**${o.recommended ? " (recommended)" : ""}: ${plain(o.text)}`), "",
     `Why: ${plain(q.why)}`, "", ...(q.source === "" ? [] : [`Source: ${plain(q.source)}`, ""]),
     ...(q.affects.length === 0 ? [] : [`Holds ${q.holds}: ${refs(p.id, q.affects)}`, ""]),

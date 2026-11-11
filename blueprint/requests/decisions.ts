@@ -554,36 +554,23 @@ export const decision_requests_bill_time = defineDecision({
 
 export const decision_requests_bill_time_currency = defineDecision({
   id: "requests.bill-time-currency",
-  title: "Billed hours ask in the token of the timesheets' currency, never converted",
+  title: "Archived: Billed hours ask in the token of the timesheets' currency, never conve",
   question:
-    "A timesheet's rates are decimal strings in the Organization's currency (projects.amounts), and a request asks an " +
-    "exact token amount. Which token does `org projects timesheet bill` ask in, how are the lines worked out, and may its one " +
-    "transaction invoke three doors?",
+    "A timesheet's rates are decimal strings in the Organization's currency (projects.amounts), and a request asks an exact token amount. Which token does `org projects timesheet bill` ask in, how are the lines worked out, and may its one transaction invoke three doors?",
   options: [
-    {
-      label: "currency-token",
-      text:
-        "The admitted token whose currency is the timesheets' one currency (USD is USDC, EUR is EURC, another currency " +
-        "the deployment's token for it where one is admitted); none, or timesheets in two currencies, is INVALID_INPUT " +
-        "naming the currency. One line per activity and billing rate: quantity the billing hours, unit amount the rate " +
-        "in the token's raw units, so the lines add up to the amount exactly. `billed_logs` keeps each log's hours and " +
-        "raw amount. The rpc invokes `parties.resolve-recipient` (the payer's Party, provisional for a new mailbox), " +
-        "`documents.store` and `projects.bill-time`: three procedures of three other concepts, recorded here as P4 asks " +
-        "of a wider transaction.",
-    },
-    { label: "usdc-converted", text: "Always USDC, each rate converted from the Organization's currency at the day's price." },
-    { label: "asset-flag", text: "`--asset <token>`, as `request issue` takes it, with the rates read as amounts of that token." },
-  ],
-  chosen: "currency-token",
+  {
+    "label": "current-scope",
+    "text": "Archive Core timesheet-currency token conversion and its three-other-concept transaction allowance. ERPNext owns timesheet/invoice currencies; a chain payment must use an admitted asset and exact raw amount without silently converting unsupported currency. No projects.bill-time procedure is restored."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to requests.bill-time-currency is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "An Invoice asks an exact amount, and its lines must add up to it (documents.store), so a converted rate would " +
-    "drift from the timesheet the hours were priced in and leave the books and the head with two figures; requests " +
-    "also reads no price. A flag would let a rate of 90 GBP be asked as 90 USDC. A currency with no admitted token " +
-    "cannot be billed until one is admitted, a deployment setting. The three doors are one money fact: the request " +
-    "keys its payer on a Party (as every request's payer is named), stores its document, and marks the hours it " +
-    "bills; split over two transactions, a crash between them would leave hours marked with no request or a request " +
-    "whose hours another invoice could take.",
-  source: ASSEMBLY("blueprint/projects/decisions.ts (projects.amounts); blueprint/documents/procedures.ts (InvoiceContent); rules.transaction-width; aaron.projects"),
+    "Review, 11 November 2026: Archive Core timesheet-currency token conversion and its three-other-concept transaction allowance. ERPNext owns timesheet/invoice currencies; a chain payment must use an admitted asset and exact raw amount without silently converting unsupported currency. No projects.bill-time procedure is restored. Authority: cut.requests; plugs.held-payment; plugs.repoint-money-fact.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.requests; plugs.held-payment; plugs.repoint-money-fact",
   affects: [d.table_requests],
 });
 

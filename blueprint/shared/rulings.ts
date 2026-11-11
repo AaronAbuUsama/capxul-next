@@ -68,17 +68,18 @@ export const decision_aaron_crm_frappe_shape = defineDecision({
   title: "The global directory of people is a CRM in Frappe CRM's shape",
   question: "parties.directory-tenancy made the directory of people global. What is it, and whose shape does it take?",
   options: [
-    {
-      label: "global-crm-frappe",
-      text:
-        "Yes, global: one directory of people and companies across every tenant, a global CRM, in Frappe CRM's shape. CRM " +
-        "is one of the two fundamental apps every organization starts with.",
-    },
-    { label: "global-own-shape", text: "Global, in Capxul's own shape." },
-  ],
-  chosen: "global-crm-frappe",
-  why: "Aaron, 8 November 2026: a global CRM compatible with Frappe; CRM is fundamental to how the product is built.",
-  source: AARON,
+  {
+    "label": "current-scope",
+    "text": "The global Core directory identifies people, companies and their Safes; it is not a global editable CRM. Each company site owns Frappe CRM and its tenant business contacts. This narrows the earlier global-CRM wording under aaron.frappe-native without making another tenant's contacts readable."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to aaron.crm-frappe-shape is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
+  why: "Review, 11 November 2026: The global Core directory identifies people, companies and their Safes; it is not a global editable CRM. Each company site owns Frappe CRM and its tenant business contacts. This narrows the earlier global-CRM wording under aaron.frappe-native without making another tenant's contacts readable. Authority: aaron.frappe-native; aaron.one-door; sites.features-reachability; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; aaron.frappe-native; aaron.one-door; sites.features-reachability; plugs.roles-follow-hats",
   affects: [f.concept_parties, f.concept_contacts],
 });
 
@@ -87,19 +88,18 @@ export const decision_aaron_books_first_principles = defineDecision({
   title: "Redesign the books in Frappe accounting's shape, synced, no fork if possible",
   question: "What does Capxul's books concept become?",
   options: [
-    {
-      label: "frappe-accounting",
-      text:
-        "Redesign the books from first principles in the shape of Frappe's accounting (its account tree, journal and ledger " +
-        "entries, payment entries, fiscal years, cost centres, or what the real doctypes show), so an organization's books " +
-        "sync with an ERPNext head when one is connected. Money facts proven on chain post the entries. Keep every frozen " +
-        "books operation's behaviour. Fork Frappe's accounting only if Capxul-native cannot feel integrated.",
-    },
-    { label: "keep", text: "Keep the current books design (facts without a chart, Capxul's own chart and reports)." },
-  ],
-  chosen: "frappe-accounting",
-  why: "Aaron, 8 November 2026: the protocol is redesigned around Frappe, and accounting is synced at the bare minimum.",
-  source: AARON,
+  {
+    "label": "current-scope",
+    "text": "The earlier instruction to redesign and synchronize books is superseded as an ownership model by aaron.frappe-native: ERPNext is the book of record on every company site. Chain money still posts accounting entries through plugs. Keep the first-principles and no-fork intent, not a complete second Core ledger waiting for an optional head."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to aaron.books-first-principles is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
+  why: "Review, 11 November 2026: The earlier instruction to redesign and synchronize books is superseded as an ownership model by aaron.frappe-native: ERPNext is the book of record on every company site. Chain money still posts accounting entries through plugs. Keep the first-principles and no-fork intent, not a complete second Core ledger waiting for an optional head. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
   affects: [f.concept_books],
 });
 
@@ -108,24 +108,19 @@ export const decision_aaron_frappe_shape = defineDecision({
   title: "Accounting and payroll sync with Frappe; CRM and Projects are fundamental",
   question: "Which Frappe apps does every organization start with, and which are added later?",
   options: [
-    {
-      label: "core-four",
-      text:
-        "At the bare minimum, an organization's accounting and payroll are designed to sync with Frappe's (ERPNext " +
-        "accounting, Frappe HR payroll), and CRM and Projects are fundamental: every organization starts with them, in " +
-        "their Frappe shapes. Every other Frappe app is added as a customer needs it, in the start-up step or in " +
-        "conversation with the organization's Forward Deployed Engineer agent. The redesign is on the main line, book first, " +
-        "before the build.",
-    },
-    { label: "vision-check", text: "Keep Frappe shapes as a vision check, adopted only where core." },
-  ],
-  chosen: "core-four",
+  {
+    "label": "current-scope",
+    "text": "Accounting, Frappe HR payroll, CRM and Projects are present on the company's hosted site from the start. They are native Frappe business records, not Core copies synchronized later with an optional head. Other installed features are reached through the door subject to feature reachability and caller roles; hosted FDE provisioning is parked."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to aaron.frappe-shape is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Aaron, 8 November 2026: 'Capxul should be designed in such a way that at bare minimum the accounting is too, payroll is " +
-    "too, synced. There are two applications that are fundamental to how we build our stuff, and that is the CRM and the " +
-    "Projects app from Frappe. All the other apps are added as a customer needs them, either in the initialization start-up " +
-    "step or in conversation with an FDE agent.'",
-  source: AARON,
+    "Review, 11 November 2026: Accounting, Frappe HR payroll, CRM and Projects are present on the company's hosted site from the start. They are native Frappe business records, not Core copies synchronized later with an optional head. Other installed features are reached through the door subject to feature reachability and caller roles; hosted FDE provisioning is parked. Authority: aaron.frappe-native; aaron.one-door; sites.features-reachability; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; aaron.frappe-native; aaron.one-door; sites.features-reachability; plugs.roles-follow-hats",
   affects: [f.concept_parties, f.concept_contacts, f.concept_books],
 });
 
@@ -153,12 +148,18 @@ export const decision_aaron_contacts_permissions = defineDecision({
   title: "Editing a company's contact book needs a permission",
   question: "Who may add, label, hide and unhide in an Organization's contact book?",
   options: [
-    { label: "permission", text: "Only seats that hold the contact book's edit permission; every member may read it." },
-    { label: "member", text: "Any active seat, as the old book's who said." },
-  ],
-  chosen: "permission",
-  why: "Aaron, 8 November 2026: 'there should be permissions for editing the contact book. It shouldn't just be anyone can do anything.'",
-  source: AARON,
+  {
+    "label": "current-scope",
+    "text": "Reading business contacts and editing them are distinct permissions. Core does not restore a contacts-book edit flag: People and other hats project site roles and the door acts as the caller. A site role must authorize an edit; possession of a Core Seat alone is not a write permission."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to aaron.contacts-permissions is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
+  why: "Review, 11 November 2026: Reading business contacts and editing them are distinct permissions. Core does not restore a contacts-book edit flag: People and other hats project site roles and the door acts as the caller. A site role must authorize an edit; possession of a Core Seat alone is not a write permission. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [f.concept_contacts],
 });
 
@@ -227,18 +228,18 @@ export const decision_aaron_projects = defineDecision({
   title: "Projects is fundamental: every organization starts with it, in Frappe's shape",
   question: "The old system had no projects. Does the rebuild?",
   options: [
-    {
-      label: "projects-concept",
-      text:
-        "Yes: a projects concept in the shape of Frappe's Projects app (projects, tasks and timesheets, or what the real " +
-        "doctypes show), present in every organization from the start and synced with a Frappe head when one is connected. " +
-        "Its operations are new capabilities, designed book first with a decision pack; they are not among the 215.",
-    },
-    { label: "later", text: "Add projects when a customer asks." },
-  ],
-  chosen: "projects-concept",
-  why: "Aaron, 8 November 2026: 'there are two applications that are fundamental to how we build our stuff, and that is the CRM and the Projects app from Frappe.'",
-  source: AARON,
+  {
+    "label": "current-scope",
+    "text": "Projects remains fundamental on every company site. ERPNext owns Project, Task and Timesheet and the door reaches their verbs; do not recreate a Core projects concept, replicated tables or one explicit Core operation per DocType."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to aaron.projects is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
+  why: "Review, 11 November 2026: Projects remains fundamental on every company site. ERPNext owns Project, Task and Timesheet and the door reaches their verbs; do not recreate a Core projects concept, replicated tables or one explicit Core operation per DocType. Authority: aaron.frappe-native; aaron.one-door; sites.features-reachability; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; aaron.frappe-native; aaron.one-door; sites.features-reachability; plugs.roles-follow-hats",
   affects: [f.system_capxul],
 });
 
@@ -531,21 +532,19 @@ export const decision_aaron_sdk_reaches_everything = defineDecision({
   title: "The Core SDK and the CLI reach every capability, native or on the head",
   question: "Which surfaces reach every capability, including what lives only on a connected Frappe head?",
   options: [
-    {
-      label: "sdk-and-cli",
-      text:
-        "The Core SDK and the CLI reach everything: native concepts through their own commands, and what lives only on " +
-        "a connected head through a generic document family over the SDK, with the caller's authority, logged, on the " +
-        "world's clock. The React SDK does not mirror it all; whoever needs a React screen builds it on the Core SDK.",
-    },
-    { label: "every-surface", text: "The CLI, the MCP server and the React SDK all reach everything." },
-  ],
-  chosen: "sdk-and-cli",
+  {
+    "label": "current-scope",
+    "text": "The Core SDK and CLI reach Core capabilities and site capabilities through one door, with the caller's projected roles and world business clock. No optional-head connection is required. React screens may use Core SDK rather than mirroring every method; arbitrary site access never implies a signer."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to aaron.sdk-reaches-everything is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Aaron, 8 November 2026: 'Everything is accessible through the SDK or the CLI. You should be able to connect to " +
-    "everything from those surfaces.' Then: 'I don't think the React SDK should get everything. Draw the line at the CLI " +
-    "and the SDK. If anyone needs to implement something in React, they can. Frappe doesn't even use React.'",
-  source: AARON_8,
+    "Review, 11 November 2026: The Core SDK and CLI reach Core capabilities and site capabilities through one door, with the caller's projected roles and world business clock. No optional-head connection is required. React screens may use Core SDK rather than mirroring every method; arbitrary site access never implies a signer. Authority: aaron.frappe-native; aaron.one-door; sites.features-reachability; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; aaron.frappe-native; aaron.one-door; sites.features-reachability; plugs.roles-follow-hats",
   affects: [f.system_capxul],
 });
 

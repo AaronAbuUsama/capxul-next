@@ -7,7 +7,7 @@ import { test } from "node:test";
 import { check, expect, passed } from "#src/modules/check/service.ts";
 
 import { assetsOf, extraPagesOf, generate, load, ownerNeedsOf, ROOT } from "./main.ts";
-import { closedFor } from "./serve.ts";
+import { closedFor, waitingOf } from "./serve.ts";
 
 test("the real blueprint generates a site that passes the portal check", async () => {
   const loaded = await load(ROOT, "test000");
@@ -53,4 +53,17 @@ test("a server started from a linked worktree takes no answers; one started from
   assert.match(closedFor(worktree) ?? "", /served from a worktree.*takes no answers/);
   assert.equal(closedFor(own), undefined);
   assert.equal(closedFor(ROOT), existsSync(join(ROOT, ".git")) && statSync(join(ROOT, ".git")).isFile() ? closedFor(worktree) : undefined);
+});
+
+test("the server takes an answer for exactly the cards the served Questions page offers", async () => {
+  const loaded = await load(ROOT, "test000");
+  assert.ok(loaded.ok);
+  const dist = mkdtempSync(join(tmpdir(), "portal-dist-"));
+  mkdirSync(join(dist, "data"));
+  writeFileSync(join(dist, "data/review.json"), JSON.stringify({ questions: [
+    { kind: "decision", id: "new.decision", options: [{ label: "a" }, { label: "b" }] }, { kind: "need", id: "a-task" },
+  ] }));
+  const waiting = waitingOf(loaded.value, ROOT, dist);
+  assert.deepEqual([...waiting.decisions], [["new.decision", ["a", "b"]]]);
+  assert.deepEqual([...waiting.tasks], ["a-task"]);
 });

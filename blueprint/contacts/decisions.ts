@@ -1063,44 +1063,21 @@ export const decision_contacts_timeline_money = defineDecision({
   id: "contacts.timeline-money",
   title: "A timeline shows the money the chain proves with the record's Party",
   question:
-    "This pass's brief asks for payments and requests to a contact to show on its timeline; Aaron's evening answer " +
-    "names email, WhatsApp, calls, notes and tasks, not money, so this is the pass's own extension. Contacts sits below payments and " +
-    "requests (banking depends on contacts, requests on banking), so it can read neither's rows, and a flow belongs " +
-    "higher up when it needs a concept its own does not depend on (CONVENTIONS rule 8). Contacts does depend on " +
-    "indexing, whose views hold every PaymentSent and every escrow. What money does the timeline show?",
+    "This pass's brief asks for payments and requests to a contact to show on its timeline; Aaron's evening answer names email, WhatsApp, calls, notes and tasks, not money, so this is the pass's own extension. Contacts sits below payments and requests (banking depends on contacts, requests on banking), so it can read neither's rows, and a flow belongs higher up when it needs a concept its own does not depend on (CONVENTIONS rule 8). Contacts does depend on indexing, whose views hold every PaymentSent and every escrow. What money does the timeline show?",
   options: [
-    {
-      label: "chain-now",
-      text:
-        "The chain's: each PaymentSent between the Organization's company Safe and the record's Party's Safe, either " +
-        "way, with its token, amount, payment id and document hash; each claim escrow the company Safe sent that the " +
-        "Party's Safe owns; and each invoice escrow the Party's Safe sends that the company Safe owns, each with its " +
-        "standing, read from indexing's chain-payments and escrows. A request paid from the Party's Safe shows as its " +
-        "payment, carrying its Invoice's hash; one an outside payer pays shows as its invoice escrow, since its payout's " +
-        "PaymentSent names the escrow as sender. A request not yet funded, and a payment not yet sent (scheduled, " +
-        "awaiting approval), do not show.",
-    },
-    {
-      label: "activity-flow",
-      text:
-        "Book the timeline as activity's flow, with activity gaining contacts and requests as dependencies: contacts' " +
-        "timeline rpc, then activity's feed of Payments with the Party (every status), then requests' issued to it.",
-    },
-    { label: "contacts-above-payments", text: "Make contacts depend on payments, so it reads every Payment; requests still cannot be read." },
-  ],
-  chosen: "chain-now",
+  {
+    "label": "current-scope",
+    "text": "Site CRM owns its timeline. Any Core chain-money projection must show proven PaymentSent and escrow facts only, scoped to the company and resolved Party; unfunded requests and scheduled payments are not settled money. Archive the Core contacts timeline query and do not reintroduce contact RPCs."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to contacts.timeline-money is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "For Aaron: whether a timeline must also show what is not on the chain yet, an Invoice issued but unpaid and a " +
-    "payment scheduled or awaiting approval. Recommended: chain-now, which needs no new edge between concepts and " +
-    "shows every payment once it moves, both ways, every paid Invoice by its hash (by its escrow when an outside payer " +
-    "paid it) and money waiting for the contact; " +
-    "unpaid requests stay one command away in `request list --org`. If he wants them on the timeline, activity-flow " +
-    "is the way that keeps the concept map acyclic: it moves the command to activity (the read model of money) and " +
-    "adds contacts and requests to activity's dependencies, a foundation change. Contacts-above-payments would still " +
-    "miss requests and reorder the concept map for half the answer. A lead and a private entry have no Party, so their " +
-    "timelines show no money. Money is read through indexing's chain views, which already scope each row to the " +
-    "Safes the tenant owns.",
-  source: talkBy("docs/decisions/open-for-aaron.md (evening); blueprint/shared/foundation.ts (contacts, banking, requests, activity dependsOn); CONVENTIONS rule 8"),
+    "Review, 11 November 2026: Site CRM owns its timeline. Any Core chain-money projection must show proven PaymentSent and escrow facts only, scoped to the company and resolved Party; unfunded requests and scheduled payments are not settled money. Archive the Core contacts timeline query and do not reintroduce contact RPCs. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [table_chain_payments, table_escrows],
 });
 

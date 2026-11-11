@@ -2866,7 +2866,7 @@ export const decision_system_frozen_behaviour = defineDecision({
     "for designing the new flags, not surface to preserve. packages/blueprint-engine/scripts/check-frozen.ts checks that every operation is booked once or " +
     "classified by the cut, and that every booked operation's acceptance claims and refusal behaviours are kept in intent, or " +
     "rewritten or retired with a decision. Extended on 10 November 2026 by the coordinator, on Aaron's delegation, as START-HERE " +
-    "section 6 asks: the old rule said all 215 stay, which would force the book to keep rebuilding what Frappe owns.",
+    "section 6 asks: the old rule said all 215 stay, which would force the book to keep rebuilding what Frappe owns." + " Review, 11 November 2026: The surviving rule (The freeze keeps behaviour; each old operation is booked or classified) still applies. Removed subjects in its historical evidence are not restored; cut.principle; aaron.one-door; sites.door; portal.plan-page governs their replacement.",
   source:
     "Aaron, 8 November 2026, in the build-preparation conversation; extended 10 November 2026 by the coordinator, on Aaron's delegation (cut.principle)",
   affects: [f.system_capxul, f.component_cli, f.component_core_sdk, f.component_mcp_server],
@@ -2955,23 +2955,7 @@ export const decision_rules_new_operations = defineDecision({
   ],
   chosen: "cited-ruling",
   why:
-    "Aaron's rulings already make these capabilities operations: aaron.projects says they are new capabilities designed " +
-    "book first with a decision pack, and aaron.frappe-shape puts CRM, Projects and Frappe HR payroll in every " +
-    "Organization from the start. system.frozen-behaviour keeps the 215 and what their claims require, and nothing in it " +
-    "closes the list. So the rule opens it exactly where a ruling does. Citing the ruling ties each new command to the " +
-    "authority that made its capability; a claim makes it an eval, not a hope, as the 215's claims are theirs; and the " +
-    "collision checks keep the 215 exact: a new id equal to a frozen one would be read as that operation, one that " +
-    "differs only in its separators would share its export name, and a reused command would be two operations to the " +
-    "CLI. The 215 are still counted and required exactly, so a new operation never stands in for a frozen one. " +
-    "Accepted-pack was weighed: a decision pack's recommendation stands until Aaron answers, as every recorded choice " +
-    "does (the judgments report lists the packs for him), and a new operation changes no behaviour of the 215, so the " +
-    "stricter form would only hold the book back. Closed would leave the CRM, projects and Frappe HR payroll with no CLI, " +
-    "though the Forward Deployed Engineer works through the CLI as every agent does (aaron.fde-agent). Any-decision would " +
-    "let in a capability no ruling asked for. This rule never counts as the decision on a new operation: it cites rulings " +
-    "for every capability, so an operation in its affects would be booked with no pack of its own. It decides how one is " +
-    "booked, not which: the commands the CRM, projects, payroll and the head get are their packs' questions. For Aaron: " +
-    "may a new command be booked on its pack's recommendation before he answers the pack? Recommended: yes, as chosen; " +
-    "accepted-pack is the change if he wants his acceptance first.",
+    "Aaron's rulings already make these capabilities operations: aaron.projects says they are new capabilities designed book first with a decision pack, and aaron.frappe-shape puts CRM, Projects and Frappe HR payroll in every Organization from the start. system.frozen-behaviour keeps the 215 and what their claims require, and nothing in it closes the list. So the rule opens it exactly where a ruling does. Citing the ruling ties each new command to the authority that made its capability; a claim makes it an eval, not a hope, as the 215's claims are theirs; and the collision checks keep the 215 exact: a new id equal to a frozen one would be read as that operation, one that differs only in its separators would share its export name, and a reused command would be two operations to the CLI. The 215 are still counted and required exactly, so a new operation never stands in for a frozen one. Accepted-pack was weighed: a decision pack's recommendation stands until Aaron answers, as every recorded choice does (the judgments report lists the packs for him), and a new operation changes no behaviour of the 215, so the stricter form would only hold the book back. Closed would leave the CRM, projects and Frappe HR payroll with no CLI, though the Forward Deployed Engineer works through the CLI as every agent does (aaron.fde-agent). Any-decision would let in a capability no ruling asked for. This rule never counts as the decision on a new operation: it cites rulings for every capability, so an operation in its affects would be booked with no pack of its own. It decides how one is booked, not which: the commands the CRM, projects, payroll and the head get are their packs' questions. For Aaron: may a new command be booked on its pack's recommendation before he answers the pack? Recommended: yes, as chosen; accepted-pack is the change if he wants his acceptance first. Review, 11 November 2026: Confirmed rules.new-operations; original choice retained.",
   source: `${RULES}; under system.frozen-behaviour and aaron.frappe-shape (aaron.projects: a decision pack); evidence: packages/blueprint-engine/scripts/check-frozen.ts; contacts.crm-capabilities, payroll.hr-surface, projects.commands, organizations.commands`,
   affects: [
     decision_system_frozen_behaviour, f.system_capxul, f.component_cli, f.component_core_sdk, f.concept_contacts,

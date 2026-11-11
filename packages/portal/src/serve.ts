@@ -22,8 +22,22 @@ const TYPES: Readonly<Record<string, string>> = {
 
 const lines = (file: string): string => (existsSync(file) ? readFileSync(file, "utf8") : "");
 
-/** What waits on the owner now: the blueprint's decisions (as loaded) and the plan's tasks blocked on a need of his (read afresh). */
-const waitingOf = (input: SiteInput, root: string): Waiting => {
+/**
+ * What waits on the owner: exactly what the Questions page being served offers (`data/review.json` in `dist`, read on
+ * every request), so the page and the server cannot disagree. The server once checked answers against the blueprint it
+ * had imported at start; Node caches imports, so a reload after `pnpm portal` still saw the old blueprint, and a card
+ * the page showed was refused ("is not a decision that waits for you", 11 November 2026). Without the file, the
+ * blueprint as loaded and the plan's tasks blocked on a need of the owner.
+ */
+export const waitingOf = (input: SiteInput, root: string, dist: string): Waiting => {
+  try {
+    const page = JSON.parse(readFileSync(join(dist, "data/review.json"), "utf8")) as { questions?: readonly { kind?: unknown; id?: unknown; options?: readonly { label?: unknown }[] }[] };
+    const questions = page.questions ?? [];
+    return {
+      decisions: new Map(questions.filter((q) => q.kind === "decision").map((q) => [String(q.id), (q.options ?? []).map((o) => String(o.label))] as const)),
+      tasks: new Set(questions.filter((q) => q.kind === "need").map((q) => String(q.id))),
+    };
+  } catch { /* no generated page: fall back to the sources */ }
   const owner = input.direction.settings.reviewer.toLowerCase();
   const decisions = new Map([...input.blueprint.records.values()].filter((r) => r._kind === "decision" && input.waits(r)).map((d) => {
     const options = Array.isArray(d["options"]) ? (d["options"] as readonly { label?: unknown }[]).map((o) => String(o.label)) : [];
@@ -51,7 +65,7 @@ export const closedFor = (root: string): string | undefined => {
 const depsOf = (input: SiteInput, root: string, dist: string, port: number, extraHosts: readonly string[] = []): Deps => ({
   now: () => new Date().toISOString(),
   newId: () => `a-${new Date().toISOString().replace(/[-:.]/g, "").slice(0, 15)}-${randomBytes(3).toString("hex")}`,
-  waiting: () => waitingOf(input, root),
+  waiting: () => waitingOf(input, root, dist),
   answerLines: () => lines(join(root, "plan/answers.jsonl")),
   log: () => lines(join(root, "plan/log.jsonl")).split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l) as LogEntry),
   append: (line) => appendFileSync(join(root, "plan/answers.jsonl"), line),

@@ -15,7 +15,7 @@ export const questionOf = (ctx: Ctx, d: AnyRecord): Question => {
   const affects = records(d["affects"]);
   const held = (ctx.input.plan?.plan.tasks ?? []).filter((t) => t.state === "blocked" && t.blockedBy !== undefined && "decision" in t.blockedBy && t.blockedBy.decision === d.id);
   return {
-    kind: "decision", key: d.id, holdsUp: held.map((t) => ({ id: t.id, title: t.title, milestone: t.milestone })),
+    kind: "decision", key: d.id, details: "", holdsUp: held.map((t) => ({ id: t.id, title: t.title, milestone: t.milestone })),
     id: d.id, ref: { label: d.id, page: "review", anchor: `q-${d.id}` }, title: text(d["title"]),
     question: text(d["question"]), concept: ctx.input.conceptOf.get(keyOf(d)) ?? "shared", holds: affects.length,
     chosen, why: text(d["why"]), source: text(d["source"]),
@@ -25,7 +25,8 @@ export const questionOf = (ctx: Ctx, d: AnyRecord): Question => {
 };
 
 /** A task blocked on a need of the owner, as an inbox entry. */
-const needOf = (t: Task): Question => ({
+const needOf = (ctx: Ctx, t: Task): Question => ({
+  details: ctx.input.plan?.files.tasks[t.id] ?? "",
   kind: "need", key: `task-${t.id}`, holdsUp: [{ id: t.id, title: t.title, milestone: t.milestone }],
   id: t.id, ref: { label: t.id, page: "review", anchor: `q-task-${t.id}` }, title: t.title,
   question: t.blockedBy !== undefined && "need" in t.blockedBy ? t.blockedBy.need : "", concept: t.milestone, holds: 1,
@@ -39,7 +40,7 @@ const needs = (ctx: Ctx): readonly Task[] => {
 };
 
 /** Everything that waits on the owner, in one list: the blueprint's waiting decisions, then the plan's needs of his. */
-export const inbox = (ctx: Ctx): readonly Question[] => [...ctx.waiting.map((d) => questionOf(ctx, d)), ...needs(ctx).map(needOf)];
+export const inbox = (ctx: Ctx): readonly Question[] => [...ctx.waiting.map((d) => questionOf(ctx, d)), ...needs(ctx).map((t) => needOf(ctx, t))];
 
 export const questions = (ctx: Ctx): QuestionsPage => {
   const { settings, questions: words } = ctx.input.direction;

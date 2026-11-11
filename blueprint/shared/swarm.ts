@@ -854,78 +854,66 @@ export const decision_swarm_skills = defineDecision({
 
 export const decision_swarm_superset = defineDecision({
   id: "swarm.superset",
-  title: "swarmD passes skills through now, and the rest of pi-durable later",
+  title: "Archived: swarmD passes skills through now, and the rest of pi-durable later",
   question:
-    "Aaron asks whether swarmD should pass through everything pi-durable gives an agent (a superset: skills, extension " +
-    "sections, hooks), rather than choosing pieces. What should the build ask swarmD for?",
+    "Aaron asks whether swarmD should pass through everything pi-durable gives an agent (a superset: skills, extension sections, hooks), rather than choosing pieces. What should the build ask swarmD for?",
   options: [
-    {
-      label: "skills-now",
-      text:
-        "Skills now (the build needs them), and a general pass-through of pi-durable's extension sections later, each section " +
-        "kind admitted with a review of what it can change, since an extension can alter a worker's prompt and tools.",
-    },
-    { label: "superset", text: "Pass through every pi-durable extension section and hook as it is, now." },
-    { label: "none", text: "Neither; repository knowledge goes in the prompts." },
-  ],
-  chosen: "skills-now",
+  {
+    "label": "current-scope",
+    "text": "Archive superset: No pi-durable extension-section passthrough is required. Any future extension that changes worker instructions needs its own reviewed boundary."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.superset is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Skills are read-only knowledge and the build needs them at stage 1. A full superset is attractive but lets a definition " +
-    "change what swarmD's built-in prompt and tool checks guarantee, so it deserves its own design in swarmD. This is " +
-    "Aaron's call; the recommendation stands until he answers.",
-  source: by(`the swarm design's brief, 8 November 2026; ${SWARMD} node_modules/@earendil-works/pi-durable dist/harness/prompt.d.ts (sections)`),
+    "Review, 11 November 2026: Archive superset: No pi-durable extension-section passthrough is required. Any future extension that changes worker instructions needs its own reviewed boundary. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul],
 });
 
 export const decision_swarm_checker_family = defineDecision({
   id: "swarm.checker-family",
-  title: "Everything runs on OpenAI for now; models are set when the build runs",
+  title: "Archived: Everything runs on OpenAI for now; models are set when the build runs",
   question: "Which provider and model does each role use (maker, checker, adversary, manager, researcher)?",
   options: [
-    {
-      label: "openai-only",
-      text:
-        "Every role runs on OpenAI, paid from Aaron's credit. Which model fills each role is configuration set when the " +
-        "build runs and changed freely; a checker uses a different model from its maker where one is available. No " +
-        "DeepSeek; Anthropic only in a guarded, context-aware case Aaron opens.",
-    },
-    {
-      label: "two-families",
-      text: "Checkers on another provider's family than makers (DeepSeek or Anthropic), as swarmD's Zen rule 5 prefers.",
-    },
-  ],
-  chosen: "openai-only",
+  {
+    "label": "current-scope",
+    "text": "Archive checker-family: The current loop configures models per run. The historical OpenAI-only/provider-credit instruction is not a current model-routing restriction."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.checker-family is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Aaron, 8 November 2026: 'for now, everything's gonna be OpenAI. Don't get too worried about model configurations, " +
-    "because we could just change these when we run them... We're not going to worry about DeepSeek. Everything's just going " +
-    "to be on that OpenAI spend, just to keep it simple.' The two-family rule is waived for simplicity; a different model " +
-    "per checker keeps some of its benefit.",
-  source: "Aaron, 8 November 2026, in the build-preparation conversation",
+    "Review, 11 November 2026: Archive checker-family: The current loop configures models per run. The historical OpenAI-only/provider-credit instruction is not a current model-routing restriction. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul],
 });
 
 export const decision_swarm_spend_envelope = defineDecision({
   id: "swarm.spend-envelope",
-  title: "Up to $4,000 for this project's rollout, then reassess",
+  title: "Archived: Up to $4,000 for this project's rollout, then reassess",
   question:
-    "The task tree's ceiling is $5 for each of its 390 paired tasks (its 15 watch tasks get no pair). How much may the " +
-    "build spend on models before it asks Aaron again?",
+    "The task tree's ceiling is $5 for each of its 390 paired tasks (its 15 watch tasks get no pair). How much may the build spend on models before it asks Aaron again?",
   options: [
-    {
-      label: "4000",
-      text:
-        "$4,000 for this project's rollout, on OpenAI, with no monthly cap; then Aaron reassesses. The per-task cap ($5 " +
-        "default) and the envelope are configuration the master reads and the board shows; 75% of the envelope raises a " +
-        "matter, and reaching it stops new work until Aaron raises it.",
-    },
-    { label: "2500", text: "$2,500: the plan's $1,950 ceiling plus a quarter for the manager, diagnoses and defects." },
-  ],
-  chosen: "4000",
+  {
+    "label": "current-scope",
+    "text": "Archive spend-envelope: The authored plan/run sets budgets; the historical $4,000 rollout and 75-percent swarmD matter threshold do not authorize current spend."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.spend-envelope is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Aaron, 8 November 2026: 'up to $4,000 is fine for the rollout. The monthly is not really an issue here either. It's just " +
-    "for this specific project, 4,000, and then we'll reassess where we are after that.' The retro's numbers expect about " +
-    "$1,000 (most tasks near $2.50), so the envelope leaves room for the manager, diagnoses and defects.",
-  source: "Aaron, 8 November 2026, in the build-preparation conversation",
+    "Review, 11 November 2026: Archive spend-envelope: The authored plan/run sets budgets; the historical $4,000 rollout and 75-percent swarmD matter threshold do not authorize current spend. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul],
 });
 
