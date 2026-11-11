@@ -36,14 +36,14 @@
         "B9.snapshot-list",
         "B9.new-world-same-documents-ledger-hats-features"
       ],
-      "missing": "A snapshot saves and restores to the same documents, ledger, hats and features, but 'leaves the world untouched' is not checked."
+      "missing": "A snapshot saves and restores to the same documents, ledger, hats and features, but 'leaves the world untouched' is not checked. Decision for m1-eval-near-misses: Retain non-interference: successful restoration does not prove saving left the running world untouched."
     },
     {
       "eval": "acc:world.show/1",
       "checks": [
         "B9.world-list-shows-origin"
       ],
-      "missing": "The world list says where the new world came from; the check reads `world list`, not `world show`."
+      "missing": "The world list says where the new world came from; the check reads `world list`, not `world show`. Decision for m1-eval-near-misses: Retain the world-show surface: list output is not evidence that an individual world can be inspected with its required lineage."
     },
     {
       "eval": "acc:world.clock.warp/1",
@@ -51,14 +51,14 @@
         "B7.clock-set-in-the-past-chain-and-sites-follow",
         "B7.world-at-31-march-all-agree"
       ],
-      "missing": "The chain and every site move together; 'runs what fell due' is printed for each advance but nothing asserts the jobs ran."
+      "missing": "The chain and every site move together; 'runs what fell due' is printed for each advance but nothing asserts the jobs ran. Decision for m1-eval-near-misses: Retain due-job execution: agreeing clocks alone cannot establish that advancing time runs scheduled work."
     },
     {
       "eval": "acc:record.export/1",
       "checks": [
         "B8.export-one-file-line-by-line"
       ],
-      "missing": "The export is one file with a header and every record, but the lineage is not read and 'every entry once' is checked only by count."
+      "missing": "The export is one file with a header and every record, but the lineage is not read and 'every entry once' is checked only by count. Decision for m1-eval-near-misses: Retain lineage and entry identity: equal counts can hide an omitted entry paired with a duplicate."
     },
     {
       "eval": "jrn:run_a_world",
@@ -68,7 +68,7 @@
         "B9.restore-into-new-world",
         "B8.export-one-file-line-by-line"
       ],
-      "missing": "The clock, a snapshot, a restore into another world and the export run, but not `world create`, `world show` or the funnel events."
+      "missing": "The clock, a snapshot, a restore into another world and the export run, but not `world create`, `world show` or the funnel events. Decision for m1-eval-near-misses: Retain the whole journey: provisioning, inspection and ordered outcomes must be exercised in the same run as clock, restore and export."
     },
     {
       "eval": "acc:record.show/1",
@@ -76,7 +76,7 @@
         "B8.no-secret-in-record",
         "B8.record-show-by-trace-id"
       ],
-      "missing": "The record and its export are searched for every test key and the shared secret and hold none, but tokens and passwords are not searched for."
+      "missing": "The record and its export are searched for every test key and the shared secret and hold none, but tokens and passwords are not searched for. Decision for m1-eval-near-misses: Retain all secret classes: absence of test keys and a shared secret cannot establish absence of tokens and passwords."
     },
     {
       "eval": "acc:record.list/1",
@@ -84,21 +84,21 @@
         "B8.one-record-entry-per-command",
         "B8.sequence-gap-free-and-hash-chained"
       ],
-      "missing": "Every command of the run is in the record, in order and hash-chained, but who ran it under which hat is not read."
+      "missing": "Every command of the run is in the record, in order and hash-chained, but who ran it under which hat is not read. Decision for m1-eval-near-misses: Retain actor and hat attribution: integrity and ordering alone cannot establish who had authority for an action."
     },
     {
       "eval": "acc:world.snapshot.list/1",
       "checks": [
         "B9.snapshot-list"
       ],
-      "missing": "A saved snapshot is listed with its world and name, but the newest-first order and the record position of each are not read."
+      "missing": "A saved snapshot is listed with its world and name, but the newest-first order and the record position of each are not read. Decision for m1-eval-near-misses: Retain order and record position: finding a named save alone cannot establish a usable ordered snapshot catalogue."
     },
     {
       "eval": "acc:world.list/1",
       "checks": [
         "B9.world-list-shows-origin"
       ],
-      "missing": "Both worlds are listed with where the new one came from, but each world's clock and epoch are not read."
+      "missing": "Both worlds are listed with where the new one came from, but each world's clock and epoch are not read. Decision for m1-eval-near-misses: Retain clock and epoch inspection: origin alone cannot establish each world's temporal state."
     }
   ]
 }

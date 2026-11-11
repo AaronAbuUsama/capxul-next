@@ -58,28 +58,28 @@
         "B3.submit-waits-for-signature",
         "B3.still-a-draft-while-waiting"
       ],
-      "missing": "The Payment Entry is held and not posted, but nothing checks that the answer names the signer."
+      "missing": "The Payment Entry is held and not posted, but nothing checks that the answer names the signer. Decision for m1-eval-near-misses: Retain signer identification with the hold: a caller must know who can release the unposted payment."
     },
     {
       "eval": "acc:doc.create/1",
       "checks": [
         "B7.closed-month-invoice-refused"
       ],
-      "missing": "Frappe's validation applies (a closed month refuses the invoice), but no check reads a created document back as a draft."
+      "missing": "Frappe's validation applies (a closed month refuses the invoice), but no check reads a created document back as a draft. Decision for m1-eval-near-misses: Retain draft readback with validation: a refusal proves no successful document creation."
     },
     {
       "eval": "acc:report.run/1",
       "checks": [
         "B6.reports-run"
       ],
-      "missing": "Reports run as the caller and return rows, but nothing compares the books with the chain."
+      "missing": "Reports run as the caller and return rows, but nothing compares the books with the chain. Decision for m1-eval-near-misses: Retain reconciliation: returning report rows alone cannot establish that the books agree with the chain."
     },
     {
       "eval": "acc:org.site.open/1",
       "checks": [
         "B1.admin-sign-in-chain"
       ],
-      "missing": "A person a hat created signs in, but the sign-in of a person with no hat, and what they are told, is not checked."
+      "missing": "A person a hat created signs in, but the sign-in of a person with no hat, and what they are told, is not checked. Decision for m1-eval-near-misses: Retain both sign-in outcomes: successful entry does not establish how a person without a hat is handled."
     },
     {
       "eval": "acc:org.site.show/1",
@@ -87,28 +87,28 @@
         "B1.site-answers-by-name",
         "B1.company-exists"
       ],
-      "missing": "The site answers and holds its Company, but the spike has no `org site show`, so its ready state, world and address are not read."
+      "missing": "The site answers and holds its Company, but the spike has no `org site show`, so its ready state, world and address are not read. Decision for m1-eval-near-misses: Retain the inspection contract: network reachability cannot stand in for the command reporting readiness, world and address."
     },
     {
       "eval": "acc:org.feature.list/1",
       "checks": [
         "B5.feature-list-state"
       ],
-      "missing": "The list is read, but the check sets the features first, so the defaults of a new company are not what it reads."
+      "missing": "The list is read, but the check sets the features first, so the defaults of a new company are not what it reads. Decision for m1-eval-near-misses: Retain the new-company defaults: a list after explicit configuration cannot prove initial state."
     },
     {
       "eval": "ref:doc.create/ROLE_PERMISSION_DENIED",
       "checks": [
         "B6.refusals-with-reason"
       ],
-      "missing": "A person without the role is refused through the door, but under the spike's code FORBIDDEN, and the exit code, the shape and 'changes nothing' are not checked."
+      "missing": "A person without the role is refused through the door, but under the spike's code FORBIDDEN, and the exit code, the shape and 'changes nothing' are not checked. Decision for m1-eval-near-misses: Retain the target refusal contract: the door must expose the specified error and leave state unchanged, not merely refuse somehow."
     },
     {
       "eval": "ref:doc.create/FEATURE_NOT_AVAILABLE",
       "checks": [
         "B6.switched-off-feature-refused"
       ],
-      "missing": "A switched-off feature is refused under the spike's code FEATURE_OFF, with the feature named; the book's code, the exit code and the shape are not checked."
+      "missing": "A switched-off feature is refused under the spike's code FEATURE_OFF, with the feature named; the book's code, the exit code and the shape are not checked. Decision for m1-eval-near-misses: Retain the target refusal contract: a feature-specific message alone does not establish the promised error shape and exit behaviour."
     },
     {
       "eval": "jrn:create_company_site",
@@ -118,7 +118,7 @@
         "B1.company-exists",
         "B1.admin-sign-in-chain"
       ],
-      "missing": "The org is created and its site answers and takes the admin in, but the steps `org site show`, `org feature list` and `org site open` are not run as commands."
+      "missing": "The org is created and its site answers and takes the admin in, but the steps `org site show`, `org feature list` and `org site open` are not run as commands. Decision for m1-eval-near-misses: Retain the whole journey: a reachable site is not proof that a founder can inspect its readiness, defaults and sign-in route through the target commands."
     },
     {
       "eval": "jrn:pay_invoice_from_frappe",
@@ -129,28 +129,28 @@
         "B3.ledger-posted",
         "B3.invoice-nothing-outstanding"
       ],
-      "missing": "The payment runs end to end, but not through the steps `payment awaiting` and `report run`, and the funnel events are not read."
+      "missing": "The payment runs end to end, but not through the steps `payment awaiting` and `report run`, and the funnel events are not read. Decision for m1-eval-near-misses: Retain the whole journey: signing and posting alone cannot establish the caller-facing wait, report and ordered funnel contract."
     },
     {
       "eval": "acc:doc.update/1",
       "checks": [
         "B6.hr-employee-and-approved-leave"
       ],
-      "missing": "A draft is changed through the door (a leave application is set to Approved), but that a submitted document must be amended is not checked."
+      "missing": "A draft is changed through the door (a leave application is set to Approved), but that a submitted document must be amended is not checked. Decision for m1-eval-near-misses: Retain the submitted-document boundary: draft editing alone cannot prove that posted records are protected by amendment."
     },
     {
       "eval": "acc:doc.call/1",
       "checks": [
         "B6.lead-to-deal"
       ],
-      "missing": "A sales person applies a document method the role allows, but a person whose roles do not allow it is not tried."
+      "missing": "A sales person applies a document method the role allows, but a person whose roles do not allow it is not tried. Decision for m1-eval-near-misses: Retain the permission boundary: an allowed method call cannot establish that an unauthorised caller is refused."
     },
     {
       "eval": "acc:doc.schema/1",
       "checks": [
         "B6.discovery-schema"
       ],
-      "missing": "The schema comes from Frappe's metadata and names fields, but required fields and the workflow's actions are not read."
+      "missing": "The schema comes from Frappe's metadata and names fields, but required fields and the workflow's actions are not read. Decision for m1-eval-near-misses: Retain required fields and actions: agents need enough metadata to construct valid documents and choose valid transitions."
     },
     {
       "eval": "acc:payment.prepare-document/1",
@@ -158,14 +158,14 @@
         "B3.submit-waits-for-signature",
         "B3.still-a-draft-while-waiting"
       ],
-      "missing": "The payment waits for a signature, but nothing checks that the answer names whose signature it is."
+      "missing": "The payment waits for a signature, but nothing checks that the answer names whose signature it is. Decision for m1-eval-near-misses: Retain signer identification at preparation: waiting without naming the required signer is an incomplete hand-off."
     },
     {
       "eval": "acc:payment.prepare-document/3",
       "checks": [
         "B4a.signer-without-hat-refused-by-chain"
       ],
-      "missing": "A person with no hat that may pay is refused, but by the chain at signing with NOT_AUTHORISED, not when the payment is prepared, and the reason shown to them is not checked."
+      "missing": "A person with no hat that may pay is refused, but by the chain at signing with NOT_AUTHORISED, not when the payment is prepared, and the reason shown to them is not checked. Decision for m1-eval-near-misses: Retain refusal at preparation: a later chain rejection cannot prove early authorisation or the explanation given to the caller."
     }
   ]
 }

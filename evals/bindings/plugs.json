@@ -1,20 +1,69 @@
 {
   "area": "plugs",
   "script": "spikes/skeleton/run.sh",
-  "worlds": ["main"],
-  "secrets": ["spikes/skeleton/.env", "spikes/skeleton/core/people.json"],
+  "worlds": [
+    "main"
+  ],
+  "secrets": [
+    "spikes/skeleton/.env",
+    "spikes/skeleton/core/people.json"
+  ],
   "bindings": [
     {
       "eval": "wfl:plugs.events.deliver/idempotent",
-      "checks": ["B4b.redelivery-answered-already-applied", "B4b.one-posting"],
+      "checks": [
+        "B4b.redelivery-answered-already-applied",
+        "B4b.one-posting"
+      ],
       "why": "Core delivers the same payment_sent event to the real site a second time. The first check finds the site answering 'already applied'; the second finds one applied event, the same ledger rows and one submission: a second run with the same key changes nothing."
     }
   ],
   "near": [
-    { "eval": "wfl:plugs.events.deliver/resume", "checks": ["B4c.signed-while-frappe-down-money-moved", "B4c.core-holds-undelivered-event", "B4c.entry-posts-after-frappe-returns", "B4c.exactly-once"], "missing": "A delivery that cannot land because the site is down finishes once the site is back, exactly once, but the process is not killed mid-run: it is the stand-in's outbox, not the workflow engine." },
-    { "eval": "acc:org.events.status/2", "checks": ["B4g.parked-event-visible-with-reason", "B4g.poison-event-outbox-drains", "B4g.later-hat-still-reaches-site"], "missing": "An event the site cannot apply is parked with its error and does not block the next, but the error is read from the site, not listed by `org events status`." },
-    { "eval": "acc:org.roles.show/1", "checks": ["B2.roles-follow-grant", "B2.revoke-removes-roles"], "missing": "A hat's roles follow its grant and its revoke, but the union of several hats, and each role's hats named, are not read." },
-    { "eval": "jrn:grant_hat_in_frappe", "checks": ["B2.hat-grant-on-chain", "B2.roles-follow-grant", "B2.hand-edit-of-roles-refused"], "missing": "A hat is granted and the roles follow, but the grant is not a Director proposal, and `org roles show` and `org roles drift` are not run." },
-    { "eval": "jrn:stays_true_when_broken", "checks": ["B4a.signer-without-hat-refused-by-chain", "B4b.one-posting", "B4c.exactly-once", "B4g.poison-event-outbox-drains"], "missing": "Each breakage ends consistent, but the steps `org events status`, `retry` and `resend` are not run as commands." }
+    {
+      "eval": "wfl:plugs.events.deliver/resume",
+      "checks": [
+        "B4c.signed-while-frappe-down-money-moved",
+        "B4c.core-holds-undelivered-event",
+        "B4c.entry-posts-after-frappe-returns",
+        "B4c.exactly-once"
+      ],
+      "missing": "A delivery that cannot land because the site is down finishes once the site is back, exactly once, but the process is not killed mid-run: it is the stand-in's outbox, not the workflow engine. Decision for m1-eval-near-misses: Retain workflow crash recovery: an outbox surviving a site outage is not proof of durable engine resumption after process death."
+    },
+    {
+      "eval": "acc:org.events.status/2",
+      "checks": [
+        "B4g.parked-event-visible-with-reason",
+        "B4g.poison-event-outbox-drains",
+        "B4g.later-hat-still-reaches-site"
+      ],
+      "missing": "An event the site cannot apply is parked with its error and does not block the next, but the error is read from the site, not listed by `org events status`. Decision for m1-eval-near-misses: Retain operator visibility through the command: inspecting site internals does not establish that the operator can see parked delivery failures."
+    },
+    {
+      "eval": "acc:org.roles.show/1",
+      "checks": [
+        "B2.roles-follow-grant",
+        "B2.revoke-removes-roles"
+      ],
+      "missing": "A hat's roles follow its grant and its revoke, but the union of several hats, and each role's hats named, are not read. Decision for m1-eval-near-misses: Retain multi-hat union and provenance: one grant and revoke cannot prove combined roles or explain which hats supply them."
+    },
+    {
+      "eval": "jrn:grant_hat_in_frappe",
+      "checks": [
+        "B2.hat-grant-on-chain",
+        "B2.roles-follow-grant",
+        "B2.hand-edit-of-roles-refused"
+      ],
+      "missing": "A hat is granted and the roles follow, but the grant is not a Director proposal, and `org roles show` and `org roles drift` are not run. Decision for m1-eval-near-misses: Retain governance and inspection: a direct grant does not prove the Director approval path or the role and drift commands."
+    },
+    {
+      "eval": "jrn:stays_true_when_broken",
+      "checks": [
+        "B4a.signer-without-hat-refused-by-chain",
+        "B4b.one-posting",
+        "B4c.exactly-once",
+        "B4g.poison-event-outbox-drains"
+      ],
+      "missing": "Each breakage ends consistent, but the steps `org events status`, `retry` and `resend` are not run as commands. Decision for m1-eval-near-misses: Retain the recovery commands: consistent final state alone cannot establish operator status, retry and resend behaviour."
+    }
   ]
 }
