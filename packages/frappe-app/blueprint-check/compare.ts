@@ -13,6 +13,7 @@ export interface RecordField {
   readonly unique?: boolean;
   readonly readOnly?: boolean;
   readonly default?: string;
+  readonly standard?: boolean;
 }
 export interface DoctypeRecord {
   readonly id: string;
@@ -132,10 +133,10 @@ export const compareSite = (
     const d = theirs.find((x) => x.name === name);
     fields += cf.length;
     if (!d) out.push(`DocType ${name}: the code adds Custom Fields to it; the blueprint has no record of it`);
-    else compareFields(`Custom Fields on ${name}`, d.fields, cf, out);
+    else compareFields(`Custom Fields on ${name}`, d.fields.filter((x) => !x.standard), cf, out);
   }
   for (const d of theirs)
-    if (d.fields.length > 0 && !(d.name in code.customFields)) out.push(`Custom Fields on ${d.name}: the blueprint records ${d.fields.length}; the code adds none`);
+    if (d.fields.some((x) => !x.standard) && !(d.name in code.customFields)) out.push(`Custom Fields on ${d.name}: the blueprint records ${d.fields.filter((x) => !x.standard).length}; the code adds none`);
   for (const [hat, roles] of Object.entries(code.hatRoles)) {
     const r = records.roles.find((x) => x.id === hat);
     if (!r) { out.push(`hat ${hat}: the code's hat map has it; the blueprint has no role record`); continue; }

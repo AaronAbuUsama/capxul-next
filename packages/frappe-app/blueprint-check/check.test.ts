@@ -69,6 +69,8 @@ test("Custom Fields on Frappe's DocTypes are compared with the record of that Do
     "DocType Customer: the code adds Custom Fields to it; the blueprint has no record of it",
   ]);
   assert.deepEqual(run([user, grant, supplier], [member], code()), ["Custom Fields on Supplier: the blueprint records 1; the code adds none"]);
+  const relied: DoctypeRecord = { ...supplier, fields: [...supplier.fields, { name: "supplier_name", type: "Data", standard: true }] };
+  assert.deepEqual(run([user, grant, relied], [member], code({ customFields: { Supplier: [{ fieldname: "capxul_wallet_address", fieldtype: "Data" }] } })), []);
 });
 
 test("a hat's Frappe roles are compared with the code's hat map, both ways", () => {

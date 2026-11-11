@@ -48,15 +48,16 @@ book" or "the book" and lived in `books/`; older documents and records still say
 
 | Package | What it is | Scripts that live here |
 |---|---|---|
-| `blueprint` | The blueprint's engine: record types, the builder, its checks | `scripts/`: `check-frozen.ts` (`pnpm frozen`), `report-cut.ts`, `report-surface.ts`, `report-judgments.ts` (`pnpm judgments`), `impact.ts`, `target.ts` (loads the blueprint for the others) |
+| `blueprint` | The blueprint's engine: record types, the builder, its checks | `scripts/`: `check-frozen.ts` (`pnpm frozen`), `report-cut.ts`, `report-surface.ts`, `report-judgments.ts` (`pnpm judgments`), `impact.ts`, `ripple.ts` (`pnpm blueprint:ripple`), `at.ts` (the blueprint at a commit), `target.ts` (loads the blueprint for the others) |
 | `portal` | Generates and serves the portal from the blueprint, the plan and the scoreboard | |
+| `atlas` | The lean generated site: what the product is and where it stands, from the blueprint, status and git | `src/main.ts` (`pnpm atlas`) |
 | `plan` | The plan CLI, the plan's checks and the task tree | `src/main.ts` (`pnpm plan`), `src/tasks.ts` (`pnpm tasks`) |
 | `evals` | Runs the checks bound to evals; the only writer of `status/` | `src/record-status.ts` |
 | `loop` | The agent runner on pi-durable; this is where pi-durable is used | |
 | `contracts` | The product's contracts (Foundry) | `abi-check/`: `main.ts` (`pnpm contracts:check-blueprint`), `export-abi.ts` (`pnpm contracts:export-abi`) |
 | `sdk` | The product SDK | |
 | `devnet` | The local chain and worlds | `cloud/` (the product stack in a Claude cloud container), `src/modules/company/` (a company's life on the real v4 contracts) |
-| `frappe-app` | The Capxul app on every hosted Frappe site (moved from the spike) | `capxul/hooks.py`, `capxul/setup.py` |
+| `frappe-app` | The Capxul app on every hosted Frappe site (moved from the spike) | `capxul/hooks.py`, `capxul/setup.py`; `blueprint-check/` (`pnpm frappe:check-blueprint`) |
 | `layout` | The layout check | `src/main.ts` (`pnpm layout`), `oversize.json` |
 
 ## Where `tools/` went
