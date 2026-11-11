@@ -40,7 +40,7 @@ export const CUT = {
   "org.books.reports.balance-sheet": { fate: "reached", decision: "cut.books", carriedBy: "an ERPNext report through the door (`report run`: Balance Sheet)" },
   "org.books.reports.profit-and-loss": { fate: "reached", decision: "cut.books", carriedBy: "an ERPNext report through the door (`report run`: Profit and Loss Statement)" },
   "org.books.reports.reconcile": { fate: "reached", decision: "cut.books", carriedBy: "an ERPNext report through the door (`report run`: Bank Reconciliation Tool)" },
-  "org.books.reports.trial-balance": { fate: "reached", decision: "cut.books", carriedBy: "an ERPNext report through the door (`report run`: Balance Sheet)" },
+  "org.books.reports.trial-balance": { fate: "reached", decision: "cut.books", carriedBy: "an ERPNext report through the door (`report run`: Trial Balance)" },
   "service.create": { fate: "parked", decision: "cut.requests", carriedBy: "ERPNext Item and Payment Request through the door; `request issue` makes the payer's request" },
   "service.revise": { fate: "parked", decision: "cut.requests", carriedBy: "ERPNext Item and Payment Request through the door; `request issue` makes the payer's request" },
   "service.deactivate": { fate: "parked", decision: "cut.requests", carriedBy: "ERPNext Item and Payment Request through the door; `request issue` makes the payer's request" },
