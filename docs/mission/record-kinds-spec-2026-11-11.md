@@ -205,3 +205,39 @@ These are the same kind of under-specification. They are listed so they get a ki
 
 Then the records for the thin line first, so every new kind is proven once end to end on the 12 tests before the fan-out
 copies the pattern.
+
+## 10. Where the cutoff is (Aaron, 18:53 UTC)
+
+**The blueprint and the code never disagree, and the merge enforces it.** The engine already separates two kinds of finding,
+and that split is the cutoff:
+
+- **A disagreement is a problem, and it blocks the merge.** The code has something the blueprint doesn't, or the reverse.
+  This is how `pnpm contracts:check-blueprint` already treats the contracts. That check is the model for every kind:
+  - DocTypes against `packages/frappe-app`;
+  - roles against the hat map;
+  - events and log rows against what the code emits;
+  - rpcs against the server's routes;
+  - screens against the Frappe app's forms and workspaces.
+- **Missing detail is a gap, and it never blocks.** For example: a screen with no `states`, an event with no `pii` list, or
+  a dashboard not yet designed. Gaps are counted on the portal, and enrichment agents close them.
+
+**Three tiers, by how much is known up front:**
+
+| Tier | What | Rule |
+|---|---|---|
+| Fixed before code | operations, tables and DocTypes, roles and permissions, errors, state machines and their events, contracts, money-path alerts | The record comes first. Code without a record fails the merge. |
+| Named before code, detail grown | screens, log rows, metrics, messages, settings, feature switches | The record must exist with its name and links. Its detail can start as a gap. |
+| Grown from use | insights, dashboards, non-money alerts | Enrichment agents propose them from the code and the runs. Each is a gap until written. |
+
+**Ripple effects before a change.** `impactOf` already lists what depends on a record, and which evals and decisions it
+touches. Run it on every pull request that changes a record, and show the result on the PR and in the portal, so nobody
+edits blind.
+
+**Linting.** capxul-next has no linter and no CI today. Infrastructure uses Oxlint (`.oxlintrc.json`). Oxlint checks
+TypeScript style and bugs. It cannot compare a record with Python Frappe code, so the agreement checks are the blueprint's
+own commands, run in the same merge gate as Oxlint. They are not Oxlint rules.
+
+**Agents in parallel, none blocking another:**
+- builders work slices;
+- one enricher per tier-two and tier-three kind (telemetry, screens, messages) closes gaps from the code and the runs;
+- a drift checker runs the agreement checks on every branch, so a disagreement is caught before the merge, not at it.
