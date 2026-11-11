@@ -8,6 +8,7 @@ import { exampleGaps, exampleProblems } from "./examples.ts";
 import { classifyFindings, isErrorProducer } from "./findings.ts";
 import { telemetryGaps } from "./telemetry.ts";
 import { siteGaps, siteProblems } from "./site.ts";
+import { signalGaps, signalProblems } from "./signals.ts";
 import { argsOf, chosenProblem, reachedStates, sendsEvent } from "./reach.ts";
 export { argsOf };
 
@@ -106,7 +107,7 @@ export const buildBlueprint = (input: { name: string; stage: "as-is" | "target";
 
   const blueprint = { name: input.name, stage: input.stage, records, links, linkedBy, problems, gaps: [] as Finding[], standing: [] as StandingFinding[], evals: [] as EvalDef[] };
   checkRules(blueprint, problems);
-  problems.push(...exampleProblems(blueprint, all(blueprint, "operation")), ...siteProblems(blueprint));
+  problems.push(...exampleProblems(blueprint, all(blueprint, "operation")), ...siteProblems(blueprint), ...signalProblems(blueprint));
   if (input.stage === "target") checkTargetRules(blueprint, problems);
   const gaps = deriveGaps(blueprint, input.stage);
   return classifyFindings(blueprint, gaps, problems);
@@ -427,7 +428,7 @@ const deriveGaps = (b: Draft, stage: "as-is" | "target"): Finding[] => {
     const reached = reachedStates(m);
     for (const s of m.states as { id: string }[]) if (!reached.has(s.id)) g(m, "unreachable-state", `no transition reaches ${s.id}`);
   }
-  for (const e of all(b, "event")) if (!by(e).some(sendsEvent)) g(e, "unsent-event", "no transition, operation or workflow sends it");
+  for (const e of all(b, "event")) if (!e.producer && !by(e).some(sendsEvent)) g(e, "unsent-event", "no transition, operation or workflow sends it");
   for (const e of all(b, "error")) if (!by(e).some(isErrorProducer)) g(e, "unproduced-error", "nothing produces it");
   for (const c of all(b, "call")) if (by(c, "calls").length === 0) g(c, "unused-call", "nothing calls it");
   for (const f of all(b, "function")) if (by(f, "chain").length === 0) g(f, "uncalled-function", "nothing calls it");
@@ -453,5 +454,5 @@ const deriveGaps = (b: Draft, stage: "as-is" | "target"): Finding[] => {
   for (const i of all(b, "invariant")) if (i.check === "reconcile" && !i.by) g(i, "unchecked-invariant", "a reconcile check names no workflow");
   // What a target operation shows beyond its design: an example, the spans it names, an event for a change of state.
   if (stage === "target") gaps.push(...exampleGaps(all(b, "operation")), ...telemetryGaps(b, all(b, "operation")));
-  return [...gaps, ...siteGaps(b)];
+  return [...gaps, ...siteGaps(b), ...signalGaps(b, stage)];
 };

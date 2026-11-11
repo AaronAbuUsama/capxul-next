@@ -2,6 +2,7 @@
 // also a complete definition of done. Ids follow docs/spec/30-capxul-evals.md.
 
 import type { AnyRecord, Blueprint } from "./build.ts";
+import { signalEvals } from "./signals.ts";
 
 export type Level = "L1" | "L2" | "L3" | "L4";
 export type Decider = "machine" | "agent" | "person";
@@ -157,5 +158,5 @@ export const deriveEvals = (b: Pick<Blueprint, "records">): EvalDef[] => {
     e(`env:${v.id}/boot`, "L3", v, typeof v.bootMs === "number" ? `it boots in ≤ ${v.bootMs} ms` : "it boots");
     e(`env:${v.id}/smoke`, "L3", v, "a smoke journey passes on it");
   }
-  return out;
+  return [...out, ...signalEvals(b)];
 };

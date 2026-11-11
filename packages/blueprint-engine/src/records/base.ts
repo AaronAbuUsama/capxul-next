@@ -17,6 +17,8 @@ export const KINDS = [
   "role",
   "machine",
   "transition",
+  "log",
+  "metric",
   "integration",
   "call",
   "contract",
@@ -43,6 +45,9 @@ export interface Ref<K extends Kind> {
 /** The schema of a link: checked structurally, so the whole linked record passes. */
 export const Ref = <K extends Kind>(kind: K) =>
   Schema.Struct({ _kind: Schema.Literal(kind), id: Schema.String });
+
+/** What sends a signal (an event, a log row, a metric): a record that runs. */
+export const Producer = Schema.Union([Ref("rpc"), Ref("flow"), Ref("workflow"), Ref("procedure"), Ref("call"), Ref("component")]);
 
 /** A string of 1 to `max` characters. */
 const Text = (max: number) => Schema.String.pipe(Schema.check(Schema.isMinLength(1), Schema.isMaxLength(max)));

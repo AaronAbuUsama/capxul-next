@@ -2,6 +2,7 @@ export * from "./records/base.ts";
 export * from "./records/foundation.ts";
 export * from "./records/data.ts";
 export * from "./records/site.ts";
+export * from "./records/telemetry.ts";
 export * from "./records/external.ts";
 export * from "./records/behaviour.ts";
 export * from "./records/outcomes.ts";
