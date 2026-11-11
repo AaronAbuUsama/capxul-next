@@ -1314,12 +1314,14 @@
       "title": "Probe: steer and stop a run from the Runs page",
       "why": "test of steering and Stop from the portal",
       "milestone": "m1",
-      "state": "todo",
+      "state": "dropped",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-probe-stop-11110822",
+      "droppedWhy": "probe done: a steering note from the live Runs page reached the builder, which answered STEERED and changed course; Stop from the page ended the run in seconds (m1-probe-stop-11110822, 95k tokens)"
     }
   ],
   "path": {
