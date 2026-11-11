@@ -171,6 +171,11 @@ def configure_crm(company_name=None):
     s.update({"enabled": 1, "is_erpnext_in_different_site": 0, "erpnext_company": company, "create_customer_on_status_change": 1,
               "deal_status": "Won", "sync_products": 0})
     s.save(ignore_permissions=True)
+    # The CRM reckons deals in the company's own currency. Its default (INR on CRM 16.0.x) makes every USD deal fetch an
+    # exchange rate from a public API on save: a call out of the site, and a failure with no internet.
+    currency = frappe.db.get_value("Company", company, "default_currency") if company else None
+    if currency and frappe.db.exists("DocType", "FCRM Settings"):
+        frappe.db.set_single_value("FCRM Settings", "currency", currency)
     from capxul import hats  # the Sales roles were added to the admin hat; give them to people already wearing it
     ensure_defaults()
     frappe.db.commit()
