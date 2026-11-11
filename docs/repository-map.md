@@ -31,7 +31,7 @@ book" or "the book" and lived in `books/`; older documents and records still say
 | `evals/` | `bindings/`: which check proves which eval of the blueprint | `pnpm evals` |
 | `status/` | The scoreboard: `status.json` and the evidence of each run | written only by `pnpm evals`; read by the portal and the plan |
 | `loops/` | The scripts the loop runs (`pair.ts`, `research.ts`) | `pnpm loop run <task id> --script <name>` |
-| `spikes/` | `skeleton/`: proven throwaway code (real Frappe v16, a stand-in chain) | the loop's sandbox, the evals bindings; deleted when plan task `m2-graduate-spike` is done |
+| `spikes/` | `skeleton/`: proven throwaway code (real Frappe v16 on the real v4 contracts; its Frappe app has moved to `packages/frappe-app`) | the loop's sandbox, the evals bindings; deleted when plan task `m2-graduate-spike` is done |
 | `docs/` | Written designs, evidence and generated reports (below) | the blueprint cites most of it |
 | `archive/` | Dead material at its old path; `archive/README.md` lists each thing | nothing live |
 | `var/` | Loop run folders, on the machine that ran them; not in git | `pnpm loop` |
@@ -55,7 +55,8 @@ book" or "the book" and lived in `books/`; older documents and records still say
 | `loop` | The agent runner on pi-durable; this is where pi-durable is used | |
 | `contracts` | The product's contracts (Foundry) | `abi-check/`: `main.ts` (`pnpm contracts:check-blueprint`), `export-abi.ts` (`pnpm contracts:export-abi`) |
 | `sdk` | The product SDK | |
-| `devnet` | The local chain and worlds | |
+| `devnet` | The local chain and worlds | `cloud/` (the product stack in a Claude cloud container), `src/modules/company/` (a company's life on the real v4 contracts) |
+| `frappe-app` | The Capxul app on every hosted Frappe site (moved from the spike) | `capxul/hooks.py`, `capxul/setup.py` |
 | `layout` | The layout check | `src/main.ts` (`pnpm layout`), `oversize.json` |
 
 ## Where `tools/` went

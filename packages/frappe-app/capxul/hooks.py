@@ -37,4 +37,4 @@ before_request = ["capxul.trace.from_request", "capxul.features.guard_request"]
 
 # names only (capxul.brand): the site says Capxul
 after_request = ["capxul.brand.after_request"]
-after_migrate = ["capxul.brand.apply", "capxul.privacy.apply"]
+after_migrate = "capxul.setup.after_migrate"

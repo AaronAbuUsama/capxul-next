@@ -19,7 +19,7 @@ Aaron's direction, 10 November 2026, which the skeleton tests:
 | Path | Owner | What |
 |---|---|---|
 | `spikes/skeleton/INTERFACE.md` | coordinator | this file; neither half edits it, both report disagreements |
-| `spikes/skeleton/frappe/**` | Frappe half | compose file, bench, the `capxul` Frappe app, `bin/new-site.sh` |
+| `spikes/skeleton/frappe/**` | Frappe half | compose file, bench, `bin/new-site.sh`; the `capxul` Frappe app itself is `packages/frappe-app` |
 | `spikes/skeleton/core/**` | Core half | the Core stub service and the CLI, on the real v4 contracts (`packages/contracts`) |
 | `spikes/skeleton/FINDINGS.md` | both | one section each: `## Frappe half`, `## Core half` |
 

@@ -1,7 +1,7 @@
 [project]
 name = "capxul"
-authors = [{ name = "Capxul spike", email = "spike@example.invalid" }]
-description = "Capxul walking skeleton: Frappe half (throwaway)"
+authors = [{ name = "Capxul", email = "dev@example.invalid" }]
+description = "The Capxul app that lives on every hosted Frappe site (component frappe-app)"
 requires-python = ">=3.10"
 readme = "README.md"
 dynamic = ["version"]

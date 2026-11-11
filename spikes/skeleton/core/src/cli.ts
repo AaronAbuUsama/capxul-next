@@ -65,8 +65,8 @@ export async function orgCreate(args: string[]): Promise<string[]> {
 
   const out: string[] = [];
   const { safe, created } = await ensureOnChain(slug, admin, flag(args, "budget") ?? "10000", flag(args, "fund") ?? "50000");
-  out.push(created ? `chain: org ${slug} registered, Safe stand-in ${safe}, ${admin} wears admin`
-    : `chain: org ${slug} already registered, reusing Safe stand-in ${safe}`);
+  out.push(created ? `chain: org ${slug} minted by Companies House, Safe ${safe}, ${admin} wears admin`
+    : `chain: org ${slug} already on the chain, reusing Safe ${safe}`);
   await core("/admin/org", { slug, name, safe, adminEmail: admin });
 
   // a company template (frappe/bin/template-build.sh) makes the site by restoring it, about three times faster; no template, or --no-template, or a script named in NEW_SITE_SCRIPT: the full build

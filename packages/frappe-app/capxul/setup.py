@@ -33,6 +33,17 @@ def after_install():
     ensure_defaults()
 
 
+def after_migrate():
+    """The brand and the privacy settings, again after every migrate. Both save System Settings, which needs the time zone
+    the setup wizard sets, so a site that has not run the wizard yet skips them (configure_site applies them after it)."""
+    if not frappe.is_setup_complete():
+        return
+    from capxul import brand, privacy
+
+    brand.apply()
+    privacy.apply()
+
+
 def boot_session(bootinfo):
     if frappe.session.user != "Guest":
         bootinfo.capxul = {"safe_account": frappe.db.get_single_value("Capxul Settings", "safe_account")}
