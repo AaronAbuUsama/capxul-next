@@ -1260,10 +1260,12 @@
       "title": "An agent is a record: the loop reads agent definitions, and the Runs app lists them",
       "why": "Aaron, 10 Nov: agents in the UI, code mode, PostHog MCP, enrichment agents all need an agent as a record",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "ca32701783517cafad180b6aaae1e9cae17b8dfc"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "m1-agent-records-11110813"
@@ -1322,6 +1324,66 @@
       "updated": "2026-11-11",
       "thread": "m1-probe-stop-11110822",
       "droppedWhy": "probe done: a steering note from the live Runs page reached the builder, which answered STEERED and changed course; Stop from the page ended the run in seconds (m1-probe-stop-11110822, 95k tokens)"
+    },
+    {
+      "id": "r-time-scan",
+      "title": "Research: how to build the clock scan",
+      "why": "m1-time-proof's first test; the gateway ramp at five agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-eval-lane",
+      "title": "Research: running the thin-line checks from a lane",
+      "why": "m1-eval-coverage: the near-miss run bound nothing because no lane can run the checks; the gateway ramp at five agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-spend",
+      "title": "Research: a real spend limit for runs",
+      "why": "m1-loop-hardening: a run that exceeds its budget stops; the gateway ramp at five agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-alerts",
+      "title": "Research: alerts when a run needs Aaron",
+      "why": "Aaron asked for alerts from the portal; the gateway ramp at five agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-sandbox",
+      "title": "Research: running agents in a real sandbox",
+      "why": "m1-loop-hardening: agents run inside an operating-system sandbox; the gateway ramp at five agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
     }
   ],
   "path": {
@@ -1520,6 +1582,11 @@
       "date": "2026-11-11",
       "by": "coordinator",
       "text": "10:05: merging m1-agent-records-11110813: reviewer approve, 1 round, 1.31M tokens, 6 refused, 0 failures; the five agents are definition files in packages/loop/agents"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "10:20: gateway ramp, step 5: five research runs at once (LOOP_MAX_AGENTS=5): r-time-scan, r-eval-lane, r-spend, r-alerts, r-sandbox"
     }
   ]
 }
