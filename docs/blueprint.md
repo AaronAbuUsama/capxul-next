@@ -189,6 +189,8 @@ Around those axes sit:
 
 - **The system and its components:** what runs where.
 - **Integrations and contracts:** the outside world, through Effect services and the chain.
+- **The site:** the Frappe DocTypes Capxul defines or extends (`doctype`) and the hats people take, with the Frappe roles
+  each gives (`role`). Both are the code exactly: `pnpm frappe:check-blueprint` fails the merge on a difference.
 - **Errors:** one vocabulary, with exit codes.
 - **Journeys and invariants:** checks across operations.
 - **Decisions:** the reason for any record.

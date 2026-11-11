@@ -7,6 +7,7 @@ import { BUDGET_DEFAULTS } from "./budgets.ts";
 import { exampleGaps, exampleProblems } from "./examples.ts";
 import { classifyFindings, isErrorProducer } from "./findings.ts";
 import { telemetryGaps } from "./telemetry.ts";
+import { siteGaps, siteProblems } from "./site.ts";
 import { argsOf, chosenProblem, reachedStates, sendsEvent } from "./reach.ts";
 export { argsOf };
 
@@ -105,7 +106,7 @@ export const buildBlueprint = (input: { name: string; stage: "as-is" | "target";
 
   const blueprint = { name: input.name, stage: input.stage, records, links, linkedBy, problems, gaps: [] as Finding[], standing: [] as StandingFinding[], evals: [] as EvalDef[] };
   checkRules(blueprint, problems);
-  problems.push(...exampleProblems(blueprint, all(blueprint, "operation")));
+  problems.push(...exampleProblems(blueprint, all(blueprint, "operation")), ...siteProblems(blueprint));
   if (input.stage === "target") checkTargetRules(blueprint, problems);
   const gaps = deriveGaps(blueprint, input.stage);
   return classifyFindings(blueprint, gaps, problems);
@@ -452,5 +453,5 @@ const deriveGaps = (b: Draft, stage: "as-is" | "target"): Finding[] => {
   for (const i of all(b, "invariant")) if (i.check === "reconcile" && !i.by) g(i, "unchecked-invariant", "a reconcile check names no workflow");
   // What a target operation shows beyond its design: an example, the spans it names, an event for a change of state.
   if (stage === "target") gaps.push(...exampleGaps(all(b, "operation")), ...telemetryGaps(b, all(b, "operation")));
-  return gaps;
+  return [...gaps, ...siteGaps(b)];
 };

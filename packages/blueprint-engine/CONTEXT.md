@@ -28,7 +28,9 @@ here is made there too.
 3. A verdict counts only while its recorded claim matches the claim the blueprint derives now; otherwise it is stale
    and counts as not run.
 4. A decision's choice is one of its options.
-5. The engine is shared byte for byte with capxul-next, so repository lint, format and the telemetry-spine scan skip it.
+5. A DocType's Link and Table fields link to `doctype` records, so a change to one shows every DocType it reaches; a
+   record is the code exactly, and the repository's agreement check fails the merge on a difference.
+6. The engine is shared byte for byte with capxul-next, so repository lint, format and the telemetry-spine scan skip it.
 
 ## Proof and evidence boundary
 

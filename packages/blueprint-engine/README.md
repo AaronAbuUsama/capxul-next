@@ -12,6 +12,9 @@ pnpm --filter @capxul/blueprint-engine test
 - `src/records/`: the record types (`defineOperation`, `defineDecision`, …) that `blueprint/` is written with.
 - `src/build.ts`: reads every record, links them and collects problems.
 - `src/evals.ts`, `status.ts`, `stand.ts`: the evals a record derives, the scoreboard format, where each record stands.
+- `src/records/site.ts`, `src/site.ts`: `defineDoctype` (a Frappe DocType Capxul defines, or the Custom Fields it adds
+  to Frappe's) and `defineRole` (a hat and the Frappe roles it gives), and their rules. `pnpm frappe:check-blueprint`
+  compares these records with `packages/frappe-app` and fails the merge on a difference.
 - `src/impact.ts`, `views.ts`, `examples.ts`, `telemetry.ts`, `budgets.ts`: what the portal and the checks read.
 
 Written by: the coordinator, when the blueprint needs a new kind of record or check. Read by: `packages/portal`,

@@ -13,6 +13,8 @@ export const KINDS = [
   "error",
   "event",
   "table",
+  "doctype",
+  "role",
   "machine",
   "transition",
   "integration",

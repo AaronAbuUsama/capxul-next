@@ -13,5 +13,7 @@ import * as flows from "./flows.ts";
 import * as operations from "./operations.ts";
 import * as decisions from "./decisions.ts";
 import * as evidence from "./evidence.ts";
+import * as doctypes from "./doctypes.ts";
+import * as hats from "./hats.ts";
 
-export const modules = [stateGaps, data, integrations, signin, signer, sessions, roles, events, processes, flows, operations, decisions, evidence] as const;
+export const modules = [stateGaps, data, integrations, signin, signer, sessions, roles, events, processes, flows, operations, decisions, evidence, doctypes, hats] as const;
