@@ -10,11 +10,12 @@ const STAND_WORDS: Record<Stand, string> = { specify: "Specify", decide: "Decide
 const CSS = `
 :root{--bg:#fbfbfa;--fg:#1d1d1b;--muted:#6b6b66;--line:#e4e3de;--card:#fff;--accent:#2f5fd0;
 --specify:#b9b6ad;--decide:#d8a23a;--build:#4f86d9;--observe:#8a63c9;--done:#3f9a5b;--bad:#c4463a}
-@media (prefers-color-scheme:dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#9a9990;--line:#2f2e2a;--card:#1e1d1b;--accent:#7fa2f0}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-header{border-bottom:1px solid var(--line);padding:12px 16px;display:flex;gap:20px;align-items:baseline;flex-wrap:wrap}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161614;--fg:#ecebe6;--muted:#9a9990;--line:#2f2e2a;--card:#1e1d1b;--accent:#7fa2f0;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#161614;--fg:#ecebe6;--muted:#9a9990;--line:#2f2e2a;--card:#1e1d1b;--accent:#7fa2f0;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}
+header{border-bottom:1px solid var(--line);padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;gap:20px;align-items:baseline;flex-wrap:wrap}
 header b{font-size:16px}nav a{margin-right:16px}a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
-main{max-width:1080px;margin:0 auto;padding:24px 16px 64px}h1{font-size:26px;margin:0 0 6px}h2{font-size:18px;margin:32px 0 10px}
+main{max-width:1080px;margin:0 auto;padding-block:24px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}h1{font-size:26px;margin:0 0 6px}h2{font-size:18px;margin:32px 0 10px}
 p.lede{color:var(--muted);max-width:760px;margin:0 0 20px}.muted{color:var(--muted)}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
 .tile{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px}.tile .v{font-size:24px;font-weight:600}.tile .k{color:var(--muted);font-size:13px}
@@ -36,7 +37,7 @@ const tile = (v: string, k: string) => `<div class="tile"><div class="v">${v}</d
 const page = (m: Model, depth: number, title: string, body: string) => {
   const up = "../".repeat(depth);
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(title)}</title><style>${CSS}</style></head><body>
+<title>${esc(title)}</title><meta name="claude:viewport-fit-sides" content="cover"><style>${CSS}</style></head><body>
 <header><b>${esc(m.title)}</b><nav><a href="${up}index.html">Product</a><a href="${up}work.html">Work</a></nav><span class="muted">generated ${esc(m.built)}</span></header>
 <main>${body}</main></body></html>`;
 };
