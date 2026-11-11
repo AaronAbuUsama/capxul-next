@@ -209,7 +209,7 @@ Choose **E**. In order:
 3. Get the thin line to 12 of 12 on the machine.
 4. Start wave one, with one cloud agent per slice and one lease per concept, plus one lane for spans and budgets.
 
-Three things are yours to decide, and none blocks the fixes:
-- whether product analytics, logs, alerts and dashboards become records;
-- whether the web app's screens are in the fan-out;
-- what the portal's "done" means for an operation.
+Aaron's answers (18:49 UTC): product analytics, logs, alerts and dashboards become records ("everything should be a
+record"), and screens are in the fan-out, Frappe screens first. The kinds are specified in
+[record-kinds-spec-2026-11-11.md](record-kinds-spec-2026-11-11.md). Still his to confirm: what "done" means for an operation
+(that spec's section 7 proposes it).
