@@ -891,46 +891,21 @@ export const decision_payroll_surface_moves = defineDecision({
   id: "payroll.surface-moves",
   title: "HR commands take `hr` and `org hr`; payslips and agreements take `payroll`",
   question:
-    "The command surface makes HR and Payroll each one group, with your side under the bare word and the " +
-    "Organization's under `org` (surface.hr-group, surface.payroll-group). This concept booked HR's 53 commands under " +
-    "twelve nouns, the payslips as `payslip` and `org payslip`, and keeps the 215's eleven agreement commands. How do " +
-    "they read now, and what are their ids and SDK methods?",
+    "The command surface makes HR and Payroll each one group, with your side under the bare word and the Organization's under `org` (surface.hr-group, surface.payroll-group). This concept booked HR's 53 commands under twelve nouns, the payslips as `payslip` and `org payslip`, and keeps the 215's eleven agreement commands. How do they read now, and what are their ids and SDK methods?",
   options: [
-    {
-      label: "tree",
-      text:
-        "As the tree spells them. HR: `org employee|holiday|leave-type|leave|shift-type|attendance|expense-type|" +
-        "expense-claim|advance …` become `org hr employee …` and so on, and the Employee's own `leave apply|list|cancel|" +
-        "balance`, `attendance checkin|list`, `expense-claim create|list|get|cancel` and `advance request|list|cancel` become " +
-        "`hr leave …`, `hr attendance …`, `hr expense-claim …` and `hr advance …`. Payslips: `payslip list|get` become " +
-        "`payroll payslip list|get`, `org payslip withhold|release` become `org payroll payslip withhold|release`. The 215's " +
-        "agreement accept, agreement collect, agreement list and agreement show become `payroll agreement accept|collect|" +
-        "list|show`, and org agreement offer, org agreement change, org agreement pause, org agreement resume, org " +
-        "agreement end, org agreement withdraw and org agreement list become `org payroll agreement …`. A new command's id " +
-        "is its new words joined by dots (`leave.apply` is `hr.leave.apply`); a frozen one keeps its id.",
-    },
-    { label: "as-booked", text: "Keep the booked nouns, and leave HR and the agreements outside the tree." },
-  ],
-  chosen: "tree",
+  {
+    "label": "current-scope",
+    "text": "Only the eleven chain agreement commands keep the payroll/org payroll group, with the original verbs. Archive the explicit hr leave, attendance, expense, advance, employee and payroll run/component/structure/payslip families: those business documents are reached on Frappe HR through the door. A frozen agreement id does not change when its command gains payroll."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to payroll.surface-moves is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Aaron, 9 November 2026: everything Frappe can do must be reachable from Capxul's tooling, and what matters is the " +
-    "logical groupings, so Frappe HR's HR module and its Payroll module each take one group word, where a Frappe user " +
-    "looks for them (aaron.frappe-shape). The move is spelling only (system.frozen-behaviour): each command's claims, " +
-    "refusals, worlds, rpcs, budgets and authority are as they were (payroll.hr-commands, payroll.hr-surface, " +
-    "payroll.hr-approvers), and every claim, refusal, shape and decision here that quoted a command quotes the new " +
-    "words. The eleven agreement commands keep their ids, claims and refusals; their command is the tree's, and the " +
-    "frozen about, notes and mistakes quote the tree's words wherever they named an agreement command. Each flow's id " +
-    "follows its SDK method (G7): `client.org.employees.*` is `client.org.hr.employees.*`, " +
-    "`client.org.expense-claims.pay` and `client.org.advances.pay|settle` gain `.hr`, `client.me.payslips.*` and " +
-    "`client.org.payslips.*` gain `.payroll`, and so do `client.me.agreements.*` and `client.org.agreements.*`; the " +
-    "commands an rpc implements alone change no record but their operation. HR stays in this concept (surface.hr-concept, " +
-    "payroll.hr-in-payroll). Part of question 50 (surface.tree). Aaron, 10 November 2026, on the portal's Questions page: accepted as recommended. What it now applies to: the eleven " +
-    "agreement commands, booked in payments (`payroll agreement …`, `org payroll agreement …`); HR's and the payslips' words are the tree's " +
-    "and are Frappe's now, reached through the door (cut.payroll). The ruling stands as chosen.",
-  source: surfaceBy(
-    "blueprint/shared/surface.ts (surface.tree, surface.hr-group, surface.payroll-group); docs/design/command-surface.md " +
-      "sections 3, 4, 5 and 9; aaron.frappe-shape",
-  ),
+    "Review, 11 November 2026: Only the eleven chain agreement commands keep the payroll/org payroll group, with the original verbs. Archive the explicit hr leave, attendance, expense, advance, employee and payroll run/component/structure/payslip families: those business documents are reached on Frappe HR through the door. A frozen agreement id does not change when its command gains payroll. Authority: cut.payroll; cut.agreements-in-payments; plugs.held-payment.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.payroll; cut.agreements-in-payments; plugs.held-payment",
   affects: [
     ...WRITE_FLOWS,
   ],

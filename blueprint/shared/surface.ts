@@ -464,59 +464,21 @@ export const decision_surface_tree = defineDecision({
   id: "surface.tree",
   title: "One command tree: scope, then the group, then the record, then the verb",
   question:
-    "Aaron, 9 November 2026, on question 48: 'The number was not the issue. We need everything you can do on Frappe to " +
-    "be programmatic and accessible from our tooling. It's the logical groupings.' The 380 commands start with 79 " +
-    "different words (each `org` noun counted as one), and HR alone is spread over twelve of them. How is the surface " +
-    "grouped?",
+    "Aaron, 9 November 2026, on question 48: 'The number was not the issue. We need everything you can do on Frappe to be programmatic and accessible from our tooling. It's the logical groupings.' The 380 commands start with 79 different words (each `org` noun counted as one), and HR alone is spread over twelve of them. How is the surface grouped?",
   options: [
-    {
-      label: "groups",
-      text:
-        "Every command reads `[org] <group or noun> [<noun>] <verb>`, never more than four words before its arguments. " +
-        "`org` stays the scope, as in the 215: it begins every command only an Organization has, acting for the " +
-        "Organization `--org` or `use org` names; a command without it acts as yourself, or for whoever you act as. The " +
-        "surface has thirteen logical groups (SURFACE_GROUPS). Where a Frappe app holds the records, the group is a word, " +
-        "the app's: `org hr`, `org payroll`, `org crm`, `org projects` and `org head` (the Frappe site), beside the 215's " +
-        "`org books`; where a person has their own side of it, the same word without `org`: `hr`, `payroll`. Capxul's " +
-        "native areas (who you are and sign-in, the CLI and your apps, your money, the Organization and its people and " +
-        "departments, governance and equity, agents and the FDE, the devnet) keep the 215's nouns, which already say what " +
-        "they are, and are grouped as sections of `capxul --help` and of the reference. Under a group, a record is its " +
-        "DocType's noun and every verb is G3's. 119 commands move: 108 of the 165 new ones, and the 215's eleven " +
-        "agreement commands into payroll (surface.payroll-group).",
-    },
-    { label: "flat-sections", text: "Keep every command where it is, and group them only in `--help` and the reference." },
-    {
-      label: "words-everywhere",
-      text:
-        "Make every area a word as well: `org equity round create`, `org governance proposal approve`, `money payment " +
-        "send`. Most of the 215 move.",
-    },
-    {
-      label: "domain-first",
-      text:
-        "Drop `org` and start every command with its group, the Organization chosen by `use org`: `hr leave approve`. A " +
-        "list could not say whether it is yours or the Organization's, and about 150 of the 215 move.",
-    },
-  ],
-  chosen: "groups",
+  {
+    "label": "current-scope",
+    "text": "Keep organization scope and one SDK call per CLI action for retained Core commands. Site-owned HR, CRM, Projects and accounting verbs are generated through the door, not the old thirteen-group/119-move catalogue. The eleven chain agreement commands retain payroll grouping; help derives from the surviving surface."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to surface.tree is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The scatter Aaron names is where a Frappe app's records sat as loose nouns beside unrelated ones: HR's twelve, " +
-    "projects' five, the head's four, payroll's payslips apart from its runs. A Frappe user looks for them by app, as " +
-    "Frappe's own workspaces are (Accounting, HR, Payroll, CRM, Projects), so those become words. The native areas' " +
-    "nouns (`payment`, `bank`, `org department`, `org round`) already name their area, so a word over them " +
-    "(words-everywhere) would only lengthen some 150 commands of the 215; the help sections group them. `org` stays the " +
-    "scope because Capxul has what Frappe has not: a person with several employers and several Organizations, so a " +
-    "person's own records (`hr leave list`, `payroll payslip list`) cover all of them while `org hr leave list` is one " +
-    "Organization's; domain-first loses that. flat-sections leaves HR's own side at the top beside money (`leave`, " +
-    "`advance`). No command is longer than the 215's longest (`org books accounts add`). The SDK follows the words " +
-    "(G7): `client.org(orgId).hr.leaves.approve`, `client.me.hr.leaves.apply`. For Aaron: the tree, its thirteen " +
-    "groups and its 119 moves are in docs/design/command-surface.md. " +
-    "Aaron, 10 November 2026, on the portal's Questions page: accepted as recommended. What it now applies to: of the tree's 394 rows, 159 are still booked (the native groups: identity, builders, " +
-    "money, the Organization, governance's board, agents, the devnet and the eleven pay agreements under payroll). The HR, projects and head " +
-    "groups and most of the books, payroll and CRM rows left the built book with the cut and are Frappe's, reached through the door " +
-    "(cut.books, cut.payroll, cut.contacts, cut.projects, cut.organizations); the devnet's eleven `dev season` rows are parked (cut.seasons). " +
-    "The ruling stands as chosen.",
-  source: by("docs/design/command-surface.md; the workspaces of frappe/erpnext@6b946b0 and frappe/hrms@8816102"),
+    "Review, 11 November 2026: Keep organization scope and one SDK call per CLI action for retained Core commands. Site-owned HR, CRM, Projects and accounting verbs are generated through the door, not the old thirteen-group/119-move catalogue. The eleven chain agreement commands retain payroll grouping; help derives from the surviving surface. Authority: cut.principle; aaron.one-door; sites.door; portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.principle; aaron.one-door; sites.door; portal.plan-page",
   affects: [f.system_capxul, f.component_cli, f.component_core_sdk],
 });
 
