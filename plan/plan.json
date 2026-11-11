@@ -1721,10 +1721,12 @@
       "title": "Every spike finding is a record or a decision, the CLI's stdout drain included",
       "why": "exit g5: one spike finding has no record",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "36ee2bebda9ce48c785fb245b47f96f732f482a2"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "m1-g5-findings-11110927"

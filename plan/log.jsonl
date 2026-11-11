@@ -435,3 +435,4 @@
 {"at":"2026-11-11T09:27:08.629Z","by":"loop","action":"task.start","args":{"id":"m1-gate-no-new-questions","thread":"m1-gate-no-new-questions-11110927"},"commit":"14f9fe1"}
 {"at":"2026-11-11T09:27:08.750Z","by":"loop","action":"task.start","args":{"id":"m1-reading-checklist","thread":"m1-reading-checklist-11110927"},"commit":"14f9fe1"}
 {"at":"2026-11-11T09:27:08.879Z","by":"loop","action":"task.start","args":{"id":"m1-g5-findings","thread":"m1-g5-findings-11110927"},"commit":"14f9fe1"}
+{"at":"2026-11-11T09:35:37.340Z","by":"loop","action":"task.done","args":{"id":"m1-g5-findings","evidence":"36ee2bebda9ce48c785fb245b47f96f732f482a2"},"commit":"36ee2be"}
