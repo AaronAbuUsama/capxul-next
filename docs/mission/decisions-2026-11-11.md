@@ -5,9 +5,8 @@ Written by the cloud thread on branch `claude/project-thread-mwv0z6` (PR #2) whi
 for Aaron with the options and one recommendation. Where the blueprint already decides something, it is cited, not
 asked again.
 
-Thin line today: 9 of 12 primary tests are bound and pass (rows 1, 2, 4, 5, 8, 9, 10, 11, 12; run-20261111171129).
-Of the other three, two are waiting on a decision below (rows 6 and 7). Row 3 (the Director proposal) is work, not a
-decision.
+Thin line today: 10 of 12 primary tests are bound and pass (rows 1 to 5 and 8 to 12). The other two, rows 6 and 7,
+are waiting on decisions 1 and 2 below.
 
 ## 1. Does the thin line's payment go through a real bundler? (row 6, `acc:payment.send/1`)
 
@@ -87,6 +86,6 @@ table is undecided (the book's table is the target, the file is the spike)".
 
 - **The world clock** follows the service (decision 3): the site's half has already moved with `packages/frappe-app`,
   and `devnet.deterministic-worlds` already decides how eval worlds keep time.
-- **Row 3, the Director proposal** (`acc:org.member.grant/1`), is work. It needs a company born with a second Director,
-  and a grant that waits as a Board proposal until the second Director approves. The Installer already takes
-  co-directors.
+- **Row 3, the Director proposal** (`acc:org.member.grant/1`) is done: the run's company is born with a second Director,
+  a grant proposed with `hat grant --propose` waits until that Director approves (`org proposal approve`), and
+  `org member get` reads the hat. Board actions without `--propose` still apply at once, every Director approving.

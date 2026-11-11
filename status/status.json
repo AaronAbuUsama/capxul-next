@@ -3,108 +3,115 @@
   "evals": {
     "acc:doc.create/1": {
       "verdict": "pass",
-      "commit": "6425ccc",
-      "at": "2026-11-11T17:11:29Z",
-      "run": "run-20261111171129",
-      "evidence": "status/runs/run-20261111171129/evidence/acc-doc.create-1.txt"
+      "commit": "9258736",
+      "at": "2026-11-11T18:26:34Z",
+      "run": "run-20261111182634",
+      "evidence": "status/runs/run-20261111182634/evidence/acc-doc.create-1.txt"
     },
     "acc:doc.get/1": {
       "verdict": "pass",
-      "commit": "6425ccc",
-      "at": "2026-11-11T17:11:29Z",
-      "run": "run-20261111171129",
-      "evidence": "status/runs/run-20261111171129/evidence/acc-doc.get-1.txt"
+      "commit": "9258736",
+      "at": "2026-11-11T18:26:34Z",
+      "run": "run-20261111182634",
+      "evidence": "status/runs/run-20261111182634/evidence/acc-doc.get-1.txt"
     },
     "acc:doc.submit/1": {
       "verdict": "pass",
-      "commit": "6425ccc",
-      "at": "2026-11-11T17:11:29Z",
-      "run": "run-20261111171129",
-      "evidence": "status/runs/run-20261111171129/evidence/acc-doc.submit-1.txt"
+      "commit": "9258736",
+      "at": "2026-11-11T18:26:34Z",
+      "run": "run-20261111182634",
+      "evidence": "status/runs/run-20261111182634/evidence/acc-doc.submit-1.txt"
     },
     "acc:doc.submit/2": {
       "verdict": "pass",
-      "commit": "6425ccc",
-      "at": "2026-11-11T17:11:29Z",
-      "run": "run-20261111171129",
-      "evidence": "status/runs/run-20261111171129/evidence/acc-doc.submit-2.txt"
+      "commit": "9258736",
+      "at": "2026-11-11T18:26:34Z",
+      "run": "run-20261111182634",
+      "evidence": "status/runs/run-20261111182634/evidence/acc-doc.submit-2.txt"
     },
     "acc:org.create/6": {
       "verdict": "pass",
-      "commit": "6425ccc",
-      "at": "2026-11-11T17:11:29Z",
-      "run": "run-20261111171129",
-      "evidence": "status/runs/run-20261111171129/evidence/acc-org.create-6.txt"
+      "commit": "9258736",
+      "at": "2026-11-11T18:26:34Z",
+      "run": "run-20261111182634",
+      "evidence": "status/runs/run-20261111182634/evidence/acc-org.create-6.txt"
     },
     "acc:org.feature.off/1": {
       "verdict": "pass",
-      "commit": "6425ccc",
-      "at": "2026-11-11T17:11:29Z",
-      "run": "run-20261111171129",
-      "evidence": "status/runs/run-20261111171129/evidence/acc-org.feature.off-1.txt"
+      "commit": "9258736",
+      "at": "2026-11-11T18:26:34Z",
+      "run": "run-20261111182634",
+      "evidence": "status/runs/run-20261111182634/evidence/acc-org.feature.off-1.txt"
     },
     "acc:org.feature.on/1": {
       "verdict": "pass",
-      "commit": "6425ccc",
-      "at": "2026-11-11T17:11:29Z",
-      "run": "run-20261111171129",
-      "evidence": "status/runs/run-20261111171129/evidence/acc-org.feature.on-1.txt"
+      "commit": "9258736",
+      "at": "2026-11-11T18:26:34Z",
+      "run": "run-20261111182634",
+      "evidence": "status/runs/run-20261111182634/evidence/acc-org.feature.on-1.txt"
     },
     "acc:org.feature.on/2": {
       "verdict": "pass",
-      "commit": "6425ccc",
-      "at": "2026-11-11T17:11:29Z",
-      "run": "run-20261111171129",
-      "evidence": "status/runs/run-20261111171129/evidence/acc-org.feature.on-2.txt"
+      "commit": "9258736",
+      "at": "2026-11-11T18:26:34Z",
+      "run": "run-20261111182634",
+      "evidence": "status/runs/run-20261111182634/evidence/acc-org.feature.on-2.txt"
+    },
+    "acc:org.member.grant/1": {
+      "verdict": "pass",
+      "commit": "9258736",
+      "at": "2026-11-11T18:26:34Z",
+      "run": "run-20261111182634",
+      "evidence": "status/runs/run-20261111182634/evidence/acc-org.member.grant-1.txt"
     },
     "acc:record.export/1": {
       "verdict": "pass",
-      "commit": "6425ccc",
-      "at": "2026-11-11T17:11:29Z",
-      "run": "run-20261111171129",
-      "evidence": "status/runs/run-20261111171129/evidence/acc-record.export-1.txt"
+      "commit": "9258736",
+      "at": "2026-11-11T18:26:34Z",
+      "run": "run-20261111182634",
+      "evidence": "status/runs/run-20261111182634/evidence/acc-record.export-1.txt"
     },
     "acc:world.clock.warp/1": {
       "verdict": "pass",
-      "commit": "6425ccc",
-      "at": "2026-11-11T17:11:29Z",
-      "run": "run-20261111171129",
-      "evidence": "status/runs/run-20261111171129/evidence/acc-world.clock.warp-1.txt"
+      "commit": "9258736",
+      "at": "2026-11-11T18:26:34Z",
+      "run": "run-20261111182634",
+      "evidence": "status/runs/run-20261111182634/evidence/acc-world.clock.warp-1.txt"
     },
     "acc:world.create/2": {
       "verdict": "pass",
-      "commit": "6425ccc",
-      "at": "2026-11-11T17:11:29Z",
-      "run": "run-20261111171129",
-      "evidence": "status/runs/run-20261111171129/evidence/acc-world.create-2.txt"
+      "commit": "9258736",
+      "at": "2026-11-11T18:26:34Z",
+      "run": "run-20261111182634",
+      "evidence": "status/runs/run-20261111182634/evidence/acc-world.create-2.txt"
     },
     "acc:world.show/1": {
       "verdict": "pass",
-      "commit": "6425ccc",
-      "at": "2026-11-11T17:11:29Z",
-      "run": "run-20261111171129",
-      "evidence": "status/runs/run-20261111171129/evidence/acc-world.show-1.txt"
+      "commit": "9258736",
+      "at": "2026-11-11T18:26:34Z",
+      "run": "run-20261111182634",
+      "evidence": "status/runs/run-20261111182634/evidence/acc-world.show-1.txt"
     },
     "acc:world.snapshot.restore/1": {
       "verdict": "pass",
-      "commit": "6425ccc",
-      "at": "2026-11-11T17:11:29Z",
-      "run": "run-20261111171129",
-      "evidence": "status/runs/run-20261111171129/evidence/acc-world.snapshot.restore-1.txt"
+      "commit": "9258736",
+      "at": "2026-11-11T18:26:34Z",
+      "run": "run-20261111182634",
+      "evidence": "status/runs/run-20261111182634/evidence/acc-world.snapshot.restore-1.txt"
     },
     "acc:world.snapshot.restore/2": {
       "verdict": "pass",
-      "commit": "6425ccc",
-      "at": "2026-11-11T17:11:29Z",
-      "run": "run-20261111171129",
-      "evidence": "status/runs/run-20261111171129/evidence/acc-world.snapshot.restore-2.txt"
+      "commit": "9258736",
+      "at": "2026-11-11T18:26:34Z",
+      "run": "run-20261111182634",
+      "evidence": "status/runs/run-20261111182634/evidence/acc-world.snapshot.restore-2.txt"
     },
     "acc:world.snapshot.save/1": {
       "verdict": "pass",
-      "commit": "6425ccc",
-      "at": "2026-11-11T17:11:29Z",
-      "run": "run-20261111171129",
-      "evidence": "status/runs/run-20261111171129/evidence/acc-world.snapshot.save-1.txt"
+      "commit": "9258736",
+      "at": "2026-11-11T18:26:34Z",
+      "run": "run-20261111182634",
+      "evidence": "status/runs/run-20261111182634/evidence/acc-world.snapshot.save-1.txt"
     },
     "jrn:thin_line": {
       "verdict": "not_run",
@@ -115,10 +122,10 @@
     },
     "wfl:plugs.events.deliver/idempotent": {
       "verdict": "pass",
-      "commit": "6425ccc",
-      "at": "2026-11-11T17:11:29Z",
-      "run": "run-20261111171129",
-      "evidence": "status/runs/run-20261111171129/evidence/wfl-plugs.events.deliver-idempotent.txt"
+      "commit": "9258736",
+      "at": "2026-11-11T18:26:34Z",
+      "run": "run-20261111182634",
+      "evidence": "status/runs/run-20261111182634/evidence/wfl-plugs.events.deliver-idempotent.txt"
     }
   }
 }
