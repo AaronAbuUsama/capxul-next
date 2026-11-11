@@ -1,3 +1,4 @@
+import * as ops from "./ops.ts";
 import * as errorGaps from "./error-gaps.ts";
 import * as stateGaps from "./state-gaps.ts";
 import * as contractGaps from "./contract-gaps.ts";
@@ -42,5 +43,5 @@ export const recordsOf = (modules: readonly object[]): unknown[] => [
   ),
 ];
 
-export const sharedModules = [alertsFresh, alerts, errorGaps, stateGaps, contractGaps, foundation, cloud, cli, vocabulary, external, decisions, decisionReview, landings, tooling, portal, swarm, time, rulings, surface, cut, cutMoves, milestones, contractRecords] as const;
+export const sharedModules = [ops, alertsFresh, alerts, errorGaps, stateGaps, contractGaps, foundation, cloud, cli, vocabulary, external, decisions, decisionReview, landings, tooling, portal, swarm, time, rulings, surface, cut, cutMoves, milestones, contractRecords] as const;
 export const sharedRecords = recordsOf(sharedModules);

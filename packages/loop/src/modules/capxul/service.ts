@@ -232,12 +232,15 @@ export const logs = async (ctx: Ctx, id: string, follow: boolean): Promise<void>
  * `loop watch` with no run: every run, a line per event (started, refused calls, a model failure, unhealthy, ended,
  * superseded), until `until` says to stop. The first look is the baseline and prints nothing.
  */
-export const watchAll = async (ctx: Ctx, o: { intervalMs?: number; until?: () => boolean } = {}): Promise<void> => {
+export const watchAll = async (ctx: Ctx, o: { intervalMs?: number; until?: () => boolean; untilIdle?: boolean } = {}): Promise<void> => {
   let before = await statusViews(lookOf(ctx, 0), 24);
+  let idleSince = ctx.now().getTime();
   while (!(o.until?.() ?? false)) {
     await new Promise((r) => setTimeout(r, o.intervalMs ?? 2000));
     const after = await statusViews(lookOf(ctx, 0), 24);
     for (const line of changesOf(before, after)) ctx.say(`${ctx.now().toISOString().slice(11, 19)} ${line}`);
+    if (after.some((r) => r.status === "running")) idleSince = ctx.now().getTime();
+    else if (o.untilIdle && ctx.now().getTime() - idleSince >= 60_000) return;
     before = after;
   }
 };

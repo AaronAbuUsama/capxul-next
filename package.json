@@ -31,7 +31,8 @@
     "portal:serve": "node --experimental-strip-types --no-warnings packages/portal/src/main.ts serve",
     "evals": "node --experimental-strip-types --no-warnings packages/evals/src/main.ts",
     "evals:check": "node --experimental-strip-types --no-warnings packages/evals/src/main.ts check",
-    "evals:test": "pnpm --filter @capxul/evals test"
+    "evals:test": "pnpm --filter @capxul/evals test",
+    "ops": "node --experimental-strip-types --no-warnings packages/ops/src/main.ts"
   },
   "devDependencies": {
     "effect": "catalog:",
