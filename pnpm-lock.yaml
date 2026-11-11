@@ -348,6 +348,15 @@ importers:
         specifier: 8.3.6
         version: 8.3.6(@types/node@22.19.1)(jiti@2.7.0)
 
+  packages/ops:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.1
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+
   packages/plan:
     dependencies:
       '@capxul/blueprint-engine':
