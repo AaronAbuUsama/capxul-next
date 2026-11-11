@@ -343,3 +343,8 @@
 {"at":"2026-11-11T08:27:55.607Z","by":"loop","action":"task.start","args":{"id":"r-sandbox","thread":"r-sandbox-11110827"},"commit":"a1d10e2"}
 {"at":"2026-11-11T08:27:55.749Z","by":"loop","action":"task.start","args":{"id":"r-eval-lane","thread":"r-eval-lane-11110827"},"commit":"a1d10e2"}
 {"at":"2026-11-11T08:27:55.905Z","by":"loop","action":"task.start","args":{"id":"r-alerts","thread":"r-alerts-11110827"},"commit":"a1d10e2"}
+{"at":"2026-11-11T08:30:12.507Z","by":"coordinator","action":"task.done","args":{"id":"r-time-scan","evidence":"run r-time-scan-11110827 answered; docs/mission/research-2026-11-11.md"},"commit":"800d2ee"}
+{"at":"2026-11-11T08:30:13.854Z","by":"coordinator","action":"task.done","args":{"id":"r-eval-lane","evidence":"run r-eval-lane-11110827 answered; docs/mission/research-2026-11-11.md"},"commit":"800d2ee"}
+{"at":"2026-11-11T08:30:16.318Z","by":"coordinator","action":"task.done","args":{"id":"r-spend","evidence":"run r-spend-11110827 answered; docs/mission/research-2026-11-11.md"},"commit":"800d2ee"}
+{"at":"2026-11-11T08:30:18.606Z","by":"coordinator","action":"task.done","args":{"id":"r-alerts","evidence":"run r-alerts-11110827 answered; docs/mission/research-2026-11-11.md"},"commit":"800d2ee"}
+{"at":"2026-11-11T08:30:20.401Z","by":"coordinator","action":"task.done","args":{"id":"r-sandbox","evidence":"run r-sandbox-11110827 answered; docs/mission/research-2026-11-11.md"},"commit":"800d2ee"}
