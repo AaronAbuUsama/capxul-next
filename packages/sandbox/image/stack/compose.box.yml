@@ -1,0 +1,14 @@
+# The spike's Frappe stack (spikes/skeleton/frappe/compose.yml) inside a box: every container on the box's network,
+# because Cloudflare's containers allow no iptables, so no bridge networking (developers.cloudflare.com/containers/faq).
+services:
+  mariadb:
+    network_mode: host
+  redis:
+    network_mode: host
+  bench:
+    network_mode: host
+    ports: !reset []
+    extra_hosts: !override
+      - "mariadb:127.0.0.1"
+      - "redis:127.0.0.1"
+      - "host.docker.internal:127.0.0.1"
