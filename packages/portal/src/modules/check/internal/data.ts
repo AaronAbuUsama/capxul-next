@@ -72,7 +72,10 @@ export const climb = (files: ReadonlyMap<string, string>): readonly string[] => 
     failures.push("Overview: waiting count differs from Questions");
   }
   const html = files.get("index.html") ?? "";
-  const shown = [...html.matchAll(/<span class="climb-status[^\"]*">([^<]*)<\/span>/g)].map((m) => m[1]);
+  // Keep each status paired with the counts in its own rendered card, not
+  // just the JSON twin: a renderer can drift while the model stays correct.
+  const shown = [...html.matchAll(/<div class="climb-card"><div class="climb-top">[\s\S]*?<span class="climb-status[^"]*">([^<]*)<\/span><\/div><p class="climb-big">([^<]*)<\/p><p class="climb-sub">([^<]*)<\/p>/g)];
+  if (shown.length !== 4) failures.push("Overview: no four rendered climb cards");
   const number = (s: unknown): number => Number(String(s).match(/[\d,]+/)?.[0]?.replaceAll(",", "") ?? NaN);
   const format = (n: number): string => n.toLocaleString("en-US");
   for (const [i, card] of cards.entries()) {
@@ -86,7 +89,16 @@ export const climb = (files: ReadonlyMap<string, string>): readonly string[] => 
       waiting > 0 ? `${format(waiting)} wait for you` : "Nothing waits for you",
       `${format(n)} at observe or done`, `${format(n)} passing`,
     ][i];
-    if (card["status"] !== wanted || shown[i] !== wanted || (i === 1 && n !== waiting)) {
+    const rendered = shown[i];
+    const renderedCount = number(rendered?.[2]);
+    const findings = rendered?.[3]?.match(/^([\d,]+) problems?, ([\d,]+) gaps?,/);
+    const renderedWanted = [
+      findings ? `${format(number(findings[1]))} ${number(findings[1]) === 1 ? "problem" : "problems"}, ${format(number(findings[2]))} ${number(findings[2]) === 1 ? "gap" : "gaps"}` : "missing finding counts",
+      renderedCount > 0 ? `${format(renderedCount)} wait for you` : "Nothing waits for you",
+      `${format(renderedCount)} at observe or done`, `${format(renderedCount)} passing`,
+    ][i];
+    if (card["status"] !== wanted || rendered?.[1] !== renderedWanted ||
+        rendered?.[2] !== card["big"] || rendered?.[3] !== card["sub"] || (i === 1 && n !== waiting)) {
       failures.push(`Overview ${String(card["step"])}: status contradicts its count (expected ${wanted})`);
     }
   }

@@ -164,6 +164,28 @@ test("recorded passes and operation progress are stated numerically, never as No
   assert.ok(failed(check(made, made, expected)).includes("the Overview climb statuses agree with their counts"));
 });
 
+test("each rendered climb card rejects a changed adjacent count with its status and JSON unchanged", () => {
+  const part = "the Overview climb statuses agree with their counts";
+  for (let target = 0; target < 4; target++) {
+    const changed = change((copy) => {
+      let index = 0;
+      const html = copy.get("index.html") ?? assert.fail("no Overview");
+      copy.set("index.html", html.replace(
+        /<div class="climb-card">[\s\S]*?<p class="climb-sub">[^<]*<\/p>/g,
+        (card) => {
+          if (index++ !== target) return card;
+          // Specify's status describes findings in sub; the others describe big.
+          const field = target === 0 ? "climb-sub" : "climb-big";
+          return card.replace(new RegExp(`(<p class="${field}">)([\\d,]+)`), "$1999");
+        },
+      ));
+      assert.notEqual(copy.get("index.html"), html, `card ${target} count changed`);
+      assert.equal(copy.get("data/index.json"), files.get("data/index.json"));
+    });
+    assert.ok(failed(run(changed)).includes(part), `card ${target}`);
+  }
+});
+
 test("each climb card rejects a contradictory status", () => {
   const part = "the Overview climb statuses agree with their counts";
   for (let i = 0; i < 4; i++) {
