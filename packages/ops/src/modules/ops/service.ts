@@ -13,12 +13,16 @@ const identity = (p: Process, s: ReturnType<Ports["read"]>): boolean => !!s && p
 
 export const supervisor = (io: Ports) => {
   const terminate = async (p: Process, group: boolean): Promise<void> => {
+    // Detached spawns lead their own group. A pnpm leader exiting is not
+    // evidence that its server children exited too.
+    const survives = (v: Process): boolean =>
+      (group && v.pgid === p.pid) || (v.pid === p.pid && v.started === p.started);
     io.signal(p.pid, "SIGTERM", group);
     for (let elapsed = 0; elapsed < 10_000; elapsed += 200) {
-      if (!(await io.table()).some((v) => v.pid === p.pid && v.started === p.started)) return;
+      if (!(await io.table()).some(survives)) return;
       await io.sleep(200);
     }
-    if ((await io.table()).some((v) => v.pid === p.pid && v.started === p.started)) io.signal(p.pid, "SIGKILL", group);
+    if ((await io.table()).some(survives)) io.signal(p.pid, "SIGKILL", group);
   };
   const stop = async (s: Service): Promise<Result> => {
     const saved = io.read(s.name);

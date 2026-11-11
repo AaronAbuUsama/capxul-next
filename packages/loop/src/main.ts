@@ -17,7 +17,7 @@ const USAGE = [
   "       loop resume <run id> | stop <run id> | merge <run id> | clean [<run id>]",
   "       loop work [--concurrency 2] [--task a,b] [--wait]   (the options of run apply to every run it starts)",
   "       loop serve [--port 4392] [--since-hours 24]   (the host: runs as they change, for a page or a terminal)",
-  "       loop status [--json [--since-hours 24]] | show <run id> --json [--full] | logs <run id> [-f] | watch [<run id>] [--until-idle]",
+  "       loop status [--json [--since-hours 24]] | show <run id> --json [--full] | logs <run id> [-f] | watch <run id> | watch [--until-idle]",
 ].join("\n");
 
 const parse = (argv: readonly string[]): { words: string[]; f: Map<string, string> } => {
@@ -100,7 +100,9 @@ const main = async (argv: readonly string[]): Promise<number> => {
     }
     case "agents": console.log(f.has("json") ? JSON.stringify({ agents: ctx.agents }) : ctx.agents.map((a) => `${a.name.padEnd(12)}${a.model.padEnd(16)}${a.tools.join(" ")}`).join("\n")); return 0;
     case "logs": return need ? (await logs(ctx, need, f.has("f")), 0) : (console.error(USAGE), 2);
-    case "watch": return need ? (await watch(ctx, need), 0) : (await watchAll(ctx, { untilIdle: f.has("until-idle") }), 0);
+    case "watch":
+      if (need && f.has("until-idle")) { console.error("--until-idle requires watch without a run id (idle means no running runs)"); return 2; }
+      return need ? (await watch(ctx, need), 0) : (await watchAll(ctx, { untilIdle: f.has("until-idle") }), 0);
     case "work": await work(ctx, { concurrency: Number(f.get("concurrency") ?? 2), tasks: f.get("task")?.split(",") ?? [], opts: optsOf(f), wait: f.has("wait") }); return 0;
     default: console.error(USAGE); return 2;
   }

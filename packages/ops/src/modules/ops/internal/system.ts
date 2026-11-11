@@ -10,7 +10,7 @@ const output = (cmd: string, args: string[]): string => {
 };
 /** Mac process discovery. ps includes absolute argv; lsof supplies cwd and listening sockets. */
 export const processTable = async (): Promise<Process[]> => {
-  const rows = output("ps", ["-axo", "pid=,lstart=,command="]).trim().split("\n");
+  const rows = output("ps", ["-axo", "pid=,pgid=,lstart=,command="]).trim().split("\n");
   let sockets = "";
   try { sockets = output("lsof", ["-nP", "-iTCP", "-sTCP:LISTEN", "-Fpn"]); } catch { /* no listeners */ }
   const ports = new Map<number, number[]>(); let pid = 0;
@@ -25,8 +25,8 @@ export const processTable = async (): Promise<Process[]> => {
     if (line.startsWith("n")) dirs.set(pid, line.slice(1));
   }
   return rows.flatMap((row) => {
-    const m = row.trim().match(/^(\d+)\s+(.{24})\s+(.*)$/);
-    return m ? [{ pid: Number(m[1]), started: Date.parse(m[2]!), command: m[3]!, cwd: dirs.get(Number(m[1])) ?? "unknown", ports: ports.get(Number(m[1])) ?? [] }] : [];
+    const m = row.trim().match(/^(\d+)\s+(\d+)\s+(.{24})\s+(.*)$/);
+    return m ? [{ pid: Number(m[1]), pgid: Number(m[2]), started: Date.parse(m[3]!), command: m[4]!, cwd: dirs.get(Number(m[1])) ?? "unknown", ports: ports.get(Number(m[1])) ?? [] }] : [];
   });
 };
 export const systemPorts = (root: string): Ports => {

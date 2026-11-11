@@ -1,5 +1,5 @@
 export type Service = { name: string; command: string; match: RegExp; port?: number; cwd?: string; prepare?: string };
-export type Process = { pid: number; command: string; cwd: string; started: number; ports: number[] };
+export type Process = { pid: number; pgid?: number; command: string; cwd: string; started: number; ports: number[] };
 export type Saved = { pid: number; command: string; checkout: string; started: number };
 export type Result = { ok: true } | { ok: false; error: string };
 export interface Ports {
