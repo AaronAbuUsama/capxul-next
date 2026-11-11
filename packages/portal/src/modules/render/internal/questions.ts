@@ -11,7 +11,7 @@ import { blocks, folded, paragraphs, rich, type Cites } from "./prose.ts";
 
 const item = (q: Question): string =>
   `<a class="q-item" href="#${esc(q.ref.anchor)}" data-for="${esc(q.key)}"><span class="q-item-top"><span class="q-id">${esc(q.id)}</span>` +
-  `<span class="q-status">${q.kind === "need" ? "Needs you" : "Waiting"}</span></span><span class="q-item-title">${prose(q.title)}</span></a>`;
+  `<span class="q-status">Outstanding at build</span></span><span class="q-item-title">${prose(q.title)}</span></a>`;
 
 /** One option as a card: its words first, readable, and its label as the small id an answer names. */
 const option = (at: string, q: Question, o: Question["options"][number], cites: Cites): string =>
@@ -81,7 +81,7 @@ export const questions = (p: QuestionsPage, cites: Cites): string =>
   `<div class="q-head"><div><h1 class="title-wide">${esc(p.title)}</h1><p class="q-lead">${prose(p.lead)}</p></div>` +
   `<p class="q-count"><span class="q-count-big">${count(p.questions.length)}</span> outstanding at build</p></div>` +
   `<p class="q-serving-mode" role="status">Checking serving mode. Answer buttons stay disabled until the destination is known. Without JavaScript, nothing is saved here; open a GitHub issue to answer.</p>` +
-  `<p class="q-answer-counts" aria-live="polite">${count(p.questions.length)} outstanding questions at build. Saved answers are not applied answers. Live unanswered and saved counts are available only when local saving is verified. Applied totals are not available on this page; rebuild after the coordinator applies answers.</p>` +
+  `<p class="q-answer-counts" aria-live="polite">${count(p.questions.length)} outstanding questions at build. Saved answers are not applied answers. Local saving can verify pending saved answers, not whether other items are still unanswered or have been applied since this build. Applied totals are not available on this page; rebuild after the coordinator applies answers.</p>` +
   (p.questions.length === 0 ? empty :
     `<div class="master"><nav class="q-list" aria-label="Questions">${p.questions.map(item).join("")}</nav>` +
     `<div class="q-detail">${p.questions.map((q, i) => article(p, q, i, cites)).join("")}</div></div>` +

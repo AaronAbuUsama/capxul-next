@@ -106,13 +106,13 @@ test("pending detection cannot post; save and undo keep outstanding count stable
   await x.flush();
   assert.equal(x.calls[1]?.method, "POST");
   assert.match(x.status.textContent, /Saved, not applied/);
-  assert.match(x.summary.textContent, /0 unanswered · 1 saved/);
+  assert.match(x.summary.textContent, /0 status unknown · 1 saved/);
   assert.equal(x.count.textContent, "1");
   x.button.dataset.act = "undo";
   x.click();
   await x.flush();
   assert.equal(x.calls[2]?.body, JSON.stringify({ withdraw: "fixture" }));
-  assert.match(x.summary.textContent, /1 unanswered · 0 saved/);
+  assert.match(x.summary.textContent, /1 status unknown · 0 saved/);
   assert.equal(x.count.textContent, "1");
 });
 
@@ -133,4 +133,21 @@ test("saved answers reloaded from endpoint remain explicitly unapplied", async (
   assert.match(x.status.textContent, /Saved, not applied/);
   assert.match(x.summary.textContent, /Applied answers are not returned/);
   assert.equal(x.count.textContent, "1");
+});
+
+// Applying an answer removes it from GET /api/answers, but does not rebuild the page.
+test("answer applied before rebuild is unknown, never reported as unanswered", async () => {
+  const ledger = [{
+    id: "fixture", target: { kind: "task", id: "demo" }, at: "2026-11-11",
+    answer: { how: "done" }, applied: true,
+  }];
+  const x = setup(false, ledger.filter((answer) => !answer.applied));
+  await x.resolve();
+  assert.equal(x.status.textContent, "Status unknown");
+  assert.match(x.summary.textContent, /1 status unknown · 0 saved/);
+  assert.doesNotMatch(x.summary.textContent, /1 unanswered/);
+  assert.match(x.summary.textContent, /already applied since this page was built/);
+  assert.match(x.mode.textContent, /unknown status, not confirmed unanswered/);
+  assert.equal(x.count.textContent, "1");
+  assert.equal(x.calls.length, 1); // No real or mock answer recorded in this scenario.
 });
