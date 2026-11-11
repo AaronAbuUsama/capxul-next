@@ -154,6 +154,12 @@ def run_due():
     return ran
 
 
+def daily():
+    """Capxul's daily job: a note on Capxul Settings naming the world day it ran for (world time). A warp's evidence that each day's jobs ran."""
+    frappe.get_doc({"doctype": "Comment", "comment_type": "Info", "reference_doctype": "Capxul Settings", "reference_name": "Capxul Settings",
+                    "content": f"capxul daily job ran for {frappe.utils.nowdate()}"}).insert(ignore_permissions=True)
+
+
 @emit
 def advance(from_offset_ms, to_offset_ms, step_days=1, trace_id=None):
     """Move THIS site from one offset to another, stopping at every `step_days` midnight on the way and running what is due at each stop (so a
@@ -172,6 +178,10 @@ def advance(from_offset_ms, to_offset_ms, step_days=1, trace_id=None):
             break
         stops.append(d)
     stops.append(target)
+    from frappe.core.doctype.scheduled_job_type.scheduled_job_type import sync_jobs
+
+    frappe.cache.delete_value("app_hooks")  # the hooks are cached: read them fresh, so a job added to them is seen
+    sync_jobs()  # a site made before a job was added to the hooks gets it now (a migrate would do the same)
     log, jobs = [], 0
     # A scheduled job usually hands its work to a worker with frappe.enqueue; the worker would run it later, at whatever time the world has then.
     # While stepping, "enqueue" means "do it now", at this stop's time (the same code, run inline).

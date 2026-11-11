@@ -46,3 +46,17 @@ import json,sys
 ls=[json.loads(l) for l in open(sys.argv[1])]; rec=[json.loads(l) for l in open(sys.argv[2])]
 e=ls[1:]
 print(ls[0]["lineage"]["parentWorld"], [r["seq"] for r in e]==list(range(1,len(e)+1)), len({r["id"] for r in e})==len(e), [r["id"] for r in e]==[r["id"] for r in rec[:-1]] and rec[-1]["command"]=="record export")' "$TLX" "$HERE/core/state/worlds/$W2/record/$W2.jsonl")" "main True True True"
+
+# acc:world.clock.warp/1: a warp moves the chain and every site together and runs what fell due (Capxul's daily job, once a day).
+TLW0=$(core world clock show main --json | jget "d['data']['time']")
+TLWARP=$(dj world clock advance main 7d --as operator)
+TLWNOW=$(echo "$TLWARP" | jget "d['data']['worldNow']")
+chk TL.warp-moves-chain-and-every-site-a-week-on "TL world clock advance main 7d: worldNow is a week on, and the chain and every site of the world show that day" \
+  "$(python3 -c 'import sys,datetime as t; a,b=[t.datetime.fromisoformat(x.replace("Z","+00:00")) for x in sys.argv[1:3]]; print(round((b-a).total_seconds()/86400, 3))' "$TLW0" "$TLWNOW") $(dj world clock show main | jget "(d['data']['chainLatestBlock'][:10], sorted(set(s['today'] for s in d['data']['sites'])))")" \
+  "7.0 ('${TLWNOW:0:10}', ['${TLWNOW:0:10}'])"
+chk TL.warp-ran-daily-job-once-each-day "TL $SITE shows Capxul's daily job ran once for each of the seven days warped over" \
+  "$(lst "$T/admin" Comment "[[\"reference_doctype\",\"=\",\"Capxul Settings\"],[\"content\",\"like\",\"capxul daily job ran for %\"]]" '["content"]' | jget "sorted(x for x in (r['content'][-10:] for r in d['data']) if '${TLW0:0:10}' < x <= '${TLWNOW:0:10}')")" \
+  "$(python3 -c 'import sys,datetime as t; d=t.date.fromisoformat(sys.argv[1][:10]); print(sorted(str(d+t.timedelta(days=i)) for i in range(1,8)))' "$TLW0")"
+chk TL.warp-backwards-refused "TL a warp backwards (-1d) is refused as invalid input and moves nothing" \
+  "$(refused "$(dj world clock advance main -1d --as operator)") $(core world clock show main --json | jget "d['data']['time'][:10]")" "INVALID_INPUT ${TLWNOW:0:10}"
+core world clock reset main --as operator >/dev/null

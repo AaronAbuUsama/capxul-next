@@ -38,3 +38,6 @@ before_request = ["capxul.trace.from_request", "capxul.features.guard_request"]
 # names only (capxul.brand): the site says Capxul
 after_request = ["capxul.brand.after_request"]
 after_migrate = "capxul.setup.after_migrate"
+
+# One daily job of Capxul's own: it notes the world day it ran for, so a warp shows that what fell due each day ran (capxul.clock.daily).
+scheduler_events = {"daily": ["capxul.clock.daily"]}

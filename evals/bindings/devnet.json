@@ -52,17 +52,20 @@
         "TL.export-lineage-first-then-every-entry-once-in-order"
       ],
       "why": "`record export w2 --out <file> --json`, for the world restored from main, prints the file's line count and a lineage naming main and the snapshot. The file's first line is that lineage; the entries follow in sequence order, each once, and they are the world's whole record up to the export."
-    }
-  ],
-  "near": [
+    },
     {
       "eval": "acc:world.clock.warp/1",
       "checks": [
+        "TL.warp-moves-chain-and-every-site-a-week-on",
+        "TL.warp-ran-daily-job-once-each-day",
+        "TL.warp-backwards-refused",
         "B7.clock-set-in-the-past-chain-and-sites-follow",
         "B7.world-at-31-march-all-agree"
       ],
-      "missing": "The chain and every site move together; 'runs what fell due' is printed for each advance but nothing asserts the jobs ran."
-    },
+      "why": "`world clock advance main 7d` prints worldNow a week on, and the chain's latest block and every site of the world show that day. The company's site shows Capxul's daily scheduled job ran once for each of the seven days warped over (each stop runs what fell due). A warp of -1d is refused as invalid input and moves nothing. B7 shows the same for set and for three advances through March across every site."
+    }
+  ],
+  "near": [
     {
       "eval": "jrn:run_a_world",
       "checks": [
