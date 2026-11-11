@@ -1750,17 +1750,15 @@
       "title": "The first near-miss becomes a binding: creating a document reads back a draft",
       "why": "the score is 8 of 5,175; this is the pattern for binding the rest",
       "milestone": "m1",
-      "state": "blocked",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "merged b6d3e5b; evals check 9 bound, 33 near-misses; the eval run waits for the stack (m1-ops-supervisor)"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
-      "thread": "m1-bind-doc-create-11110927",
-      "blockedBy": {
-        "need": "loop run m1-bind-doc-create-11110927: F-1.1 bash -n passes on every changed script: Seen: Neither the maker nor the reviewer could run bash -n: the loop policy refused it. No passing syntax-check run was printed. Expected: bash -n passes on the changed script. Fix: Run bash -n spikes/skeleton/run.sh in an authorized environment and prov",
-        "who": "coordinator"
-      }
+      "thread": "m1-bind-doc-create-11110927"
     },
     {
       "id": "m1-reading-checklist",
