@@ -67,17 +67,20 @@
         {
           "id": "g1",
           "claim": "Every part of the system is a record, the machine, the worlds, the site service and a production environment included.",
-          "state": "open"
+          "state": "met",
+          "evidence": "r-g1-11110831 (docs/mission/research-2026-11-11.md): the machine (component:sites-host, sites-ingress, sites-backup), the worlds (environment:worlds, environment:shared-world, table:worlds, machine:world), the site service (component:site-service, integration:site-service, workflow:sites.create) and production (environment:production) are records; deploying them is m3b's work, not this exit"
         },
         {
           "id": "g2",
           "claim": "The book builds with no problems and every open gap is closed or has a recorded reason.",
-          "state": "open"
+          "state": "met",
+          "evidence": "08e52a6: pnpm blueprint 2652 records, 0 problems, 0 gaps, 147 standing; every merge check passes"
         },
         {
           "id": "g3",
           "claim": "Every operation has an example and names its telemetry.",
-          "state": "open"
+          "state": "met",
+          "evidence": "e9e50fc: pnpm blueprint 0 problems, 0 gaps; the engine's example and telemetry gaps (build.ts:106,467) have none open and none standing (research r-g3-11110831 confirmed)"
         },
         {
           "id": "g4",
@@ -88,7 +91,8 @@
         {
           "id": "g5",
           "claim": "Everything the spikes found is a record or a decision.",
-          "state": "open"
+          "state": "met",
+          "evidence": "m1-g5-findings merged: components.cli-stdout-drain and the decisions it names hold every 'Smaller findings' item of spikes/skeleton/FINDINGS.md; the design findings were recorded by m1-spike-evidence (r-g5-11110831)"
         },
         {
           "id": "g6",
