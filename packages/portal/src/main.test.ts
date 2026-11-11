@@ -23,6 +23,7 @@ test("the real blueprint generates a site that passes the portal check", async (
   assert.ok(input.guide, "the Blueprint page is made from docs/blueprint-guide.md");
   assert.ok((files.get("blueprint/index.html") ?? "").includes('<h3 id="followed">'));
   assert.ok((files.get("blueprint.md") ?? "").includes("### Followed: doc.submit, acceptance line 1"));
+  assert.ok(!(files.get("blueprint/index.html") ?? "").includes("Not explained on this page yet"), "every kind of record and of eval has its words on the Blueprint page");
   for (const path of ["design/index.html", "design.md", "data/design.json"]) {
     const page = files.get(path) ?? "";
     for (const phrase of ["sites-backup", "production", "worlds", "34.249.131.57", "8 February 2027", "No production RPO/RTO promised"]) {

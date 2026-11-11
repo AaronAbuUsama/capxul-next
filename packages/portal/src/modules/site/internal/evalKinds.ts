@@ -26,6 +26,13 @@ const KINDS: readonly EvalKind[] = [
   { kind: "sys", name: "System", claims: "A rule of the whole system holds: a line budget, the import rules, generated files equal what the generator produces." },
   { kind: "inv", name: "Invariant", claims: "The invariant's statement holds over its tables and machines." },
   { kind: "env", name: "Environment", claims: "The environment boots within its time, and a smoke journey passes on it." },
+  { kind: "scr", name: "Screen", claims: "Opened as each hat on a seeded world it shows its source's values, refuses anyone else, its actions run their operations, and it closes when its feature is off." },
+  { kind: "ana", name: "Analytics", claims: "The event is sent with its properties and the envelope, valid against both, and carries no personal data beyond what it declares." },
+  { kind: "log", name: "Log", claims: "Its producer writes one row per declared unit of work, with every attribute, and redacted values never leave the component." },
+  { kind: "met", name: "Metric", claims: "Its producer emits it with the declared instrument, unit and attributes." },
+  { kind: "ins", name: "Insight", claims: "On a seeded world it returns rows shaped for its display, and on the thin-line world it gives the answer it declares." },
+  { kind: "alr", name: "Alert", claims: "With its fault seeded it fires once to its audience, a healthy world under load does not fire it, and it clears when the fault is repaired." },
+  { kind: "dsh", name: "Dashboard", claims: "Opened, every tile renders a value; where it lives outside the portal, the live dashboard equals the record tile for tile." },
   { kind: "live", name: "Live traffic", claims: "On real traffic over days, a budget, a defect rate or a funnel stays within its bound." },
 ];
 
