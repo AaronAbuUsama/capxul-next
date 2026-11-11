@@ -46,7 +46,7 @@ test("what the blueprint expects: a page per record that has one, the waiting li
 test("a generated site passes every part", () => {
   const outcomes = run(files, generate());
   assert.deepEqual(failed(outcomes), [], JSON.stringify(outcomes, null, 2));
-  assert.equal(outcomes.length, 9);
+  assert.equal(outcomes.length, 10);
   assert.ok(passed(outcomes));
 });
 
@@ -140,4 +140,60 @@ test("a status entry for an eval the blueprint does not derive fails the check; 
   assert.deepEqual(failed(outcomes), ["every status entry names an eval the blueprint derives"]);
   assert.match(outcomes.find((o) => o.failures > 0)?.detail[0] ?? "", /ret:ghost/);
   assert.deepEqual(expected.unknownStatus, [], "no status document, no unknown entry");
+});
+
+test("a climb status contradicting its count fails in the model or rendered Overview", () => {
+  const part = "the Overview climb statuses agree with their counts";
+  for (const file of ["data/index.json", "index.html"]) {
+    const changed = change(replaceIn(file, "0 passing", "Not started"));
+    assert.ok(failed(run(changed)).includes(part));
+  }
+});
+
+test("recorded passes and operation progress are stated numerically, never as Not started", () => {
+  const site = buildSite({ ...input, status: { version: 1, evals: {
+    "ret:invite.accept": { verdict: "pass", commit: "abc1234", at: "2026-11-10T10:00:00Z" },
+  } } });
+  const overview = site.pages.find((p) => p.type === "overview");
+  assert.ok(overview?.type === "overview");
+  const prove = overview.climb.find((c) => c.step === "Prove");
+  assert.equal(prove?.status, "1 passing");
+  const made = new Map([...renderSite(site, fixtureAssets), ...twinsOf(site)]);
+  assert.deepEqual(failed(check(made, made, expected)), []);
+  made.set("index.html", (made.get("index.html") ?? "").replace("1 passing", "Not started"));
+  assert.ok(failed(check(made, made, expected)).includes("the Overview climb statuses agree with their counts"));
+});
+
+test("each rendered climb card rejects a changed adjacent count with its status and JSON unchanged", () => {
+  const part = "the Overview climb statuses agree with their counts";
+  for (let target = 0; target < 4; target++) {
+    const changed = change((copy) => {
+      let index = 0;
+      const html = copy.get("index.html") ?? assert.fail("no Overview");
+      copy.set("index.html", html.replace(
+        /<div class="climb-card">[\s\S]*?<p class="climb-sub">[^<]*<\/p>/g,
+        (card) => {
+          if (index++ !== target) return card;
+          // Specify's status describes findings in sub; the others describe big.
+          const field = target === 0 ? "climb-sub" : "climb-big";
+          return card.replace(new RegExp(`(<p class="${field}">)([\\d,]+)`), "$1999");
+        },
+      ));
+      assert.notEqual(copy.get("index.html"), html, `card ${target} count changed`);
+      assert.equal(copy.get("data/index.json"), files.get("data/index.json"));
+    });
+    assert.ok(failed(run(changed)).includes(part), `card ${target}`);
+  }
+});
+
+test("each climb card rejects a contradictory status", () => {
+  const part = "the Overview climb statuses agree with their counts";
+  for (let i = 0; i < 4; i++) {
+    const changed = change((copy) => {
+      const page = JSON.parse(copy.get("data/index.json") ?? "{}");
+      page.climb[i].status = "Invented progress";
+      copy.set("data/index.json", JSON.stringify(page));
+    });
+    assert.ok(failed(run(changed)).includes(part), `card ${i}`);
+  }
 });
