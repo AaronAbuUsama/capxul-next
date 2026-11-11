@@ -5,6 +5,7 @@
  * image without the cloud. `running`: one box already up at an address, for tests.
  */
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import type { BoxRecord, Launcher, Link, Result, StartOptions } from "../types.ts";
 import { request } from "./env.ts";
 
@@ -24,8 +25,16 @@ export const answers = async (link: Link, ms: number): Promise<Result<Link>> => 
   return fail(`the box did not answer within ${Math.round(ms / 1000)} s: ${last}`);
 };
 
-/** A box's name as a container name and a URL path both allow it: lower case, digits and dashes, at most 50. */
-export const nameOf = (name: string): string => name.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/^-+/, "").slice(0, 50) || "box";
+/**
+ * A box's name as a container name and a URL path both allow it: lower case, digits and dashes, at most 50. A longer
+ * name keeps its start and end and gets a hash of the whole between them, so two long names never become one.
+ */
+export const nameOf = (name: string): string => {
+  const clean = name.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/^-+/, "") || "box";
+  if (clean.length <= 50) return clean;
+  const hash = createHash("sha256").update(clean).digest("hex").slice(0, 8);
+  return `${clean.slice(0, 24)}-${hash}-${clean.slice(-16)}`;
+};
 
 const checked = (o: StartOptions): StartOptions | string =>
   !(o.ttlMs > 0) ? "a box needs a time to live above zero" : o.ttlMs > MAX_TTL_MS ? `a box lives at most ${MAX_TTL_MS / 3_600_000} hours` : !/^[\w.:-]{1,80}$/.test(o.owner) ? "an owner is letters, digits, . _ : - (at most 80)" : o;

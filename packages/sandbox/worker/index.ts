@@ -66,13 +66,24 @@ export class Box extends DurableObject<Env> {
 		const c = this.c();
 		if (!c.running) return Response.json({ error: "the box is not running: POST /start first" }, { status: 409 });
 		await c.setInactivityTimeout(IDLE_MS);
-		return c.getTcpPort(PORT).fetch(new Request(`http://box${path}`, request));
+		// The key stops here: the box's own server never sees it.
+		const headers = new Headers(request.headers);
+		headers.delete("authorization");
+		return c.getTcpPort(PORT).fetch(new Request(`http://box${path}`, { method: request.method, headers, body: request.body }));
 	}
 }
 
+/** Compares the presented key with BOX_KEY in constant time (over their SHA-256, so lengths do not leak either). */
+const keyed = async (request: Request, key: string): Promise<boolean> => {
+	if (!key) return false;
+	const digest = async (s: string) => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
+	const [a, b] = await Promise.all([digest(request.headers.get("authorization") ?? ""), digest(`Bearer ${key}`)]);
+	return crypto.subtle.timingSafeEqual(a, b);
+};
+
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		if (!env.BOX_KEY || request.headers.get("authorization") !== `Bearer ${env.BOX_KEY}`) return new Response("Unauthorized", { status: 401 });
+		if (!(await keyed(request, env.BOX_KEY))) return new Response("Unauthorized", { status: 401 });
 		const url = new URL(request.url);
 		try {
 			if (request.method === "GET" && url.pathname === "/boxes") {

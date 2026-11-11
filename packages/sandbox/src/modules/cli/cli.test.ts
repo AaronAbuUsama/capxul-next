@@ -99,3 +99,12 @@ test("docker: boxes carry their owner and expiry as labels; ls, reap and down se
     assert.match((await sandboxCli(["reap"], later)).lines.join("\n"), /took down cli-test-a \(run:t\): past its expiry/);
   } finally { await sandboxCli(["down", "--owner", "run:t"], deps); }
 });
+
+test("long names stay apart: each keeps its start and end and a hash of the whole, within 50 characters", async () => {
+  const { nameOf } = await import("../box/service.ts");
+  const run = "m1-a-very-long-task-name-that-goes-on-and-on-11112130";
+  const a = nameOf(`${run}-scratch-one`), b = nameOf(`${run}-scratch-two`);
+  assert.notEqual(a, b);
+  assert.ok(a.length <= 50 && b.length <= 50);
+  assert.equal(nameOf("short-name"), "short-name");
+});
