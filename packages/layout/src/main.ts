@@ -29,16 +29,16 @@ export const ALLOWED: Allowlist = {
   "plan": "the coordinator's plan, its log and the owner's answers",
   "evals": "which check proves which eval of the blueprint",
   "status": "the scoreboard, written only by pnpm evals",
-  "loops": "the scripts the agent loop runs (owned with packages/loop)",
   "spikes": "proven throwaway code, deleted when plan task m2-graduate-spike is done",
   "docs": "written designs, evidence the blueprint cites, generated reports",
-  "archive": "dead material, kept at its old path",
   "package.json": "the workspace's scripts",
   "pnpm-lock.yaml": "the lockfile",
   "pnpm-workspace.yaml": "the workspace and the dependency catalog",
   ".gitignore": "git",
   ".github": "the pull request template and issue forms",
-  ".claude": "the agents' role prompts (read by the loop), the coordinator's skills and the preview launcher",
+  ".claude": "a link to the skills in .agents/skills, for Claude Code",
+  ".agents": "Amp's orb setup and resume scripts and the coordinator's skills (decision build.amp)",
+  ".amp": "Amp's orb services: the book served from the coordinator's orb",
 };
 
 export const LIMIT = 300;
@@ -48,7 +48,7 @@ const policyOf = (oversize: Oversize): Policy => ({
   limit: LIMIT,
   sourceExtensions: [".ts", ".tsx", ".js", ".mjs", ".cjs", ".py", ".sh", ".sol"],
   // designs and evidence; dead material; generated code; vendored libraries
-  sizeExempt: ["blueprint/", "docs/", "archive/", "/generated/", "packages/contracts/lib/", "packages/loop-ui/", "/node_modules/"],   // loop-ui is markup: the owner excused it from the limit (10 November 2026); its components/ui is shadcn's code
+  sizeExempt: ["blueprint/", "docs/", "/generated/", "packages/contracts/lib/", "/node_modules/"],
   oversize,
 });
 

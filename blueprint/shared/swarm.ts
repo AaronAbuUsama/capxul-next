@@ -6,6 +6,7 @@
 import { defineDecision } from "../../packages/blueprint-engine/src/index.ts";
 import * as f from "./foundation.ts";
 import { decision_system_build_order, decision_system_layout, decision_system_size } from "./decisions.ts";
+import { decision_ops_group_shutdown, decision_ops_owner } from "./ops.ts";
 
 const BY = "Claude, swarm design, 8 November 2026";
 export const by = (evidence: string) => `${BY}; evidence: ${evidence}`;
@@ -1201,4 +1202,27 @@ export const decision_loop_gateway = defineDecision({
   why: "Implements Aaron's ruling of 10 November 2026 to use the CLI proxy, not LiteLLM. Narrows swarm.checker-family to role/model selection, not gateway selection; does not change its owner ruling or swarm.spend-envelope. Confirms swarm.accounts no longer requires swarmD provider setup. Neither swarm.start-small nor swarm.team-definition makes swarmD a gateway dependency.",
   source: LOOP_BY + "; Aaron's ruling, 10 November 2026; packages/loop/README.md (Model gateway); AGENTS.md (Where it runs)",
   affects: [decision_swarm_checker_family, decision_swarm_accounts, decision_swarm_start_small, decision_swarm_team_definition],
+});
+
+// ── Amp replaces the home-made loop (11 November 2026) ─────────────────────────────────────
+// Aaron moved agent orchestration to Amp (ampcode.com). The loop.* records above are kept as
+// history; this record says which of their parts no longer hold.
+
+export const decision_build_amp = defineDecision({
+  id: "build.amp",
+  title: "Agents run in Amp orbs; the home-made loop, sandbox and Mac services are removed",
+  question: "What runs the build's agents now that the loop host, the sandbox Worker and the Mac sessions cost a day of permission and hang problems?",
+  options: [
+    { label: "amp", text: "Agent work runs in Amp threads, each in its own orb (a cloud sandbox with Docker, Node, pnpm and gh), on its own branch with a pull request into integration/build. The coordinator is the lead Amp thread: it hill-climbs plan/ with the skills in .agents/skills and starts one orb thread per task. The evals and the CI merge gate decide whether work is done; the coordinator or Aaron merges. AGENTS.md is the one rule file every agent reads. packages/loop, packages/loop-ui, packages/sandbox (and its never-deployed Cloudflare Worker), packages/ops and loops/ are deleted; git history keeps them." },
+    { label: "keep-loop", text: "Keep packages/loop with the pair script, deploy the capxul-loop-sandbox Worker and keep the loop host on the Mac." },
+  ],
+  chosen: "amp",
+  why:
+    "Aaron, 11 November 2026, 21:57 UTC: \"We're moving over to AMP now ... because AMP has built in orbs, inbuilt sandboxing. It has like a bunch of different providers.\" " +
+    "Replaces loop.pair (no repository pair script: an Amp thread is the builder, the PR review and the evals are the checker), loop.lanes (an orb plus a branch is the isolation), " +
+    "loop.merge-gate (the merge gate is the CI workflow on the pull request; `pnpm loop merge` no longer exists) and loop.gateway (Amp routes the models; no Mac proxy). " +
+    "Narrows loop.plan: the plan stays the one task list (Aaron, 22:05 UTC: the plan is how the coordinator and he communicate), and the coordinator, not packages/loop, starts its tasks. " +
+    "Retires tooling.ops-owner and tooling.ops-group-shutdown: an orb starts its own services, so the Mac supervisor (pnpm ops) is gone.",
+  source: "Aaron's message in the project thread \"Clean up and hand off to Amp\", 11 November 2026; https://ampcode.com/docs/orbs",
+  affects: [decision_loop_pair, decision_loop_lanes, decision_loop_merge_gate, decision_loop_gateway, decision_loop_plan, decision_ops_owner, decision_ops_group_shutdown],
 });

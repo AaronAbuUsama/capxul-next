@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Amp runs this each time an orb starts or wakes. Docker's daemon is stopped in a fresh orb; the Frappe test sites need it.
+sudo -n systemctl start docker 2>/dev/null || true
+[ -S /var/run/docker.sock ] && sudo -n chmod 666 /var/run/docker.sock 2>/dev/null || true
+exit 0

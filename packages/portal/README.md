@@ -23,8 +23,8 @@ who worked on each concept, a timeline by day with the verdicts recorded, and th
 
 ## What it does not show
 
-The plan and the loop's runs are not portal pages (decision `portal.product-only`). The plan is `pnpm plan show`; the
-server still passes `/runs/` through to the loop's host (`src/modules/runs`), but no page links to it.
+The plan is not a portal page (decision `portal.product-only`); the plan is `pnpm plan show`. The loop and its `/runs/`
+pass-through are gone (decision `build.amp`).
 
 Nothing here is a source of truth: change the blueprint and generate again. Its design is
 `docs/design/portal.md` and the records in `blueprint/shared/portal.ts`.
