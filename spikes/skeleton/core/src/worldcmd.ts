@@ -14,7 +14,8 @@ import { show } from "./render.ts";
 import { touched } from "./trace.ts";
 
 const exec = promisify(execFile);
-export type W = { name: string; stateDir: string; anvilPort: number; corePort: number; createdAt?: string; from?: Record<string, unknown> };
+export type W = { name: string; stateDir: string; anvilPort: number; corePort: number; createdAt?: string; from?: Record<string, unknown>;
+  /** a new one when the world starts and at every restore in place (blueprint devnet flows: a subscriber tells a restore from a move) */ epoch?: number };
 const registryFile = join(coreDir, "state", "worlds.json");
 const mainWorld: W = { name: "main", stateDir: join(coreDir, "state"), anvilPort: 8545, corePort: 8787 };
 export const readRegistry = (): Record<string, W> => ({ main: mainWorld, ...(existsSync(registryFile) ? JSON.parse(readFileSync(registryFile, "utf8")) : {}) });
@@ -45,7 +46,8 @@ async function describe(w: W) {
   const clock = read("clock.json");
   return { name: w.name, core: await up(`http://127.0.0.1:${w.corePort}/health`) ? "up" : "down", chain: await up(`http://127.0.0.1:${w.anvilPort}`) || (await fetch(`http://127.0.0.1:${w.anvilPort}`, { method: "POST", headers: { "content-type": "application/json" }, body: '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}', signal: AbortSignal.timeout(1500) }).then((r) => r.ok, () => false)) ? "up" : "down",
     anvilPort: w.anvilPort, corePort: w.corePort, companies: orgs, sites: orgs.map((o) => (w.name === "main" ? `${o}.localhost` : `${o}.${w.name}.localhost`)),
-    time: new Date(Date.now() + (clock?.offsetMs ?? 0)).toISOString(), from: w.from ?? null, stateDir: w.stateDir };
+    time: new Date(Date.now() + (clock?.offsetMs ?? 0)).toISOString(), from: w.from ?? null, stateDir: w.stateDir, epoch: w.epoch ?? 1,
+    parentWorld: (w.from?.world as string) ?? null, parentSnapshot: (w.from?.snapshot as string) ?? null, parentSeq: ((w.from?.record as any)?.count as number) ?? null };
 }
 
 export async function worldCreate(args: string[]): Promise<Out> {

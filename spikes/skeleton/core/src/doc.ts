@@ -81,7 +81,9 @@ export async function docSubmit(args: string[]): Promise<Out> {
       const id = approvalId(r.approval_url);
       noteDoc(slug, dt, name, "requested-signature");
       touched.extra.approval = id;
-      return res({ doctype: dt, name, status: r.status, approval: id, approval_url: r.approval_url }, [`${dt} ${name}: ${r.status}. Sign with: approval sign ${slug} ${id} --as <email>`]);
+      const a: any = await fetch(`${config.coreUrl}/approve/${id}`, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(10_000) }).then((x) => x.json(), () => ({}));
+      const awaiting = a.requested_by ?? null;   // the signer Core will accept: the person who asked (Core's approval names them)
+      return res({ doctype: dt, name, status: r.status, held: true, approval: id, awaiting, approval_url: r.approval_url }, [`${dt} ${name}: ${r.status}, held for ${awaiting}'s signature. Sign with: approval sign ${slug} ${id} --as ${awaiting}`]);
     }
   }
   const d = (await frappe(slug, as, "PUT", `/api/resource/${enc(dt)}/${enc(name)}`, { body: { docstatus: 1 } })).data;

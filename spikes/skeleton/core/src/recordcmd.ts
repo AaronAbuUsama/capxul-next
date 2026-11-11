@@ -4,6 +4,7 @@ import { refuse } from "./errors.ts";
 import type { Out } from "./doc.ts";
 import { exportRecord, findRecord, readAll, verifyChain } from "./record.ts";
 import { table } from "./render.ts";
+import { readRegistry } from "./worldcmd.ts";
 
 export async function recordTail(args: string[]): Promise<Out> {
   const { pos, flags } = parseArgs(args);
@@ -23,6 +24,8 @@ export async function recordShow(args: string[]): Promise<Out> {
 export async function recordExport(args: string[]): Promise<Out> {
   const { pos, flags } = parseArgs(args);
   if (!pos[0]) throw refuse("USAGE", "usage: record export <world> [--org <company>] [--out <file>]");
-  const e = exportRecord(pos[0], typeof flags.out === "string" ? flags.out : undefined, typeof flags.org === "string" ? flags.org : undefined);
-  return { data: e, lines: [`${e.count} records of ${pos[0]} in ${e.path} (hash chain ${e.chainOk ? "intact" : "BROKEN"})`] };
+  const from = readRegistry()[pos[0]]?.from as any;
+  const lineage = from ? { parentWorld: from.world, parentSnapshot: from.snapshot, parentSeq: from.record?.count ?? null } : null;
+  const e = exportRecord(pos[0], typeof flags.out === "string" ? flags.out : undefined, typeof flags.org === "string" ? flags.org : undefined, lineage);
+  return { data: e, lines: [`${e.count} records of ${pos[0]} in ${e.path}, ${e.lines} lines (hash chain ${e.chainOk ? "intact" : "BROKEN"})${lineage ? `; lineage: from ${lineage.parentWorld} at snapshot ${lineage.parentSnapshot}, seq ${lineage.parentSeq}` : ""}`] };
 }

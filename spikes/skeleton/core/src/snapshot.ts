@@ -94,7 +94,7 @@ export async function snapshotSave(args: string[]): Promise<Out> {
     core: { files: CORE_FILES.filter((f) => existsSync(join(dir, "core", f))) }, sites, rewrites: REWRITES, cannotRewrite: CANNOT, bytes: size(dir), ms: Date.now() - t0 };
   writeFileSync(join(dir, "manifest.json"), JSON.stringify(manifest, null, 2));
   touched.extra.snapshot = { id, record: manifest.record };
-  return { data: { id, name: manifest.name, world, bytes: manifest.bytes, ms: manifest.ms, companies: cos, record: manifest.record }, lines: [`saved ${id} (${manifest.name}): world ${world} at ${manifest.savedAtWorld}, ${cos.length} companies, record position ${rec.count}, ${(manifest.bytes / 1e6).toFixed(1)} MB, ${manifest.ms} ms`] };
+  return { data: { id, name: manifest.name, world, epoch: readRegistry()[world]?.epoch ?? 1, recordSeq: rec.count, bytes: manifest.bytes, ms: manifest.ms, companies: cos, record: manifest.record }, lines: [`saved ${id} (${manifest.name}): world ${world} at ${manifest.savedAtWorld}, ${cos.length} companies, record position ${rec.count}, ${(manifest.bytes / 1e6).toFixed(1)} MB, ${manifest.ms} ms`] };
 }
 
 export async function snapshotList(args: string[]): Promise<Out> {
@@ -131,6 +131,7 @@ export async function snapshotRestore(args: string[]): Promise<Out> {
     w = readRegistry()[srcWorld]!;
     if (!w) throw refuse("NOT_FOUND", `world ${srcWorld} is not registered here`);
     await stopWorld(w);
+    w = { ...w, epoch: (w.epoch ?? 1) + 1 }; register(w);
   }
   let t = Date.now();
   // the chain and Core

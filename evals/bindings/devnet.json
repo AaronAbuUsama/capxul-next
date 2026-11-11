@@ -26,25 +26,35 @@
         "B9.old-world-payment-not-in-new"
       ],
       "why": "The snapshot is restored into a second world beside the first. A payment made in the new world is in its documents and its chain and not in the old world's, which stay at their counts and balance; a payment made in the old world is not in the new."
-    }
-  ],
-  "near": [
+    },
     {
       "eval": "acc:world.snapshot.save/1",
       "checks": [
+        "TL.snapshot-save-prints-epoch-and-record-seq",
+        "TL.snapshot-save-leaves-world-untouched",
+        "TL.snapshot-save-record-gains-only-the-save",
         "B9.snapshot-saved",
-        "B9.snapshot-list",
         "B9.new-world-same-documents-ledger-hats-features"
       ],
-      "missing": "A snapshot saves and restores to the same documents, ledger, hats and features, but 'leaves the world untouched' is not checked."
+      "why": "`world snapshot save main` prints the world's epoch and its record position. Before and after the save the site's documents, ledger, hats, features and events, the Safe's balance and the clock are the same, and the record gains the save's entry and no other; `snapshot list` lists it. What the save holds is everything that makes the world: restored into a new world it gives the same documents, ledger, hats and features."
     },
     {
       "eval": "acc:world.show/1",
       "checks": [
-        "B9.world-list-shows-origin"
+        "TL.world-show-names-parent"
       ],
-      "missing": "The world list says where the new world came from; the check reads `world list`, not `world show`."
+      "why": "After `world snapshot restore <snapshot> --into w2`, `world show w2 --json` prints parentWorld main, parentSnapshot the snapshot's id and parentSeq the record position it was saved at."
     },
+    {
+      "eval": "acc:record.export/1",
+      "checks": [
+        "TL.export-prints-lines-and-lineage",
+        "TL.export-lineage-first-then-every-entry-once-in-order"
+      ],
+      "why": "`record export w2 --out <file> --json`, for the world restored from main, prints the file's line count and a lineage naming main and the snapshot. The file's first line is that lineage; the entries follow in sequence order, each once, and they are the world's whole record up to the export."
+    }
+  ],
+  "near": [
     {
       "eval": "acc:world.clock.warp/1",
       "checks": [
@@ -52,13 +62,6 @@
         "B7.world-at-31-march-all-agree"
       ],
       "missing": "The chain and every site move together; 'runs what fell due' is printed for each advance but nothing asserts the jobs ran."
-    },
-    {
-      "eval": "acc:record.export/1",
-      "checks": [
-        "B8.export-one-file-line-by-line"
-      ],
-      "missing": "The export is one file with a header and every record, but the lineage is not read and 'every entry once' is checked only by count."
     },
     {
       "eval": "jrn:run_a_world",

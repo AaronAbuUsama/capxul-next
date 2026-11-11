@@ -25,7 +25,7 @@ while [ $# -gt 0 ]; do case "$1" in
   *) SLUG="$1"; shift;;
 esac; done
 if [ -n "$LIST" ]; then   # the check names, from this file: every `ok|chk|bad <name>` call
-  grep -oE '(chk|ok|bad) [A-Z][A-Za-z0-9]*\.[a-z0-9.-]+' "$0" | awk '{k=($1=="bad")?"guard":"check"; if(!($2 in s)||k=="check")s[$2]=k} END{for(n in s)print n"\t"s[n]}' | sort
+  grep -ohE '(chk|ok|bad) [A-Z][A-Za-z0-9]*\.[a-z0-9.-]+' "$0" "$HERE/thin-line-checks.sh" | awk '{k=($1=="bad")?"guard":"check"; if(!($2 in s)||k=="check")s[$2]=k} END{for(n in s)print n"\t"s[n]}' | sort
   exit 0
 fi
 deps() { case "$1" in   # what a behaviour uses from the ones before it
@@ -486,7 +486,7 @@ r=[x for x in rs if x["command"]=="world snapshot restore" and x["changes"].get(
 print(len(r)>=1, rs[-1]["seq"]==len(rs))' "$REC")" "True True"
 core world clock reset main --as operator >/dev/null; login_admin
 info "B9 measured: save ${save_ms}ms, ${SNAP_MB} MB; restore into a new world (1 company) ${into_ms}ms; restore in place (whole world) ${inplace_ms}ms"
-fi
+. "$HERE/thin-line-checks.sh"; fi
 
 if want PRIVACY; then
 echo "== Privacy: nothing phones home"
