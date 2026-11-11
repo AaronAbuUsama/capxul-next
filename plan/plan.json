@@ -42,7 +42,8 @@
       {
         "id": "g7",
         "claim": "Aaron reads the portal and accepts it.",
-        "state": "open"
+        "state": "met",
+        "evidence": "Aaron marked m1-aaron-accepts done at 20:27:18 UTC: the book accepted at 07c0e05"
       },
       {
         "id": "g8",
@@ -103,7 +104,8 @@
         {
           "id": "g7",
           "claim": "Aaron reads the portal and accepts it.",
-          "state": "open"
+          "state": "met",
+          "evidence": "Aaron marked m1-aaron-accepts done at 20:27:18 UTC: the book accepted at 07c0e05"
         },
         {
           "id": "g8",
@@ -597,7 +599,7 @@
       "title": "Aaron reads the portal and accepts the book",
       "why": "The book is fit to build from when the owner has read it and accepts it (g7).",
       "milestone": "m1",
-      "state": "blocked",
+      "state": "done",
       "needs": [
         "m1-plan-page",
         "m1-task-tree",
@@ -614,13 +616,11 @@
         "m1-thin-line-journey"
       ],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "Aaron, 20:27:18 UTC: done (accepts the book at 07c0e05)"
+      ],
       "created": "2026-11-10",
-      "updated": "2026-11-11",
-      "blockedBy": {
-        "need": "Read the portal in this order, about an hour, then mark done to accept the book at the commit shown at the top of every page (\"Built from ...\"), or tell the coordinator what is missing.\n1. Overview: is this where you thought we were?\n2. Questions: is anything here not yours, or missing?\n3. Concepts (start with Payments, Organizations, Sites): would a builder know exactly what to make?\n4. Blueprint: are these the right kinds of records, and is each one needed?\n5. Architecture: is this the Frappe-native shape you ruled for?\n6. Worlds: is this how you want to test time and money?\n7. Build: does it say only what is true about the code?\n8. History: does the record of changes match what you remember deciding?\n9. Docs: does anything contradict what you have said since?",
-        "who": "aaron"
-      }
+      "updated": "2026-11-11"
     },
     {
       "id": "m1-time-study",
@@ -1203,16 +1203,14 @@
       "title": "Aaron rules on the sixteen old answers of his that the review would narrow",
       "why": "Only Aaron changes a ruling of his. m1-old-decisions proposed new text for six rulings and ten decisions he answered; they are held",
       "milestone": "m1",
-      "state": "blocked",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "7af7472"
+      ],
       "created": "2026-11-10",
-      "updated": "2026-11-11",
-      "blockedBy": {
-        "need": "A review proposed new wording for 16 of your past answers, to fit the Frappe-native direction. None is applied yet. In plain words, the 16 changes are:\n1. contacts.timeline-money: the contact timeline lives in each site's CRM and shows only money that really moved on chain.\n2. devnet.clock-rate: a world's clock speed stays (1 to 60 times real time); only the owner changes a shared world's speed.\n3. payroll.surface-moves: only the 11 on-chain agreement commands stay under payroll; leave, attendance, expenses and payslips are done in Frappe HR.\n4. requests.bill-time-currency: drop Core's timesheet currency conversion; ERPNext handles currencies.\n5. system.frozen-behaviour: kept as it is; only its examples are updated.\n6. rules.new-operations: kept as it is; only its examples are updated.\n7. aaron.crm-frappe-shape: the global directory finds people and companies; each company's CRM lives on its own site.\n8. aaron.books-first-principles: ERPNext is each company's book of record; chain money posts into it.\n9. aaron.frappe-shape: Accounting, HR and payroll, CRM and Projects are on every company site from day one, as plain Frappe.\n10. aaron.contacts-permissions: reading and editing contacts stay separate permissions, set by site roles.\n11. aaron.projects: Projects are Frappe's own Project, Task and Timesheet on each site, with no copy in Core.\n12. aaron.sdk-reaches-everything: the SDK and CLI reach Core and the site through one door, acting as the caller.\n13. surface.tree: site features are reached through the door, not the old catalogue of 119 commands.\n14. swarm.superset: archived (old swarm tooling).\n15. swarm.checker-family: archived; the model is chosen per run.\n16. swarm.spend-envelope: archived; the old $4,000 swarm budget no longer applies.\nMark done to take all sixteen (recommended), or tell the coordinator which numbers to keep as they are.",
-        "who": "aaron"
-      }
+      "updated": "2026-11-11"
     },
     {
       "id": "m1-gaps-last-eleven",
@@ -1870,12 +1868,11 @@
     "tasks": [
       "m1-no-command-gate",
       "m1-cloud-sandbox",
-      "m1-aaron-accepts",
       "m1-eval-coverage",
       "m1-model-gateway",
       "m1-loop-hardening"
     ],
-    "why": "board and service command merged; left for g9: the gate (waits on this session's permission mode) and the cloud sandbox (its own thread)",
+    "why": "Aaron accepted the book at 07c0e05 (g7 met, 20:27 UTC) and took the sixteen (7af7472). Left for m1: g8 (the shared world, m3b) and g9 (the orchestration layer)",
     "written": "2026-11-11"
   },
   "notes": [
