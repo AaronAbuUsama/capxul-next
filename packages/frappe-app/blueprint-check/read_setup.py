@@ -1,6 +1,6 @@
-"""Print the hat map and the Custom Fields that capxul/setup.py ships, as JSON, without importing Frappe.
+"""Print named module-level literals of a Python file as JSON, without importing it (so without Frappe).
 
-Reads the module's source: DEFAULT_HAT_ROLES and CUSTOM_FIELDS are literals (dict(...) calls included)."""
+Usage: read_setup.py <file> <NAME>...  The values are literals, dict(...) calls included."""
 import ast
 import json
 import sys
@@ -17,8 +17,9 @@ def value(node):
 
 
 tree = ast.parse(open(sys.argv[1]).read())
+wanted = set(sys.argv[2:])
 out = {}
 for n in tree.body:
-    if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name) and n.targets[0].id in ("DEFAULT_HAT_ROLES", "CUSTOM_FIELDS"):
+    if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name) and n.targets[0].id in wanted:
         out[n.targets[0].id] = value(n.value)
 print(json.dumps(out))

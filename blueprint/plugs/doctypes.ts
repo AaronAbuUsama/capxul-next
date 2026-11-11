@@ -99,7 +99,7 @@ export const doctype_capxul_hat_role = defineDoctype({
   child: true,
   fields: [{ name: "role", type: "Link", link: doctype_role, required: true }],
   permissions: [],
-  retiredBy: decision_plugs_hat_map_ships,
+  owes: [{ decision: decision_plugs_hat_map_ships, change: "Remove it: the map ships inside the app and no site can edit it." }],
 });
 
 export const doctype_capxul_hat_map = defineDoctype({
@@ -115,7 +115,7 @@ export const doctype_capxul_hat_map = defineDoctype({
     { name: "roles", type: "Table", link: doctype_capxul_hat_role },
   ],
   permissions: ADMIN,
-  retiredBy: decision_plugs_hat_map_ships,
+  owes: [{ decision: decision_plugs_hat_map_ships, change: "Remove it: the map ships inside the app and no site can edit it." }],
 });
 
 export const doctype_capxul_hat_grant = defineDoctype({

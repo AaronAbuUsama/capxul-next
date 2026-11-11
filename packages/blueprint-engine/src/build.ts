@@ -430,6 +430,7 @@ const deriveGaps = (b: Draft, stage: "as-is" | "target"): Finding[] => {
   }
   for (const e of all(b, "event")) if (!e.producer && !by(e).some(sendsEvent)) g(e, "unsent-event", "no transition, operation or workflow sends it");
   for (const e of all(b, "error")) if (!by(e).some(isErrorProducer)) g(e, "unproduced-error", "nothing produces it");
+  for (const r of b.records.values()) for (const o of (r.owes ?? []) as { decision: AnyRecord; change: string }[]) g(r, "owed-change", `${o.decision.id}: ${o.change}`);
   for (const c of all(b, "call")) if (by(c, "calls").length === 0) g(c, "unused-call", "nothing calls it");
   for (const f of all(b, "function")) if (by(f, "chain").length === 0) g(f, "uncalled-function", "nothing calls it");
   for (const e of all(b, "chainEvent")) if (by(e).length === 0) g(e, "unconsumed-chain-event", "no workflow is triggered by it or waits on it");

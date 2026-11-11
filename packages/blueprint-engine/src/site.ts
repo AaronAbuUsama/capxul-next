@@ -1,4 +1,4 @@
-// The rules for DocTypes and roles. A wrong shape is a problem; a DocType a decision retires is a gap until it goes.
+// The rules for DocTypes and roles. A wrong shape is a problem; a child DocType nothing holds is a gap.
 
 import type { AnyRecord, Blueprint, Finding } from "./build.ts";
 
@@ -41,8 +41,6 @@ export const siteGaps = (b: Records): Finding[] => {
   const out: Finding[] = [];
   const children = new Set(of(b, "doctype").flatMap((d) => fieldsOf(d).filter((f) => f.type === "Table").map((f) => f.link?.id)));
   for (const d of of(b, "doctype")) {
-    const retired = d.retiredBy as { id: string } | undefined;
-    if (retired) out.push({ record: key(d), rule: "doctype-to-retire", detail: `decision ${retired.id} removes it; the code still has it` });
     if (d.child && !children.has(d.id)) out.push({ record: key(d), rule: "unused-child-doctype", detail: "no Table field holds its rows" });
   }
   return out;

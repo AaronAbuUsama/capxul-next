@@ -1,5 +1,6 @@
-// What a hosted Frappe site holds that Capxul decides: the DocTypes its app defines or extends, and the roles people take
-// in it (a role is a hat: the chain grants it, and it gives a fixed list of Frappe roles).
+// What a hosted Frappe site holds that Capxul decides: the DocTypes its app defines or extends, the roles people take
+// in it (a role is a hat: the chain grants it, and it gives a fixed list of Frappe roles), and the features (parts) a
+// site switches on and off.
 //
 // A DocType record is checked against the code by the site app's agreement check: its fields, their types, links and
 // flags, its naming and its permissions must be the DocType's JSON (for Capxul's own) or the Custom Fields the app adds
@@ -54,8 +55,6 @@ export const DoctypeSpec = Schema.Struct({
   naming: Schema.optionalKey(Schema.String),
   fields: Schema.Array(DoctypeField),
   permissions: Schema.optionalKey(Schema.Array(DoctypePermission)),
-  /** The decision that removes it: it is in the code today and is visible work until it goes. */
-  retiredBy: Schema.optionalKey(Ref("decision")),
 });
 export const defineDoctype = make("doctype")(DoctypeSpec);
 export type Doctype = ReturnType<typeof defineDoctype>;
@@ -69,3 +68,27 @@ export const RoleSpec = Schema.Struct({
 /** A role a person takes in an Organization: a hat. Its id is the hat's name on chain (`budget-holder`). */
 export const defineRole = make("role")(RoleSpec);
 export type Role = ReturnType<typeof defineRole>;
+
+export const FeatureSpec = Schema.Struct({
+  ...Common,
+  concept: Ref("concept"),
+  /** What a person sees it called. */
+  label: Title,
+  /** On or off on a new site. */
+  default: Schema.Literals(["on", "off"]),
+  /** Frappe modules whose DocTypes and desk pages belong to it. */
+  modules: Schema.optionalKey(Schema.Array(Schema.String)),
+  /** Apps every module of which belongs to it. */
+  apps: Schema.optionalKey(Schema.Array(Schema.String)),
+  /** The app that must be installed for it to be switched on. */
+  app: Schema.optionalKey(Schema.String),
+  /** Dotted method paths that are its own API. */
+  prefixes: Schema.optionalKey(Schema.Array(Schema.String)),
+  /** Website routes it owns. */
+  paths: Schema.optionalKey(Schema.Array(Schema.String)),
+  /** Features that must be on for it to be on. */
+  needs: Schema.optionalKey(Schema.Array(Ref("feature"))),
+});
+/** A part of the product a site switches on or off; off closes it and keeps its data. Its id is the switch's name. */
+export const defineFeature = make("feature")(FeatureSpec);
+export type Feature = ReturnType<typeof defineFeature>;

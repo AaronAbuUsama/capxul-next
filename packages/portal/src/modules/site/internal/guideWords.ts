@@ -68,7 +68,7 @@ export const RULE_WORDS: readonly RuleWords[] = [
   { rule: "doctype-shape", kind: "problem", means: "A DocType is marked both single and a child table." },
   { rule: "doctype-field", kind: "problem", means: "A DocType field's type and its link or options disagree, or a field is listed twice." },
   { rule: "role-frappe-roles", kind: "problem", means: "A role gives the same Frappe role twice." },
-  { rule: "doctype-to-retire", kind: "gap", means: "A decision removes this DocType, and the code still has it." },
+  { rule: "owed-change", kind: "gap", means: "A decision asks the code for a change it has not made yet; the record says what the code does now." },
   { rule: "unused-child-doctype", kind: "gap", means: "A child DocType that no Table field holds." },
   { rule: "event-producer", kind: "problem", means: "An event other than a transition names nothing that sends it, or a transition event names a producer." },
   { rule: "event-pii", kind: "problem", means: "An event's personal-data list names a property it does not carry." },
