@@ -60,7 +60,7 @@ export const system_capxul = defineSystem({
   surfaces: ["cli", "sdk", "react", "mcp", "http"],
   // What every event, log row and metric carries (decision signals.envelope).
   envelope: Schema.Struct({
-    capxul_env: Schema.Literals(["devnet", "development", "staging", "production", "unknown"]),
+    capxul_env: Schema.Literals(["devnet", "shared-world", "development", "staging", "production", "unknown"]),
     world_id: Schema.NullOr(Schema.String),
     trace_id: Schema.String,
     producer: Schema.String,

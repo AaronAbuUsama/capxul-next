@@ -194,6 +194,7 @@
         "log:operation_row/redacted",
         "log:operation_row/written",
         "log:process_row/written",
+        "met:process_queue_age/emitted",
         "ms:m3/done"
       ],
       "checkers": [],

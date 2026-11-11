@@ -25,8 +25,10 @@ export const insight_payments_held = defineInsight({
   about: "Payments whose last transition is to submitted or needs_retry, more than 30 minutes ago: money a person thinks is moving and is not.",
   reads: [event_payment_transitioned],
   query:
-    "select properties.payment_id as payment, argMax(properties.to, timestamp) as state, max(timestamp) as since " +
-    "from events where event = 'payment_transitioned' and properties.capxul_env = '<env>' group by payment " +
+    // A restored world copies its payments and they move on separately: group by world as well (signals.envelope).
+    "select properties.world_id as world, properties.payment_id as payment, argMax(properties.to, timestamp) as state, " +
+    "max(timestamp) as since from events where event = 'payment_transitioned' and properties.capxul_env = '<env>' " +
+    "group by world, payment " +
     "having state in ('submitted', 'needs_retry') and since < now() - interval 30 minute",
   display: "table",
   env: LIVE,

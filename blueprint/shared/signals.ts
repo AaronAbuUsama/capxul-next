@@ -3,7 +3,7 @@
 // (foundation.ts). The judgments are the decisions at the end of this file.
 
 import { Schema } from "effect";
-import { defineAlert, defineDashboard, defineDecision, defineInsight, defineLog } from "../../packages/blueprint-engine/src/index.ts";
+import { defineAlert, defineDashboard, defineDecision, defineInsight, defineLog, defineMetric } from "../../packages/blueprint-engine/src/index.ts";
 import { component_backend, component_cli, system_capxul } from "./foundation.ts";
 
 const Outcome = Schema.Literals(["ok", "refused", "failed"]);
@@ -73,6 +73,19 @@ export const log_process_row = defineLog({
     duration_ms: Schema.Number,
     resumes: Schema.Number,
   }),
+});
+
+export const metric_process_queue_age = defineMetric({
+  id: "process_queue_age",
+  title: "How long the oldest due process run has waited to start",
+  about:
+    "Sampled every minute by the scheduler, per process: the age of the oldest run that is due and not started. A run " +
+    "that never starts writes no process_row, so a stopped worker shows here first.",
+  component: component_backend,
+  instrument: "gauge",
+  unit: "ms",
+  attributes: Schema.Struct({ workflow: Schema.String, due_runs: Schema.Number }),
+  producer: component_backend,
 });
 
 export const decision_signals_envelope = defineDecision({
@@ -145,12 +158,18 @@ export const insight_rpc_p95 = defineInsight({
 export const insight_process_backlog = defineInsight({
   id: "process_backlog",
   title: "Process runs failed or late to start, over 1 hour",
-  about: "Each durable process's runs, failures, and p95 wait from due to start, over the last hour.",
-  reads: [log_process_row],
+  about:
+    "Each durable process's failed runs over the last hour (from process_row), and the age of its oldest due run that " +
+    "has not started (from process_queue_age), so runs a stopped worker never starts are counted while it is stopped.",
+  reads: [log_process_row, metric_process_queue_age],
   query:
-    "select attributes.workflow as workflow, count() as runs, countIf(attributes.outcome = 'failed') as failures, " +
-    "quantile(0.95)(toFloat(attributes.queue_wait_ms)) as wait_p95_ms from logs where body = 'process_row' " +
-    "and timestamp > now() - interval 1 hour and resource_attributes.capxul_env = '<env>' group by workflow order by failures desc",
+    "select workflow, sum(failures) as failures, max(queue_age_ms) as oldest_due_ms from (" +
+    "select attributes.workflow as workflow, countIf(attributes.outcome = 'failed') as failures, 0 as queue_age_ms " +
+    "from logs where body = 'process_row' and timestamp > now() - interval 1 hour " +
+    "and resource_attributes.capxul_env = '<env>' group by workflow " +
+    "union all select attributes.workflow as workflow, 0 as failures, max(value) as queue_age_ms from metrics " +
+    "where metric_name = 'process_queue_age' and timestamp > now() - interval 5 minute " +
+    "and resource_attributes.capxul_env = '<env>' group by workflow) group by workflow order by oldest_due_ms desc",
   display: "table",
   env: LIVE,
 });
@@ -175,13 +194,13 @@ export const alert_process_stuck = defineAlert({
   title: "Durable processes are failing or starting late",
   about: "Fires when a process fails or its runs wait too long to start: payments, sweeps and reconciliation stop moving.",
   insight: insight_process_backlog,
-  condition: "any process with a failed run, or a p95 wait from due to start over 5 minutes, over 1 hour",
+  condition: "any process with a failed run in the last hour, or a due run not started for over 5 minutes",
   cadence: "15m",
   severity: "page",
   route: ["operator"],
   runbook:
     "Find the run by its idempotency key. A failed run is resumed after the cause is fixed (wfl:<id>/resume holds, so " +
-    "resuming is safe); a late start means the worker is down or saturated.",
+    "resuming is safe); an old due run means the worker is down or saturated: check it before anything else.",
   silence: ["a world being restored from a snapshot"],
 });
 
