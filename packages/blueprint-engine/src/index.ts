@@ -13,3 +13,4 @@ export * from "./stand.ts";
 export * from "./status.ts";
 export * from "./telemetry.ts";
 export * from "./examples.ts";
+export * from "./ripple.ts";

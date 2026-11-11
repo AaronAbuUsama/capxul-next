@@ -13,6 +13,7 @@
     "portal:check": "node --experimental-strip-types --no-warnings packages/portal/src/main.ts check",
     "contracts:test": "pnpm --filter @capxul/contracts test",
     "contracts:check-blueprint": "node --experimental-strip-types --no-warnings packages/contracts/abi-check/main.ts",
+    "blueprint:ripple": "node --experimental-strip-types --no-warnings packages/blueprint-engine/scripts/ripple.ts",
     "frappe:check-blueprint": "node --experimental-strip-types --no-warnings packages/frappe-app/blueprint-check/main.ts",
     "frappe:check-blueprint:test": "node --experimental-strip-types --no-warnings --test packages/frappe-app/blueprint-check/check.test.ts",
     "contracts:check-blueprint:test": "node --experimental-strip-types --no-warnings --test packages/contracts/abi-check/abi-check.test.ts",

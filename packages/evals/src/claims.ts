@@ -1,36 +1,20 @@
 // `pnpm evals claims`: give each recorded verdict that names no claim the claim it proved, read from the blueprint at
 // the commit the verdict was recorded at. A verdict recorded before verdicts named their claim would otherwise read as
-// stale forever. Each old commit is checked out into a temporary worktree under var/ and built with its own engine, so
+// stale forever. Each old commit is built with its own engine (blueprint-engine/scripts/at.ts), so
 // the claim is the one that run saw; the current blueprint then decides whether it still holds. Writes status/status.json.
 
-import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
-import { parseStatus, staleEvals, type Blueprint, type EvalStatus, type StatusDocument } from "@capxul/blueprint-engine";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { parseStatus, staleEvals, type EvalStatus, type StatusDocument } from "@capxul/blueprint-engine";
+import { blueprintAt, ROOT } from "../../blueprint-engine/scripts/at.ts";
 import { loadTarget } from "../../blueprint-engine/scripts/target.ts";
 
-const ROOT = resolve(import.meta.dirname, "../../..");
 const STATUS = join(ROOT, "status/status.json");
-
-const git = (...args: string[]) => spawnSync("git", args, { cwd: ROOT, encoding: "utf8" });
 
 /** The claims the blueprint derived at one commit, by eval id; null when that commit cannot be built. */
 const claimsAt = async (commit: string): Promise<ReadonlyMap<string, string> | null> => {
-  const dir = join(ROOT, "var/claims", commit);
-  if (!existsSync(dir) && git("worktree", "add", "--detach", dir, commit).status !== 0) return null;
-  try {
-    const engine = (await import(pathToFileURL(join(dir, "packages/blueprint-engine/src/index.ts")).href)) as {
-      buildBlueprint: (i: { name: string; stage: "target"; records: unknown[] }) => Pick<Blueprint, "evals">;
-    };
-    const mod = (await import(pathToFileURL(join(dir, "blueprint/index.ts")).href)) as { records: unknown[] };
-    return new Map(engine.buildBlueprint({ name: commit, stage: "target", records: mod.records }).evals.map((e) => [e.id, e.claim]));
-  } catch {
-    return null;
-  } finally {
-    git("worktree", "remove", "--force", dir);
-    rmSync(dir, { recursive: true, force: true });
-  }
+  const b = await blueprintAt(commit);
+  return b ? new Map(b.evals.map((e) => [e.id, e.claim])) : null;
 };
 
 export const claims = async (): Promise<number> => {

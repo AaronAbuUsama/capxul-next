@@ -15,6 +15,9 @@ pnpm --filter @capxul/blueprint-engine test
 - `src/records/site.ts`, `src/site.ts`: `defineDoctype` (a Frappe DocType Capxul defines, or the Custom Fields it adds
   to Frappe's) and `defineRole` (a hat and the Frappe roles it gives), and their rules. `pnpm frappe:check-blueprint`
   compares these records with `packages/frappe-app` and fails the merge on a difference.
+- `src/ripple.ts`: what a change reaches. `pnpm blueprint:ripple [--base <ref>] [--json]` compares this branch's
+  blueprint with the base's (built with the base's own engine, `scripts/at.ts`): records added, removed and changed,
+  everything that depends on them, the decisions to read again and the evals whose verdicts go stale.
 - `src/impact.ts`, `views.ts`, `examples.ts`, `telemetry.ts`, `budgets.ts`: what the portal and the checks read.
 
 Written by: the coordinator, when the blueprint needs a new kind of record or check. Read by: `packages/portal`,
