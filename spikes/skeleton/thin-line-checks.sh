@@ -18,6 +18,8 @@ chk TL.doc-submit-safe-payment-held-signer-named "TL doc submit of Safe Payment 
 chk TL.held-payment-posts-no-ledger-line "TL while held: the entry is a draft and has no ledger line" \
   "$(dj doc get $SLUG "Payment Entry" "$TLPE" --as $BUDGET | jget "d['data']['docstatus']") $(gl_of "$TLPE" | jget "len(d['data'])")" "0 0"
 dj approval sign $SLUG "$TLAPR" --as $BUDGET > "$T/tlsign.json"
+# the site posts when the chain's PaymentSent reaches it through Core's outbox, so it lands a moment after the signature
+wait_for 20 bash -c "[ \"\$(node --experimental-strip-types --no-warnings '$HERE/core/src/main.ts' doc get $SLUG 'Payment Entry' '$TLPE' --as $BUDGET --json | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"data\"][\"docstatus\"])')\" = 1 ]"
 chk TL.signed-payment-posts-once "TL after the signature lands: the entry is submitted and posted once (one credit to the Safe account of 12.5)" \
   "$(dj doc get $SLUG "Payment Entry" "$TLPE" --as $BUDGET | jget "d['data']['docstatus']") $(gl_of "$TLPE" | jget "[(r['debit'], r['credit']) for r in d['data'] if r['account']=='$SAFE_ACCOUNT']")" "1 [(0.0, 12.5)]"
 
