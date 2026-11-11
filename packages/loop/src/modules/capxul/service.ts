@@ -192,8 +192,9 @@ const playJob = (ctx: Ctx, id: string, task: Task, opts: Opts, script?: Script):
         await (script ?? await loadScript(ctx, opts.script))(job);
       } finally {
         await door.close(); door = undefined;
-        // However the run ends (ready, blocked, failed, stopped), its boxes go down; a resume starts its own again.
-        if (opts.sandbox === "cloud") await downOwned(ctx, id);
+        // However the run ends (ready, blocked, failed, stopped), its boxes go down, whichever sandbox it ran in (its
+        // agents may have made their own); a resume starts its own again.
+        await downOwned(ctx, id);
       }
     },
   });

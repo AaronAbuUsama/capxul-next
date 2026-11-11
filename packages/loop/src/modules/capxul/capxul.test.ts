@@ -221,7 +221,7 @@ test("evidence: both agents record commands; claims are judged against what the 
   assert.deepEqual(step("reviewer.1.agent").evidence, [{ capture: "reviewer.1.agent.tried-it", shows: "it runs", ok: true }]);
   const reviewer = full.agents.find((a) => a.key === "reviewer.1.agent")!, said = JSON.stringify(reviewer.messages);
   assert.deepEqual([reviewer.role, reviewer.tools, reviewer.definition?.tools], ["reviewer", ["read", "bash", "record_terminal"], ["read", "bash", "record_terminal", "browser", "screenshot", "record_screen"]]);   // handed: its definition's tools, less the browser this machine lacks
-  assert.deepEqual(full.agents.find((a) => a.key === "make.1")!.tools, ["read", "write", "edit", "bash", "record_terminal"]);
+  assert.deepEqual(full.agents.find((a) => a.key === "make.1")!.tools, ["read", "write", "edit", "bash", "record_terminal", "sandbox_up", "sandbox_exec", "sandbox_down"]);
   assert.match(said, /terminal `make\.1\.it-runs`: the maker says it shows \\"node answers\\"\. The loop recorded: `node -v` ended with 0\./);
   assert.match(said, /THROWN OUT `made-up`: no capture named made-up was made in this run\./);
   assert.match(said, /Refused by the loop's policy: `git commit -m x` is not a command this agent may run/);   // a reader runs things on camera, but still changes nothing
