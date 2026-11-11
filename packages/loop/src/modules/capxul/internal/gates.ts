@@ -4,9 +4,11 @@
  * live: the design folder is `blueprint/` when the lane has it and `books/` until then, and its build script likewise.
  */
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import type { Ctx, Gate, Task } from "../types.ts";
 import { sh } from "./sh.ts";
+import { questionsGate } from "./questions.ts";
+
 
 export interface GateSpec { readonly name: string; readonly sh: string }
 
@@ -40,8 +42,23 @@ export const gatesFor = (ctx: Ctx, dir: string, task: Task): readonly GateSpec[]
   return [...(ctx.gates ?? gatesOf(dir)), ...(evals ? [{ name: "evals", sh: `pnpm evals -- ${task.evals.join(" ")}` }] : [])];
 };
 
+/** Both pair and merge put their output beside status.json, whose lane is the persisted merge target.
+ * Never fall back to LOOP_BASE: it can change after this lane was created.
+ */
+const storedBase = (dir: string, out: string): string => {
+  const info = JSON.parse(readFileSync(join(dirname(out), "status.json"), "utf8")) as { extra?: { lane?: { dir?: string; base?: string } } };
+  const lane = info.extra?.lane;
+  if (!lane?.dir || resolve(lane.dir) !== resolve(dir) || typeof lane.base !== "string" || !lane.base.trim()) throw new Error("Missing or mismatched stored lane base");
+  return lane.base;
+};
+
 export const runGates = async (ctx: Ctx, dir: string, task: Task, o: { env?: Record<string, string>; out: string; stopped?: () => boolean }): Promise<Gate[]> => {
+  if (o.stopped?.()) throw new Error("stopped");
   const out: Gate[] = [];
+  if (existsSync(join(dir, "blueprint/index.ts"))) {
+    try { out.push(questionsGate(dir, task, storedBase(dir, o.out))); }
+    catch (cause) { out.push({ name: "no new questions for Aaron", ok: false, tail: `Cannot read stored lane base: ${String(cause)}` }); }
+  }
   for (const g of gatesFor(ctx, dir, task)) {
     const r = await sh(ctx, g.sh, { cwd: dir, ...(o.env ? { env: o.env } : {}), file: join(o.out), timeoutMs: 15 * 60_000, ...(o.stopped ? { stopped: o.stopped } : {}) });
     if (r.stopped) throw new Error("stopped");
