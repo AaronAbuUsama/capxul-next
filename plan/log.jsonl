@@ -322,3 +322,4 @@
 {"at":"2026-11-11T08:13:34.188Z","by":"loop","action":"task.start","args":{"id":"m1-loop-decision","thread":"m1-loop-decision-11110813"},"commit":"d94d965"}
 {"at":"2026-11-11T08:13:34.311Z","by":"loop","action":"task.start","args":{"id":"m1-agent-records","thread":"m1-agent-records-11110813"},"commit":"d94d965"}
 {"at":"2026-11-11T08:14:04.804Z","by":"coordinator","action":"exit.met","args":{"owner":"goal","id":"g2","evidence":"08e52a6: pnpm blueprint 2652 records, 0 problems, 0 gaps, 147 standing; every merge check passes"},"commit":"d94d965"}
+{"at":"2026-11-11T08:19:00.389Z","by":"coordinator","action":"note","args":{"text":"09:25: merging m1-loop-decision-11110813: reviewer approve, swarm.ts only, no aaron.* record changed"},"commit":"9f6e5f1"}
