@@ -1311,10 +1311,12 @@
       "title": "A run cannot put a new question on Aaron's page by accident",
       "why": "loop.gateway landed on the Questions page on 11 Nov because its text cites Aaron's ruling",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "c90e54c0654b1ab21db233e701fb0d58a2dcdc6a"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "m1-gate-no-new-questions-11110927"
