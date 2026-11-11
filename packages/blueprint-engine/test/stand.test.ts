@@ -125,3 +125,20 @@ test("a verdict goes stale when its claim changes, when it records no claim, or 
   const gone = { ...asIs, evals: asIs.evals.filter((e) => e.id !== "doc:invite.accept") };
   assert.deepEqual(staleEvals(gone, doc), ["doc:invite.accept"]);
 });
+
+test("a verdict goes stale when only how its claim is observed changes, and an entry that recorded no observes is stale", () => {
+  const observed = (observes: string) =>
+    buildBlueprint({ name: "test", stage: "as-is", records: [...f.records.map((r) => (r === f.invite ? { ...f.invite, acceptance: [{ claim: "An Owner's invitation is pending and the invitee gets one email.", observes }, null, "A Seat that is not an Owner is refused."] } : r)), decision] });
+  const was = observed("cli: prints the invitation");
+  const results = parseResults({ commit: "abc1234", at: "2026-11-11T09:00:00Z", results: [{ id: "acc:org.member.invite/1", verdict: "pass" }] });
+  assert.ok(results.ok);
+  const merged = mergeResults(was, null, results.value);
+  assert.ok(merged.ok);
+  assert.equal(merged.value.evals["acc:org.member.invite/1"]?.observes, "cli: prints the invitation");
+  assert.deepEqual(staleEvals(was, merged.value), []);
+  const now = observed("cli: prints nothing; read: the mail sink holds one email");
+  assert.deepEqual(staleEvals(now, merged.value), ["acc:org.member.invite/1"]);
+  assert.equal(verdictOf(freshStatus(now, merged.value), "acc:org.member.invite/1"), "not_run");
+  const { observes: _dropped, ...legacy } = merged.value.evals["acc:org.member.invite/1"]!;
+  assert.deepEqual(staleEvals(was, { version: 1, evals: { "acc:org.member.invite/1": legacy } }), ["acc:org.member.invite/1"]);
+});
