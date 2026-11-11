@@ -8,7 +8,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { ask, lastJson, openHost, type Host } from "../agents/service.ts";
-import { commitAll, ensureLane, git, head, laneBlocked, slug, type Lane } from "../lanes/service.ts";
+import { commitAll, ensureLane, git, head, laneBlocked, pushBranch, slug, type Lane } from "../lanes/service.ts";
 import { acquire, alive, ledgerLines, listRuns, play, readInfo, SETTLED, stop as stopRun, watchRun, work as workLoop, type Info, type Run } from "../runs/service.ts";
 import { allowedModel, defaultCheckerModel, defaultModel, gatewayOf, modelsOf, POLICY, qualify } from "./internal/config.ts";
 import { evidenceBrief, evidenceLines, kitFor, restore } from "./internal/evidence.ts";
@@ -135,7 +135,7 @@ const finish = async (job: Job, status: "ready" | "blocked" | "answered", reason
 
 /** The run's branch is good: push it (never integration/build) and stop. `pnpm loop merge` re-runs the gates and merges. */
 export const ready = async (job: Job, reasons: string[] = ["every gate and every checker passed"]): Promise<void> => {
-  await job.run.step("push", async () => { git(job.lane!.dir, "push", "-u", "origin", job.lane!.branch); return job.lane!.branch; });
+  await job.run.step("push", async () => { await pushBranch(job.lane!.dir, job.lane!.branch); return job.lane!.branch; });
   await finish(job, "ready", reasons);
 };
 
