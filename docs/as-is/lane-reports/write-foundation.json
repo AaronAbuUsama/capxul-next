@@ -1,0 +1,38 @@
+{
+  "run": "wf_2ba8b158-849",
+  "label": "v2:963e7f5f25806f63e1265c272db06fdf0c0af1e13c5a18354f72abc737ef4d99",
+  "result": {
+    "file": "/home/user/capxul-next/books/as-is/payments/foundation.ts",
+    "records": 26,
+    "exports": [
+      "system_capxul",
+      "component_chain",
+      "component_aa_gateway",
+      "component_ponder_indexer",
+      "component_convex_backend",
+      "component_core_sdk",
+      "component_cli",
+      "concept_access",
+      "concept_accounts",
+      "concept_activity",
+      "concept_applications",
+      "concept_banking",
+      "concept_books",
+      "concept_documents",
+      "concept_indexing",
+      "concept_media",
+      "concept_operator",
+      "concept_organizations",
+      "concept_parties",
+      "concept_payments",
+      "concept_payroll",
+      "concept_permissions",
+      "concept_profiles",
+      "concept_requests",
+      "environment_devnet",
+      "environment_staging"
+    ],
+    "missing": [],
+    "notes": "foundation.ts typechecks with no errors of its own. I loaded it at runtime and ran its 26 records through buildBook. Every define* validated. The only problems are the 17 expected `cycle` findings: 15 concepts and 2 components. There are no dangling or undefined links. Nothing is imported from sibling files, so `missing` is empty.\n\nHow the old code looks:\n- Concept dependencies come from the `#<concept>` imports in packages/backend/src/<c>. Test files are left out (`*.test.ts`, `*.fixture.ts`, `tests/`). Each concept's `was` lists the README, its CONTEXT-MAP row, and the first import line for each dependency. `lines` counts the non-test .ts lines under src/<c> only.\n- 15 of the 17 concepts form one import loop. Only indexing and operator are outside it. Neither has an index.ts door or an entry in the backend's `#<concept>` import map, and only their own convex registrations import them.\n- payments imports 11 of the 16 other concepts.\n- parties imports `#payments` only from its tests, so payments is not in its dependsOn.\n- The old CONTEXT-MAP says 16 concepts but lists 17.\n- Components loop as well. convex-backend reads ponder-indexer through INDEXER_URL. ponder-indexer fetches the backend Site's JWKS (apps/indexer/src/auth.ts:42, :92), even though its README says it never calls Convex.\n- A loop cannot be written as consts that hold each other. So the affected records start with an empty mutable `dependsOn`. A local `wire()` helper fills it once every record in the loop exists and checks it again against ConceptSpec or ComponentSpec. The helper is not exported.\n\nComponents:\n- chain: evm, exposes http, no dependencies.\n- aa-gateway: node, http, depends on chain. On devnet this role is played by alto plus @pimlico/mock-paymaster, not the aa-gateway package.\n- ponder-indexer: ponder, http and sql, depends on chain and convex-backend.\n- convex-backend: convex, rpc, http and ws, depends on chain, aa-gateway and ponder-indexer.\n- core-sdk: \"node, browser\", exposes none, depends on convex-backend and ponder-indexer. It never holds a chain RPC URL or a bundler.\n- cli: node, cli, depends on core-sdk and convex-backend. It calls the Site directly for native revoke and `dev key`.\n\nActors: 21 in total. 16 are persons: anyone, person, founder, member, director, board, office-holder, payer, payee, invitee, investor, shareholder, grantee, owner, developer, operator. 3 are agents: agent, ai-seat, assistant. 2 are systems: system-job, bridge. They are taken from the old book's `who:` lines, which are cited in the system's `was`.\n\nSurfaces: cli, sdk, react, mcp, http.\n\nEnvironments:\n- devnet: bootMs is 80000, the measured upper end of the 40–80 s `up` cost (packages/devnet/README.md:66), without the indexer.\n- staging: no bootMs, because no measurement exists.\n- The two runbooks disagree on what triggers the staging release. environments.md:187 says master; deploy.md:361 says integration/main (CAP-1020). This is recorded in staging's `deploy`.\n- docs/canon/environment-and-deployment.md does not exist in the old repo. I used docs/runbooks/environments.md and docs/runbooks/deploy.md instead."
+  }
+}

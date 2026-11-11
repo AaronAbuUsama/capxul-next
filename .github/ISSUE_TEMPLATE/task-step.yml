@@ -1,0 +1,139 @@
+name: "Task card: step"
+description: "Opened by Mission Control from docs/mission/tasks.json when a step task starts (stage 0). Not for people."
+title: "[step:<id>] <title>"
+labels: ["task", "kind:step"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **A task card: a milestone's step.** Mission Control opens it from `docs/mission/tasks.json` when the task's pair starts (stage 0), copying its `TaskDef` and brief field for field; people do not open it. It is the task's thread: steer the pair here, or reply `stop`. Its first comment is the status card. It closes at the merge or the drop. At stage 1 the ledger's task and its room thread replace it. Template: `docs/design/swarm-templates.md`, section 8.3.
+
+        A step's evals are its exit lines as `ms:<M>/<slug>` and the system evals it owns.
+  - type: input
+    id: key
+    attributes:
+      label: "Key"
+      description: "TaskDef.key: stable for life; the plan's join with the ledger (label key:<key>)."
+      placeholder: "step:B1.data"
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: "Kind"
+      description: "TaskDef.kind, fixed by this form."
+      options:
+        - "step"
+      default: 0
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: "Goal"
+      description: "TaskDef.goal: the outcome, with no steps; at most 1,000 characters."
+    validations:
+      required: true
+  - type: input
+    id: parent
+    attributes:
+      label: "Parent"
+      description: "TaskDef.parent: the key of its lane, milestone or the root."
+      placeholder: "milestone:B1"
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: "Priority"
+      description: "TaskDef.priority: the record's own; steps are critical."
+      options:
+        - "critical"
+        - "normal"
+        - "low"
+    validations:
+      required: true
+  - type: textarea
+    id: evals
+    attributes:
+      label: "Evals"
+      description: "TaskDef.evals: done when every one passes at the head of integration/build. One id per line, in the plan's order. Never weakened."
+      placeholder: |
+        ms:B1/migrate
+        sys:generated
+    validations:
+      required: true
+  - type: textarea
+    id: exit
+    attributes:
+      label: "Exit"
+      description: "TaskDef.exit: the step's ms: evals with their claims, one '<id> — <claim>' per line."
+      placeholder: "ms:B1/migrate — The migrations apply to an empty Postgres."
+    validations:
+      required: true
+  - type: textarea
+    id: needs
+    attributes:
+      label: "Needs"
+      description: "TaskDef.needs: task keys that must be done first, one per line; _none_ if none."
+      placeholder: "milestone:B3"
+    validations:
+      required: true
+  - type: textarea
+    id: labels
+    attributes:
+      label: "Labels"
+      description: "TaskDef.labels, one per line (kind:, lane:, layer:, area:, money, pilot, pilot-closure, after:, builds-on-events:)."
+      placeholder: "kind:step"
+    validations:
+      required: true
+  - type: input
+    id: budgetUsd
+    attributes:
+      label: "Budget (USD)"
+      description: "TaskDef.budgetUsd: 5 (retro D6); the budget signal at half."
+      placeholder: "5"
+    validations:
+      required: true
+  - type: dropdown
+    id: checkers
+    attributes:
+      label: "Checkers"
+      description: "TaskDef.checkers: the reviewer always; the adversary too on the seven money lanes and B0.once (swarm.money)."
+      options:
+        - "reviewer"
+        - "adversary"
+      multiple: true
+    validations:
+      required: true
+  - type: textarea
+    id: paths
+    attributes:
+      label: "Paths"
+      description: "TaskDef.paths and brief.paths: what the maker may change, one prefix per line; the gate refuses the rest (swarm.scope)."
+      placeholder: "packages/generate/"
+    validations:
+      required: true
+  - type: textarea
+    id: decisions
+    attributes:
+      label: "Decisions"
+      description: "brief.decisions: decision ids that settle it, so the maker does not reopen them; one per line."
+      placeholder: "payments.birth-width"
+    validations:
+      required: false
+  - type: textarea
+    id: outOfScope
+    attributes:
+      label: "Out of scope"
+      description: "brief.outOfScope: what is left out on purpose; one per line, or _none_."
+      placeholder: "_none_"
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: "Context"
+      description: "brief.context: facts and links, never steps; at most 4,000 characters. The portal's page and the record's was."
+    validations:
+      required: false

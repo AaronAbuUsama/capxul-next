@@ -1,0 +1,107 @@
+{
+  "run": "wf_2ba8b158-849",
+  "label": "v2:2fa6bca434b508da92cd6c5c88a9e3ba031a1365681e7ff6f43d3c403a040911",
+  "result": {
+    "file": "/home/user/capxul-next/books/as-is/payments/foundation.ts",
+    "checked": 26,
+    "findings": [
+      {
+        "record": "environment_devnet",
+        "problem": "The record said the standing indexer's PostgreSQL is a Docker container ('PostgreSQL 17.6 in a Docker container'). It cited README:737, which says the opposite. The standing indexer uses PGlite inside its slot. The Docker postgres:17.6-alpine image appears only in the private test harness.",
+        "evidence": "packages/devnet/src/main.ts:223 ('The standing indexer keeps its database in PGlite inside the slot, so it needs no Docker daemon'); packages/devnet/README.md:737; packages/devnet/README.md:8 ('It does not use Docker'); postgres/service.ts is used only by packages/devnet/src/modules/ponder/harness.ts:1 ('Private test substrate')",
+        "fixed": true
+      },
+      {
+        "record": "environment_devnet (runs: chain)",
+        "problem": "The record said `up` copies CapxulPaymentsV3 and the escrow factory in and deploys payroll departments. That claim comes from a stale README paragraph. The code copies only the Roles library (and only when no seed is loaded). Companies House then deploys and verifies every Protocol v4 contract, and the standing config is v4 only.",
+        "evidence": "packages/devnet/src/modules/devnet/service.ts:361, :391; packages/devnet/src/modules/guardian/standing-config.ts:20 (protocol: \"v4\"); packages/devnet/src/modules/devnet/protocol-v4.ts:1; deployPaymentsV3IfMissing is used only from seed.ts:1214",
+        "fixed": true
+      },
+      {
+        "record": "environment_devnet",
+        "problem": "The about stated two facts that contradict each other: 'per worktree and per agent' and 'It is singular'. These come from two old sources that disagree. The about now names which source says which.",
+        "evidence": "docs/runbooks/environments.md:8, :30 (per worktree, per agent) vs packages/devnet/README.md:21 (singular, fixed ports, a second up refuses)",
+        "fixed": true
+      },
+      {
+        "record": "environment_devnet",
+        "problem": "config and secrets were incomplete. The record left out names the devnet writes into the backend and indexer: CAPXUL_SAFE_SALT_NAMESPACE, CAPXUL_COMPANY_SALT_NAMESPACE, INVITATION_GRANTER_ADDRESS, BRIDGE_WEBHOOK_PUBLIC_KEY, BRIDGE_STAND_IN_URL, CAPXUL_DEVNET_FAULT, CAPXUL_DEVNET_RUN, SENDER_EMAIL and RESEND_TEST_MODE. It also left out the Convex local-backend settings (SCHEDULED_JOB_RETENTION, DOCUMENT_RETENTION_DELAY, INDEX_RETENTION_DELAY, MAX_BYTES_WRITTEN_PER_SECOND, DATABASE_UDF_USER_TIMEOUT_SECONDS) and the secrets CAPXUL_ACCOUNT_SECRETS_KEY, CAPXUL_WEB_DEV_SIGNER_SEED and RESEND_API_KEY.",
+        "evidence": "packages/devnet/src/modules/devnet/service.ts:458, :488, :496, :520, :525; protocol-v4.ts:157; backend/service.ts:478, :480, :562; backend/environment.ts:36, :49, :64; backend/faults.ts:21; README.md:124",
+        "fixed": true
+      },
+      {
+        "record": "environment_staging",
+        "problem": "secrets mixed the operator's worker-profile names (CAPXUL_E2E_PUBLISHABLE_KEY, CAPXUL_E2E_ORIGIN, CAPXUL_E2E_BOOTSTRAP_URL) in with runtime values. It was also missing most backend runtime secrets that env:apply writes: BETTER_AUTH_SECRET, INVITATION_GRANTER_PRIVATE_KEY, DEPLOYER_PRIVATE_KEY, BUDGETS_EXECUTOR_PRIVATE_KEY, RESEND_API_KEY, POSTHOG_PROJECT_TOKEN, CAPXUL_MCP_EXCHANGE_SECRET and the provider RPC URLs. The indexer's INDEXER_SERVICE_TOKEN and DATABASE_URL were missing too. config was missing CAPXUL_TRUSTED_ORIGINS, SENDER_EMAIL, RESEND_TEST_MODE, CAPXUL_CHECKOUT_FRONTEND_ORIGIN, the capability flags, OTP_COOLDOWN_MS, INVITATION_GRANTER_ADDRESS, POSTHOG_HOST, the legacy node names and CAPXUL_ENV.",
+        "evidence": "packages/tools/src/modules/environments/internal/convex-env-plan.ts:7 (REQUIRED), :27 (OPTIONAL), :124 (fixed writes); docs/runbooks/deploy.md:679-685 (indexer service vars); deployment-topology.json:49 (operator worker profile)",
+        "fixed": true
+      },
+      {
+        "record": "concept_payroll",
+        "problem": "The about repeated the README's claim as fact: Payroll owns three tables and nothing that moves money. Its tables.ts defines eight tables, and its agreements build sponsored Safe user operations through #payments.",
+        "evidence": "packages/backend/src/payroll/README.md:5 vs packages/backend/src/payroll/tables.ts:167, :189, :211, :227, :264, :305, :313, :323; packages/backend/src/payroll/agreements/external.ts:23",
+        "fixed": true
+      },
+      {
+        "record": "concept_indexing, concept_operator",
+        "problem": "The about said 'Only its own Convex registrations import it'. convex/schema.ts also imports their tables. Both are reachable only through the backend's catch-all `#*` import entry, not a `#<concept>` door.",
+        "evidence": "packages/backend/convex/schema.ts:35 (#indexing/tables), :49 (#operator/tables); packages/backend/package.json:24 (\"#*\": \"./src/*.ts\")",
+        "fixed": true
+      },
+      {
+        "record": "concept_access",
+        "problem": "The about left out two parts of the concept: the waitlist (the permissioned beta) and referral invites. The README's shape tree has no referrals/ entry at all.",
+        "evidence": "packages/backend/src/access/README.md:145 (waitlist/); packages/backend/src/access/referrals/operations/grant-invites.ts:20 (folder absent from README)",
+        "fixed": true
+      },
+      {
+        "record": "component_cli",
+        "problem": "The record said two CLI commands call the backend Site directly. There are three direct paths: the loopback wallet page's upstream calls (/convex/token, /encryption-session) also hit the Site's Better Auth base. The record also did not say that `dev time|jobs|snapshot|approve` reach the devnet guardian's control socket.",
+        "evidence": "apps/cli/src/signer/bridge-upstream.ts:114, :124; apps/cli/src/signer/browser-bridge.ts:43; apps/cli/src/commands/dev/world.ts:1",
+        "fixed": true
+      },
+      {
+        "record": "component_core_sdk",
+        "problem": "The record did not mention the node-only `@capxul/sdk/devnet` entry. That entry talks to the standing devnet guardian's control socket, a running piece no component records.",
+        "evidence": "packages/sdk/package.json:52; packages/sdk/src/devnet/index.ts:5",
+        "fixed": true
+      },
+      {
+        "record": "component_convex_backend",
+        "problem": "The Site route list was missing the quickstart key mint, the SDK telemetry relay /v1/client/observe and the OAuth login and consent pages. It also did not record that the old book's backend manifest needs only the chain, while the code also needs the AA gateway and the indexer.",
+        "evidence": "packages/backend/convex/http.ts:61, :113, :132, :152; apps/docs/factory/components/backend.yaml:5",
+        "fixed": true
+      },
+      {
+        "record": "concept_activity",
+        "problem": "activity's tests import #parties, but no non-test file in activity does. The book recorded this for parties but not for activity.",
+        "evidence": "Recomputed import scan: activity's test-only dependency is parties",
+        "fixed": true
+      }
+    ],
+    "missing": [
+      {
+        "export": "component_mcp_server",
+        "kind": "component",
+        "ownerFile": "foundation.ts",
+        "why": "apps/mcp runs as its own service: `capxul-mcp` at mcp.staging.capxul.com (docs/runbooks/deploy.md:60), and on devnet from browser.env. It depends on core-sdk and convex-backend. CONVENTIONS.md allows only six component ids, so it is not booked. A Ref is needed if a flow or operation runs through the MCP surface."
+      },
+      {
+        "export": "component_devnet_guardian",
+        "kind": "component",
+        "ownerFile": "foundation.ts",
+        "why": "The standing devnet guardian (packages/devnet) owns the control socket that @capxul/sdk/devnet and `capxul dev time|jobs|snapshot|approve` call (packages/sdk/src/devnet/index.ts:5). It is not in the CONVENTIONS component list."
+      }
+    ],
+    "designFindings": [
+      "Concept graph: I recomputed it from every non-test `#<concept>` import. It has 108 edges. 15 of the 17 concepts form one strongly connected component, and 29 concept pairs import each other. Payments depends on 11 concepts, and 9 of them import payments back: accounts, activity, banking, books, documents, organizations, payroll, permissions, requests. Organizations is imported by 15 of the 16 others, and access and accounts by 13 each. There is no layering at all.",
+      "The door rule holds; the direction does not. All 1022 cross-concept named imports go through a path that the target's index.ts re-exports (CONTEXT-MAP.md:35 rule). So the problem is the cyclic dependency direction, not code bypassing the doors.",
+      "indexing and operator have no index.ts door and no `#<concept>` entry. They are reachable only through the catch-all `\"#*\": \"./src/*.ts\"` (packages/backend/package.json:24). The context map says every concept has a door (CONTEXT-MAP.md:35). convex/schema.ts:35 and :49 import their tables.",
+      "Infrastructure imports a domain concept: src/platform imports #access (platform/session.ts:5, platform/proof-controls/receipt-policy.ts:37). CONTEXT-MAP.md:71 calls platform infrastructure, not a concept.",
+      "Component loop. The backend reads the indexer (integrations/ponder/service.ts:61). The indexer fetches the backend Site's JWKS on every token check (apps/indexer/src/auth.ts:42, :92), but its README says 'the indexer never calls Convex' (apps/indexer/README.md:35).",
+      "Documentation contradicts code in several places. CONTEXT-MAP.md:29 says 16 concepts but its table lists 17. payroll/README.md:5 says three tables; tables.ts defines eight. access/README.md omits referrals/. devnet README.md:49 says `up` copies CapxulPaymentsV3, but the code installs Protocol v4 only. environments.md:30 says per-worktree, but the devnet README.md:21 says singular. The old book's backend.yaml needs only chain and indexer.yaml needs the whole devnet; neither matches the runtime dependencies. The staging release trigger is master in environments.md:187 but integration/main in deploy.md:361.",
+      "Staging configuration has no single owner. Backend names live in the env:apply plan (packages/tools/.../convex-env-plan.ts:7, :27, :124). Indexer names live only as masked Openship service variables, and their values cannot be copied back (deploy.md:679-685). Operator names live in the topology worker profile (deployment-topology.json:49). The backend's INDEXER_URL and INDEXER_SERVICE_TOKEN appear in none of these, and no runbook says how they are set.",
+      "The CLI and the loopback wallet page reach around the SDK to the backend Site in three places: native revoke, the quickstart key mint, and /convex/token plus /encryption-session (apps/cli/src/signer/bridge-upstream.ts:114, :124). The SDK is therefore not the CLI's only door to the backend."
+    ],
+    "notes": "I re-verified every concept's dependsOn by recomputing the non-test `#<concept>` imports under packages/backend/src/<concept>. The sets match exactly for all 17 concepts. Every cited import line in each concept's `was` names the concept claimed for it, and the `lines` counts match. indexing and operator are the only concepts outside the loop. The 21 actors and their cited `who:` lines exist in apps/docs/factory/operations. The component runtime and exposes values match the manifests. bootMs 80000 is the measured upper bound in packages/devnet/README.md:66, so it is not invented. After the fixes, foundation.ts typechecks with no errors of its own. A runtime load validates all 26 records, and buildBook over them reports only the 17 expected `cycle` problems, with no dangling links. The file imports nothing from sibling files. I edited only /home/user/capxul-next/books/as-is/payments/foundation.ts and committed nothing."
+  }
+}

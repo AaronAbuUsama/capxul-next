@@ -1,0 +1,190 @@
+{
+  "run": "wf_6490ba05-3ea",
+  "label": "v2:fb60353e5525db26c75970df4f99f8da011eec91cb348a88adb051aad4fba778",
+  "result": {
+    "file": "/home/user/capxul-next/books/as-is/payments/movements.ts",
+    "records": 11,
+    "exports": [
+      "rpc_payments_movements_migrate_inclusion",
+      "rpc_payments_movements_rollback_inclusion",
+      "rpc_payments_notices_notice_facts",
+      "workflow_payments_notices_notify",
+      "rpc_payments_records_emit_transition",
+      "rpc_payments_records_load_purpose_kinds",
+      "rpc_payments_records_list",
+      "rpc_payments_records_get",
+      "rpc_payments_records_list_for_organization",
+      "rpc_payments_records_get_for_organization",
+      "rpc_payments_records_payout_stage"
+    ],
+    "missing": [
+      {
+        "export": "concept_payments",
+        "kind": "concept",
+        "ownerFile": "foundation.ts",
+        "why": "Every record's concept. foundation.ts does not exist yet."
+      },
+      {
+        "export": "error_NOT_AUTHENTICATED",
+        "kind": "error",
+        "ownerFile": "vocabulary.ts",
+        "why": "CALL group of every records protocol row (operations.ts:45). vocabulary.ts does not exist yet."
+      },
+      {
+        "export": "error_INVALID_INPUT",
+        "kind": "error",
+        "ownerFile": "vocabulary.ts",
+        "why": "CALL group. Also what accountNotReady raises (errors.ts:30)."
+      },
+      {
+        "export": "error_UNKNOWN",
+        "kind": "error",
+        "ownerFile": "vocabulary.ts",
+        "why": "DEFECTS group. Also every internal operation, because attempt([]) admits no code."
+      },
+      {
+        "export": "error_ENV_MISSING",
+        "kind": "error",
+        "ownerFile": "vocabulary.ts",
+        "why": "DEFECTS group of every records row."
+      },
+      {
+        "export": "error_ROLE_PERMISSION_DENIED",
+        "kind": "error",
+        "ownerFile": "vocabulary.ts",
+        "why": "DENIED group of listForOrganization, getForOrganization and payoutStage."
+      },
+      {
+        "export": "event_payment_transitioned",
+        "kind": "event",
+        "ownerFile": "vocabulary.ts",
+        "why": "emitTransition emits it (events/deliveries.ts:121,133,154)."
+      },
+      {
+        "export": "event_payment_verification_retry",
+        "kind": "event",
+        "ownerFile": "vocabulary.ts",
+        "why": "emitTransition emits it (events/deliveries.ts:185)."
+      },
+      {
+        "export": "table_payments",
+        "kind": "table",
+        "ownerFile": "data.ts",
+        "why": "Read by every records rpc, by noticeFacts and by loadPurposeKinds."
+      },
+      {
+        "export": "table_payment_schedules",
+        "kind": "table",
+        "ownerFile": "data.ts",
+        "why": "Read by noticeFacts and by the wire projection (schedules/reads.ts:28)."
+      },
+      {
+        "export": "table_payment_commands",
+        "kind": "table",
+        "ownerFile": "data.ts",
+        "why": "Read by noticeFacts and by the projection (reads/participants.ts:8)."
+      },
+      {
+        "export": "table_money_executions",
+        "kind": "table",
+        "ownerFile": "data.ts",
+        "why": "Read by noticeFacts and by the projection (executions/views/executions.ts:83)."
+      },
+      {
+        "export": "table_provider_send_attempts",
+        "kind": "table",
+        "ownerFile": "data.ts",
+        "why": "Read by the projection (executions/views/executions.ts:99)."
+      },
+      {
+        "export": "table_movements",
+        "kind": "table",
+        "ownerFile": "data.ts",
+        "why": "Read and written by migrate-inclusion and rollback-inclusion."
+      },
+      {
+        "export": "machine_movement (t.to_included, t.to_finalized)",
+        "kind": "machine/transition",
+        "ownerFile": "data.ts",
+        "why": "The migration drives canonicalState finalized->included and the rollback drives included->finalized. Neither may be a source in data.ts: to_included needs 'finalized' in from and to_finalized needs 'included' (inclusions.ts:26,29)."
+      },
+      {
+        "export": "machine_payment_schedule (t.to_sent)",
+        "kind": "machine/transition",
+        "ownerFile": "data.ts",
+        "why": "Trigger of the notify workflow, which allows one trigger. notify is also scheduled on schedule creation (waiting), the day-ahead shortfall (no state change), to_failed and to_cancelled. Those are described in about/was, not linked."
+      },
+      {
+        "export": "table_accounts, table_identities, table_orgs, table_counterparty_destinations",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "Other concepts' tables. Payments' wire projection reads them directly with ctx.db (views/recipients.ts:74,79,87,108)."
+      },
+      {
+        "export": "procedure_access_authenticated_user",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "signedIn (platform/session.ts:18) runs access/sessions/guards authenticatedUser in every public records rpc. neighbors.ts may not book this platform-level guard."
+      },
+      {
+        "export": "procedure_accounts_account_id_for_auth_user_or_null",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "requireAccountViewer (records/guards.ts:21)."
+      },
+      {
+        "export": "procedure_organizations_require_org_participant",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "requireOrganizationViewer (records/guards.ts:33)."
+      },
+      {
+        "export": "procedure_organizations_read_organization_name_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "noticeFacts names the payer (notices/reads.ts:52)."
+      },
+      {
+        "export": "procedure_parties_party_by_safe_address, procedure_parties_party_by_id",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "noticeFacts (notices/reads.ts:21) and the projection's recipients (views/recipients.ts:52,83)."
+      },
+      {
+        "export": "procedure_documents_load_payment_documents, procedure_documents_current_payment_documents",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Payment documents in the projection (reads/payments.ts:141,184; views/payments.ts:255)."
+      },
+      {
+        "export": "procedure_books_book_asset_by_id_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "The projection's asset check (views/payments.ts:149)."
+      },
+      {
+        "export": "procedure_banking_read_payout_delivery_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Payout delivery in the projection (views/payments.ts:238) and in payoutStage (reads/payouts.ts:63)."
+      },
+      {
+        "export": "integration_mail (c.deliverNotices)",
+        "kind": "integration/call",
+        "ownerFile": "external.ts",
+        "why": "notify calls deliverNotices from #integrations/mail/notices, the only mail function payments imports. If external.ts books only sendMail, the call name will not match."
+      },
+      {
+        "export": "operator.notices.record / operator.outboxes.record",
+        "kind": "rpc (another concept's)",
+        "why": "notify writes each recipient's delivery record through operator's internal mutation (integrations/mail/notices.ts:41), and on a devnet writes the mail sink through operator.outboxes.record (service.ts:171). No file here owns operator rpcs or tables, so these appear only in steps and about, not in writes."
+      },
+      {
+        "export": "posthog integration",
+        "kind": "integration/call",
+        "why": "emitTransition posts to PostHog through emitServerAwaited (platform/observation/telemetry.ts:95). The convention's integration list has no posthog entry, so calls is []."
+      }
+    ],
+    "notes": "I wrote /home/user/capxul-next/books/as-is/payments/movements.ts: 11 records (10 rpcs, 1 workflow). The real typecheck (`cd books && npx tsc -p .`) shows only TS2307 \"Cannot find module\" errors for foundation, vocabulary, data, neighbors and external, which do not exist yet. I also typechecked the file in the scratchpad against stub siblings using the conventional export names, with no errors. Loading it with node --experimental-strip-types ran every define* validation, and all titles, abouts and lines passed. I checked all was entries against the old code and each points at the line it describes.\n\nBooking choices:\n- `payments/events/` registers no function of its own. Its delivery step is `payments.records.emitTransition`, booked as an rpc whose about starts with \"Telemetry plumbing:\", per the emit-* convention. It is still scheduled by `scheduleWriterTelemetry`.\n- `migrateInclusion` and `rollbackInclusion` are internal mutations that nothing schedules. An operator runs them through `scripts/migrate-movement-inclusion.ts`, so they are rpcs. The rollback also reverts rows the Movement writers stored as `included`; that is recorded, not fixed.\n- `noticeFacts` is an internal query rpc that only notify calls.\n- `notify` is a workflow: an internal action scheduled with `runAfter(0)` by `scheduleNoticeInTx` in the schedule step's own mutation. It retries itself for failed recipients: 3 attempts in total (max 2 retries), backoff of 1 min then 4 min. Nothing prevents a resend.\n  - The schema allows one trigger, so it names `machine_payment_schedule.t.to_sent`; the other sources are listed in about and was.\n  - `timeoutMs: 600000` is Convex's action limit. The code sets no timeout.\n- `loadPurposeKinds` has no caller anywhere in packages or apps. Its who and about say so.\n- `get` and `getForOrganization` have kind `live`: the SDK subscribes to them (`packages/sdk/src/payments/subscription.ts` lines 43 and 73). `list`, `listForOrganization` and `payoutStage` are `query`.\n- The wire `Payment` is `Schema.Unknown`, as each about says. Pages always return `nextCursor` null (`onePage`).\n- The public records rpcs' reads and invokes include the full `toWirePayment` projection: the payments-owned tables, the neighbours' tables it reads directly through ctx.db, and the neighbours' reader functions as procedures. These will produce write- or read-boundary findings by design.\n- Spans are [] everywhere: nothing in scope calls withSpan. notify's `convex.query` and `convex.mutation` client spans are mentioned in its about, since the workflow schema has no spans field.\n\noperations.ts already imports `rpc_payments_records_get` and `rpc_payments_records_list` from this file, and those names match."
+  }
+}

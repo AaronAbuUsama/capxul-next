@@ -1,0 +1,159 @@
+{
+  "run": "wf_ac554c5f-cd1",
+  "label": "v2:a9324a6059b0293018a3a0b39ced04f6e3f8fe3d3b51c6241a29b783e35bc26f",
+  "result": {
+    "file": "/home/user/capxul-next/books/as-is/payments/procedures.ts",
+    "checked": 65,
+    "findings": [
+      {
+        "record": "payments.apply-payout-rail-delivery-in-tx, payments.birth-collection-payment-in-tx (shared WriteResult)",
+        "problem": "The output was booked as Schema.Unknown, though PaymentWriteResult can be transcribed: created, changed, replayed, removed or refused. A refusal is a returned PaymentCoreError (INVALID_TRANSITION, ALREADY_SETTLED, EVIDENCE_MISSING/MISMATCH/REPLAY), not a thrown CapxulError. That is why the earlier report could not find these codes in vocabulary.ts.",
+        "evidence": "packages/protocol/src/payments/schema/ledger.ts:121-131, :262-273; packages/backend/src/payments/rules/records.ts:88-101",
+        "fixed": true
+      },
+      {
+        "record": "payments.apply-payout-rail-delivery-in-tx",
+        "problem": "The about left out that a Payment still `settling` also replays, that a missing payout delivery throws a stored-row defect, and that refundMovementId is stored. The errors left out INVALID_INPUT, which toPaymentId throws for an empty id.",
+        "evidence": "packages/backend/src/payments/writes/rails.ts:27-39, :51-53; writes/ledger.ts:118; packages/protocol/src/primitives/validation.ts:13-14",
+        "fixed": true
+      },
+      {
+        "record": "payments.birth-collection-payment-in-tx",
+        "problem": "The about said a second birth is 'refused or throws an invariant defect'. transitionPayment refuses `birth` from every stored status, so the call always returns refused and the throw can never run.",
+        "evidence": "packages/backend/src/payments/writes/collections.ts:30-32; rules/transitions.ts:155-157",
+        "fixed": true
+      },
+      {
+        "record": "payments.find-payment-read-reference-in-tx",
+        "problem": "The input was booked as Schema.Unknown, though PaymentDetailReadInput is shallow and can be transcribed. The about did not name the two INVALID_INPUT refusals.",
+        "evidence": "packages/backend/src/payments/model.ts:62-66; reads/payments.ts:61-63, :107-108; packages/protocol/src/access/actor-schema.ts:6-16",
+        "fixed": true
+      },
+      {
+        "record": "payments.read-payment-summary-in-tx",
+        "problem": "The about missed that there is no participant check. Any Payment id is answered, and a non-participant viewer reads it as direction `in`.",
+        "evidence": "packages/backend/src/payments/reads/activity.ts:234-242; views/activity.ts:78-104; views/payments.ts:107-114",
+        "fixed": true
+      },
+      {
+        "record": "payments.explained-by-capxul",
+        "problem": "Wrong fact. It is true for any payments row with that (txHash, settlementLogIndex), whatever its status or ledgerKind, a Deposit row included. It is not limited to 'a Payment settled with' that Transfer.",
+        "evidence": "packages/backend/src/payments/movements/reads/outside.ts:47-53; writes/deposits.ts:96-97",
+        "fixed": true
+      },
+      {
+        "record": "payments.read-outside-money-in-tx",
+        "problem": "The about did not say that a Deposit row of the same Transfer makes explainedByCapxul true, which drops the outflow side.",
+        "evidence": "packages/backend/src/payments/movements/reads/outside.ts:86-98",
+        "fixed": true
+      },
+      {
+        "record": "payments.capture-memo-conflict-removal-in-tx",
+        "problem": "The about said a mismatched rollback only prints payment_writer_incident. In fact it prints the incident and then throws invariantBroken (UNKNOWN), which aborts the caller's transaction. The capture also queries without lower-casing the identity.",
+        "evidence": "packages/backend/src/payments/writes/rollbacks.ts:51-69; movements/writes/overlays.ts:62-66; movements/writes/corrections.ts:38-46 vs overlays.ts:16-24",
+        "fixed": true
+      },
+      {
+        "record": "payments.read-movement-checkpoint-in-tx",
+        "problem": "The input asset left out deploymentStartBlock, and chainId is the literal 84532 in both the input and the checkpoint.",
+        "evidence": "packages/backend/src/payments/movements/rules/movements.ts:191-195, :236, :125-131",
+        "fixed": true
+      },
+      {
+        "record": "payments.apply-movement-window-in-tx",
+        "problem": "The window args and counts were booked as Schema.Unknown, though they can be transcribed (movementApplyWindowArgs, MovementApplyCounts). The incident semantics were wrong: a refused Deposit write throws UNKNOWN and aborts the window. The INVALID_INPUT causes were not named.",
+        "evidence": "packages/backend/src/payments/movements/rules/movements.ts:217-235, :175; movements/writes/windows.ts:100-101, :122-126; movements/writes/admission.ts:30; rules/movements.ts:115-117",
+        "fixed": true
+      },
+      {
+        "record": "payments.read-included-payment-occurrences-in-tx, payments.correct-payment-occurrences-in-tx",
+        "problem": "The occurrence snapshots were booked as Schema.Unknown 'because they carry Convex ids'. A validator exists, and the convention maps v.id to Schema.String.",
+        "evidence": "packages/backend/src/payments/model.ts:98-108, :121-131",
+        "fixed": true
+      },
+      {
+        "record": "payments.correct-payment-occurrences-in-tx",
+        "problem": "The about said the Payroll run always returns to authorized. For a commitment that is only true when it is no longer settled. It also left out that a send's executionOutcome is reset to pending, that a stale snapshot is skipped silently, and that status is patched directly with no payment_transitioned.",
+        "evidence": "packages/backend/src/payments/verifications/writes/history.ts:215-245; writes/corrections.ts:43-70",
+        "fixed": true
+      },
+      {
+        "record": "payments.admit-permission-execution-acceptance-in-tx, payments.admit-invitation-configuration-acceptance-in-tx",
+        "problem": "The errors were missing UNKNOWN. storedAttemptState turns a row in a legacy state into a stored-row defect.",
+        "evidence": "packages/backend/src/payments/executions/writes/attempts.ts:40-50; executions/writes/acceptances.ts:143; platform/stored.ts:67-77",
+        "fixed": true
+      },
+      {
+        "record": "payments.record-command-execution-acceptance-in-tx",
+        "problem": "The about did not say that it overwrites expectedUserOpHash with the submitted hash, or that it writes from the row the admission captured without reading anything itself.",
+        "evidence": "packages/backend/src/payments/executions/writes/acceptances.ts:184-192",
+        "fixed": true
+      },
+      {
+        "record": "payments.read-movement-detail-in-tx",
+        "problem": "The about missed that observation.onAuthorized fires before the protocol_settlement refusal, and that the evidence hard-codes verification `verified` and canonicalState `finalized`.",
+        "evidence": "packages/backend/src/payments/movements/reads/movements.ts:76-83, :99-101",
+        "fixed": true
+      },
+      {
+        "record": "payments.read-signing-subject-in-tx",
+        "problem": "The about left out that a void_schedule is read as a cancel, that a Payment execution with no command row returns no command, and that undecodable command JSON is UNKNOWN.",
+        "evidence": "packages/backend/src/payments/reads/signing.ts:41-48, :61-76",
+        "fixed": true
+      },
+      {
+        "record": "payments.lookup-actor-recipient (and the RECIPIENT_READS comment)",
+        "problem": "Wrong owner. `identities` is a Profiles table, not an Access table. The comment also said three neighbour tables where there are four.",
+        "evidence": "packages/backend/src/profiles/tables.ts:5; neighbors.ts table_identities concept_profiles",
+        "fixed": true
+      },
+      {
+        "record": "payments.prepare-payment-command-in-tx",
+        "problem": "Invented invokes. ensurePaymentWalletDestinationInTx, findAccountRecipientInTx and readOrganizationsAtSafeInTx belong to serverPaymentRecipientInTx, which preparePaymentCommandInTx never calls. It uses only resolveRecipientSafe.",
+        "evidence": "packages/backend/src/payments/commands/writes/items.ts:27, :147; commands/reads/recipients.ts:12-62; grep of serverPaymentRecipientInTx callers: organizations.ts:177, personal.ts:108, lifecycles/writes/commands.ts:124",
+        "fixed": true
+      },
+      {
+        "record": "payments.prepare-organization-payment-in-tx",
+        "problem": "Invented read and invokes. It reads no `orgs` directly and does not call resolveRecipientSafe; it reaches it only through the preparePaymentCommandInTx invoke. The about missed that the signer check runs after preparing, that a replay stores [] observations, and that a missing resolvedCommandJson is UNKNOWN.",
+        "evidence": "packages/backend/src/payments/commands/writes/organizations.ts:69-85, :177, :227-242; commands/writes/observations.ts:18-31",
+        "fixed": true
+      },
+      {
+        "record": "13 records (activity window/view/summary, movement view/window/summary, books backfill claims/settled page, payroll replay source/prove, permissions admit x2/record)",
+        "problem": "The 'Invoked today by' text and the caller `was` evidence pointed at import lines, not call sites.",
+        "evidence": "activity/items/reads/pages.ts:53,83,179,183; activity/items/reads/summaries.ts:43,45,56,63; books/facts/writes/backfill.ts:35,41; payroll/runs/reads/replays.ts:51,65; permissions/writes/acceptances.ts:30,31,42",
+        "fixed": true
+      },
+      {
+        "record": "data.ts transitions driven by procedures.ts (payment.to_pending/to_settling/to_in_transit/to_settled/to_cancelled/to_unresolved; money-execution.to_sent/to_succeeded/to_reverted)",
+        "problem": "These transitions declare `emits: [payment_transitioned]`. Several procedures drive them without ever scheduling that event: the protocol and collection births, ensureProofPayoutPaymentInTx, the Deposit birth in applyMovementWindowInTx, correctPaymentOccurrencesInTx, and the Permission/invitation Attempt writes. The book will therefore claim events the old code never sends. procedures.ts cannot subtract an event its drives imply.",
+        "evidence": "grep scheduleWriterTelemetry|scheduleProgressTelemetry: only commands/writes/{bindings,links,submissions}.ts, verifications/writes/*, writes/{outcomes,rails,settlements}.ts; none in writes/{births,collections,deposits,proofs,corrections}.ts or verifications/writes/history.ts; data.ts machine_money_execution about says Permission/invitation executions send none",
+        "fixed": false
+      }
+    ],
+    "missing": [],
+    "designFindings": [
+      "The door does not gate anything. index.ts:1-4 says it is 'the only thing another concept imports', but every consumer imports by subpath (#payments/reads/activity, #payments/writes/ledger, ...). Only a test and a fixture import \"#payments\". Three door exports have no outside caller at all: serverPaymentAuthorityInTx, loadPaymentRetrySourceInTx, readOutsideMoneyOrgsInTx (grep).",
+      "The sole-writer claim is broken. writes/ledger.ts:1-3 says nothing patches a Payment by itself, yet writes/proofs.ts:40 inserts an in_transit Payout directly, and verifications/writes/history.ts:68-78 and :95 patch status (settling, unresolved, projected commitment states) without transitionPayment.",
+      "Payments writes another concept's table: commands/writes/items.ts:210 inserts Requests' invoiceCheckoutPayments. The build reports this as write-boundary.",
+      "Payments reads four neighbours' tables directly. views/recipients.ts:74-111 reads accounts, identities (Profiles), orgs and counterpartyDestinations; writes/births.ts:45,79 reads Requests' paymentRequests; commands/reads/recipients.ts:24 reads orgs; reads/participants.ts:124 reads Documents' financialDocumentLinks. The build reports a read-boundary on Profiles' identities for 10 procedures.",
+      "There are two predicates for 'Capxul's own Payment explains this Transfer', and they disagree. explainedByCapxul (movements/reads/outside.ts:47-53) matches any payments row by (txHash, settlementLogIndex), Deposits and unsettled rows included. hasProtocolSettlement (reads/settlements.ts:154-166) needs a settled Payment/Payout with a matching token. Because Deposit rows store txHash and settlementLogIndex (writes/deposits.ts:96-97), an Organization's direct outflow to a Capxul Account that gets a Deposit counts as explained and is never booked as outside money. The comment at outside.ts:86-87 says 'The sending side's outflow still books here', so code and comment disagree (likely bug, inferred from the code).",
+      "readPaymentSummaryInTx has no participant check (reads/activity.ts:234-242). Any Payment id gets a summary, and a non-participant is told direction `in` (views/payments.ts:107-114). It relies on the caller to pick ids from the actor's own windows.",
+      "Evidence is hard-coded, not measured. readMovementDetailInTx returns verification `verified` and canonicalState `finalized` for any included Movement (movements/reads/movements.ts:99-101). paymentEvidence returns finality `finalized` and verification `verified` without checking finality (views/evidence.ts:30-33, :68-70).",
+      "readMovementDetailInTx fires observation.onAuthorized (movements/reads/movements.ts:76-80) before it throws on a protocol_settlement attribution (:81-83), so telemetry records an authorized read that then fails.",
+      "The writers' code is unreachable. collections.ts:30-32, writes/births.ts:124-126 and writes/deposits.ts:190-192 each throw an invariant after a transitionPayment('birth' or 'birth_deposit') call that the core refuses from every stored status (rules/transitions.ts:155-157).",
+      "payment_writer_incident is a console.error line (events/writer.ts:35-49) printed just before the caller throws invariantBroken and aborts the transaction (movements/writes/windows.ts:122-126, overlays.ts:62-66). The incident describes a write that never committed, and it leaves no durable record.",
+      "Lifecycle telemetry is emitted per writer, not per transition. Births, collection births, Deposits, the proof insert and occurrence corrections change Payment status without scheduling payment_transitioned. Only rails.ts, settlements.ts, outcomes.ts, the submission/binding/link writers and the verification writers call scheduleWriterTelemetry.",
+      "One input spells the Organization actor kind two ways: PaymentDetailReadInput.actor uses kind `org` and referenceActor uses kind `organization` (model.ts:62-66). preparePaymentCommandInTx's destinationOwner uses actorKind `org` too (commands/writes/commands.ts:142).",
+      "Read-only door functions demand MutationCtx: explainedByCapxul, readOutsideMoneyInTx/OrgsInTx/PageInTx (outside.ts:43,115,132,150), readSettledPaymentsPageInTx and readCommitmentClaimsInTx (settled.ts:29,74), actorInventory (identities.ts:89).",
+      "In-transaction callback plumbing: preparePaymentCommandInTx takes 8 positional parameters (onAuthorized, callerIntent, onLifecyclePayment, now, budgetCancels; commands/writes/commands.ts:82-99), and captureMemoConflictRemovalInTx returns a closure the caller runs later (movements/writes/corrections.ts:37-51).",
+      "Convex system ids and raw stored rows cross the door. PaymentOccurrenceSnapshot carries Id<payments> and Id<commitmentEvidence> to Indexing and back into ctx.db.get (model.ts:98-108, writes/corrections.ts:42-44). readDocumentCarrierPaymentsInTx, readSettledPaymentsPageInTx, scheduleForExecutionInTx and readActivePaymentExecutionReplayInTx return Doc rows.",
+      "Amounts are parsed twice: readAgreementHoldingsInTx's rawOf (reads/agreements.ts:20-23) silently truncates extra fraction digits, unlike valueToRaw (rules/amounts.ts:140).",
+      "Case handling is inconsistent. captureMemoConflictRemovalInTx queries the Transfer identity as given (movements/writes/corrections.ts:38-46) while loadMovement lower-cases it (overlays.ts:16-24). readActivitySettlementLinksInTx matches settlementIds as given (reads/activity.ts:81-85) while the collection birth lower-cases them (collections.ts:22).",
+      "prepareOrganizationPaymentInTx checks the signer's Safe only after preparePaymentCommandInTx has written its rows (commands/writes/organizations.ts:227-242), so it relies on the transaction aborting. On a replay it stores `[]` as the recipient observations when the command has none (organizations.ts:84; observations.ts:23-31).",
+      "Payments takes its router address from the companies-house integration module (reads/routers.ts:6; commands/writes/commands.ts:11)."
+    ],
+    "notes": "I reviewed all 65 records against the old code at their `was` lines: fields, reads, writes, drives, invokes, errors and callers. Coverage is complete: all 60 *InTx door exports plus the 5 ctx-taking non-suffixed ones are booked. The remaining door exports are pure, Effect or ActionCtx helpers. All ids and export names follow CONVENTIONS.md, and titles and abouts are within their limits.\n\nneighbors.ts exists now. `cd /home/user/capxul-next/books && npx tsc -p . | grep as-is/payments/procedures` prints nothing; the only tsc errors left are in operations.ts and schedules.ts. A runtime decode of all 65 records passes. I also built a reduced book in the scratchpad from foundation, vocabulary, data, neighbors, external and procedures, because the full index cannot build yet: operations.ts imports a flow that flows.ts does not export. That build reports only the intended boundary findings for procedures:\n- write-boundary on invoice-checkout-payments.\n- read-boundary on Profiles' identities, for 10 procedures.\n\nThings for other files:\n1. data.ts: the transition `emits` overstate payment_transitioned for several procedures (see the unfixed finding). The schema has no way for a procedure to say a drive emits nothing.\n2. vocabulary.ts: the earlier report's 'missing' EVIDENCE_MISSING, INVALID_TRANSITION and ALREADY_SETTLED are not CapxulErrors. I booked them as values in the refused branch of WriteResult, so nothing is missing.\n3. neighbors.ts: the build lists about 40 payments procedures as uninvoked, because the neighbouring callers (activity, books, payroll and others) carry no invokes back to them yet.\n\nThe only file I edited is procedures.ts. I briefly created a temporary index file in books/as-is/payments for the reduced build and deleted it. Scratch harness: /tmp/claude-0/-home-user/c92cd756-b1a0-5414-9fe4-a7834db8d32a/scratchpad/rev-proc"
+  }
+}

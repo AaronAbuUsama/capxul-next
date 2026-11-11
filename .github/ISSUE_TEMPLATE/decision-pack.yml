@@ -1,0 +1,272 @@
+name: "Decision pack"
+description: "A matter for Aaron: one of the goal prompt's four kinds, with two to four graded options and a recommendation."
+title: "matter: <the question?>"
+labels: ["matter"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **A decision pack** (a `Matter`, docs/design/swarm.md section 4.9): capxul/master raises it for one of the goal prompt's four kinds only. At stage 0 it is this issue; at stage 1 it is the ledger's matter, on the board and in the room. Template: `docs/design/swarm-templates.md`, section 7.2.
+
+        - A **decision** never blocks: its recommendation stands as the chosen option and the build continues.
+        - A **question** blocks only the task it names: an irreversible step, a missing key or account, or spending past the envelope.
+        - Answer in a comment with an option's label, or in your own words. Never paste a key here: keys go through the credential form.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: "Kind"
+      description: "Matter.kind: decision (a decision pack), question (blocks its task), risk or commitment (recorded, not brought)."
+      options:
+        - "decision"
+        - "question"
+        - "risk"
+        - "commitment"
+      default: 0
+    validations:
+      required: true
+  - type: textarea
+    id: body
+    attributes:
+      label: "Body"
+      description: "Matter.body: the context, with ids: what the book says, what the diagnosis found. At most 2,000 characters. The question itself is this issue's title (at most 80 characters, ending in ?)."
+    validations:
+      required: true
+  - type: input
+    id: option-1-label
+    attributes:
+      label: "Option 1: label"
+      description: "options[0].label: kebab-case, as the recommendation names it. Options 1 and 2 are needed for a decision."
+      placeholder: "sonnet"
+    validations:
+      required: false
+  - type: textarea
+    id: option-1-text
+    attributes:
+      label: "Option 1: what happens"
+      description: "options[0].text: what is true if it is chosen."
+    validations:
+      required: false
+  - type: dropdown
+    id: option-1-grade
+    attributes:
+      label: "Option 1: grade"
+      description: "options[0].grade (SD-10): exactly one option is recommended."
+      options:
+        - "recommended"
+        - "viable"
+        - "weak"
+    validations:
+      required: false
+  - type: input
+    id: option-1-cost
+    attributes:
+      label: "Option 1: cost"
+      description: "options[0].cost (SD-10): money, time or lines."
+      placeholder: "about $0.40 a money task"
+    validations:
+      required: false
+  - type: input
+    id: option-1-risk
+    attributes:
+      label: "Option 1: risk"
+      description: "options[0].risk (SD-10): what could go wrong."
+      placeholder: "a missed attack class"
+    validations:
+      required: false
+  - type: input
+    id: option-2-label
+    attributes:
+      label: "Option 2: label"
+      description: "options[1].label: kebab-case, as the recommendation names it. Options 1 and 2 are needed for a decision."
+      placeholder: "opus"
+    validations:
+      required: false
+  - type: textarea
+    id: option-2-text
+    attributes:
+      label: "Option 2: what happens"
+      description: "options[1].text: what is true if it is chosen."
+    validations:
+      required: false
+  - type: dropdown
+    id: option-2-grade
+    attributes:
+      label: "Option 2: grade"
+      description: "options[1].grade (SD-10): exactly one option is recommended."
+      options:
+        - "recommended"
+        - "viable"
+        - "weak"
+    validations:
+      required: false
+  - type: input
+    id: option-2-cost
+    attributes:
+      label: "Option 2: cost"
+      description: "options[1].cost (SD-10): money, time or lines."
+      placeholder: "about $0.40 a money task"
+    validations:
+      required: false
+  - type: input
+    id: option-2-risk
+    attributes:
+      label: "Option 2: risk"
+      description: "options[1].risk (SD-10): what could go wrong."
+      placeholder: "a missed attack class"
+    validations:
+      required: false
+  - type: input
+    id: option-3-label
+    attributes:
+      label: "Option 3: label"
+      description: "options[2].label: kebab-case, as the recommendation names it. Optional: 2 to 4 options in all."
+      placeholder: "both"
+    validations:
+      required: false
+  - type: textarea
+    id: option-3-text
+    attributes:
+      label: "Option 3: what happens"
+      description: "options[2].text: what is true if it is chosen."
+    validations:
+      required: false
+  - type: dropdown
+    id: option-3-grade
+    attributes:
+      label: "Option 3: grade"
+      description: "options[2].grade (SD-10): exactly one option is recommended."
+      options:
+        - "recommended"
+        - "viable"
+        - "weak"
+    validations:
+      required: false
+  - type: input
+    id: option-3-cost
+    attributes:
+      label: "Option 3: cost"
+      description: "options[2].cost (SD-10): money, time or lines."
+      placeholder: "about $0.40 a money task"
+    validations:
+      required: false
+  - type: input
+    id: option-3-risk
+    attributes:
+      label: "Option 3: risk"
+      description: "options[2].risk (SD-10): what could go wrong."
+      placeholder: "a missed attack class"
+    validations:
+      required: false
+  - type: input
+    id: option-4-label
+    attributes:
+      label: "Option 4: label"
+      description: "options[3].label: kebab-case, as the recommendation names it. Optional: 2 to 4 options in all."
+      placeholder: "neither"
+    validations:
+      required: false
+  - type: textarea
+    id: option-4-text
+    attributes:
+      label: "Option 4: what happens"
+      description: "options[3].text: what is true if it is chosen."
+    validations:
+      required: false
+  - type: dropdown
+    id: option-4-grade
+    attributes:
+      label: "Option 4: grade"
+      description: "options[3].grade (SD-10): exactly one option is recommended."
+      options:
+        - "recommended"
+        - "viable"
+        - "weak"
+    validations:
+      required: false
+  - type: input
+    id: option-4-cost
+    attributes:
+      label: "Option 4: cost"
+      description: "options[3].cost (SD-10): money, time or lines."
+      placeholder: "about $0.40 a money task"
+    validations:
+      required: false
+  - type: input
+    id: option-4-risk
+    attributes:
+      label: "Option 4: risk"
+      description: "options[3].risk (SD-10): what could go wrong."
+      placeholder: "a missed attack class"
+    validations:
+      required: false
+  - type: input
+    id: recommendation
+    attributes:
+      label: "Recommendation"
+      description: "Matter.recommendation: the recommended option's label."
+      placeholder: "sonnet"
+    validations:
+      required: false
+  - type: textarea
+    id: default
+    attributes:
+      label: "Meanwhile"
+      description: "Matter.default (SD-10): what stands until it is answered. A decision: the recommendation, and the build continues. A question: '<task key> waits; nothing else does.'"
+      placeholder: "sonnet stands; the build continues."
+    validations:
+      required: true
+  - type: dropdown
+    id: bring
+    attributes:
+      label: "Bring"
+      description: "Matter.bring (SD-10): which of the goal prompt's four kinds; not brought for a risk or commitment."
+      options:
+        - "decision"
+        - "flagged"
+        - "irreversible"
+        - "owner-only"
+        - "not brought"
+    validations:
+      required: true
+  - type: textarea
+    id: records
+    attributes:
+      label: "Records"
+      description: "Matter.records (SD-10): the book keys and repository paths it touches, one per line; a flagged judgment's decision id first."
+      placeholder: |
+        swarm.checker-family
+        .swarmd/workers/adversary.ts
+    validations:
+      required: true
+  - type: input
+    id: decider
+    attributes:
+      label: "Decider"
+      description: "Matter.decider: who decides."
+      value: "aaron"
+    validations:
+      required: true
+  - type: input
+    id: task
+    attributes:
+      label: "Task"
+      description: "Matter.task: the task key (and ledger id) a question blocks, or the task a decision came from."
+      placeholder: "operation:payment.send (K-212)"
+    validations:
+      required: false
+  - type: input
+    id: thread
+    attributes:
+      label: "Thread"
+      description: "Matter.thread: the pull request, task card or room thread it came from."
+      placeholder: "#57"
+    validations:
+      required: false
+  - type: input
+    id: raisedBy
+    attributes:
+      label: "Raised by"
+      description: "Matter.raisedBy: the actor."
+      value: "manager capxul/master"
+    validations:
+      required: true

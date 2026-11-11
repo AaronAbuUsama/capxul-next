@@ -1,0 +1,54 @@
+name: "Review answer"
+description: "Answer a decision on the portal's Review: accept it, choose another option, or change it. The portal fills this in."
+title: "review: <decision>"
+labels: ["review", "swarmd"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **A review answer** (the portal's `ReviewAnswer`, docs/design/portal.md). The portal's buttons open this form with
+        `decision`, `answer`, `option` and `seenAt` filled through its URL; write `text` yourself. Who answered and when are
+        this issue's author and creation time.
+
+        The build takes `review` issues before any other work: capxul/master opens the review task `review:<decision>`,
+        which changes the decision record first (book first), then every record it ripples to. Only the decision's reviewer
+        can answer it; any other author's issue waits. Template: `docs/design/swarm-templates.md`, section 7.4.
+  - type: input
+    id: decision
+    attributes:
+      label: "Decision"
+      description: "ReviewAnswer.decision: the decision record's id, or surface for the CLI surface."
+      placeholder: "payments.birth-width"
+    validations:
+      required: true
+  - type: input
+    id: answer
+    attributes:
+      label: "Answer"
+      description: "ReviewAnswer.answer: accept (keep the choice), choose (another recorded option) or change (your own words)."
+      placeholder: "accept"
+    validations:
+      required: true
+  - type: input
+    id: option
+    attributes:
+      label: "Option"
+      description: "ReviewAnswer.option: for choose, the label of an option the record already has; otherwise leave it empty."
+      placeholder: "two-transactions"
+    validations:
+      required: false
+  - type: textarea
+    id: text
+    attributes:
+      label: "Text"
+      description: "ReviewAnswer.text: for change, what you want instead; otherwise an optional note. At most 1,000 characters. If it leaves a judgment open, the build comes back with a decision pack rather than guess."
+    validations:
+      required: false
+  - type: input
+    id: seenAt
+    attributes:
+      label: "Seen at"
+      description: "ReviewAnswer.seenAt: the commit the page you read was built from. If the record changed after it, the build asks before applying."
+      placeholder: "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678"
+    validations:
+      required: true

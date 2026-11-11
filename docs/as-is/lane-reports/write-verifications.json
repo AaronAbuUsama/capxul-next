@@ -1,0 +1,138 @@
+{
+  "run": "wf_f650b705-60a",
+  "label": "v2:b97e142b6a5224a804b1a06cb55ba7f7194fbe181321c6f028fac2cf93adf24d",
+  "result": {
+    "file": "/home/user/capxul-next/books/as-is/payments/verifications.ts",
+    "records": 17,
+    "exports": [
+      "rpc_payments_verifications_begin",
+      "rpc_payments_verifications_apply",
+      "rpc_payments_verifications_finish_retry",
+      "rpc_payments_verifications_finish_fate",
+      "rpc_payments_verifications_finish_mismatch",
+      "rpc_payments_verifications_finish_void",
+      "rpc_payments_verifications_finish_budget_schedule",
+      "rpc_payments_verifications_list_open_settlements",
+      "rpc_payments_verifications_load_open_settlements",
+      "rpc_payments_verifications_apply_settlement",
+      "rpc_payments_verifications_recover",
+      "rpc_payments_verifications_retry_mismatch",
+      "rpc_payments_verifications_retry_unresolved",
+      "workflow_payments_verifications_verify",
+      "workflow_payments_verifications_settle",
+      "workflow_payments_verifications_sweep_settlements",
+      "workflow_payments_verifications_recover_job"
+    ],
+    "missing": [
+      {
+        "export": "procedure_books_record_settled_payment_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "#books/facts/writes/money recordSettledPaymentInTx, invoked by apply, apply-settlement, verify and settle (sends.ts:228, settlements.ts:145, rails.ts:62). neighbors.ts does not exist yet."
+      },
+      {
+        "export": "procedure_books_record_commitment_claim_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "recordCommitmentClaimInTx, on the commitment claim path of apply (claims.ts:81, commitments.ts). neighbors.ts does not exist yet."
+      },
+      {
+        "export": "procedure_books_reverse_commitment_claim_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "reverseCommitmentClaimInTx, called by invalidateConsumption on the apply path (history.ts:189). neighbors.ts does not exist yet."
+      },
+      {
+        "export": "procedure_books_reverse_settled_payment_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "reverseSettledPaymentInTx (history.ts:190; rollbacks.ts:71 through the Movement suppression's Deposit rollback). neighbors.ts does not exist yet."
+      },
+      {
+        "export": "procedure_books_reverse_outside_money_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "#books/facts/writes/movements reverseOutsideMoneyInTx, reached through removeMovementProjection when a settled Transfer's Movement is suppressed (movements/writes/overlays.ts). neighbors.ts does not exist yet."
+      },
+      {
+        "export": "procedure_payroll_settle_run_for_settled_payment",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "#payroll/runs/writes/progression settleRunForSettledPayment (sends.ts:226, settlements.ts:143, rails.ts:59). neighbors.ts does not exist yet."
+      },
+      {
+        "export": "procedure_requests_schedule_request_paid_notice_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "#requests/writes/notices scheduleRequestPaidNoticeInTx (sends.ts, settlements.ts:144, rails.ts:60). neighbors.ts does not exist yet."
+      },
+      {
+        "export": "procedure_requests_record_registered_receipt_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "#requests/writes/purchase-receipts recordRegisteredReceiptInTx (verifications/writes/evidence.ts:115). neighbors.ts does not exist yet."
+      },
+      {
+        "export": "procedure_documents_prepare_movement_memo_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "#documents/writes/memos prepareMovementMemoInTx (evidence.ts:91). neighbors.ts does not exist yet."
+      },
+      {
+        "export": "procedure_documents_mark_movement_memo_orphaned_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "#documents/writes/occurrences markMovementMemoOrphanedInTx (history.ts:191). neighbors.ts does not exist yet."
+      },
+      {
+        "export": "procedure_banking_payout_funding_verified_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "#banking/payouts/writes/payments payoutFundingVerifiedInTx (sends.ts:214). neighbors.ts does not exist yet."
+      },
+      {
+        "export": "procedure_banking_payout_send_failed_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "#banking/payouts/writes/payments payoutSendFailedInTx, on a failed command outcome (writes/outcomes.ts:108). neighbors.ts does not exist yet."
+      },
+      {
+        "export": "procedure_banking_read_payout_delivery_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "#banking/payouts/reads readPayoutDeliveryInTx (writes/rails.ts:24). neighbors.ts does not exist yet."
+      },
+      {
+        "export": "procedure_accounts_read_accounts_at_safe_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "#accounts/reads/ledger readAccountsAtSafeInTx, through actorInventory on the apply path (movements/reads/identities.ts). neighbors.ts does not exist yet."
+      },
+      {
+        "export": "procedure_organizations_read_organizations_at_safe_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "#organizations/reads/organizations readOrganizationsAtSafeInTx, through actorInventory (movements/reads/identities.ts). neighbors.ts does not exist yet."
+      },
+      {
+        "export": "integration_chain_evidence (call c.verifyPayment)",
+        "kind": "integration",
+        "ownerFile": "external.ts",
+        "why": "productionChainEvidence('payment-attempt').verifyPayment (verifications/external.ts:105; integrations/chain-evidence/service.ts:77). external.ts does not exist yet, so the call name is a guess from the service method."
+      },
+      {
+        "export": "integration_chain_rpc (calls c.fetchUserOperationReceipt, c.fetchEntryPointNonce, c.fetchEntryPointUserOperationEvent)",
+        "kind": "integration",
+        "ownerFile": "external.ts",
+        "why": "ChainRpc methods used by readOperationEvidence (executions/external/attempts.ts:71,79,87) and readBudgetScheduleDecision (verifications/external.ts:222). external.ts does not exist yet; the call names are guesses from the service methods."
+      },
+      {
+        "export": "integration_ponder (calls c.lookupPayment, c.readTransactionFacts)",
+        "kind": "integration",
+        "ownerFile": "external.ts",
+        "why": "PonderFacts.lookupPayment (integrations/ponder/service.ts:188) and the exported readTransactionFacts (integrations/ponder/pages.ts:118), used by readIndexedSettlement (verifications/external.ts:45,48). external.ts does not exist yet; the call names are guesses."
+      }
+    ],
+    "notes": "I wrote all 17 operation files: 13 internal rpcs and 4 workflows. None of them implements a public protocol row, so every id follows `payments.verifications.<file name>`. The registered kinds come from `convex/payments/verifications.ts`:\n- **Mutations:** begin, apply, finish-retry, finish-fate, finish-mismatch, finish-void, finish-budget-schedule, list-open-settlements, apply-settlement, recover, retry-mismatch, retry-unresolved.\n- **Query:** load-open-settlements.\n- **Workflows (internal actions):**\n  - verify: triggered by `machine_payment_command_verification.t.to_scheduled`. `scheduleVerificationInTx` calls runAfter; the backoff for `retry_wait` is in the `about` text.\n  - settle: triggered by `machine_money_execution.t.to_succeeded`. `scheduleIndexedSettlementInTx` and the collection birth also start it with runAfter(0), and the sweep runs it inline.\n  - sweep-settlements: cron `* * * * *`.\n  - recover-job: cron `*/10 * * * *`.\n  - Both crons are really Convex `crons.interval` jobs, gated on `CAPXUL_MONEY_WRITES_ENABLED` and a V2 address. That is stated in `about`.\n\n**Typecheck:** clean except for \"Cannot find module\" on `./neighbors.ts` and `./external.ts`, which do not exist yet. The `data.ts`, `vocabulary.ts` and `foundation.ts` imports all resolve. I matched `data.ts` once it appeared: the verification machine there is `machine_payment_command_verification`, and the file also has `deposit-materialization` and `payment-schedule.to_waiting`, which I now drive. All 17 records also passed `define*` validation at runtime in a scratch copy with neighbors and external stubbed. That copy is at `/tmp/claude-0/-home-user/c92cd756-b1a0-5414-9fe4-a7834db8d32a/scratchpad/check`. A note for the `data.ts` writer: their `machine_payment` `to_settling.about` is over 300 characters and fails decode at load.\n\n**Choices made (no budgets, worlds or measurements invented):**\n- **Workflow touches:** each workflow's touches are the union of its rpc steps' touches. A step that is itself a workflow (settle under the sweep, `payments.executions.recoverClaims` under recover-job) is named only in the step text. `payments.commands.loadContext`, `payments.notices.notify` and `payments.records.emitTransition` are also named only in prose.\n- **Errors:** each rpc's errors are the codes its `attempt(...)` call admits:\n  - `NOT_IMPLEMENTED` on every writer.\n  - `INVALID_INPUT` on apply-settlement and the two retries.\n  - `WRONG_STATE` on the two retries.\n  - The Payment core refusals (`EVIDENCE_MISMATCH`, `EVIDENCE_MISSING`, `EVIDENCE_REPLAY`, `ALREADY_SETTLED`, `INVALID_TRANSITION`) are returned as values, not thrown, so they are described in `about` and not listed as errors.\n- **Workflow limits:** `timeoutMs` is 600000, Convex's action limit; the code sets none, and `about` says so. `retries` is {max: 10, exponential} for verify, which is the cap on missing receipts in finish-retry. It is {max: 0, none} for the other three, because Convex does not retry a failed action.\n- **Priority:** these are my choices, not from the code: critical for verify and settle, normal for the sweep and recover-job.\n- **Spans:** none in this area use withSpan, so `spans` is empty everywhere. `chain` is empty too: only RPC and indexer reads, no contract function calls.\n\n**What the old code does that will be reported:**\n- retry-mismatch and retry-unresolved have no caller in code; they only run by hand.\n- apply records a `settled` outcome using the command document it read before setting `applied`, so that guard in `outcomes.ts` never stops it.\n- The apply and settle paths reach Movement and Deposit rollback, and that writes `movements`, `movement-attributions` and `deposit-materializations` directly."
+  }
+}

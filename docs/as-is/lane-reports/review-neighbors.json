@@ -1,0 +1,220 @@
+{
+  "run": "wf_5e476a6b-b21",
+  "label": "v2:1e17b457a9db02654b5fb844f7912555ff61569baec59e5b17ab69addab76dd2",
+  "result": {
+    "file": "/home/user/capxul-next/books/as-is/payments/neighbors.ts",
+    "checked": 127,
+    "findings": [
+      {
+        "record": "table_orgs",
+        "problem": "about and the by_org_id index cite `resolveRecipientSafeInTx`, but no function has that name. The Organization-recipient reader is `resolveRecipientSafe`.",
+        "evidence": "packages/backend/src/payments/commands/reads/recipients.ts:12 (export async function resolveRecipientSafe), :24 query(\"orgs\")",
+        "fixed": true
+      },
+      {
+        "record": "table_payouts",
+        "problem": "about said `request`, `intent`, `deliveredAmount`, `attention`, `bridgeRefusal`, `resolvedBy`, `observationContext` and `cancelReason` were 'summarized as Unknown or String', but none of them is in the struct. It also left out the conversion, a writer outside the door.",
+        "evidence": "packages/backend/src/banking/tables/payouts.ts:126 (two writers outside the door), :131-186 (columns)",
+        "fixed": true
+      },
+      {
+        "record": "table_payout_transitions",
+        "problem": "key [payoutId, version] is not unique. A refusal line records the version that refused, so several refusals at one version share the pair. Changed key to [_id] and said so in about.",
+        "evidence": "packages/backend/src/banking/tables/payouts.ts:196-197; banking/payouts/writes/door.ts:181-189 (refusal line uses before.version)",
+        "fixed": true
+      },
+      {
+        "record": "table_org_members",
+        "problem": "key [orgId, authUserId] is not unique. The table has no member id, authUserId is optional and nullable, and one person can hold several rows over time; readers take the first active row. Changed key to [_id].",
+        "evidence": "packages/backend/src/organizations/tables/members.ts:10-45; organizations/reads/participation.ts:31-41 (.first() over active rows)",
+        "fixed": true
+      },
+      {
+        "record": "table_org_invitations",
+        "problem": "`delivery` was booked as Unknown, but it is a closed union of 4 literals. about also listed it as summarized.",
+        "evidence": "packages/backend/src/organizations/tables/invitations.ts:59-64",
+        "fixed": true
+      },
+      {
+        "record": "table_permission_commands",
+        "problem": "The union of two row shapes was booked wrongly. `userOpSenderSafe` was required, but the invitation shape does not have it. `purpose` was Unknown, but it is 4 literals. The by_eoa_sender and by_eoa_nonce indexes named eoaChainId, eoaSender and eoaNonce, which were not in the struct. organizationSafe and rolesModule, which both shapes have, were optional.",
+        "evidence": "packages/backend/src/permissions/tables/permissions.ts:102, :141-230 (invitation shape, no userOpSenderSafe), :152-157, :206-208, :237-238",
+        "fixed": true
+      },
+      {
+        "record": "table_payment_requests",
+        "problem": "about said the escrow, receipt-history and observation columns 'are listed', but 17 columns were missing, among them invoiceEscrowCheckedAt, which the by_invoice_escrow_state index uses. tenancy was 'person' although an Organization can issue a row, which breaks the file's own rule that a mixed table uses 'organization'.",
+        "evidence": "packages/backend/src/requests/tables.ts:26-27, :37-91, :103",
+        "fixed": true
+      },
+      {
+        "record": "procedure_parties_resolve_recipient_in_tx",
+        "problem": "invokes was empty, but the function calls partyById and partyBySafeAddress, and both are booked in this file.",
+        "evidence": "packages/backend/src/parties/reads/recipients.ts:102, :117",
+        "fixed": true
+      },
+      {
+        "record": "procedure_parties_ensure_ledger_party",
+        "problem": "errors listed INVALID_INPUT, but no path throws it. The org branch throws UNKNOWN (organizationPartyMissing), and a destination with no Party falls back to its address.",
+        "evidence": "packages/backend/src/parties/writes/ledger.ts:60-73, :33-36; parties/errors.ts:45",
+        "fixed": true
+      },
+      {
+        "record": "procedure_access_require_financial_read_principal_in_tx",
+        "problem": "Did not invoke access.require-authenticated-user, which it calls first.",
+        "evidence": "packages/backend/src/access/sessions/guards.ts:92",
+        "fixed": true
+      },
+      {
+        "record": "procedure_documents_load_payment_documents",
+        "problem": "Did not invoke access.require-authenticated-user, which it calls to build its principal.",
+        "evidence": "packages/backend/src/documents/reads/payments.ts:83",
+        "fixed": true
+      },
+      {
+        "record": "procedure_books_record_commitment_claim_in_tx",
+        "problem": "In the claim input, txHash was optional and chainTime nullable, but CommitmentClaim requires both.",
+        "evidence": "packages/backend/src/payments/reads/settled.ts:60-66",
+        "fixed": true
+      },
+      {
+        "record": "procedure_books_record_settled_payment_in_tx / procedure_books_record_commitment_claim_in_tx",
+        "problem": "Did not invoke books.book-asset-by-id-in-tx, which factAssetInTx calls for every fact.",
+        "evidence": "packages/backend/src/books/assets/reads.ts:135-143; books/facts/writes/money.ts:62",
+        "fixed": true
+      },
+      {
+        "record": "procedure_books_records_added_token_in_tx",
+        "problem": "about compared the block with 'the block it was added at'. The code compares it with row.startBlock.",
+        "evidence": "packages/backend/src/books/assets/reads.ts:106",
+        "fixed": true
+      },
+      {
+        "record": "procedure_requests_invoice_birth_identity",
+        "problem": "Its direct read of payments' moneyExecutions was not listed in reads. about also said 'a request birth' with an open attempt is WRONG_STATE, but only a payment_request birth runs that check.",
+        "evidence": "packages/backend/src/requests/reads/attempts.ts:106-111; requests/writes/invoices.ts:211-212",
+        "fixed": true
+      },
+      {
+        "record": "procedure_requests_prepare_confirmed_request_in_tx",
+        "problem": "reads was missing payments (currentRequest) and invoice-checkout-payments and money-executions (invoiceAttemptInTx). invokes was missing requirePaymentAccountInTx (payerActorRef/accountActorRef). emits was empty although it schedules invoice_request_transitioned, which vocabulary.ts now books. errors was missing NOT_IMPLEMENTED from requirePaymentWriterEnabled.",
+        "evidence": "packages/backend/src/requests/reads/instructions.ts:43-46, :57-58; requests/writes/approvals.ts:47-50, :83, :163, :210; payments/errors.ts:34",
+        "fixed": true
+      },
+      {
+        "record": "procedure_requests_prepare_registered_request_in_tx",
+        "problem": "Did not invoke accounts.require-payment-account-in-tx (issuerActorRef) or parties.party-by-safe-address (invoicePublicSummary through assertInvoiceOpen).",
+        "evidence": "packages/backend/src/requests/writes/checkouts.ts:69, :154; requests/reads/checkouts.ts:93, :164; requests/reads/instructions.ts:63-66",
+        "fixed": true
+      },
+      {
+        "record": "procedure_requests_prepare_registered_purchase_in_tx",
+        "problem": "errors was missing UNKNOWN. storedPurchase decodes the snapshot through storedDecoded, which throws storedRowBroken.",
+        "evidence": "packages/backend/src/requests/writes/purchases.ts:231; requests/reads/purchases.ts:30-37; platform/stored.ts:63",
+        "fixed": true
+      },
+      {
+        "record": "procedure_requests_record_registered_receipt_in_tx",
+        "problem": "Its Memo projection was missing. It calls Documents' prepareMovementMemoInTx and linkMovementDocumentInTx, patches financialDocumentMovements directly on a reorg correction (orphanOldMovement), and reads paymentCommands in the purchase funding check. reads, writes and invokes did not show any of this.",
+        "evidence": "packages/backend/src/requests/writes/receipts.ts:117-147, :152-161, :204, :222; requests/writes/purchase-receipts.ts:49-58, :119",
+        "fixed": true
+      },
+      {
+        "record": "procedure_requests_record_budget_settlement_in_tx",
+        "problem": "about said nothing happens when 'an id [is] already recorded'. In fact only the same id is skipped; a different recorded id is overwritten. It also returns early when there is no budget or obligation.",
+        "evidence": "packages/backend/src/requests/writes/invoices.ts:240-248",
+        "fixed": true
+      },
+      {
+        "record": "procedure_banking_read_payout_quote_for_payment_in_tx",
+        "problem": "readPayoutAccountInTx goes on to bankAccountView, which reads the owner Party (partyById) and the contact edge. parties and party-edges were missing from reads, and the partyById invoke was missing.",
+        "evidence": "packages/backend/src/parties/accounts/reads.ts:58-73; parties/accounts/views.ts:10-19",
+        "fixed": true
+      },
+      {
+        "record": "procedure_payroll_advance_runs_to_authorized / procedure_payroll_settle_run_for_settled_payment",
+        "problem": "emits was empty, and about said vocabulary.ts has no payroll_run_transitioned. vocabulary.ts now exports event_payroll_run_transitioned, so I linked it.",
+        "evidence": "packages/backend/src/payroll/runs/writes/progression.ts:38, :62; payroll/runs/events.ts:54",
+        "fixed": true
+      },
+      {
+        "record": "procedure_permissions_read_budget_allowance_in_tx",
+        "problem": "The output had assetId and decimals as optional, but isSpendablePermission guarantees both.",
+        "evidence": "packages/backend/src/permissions/guards/spending.ts:62-80, :247-251",
+        "fixed": true
+      },
+      {
+        "record": "procedure_permissions_read_permission_execution_proof_in_tx / _outcome_in_tx",
+        "problem": "The output was Unknown, but the function returns a closed outcome (pending, applied or mismatch) with an optional receipt. about also missed the originatingAuthUserId check and the configurationVerificationJson path.",
+        "evidence": "packages/backend/src/permissions/reads/approvals.ts:104-191, :117",
+        "fixed": true
+      },
+      {
+        "record": "procedure_accounts_read_execution_approval_in_tx",
+        "problem": "state was a String, but judgedState returns the approval-state vocabulary.",
+        "evidence": "packages/backend/src/accounts/approvals/rules.ts:47-54",
+        "fixed": true
+      },
+      {
+        "record": "procedure_parties_record_contact_edges",
+        "problem": "via and reverseVia were Strings, but they are the closed ContactVia vocabulary.",
+        "evidence": "packages/backend/src/parties/tables.ts:159-170",
+        "fixed": true
+      },
+      {
+        "record": "procedure_organizations_read_organization_name_in_tx",
+        "problem": "about said 'the Payment views' call it. In payments only notices/reads.ts does; the other callers are Books, Access and Accounts.",
+        "evidence": "packages/backend/src/payments/notices/reads.ts:52; books/writes.ts:241; access/features/reads.ts:125",
+        "fixed": true
+      },
+      {
+        "record": "procedure_access_require_feature_from_action / procedure_access_require_authenticated_user",
+        "problem": "Booked as procedures although neither runs inside the invoker's transaction. ProcedureSpec says a procedure does. The first runs Access's internal query access.features.check in a transaction of its own; the second takes an ActionCtx. Kept because siblings link them and no file owns Access's rpcs. about already says so.",
+        "evidence": "packages/backend/src/access/features/guards.ts:137-153; access/sessions/guards.ts:47",
+        "fixed": false
+      },
+      {
+        "record": "Requests/Payroll/Documents/Banking procedures that call back into payments",
+        "problem": "Calls back into payments' own door are named in about but not linked. procedures.ts imports neighbors.ts, so a link back would be a circular ESM import (TDZ at load). Affected: preparePaymentCommandInTx, replayRequestPaymentApprovalInTx, isPayrollBatchSettledInTx, readOrganizationPaymentBatchFactsInTx, captureMemoConflictRemovalInTx, voidedByLandedVoidInTx and actorInventory. All of them exist in procedures.ts.",
+        "evidence": "books/as-is/payments/procedures.ts:108 imports ./neighbors.ts; requests/writes/approvals.ts:18-19; payroll/runs/writes/progression.ts:9; documents/writes/memos.ts:13; requests/reads/attempts.ts:16; requests/writes/receipts.ts:18",
+        "fixed": false
+      }
+    ],
+    "missing": [
+      {
+        "export": "procedure_payments_prepare_payment_command_in_tx, procedure_payments_replay_request_payment_approval_in_tx, procedure_payments_is_payroll_batch_settled_in_tx, procedure_payments_read_organization_payment_batch_facts_in_tx, procedure_payments_capture_memo_conflict_removal_in_tx, procedure_payments_voided_by_landed_void_in_tx, procedure_payments_actor_inventory",
+        "kind": "procedure",
+        "ownerFile": "procedures.ts",
+        "why": "All of these exist in procedures.ts, but neighbors.ts cannot import them: procedures.ts imports neighbors.ts, and the cycle would hit a TDZ error at load. Linking them needs lazy Refs (thunks) in packages/book, or a later file that books the neighbor procedures which call back into payments."
+      },
+      {
+        "export": "procedure_documents_persist_payment_document, procedure_documents_link_movement_document_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts (outside its scope as written: Requests calls them, not payments)",
+        "why": "Requests reaches Documents' persistPaymentDocument (requests/writes/memos.ts:78 through checkouts.ts:68) and linkMovementDocumentInTx (requests/writes/receipts.ts:139). Without these procedures their table writes are listed on the Requests procedures, and the build reports write-boundary for them."
+      },
+      {
+        "export": "rpc_access_features_check, rpc_permissions_commands_complete_execution, rpc_permissions_configurations_complete_execution, rpc_permissions_verifications_verify_submitted, rpc_permissions_configurations_verify",
+        "kind": "rpc",
+        "ownerFile": "none by the conventions (other concepts' internal rpcs)",
+        "why": "Payments' actions run these other concepts' internal functions (access/features/guards.ts:137-147; payments/executions/external/recoveries.ts:93,94,144,148). CONVENTIONS gives no file ownership of rpcs outside payments."
+      }
+    ],
+    "designFindings": [
+      "Payments reads six other concepts' tables directly and writes one: accounts (payments/views/recipients.ts:75, commands/writes/requests.ts:31), identities (views/recipients.ts:80), orgs (views/recipients.ts:88, commands/reads/recipients.ts:24), counterpartyDestinations (views/recipients.ts:109), financialDocumentLinks (reads/participants.ts:125) and paymentRequests (writes/births.ts:45,79). It inserts into Requests' invoiceCheckoutPayments (commands/writes/items.ts:210).",
+      "Neighbors read payments' tables directly, so moneyExecutions is in effect a shared table. Requests reads payments, paymentCommands and moneyExecutions (requests/reads/invoices.ts:48,98,106; reads/instructions.ts:44; reads/attempts.ts:107; writes/approvals.ts:143; writes/receipts.ts:242). Banking reads movements (banking/payouts/writes/refunds.ts:85). Documents reads paymentCommands (documents/reads/parties.ts:218). Payroll reads payments (payroll/runs/reads/notices.ts:54). Permissions reads moneyExecutions in 8 places (permissions/reads/commands.ts:149, reads/occupancy.ts:165,239, writes/abandonments.ts:86,117, writes/verifications.ts:36, configurations/reads/commands.ts:64, configurations/writes.ts:184). Accounts reads it too (accounts/approvals/guards.ts:26).",
+      "Payments has import cycles with four neighbors, and a Payment birth is owned by two concepts. Payments calls Requests' prepareConfirmedRequestInTx, which calls back into Payments' preparePaymentCommandInTx, replayRequestPaymentApprovalInTx, requirePaymentWriterEnabled, validateRelease, refuseStreams and scheduledAtFor (requests/writes/approvals.ts:18-26; also checkouts.ts:20, purchases.ts, reads/attempts.ts:16, writes/receipts.ts:18-19 for actorInventory and desiredAttributions). Documents imports payments' captureMemoConflictRemovalInTx (documents/writes/memos.ts:13). Payroll imports isPayrollBatchSettledInTx and readOrganizationPaymentBatchFactsInTx (payroll/runs/writes/progression.ts:9, runs/events.ts). Banking's door imports applyPayoutRailDeliveryInTx and readPayoutFundingInTx (banking/payouts/writes/door.ts:12-13).",
+      "Books' money-fact door takes payments' stored row, Doc<\"payments\">, as input and reads its shape through moneySides and isCommitment. It also imports a payments type (books/facts/writes/money.ts:16, :26, :98-103), so Books depends on Payments' storage schema.",
+      "Payroll's run state machine (draft, authorized, settled) is driven by Payments inside Payments' own transactions (payroll/runs/writes/progression.ts:1-6; payments/verifications/writes/submissions.ts:131, writes/settlements.ts:13, verifications/writes/history.ts:228). Payroll then asks Payments back whether the batch settled.",
+      "Requests and Documents cross each other's storage. Requests patches Documents' financialDocumentMovements directly (requests/writes/receipts.ts:152-161), and Documents reads Requests' paymentRequests (documents/reads/movements.ts:84-91). Requests also reads identities, orgs and accounts directly (requests/reads/documents.ts:43,53; reads/births.ts:41-55; writes/checkouts.ts:90; writes/purchases.ts:210).",
+      "The same identity fact has four uniqueness contracts. requirePaymentAccountInTx and accountIdForAuthUserOrNull take .first() (accounts/reads/identity.ts:43, :145), requireAccountSignerInTx takes .unique() (:117), and requireExactAccountIdentityInTx collects and refuses duplicates (:52-84). Requests' issuerRecipient takes .unique() on accounts directly (requests/writes/checkouts.ts:90-95).",
+      "The feature gate checked from an action is read in a query of its own (access/features/guards.ts:137-153), so the gate decision is not atomic with the writes the due-schedule send makes later (payments/schedules/operations/send-due.ts:20).",
+      "Banking's 'one door' to a payout has two writers that bypass it. classifyPayoutRefundInTx patches payouts directly (banking/payouts/writes/refunds.ts:36), and the conversion inserts payouts (banking/tables/payouts.ts:126). For non-payments sources the door also calls Payments' writer back (door.ts:249-251).",
+      "Business time is not passed through. Payments calls ensureLedgerParty, ensurePartyByAddress and recordContactEdges without `now`, so they fall back to the backendNow shim (parties/writes/ledger.ts:22-28, parties/writes/parties.ts:102-108; payments/writes/deposits.ts:74, writes/births.ts:237-243).",
+      "A global environment gate defined in payments is checked inside Requests and refuses with NOT_IMPLEMENTED (requests/writes/approvals.ts:163; payments/rules/records.ts:215-219; payments/errors.ts:34).",
+      "Error ownership is blurred. Permissions throws storedRowBroken naming payments' moneyExecutions table (permissions/reads/approvals.ts:117), and Banking names payments' table in storedRowBroken(\"payments\", \"railOperationId\") (banking/payouts/reads.ts:153). Separately, readSubjectProposalInTx is a read exported from a writes module (organizations/proposals/writes.ts:196), which Permissions imports (permissions/allowances/reads/worn.ts:10).",
+      "Two tables have no usable business key. orgMembers has no member id and can hold several rows per person and Organization (organizations/tables/members.ts:10-45). payoutTransitions can repeat (payoutId, version) on refusals (banking/tables/payouts.ts:196-199)."
+    ],
+    "notes": "I edited /home/user/capxul-next/books/as-is/payments/neighbors.ts in place. It still has 127 records, and no export name changed, so siblings' imports still resolve. New imports: table_money_executions from data.ts, and error_NOT_IMPLEMENTED, event_invoice_request_transitioned and event_payroll_run_transitioned from vocabulary.ts. Both events now exist, which resolves the writer's 'missing' items for them.\n\nChecks:\n- `npx tsc -p .` reports no errors in neighbors.ts.\n- `node --experimental-strip-types` loads neighbors.ts with the real siblings. Loading runs the schema decode in make(), so all 127 records validate.\n- A script checked every was: path and line against /home/user/factory. All exist, including the new ones.\n- I ran a partial build (foundation, vocabulary, data and neighbors) with packages/book buildBook. On neighbors' records it reports only 3 write-boundary problems, plus unwritten-table and uninvoked-procedure gaps, which are expected because the area files were not loaded.\n  - The 3 write-boundary reports: requests.prepare-registered-request-in-tx writes payment-documents, and requests.record-registered-receipt-in-tx writes financial-document-movements and financial-document-links. The financial-document-movements write is a genuine direct cross-concept write (orphanOldMovement). The other two come through Documents helpers that have no procedure: persistPaymentDocument and linkMovementDocumentInTx.\n- The full index build fails before it reaches neighbors.ts, because operations.ts imports flow_client_approvals_prepare, which flows.ts does not export. That is a sibling problem.\n\nScope:\n- The 85 procedures match exactly the named neighbor imports in non-test payments code (I parsed the imports). The excluded imports are pure rules and telemetry: e2eAuthVerdict, recipientObservation, isDepartmentId, assertConfirmedRequestBirth, requestMemoSnapshot and payoutSendRefusalObserved.\n- The 42 tables cover every direct cross-concept db access under payments (scanned by table name) and every table those procedures touch.\n\nI touched no other file and did not commit."
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "run": "wf_5e476a6b-b21",
+  "label": "v2:800fdef6360761696b4b93fd7cf85087e6d6f010fadaac88f7e5042cd9b5f053",
+  "result": {
+    "file": "/home/user/capxul-next/books/as-is/payments/data.ts",
+    "checked": 21,
+    "findings": [
+      {
+        "record": "machine_payment.t.to_settling",
+        "problem": "`from` left out in_transit and failed. A drift correction that removes a send occurrence sets status settling without checking the current status, so an in-transit or returned (failed) bank payout with a consumed send row reopens.",
+        "evidence": "packages/backend/src/payments/verifications/writes/history.ts:215-227 (removeVerifiedOccurrence patches status settling for any consumed.transition === 'send'); payments/writes/corrections.ts:42-75 and reads/occurrences.ts:23-35 apply no status filter; sends.ts:188 consumes a send row for payouts too",
+        "fixed": true
+      },
+      {
+        "record": "machine_payment (state failed)",
+        "problem": "failed was marked terminal: true, but the correction path above moves it back to settling.",
+        "evidence": "verifications/writes/history.ts:217-218; corrections.ts:72-75",
+        "fixed": true
+      },
+      {
+        "record": "machine_payment.t.to_scheduled / to_streaming / to_pending_claim",
+        "problem": "`from` listed moves between scheduled, streaming and pending_claim that no writer makes. The status is set once at birth, and a history replay restores the status from the creation evidence's preState. The real sources are cancelled, settled and unresolved.",
+        "evidence": "rules/amounts.ts:77,91 (decided at birth only); no writer sets pending_claim/scheduled/streaming besides births.ts:173 and the projection patch at history.ts:165/244 and commitments.ts:158; preState captured at conflicts.ts:171",
+        "fixed": true
+      },
+      {
+        "record": "machine_payment.t.to_pending",
+        "problem": "The guard said a verification fate moves only a send command's settling rows, but finishes.ts moves the Payments of any command except void_schedule. The text also named a 'dropped' fate. The real fates are failed, expired and replaced.",
+        "evidence": "verifications/writes/finishes.ts:208-229 (no operation==='send' check); executions/writes/lifecycles.ts:80,153-158 (fate: failed|expired|replaced)",
+        "fixed": true
+      },
+      {
+        "record": "machine_money_execution.t.to_unknown",
+        "problem": "`from` listed prepared and sending, and the about cited lifecycles.ts:159, which never writes unknown. The only writer is lifecycles.ts:51, from sent. emits was [], but that write happens inside recordPaymentCommandOutcome(unresolved), which sends a progressed payment_transitioned.",
+        "evidence": "executions/writes/lifecycles.ts:50-56 (only unknown writer, state==='sent'); lifecycles.ts:134 returns no_fate for unknown; classifications.ts:80-85 RECORDED never includes unknown; writes/outcomes.ts:29,54",
+        "fixed": true
+      },
+      {
+        "record": "machine_money_execution.t.to_expired",
+        "problem": "The about said the command returns to prepared. On the reservation path the command is superseded instead and stays signed-hash-free but not re-prepared.",
+        "evidence": "executions/writes/reservations.ts:168-175 calls supersedePaymentCommandInTx (commands/writes/links.ts:137-171); only classifications.ts:203 → links.ts:222 and finishes.ts:230 return it to prepared",
+        "fixed": true
+      },
+      {
+        "record": "machine_payment_command_verification.t.to_mismatch",
+        "problem": "`from` included not_started and failed. Quarantine finds the command by its userOpHash: a not_started command has no hash, and a failed one is filtered out by ownsSubmissionHash.",
+        "evidence": "verifications/writes/conflicts.ts:66-75; verifications/reads/identities.ts:95-102; verifications/rules.ts:19-21; hash cleared at commands/writes/links.ts:224 and finishes.ts:232",
+        "fixed": true
+      },
+      {
+        "record": "machine_payment_command_verification.t.to_retry_wait",
+        "problem": "emits left out payment_transitioned. When the read saw a new execution state, the same mutation schedules a progressed event before it sets retry_wait.",
+        "evidence": "verifications/writes/finishes.ts:55-67",
+        "fixed": true
+      },
+      {
+        "record": "table_money_executions (about)",
+        "problem": "The about said 'Permissions reads and patches it'. Permissions only reads moneyExecutions directly and changes it through Payments' acceptance writers. Accounts and Requests also read it.",
+        "evidence": "permissions/writes/verifications.ts:36, permissions/writes/abandonments.ts:117 (reads only); permissions/writes/applications.ts:4 imports closeVerifiedCommandExecutionInTx (executions/writes/acceptances.ts:199); accounts/approvals/guards.ts:26; requests/reads/attempts.ts:107",
+        "fixed": true
+      },
+      {
+        "record": "table_money_executions index by_command",
+        "problem": "`for` said the reads are mostly from permissions. 10 of the 19 non-test reads are Payments' own.",
+        "evidence": "grep withIndex(\"by_command\") on moneyExecutions: payments executions/writes/stores.ts:44, lifecycles.ts:112, classifications.ts:126, acceptances.ts:214, commands/writes/bindings.ts:46, commands/reads/contexts.ts:123, commands/reads/budgets.ts:35, executions/reads/executions.ts:31,59, views/executions.ts:85; permissions 8; requests/reads/attempts.ts:108",
+        "fixed": true
+      },
+      {
+        "record": "machine_commitment_evidence.t.to_removed",
+        "problem": "The about called the caller a 'movement correction'. The caller is the indexing drift (reorg) correction, which goes through payments/writes/corrections.ts.",
+        "evidence": "indexing/drifts/writes/corrections.ts:92,104 → payments/writes/corrections.ts:75 → verifications/writes/history.ts:186",
+        "fixed": true
+      },
+      {
+        "record": "machine_payment_command / machine_payment_command_verification (about, to_prepared, to_not_started, not_started state)",
+        "problem": "The text named a 'dropped' Attempt outcome that no current writer produces. The fates are expired and replaced (a displacement).",
+        "evidence": "executions/writes/lifecycles.ts:153-158; finishes.ts:238 lastExecutionOutcome: fate",
+        "fixed": true
+      },
+      {
+        "record": "table_provider_send_attempts (key)",
+        "problem": "The key (executionId, attemptedAtMs) is not enforced or read as unique anywhere: the table is an append-only log. The about now says so instead of implying a code identity.",
+        "evidence": "executions/writes/witnesses.ts:24 (plain insert, no dedup); executions/reads/witnesses.ts:36-43 range read by commandId",
+        "fixed": true
+      },
+      {
+        "record": "machine_payment.t.to_cancelled",
+        "problem": "The about implied every cancel emits. The commitment cancel writer and the Budgets chain cancel send no event themselves. The cancel's event is the command's progressed command_completed, and a board cancel sends none.",
+        "evidence": "verifications/writes/endings.ts:52-68 (no telemetry); schedules/writes/board-cancels.ts:19-51 (no telemetry); writes/outcomes.ts:54 via verifications/writes/attempts.ts:155; voids.ts:118",
+        "fixed": true
+      },
+      {
+        "record": "machine_payment_command_verification.t.to_applied",
+        "problem": "The about did not say that the budget-schedule and Board paths set applied with no completionOutcome, which other guards depend on.",
+        "evidence": "verifications/writes/budget-schedules.ts:85-89; schedules/writes.ts:224-228; writes/outcomes.ts:27",
+        "fixed": true
+      }
+    ],
+    "missing": [],
+    "designFindings": [
+      "The single-writer claim is false. README.md:14-17 says 'Every Payment row is written by one guarded writer, writePaymentInTx ... Nothing else patches a Payment', yet status is patched outside writePaymentInTx and outside transitionPayment at commands/writes/links.ts:216, verifications/writes/finishes.ts:223, commands/writes/bindings.ts:131, verifications/writes/recoveries.ts:140, writes/outcomes.ts:100, verifications/writes/history.ts:165/218/244, verifications/writes/endings.ts:59 (hard-codes 'cancelled'), voids.ts:116, schedules/writes/board-cancels.ts:49 and schedules/writes.ts:250.",
+      "The pure Payment core has dead edges: reorged (settled to settling) and instruction_failed (settling to failed) at rules/transitions.ts:104-124 have no caller. The real reorg path (history.ts:215-227) bypasses the core and moves any status, including failed and in_transit, back to settling.",
+      "Commitment status goes stale. It is computed once at birth from the release time (rules/amounts.ts:77) and nothing moves scheduled to pending_claim when the time passes, so the stored status cannot be trusted as a claimability fact.",
+      "Outcome facts are stored several times over. payments has status, executionOutcome, terminalOutcome and terminalEventId. paymentCommands has state, verificationState, completionOutcome, terminalOutcome and lastExecutionOutcome. moneyExecutions has state, preDispatchOutcome and recoveryHold. The two literal unions also disagree: payments.executionOutcome (tables/payments.ts:60-72) is not ATTEMPT_STATES (protocol status.ts:38).",
+      "'applied' does not mean 'completed'. Board and budget schedules set verificationState applied with no completionOutcome (schedules/writes.ts:224-228, verifications/writes/budget-schedules.ts:85-89). recordPaymentCommandOutcome then refuses any applied command (writes/outcomes.ts:27), so later cancels patch completionOutcome directly (board-cancels.ts:39-44, voids.ts:101-107).",
+      "The settlement path works only because of a stale read. applyVerifiedAttemptInTx patches the command to applied (verifications/writes/attempts.ts:145), then passes the pre-patch document to recordPaymentCommandOutcome (attempts.ts:155), whose applied guard (outcomes.ts:27) would otherwise skip the settlement.",
+      "Single-use evidence is not enforced by storage. The comment at tables/commands.ts:293-298 claims a unique by_user_op_hash index; Convex has none, and verifications/reads/identities.ts:52 collects by it. Uniqueness depends on read-then-insert in consumeEvidence (verifications/writes/conflicts.ts:165).",
+      "Legacy moneyExecutions states are a trap. The validator admits 11 historical literals (tables/executions.ts:28-41), but storedAttemptState throws on them (executions/writes/attempts.ts:40-50), so a historical row can never be transitioned or classified.",
+      "Some indexes serve no query: payments by_commitment_id, by_rail_operation, by_movement_id and by_organization_created; by_document_hash, used only at commands/tests/prepare-organization.test.ts:376; depositMaterializations by_payment_id; paymentEvidenceConflicts by_payment_observed; moneyExecutions by_user_op_hash.",
+      "A 'reads' module writes. reads/settlements.ts:73-79 inserts and patches settlementSweepCursors.",
+      "Other concepts read Payments' tables directly instead of going through its door: requests/writes/receipts.ts:242 and requests/writes/approvals.ts:143 (payments, paymentCommands), payroll/runs/reads/notices.ts:55 (payments), permissions/writes/verifications.ts:36 and permissions/reads/occupancy.ts:165 (moneyExecutions), accounts/approvals/guards.ts:26 (moneyExecutions), banking/payouts/writes/refunds.ts:85 (movements), documents/reads/parties.ts:218 (paymentCommands).",
+      "A Board-scheduled command is marked submitted with no userOpHash, and its schedule uses executionId = commandId (schedules/writes.ts:224-232). This overloads the moneyExecutions key with no execution row behind it.",
+      "Telemetry writes business rows. scheduleWriterTelemetry patches payments.lifecycleSequence, terminalOutcome, terminalEventId and terminalAt (events/writer.ts:217-222), so an event emission is a ledger write, and the terminal stamp gates later outcome writes (outcomes.ts:80-85)."
+    ],
+    "notes": "I checked all 21 records against the old code. The 13 tables match packages/backend/src/payments/tables/*.ts field for field, and no table is missing. I re-ran every index `for` against grep withIndex(\"<name>\"), mapped to the table each query reads: the cited lines are right (by_command_id on paymentCommands has 65 non-test reads), and the 8 gap indexes are real. I also confirmed the commitment status fields and every Payment status writer.\n\nThe fixes are in place. The edits changed only from-lists, emits and prose; ids and export names are unchanged. Typecheck is clean: `cd /home/user/capxul-next/books && npx tsc -p . | grep as-is/payments/data.ts` prints nothing. The runtime schema decode passes on import: 21 exports, every from/to names a declared state, every transition is named to_<state>, and no terminal state has an outgoing transition.\n\nDecisions the next reader may question:\n- I kept the over-approximations where code really allows the move: history replay from unresolved, cancelled or settled, and expiry from any non-ended verificationState.\n- I tightened only the edges the data or a guard makes impossible.\n- I did not add settled → in_transit. sends.ts:166-197 writes it only inside the same mutation that re-settles the row through applyRailDeliveryInTx, so it never commits.\n\nNo records are missing from sibling files. The only imports are concept_payments from foundation.ts and three events from vocabulary.ts, and all of them exist."
+  }
+}

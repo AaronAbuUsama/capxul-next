@@ -1,0 +1,93 @@
+{
+  "run": "wf_964b88c4-e6a",
+  "label": "v2:6040c8d71014da3fc20f691e440bccc311ed046e670e1664be84b55f971f4e3e",
+  "result": {
+    "checked": 26,
+    "findings": [
+      {
+        "record": "operation_document_render",
+        "problem": "The comment and `was` cited platform/documents.ts:119 as where the printed `document` metadata comes from. Line 119 writes the HTML file. The metadata object is returned at :130. The CLI_DEFECT raised when the PDF cannot be rendered (:114) had no citation.",
+        "evidence": "apps/cli/src/platform/documents.ts:119 is `fs.writeFileString(htmlPath, ...)`; :130 is `return { documentHash, contentHash, path, htmlPath, mediaType, byteLength }`; :114 is `failure(\"CLI_DEFECT\", \"The document PDF could not be rendered.\")`",
+        "fixed": true
+      },
+      {
+        "record": "operation_request_issue",
+        "problem": "The comment said the words path reads `client.system.clock` to check the expiry. A draft built from words never has an expiresAt. checkExpiryAhead returns early in that case, so only an `--input` draft with expiresAt reads the clock.",
+        "evidence": "apps/cli/src/commands/request/internal/issue-input.ts:38 (expiresAt only from the JSON), :95-96 (returns when undefined, else reads clock); readIssueWords builds {payer, amount, reference} only (issue-input.ts:149-161)",
+        "fixed": true
+      },
+      {
+        "record": "operation_service_create",
+        "problem": "This finding was not recorded. The page says INVALID_INPUT for 'the quantity is outside its limits', but the command never produces that. The CLI decodes the terms against FixedOfferDraftSchema (positive integers, min <= max) and refuses them as CLI_USAGE. The backend checks no quantity on create: quantityOutOfRange is raised only for a purchase. I added a comment and the evidence to `was`.",
+        "evidence": "apps/cli/src/commands/service/internal/input.ts:34-36 (decode then mapError(invalid) = inputRequired = CLI_USAGE); packages/protocol/src/requests/offer-schema.ts:29; packages/backend/src/requests/writes/purchases.ts:111 is the only quantityOutOfRange caller",
+        "fixed": true
+      },
+      {
+        "record": "operation_service_get",
+        "problem": "The comment did not say that a missing service and another owner's service are both refused INVALID_INPUT 'service is unavailable', which the page does not list. `was` cited only the error factory, not the ownership check.",
+        "evidence": "packages/backend/src/requests/reads/offers.ts:26-27 (row null or another actor -> offerUnavailable); packages/backend/src/requests/errors/offers.ts:13; offers/operations/get.ts:13",
+        "fixed": true
+      },
+      {
+        "record": "operation_balance, operation_address",
+        "problem": "The comments said the Organization path runs only with `--org`. selectActor also acts as the Organization that `use org` saved (unless --email names another person), so `capxul balance` with no flags can run readOrganization and the treasury read.",
+        "evidence": "apps/cli/src/auth/actor.ts:87-113 (saved origin.org -> kind organization); apps/cli/src/commands/balance/execute.ts:9-13; apps/cli/src/commands/address/execute.ts:9-13",
+        "fixed": true
+      },
+      {
+        "record": "operation_inbox_pay",
+        "problem": "The record lists CANCELLED, WRONG_STATE (expired), CLI_DEADLINE and TRANSACTION_FAILED as errors the CLI produces, but the comment did not name where they come from. They come from handOver following the approval with `client.approvals.wait` when not in `--json` mode, after the implementing flow has returned. I added that and approval.ts:175 to `was`.",
+        "evidence": "apps/cli/src/commands/payment/internal/approval.ts:174-200 (approvals.wait, rejected/expired/unsettled/stillWaiting), :278 handOver; apps/cli/src/commands/request/subcommands/pay/execute.ts:140",
+        "fixed": true
+      },
+      {
+        "record": "operation_service_list",
+        "problem": "The comment said the INVALID_INPUT for an Offer the scope does not own appears on 'no page'. The revise and deactivate pages do list INVALID_INPUT, but for a changed or inactive revision, not for ownership. Reworded to 'no page describes'.",
+        "evidence": "frozen service.revise refusal INVALID_INPUT 'The service changed since --expected-revision, or it is deactivated'; backend requests/offers/writes.ts:118-121",
+        "fixed": true
+      },
+      {
+        "record": "all 26 (imports)",
+        "problem": "Three imports do not resolve because no lane has written those files yet: ../parties/contacts.ts, ../parties/accounts.ts and ../activity/documents.ts. The conventions allow this. They are other concepts' files, so I did not create them. In a scratch copy with stand-ins for those three files and the five existing sibling rpc files, all 26 records load and pass defineOperation's decode. implementedBy ids match the protocol rows.",
+        "evidence": "npx tsc -p books: only TS2307 at operations/payments.ts:76,77,82; scratch run /tmp/claude-0/-home-user/c92cd756-b1a0-5414-9fe4-a7834db8d32a/scratchpad/review-ops-rest/check.ts printed 26 operations",
+        "fixed": false
+      },
+      {
+        "record": "operation_payment_send (other lane, payments/operations.ts)",
+        "problem": "The two lanes disagree. payment.send lists only CLI_USAGE in `errors`, though it calls the same handOver, which builds CANCELLED, WRONG_STATE, CLI_DEADLINE and TRANSACTION_FAILED itself. This lane's inbox.pay lists those codes, which follows the schema ('before or after its implementation'). I did not touch it because it is not my lane's file.",
+        "evidence": "books/as-is/payments/operations.ts:260 errors: [error_CLI_USAGE]; apps/cli/src/commands/payment/internal/approval.ts:100-148; packages/book/src/records/behaviour.ts:127 ('before or after its implementation')",
+        "fixed": false
+      }
+    ],
+    "designFindings": [
+      "One command family has two paging models. `request list` takes the issuer's whole list from requests.receivables.listCurrent and the CLI cuts the page, so an unknown --after is CLI_USAGE (apps/cli/src/runtime/paging.ts:81-85). `inbox list` is paged by the backend, so a bad cursor is INVALID_INPUT reworded on `after` (apps/cli/src/commands/request/subcommands/list/execute.ts:26-47,61-71). The request.list page says INVALID_INPUT for both.",
+      "Offer ownership is hidden behind INVALID_INPUT 'service is unavailable', the same answer as for a missing Offer (packages/backend/src/requests/reads/offers.ts:26-27). The service.revise and service.deactivate pages promise ROLE_PERMISSION_DENIED for 'not the owner', but that code only comes from requireAuthority for an Organization (packages/backend/src/requests/guards.ts:33-49).",
+      "The refusal code of a contact write depends on whether a terminal is attached. Only an interactive run reads the contact first and refuses a party outside the book as CLI_USAGE (apps/cli/src/commands/contact/internal/write.ts:35-40). A script sends the write and gets the backend's INVALID_INPUT.",
+      "`contact get` for a party outside the book succeeds: it prints data null and 'No contact found.' and exits 0 (apps/cli/src/commands/contact/subcommands/get/execute.ts:32,42). Not-found is reported as success.",
+      "`address --org` reaches no backend row. The SDK builds the orgTreasury instructions from the person's Organization list and hard-codes network 'base-sepolia', currency USD and a default chain 84532 (packages/sdk/src/organizations/programs.ts:107-123).",
+      "The CLI makes authority and state decisions from its own earlier reads. readOrganization lists every Organization and refuses ROLE_PERMISSION_DENIED itself before the treasury read (apps/cli/src/commands/org/internal/read.ts:180-218). `inbox pay` decides WRONG_STATE from an inbox.get read before it prepares (request/subcommands/pay/execute.ts:77-103), a check-then-act gap. `request cancel` and `inbox decline` read before every write, even from a script, only to refuse a null (request/subcommands/cancel/execute.ts:23-30, decline/execute.ts:23-30).",
+      "One thing has three names. The CLI noun is `document`, the SDK is `client.paymentDocuments` (packages/sdk/src/activity/documents.ts:86-90) and the rows are activity.documents.* (packages/protocol/src/activity/operations.ts:144-163), while the stored content belongs to the documents concept (books/as-is/shared/foundation.ts:426). The task brief itself placed these rpcs in the wrong concept.",
+      "`document render` launches, and may download, headless Chrome while the command runs (apps/cli/src/platform/documents.ts:16-37). A render failure is CLI_DEFECT with exit 2 and outcome failed (documents.ts:12-13,114), so a missing browser reads as a CLI defect.",
+      "The pages and the code disagree in places. service.create's INVALID_INPUT for quantity is never produced (CLI_USAGE at apps/cli/src/commands/service/internal/input.ts:34-36; the backend checks no quantity on create). document.render's page names `kind`, but the printed object has none (platform/documents.ts:130-137). request.list's INVALID_INPUT for --after is CLI_USAGE (paging.ts:82).",
+      "Money valuation runs on the client. client.accounts.read calls one row, retries it only on a reconnect, then values the positions in the SDK with configured rates (packages/sdk/src/accounts/balance-adapter.ts:49-83). The protocol says the server-confirmed balance event is emitted on the backend (sdk accounts/balance-programs.ts:33-35).",
+      "`request issue <email> <amount>` reads the whole Account or treasury balance only to choose the asset (apps/cli/src/commands/request/subcommands/issue/execute.ts:31-40). `contact bank add` reads the whole book, then targets.resolve and parties.accounts.requirements, before its one write (contact/subcommands/bank/subcommands/add/execute.ts:24-30, bank/internal/selection.ts:16-44, bank/subcommands/accounts/internal/input.ts:111-121).",
+      "Every operation in this area forwards a single row except inbox pay. Its SDK method client.approvals.prepare dispatches on the input's keys to a request-specific prepare (books/as-is/payments/flows.ts:945-980), so one generic method carries every payment kind's composition."
+    ],
+    "keep": [
+      "Write commands require --confirm off a terminal and refuse before any session or network call. At a terminal they always show a preview and ask a default-no question, even with --confirm (apps/cli/src/commands/org/internal/write.ts:31-58).",
+      "When a write's reply is lost, the CLI names the exact read to run and never retries (apps/cli/src/commands/org/internal/write-failures.ts:43-72; apps/cli/src/commands/contact/internal/recovery.ts:19-50; request/internal/write.ts:34-52).",
+      "inbox pay pays exactly the request's frozen terms. It reads paymentTerms and refuses an id, asset or value that differs (apps/cli/src/commands/request/subcommands/pay/execute.ts:109-121). It refuses a request that is not open with WRONG_STATE and gives the command that reads its current state (:85-103). It refuses a Money invoice and points to bank transfer (:105).",
+      "The approval page is the only confirmation. With --json the CLI returns awaiting_approval, the link and the wait argv at once (apps/cli/src/commands/payment/internal/approval.ts:49-60). Otherwise: rejected is CANCELLED exit 130, expired is WRONG_STATE, the deadline is CLI_DEADLINE exit 5, unsettled is TRANSACTION_FAILED naming `payment get` (approval.ts:100-148).",
+      "Document reads never print the bytes (apps/cli/src/commands/document/subcommands/get/execute.ts:24-30). Every reply is checked against the requested hash pair (document/internal/shared.ts:20-25). export writes with flag wx and mode 0600 and refuses an existing file (export/execute.ts:22-33). render writes PDF and HTML into a fresh 0700 folder with 0600 files and removes the folder on failure (apps/cli/src/platform/documents.ts:85-129).",
+      "Bank details stay private. Output is masked to last4 (packages/protocol/src/parties/accounts-schema.ts:64-74). The details travel as Unknown and are decoded inside the backend recipe so schema errors cannot echo them (accounts-operations.ts:33-35). The request key is reusable, and --input and --request-key must agree (apps/cli/src/commands/bank/subcommands/accounts/internal/request.ts:6-19).",
+      "Offer changes are guarded by expectedRevision (packages/backend/src/requests/offers/writes.ts:118-121). Deactivating an inactive Offer changes nothing and returns it as it is (writes.ts:157). create replays by request key and refuses the same key with other terms (backend requests/errors/offers.ts:10-11).",
+      "Paging: --limit must be 1 to 100 and --after must be nonempty with no control characters, checked before any session (apps/cli/src/runtime/paging.ts:38-50). A cursor that does not advance fails CLI_DEFECT instead of looping (paging.ts:52-63, :86-92).",
+      "`request get --wait paid` reads again every 5 s until the request ends (paid, declined, cancelled, expired). Its default deadline is 3600 s, and the deadline error names the same command to resume, with --org and --email (apps/cli/src/commands/request/subcommands/get/execute.ts:14-79).",
+      "Organization access refusals become one ROLE_PERMISSION_DENIED that names the Organization and gives no more detail (apps/cli/src/commands/org/internal/read.ts:69-75; org/internal/lifecycle.ts:17-24).",
+      "Money rules: an on-chain amount is AssetAmount (asset plus decimal value, currency forbidden), and fiat is Money (currency, value, decimals, asset forbidden) (packages/protocol/src/money/schema.ts:44-63). The balance headline is null when any position has no rate, and available equals balance (packages/protocol/src/accounts/model.ts:26-40). An invoice in Money is not payable by crypto inbox pay (pay/execute.ts:105).",
+      "Deposit addresses are printed in lower case, and the personal row is typed personalSafe on base-sepolia in USD (packages/protocol/src/accounts/operations.ts:268-279; packages/sdk/src/organizations/programs.ts:119).",
+      "A contact's id is its stable PartyId, and a hidden contact stays selectable (packages/protocol/src/parties/schema.ts:55-62; apps/cli/src/commands/contact/internal/selection.ts:114-135)."
+    ],
+    "notes": "I reviewed /home/user/capxul-next/books/as-is/operations/payments.ts and edited it in place. Nothing is committed. The lane covers 26 operations: the old area page lists 33, and 7 payment.* ones live in ../payments/operations.ts. All 26 are present, with ids from frozenText and export names operation_<id>.\n\nHow I checked it: I read every cited path:line in the old code at /home/user/factory (about 200 citations, all in range and on the right line except the documents.ts:119 one I fixed). I compared each record against the CLI execute file, the SDK method, the protocol row and the backend. The `sdk:` of every old page matches the method the lane traced. Every implementedBy matches a real row and an existing sibling export with the right id: receivables listCurrent/getCurrent, inboxes listCurrent/getCurrent/decline, offers.*, accounts.balances.read, accounts.summaries.deposit-instructions. Every one of the 26 SDK methods forwards exactly one row except client.approvals.prepare, so 25 rpcs and 1 flow is the right split.\n\nI agree with the writer's judgment 1: document.* belongs to the activity concept, because packages/backend/src/activity/documents exists and the rows are activity.documents.*. I also agree that every `given` should be \"?\". Across all scenario files, the only refusals this area's commands reach are in S18, which starts from an empty devnet and saves no world, and S10.9 and S10.12. Those two are budget_exhausted overspends that the page's `when` does not describe, the same rule the payments lane applied at s10.19. Every `returns` matches what the CLI prints, typed from the protocol schemas: RequestViewSchema, mapActorRequest, mapInboxItem, FixedOfferSchema, ContactSchema, BankAccountSchema and the PaymentDocument* schemas.\n\nFixes I made: one wrong citation, one wrong fact about the clock read, and five comment gaps or wordings. Each is in the findings list. After the edits, `npx tsc -p books` shows only the three unresolved sibling imports (parties/contacts, parties/accounts, activity/documents). In a scratch copy at /tmp/claude-0/-home-user/c92cd756-b1a0-5414-9fe4-a7834db8d32a/scratchpad/review-ops-rest, with stand-in rpc files, all 26 records pass defineOperation's runtime decode.\n\nFor the assembly step:\n- Two lanes do the same thing differently. The payments lane lists only CLI_USAGE in payment.send's `errors`, while this lane lists the hand-over codes for inbox.pay.\n- The payment.* operation records sit in payments/operations.ts rather than operations/payments.ts.\n- The parties and activity concept folders do not exist yet."
+  }
+}

@@ -1,0 +1,36 @@
+export const meta = {
+  name: 'design-portal',
+  description: 'Design the portal: the docs site that connects the design book, evals, the swarm, decisions and live data; with a prototype and an adversarial review',
+  phases: [{ title: 'Design' }, { title: 'Review' }],
+}
+const COMMON = `Repository: /home/user/capxul-next (branch claude/infrastructure-refactor-plan-v41iue). It PREPARES the Capxul rebuild; no product code is written here. Read first: docs/design-book.md (how the design book works, including "Where else the same records are used"), docs/mission/initializer.md (the goal prompt), HANDOFF.md, CLAUDE.md, and in books/target/shared/decisions.ts the decisions system.layout, system.build-order, system.frozen-behaviour. docs/spec/00-overview.md, 10-swarmd-ledger.md and 20-swarmd-managers-and-pairs.md describe the swarmD ledger and the manager's artifact. The old system, read only, is at /home/user/factory (branch integration/factory); swarmD, read only, is at /home/user/swarmd.
+NAMING: "the book" means only the design book (books/target). The documentation site is "the portal".
+You own ONLY: docs/design/portal.md, books/target/shared/portal.ts (its records: defineDecision records, and a component or environment record if the portal needs one; schemas in packages/book/src/records/*.ts; use the by() helper there), tools/portal-prototype.ts and docs/design/portal-prototype.html. Other agents are designing the tooling and the swarm in parallel in other files; do not touch them. Checks: npx tsc -p books; node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/portal (0 problems). Do not commit.`
+const OUT = { type: 'object', properties: {
+  files: { type: 'array', items: { type: 'string' } },
+  decisions: { type: 'array', items: { type: 'string' } },
+  milestone: { type: 'string', description: 'the D0 row for the goal prompt\'s Order of work table: | D0 | **...** | exit |' },
+  howToWork: { type: 'array', items: { type: 'string' } },
+  forAaron: { type: 'array', items: { type: 'string' } },
+  buildProblems: { type: 'integer' }, notes: { type: 'string' } },
+  required: ['files', 'decisions', 'milestone', 'howToWork', 'forAaron', 'buildProblems', 'notes'] }
+const REV = { type: 'object', properties: {
+  refuted: { type: 'array', items: { type: 'object', properties: { what: { type: 'string' }, evidence: { type: 'string' }, fixed: { type: 'boolean' } }, required: ['what', 'evidence', 'fixed'] } },
+  upheld: { type: 'array', items: { type: 'string' } }, buildProblems: { type: 'integer' }, notes: { type: 'string' } },
+  required: ['refuted', 'upheld', 'buildProblems', 'notes'] }
+
+phase('Design')
+const made = await agent(`${COMMON}
+
+YOUR TASK: DESIGN THE PORTAL. Aaron: the documentation site "is going to be like the portal that connects everything together", and it needs design so the build session does not freestyle it. It is built first in the build (D0, alongside the B0 spike), because it is generated from the records with no runtime risk, it is Aaron's review surface for the design and its pending judgments, and it is where the new CLI surface (commands, flags, --json shapes, error vocabulary: free to design under system.frozen-behaviour) is designed and seen before code.
+Study: the old docs site /home/user/factory/apps/docs (README, CONTRIBUTING.md, CONTEXT.md, content/docs layout, lib/source.ts, components/page/operations-*.tsx and operation-evals.tsx, how it read the YAML book and the old factory's public/factory/state.json); swarmD's docs app /home/user/swarmd/apps/docs (hosted on a Cloudflare Worker) as a hosting precedent; the manager's artifact in docs/spec/20.
+Write docs/design/portal.md with: (1) its audiences and the job it does for each (Aaron reviewing and deciding; lane managers and agents finding their task's records, evals and status; app developers using the CLI and SDK; operators on staging); (2) what it connects and how each source reaches it: the design book's records, the derived evals and their latest verdicts (the scoreboard), the swarmD ledger (tasks, assignments, matters), GitHub (branches, PRs, CI), decisions and the For Aaron list, PostHog live evals and journey funnels, and hand-written prose; (3) the information architecture: the sitemap and navigation; (4) every page type: what it is generated from (name the record kinds and fields), its sections, what it links to, and its status overlay (each operation's stand: specify, decide, build, observe, done, computed from records and verdicts); (5) Aaron's review flow on the portal: how he accepts or changes a judgment and how that change reaches the record first (book first); (6) the stack and hosting, as a graded decision (for example Fumadocs on a Next static export as before, Starlight, or the book's own static generator) with a recommendation; (7) the generation pipeline (packages/generate writes the portal's content from the records; regenerable, sys:generated) and what the doc:<operation> eval checks exactly; (8) the D0 milestone and its exit.
+Also build a small working prototype from the REAL records so the design can be seen: tools/portal-prototype.ts writes docs/design/portal-prototype.html, one self-contained page (embedded data, hash routing, mermaid from cdnjs pinned) with the overview, a concept page, an operation page with a mock stand, the decisions page with For Aaron first, and a mock scoreboard. An untested draft renderer you may start from is /tmp/claude-0/-home-user/c92cd756-b1a0-5414-9fe4-a7834db8d32a/scratchpad/render-book.ts. Keep the prototype under 2 MB, and say in it that statuses are mock until B2.
+Record each judgment as a decision in books/target/shared/portal.ts (ids portal.<topic>), and a component record for the portal if you judge it needs one (then mind the unhosted-component gap). Build to 0 problems.`, { label: 'design:portal', phase: 'Design', schema: OUT })
+
+phase('Review')
+const review = await agent(`${COMMON}
+
+You are the ADVERSARIAL REVIEWER of the portal design (docs/design/portal.md, books/target/shared/portal.ts, tools/portal-prototype.ts, docs/design/portal-prototype.html). The designer's report: ${JSON.stringify(made)}
+Try to refute it: is every page really generatable from fields the records have (name them; a page that needs data no record or source holds is a gap the design must own)? Does the status overlay compute from records and verdicts the ledger spec actually defines? Does Aaron's review flow keep book first, and is it buildable? Is the stack decision sound for a static, regenerable site hosted cheaply? Does the doc: eval say something checkable? Does the prototype run (node --experimental-strip-types tools/portal-prototype.ts, then load the HTML in Playwright's Chromium, which is preinstalled: require('playwright'), chromium.launch(); check there are no console errors and the pages render) and match the design? Fix what you refute in the files the designer owns, keep the build at 0 problems, and report.`, { label: 'review:portal', phase: 'Review', schema: REV })
+return { made, review }

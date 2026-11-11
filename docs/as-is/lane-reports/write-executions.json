@@ -1,0 +1,191 @@
+{
+  "run": "wf_1da00197-4a2",
+  "label": "v2:8b63247a330cbdec6f09768805485bb0c1e95b638b167a8a1b612aea80251f08",
+  "result": {
+    "file": "/home/user/capxul-next/books/as-is/payments/executions.ts",
+    "records": 17,
+    "exports": [
+      "rpc_payments_executions_submit",
+      "rpc_payments_executions_submit_command",
+      "rpc_payments_executions_abandon",
+      "rpc_payments_executions_read_send_witness",
+      "rpc_payments_executions_claim",
+      "rpc_payments_executions_classify",
+      "rpc_payments_executions_complete",
+      "rpc_payments_executions_fail",
+      "rpc_payments_executions_hold_claim",
+      "rpc_payments_executions_list_expired_claims",
+      "rpc_payments_executions_load_active",
+      "rpc_payments_executions_load_lane_holders",
+      "rpc_payments_executions_load",
+      "rpc_payments_executions_record_send_attempt",
+      "rpc_payments_executions_reset_claim",
+      "rpc_payments_executions_store",
+      "workflow_payments_executions_recover_claims"
+    ],
+    "missing": [
+      {
+        "export": "procedure_access_require_authenticated_user",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts does not exist yet. signedInAction (platform/session.ts:24) calls requireAuthenticatedUser from #access/sessions/guards. movements.ts uses procedure_access_authenticated_user, which is the authenticatedUser query guard, a different function."
+      },
+      {
+        "export": "procedure_accounts_require_payment_account_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "The authority guard calls it (payments/guards/authority.ts:1). neighbors.ts does not exist yet."
+      },
+      {
+        "export": "procedure_accounts_read_execution_approval_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Called by executionStepAnnotated (commands/reads/contexts.ts:65) and laneReserved (executions/writes/reservations.ts:7)."
+      },
+      {
+        "export": "procedure_accounts_account_id_for_auth_user_or_null",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Called by paymentResponsesForCommandIdInTx (reads/payments.ts:9)."
+      },
+      {
+        "export": "procedure_permissions_require_organization_spend_authority_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Called by the authority guard (guards/authority.ts:3)."
+      },
+      {
+        "export": "procedure_permissions_find_command_authority",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Called by guards/owners.ts:8."
+      },
+      {
+        "export": "procedure_permissions_read_worn_allowances_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Called by guards/budgets.ts:11."
+      },
+      {
+        "export": "procedure_permissions_authorize_permission_execution_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "The claim calls it (executions/writes/claims.ts:8)."
+      },
+      {
+        "export": "procedure_permissions_authorize_invitation_configuration_execution_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "The claim calls it (executions/writes/claims.ts:7)."
+      },
+      {
+        "export": "procedure_permissions_read_permission_execution_outcome_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "list-expired-claims calls it (executions/reads/executions.ts:12)."
+      },
+      {
+        "export": "procedure_organizations_read_organization_safe_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Called by guards/budgets.ts:10 and guards/owner-approvals.ts:9."
+      },
+      {
+        "export": "procedure_organizations_read_owner_safes_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Called by guards/owner-approvals.ts:9."
+      },
+      {
+        "export": "procedure_payroll_read_department_spend_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Called by guards/budgets.ts:12."
+      },
+      {
+        "export": "procedure_payroll_advance_runs_to_authorized",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Called by recordSubmission during complete (verifications/writes/submissions.ts:7, :131)."
+      },
+      {
+        "export": "procedure_banking_accept_payout_quote_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "The claim calls it (executions/writes/claims.ts:12, :182)."
+      },
+      {
+        "export": "procedure_banking_payout_send_failed_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Called by recordPaymentCommandOutcome when a command fails (writes/outcomes.ts:5, :108)."
+      },
+      {
+        "export": "procedure_banking_read_payout_delivery_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Called by toWirePayment (views/payments.ts:17)."
+      },
+      {
+        "export": "procedure_books_book_asset_by_id_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Called by toWirePayment (views/payments.ts:18)."
+      },
+      {
+        "export": "procedure_documents_load_payment_documents_for_principal",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Called by paymentResponsesForCommandIdInTx (reads/payments.ts:10). movements.ts uses procedure_documents_load_payment_documents, which is a different function."
+      },
+      {
+        "export": "procedure_documents_current_payment_documents",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Called by toWirePayment (views/payments.ts:25)."
+      },
+      {
+        "export": "procedure_parties_party_by_id",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Called by the recipient projection (views/recipients.ts:8)."
+      },
+      {
+        "export": "procedure_parties_party_by_safe_address",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Called by the recipient projection (views/recipients.ts:8)."
+      },
+      {
+        "export": "table_accounts",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "Read directly by views/recipients.ts:75 in the wire Payment projection."
+      },
+      {
+        "export": "table_identities",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "Read directly by views/recipients.ts:80."
+      },
+      {
+        "export": "table_orgs",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "Read directly by views/recipients.ts:88."
+      },
+      {
+        "export": "table_counterparty_destinations",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "Read directly by views/recipients.ts:109."
+      },
+      {
+        "export": "permissions.commands.complete-execution / permissions.configurations.complete-execution / permissions.verifications.verify-submitted / permissions.configurations.verify",
+        "kind": "rpc",
+        "why": "The claim sweep calls these Permissions operations through ctx.runMutation and ctx.runAction (executions/external/recoveries.ts:93-94, :144, :148). They run in their own transactions, so they are not procedures. No file owns another concept's rpc by the conventions, and Touches cannot link an rpc, so I described them only in the workflow's about."
+      }
+    ],
+    "notes": "I wrote all 17 operations under packages/backend/src/payments/executions/operations/ into books/as-is/payments/executions.ts.\n- Public rpcs: submit and submit-command (action), abandon (action), read-send-witness (query). Each takes its id, input, output and errors from the protocol row in packages/protocol/src/payments/operations.ts:212-239.\n- Internal rpcs: 12, each with the kind it is registered with in packages/backend/convex/payments/executions.ts.\n- Workflow: only recover-claims. It is the one operation that is scheduled: the 10-minute job \"recover Payment settlement verification\" runs it through payments.verifications.recover-job, and it reschedules itself with runAfter(0) (recover-claims.ts:73).\n\nTypecheck: the only remaining error in my file is \"Cannot find module './neighbors.ts'\", because that file does not exist yet. Every name I import from foundation.ts, vocabulary.ts, data.ts and external.ts resolves. flows.ts already imports my rpc_payments_executions_{submit,submit_command,abandon} under these names. I also ran the module under node with a stub neighbors.ts in the scratchpad: all 17 records pass schema validation (title, about, step and idempotency lengths).\n\nChoices a reviewer should know:\n1. An action (submit, submit-command, abandon, the sweep) holds no transaction. Its reads, writes, drives and invokes are the union of the internal steps it runs, and those steps are named in its about. The schema has no way to link one rpc to another.\n2. No executions code calls Effect.withSpan, so the internal rpcs have spans: []. The actions list the client spans their context opens for each nested Convex call (convex.query, convex.mutation, convex.action; platform/execute.ts:273) and the chain-rpc request spans (chain.read <method>, chain.attempt <upstream>).\n3. chain lists only the eth_call contract reads: contract_entry_point.f.getNonce, plus contract_roles.f.allowances and contract_erc20.f.balanceOf on the scheduled path. The calldata of the sent UserOperation was fixed when the command was prepared, so no contract write is encoded here.\n4. I added event_payout_transitioned to emits wherever the old code reaches the Banking payout door (acceptPayoutQuoteInTx, payoutSendFailedInTx), as vocabulary.ts's own text describes.\n5. Workflow values the old code does not set:\n   - timeoutMs: 600000, which is Convex's action limit.\n   - retries: { max: 0, backoff: \"none\" }, because Convex does not retry an action.\n   - priority: \"critical\". This one is my judgement: the sweep is the only path that classifies a send the bundler refused. The code itself sets no priority.\n   - The cron string is \"*/10 * * * * (Convex interval, through payments.verifications.recover-job)\".\n\nOld-code facts worth flagging:\n- reset-claim releases no claim despite its name.\n- read-send-witness is guarded only by the e2e gate and takes no session.\n- abandon on a Permission or invitation execution checks ownership only, with no authority re-proof."
+  }
+}

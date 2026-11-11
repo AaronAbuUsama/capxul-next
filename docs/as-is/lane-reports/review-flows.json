@@ -1,0 +1,157 @@
+{
+  "run": "wf_6490ba05-3ea",
+  "label": "v2:6d3ee6cf71c0c52bc5c016f5cf4940c5996899a4903d2610e615797edaf82cc3",
+  "result": {
+    "file": "/home/user/capxul-next/books/as-is/payments/flows.ts",
+    "checked": 7,
+    "findings": [
+      {
+        "record": "(imports) rpc_payments_lifecycles_prepare_scoped",
+        "problem": "The import came from ./commands.ts, but schedules.ts is the area file that books payments.lifecycles.* and exports it. This was the file's only typecheck error.",
+        "evidence": "tsc: flows.ts(25,3) TS2305 Module './commands.ts' has no exported member 'rpc_payments_lifecycles_prepare_scoped'; schedules.ts:1220 exports it; schedules.ts:3 says it books payments/lifecycles:*",
+        "fixed": true
+      },
+      {
+        "record": "flow_client_payments_pay, _retry, flow_client_org_payments_pay, _pay_batch, _retry",
+        "problem": "`calls` was [] in every signing flow, although external.ts books the client-side signer as integration_openfort with calls getAddress and signUserOpHash. Those calls are what the flows make.",
+        "evidence": "external.ts:435-500 (its about cites command-execution.ts:107,226 and execution.ts:195,243); the SDK calls deps.signer.getAddress() and signUserOpHash(digest) at execution.ts:195,243 and command-execution.ts:107,226",
+        "fixed": true
+      },
+      {
+        "record": "commandReplay (shared by 4 flows)",
+        "problem": "The step said 'an accepted or settled submission'. These methods pass no readAcceptedReplay, so only prepared.settled is ever replayed. It also left out that a replay mismatch is INVALID_INPUT and that a replayed execution is never abandoned (closePrepared is false).",
+        "evidence": "command-execution.ts:120-121 (accepted = readAcceptedReplay?.() ?? prepared.value.settled; closePrepared = closePaymentOnExit && accepted === undefined), :188-202; lifecycle-execution.ts:93-125 and :170-195 pass no readAcceptedReplay",
+        "fixed": true
+      },
+      {
+        "record": "flow_client_payments_retry, flow_client_org_payments_retry (sign step)",
+        "problem": "Both retries reused a sign step that says one payment_transitioned is emitted per item. A retry request is { kind: retry, paymentId } and has no items, so emitPreparedInitiation returns without emitting. The personal retry also passes no TelemetryPort.",
+        "evidence": "prepared-execution.ts:56 (returns early when the request has no 'items'); lifecycle-methods.ts:15-27 (deps without telemetry)",
+        "fixed": true
+      },
+      {
+        "record": "flow_client_payments_pay (session step)",
+        "problem": "'Refuses an aborted signal or no signer (INVALID_INPUT, field signer)' reads as if an abort were INVALID_INPUT; an abort is CANCELLED. The step also put personalSafeOf here, but the Safe is derived only after getAddress, from a second session read.",
+        "evidence": "execution.ts:188 (abort gives cancelled), :189-190 (no signer gives INVALID_INPUT), :191 (first sessionForWrite), :112-115 (second read and personalSafeOf inside prepareVerifiedPersonalPayment, after getAddress at :195)",
+        "fixed": true
+      },
+      {
+        "record": "flow_client_payments_pay (abandon step and about)",
+        "problem": "Three facts were missing. Abandon is not fenced by the auth lifetime (the command path's is). An abort after a settled replay still calls abandon. A failed abandon call replaces the original error.",
+        "evidence": "prepared-execution.ts:16-38 (no current() check; :32 if (!abandoned.ok) return abandoned); execution.ts:209-219 (the abort check runs after the settled replay's lifetime check, whatever settled holds)",
+        "fixed": true
+      },
+      {
+        "record": "flow_client_payments_pay and flow_client_org_payments_pay/_pay_batch (on-prepared)",
+        "problem": "Not recorded: an onPrepared callback that throws fails the whole shared flight for every joined caller, and the prepared execution is not abandoned. A registration whose caller aborted is skipped.",
+        "evidence": "personal-flights.ts:82-84; execution.ts:220-221 (if (!delivered.ok) return delivered; no abandonPrepared); command-execution.ts:204-214",
+        "fixed": true
+      },
+      {
+        "record": "organizationBatchSteps budget-route, retryBudgetRoute",
+        "problem": "Not recorded: a failed allowances.list or departments.get read is swallowed as null and counts as 'unbound'. On the Organization path that abandons the Payment with prepared_mismatch. The reads also run through a bare runPromise, outside the abort signal and the method span. A budget route on an Account birth is always refused, because budgetScope finds no orgId or Permission.",
+        "evidence": "budget-route.ts:29-34, :41-46 (catchDefect gives null, orElseSucceed gives null); :52-68 (budgetScope); :104-106",
+        "fixed": true
+      },
+      {
+        "record": "organizationBatchSteps verify, both retries' verify, personal verify",
+        "problem": "Not recorded: an undecodable executionId is refused INVALID_INPUT with nothing abandoned. Only later decode and check failures abandon. matchesIntent compares the intent together with its requestKey.",
+        "evidence": "command-execution.ts:122-129; execution.ts:128-132; lifecycle-execution.ts:139 vs organization-flights.ts:136-140 (intent spread with requestKey); lifecycle-execution.ts:189 matchesIntent(input)",
+        "fixed": true
+      },
+      {
+        "record": "PayOptions, SubscribeInput",
+        "problem": "The input shapes left out fields the old types accept. PaymentsPayOptions is InvocationControls plus onPrepared, so it includes timeoutMs and deadlineMs. PaymentSubscriptionOptions keeps correlation_id and journey_id.",
+        "evidence": "records.ts:134-137, :129; platform/actor/controls.ts:6-14",
+        "fixed": true
+      },
+      {
+        "record": "flow_client_payments_pay (about)",
+        "problem": "Not recorded: pay is mounted raw, without invocationControls, so its timeoutMs, deadlineMs, correlation_id and journey_id are ignored. Only signal and onPrepared are read.",
+        "evidence": "methods.ts:47,65 (pay returned as is; compare :66-67 and :69); personal-pay.ts reads only options.signal and options.onPrepared",
+        "fixed": true
+      },
+      {
+        "record": "flow_client_org_payments_pay (about)",
+        "problem": "Not recorded: only the flight starter's controls reach the rpcs, and its span is their parent; a caller that joins contributes only its signal and onPrepared. timeoutMs and deadlineMs are stripped from the span runner and bound only the session read while it restores.",
+        "evidence": "organization-flights.ts:130-145 (executeOrganizationPayment gets the starter's controls); capxul-effect.ts:19-29 observationOnlyControls; command-execution.ts:96 sessionForWrite(controls ?? signal)",
+        "fixed": true
+      },
+      {
+        "record": "flow_client_org_payments_pay_batch (about)",
+        "problem": "Not recorded: the span is organizationPayments.payBatch, while the observability tree also declares an unused org.payments.payBatch (the file recorded the pay case only).",
+        "evidence": "observability/src/operations/money.ts:18; operations/org.ts:148",
+        "fixed": true
+      },
+      {
+        "record": "flow_client_org_payments_subscribe (about)",
+        "problem": "The about said an orgId mismatch fails the stream with 'Payment read scope does not match'. The listener actually receives INVALID_INPUT paymentId: 'scope does not match' for a cached value or 'Invalid Payment subscription value' for a fresh read. The orgId refusal is only its cause. The paymentId decode refusal also happens before any span opens.",
+        "evidence": "subscription.ts:66-71, :141-145; fresh-query.ts:155-156, :217-220; organization-payment-reads.ts:124-129",
+        "fixed": true
+      },
+      {
+        "record": "all records (record shapes)",
+        "problem": "Wrong line citations: 'normalized Payment (records.ts:172)' points inside paymentExecutionIntent, and 'PaymentsPayInput (records.ts:200)' points at the issue formatter. Payment is at :69 and PaymentsPayInput at :97. AssetAmount is at money/model.ts:9, not :10.",
+        "evidence": "records.ts:69 export interface Payment; :97 export interface PaymentsPayInput; protocol money/model.ts:9",
+        "fixed": true
+      },
+      {
+        "record": "flow_client_payments_pay (admit, request-key)",
+        "problem": "The admit step said 'held or stream timing'. A raw scheduled timing is accepted; what is refused is an unreadable on, on together with timing, any other raw timing, and an Organization actor (NOT_IMPLEMENTED pay.organizationActor). The request-key step left out that a caller key gets a no-op finish and that the slot is named by keccak({operation, raw input}).",
+        "evidence": "send-dates.ts:45-69; records.ts:142-151; request-keys.ts:73-74, :78",
+        "fixed": true
+      },
+      {
+        "record": "7 records (step about length)",
+        "problem": "After the fixes, several step abouts went over the 300-character Line limit, and defineFlow refused them. I shortened them, and all 7 records now load at runtime against stubbed siblings.",
+        "evidence": "packages/book/src/records/base.ts:55 Line = Text(300); runtime check: maxStep 300 or less for every record",
+        "fixed": true
+      },
+      {
+        "record": "was evidence (all records)",
+        "problem": "I checked every was line against the old code. All the original citations point at the code they describe. I added citations for the facts above.",
+        "evidence": "Added execution.ts:112,212,221; prepared-execution.ts:32,115; personal-flights.ts:84; records.ts:134; send-dates.ts:45; access/session-programs.ts:143; budget-route.ts:31,52; lifecycle-methods.ts:15; command-execution.ts:208; capxul-effect.ts:19; observability operations/org.ts:147",
+        "fixed": true
+      },
+      {
+        "record": "forward-only methods comment",
+        "problem": "The comment did not say that prepareVerifiedPersonalPayment, a door composition, is mounted by client.approvals.prepare (accounts/approvals.ts:141). It also did not say that flow_client_approvals_prepare, which operations.ts imports, belongs to flows.ts by convention but is not booked.",
+        "evidence": "accounts/approvals.ts:141; operations.ts:31 imports flow_client_approvals_prepare; CONVENTIONS.md flow row: owner flows.ts",
+        "fixed": true
+      }
+    ],
+    "missing": [
+      {
+        "export": "flow_client_approvals_prepare",
+        "kind": "flow",
+        "ownerFile": "flows.ts",
+        "why": "operations.ts:31 imports it for payment send, retry, cancel and reschedule, because the CLI calls client.approvals.prepare. By the conventions every flow id belongs to flows.ts, but the method lives in packages/sdk/src/accounts/approvals.ts (it dispatches to command, permission, Organization and personal prepare: approvals.ts:106-150), outside this review's packages/sdk/src/payments/ scope. Until someone books it, the book build fails on that import."
+      },
+      {
+        "export": "rpc for permissions.allowances.list and payroll.departments.get",
+        "kind": "rpc",
+        "why": "The budget-route steps read these two rows of other concepts before signing (budget-route.ts:30, :42). The conventions name no owner for another concept's rpc (neighbors.ts holds only tables and procedures), so the steps describe them in prose."
+      },
+      {
+        "export": "rpc_payments_quotes_quote",
+        "kind": "rpc",
+        "why": "It is named in the forward-only comment (client.payments.quote and the org quote). No sibling exports it. The row is implemented under backend banking/payouts/operations/quote.ts, so if the operations book needs it, an area owner must be chosen."
+      }
+    ],
+    "designFindings": [
+      "The personal pay path and executePrepared are two separate implementations of prepare, check, sign and submit, and they give different guarantees. The personal path fences the auth lifetime only around a settled replay. Its abandon is unfenced, its submit is unfenced, and it reads the session twice. The command path fences every await, including abandon and submit. Evidence: execution.ts:180-275 vs command-execution.ts:80-256; prepared-execution.ts:16 vs :81.",
+      "The personal path calls abandon even when the prepare returned a settled replay and the caller then aborts. executePrepared never closes a replayed execution. Evidence: execution.ts:209-219 vs command-execution.ts:121.",
+      "A failed abandon call replaces the caller's real error (signer refusal, mismatch, cancel) with the abandon's own error. Evidence: prepared-execution.ts:32, :115.",
+      "One caller's onPrepared that throws fails a submission shared by every caller with the same request key, and the prepared execution is left open. Evidence: personal-flights.ts:84; execution.ts:221; command-execution.ts:208.",
+      "Lifecycle retries (personal and Organization) pass closePaymentOnExit false. A mismatch, an abort or a signer refusal leaves the prepared retry execution open on the backend. Evidence: lifecycle-execution.ts:120.",
+      "The budget-route check reads two other concepts' rows from the client (permissions.allowances.list, payroll.departments.get) and swallows any read failure as 'not bound'. On the Organization path a transient read error permanently abandons the Payment as prepared_mismatch. The reads also bypass the abort signal and the method span. Evidence: budget-route.ts:29-46; command-execution.ts:180-187.",
+      "Span names drift from the declared operation tree. Organization pay and payBatch open organizationPayments.pay and .payBatch, while org.payments.pay and org.payments.payBatch are declared and unused. personal payments.pay opens no span at all, so its prepare, submit and abandon carry no client trace. payments.pay appears only as a CANCELLED label. Evidence: organization-payments.ts:127,147; observability operations/org.ts:147-148, money.ts:17-18; methods.ts:65; result-bridge.ts:100-135.",
+      "Invocation controls are handled differently per method. Personal pay ignores correlation_id, journey_id, timeoutMs and deadlineMs. Organization methods strip the time limits (observationOnlyControls), so they bound only a restoring session read. A caller that joins a shared flight loses its own controls. Evidence: methods.ts:65 vs :66-69; capxul-effect.ts:19-29; organization-flights.ts:130-145.",
+      "Each step has its own error vocabulary. A missing signer is INVALID_INPUT on personal pay but NOT_IMPLEMENTED on retry and on the Organization path. Cancel errors name three different operations: payments, payments.pay and organization-pay(-batch). Evidence: execution.ts:189-190; lifecycle-methods.ts:16-17; organization-flights.ts:83-88; command-execution.ts:95; organization-flights.ts:79.",
+      "The two pay paths compute request keys differently. The personal path names its key slot by the raw input, the Organization path by the decoded intent. A caller-supplied key bypasses Web Locks and storage entirely (no-op finish). Flights live in one in-memory bundle, so a second tab or process can still prepare twice for the same key. Evidence: personal-pay.ts:79-83; organization-payment-requests.ts:211-215; request-keys.ts:73-74; personal-pay.ts:163; organization-payments.ts:34.",
+      "Personal subscribe does not validate the paymentId; the Organization path does. Evidence: methods.ts:52-64 vs organization-payment-reads.ts:124-129.",
+      "The SDK payments surface and the old book do not match. The CLI's payment send, retry, cancel and reschedule all go through client.approvals.prepare. So client.payments.pay and .retry and client.org(orgId).payments.pay, .payBatch and .retry are not used by the CLI. Meanwhile the book names client.payments.cancel and .reschedule, which do not exist. Evidence: apps/cli/src/commands/payment (5 client.approvals.prepare calls); apps/docs/factory/operations/payment.cancel.yaml:41, payment.reschedule.yaml:37; methods.ts:28-44."
+    ],
+    "notes": "I fixed /home/user/capxul-next/books/as-is/payments/flows.ts in place and touched no other file. Nothing is committed. Typecheck: `cd /home/user/capxul-next/books && npx tsc -p . | grep as-is/payments/flows` now reports nothing; before the fix the only error was the import of rpc_payments_lifecycles_prepare_scoped from ./commands.ts, which now comes from ./schedules.ts. Loading the real siblings at runtime fails in schedules.ts, which imports procedure_access_require_feature_from_action from neighbors.ts, and neighbors.ts does not export it. That is not my file, so I loaded flows.ts against stub siblings under the scratchpad instead (/tmp/claude-0/-home-user/c92cd756-b1a0-5414-9fe4-a7834db8d32a/scratchpad/stub). All 7 records pass defineFlow validation; the longest flow about is 1820 of 2000 characters and every step about is 300 or less. The ids and export names follow CONVENTIONS.md. The rpc versus local step split is right, and no budget or world was invented. Forwarders (quote, payoutStage, list, get, previewRetry) correctly have no flow; they do only id decoding and reply checks around one rpc. The remaining gap is flow_client_approvals_prepare, which operations.ts needs and which only flows.ts may define. Its code is in packages/sdk/src/accounts/, outside this scope, so it still needs to be assigned."
+  }
+}

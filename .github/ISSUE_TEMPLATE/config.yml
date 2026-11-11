@@ -1,0 +1,8 @@
+# Issue forms for the Capxul build (docs/design/swarm-templates.md). People open three: a review answer (from the
+# portal's Review buttons), a decision pack and a defect. The task cards (task-*.yml) are opened by Mission Control
+# from docs/mission/tasks.json at stage 0 and are not for people. No blank issues: every issue is one of these forms.
+blank_issues_enabled: false
+contact_links:
+  - name: How the build runs, and every template
+    url: https://github.com/AaronAbuUsama/capxul-next/blob/integration/build/docs/design/swarm-templates.md
+    about: The templates every agent fills in, the forms below, and when each is opened. Steer a task on its task card or its pull request.
