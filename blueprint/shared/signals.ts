@@ -3,7 +3,7 @@
 // (foundation.ts). The judgments are the decisions at the end of this file.
 
 import { Schema } from "effect";
-import { defineDecision, defineLog } from "../../packages/blueprint-engine/src/index.ts";
+import { defineAlert, defineDashboard, defineDecision, defineInsight, defineLog } from "../../packages/blueprint-engine/src/index.ts";
 import { component_backend, system_capxul } from "./foundation.ts";
 
 const Outcome = Schema.Literals(["ok", "refused", "failed"]);
@@ -90,4 +90,104 @@ export const decision_signals_wide_rows = defineDecision({
     "are masked; person-entered values are never attributes.",
   source: "Aaron, 18:49 UTC 11 November 2026; spec docs/mission/record-kinds-spec-2026-11-11.md section 2",
   affects: [log_operation_row, log_process_row],
+});
+
+// ── what is asked of the rows: system health, for the operator ─────────────────────────────
+
+const LIVE = ["shared-world", "staging", "production"];
+
+export const insight_rpc_failure_rate = defineInsight({
+  id: "rpc_failure_rate",
+  title: "Failed rpc calls, by rpc, over 15 minutes",
+  about: "Each rpc's calls and failures (outcome failed: a defect, not a refusal) over the last 15 minutes of the environment's own traffic.",
+  reads: [log_operation_row],
+  query:
+    "select attributes.rpc as rpc, count() as calls, countIf(attributes.outcome = 'failed') as failures " +
+    "from logs where body = 'operation_row' and timestamp > now() - interval 15 minute " +
+    "and resource_attributes.capxul_env = '<env>' group by rpc order by failures desc",
+  display: "table",
+  env: LIVE,
+  answer: "On the thin-line world: every rpc the 12 steps call, with 0 failures.",
+});
+
+export const insight_rpc_p95 = defineInsight({
+  id: "rpc_p95",
+  title: "Slowest rpcs by p95 over 24 hours",
+  about: "Each rpc's p95 duration over the day, to set against its budget (policy P5).",
+  reads: [log_operation_row],
+  query:
+    "select attributes.rpc as rpc, count() as calls, quantile(0.95)(toFloat(attributes.duration_ms)) as p95_ms " +
+    "from logs where body = 'operation_row' and timestamp > now() - interval 24 hour " +
+    "and resource_attributes.capxul_env = '<env>' group by rpc order by p95_ms desc",
+  display: "table",
+  env: LIVE,
+});
+
+export const insight_process_backlog = defineInsight({
+  id: "process_backlog",
+  title: "Process runs failed or late to start, over 1 hour",
+  about: "Each durable process's runs, failures, and p95 wait from due to start, over the last hour.",
+  reads: [log_process_row],
+  query:
+    "select attributes.workflow as workflow, count() as runs, countIf(attributes.outcome = 'failed') as failures, " +
+    "quantile(0.95)(toFloat(attributes.queue_wait_ms)) as wait_p95_ms from logs where body = 'process_row' " +
+    "and timestamp > now() - interval 1 hour and resource_attributes.capxul_env = '<env>' group by workflow order by failures desc",
+  display: "table",
+  env: LIVE,
+});
+
+export const alert_rpc_failing = defineAlert({
+  id: "rpc_failing",
+  title: "An rpc is failing",
+  about: "Fires when one rpc fails often enough that it is not one bad call.",
+  insight: insight_rpc_failure_rate,
+  condition: "for any one rpc, 5 calls or more and a failure rate of 20% or more, over 15 minutes",
+  cadence: "5m",
+  severity: "notify",
+  route: ["operator"],
+  runbook:
+    "Open the rpc's failed rows by trace_id, read the failure code and mode, and follow the trace to the span that " +
+    "failed. A failure of an integration is the vendor's: check its status before changing code.",
+  silence: ["a world being restored from a snapshot", "the devnet"],
+});
+
+export const alert_process_stuck = defineAlert({
+  id: "process_stuck",
+  title: "Durable processes are failing or starting late",
+  about: "Fires when a process fails or its runs wait too long to start: payments, sweeps and reconciliation stop moving.",
+  insight: insight_process_backlog,
+  condition: "any process with a failed run, or a p95 wait from due to start over 5 minutes, over 1 hour",
+  cadence: "15m",
+  severity: "page",
+  route: ["operator"],
+  runbook:
+    "Find the run by its idempotency key. A failed run is resumed after the cause is fixed (wfl:<id>/resume holds, so " +
+    "resuming is safe); a late start means the worker is down or saturated.",
+  silence: ["a world being restored from a snapshot"],
+});
+
+export const dashboard_operator_health = defineDashboard({
+  id: "operator_health",
+  title: "Operator: is the server healthy",
+  about: "What Capxul's operator opens first: failing rpcs, slow rpcs and stuck processes, in the environment's own traffic.",
+  audience: "operator",
+  where: "posthog",
+  tiles: [insight_rpc_failure_rate, insight_rpc_p95, insight_process_backlog],
+});
+
+export const decision_signals_operator_watch = defineDecision({
+  id: "signals.operator-watch",
+  title: "The operator watches failing rpcs and stuck processes from the wide rows",
+  question: "Which server-wide alerts exist before any concept adds its own?",
+  options: [
+    { label: "two-alerts", text: "An rpc failing (5 calls, 20% failed, 15 minutes) notifies; a process failing or late to start pages." },
+    { label: "none-yet", text: "Add alerts per concept only." },
+  ],
+  chosen: "two-alerts",
+  why:
+    "Every rpc and every process writes a wide row (signals.wide-rows), so two queries cover the whole server. The " +
+    "thresholds are the old system's journey-reliability alert (5 starts, 20% failures), kept as a starting point; a " +
+    "process failing pages because money stops moving. Refusals are expected outcomes and never count as failures.",
+  source: "Aaron, 18:49 UTC 11 November 2026; old repository packages/tools/src/modules/analytics/internal/reliability.ts (reference only)",
+  affects: [alert_rpc_failing, alert_process_stuck, dashboard_operator_health],
 });

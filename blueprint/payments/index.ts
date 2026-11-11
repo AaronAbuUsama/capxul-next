@@ -10,5 +10,6 @@ import * as processes from "./processes.ts";
 import * as flows from "./flows.ts";
 import * as operations from "./operations.ts";
 import * as decisions from "./decisions.ts";
+import * as watch from "./watch.ts";
 
-export const modules = [data, procedures, commands, changes, ledger, processes, flows, operations, decisions] as const;
+export const modules = [data, procedures, commands, changes, ledger, processes, flows, operations, decisions, watch] as const;
