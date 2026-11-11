@@ -6,7 +6,8 @@
       {
         "id": "g1",
         "claim": "Every part of the system is a record, the machine, the worlds, the site service and a production environment included.",
-        "state": "open"
+        "state": "met",
+        "evidence": "r-g1-11110831 (docs/mission/research-2026-11-11.md): the machine (component:sites-host, sites-ingress, sites-backup), the worlds (environment:worlds, environment:shared-world, table:worlds, machine:world), the site service (component:site-service, integration:site-service, workflow:sites.create) and production (environment:production) are records; deploying them is m3b's work, not this exit"
       },
       {
         "id": "g2",
@@ -1712,17 +1713,56 @@
       "evidence": [],
       "created": "2026-11-11",
       "updated": "2026-11-11"
+    },
+    {
+      "id": "m1-g5-findings",
+      "title": "Every spike finding is a record or a decision, the CLI's stdout drain included",
+      "why": "exit g5: one spike finding has no record",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "m1-bind-doc-create",
+      "title": "The first near-miss becomes a binding: creating a document reads back a draft",
+      "why": "the score is 8 of 5,175; this is the pattern for binding the rest",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "m1-reading-checklist",
+      "title": "Aaron's reading checklist for accepting the portal",
+      "why": "exit g7 needs a read with an end and a commit",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
     }
   ],
   "path": {
     "tasks": [
+      "m1-reading-checklist",
       "m1-aaron-accepts",
+      "m1-bind-doc-create",
+      "m1-eval-coverage",
+      "m1-g5-findings",
       "m1-model-gateway",
       "m1-loop-hardening",
-      "m1-eval-coverage",
       "m1-time-proof"
     ],
-    "why": "m1-portal-provenance merged (2282c89); m1-portal-answer-states merging. Next: Aaron reads the portal and accepts it",
+    "why": "Exits g1, g2, g3 met. Open: g5 (one finding), g7 (Aaron's read: the checklist first), g8 (the shared world, m3b). The score (8 of 5,175) is the biggest lever: bind near-misses one by one, starting with acc:doc.create/1, with the Frappe stack up on the Mac",
     "written": "2026-11-11"
   },
   "notes": [
@@ -1945,6 +1985,11 @@
       "date": "2026-11-11",
       "by": "coordinator",
       "text": "Portal fixes merged: provenance (2282c89), answer states (885147b), then the Questions copy in plain words. Full checks pass at the head. Next on the path: m1-aaron-accepts (r-g7: a reading checklist tied to a named commit, then ask Aaron)"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "Batch of five at once (LOOP_MAX_AGENTS=6): m1-merge-clears-path, m1-gate-no-new-questions (packages/loop, disjoint files), m1-g5-findings (blueprint), m1-bind-doc-create (spikes/skeleton B6, evals/bindings), m1-reading-checklist (its task file). g1 met"
     }
   ]
 }

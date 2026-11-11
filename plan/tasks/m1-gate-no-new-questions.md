@@ -5,3 +5,5 @@ m1-loop-decision-11110813 merged a decision (loop.gateway) whose text cites Aaro
 ## Done when
 - A lane that adds a for-aaron decision fails the gate, with a test
 - pnpm loop:test passes
+
+Touch only packages/loop/src/modules/capxul/internal/gates.ts, a new file beside it if needed, and their test; another run has merge.ts.

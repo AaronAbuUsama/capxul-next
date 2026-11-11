@@ -5,3 +5,5 @@ On 11 November the merge of m1-portal-answer-states was refused because m1-porta
 ## Done when
 - A merge of a task on the path leaves it off the path, with a test
 - pnpm loop:test passes
+
+Touch only packages/loop/src/modules/capxul/internal/merge.ts and its test; another run has gates.ts.
