@@ -2007,6 +2007,11 @@
       "date": "2026-11-11",
       "by": "coordinator",
       "text": "Batch of five at once (LOOP_MAX_AGENTS=6): m1-merge-clears-path, m1-gate-no-new-questions (packages/loop, disjoint files), m1-g5-findings (blueprint), m1-bind-doc-create (spikes/skeleton B6, evals/bindings), m1-reading-checklist (its task file). g1 met"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "m1-bind-doc-create-11110927 blocked only because the lane's policy refuses bash -n; the coordinator ran bash -n and evals check (9 bound, 33 near-misses, 0 problems) and merges it by hand, then runs the eval on the Mac"
     }
   ]
 }
