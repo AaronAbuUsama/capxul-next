@@ -12,7 +12,7 @@ import { clean, DEFAULTS, loadDefinitions, logs, merge, resume, serve, showFull,
 const USAGE = [
   "       loop alerts [--once] (preview once, or reconcile notifications every 30 seconds)",
   "       loop agents [--json] (definitions in packages/loop/agents/)",
-  "usage: loop run <task id> [--script pair] [--model provider/id] [--checker-model provider/id] [--sandbox cloud|none|light|heavy]",
+  "usage: loop run <task id> [--script pair] [--model provider/id] [--checker-model provider/id] [--sandbox cloud(default)|none|light|heavy]",
   "                          [--rounds 3] [--budget-usd 5] [--timeout-min 30] [--checkers reviewer,adversary]",
   "       loop resume <run id> | stop <run id> | merge <run id> | clean [<run id>]",
   "       loop work [--concurrency 2] [--task a,b] [--wait]   (the options of run apply to every run it starts)",

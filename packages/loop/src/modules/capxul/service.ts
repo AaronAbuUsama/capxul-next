@@ -32,7 +32,8 @@ export { gatesOf } from "./internal/gates.ts";
 export { loadDefinitions, VOCABULARY } from "./internal/agents.ts";
 export { POLICY } from "./internal/config.ts";
 
-export const DEFAULTS: Opts = { script: "pair", sandbox: "none", rounds: 3, budgetUsd: 5, timeoutMin: 30 };
+/** `cloud` by default: agents work off this machine (Aaron, 11 November 2026: the layer passes only so). */
+export const DEFAULTS: Opts = { script: "pair", sandbox: "cloud", rounds: 3, budgetUsd: 5, timeoutMin: 30 };
 /** How many agents may work at once across every run of this checkout (`LOOP_MAX_AGENTS`, default 3: what the gateway has carried). */
 const maxAgents = (ctx: Ctx): number => Math.max(1, Number(ctx.env.LOOP_MAX_AGENTS) || 3);
 /** How long the loop waits for a failing gateway before it continues an agent, after pi's own retries of the request. */
