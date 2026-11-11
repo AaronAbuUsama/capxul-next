@@ -1421,6 +1421,11 @@
       "date": "2026-11-11",
       "by": "coordinator",
       "text": "08:20: 'lock test 1-3' were three plan notes written at once to prove the plan write lock (var/plan.lock); all three kept. m1-gaps-refusal-worlds' start was lost to the race at 08:00:31 and is written again"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "08:45: merging m1-gaps-refusal-worlds-11110800 (9bc22e6) and m1-gaps-dev-stand-11110802 (d02e5a5), both reviewer approve. dev-stand failed only on a transient GitHub push; pushed by hand and resumed to ready; the push now retries (3b7a2ff)"
     }
   ]
 }
