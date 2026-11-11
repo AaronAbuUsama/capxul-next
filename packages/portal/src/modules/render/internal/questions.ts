@@ -6,6 +6,7 @@
 import type { Question, QuestionsPage } from "#src/modules/site/types.ts";
 
 import { chip, count, esc, hrefTo, link, plural, prose } from "./html.ts";
+import { markdown } from "./markdown.ts";
 import { fold } from "./parts.ts";
 import { blocks, folded, paragraphs, rich, type Cites } from "./prose.ts";
 
@@ -59,6 +60,7 @@ const meta = (p: QuestionsPage, q: Question, i: number): string =>
 const needArticle = (p: QuestionsPage, q: Question, i: number, cites: Cites): string =>
   `<article class="q" ${attrs(q)}>${meta(p, q, i)}<h2>${prose(q.title)}</h2><p class="eyebrow eyebrow-muted">What is needed</p>` +
   `${blocks(p.id, q.question, cites, "prose q-text")}<p class="eyebrow eyebrow-muted">Why it is needed</p>${blocks(p.id, q.why, cites, "prose")}` +
+  (q.details === "" ? "" : fold("The whole task: what is asked, why, and when it is done", markdown(q.details))) +
   `<div class="actions js-only"><button type="button" disabled class="btn btn-blue" data-act="done">I've done this</button>` +
   `<button type="button" disabled class="btn btn-line" data-act="change">Tell the coordinator something</button></div>` +
   `<div class="change" hidden><label class="change-label" for="change-${esc(q.key)}">What should the coordinator know? For example the subdomain.</label>` +
