@@ -1556,10 +1556,12 @@
       "title": "Each verdict shows its run, date and commit; no page claims code is missing when it only lacks a verdict",
       "why": "exit g7: pages claim more than is known",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "2282c890d5ffccd355e66dc813afee72cb99852f"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "m1-portal-provenance-11110854"
