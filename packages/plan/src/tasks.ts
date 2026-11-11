@@ -205,9 +205,9 @@ for (const k of [CLIMB, "milestone:m2", "milestone:m3"]) if (!MILESTONES.some((m
 /** Blueprint records whose evals no lane owns: the system's own, and the environments the plan's milestones stand up. */
 const MILESTONE_BOOK: Readonly<Record<string, readonly string[]>> = {
   m1: ["system:capxul"],
-  // the devnet's own environment and the invariants over no table (the clock's among them) are stood up with the door and the clock
-  m3: ["environment:devnet", ...ofKind("invariant").filter((i) => !(i.over as unknown[] | undefined)?.length).map(keyOf)],
-  m3b: ["environment:shared-world", "environment:worlds"], m5: ["environment:staging", "environment:production"],
+  // the devnet's environment, the invariants over no table (the clock's) and the server's log rows and metrics come with the door
+  m3: ["environment:devnet", ...ofKind("invariant").filter((i) => !(i.over as unknown[] | undefined)?.length).map(keyOf), ...ofKind("log").map(keyOf), ...ofKind("metric").map(keyOf)],
+  m3b: ["environment:shared-world", "environment:worlds", ...["insight", "alert", "dashboard", "screen"].flatMap((k) => ofKind(k).map(keyOf))], m5: ["environment:staging", "environment:production"],
 };
 
 add({ key: "capxul", kind: "root", title: "Capxul rebuilt", priority: "critical", evals: ["ok:capxul"], checkers: [], paths: [],
