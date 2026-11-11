@@ -1558,7 +1558,7 @@
       "evidence": [],
       "created": "2026-11-11",
       "updated": "2026-11-11",
-      "thread": "m1-portal-provenance-11110835"
+      "thread": "m1-portal-provenance-11110854"
     },
     {
       "id": "m1-portal-answer-states",
@@ -1571,7 +1571,7 @@
       "evidence": [],
       "created": "2026-11-11",
       "updated": "2026-11-11",
-      "thread": "m1-portal-answer-states-11110835"
+      "thread": "m1-portal-answer-states-11110854"
     },
     {
       "id": "r-m3-site-stops-calling",
@@ -1889,6 +1889,11 @@
       "date": "2026-11-11",
       "by": "coordinator",
       "text": "11:00: gateway ramp step 8 done: 8 research runs at once, 0 model failures, 8 refused. Step 12: four pair runs (m1-alerts, m1-portal-overview-true, m1-portal-provenance, m1-portal-answer-states) and eight research runs (r-<task> for the next tasks), LOOP_MAX_AGENTS=12"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "11:40: ramp at 12 done: 12 runs at once, 0 model failures, 16 refused. Merging m1-portal-overview-true-11110835 (reviewer approve, round 2)"
     }
   ]
 }
