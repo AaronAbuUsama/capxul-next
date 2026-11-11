@@ -1214,6 +1214,20 @@
       "title": "The dev commands get their acceptance lines",
       "why": "Exit g2: 6 of the last 11 gaps are dev commands with no acceptance lines",
       "milestone": "m1",
+      "state": "dropped",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11",
+      "thread": "m1-gaps-dev-acceptance-11110800",
+      "droppedWhy": "run m1-gaps-dev-acceptance-11110800 blocked rightly: the freeze forbids new acceptance lines and devnet.surface-gap-disposition already keeps them empty. Replaced by m1-gaps-dev-stand"
+    },
+    {
+      "id": "m1-gaps-refusal-worlds",
+      "title": "Every refusal is reached by a world, or stands with its own reason",
+      "why": "Exit g2: 5 of the last 11 gaps are refusals that no world reaches",
+      "milestone": "m1",
       "state": "todo",
       "needs": [],
       "records": [],
@@ -1222,9 +1236,9 @@
       "updated": "2026-11-11"
     },
     {
-      "id": "m1-gaps-refusal-worlds",
-      "title": "Every refusal is reached by a world, or stands with its own reason",
-      "why": "Exit g2: 5 of the last 11 gaps are refusals that no world reaches",
+      "id": "m1-gaps-dev-stand",
+      "title": "The six dev commands' empty acceptance lists stand with their recorded reason",
+      "why": "Exit g2: decision devnet.surface-gap-disposition keeps the six dev commands' acceptance lists empty (the freeze requires equal lengths), but it records no stands, so they still count as 6 open gaps",
       "milestone": "m1",
       "state": "todo",
       "needs": [],
