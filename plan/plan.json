@@ -1798,13 +1798,14 @@
       "title": "The loop's rules allow harmless reads, and the Runs page shows a refusal as a rule, not a failure",
       "why": "Aaron asked why 'refused by the loop policy' keeps showing; most refusals today were harmless reads",
       "milestone": "m1",
-      "state": "doing",
+      "state": "dropped",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
       "updated": "2026-11-11",
-      "thread": "m1-policy-fit-11110953"
+      "thread": "m1-policy-fit-11110953",
+      "droppedWhy": "superseded by Aaron's decision of 11 Nov (no command gate): m1-no-command-gate; its run was stopped"
     },
     {
       "id": "m1-ops-supervisor",
