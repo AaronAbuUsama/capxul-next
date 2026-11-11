@@ -53,6 +53,7 @@ book" or "the book" and lived in `books/`; older documents and records still say
 | `plan` | The plan CLI, the plan's checks and the task tree | `src/main.ts` (`pnpm plan`), `src/tasks.ts` (`pnpm tasks`) |
 | `evals` | Runs the checks bound to evals; the only writer of `status/` | `src/record-status.ts` |
 | `loop` | The agent runner on pi-durable; this is where pi-durable is used | |
+| `sandbox` | Boxes off the Mac (Cloudflare containers, or local Docker) that a person, a run or one agent creates, works in and destroys; the runaway guard | `src/main.ts` (`pnpm sandbox`), `image/`, `worker/`, `deploy.sh` |
 | `contracts` | The product's contracts (Foundry) | `abi-check/`: `main.ts` (`pnpm contracts:check-blueprint`), `export-abi.ts` (`pnpm contracts:export-abi`) |
 | `sdk` | The product SDK | |
 | `devnet` | The local chain and worlds | `cloud/` (the product stack in a Claude cloud container), `src/modules/company/` (a company's life on the real v4 contracts) |

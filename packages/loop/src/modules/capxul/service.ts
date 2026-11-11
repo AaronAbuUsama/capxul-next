@@ -7,7 +7,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { ask, hostAs, lastJson, openHost, record, type Host } from "../agents/service.ts";
+import { ask, hostAs, lastJson, openHost, record, type Host, type HostOptions } from "../agents/service.ts";
 import { commitAll, ensureLane, git, head, laneBlocked, pushBranch, slug, type Lane } from "../lanes/service.ts";
 import { acquire, alive, ledgerLines, listRuns, play, readInfo, SETTLED, stop as stopRun, watchRun, work as workLoop, type Info, type Run } from "../runs/service.ts";
 import { definitionOf, FOLDER as AGENTS, lacks, makes, modelOf, namesOf, profileOf, profilesOf, recordOf, systemOf } from "./internal/agents.ts";
@@ -21,7 +21,9 @@ import { changesOf, showDetail, showView, statusViews, viewsTable, type Look, ty
 import { findingsOf, gatesFor, runGates } from "./internal/gates.ts";
 import * as plan from "./internal/plan.ts";
 import { checkerPrompt, makerPrompt as renderMaker, researchPrompt, type CheckInput } from "./internal/prompts.ts";
-import { startSandbox, stopSandbox } from "./internal/sandbox.ts";
+import { runnerOf, startSandbox, stopSandbox } from "./internal/sandbox.ts";
+import { boxFor, downOwned, inBox, sweepBoxes } from "./internal/cloud.ts";
+import { sandboxTools } from "./internal/boxes.ts";
 import { baseOf, runDir, runsDir } from "./internal/where.ts";
 import { cleanEnv } from "./internal/sh.ts";
 import type { Check, Ctx, Finding, Gate, Handback, Job, Opts, SandboxInfo, Said, Task } from "./types.ts";
@@ -31,6 +33,7 @@ export { gatesOf } from "./internal/gates.ts";
 export { loadDefinitions, VOCABULARY } from "./internal/agents.ts";
 export { POLICY } from "./internal/config.ts";
 
+/** `main.ts` makes `cloud` the default once a sandbox is set up (Aaron, 11 November 2026: agents work off his Mac). */
 export const DEFAULTS: Opts = { script: "pair", sandbox: "none", rounds: 3, budgetUsd: 5, timeoutMin: 30 };
 /** How many agents may work at once across every run of this checkout (`LOOP_MAX_AGENTS`, default 3: what the gateway has carried). */
 const maxAgents = (ctx: Ctx): number => Math.max(1, Number(ctx.env.LOOP_MAX_AGENTS) || 3);
@@ -44,7 +47,8 @@ const modelSaid = (detail = ""): string => (detail.includes("<") ? `The gateway 
 /** The lane: a worktree on `lane/<task>` cut from integration/build. `{ install: false }` when the agent only reads. */
 export const lane = async (job: Job, o: { install?: boolean } = {}): Promise<Lane> => {
   const made = await job.run.step("lane", async () => ensureLane(job.ctx.root, join(job.run.dir, "lane"), job.task.id, baseOf(job.ctx), (dir) => {
-    if ((o.install ?? true) && existsSync(join(dir, "pnpm-lock.yaml"))) execFileSync("pnpm", ["install", "--frozen-lockfile", "--prefer-offline"], { cwd: dir, stdio: "ignore", env: cleanEnv(job.ctx) });
+    // In a cloud sandbox the packages are installed in the box, never here.
+    if ((o.install ?? true) && job.opts.sandbox !== "cloud" && existsSync(join(dir, "pnpm-lock.yaml"))) execFileSync("pnpm", ["install", "--frozen-lockfile", "--prefer-offline"], { cwd: dir, stdio: "ignore", env: cleanEnv(job.ctx) });
   }));
   return (job.lane = made);
 };
@@ -84,13 +88,15 @@ export const agent = (job: Job, name: string, o: { role: string; prompt: string;
   const kit = kitFor(job, name, def);                                 // the capture tools: what this agent shows is made by them
   await record(job.run.host, "loop.agent", name, { definition: recordOf(def) });       // the definition it runs under, for whoever looks at the run
   const said = await ask(host, {                                       // `host` hands out the definition's tools, whichever profile is named
-    key: name, model, system: systemOf(def, job.ctx.root), prompt: o.prompt, cwd: wt.dir, tools: kit.tools,
+    key: name, model, system: systemOf(def, job.ctx.root), prompt: o.prompt, cwd: wt.dir, tools: [...kit.tools, ...sandboxTools(job, def.tools)],
     profile: "read", maxTurns: 80, timeoutMs: job.opts.timeoutMin * 60_000, stopFile: job.run.stopFile, modelWaitsMs: job.ctx.retry?.waitsMs ?? MODEL_WAITS_MS,
   }).finally(() => { release(); return kit.close(); });
-  if (reads) { const undone = restore(wt.dir); if (undone.length > 0) job.ctx.say(`${name} left ${undone.length} change(s) in the lane; they are undone`); }
+  const box = boxFor(job.ctx, job.box);
+  if (reads) { const undone = box ? inBox(await box.restore(wt.dir)) : restore(wt.dir); if (undone.length > 0) job.ctx.say(`${name} left ${undone.length} change(s) in the lane; they are undone`); }
   // A model that never answered is not a hand-back and not a review: the run fails here, with the gateway's words, and no round is spent on it.
   if (!said.ok && /^unanswered: (model_error|no_model|interrupted)/.test(said.error ?? "")) throw new Error(`${name}: the model did not answer (${said.error!.replace("unanswered: ", "").replace("_", " ")}), after waiting for it ${(job.ctx.retry?.waitsMs ?? MODEL_WAITS_MS).length} times. ${modelSaid(said.detail)}`);
-  return { ...said, head: reads ? head(wt.dir) : commitAll(wt.dir, `loop: ${name}`) } as unknown as Said;
+  // A maker's work is committed where it was made; from a box the commits come back into the lane here.
+  return { ...said, head: reads ? head(wt.dir) : box ? inBox(await box.pull(wt.dir, wt.branch, `loop: ${name}`)) : commitAll(wt.dir, `loop: ${name}`) } as unknown as Said;
 });
 
 /** What the maker handed back (swarm-templates.md section 3), or nothing if its last message was not one. */
@@ -101,7 +107,7 @@ export const handback = (said: Said): Handback | undefined => {
 
 /** The repository's checks, run by the runner in the lane. A failing gate is data: it becomes the next round's finding. */
 export const gate = (job: Job, name: string): Promise<Gate[]> =>
-  job.run.step(name, () => runGates(job.ctx, job.lane!.dir, job.task, { env: job.box?.env ?? {}, out: join(job.run.dir, `${name}.out`), stopped: () => existsSync(job.run.stopFile) }) as unknown as Promise<Gate[]>) as Promise<Gate[]>;
+  job.run.step(name, () => runGates(job.ctx, job.lane!.dir, job.task, { env: job.box?.env ?? {}, out: join(job.run.dir, `${name}.out`), stopped: () => existsSync(job.run.stopFile), run: runnerOf(job.ctx, job.box) }) as unknown as Promise<Gate[]>) as Promise<Gate[]>;
 
 export interface ReviewSpec { role: string; round: number; made: Said; gates: Gate[]; open: Finding[]; from?: string }
 
@@ -135,7 +141,7 @@ export const settle = (round: number, open: Finding[], gates: Gate[], checks: Ch
 export { researchPrompt };
 
 const finish = async (job: Job, status: "ready" | "blocked" | "answered", reasons: string[]): Promise<void> => {
-  await stopSandbox(job.ctx, job.lane, job.box);
+  await stopSandbox(job.ctx, job.lane, job.box, job.run.id);
   job.box = { kind: "none", env: {} };
   await job.run.end(status, reasons);
 };
@@ -165,15 +171,16 @@ const loadScript = async (ctx: Ctx, name: string): Promise<Script> => {
   return ((await import(file)) as { default: Script }).default;
 };
 
-const open = (ctx: Ctx, dir: string, env: Record<string, string>, readOnly = false, wanted: string[] = []): Promise<Host> =>
-  openHost({ file: join(dir, "run.sqlite"), models: modelsOf(ctx, [...wanted, ...ctx.agents.map((a) => a.model)]), env, policy: POLICY, profiles: profilesOf(ctx.agents), readOnly, ...(ctx.retry ? { retry: { maxRetries: ctx.retry.maxRetries, baseDelayMs: ctx.retry.baseDelayMs } } : {}) });
+const open = (ctx: Ctx, dir: string, env: Record<string, string>, readOnly = false, wanted: string[] = [], envFor?: HostOptions["envFor"]): Promise<Host> =>
+  openHost({ file: join(dir, "run.sqlite"), models: modelsOf(ctx, [...wanted, ...ctx.agents.map((a) => a.model)]), env, policy: POLICY, ...(envFor ? { envFor } : {}), profiles: profilesOf(ctx.agents), readOnly, ...(ctx.retry ? { retry: { maxRetries: ctx.retry.maxRetries, baseDelayMs: ctx.retry.baseDelayMs } } : {}) });
 
 const playJob = (ctx: Ctx, id: string, task: Task, opts: Opts, script?: Script): Promise<Info> => {
   const dir = join(runsDir(ctx), id), env: Record<string, string> = cleanEnv(ctx);
   const was = existsSync(join(dir, "status.json")) ? readInfo(dir).extra : {};
   let job: Job | undefined, door: Door | undefined;
   return play({
-    dir, id, subject: task.id, now: ctx.now, open: () => open(ctx, dir, env, false, [opts.model, opts.checkerModel].filter((x): x is string => !!x)),
+    dir, id, subject: task.id, now: ctx.now, // In a cloud sandbox every tool call of every agent runs in the run's box.
+    open: () => open(ctx, dir, env, false, [opts.model, opts.checkerModel].filter((x): x is string => !!x), (cwd) => boxFor(ctx, job?.box)?.env(cwd, env)),
     extra: () => ({ opts, task, lane: job?.lane ?? was.lane, sandbox: job?.box ?? was.sandbox, source: task.source, gateway: ctx.models ? "test" : gatewayOf(ctx).name, door: door?.at ?? null }),
     script: async (run: Run) => {
       job = { ctx, run, env, task, opts, ...(was.lane ? { lane: was.lane as Lane } : {}), ...(was.sandbox ? { box: was.sandbox as SandboxInfo } : {}) };
@@ -183,7 +190,10 @@ const playJob = (ctx: Ctx, id: string, task: Task, opts: Opts, script?: Script):
       try {
         if (task.source === "plan") await run.step("plan.claim", async () => { plan.claim(ctx, task.id, id); return true; });
         await (script ?? await loadScript(ctx, opts.script))(job);
-      } finally { await door.close(); door = undefined; }
+      } finally {
+        await door.close(); door = undefined;
+        await downOwned(ctx, id);   // however the run ends, its boxes (and its agents' own) go down; a resume starts its own again
+      }
     },
   });
 };
@@ -281,5 +291,9 @@ export const serve = (ctx: Ctx, o: { port: number; sinceHours?: number }): Promi
     note: (id, n) => sendNote(ctx, id, n),
     say: ctx.say,
     evidence: (id) => (existsSync(join(runsDir(ctx), id, "status.json")) ? join(runsDir(ctx), id, EVIDENCE) : null),
-  }, { port: o.port, ...(ctx.env.LOOP_HOST_ORIGINS ? { origins: ctx.env.LOOP_HOST_ORIGINS.split(",") } : {}), ui: ctx.env.LOOP_UI_DIR ?? join(ctx.root, "packages/loop-ui/dist") });
+  }, { port: o.port, ...(ctx.env.LOOP_HOST_ORIGINS ? { origins: ctx.env.LOOP_HOST_ORIGINS.split(",") } : {}), ui: ctx.env.LOOP_UI_DIR ?? join(ctx.root, "packages/loop-ui/dist") })
+    .then((served) => {
+      const halt = sweepBoxes(ctx, (id) => { try { const i = readInfo(runDir(ctx, id)); return i.status === "running" && alive(i.pid); } catch { return false; } });
+      return { ...served, close: () => { halt(); return served.close(); } };
+    });
 };

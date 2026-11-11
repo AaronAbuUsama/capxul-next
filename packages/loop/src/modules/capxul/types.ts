@@ -9,7 +9,7 @@ import type { Evidence, Exec, Tooling } from "../evidence/types.ts";
 import type { Lane } from "../lanes/service.ts";
 import type { Run } from "../runs/service.ts";
 
-export type SandboxKind = "none" | "light" | "heavy";
+export type SandboxKind = "none" | "light" | "heavy" | "cloud";
 
 /** What a person chose on the command line; the script reads it as `job.opts`. */
 export interface Opts {
@@ -55,7 +55,8 @@ export interface Task {
   readonly budgetUsd?: number;
 }
 
-export interface SandboxInfo { readonly kind: SandboxKind; readonly env: Readonly<Record<string, string>>; readonly port?: number; readonly pid?: number; readonly world?: string }
+/** `box`, `url` and `launcher`: a `cloud` sandbox's box, where it answers and what started it (never its key). */
+export interface SandboxInfo { readonly kind: SandboxKind; readonly env: Readonly<Record<string, string>>; readonly port?: number; readonly pid?: number; readonly world?: string; readonly url?: string; readonly launcher?: string; readonly box?: string }
 
 /** What a script is handed: the run, the task, the options, and (once made) its lane and sandbox. */
 export interface Job { readonly ctx: Ctx; readonly run: Run; /** What the agents' commands see: filled in by `sandbox`. */ readonly env: Record<string, string>; readonly task: Task; readonly opts: Opts; lane?: Lane; box?: SandboxInfo }

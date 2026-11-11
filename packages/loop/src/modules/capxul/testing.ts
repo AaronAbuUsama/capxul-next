@@ -63,7 +63,7 @@ export const rig = () => {
   return { dir, root, origin, faux, ctx, calls, lines, held, release };
 };
 
-export const opts: Opts = { ...DEFAULTS, model: "faux/faux-1", checkerModel: "faux/faux-1", rounds: 2 };
+export const opts: Opts = { ...DEFAULTS, sandbox: "none", model: "faux/faux-1", checkerModel: "faux/faux-1", rounds: 2 };
 export const handback = (note: string) => `\`\`\`json\n${JSON.stringify({ submit: { version: { kind: "commit", repo: "x", commit: "0" }, addresses: [], note }, pr: 0, handover: { done: ["made it"], left: [], decisions: [], where: [] }, ran: {} })}\n\`\`\``;
 export const check = (verdict: string, findings: unknown[] = []) => `\`\`\`json\n${JSON.stringify({ verdict, findings, fixed: [], ran: {}, verdicts: [] })}\n\`\`\``;
 export const makes = (file: string) => [fauxAssistantMessage(fauxToolCall("write", { path: file, content: "made\n" }), { stopReason: "toolUse" }), fauxAssistantMessage(handback("Changed: a file."))];

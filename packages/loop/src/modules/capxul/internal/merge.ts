@@ -7,7 +7,7 @@ import { listRuns, readInfo, type Info } from "../../runs/service.ts";
 import type { Ctx, Gate, Opts, Task } from "../types.ts";
 import { runGates } from "./gates.ts";
 import * as plan from "./plan.ts";
-import { startSandbox, stopSandbox } from "./sandbox.ts";
+import { runnerOf, startSandbox, stopSandbox } from "./sandbox.ts";
 import { runDir, runsDir } from "./where.ts";
 
 /** Tracked files with uncommitted changes, outside plan/ and var/ (the runner itself writes there). An untracked file is not in a merge's way. */
@@ -27,7 +27,7 @@ export const merge = async (ctx: Ctx, id: string): Promise<string[]> => {
   const task = info.extra.task as Task;
   const box = await startSandbox(ctx, opts.sandbox, wt, id);
   let gates: Gate[];
-  try { gates = await runGates(ctx, wt.dir, task, { env: box.env as Record<string, string>, out: join(dir, `merge-gates.${ctx.now().getTime()}.out`) }); } finally { await stopSandbox(ctx, wt, box); }
+  try { gates = await runGates(ctx, wt.dir, task, { env: box.env as Record<string, string>, out: join(dir, `merge-gates.${ctx.now().getTime()}.out`), run: runnerOf(ctx, box) }); } finally { await stopSandbox(ctx, wt, box, id); }
   const failed = gates.filter((g) => !g.ok);
   if (failed.length) return [`refused: ${failed.length} of ${gates.length} gates fail on ${wt.branch} with ${wt.base} merged in`, ...failed.map((g) => `  ${g.name}: ${g.tail.split("\n").slice(-3).join(" ")}`)];
   git(ctx.root, "push", "--dry-run", "origin", wt.base);

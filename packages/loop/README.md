@@ -26,7 +26,7 @@ pnpm loop clean [<run id>]                                   # remove finished r
 ```
 
 Flags of `run` (and of every run `work` starts): `--script pair|research`, `--model`, `--checker-model` (`provider/id`; a
-bare id is the gateway's), `--sandbox none|light|heavy`, `--rounds 3`, `--budget-usd 5`, `--timeout-min 30`,
+bare id is the gateway's), `--sandbox cloud|none|light|heavy` (default `cloud` once a sandbox is set up, `none` until then), `--rounds 3`, `--budget-usd 5`, `--timeout-min 30`,
 `--checkers reviewer,adversary`. Tests: `pnpm loop:test`.
 
 ## Agent definitions
@@ -155,6 +155,18 @@ after a retry, a resume or a restart). A gateway that binds a session to one ups
   unmerged work is kept as `kept/<run id>`, so the next run of the task starts from the base.
 
 ## Sandboxes
+
+`cloud` (the default once `packages/sandbox/deploy.sh` has set one up, Aaron's ruling of 11 November 2026): the run's agents execute in a box off this Mac
+(`packages/sandbox`, `capxul/internal/cloud.ts`). Every tool call of every agent, every gate and every commit runs in the
+run's box; the lane here gets the commits back as git, so `loop show`, the push and the merge read it as before. The
+ledger, the model calls and a person's notes stay here. The box has no network: the image holds the repository and its
+packages, and a chain runs in it as in `light`.
+
+**An agent's own boxes.** The builder also has `sandbox_up`, `sandbox_exec` and `sandbox_down` (`capxul/internal/boxes.ts`),
+in any sandbox: a fresh box of its own, with its lane in it if it asks, at most three at once. They run in the process
+that plays the run, so the sandbox key never reaches an agent. Every box is owned by the run (`run:<id>`) and goes down
+however the run ends; `loop serve` takes down the boxes of runs no process plays every five minutes, and each box's
+expiry on Cloudflare catches the rest.
 
 `none`; `light`: a local chain from the seeded state (`packages/contracts/bin/chain-up.sh core`, run in the lane) on a free
 port asked of the system, its address handed to the agent as `CAPXUL_CHAIN_RPC`, stopped at the end; `heavy`: a world with a

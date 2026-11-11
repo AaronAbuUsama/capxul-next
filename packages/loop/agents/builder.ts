@@ -6,6 +6,6 @@ export default defineAgent({
   description: "Makes the task's change in its lane, runs the checks itself, and hands back a note and a handover.",
   model: "gpt-6.1-sol",
   instructions: "../../../.claude/agents/builder.md",
-  tools: ["read", "write", "edit", "bash", "record_terminal", "browser", "screenshot", "record_screen"],
+  tools: ["read", "write", "edit", "bash", "record_terminal", "browser", "screenshot", "record_screen", "sandbox_up", "sandbox_exec", "sandbox_down"],
   shell: "write",                           // what it leaves in its lane is committed as its work
 });
