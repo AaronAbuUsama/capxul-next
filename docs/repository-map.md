@@ -56,6 +56,7 @@ book" or "the book" and lived in `books/`; older documents and records still say
 | `contracts` | The product's contracts (Foundry) | `abi-check/`: `main.ts` (`pnpm contracts:check-blueprint`), `export-abi.ts` (`pnpm contracts:export-abi`) |
 | `sdk` | The product SDK | |
 | `devnet` | The local chain and worlds | |
+| `bench-image` | The hosted bench's production Frappe image and its check | decision `sites.bench-image` |
 | `layout` | The layout check | `src/main.ts` (`pnpm layout`), `oversize.json` |
 
 ## Where `tools/` went

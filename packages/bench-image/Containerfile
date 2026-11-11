@@ -1,0 +1,37 @@
+# syntax=docker/dockerfile:1
+# The Capxul bench image: Frappe, ERPNext, Frappe HR, Frappe CRM, the WhatsApp app and the capxul app, built for
+# production (gunicorn, separate workers, assets baked in). Build it with bin/build.sh, which passes the pinned bases from
+# apps.lock.json and the capxul app as the build context `capxul-app`. See README.md and decision sites.bench-image.
+ARG BUILD_IMAGE
+ARG RUNTIME_IMAGE
+
+FROM ${BUILD_IMAGE} AS builder
+USER frappe
+WORKDIR /home/frappe
+COPY --chown=frappe:0 apps.lock.json /opt/capxul/apps.lock.json
+COPY --chown=frappe:0 resources/build-bench.sh /opt/capxul/build-bench.sh
+COPY --from=capxul-app --chown=frappe:0 . /opt/capxul/capxul-app
+# build_ca is optional: a build behind a TLS-inspecting proxy passes the proxy's CA as a secret, so it never enters a layer.
+RUN --mount=type=secret,id=build_ca,uid=1000,required=false \
+    bash /opt/capxul/build-bench.sh /opt/capxul/apps.lock.json /opt/capxul/capxul-app /home/frappe/frappe-bench
+
+FROM ${RUNTIME_IMAGE} AS runtime
+USER frappe
+COPY --from=builder --chown=frappe:0 /home/frappe/frappe-bench /home/frappe/frappe-bench
+WORKDIR /home/frappe/frappe-bench
+# The sites folder is a volume, which would hide the assets built into the image; keep them in the image and link them in
+# at every start (resources/entrypoint.sh), so an image change always brings its own assets.
+RUN chmod g=u /home/frappe/frappe-bench \
+ && mv sites/assets assets \
+ && cp sites/apps.txt capxul-apps.txt \
+ && mkdir -p sites logs
+USER root
+COPY resources/entrypoint.sh /usr/local/bin/capxul-entrypoint.sh
+COPY resources/start-web.sh /usr/local/bin/capxul-start-web.sh
+RUN chmod 755 /usr/local/bin/capxul-entrypoint.sh /usr/local/bin/capxul-start-web.sh
+USER frappe
+VOLUME ["/home/frappe/frappe-bench/sites", "/home/frappe/frappe-bench/logs"]
+LABEL org.opencontainers.image.title="capxul-bench" \
+      org.opencontainers.image.description="Capxul's hosted Frappe bench (production processes, no development server)"
+ENTRYPOINT ["/usr/local/bin/capxul-entrypoint.sh"]
+CMD ["/usr/local/bin/capxul-start-web.sh"]

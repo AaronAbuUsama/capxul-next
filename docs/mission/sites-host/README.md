@@ -47,7 +47,7 @@ A weekly check restores a copy on an isolated network and proves it opens.
 
 Status on 10 November 2026: steps 1-5 below are done or replaced as shown; see `STATE.md` for what exists.
 
-1. **Coordinator.** Build and test the image and the hosted layout on a laptop (`compose.md`). *Not done.*
+1. **Coordinator.** Build and test the image and the hosted layout on a laptop (`compose.md`). *Image and layout built and checked in a cloud container, 11 November 2026: `packages/bench-image`, `bench-image.md` (what remains).*
 2. **Aaron.** Approved the spend on 10 November 2026. Subdomain `worlds.capxul.com`. *Done.*
 3. **Aaron.** `aws login`. *Done (root session, short-lived).*
 4. **Coordinator.** Create the DNS zone (`dns-zone.yaml`, stack `capxul-worlds-dns`) and the machine (`template.yaml`, stack
