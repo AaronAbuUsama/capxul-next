@@ -1213,7 +1213,7 @@ export const decision_build_amp = defineDecision({
   title: "Agents run in Amp orbs; the home-made loop, sandbox and Mac services are removed",
   question: "What runs the build's agents now that the loop host, the sandbox Worker and the Mac sessions cost a day of permission and hang problems?",
   options: [
-    { label: "amp", text: "Agent work runs in Amp threads, each in its own orb (a cloud sandbox with Docker, Node, pnpm and gh), on its own branch with a pull request into integration/build. The evals and the CI merge gate decide whether work is done; a person or the coordinator merges. AGENTS.md is the one rule file every agent reads. packages/loop, packages/loop-ui, packages/sandbox (and its never-deployed Cloudflare Worker), packages/ops and loops/ are deleted; git history keeps them." },
+    { label: "amp", text: "Agent work runs in Amp threads, each in its own orb (a cloud sandbox with Docker, Node, pnpm and gh), on its own branch with a pull request into integration/build. The coordinator is the lead Amp thread: it hill-climbs plan/ with the skills in .agents/skills and starts one orb thread per task. The evals and the CI merge gate decide whether work is done; the coordinator or Aaron merges. AGENTS.md is the one rule file every agent reads. packages/loop, packages/loop-ui, packages/sandbox (and its never-deployed Cloudflare Worker), packages/ops and loops/ are deleted; git history keeps them." },
     { label: "keep-loop", text: "Keep packages/loop with the pair script, deploy the capxul-loop-sandbox Worker and keep the loop host on the Mac." },
   ],
   chosen: "amp",
@@ -1221,7 +1221,7 @@ export const decision_build_amp = defineDecision({
     "Aaron, 11 November 2026, 21:57 UTC: \"We're moving over to AMP now ... because AMP has built in orbs, inbuilt sandboxing. It has like a bunch of different providers.\" " +
     "Replaces loop.pair (no repository pair script: an Amp thread is the builder, the PR review and the evals are the checker), loop.lanes (an orb plus a branch is the isolation), " +
     "loop.merge-gate (the merge gate is the CI workflow on the pull request; `pnpm loop merge` no longer exists) and loop.gateway (Amp routes the models; no Mac proxy). " +
-    "Narrows loop.plan: packages/loop no longer takes tasks from the plan; whether plan/ stays is Aaron's open call. " +
+    "Narrows loop.plan: the plan stays the one task list (Aaron, 22:05 UTC: the plan is how the coordinator and he communicate), and the coordinator, not packages/loop, starts its tasks. " +
     "Retires tooling.ops-owner and tooling.ops-group-shutdown: an orb starts its own services, so the Mac supervisor (pnpm ops) is gone.",
   source: "Aaron's message in the project thread \"Clean up and hand off to Amp\", 11 November 2026; https://ampcode.com/docs/orbs",
   affects: [decision_loop_pair, decision_loop_lanes, decision_loop_merge_gate, decision_loop_gateway, decision_loop_plan, decision_ops_owner, decision_ops_group_shutdown],
