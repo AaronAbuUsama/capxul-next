@@ -421,3 +421,4 @@
 {"at":"2026-11-11T09:05:48.542Z","by":"coordinator","action":"note","args":{"text":"Correction: the times at the start of this coordinator's notes from '08:12' to '12:10' are wrong labels; each note's own 'at' field holds the real UTC time"},"commit":"6c2ab8a"}
 {"at":"2026-11-11T09:19:24.268Z","by":"loop","action":"task.done","args":{"id":"m1-portal-provenance","evidence":"2282c890d5ffccd355e66dc813afee72cb99852f"},"commit":"2282c89"}
 {"at":"2026-11-11T09:21:11.298Z","by":"coordinator","action":"path.set","args":{"tasks":["m1-aaron-accepts","m1-model-gateway","m1-loop-hardening","m1-eval-coverage","m1-time-proof"],"why":"m1-portal-provenance merged (2282c89); m1-portal-answer-states merging. Next: Aaron reads the portal and accepts it"},"commit":"091554f"}
+{"at":"2026-11-11T09:22:09.101Z","by":"loop","action":"task.done","args":{"id":"m1-portal-answer-states","evidence":"885147ba5544cdf2ff8bf0055e53bf885a00123b"},"commit":"885147b"}

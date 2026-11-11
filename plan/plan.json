@@ -1571,10 +1571,12 @@
       "title": "The Questions page says before you answer where the answer goes, and tells saved from applied",
       "why": "exit g7: answers are what the portal takes from Aaron",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "885147ba5544cdf2ff8bf0055e53bf885a00123b"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "m1-portal-answer-states-11110854"
