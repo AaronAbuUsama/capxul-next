@@ -28,4 +28,7 @@ jobs:
       - run: pnpm test
       - name: Ripple
         if: github.event_name == 'pull_request'
-        run: pnpm -s blueprint:ripple --base "origin/${{ github.base_ref }}" >> "$GITHUB_STEP_SUMMARY"
+        # A report, not a gate. main predates the blueprint, so a pull request into main has no base to compare with.
+        run: |
+          pnpm -s blueprint:ripple --base "origin/${{ github.base_ref }}" >> "$GITHUB_STEP_SUMMARY" \
+            || echo "Ripple skipped: the blueprint at origin/${{ github.base_ref }} cannot be built." >> "$GITHUB_STEP_SUMMARY"
