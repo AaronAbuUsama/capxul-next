@@ -2,7 +2,7 @@
 # it uses run.sh's helpers (chk, ok, bad, dj, core, jget, lst, gl_of, sum_of, sbal) and state ($SLUG, $SITE, $W2, ...).
 # Not a script of its own: `run.sh --list` reads the check names in this file too.
 
-echo "== Thin line: a Safe payment held through the door; a world saved untouched; a restored world's show and export"
+echo "== Thin line: a Safe payment held through the door; a Director proposal; a world saved untouched; a restored world's show and export"
 
 # acc:doc.submit/2: a Payment Entry from the Safe is held, not posted, and the signer is named; after the signature it posts once.
 TLDATE=$(wd)
@@ -20,6 +20,21 @@ chk TL.held-payment-posts-no-ledger-line "TL while held: the entry is a draft an
 dj approval sign $SLUG "$TLAPR" --as $BUDGET > "$T/tlsign.json"
 chk TL.signed-payment-posts-once "TL after the signature lands: the entry is submitted and posted once (one credit to the Safe account of 12.5)" \
   "$(dj doc get $SLUG "Payment Entry" "$TLPE" --as $BUDGET | jget "d['data']['docstatus']") $(gl_of "$TLPE" | jget "[(r['debit'], r['credit']) for r in d['data'] if r['account']=='$SAFE_ACCOUNT']")" "1 [(0.0, 12.5)]"
+
+# acc:org.member.grant/1: the company was born with a second Director (priya), so a grant proposed by the founder waits as
+# a Board proposal; a non-Director cannot approve it; after priya approves it is applied, the member wears the hat and the
+# hat's roles reach the site.
+TLPROP=$(dj hat grant $SLUG member elena@brightside.test --propose --as $ADMIN); TLPID=$(echo "$TLPROP" | jget "d['data']['id']")
+chk TL.grant-proposal-waits-for-second-director "TL hat grant --propose: the proposal waits, approved by the founder and not yet by priya; elena wears nothing yet" \
+  "$(dj org proposal get $SLUG "$TLPID" | jget "(d['data']['state'], [(a['director'], a['approved']) for a in d['data']['approvals']])") $(dj org member get $SLUG elena@brightside.test | jget "d['data']['hats']")" \
+  "('waiting', [('$ADMIN', True), ('priya@acme.test', False)]) []"
+chk TL.grant-proposal-non-director-refused "TL a person who is not a Director ($BUDGET) cannot approve: ROLE_PERMISSION_DENIED, and the proposal still waits" \
+  "$(refused "$(dj org proposal approve $SLUG "$TLPID" --as $BUDGET)") $(dj org proposal get $SLUG "$TLPID" | jget "d['data']['state']")" "ROLE_PERMISSION_DENIED waiting"
+TLAPP=$(dj org proposal approve $SLUG "$TLPID" --as priya@acme.test)
+chk TL.grant-proposal-applied-after-second-director "TL after priya approves: the proposal reads applied with both approvals, and org member get shows elena wearing member" \
+  "$(echo "$TLAPP" | jget "(d['data']['state'], all(a['approved'] for a in d['data']['approvals']), d['data']['txHash'] is not None)") $(dj org member get $SLUG elena@brightside.test | jget "d['data']['hats']")" \
+  "('applied', True, True) ['member']"
+if wait_for 15 has_roles elena@brightside.test "['Employee']"; then ok TL.grant-proposal-roles-reach-site "TL the member hat's roles reach the site once the proposal is applied (${WAITED}ms)"; else bad TL.grant-proposal-roles-reach-site "TL roles after the applied proposal" "$(roles_of elena@brightside.test)"; fi
 
 # acc:world.snapshot.save/1: a snapshot saves everything that makes the world and leaves it untouched.
 TLS0=$(sum_of $SITE); TLB0=$(sbal $RPC); TLT0=$(core world clock show main --json | jget "d['data']['offsetMs']"); TLN0=$(wc -l < "$REC")
