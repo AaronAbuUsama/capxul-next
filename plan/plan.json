@@ -1526,10 +1526,12 @@
       "title": "Alerts: a new question for Aaron, or a run that fails, is said once, even across a restart",
       "why": "Aaron asked for alerts; nothing tells him when something needs him",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "23153a2045294788894176d329ac65bce22e0bd5"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "m1-alerts-11110835"
@@ -1539,10 +1541,12 @@
       "title": "The Overview says only what its numbers say",
       "why": "exit g7: the first page contradicts itself",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "69d03398dd77a52df012f95679ec66b3d84edc82"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "m1-portal-overview-true-11110835"
@@ -1558,7 +1562,7 @@
       "evidence": [],
       "created": "2026-11-11",
       "updated": "2026-11-11",
-      "thread": "m1-portal-provenance-11110835"
+      "thread": "m1-portal-provenance-11110854"
     },
     {
       "id": "m1-portal-answer-states",
@@ -1571,17 +1575,19 @@
       "evidence": [],
       "created": "2026-11-11",
       "updated": "2026-11-11",
-      "thread": "m1-portal-answer-states-11110835"
+      "thread": "m1-portal-answer-states-11110854"
     },
     {
       "id": "r-m3-site-stops-calling",
       "title": "Research: the first step of m3-site-stops-calling",
       "why": "the gateway ramp at twelve agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-m3-site-stops-calling-11110835 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m3-site-stops-calling-11110835"
@@ -1591,10 +1597,12 @@
       "title": "Research: the first step of m3b-bench-image",
       "why": "the gateway ramp at twelve agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-m3b-bench-image-11110835 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m3b-bench-image-11110835"
@@ -1604,10 +1612,12 @@
       "title": "Research: the first step of m3b-first-shared-world",
       "why": "the gateway ramp at twelve agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-m3b-first-shared-world-11110835 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m3b-first-shared-world-11110835"
@@ -1617,10 +1627,12 @@
       "title": "Research: the first step of m2-lean-service",
       "why": "the gateway ramp at twelve agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-m2-lean-service-11110835 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m2-lean-service-11110835"
@@ -1630,10 +1642,12 @@
       "title": "Research: the first step of m2-graduate-spike",
       "why": "the gateway ramp at twelve agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-m2-graduate-spike-11110835 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m2-graduate-spike-11110835"
@@ -1643,10 +1657,12 @@
       "title": "Research: the first step of m4-people-signin",
       "why": "the gateway ramp at twelve agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-m4-people-signin-11110835 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m4-people-signin-11110835"
@@ -1656,10 +1672,12 @@
       "title": "Research: the first step of m3b-world-service",
       "why": "the gateway ramp at twelve agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-m3b-world-service-11110835 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m3b-world-service-11110835"
@@ -1669,10 +1687,12 @@
       "title": "Research: the first step of m1-payroll-uk",
       "why": "the gateway ramp at twelve agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-m1-payroll-uk-11110835 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m1-payroll-uk-11110835"
@@ -1680,13 +1700,15 @@
   ],
   "path": {
     "tasks": [
+      "m1-portal-provenance",
+      "m1-portal-answer-states",
+      "m1-aaron-accepts",
       "m1-model-gateway",
       "m1-loop-hardening",
       "m1-eval-coverage",
-      "m1-time-proof",
-      "m1-aaron-accepts"
+      "m1-time-proof"
     ],
-    "why": "m1-loop-watched-run done (b6e34a0): one run healthy. Next: two runs at once (m1-gaps-last-eleven, m1-agent-definitions), then three, then the gateway ramp",
+    "why": "The layer is proven: one, two, three, five, eight and twelve runs at once, Stop, steering and alerts from the portal. What stands between the portal and Aaron accepting it (r-g7) is now first: the provenance and answer-state fixes, then his reading",
     "written": "2026-11-11"
   },
   "notes": [
@@ -1889,6 +1911,21 @@
       "date": "2026-11-11",
       "by": "coordinator",
       "text": "11:00: gateway ramp step 8 done: 8 research runs at once, 0 model failures, 8 refused. Step 12: four pair runs (m1-alerts, m1-portal-overview-true, m1-portal-provenance, m1-portal-answer-states) and eight research runs (r-<task> for the next tasks), LOOP_MAX_AGENTS=12"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "11:40: ramp at 12 done: 12 runs at once, 0 model failures, 16 refused. Merging m1-portal-overview-true-11110835 (reviewer approve, round 2)"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "12:10: m1-model-gateway ramp result: 3, 5, 8 and 12 agents at once through the local CLI proxy (127.0.0.1:8317), 0 model failures at every step; refused calls 6, 1, 8, 16 (the loop's command policy, not the gateway). No refusal from the gateway up to 12, so its ceiling is above 12. Open on the task: account stickiness shown by the gateway's usage record (r-affinity: the loop sends session headers; the gateway's own record is not read yet), and the 'gateway as a component' line conflicts with loop.gateway (build tooling, no component record), which the coordinator settles by narrowing that line"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "Correction: the times at the start of this coordinator's notes from '08:12' to '12:10' are wrong labels; each note's own 'at' field holds the real UTC time"
     }
   ]
 }

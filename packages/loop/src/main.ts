@@ -4,9 +4,13 @@
 // root: the only place that reads the process, prints, or exits. See packages/loop/README.md.
 
 import { execFileSync } from "node:child_process";
+import { join } from "node:path";
+import { reconcile, type Alert } from "./modules/alerts/service.ts";
+import { alertRuns, closedAt, questionsAt } from "./modules/alerts/inputs.ts";
 import { clean, DEFAULTS, loadDefinitions, logs, merge, resume, serve, showFull, showJson, spendText, start, status, statusJson, stop, watch, watchAll, work, type Ctx, type Opts } from "./index.ts";
 
 const USAGE = [
+  "       loop alerts [--once] (preview once, or reconcile notifications every 30 seconds)",
   "       loop agents [--json] (definitions in packages/loop/agents/)",
   "usage: loop run <task id> [--script pair] [--model provider/id] [--checker-model provider/id] [--sandbox none|light|heavy]",
   "                          [--rounds 3] [--budget-usd 5] [--timeout-min 30] [--checkers reviewer,adversary]",
@@ -20,7 +24,7 @@ const parse = (argv: readonly string[]): { words: string[]; f: Map<string, strin
   const words: string[] = [], f = new Map<string, string>();
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
-    if (a === "-f" || a === "--wait" || a === "--json" || a === "--full") f.set(a.replace(/^-+/, ""), "true");
+    if (a === "-f" || a === "--wait" || a === "--json" || a === "--full" || a === "--once") f.set(a.replace(/^-+/, ""), "true");
     else if (a.startsWith("--")) f.set(a.slice(2), argv[++i] ?? "");
     else words.push(a);
   }
@@ -52,6 +56,27 @@ const main = async (argv: readonly string[]): Promise<number> => {
   };
   const need = words[0];
   switch (cmd) {
+    case "alerts": {
+      const sender = async (alert: Alert): Promise<void> => {
+        // argv, not interpolated AppleScript: question text cannot become a command.
+        execFileSync("osascript", ["-e", 'on run argv\ndisplay notification ((item 2 of argv) & " " & (item 3 of argv)) with title (item 1 of argv)\nend run', alert.title, alert.body, alert.url]);
+      };
+      do {
+        try {
+          const alerts = await reconcile({ file: join(root, "var/alerts.json"), now: ctx.now, sender }, {
+            questions: await questionsAt(root), runs: alertRuns(await statusJson(ctx, Infinity), closedAt(root)),
+          }, f.has("once"));
+          if (f.has("once")) {
+            console.log(JSON.stringify({ wouldSend: alerts }, null, 2));
+            return 0;
+          }
+        } catch (error) {
+          if (f.has("once")) throw error;
+          console.error(error instanceof Error ? error.message : String(error));
+        }
+        await new Promise((r) => setTimeout(r, 30_000));   // each poll loads the blueprint in a fresh process: every 30 s, not every 2
+      } while (true);
+    }
     case "run": return need ? ended(await start(ctx, need, optsOf(f))) : (console.error(USAGE), 2);
     case "resume": return need ? ended(await resume(ctx, need)) : (console.error(USAGE), 2);
     case "stop": console.log(stop(ctx, need ?? "")); return 0;

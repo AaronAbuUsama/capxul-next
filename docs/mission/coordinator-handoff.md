@@ -7,6 +7,19 @@ Two coordinator sessions hung for hours on 11 November (02:18 and 03:41 UTC). Bo
 - Test an answer button on a throwaway clone served on another port, never on the real portal. A POST to the live `/api/answers` with an invalid body (422) proves the host and origin path without recording anything.
 - Background every run, server and long check, with output to `var/*.log`.
 
+# State, 11 November 2026, about 09:10 UTC
+
+What the coordinator of 11 November morning did, all on `integration/build` and pushed:
+
+- Merged: the watched run (b6e34a0), two runs at once (ca1a76a, 08e52a6; the book has 0 problems and 0 gaps; exits g2 and g3 met), the loop's decision record (053d1df), agents as records (ca32701), the true Overview (69d0339), alerts (23153a2).
+- Fixed in the layer: a closed task's run leaves Needs you without a restart (522fa65); plan writes take a lock, `var/plan.lock` (2615e45); a run's push retries (3b7a2ff); `loop.gateway` is not a question for Aaron (4163481); alerts poll every 30 s.
+- Proven from the live Runs page: steering (the agent answered and changed course) and Stop.
+- Gateway ramp: 3, 5, 8, 12 agents at once, 0 model failures at every step. Its ceiling is above 12.
+- Alerts: `pnpm loop alerts` runs under nohup (var/alerts.log, var/alerts.json). Mac notification only; it does not survive a reboot. A phone channel and a login item wait for Aaron's OK.
+- Research answers of the ramp: docs/mission/research-2026-11-11.md (21 answers; read it before planning the next tasks).
+- Declined: m1-eval-near-misses (bound nothing; its done-when was met before it started). Lesson: a done-when must be false when the run starts.
+- A blocked run's ask: the loop has no answer command. Append the answer to plan/tasks/<id>.md, `plan task unblock`, `loop clean <run>` (work kept as kept/<run>), and run again, telling it the kept branch.
+
 # Coordinator handoff, 10 November 2026, evening
 
 **Read this section first.** The coordinator in the Capxul Next Claude project wrote it. That coordinator ran from about 16:30 to 17:45 UTC, then handed over to a fresh coordinator thread on the Mac, as Aaron asked. The older handoff (from the first coordinator session, 9 and 10 November) follows below, unchanged. Its open items still stand, except where this section says otherwise.
