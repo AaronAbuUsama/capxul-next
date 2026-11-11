@@ -190,6 +190,9 @@
         "inv:time.replay-same-time",
         "inv:time.running-stops",
         "inv:time.world-channels",
+        "log:operation_row/redacted",
+        "log:operation_row/written",
+        "log:process_row/written",
         "ms:m3/done"
       ],
       "checkers": [],

@@ -11,6 +11,7 @@
 // OPERATION_OWNERS, at the end, names the concept that designs each of the 215 frozen operations:
 // TypeScript refuses this file if one is missing, except an operation the cut classified (shared/cut.ts).
 
+import { Schema } from "effect";
 import {
   defineComponent,
   defineConcept,
@@ -57,6 +58,15 @@ export const system_capxul = defineSystem({
     { id: "bridge", kind: "system", about: "Bridge, the banking partner, posting signed events to the backend's webhook route." },
   ],
   surfaces: ["cli", "sdk", "react", "mcp", "http"],
+  // What every event, log row and metric carries (decision signals.envelope).
+  envelope: Schema.Struct({
+    capxul_env: Schema.Literals(["devnet", "development", "staging", "production", "unknown"]),
+    world_id: Schema.NullOr(Schema.String),
+    trace_id: Schema.String,
+    producer: Schema.String,
+    org_id: Schema.NullOr(Schema.String),
+    actor: Schema.NullOr(Schema.String),
+  }),
   was: ["docs/as-is/archive/shared/foundation.ts", "CONTEXT-MAP.md:29"],
 });
 

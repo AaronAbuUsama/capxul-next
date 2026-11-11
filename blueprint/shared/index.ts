@@ -21,6 +21,7 @@ import * as time from "./time.ts";
 import * as rulings from "./rulings.ts";
 import * as alerts from "./alerts.ts";
 import * as alertsFresh from "./alerts-fresh.ts";
+import * as signals from "./signals.ts";
 import * as surface from "./surface.ts";
 import * as cut from "./cut.ts";
 import * as cutMoves from "./cut-moves.ts";
@@ -43,5 +44,5 @@ export const recordsOf = (modules: readonly object[]): unknown[] => [
   ),
 ];
 
-export const sharedModules = [ops, alertsFresh, alerts, errorGaps, stateGaps, contractGaps, foundation, cloud, cli, vocabulary, external, decisions, decisionReview, landings, tooling, portal, swarm, time, rulings, surface, cut, cutMoves, milestones, contractRecords] as const;
+export const sharedModules = [ops, alertsFresh, alerts, errorGaps, stateGaps, contractGaps, foundation, cloud, cli, vocabulary, external, decisions, decisionReview, landings, tooling, portal, swarm, time, rulings, surface, cut, cutMoves, milestones, contractRecords, signals] as const;
 export const sharedRecords = recordsOf(sharedModules);
