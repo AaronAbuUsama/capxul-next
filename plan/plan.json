@@ -1228,10 +1228,12 @@
       "title": "Every refusal is reached by a world, or stands with its own reason",
       "why": "Exit g2: 5 of the last 11 gaps are refusals that no world reaches",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "ca1a76a23dae585a7951a6e6d1eae115532cf512"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "m1-gaps-refusal-worlds-11110800"
@@ -1241,10 +1243,12 @@
       "title": "The six dev commands' empty acceptance lists stand with their recorded reason",
       "why": "Exit g2: decision devnet.surface-gap-disposition keeps the six dev commands' acceptance lists empty (the freeze requires equal lengths), but it records no stands, so they still count as 6 open gaps",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "08e52a6a4bcd041d9e1b0c92d2e3165acee0a793"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "m1-gaps-dev-stand-11110802"
