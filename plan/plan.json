@@ -1405,10 +1405,12 @@
       "title": "Research: session affinity to the gateway",
       "why": "m1-model-gateway done-when 1; the gateway ramp at eight agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-affinity-11110831 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-affinity-11110831"
@@ -1418,10 +1420,12 @@
       "title": "Research: splitting the generic loop out",
       "why": "m1-loop-hardening: trim the package by moving the generic half out; the gateway ramp at eight agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-loop-split-11110831 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-loop-split-11110831"
@@ -1431,10 +1435,12 @@
       "title": "Research: what exit g1 still lacks",
       "why": "recompute the path to m1's exits; the gateway ramp at eight agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-g1-11110831 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-g1-11110831"
@@ -1444,10 +1450,12 @@
       "title": "Research: what exit g3 still lacks",
       "why": "recompute the path to m1's exits; the gateway ramp at eight agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-g3-11110831 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-g3-11110831"
@@ -1457,10 +1465,12 @@
       "title": "Research: what exit g5 still lacks",
       "why": "recompute the path to m1's exits; the gateway ramp at eight agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-g5-11110831 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-g5-11110831"
@@ -1470,10 +1480,12 @@
       "title": "Research: what stands between the portal and Aaron accepting it",
       "why": "m1-aaron-accepts; the gateway ramp at eight agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-g7-11110831 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-g7-11110831"
@@ -1483,10 +1495,12 @@
       "title": "Research: the state of m1-dev-commands",
       "why": "m1-loop-hardening: re-run m1-dev-commands and merge it through the gate; the gateway ramp at eight agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-dev-commands-11110831 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-dev-commands-11110831"
@@ -1496,10 +1510,12 @@
       "title": "Research: the first step of the real contracts under the test sites",
       "why": "the next milestone's first task; the gateway ramp at eight agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-m2-contracts-11110831 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m2-contracts-11110831"
@@ -1508,6 +1524,138 @@
       "id": "m1-alerts",
       "title": "Alerts: a new question for Aaron, or a run that fails, is said once, even across a restart",
       "why": "Aaron asked for alerts; nothing tells him when something needs him",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "m1-portal-overview-true",
+      "title": "The Overview says only what its numbers say",
+      "why": "exit g7: the first page contradicts itself",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "m1-portal-provenance",
+      "title": "Each verdict shows its run, date and commit; no page claims code is missing when it only lacks a verdict",
+      "why": "exit g7: pages claim more than is known",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "m1-portal-answer-states",
+      "title": "The Questions page says before you answer where the answer goes, and tells saved from applied",
+      "why": "exit g7: answers are what the portal takes from Aaron",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-m3-site-stops-calling",
+      "title": "Research: the first step of m3-site-stops-calling",
+      "why": "the gateway ramp at twelve agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-m3b-bench-image",
+      "title": "Research: the first step of m3b-bench-image",
+      "why": "the gateway ramp at twelve agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-m3b-first-shared-world",
+      "title": "Research: the first step of m3b-first-shared-world",
+      "why": "the gateway ramp at twelve agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-m2-lean-service",
+      "title": "Research: the first step of m2-lean-service",
+      "why": "the gateway ramp at twelve agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-m2-graduate-spike",
+      "title": "Research: the first step of m2-graduate-spike",
+      "why": "the gateway ramp at twelve agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-m4-people-signin",
+      "title": "Research: the first step of m4-people-signin",
+      "why": "the gateway ramp at twelve agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-m3b-world-service",
+      "title": "Research: the first step of m3b-world-service",
+      "why": "the gateway ramp at twelve agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-m1-payroll-uk",
+      "title": "Research: the first step of m1-payroll-uk",
+      "why": "the gateway ramp at twelve agents",
       "milestone": "m1",
       "state": "todo",
       "needs": [],
@@ -1723,6 +1871,11 @@
       "date": "2026-11-11",
       "by": "coordinator",
       "text": "10:40: gateway ramp step 5 done: 5 research runs at once, 0 model failures, 1 refused. Step 8: eight research runs at once (LOOP_MAX_AGENTS=8)"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "11:00: gateway ramp step 8 done: 8 research runs at once, 0 model failures, 8 refused. Step 12: four pair runs (m1-alerts, m1-portal-overview-true, m1-portal-provenance, m1-portal-answer-states) and eight research runs (r-<task> for the next tasks), LOOP_MAX_AGENTS=12"
     }
   ]
 }
