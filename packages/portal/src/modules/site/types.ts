@@ -10,7 +10,6 @@ import type { PlanInput, TaskState } from "@capxul/plan";
 /** The plan the Plan page is drawn from: the coordinator's file, its log and the plan check (packages/plan). */
 export type { PlanInput };
 
-/** The hand-written content's shape lives beside the content; pages carry parts of it. */
 export type { Diagram, DiagramEdge, DiagramNode, Direction, Step, Verdict } from "#content/shape.ts";
 
 // ── shared pieces ───────────────────────────────────────────────────────────────────────────────
@@ -21,7 +20,6 @@ export type { EvalVerdict, Stand, StandOf };
 export interface Count { readonly passing: number; readonly total: number }
 /** A link to a page of this site. `anchor` is "" for the page itself. */
 export interface Ref { readonly label: string; readonly page: string; readonly anchor: string }
-/** A link with one line about its target. */
 export interface Brief { readonly ref: Ref; readonly text: string }
 /** One field of a schema: `transfer.state`, its type in words, and its limits. */
 export interface FieldRow { readonly path: string; readonly type: string; readonly required: boolean; readonly note: string }
@@ -98,7 +96,6 @@ export interface ImpactBlock {
   readonly decisions: number; readonly decisionsOnDependents: number; readonly evals: number;
 }
 
-/** What every page carries. `recordKey` is "" and `record` null on a page that is not one record's. */
 export interface PageHead {
   readonly id: string; readonly title: string; readonly source: string;
   readonly recordKey: string; readonly recordHash: string; readonly record: unknown;
@@ -130,6 +127,7 @@ export interface ConceptCard {
   readonly ref: Ref; readonly title: string; readonly verdict: Verdict; readonly operations: number; readonly decisions: number;
 }
 export interface OverviewPage extends PageHead {
+  readonly board: { readonly date: string; readonly next: readonly PlanTask[]; readonly blocked: readonly PlanBlocked[]; readonly done: readonly PlanTask[]; readonly merges: readonly { readonly commit: string; readonly title: string }[] };
   /** The coordinator's latest note, and the link to the plan: null when there is no plan file. */
   readonly planNote: { readonly date: string; readonly by: string; readonly text: string } | null;
   /** How many things wait on the owner: the Questions page's count. */
@@ -343,6 +341,8 @@ export interface FrozenCommand {
 
 /** Everything the site is built from. The composition root loads it; this module reads nothing else. */
 export interface SiteInput {
+  readonly today?: string;
+  readonly mergesToday?: readonly { readonly commit: string; readonly title: string }[];
   readonly blueprint: Blueprint;
   /** The commit the blueprint was read at. */
   readonly commit: string;

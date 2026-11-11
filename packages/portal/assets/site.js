@@ -207,12 +207,25 @@
   nav.insertBefore(item, plan ? plan.nextSibling : null);
   var block = document.getElementById("runs-block");
 
+  function refresh() {
   fetch(root + "runs/summary.json", { cache: "no-store" }).then(function (r) { if (!r.ok) throw new Error("no host"); return r.json(); }).then(function (data) {
     var runs = data.runs || [];
     var running = runs.filter(function (r) { return r.status === "running"; }).length;
+    item.textContent = "Runs";
+    var board = document.getElementById("board-running");
+    if (board) {
+      board.textContent = running ? "" : "No runs are working now.";
+      runs.filter(function (r) { return r.status === "running"; }).forEach(function (r) {
+        var age = Math.max(0, Math.floor((Date.now() - Date.parse(r.startedAt)) / 60000));
+        var row = el("a", "row", r.task.title + " (" + r.task.id + ") · " + (r.working ? r.working.role + " " + r.working.key : "agent not reported") + " · " + (isNaN(age) ? "start time unknown" : age + " min"));
+        row.href = root + "runs/#/runs/" + encodeURIComponent(r.id);
+        board.appendChild(row);
+      });
+    }
     if (running > 0) { item.appendChild(document.createTextNode(" ")); item.appendChild(el("span", "nav-count nav-count-live", String(running))); }
     if (!block) return;
     var rows = document.getElementById("runs-rows"), none = document.getElementById("runs-none");
+    rows.textContent = "";
     var mine = runs.filter(function (r) { return r.task.id === block.dataset.task; });
     if (mine.length === 0) { none.textContent = "No run of the last day has worked on this task."; return; }
     mine.forEach(function (r) {
@@ -229,8 +242,13 @@
     rows.hidden = false;
     none.hidden = true;
   }).catch(function () {
-    item.appendChild(document.createTextNode(" "));
+    item.textContent = "Runs ";
+    var board = document.getElementById("board-running");
+    if (board) board.textContent = "Live work unavailable: loop host down. Retrying.";
     item.appendChild(el("span", "nav-off", "host down"));
     item.title = "The loop's host is not running: pnpm loop serve";
   });
+  }
+  refresh();
+  window.setInterval(refresh, 15000);
 })();

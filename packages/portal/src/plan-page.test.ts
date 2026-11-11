@@ -195,3 +195,28 @@ test("the Overview's plan block gives the goal in two sentences, the latest note
   assert.match(html, /href="plan\/index\.html"/);
   assert.match(html, /href="review\/index\.html"/);
 });
+
+test("Overview board preserves the path, blockers and Questions inbox above the climb", () => {
+  const { site } = withPlan();
+  const p = site.pages.find((p) => p.type === "overview");
+  assert.ok(p?.type === "overview");
+  assert.deepEqual(p.board.next.map((t) => t.id), ["t-doing", "t-need"]);
+  assert.deepEqual(p.board.blocked.map((b) => b.task.id), ["t-decide", "t-need"]);
+  assert.equal(p.waiting.length, 2);
+  const html = renderSite(site, fixtureAssets).get("index.html") ?? "";
+  for (const title of ["Working now", "Next", "Blocked", "Needs you", "Done today"]) assert.ok(html.includes(title));
+  assert.ok(html.indexOf('id="done-today"') < html.indexOf('id="climb"'));
+  assert.match(html, /Live work unavailable/);
+});
+
+test("Done today uses the UTC day and retains task evidence and merge commits", () => {
+  const { input } = withPlan();
+  assert.ok(input.plan);
+  const tasks = input.plan.plan.tasks.map((t, i) => ({ ...t, state: "done" as const, updated: i === 0 ? "2026-11-11T00:00:00Z" : "2026-11-10T23:59:59Z", evidence: ["abc1234"] }));
+  const site = buildSite({ ...input, today: "2026-11-11", mergesToday: [{ commit: "def5678", title: "Merge lane" }], plan: { ...input.plan, plan: { ...input.plan.plan, tasks } } });
+  const p = site.pages.find((p) => p.type === "overview");
+  assert.ok(p?.type === "overview");
+  assert.deepEqual(p.board.done.map((t) => t.id), ["t-decide"]);
+  assert.deepEqual(p.board.done[0]?.evidence, ["abc1234"]);
+  assert.equal(p.board.merges[0]?.commit, "def5678");
+});
