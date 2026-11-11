@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { test } from "node:test";
 import { defineOperation, evalsUnder, mergeResults, parseResults } from "@capxul/blueprint-engine";
 
@@ -7,6 +8,7 @@ import { fixtureAssets, fixtureInput, fixtureRecords } from "#src/testing.ts";
 import * as fixture from "../../../../blueprint-engine/test/fixtures/invitations.ts";
 
 import { renderSite } from "./service.ts";
+import { verdictView } from "./internal/evals.ts";
 
 const withExamples = defineOperation({
   ...fixture.invite,
@@ -113,6 +115,40 @@ for (const commit of ["abc1234", "abc123456789", "def5678", "abc1234+dirty"]) {
     }
   });
 }
+
+test("recorded repository run and evidence links resolve, including historical and dirty results", () => {
+  const cwd = new URL("../../../../../", import.meta.url);
+  const git = (...args: string[]): string => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+  const builtCommit = git("rev-parse", "HEAD");
+  const doc = JSON.parse(git("show", builtCommit + ":status/status.json"));
+  let historical = 0;
+  let dirty = 0;
+  for (const [id, result] of Object.entries(doc.evals)) {
+    const r = result as NonNullable<Parameters<typeof verdictView>[0]["provenance"]>["result"];
+    const text = verdictView({ id, kind: "acc", anchor: "test", level: "L1", claim: "", decider: "test", verdict: r.verdict,
+      provenance: { result: r, builtCommit, repo: base.direction.settings.repo } });
+    const files = [...text.matchAll(/href="[^"]*\/blob\/([^/]+)\/([^"]+)"/g)];
+    assert.equal(files.length, 2, id + " must link both run results and evidence");
+    for (const [, ref, path] of files) {
+      assert.equal(ref, builtCommit, "artifacts belong to the snapshot, not the tested revision");
+      assert.equal(git("cat-file", "-t", decodeURIComponent(ref!) + ":" + decodeURIComponent(path!)), "blob", id);
+    }
+    const sha = r.commit.replace(/\+dirty$/, "");
+    assert.equal(git("cat-file", "-t", sha), "commit");
+    assert.ok(text.includes('/commit/' + sha + '">'));
+    if (r.commit.endsWith("+dirty")) {
+      dirty++;
+      assert.ok(!text.includes("/commit/" + r.commit));
+      assert.ok(text.includes("base commit; uncommitted changes"));
+      assert.ok(text.includes("Dirty working tree result; not proof at built commit"));
+    } else if (!builtCommit.startsWith(r.commit)) {
+      historical++;
+      assert.ok(text.includes("Last seen at a different commit; not proof at built commit"));
+    }
+  }
+  assert.ok(historical > 0, "exercise actual historical results");
+  assert.ok(dirty > 0, "exercise an actual dirty result");
+});
 
 test("legacy results keep date and commit while missing optional provenance is explicit", () => {
   const text = pages(fixtureInput("abc1234", "as-is", status, records))("operation/invite.accept");
