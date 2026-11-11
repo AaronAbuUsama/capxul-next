@@ -20,6 +20,9 @@ pnpm --filter @capxul/blueprint-engine test
   The system's `envelope` is what every signal carries. `defineInsight` (a query over them), `defineAlert` (an insight,
   a condition, a route and a runbook) and `defineDashboard` (insights and journeys, in order) derive `ins:`, `alr:` and
   `dsh:` evals.
+- `src/records/screen.ts`, `src/screens.ts`: `defineScreen` (what a person sees: its surface, the values it shows and
+  their sources, its buttons, the roles that may open it, its states and its part), with `scr:` evals. A journey
+  step's `seen` names the screen where the person sees the result.
 - Every record may carry `owes`: changes a decision asks of the code that it has not made. The record says what the
   code does now, so the agreement checks pass, and each owed change is an `owed-change` gap.
 - `src/ripple.ts`: what a change reaches. `pnpm blueprint:ripple [--base <ref>] [--json]` compares this branch's
