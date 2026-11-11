@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { compareSite, type Code, type DoctypeRecord, type RoleRecord } from "./compare.ts";
+import { compareSite, type Code, type DoctypeRecord, type FeatureRecord, type RoleRecord } from "./compare.ts";
 
 const user: DoctypeRecord = { id: "user", name: "User", app: "frappe", fields: [] };
 const grant: DoctypeRecord = {
@@ -23,8 +23,8 @@ const grantJson = {
   permissions: [{ role: "System Manager", read: 1, write: 1, create: 1, delete: 1, report: 1 }],
 };
 const member: RoleRecord = { id: "member", frappeRoles: ["Employee"] };
-const code = (over: Partial<Code> = {}): Code => ({ doctypes: [grantJson], customFields: {}, hatRoles: { member: ["Employee"] }, ...over });
-const run = (doctypes: DoctypeRecord[], roles: RoleRecord[], c: Code) => compareSite({ doctypes, roles }, c).failures;
+const code = (over: Partial<Code> = {}): Code => ({ doctypes: [grantJson], customFields: {}, hatRoles: { member: ["Employee"] }, features: {}, ...over });
+const run = (doctypes: DoctypeRecord[], roles: RoleRecord[], c: Code, features: FeatureRecord[] = []) => compareSite({ doctypes, roles, features }, c).failures;
 
 test("a blueprint that says what the code says has no differences", () => {
   assert.deepEqual(run([user, grant], [member], code()), []);
@@ -82,7 +82,20 @@ test("a hat's Frappe roles are compared with the code's hat map, both ways", () 
 test("read_setup.py reads the hat map and the Custom Fields from source, dict() calls included", () => {
   const dir = mkdtempSync(join(tmpdir(), "setup-"));
   writeFileSync(join(dir, "setup.py"), 'import frappe\nDEFAULT_HAT_ROLES = {"member": ["Employee"]}\nCUSTOM_FIELDS = {"GL Entry": [dict(fieldname="t", fieldtype="Data", read_only=1)]}\n');
-  const py = spawnSync("python3", [join(dirname(fileURLToPath(import.meta.url)), "read_setup.py"), join(dir, "setup.py")], { encoding: "utf8" });
+  const py = spawnSync("python3", [join(dirname(fileURLToPath(import.meta.url)), "read_setup.py"), join(dir, "setup.py"), "DEFAULT_HAT_ROLES", "CUSTOM_FIELDS"], { encoding: "utf8" });
   assert.equal(py.status, 0, py.stderr);
   assert.deepEqual(JSON.parse(py.stdout), { DEFAULT_HAT_ROLES: { member: ["Employee"] }, CUSTOM_FIELDS: { "GL Entry": [{ fieldname: "t", fieldtype: "Data", read_only: 1 }] } });
+});
+
+test("a feature's label, default, modules, apps, routes and needs are compared with the code's catalog, both ways", () => {
+  const crm: FeatureRecord = { id: "crm", label: "CRM", default: "on", apps: ["crm"], app: "crm" };
+  const wa: FeatureRecord = { id: "whatsapp", label: "WhatsApp", default: "off", needs: [crm] };
+  const catalog = { crm: { label: "CRM", apps: ["crm"], app: "crm", default: 1 }, whatsapp: { label: "WhatsApp", needs: ["crm"], default: 0 } };
+  assert.deepEqual(run([user, grant], [member], code({ features: catalog }), [crm, wa]), []);
+  assert.deepEqual(run([user, grant], [member], code({ features: { ...catalog, crm: { ...catalog.crm, default: 0, paths: ["/crm"] }, stock: { label: "Stock", default: 0 } } }), [crm, wa, { id: "gone", label: "Gone", default: "off" }]), [
+    'feature crm: default is "on" in the blueprint and "off" in the code',
+    'feature crm: paths is nothing in the blueprint and ["/crm"] in the code',
+    "feature stock: the code's catalog has it; the blueprint has no feature record",
+    "feature gone: the blueprint records it (feature:gone); the code's catalog does not",
+  ]);
 });

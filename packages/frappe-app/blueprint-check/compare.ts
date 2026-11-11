@@ -1,4 +1,4 @@
-// The comparison of the blueprint's DocType and role records with the site app's code. Pure: main.ts reads the DocType
+// The comparison of the blueprint's DocType, role and feature records with the site app's code. Pure: main.ts reads the DocType
 // JSON files, the Custom Fields and the hat map and passes them in, so every rule is tested on small fixtures.
 //
 // The blueprint and the code must say the same thing. Every difference is a failure, named from both sides; there is
@@ -29,6 +29,18 @@ export interface RoleRecord {
   readonly frappeRoles: readonly string[];
 }
 
+export interface FeatureRecord {
+  readonly id: string;
+  readonly label: string;
+  readonly default: "on" | "off";
+  readonly modules?: readonly string[];
+  readonly apps?: readonly string[];
+  readonly app?: string;
+  readonly prefixes?: readonly string[];
+  readonly paths?: readonly string[];
+  readonly needs?: readonly { readonly id: string }[];
+}
+
 /** A DocType's JSON, as Frappe writes it (the keys this check reads). */
 export interface DoctypeJson {
   readonly name: string;
@@ -44,9 +56,11 @@ export interface Code {
   readonly customFields: Readonly<Record<string, readonly Record<string, unknown>[]>>;
   /** setup.py's DEFAULT_HAT_ROLES: hat → Frappe roles. */
   readonly hatRoles: Readonly<Record<string, readonly string[]>>;
+  /** features.py's CATALOG: switch → its label, default (1 on, 0 off), modules, apps, app, prefixes, paths and needs. */
+  readonly features: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 }
 export interface Report {
-  readonly compared: { doctypes: number; fields: number; roles: number };
+  readonly compared: { doctypes: number; fields: number; roles: number; features: number };
   readonly failures: readonly string[];
 }
 
@@ -91,7 +105,9 @@ const compareFields = (where: string, record: readonly RecordField[], code: read
   }
 };
 
-export const compareSite = (records: { doctypes: readonly DoctypeRecord[]; roles: readonly RoleRecord[] }, code: Code): Report => {
+export const compareSite = (
+  records: { doctypes: readonly DoctypeRecord[]; roles: readonly RoleRecord[]; features: readonly FeatureRecord[] }, code: Code,
+): Report => {
   const out: string[] = [];
   let fields = 0;
   const own = records.doctypes.filter((d) => d.app === "capxul");
@@ -127,5 +143,17 @@ export const compareSite = (records: { doctypes: readonly DoctypeRecord[]; roles
     for (const x of r.frappeRoles) if (!roles.includes(x)) out.push(`hat ${hat}: the blueprint gives ${x}; the code does not`);
   }
   for (const r of records.roles) if (!(r.id in code.hatRoles)) out.push(`hat ${r.id}: the blueprint records it (role:${r.id}); the code's hat map does not`);
-  return { compared: { doctypes: own.length + Object.keys(code.customFields).length, fields, roles: records.roles.length }, failures: out };
+  for (const [id, c] of Object.entries(code.features)) {
+    const f = records.features.find((x) => x.id === id);
+    if (!f) { out.push(`feature ${id}: the code's catalog has it; the blueprint has no feature record`); continue; }
+    const a: Record<string, unknown> = { label: f.label, default: f.default, modules: f.modules, apps: f.apps, app: f.app, prefixes: f.prefixes, paths: f.paths, needs: f.needs?.map((n) => n.id) };
+    const b: Record<string, unknown> = { ...c, default: flag(c.default) ? "on" : "off" };
+    for (const k of new Set([...Object.keys(a), ...Object.keys(b)]))
+      if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) out.push(`feature ${id}: ${k} is ${show(a[k])} in the blueprint and ${show(b[k])} in the code`);
+  }
+  for (const f of records.features) if (!(f.id in code.features)) out.push(`feature ${f.id}: the blueprint records it (feature:${f.id}); the code's catalog does not`);
+  return {
+    compared: { doctypes: own.length + Object.keys(code.customFields).length, fields, roles: records.roles.length, features: records.features.length },
+    failures: out,
+  };
 };

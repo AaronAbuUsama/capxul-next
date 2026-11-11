@@ -13,11 +13,15 @@ pnpm --filter @capxul/blueprint-engine test
 - `src/build.ts`: reads every record, links them and collects problems.
 - `src/evals.ts`, `status.ts`, `stand.ts`: the evals a record derives, the scoreboard format, where each record stands.
 - `src/records/site.ts`, `src/site.ts`: `defineDoctype` (a Frappe DocType Capxul defines, or the Custom Fields it adds
-  to Frappe's) and `defineRole` (a hat and the Frappe roles it gives), and their rules. `pnpm frappe:check-blueprint`
+  to Frappe's) `defineRole` (a hat and the Frappe roles it gives) and `defineFeature` (a part a site switches), and their rules. `pnpm frappe:check-blueprint`
   compares these records with `packages/frappe-app` and fails the merge on a difference.
 - `src/records/telemetry.ts`, `src/signals.ts`: `defineLog` and `defineMetric`, and an event's `purpose` (transition,
   product, failure, operator), `producer`, `pii` and `groups`, with their rules, gaps and evals (`ana:`, `log:`, `met:`).
-  The system's `envelope` is what every signal carries.
+  The system's `envelope` is what every signal carries. `defineInsight` (a query over them), `defineAlert` (an insight,
+  a condition, a route and a runbook) and `defineDashboard` (insights and journeys, in order) derive `ins:`, `alr:` and
+  `dsh:` evals.
+- Every record may carry `owes`: changes a decision asks of the code that it has not made. The record says what the
+  code does now, so the agreement checks pass, and each owed change is an `owed-change` gap.
 - `src/ripple.ts`: what a change reaches. `pnpm blueprint:ripple [--base <ref>] [--json]` compares this branch's
   blueprint with the base's (built with the base's own engine, `scripts/at.ts`): records added, removed and changed,
   everything that depends on them, the decisions to read again and the evals whose verdicts go stale.

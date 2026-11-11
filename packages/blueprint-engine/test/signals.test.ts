@@ -46,3 +46,23 @@ test("a log row and a metric derive their evals; redact names its own attributes
   assert.deepEqual(rules(b.gaps, "unlogged"), ["system:capxul unlogged-operation: no log row is written per workflow"]);
   assert.deepEqual(rules(build([]).gaps, "unlogged"), []);
 });
+
+test("an insight lists exactly what its query names; an alert watches the failures its insight reads; each derives its evals", async () => {
+  const { defineInsight, defineAlert, defineDashboard } = await import("../src/index.ts");
+  const failure = defineEvent({ id: "invite_bounced", about: "Bounced.", props: Schema.Struct({}), purpose: "failure", producer: rpc });
+  const other = defineEvent({ id: "invite_viewed", about: "Seen.", props: Schema.Struct({}), purpose: "product", producer: rpc });
+  const bounces = defineInsight({ id: "bounces", title: "Bounces", about: "Bounced invitations an hour.", reads: [failure], query: "select count() from events where event = 'invite_bounced' and capxul_env = '<env>'", display: "line", env: ["production"], answer: "0 bounces" });
+  const wrong = defineInsight({ id: "wrong", title: "Wrong", about: "Lists one, queries another.", reads: [failure], query: "select count() from events where event = 'invite_viewed'", display: "number", env: ["production"] });
+  const alert = defineAlert({ id: "bounces_high", title: "Bounces high", about: "Too many bounces.", insight: bounces, condition: "more than 5 in an hour", cadence: "5m", severity: "notify", route: ["operator"], runbook: "Check the mail provider's status." });
+  const board = defineDashboard({ id: "pulse", title: "Pulse", about: "The product's pulse.", audience: "aaron", where: "posthog", tiles: [bounces] });
+  const b = build([failure, other, bounces, wrong, alert, board]);
+  assert.deepEqual(rules(b.problems, "insight-"), [
+    "insight:wrong insight-reads: its query names event:invite_viewed, which reads does not list",
+    "insight:wrong insight-reads: reads lists event:invite_bounced, which its query never names",
+  ]);
+  assert.deepEqual([...rules(b.gaps, "unwatched"), ...rules(b.gaps, "unused-insight")], ["insight:wrong unused-insight: no dashboard shows it and no alert evaluates it"]);
+  assert.deepEqual(b.evals.map((e) => e.id).filter((id) => /^(ins|alr|dsh):/.test(id)), [
+    "ins:bounces/runs", "ins:bounces/answers", "ins:wrong/runs", "alr:bounces_high/fires", "alr:bounces_high/quiet", "alr:bounces_high/clears", "dsh:pulse/synced", "dsh:pulse/shows",
+  ]);
+  assert.throws(() => defineAlert({ id: "nowhere", title: "Nowhere", about: "No one told.", insight: bounces, condition: "c", cadence: "5m", severity: "page", route: [], runbook: "r" }), /^Error: alert nowhere in /);
+});

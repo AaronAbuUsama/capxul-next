@@ -15,10 +15,14 @@ export const KINDS = [
   "table",
   "doctype",
   "role",
+  "feature",
   "machine",
   "transition",
   "log",
   "metric",
+  "insight",
+  "alert",
+  "dashboard",
   "integration",
   "call",
   "contract",
@@ -75,6 +79,9 @@ export const Common = {
   title: Title,
   about: Prose,
   was: Schema.optionalKey(Was),
+  /** What the code still owes a decision: the record says what the code does now (so the agreement checks pass), and
+   * each entry is a change a decision asks for and the code has not made. Each is an `owed-change` gap until it is made. */
+  owes: Schema.optionalKey(Schema.Array(Schema.Struct({ decision: Ref("decision"), change: Line }))),
 };
 
 export const Priority = Schema.Literals(["critical", "normal", "low"]);

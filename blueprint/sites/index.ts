@@ -10,5 +10,6 @@ import * as decisions from "./decisions.ts";
 import * as evidence from "./evidence.ts";
 import * as journeys from "./journeys.ts";
 import * as thinLine from "./thin-line.ts";
+import * as features from "./features.ts";
 
-export const modules = [stateGaps, data, sites, door, processes, operations, decisions, evidence, journeys, thinLine] as const;
+export const modules = [stateGaps, data, sites, door, processes, operations, decisions, evidence, journeys, thinLine, features] as const;

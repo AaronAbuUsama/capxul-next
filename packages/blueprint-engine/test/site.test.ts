@@ -38,13 +38,13 @@ test("a field's type and its link must agree, and a Select has options", () => {
   ]);
 });
 
-test("two records for one DocType is a problem; a child no Table holds and a DocType a decision retires are gaps", () => {
+test("two records for one DocType is a problem; a child no Table holds and a change the code owes a decision are gaps", () => {
   const retire = defineDecision({ id: "x.retire", title: "Retire", question: "Keep?", options: [{ label: "go", text: "Remove it." }], chosen: "go", why: "w", source: "s", affects: [] });
-  const twin = defineDoctype({ id: "user-again", title: "User", about: "Again.", concept, name: "User", app: "frappe", fields: [], retiredBy: retire });
+  const twin = defineDoctype({ id: "user-again", title: "User", about: "Again.", concept, name: "User", app: "frappe", fields: [], owes: [{ decision: retire, change: "remove it" }] });
   const b = build([user, hatRole, twin, retire]);
   assert.deepEqual(found(b.problems, "doctype-name"), ["doctype:user-again: user is already the DocType User"]);
   assert.deepEqual(found(b.gaps, "unused-child-doctype"), ["doctype:capxul-hat-role: no Table field holds its rows"]);
-  assert.deepEqual(found(b.gaps, "doctype-to-retire"), ["doctype:user-again: decision x.retire removes it; the code still has it"]);
+  assert.deepEqual(found(b.gaps, "owed-change"), ["doctype:user-again: x.retire: remove it"]);
 });
 
 test("a role gives each Frappe role once", () => {
