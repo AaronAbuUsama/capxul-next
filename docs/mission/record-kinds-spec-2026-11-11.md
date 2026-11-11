@@ -189,8 +189,8 @@ These are the same kind of under-specification. They are listed so they get a ki
 
 | Not yet a record | Today | Suggested |
 |---|---|---|
-| Frappe DocTypes (Capxul's 7 custom ones, and the ERPNext ones it relies on: Payment Entry, Purchase Invoice, GL Entry, Company) | Code in `packages/frappe-app`; the door reads them at run time | `table` with a `store: frappe` field, or a `doctype` kind, so screens and rpcs link to them |
-| Roles and permissions (hat to Frappe role) | The `capxul_hat_role` and `capxul_hat_map` DocTypes | A `role` kind that screens' `who` and tables' admissions name |
+| Frappe DocTypes (Capxul's 7 custom ones, and the ERPNext ones it relies on: Payment Entry, Purchase Invoice, GL Entry, Company) | Code in `packages/frappe-app`; the door reads them at run time | **Landed:** the `doctype` kind (`blueprint/plugs/doctypes.ts`, checked by `pnpm frappe:check-blueprint`), branch `claude/project-thread-1qyi8y`, commit 9bb7bc8 |
+| Roles and permissions (hat to Frappe role) | The `capxul_hat_role` and `capxul_hat_map` DocTypes | **Landed:** the `role` kind (`blueprint/plugs/hats.ts`, the 7 hats), same commit |
 | Feature switches ("parts") | The `capxul_feature` DocType, plus decisions | A `feature` kind that screens, rpcs and DocTypes belong to |
 | Messages sent to people (email, WhatsApp, notices) | The `notices` concept has tables, but no templates | A `message` kind: channel, template, trigger, recipients; evals that it is sent once and renders |
 | Settings and secrets a site needs | `capxul_settings`; environment files | A `setting` kind: who sets it, its default, whether it is a secret; an eval that no secret leaks into evidence |
