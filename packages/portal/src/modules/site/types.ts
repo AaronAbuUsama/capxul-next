@@ -2,7 +2,7 @@
  * The site module: a built Blueprint in, typed page models out. A page model is plain data: the renderer draws it,
  * the twins print it as Markdown and JSON, and the check reads it back. Nothing here knows about HTML.
  */
-import type { AnyRecord, Blueprint, Stand, StandOf, StatusDocument, Verdict as EvalVerdict } from "@capxul/blueprint-engine";
+import type { AnyRecord, Blueprint, Stand, StandOf, StatusDocument, EvalStatus, Verdict as EvalVerdict } from "@capxul/blueprint-engine";
 
 import type { Diagram, Direction, Step, Verdict } from "#content/shape.ts";
 import type { PlanInput, TaskState } from "@capxul/plan";
@@ -38,7 +38,7 @@ export type Value =
 export interface EvalRow {
   readonly id: string; readonly kind: string; readonly anchor: string; readonly level: string; readonly claim: string; readonly decider: string;
   /** From the status document; `not_run` when it has no entry. */
-  readonly verdict: EvalVerdict;
+  readonly verdict: EvalVerdict; readonly provenance: { readonly result: EvalStatus; readonly builtCommit: string; readonly repo: string } | null;
 }
 /** What one kind of eval claims, in the words of docs/spec/30-capxul-evals.md. */
 export interface EvalKind { readonly kind: string; readonly name: string; readonly claims: string }

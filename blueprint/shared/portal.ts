@@ -200,7 +200,7 @@ export const decision_portal_status_source = defineDecision({
       label: "document",
       text:
         "One status document per tracked ref, status/<ref>.json: the commit it is at; each eval's current verdict there " +
-        "(result, measures, evidence link), or the last verdict at an older commit, shown greyed as last seen; each " +
+        "(result, measures, evidence link), or the last verdict at an older commit, marked as last seen; each " +
         "operation's tasks, assignees and open matters; each lane's branch, pull requests and CI; the deployed commit " +
         "of each environment; and each operation's stand, which the status job computes with standOf from the book at " +
         "that commit. A status job (a GitHub Actions workflow) writes it to R2: until the swarmD ledger runs, from the " +
@@ -775,4 +775,18 @@ export const decision_loop_evidence = defineDecision({
     "the evidence, as part of its structured output, and a reviewer should be able to do the same. Built in " +
     "packages/loop/src/modules/evidence (commit 0f67f4e).",
   affects: [f.system_capxul],
+});
+
+export const decision_portal_verdict_provenance = defineDecision({
+  id: "portal.verdict-provenance",
+  title: "Recorded verdicts retain provenance and do not establish implementation absence",
+  question: "What can the generated portal claim from a recorded verdict, or its absence?",
+  options: [
+    { label: "provenance", text: "Retain each status entry's run, date, commit and evidence in page models. Link the run results and evidence in the repository at the result commit, and link the commit itself. Missing optional fields say not recorded. Compare result and built commits (allowing abbreviated SHAs); a different commit is last seen, not proof at the built commit. Without ancestry data do not claim it is necessarily older. No entry means no recorded verdict, not no code. Build describes specify, decide, build, observe and done using standOf, not code-existence inference." },
+    { label: "verdict-only", text: "Show only verdict chips. Rejected: historical passes look like current proof." },
+  ],
+  chosen: "provenance",
+  why: "Exit g7 requires the portal to say only what is known. Status entries carry provenance already; dropping it hides the distinction between a result and proof at this build. This clarifies portal.status-source for the current generated snapshot without adding a browser overlay or changing stand computation.",
+  source: "docs/mission/research-2026-11-11.md, What stands between the portal and Aaron accepting it, items 3 and 4; task m1-portal-provenance, coordinator answer 11 November 2026",
+  affects: [f.system_capxul, decision_portal_status_source],
 });

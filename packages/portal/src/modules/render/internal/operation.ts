@@ -115,9 +115,9 @@ export const operation = (p: OperationPage, cites: Cites): string => {
     `<div class="title-row"><h1 class="title">${esc(p.title)}</h1>${p.priority === "" ? "" : chip(p.priority, "chip chip-orange")}${p.isNew ? chip("new", "chip chip-quiet") : ""}</div>` +
     `${blocks(at, p.about, cites, "prose lead-prose")}${call(p)}${returns(p)}${duo(p, cites)}${oldCli(p)}` +
     section("run", "What happens when you run it", traceView(at, p.trace, cites),
-      "The steps of the record that implements it, in order, and what the blueprint lists under each. Nothing here has run: it is the design.") +
+      "The steps of the record that implements it, in order, and what the blueprint lists under each. This trace is the design, not a recorded execution.") +
     section("evals", "Evals", evalGroups(p, cites),
-      `${plural(p.evals.length, "eval")} in ${plural(p.evalKinds.length, "kind")}. Each is one claim a run can check; ${p.evals.some((e) => e.verdict !== "not_run") ? `${p.passing.own.passing} pass in the status document.` : "none has run, because no code exists yet."}`) +
+      `${plural(p.evals.length, "eval")} in ${plural(p.evalKinds.length, "kind")}. Each is one claim a run can check; ${p.evals.some((e) => e.verdict !== "not_run") ? `${p.passing.own.passing} pass in the status document.` : "no recorded verdict is available for these evals."}`) +
     refusals(p, cites) + section("notes", "Notes", notes) + section("mistakes", "Common mistakes", mistakes) +
     section("gaps", "What the blueprint still lacks here", findings(p.gaps)) +
     section("used-by", "Used by", linkGroups(at, p.usedBy)) + impactView(at, p.impact) +

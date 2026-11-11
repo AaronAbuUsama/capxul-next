@@ -68,9 +68,44 @@ test("with a status document the eval rows show verdicts and the page shows the 
   assert.ok(html("build").includes("evals passing"));
 });
 
-test("with no status document the Build page says what it said before", () => {
+test("with no status document the pages report only the absence of recorded verdicts", () => {
   const html = pages();
-  assert.ok(html("build").includes("No code exists yet, so nothing is past decided."));
-  assert.ok(html("operation/invite.accept").includes("none has run, because no code exists yet."));
+  assert.ok(html("build").includes("No recorded verdict is available; implementation existence is not inferred."));
+  assert.ok(html("operation/invite.accept").includes("no recorded verdict is available for these evals."));
   assert.ok(html("build").includes("What the blueprint still lacks"));
+  assert.ok(html("build").includes("observe means every L1 eval under it passes"));
+  assert.ok(!html("operation/invite.accept").includes("no code exists"));
+  assert.ok(!html("operation/invite.accept").includes("Nothing here has run"));
+});
+
+for (const commit of ["abc1234", "abc123456789", "def5678"]) {
+  test("verdict provenance is retained and linked at result commit " + commit, () => {
+    const doc = { version: 1 as const, evals: Object.fromEntries(ids.map((id) => [id, {
+      verdict: "pass" as const, commit, at: "2026-11-10T10:00:00Z", run: "run-test", evidence: "status/runs/run-test/evidence/check.txt",
+    }])) };
+    const site = buildSite(fixtureInput("abc1234", "as-is", doc, records));
+    const operation = site.pages.find((p) => p.type === "operation" && p.id === "operation/invite.accept");
+    assert.ok(operation?.type === "operation");
+    const row = operation.evals.find((e) => ids.includes(e.id))!;
+    assert.deepEqual(row.provenance, { result: doc.evals[row.id], builtCommit: "abc1234", repo: base.direction.settings.repo });
+    const html = pages(fixtureInput("abc1234", "as-is", doc, records));
+    const record = site.pages.find((p) => p.type === "record" && p.evals.some((e) => ids.includes(e.id)));
+    assert.ok(record, "fixture must exercise the shared record eval table");
+    for (const page of ["operation/invite.accept", record.id]) {
+      const text = html(page);
+      assert.ok(text.includes('>run-test</a>'));
+      assert.ok(text.includes('datetime="2026-11-10T10:00:00Z"'));
+      assert.ok(text.includes('/commit/' + commit + '">' + commit + '</a>'));
+      assert.ok(text.includes('/blob/' + commit + '/status/runs/run-test/results.json'));
+      assert.ok(text.includes('/blob/' + commit + '/status/runs/run-test/evidence/check.txt'));
+      assert.ok(text.includes(commit === "def5678" ? "Last seen at a different commit; not proof at built commit abc1234." : "At built commit."));
+    }
+  });
+}
+
+test("legacy results keep date and commit while missing optional provenance is explicit", () => {
+  const text = pages(fixtureInput("abc1234", "as-is", status, records))("operation/invite.accept");
+  assert.ok(text.includes("Run: not recorded"));
+  assert.ok(text.includes("Evidence: not recorded"));
+  assert.ok(text.includes("2026-11-10T10:00:00Z"));
 });
