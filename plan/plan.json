@@ -1399,6 +1399,102 @@
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-sandbox-11110827"
+    },
+    {
+      "id": "r-affinity",
+      "title": "Research: session affinity to the gateway",
+      "why": "m1-model-gateway done-when 1; the gateway ramp at eight agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-loop-split",
+      "title": "Research: splitting the generic loop out",
+      "why": "m1-loop-hardening: trim the package by moving the generic half out; the gateway ramp at eight agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-g1",
+      "title": "Research: what exit g1 still lacks",
+      "why": "recompute the path to m1's exits; the gateway ramp at eight agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-g3",
+      "title": "Research: what exit g3 still lacks",
+      "why": "recompute the path to m1's exits; the gateway ramp at eight agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-g5",
+      "title": "Research: what exit g5 still lacks",
+      "why": "recompute the path to m1's exits; the gateway ramp at eight agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-g7",
+      "title": "Research: what stands between the portal and Aaron accepting it",
+      "why": "m1-aaron-accepts; the gateway ramp at eight agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-dev-commands",
+      "title": "Research: the state of m1-dev-commands",
+      "why": "m1-loop-hardening: re-run m1-dev-commands and merge it through the gate; the gateway ramp at eight agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "r-m2-contracts",
+      "title": "Research: the first step of the real contracts under the test sites",
+      "why": "the next milestone's first task; the gateway ramp at eight agents",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
     }
   ],
   "path": {
@@ -1602,6 +1698,11 @@
       "date": "2026-11-11",
       "by": "coordinator",
       "text": "10:20: gateway ramp, step 5: five research runs at once (LOOP_MAX_AGENTS=5): r-time-scan, r-eval-lane, r-spend, r-alerts, r-sandbox"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "10:40: gateway ramp step 5 done: 5 research runs at once, 0 model failures, 1 refused. Step 8: eight research runs at once (LOOP_MAX_AGENTS=8)"
     }
   ]
 }
