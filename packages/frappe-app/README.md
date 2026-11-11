@@ -25,3 +25,7 @@ it ships inside the app and is not editable on a site), and the site is created 
 (the site service, `component site-service`, is not built yet).
 
 Proven by the end-to-end script `spikes/skeleton/run.sh` and the evals bound to it (`evals/bindings/sites.json`).
+
+`tests/` holds fast unit tests of the money path that need no site: `frappe` is replaced by a small in-memory fake
+(`pnpm frappe:test`, run by `pnpm test`). They cover how a chain payment lands in the books: once per payment, one
+unmatched bank line per payment of a batch, and a late payment against an entry already paid shown as unmatched.

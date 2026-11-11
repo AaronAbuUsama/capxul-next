@@ -126,14 +126,21 @@ def apply_payment_sent(d, event_key=None):
     s = settings()
     req_name = _find_request(d["document_hash"])
     if not req_name:
-        done = frappe.db.get_value("Capxul Payment Request", {"document_hash": d["document_hash"], "status": "Sent"})
+        # The same payment delivered again is already recorded; any other payment for this hash is unmatched.
+        done = frappe.db.get_value("Capxul Payment Request", {"document_hash": d["document_hash"], "status": "Sent", "tx_hash": d["tx_hash"]})
         if not done:
             _unmatched(d, "no Frappe document asked for this payment")
         return
     req = frappe.get_doc("Capxul Payment Request", req_name)
     pe = frappe.get_doc("Payment Entry", req.payment_entry)
     if pe.docstatus == 1:
-        req.db_set({"status": "Sent", "tx_hash": d["tx_hash"]})
+        if pe.reference_no == d["tx_hash"]:  # the payment that posted this entry, delivered again
+            req.db_set({"status": "Sent", "tx_hash": d["tx_hash"]})
+            return
+        # An older approval of the same entry, signed after another payment posted it: a second transfer left the
+        # Safe, so it must show in the books as an unmatched bank line, not disappear.
+        req.db_set({"status": "Mismatch", "tx_hash": d["tx_hash"], "reason": f"{pe.name} was already paid by {pe.reference_no}"[:400]})
+        _unmatched(d, f"document {pe.name} was already paid by {pe.reference_no}")
         return
     if document_hash(pe, s.asset) != d["document_hash"] or money(pe.paid_amount) != money(d["amount"]):
         req.db_set({"status": "Mismatch", "tx_hash": d["tx_hash"], "reason": "the document changed after it was prepared"})
@@ -166,12 +173,14 @@ def apply_payment_failed(d, event_key=None):
 def _unmatched(d, why):
     """A payment on the chain with no matching document -> an unreconciled Bank Transaction."""
     bank_account = frappe.db.get_single_value("Capxul Settings", "safe_bank_account")
-    if frappe.db.exists("Bank Transaction", {"transaction_id": d["tx_hash"]}):
+    # One line per payment: a batch transaction carries several payments under one hash, so the payment id is the key.
+    payment = d.get("payment_id") or d["tx_hash"]
+    if frappe.db.exists("Bank Transaction", {"transaction_id": d["tx_hash"], "reference_number": payment}):
         return
     bt = frappe.get_doc(
         {"doctype": "Bank Transaction", "date": getdate(d["block_time"][:10]), "bank_account": bank_account,
          "withdrawal": flt(d["amount"]), "currency": frappe.db.get_value("Account", safe_account(), "account_currency"),
-         "transaction_id": d["tx_hash"], "reference_number": d["tx_hash"],
+         "transaction_id": d["tx_hash"], "reference_number": payment,
          "description": f"Chain payment to {d['to']} ({why}); hash {d['document_hash']}"}
     )
     bt.insert(ignore_permissions=True)
