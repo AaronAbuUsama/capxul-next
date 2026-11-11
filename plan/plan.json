@@ -1306,12 +1306,13 @@
       "title": "A run cannot put a new question on Aaron's page by accident",
       "why": "loop.gateway landed on the Questions page on 11 Nov because its text cites Aaron's ruling",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-gate-no-new-questions-11110927"
     },
     {
       "id": "m1-probe-stop",
@@ -1707,48 +1708,52 @@
       "title": "A merged task leaves the critical path in the same change",
       "why": "a merge was refused on 11 Nov because the task merged before it was still on the path",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-merge-clears-path-11110927"
     },
     {
       "id": "m1-g5-findings",
       "title": "Every spike finding is a record or a decision, the CLI's stdout drain included",
       "why": "exit g5: one spike finding has no record",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-g5-findings-11110927"
     },
     {
       "id": "m1-bind-doc-create",
       "title": "The first near-miss becomes a binding: creating a document reads back a draft",
       "why": "the score is 8 of 5,175; this is the pattern for binding the rest",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-bind-doc-create-11110927"
     },
     {
       "id": "m1-reading-checklist",
       "title": "Aaron's reading checklist for accepting the portal",
       "why": "exit g7 needs a read with an end and a commit",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-reading-checklist-11110927"
     }
   ],
   "path": {
