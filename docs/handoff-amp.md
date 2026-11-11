@@ -93,6 +93,21 @@ coordinator and hill-climbs it with the skills in `.agents/skills/` (`coordinate
 Open, his call: plan tasks blocked on him show on Questions as plain text without option buttons, unlike blueprint
 decisions, so a choice for him reads better as a decision record than as a plan need (the `ask-aaron` skill says so).
 
+## 5b. Known open work from the blueprint audit (11 November)
+
+An outside audit of the blueprint was checked against `integration/build` at `222d334`, and every finding held
+(evidence: https://claude.ai/artifact/QNjtyttvfv9BgU8Qsf4Rn2). None is fixed yet:
+
+- A pass survives a change to an acceptance line's `observes` (`packages/blueprint-engine`: evals and status).
+- The shared-world records say Postgres and Ponder; the chosen decision says SQLite; the code uses JSON files.
+- The `books` concept still describes Core owning the chart of accounts, untracked.
+- Goal g4 over-claims what is proven.
+- `docs/blueprint-guide.md` has three false statements and swarmD text.
+- Aaron's five open decisions (`docs/mission/decisions-2026-11-11.md`) are not on the Questions page: make them
+  decision records so they show there with buttons.
+- `blueprint/shared/cut.ts` maps the trial balance to the Balance Sheet.
+- The plan still shows `todo` for work merged in PRs #2, #4 and #8: the coordinator's first sweep closes them.
+
 ## 6. Next tasks (each one Amp thread, one pull request into integration/build)
 
 0. **Prove an orb runs the stack**: run `.agents/setup`, then `spikes/skeleton/run.sh`, and report whether Docker,
