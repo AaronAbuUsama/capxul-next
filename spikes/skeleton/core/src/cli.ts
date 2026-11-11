@@ -9,7 +9,7 @@ import { config } from "./config.ts";
 import { CliError, refuse } from "./errors.ts";
 import { sign } from "./hmac.ts";
 import { touched, trace } from "./trace.ts";
-import { siteOf, world } from "./world.ts";
+import { clock, siteOf, world } from "./world.ts";
 import { byEmail, operatorKey } from "./people.ts";
 
 const exec = promisify(execFile);
@@ -57,6 +57,7 @@ export async function orgCreate(args: string[]): Promise<string[]> {
   if (!/^[a-z][a-z0-9-]{1,30}$/.test(slug)) throw refuse("USAGE", "slug must be lowercase letters, digits and dashes");
   person(admin);
   touched.actor = admin;
+  if (clock().frozenAtMs !== undefined) throw refuse("INVALID_INPUT", `world ${world} has a frozen clock, and a company's site has no frozen clock yet: make companies in a running world`);
   if (!existsSync(config.newSiteScript)) {
     throw new CliError(`the Frappe half's script does not exist yet: ${config.newSiteScript}. Nothing was created.`, "NO_SCRIPT");
   }

@@ -22,13 +22,13 @@ chk TL.signed-payment-posts-once "TL after the signature lands: the entry is sub
   "$(dj doc get $SLUG "Payment Entry" "$TLPE" --as $BUDGET | jget "d['data']['docstatus']") $(gl_of "$TLPE" | jget "[(r['debit'], r['credit']) for r in d['data'] if r['account']=='$SAFE_ACCOUNT']")" "1 [(0.0, 12.5)]"
 
 # acc:world.snapshot.save/1: a snapshot saves everything that makes the world and leaves it untouched.
-TLS0=$(sum_of $SITE); TLB0=$(sbal $RPC); TLT0=$(core world clock show main --json | jget "d['data']['time'][:16]"); TLN0=$(wc -l < "$REC")
+TLS0=$(sum_of $SITE); TLB0=$(sbal $RPC); TLT0=$(core world clock show main --json | jget "d['data']['offsetMs']"); TLN0=$(wc -l < "$REC")
 TLSAVE=$(dj world snapshot save main --as operator --name "tl-$RUN")
 TLSNAP=$(echo "$TLSAVE" | jget "d['data']['id']")
 chk TL.snapshot-save-prints-epoch-and-record-seq "TL world snapshot save prints the world's epoch and its record position (the entries before the save)" \
   "$(echo "$TLSAVE" | jget "(isinstance(d['data']['epoch'], int) and d['data']['epoch'] >= 1, d['data']['recordSeq'])")" "(True, $TLN0)"
-chk TL.snapshot-save-leaves-world-untouched "TL after the save the world is as it was: documents, ledger, hats, features and events on the site, the Safe's balance, the clock" \
-  "$(sum_of $SITE) $(sbal $RPC) $(core world clock show main --json | jget "d['data']['time'][:16]")" "$TLS0 $TLB0 $TLT0"
+chk TL.snapshot-save-leaves-world-untouched "TL after the save the world is as it was: documents, ledger, hats, features and events on the site, the Safe's balance, the clock's offset" \
+  "$(sum_of $SITE) $(sbal $RPC) $(core world clock show main --json | jget "d['data']['offsetMs']")" "$TLS0 $TLB0 $TLT0"
 chk TL.snapshot-save-record-gains-only-the-save "TL the world's record gained the save's entry and nothing else; snapshot list lists it" \
   "$(python3 -c 'import json,sys; rs=[json.loads(l) for l in open(sys.argv[1])][int(sys.argv[2]):]; print([r["command"] for r in rs if r["command"]!="world clock show"][:1], len([r for r in rs if r["command"]=="world snapshot save"]))' "$REC" "$TLN0") $(dj world snapshot list main | jget "'$TLSNAP' in [s['id'] for s in d['data']['snapshots']]")" "['world snapshot save'] 1 True"
 
@@ -60,3 +60,16 @@ chk TL.warp-ran-daily-job-once-each-day "TL $SITE shows Capxul's daily job ran o
 chk TL.warp-backwards-refused "TL a warp backwards (-1d) is refused as invalid input and moves nothing" \
   "$(refused "$(dj world clock advance main -1d --as operator)") $(core world clock show main --json | jget "d['data']['time'][:10]")" "INVALID_INPUT ${TLWNOW:0:10}"
 core world clock reset main --as operator >/dev/null
+
+# acc:world.create/2: a new world runs with its clock and a record that begins with its birth.
+TLWN=tlfrozen; core world delete $TLWN --as operator >/dev/null 2>&1   # left by an earlier run
+TLWC=$(dj world create $TLWN --clock frozen --template empty --as operator)
+chk TL.world-create-runs-frozen "TL world create $TLWN --clock frozen --template empty: the world runs, on a frozen clock, at epoch 1, with no company" \
+  "$(echo "$TLWC" | jget "(d['data']['state'], d['data']['clockMode'], d['data']['epoch'], d['data']['companies'])")" "('running', 'frozen', 1, [])"
+TLC1=$(core world clock show $TLWN --json | jget "d['data']['time']"); sleep 2
+chk TL.world-frozen-clock-holds "TL its clock holds while the host's moves (two reads 2 s apart agree) and the chain is at its epoch" \
+  "$(core world clock show $TLWN --json | jget "(d['data']['time'], d['data']['chainLatestBlock'][:16])")" "('$TLC1', '${TLC1:0:16}')"
+chk TL.world-record-begins-with-birth "TL world show $TLWN says running and frozen; its record's first entry is its birth, the only one, and the hash chain holds" \
+  "$(core world show $TLWN --json | jget "(d['data']['state'], d['data']['clockMode'], d['data']['recordHead'] >= 1)") $(core record tail $TLWN --json --n 50 | jget "(d['data']['chainOk'], d['data']['records'][0]['seq'], d['data']['records'][0]['command'], d['data']['records'][0]['born']['clockMode'], sum(1 for r in d['data']['records'] if 'born' in r))")" \
+  "('running', 'frozen', True) (True, 1, 'world create', 'frozen', 1)"
+core world delete $TLWN --as operator >/dev/null 2>&1

@@ -12,10 +12,12 @@ import type { Out } from "./doc.ts";
 import { CliError, refuse } from "./errors.ts";
 import { show } from "./render.ts";
 import { touched } from "./trace.ts";
+import { appendTo } from "./record.ts";
 
 const exec = promisify(execFile);
 export type W = { name: string; stateDir: string; anvilPort: number; corePort: number; createdAt?: string; from?: Record<string, unknown>;
-  /** a new one when the world starts and at every restore in place (blueprint devnet flows: a subscriber tells a restore from a move) */ epoch?: number };
+  /** a new one when the world starts and at every restore in place (blueprint devnet flows: a subscriber tells a restore from a move) */ epoch?: number;
+  clockMode?: "running" | "frozen" };
 const registryFile = join(coreDir, "state", "worlds.json");
 const mainWorld: W = { name: "main", stateDir: join(coreDir, "state"), anvilPort: 8545, corePort: 8787 };
 export const readRegistry = (): Record<string, W> => ({ main: mainWorld, ...(existsSync(registryFile) ? JSON.parse(readFileSync(registryFile, "utf8")) : {}) });
@@ -44,24 +46,56 @@ async function describe(w: W) {
   const read = (f: string) => { try { return JSON.parse(readFileSync(join(w.stateDir, f), "utf8")); } catch { return undefined; } };
   const orgs = Object.values<any>(read("outbox.json")?.orgs ?? {}).filter((o) => o.released).map((o) => o.slug);
   const clock = read("clock.json");
-  return { name: w.name, core: await up(`http://127.0.0.1:${w.corePort}/health`) ? "up" : "down", chain: await up(`http://127.0.0.1:${w.anvilPort}`) || (await fetch(`http://127.0.0.1:${w.anvilPort}`, { method: "POST", headers: { "content-type": "application/json" }, body: '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}', signal: AbortSignal.timeout(1500) }).then((r) => r.ok, () => false)) ? "up" : "down",
+  const recFile = join(w.stateDir, "record", `${w.name}.jsonl`);
+  const recordHead = existsSync(recFile) ? readFileSync(recFile, "utf8").split("\n").filter(Boolean).length : 0;
+  const coreUp = await up(`http://127.0.0.1:${w.corePort}/health`);
+  return { name: w.name, state: coreUp ? "running" : "stopped", clockMode: clock?.frozenAtMs !== undefined ? "frozen" : "running", recordHead, core: await up(`http://127.0.0.1:${w.corePort}/health`) ? "up" : "down", chain: await up(`http://127.0.0.1:${w.anvilPort}`) || (await fetch(`http://127.0.0.1:${w.anvilPort}`, { method: "POST", headers: { "content-type": "application/json" }, body: '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}', signal: AbortSignal.timeout(1500) }).then((r) => r.ok, () => false)) ? "up" : "down",
     anvilPort: w.anvilPort, corePort: w.corePort, companies: orgs, sites: orgs.map((o) => (w.name === "main" ? `${o}.localhost` : `${o}.${w.name}.localhost`)),
-    time: new Date(Date.now() + (clock?.offsetMs ?? 0)).toISOString(), from: w.from ?? null, stateDir: w.stateDir, epoch: w.epoch ?? 1,
+    time: new Date(clock?.frozenAtMs ?? Date.now() + (clock?.offsetMs ?? 0)).toISOString(), from: w.from ?? null, stateDir: w.stateDir, epoch: w.epoch ?? 1,
     parentWorld: (w.from?.world as string) ?? null, parentSnapshot: (w.from?.snapshot as string) ?? null, parentSeq: ((w.from?.record as any)?.count as number) ?? null };
 }
 
 export async function worldCreate(args: string[]): Promise<Out> {
   const { pos, flags } = parseArgs(args);
-  if (!pos[0]) throw refuse("USAGE", "usage: world create <name> --as operator");
+  if (!pos[0]) throw refuse("USAGE", "usage: world create <name> --as operator [--clock running|frozen] [--start-at <iso>] [--template empty]");
+  const mode = flags.clock === undefined ? "running" : flags.clock;
+  if (mode !== "running" && mode !== "frozen") throw refuse("INVALID_INPUT", "--clock is running or frozen");
+  if (flags.template !== undefined && flags.template !== "empty") throw refuse("INVALID_INPUT", "only the empty template is built here: a world starts with no company");
+  const startAt = typeof flags["start-at"] === "string" ? Date.parse(flags["start-at"]) : nextMondayNine();
+  if (Number.isNaN(startAt)) throw refuse("INVALID_INPUT", `--start-at is not a time: ${flags["start-at"]}`);
   if (flags.as !== "operator") throw refuse("NOT_WORLD_ADMIN", "refused: only the operator makes a world (--as operator)");
   validName(pos[0]);
   if (readRegistry()[pos[0]]) throw refuse("EXISTS", `world ${pos[0]} already exists`);
   const t0 = Date.now();
   const w: W = { name: pos[0], stateDir: join(coreDir, "state", "worlds", pos[0]), ...nextPorts(), createdAt: new Date().toISOString() };
   register(w); touched.extra.world = w.name;
+  born(w, mode, mode === "frozen" ? startAt : Date.now());   // first, before the world's own Core writes anything
   await startWorld(w);
+  if (mode === "frozen") await freeze(w, startAt);
   const d = await describe(w);
   return { data: { ...d, ms: Date.now() - t0 }, lines: [`world ${w.name}: its own chain on :${w.anvilPort} (contracts deployed) and its own Core on :${w.corePort}, ${Date.now() - t0} ms. Make a company in it: org create <slug> "<name>" --admin <email> --world ${w.name}`] };
+}
+// The eval epoch of devnet.deterministic-worlds, without a fork: 09:00 UTC on the next Monday.
+function nextMondayNine(): number {
+  const d = new Date(); d.setUTCHours(9, 0, 0, 0);
+  do d.setUTCDate(d.getUTCDate() + 1); while (d.getUTCDay() !== 1);
+  return d.getTime();
+}
+// A frozen world: its time is `at` until a set or an advance moves it. The chain is set to it and then moves one second a block.
+async function freeze(w: W, at: number): Promise<void> {
+  const rpc = (method: string, params: unknown[]) => fetch(`http://127.0.0.1:${w.anvilPort}`, { method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }), signal: AbortSignal.timeout(5000) }).then((r) => r.json());
+  await rpc("anvil_setTime", [Math.floor(at / 1000)]);
+  await rpc("anvil_setBlockTimestampInterval", [1]);
+  await rpc("evm_mine", []);
+  writeFileSync(join(w.stateDir, "clock.json"), JSON.stringify({ offsetMs: at - Date.now(), frozenAtMs: at, changedAt: new Date().toISOString() }));
+}
+// The world's record begins with its birth: entry 1 says how it was made.
+function born(w: W, mode: string, at: number): void {
+  appendTo(join(w.stateDir, "record", `${w.name}.jsonl`), { v: 1, id: `rec_born_${Date.now().toString(36)}`, command: "world create", world: w.name, org: null, outcome: "ok",
+    trace: `born_${Date.now().toString(36)}`, args: { positional: [w.name], flags: { clock: mode } }, actor: null, site: null, duration_ms: 0, error: null, result: null,
+    changes: { tx: [], docs: [] }, note: "this world was born here: the first entry of its record", born: { world: w.name, clockMode: mode, template: "empty", epoch: 1 },
+    world_time: new Date(at).toISOString(), world_time_end: new Date(at).toISOString(), real_time: new Date().toISOString() });
 }
 export async function worldList(_args: string[]): Promise<Out> {
   const rows = await Promise.all(Object.values(readRegistry()).map(describe));

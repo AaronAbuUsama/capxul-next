@@ -8,14 +8,14 @@
       "eval": "acc:org.create/6",
       "checks": ["B1.org-create", "B1.safe-on-chain-is-the-sites-safe", "B1.company-safe-minted-for-founder", "B1.org-show-prints-the-safe"],
       "why": "`org create` runs on the real v4 contracts. The checks read Companies House's CompanySafeMinted event for the company: its Safe is the minter's companySafeAddressFor for the admin (the founder) and the company's name, is the Safe the site was given, and has the founder's personal Safe (the claimer's safeAddressFor) as founderSafe and sole owner; `org show` prints that Safe."
+    },
+    {
+      "eval": "acc:world.create/2",
+      "checks": ["TL.world-create-runs-frozen", "TL.world-frozen-clock-holds", "TL.world-record-begins-with-birth"],
+      "why": "`world create tlfrozen --clock frozen --template empty --json` answers running, clockMode frozen, epoch 1 and no company. Its clock holds while the host's moves (two reads 2 s apart agree) and the chain is at its epoch. `world show` says running and frozen, and the world's record begins with its birth: entry 1 is the `world create` with its born block, the only one, and the hash chain holds. (The world's Core records its own start as entry 2, so recordHead is 2 here, not 1.)"
     }
   ],
   "near": [
-    {
-      "eval": "acc:world.create/2",
-      "checks": ["B1.org-create", "B1.site-answers-by-name"],
-      "missing": "Startup provides a working company site, but reuses main rather than world create; running state, frozen clock, epoch and birth record are not read. No hosted placement is established."
-    },
     {
       "eval": "acc:org.member.grant/1",
       "checks": ["B2.hat-grant-on-chain", "B2.roles-follow-grant", "B2.department-limit-exists"],
