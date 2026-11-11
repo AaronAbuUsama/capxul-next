@@ -1,0 +1,11 @@
+eval     acc:doc.create/1
+claim    A document is created as a draft and Frappe's validations apply.
+verdict  pass
+run      run-20261111232310  at 2026-11-11T23:23:10Z  commit 6889e58
+script   spikes/skeleton/run.sh  world main  company auditd
+why      The sales person creates a Sales Invoice through the door's `doc create`, then reads that same new document through `doc get` before submitting it: docstatus 0 establishes it is a draft. Creating an invoice in a closed month is refused, establishing that Frappe's validations apply. Together the checks prove the whole claim.
+
+PASS  B6.created-document-is-draft  x1  1977 ms
+      B6 newly created Sales Invoice ACC-SINV-2026-00001 reads back as a draft
+PASS  B7.closed-month-invoice-refused  x1  774 ms
+      B7 a Sales Invoice dated in the closed month is refused

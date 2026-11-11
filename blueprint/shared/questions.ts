@@ -133,3 +133,23 @@ export const decision_books_chart_owner = defineDecision({
   source: "Cloud thread \"Validate the blueprint audit findings\", 11 November 2026, from the blueprint audit (finding H3)",
   affects: [f.system_capxul, f.concept_books],
 });
+
+export const decision_plan_cloud_sandbox_moot = defineDecision({
+  id: "plan.cloud-sandbox-moot",
+  title: "Drop the plan's \"agents in a cloud sandbox\" task, now that Amp runs the agents",
+  question:
+    "The plan still has a task to make our own agents start in a home-made cloud sandbox instead of on your Mac (m1-cloud-sandbox), " +
+    "and it sits on the current critical path. Tonight you moved agent work to Amp, whose sandboxes ('orbs') do this already, and the " +
+    "home-made sandbox code was deleted. Should the task be dropped from the plan and the critical path?",
+  options: [
+    { label: "drop", text: "Drop it. The task leaves the plan and the critical path; the coordinator redraws the path around Amp. Nothing else changes." },
+    { label: "keep-as-amp-proof", text: "Keep it, reworded: it is done when one plan task runs start to finish in an Amp orb and its pull request is mergeable. This turns it into the 'prove an orb runs the stack' check the handoff already lists first." },
+  ],
+  chosen: "drop",
+  why:
+    "Recommended because the thing it was building no longer exists (packages/sandbox was deleted in PR #10) and Amp already gives each agent its " +
+    "own sandbox; proving an orb runs our stack is already the handoff's first task (docs/handoff-amp.md, section 6, task 0), so keeping this one " +
+    "would track the same work twice. Detail for agents: plan task m1-cloud-sandbox; plan path; milestone m1 exit g9.",
+  source: "Cloud thread \"Validate the blueprint audit findings\", 11 November 2026, from the blueprint audit's plan findings",
+  affects: [f.system_capxul],
+});
