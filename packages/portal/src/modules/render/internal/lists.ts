@@ -36,7 +36,7 @@ const byConcept = (p: BuildPage): string =>
 
 export const build = (p: BuildPage): string =>
   `<main class="page"><p class="eyebrow eyebrow-muted">Build</p><h1 class="title">Where every operation stands</h1>` +
-  `<p class="lead lead-wide">An operation is specified when the blueprint has no gap on it, decided when no question about it waits for you, ` +
-  `built when its code exists, and proven when its evals pass against that code. ` +
-  (p.recorded ? `${plural(p.passing.passing, "eval")} of ${plural(p.passing.total, "eval")} pass in the status document.` : "No code exists yet, so nothing is past decided.") +
+  `<p class="lead lead-wide">The stand shows what remains: specify means a problem or a stand-relevant gap exists under the operation; decide means an affecting decision waits for an answer. ` +
+  `Build means specified and decided, with L1 evals still not passing; observe means every L1 eval under it passes; done also requires its defined live evals to hold. These are recorded stands, not a code inventory or proof at the built commit. ` +
+  (p.recorded ? `${plural(p.passing.passing, "eval")} of ${plural(p.passing.total, "eval")} pass in the status document.` : "No recorded verdict is available; implementation existence is not inferred.") +
   `</p>${tiles(p.id, p.tiles)}${gaps(p)}${byStand(p)}${byConcept(p)}</main>`;

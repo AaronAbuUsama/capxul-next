@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { test } from "node:test";
 import { defineOperation, evalsUnder, mergeResults, parseResults } from "@capxul/blueprint-engine";
 
@@ -7,6 +8,7 @@ import { fixtureAssets, fixtureInput, fixtureRecords } from "#src/testing.ts";
 import * as fixture from "../../../../blueprint-engine/test/fixtures/invitations.ts";
 
 import { renderSite } from "./service.ts";
+import { verdictView } from "./internal/evals.ts";
 
 const withExamples = defineOperation({
   ...fixture.invite,
@@ -68,9 +70,89 @@ test("with a status document the eval rows show verdicts and the page shows the 
   assert.ok(html("build").includes("evals passing"));
 });
 
-test("with no status document the Build page says what it said before", () => {
+test("with no status document the pages report only the absence of recorded verdicts", () => {
   const html = pages();
-  assert.ok(html("build").includes("No code exists yet, so nothing is past decided."));
-  assert.ok(html("operation/invite.accept").includes("none has run, because no code exists yet."));
+  assert.ok(html("build").includes("No recorded verdict is available; implementation existence is not inferred."));
+  assert.ok(html("operation/invite.accept").includes("no recorded verdict is available for these evals."));
   assert.ok(html("build").includes("What the blueprint still lacks"));
+  assert.ok(html("build").includes("observe means every L1 eval under it passes"));
+  assert.ok(!html("operation/invite.accept").includes("no code exists"));
+  assert.ok(!html("operation/invite.accept").includes("Nothing here has run"));
+  const operation = html("operation/invite.accept");
+  assert.ok(!operation.includes("no eval has run against real code yet"), "the whole page, including the stand sidebar, must not infer execution absence");
+  assert.ok(operation.includes("No recorded verdict is available for these evals; this does not establish whether code exists or an eval has run."));
+});
+
+for (const commit of ["abc1234", "abc123456789", "def5678", "abc1234+dirty"]) {
+  test("verdict provenance links artifacts at the built snapshot, not tested revision " + commit, () => {
+    const doc = { version: 1 as const, evals: Object.fromEntries(ids.map((id) => [id, {
+      verdict: "pass" as const, commit, at: "2026-11-10T10:00:00Z", run: "run-test", evidence: "status/runs/run-test/evidence/check.txt",
+    }])) };
+    const site = buildSite(fixtureInput("abc1234", "as-is", doc, records));
+    const operation = site.pages.find((p) => p.type === "operation" && p.id === "operation/invite.accept");
+    assert.ok(operation?.type === "operation");
+    const row = operation.evals.find((e) => ids.includes(e.id))!;
+    assert.deepEqual(row.provenance, { result: doc.evals[row.id], builtCommit: "abc1234", repo: base.direction.settings.repo });
+    const html = pages(fixtureInput("abc1234", "as-is", doc, records));
+    const record = site.pages.find((p) => p.type === "record" && p.evals.some((e) => ids.includes(e.id)));
+    assert.ok(record, "fixture must exercise the shared record eval table");
+    for (const page of ["operation/invite.accept", record.id]) {
+      const text = html(page);
+      assert.ok(text.includes('>run-test</a>'));
+      assert.ok(text.includes('datetime="2026-11-10T10:00:00Z"'));
+      const sha = commit.replace(/\+dirty$/, "");
+      assert.ok(text.includes('/commit/' + sha + '">' + sha + '</a>'));
+      assert.ok(text.includes('/blob/abc1234/status/runs/run-test/results.json'));
+      assert.ok(text.includes('/blob/abc1234/status/runs/run-test/evidence/check.txt'));
+      if (commit.endsWith("+dirty")) {
+        assert.ok(text.includes("+dirty (base commit; uncommitted changes)"));
+        assert.ok(text.includes("Dirty working tree result; not proof at built commit abc1234."));
+        assert.ok(!text.includes("/commit/abc1234%2Bdirty"));
+        assert.ok(!text.includes("At built commit."));
+      } else {
+        assert.ok(text.includes(commit === "def5678" ? "Last seen at a different commit; not proof at built commit abc1234." : "At built commit."));
+      }
+    }
+  });
+}
+
+test("recorded repository run and evidence links resolve, including historical and dirty results", () => {
+  const cwd = new URL("../../../../../", import.meta.url);
+  const git = (...args: string[]): string => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+  const builtCommit = git("rev-parse", "HEAD");
+  const doc = JSON.parse(git("show", builtCommit + ":status/status.json"));
+  let historical = 0;
+  let dirty = 0;
+  for (const [id, result] of Object.entries(doc.evals)) {
+    const r = result as NonNullable<Parameters<typeof verdictView>[0]["provenance"]>["result"];
+    const text = verdictView({ id, kind: "acc", anchor: "test", level: "L1", claim: "", decider: "test", verdict: r.verdict,
+      provenance: { result: r, builtCommit, repo: base.direction.settings.repo } });
+    const files = [...text.matchAll(/href="[^"]*\/blob\/([^/]+)\/([^"]+)"/g)];
+    assert.equal(files.length, 2, id + " must link both run results and evidence");
+    for (const [, ref, path] of files) {
+      assert.equal(ref, builtCommit, "artifacts belong to the snapshot, not the tested revision");
+      assert.equal(git("cat-file", "-t", decodeURIComponent(ref!) + ":" + decodeURIComponent(path!)), "blob", id);
+    }
+    const sha = r.commit.replace(/\+dirty$/, "");
+    assert.equal(git("cat-file", "-t", sha), "commit");
+    assert.ok(text.includes('/commit/' + sha + '">'));
+    if (r.commit.endsWith("+dirty")) {
+      dirty++;
+      assert.ok(!text.includes("/commit/" + r.commit));
+      assert.ok(text.includes("base commit; uncommitted changes"));
+      assert.ok(text.includes("Dirty working tree result; not proof at built commit"));
+    } else if (!builtCommit.startsWith(r.commit)) {
+      historical++;
+      assert.ok(text.includes("Last seen at a different commit; not proof at built commit"));
+    }
+  }
+  assert.ok(historical > 0, "exercise actual historical results");
+  assert.ok(dirty > 0, "exercise an actual dirty result");
+});
+
+test("legacy results keep date and commit while missing optional provenance is explicit", () => {
+  const text = pages(fixtureInput("abc1234", "as-is", status, records))("operation/invite.accept");
+  assert.ok(text.includes("Run: not recorded"));
+  assert.ok(text.includes("Evidence: not recorded"));
+  assert.ok(text.includes("2026-11-10T10:00:00Z"));
 });

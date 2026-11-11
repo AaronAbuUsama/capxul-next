@@ -60,6 +60,6 @@ export const concept = (ctx: Ctx, c: AnyRecord): ConceptPage => {
       const items = membersOf(ctx, c.id, kind).map(brief);
       return items.length > 0 ? [{ title, anchor: `${kind}s`, items }] : [];
     }),
-    evals: evalRows(ctx.evals.get(keyOf(c)) ?? [], c.id, new Set(), ctx.input.status),
+    evals: evalRows(ctx.evals.get(keyOf(c)) ?? [], c.id, new Set(), ctx.input.status, ctx.input.commit, ctx.input.direction.settings.repo),
   };
 };

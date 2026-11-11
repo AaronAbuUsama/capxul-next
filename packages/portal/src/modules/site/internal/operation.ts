@@ -85,7 +85,7 @@ export const operation = (ctx: Ctx, op: AnyRecord): OperationPage => {
   const affecting = decisionsOn(ctx, [key, ...(impl ? [keyOf(impl)] : [])]);
   const inConcept = home ? membersOf(ctx, home.id, "decision") : [];
   const sdk = impl ? impl["sdk"] : undefined;
-  const evals = evalRows(ctx.evals.get(key) ?? [], op.id, new Set(), ctx.input.status);
+  const evals = evalRows(ctx.evals.get(key) ?? [], op.id, new Set(), ctx.input.status, ctx.input.commit, ctx.input.direction.settings.repo);
   return {
     ...head(`operation/${op.id}`, titleOf(op), sourceOf(ctx, op), op), type: "operation",
     impact: impactBlock(ctx, key), examples: exampleViews(op),
