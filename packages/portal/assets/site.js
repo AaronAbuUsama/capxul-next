@@ -10,7 +10,7 @@
 
   var articles = Array.prototype.slice.call(main.querySelectorAll("article.q"));
   var items = Array.prototype.slice.call(main.querySelectorAll(".q-item"));
-  var mode = "files"; // "server" once /api/answers answers
+  var mode = "checking"; // No answer until the destination is known
   var saved = {}; // item key -> the answer line it holds
 
   function show(id) {
@@ -57,7 +57,7 @@
     return a.how === "done" ? "marked this done" : "said: " + a.text;
   }
 
-  // Marks an item answered (or not), and brings the count in the top bar down to what is still unanswered.
+  // Saved is not applied. Keep the generated navigation count unchanged across pages.
   function paint(article) {
     var answer = saved[article.dataset.decision];
     var box = article.querySelector(".saved");
@@ -68,17 +68,17 @@
     article.querySelector(".answer").hidden = true;
     if (answer) {
       var at = new Date(answer.at);
-      box.querySelector(".saved-text").textContent = "Answered " + at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + ": " + words(answer) + ". The coordinator will apply it.";
+      box.querySelector(".saved-text").textContent = "Saved, not applied, " + at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + ": " + words(answer) + ". Awaiting the coordinator; the question remains outstanding.";
     }
     if (item) {
       item.classList.toggle("is-answered", !!answer);
-      item.querySelector(".q-status").textContent = answer ? "Answered" : (article.dataset.kind === "need" ? "Needs you" : "Waiting");
+      item.querySelector(".q-status").textContent = answer ? "Saved, not applied" : (article.dataset.kind === "need" ? "Needs you" : "Waiting");
     }
     var left = articles.filter(function (a) { return !saved[a.dataset.decision]; }).length;
-    var pill = document.getElementById("nav-questions-count");
-    if (pill) { pill.textContent = String(left); pill.hidden = left === 0; }
     var count = main.querySelector(".q-count-big");
-    if (count) count.textContent = String(left);
+    if (count) count.textContent = String(articles.length);
+    var summary = main.querySelector(".q-answer-counts");
+    if (summary) summary.textContent = left + " unanswered · " + (articles.length - left) + " saved, not applied in this generated list. Applied answers are not returned by this endpoint; rebuild the portal to see settled questions leave the list. Navigation counts outstanding questions at the page build, including saved answers.";
   }
 
   function fail(article, message) {
@@ -119,6 +119,7 @@
   }
 
   function answer(article, how) {
+    if (mode === "checking") return;
     if (mode !== "server") { file(article, how); return; }
     send(article, { target: targetOf(article), answer: how }, function (json) { saved[article.dataset.decision] = json.answer; paint(article); });
   }
@@ -138,7 +139,7 @@
     });
     article.addEventListener("click", function (event) {
       var button = event.target && event.target.closest ? event.target.closest("[data-act]") : null;
-      if (!button) return;
+      if (!button || mode === "checking") return;
       var act = button.dataset.act;
       var change = article.querySelector(".change");
       if (act === "accept" || act === "done") {
@@ -158,17 +159,26 @@
     });
   });
 
+  function serving(next, message) {
+    mode = next;
+    main.querySelector(".q-serving-mode").textContent = message;
+    articles.forEach(function (a) {
+      Array.prototype.forEach.call(a.querySelectorAll("button[data-act]"), function (b) { b.disabled = false; });
+    });
+  }
+
   // Is there a server behind this page? Only a JSON answer from /api/answers says so.
-  fetch("/api/answers", { headers: { accept: "application/json" } })
+  fetch("/api/answers", { cache: "no-store", headers: { accept: "application/json" } })
     .then(function (res) { return res.ok && (res.headers.get("content-type") || "").indexOf("json") >= 0 ? res.json() : null; })
     .then(function (json) {
       if (!json || !Array.isArray(json.answers)) throw new Error("no server");
-      mode = "server";
+      serving("server", "Local saving: answer buttons save to plan/answers.jsonl on this server. Saved is not applied: the coordinator must apply it. You can undo a saved answer until then.");
       json.answers.forEach(function (a) { saved[(a.target.kind === "task" ? "task-" : "") + a.target.id] = a; });
       articles.forEach(paint);
     })
     .catch(function () {
-      articles.forEach(function (a) { a.querySelector(".fallback-note").hidden = false; });
+      serving("files", "GitHub issue mode: local saving is unavailable or could not be verified. Answer buttons prepare an issue; nothing is saved here. Open the GitHub issue and submit it there.");
+      articles.forEach(function (a) { a.querySelector(".fallback-note").textContent = "Local saving is unavailable or unverified. Prepare your answer below, then open and submit the GitHub issue."; a.querySelector(".fallback-note").hidden = false; });
     });
 
   window.addEventListener("hashchange", function () { show(fromHash()); });

@@ -27,11 +27,11 @@ const holds = (at: string, q: Question): string =>
 
 /** The buttons, the box for an answer in your own words, and the panel that shows the answer before it is filed. */
 const answering = (q: Question): string =>
-  `<div class="actions js-only"><button type="button" class="btn btn-blue" data-act="accept">Accept the recommendation</button>` +
-  `<button type="button" class="btn btn-line" data-act="change">Change it in my own words</button></div>` +
+  `<div class="actions js-only"><button type="button" disabled class="btn btn-blue" data-act="accept">Accept the recommendation</button>` +
+  `<button type="button" disabled class="btn btn-line" data-act="change">Change it in my own words</button></div>` +
   `<div class="change" hidden><label class="change-label" for="change-${esc(q.key)}">What should it be instead?</label>` +
   `<textarea id="change-${esc(q.key)}" rows="4" maxlength="2000" placeholder="Say it the way you would say it out loud. An agent turns it into the record."></textarea>` +
-  `<button type="button" class="btn btn-ink" data-act="send">Send the change</button></div>`;
+  `<button type="button" disabled class="btn btn-ink" data-act="send">Send the change</button></div>`;
 
 /** What an item holds up: the plan's tasks blocked on it. */
 const heldUp = (q: Question): string =>
@@ -39,7 +39,7 @@ const heldUp = (q: Question): string =>
     `<p class="held-up">Holds up ${q.holdsUp.map((t) => `<a href="${esc(hrefTo("review", { label: "", page: `plan/task/${t.id}`, anchor: "" }))}">${esc(t.title)}</a> <span class="mono">(${esc(t.milestone)})</span>`).join(", ")}.</p>`;
 
 /** Where an answer is shown once it is saved, and the line that says why a saved answer is not offered. */
-const saved = `<div class="saved" hidden><p class="saved-text"></p><button type="button" class="btn btn-line" data-act="undo">Undo</button></div>` +
+const saved = `<div class="saved" hidden><p class="saved-text"></p><button type="button" disabled class="btn btn-line" data-act="undo">Undo</button></div>` +
   `<p class="fallback-note" hidden>Answers cannot be saved from this page: it is not served by <code>pnpm portal:serve</code>, so your answer is shown as an issue to file on GitHub instead.</p>` +
   `<p class="q-error" role="alert" hidden></p>`;
 
@@ -59,10 +59,10 @@ const meta = (p: QuestionsPage, q: Question, i: number): string =>
 const needArticle = (p: QuestionsPage, q: Question, i: number, cites: Cites): string =>
   `<article class="q" ${attrs(q)}>${meta(p, q, i)}<h2>${prose(q.title)}</h2><p class="eyebrow eyebrow-muted">What is needed</p>` +
   `${blocks(p.id, q.question, cites, "prose q-text")}<p class="eyebrow eyebrow-muted">Why it is needed</p>${blocks(p.id, q.why, cites, "prose")}` +
-  `<div class="actions js-only"><button type="button" class="btn btn-blue" data-act="done">I've done this</button>` +
-  `<button type="button" class="btn btn-line" data-act="change">Tell the coordinator something</button></div>` +
+  `<div class="actions js-only"><button type="button" disabled class="btn btn-blue" data-act="done">I've done this</button>` +
+  `<button type="button" disabled class="btn btn-line" data-act="change">Tell the coordinator something</button></div>` +
   `<div class="change" hidden><label class="change-label" for="change-${esc(q.key)}">What should the coordinator know? For example the subdomain.</label>` +
-  `<textarea id="change-${esc(q.key)}" rows="4" maxlength="2000"></textarea><button type="button" class="btn btn-ink" data-act="send">Send</button></div>` +
+  `<textarea id="change-${esc(q.key)}" rows="4" maxlength="2000"></textarea><button type="button" disabled class="btn btn-ink" data-act="send">Send</button></div>` +
   `${saved}${filing}</article>`;
 
 const article = (p: QuestionsPage, q: Question, i: number, cites: Cites): string =>
@@ -79,13 +79,15 @@ const empty = `<p class="q-none">No question is waiting for you. Every decision 
 export const questions = (p: QuestionsPage, cites: Cites): string =>
   `<main class="page" data-commit="${esc(p.commit)}" data-repo="${esc(p.repo)}" data-reviewer="${esc(p.reviewer)}" data-label="${esc(p.issueLabel)}">` +
   `<div class="q-head"><div><h1 class="title-wide">${esc(p.title)}</h1><p class="q-lead">${prose(p.lead)}</p></div>` +
-  `<p class="q-count"><span class="q-count-big">${count(p.questions.length)}</span> waiting</p></div>` +
+  `<p class="q-count"><span class="q-count-big">${count(p.questions.length)}</span> outstanding at build</p></div>` +
+  `<p class="q-serving-mode" role="status">Checking serving mode. Answer buttons stay disabled until the destination is known. Without JavaScript, nothing is saved here; open a GitHub issue to answer.</p>` +
+  `<p class="q-answer-counts" aria-live="polite">${count(p.questions.length)} outstanding questions at build. Saved answers are not applied answers. Live unanswered and saved counts are available only when local saving is verified. Applied totals are not available on this page; rebuild after the coordinator applies answers.</p>` +
   (p.questions.length === 0 ? empty :
     `<div class="master"><nav class="q-list" aria-label="Questions">${p.questions.map(item).join("")}</nav>` +
     `<div class="q-detail">${p.questions.map((q, i) => article(p, q, i, cites)).join("")}</div></div>` +
     `<noscript><p class="note">Without JavaScript this page is a list to read. To answer, open an issue in ` +
     `<a href="${esc(p.repo)}/issues">the repository</a> that names the item and your answer.</p></noscript>`) +
-  `<section class="does"><h2 id="what-your-answer-does">What your answer does</h2><ol class="steps">` +
+  `<section class="does"><h2 id="what-your-answer-does">What your answer does</h2><p>These steps describe local saving only. In GitHub issue mode, submit the issue first; preparing it here does not save an answer.</p><ol class="steps">` +
   p.steps.map((s) => `<li><span class="step-title">${esc(s.title)}</span><span class="step-text">${prose(s.text)}</span></li>`).join("") +
   `</ol></section><p class="all-kinds">Every other decision is on its concept's page, or in ` +
   `<a href="${esc(hrefTo(p.id, { label: "", page: "docs/decisions", anchor: "" }))}">the decisions catalogue</a>.</p></main>`;
