@@ -30,7 +30,8 @@
       {
         "id": "g5",
         "claim": "Everything the spikes found is a record or a decision.",
-        "state": "open"
+        "state": "met",
+        "evidence": "m1-g5-findings merged: components.cli-stdout-drain and the decisions it names hold every 'Smaller findings' item of spikes/skeleton/FINDINGS.md; the design findings were recorded by m1-spike-evidence (r-g5-11110831)"
       },
       {
         "id": "g6",
@@ -1764,12 +1765,11 @@
       "m1-aaron-accepts",
       "m1-bind-doc-create",
       "m1-eval-coverage",
-      "m1-g5-findings",
       "m1-model-gateway",
       "m1-loop-hardening",
       "m1-time-proof"
     ],
-    "why": "Exits g1, g2, g3 met. Open: g5 (one finding), g7 (Aaron's read: the checklist first), g8 (the shared world, m3b). The score (8 of 5,175) is the biggest lever: bind near-misses one by one, starting with acc:doc.create/1, with the Frappe stack up on the Mac",
+    "why": "m1-g5-findings merged; g5 met. Next: Aaron's read (checklist first) and the score",
     "written": "2026-11-11"
   },
   "notes": [
