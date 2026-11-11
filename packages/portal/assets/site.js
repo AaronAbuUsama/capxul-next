@@ -68,17 +68,17 @@
     article.querySelector(".answer").hidden = true;
     if (answer) {
       var at = new Date(answer.at);
-      box.querySelector(".saved-text").textContent = "Saved, not applied, " + at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + ": " + words(answer) + ". Awaiting the coordinator; the question remains outstanding.";
+      box.querySelector(".saved-text").textContent = "Saved " + at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + ": " + words(answer) + ". The coordinator applies it next; until then you can undo it.";
     }
     if (item) {
       item.classList.toggle("is-answered", !!answer);
-      item.querySelector(".q-status").textContent = answer ? "Saved, not applied" : "Status unknown";
+      item.querySelector(".q-status").textContent = answer ? "Saved" : "Waiting for you";
     }
     var unknown = articles.filter(function (a) { return !saved[a.dataset.decision]; }).length;
     var count = main.querySelector(".q-count-big");
     if (count) count.textContent = String(articles.length);
     var summary = main.querySelector(".q-answer-counts");
-    if (summary) summary.textContent = unknown + " status unknown · " + (articles.length - unknown) + " saved, not applied in this generated list. Applied answers are not returned by this endpoint: an absent answer may be unanswered or already applied since this page was built. Check with the coordinator before answering an unknown item again; rebuild the portal to see settled questions leave the list. Navigation counts outstanding questions at the page build, including saved answers.";
+    if (summary) summary.textContent = unknown + " waiting for you · " + (articles.length - unknown) + " saved, for the coordinator to apply";
   }
 
   function fail(article, message) {
@@ -172,7 +172,7 @@
     .then(function (res) { return res.ok && (res.headers.get("content-type") || "").indexOf("json") >= 0 ? res.json() : null; })
     .then(function (json) {
       if (!json || !Array.isArray(json.answers)) throw new Error("no server");
-      serving("server", "Local saving: answer buttons save to plan/answers.jsonl on this server. Saved is not applied: the coordinator must apply it. You can undo a saved answer until then. Items without a pending saved answer have unknown status, not confirmed unanswered; they may already be applied. Check with the coordinator before answering again.");
+      serving("server", "Your answer is saved on this Mac. You can undo it until the coordinator applies it; then the question leaves this page.");
       json.answers.forEach(function (a) { saved[(a.target.kind === "task" ? "task-" : "") + a.target.id] = a; });
       articles.forEach(paint);
     })

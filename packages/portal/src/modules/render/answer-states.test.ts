@@ -91,7 +91,7 @@ test("mode precedes actions and buttons are disabled in generated HTML", () => {
   const buttons = html.match(/type="button"/g) ?? [];
   assert.ok(buttons.length > 0);
   assert.equal(buttons.length, (html.match(/type="button" disabled/g) ?? []).length);
-  assert.match(html, /Saved answers are not applied answers/);
+  assert.match(html, /waiting for you/);
 });
 
 test("pending detection cannot post; save and undo keep outstanding count stable", async () => {
@@ -100,19 +100,19 @@ test("pending detection cannot post; save and undo keep outstanding count stable
   assert.equal(x.calls.length, 1);
   assert.equal(x.button.disabled, true);
   await x.resolve();
-  assert.match(x.mode.textContent, /Local saving/);
+  assert.match(x.mode.textContent, /saved on this Mac/);
   assert.equal(x.button.disabled, false);
   x.click();
   await x.flush();
   assert.equal(x.calls[1]?.method, "POST");
-  assert.match(x.status.textContent, /Saved, not applied/);
-  assert.match(x.summary.textContent, /0 status unknown · 1 saved/);
+  assert.match(x.status.textContent, /^Saved$/);
+  assert.match(x.summary.textContent, /0 waiting for you · 1 saved/);
   assert.equal(x.count.textContent, "1");
   x.button.dataset.act = "undo";
   x.click();
   await x.flush();
   assert.equal(x.calls[2]?.body, JSON.stringify({ withdraw: "fixture" }));
-  assert.match(x.summary.textContent, /1 status unknown · 0 saved/);
+  assert.match(x.summary.textContent, /1 waiting for you · 0 saved/);
   assert.equal(x.count.textContent, "1");
 });
 
@@ -125,29 +125,28 @@ test("static or closed endpoint declares GitHub destination and does not POST", 
   assert.equal(x.nodes.get(".answer").hidden, false);
 });
 
-test("saved answers reloaded from endpoint remain explicitly unapplied", async () => {
+test("saved answers reloaded from the endpoint show as saved, for the coordinator to apply", async () => {
   const x = setup(false, [{
     id: "fixture", target: { kind: "task", id: "demo" }, at: "2026-11-11", answer: { how: "done" },
   }]);
   await x.resolve();
-  assert.match(x.status.textContent, /Saved, not applied/);
-  assert.match(x.summary.textContent, /Applied answers are not returned/);
+  assert.match(x.status.textContent, /^Saved$/);
+  assert.match(x.summary.textContent, /for the coordinator to apply/);
   assert.equal(x.count.textContent, "1");
 });
 
 // Applying an answer removes it from GET /api/answers, but does not rebuild the page.
-test("answer applied before rebuild is unknown, never reported as unanswered", async () => {
+test("a question with no saved answer waits for Aaron (the portal is rebuilt after every applied answer)", async () => {
   const ledger = [{
     id: "fixture", target: { kind: "task", id: "demo" }, at: "2026-11-11",
     answer: { how: "done" }, applied: true,
   }];
   const x = setup(false, ledger.filter((answer) => !answer.applied));
   await x.resolve();
-  assert.equal(x.status.textContent, "Status unknown");
-  assert.match(x.summary.textContent, /1 status unknown · 0 saved/);
+  assert.equal(x.status.textContent, "Waiting for you");
+  assert.match(x.summary.textContent, /1 waiting for you · 0 saved/);
   assert.doesNotMatch(x.summary.textContent, /1 unanswered/);
-  assert.match(x.summary.textContent, /already applied since this page was built/);
-  assert.match(x.mode.textContent, /unknown status, not confirmed unanswered/);
+  assert.match(x.mode.textContent, /until the coordinator applies it/);
   assert.equal(x.count.textContent, "1");
   assert.equal(x.calls.length, 1); // No real or mock answer recorded in this scenario.
 });

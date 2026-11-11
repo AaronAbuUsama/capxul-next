@@ -79,9 +79,9 @@ const empty = `<p class="q-none">No question is waiting for you. Every decision 
 export const questions = (p: QuestionsPage, cites: Cites): string =>
   `<main class="page" data-commit="${esc(p.commit)}" data-repo="${esc(p.repo)}" data-reviewer="${esc(p.reviewer)}" data-label="${esc(p.issueLabel)}">` +
   `<div class="q-head"><div><h1 class="title-wide">${esc(p.title)}</h1><p class="q-lead">${prose(p.lead)}</p></div>` +
-  `<p class="q-count"><span class="q-count-big">${count(p.questions.length)}</span> outstanding at build</p></div>` +
+  `<p class="q-count"><span class="q-count-big">${count(p.questions.length)}</span> waiting</p></div>` +
   `<p class="q-serving-mode" role="status">Checking serving mode. Answer buttons stay disabled until the destination is known. Without JavaScript, nothing is saved here; open a GitHub issue to answer.</p>` +
-  `<p class="q-answer-counts" aria-live="polite">${count(p.questions.length)} outstanding questions at build. Saved answers are not applied answers. Local saving can verify pending saved answers, not whether other items are still unanswered or have been applied since this build. Applied totals are not available on this page; rebuild after the coordinator applies answers.</p>` +
+  `<p class="q-answer-counts" aria-live="polite">${count(p.questions.length)} waiting for you</p>` +
   (p.questions.length === 0 ? empty :
     `<div class="master"><nav class="q-list" aria-label="Questions">${p.questions.map(item).join("")}</nav>` +
     `<div class="q-detail">${p.questions.map((q, i) => article(p, q, i, cites)).join("")}</div></div>` +
