@@ -1700,6 +1700,18 @@
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m1-payroll-uk-11110835"
+    },
+    {
+      "id": "m1-merge-clears-path",
+      "title": "A merged task leaves the critical path in the same change",
+      "why": "a merge was refused on 11 Nov because the task merged before it was still on the path",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
     }
   ],
   "path": {
@@ -1928,6 +1940,11 @@
       "date": "2026-11-11",
       "by": "coordinator",
       "text": "Correction: the times at the start of this coordinator's notes from '08:12' to '12:10' are wrong labels; each note's own 'at' field holds the real UTC time"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "Portal fixes merged: provenance (2282c89), answer states (885147b), then the Questions copy in plain words. Full checks pass at the head. Next on the path: m1-aaron-accepts (r-g7: a reading checklist tied to a named commit, then ask Aaron)"
     }
   ]
 }
