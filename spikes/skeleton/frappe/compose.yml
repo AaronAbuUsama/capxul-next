@@ -35,7 +35,7 @@ services:
       PYTHONDONTWRITEBYTECODE: "1"
     volumes:
       - capxul_bench:/home/frappe/vol                   # the bench lives in this named volume, not in the repo
-      - ./capxul:/workspace/capxul                 # the app, editable in place
+      - ../../../packages/frappe-app:/workspace/capxul   # the Capxul app (packages/frappe-app), editable in place
       - ./docker:/workspace/docker:ro
     restart: unless-stopped
 volumes:

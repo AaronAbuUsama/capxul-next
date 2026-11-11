@@ -10,8 +10,7 @@ import { concat, encodeFunctionData, keccak256, pad, stringToHex, type Abi, type
 
 import { send } from "../chain/service.ts";
 import { claimRoleKey, companyRoleKey, DELEGATECALL, execSafe, execWithSignatures, multiSendData, ROLES_ABI, SAFE_ABI, safeTxHash, signedExecData, THIRD_PARTY, type SafeCall } from "../protocol/service.ts";
-import { AGENT_OWNER, BUDGETS, CLAIMER, ERC20, HATS, MINTER, PAYMENTS } from "./internal/abis.ts";
-import { refusalOf } from "./internal/refusal.ts";
+import { AGENT_OWNER, BUDGETS, CLAIMER, ERC20, HATS, MINTER, PAYMENTS, refusalOf } from "../company/service.ts";
 import type { ProofInput, ProofState, StepResult } from "./types.ts";
 
 export type * from "./types.ts";

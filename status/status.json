@@ -1,54 +1,125 @@
 {
   "version": 1,
   "evals": {
+    "acc:doc.create/1": {
+      "verdict": "pass",
+      "commit": "6425ccc",
+      "at": "2026-11-11T17:11:29Z",
+      "run": "run-20261111171129",
+      "evidence": "status/runs/run-20261111171129/evidence/acc-doc.create-1.txt",
+      "claim": "A document is created as a draft and Frappe's validations apply."
+    },
     "acc:doc.get/1": {
       "verdict": "pass",
-      "commit": "a35e9ab",
-      "at": "2026-11-10T12:14:22Z",
-      "run": "run-20261110121422",
-      "evidence": "status/runs/run-20261110121422/evidence/acc-doc.get-1.txt"
+      "commit": "6425ccc",
+      "at": "2026-11-11T17:11:29Z",
+      "run": "run-20261111171129",
+      "evidence": "status/runs/run-20261111171129/evidence/acc-doc.get-1.txt",
+      "claim": "A document is read as the caller, with its status."
     },
     "acc:doc.submit/1": {
       "verdict": "pass",
-      "commit": "a35e9ab",
-      "at": "2026-11-10T12:14:22Z",
-      "run": "run-20261110121422",
-      "evidence": "status/runs/run-20261110121422/evidence/acc-doc.submit-1.txt"
+      "commit": "6425ccc",
+      "at": "2026-11-11T17:11:29Z",
+      "run": "run-20261111171129",
+      "evidence": "status/runs/run-20261111171129/evidence/acc-doc.submit-1.txt",
+      "claim": "An ordinary document posts to the ledger when submitted."
+    },
+    "acc:doc.submit/2": {
+      "verdict": "pass",
+      "commit": "6425ccc",
+      "at": "2026-11-11T17:11:29Z",
+      "run": "run-20261111171129",
+      "evidence": "status/runs/run-20261111171129/evidence/acc-doc.submit-2.txt",
+      "claim": "A Payment Entry from the Safe is held, not posted, and the signer is named."
+    },
+    "acc:org.create/6": {
+      "verdict": "pass",
+      "commit": "6425ccc",
+      "at": "2026-11-11T17:11:29Z",
+      "run": "run-20261111171129",
+      "evidence": "status/runs/run-20261111171129/evidence/acc-org.create-6.txt",
+      "claim": "The Organization's Safe is Companies House's company Safe for this founder."
     },
     "acc:org.feature.off/1": {
       "verdict": "pass",
-      "commit": "a35e9ab",
-      "at": "2026-11-10T12:14:22Z",
-      "run": "run-20261110121422",
-      "evidence": "status/runs/run-20261110121422/evidence/acc-org.feature.off-1.txt"
+      "commit": "6425ccc",
+      "at": "2026-11-11T17:11:29Z",
+      "run": "run-20261111171129",
+      "evidence": "status/runs/run-20261111171129/evidence/acc-org.feature.off-1.txt",
+      "claim": "A feature turned off refuses everywhere it can be reached and keeps its data."
     },
     "acc:org.feature.on/1": {
       "verdict": "pass",
-      "commit": "a35e9ab",
-      "at": "2026-11-10T12:14:22Z",
-      "run": "run-20261110121422",
-      "evidence": "status/runs/run-20261110121422/evidence/acc-org.feature.on-1.txt"
+      "commit": "6425ccc",
+      "at": "2026-11-11T17:11:29Z",
+      "run": "run-20261111171129",
+      "evidence": "status/runs/run-20261111171129/evidence/acc-org.feature.on-1.txt",
+      "claim": "A feature turned on becomes reachable and shows everything that was there."
     },
     "acc:org.feature.on/2": {
       "verdict": "pass",
-      "commit": "a35e9ab",
-      "at": "2026-11-10T12:14:22Z",
-      "run": "run-20261110121422",
-      "evidence": "status/runs/run-20261110121422/evidence/acc-org.feature.on-2.txt"
+      "commit": "6425ccc",
+      "at": "2026-11-11T17:11:29Z",
+      "run": "run-20261111171129",
+      "evidence": "status/runs/run-20261111171129/evidence/acc-org.feature.on-2.txt",
+      "claim": "WhatsApp cannot be turned on without CRM, and the reason is said first."
+    },
+    "acc:record.export/1": {
+      "verdict": "pass",
+      "commit": "6425ccc",
+      "at": "2026-11-11T17:11:29Z",
+      "run": "run-20261111171129",
+      "evidence": "status/runs/run-20261111171129/evidence/acc-record.export-1.txt",
+      "claim": "An export carries the lineage and every entry once."
+    },
+    "acc:world.clock.warp/1": {
+      "verdict": "pass",
+      "commit": "6425ccc",
+      "at": "2026-11-11T17:11:29Z",
+      "run": "run-20261111171129",
+      "evidence": "status/runs/run-20261111171129/evidence/acc-world.clock.warp-1.txt",
+      "claim": "A warp moves the chain and every site together and runs what fell due."
+    },
+    "acc:world.create/2": {
+      "verdict": "pass",
+      "commit": "6425ccc",
+      "at": "2026-11-11T17:11:29Z",
+      "run": "run-20261111171129",
+      "evidence": "status/runs/run-20261111171129/evidence/acc-world.create-2.txt",
+      "claim": "A new world runs with its clock and a record that begins with its birth."
+    },
+    "acc:world.show/1": {
+      "verdict": "pass",
+      "commit": "6425ccc",
+      "at": "2026-11-11T17:11:29Z",
+      "run": "run-20261111171129",
+      "evidence": "status/runs/run-20261111171129/evidence/acc-world.show-1.txt",
+      "claim": "A world restored into another names its parent."
     },
     "acc:world.snapshot.restore/1": {
       "verdict": "pass",
-      "commit": "a35e9ab",
-      "at": "2026-11-10T12:14:22Z",
-      "run": "run-20261110121422",
-      "evidence": "status/runs/run-20261110121422/evidence/acc-world.snapshot.restore-1.txt"
+      "commit": "6425ccc",
+      "at": "2026-11-11T17:11:29Z",
+      "run": "run-20261111171129",
+      "evidence": "status/runs/run-20261111171129/evidence/acc-world.snapshot.restore-1.txt",
+      "claim": "An in-place restore returns the world to the snapshot and records it."
     },
     "acc:world.snapshot.restore/2": {
       "verdict": "pass",
-      "commit": "a35e9ab",
-      "at": "2026-11-10T12:14:22Z",
-      "run": "run-20261110121422",
-      "evidence": "status/runs/run-20261110121422/evidence/acc-world.snapshot.restore-2.txt"
+      "commit": "6425ccc",
+      "at": "2026-11-11T17:11:29Z",
+      "run": "run-20261111171129",
+      "evidence": "status/runs/run-20261111171129/evidence/acc-world.snapshot.restore-2.txt",
+      "claim": "A restore into a separate world leaves the first world untouched and the two never see each other."
+    },
+    "acc:world.snapshot.save/1": {
+      "verdict": "pass",
+      "commit": "6425ccc",
+      "at": "2026-11-11T17:11:29Z",
+      "run": "run-20261111171129",
+      "evidence": "status/runs/run-20261111171129/evidence/acc-world.snapshot.save-1.txt",
+      "claim": "A snapshot saves everything that makes the world and leaves it untouched."
     },
     "jrn:thin_line": {
       "verdict": "not_run",
@@ -59,10 +130,11 @@
     },
     "wfl:plugs.events.deliver/idempotent": {
       "verdict": "pass",
-      "commit": "a35e9ab",
-      "at": "2026-11-10T12:14:22Z",
-      "run": "run-20261110121422",
-      "evidence": "status/runs/run-20261110121422/evidence/wfl-plugs.events.deliver-idempotent.txt"
+      "commit": "6425ccc",
+      "at": "2026-11-11T17:11:29Z",
+      "run": "run-20261111171129",
+      "evidence": "status/runs/run-20261111171129/evidence/wfl-plugs.events.deliver-idempotent.txt",
+      "claim": "a second run with the same key (The site answers a repeated event key as already applied, and a transition already made is not made twice.) changes nothing"
     }
   }
 }

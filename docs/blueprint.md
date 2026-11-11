@@ -1,5 +1,7 @@
 # How the blueprint works
 
+New to the blueprint? Start with [the plain-language guide](blueprint-guide.md), which the portal shows as its Blueprint page with live tables. This page is the detailed reference.
+
 This guide covers what the blueprint is, how its pieces fit together, where it sits in the
 wider system and how it is used from a design question to production. Read it first. The
 field-by-field reference for the schema is [`docs/spec/50-design-book.md`](spec/50-design-book.md).
@@ -187,6 +189,8 @@ Around those axes sit:
 
 - **The system and its components:** what runs where.
 - **Integrations and contracts:** the outside world, through Effect services and the chain.
+- **The site:** the Frappe DocTypes Capxul defines or extends (`doctype`) and the hats people take, with the Frappe roles
+  each gives (`role`). Both are the code exactly: `pnpm frappe:check-blueprint` fails the merge on a difference.
 - **Errors:** one vocabulary, with exit codes.
 - **Journeys and invariants:** checks across operations.
 - **Decisions:** the reason for any record.

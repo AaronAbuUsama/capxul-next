@@ -6,6 +6,7 @@ import { architecture } from "./internal/architecture.ts";
 import { catalogue } from "./internal/catalogue.ts";
 import { shell } from "./internal/chrome.ts";
 import { concept } from "./internal/concept.ts";
+import { guidePage } from "./internal/guide.ts";
 import { build } from "./internal/lists.ts";
 import { operation } from "./internal/operation.ts";
 import { overview } from "./internal/overview.ts";
@@ -38,6 +39,7 @@ const body = (page: Page, cites: Cites): string => {
   switch (page.type) {
     case "overview": return overview(page);
     case "worlds": return worldsPage(page);
+    case "guide": return guidePage(page, cites);
     case "plan": return plan(page);
     case "plan-task": return planTask(page);
     case "plan-milestone": return planMilestone(page);

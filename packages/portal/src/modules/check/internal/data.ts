@@ -104,3 +104,17 @@ export const climb = (files: ReadonlyMap<string, string>): readonly string[] => 
   }
   return failures;
 };
+
+/** The Blueprint page: every `generated` marker in its guide became a table, and the record it follows is in the blueprint. */
+export const guide = (files: ReadonlyMap<string, string>): readonly string[] => {
+  const page = read(files, "data/blueprint.json");
+  if (page === null) return ["data/blueprint.json: absent, though the guide is in the repository"];
+  const unknown = Array.isArray(page["unknownMarkers"]) ? page["unknownMarkers"].map(String) : [];
+  const tables = (Array.isArray(page["sections"]) ? page["sections"] : []).flatMap((s: unknown) =>
+    isFields(s) && Array.isArray(s["parts"]) ? s["parts"].filter((p: unknown) => isFields(p) && p["t"] === "table").map((p: Fields) => p["table"]) : []);
+  const followed = tables.find((t: unknown) => isFields(t) && t["anchor"] === "followed");
+  return [
+    ...unknown.map((m) => `docs/blueprint-guide.md: the marker "generated: ${m}" names no table the portal makes`),
+    ...(isFields(followed) && Array.isArray(followed["rows"]) && followed["rows"].length > 0 ? [] : ["the Blueprint page follows no record: the operation it names is not in the blueprint"]),
+  ];
+};

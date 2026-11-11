@@ -14,7 +14,7 @@ import { appliedTargets, check as planCheck, parseAnswerLines, parsePlan, waitsO
 import type { Facts, LogEntry } from "@capxul/plan";
 import { direction } from "#content/direction.ts";
 import type { Assets } from "#src/modules/render/types.ts";
-import type { FrozenArgument, FrozenCommand, FrozenFlag, PlanInput, SiteInput } from "#src/modules/site/types.ts";
+import type { FrozenArgument, FrozenCommand, FrozenFlag, GuideInput, PlanInput, SiteInput, WorldsInput } from "#src/modules/site/types.ts";
 
 export type Result<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: string };
 
@@ -95,13 +95,14 @@ export const load = async (root: string, commit: string = commitOf(root)): Promi
     const plan = planOf(root, blueprint, concepts, (d) => forAaron(d) === true);
     if (!plan.ok) return plan;
     const worlds = await worldsOf(root, open);
+    const guide = await guideOf(root, open);
     return {
       ok: true,
       value: {
         blueprint, commit, concepts, conceptOf, direction, status: status.value, plan: plan.value,
         today: new Date().toISOString().slice(0, 10), mergesToday: mergesOf(root),
         waits: (decision) => forAaron(decision) === true,
-        frozen: frozenOf(flagBaseline), frozenOperations: new Set(Object.keys(frozen)), worlds,
+        frozen: frozenOf(flagBaseline), frozenOperations: new Set(Object.keys(frozen)), worlds, guide,
       },
     };
   } catch (cause) {
@@ -113,7 +114,7 @@ export const load = async (root: string, commit: string = commitOf(root)): Promi
  * The worlds design: the readable document and the ids of the records that are the design, which the blueprint lists in
  * `blueprint/devnet/platform-index.ts`. Null when either is absent (the Worlds page and its nav entry then do not exist).
  */
-const worldsOf = async (root: string, open: (path: string) => Promise<Fields>): Promise<SiteInput["worlds"]> => {
+const worldsOf = async (root: string, open: (path: string) => Promise<Fields>): Promise<WorldsInput | null> => {
   const index = existsSync(join(root, "blueprint/devnet/platform-index.ts")) ? (await open("blueprint/devnet/platform-index.ts"))["WORLDS_PAGE"] : null;
   if (!isFields(index)) return null;
   const document = str(index["document"]);
@@ -121,6 +122,43 @@ const worldsOf = async (root: string, open: (path: string) => Promise<Fields>): 
   if (document === "" || !existsSync(file)) return null;
   const ids = (u: unknown): readonly string[] => list(u).map(str);
   return { document, text: readFileSync(file, "utf8"), operations: ids(index["operations"]), journeys: ids(index["journeys"]), decisions: ids(index["decisions"]), tables: ids(index["tables"]) };
+};
+
+/** The operation the Blueprint page follows from its record to its verdict: a bound eval that has passed in a run. */
+const FOLLOW = { operation: "doc.submit", line: 1 } as const;
+
+/**
+ * The guide to the blueprint and what its tables need: the bindings, the cut's fates, and the repository facts the guide
+ * states. Null when `docs/blueprint-guide.md` is absent (the Blueprint page and its nav entry then do not exist).
+ */
+const guideOf = async (root: string, open: (path: string) => Promise<Fields>): Promise<GuideInput | null> => {
+  const document = "docs/blueprint-guide.md";
+  if (!existsSync(join(root, document))) return null;
+  const dir = join(root, "evals/bindings");
+  const bindings = (existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".json")).sort() : []).map((f) => {
+    const b: unknown = JSON.parse(readFileSync(join(dir, f), "utf8"));
+    const at = isFields(b) ? b : {};
+    const checks = (u: unknown): readonly string[] => list(u).map(str);
+    return {
+      file: `evals/bindings/${f}`, area: str(at["area"]), script: str(at["script"]),
+      bindings: fields(at["bindings"]).map((x) => ({ eval: str(x["eval"]), checks: checks(x["checks"]), why: str(x["why"]) })),
+      near: fields(at["near"]).map((x) => ({ eval: str(x["eval"]), checks: checks(x["checks"]), missing: str(x["missing"]) })),
+    };
+  });
+  const cut: Record<string, number> = {};
+  const cuts = (await open("blueprint/shared/cut.ts"))["CUT"];
+  for (const c of Object.values(isFields(cuts) ? cuts : {})) if (isFields(c)) cut[str(c["fate"])] = (cut[str(c["fate"])] ?? 0) + 1;
+  const test = str((JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { scripts?: Fields }).scripts?.["test"]);
+  const packages = join(root, "packages");
+  const workflows = join(root, ".github/workflows");
+  return {
+    document, text: readFileSync(join(root, document), "utf8"), follow: FOLLOW, bindings, cut,
+    repo: {
+      generatedFolders: readdirSync(packages).filter((p) => existsSync(join(packages, p, "src/generated"))).length,
+      ciWorkflows: existsSync(workflows) ? readdirSync(workflows).filter((f) => /\.ya?ml$/.test(f)).length : 0,
+      testRunsBlueprint: /pnpm blueprint\b/.test(test), testRunsFrozen: /pnpm frozen\b/.test(test),
+    },
+  };
 };
 
 /** The status document at `status/status.json`: null when the file is absent, which means nothing has run; an error when it is not one. */
@@ -173,6 +211,9 @@ export const assetsOf = (packageDir: string = PACKAGE): Assets => {
 /** The ids of the tasks blocked on a need whose owner is the reviewer: what the Questions page holds beyond the waiting decisions. */
 export const ownerNeedsOf = (input: SiteInput): readonly string[] =>
   (input.plan?.plan.tasks ?? []).filter((t) => waitsOnOwner(t, input.direction.settings.reviewer, () => false)).map((t) => t.id);
+
+/** The pages that exist only when their document is in the repository: Worlds and Blueprint. */
+export const extraPagesOf = (input: SiteInput): readonly string[] => [...(input.worlds ? ["worlds"] : []), ...(input.guide ? ["blueprint"] : [])];
 
 /** The page ids of the plan's tasks and milestones. */
 export const planPagesOf = (input: SiteInput): readonly string[] => [

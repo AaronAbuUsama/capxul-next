@@ -629,3 +629,35 @@ A **world** has its own anvil, its own Core and state directory, its own clock a
 4. **One clock per world, and the sandbox that never ends.** The world is the unit of time; a real chain cannot be moved, so a world with a moving clock is a devnet or a simulation and must never share a chain with a real company. Decide the clock's rate, whether sessions end when it moves (they do), whether the world refuses to advance past the last fiscal year or makes the next one, the step size of an advance (a day by default: about a minute a month), and the host-time calls that remain (86): patch the ones that matter, or accept them for a simulated world.
 5. **Worlds as a first-class thing.** The owner's types: a **local devnet** (one developer, one machine: what this is), **simulated worlds** each with its own set of companies and its own clock speed (real time or faster), and creating a whole world should be as easy as creating a company. What it takes today: `world create` is a chain deployment and a Core (3.8 s measured); a company in it is the template (47 s); a whole simulated world of N companies is N templates in parallel plus the chain, with a rate clock which is not built. Decide the naming (`<company>.<world>`) against the one-label wildcard certificate, where worlds' ports and state live, and who may create one.
 6. **Snapshots.** The unit is the world (the chain cannot be split); what a snapshot may hold (it carries every site's encryption key and the whole database: it is as sensitive as production), where it lives, how it is encrypted and who restores it; that Redis is not in it; that a restore of a real chain is impossible; the template's refresh when apps are upgraded; and whether the record's lineage entry is enough to compare two worlds grown from one snapshot, or needs the two records joined by the shared prefix.
+
+## The real v4 contracts under the test sites (11 November 2026)
+
+Plan task `m2-contracts-under-sites`. The Core runs every world on `packages/contracts`' seeded chain (`core/src/v4.ts`,
+through `packages/devnet`'s `company` module); the stand-in contracts (`core/contracts/`, `src/deploy.ts`) are deleted.
+In a Claude cloud container: 98 of 117 checks passed on the stand-in before the CRM fix below; 115 of 117 pass on the
+real contracts. The two that fail are this container's, not the contracts': B5's WhatsApp app could not be installed
+here, and B7's three-site check (below).
+
+### How the stand-in's ideas map onto v4
+
+| Stand-in | v4 | What it teaches |
+|---|---|---|
+| `Orgs.createOrg` makes a Safe stand-in and registers the org | Companies House's claim role makes the admin's personal Safe, its company role mints the company Safe owned by it, the Installer installs Hats, Roles, the Signer Gate, Budgets and a top budget in one Board batch, then the token is minted to the Safe | The company Safe is derived from the founder and the company's name (`companySafeAddressFor`), so `org chain-safe` reads it from Companies House, not from a registry |
+| Seven hat names in one contract, any of them granted by whoever wears `admin` | Seven officer hats created at installation, the Board's children. A grant is a Board action (`Hats.mintHat`), a revoke marks the wearer ineligible (the company Safe is the officer hats' eligibility module), and Hats burns the hat | **Who grants is the Board, not the admin.** Core checks that the acting person wears `admin`, then the founder's Safe approves the batch. The officer hats are fixed at installation: a new hat later is `Hats.createHat` by the Board, not built here |
+| One budget per org, which `admin` and `budget-holder` may spend | Admin's budget under the top budget; budget-holder's budget its child. Budgets lets the wearer of a parent budget's hat spend from a child, so both pay from one budget, as before | A child budget's amount is bounded by its parent's room (`_requireRoom`): sibling budgets cannot each hold the whole amount |
+| `Payments.send` by the payer, `NotAuthorised` and `OverBudget` | `Budgets.spend` by the payer's key, then Roles, the Signer Gate and Payments, which emits `PaymentSent` with the document hash; the same two refusals by name | No bundler or paymaster: the payer's key sends the spend and pays gas. A real UserOperation is still not exercised |
+| `OrgCreated`, `HatGranted`, `HatRevoked`, `PaymentSent` events | Hats' `TransferSingle` (from zero is a grant, to zero a revoke) and Payments' `PaymentSent` (its sender is the company Safe) | The chain does not carry the department: Core keeps it with the grant, as the stand-in's chain never enforced it either |
+
+### Found on the way
+
+- **The CRM phoned out on every deal.** Frappe CRM 16.0.x defaults its currency to INR, so saving a USD deal fetched an
+  exchange rate from a public API (`crm/api/exchange_rate.py`). With no internet the lead-to-deal step failed, and
+  with internet it was a call out of the site that the privacy checks did not see. `configure_crm` now sets the
+  CRM's currency to the company's.
+- The bench needs Frappe CRM added once (`bin/add-app.sh crm https://github.com/frappe/crm version-16`) before the
+  first site: `bin/up.sh` does not do it, and the script's B1 fails with "No module named 'crm'" otherwise.
+- `run.sh` used `date -u -r <epoch>`, which only macOS reads as a time; it now formats block times with Python.
+- A world's chain left running by an earlier run on the same port is reused by the next world of that name (B9 then
+  read the old chain). The Mac's stale-stack problem has the same shape.
+- `B7.world-at-31-march-all-agree` requires at least three sites in the world, which holds only where earlier runs
+  left companies behind. On a fresh world it fails although every site agrees.

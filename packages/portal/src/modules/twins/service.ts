@@ -2,6 +2,7 @@
 import { canonical, jsonFile, mdFile } from "#src/modules/site/service.ts";
 import type { Page, Site } from "#src/modules/site/types.ts";
 
+import { guide } from "./internal/guide.ts";
 import { llms } from "./internal/llms.ts";
 import { doc } from "./internal/md.ts";
 import { architecture, build, catalogue, overview, questions } from "./internal/pages.ts";
@@ -15,6 +16,7 @@ const body = (page: Page): readonly string[] => {
   switch (page.type) {
     case "overview": return overview(page);
     case "worlds": return worlds(page);
+    case "guide": return guide(page);
     case "plan": return plan(page);
     case "plan-task": return planTask(page);
     case "plan-milestone": return planMilestone(page);
