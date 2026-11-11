@@ -25,7 +25,6 @@ pnpm portal && pnpm portal:serve   # the blueprint, the plan and the scoreboard 
 | `status/` | The scoreboard. Written only by `pnpm evals`. |
 | `spikes/` | Proven throwaway code, waiting to be moved into packages (plan task `m2-graduate-spike`). |
 | `docs/` | Written designs, evidence the blueprint cites, and generated reports. |
-| `archive/` | Dead material, kept at its old path. Nothing reads it. |
 | `var/` | Working data on this machine (the built blueprint, eval runs). Not in git. |
 | `.agents/` | Amp's orb setup and resume scripts. |
 

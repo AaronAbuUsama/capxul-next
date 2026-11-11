@@ -56,7 +56,7 @@ bring the stack up in an orb, what is waiting on Aaron and what to do next. Then
 - **Done means evals pass in a run.** `pnpm evals -- <ids | all | --journey id | --milestone id>` is the only thing that
   writes `status/status.json`. Never edit that file or a verdict by hand. A claim with no check is `not_run`.
 - **Where things go.** The top level is closed (`packages/layout/src/main.ts` lists what may be there, each with a
-  reason). Dead material moves to `archive/` at its old path. Working data goes under the git-ignored `var/`. A new
+  reason). Dead material is deleted; git history keeps it. Working data goes under the git-ignored `var/`. A new
   script belongs in the package it serves. Code layout follows decision `system.layout`: one package per component;
   `src/<concept>/` mirrors `blueprint/<concept>/`; another concept's code is imported only through its `door.ts`.
 - **The plan.** `pnpm plan show` gives the goal, the milestones, the critical path and each task. `plan/plan.json`

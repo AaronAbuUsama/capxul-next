@@ -11,8 +11,8 @@ book" or "the book" and lived in `books/`; older documents and records still say
 
 - The top level is closed: `pnpm layout` fails on an entry that `packages/layout/src/main.ts` does not allow.
 - A script lives in the package it serves. There is no `tools/` directory.
-- Dead material is in `archive/` at its old path: what was `tools/workflows` is `archive/tools/workflows`. An older
-  document that names a path which no longer exists means that path under `archive/`.
+- Dead material is deleted; `archive/` was deleted on 11 November 2026. An older document that names a path which no
+  longer exists means that path in git history (for example `git show 4b7deb2:archive/README.md`).
 - Working data is under `var/`, which git ignores.
 - A thing the blueprint, a package, a check, the plan or the portal cites moves only together with every citation.
 
@@ -32,7 +32,6 @@ book" or "the book" and lived in `books/`; older documents and records still say
 | `status/` | The scoreboard: `status.json` and the evidence of each run | written only by `pnpm evals`; read by the portal and the plan |
 | `spikes/` | `skeleton/`: proven throwaway code (real Frappe v16 on the real v4 contracts; its Frappe app has moved to `packages/frappe-app`) | the evals bindings; deleted when plan task `m2-graduate-spike` is done |
 | `docs/` | Written designs, evidence and generated reports (below) | the blueprint cites most of it |
-| `archive/` | Dead material at its old path; `archive/README.md` lists each thing | nothing live |
 | `var/` | Working data (the built blueprint, eval runs); not in git | `pnpm blueprint`, `pnpm evals` |
 | `.claude/` | `agents/`: Claude Code role prompts; `skills/ask-aaron` | Claude Code |
 | `.agents/` | Amp's orb `setup` and `resume` scripts | Amp (decision `build.amp`) |
@@ -42,7 +41,7 @@ book" or "the book" and lived in `books/`; older documents and records still say
 | | Directories | Documents |
 |---|---|---|
 | 10 November, before | `books demo docs evals kit loops packages plan runs spikes status tools` | `CLAUDE.md GROUNDING.md HANDOFF.md README.md START-HERE.md` |
-| Now | `archive blueprint docs evals packages plan spikes status` (+ `var/`, ignored) | `AGENTS.md CLAUDE.md GROUNDING.md README.md START-HERE.md` |
+| Now | `blueprint docs evals packages plan spikes status` (+ `var/`, ignored) | `AGENTS.md CLAUDE.md GROUNDING.md README.md START-HERE.md` |
 
 ## `packages/`
 
@@ -70,7 +69,7 @@ book" or "the book" and lived in `books/`; older documents and records still say
 | `tools/record-status.ts` | `packages/evals/src/record-status.ts` |
 | `tools/check-contracts.ts`, `tools/check-contracts/`, `tools/export-contract-abi.ts` | `packages/contracts/abi-check/main.ts`, `abi-check/`, `abi-check/export-abi.ts` |
 | `tools/check-layout.ts`, `tools/check-layout/` | `packages/layout/src/main.ts`, `src/modules/layout/` |
-| `tools/workflows/`, `tools/explorer/`, `tools/export-explorer.ts`, `tools/portal-prototype.ts`, `tools/freeze-flags.ts`, `tools/freeze-operations.py` | `archive/tools/` (dead) |
+| `tools/workflows/`, `tools/explorer/`, `tools/export-explorer.ts`, `tools/portal-prototype.ts`, `tools/freeze-flags.ts`, `tools/freeze-operations.py` | deleted (in git history) |
 
 Every `pnpm` script name is unchanged.
 

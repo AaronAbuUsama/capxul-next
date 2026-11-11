@@ -31,7 +31,6 @@ export const ALLOWED: Allowlist = {
   "status": "the scoreboard, written only by pnpm evals",
   "spikes": "proven throwaway code, deleted when plan task m2-graduate-spike is done",
   "docs": "written designs, evidence the blueprint cites, generated reports",
-  "archive": "dead material, kept at its old path",
   "package.json": "the workspace's scripts",
   "pnpm-lock.yaml": "the lockfile",
   "pnpm-workspace.yaml": "the workspace and the dependency catalog",
@@ -49,7 +48,7 @@ const policyOf = (oversize: Oversize): Policy => ({
   limit: LIMIT,
   sourceExtensions: [".ts", ".tsx", ".js", ".mjs", ".cjs", ".py", ".sh", ".sol"],
   // designs and evidence; dead material; generated code; vendored libraries
-  sizeExempt: ["blueprint/", "docs/", "archive/", "/generated/", "packages/contracts/lib/", "/node_modules/"],
+  sizeExempt: ["blueprint/", "docs/", "/generated/", "packages/contracts/lib/", "/node_modules/"],
   oversize,
 });
 

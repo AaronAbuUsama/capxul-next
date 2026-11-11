@@ -18,4 +18,4 @@ Before editing, read [CLAUDE.md](CLAUDE.md) for rules and current checks, then [
 
 ## History, not instructions
 
-The original 9 November direction is preserved verbatim at [archive/START-HERE.md](archive/START-HERE.md), and the original strategy at [archive/GROUNDING.md](archive/GROUNDING.md). [archive/HANDOFF.md](archive/HANDOFF.md) is older build evidence, not the next-task list. Their country assumptions, first steps, swarm instructions and claims to precedence are historical. Use [README.md](README.md) for the repository map.
+The original 9 November direction, strategy and handoff were in `archive/`, deleted on 11 November 2026; read them in git history (`git show 4b7deb2:archive/START-HERE.md`). Their country assumptions, first steps, swarm instructions and claims to precedence are historical. Use [README.md](README.md) for the repository map.
