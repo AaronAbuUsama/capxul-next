@@ -5,9 +5,9 @@ Written by the cloud thread on branch `claude/project-thread-mwv0z6` (PR #2) whi
 for Aaron with the options and one recommendation. Where the blueprint already decides something, it is cited, not
 asked again.
 
-Thin line today: 8 of 12 primary tests are bound and pass (rows 2, 4, 5, 8, 9, 10, 11, 12). Of the other four, two
-are waiting on a decision below (rows 6 and 7). The other two are work, not decisions: row 3 (the Director proposal)
-and row 1 (world create on a frozen clock).
+Thin line today: 9 of 12 primary tests are bound and pass (rows 1, 2, 4, 5, 8, 9, 10, 11, 12; run-20261111171129).
+Of the other three, two are waiting on a decision below (rows 6 and 7). Row 3 (the Director proposal) is work, not a
+decision.
 
 ## 1. Does the thin line's payment go through a real bundler? (row 6, `acc:payment.send/1`)
 
@@ -90,5 +90,3 @@ table is undecided (the book's table is the target, the file is the spike)".
 - **Row 3, the Director proposal** (`acc:org.member.grant/1`), is work. It needs a company born with a second Director,
   and a grant that waits as a Board proposal until the second Director approves. The Installer already takes
   co-directors.
-- **Row 1, world create** (`acc:world.create/2`), is work. It needs a frozen clock mode, a `born` record entry, and
-  `world show` printing running, clockMode, epoch and recordHead.
