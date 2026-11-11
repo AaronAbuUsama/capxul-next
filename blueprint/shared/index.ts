@@ -17,6 +17,7 @@ import * as portal from "./portal.ts";
 import * as swarm from "./swarm.ts";
 import * as time from "./time.ts";
 import * as rulings from "./rulings.ts";
+import * as alerts from "./alerts.ts";
 import * as surface from "./surface.ts";
 import * as cut from "./cut.ts";
 import * as cutMoves from "./cut-moves.ts";
@@ -39,5 +40,5 @@ export const recordsOf = (modules: readonly object[]): unknown[] => [
   ),
 ];
 
-export const sharedModules = [errorGaps, stateGaps, contractGaps, foundation, cloud, vocabulary, external, decisions, decisionReview, landings, tooling, portal, swarm, time, rulings, surface, cut, cutMoves, milestones, contractRecords] as const;
+export const sharedModules = [alerts, errorGaps, stateGaps, contractGaps, foundation, cloud, vocabulary, external, decisions, decisionReview, landings, tooling, portal, swarm, time, rulings, surface, cut, cutMoves, milestones, contractRecords] as const;
 export const sharedRecords = recordsOf(sharedModules);
