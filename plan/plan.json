@@ -1288,13 +1288,14 @@
       "title": "Each near-miss check is bound to a whole claim, or stands with its reason",
       "why": "m1-eval-coverage: 34 checks prove part of an eval and score nothing",
       "milestone": "m1",
-      "state": "doing",
+      "state": "dropped",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
       "updated": "2026-11-11",
-      "thread": "m1-eval-near-misses-11110813"
+      "thread": "m1-eval-near-misses-11110813",
+      "droppedWhy": "run m1-eval-near-misses-11110813 not merged: it bound nothing (8 bound, 34 near-misses before and after), reformatted the bindings and appended 'Decision for ...' to reasons that cite no decision record. The coordinator's done-when was already met before the run; binding needs the checks run on the test sites, which a lane cannot do. m1-eval-coverage stays open"
     },
     {
       "id": "m1-gate-no-new-questions",
@@ -1495,6 +1496,11 @@
       "date": "2026-11-11",
       "by": "coordinator",
       "text": "09:25: merging m1-loop-decision-11110813: reviewer approve, swarm.ts only, no aaron.* record changed"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "09:45: lesson: a task's done-when must be false when the run starts, or a run passes by adding nothing (m1-eval-near-misses)"
     }
   ]
 }
