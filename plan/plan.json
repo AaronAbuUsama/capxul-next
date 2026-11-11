@@ -1330,60 +1330,65 @@
       "title": "Research: how to build the clock scan",
       "why": "m1-time-proof's first test; the gateway ramp at five agents",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "r-time-scan-11110827"
     },
     {
       "id": "r-eval-lane",
       "title": "Research: running the thin-line checks from a lane",
       "why": "m1-eval-coverage: the near-miss run bound nothing because no lane can run the checks; the gateway ramp at five agents",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "r-eval-lane-11110827"
     },
     {
       "id": "r-spend",
       "title": "Research: a real spend limit for runs",
       "why": "m1-loop-hardening: a run that exceeds its budget stops; the gateway ramp at five agents",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "r-spend-11110827"
     },
     {
       "id": "r-alerts",
       "title": "Research: alerts when a run needs Aaron",
       "why": "Aaron asked for alerts from the portal; the gateway ramp at five agents",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "r-alerts-11110827"
     },
     {
       "id": "r-sandbox",
       "title": "Research: running agents in a real sandbox",
       "why": "m1-loop-hardening: agents run inside an operating-system sandbox; the gateway ramp at five agents",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "r-sandbox-11110827"
     }
   ],
   "path": {

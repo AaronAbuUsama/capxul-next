@@ -338,3 +338,8 @@
 {"at":"2026-11-11T08:27:34.672Z","by":"coordinator","action":"task.add","args":{"id":"r-alerts","title":"Research: alerts when a run needs Aaron","why":"Aaron asked for alerts from the portal; the gateway ramp at five agents","milestone":"m1","detailFile":"/private/tmp/claude-501/-Users-abuusama-projects/c32f9dc7-65be-46cd-9482-7b427ab5edfd/scratchpad/r-alerts.md"},"commit":"ca32701"}
 {"at":"2026-11-11T08:27:36.083Z","by":"coordinator","action":"task.add","args":{"id":"r-sandbox","title":"Research: running agents in a real sandbox","why":"m1-loop-hardening: agents run inside an operating-system sandbox; the gateway ramp at five agents","milestone":"m1","detailFile":"/private/tmp/claude-501/-Users-abuusama-projects/c32f9dc7-65be-46cd-9482-7b427ab5edfd/scratchpad/r-sandbox.md"},"commit":"ca32701"}
 {"at":"2026-11-11T08:27:41.915Z","by":"coordinator","action":"note","args":{"text":"10:20: gateway ramp, step 5: five research runs at once (LOOP_MAX_AGENTS=5): r-time-scan, r-eval-lane, r-spend, r-alerts, r-sandbox"},"commit":"ca32701"}
+{"at":"2026-11-11T08:27:55.063Z","by":"loop","action":"task.start","args":{"id":"r-time-scan","thread":"r-time-scan-11110827"},"commit":"a1d10e2"}
+{"at":"2026-11-11T08:27:55.423Z","by":"loop","action":"task.start","args":{"id":"r-spend","thread":"r-spend-11110827"},"commit":"a1d10e2"}
+{"at":"2026-11-11T08:27:55.607Z","by":"loop","action":"task.start","args":{"id":"r-sandbox","thread":"r-sandbox-11110827"},"commit":"a1d10e2"}
+{"at":"2026-11-11T08:27:55.749Z","by":"loop","action":"task.start","args":{"id":"r-eval-lane","thread":"r-eval-lane-11110827"},"commit":"a1d10e2"}
+{"at":"2026-11-11T08:27:55.905Z","by":"loop","action":"task.start","args":{"id":"r-alerts","thread":"r-alerts-11110827"},"commit":"a1d10e2"}
