@@ -1,0 +1,129 @@
+# The hosted bench, one container per process (docs/mission/sites-host/compose.md; decision sites.bench-image).
+#   CAPXUL_BENCH_IMAGE  the image (bin/build.sh); on the machine, by digest
+#   CAPXUL_ENV_DIR      the secrets folder: mariadb.env and bench.env, mode 0600 (bin/env.sh makes a local one)
+#   CAPXUL_VOLUMES      where data lives: bind directories, so backups are plain tar (machine: /srv/capxul/volumes)
+#   CAPXUL_BENCH_PORT   the one published port, the frontend on loopback; on the machine the origin proxy sits in front
+name: ${CAPXUL_BENCH_PROJECT:-capxul-bench}
+
+x-bench: &bench
+  image: ${CAPXUL_BENCH_IMAGE:?set CAPXUL_BENCH_IMAGE}
+  pull_policy: never
+  restart: unless-stopped
+  volumes:
+    - ${CAPXUL_VOLUMES:?set CAPXUL_VOLUMES}/capxul-sites:/home/frappe/frappe-bench/sites
+    - ${CAPXUL_VOLUMES}/capxul-bench-logs:/home/frappe/frappe-bench/logs
+  depends_on:
+    configurator: { condition: service_completed_successfully }
+
+services:
+  mariadb:
+    image: mariadb:11.8
+    restart: unless-stopped
+    command: [--character-set-server=utf8mb4, --collation-server=utf8mb4_unicode_ci, --skip-character-set-client-handshake]
+    env_file: [{ path: "${CAPXUL_ENV_DIR:?set CAPXUL_ENV_DIR}/mariadb.env", required: true }]
+    volumes: ["${CAPXUL_VOLUMES}/capxul-mariadb-data:/var/lib/mysql"]
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      retries: 60
+
+  redis-cache:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: [redis-server, --save, "", --appendonly, "no", --maxmemory, 256mb, --maxmemory-policy, allkeys-lru]
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 5s, retries: 30 }
+
+  redis-queue:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: [redis-server, --appendonly, "yes"]
+    volumes: ["${CAPXUL_VOLUMES}/capxul-redis-queue-data:/data"]
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 5s, retries: 30 }
+
+  # one-shot: writes common_site_config.json for every process of the bench
+  configurator:
+    <<: *bench
+    restart: "no"
+    depends_on:
+      mariadb: { condition: service_healthy }
+      redis-cache: { condition: service_healthy }
+      redis-queue: { condition: service_healthy }
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        [ -s sites/common_site_config.json ] || echo '{}' > sites/common_site_config.json
+        cp capxul-apps.txt sites/apps.txt
+        bench set-config -g db_host mariadb
+        bench set-config -gp db_port 3306
+        bench set-config -g redis_cache redis://redis-cache:6379
+        bench set-config -g redis_queue redis://redis-queue:6379
+        bench set-config -g redis_socketio redis://redis-queue:6379
+        bench set-config -gp socketio_port 9000
+        bench set-config -gp developer_mode 0
+        bench set-config -gp disable_website_cache 0
+        bench set-config -g chromium_path /usr/lib/chromium/chromium-headless-shell
+        cp capxul-image.json sites/capxul-image.json
+
+  backend:
+    <<: *bench
+    environment:
+      GUNICORN_WORKERS: ${CAPXUL_GUNICORN_WORKERS:-2}
+      GUNICORN_THREADS: ${CAPXUL_GUNICORN_THREADS:-4}
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000"]
+      interval: 10s
+      retries: 30
+
+  websocket:
+    <<: *bench
+    command: [node, /home/frappe/frappe-bench/apps/frappe/socketio.js]
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000"]
+      interval: 10s
+      retries: 30
+
+  queue-short:
+    <<: *bench
+    command: [bench, worker, --queue, "short,default"]
+
+  queue-long:
+    <<: *bench
+    command: [bench, worker, --queue, "long,default,short"]
+
+  scheduler:
+    <<: *bench
+    command: [bench, schedule]
+
+  frontend:
+    <<: *bench
+    command: [nginx-entrypoint.sh]
+    environment:
+      BACKEND: backend:8000
+      SOCKETIO: websocket:9000
+      FRAPPE_SITE_NAME_HEADER: $$host
+      UPSTREAM_REAL_IP_ADDRESS: ${CAPXUL_UPSTREAM_REAL_IP:-127.0.0.1}
+      UPSTREAM_REAL_IP_HEADER: X-Forwarded-For
+      UPSTREAM_REAL_IP_RECURSIVE: "off"
+      PROXY_READ_TIMEOUT: "120"
+      CLIENT_MAX_BODY_SIZE: 50m
+    ports: ["127.0.0.1:${CAPXUL_BENCH_PORT:-8080}:8080"]
+    depends_on:
+      backend: { condition: service_healthy }
+      websocket: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      retries: 30
+
+  # Not a running service: the one container that holds the database root password, for site work (bin/new-site.sh).
+  # On the machine the site service plays this part with the same image and the same sites folder.
+  site-admin:
+    <<: *bench
+    profiles: [admin]
+    restart: "no"
+    env_file:
+      - { path: "${CAPXUL_ENV_DIR}/mariadb.env", required: true }
+      - { path: "${CAPXUL_ENV_DIR}/bench.env", required: true }
+    command: ["true"]

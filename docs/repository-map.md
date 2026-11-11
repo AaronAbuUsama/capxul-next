@@ -57,6 +57,7 @@ book" or "the book" and lived in `books/`; older documents and records still say
 | `sdk` | The product SDK | |
 | `devnet` | The local chain and worlds | `cloud/` (the product stack in a Claude cloud container), `src/modules/company/` (a company's life on the real v4 contracts) |
 | `frappe-app` | The Capxul app on every hosted Frappe site (moved from the spike) | `capxul/hooks.py`, `capxul/setup.py`; `blueprint-check/` (`pnpm frappe:check-blueprint`) |
+| `bench-image` | The hosted bench's production Frappe image and its check | decision `sites.bench-image` |
 | `layout` | The layout check | `src/main.ts` (`pnpm layout`), `oversize.json` |
 
 ## Where `tools/` went
