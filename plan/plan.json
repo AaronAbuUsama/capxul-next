@@ -2124,6 +2124,11 @@
       "date": "2026-11-11",
       "by": "claude-audit-thread",
       "text": "Audit fixes (PR #12): m3b-bench-image is not done: the image builds and bin/check.sh passes 22/22 (PR #4), but its done-when also needs the end-to-end script against the image, which waits on the spike's graduation (devnet.core-service-home). m2-contracts-under-sites: the stand-ins are deleted and the end-to-end script runs on the real v4 contracts (PR #2); it is closed only when a run passes in full (see this PR's eval run)."
+    },
+    {
+      "date": "2026-11-11",
+      "by": "claude-audit-thread",
+      "text": "Audit fixes (PR #12), for the coordinator: m1-cloud-sandbox is superseded by Amp (packages/sandbox deleted in PR #10) and is on the path, so drop it and redraw the path. m3b-bench-image is not done: the image builds and bin/check.sh passes 22/22 (PR #4), but its done-when also needs the end-to-end script against the image, which waits on devnet.core-service-home. m2-contracts-under-sites: stand-ins deleted and the end-to-end script runs on the real v4 contracts (PR #2); close it when a full run passes."
     }
   ]
 }
