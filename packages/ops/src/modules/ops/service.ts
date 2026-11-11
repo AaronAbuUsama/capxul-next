@@ -74,7 +74,10 @@ export const supervisor = (io: Ports) => {
         const text = p.cwd + " " + p.command;
         const lane = text.includes(worktrees) || text.split(runs).slice(1).some((v) => /^[^/\s]+\/lane(?:\/|\s|$)/.test(v));
         const oldWatch = /loop(?:\/src\/main\.ts)?\s+watch\b/.test(p.command) && io.now() - p.started > 12 * 3600_000 && (p.cwd === io.root || text.includes(io.root + "/"));
-        if (lane || oldWatch) { io.say(`${dry ? "would stop" : "reap"} ${p.pid} ${p.cwd} ${p.command}`); if (!dry) await terminate(p, false); }
+        // Only this project's service-shaped processes: never a Claude session, a shell or anything else a person runs there.
+        const service = /(^|\/)(anvil|node|pnpm|npm|npx)$/.test(p.command.split(" ")[0] ?? "") || /^sh -c .*\bnode\b/.test(p.command);
+        const person = /claude|\b(zsh|bash|fish|login|tmux|vim|nvim|code)\b(?! -c)/i.test(p.command.split(" ")[0] ?? "") || /(^|\/)(claude|disclaimer)$/i.test(p.command.split(" ")[0] ?? "");
+        if ((lane || oldWatch) && service && !person) { io.say(`${dry ? "would stop" : "reap"} ${p.pid} ${p.cwd} ${p.command}`); if (!dry) await terminate(p, false); }
       }
       return good;
     },

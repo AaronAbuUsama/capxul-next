@@ -37,16 +37,19 @@ test("foreign port holder refuses before spawning and names checkout and reap", 
 test("refuses start in worktree", async () => {
   const f = fake(); f.io.worktree = true; assert.equal((await f.ops.start(portal)).ok, false); assert.equal(f.records.size, 0);
 });
-test("reap dry-run prints worktrees and lanes, excludes unrelated repository and fresh watcher", async () => {
+test("reap dry-run prints worktree and lane services, never a shell or a Claude session, excludes unrelated repository and fresh watcher", async () => {
   const f = fake(); f.set([
     processOf({ pid: 1, cwd: "/repo/.claude/worktrees/x" }),
     processOf({ pid: 2, cwd: "/tmp", command: "node /repo/var/runs/r/lane/server.ts" }),
     processOf({ pid: 3, cwd: "/other/.claude/worktrees/x" }),
     processOf({ pid: 4, command: "pnpm loop watch", started: f.io.now() }),
     processOf({ pid: 5, command: "node /repo/packages/loop/src/main.ts watch", started: -50_000_000 }),
+    processOf({ pid: 8, cwd: "/tmp", command: "/Users/a/.foundry/bin/anvil --port 8545 --state /repo/.claude/worktrees/x/state.json" }),
+    processOf({ pid: 6, cwd: "/repo/.claude/worktrees/x", command: "/bin/zsh -l" }),
+    processOf({ pid: 7, cwd: "/repo/.claude/worktrees/x", command: "/Applications/Claude.app/Contents/MacOS/claude --permission-mode=bypassPermissions" }),
   ]);
-  await f.ops.reap(true); assert.equal(f.signals.length, 0); assert.equal(f.lines.length, 3);
-  await f.ops.reap(); assert.deepEqual(f.signals.map((s) => (s as unknown[])[0]), [1, 2, 5]);
+  await f.ops.reap(true); assert.equal(f.signals.length, 0); assert.equal(f.lines.length, 4);
+  await f.ops.reap(); assert.deepEqual(f.signals.map((s) => (s as unknown[])[0]), [1, 2, 5, 8]);
 });
 test("stop refuses unrelated port command; can stop matching unrecorded listener", async () => {
   const f = fake(); f.set([processOf({ command: "unrelated" })]); await f.ops.stop(portal); assert.equal(f.signals.length, 0);
