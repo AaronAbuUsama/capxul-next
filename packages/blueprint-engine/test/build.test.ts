@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Schema } from "effect";
-import { argsOf, buildBlueprint, defineConcept, defineContract, defineRpc, defineTable } from "../src/index.ts";
+import { argsOf, buildBlueprint, defineConcept, defineContract, defineDecision, defineEvent, defineJourney, defineMachine, defineRpc, defineTable } from "../src/index.ts";
 import { summaryPage, conceptPage } from "../src/views.ts";
 import * as f from "./fixtures/invitations.ts";
 
@@ -244,4 +244,51 @@ test("a chain event's arguments are read from its signature, tuples and arrays i
   assert.deepEqual(argsOf("RoundClosed(uint256 indexed roundId, Adjustment[] adjustments)"), ["roundId", "adjustments"]);
   assert.deepEqual(argsOf("Seat((uint256,address) seat, address indexed safe)"), ["seat", "safe"]);
   assert.deepEqual(argsOf("ProposalExecuted(uint256 proposalId)"), ["proposalId"]);
+});
+
+test("a decision whose choice is not one of its options is a problem", () => {
+  const d = defineDecision({ id: "x.pick", title: "Pick", question: "Which?", options: [{ label: "a", text: "A" }], chosen: "b", why: "w", source: "s", affects: [] });
+  const b = buildBlueprint({ name: "t", stage: "as-is", records: [d] });
+  assert.deepEqual(b.problems.filter((p) => p.rule === "decision-chosen").map((p) => p.record), ["decision:x.pick"]);
+});
+
+test("a record that fails its schema names its kind, its id and the file that defined it", () => {
+  assert.throws(
+    () => defineDecision({ id: "x.long", title: "t".repeat(90), question: "q", options: [], chosen: "a", why: "w", source: "s", affects: [] }),
+    /^Error: decision x\.long in .*build\.test\.ts: /,
+  );
+});
+
+test("a state reached only by a disconnected move, or a self-loop on itself, is unreachable", () => {
+  const m = defineMachine({
+    id: "probe", title: "Probe", about: "A machine with a disconnected cycle.", table: f.invitations, field: "state", initial: "pending",
+    states: [{ id: "pending", about: "p" }, { id: "accepted", about: "a" }, { id: "won", about: "w" }, { id: "lost", about: "l" }, { id: "stuck", about: "s" }],
+    transitions: {
+      accept: { from: ["pending"], to: "accepted", emits: [] }, win: { from: ["accepted"], to: "won", emits: [] },
+      loop: { from: ["lost"], to: "stuck", emits: [] }, back: { from: ["stuck"], to: "lost", emits: [] },
+      create: { from: [], to: "won", emits: [] },
+    },
+  });
+  const b = buildBlueprint({ name: "t", stage: "as-is", records: [...f.records, m] });
+  const unreachable = b.gaps.filter((g) => g.record === "machine:probe" && g.rule === "unreachable-state").map((g) => g.detail);
+  assert.deepEqual(unreachable, ["no transition reaches lost", "no transition reaches stuck"]);
+});
+
+test("an event named only by a journey's proof or a decision is still unsent", () => {
+  const lonely = defineEvent({ id: "probe_seen", about: "Named, never sent.", props: Schema.Struct({}) });
+  const j = defineJourney({ id: "probe", title: "Probe", about: "p", steps: [{ operation: f.invite, as: "owner", proves: lonely }] });
+  const d = defineDecision({ id: "x.probe", title: "Probe", question: "q", options: [{ label: "a", text: "A" }], chosen: "a", why: "w", source: "s", affects: [lonely] });
+  const b = buildBlueprint({ name: "t", stage: "as-is", records: [...f.records, lonely, j, d] });
+  assert.ok(b.gaps.some((g) => g.record === "event:probe_seen" && g.rule === "unsent-event"));
+  assert.ok(!b.gaps.some((g) => g.record === "event:invitation_sent" && g.rule === "unsent-event"));
+});
+
+test("a journey's funnel eval asks for events only where a step is proven by one", () => {
+  const claimOf = (proves: readonly ("success" | typeof f.invitationSent)[]) => {
+    const j = defineJourney({ id: "probe", title: "Probe", about: "p", steps: proves.map((p) => ({ operation: f.invite, as: "owner", proves: p })) });
+    return buildBlueprint({ name: "t", stage: "as-is", records: [...f.records, j] }).evals.find((e) => e.id === "fun:probe")?.claim;
+  };
+  assert.match(claimOf([f.invitationSent]) ?? "", /^every step's proving event is sent once/);
+  assert.match(claimOf(["success", "success"]) ?? "", /^every step's operation succeeds once/);
+  assert.match(claimOf(["success", f.invitationSent]) ?? "", /by its proving event or by its operation's success/);
 });

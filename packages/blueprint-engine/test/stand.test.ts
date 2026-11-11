@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  buildBlueprint, defineDecision, defineTable, evalsUnder, mergeResults, parseResults, parseStatus, standOf, unknownEvals, underOf, type StatusDocument,
+  buildBlueprint, defineDecision, freshStatus, staleEvals, verdictOf, defineTable, evalsUnder, mergeResults, parseResults, parseStatus, standOf, unknownEvals, underOf, type StatusDocument,
 } from "../src/index.ts";
 import * as f from "./fixtures/invitations.ts";
 
@@ -109,6 +109,19 @@ test("merging keeps earlier entries, replaces an eval run again, records the run
   const merged = mergeResults(asIs, first, again.value);
   assert.ok(merged.ok);
   assert.deepEqual(Object.keys(merged.value.evals), ["doc:invite.accept", "ret:invite.accept"]);
-  assert.deepEqual(merged.value.evals["ret:invite.accept"], { verdict: "pass", commit: "def5678", at: "2026-11-11T09:00:00Z", run: "r2", evidence: "evidence/r2/ret.txt" });
+  assert.deepEqual(merged.value.evals["ret:invite.accept"], { verdict: "pass", commit: "def5678", at: "2026-11-11T09:00:00Z", claim: "a success prints exactly the returns schema with --json", run: "r2", evidence: "evidence/r2/ret.txt" });
   assert.equal(merged.value.evals["doc:invite.accept"]?.commit, "abc1234");
+});
+
+test("a verdict goes stale when its claim changes, when it records no claim, or when its id is no longer derived", () => {
+  const doc = run([{ id: "ret:invite.accept", verdict: "pass" }, { id: "doc:invite.accept", verdict: "pass" }]);
+  assert.deepEqual(staleEvals(asIs, doc), []);
+  const reworded = { ...asIs, evals: asIs.evals.map((e) => (e.id === "ret:invite.accept" ? { ...e, claim: "it prints something else" } : e)) };
+  assert.deepEqual(staleEvals(reworded, doc), ["ret:invite.accept"]);
+  assert.equal(verdictOf(freshStatus(reworded, doc), "ret:invite.accept"), "not_run");
+  assert.equal(verdictOf(freshStatus(reworded, doc), "doc:invite.accept"), "pass");
+  const unclaimed = { version: 1 as const, evals: { "doc:invite.accept": { verdict: "pass" as const, commit: "abc1234", at: "2026-11-11T09:00:00Z" } } };
+  assert.deepEqual(staleEvals(asIs, unclaimed), ["doc:invite.accept"]);
+  const gone = { ...asIs, evals: asIs.evals.filter((e) => e.id !== "doc:invite.accept") };
+  assert.deepEqual(staleEvals(gone, doc), ["doc:invite.accept"]);
 });

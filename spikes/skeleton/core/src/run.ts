@@ -4,9 +4,10 @@
 // `--json` anywhere gives {"ok":true,"trace":...,"data":...} or {"ok":false,"trace":...,"error":{code,reason,detail}}; exit code 0, 1 (refused or failed), 2 (usage).
 import { parseArgs } from "./args.ts";
 import { CliError, refuse } from "./errors.ts";
-import { eventsRedeliver, featureList, featureOff, featureOn, eventsResend, eventsStatus, hatGrant, hatRevoke, orgCreate, payDirect } from "./cli.ts";
+import { eventsRedeliver, featureList, featureOff, featureOn, eventsResend, eventsStatus, hatGrant, hatRevoke, orgChainSafe, orgCreate, orgShow, payDirect } from "./cli.ts";
 import { approvalSign, docAmend, docCall, docCancel, docCreate, docDelete, docGet, docList, docNext, docSchema, docSubmit, docTypes, docUpdate, reportList, reportRun, type Out } from "./doc.ts";
 import { clockAdvance, clockReset, clockSet, clockShow } from "./clock.ts";
+import { orgMemberGet, orgProposalApprove, orgProposalGet } from "./proposal.ts";
 import { recordExport, recordShow, recordTail } from "./recordcmd.ts";
 import { snapshotList, snapshotRestore, snapshotSave } from "./snapshot.ts";
 import { worldCreate, worldDelete, worldList, worldShow } from "./worldcmd.ts";
@@ -16,7 +17,9 @@ import { trace } from "./trace.ts";
 const usage = `usage:
   main.ts serve
   main.ts org create <slug> "<company name>" --admin <email> [--budget 10000] [--fund 50000]
-  main.ts hat grant|revoke <slug> <hat> <email> [--department <name>] [--as <admin email>]
+  main.ts org create <slug> "<company name>" --admin <email> --co-director <email>   (a second founding Director: Board acts are proposals)
+  main.ts hat grant|revoke <slug> <hat> <email> [--department <name>] [--as <admin email>] [--propose]
+  main.ts org proposal get <slug> <id>   main.ts org proposal approve <slug> <id> --as <director email>   main.ts org member get <slug> <email>
   main.ts events status|resend <slug>          main.ts events redeliver <slug> <seq>
   main.ts feature list <slug>                  main.ts feature on|off <slug> <feature> --as <admin email>
   main.ts pay direct <slug> <to address|email> <amount> [--as <email>]
@@ -34,7 +37,8 @@ const usage = `usage:
   any command: --json`;
 
 const commands: Record<string, { run: (a: string[]) => Promise<Out>; noSlug?: boolean }> = {
-  "org create": { run: orgCreate }, "hat grant": { run: hatGrant }, "hat revoke": { run: hatRevoke },
+  "org create": { run: orgCreate }, "org chain-safe": { run: orgChainSafe }, "org show": { run: orgShow }, "hat grant": { run: hatGrant }, "hat revoke": { run: hatRevoke },
+  "org proposal get": { run: orgProposalGet }, "org proposal approve": { run: orgProposalApprove }, "org member get": { run: orgMemberGet },
   "events status": { run: eventsStatus }, "events resend": { run: eventsResend }, "events redeliver": { run: eventsRedeliver }, "pay direct": { run: payDirect },
   "feature list": { run: featureList }, "feature on": { run: featureOn }, "feature off": { run: featureOff },
   "doc types": { run: docTypes }, "doc schema": { run: docSchema }, "doc list": { run: docList }, "doc get": { run: docGet }, "doc create": { run: docCreate },

@@ -3,7 +3,7 @@
 
 import type { AnyRecord, Blueprint, Link } from "./build.ts";
 import type { EvalDef } from "./evals.ts";
-import { passing, verdictOf, type StatusDocument } from "./status.ts";
+import { freshStatus, passing, verdictOf, type StatusDocument } from "./status.ts";
 
 export type Stand = "specify" | "decide" | "build" | "observe" | "done";
 export const STANDS: readonly Stand[] = ["specify", "decide", "build", "observe", "done"];
@@ -107,7 +107,8 @@ const isLive = (id: string, op: AnyRecord): boolean => id.startsWith("live:") &&
 
 /** The first row that matches. A waiting judgment further under the operation is shown on its page, not as its stand. */
 export const standOf = (b: Records, op: AnyRecord, options: StandOptions): StandOf => {
-  const status = options.status ?? null;
+  // A verdict whose claim changed since it was recorded counts as not run.
+  const status = freshStatus(b, options.status ?? null);
   const { own, under } = underOf(b, op);
   for (const key of under) {
     const found = [...b.problems.filter((p) => p.record === key), ...b.gaps.filter((g) => g.record === key && !STAND_IGNORES.includes(g.rule))][0];

@@ -1,0 +1,15 @@
+eval     acc:org.create/6
+claim    The Organization's Safe is Companies House's company Safe for this founder.
+verdict  pass
+run      run-20261111164907  at 2026-11-11T16:49:07Z  commit b262ecc
+script   spikes/skeleton/run.sh  world main  company cloudv4h
+why      `org create` runs on the real v4 contracts. The checks read Companies House's CompanySafeMinted event for the company: its Safe is the minter's companySafeAddressFor for the admin (the founder) and the company's name, is the Safe the site was given, and has the founder's personal Safe (the claimer's safeAddressFor) as founderSafe and sole owner; `org show` prints that Safe.
+
+PASS  B1.org-create  x1  212026 ms
+      B1 org create exits 0 in 210 s
+PASS  B1.safe-on-chain-is-the-sites-safe  x1  2121 ms
+      B1 chain: the Safe on the chain is the one the site was given (0xE7E059E0291009423e975C90605392594348a12c holds 50000000000 units of test USDC)
+PASS  B1.company-safe-minted-for-founder  x1  68 ms
+      B1 chain: CompanySafeMinted names the site's Safe, with the admin's personal Safe as founderSafe and sole owner (minted in tx 0x8d65e2b8a5cd43e06c8937483e99963d990516e7ebbde69c66490ea006d664e7)
+PASS  B1.org-show-prints-the-safe  x1  573 ms
+      B1 read: org show prints the Safe CompanySafeMinted named

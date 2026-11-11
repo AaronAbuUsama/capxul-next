@@ -13,6 +13,7 @@ The code, one package per component (decision `system.layout`). Inside a package
 | `contracts` | The product's contracts (Foundry). |
 | `sdk` | The product SDK. |
 | `devnet` | The local chain and worlds. |
+| `frappe-app` | The Capxul app on every hosted Frappe site (Python, Frappe v16). |
 | `bench-image` | The hosted bench's production Frappe image (Frappe, ERPNext, HR, CRM, WhatsApp, capxul) and the check that a site comes up on it. |
 | `layout` | The layout check (`pnpm layout`): what may be at the top level, file sizes, READMEs. |
 

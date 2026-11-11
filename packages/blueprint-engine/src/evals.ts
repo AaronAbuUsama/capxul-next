@@ -2,6 +2,8 @@
 // also a complete definition of done. Ids follow docs/spec/30-capxul-evals.md.
 
 import type { AnyRecord, Blueprint } from "./build.ts";
+import { signalEvals } from "./signals.ts";
+import { screenEvals } from "./screens.ts";
 
 export type Level = "L1" | "L2" | "L3" | "L4";
 export type Decider = "machine" | "agent" | "person";
@@ -133,7 +135,16 @@ export const deriveEvals = (b: Pick<Blueprint, "records">): EvalDef[] => {
 
   for (const j of ofKind(b, "journey")) {
     e(`jrn:${j.id}`, "L2", j, "the journey's scenario runs end to end on a devnet");
-    e(`fun:${j.id}`, "L2", j, "every step's proving event is sent once, in order, so the funnel can be derived");
+    // A step is proven by its event, or by its operation's own success (P7): the claim says which, so a success-proven
+    // step never demands an event the record does not ask for.
+    const proofs = list<{ proves?: AnyRecord | "success" }>(j.steps).map((st) => st.proves);
+    const byEvent = proofs.filter((p) => p !== undefined && p !== "success").length;
+    const bySuccess = proofs.filter((p) => p === "success").length;
+    const how =
+      bySuccess === 0 ? "every step's proving event is sent once"
+      : byEvent === 0 ? "every step's operation succeeds once"
+      : "every step is proven once, by its proving event or by its operation's success";
+    e(`fun:${j.id}`, "L2", j, `${how}, in order, so the funnel can be derived`);
   }
 
   for (const c of ofKind(b, "concept")) {
@@ -148,5 +159,5 @@ export const deriveEvals = (b: Pick<Blueprint, "records">): EvalDef[] => {
     e(`env:${v.id}/boot`, "L3", v, typeof v.bootMs === "number" ? `it boots in ≤ ${v.bootMs} ms` : "it boots");
     e(`env:${v.id}/smoke`, "L3", v, "a smoke journey passes on it");
   }
-  return out;
+  return [...out, ...signalEvals(b), ...screenEvals(b)];
 };

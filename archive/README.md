@@ -18,6 +18,7 @@ commit (`docs/repository-map.md` says what counts as live).
 | `docs/design/screens/` | Six screenshots of the first portal prototype. | Nothing refers to them; the portal is `packages/portal` now. | 10 November 2026 |
 | `docs/mission/remaining-work.md` | A work list written on 8 November. | Overtaken by the plan (`plan/plan.json`). | 10 November 2026 |
 | `tools/workflows/` | Thirty-one scripts that drove the agent workflows of 6 to 9 November (booking the old system, designing the target, the hand-overs). | None can run here; the loop (`packages/loop`) replaced them. | 10 November 2026 |
+| `packages/atlas/` | A lean generated site (what the product is, where it stands, who worked on what), built beside the portal on 11 November. | Aaron chose to keep the existing portal and strip it instead (decision `portal.product-only`); the portal took its History page and stale-verdict rule. | 11 November 2026 |
 | `tools/freeze-flags.ts`, `tools/freeze-operations.py` | The generators of the baseline (`books/frozen/`), run once against the old repository. | They cannot run without the old repository and the baseline is never regenerated. Kept as its provenance: the header of `flags.ts` names `tools/freeze-flags.ts`. | 10 November 2026 |
 | `tools/portal-prototype.ts`, `docs/design/portal-prototype.html` | The first portal generator and its output. | Replaced by `packages/portal`. | 10 November 2026 |
 | `tools/explorer/`, `tools/export-explorer.ts` | A read-only explorer page over the book, published as an artifact. | Replaced by the portal. | 10 November 2026 |

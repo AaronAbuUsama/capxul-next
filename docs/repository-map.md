@@ -27,11 +27,11 @@ book" or "the book" and lived in `books/`; older documents and records still say
 | `GROUNDING.md` | The four fixed points of the product, in Aaron's words | the blueprint and the plan cite it |
 | `blueprint/` | The design, as typed records: one folder per concept and `shared/`; `baseline/` is the old system's behaviour, never edited | `packages/blueprint-engine` builds it; every check reads it |
 | `packages/` | The code, one package per component (below) | pnpm workspace |
-| `plan/` | The coordinator's plan: `plan.json`, the log, the owner's answers, one file per task | `pnpm plan`, the portal's Plan page, the loop |
+| `plan/` | The coordinator's plan: `plan.json`, the log, the owner's answers, one file per task | `pnpm plan`, the loop, the portal's Questions (needs of the owner) |
 | `evals/` | `bindings/`: which check proves which eval of the blueprint | `pnpm evals` |
 | `status/` | The scoreboard: `status.json` and the evidence of each run | written only by `pnpm evals`; read by the portal and the plan |
 | `loops/` | The scripts the loop runs (`pair.ts`, `research.ts`) | `pnpm loop run <task id> --script <name>` |
-| `spikes/` | `skeleton/`: proven throwaway code (real Frappe v16, a stand-in chain) | the loop's sandbox, the evals bindings; deleted when plan task `m2-graduate-spike` is done |
+| `spikes/` | `skeleton/`: proven throwaway code (real Frappe v16 on the real v4 contracts; its Frappe app has moved to `packages/frappe-app`) | the loop's sandbox, the evals bindings; deleted when plan task `m2-graduate-spike` is done |
 | `docs/` | Written designs, evidence and generated reports (below) | the blueprint cites most of it |
 | `archive/` | Dead material at its old path; `archive/README.md` lists each thing | nothing live |
 | `var/` | Loop run folders, on the machine that ran them; not in git | `pnpm loop` |
@@ -48,14 +48,15 @@ book" or "the book" and lived in `books/`; older documents and records still say
 
 | Package | What it is | Scripts that live here |
 |---|---|---|
-| `blueprint` | The blueprint's engine: record types, the builder, its checks | `scripts/`: `check-frozen.ts` (`pnpm frozen`), `report-cut.ts`, `report-surface.ts`, `report-judgments.ts` (`pnpm judgments`), `impact.ts`, `target.ts` (loads the blueprint for the others) |
+| `blueprint` | The blueprint's engine: record types, the builder, its checks | `scripts/`: `check-frozen.ts` (`pnpm frozen`), `report-cut.ts`, `report-surface.ts`, `report-judgments.ts` (`pnpm judgments`), `impact.ts`, `ripple.ts` (`pnpm blueprint:ripple`), `at.ts` (the blueprint at a commit), `target.ts` (loads the blueprint for the others) |
 | `portal` | Generates and serves the portal from the blueprint, the plan and the scoreboard | |
 | `plan` | The plan CLI, the plan's checks and the task tree | `src/main.ts` (`pnpm plan`), `src/tasks.ts` (`pnpm tasks`) |
 | `evals` | Runs the checks bound to evals; the only writer of `status/` | `src/record-status.ts` |
 | `loop` | The agent runner on pi-durable; this is where pi-durable is used | |
 | `contracts` | The product's contracts (Foundry) | `abi-check/`: `main.ts` (`pnpm contracts:check-blueprint`), `export-abi.ts` (`pnpm contracts:export-abi`) |
 | `sdk` | The product SDK | |
-| `devnet` | The local chain and worlds | |
+| `devnet` | The local chain and worlds | `cloud/` (the product stack in a Claude cloud container), `src/modules/company/` (a company's life on the real v4 contracts) |
+| `frappe-app` | The Capxul app on every hosted Frappe site (moved from the spike) | `capxul/hooks.py`, `capxul/setup.py`; `blueprint-check/` (`pnpm frappe:check-blueprint`) |
 | `bench-image` | The hosted bench's production Frappe image and its check | decision `sites.bench-image` |
 | `layout` | The layout check | `src/main.ts` (`pnpm layout`), `oversize.json` |
 
@@ -78,6 +79,7 @@ Every `pnpm` script name is unchanged.
 | Entry | What it is | What uses it |
 |---|---|---|
 | `philosophy.md` | How every person and agent works here: climb, behave, survive, stay small | `AGENTS.md`, the coordinator's skills |
+| `blueprint-guide.md` | The blueprint in plain words: the portal's Blueprint page reads it and fills its tables | The portal |
 | `blueprint.md` | How the blueprint works, end to end | `AGENTS.md`, the blueprint, three packages |
 | `repository-map.md` | This page | `README.md` |
 | `as-is/archive/` | The old system written as records (133 files) | 99 blueprint files, `docs/cut-archive` |

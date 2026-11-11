@@ -25,7 +25,7 @@ const operation = (id: string): OperationPage => {
 };
 
 test("the six fixed pages come first, then the concepts, then every record with a page", () => {
-  assert.deepEqual(site.pages.slice(0, 8).map((p) => p.id), ["index", "plan", "review", "design", "build", "docs", "concept/access", "concept/organizations"]);
+  assert.deepEqual(site.pages.slice(0, 7).map((p) => p.id), ["index", "review", "design", "build", "docs", "concept/access", "concept/organizations"]);
   const ids = new Set(site.pages.map((p) => p.id));
   assert.equal(ids.size, site.pages.length, "a page id is used twice");
   for (const id of ["operation/org.member.invite", "operation/invite.accept", "machine/invitation.lifecycle", "decision/access.who-invites"]) {

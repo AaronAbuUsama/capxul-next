@@ -6,7 +6,7 @@ import { test } from "node:test";
 
 import { check, expect, passed } from "#src/modules/check/service.ts";
 
-import { assetsOf, generate, load, ownerNeedsOf, planPagesOf, ROOT } from "./main.ts";
+import { assetsOf, extraPagesOf, generate, load, ownerNeedsOf, ROOT } from "./main.ts";
 import { closedFor } from "./serve.ts";
 
 test("the real blueprint generates a site that passes the portal check", async () => {
@@ -16,12 +16,14 @@ test("the real blueprint generates a site that passes the portal check", async (
   assert.equal(input.blueprint.problems.length, 0);
   const assets = assetsOf();
   const files = generate(input, assets);
-  const expected = expect(input.blueprint, input.waits, input.status, {
-    problems: (input.plan?.problems ?? []).map((p) => `${p.at}: ${p.why}`), tasks: input.plan?.plan.tasks.length ?? null, ownerNeeds: ownerNeedsOf(input), pages: planPagesOf(input),
-  }, input.worlds ? ["worlds"] : []);
+  const expected = expect(input.blueprint, input.waits, input.status, ownerNeedsOf(input), extraPagesOf(input));
   assert.ok(input.worlds, "the Worlds page is made from docs/design/worlds-platform.md");
   assert.ok((files.get("worlds/index.html") ?? "").includes("Worlds as a hosted platform"));
   assert.ok((files.get("worlds.md") ?? "").includes("## Clean data"));
+  assert.ok(input.guide, "the Blueprint page is made from docs/blueprint-guide.md");
+  assert.ok((files.get("blueprint/index.html") ?? "").includes('<h3 id="followed">'));
+  assert.ok((files.get("blueprint.md") ?? "").includes("### Followed: doc.submit, acceptance line 1"));
+  assert.ok(!(files.get("blueprint/index.html") ?? "").includes("Not explained on this page yet"), "every kind of record and of eval has its words on the Blueprint page");
   for (const path of ["design/index.html", "design.md", "data/design.json"]) {
     const page = files.get(path) ?? "";
     for (const phrase of ["sites-backup", "production", "worlds", "34.249.131.57", "8 February 2027", "No production RPO/RTO promised"]) {

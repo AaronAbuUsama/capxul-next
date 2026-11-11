@@ -13,8 +13,17 @@ export const KINDS = [
   "error",
   "event",
   "table",
+  "doctype",
+  "role",
+  "feature",
+  "screen",
   "machine",
   "transition",
+  "log",
+  "metric",
+  "insight",
+  "alert",
+  "dashboard",
   "integration",
   "call",
   "contract",
@@ -42,6 +51,9 @@ export interface Ref<K extends Kind> {
 export const Ref = <K extends Kind>(kind: K) =>
   Schema.Struct({ _kind: Schema.Literal(kind), id: Schema.String });
 
+/** What sends a signal (an event, a log row, a metric): a record that runs. */
+export const Producer = Schema.Union([Ref("rpc"), Ref("flow"), Ref("workflow"), Ref("procedure"), Ref("call"), Ref("component")]);
+
 /** A string of 1 to `max` characters. */
 const Text = (max: number) => Schema.String.pipe(Schema.check(Schema.isMinLength(1), Schema.isMaxLength(max)));
 
@@ -68,6 +80,9 @@ export const Common = {
   title: Title,
   about: Prose,
   was: Schema.optionalKey(Was),
+  /** What the code still owes a decision: the record says what the code does now (so the agreement checks pass), and
+   * each entry is a change a decision asks for and the code has not made. Each is an `owed-change` gap until it is made. */
+  owes: Schema.optionalKey(Schema.Array(Schema.Struct({ decision: Ref("decision"), change: Line }))),
 };
 
 export const Priority = Schema.Literals(["critical", "normal", "low"]);
@@ -99,11 +114,31 @@ export const Budget = Schema.Struct({
   why: Schema.optionalKey(Line),
 });
 
+const describeId = (spec: unknown): string => {
+  const id = typeof spec === "object" && spec !== null ? (spec as { id?: unknown }).id : undefined;
+  return typeof id === "string" ? id : "(no id)";
+};
+
+/** The blueprint file that called a define function: the first stack frame outside the engine. */
+const callerFile = (): string => {
+  const frames = (new Error().stack ?? "").split("\n").slice(1);
+  const own = frames[0]?.match(/\((.*?):\d+:\d+\)$/)?.[1] ?? frames[0]?.match(/at (.*?):\d+:\d+$/)?.[1];
+  for (const f of frames) {
+    const file = f.match(/\((.*?):\d+:\d+\)$/)?.[1] ?? f.match(/at (.*?):\d+:\d+$/)?.[1];
+    if (file && file !== own && !file.includes("/blueprint-engine/src/")) return file.replace(/^file:\/\//, "");
+  }
+  return "an unknown file";
+};
+
 /** Validate a record's fields, then return the record with its kind stamped on. */
 export const make =
   <K extends Kind>(kind: K) =>
   <S extends Schema.Top>(schema: S) =>
   <const T extends S["Type"]>(spec: T): T & Ref<K> => {
-    Schema.decodeUnknownSync(schema as never)(spec);
+    try {
+      Schema.decodeUnknownSync(schema as never)(spec);
+    } catch (e) {
+      throw new Error(`${kind} ${describeId(spec)} in ${callerFile()}: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
+    }
     return { ...(spec as object), _kind: kind } as T & Ref<K>;
   };

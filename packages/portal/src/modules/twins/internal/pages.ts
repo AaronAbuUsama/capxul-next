@@ -14,9 +14,6 @@ export const overview = (p: OverviewPage): readonly string[] => [
   `**${plain(p.hero.eyebrow)}.** ${plain(p.hero.title)}`, "", plain(p.hero.lead), "", plain(p.hero.sub), "",
   `Built from commit \`${p.commit}\`: ${p.problems.length} problems, ${p.gaps.length} gaps, ${p.evals} evals.`, "",
   ...section(plain(p.banner.title), [plain(p.banner.text)]),
-  ...(p.planNote === null ? [] : section("Where the plan is", [
-    ...(p.planGoal === "" ? [] : [plain(p.planGoal), ""]), `${plain(p.planNote.text)} (the coordinator, ${p.planNote.date})`, "",
-    `${p.inbox} things wait for you: see [Questions](review.md). The whole plan: [Plan](plan.md).`])),
   ...section("The climb", p.climb.map((c) => `- **${c.step}** (${plain(c.status)}): ${c.big}, ${c.sub}`)),
   ...section(`Waiting for you (${p.waiting.length})`, [
     plain(p.needsYou), "", ...p.waiting.map((q) => `- ${link(p.id, q.ref)}: ${plain(q.title)}`),

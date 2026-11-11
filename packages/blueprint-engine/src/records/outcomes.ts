@@ -17,8 +17,12 @@ export const JourneySpec = Schema.Struct({
       /** What proves the step for the funnel: an event, or the operation's own success (policy P7).
        * Absent: the step is a gap. */
       proves: Schema.optionalKey(Schema.Union([Ref("event"), Schema.Literal("success")])),
+      /** The screen where the person sees the step's result; the journey's run keeps its screenshot. */
+      seen: Schema.optionalKey(Ref("screen")),
     }),
   ),
+  /** The outcome the journey ends in, in plain words. */
+  finish: Schema.optionalKey(Line),
   /** Ways into the journey: properties of its step events, never journeys of their own. */
   variants: Schema.optionalKey(Schema.Array(Schema.String)),
 });

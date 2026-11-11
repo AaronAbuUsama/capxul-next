@@ -12,11 +12,9 @@ const FONTS =
 const activeOf = (page: Page): string => {
   switch (page.type) {
     case "overview": return "Overview";
-    case "plan":
-    case "plan-task":
-    case "plan-milestone": return "Plan";
     case "questions": return "Questions";
     case "worlds": return "Worlds";
+    case "guide": return "Blueprint";
     case "architecture": return "Architecture";
     case "build": return "Build";
     case "catalogue": return page.nav;

@@ -2,7 +2,7 @@
 // and events that everything above them uses.
 
 import { Schema } from "effect";
-import { AnySchema, Code, Common, Id, Line, make, Prose, Ref, Title } from "./base.ts";
+import { AnySchema, Code, Common, Id, Line, make, Producer, Prose, Ref, Title } from "./base.ts";
 
 // ── system ──────────────────────────────────────────────────────────────────────────────────
 
@@ -12,6 +12,9 @@ export const SystemSpec = Schema.Struct({
     Schema.Struct({ id: Id, kind: Schema.Literals(["person", "agent", "system"]), about: Line }),
   ),
   surfaces: Schema.Array(Schema.Literals(["cli", "sdk", "react", "mcp", "http"])),
+  /** The properties every event, log row and metric carries (`capxul_env`, `trace_id`, the producer, the world, the
+   * Organization). An event's `props` and a log's `attributes` add to it. */
+  envelope: Schema.optionalKey(AnySchema),
 });
 /** The boundary: who is outside, which surfaces they use. One per blueprint. */
 export const defineSystem = make("system")(SystemSpec);
@@ -81,8 +84,17 @@ export type ErrorRecord = ReturnType<typeof defineError>;
 export const EventSpec = Schema.Struct({
   id: Schema.String.pipe(Schema.check(Schema.isPattern(/^[a-z][a-z0-9]*(_[a-z0-9]+)*$/))),
   about: Prose,
-  /** Its properties, beyond the envelope (trace_id, actor, organization, environment). */
+  /** Its properties, beyond the system's envelope (trace_id, actor, organization, environment). */
   props: AnySchema,
+  /** Why it exists: a machine's `transition` (the default; its machine sends it), a `product` signal a funnel or
+   * insight reads, an expected `failure` the product watches, or an `operator` health signal. */
+  purpose: Schema.optionalKey(Schema.Literals(["transition", "product", "failure", "operator"])),
+  /** What sends it, for any purpose but `transition`. */
+  producer: Schema.optionalKey(Producer),
+  /** The properties that hold personal data; every other property must hold none. */
+  pii: Schema.optionalKey(Schema.Array(Schema.String)),
+  /** The analytics groups it is attached to. */
+  groups: Schema.optionalKey(Schema.Array(Schema.Literals(["person", "organization"]))),
   was: Schema.optionalKey(Schema.Array(Schema.String)),
 });
 export const defineEvent = make("event")(EventSpec);
