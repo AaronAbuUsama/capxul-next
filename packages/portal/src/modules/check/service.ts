@@ -10,7 +10,8 @@ const FIXED = ["index", "review", "design", "build", "docs"];
 /** The catalogues under Docs: one page each at `docs/<name>`, whatever the blueprint holds. */
 const CATALOGUES = [
   "commands", "events", "errors", "spans", "tables", "machines", "rpcs", "flows", "procedures", "workflows", "contracts",
-  "integrations", "journeys", "invariants", "components", "environments", "decisions",
+  "integrations", "journeys", "invariants", "components", "environments", "doctypes", "hats", "features", "screens", "logs",
+  "metrics", "insights", "alerts", "dashboards", "decisions",
 ];
 /** The kind of an eval: what its id says before the colon. Each kind the blueprint derives has a page at `eval/<kind>`. */
 const evalKind = (id: string): string => (id.includes(":") ? id.slice(0, id.indexOf(":")) : "eval");

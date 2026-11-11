@@ -16,7 +16,8 @@ const COUNTS: readonly (readonly [string, string])[] = [
 ];
 const MORE: readonly (readonly [string, string])[] = [
   ["rpc", "RPCs"], ["flow", "Flows"], ["workflow", "Workflows"], ["procedure", "Procedures"],
-  ["invariant", "Invariants"], ["decision", "Decisions"],
+  ["invariant", "Invariants"], ["doctype", "DocTypes"], ["role", "Hats"], ["feature", "Features"], ["screen", "Screens"],
+  ["log", "Logs"], ["metric", "Metrics"], ["insight", "Insights"], ["alert", "Alerts"], ["dashboard", "Dashboards"], ["decision", "Decisions"],
 ];
 
 const stateId = (s: unknown): string => text(s) || text(field(s, "id"));

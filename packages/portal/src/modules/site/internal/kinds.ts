@@ -8,7 +8,7 @@ import type { Cell, TableSection } from "../types.ts";
 import { isWaiting, membersOf, titleOf, type Ctx } from "./context.ts";
 import { refOf } from "./locate.ts";
 import { code, row, tableOf, to, words } from "./table.ts";
-import { count, entries, field, plural, text } from "./values.ts";
+import { count, entries, field, list, plural, text } from "./values.ts";
 
 export interface KindCatalogue {
   readonly name: string; readonly kind: string; readonly title: string; readonly one: string; readonly lists: string;
@@ -47,6 +47,24 @@ export const KIND_CATALOGUES: readonly KindCatalogue[] = [
     heads: ["Runs on", "Depends on"], cells: (_, r) => [words(text(r["runtime"])), size(r["dependsOn"])] },
   { name: "environments", kind: "environment", title: "Environments", one: "environment", lists: "Every environment, and how many components run in it.",
     heads: ["Components"], cells: (_, r) => [size(r["runs"])] },
+  { name: "doctypes", kind: "doctype", title: "DocTypes", one: "DocType", lists: "Every Frappe DocType the product uses, the app that owns it, and its fields.",
+    heads: ["Name", "App", "Fields"], cells: (_, r) => [words(text(r["name"])), words(text(r["app"])), size(r["fields"])] },
+  { name: "hats", kind: "role", title: "Hats", one: "hat", lists: "Every hat a person can wear in a company, and the Frappe roles it grants.",
+    heads: ["Frappe roles"], cells: (_, r) => [words(list(r["frappeRoles"]).map(text).join(", "))] },
+  { name: "features", kind: "feature", title: "Features", one: "feature", lists: "Every feature a company can turn on, and whether it starts on.",
+    heads: ["Label", "Starts"], cells: (_, r) => [words(text(r["label"])), words(text(r["default"]))] },
+  { name: "screens", kind: "screen", title: "Screens", one: "screen", lists: "Every screen a person sees, where it is drawn, and what it shows.",
+    heads: ["Surface", "Kind", "Who"], cells: (_, r) => [words(text(r["surface"])), words(text(r["kind"])), size(r["who"])] },
+  { name: "logs", kind: "log", title: "Logs", one: "log", lists: "Every log row the system writes, at what level and how often.",
+    heads: ["Level", "One per"], cells: (_, r) => [words(text(r["level"])), words(text(r["per"]))] },
+  { name: "metrics", kind: "metric", title: "Metrics", one: "metric", lists: "Every metric the system records, and its unit.",
+    heads: ["Instrument", "Unit"], cells: (_, r) => [words(text(r["instrument"])), words(text(r["unit"]))] },
+  { name: "insights", kind: "insight", title: "Insights", one: "insight", lists: "Every saved question asked of the events, logs and metrics.",
+    heads: ["Display", "Reads"], cells: (_, r) => [words(text(r["display"])), size(r["reads"])] },
+  { name: "alerts", kind: "alert", title: "Alerts", one: "alert", lists: "Every alert: what fires it, how loud it is and who hears it.",
+    heads: ["Fires when", "Severity"], cells: (_, r) => [words(text(r["condition"])), words(text(r["severity"]))] },
+  { name: "dashboards", kind: "dashboard", title: "Dashboards", one: "dashboard", lists: "Every dashboard, who it is for and where it lives.",
+    heads: ["For", "Where", "Tiles"], cells: (_, r) => [words(text(r["audience"])), words(text(r["where"])), size(r["tiles"])] },
   { name: "decisions", kind: "decision", title: "Decisions", one: "decision", lists: "Every decision in the blueprint: what was chosen, and whether it waits for an answer.",
     heads: ["Chosen", "Status"], cells: (ctx, r) => [code(text(r["chosen"])), words(isWaiting(ctx, r) ? "waits for you" : "made")] },
 ];

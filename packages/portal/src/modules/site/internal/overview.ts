@@ -15,7 +15,8 @@ const barOf = (n: number, of: number): ClimbCard["bar"] => (n === 0 ? "empty" : 
 const HOLDS: readonly (readonly [string, string])[] = [
   ["operation", "operations"], ["decision", "decisions"], ["table", "tables"], ["event", "events"], ["error", "errors"],
   ["machine", "state machines"], ["rpc", "rpcs"], ["contract", "contracts"], ["flow", "flows"],
-  ["workflow", "workflows"], ["journey", "journeys"],
+  ["workflow", "workflows"], ["journey", "journeys"], ["doctype", "DocTypes"], ["role", "hats"], ["feature", "features"],
+  ["screen", "screens"], ["log", "logs"], ["metric", "metrics"], ["insight", "insights"], ["alert", "alerts"], ["dashboard", "dashboards"],
 ];
 
 export const NAV: readonly Ref[] = [

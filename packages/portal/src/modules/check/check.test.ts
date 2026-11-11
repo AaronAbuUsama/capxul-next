@@ -152,7 +152,7 @@ test("a climb status contradicting its count fails in the model or rendered Over
 
 test("recorded passes and operation progress are stated numerically, never as Not started", () => {
   const site = buildSite({ ...input, status: { version: 1, evals: {
-    "ret:invite.accept": { verdict: "pass", commit: "abc1234", at: "2026-11-10T10:00:00Z" },
+    "ret:invite.accept": { verdict: "pass", commit: "abc1234", at: "2026-11-10T10:00:00Z", claim: input.blueprint.evals.find((e) => e.id === "ret:invite.accept")?.claim ?? "" },
   } } });
   const overview = site.pages.find((p) => p.type === "overview");
   assert.ok(overview?.type === "overview");
