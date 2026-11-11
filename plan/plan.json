@@ -1838,10 +1838,12 @@
       "title": "The portal's front door is a board: working now, next, blocked, needs you, done today",
       "why": "Aaron, 11 Nov: he needs to see what is being worked on",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "c32a04ed34d302cb81f2aee21fdb854fb68e3648"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "m1-portal-board-11111002"
@@ -1867,7 +1869,6 @@
     "tasks": [
       "m1-ops-supervisor",
       "m1-no-command-gate",
-      "m1-portal-board",
       "m1-cloud-sandbox",
       "m1-aaron-accepts",
       "m1-eval-coverage"
