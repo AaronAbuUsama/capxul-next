@@ -7,6 +7,7 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { planFilesOf } from "./files.ts";
+import { withLock } from "./lock.ts";
 import { dirname } from "node:path";
 import { buildBlueprint, parseStatus, type StatusDocument } from "@capxul/blueprint-engine";
 import { name, records, stage } from "../../../blueprint/index.ts";
@@ -115,5 +116,8 @@ const main = (argv: readonly string[]): number => {
 };
 
 if (process.argv[1] !== undefined && import.meta.url.endsWith(process.argv[1].split("/").pop() ?? "")) {
-  process.exitCode = main(process.argv.slice(2));
+  mkdirSync("var", { recursive: true });
+  const ran = withLock("var/plan.lock", () => main(process.argv.slice(2)));
+  if (!ran.ok) console.error(`refused: ${ran.error}`);
+  process.exitCode = ran.ok ? ran.value : 1;
 }

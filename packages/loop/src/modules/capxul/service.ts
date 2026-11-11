@@ -8,7 +8,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { ask, lastJson, openHost, type Host } from "../agents/service.ts";
-import { commitAll, ensureLane, git, head, laneBlocked, slug, type Lane } from "../lanes/service.ts";
+import { commitAll, ensureLane, git, head, laneBlocked, pushBranch, slug, type Lane } from "../lanes/service.ts";
 import { acquire, alive, ledgerLines, listRuns, play, readInfo, SETTLED, stop as stopRun, watchRun, work as workLoop, type Info, type Run } from "../runs/service.ts";
 import { allowedModel, defaultCheckerModel, defaultModel, gatewayOf, modelsOf, POLICY, qualify } from "./internal/config.ts";
 import { evidenceBrief, evidenceLines, kitFor, restore } from "./internal/evidence.ts";
@@ -135,7 +135,7 @@ const finish = async (job: Job, status: "ready" | "blocked" | "answered", reason
 
 /** The run's branch is good: push it (never integration/build) and stop. `pnpm loop merge` re-runs the gates and merges. */
 export const ready = async (job: Job, reasons: string[] = ["every gate and every checker passed"]): Promise<void> => {
-  await job.run.step("push", async () => { git(job.lane!.dir, "push", "-u", "origin", job.lane!.branch); return job.lane!.branch; });
+  await job.run.step("push", async () => { await pushBranch(job.lane!.dir, job.lane!.branch); return job.lane!.branch; });
   await finish(job, "ready", reasons);
 };
 
@@ -260,9 +260,11 @@ export { clean, merge } from "./internal/merge.ts";
 export const serve = (ctx: Ctx, o: { port: number; sinceHours?: number }): Promise<Served> => {
   const mtime = (file: string): number => { try { return statSync(file).mtimeMs; } catch { return 0; } };
   const from = (): number => ctx.now().getTime() - (o.sinceHours ?? 24) * 3_600_000;
+  // The plan's stamp is in every run's: a task closed in the plan supersedes its run, and the run's own files do not change.
+  const planStamp = (): number => mtime(join(ctx.root, "plan/plan.json"));
   return serveHost({
     ids: () => listRuns(runsDir(ctx)).filter((r) => r.info.status === "running" || (Date.parse(r.info.updatedAt) || 0) >= from())
-      .map((r) => ({ id: r.info.id, stamp: `${mtime(join(r.dir, "status.json"))}:${mtime(join(r.dir, "run.sqlite"))}:${mtime(join(r.dir, "run.sqlite-wal"))}:${r.info.status === "running" && !alive(r.info.pid)}` })),
+      .map((r) => ({ id: r.info.id, stamp: `${mtime(join(r.dir, "status.json"))}:${mtime(join(r.dir, "run.sqlite"))}:${mtime(join(r.dir, "run.sqlite-wal"))}:${r.info.status === "running" && !alive(r.info.pid)}:${planStamp()}` })),
     load: (id) => showDetail(lookOf(ctx, 0), id),
     stop: (id) => stop(ctx, id),
     note: (id, n) => sendNote(ctx, id, n),

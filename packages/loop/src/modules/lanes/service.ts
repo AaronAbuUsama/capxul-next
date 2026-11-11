@@ -12,6 +12,17 @@ export interface Lane { readonly dir: string; readonly branch: string; readonly 
 export const git = (cwd: string, ...args: string[]): string =>
   execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 64 * 1024 * 1024 }).trim();
 
+/**
+ * Pushes `branch`, trying again after 2, 4, 8 and 16 seconds when the remote fails. One "remote rejected (failed)" from
+ * GitHub threw away a run that every gate and its reviewer had passed (m1-gaps-dev-stand-11110802, 11 November 2026).
+ */
+export const pushBranch = async (cwd: string, branch: string, wait: (ms: number) => Promise<void> = (ms) => new Promise((done) => setTimeout(done, ms))): Promise<void> => {
+  for (const ms of [2_000, 4_000, 8_000, 16_000]) {
+    try { git(cwd, "push", "-u", "origin", branch); return; } catch { await wait(ms); }
+  }
+  git(cwd, "push", "-u", "origin", branch);
+};
+
 /** A task key as a name for branches and folders: `operation:auth.list` becomes `operation-auth.list`. */
 export const slug = (id: string): string => id.replace(/[^A-Za-z0-9._-]+/g, "-");
 
