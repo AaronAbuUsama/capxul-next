@@ -9,6 +9,7 @@ const AARON = "Aaron, 8 November 2026, in the build-preparation conversation";
 
 /** Judgments Aaron accepted as recommended on 8 November 2026. */
 export const ACCEPTED: readonly string[] = [
+  "sites.bench-image",            // Aaron accepted the recommendation on the portal, 11 November 2026 21:58 UTC (a-20261111T215826-c80a8c)
   "swarm.superset",
   "portal.hosting",
   "portal.stack",
@@ -969,5 +970,23 @@ export const decision_aaron_blueprint = defineDecision({
     "make it like a task to do.\" The word book did not say what the thing is, and books/ beside packages/book read as two copies " +
     "of one thing. Carried out as plan task m1-rename-blueprint, in one mechanical commit.",
   source: AARON_15,
+  affects: [f.system_capxul],
+});
+
+export const decision_aaron_operation_done = defineDecision({
+  id: "aaron.operation-done",
+  title: "Done: tests pass, alerts quiet, each alert seen to fire once",
+  question: "When can one operation (for example sending a payment) be called done? (docs/mission/record-kinds-spec-2026-11-11.md, section 7)",
+  options: [
+    { label: "tests-quiet-fired", text: "Every one of its L1 evals passes, its alerts are quiet on the shared world on the machine, and each of its alerts has fired at least once on a seeded fault." },
+    { label: "tests-only", text: "Its tests pass." },
+    { label: "tests-quiet", text: "Its tests pass and its alerts stay quiet, without proving each alert can fire." },
+  ],
+  chosen: "tests-quiet-fired",
+  why:
+    "Aaron, on the portal's Questions page, 11 November 2026 21:59 UTC, on the card that offered these three with the first " +
+    "recommended: \"I go with your recommendation here. It's fine.\" (answer a-20261111T215920-9a0521). Done then means it works, " +
+    "it stays healthy, and a break would be seen.",
+  source: "Aaron, 11 November 2026, on the portal's Questions page (answer a-20261111T215920-9a0521)",
   affects: [f.system_capxul],
 });
