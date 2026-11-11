@@ -857,7 +857,8 @@ export const decision_portal_product_only = defineDecision({
         "board and the plan note on the Overview, and the Runs entry the script added to the top bar. The plan stays in " +
         "plan/ and `pnpm plan show`; the loop's host still answers under /runs/ when the server passes it through, but no " +
         "page links to it. The Questions page still lists the plan's tasks blocked on a need of the owner, since that is " +
-        "where he answers them.",
+        "where he answers them. A History page, read from git at generation, says who worked on each concept and when; " +
+        "a verdict whose claim has changed since it was recorded counts as not run.",
     },
     { label: "atlas", text: "Replace the portal with a new lean generated site (packages/atlas). Rejected by the owner: keep what we have." },
     { label: "keep", text: "Keep the plan pages and the board beside the product pages, as decided in portal.plan-page and portal.overview-board." },

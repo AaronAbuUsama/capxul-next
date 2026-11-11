@@ -20,7 +20,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec tsc -p packages/blueprint-engine && pnpm exec tsc -p blueprint && pnpm exec tsc -p packages/atlas
+      - run: pnpm exec tsc -p packages/blueprint-engine && pnpm exec tsc -p blueprint
       - run: pnpm blueprint
       - run: pnpm frappe:check-blueprint
       - run: pnpm contracts:check-blueprint

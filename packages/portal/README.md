@@ -16,6 +16,11 @@ pnpm portal:check    # the pages are complete and every link resolves
 - The Blueprint page is `docs/blueprint-guide.md` as written; each `<!-- generated: <name> -->` line in it becomes a table made
   from the blueprint (`site/internal/guide.ts`, `guideTables.ts`). `pnpm portal:check` fails on a marker no table answers.
 
+## History
+
+The History page is read from git when the site is generated (`src/load.ts` `historyOf`, `site/internal/history.ts`):
+who worked on each concept, a timeline by day with the verdicts recorded, and the latest commits.
+
 ## What it does not show
 
 The plan and the loop's runs are not portal pages (decision `portal.product-only`). The plan is `pnpm plan show`; the

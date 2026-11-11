@@ -50,7 +50,6 @@ book" or "the book" and lived in `books/`; older documents and records still say
 |---|---|---|
 | `blueprint` | The blueprint's engine: record types, the builder, its checks | `scripts/`: `check-frozen.ts` (`pnpm frozen`), `report-cut.ts`, `report-surface.ts`, `report-judgments.ts` (`pnpm judgments`), `impact.ts`, `ripple.ts` (`pnpm blueprint:ripple`), `at.ts` (the blueprint at a commit), `target.ts` (loads the blueprint for the others) |
 | `portal` | Generates and serves the portal from the blueprint, the plan and the scoreboard | |
-| `atlas` | The lean generated site: what the product is and where it stands, from the blueprint, status and git | `src/main.ts` (`pnpm atlas`) |
 | `plan` | The plan CLI, the plan's checks and the task tree | `src/main.ts` (`pnpm plan`), `src/tasks.ts` (`pnpm tasks`) |
 | `evals` | Runs the checks bound to evals; the only writer of `status/` | `src/record-status.ts` |
 | `loop` | The agent runner on pi-durable; this is where pi-durable is used | |

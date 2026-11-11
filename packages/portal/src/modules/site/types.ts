@@ -276,6 +276,12 @@ export interface FrozenCommand {
 }
 
 /** Everything the site is built from. The composition root loads it; this module reads nothing else. */
+/** One commit, as the History page reads it: who is the author, or Claude when an agent made it. */
+export interface Commit {
+  readonly sha: string; readonly at: string; readonly who: string;
+  /** `task <id>`, `cloud session`, or empty when a person committed it directly. */
+  readonly via: string; readonly subject: string; readonly files: readonly string[];
+}
 export interface SiteInput {
   readonly blueprint: Blueprint;
   /** The commit the blueprint was read at. */
@@ -295,6 +301,8 @@ export interface SiteInput {
   readonly status: StatusDocument | null;
   /** `plan/plan.json` with the last lines of its log: null when the file is absent. */
   readonly plan: PlanInput | null;
+  /** The repository's commits, newest first: the History page. Absent or empty, there is no History page. */
+  readonly history?: readonly Commit[];
   /** The worlds design: null (or absent) when the document is not in the repository. */
   readonly worlds?: WorldsInput | null;
   /** The guide to the blueprint and what its tables need: null (or absent) without the document. */ readonly guide?: GuideInput | null;

@@ -22,7 +22,7 @@ const HOLDS: readonly (readonly [string, string])[] = [
 export const NAV: readonly Ref[] = [
   { label: "Overview", page: "index", anchor: "" }, { label: "Questions", page: "review", anchor: "" },
   { label: "Worlds", page: "worlds", anchor: "" }, { label: "Blueprint", page: "blueprint", anchor: "" }, { label: "Concepts", page: "index", anchor: "concepts" }, { label: "Architecture", page: "design", anchor: "" },
-  { label: "Build", page: "build", anchor: "" }, { label: "Docs", page: "docs", anchor: "" },
+  { label: "Build", page: "build", anchor: "" }, { label: "History", page: "history", anchor: "" }, { label: "Docs", page: "docs", anchor: "" },
 ];
 
 const climb = (ctx: Ctx): readonly ClimbCard[] => {
@@ -65,7 +65,7 @@ export const overview = (ctx: Ctx): OverviewPage => {
       big: count(kind === "" ? blueprint.evals.length : ofKind(ctx, kind).length), name, to: kind === "" ? EVALS : catalogueOf(kind),
     })),
     concepts, counts: Object.fromEntries([...ctx.byKind].map(([kind, held]) => [kind, held.length])), evals: blueprint.evals.length,
-    problems: findingRows(blueprint.problems), gaps: findingRows(blueprint.gaps), nav: NAV.filter((r) => (r.page !== "worlds" || ctx.input.worlds) && (r.page !== "blueprint" || ctx.input.guide)),
+    problems: findingRows(blueprint.problems), gaps: findingRows(blueprint.gaps), nav: NAV.filter((r) => (r.page !== "worlds" || ctx.input.worlds) && (r.page !== "blueprint" || ctx.input.guide) && (r.page !== "history" || (ctx.input.history ?? []).length > 0)),
     sitemap: Object.fromEntries(paged.map(([kind, held]) => [kind, held.map((r) => r.id)])),
   };
 };
