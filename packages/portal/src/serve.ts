@@ -1,6 +1,5 @@
 /**
- * The local server behind `pnpm portal:serve`: the generated site from `dist`, the answers endpoint, and what is under
- * `/runs/`, which is the loop's host passed through (modules/runs). It listens on 127.0.0.1 only. The files and the clock are handed to the answers module as `Deps`; this file only does the sockets.
+ * The local server behind `pnpm portal:serve`: the generated site from `dist` and the answers endpoint. It listens on 127.0.0.1 only. The files and the clock are handed to the answers module as `Deps`; this file only does the sockets.
  */
 import { randomBytes } from "node:crypto";
 import { appendFileSync, existsSync, readFileSync, statSync } from "node:fs";
@@ -10,7 +9,6 @@ import { extname, join, resolve, sep } from "node:path";
 import { parsePlan } from "@capxul/plan";
 import type { LogEntry } from "@capxul/plan";
 import { respond, MAX_BODY, type Deps, type Waiting } from "#src/modules/answers/service.ts";
-import { DEFAULT_HOST_PORT, passThrough } from "#src/modules/runs/service.ts";
 import type { SiteInput } from "#src/modules/site/types.ts";
 
 import type { Result } from "./load.ts";
@@ -84,7 +82,7 @@ const depsOf = (input: SiteInput, root: string, dist: string, port: number, extr
  * Without it, a page could offer a decision the server had never heard of ("is not a decision that waits for you",
  * 10 November 2026).
  */
-export const listen = (input: SiteInput, root: string, port: number, extraHosts: readonly string[] = [], runsPort: number = DEFAULT_HOST_PORT, reload?: () => Promise<Result<SiteInput>>): Promise<Result<{ readonly server: Server; readonly url: string; readonly closed?: string }>> => {
+export const listen = (input: SiteInput, root: string, port: number, extraHosts: readonly string[] = [], reload?: () => Promise<Result<SiteInput>>): Promise<Result<{ readonly server: Server; readonly url: string; readonly closed?: string }>> => {
   const dist = resolve(root, "packages/portal/dist");
   if (!existsSync(join(dist, "index.html"))) return Promise.resolve({ ok: false, error: `${dist} holds no site: run pnpm portal first` });
   const built = (): number => { try { return statSync(join(dist, "index.html")).mtimeMs; } catch { return 0; } };
@@ -95,9 +93,7 @@ export const listen = (input: SiteInput, root: string, port: number, extraHosts:
     const again = await reload();
     if (again.ok) { deps = depsOf(again.value, root, dist, port, extraHosts); loadedFor = now; }
   };
-  const runs = passThrough({ port: runsPort, hosts: deps.hosts });
   const server = createServer((req, res) => {
-    if (runs.owns((req.url ?? "/").split("?")[0]!)) { runs.request(req, res); return; }
     const chunks: Buffer[] = [];
     let size = 0;
     let tooLarge = false;
@@ -121,7 +117,7 @@ export const listen = (input: SiteInput, root: string, port: number, extraHosts:
       }
     });
   });
-  server.on("upgrade", (req, socket, head) => { if (runs.owns((req.url ?? "/").split("?")[0]!)) runs.upgrade(req, socket, head); else socket.destroy(); });
+  server.on("upgrade", (_req, socket) => { socket.destroy(); });
   return new Promise((done) => {
     server.once("error", (e) => done({ ok: false, error: `could not listen on 127.0.0.1:${port}: ${e.message}` }));
     server.listen(port, "127.0.0.1", () => done({ ok: true, value: { server, url: `http://127.0.0.1:${port}/`, ...(deps.closed === undefined ? {} : { closed: deps.closed }) } }));
