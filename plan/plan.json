@@ -1702,15 +1702,13 @@
   ],
   "path": {
     "tasks": [
-      "m1-portal-provenance",
-      "m1-portal-answer-states",
       "m1-aaron-accepts",
       "m1-model-gateway",
       "m1-loop-hardening",
       "m1-eval-coverage",
       "m1-time-proof"
     ],
-    "why": "The layer is proven: one, two, three, five, eight and twelve runs at once, Stop, steering and alerts from the portal. What stands between the portal and Aaron accepting it (r-g7) is now first: the provenance and answer-state fixes, then his reading",
+    "why": "m1-portal-provenance merged (2282c89); m1-portal-answer-states merging. Next: Aaron reads the portal and accepts it",
     "written": "2026-11-11"
   },
   "notes": [
