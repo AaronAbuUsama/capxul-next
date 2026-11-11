@@ -3,16 +3,15 @@
 
 import { defineDashboard, defineDecision, defineInsight } from "../../packages/blueprint-engine/src/index.ts";
 import { insight_payments_settled } from "../payments/watch.ts";
-import { log_operation_row } from "../shared/signals.ts";
+import { log_command_row } from "../shared/signals.ts";
 import { journey_thin_line } from "./thin-line.ts";
 
 export const insight_thin_line_funnel = defineInsight({
   id: "thin_line_funnel",
   title: "The thin line, step by step",
   about: "How many runs reached each of the thin line's 12 steps, from each step's proving event.",
-  // Every step proves by its own success, so the funnel reads the rows its rpcs write. A row per CLI command
-  // (per operation) would read it directly; the log kind has no `per: operation` yet.
-  reads: [log_operation_row],
+  // Every step proves by its own success, so the funnel counts each step's command row.
+  reads: [log_command_row],
   query: { funnel: journey_thin_line },
   display: "funnel",
   env: ["shared-world", "staging"],

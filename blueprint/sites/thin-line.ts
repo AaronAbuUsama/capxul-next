@@ -1,5 +1,6 @@
 // The g8 company journey. Step tests and the spike's partial evidence are mapped in
 // evals/thin-line.md and evals/bindings/thin-line.json; existing claims are not narrowed.
+import { screen_general_ledger, screen_hat_grants, screen_payment_entry, screen_payment_requests } from "./screens.ts";
 import { defineDecision, defineJourney } from "../../packages/blueprint-engine/src/index.ts";
 import { operation_org_create } from "../organizations/operations.ts";
 import { operation_org_member_grant } from "../board/operations.ts";
@@ -14,11 +15,11 @@ export const journey_thin_line = defineJourney({
   steps: [
     { operation: w.operation_world_create, as: "operator", proves: "success" },
     { operation: operation_org_create, as: "founder", proves: "success" },
-    { operation: operation_org_member_grant, as: "director", proves: "success" },
-    { operation: s.operation_doc_create, as: "office-holder", proves: "success" },
-    { operation: s.operation_doc_submit, as: "office-holder", proves: "success" },
-    { operation: operation_payment_send, as: "office-holder", proves: "success" },
-    { operation: s.operation_report_run, as: "office-holder", proves: "success" },
+    { operation: operation_org_member_grant, as: "director", proves: "success", seen: screen_hat_grants },
+    { operation: s.operation_doc_create, as: "office-holder", proves: "success", seen: screen_payment_entry },
+    { operation: s.operation_doc_submit, as: "office-holder", proves: "success", seen: screen_payment_entry },
+    { operation: operation_payment_send, as: "office-holder", proves: "success", seen: screen_payment_requests },
+    { operation: s.operation_report_run, as: "office-holder", proves: "success", seen: screen_general_ledger },
     { operation: w.operation_world_clock_warp, as: "operator", proves: "success" },
     { operation: w.operation_record_export, as: "operator", proves: "success" },
     { operation: w.operation_world_snapshot_save, as: "operator", proves: "success" },

@@ -4,7 +4,7 @@
 
 import { Schema } from "effect";
 import { defineAlert, defineDashboard, defineDecision, defineInsight, defineLog } from "../../packages/blueprint-engine/src/index.ts";
-import { component_backend, system_capxul } from "./foundation.ts";
+import { component_backend, component_cli, system_capxul } from "./foundation.ts";
 
 const Outcome = Schema.Literals(["ok", "refused", "failed"]);
 /** The failure an outcome other than ok names: its error code from the vocabulary and how it failed. */
@@ -32,6 +32,25 @@ export const log_operation_row = defineLog({
     session_id: Schema.NullOr(Schema.String),
   }),
   redact: ["session_id"],
+});
+
+export const log_command_row = defineLog({
+  id: "command_row",
+  title: "The row a CLI command writes",
+  about:
+    "One row per CLI command, written when it exits: which operation, how it ended and its exit code. A journey step that " +
+    "proves by its operation's success is counted from this row.",
+  component: component_cli,
+  level: "info",
+  per: "operation",
+  attributes: Schema.Struct({
+    operation: Schema.String,
+    outcome: Outcome,
+    failure: Failure,
+    exit_code: Schema.Number,
+    duration_ms: Schema.Number,
+    json: Schema.Boolean,
+  }),
 });
 
 export const log_process_row = defineLog({
@@ -89,7 +108,7 @@ export const decision_signals_wide_rows = defineDecision({
     "wrote the same kind of row (capxul_backend_operation) and its slow-operation and error checks read it. Session ids " +
     "are masked; person-entered values are never attributes.",
   source: "Aaron, 18:49 UTC 11 November 2026; spec docs/mission/record-kinds-spec-2026-11-11.md section 2",
-  affects: [log_operation_row, log_process_row],
+  affects: [log_operation_row, log_process_row, log_command_row],
 });
 
 // ── what is asked of the rows: system health, for the operator ─────────────────────────────
