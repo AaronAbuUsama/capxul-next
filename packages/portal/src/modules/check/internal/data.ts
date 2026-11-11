@@ -60,3 +60,47 @@ export const planTasks = (files: ReadonlyMap<string, string>, expected: number |
   const listed = (Array.isArray(groups) ? groups : []).reduce((n: number, g: unknown) => n + (isFields(g) && Array.isArray(g["tasks"]) ? g["tasks"].length : 0), 0);
   return listed === expected ? [] : [`the Plan page lists ${listed} tasks, the plan holds ${expected}`];
 };
+
+/** The climb's words must describe its adjacent counts, in both the model and the page people read. */
+export const climb = (files: ReadonlyMap<string, string>): readonly string[] => {
+  const page = read(files, "data/index.json");
+  const cards = page?.["climb"];
+  if (!Array.isArray(cards) || cards.length !== 4) return ["Overview: no four climb cards"];
+  const failures: string[] = [];
+  const questions = read(files, "data/review.json")?.["questions"];
+  if (!Array.isArray(questions) || !Array.isArray(page?.["waiting"]) || questions.length !== page["waiting"].length) {
+    failures.push("Overview: waiting count differs from Questions");
+  }
+  const html = files.get("index.html") ?? "";
+  // Keep each status paired with the counts in its own rendered card, not
+  // just the JSON twin: a renderer can drift while the model stays correct.
+  const shown = [...html.matchAll(/<div class="climb-card"><div class="climb-top">[\s\S]*?<span class="climb-status[^"]*">([^<]*)<\/span><\/div><p class="climb-big">([^<]*)<\/p><p class="climb-sub">([^<]*)<\/p>/g)];
+  if (shown.length !== 4) failures.push("Overview: no four rendered climb cards");
+  const number = (s: unknown): number => Number(String(s).match(/[\d,]+/)?.[0]?.replaceAll(",", "") ?? NaN);
+  const format = (n: number): string => n.toLocaleString("en-US");
+  for (const [i, card] of cards.entries()) {
+    if (!isFields(card)) { failures.push(`Overview: invalid climb card ${i}`); continue; }
+    const n = number(card["big"]);
+    const waiting = Array.isArray(page?.["waiting"]) ? page["waiting"].length : NaN;
+    const problems = Array.isArray(page?.["problems"]) ? page["problems"].length : NaN;
+    const gaps = Array.isArray(page?.["gaps"]) ? page["gaps"].length : NaN;
+    const wanted = [
+      `${format(problems)} ${problems === 1 ? "problem" : "problems"}, ${format(gaps)} ${gaps === 1 ? "gap" : "gaps"}`,
+      waiting > 0 ? `${format(waiting)} wait for you` : "Nothing waits for you",
+      `${format(n)} at observe or done`, `${format(n)} passing`,
+    ][i];
+    const rendered = shown[i];
+    const renderedCount = number(rendered?.[2]);
+    const findings = rendered?.[3]?.match(/^([\d,]+) problems?, ([\d,]+) gaps?,/);
+    const renderedWanted = [
+      findings ? `${format(number(findings[1]))} ${number(findings[1]) === 1 ? "problem" : "problems"}, ${format(number(findings[2]))} ${number(findings[2]) === 1 ? "gap" : "gaps"}` : "missing finding counts",
+      renderedCount > 0 ? `${format(renderedCount)} wait for you` : "Nothing waits for you",
+      `${format(renderedCount)} at observe or done`, `${format(renderedCount)} passing`,
+    ][i];
+    if (card["status"] !== wanted || rendered?.[1] !== renderedWanted ||
+        rendered?.[2] !== card["big"] || rendered?.[3] !== card["sub"] || (i === 1 && n !== waiting)) {
+      failures.push(`Overview ${String(card["step"])}: status contradicts its count (expected ${wanted})`);
+    }
+  }
+  return failures;
+};

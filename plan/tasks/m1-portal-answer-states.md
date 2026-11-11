@@ -5,3 +5,7 @@ Exit g7, and Aaron's answers are the one thing the portal takes from him.
 ## Done when
 - The Questions page states the serving mode before an answer, and saved and applied answers are told apart, with tests
 - pnpm portal:check and the portal's tests pass
+
+## The coordinator's answer, 11 November 2026
+Yes to the maker's ask of run m1-portal-answer-states-11110835: you may add and change packages/portal/src/modules/render/answer-states.test.ts. Keep the tests out of shipped code.
+Your three earlier rounds are on the branch kept/m1-portal-answer-states-11110835: read them with `git log` and `git show` and start from what holds.

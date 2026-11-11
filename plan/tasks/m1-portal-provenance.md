@@ -5,3 +5,6 @@ Exit g7: a page that claims more than is known cannot be accepted.
 ## Done when
 - An operation page with no verdict says no recorded verdict, and a verdict row shows its run, date and commit, each with a test
 - pnpm portal:check and the portal's tests pass
+
+## The coordinator's answer, 11 November 2026
+Yes to the maker's ask of run m1-portal-provenance-11110835: change the provenance data types and their callers as far as needed to pass the built commit through, and update the portal tests that assert the old "no code exists" lines, with regression tests for the new behaviour. Still no change to the Overview, questions.ts or site.js.
