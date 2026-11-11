@@ -117,6 +117,8 @@ export interface Question {
   readonly kind: "decision" | "need"; readonly key: string;
   /** The plan tasks blocked on this decision (a need holds up its own task). */
   readonly holdsUp: readonly HeldUp[];
+  /** A need's whole task file (plan/tasks/<id>.md, Markdown): what exactly is asked, why, and when it is done. Empty for a decision. */
+  readonly details: string;
   readonly id: string; readonly ref: Ref; readonly title: string; readonly question: string; readonly concept: string;
   readonly holds: number; readonly chosen: string; readonly why: string; readonly source: string;
   readonly options: readonly { readonly label: string; readonly text: string; readonly recommended: boolean }[];

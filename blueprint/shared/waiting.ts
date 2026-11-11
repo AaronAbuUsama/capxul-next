@@ -29,7 +29,10 @@ export const FLAGGED: readonly string[] = [
 
 /** Decisions that carry out one of Aaron's own; they cite him but need nothing from him.
  * rules.new-operations is not one: whether a pack's recommendation may book a command before he answers is his. */
-export const CARRIES_OUT: readonly string[] = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins", "loop.gateway", ...CARRIES_OUT_RULINGS];
+// tooling.ops-owner: how task m1-ops-supervisor carried out "asking him to run commands is not acceptable"; built and
+// merged on 11 November. Its text names him because it quotes him, which made the Questions page ask him to approve
+// the implementation (he could not answer it, and could not tell what he was being asked).
+export const CARRIES_OUT: readonly string[] = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins", "loop.gateway", "tooling.ops-owner", ...CARRIES_OUT_RULINGS];
 
 /** Aaron's own decisions are settled, not for his review. */
 export const byAaron = (d: Judged): boolean => /^Aaron\b/.test(String(d.source ?? ""));
