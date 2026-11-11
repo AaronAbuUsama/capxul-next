@@ -1,7 +1,7 @@
 /** The blueprint indexed once, as plain data, and the small questions every page builder asks of it. */
 import { Schema } from "effect";
 import {
-  evalsUnder, impactIndex, keyOf, passing, standOf as stand, type AnyRecord, type EvalDef, type Finding, type ImpactIndex, type Link,
+  evalsUnder, freshStatus, impactIndex, keyOf, passing, staleEvals, standOf as stand, type AnyRecord, type EvalDef, type Finding, type ImpactIndex, type Link,
 } from "@capxul/blueprint-engine";
 
 import type { Brief, Count, FindingRow, LinkGroup, OperationRow, PageHead, Ref, SiteInput, StandOf, Value } from "../types.ts";
@@ -10,7 +10,10 @@ import { hashOf, recordJson, variantsOf } from "./schema.ts";
 import { entries, group, isObject, isRecord, list, text } from "./values.ts";
 
 export interface Ctx {
+  /** The input with every stale verdict taken out of its status document, so a stale pass counts as not run. */
   readonly input: SiteInput;
+  /** The eval ids whose recorded verdict no longer speaks for the blueprint: its claim changed, or the eval is gone. */
+  readonly stale: readonly string[];
   readonly byKind: ReadonlyMap<string, readonly AnyRecord[]>;
   /** Evals by the key of their subject. */
   readonly evals: ReadonlyMap<string, readonly EvalDef[]>;
@@ -34,7 +37,9 @@ const countOf = (input: SiteInput, evals: readonly EvalDef[]): Count => {
   return { passing: passing(input.status, ids), total: ids.length };
 };
 
-export const contextOf = (input: SiteInput): Ctx => {
+export const contextOf = (recorded: SiteInput): Ctx => {
+  const stale = staleEvals(recorded.blueprint, recorded.status);
+  const input: SiteInput = { ...recorded, status: freshStatus(recorded.blueprint, recorded.status) };
   const all = [...input.blueprint.records.values()];
   const affects = input.blueprint.links.filter((l) => l.field === "affects" && l.from.startsWith("decision:"));
   const stands = new Map(all.filter((r) => r._kind === "operation").map((op) => {
@@ -46,7 +51,7 @@ export const contextOf = (input: SiteInput): Ctx => {
   }));
   return {
     stands, impacts: impactIndex(input.blueprint),
-    input,
+    input, stale,
     byKind: group(all, (r) => r._kind),
     evals: group(input.blueprint.evals, (e) => e.subject),
     gaps: group(input.blueprint.gaps, (g) => g.record),
