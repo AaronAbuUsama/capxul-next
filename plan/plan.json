@@ -1405,89 +1405,109 @@
       "title": "Research: session affinity to the gateway",
       "why": "m1-model-gateway done-when 1; the gateway ramp at eight agents",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "r-affinity-11110831"
     },
     {
       "id": "r-loop-split",
       "title": "Research: splitting the generic loop out",
       "why": "m1-loop-hardening: trim the package by moving the generic half out; the gateway ramp at eight agents",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "r-loop-split-11110831"
     },
     {
       "id": "r-g1",
       "title": "Research: what exit g1 still lacks",
       "why": "recompute the path to m1's exits; the gateway ramp at eight agents",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "r-g1-11110831"
     },
     {
       "id": "r-g3",
       "title": "Research: what exit g3 still lacks",
       "why": "recompute the path to m1's exits; the gateway ramp at eight agents",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "r-g3-11110831"
     },
     {
       "id": "r-g5",
       "title": "Research: what exit g5 still lacks",
       "why": "recompute the path to m1's exits; the gateway ramp at eight agents",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "r-g5-11110831"
     },
     {
       "id": "r-g7",
       "title": "Research: what stands between the portal and Aaron accepting it",
       "why": "m1-aaron-accepts; the gateway ramp at eight agents",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "r-g7-11110831"
     },
     {
       "id": "r-dev-commands",
       "title": "Research: the state of m1-dev-commands",
       "why": "m1-loop-hardening: re-run m1-dev-commands and merge it through the gate; the gateway ramp at eight agents",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "r-dev-commands-11110831"
     },
     {
       "id": "r-m2-contracts",
       "title": "Research: the first step of the real contracts under the test sites",
       "why": "the next milestone's first task; the gateway ramp at eight agents",
+      "milestone": "m1",
+      "state": "doing",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11",
+      "thread": "r-m2-contracts-11110831"
+    },
+    {
+      "id": "m1-alerts",
+      "title": "Alerts: a new question for Aaron, or a run that fails, is said once, even across a restart",
+      "why": "Aaron asked for alerts; nothing tells him when something needs him",
       "milestone": "m1",
       "state": "todo",
       "needs": [],
