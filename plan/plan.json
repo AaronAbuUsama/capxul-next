@@ -1769,6 +1769,18 @@
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "m1-reading-checklist-11110927"
+    },
+    {
+      "id": "m1-stack-owner",
+      "title": "The test stack refuses a chain or Core started from another checkout",
+      "why": "11 Nov: the eval ran against an old worktree's chain and Core and failed at B1",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
     }
   ],
   "path": {
