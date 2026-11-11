@@ -1807,17 +1807,15 @@
       "title": "One project command owns every long-running process: start, stop, status, and reap strays",
       "why": "Aaron, 11 Nov: asking him to run commands is not acceptable; sessions cannot raw-kill stray processes",
       "milestone": "m1",
-      "state": "blocked",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "3f99592 merged; pnpm ops status shows the stale chain and Core from .claude/worktrees/agent-a8ae1cb38071da05e; skills point at pnpm ops"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
-      "thread": "m1-ops-supervisor-11110955",
-      "blockedBy": {
-        "need": "loop run m1-ops-supervisor-11110955: F-1.2 coordinate and portal-ops skills say to use pnpm ops and never raw kill: Seen: Neither skill was changed; portal-ops still directs sessions to start servers with the individual launch commands. Expected: Both skills direct sessions to pnpm ops and prohibit raw kill. Fix: Update both operationa",
-        "who": "coordinator"
-      }
+      "thread": "m1-ops-supervisor-11110955"
     },
     {
       "id": "m1-cloud-sandbox",
@@ -1865,13 +1863,14 @@
   ],
   "path": {
     "tasks": [
-      "m1-ops-supervisor",
       "m1-no-command-gate",
       "m1-cloud-sandbox",
       "m1-aaron-accepts",
-      "m1-eval-coverage"
+      "m1-eval-coverage",
+      "m1-model-gateway",
+      "m1-loop-hardening"
     ],
-    "why": "Aaron, 11 Nov: the layer passes when agents run in a cloud sandbox with no command gate and he can see the work on a board. Those come first, then his read and the score",
+    "why": "board and service command merged; left for g9: the gate (waits on this session's permission mode) and the cloud sandbox (its own thread)",
     "written": "2026-11-11"
   },
   "notes": [

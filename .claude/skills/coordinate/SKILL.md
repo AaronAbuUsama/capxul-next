@@ -78,3 +78,7 @@ Optimize for movement: run as much in parallel as the limits allow. The limits a
 Run `pnpm plan note "<time>: merged …; blocked …; path …; asked …"`, commit `plan/` with a message that starts `Plan:`, and run `pnpm portal`.
 
 Message Aaron only if he must act or can use a result: a milestone exit met, a new question on the portal, or the climb is stuck. Keep it to one short message with a link. A sweep with nothing new says nothing.
+
+## Long-running processes
+
+Every service this project runs on the Mac (portal, loop host, alerts, test chain, Core stub) is started, stopped and checked with `pnpm ops` (see the portal-ops skill). Never stop a process with kill or pkill, and never ask Aaron to run a command: if a session cannot do something, find why and fix it.

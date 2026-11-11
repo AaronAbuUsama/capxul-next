@@ -7,6 +7,8 @@ description: Keep the capxul-next portal and the loop host running on Aaron's Ma
 
 The portal runs only on the Mac, from the main checkout. A portal started from a worktree refuses answers.
 
+**Use `pnpm ops`, never a raw kill.** `pnpm ops status` shows every service (portal, host, alerts, chain, core) with its pid, port and the checkout it runs from; `pnpm ops start|stop|restart <service|all>` runs them from the main checkout, with logs in `var/ops/`; `pnpm ops reap --dry-run`, then `pnpm ops reap`, stops this project's processes left by old worktrees and runs. The commands below are what `pnpm ops` runs.
+
 | What | Command (from `.claude/launch.json`) | Port |
 |---|---|---|
 | Portal | `pnpm portal && PORTAL_ALLOW_HOSTS=macbook.tail4b9a40.ts.net:8443 pnpm portal:serve --port 4391` | 4391 |
@@ -35,4 +37,4 @@ It runs from a schedule outside the coordinator's session, so it still runs when
 ## Keep it current
 
 - Run `pnpm portal` after every plan change, merge or eval run. The pages are generated, so a page is only as new as its last build.
-- If an old process holds a port, stop it and start again. Never start a second portal on another port.
+- If an old process holds a port, `pnpm ops reap` (or `pnpm ops restart <service>`). Never start a second portal on another port, and never stop a process with kill or pkill.
