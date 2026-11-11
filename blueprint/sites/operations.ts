@@ -55,7 +55,7 @@ export const operation_org_site_retry = operation({
 
 export const operation_org_feature_list = operation({
   id: "org.feature.list", title: "List the Organization's features", area: "organizations", command: "org feature list", priority: "critical", implementedBy: rpc_sites_features_list,
-  about: "Every feature with its state, whether it is on by default and what it is. On by default: accounts (with banking), people (staff records, leave and expenses), projects, CRM. Installed but off: payroll (until the first jurisdiction and its payroll support are chosen (aaron.jurisdiction-open)). Off: WhatsApp sending, attendance, recruitment, reviews, stock, manufacturing.",
+  about: "Every feature with its state, whether it is on by default and what it is. On by default: accounts (with banking), people (staff records, leave and expenses), projects, CRM. Installed but off: payroll (until the first jurisdiction and its payroll support are chosen, aaron.jurisdiction-open). Off: WhatsApp sending, attendance, recruitment, reviews, stock, manufacturing.",
   who: "Any member of the Organization.", changes: "Nothing: it only reads.",
   acceptance: [
     { claim: "A new company has the base set on and the rest off.", observes: `cli: in \`${WORLD.siteReady}\`, \`org feature list --json\` prints accounts, people, projects and crm on, and payroll, whatsapp, attendance, recruitment, reviews, stock and manufacturing off.` },
