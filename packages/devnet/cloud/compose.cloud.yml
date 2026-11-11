@@ -1,0 +1,29 @@
+# Cloud-container override: the bench shares the host network so it can reach the agent proxy.
+services:
+  mariadb:
+    ports: ["127.0.0.1:3306:3306"]
+  redis:
+    ports: ["127.0.0.1:6379:6379"]
+  bench:
+    network_mode: host
+    ports: !reset []
+    extra_hosts: !override
+      - "mariadb:127.0.0.1"
+      - "redis:127.0.0.1"
+      - "host.docker.internal:127.0.0.1"
+    environment:
+      HTTPS_PROXY: http://127.0.0.1:39955
+      HTTP_PROXY: http://127.0.0.1:39955
+      https_proxy: http://127.0.0.1:39955
+      http_proxy: http://127.0.0.1:39955
+      NO_PROXY: localhost,127.0.0.1,mariadb,redis
+      no_proxy: localhost,127.0.0.1,mariadb,redis
+      SSL_CERT_FILE: /ccr/ca-bundle.crt
+      REQUESTS_CA_BUNDLE: /ccr/ca-bundle.crt
+      NODE_EXTRA_CA_CERTS: /ccr/ca-bundle.crt
+      GIT_SSL_CAINFO: /ccr/ca-bundle.crt
+      PIP_CERT: /ccr/ca-bundle.crt
+      UV_NATIVE_TLS: "1"
+      CURL_CA_BUNDLE: /ccr/ca-bundle.crt
+    volumes:
+      - /root/.ccr/ca-bundle.crt:/ccr/ca-bundle.crt:ro
