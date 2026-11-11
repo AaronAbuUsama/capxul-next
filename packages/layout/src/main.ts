@@ -37,7 +37,9 @@ export const ALLOWED: Allowlist = {
   "pnpm-workspace.yaml": "the workspace and the dependency catalog",
   ".gitignore": "git",
   ".github": "the pull request template and issue forms",
-  ".claude": "the agents' role prompts (read by the loop), the coordinator's skills and the preview launcher",
+  ".claude": "a link to the skills in .agents/skills, for Claude Code",
+  ".agents": "Amp's orb setup and resume scripts and the coordinator's skills (decision build.amp)",
+  ".amp": "Amp's orb services: the book served from the coordinator's orb",
 };
 
 export const LIMIT = 300;

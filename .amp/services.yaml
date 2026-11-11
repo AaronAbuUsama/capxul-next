@@ -1,0 +1,12 @@
+# Amp orb services (https://ampcode.com/docs/orbs/portals). The book is served from the coordinator's orb: its
+# Questions page writes Aaron's answers to plan/answers.jsonl in this checkout (skill portal-ops).
+services:
+  book:
+    command: pnpm portal && PORTAL_ALLOW_HOSTS="$(echo "$PUBLIC_URL" | sed -E 's#^https?://##; s#/.*$##')" pnpm portal:serve --port "$PORT"
+    health: /
+    review: false
+    platforms: [linux]
+    portal:
+      url: /
+      title: The book
+      description: The blueprint, where every operation stands, and the Questions page for Aaron.
