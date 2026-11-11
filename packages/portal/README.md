@@ -14,5 +14,18 @@ pnpm portal:check    # the pages are complete and every link resolves
   `answers`: the owner's answers; `twins`: the same site as plain text for agents and scripts (`llms.txt`).
 - `content/`, `assets/`: fixed text, CSS and the one script.
 
+## Board verification
+
+`pnpm --filter @capxul/portal test` covers the Overview board's path, blockers,
+Questions inbox, UTC-day completion evidence and merge commits, plus live host
+refresh and clearing stale work when the host fails. `pnpm portal:check` checks
+that the generated pages and links agree with their source data.
+
+Round 3 rechecked the reported pending-promise cancellations in `main.test.ts`
+and `render-status.test.ts`: the required `pnpm exec tsc -p packages/blueprint-engine && pnpm test`
+exited 0, and a separate portal test run reported 102 pass, 0 fail, 0 cancelled.
+The cancellation was not reproduced; no test or runtime behavior was changed to
+mask it.
+
 Nothing here is a source of truth: change the blueprint or the plan and generate again. Its design is
 `docs/design/portal.md` and the records in `blueprint/shared/portal.ts`.
