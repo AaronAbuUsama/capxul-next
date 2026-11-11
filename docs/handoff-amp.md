@@ -108,6 +108,11 @@ An outside audit of the blueprint was checked against `integration/build` at `22
 - `blueprint/shared/cut.ts` maps the trial balance to the Balance Sheet.
 - The plan still shows `todo` for work merged in PRs #2, #4 and #8: the coordinator's first sweep closes them.
 
+Fixed since (Codex's review of #11, 11 November): two money-path bugs in `packages/frappe-app/capxul/payments.py`. A
+batch transaction's unmatched payments now each get a bank line (keyed by payment id, not only the transaction hash),
+and a payment against an entry another payment already posted is recorded as an unmatched bank line instead of
+vanishing. Unit tests in `packages/frappe-app/tests` (`pnpm frappe:test`).
+
 ## 6. Next tasks (each one Amp thread, one pull request into integration/build)
 
 0. **Prove an orb runs the stack**: run `.agents/setup`, then `spikes/skeleton/run.sh`, and report whether Docker,
