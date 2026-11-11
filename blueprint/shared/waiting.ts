@@ -29,7 +29,7 @@ export const FLAGGED: readonly string[] = [
 
 /** Decisions that carry out one of Aaron's own; they cite him but need nothing from him.
  * rules.new-operations is not one: whether a pack's recommendation may book a command before he answers is his. */
-export const CARRIES_OUT: readonly string[] = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins", ...CARRIES_OUT_RULINGS];
+export const CARRIES_OUT: readonly string[] = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins", "loop.gateway", ...CARRIES_OUT_RULINGS];
 
 /** Aaron's own decisions are settled, not for his review. */
 export const byAaron = (d: Judged): boolean => /^Aaron\b/.test(String(d.source ?? ""));

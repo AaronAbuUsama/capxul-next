@@ -1273,10 +1273,12 @@
       "title": "The book records how the build runs: the loop, its lanes, its merge gate and its gateway",
       "why": "m1-loop-hardening: the decision for the loop is not in the book; swarm.ts still describes swarmD",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "053d1df19a2cf6dc22c7b1e5e95d432f756b84be"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "m1-loop-decision-11110813"
@@ -1293,6 +1295,18 @@
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "m1-eval-near-misses-11110813"
+    },
+    {
+      "id": "m1-gate-no-new-questions",
+      "title": "A run cannot put a new question on Aaron's page by accident",
+      "why": "loop.gateway landed on the Questions page on 11 Nov because its text cites Aaron's ruling",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
     }
   ],
   "path": {
