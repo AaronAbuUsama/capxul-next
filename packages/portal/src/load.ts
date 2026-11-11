@@ -100,7 +100,6 @@ export const load = async (root: string, commit: string = commitOf(root)): Promi
       ok: true,
       value: {
         blueprint, commit, concepts, conceptOf, direction, status: status.value, plan: plan.value,
-        today: new Date().toISOString().slice(0, 10), mergesToday: mergesOf(root),
         waits: (decision) => forAaron(decision) === true,
         frozen: frozenOf(flagBaseline), frozenOperations: new Set(Object.keys(frozen)), worlds, guide,
       },
@@ -215,14 +214,5 @@ export const ownerNeedsOf = (input: SiteInput): readonly string[] =>
 /** The pages that exist only when their document is in the repository: Worlds and Blueprint. */
 export const extraPagesOf = (input: SiteInput): readonly string[] => [...(input.worlds ? ["worlds"] : []), ...(input.guide ? ["blueprint"] : [])];
 
-/** The page ids of the plan's tasks and milestones. */
-export const planPagesOf = (input: SiteInput): readonly string[] => [
-  ...(input.plan?.plan.milestones ?? []).map((m) => `plan/milestone/${m.id}`), ...(input.plan?.plan.tasks ?? []).map((t) => `plan/task/${t.id}`),
-];
 
 /** Git merge commits since midnight UTC, not inferred from task state. */
-export const mergesOf = (root: string, today = new Date().toISOString().slice(0, 10)): readonly { commit: string; title: string }[] => {
-  try {
-    return execFileSync("git", ["log", "--merges", "--since=" + today + "T00:00:00Z", "--format=%H%x09%s"], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim().split("\n").filter(Boolean).map((line) => { const [commit = "", ...title] = line.split("\t"); return { commit, title: title.join("\t") }; });
-  } catch { return []; }
-};

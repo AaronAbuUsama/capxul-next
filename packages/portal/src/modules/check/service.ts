@@ -2,11 +2,11 @@
 import { unknownEvals, type AnyRecord, type Blueprint, type StatusDocument } from "@capxul/blueprint-engine";
 
 import { coverage } from "./internal/coverage.ts";
-import { climb, evals, guide, identical, planTasks, questions, stands } from "./internal/data.ts";
+import { climb, evals, guide, identical, questions, stands } from "./internal/data.ts";
 import { links } from "./internal/links.ts";
-import type { Expect, Outcome, PlanExpect } from "./types.ts";
+import type { Expect, Outcome } from "./types.ts";
 
-const FIXED = ["index", "plan", "review", "design", "build", "docs"];
+const FIXED = ["index", "review", "design", "build", "docs"];
 /** The catalogues under Docs: one page each at `docs/<name>`, whatever the blueprint holds. */
 const CATALOGUES = [
   "commands", "events", "errors", "spans", "tables", "machines", "rpcs", "flows", "procedures", "workflows", "contracts",
@@ -23,20 +23,19 @@ const outcome = (check: string, failures: readonly string[]): Outcome =>
 
 /** What the blueprint says the site must hold. `waits` is the one predicate the judgments report uses. */
 export const expect = (
-  blueprint: Blueprint, waits: (decision: AnyRecord) => boolean, status: StatusDocument | null = null, plan: PlanExpect = { problems: [], tasks: null, ownerNeeds: [], pages: [] },
+  blueprint: Blueprint, waits: (decision: AnyRecord) => boolean, status: StatusDocument | null = null, ownerNeeds: readonly string[] = [],
   extraPages: readonly string[] = [],
 ): Expect => {
   const records = [...blueprint.records.values()];
   return {
     pages: [
       ...FIXED, ...extraPages, ...records.filter((r) => !NO_PAGE.has(r._kind)).map((r) => `${r._kind}/${r.id}`),
-      ...CATALOGUES.map((name) => `docs/${name}`), ...plan.pages, "eval", ...[...new Set(blueprint.evals.map((e) => evalKind(e.id)))].map((kind) => `eval/${kind}`),
+      ...CATALOGUES.map((name) => `docs/${name}`), "eval", ...[...new Set(blueprint.evals.map((e) => evalKind(e.id)))].map((kind) => `eval/${kind}`),
     ],
     evals: blueprint.evals.length,
     unknownStatus: status === null ? [] : unknownEvals(blueprint, status),
-    waiting: [...records.filter((r) => r._kind === "decision" && waits(r)).map((r) => r.id), ...plan.ownerNeeds],
+    waiting: [...records.filter((r) => r._kind === "decision" && waits(r)).map((r) => r.id), ...ownerNeeds],
     operations: records.filter((r) => r._kind === "operation").map((r) => r.id),
-    plan,
   };
 };
 
@@ -49,8 +48,6 @@ export const check = (files: ReadonlyMap<string, string>, again: ReadonlyMap<str
   outcome("the Overview climb statuses agree with their counts", climb(files)),
   outcome("every operation has a stand", stands(files, expected.operations)),
   outcome("the eval catalogue lists every eval the blueprint derives", evals(files, expected.evals)),
-  outcome("the plan is honest against the blueprint (plan check)", expected.plan.problems),
-  outcome("the Plan page lists every task of the plan", planTasks(files, expected.plan.tasks)),
   outcome("the Blueprint page fills every table its guide marks, and follows a real record", expected.pages.includes("blueprint") ? guide(files) : []),
   outcome("every status entry names an eval the blueprint derives", expected.unknownStatus.map((id) => `${id}: in status/status.json, and the blueprint derives no such eval`)),
 ];

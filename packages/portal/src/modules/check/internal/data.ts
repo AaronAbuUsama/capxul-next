@@ -53,14 +53,6 @@ export const evals = (files: ReadonlyMap<string, string>, expected: number): rea
   return listed === expected ? [] : [`the eval catalogue lists ${listed} evals, the blueprint derives ${expected}`];
 };
 
-/** The Plan page's JSON twin lists every task of the plan once, by state. */
-export const planTasks = (files: ReadonlyMap<string, string>, expected: number | null): readonly string[] => {
-  if (expected === null) return [];
-  const groups = read(files, "data/plan.json")?.["groups"];
-  const listed = (Array.isArray(groups) ? groups : []).reduce((n: number, g: unknown) => n + (isFields(g) && Array.isArray(g["tasks"]) ? g["tasks"].length : 0), 0);
-  return listed === expected ? [] : [`the Plan page lists ${listed} tasks, the plan holds ${expected}`];
-};
-
 /** The climb's words must describe its adjacent counts, in both the model and the page people read. */
 export const climb = (files: ReadonlyMap<string, string>): readonly string[] => {
   const page = read(files, "data/index.json");

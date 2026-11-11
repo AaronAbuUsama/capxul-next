@@ -18,10 +18,10 @@ import { twinsOf } from "#src/modules/twins/service.ts";
 import type { Assets } from "#src/modules/render/types.ts";
 import { LLMS_FILE } from "#src/modules/twins/types.ts";
 
-import { assetsOf, extraPagesOf, load, ownerNeedsOf, planPagesOf, ROOT, type Result } from "./load.ts";
+import { assetsOf, extraPagesOf, load, ownerNeedsOf, ROOT, type Result } from "./load.ts";
 import { listen } from "./serve.ts";
 
-export { assetsOf, extraPagesOf, load, ownerNeedsOf, planPagesOf, ROOT };
+export { assetsOf, extraPagesOf, load, ownerNeedsOf, ROOT };
 export type { Result };
 
 /** The whole site as file path to content: the pages, the stylesheet and script, the twins and `llms.txt`. */
@@ -69,10 +69,7 @@ const run = async (args: readonly string[]): Promise<{ readonly lines: readonly 
       code: 0,
     };
   }
-  const outcomes = check(files, generate(input, assets), expect(input.blueprint, input.waits, input.status, {
-    problems: (input.plan?.problems ?? []).map((p) => `${p.at}: ${p.why}`), tasks: input.plan?.plan.tasks.length ?? null,
-    ownerNeeds: ownerNeedsOf(input), pages: planPagesOf(input),
-  }, extraPagesOf(input)));
+  const outcomes = check(files, generate(input, assets), expect(input.blueprint, input.waits, input.status, ownerNeedsOf(input), extraPagesOf(input)));
   return {
     lines: [
       ...outcomes.flatMap((o) => [
