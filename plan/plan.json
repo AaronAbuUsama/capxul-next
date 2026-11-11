@@ -11,7 +11,8 @@
       {
         "id": "g2",
         "claim": "The book builds with no problems and every open gap is closed or has a recorded reason.",
-        "state": "open"
+        "state": "met",
+        "evidence": "08e52a6: pnpm blueprint 2652 records, 0 problems, 0 gaps, 147 standing; every merge check passes"
       },
       {
         "id": "g3",
@@ -1259,36 +1260,39 @@
       "title": "An agent is a record: the loop reads agent definitions, and the Runs app lists them",
       "why": "Aaron, 10 Nov: agents in the UI, code mode, PostHog MCP, enrichment agents all need an agent as a record",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-agent-records-11110813"
     },
     {
       "id": "m1-loop-decision",
       "title": "The book records how the build runs: the loop, its lanes, its merge gate and its gateway",
       "why": "m1-loop-hardening: the decision for the loop is not in the book; swarm.ts still describes swarmD",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-loop-decision-11110813"
     },
     {
       "id": "m1-eval-near-misses",
       "title": "Each near-miss check is bound to a whole claim, or stands with its reason",
       "why": "m1-eval-coverage: 34 checks prove part of an eval and score nothing",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-eval-near-misses-11110813"
     }
   ],
   "path": {
@@ -1472,6 +1476,11 @@
       "date": "2026-11-11",
       "by": "coordinator",
       "text": "09:00: three runs at once, LOOP_MAX_AGENTS=3: m1-agent-records (packages/loop, loop-ui), m1-loop-decision (blueprint/shared/swarm.ts only), m1-eval-near-misses (concept folders, evals bindings). The agents patch moved to archive/stranded so a lane can read it"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "09:25: merging m1-loop-decision-11110813: reviewer approve, swarm.ts only, no aaron.* record changed"
     }
   ]
 }
