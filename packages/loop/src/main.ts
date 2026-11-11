@@ -10,7 +10,7 @@ import { alertRuns, closedAt, questionsAt } from "./modules/alerts/inputs.ts";
 import { clean, DEFAULTS, loadDefinitions, logs, merge, resume, serve, showFull, showJson, spendText, start, status, statusJson, stop, watch, watchAll, work, type Ctx, type Opts } from "./index.ts";
 
 const USAGE = [
-  "       loop alerts [--once] (preview once, or reconcile notifications every 2 seconds)",
+  "       loop alerts [--once] (preview once, or reconcile notifications every 30 seconds)",
   "       loop agents [--json] (definitions in packages/loop/agents/)",
   "usage: loop run <task id> [--script pair] [--model provider/id] [--checker-model provider/id] [--sandbox none|light|heavy]",
   "                          [--rounds 3] [--budget-usd 5] [--timeout-min 30] [--checkers reviewer,adversary]",
@@ -74,7 +74,7 @@ const main = async (argv: readonly string[]): Promise<number> => {
           if (f.has("once")) throw error;
           console.error(error instanceof Error ? error.message : String(error));
         }
-        await new Promise((r) => setTimeout(r, 2000));
+        await new Promise((r) => setTimeout(r, 30_000));   // each poll loads the blueprint in a fresh process: every 30 s, not every 2
       } while (true);
     }
     case "run": return need ? ended(await start(ctx, need, optsOf(f))) : (console.error(USAGE), 2);

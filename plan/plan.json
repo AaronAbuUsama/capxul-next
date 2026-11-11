@@ -1526,10 +1526,12 @@
       "title": "Alerts: a new question for Aaron, or a run that fails, is said once, even across a restart",
       "why": "Aaron asked for alerts; nothing tells him when something needs him",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "23153a2045294788894176d329ac65bce22e0bd5"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "m1-alerts-11110835"
