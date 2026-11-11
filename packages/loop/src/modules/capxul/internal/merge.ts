@@ -1,4 +1,5 @@
 /** Two commands that end a run's life on disk: `merge` (a ready run into its base, after the gates pass again) and `clean` (a run's lane). */
+import { spawnSync } from "node:child_process";
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { catchUp, dropLane, git, type Lane } from "../../lanes/service.ts";
@@ -33,7 +34,20 @@ export const merge = async (ctx: Ctx, id: string): Promise<string[]> => {
   git(ctx.root, "merge", "--no-ff", "-m", `Merge ${wt.branch} (loop run ${id})`, wt.branch);
   const commit = git(ctx.root, "rev-parse", "HEAD");
   try { git(ctx.root, "push", "origin", wt.base); } catch (cause) { return [`merged locally at ${commit} but the push failed: ${String(cause).slice(0, 200)}`]; }
-  if (info.extra.source === "plan") plan.finish(ctx, info.subject, commit);
+  if (info.extra.source === "plan") {
+    // Remove only the merged task, not the coordinator's ordering of the remaining work.
+    // Do this before marking it done, so even the intermediate plan has no done task on its path.
+    const cli = (args: string[]): string => {
+      const r = spawnSync("pnpm", ["-s", "plan", ...args], { cwd: ctx.root, encoding: "utf8", env: { ...ctx.env } as NodeJS.ProcessEnv });
+      if (r.status !== 0) throw new Error(`plan ${args.slice(0, 2).join(" ")} failed: ${`${r.stdout ?? ""}${r.stderr ?? ""}${r.error ?? ""}`.slice(0, 300)}`);
+      return r.stdout;
+    };
+    const view = JSON.parse(cli(["show", "--json"])) as { plan: { path: { tasks: string[]; why: string } } };
+    if (view.plan.path.tasks.includes(info.subject)) {
+      cli(["path", "set", ...view.plan.path.tasks.filter((id) => id !== info.subject), "--why", view.plan.path.why ?? `Task ${info.subject} merged`, "--by", "loop"]);
+    }
+    plan.finish(ctx, info.subject, commit);
+  }
   await writeStatus(dir, { ...info, status: "merged", endedAt: ctx.now().toISOString() });
   dropLane(ctx.root, wt);
   return [`merged ${wt.branch} into ${wt.base} at ${commit.slice(0, 7)} and pushed${info.extra.source === "plan" ? `; plan task ${info.subject} marked done` : ""}`];

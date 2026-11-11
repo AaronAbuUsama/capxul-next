@@ -7,6 +7,7 @@ import * as contractGaps from "./contract-gaps.ts";
 
 import * as foundation from "./foundation.ts";
 import * as cloud from "./cloud.ts";
+import * as cli from "./cli.ts";
 import * as vocabulary from "./vocabulary.ts";
 import * as external from "./external.ts";
 import * as decisions from "./decisions.ts";
@@ -41,5 +42,5 @@ export const recordsOf = (modules: readonly object[]): unknown[] => [
   ),
 ];
 
-export const sharedModules = [alertsFresh, alerts, errorGaps, stateGaps, contractGaps, foundation, cloud, vocabulary, external, decisions, decisionReview, landings, tooling, portal, swarm, time, rulings, surface, cut, cutMoves, milestones, contractRecords] as const;
+export const sharedModules = [alertsFresh, alerts, errorGaps, stateGaps, contractGaps, foundation, cloud, cli, vocabulary, external, decisions, decisionReview, landings, tooling, portal, swarm, time, rulings, surface, cut, cutMoves, milestones, contractRecords] as const;
 export const sharedRecords = recordsOf(sharedModules);

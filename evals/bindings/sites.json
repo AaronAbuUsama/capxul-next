@@ -10,6 +10,14 @@
   ],
   "bindings": [
     {
+      "eval": "acc:doc.create/1",
+      "checks": [
+        "B6.created-document-is-draft",
+        "B7.closed-month-invoice-refused"
+      ],
+      "why": "The sales person creates a Sales Invoice through the door's `doc create`, then reads that same new document through `doc get` before submitting it: docstatus 0 establishes it is a draft. Creating an invoice in a closed month is refused, establishing that Frappe's validations apply. Together the checks prove the whole claim."
+    },
+    {
       "eval": "acc:doc.submit/1",
       "checks": [
         "B6.sales-invoice-submitted-in-ledger"
@@ -59,13 +67,6 @@
         "B3.still-a-draft-while-waiting"
       ],
       "missing": "The Payment Entry is held and not posted, but nothing checks that the answer names the signer."
-    },
-    {
-      "eval": "acc:doc.create/1",
-      "checks": [
-        "B7.closed-month-invoice-refused"
-      ],
-      "missing": "Frappe's validation applies (a closed month refuses the invoice), but no check reads a created document back as a draft."
     },
     {
       "eval": "acc:report.run/1",

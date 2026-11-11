@@ -30,7 +30,8 @@
       {
         "id": "g5",
         "claim": "Everything the spikes found is a record or a decision.",
-        "state": "open"
+        "state": "met",
+        "evidence": "m1-g5-findings merged: components.cli-stdout-drain and the decisions it names hold every 'Smaller findings' item of spikes/skeleton/FINDINGS.md; the design findings were recorded by m1-spike-evidence (r-g5-11110831)"
       },
       {
         "id": "g6",
@@ -587,7 +588,7 @@
       "title": "Aaron reads the portal and accepts the book",
       "why": "The book is fit to build from when the owner has read it and accepts it (g7).",
       "milestone": "m1",
-      "state": "todo",
+      "state": "blocked",
       "needs": [
         "m1-plan-page",
         "m1-task-tree",
@@ -606,7 +607,11 @@
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-11",
+      "blockedBy": {
+        "need": "Read the portal in the order on the task page (nine stops, about an hour), then mark done to accept the book at the commit shown at the top, or tell the coordinator what is missing",
+        "who": "aaron"
+      }
     },
     {
       "id": "m1-time-study",
@@ -1306,12 +1311,13 @@
       "title": "A run cannot put a new question on Aaron's page by accident",
       "why": "loop.gateway landed on the Questions page on 11 Nov because its text cites Aaron's ruling",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-gate-no-new-questions-11110927"
     },
     {
       "id": "m1-probe-stop",
@@ -1707,62 +1713,113 @@
       "title": "A merged task leaves the critical path in the same change",
       "why": "a merge was refused on 11 Nov because the task merged before it was still on the path",
       "milestone": "m1",
-      "state": "todo",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "065a7fcd9979da279df507f5fc002f0212da86fe"
+      ],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-merge-clears-path-11110927"
     },
     {
       "id": "m1-g5-findings",
       "title": "Every spike finding is a record or a decision, the CLI's stdout drain included",
       "why": "exit g5: one spike finding has no record",
       "milestone": "m1",
-      "state": "todo",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "36ee2bebda9ce48c785fb245b47f96f732f482a2"
+      ],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-g5-findings-11110927"
     },
     {
       "id": "m1-bind-doc-create",
       "title": "The first near-miss becomes a binding: creating a document reads back a draft",
       "why": "the score is 8 of 5,175; this is the pattern for binding the rest",
       "milestone": "m1",
-      "state": "todo",
+      "state": "blocked",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-bind-doc-create-11110927",
+      "blockedBy": {
+        "need": "loop run m1-bind-doc-create-11110927: F-1.1 bash -n passes on every changed script: Seen: Neither the maker nor the reviewer could run bash -n: the loop policy refused it. No passing syntax-check run was printed. Expected: bash -n passes on the changed script. Fix: Run bash -n spikes/skeleton/run.sh in an authorized environment and prov",
+        "who": "coordinator"
+      }
     },
     {
       "id": "m1-reading-checklist",
       "title": "Aaron's reading checklist for accepting the portal",
       "why": "exit g7 needs a read with an end and a commit",
       "milestone": "m1",
-      "state": "todo",
+      "state": "done",
+      "needs": [],
+      "records": [],
+      "evidence": [
+        "written by the coordinator in plan/tasks/m1-aaron-accepts.md: the run m1-reading-checklist-11110927 could not write plan files from its lane"
+      ],
+      "created": "2026-11-11",
+      "updated": "2026-11-11",
+      "thread": "m1-reading-checklist-11110927"
+    },
+    {
+      "id": "m1-stack-owner",
+      "title": "The test stack refuses a chain or Core started from another checkout",
+      "why": "11 Nov: the eval ran against an old worktree's chain and Core and failed at B1",
+      "milestone": "m1",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-stack-owner-11110947"
+    },
+    {
+      "id": "m1-policy-fit",
+      "title": "The loop's rules allow harmless reads, and the Runs page shows a refusal as a rule, not a failure",
+      "why": "Aaron asked why 'refused by the loop policy' keeps showing; most refusals today were harmless reads",
+      "milestone": "m1",
+      "state": "doing",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11",
+      "thread": "m1-policy-fit-11110953"
+    },
+    {
+      "id": "m1-ops-supervisor",
+      "title": "One project command owns every long-running process: start, stop, status, and reap strays",
+      "why": "Aaron, 11 Nov: asking him to run commands is not acceptable; sessions cannot raw-kill stray processes",
+      "milestone": "m1",
+      "state": "doing",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11",
+      "thread": "m1-ops-supervisor-11110955"
     }
   ],
   "path": {
     "tasks": [
-      "m1-reading-checklist",
+      "m1-ops-supervisor",
       "m1-aaron-accepts",
-      "m1-bind-doc-create",
       "m1-eval-coverage",
-      "m1-g5-findings",
       "m1-model-gateway",
       "m1-loop-hardening",
       "m1-time-proof"
     ],
-    "why": "Exits g1, g2, g3 met. Open: g5 (one finding), g7 (Aaron's read: the checklist first), g8 (the shared world, m3b). The score (8 of 5,175) is the biggest lever: bind near-misses one by one, starting with acc:doc.create/1, with the Frappe stack up on the Mac",
+    "why": "Aaron's standing rule (11 Nov): never ask him to run a command. The supervisor goes first; the eval rerun waits for it",
     "written": "2026-11-11"
   },
   "notes": [
@@ -1990,6 +2047,11 @@
       "date": "2026-11-11",
       "by": "coordinator",
       "text": "Batch of five at once (LOOP_MAX_AGENTS=6): m1-merge-clears-path, m1-gate-no-new-questions (packages/loop, disjoint files), m1-g5-findings (blueprint), m1-bind-doc-create (spikes/skeleton B6, evals/bindings), m1-reading-checklist (its task file). g1 met"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "m1-bind-doc-create-11110927 blocked only because the lane's policy refuses bash -n; the coordinator ran bash -n and evals check (9 bound, 33 near-misses, 0 problems) and merges it by hand, then runs the eval on the Mac"
     }
   ]
 }
