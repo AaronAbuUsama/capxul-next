@@ -76,10 +76,13 @@ test("with no status document the pages report only the absence of recorded verd
   assert.ok(html("build").includes("observe means every L1 eval under it passes"));
   assert.ok(!html("operation/invite.accept").includes("no code exists"));
   assert.ok(!html("operation/invite.accept").includes("Nothing here has run"));
+  const operation = html("operation/invite.accept");
+  assert.ok(!operation.includes("no eval has run against real code yet"), "the whole page, including the stand sidebar, must not infer execution absence");
+  assert.ok(operation.includes("No recorded verdict is available for these evals; this does not establish whether code exists or an eval has run."));
 });
 
-for (const commit of ["abc1234", "abc123456789", "def5678"]) {
-  test("verdict provenance is retained and linked at result commit " + commit, () => {
+for (const commit of ["abc1234", "abc123456789", "def5678", "abc1234+dirty"]) {
+  test("verdict provenance links artifacts at the built snapshot, not tested revision " + commit, () => {
     const doc = { version: 1 as const, evals: Object.fromEntries(ids.map((id) => [id, {
       verdict: "pass" as const, commit, at: "2026-11-10T10:00:00Z", run: "run-test", evidence: "status/runs/run-test/evidence/check.txt",
     }])) };
@@ -95,10 +98,18 @@ for (const commit of ["abc1234", "abc123456789", "def5678"]) {
       const text = html(page);
       assert.ok(text.includes('>run-test</a>'));
       assert.ok(text.includes('datetime="2026-11-10T10:00:00Z"'));
-      assert.ok(text.includes('/commit/' + commit + '">' + commit + '</a>'));
-      assert.ok(text.includes('/blob/' + commit + '/status/runs/run-test/results.json'));
-      assert.ok(text.includes('/blob/' + commit + '/status/runs/run-test/evidence/check.txt'));
-      assert.ok(text.includes(commit === "def5678" ? "Last seen at a different commit; not proof at built commit abc1234." : "At built commit."));
+      const sha = commit.replace(/\+dirty$/, "");
+      assert.ok(text.includes('/commit/' + sha + '">' + sha + '</a>'));
+      assert.ok(text.includes('/blob/abc1234/status/runs/run-test/results.json'));
+      assert.ok(text.includes('/blob/abc1234/status/runs/run-test/evidence/check.txt'));
+      if (commit.endsWith("+dirty")) {
+        assert.ok(text.includes("+dirty (base commit; uncommitted changes)"));
+        assert.ok(text.includes("Dirty working tree result; not proof at built commit abc1234."));
+        assert.ok(!text.includes("/commit/abc1234%2Bdirty"));
+        assert.ok(!text.includes("At built commit."));
+      } else {
+        assert.ok(text.includes(commit === "def5678" ? "Last seen at a different commit; not proof at built commit abc1234." : "At built commit."));
+      }
     }
   });
 }

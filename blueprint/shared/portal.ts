@@ -782,11 +782,25 @@ export const decision_portal_verdict_provenance = defineDecision({
   title: "Recorded verdicts retain provenance and do not establish implementation absence",
   question: "What can the generated portal claim from a recorded verdict, or its absence?",
   options: [
-    { label: "provenance", text: "Retain each status entry's run, date, commit and evidence in page models. Link the run results and evidence in the repository at the result commit, and link the commit itself. Missing optional fields say not recorded. Compare result and built commits (allowing abbreviated SHAs); a different commit is last seen, not proof at the built commit. Without ancestry data do not claim it is necessarily older. No entry means no recorded verdict, not no code. Build describes specify, decide, build, observe and done using standOf, not code-existence inference." },
+    { label: "provenance", text: "Retain each status entry's run, date, commit and evidence in page models. Link the run results and evidence in the repository at the built snapshot commit that contains the status artifacts, not the tested commit (the artifacts are written afterwards), and link a clean tested commit itself. A dirty result links only its base SHA, explicitly labelled as a base with uncommitted changes, and is never proof at the built commit. Missing optional fields say not recorded. Compare result and built commits (allowing abbreviated SHAs); a different commit is last seen, not proof at the built commit. Without ancestry data do not claim it is necessarily older. No entry means no recorded verdict, not no code. Build describes specify, decide, build, observe and done using standOf, not code-existence inference." },
     { label: "verdict-only", text: "Show only verdict chips. Rejected: historical passes look like current proof." },
   ],
   chosen: "provenance",
   why: "Exit g7 requires the portal to say only what is known. Status entries carry provenance already; dropping it hides the distinction between a result and proof at this build. This clarifies portal.status-source for the current generated snapshot without adding a browser overlay or changing stand computation.",
   source: "docs/mission/research-2026-11-11.md, What stands between the portal and Aaron accepting it, items 3 and 4; task m1-portal-provenance, coordinator answer 11 November 2026",
   affects: [f.system_capxul, decision_portal_status_source],
+});
+
+export const decision_portal_provenance_artifacts = defineDecision({
+  id: "portal.provenance-artifacts",
+  title: "Artifact refs and missing verdicts describe only the recorded snapshot",
+  question: "How do provenance links and the operation sidebar avoid claiming more than the recorded snapshot?",
+  options: [
+    { label: "snapshot", text: "Run and evidence links use the built snapshot commit, which contains the recorded artifacts. Tested commits predate their artifacts. A +dirty result links its clean base SHA with an explicit uncommitted-changes label, never an invalid dirty commit URL or a claim of proof at the build. On an operation with no recorded verdict, replace the build stand explanation with no recorded verdict; do not infer that no eval ran." },
+    { label: "tested-ref", text: "Use the tested ref for all links and the stand's execution inference. Rejected: artifacts do not exist there and absence of status does not establish absence of execution." },
+  ],
+  chosen: "snapshot",
+  why: "Review findings F-1.1 and F-1.2 exposed broken artifact links and an unsupported sidebar claim. Keep the tested revision distinct from the revision storing its evidence without changing stand computation.",
+  source: "Task m1-portal-provenance, round 2 review, 11 November 2026",
+  affects: [f.system_capxul, decision_portal_verdict_provenance],
 });

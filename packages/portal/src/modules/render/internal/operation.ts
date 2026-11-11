@@ -70,7 +70,7 @@ const stands = (p: OperationPage): string => {
   const behind = rungsBehind(p.stand);
   return `<div class="side-card"><p class="eyebrow eyebrow-muted">Where it stands</p><ul class="rungs">` +
     RUNGS.map((r, i) => `<li class="rung${i < behind ? " on" : ""}"><i class="rung-dot"></i>${r}</li>`).join("") +
-    `</ul><p class="side-note">${prose(p.stand.why)}</p>` +
+    `</ul><p class="side-note">${prose(p.stand.stand === "build" && !p.evals.some((e) => e.verdict !== "not_run") ? "No recorded verdict is available for these evals; this does not establish whether code exists or an eval has run." : p.stand.why)}</p>` +
     `<p class="side-total"><a href="#evals">Evals passing</a><span class="mono">${count(p.passing.own.passing)} / ${count(p.evals.length)}</span></p>` +
     `<p class="side-total"><span>Under it</span><span class="mono">${count(p.passing.under.passing)} / ${count(p.passing.under.total)}</span></p></div>`;
 };

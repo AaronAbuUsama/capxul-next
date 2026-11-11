@@ -30,7 +30,7 @@ export const evalGroups = (p: OperationPage, cites: Cites): string =>
       table(["Eval", "Claim", "Decided by", "Verdict"], rows(p, evals, cites), "evals") + `</div>`;
   }).join("");
 
-/** A recorded result is not silently promoted to proof at this build. Links use the result's commit. */
+/** Artifacts live in the built snapshot; the tested revision predates the files recording its result. */
 export const verdictView = (e: EvalRow): string => {
   const badge = e.verdict === "pass" ? chip("pass", "chip chip-blue") : e.verdict === "fail" ? chip("fail", "chip chip-orange") : chip("not run", "chip chip-quiet");
   if (!e.provenance) return badge + '<span class="cell-sub">No recorded verdict.</span>';
@@ -38,10 +38,14 @@ export const verdictView = (e: EvalRow): string => {
   const base = repo.replace(/\/$/, "");
   const path = (s: string): string => s.split("/").map(encodeURIComponent).join("/");
   const a = (url: string, label: string): string => '<a href="' + esc(url) + '">' + esc(label) + '</a>';
-  const file = (p: string, label: string): string => a(base + "/blob/" + encodeURIComponent(r.commit) + "/" + path(p), label);
-  const same = r.commit === builtCommit || (/^[0-9a-f]{7,40}$/i.test(r.commit) && /^[0-9a-f]{7,40}$/i.test(builtCommit) && (r.commit.startsWith(builtCommit) || builtCommit.startsWith(r.commit)));
+  const file = (p: string, label: string): string => a(base + "/blob/" + encodeURIComponent(builtCommit) + "/" + path(p), label);
+  const dirty = r.commit.endsWith("+dirty");
+  const sha = dirty ? r.commit.slice(0, -6) : r.commit;
+  const commitLink = /^[0-9a-f]{7,40}$/i.test(sha) ? a(base + "/commit/" + sha, sha) : esc(sha);
+  const commit = dirty ? commitLink + " +dirty (base commit; uncommitted changes)" : commitLink;
+  const same = !dirty && (r.commit === builtCommit || (/^[0-9a-f]{7,40}$/i.test(r.commit) && /^[0-9a-f]{7,40}$/i.test(builtCommit) && (r.commit.startsWith(builtCommit) || builtCommit.startsWith(r.commit))));
   return badge + '<span class="cell-sub">Run: ' + (r.run ? file("status/runs/" + r.run + "/results.json", r.run) : "not recorded") +
-    '<br>Date: <time datetime="' + esc(r.at) + '">' + esc(r.at) + '</time><br>Commit: ' + a(base + "/commit/" + encodeURIComponent(r.commit), r.commit) +
-    '<br>' + (same ? "At built commit." : "Last seen at a different commit; not proof at built commit " + esc(builtCommit) + ".") +
+    '<br>Date: <time datetime="' + esc(r.at) + '">' + esc(r.at) + '</time><br>Commit: ' + commit +
+    '<br>' + (dirty ? "Dirty working tree result; not proof at built commit " + esc(builtCommit) + "." : same ? "At built commit." : "Last seen at a different commit; not proof at built commit " + esc(builtCommit) + ".") +
     '<br>Evidence: ' + (r.evidence ? file(r.evidence, r.evidence) : "not recorded") + '</span>';
 };
