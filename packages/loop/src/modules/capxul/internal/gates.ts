@@ -7,6 +7,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Ctx, Gate, Task } from "../types.ts";
 import { sh } from "./sh.ts";
+import { questionsGate } from "./questions.ts";
+import { baseOf } from "./where.ts";
 
 export interface GateSpec { readonly name: string; readonly sh: string }
 
@@ -41,7 +43,8 @@ export const gatesFor = (ctx: Ctx, dir: string, task: Task): readonly GateSpec[]
 };
 
 export const runGates = async (ctx: Ctx, dir: string, task: Task, o: { env?: Record<string, string>; out: string; stopped?: () => boolean }): Promise<Gate[]> => {
-  const out: Gate[] = [];
+  if (o.stopped?.()) throw new Error("stopped");
+  const out: Gate[] = existsSync(join(dir, "blueprint/index.ts")) ? [questionsGate(dir, task, baseOf(ctx))] : [];
   for (const g of gatesFor(ctx, dir, task)) {
     const r = await sh(ctx, g.sh, { cwd: dir, ...(o.env ? { env: o.env } : {}), file: join(o.out), timeoutMs: 15 * 60_000, ...(o.stopped ? { stopped: o.stopped } : {}) });
     if (r.stopped) throw new Error("stopped");
