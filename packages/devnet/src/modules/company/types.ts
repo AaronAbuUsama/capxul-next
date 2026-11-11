@@ -36,6 +36,23 @@ export interface CreateCompany {
   readonly topAmount: bigint;
   /** A salt for the installation, so two companies of one founder do not collide. */
   readonly salt: Hex;
+  /**
+   * The other founding Directors, each by email (Companies House derives their personal Safe) and key (its one signer).
+   * With any, the Board's threshold is every founding Director, so a Board action is a proposal until all have approved.
+   */
+  readonly coDirectors?: readonly { readonly email: string; readonly key: Hex }[];
+}
+
+/** A founding Director other than the founder: their personal Safe, which wears the Director hat, and its key. */
+export interface Director {
+  readonly safe: Hex;
+  readonly key: Hex;
+}
+
+/** A Board action waiting for the Directors: the batch, and the company Safe's transaction hash they approve. */
+export interface Proposal {
+  readonly safeTxHash: Hex;
+  readonly calls: readonly { readonly to: Hex; readonly data: Hex; readonly value?: bigint; readonly operation?: 0 | 1 }[];
 }
 
 /** A company on chain, as its birth left it. Everything else is read from the chain. */
@@ -51,6 +68,8 @@ export interface Company {
   /** In the order of `CreateCompany.officers`. */
   readonly officerHats: readonly bigint[];
   readonly topBudget: bigint;
+  /** The other founding Directors (none for a company with one Director). */
+  readonly coDirectors?: readonly Director[];
 }
 
 export interface Pay {

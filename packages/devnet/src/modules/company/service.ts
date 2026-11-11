@@ -12,7 +12,7 @@ import { localPrivateKeySigner } from "@capxul/sdk";
 import { privateKeyToAccount } from "viem/accounts";
 import { BUDGETS, CLAIMER, HATS, MINTER, PAYMENTS } from "./internal/abis.ts";
 import { refusalOf } from "./internal/refusal.ts";
-import type { BirthKeys, Company, CreateCompany, Pay, PayResult, Protocol, Refusal } from "./types.ts";
+import type { BirthKeys, Company, CreateCompany, Director, Pay, PayResult, Proposal, Protocol, Refusal } from "./types.ts";
 
 export type * from "./types.ts";
 export { AGENT_OWNER, BUDGETS, CLAIMER, ERC20, HATS, MINTER, PAYMENTS } from "./internal/abis.ts";
@@ -65,11 +65,18 @@ export async function createCompany(p: Protocol, keys: BirthKeys, c: CreateCompa
   const relayer = privateKeyToAccount(keys.relayer).address;
   const tier = record.tiers[0]?.tier ?? "devnet";
 
-  const founderSafe = await founderSafeOf(p, c.founderEmail);
-  if ((await chain.client.getCode({ address: founderSafe })) === undefined) {
-    const claim = encodeFunctionData({ abi: CLAIMER, functionName: "claim", args: [NAMESPACE, c.founderEmail, founder] });
-    await send(chain, { from: keys.tierService, to: record.companiesHouseRoles, data: throughRoles(claimRoleKey(tier), at(p, "CompaniesHouseClaimer"), claim) });
-  }
+  const claimed = async (email: string, signer: Hex): Promise<Hex> => {
+    const safe = await founderSafeOf(p, email);
+    if ((await chain.client.getCode({ address: safe })) === undefined) {
+      const claim = encodeFunctionData({ abi: CLAIMER, functionName: "claim", args: [NAMESPACE, email, signer] });
+      await send(chain, { from: keys.tierService, to: record.companiesHouseRoles, data: throughRoles(claimRoleKey(tier), at(p, "CompaniesHouseClaimer"), claim) });
+    }
+    return safe;
+  };
+  const founderSafe = await claimed(c.founderEmail, founder);
+  const coDirectors: Director[] = [];
+  for (const d of c.coDirectors ?? []) coDirectors.push({ safe: await claimed(d.email, privateKeyToAccount(d.key).address), key: d.key });
+  const directors = BigInt(1 + coDirectors.length);
   const founderOwners = await chain.client.readContract({ address: founderSafe, abi: SAFE_ABI, functionName: "getOwners" });
   if (founderOwners.length !== 1 || !same(founderOwners[0] ?? "", founder)) throw new Error(`the founder's Safe ${founderSafe} is owned by ${founderOwners.join(", ")}, not the founder's key`);
 
@@ -79,7 +86,7 @@ export async function createCompany(p: Protocol, keys: BirthKeys, c: CreateCompa
   await send(chain, { from: keys.tierService, to: record.companiesHouseRoles, data: throughRoles(companyRoleKey(tier), at(p, "CompanySafeMinter"), mint) });
 
   const installer = at(p, "Installer");
-  const deploy = { safe: companySafe, founderSafe, coDirectors: [], threshold: { thresholdType: 0, min: 1n, target: 1n }, officers: c.officers, salt: c.salt };
+  const deploy = { safe: companySafe, founderSafe, coDirectors: coDirectors.map((d) => d.safe), threshold: { thresholdType: 0, min: directors, target: directors }, officers: c.officers, salt: c.salt };
   const { result } = await chain.client.simulateContract({ account: relayer, address: installer, abi: p.installerAbi, functionName: "deployMoney", args: [deploy] });
   await send(chain, { from: keys.relayer, to: installer, data: encodeFunctionData({ abi: p.installerAbi, functionName: "deployMoney", args: [deploy] }) });
   const d = result as { boardTopHat: bigint; officerHats: readonly bigint[]; roles: Hex; gate: Hex };
@@ -87,21 +94,58 @@ export async function createCompany(p: Protocol, keys: BirthKeys, c: CreateCompa
     address: installer,
     abi: p.installerAbi,
     functionName: "buildMoney",
-    args: [{ safe: companySafe, founderSafe, coDirectors: [], deployment: result, tokens: [{ token: c.token, ceiling: c.ceiling, budgetPeriod: 0, topAmount: c.topAmount, topHat: d.boardTopHat }] }],
+    args: [{ safe: companySafe, founderSafe, coDirectors: coDirectors.map((d) => d.safe), deployment: result, tokens: [{ token: c.token, ceiling: c.ceiling, budgetPeriod: 0, topAmount: c.topAmount, topHat: d.boardTopHat }] }],
   })) as readonly { to: Hex; value: bigint; data: Hex }[];
   const partial = { companySafe, founderSafe, founderKey: keys.founder, relayerKey: keys.relayer };
+  // Before this batch the founder's Safe is the company Safe's only owner; the batch makes the co-Directors signers.
   await board(p, partial, calls.map((call) => ({ to: call.to, value: call.value, data: call.data })));
   const topBudget = await chain.client.readContract({ address: at(p, "Budgets"), abi: BUDGETS, functionName: "budgetCount" });
-  return { ...partial, token: c.token, gate: d.gate, roles: d.roles, boardTopHat: d.boardTopHat, officerHats: d.officerHats, topBudget };
+  return { ...partial, token: c.token, gate: d.gate, roles: d.roles, boardTopHat: d.boardTopHat, officerHats: d.officerHats, topBudget, coDirectors };
 }
 
-/** A Board action: the founder's Safe approves the company Safe's batch, then the relayer executes it. */
-export async function board(p: Protocol, c: Pick<Company, "companySafe" | "founderSafe" | "founderKey" | "relayerKey">, calls: readonly SafeCall[]): Promise<Hex> {
-  const batch: SafeCall = { to: THIRD_PARTY.multiSendCallOnly, data: multiSendData(calls), operation: DELEGATECALL };
-  const txHash = await safeTxHash(p.chain, c.companySafe, batch);
-  await execSafe(p.chain, c.founderSafe, { to: c.companySafe, data: encodeFunctionData({ abi: SAFE_ABI, functionName: "approveHash", args: [txHash] }) }, [localPrivateKeySigner({ privateKey: c.founderKey })], c.founderKey);
-  const approved = concat([pad(c.founderSafe, { size: 32 }), pad("0x", { size: 32 }), "0x01"]);
-  return execWithSignatures(p.chain, c.companySafe, batch, approved, c.relayerKey);
+type BoardOf = Pick<Company, "companySafe" | "founderSafe" | "founderKey" | "relayerKey" | "coDirectors">;
+const batchOf = (calls: readonly SafeCall[]): SafeCall => ({ to: THIRD_PARTY.multiSendCallOnly, data: multiSendData(calls), operation: DELEGATECALL });
+/** The approved-hash signatures of these Director Safes, in ascending address order as the Safe requires. */
+const approvals = (safes: readonly Hex[]): Hex =>
+  concat([...safes].sort((a, b) => (BigInt(a) < BigInt(b) ? -1 : 1)).map((s) => concat([pad(s, { size: 32 }), pad("0x", { size: 32 }), "0x01"])));
+async function approveHashAs(p: Protocol, c: BoardOf, safe: Hex, key: Hex, txHash: Hex): Promise<void> {
+  await execSafe(p.chain, safe, { to: c.companySafe, data: encodeFunctionData({ abi: SAFE_ABI, functionName: "approveHash", args: [txHash] }) }, [localPrivateKeySigner({ privateKey: key })], key);
+}
+
+/** A Board action: every founding Director's Safe approves the company Safe's batch, then the relayer executes it. */
+export async function board(p: Protocol, c: BoardOf, calls: readonly SafeCall[]): Promise<Hex> {
+  const proposal = await propose(p, c, calls);
+  for (const d of c.coDirectors ?? []) await approveHashAs(p, c, d.safe, d.key, proposal.safeTxHash);
+  return execute(p, c, proposal);
+}
+
+/** A Board proposal: the founder's Safe approves the batch; it waits until the other Directors approve (`approveProposal`). */
+export async function propose(p: Protocol, c: BoardOf, calls: readonly SafeCall[]): Promise<Proposal> {
+  const safeTx = await safeTxHash(p.chain, c.companySafe, batchOf(calls));
+  await approveHashAs(p, c, c.founderSafe, c.founderKey, safeTx);
+  return { safeTxHash: safeTx, calls };
+}
+
+/**
+ * Another Director approves a waiting proposal; once every founding Director has, it executes. Refuses a proposal whose hash
+ * no longer matches the company Safe's next transaction (another Board action executed in between).
+ */
+export async function approveProposal(p: Protocol, c: BoardOf, proposal: Proposal, director: Director): Promise<{ executed: boolean; txHash?: Hex }> {
+  if ((await safeTxHash(p.chain, c.companySafe, batchOf(proposal.calls))) !== proposal.safeTxHash) throw new Error("STALE_PROPOSAL: another Board action executed since it was proposed");
+  await approveHashAs(p, c, director.safe, director.key, proposal.safeTxHash);
+  const approved = await Promise.all([c.founderSafe, ...(c.coDirectors ?? []).map((d) => d.safe)].map((s) => approvedBy(p, c, s, proposal.safeTxHash)));
+  if (approved.some((a) => !a)) return { executed: false };
+  return { executed: true, txHash: await execute(p, c, proposal) };
+}
+
+/** Whether a Director's Safe has approved the company Safe's transaction hash. */
+export async function approvedBy(p: Protocol, c: Pick<Company, "companySafe">, directorSafe: Hex, txHash: Hex): Promise<boolean> {
+  return (await p.chain.client.readContract({ address: c.companySafe, abi: APPROVED_HASHES, functionName: "approvedHashes", args: [directorSafe, txHash] })) === 1n;
+}
+const APPROVED_HASHES = [{ type: "function", name: "approvedHashes", stateMutability: "view", inputs: [{ type: "address" }, { type: "bytes32" }], outputs: [{ type: "uint256" }] }] as const;
+
+async function execute(p: Protocol, c: BoardOf, proposal: Proposal): Promise<Hex> {
+  return execWithSignatures(p.chain, c.companySafe, batchOf(proposal.calls), approvals([c.founderSafe, ...(c.coDirectors ?? []).map((d) => d.safe)]), c.relayerKey);
 }
 
 /** The Board creates a department: a child budget of `parent` (the top budget by default) for `hat`, with nothing to spend yet. */
@@ -113,8 +157,14 @@ export async function createDepartment(p: Protocol, c: Company, hat: bigint, par
 
 /** The Board grants a hat to a wearer (a person's key, or an agent's Safe). */
 export async function grantHat(p: Protocol, c: Company, hat: bigint, wearer: Hex): Promise<Hex> {
-  return board(p, c, [{ to: THIRD_PARTY.hats, data: encodeFunctionData({ abi: HATS, functionName: "mintHat", args: [hat, wearer] }) }]);
+  return board(p, c, [mintHat(hat, wearer)]);
 }
+
+/** A grant as a Board proposal: the founder approves it, and it waits for the other Directors (`approveProposal`). */
+export function proposeGrant(p: Protocol, c: Company, hat: bigint, wearer: Hex): Promise<Proposal> {
+  return propose(p, c, [mintHat(hat, wearer)]);
+}
+const mintHat = (hat: bigint, wearer: Hex): SafeCall => ({ to: THIRD_PARTY.hats, data: encodeFunctionData({ abi: HATS, functionName: "mintHat", args: [hat, wearer] }) });
 
 /**
  * The Board takes a hat back. The company Safe is the officer hats' eligibility module (InstallerMoney), so it marks the

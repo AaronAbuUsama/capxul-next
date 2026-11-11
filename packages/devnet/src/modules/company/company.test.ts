@@ -13,7 +13,7 @@ import { encodeFunctionData, keccak256, stringToHex, type Abi, type Hex } from "
 import { connect, send } from "../chain/service.ts";
 import type { DeploymentRecord } from "../protocol/types.ts";
 import { testKey } from "../test-keys/service.ts";
-import { createCompany, createDepartment, ERC20, grantHat, leftOf, pay, revokeHat, setBudget, wears, type Protocol } from "./service.ts";
+import { approvedBy, approveProposal, createCompany, createDepartment, ERC20, grantHat, leftOf, pay, proposeGrant, revokeHat, setBudget, wears, type Protocol } from "./service.ts";
 
 const rpc = process.env.DEVNET_RPC;
 const contracts = join(fileURLToPath(new URL(".", import.meta.url)), "../../../../contracts");
@@ -70,4 +70,41 @@ test("a company is born, gets a department with a hat and a budget, and its wear
   assert.equal(await wears(p, holder.address, finance), false, "the hat is gone after the Board takes it back");
   const revoked = await pay(p, { key: holder.key, budget: department, to: payee, amount: UNIT, kind: 1, documentHash: hash("z"), jobNonce: hash(`${name} z`) });
   assert.deepEqual([revoked.ok, !revoked.ok && revoked.reason], [false, "NOT_AUTHORISED"]);
+});
+
+test("with a second Director, a grant waits as a Board proposal until that Director approves; a stale proposal is refused", { skip: rpc === undefined && "DEVNET_RPC is not set" }, async () => {
+  const chain = await connect(rpc as string);
+  const record = JSON.parse(await readFile(join(contracts, "deployments/devnet.json"), "utf8")) as DeploymentRecord;
+  const artifact = async (file: string, name: string) => JSON.parse(await readFile(join(contracts, "out", file, `${name}.json`), "utf8")) as { abi: Abi; bytecode: { object: Hex } };
+  const p: Protocol = { chain, record, installerAbi: (await artifact("Installer.sol", "Installer")).abi };
+  const deployer = testKey("deployer");
+  const tokenArtifact = await artifact("MockERC20.sol", "MockERC20");
+  const deployHash = await chain.walletFor(deployer.key).deployContract({ abi: tokenArtifact.abi, bytecode: tokenArtifact.bytecode.object, args: ["Test USD", "TUSD", 6] });
+  const token = (await chain.client.waitForTransactionReceipt({ hash: deployHash })).contractAddress as Hex;
+  const name = `board-test-${Date.now()}`;
+  const second = testKey("directorTwo");
+  const company = await createCompany(p, { tierService: testKey("tierService").key, relayer: deployer.key, founder: testKey("founder").key }, {
+    founderEmail: `${name}@acme.test`,
+    company: name,
+    token,
+    officers: [{ details: "Finance", maxSupply: 3 }],
+    ceiling: 1_000n * UNIT,
+    topAmount: 1_000n * UNIT,
+    salt: hash(name),
+    coDirectors: [{ email: `${name}-two@acme.test`, key: second.key }],
+  });
+  const director = company.coDirectors?.[0];
+  assert.ok(director, "the company has its second Director");
+
+  const finance = company.officerHats[0] as bigint;
+  const wearer = testKey("second").address;
+  const proposal = await proposeGrant(p, company, finance, wearer);
+  assert.deepEqual([await approvedBy(p, company, company.founderSafe, proposal.safeTxHash), await approvedBy(p, company, director.safe, proposal.safeTxHash), await wears(p, wearer, finance)], [true, false, false], "the founder approved; the grant waits");
+  const done = await approveProposal(p, company, proposal, director);
+  assert.equal(done.executed, true);
+  assert.equal(await wears(p, wearer, finance), true, "after the second Director approves, the member wears the hat");
+
+  const first = await proposeGrant(p, company, finance, testKey("payee").address);
+  await grantHat(p, company, finance, testKey("agent").address);
+  await assert.rejects(approveProposal(p, company, first, director), /STALE_PROPOSAL/);
 });

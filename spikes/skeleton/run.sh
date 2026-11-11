@@ -117,12 +117,12 @@ REC="$HERE/core/state/record/main.jsonl"; REC0=$( [ -f "$REC" ] && wc -l < "$REC
 echo "== Behaviour 1: an org is one command"
 existed=$(curl -s -o /dev/null -w '%{http_code}' -H "X-Frappe-Site-Name: $SITE" $FR/api/method/ping)
 [ "$existed" = 200 ] && info "site $SITE already exists: org create continues idempotently (reuses the Safe, re-runs the site script)"
-t0=$(ms); out=$(core org create "$SLUG" "$COMPANY" --admin $ADMIN 2>"$T/create.err"); rc=$?; create_ms=$(( $(ms) - t0 ))
+t0=$(ms); out=$(core org create "$SLUG" "$COMPANY" --admin $ADMIN --co-director priya@acme.test 2>"$T/create.err"); rc=$?; create_ms=$(( $(ms) - t0 ))
 [ $rc = 0 ] && ok B1.org-create "B1 org create exits 0 in $((create_ms/1000)) s" || { bad B1.org-create "B1 org create" "rc=$rc $(tail -c 400 "$T/create.err")"; exit 1; }
 SAFE=$(echo "$out" | tail -1 | jget "d['safe']")
 MINTED=$(core org chain-safe "$SLUG" | tr 'A-F' 'a-f'); M1=$(echo "$MINTED" | head -1); SAFE_LC=$(echo "$SAFE" | tr 'A-F' 'a-f')
 chk B1.safe-on-chain-is-the-sites-safe "B1 chain: the Safe on the chain is the one the site was given" "$(echo "$MINTED" | tail -1)" "$SAFE_LC" "$SAFE holds $(usdc "$SAFE") units of test USDC"
-chk B1.company-safe-minted-for-founder "B1 chain: CompanySafeMinted names the site's Safe, with the admin's personal Safe as founderSafe and sole owner" "$(echo "$M1" | jget "[d['safe'], d['founderSafe'] == d['founderPersonalSafe'], d['owners'] == [d['founderSafe']]]")" "['$SAFE_LC', True, True]" "minted in tx $(echo "$M1" | jget "d['mintTx']")"
+chk B1.company-safe-minted-for-founder "B1 chain: CompanySafeMinted names the site's Safe, with the admin's personal Safe as founderSafe; its owners are the founding Directors' personal Safes" "$(echo "$M1" | jget "[d['safe'], d['founderSafe'] == d['founderPersonalSafe'] == d['directorSafes'][0], sorted(map(str.lower, d['owners'])) == sorted(map(str.lower, d['directorSafes']))]")" "['$SAFE_LC', True, True]" "minted in tx $(echo "$M1" | jget "d['mintTx']")"
 chk B1.org-show-prints-the-safe "B1 read: org show prints the Safe CompanySafeMinted named" "$(core org show "$SLUG" | sed -n 's/^safe //p' | tr 'A-F' 'a-f')" "$SAFE_LC"
 chk B1.site-answers-by-name "B1 the site answers (by name, $SITE:8000)" "$(curl -s --resolve "$SITE:8000:127.0.0.1" http://$SITE:8000/api/method/ping | jget "d['message']")" pong
 login_admin
