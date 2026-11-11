@@ -30,8 +30,8 @@ build secret and never enters the image. The running bench needs no outbound net
 | `bin/new-site.sh` | Creates a site with every app, migrates it (the names and privacy hooks run), turns the scheduler on; safe to re-run |
 | `bin/check.sh` | The proof, below. Writes `var/bench-image/check.json` |
 
-`CAPXUL_APP_DIR` points the build at the capxul app. It defaults to the spike's app until the app graduates into its
-own package (`m2-graduate-spike`); then the default moves and nothing else changes.
+`CAPXUL_APP_DIR` points the build at the capxul app. By default it is `packages/frappe-app` (the app's package, from
+`m2-graduate-spike`), or the spike's copy while that package has not landed.
 
 ## What the check proves
 

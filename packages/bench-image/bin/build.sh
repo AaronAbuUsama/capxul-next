@@ -6,7 +6,8 @@
 # the image's history. Prints the image id and writes var/bench-image/image.json (tag, id, inputs).
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")/.." && pwd)"; ROOT="$(cd "$HERE/../.." && pwd)"
-APP="${CAPXUL_APP_DIR:-$ROOT/spikes/skeleton/frappe/capxul}"
+APP="${CAPXUL_APP_DIR:-$ROOT/packages/frappe-app}"   # the app's package; the spike's copy until it has landed
+[ -f "$APP/pyproject.toml" ] || [ -n "${CAPXUL_APP_DIR:-}" ] || APP="$ROOT/spikes/skeleton/frappe/capxul"
 [ -f "$APP/pyproject.toml" ] || { echo "no capxul app at $APP" >&2; exit 1; }
 rev="$(git -C "$ROOT" rev-parse --short=12 HEAD)"; git -C "$ROOT" diff --quiet HEAD -- "$HERE" "$APP" || rev="$rev-dirty"
 TAG="${1:-capxul-bench:$rev}"
