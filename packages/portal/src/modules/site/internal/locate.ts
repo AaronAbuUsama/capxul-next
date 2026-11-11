@@ -54,8 +54,9 @@ export const unique = (used: Set<string>, anchor: string): string => {
 };
 
 /** Evals as a page shows them. `used` holds the page's anchors so far, and gains these. */
-export const evalRows = (evals: readonly EvalDef[], pageId: string, used: Set<string>, status: StatusDocument | null): readonly EvalRow[] =>
+export const evalRows = (evals: readonly EvalDef[], pageId: string, used: Set<string>, status: StatusDocument | null, builtCommit: string, repo: string): readonly EvalRow[] =>
   evals.map((e) => ({
     id: e.id, kind: kindOf(e.id), anchor: unique(used, evalAnchor(e.id, pageId)), level: e.level, claim: text(e.claim), decider: e.decider,
     verdict: verdictOf(status, e.id),
+    provenance: status?.evals[e.id] ? { result: status.evals[e.id]!, builtCommit, repo } : null,
   }));

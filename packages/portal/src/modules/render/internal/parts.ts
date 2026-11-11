@@ -1,6 +1,8 @@
 /** The pieces more than one page draws: the stand bar, the operations table, evals, findings, groups of links. */
 import type { Brief, EvalRow, EvalVerdict, FindingRow, LinkGroup, OperationRow, Stand, StandOf } from "#src/modules/site/types.ts";
 
+import { verdictView } from "./evals.ts";
+
 import { chip, esc, link, plural, prose, table } from "./html.ts";
 
 /** The four rungs an operation climbs, and how many each stand has behind it. */
@@ -42,7 +44,7 @@ export const evalsTable = (evals: readonly EvalRow[]): string =>
   evals.length === 0 ? "" :
     table(["Eval", "Level", "Claim", "Decided by", "Verdict"], evals.map((e) =>
       `<tr id="${esc(e.anchor)}"><td class="mono">${esc(e.id)}</td><td class="muted">${esc(e.level)}</td><td>${prose(e.claim)}</td>` +
-      `<td class="muted">${esc(e.decider)}</td><td>${verdictChip(e.verdict)}</td></tr>`), "evals");
+      `<td class="muted">${esc(e.decider)}</td><td>${verdictView(e)}</td></tr>`), "evals");
 
 export const evalsFold = (evals: readonly EvalRow[]): string =>
   fold(`All ${plural(evals.length, "eval")}, with their ids`, evalsTable(evals));

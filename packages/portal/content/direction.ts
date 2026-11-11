@@ -14,16 +14,16 @@ export const direction: Direction = {
   settings: { repo: "https://github.com/AaronAbuUsama/capxul-next", reviewer: "aaron", issueLabel: "review" },
 
   hero: {
-    eyebrow: "Where we are, 10 November 2026",
+    eyebrow: "The design and its recorded progress",
     title: "Capxul is the on-chain company.",
     lead: "A complete business system on Frappe, with Capxul Core built in: identity, the organisation and its authority, budgets, payments, governance and banking.",
-    sub: "This portal is the whole design before any code. Every page is generated from a record in the blueprint, so no page can go stale. The questions that need you are in one place.",
+    sub: "This portal brings together the blueprint, the plan and recorded eval results at the displayed build. Pages are snapshots: changes appear after regeneration. The questions that need you are in one place.",
   },
   needsYou: "Each has a recommendation. Accept it, choose another option, or change it in your own words.",
-  climb: { specify: "Done for the old plan", build: "Not started", prove: "Not started" },
+  climb: { specify: "", build: "", prove: "" },
   banner: {
-    title: "The blueprint is cut to the Frappe-native direction: stages 1 and 2 are done.",
-    text: "Core and the plugs stay in full. What Frappe owns (projects, payroll and HR, the CRM, the chart and reports of the books, printing, sellable services) has left the built blueprint and is reached through the door. Equity, the hosted FDE and the referral and waitlist operations are parked, not decided. Nothing was deleted: docs/cut-archive/INDEX.md lists every record that moved, why, and what carries it. The plugs, the site and the door are not written yet (stage 3).",
+    title: "The blueprint follows the Frappe-native direction.",
+    text: "Core and the plugs stay in full. What Frappe owns (projects, payroll and HR, the CRM, the chart and reports of the books, printing, sellable services) has left the built blueprint and is reached through the door. Equity, the hosted FDE and the referral and waitlist operations are parked, not decided. Nothing was deleted: docs/cut-archive/INDEX.md lists every record that moved, why, and what carries it. The blueprint now includes plugs, sites and the door; the counts above show recorded progress, not a claim that implementation is complete.",
   },
 
   // One line per concept once the re-cut decides it: `payments: "core"`. A concept not named here has no verdict.
@@ -37,9 +37,9 @@ export const direction: Direction = {
     "Core stays in full. Frappe-owned means Frappe holds it and the door reaches it; books keeps only the chain reader and contacts only the payee address book until stage 3. Payroll's pay agreements moved into payments. Projects and payroll left the built blueprint; equity is parked, not decided (cut.equity-parked).",
 
   questions: {
-    lead: "Everything that waits on you, in one list: the decisions only you can make, and the tasks of the plan that need something only you can do or say. Your answer is saved here; the coordinator applies it, to the record first, then the code.",
+    lead: "Everything that waits on you, in one list: the decisions only you can make, and the tasks of the plan that need something only you can do or say. On the local portal server, your answer is saved to plan/answers.jsonl; on static hosting, answering opens a prefilled GitHub issue instead. The coordinator applies it, to the record first, then the code.",
     answerSteps: [
-      { title: "Saved", text: "Your answer is saved as a line in plan/answers.jsonl on this machine, and you can undo it until it is applied." },
+      { title: "Saved", text: "With the local portal server, your answer is saved in plan/answers.jsonl and can be undone until applied. Static hosting opens a prefilled GitHub issue; it does not save an answer on this machine." },
       { title: "Applied", text: "The coordinator writes the ruling into the blueprint, or unblocks the task, and marks your answer applied. Nothing is automatic." },
       { title: "Rebuilt", text: "The blueprint rebuilds to 0 problems, with a preview of this portal." },
       { title: "Settled", text: "Checked and merged. The question leaves this page." },
@@ -93,7 +93,7 @@ export const direction: Direction = {
       { title: "The blueprint rebuilds", text: "To 0 problems, or the change stops here." },
       { title: "A pull request opens", text: "With its own preview of the portal." },
       { title: "A checker reviews it", text: "Then it merges to integration/build." },
-      { title: "The portal redeploys", text: "Every page is generated, so none can go stale." },
+      { title: "The portal redeploys", text: "Generated pages reflect the inputs at their build; later changes need regeneration and deployment." },
     ],
   },
 };

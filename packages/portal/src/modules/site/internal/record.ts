@@ -28,7 +28,7 @@ const childrenOf = (ctx: Ctx, r: AnyRecord, used: Set<string>): readonly ChildSe
       const key = isRecord(child) ? keyOf(child) : `${kind}:${r.id}.${name}`;
       return {
         kind, name, anchor: unique(used, `${kind}-${slug(name)}`), value: valueOf(detail),
-        evals: evalRows(ctx.evals.get(key) ?? [], r.id, used, ctx.input.status), gaps: findingRows(ctx.gaps.get(key)),
+        evals: evalRows(ctx.evals.get(key) ?? [], r.id, used, ctx.input.status, ctx.input.commit, ctx.input.direction.settings.repo), gaps: findingRows(ctx.gaps.get(key)),
         linkedBy: linkGroups(ctx, named(ctx, key), "from"),
       };
     }));
@@ -44,7 +44,7 @@ export const record = (ctx: Ctx, r: AnyRecord): RecordPage => {
     waits: r._kind === "decision" && isWaiting(ctx, r) ? questionOf(ctx, r).ref : null,
     fields: entries(r).filter(([k, v]) => !skipped.has(k) && v !== undefined).map(([k, v]) => [k, valueOf(v)] as const),
     children, linksOut: linkGroups(ctx, ctx.linksFrom.get(key) ?? [], "to"), linkedBy: linkGroups(ctx, named(ctx, key), "from"),
-    evals: evalRows(ctx.evals.get(key) ?? [], r.id, used, ctx.input.status), gaps: findingRows(ctx.gaps.get(key)),
+    evals: evalRows(ctx.evals.get(key) ?? [], r.id, used, ctx.input.status, ctx.input.commit, ctx.input.direction.settings.repo), gaps: findingRows(ctx.gaps.get(key)),
     decisions: decisionsOn(ctx, [key]).map(brief),
   };
 };

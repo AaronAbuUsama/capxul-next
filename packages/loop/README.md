@@ -9,6 +9,7 @@ watchable from another process, and open to being steered later.
 ```bash
 pnpm loop run m1-dev-commands --script pair --sandbox none   # one run: maker, gates, checker, up to 3 rounds
 pnpm loop serve [--port 4392]                                # the host: a page or a terminal attaches and sees runs as they change
+pnpm loop alerts [--once]                                  # persistent Mac alerts; --once previews without delivery
 pnpm loop agents [--json]                                  # name, model and tools of every definition
 pnpm loop status                                             # run, task, status, step, round, elapsed, spend
 pnpm loop status --json [--since-hours 24]                   # the same as data: counts, models, last events (src/modules/inspect)
@@ -185,8 +186,8 @@ storage, register tools with a confinement policy and MCP servers, pick a model 
 agent a question durably and get its last message, keep a step ledger, play a script, list/stop/watch/work runs, make a
 git worktree and find a free port. **That is what would be extracted into a library for swarmD.** `src/modules/capxul` is
 Capxul's: the plan's CLI, the repository's checks, `.claude/agents/` roles, the hand-back and check shapes of
-`docs/design/swarm-templates.md`, the policy values, the sandbox scripts, merge rules. The package imports nothing from the
-rest of the repository and nothing in the product imports it; it reaches the repository through commands (the root scripts
+`docs/design/swarm-templates.md`, the policy values, the sandbox scripts, merge rules. The generic runner imports nothing from the
+rest of the repository; the alerts inbox adapter dynamically loads the blueprint and plan's public predicates and nothing in the product imports it; it reaches the repository through commands (the root scripts
 `pnpm plan`, `pnpm book` or `pnpm blueprint`, `pnpm frozen` and `pnpm test`, never a file's path; `git`; the sandbox scripts) and files (`plan/tasks/*.md`, `docs/mission/tasks.json`, `.claude/agents/*.md`). Only
 `loops/*.ts`, the scripts it plays, import it (and one test imports `loops/pair.ts`).
 
