@@ -809,6 +809,6 @@ export const decision_portal_board = defineDecision({
   id: "portal.overview-board", title: "Overview opens with the work board",
   question: "How does the front door show current work without inventing state?",
   options: [{ label: "facts", text: "Overview shows Working now from the live loop host summary, refreshed every 15 seconds; Next preserves the authored critical path; Blocked lists each plan blocker; Needs you uses the Questions inbox; Done today lists done tasks and git merges since midnight UTC with commit evidence. Build-time sections are dated snapshots. Keep the climb below the board." }, { label: "snapshot", text: "Freeze running work into generated HTML; rejected because it goes stale." }],
-  chosen: "facts", why: "Aaron, 11 November: he needs to see what is being worked on. Reuse plan, inbox, host and git rather than a second state store.",
-  source: "Task m1-portal-board, 11 November 2026", affects: [f.system_capxul],
+  chosen: "facts", why: "The requested front door must show what is being worked on. Reuse plan, inbox, host and git rather than a second state store. This is an implementation choice within the task, not a question awaiting owner review.",
+  source: "Task m1-portal-board; Aaron, 11 November 2026: he needs to see what is being worked on. Round 2 findings F-1.1 and F-1.2: retain attribution here without classifying implementation as awaiting review.", affects: [f.system_capxul],
 });
