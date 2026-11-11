@@ -260,9 +260,11 @@ export { clean, merge } from "./internal/merge.ts";
 export const serve = (ctx: Ctx, o: { port: number; sinceHours?: number }): Promise<Served> => {
   const mtime = (file: string): number => { try { return statSync(file).mtimeMs; } catch { return 0; } };
   const from = (): number => ctx.now().getTime() - (o.sinceHours ?? 24) * 3_600_000;
+  // The plan's stamp is in every run's: a task closed in the plan supersedes its run, and the run's own files do not change.
+  const planStamp = (): number => mtime(join(ctx.root, "plan/plan.json"));
   return serveHost({
     ids: () => listRuns(runsDir(ctx)).filter((r) => r.info.status === "running" || (Date.parse(r.info.updatedAt) || 0) >= from())
-      .map((r) => ({ id: r.info.id, stamp: `${mtime(join(r.dir, "status.json"))}:${mtime(join(r.dir, "run.sqlite"))}:${mtime(join(r.dir, "run.sqlite-wal"))}:${r.info.status === "running" && !alive(r.info.pid)}` })),
+      .map((r) => ({ id: r.info.id, stamp: `${mtime(join(r.dir, "status.json"))}:${mtime(join(r.dir, "run.sqlite"))}:${mtime(join(r.dir, "run.sqlite-wal"))}:${r.info.status === "running" && !alive(r.info.pid)}:${planStamp()}` })),
     load: (id) => showDetail(lookOf(ctx, 0), id),
     stop: (id) => stop(ctx, id),
     note: (id, n) => sendNote(ctx, id, n),
