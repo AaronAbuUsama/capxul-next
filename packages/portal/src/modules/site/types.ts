@@ -3,13 +3,12 @@
  * the twins print it as Markdown and JSON, and the check reads it back. Nothing here knows about HTML.
  */
 import type { AnyRecord, Blueprint, Stand, StandOf, StatusDocument, EvalStatus, Verdict as EvalVerdict } from "@capxul/blueprint-engine";
-
+import type { GuideInput, GuidePage } from "./guide-types.ts";
 import type { Diagram, Direction, Step, Verdict } from "#content/shape.ts";
 import type { PlanInput, TaskState } from "@capxul/plan";
-
+export type { BindingFile, GuideInput, GuidePage, GuidePart, GuideSection } from "./guide-types.ts";
 /** The plan the Plan page is drawn from: the coordinator's file, its log and the plan check (packages/plan). */
 export type { PlanInput };
-
 export type { Diagram, DiagramEdge, DiagramNode, Direction, Step, Verdict } from "#content/shape.ts";
 
 // ── shared pieces ───────────────────────────────────────────────────────────────────────────────
@@ -311,7 +310,7 @@ export interface WorldsPage extends PageHead {
   readonly operations: readonly OperationRow[]; readonly journeys: readonly Brief[]; readonly decisions: readonly Brief[]; readonly tables: readonly Brief[];
 }
 export type Page =
-  | WorldsPage | PlanPage | PlanTaskPage | PlanMilestonePage | OverviewPage | QuestionsPage | ArchitecturePage | ConceptPage | OperationPage | RecordPage | BuildPage | CataloguePage;
+  | GuidePage | WorldsPage | PlanPage | PlanTaskPage | PlanMilestonePage | OverviewPage | QuestionsPage | ArchitecturePage | ConceptPage | OperationPage | RecordPage | BuildPage | CataloguePage;
 
 export interface Site {
   readonly commit: string;
@@ -363,4 +362,5 @@ export interface SiteInput {
   readonly plan: PlanInput | null;
   /** The worlds design: null (or absent) when the document is not in the repository. */
   readonly worlds?: WorldsInput | null;
+  /** The guide to the blueprint and what its tables need: null (or absent) without the document. */ readonly guide?: GuideInput | null;
 }

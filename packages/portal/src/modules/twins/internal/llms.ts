@@ -6,6 +6,7 @@ import { plain } from "./md.ts";
 
 const FIXED: Readonly<Record<string, string>> = {
   overview: "where the blueprint stands, what waits for an answer, what the blueprint holds",
+  guide: "the blueprint explained: the idea, how the build works, one record followed to its verdict, how to add to it, what happens when something is wrong, and the workflow",
   plan: "the coordinator's plan: the goal, the milestones, the critical path, what is blocked and why, the tasks and the threads working on them",
   questions: "every decision that waits for an answer, with its options and the recommendation",
   architecture: "the system's parts, how it is deployed, and how the architecture changes",

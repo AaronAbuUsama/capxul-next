@@ -77,6 +77,7 @@ Every `pnpm` script name is unchanged.
 | Entry | What it is | What uses it |
 |---|---|---|
 | `philosophy.md` | How every person and agent works here: climb, behave, survive, stay small | `AGENTS.md`, the coordinator's skills |
+| `blueprint-guide.md` | The blueprint in plain words: the portal's Blueprint page reads it and fills its tables | The portal |
 | `blueprint.md` | How the blueprint works, end to end | `AGENTS.md`, the blueprint, three packages |
 | `repository-map.md` | This page | `README.md` |
 | `as-is/archive/` | The old system written as records (133 files) | 99 blueprint files, `docs/cut-archive` |

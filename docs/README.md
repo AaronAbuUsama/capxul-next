@@ -3,6 +3,7 @@
 Written designs, evidence and generated reports. The blueprint (`blueprint/`) cites most of these files by path, so a file here moves
 only together with every citation of it. `repository-map.md` lists every entry and what uses it.
 
+- `blueprint-guide.md`: the blueprint in plain words, for anyone new to it; the portal's Blueprint page, with live tables.
 - `blueprint.md`: how the blueprint works. Read it before changing a record.
 - `repository-map.md`: what everything in this repository is, and whether it stays.
 - `design/`: the written designs behind the blueprint's records. Written by lanes; cited by decisions.

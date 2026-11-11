@@ -46,7 +46,7 @@ test("what the blueprint expects: a page per record that has one, the waiting li
 test("a generated site passes every part", () => {
   const outcomes = run(files, generate());
   assert.deepEqual(failed(outcomes), [], JSON.stringify(outcomes, null, 2));
-  assert.equal(outcomes.length, 10);
+  assert.equal(outcomes.length, 11);
   assert.ok(passed(outcomes));
 });
 

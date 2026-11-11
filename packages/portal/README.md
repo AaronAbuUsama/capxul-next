@@ -13,6 +13,8 @@ pnpm portal:check    # the pages are complete and every link resolves
 - `src/modules/site`: the pages as data; `render`: data to HTML; `check`: the portal's own checks;
   `answers`: the owner's answers; `twins`: the same site as plain text for agents and scripts (`llms.txt`).
 - `content/`, `assets/`: fixed text, CSS and the one script.
+- The Blueprint page is `docs/blueprint-guide.md` as written; each `<!-- generated: <name> -->` line in it becomes a table made
+  from the blueprint (`site/internal/guide.ts`, `guideTables.ts`). `pnpm portal:check` fails on a marker no table answers.
 
 ## Board verification
 

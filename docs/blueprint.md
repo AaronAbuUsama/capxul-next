@@ -1,5 +1,7 @@
 # How the blueprint works
 
+New to the blueprint? Start with [the plain-language guide](blueprint-guide.md), which the portal shows as its Blueprint page with live tables. This page is the detailed reference.
+
 This guide covers what the blueprint is, how its pieces fit together, where it sits in the
 wider system and how it is used from a design question to production. Read it first. The
 field-by-field reference for the schema is [`docs/spec/50-design-book.md`](spec/50-design-book.md).

@@ -812,3 +812,30 @@ export const decision_portal_board = defineDecision({
   chosen: "facts", why: "The requested front door must show what is being worked on. Reuse plan, inbox, host and git rather than a second state store. This is an implementation choice within the task, not a question awaiting owner review.",
   source: "Task m1-portal-board; Aaron, 11 November 2026: he needs to see what is being worked on. Round 2 findings F-1.1 and F-1.2: retain attribution here without classifying implementation as awaiting review.", affects: [f.system_capxul],
 });
+
+export const decision_portal_blueprint_guide = defineDecision({
+  id: "portal.blueprint-guide",
+  title: "A Blueprint page explains the blueprint, its tables counted from it",
+  question: "Where does a newcomer, a person or an agent, learn what the blueprint is, how to add to it and what happens when it is wrong?",
+  options: [
+    {
+      label: "guide-page",
+      text:
+        "A Blueprint page in the top bar, read from docs/blueprint-guide.md: plain words in its sections, and at each " +
+        "`<!-- generated: <name> -->` line a table the portal counts from the blueprint, the status document and the " +
+        "bindings (the counts, the kinds, the concepts, one acceptance claim followed to its verdict, the eval kinds, the " +
+        "score, the rules with their counts, and the facts the page states about the repository). It has both twins like " +
+        "every page, and the portal check fails on a marker no table answers or when the followed record is gone.",
+    },
+    { label: "docs-only", text: "Leave docs/blueprint.md as the only explanation, outside the portal." },
+    { label: "hand-written-page", text: "A hand-written page in content/, with its numbers typed in." },
+  ],
+  chosen: "guide-page",
+  why:
+    "The owner asked for the blueprint to have its own detailed section in the portal, for himself and for anyone who " +
+    "works with it (ruling aaron.blueprint names it the foundation). docs/blueprint.md is a reference and had drifted " +
+    "(it counts 23 concepts; the blueprint holds 22). Typed numbers go stale within a day, as the committed judgments " +
+    "report did, so the words stay in a document and every number and example is counted at generation.",
+  source: by("thread request of 11 November 2026; docs/blueprint.md; packages/blueprint-engine/src/build.ts, evals.ts, stand.ts; evals/bindings/"),
+  affects: [f.system_capxul, decision_portal_sitemap, decision_portal_generated_content],
+});

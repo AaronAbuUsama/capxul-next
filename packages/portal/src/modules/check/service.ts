@@ -2,7 +2,7 @@
 import { unknownEvals, type AnyRecord, type Blueprint, type StatusDocument } from "@capxul/blueprint-engine";
 
 import { coverage } from "./internal/coverage.ts";
-import { climb, evals, identical, planTasks, questions, stands } from "./internal/data.ts";
+import { climb, evals, guide, identical, planTasks, questions, stands } from "./internal/data.ts";
 import { links } from "./internal/links.ts";
 import type { Expect, Outcome, PlanExpect } from "./types.ts";
 
@@ -51,6 +51,7 @@ export const check = (files: ReadonlyMap<string, string>, again: ReadonlyMap<str
   outcome("the eval catalogue lists every eval the blueprint derives", evals(files, expected.evals)),
   outcome("the plan is honest against the blueprint (plan check)", expected.plan.problems),
   outcome("the Plan page lists every task of the plan", planTasks(files, expected.plan.tasks)),
+  outcome("the Blueprint page fills every table its guide marks, and follows a real record", expected.pages.includes("blueprint") ? guide(files) : []),
   outcome("every status entry names an eval the blueprint derives", expected.unknownStatus.map((id) => `${id}: in status/status.json, and the blueprint derives no such eval`)),
 ];
 

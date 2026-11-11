@@ -63,8 +63,8 @@ const cell = (at: string, c: Cell): string => {
 };
 
 /** A titled table as a page model holds it. A group's name is a row of its own; an empty table says its words. */
-export const tableSection = (at: string, s: TableSection): readonly string[] => [
-  `## ${plain(s.title)}`, "", ...(s.caption === "" ? [] : [plain(s.caption), ""]),
+export const tableSection = (at: string, s: TableSection, level = 2): readonly string[] => [
+  `${"#".repeat(level)} ${plain(s.title)}`, "", ...(s.caption === "" ? [] : [plain(s.caption), ""]),
   ...(s.rows.length === 0 ? [plain(s.empty), ""] : table(s.heads, s.rows.flatMap((r, i) => [
     ...(r.group !== "" && r.group !== s.rows[i - 1]?.group ? [[`**${plain(r.group)}**`, ...s.heads.slice(1).map(() => "")]] : []),
     r.cells.map((c) => cell(at, c)),
