@@ -1,7 +1,11 @@
 /** Capxul inbox adapter: the very predicates used by the portal, not generated pages. */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 import type { Snapshot } from "./service.ts";
 
 /** Inspect preserves running runs even when their pid is gone. For alerts, dead runs can be superseded too. */
@@ -16,17 +20,11 @@ export const closedAt = (root: string): ReadonlySet<string> => {
   return new Set((plan.tasks as { id: string; state: string }[]).filter((t) => t.state === "done" || t.state === "dropped").map((t) => t.id));
 };
 
+/** A fresh process invalidates the entire import graph, not merely index.ts. */
 export const questionsAt = async (root: string): Promise<Snapshot["questions"]> => {
-  const load = (path: string) => import(pathToFileURL(join(root, path)).href);
-  const [book, waiting, planDoor] = await Promise.all([
-    load("blueprint/index.ts"), load("blueprint/shared/waiting.ts"), load("packages/plan/src/index.ts"),
-  ]);
-  const plan = JSON.parse(readFileSync(join(root, "plan/plan.json"), "utf8"));
-  const decisions = (book.records as { _kind: string; id: string; question: string }[])
-    .filter((d) => d._kind === "decision" && waiting.forAaron(d))
-    .map((d) => ({ id: `decision:${d.id}`, text: d.question }));
-  const needs = (plan.tasks as { id: string; blockedBy?: { need?: string } }[])
-    .filter((t) => planDoor.waitsOnOwner(t, "aaron", () => false))
-    .map((t) => ({ id: `task:${t.id}`, text: t.blockedBy!.need! }));
-  return [...decisions, ...needs];
+  const { stdout } = await execFileAsync(process.execPath, [
+    "--experimental-strip-types", "--no-warnings",
+    fileURLToPath(new URL("./inbox.ts", import.meta.url)), root,
+  ], { maxBuffer: 4 * 1024 * 1024, timeout: 30_000 });
+  return JSON.parse(stdout);
 };
