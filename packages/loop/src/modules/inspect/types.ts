@@ -75,15 +75,30 @@ export interface Entry {
   readonly refused?: boolean;
   readonly durationMs?: number | null;
 }
+/** An agent definition as a run records it: what the agent was, by name, when it started. The instructions are the session's own. */
+export interface AgentRecord {
+  readonly name: string;
+  readonly description: string;
+  /** The tools the definition lists. */
+  readonly tools: readonly string[];
+  readonly skills: readonly string[];
+  /** What its shell may run, by the name of the list. */
+  readonly shell: string;
+  /** The least sandbox it needs, when it needs one. */
+  readonly sandbox?: string;
+}
 export interface AgentUsage { turns: number; tools: Record<string, number>; refused: number; errors: number; tokensIn: number; tokensOut: number }
 /** An agent's durable conversation in a run, addressed as run plus `key` (`make.1`, `reviewer.1.agent`). */
 export interface AgentSession {
   readonly key: string;
   readonly role: string;
   readonly model: string | null;
+  /** The tools it was handed: its definition's, less those this machine could not make. */
   readonly tools: readonly string[];
-  /** The skills attached to this agent, by name. None today: they come with agent definitions (docs/design/workflow-dx.md). */
+  /** The skills of its definition, by name. */
   readonly skills?: readonly string[];
+  /** The definition it ran under, as the run recorded it when the agent started. Absent on a run older than definitions. */
+  readonly definition?: AgentRecord;
   readonly instructions: string;
   readonly state: "working" | "failed" | "done";
   readonly failure: { readonly reason: string; readonly detail: string } | null;

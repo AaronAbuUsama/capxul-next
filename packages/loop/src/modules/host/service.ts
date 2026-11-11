@@ -58,6 +58,7 @@ export const serve = async (deps: HostDeps, o: HostOptions): Promise<Served> => 
     const path = decodeURIComponent((req.url ?? "/").split("?")[0]!);
     const send = (status: number, type: string, body: string | Uint8Array): void => { res.writeHead(status, { "content-type": type, "cache-control": "no-store" }); res.end(req.method === "HEAD" ? undefined : body); };
     if (req.method !== "GET" && req.method !== "HEAD") return send(405, "text/plain; charset=utf-8", "this host only answers reads over HTTP\n");
+    if (path === `${PREFIX}agents.json`) return send(200, "application/json; charset=utf-8", JSON.stringify({ agents: deps.agents ?? [] }));
     if (path === `${PREFIX}summary.json`) return send(200, "application/json; charset=utf-8", `${JSON.stringify({ runs: (await read()).map(summaryOf) })}\n`);
     if (!path.startsWith(PREFIX)) return send(404, "text/plain; charset=utf-8", `the runs are at ${PREFIX}\n`);
     const shown = /^evidence\/([A-Za-z0-9][A-Za-z0-9._-]*)\/([A-Za-z0-9][A-Za-z0-9._-]*)$/.exec(path.slice(PREFIX.length));

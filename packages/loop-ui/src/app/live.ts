@@ -22,6 +22,8 @@ export interface Live {
 const address = (): string => new URLSearchParams(window.location.search).get("host")
   ?? (window.location.pathname.startsWith(PREFIX) ? `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}${PREFIX}ws` : `ws://127.0.0.1:${DEFAULT_PORT}${PREFIX}ws`);
 
+export const agentsUrl = (): string => address().replace(/^ws/, "http").replace(/ws$/, "agents.json");
+
 /** Where a capture's file is: beside the page when the host served it, else at this machine's host (or the one `?host=` names). */
 export const fileUrl = (run: string, name: string): string => {
   const at = address().replace(/^ws/, "http").replace(/ws$/, "");

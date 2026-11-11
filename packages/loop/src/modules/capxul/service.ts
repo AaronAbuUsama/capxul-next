@@ -5,12 +5,13 @@
  * run's ledger, so a script replayed after a restart skips what is done.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { ask, lastJson, openHost, type Host } from "../agents/service.ts";
+import { ask, hostAs, lastJson, openHost, record, type Host } from "../agents/service.ts";
 import { commitAll, ensureLane, git, head, laneBlocked, pushBranch, slug, type Lane } from "../lanes/service.ts";
 import { acquire, alive, ledgerLines, listRuns, play, readInfo, SETTLED, stop as stopRun, watchRun, work as workLoop, type Info, type Run } from "../runs/service.ts";
-import { allowedModel, defaultCheckerModel, defaultModel, gatewayOf, modelsOf, POLICY, qualify } from "./internal/config.ts";
+import { definitionOf, FOLDER as AGENTS, lacks, makes, modelOf, namesOf, profileOf, profilesOf, recordOf, systemOf } from "./internal/agents.ts";
+import { allowedModel, gatewayOf, modelsOf, POLICY } from "./internal/config.ts";
 import { evidenceBrief, evidenceLines, kitFor, restore } from "./internal/evidence.ts";
 import { sendNote, takeNote } from "./internal/notes.ts";
 import { openDoor, type Door } from "../door/service.ts";
@@ -27,10 +28,10 @@ import type { Check, Ctx, Finding, Gate, Handback, Job, Opts, SandboxInfo, Said,
 
 export type * from "./types.ts";
 export { gatesOf } from "./internal/gates.ts";
+export { loadDefinitions, VOCABULARY } from "./internal/agents.ts";
 export { POLICY } from "./internal/config.ts";
 
 export const DEFAULTS: Opts = { script: "pair", sandbox: "none", rounds: 3, budgetUsd: 5, timeoutMin: 30 };
-const CHECKER_ROLES = new Set(["reviewer", "adversary", "diagnoser"]);
 /** How many agents may work at once across every run of this checkout (`LOOP_MAX_AGENTS`, default 3: what the gateway has carried). */
 const maxAgents = (ctx: Ctx): number => Math.max(1, Number(ctx.env.LOOP_MAX_AGENTS) || 3);
 /** How long the loop waits for a failing gateway before it continues an agent, after pi's own retries of the request. */
@@ -58,33 +59,38 @@ export const sandbox = async (job: Job): Promise<SandboxInfo> => {
 };
 
 const boxLine = (box: SandboxInfo): string => box.kind === "none" ? "" : `A ${box.kind} sandbox is running for you: ${Object.entries(box.env).map(([k, v]) => `${k}=${v}`).join(" ")} (these are set in your shell)`;
-const roleBody = (job: Job, role: string): string => {
-  const m = /^---\n[\s\S]*?\n---\n([\s\S]*)$/.exec(readFileSync(join(job.ctx.root, ".claude/agents", `${role}.md`), "utf8"));
-  return (m?.[1] ?? "").trim();
-};
 
 /** The maker's brief for round `round`: the task, the open findings, the last handover, the sandbox (swarm-templates.md 2.1). */
 export const makerPrompt = (job: Job, round: number, open: Finding[], last?: Handback): string =>
   renderMaker({ task: job.task, round, budgetUsd: job.opts.budgetUsd, spentUsd: job.run.info.spentUsd, spentTokens: job.run.info.tokens, branch: job.lane!.branch, sandbox: boxLine(job.box!), open, ...(last?.handover ? { handover: last.handover } : {}) }, gatesFor(job.ctx, job.lane!.dir, job.task).map((g) => g.sh), findingsOf(job.lane!.dir), evidenceBrief(job, false));
 
-/** One agent (pi-durable conversation, the role's definition as its system prompt, tools confined to the lane) as one step. Its work is committed after. */
+/**
+ * One agent as one step: a pi-durable conversation that is what the definition named `role` says (`packages/loop/agents/`): its
+ * instructions, its model, its tools and no others, confined to the lane. What a maker leaves is committed after; what a
+ * reader leaves is undone.
+ */
 export const agent = (job: Job, name: string, o: { role: string; prompt: string; readOnly?: boolean }): Promise<Said> => job.run.step(name, async () => {
   const wt = job.lane!, left = job.opts.budgetUsd - job.run.info.spentUsd;
-  if (left <= 0 && job.run.info.spentUsd > 0) return { ok: false, text: "", costUsd: 0, tokens: 0, head: head(wt.dir), error: `the budget of $${job.opts.budgetUsd} is spent` };
-  const maker = job.opts.model ? qualify(job.opts.model) : defaultModel(job.ctx);
-  const model = qualify(CHECKER_ROLES.has(o.role) ? job.opts.checkerModel ?? defaultCheckerModel(job.ctx) : maker);
-  if (!(await allowedModel(job.ctx, model))) return { ok: false, text: "", costUsd: 0, tokens: 0, head: head(wt.dir), error: `the model ${model} is not one the gateway serves; \`curl ${gatewayOf(job.ctx).baseUrl}/models\` lists them` };
+  const none = (error: string): Said => ({ ok: false, text: "", costUsd: 0, tokens: 0, head: head(wt.dir), error });
+  if (left <= 0 && job.run.info.spentUsd > 0) return none(`the budget of ${job.opts.budgetUsd} is spent`);
+  const def = definitionOf(job.ctx, o.role), host = def && hostAs(job.run.host, profileOf(def));
+  if (!def || !host) return none(`there is no agent named ${o.role}: ${AGENTS} defines ${namesOf(job.ctx)}`);
+  const short = lacks(def, job.box);
+  if (short) return none(short);
+  const model = modelOf(job.ctx, job.opts, def), reads = !makes(def);
+  if (!(await allowedModel(job.ctx, model))) return none(`the model ${model} is not one the gateway serves; \`curl ${gatewayOf(job.ctx).baseUrl}/models\` lists them`);
   // The gateway carries only so many agents at once: an agent takes a slot shared by every run and process of this checkout, and waits for one.
   const release = await acquire(join(runsDir(job.ctx), ".agents"), maxAgents(job.ctx), { stopped: () => existsSync(job.run.stopFile), waiting: () => job.ctx.say(`${name} waits: ${maxAgents(job.ctx)} agents are already working`), ...(job.ctx.retry ? { pollMs: 20 } : {}) });
-  const kit = kitFor(job, name, o.readOnly ?? false);                 // the capture tools: what this agent shows is made by them
-  const said = await ask(job.run.host, {
-    key: name, model, system: roleBody(job, o.role), prompt: o.prompt, cwd: wt.dir, tools: kit.tools,
-    profile: o.readOnly ? "read" : "write", maxTurns: 80, timeoutMs: job.opts.timeoutMin * 60_000, stopFile: job.run.stopFile, modelWaitsMs: job.ctx.retry?.waitsMs ?? MODEL_WAITS_MS,
+  const kit = kitFor(job, name, def);                                 // the capture tools: what this agent shows is made by them
+  await record(job.run.host, "loop.agent", name, { definition: recordOf(def) });       // the definition it runs under, for whoever looks at the run
+  const said = await ask(host, {                                       // `host` hands out the definition's tools, whichever profile is named
+    key: name, model, system: systemOf(def, job.ctx.root), prompt: o.prompt, cwd: wt.dir, tools: kit.tools,
+    profile: "read", maxTurns: 80, timeoutMs: job.opts.timeoutMin * 60_000, stopFile: job.run.stopFile, modelWaitsMs: job.ctx.retry?.waitsMs ?? MODEL_WAITS_MS,
   }).finally(() => { release(); return kit.close(); });
-  if (o.readOnly) { const undone = restore(wt.dir); if (undone.length > 0) job.ctx.say(`${name} left ${undone.length} change(s) in the lane; they are undone`); }
+  if (reads) { const undone = restore(wt.dir); if (undone.length > 0) job.ctx.say(`${name} left ${undone.length} change(s) in the lane; they are undone`); }
   // A model that never answered is not a hand-back and not a review: the run fails here, with the gateway's words, and no round is spent on it.
   if (!said.ok && /^unanswered: (model_error|no_model|interrupted)/.test(said.error ?? "")) throw new Error(`${name}: the model did not answer (${said.error!.replace("unanswered: ", "").replace("_", " ")}), after waiting for it ${(job.ctx.retry?.waitsMs ?? MODEL_WAITS_MS).length} times. ${modelSaid(said.detail)}`);
-  return { ...said, head: o.readOnly ? head(wt.dir) : commitAll(wt.dir, `loop: ${name}`) } as unknown as Said;
+  return { ...said, head: reads ? head(wt.dir) : commitAll(wt.dir, `loop: ${name}`) } as unknown as Said;
 });
 
 /** What the maker handed back (swarm-templates.md section 3), or nothing if its last message was not one. */
@@ -101,12 +107,13 @@ export interface ReviewSpec { role: string; round: number; made: Said; gates: Ga
 
 /** A checker with a fresh context and read-only tools reviews the diff and returns the Check of swarm-templates.md 4.1. */
 export const review = (job: Job, name: string, o: ReviewSpec): Promise<Check> => job.run.step(name, async () => {
-  const wt = job.lane!, to = o.made.head;
+  const wt = job.lane!, to = o.made.head, def = definitionOf(job.ctx, o.role);
+  if (def && makes(def)) return { verdict: "changes", fixed: [], findings: [{ severity: "blocking", text: `The ${o.role} cannot check: its definition has write or edit, and a checker changes nothing.` }] } as unknown as Check;
   const input: CheckInput = {
     task: job.task, role: o.role, round: o.round, version: to, from: o.from ?? git(wt.dir, "merge-base", wt.base, to), open: o.open, branch: wt.branch,
     note: handback(o.made)?.submit?.note ?? "", shown: evidenceLines(job, `make.${o.round}`, o.made.json ?? lastJson(o.made.text)), evidence: evidenceBrief(job, true), machine: o.gates.map((g) => `- ${g.ok ? "pass" : "FAIL"} ${g.name}${g.ok ? "" : `\n${g.tail}`}`).join("\n"),
   };
-  const said = await agent(job, `${name}.agent`, { role: o.role, prompt: checkerPrompt(input), readOnly: true });
+  const said = await agent(job, `${name}.agent`, { role: o.role, prompt: checkerPrompt(input) });
   const c = said.json as Check | undefined;
   if (!said.ok || !c || !Array.isArray(c.findings)) {
     return { verdict: "changes", fixed: [], findings: [{ severity: "blocking", text: `The ${o.role} returned no check (${said.error ?? "its last message was not the json block"}).` }] } as unknown as Check;
@@ -159,7 +166,7 @@ const loadScript = async (ctx: Ctx, name: string): Promise<Script> => {
 };
 
 const open = (ctx: Ctx, dir: string, env: Record<string, string>, readOnly = false, wanted: string[] = []): Promise<Host> =>
-  openHost({ file: join(dir, "run.sqlite"), models: modelsOf(ctx, wanted), env, policy: POLICY, readOnly, ...(ctx.retry ? { retry: { maxRetries: ctx.retry.maxRetries, baseDelayMs: ctx.retry.baseDelayMs } } : {}) });
+  openHost({ file: join(dir, "run.sqlite"), models: modelsOf(ctx, [...wanted, ...ctx.agents.map((a) => a.model)]), env, policy: POLICY, profiles: profilesOf(ctx.agents), readOnly, ...(ctx.retry ? { retry: { maxRetries: ctx.retry.maxRetries, baseDelayMs: ctx.retry.baseDelayMs } } : {}) });
 
 const playJob = (ctx: Ctx, id: string, task: Task, opts: Opts, script?: Script): Promise<Info> => {
   const dir = join(runsDir(ctx), id), env: Record<string, string> = cleanEnv(ctx);
@@ -263,6 +270,7 @@ export const serve = (ctx: Ctx, o: { port: number; sinceHours?: number }): Promi
   // The plan's stamp is in every run's: a task closed in the plan supersedes its run, and the run's own files do not change.
   const planStamp = (): number => mtime(join(ctx.root, "plan/plan.json"));
   return serveHost({
+    agents: ctx.agents.map(({ name, description, model, tools }) => ({ name, description, model, tools })),
     ids: () => listRuns(runsDir(ctx)).filter((r) => r.info.status === "running" || (Date.parse(r.info.updatedAt) || 0) >= from())
       .map((r) => ({ id: r.info.id, stamp: `${mtime(join(r.dir, "status.json"))}:${mtime(join(r.dir, "run.sqlite"))}:${mtime(join(r.dir, "run.sqlite-wal"))}:${r.info.status === "running" && !alive(r.info.pid)}:${planStamp()}` })),
     load: (id) => showDetail(lookOf(ctx, 0), id),

@@ -9,6 +9,7 @@ watchable from another process, and open to being steered later.
 ```bash
 pnpm loop run m1-dev-commands --script pair --sandbox none   # one run: maker, gates, checker, up to 3 rounds
 pnpm loop serve [--port 4392]                                # the host: a page or a terminal attaches and sees runs as they change
+pnpm loop agents [--json]                                  # name, model and tools of every definition
 pnpm loop status                                             # run, task, status, step, round, elapsed, spend
 pnpm loop status --json [--since-hours 24]                   # the same as data: counts, models, last events (src/modules/inspect)
 pnpm loop show <run id> --json                               # one run with its last twenty events
@@ -26,6 +27,13 @@ pnpm loop clean [<run id>]                                   # remove finished r
 Flags of `run` (and of every run `work` starts): `--script pair|research`, `--model`, `--checker-model` (`provider/id`; a
 bare id is the gateway's), `--sandbox none|light|heavy`, `--rounds 3`, `--budget-usd 5`, `--timeout-min 30`,
 `--checkers reviewer,adversary`. Tests: `pnpm loop:test`.
+
+## Agent definitions
+
+The five records in `packages/loop/agents/` name each agent's model, instructions, tools and shell.
+`src/modules/definitions` loads and validates them; Capxul maps their shell names onto the existing command policy.
+A run records the definition each session used. The Runs app also reads the current roster at `/runs/agents.json`,
+so definitions appear even before they have sessions. `--model` and `--checker-model` override only their own side.
 
 ## One script, annotated (`loops/pair.ts`)
 

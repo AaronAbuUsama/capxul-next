@@ -1,3 +1,5 @@
+import { loadDefinitions } from "./internal/agents.ts";
+const DEFINED = await loadDefinitions(join(import.meta.dirname, "../../../../.."));
 /**
  * What the run tests stand on: a throwaway repository with a fake plan and a bare origin, a fake model that says what a
  * test scripts, and a fake recorder. Not a test itself; the tests of this module import it.
@@ -56,7 +58,7 @@ export const rig = () => {
   const models = createModels();
   models.setProvider(faux.provider);
   const lines: string[] = [];
-  const ctx = (gates: { name: string; sh: string }[] = [{ name: "ok", sh: "true" }]): Ctx => ({ root, env: { PATH: process.env.PATH ?? "", HOME: dir }, now: () => new Date(), say: (l) => lines.push(l), models, gates, retry: { maxRetries: 0, baseDelayMs: 1, waitsMs: [5, 5] }, evidence: { tooling: { asciinema: "asciinema", agg: "agg", browser: null, ffmpeg: null }, exec: recorder } });
+  const ctx = (gates: { name: string; sh: string }[] = [{ name: "ok", sh: "true" }]): Ctx => ({ root, env: { PATH: process.env.PATH ?? "", HOME: dir }, now: () => new Date(), say: (l) => lines.push(l), models, gates, agents: DEFINED.agents, retry: { maxRetries: 0, baseDelayMs: 1, waitsMs: [5, 5] }, evidence: { tooling: { asciinema: "asciinema", agg: "agg", browser: null, ffmpeg: null }, exec: recorder } });
   const calls = (): string[] => (existsSync(join(root, "plan-calls.log")) ? readFileSync(join(root, "plan-calls.log"), "utf8").split("\n").filter(Boolean) : []);
   return { dir, root, origin, faux, ctx, calls, lines, held, release };
 };

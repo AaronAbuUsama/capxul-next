@@ -57,6 +57,7 @@ export const runsContract = <T>(chord: ChordBuilders, s: SchemaBuilders): T => c
 
 /** Everything outside the module: which runs there are, how to read one, how to stop one. */
 export interface HostDeps {
+  readonly agents?: readonly { readonly name: string; readonly description: string; readonly model: string; readonly tools: readonly string[] }[];
   /** Every run to show, with a stamp that changes whenever the run's stored state does. */
   readonly ids: () => readonly { readonly id: string; readonly stamp: string }[];
   readonly load: (id: string) => Promise<RunDetail | null>;

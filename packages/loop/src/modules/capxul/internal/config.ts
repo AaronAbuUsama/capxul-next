@@ -60,9 +60,16 @@ export const POLICY: Policy = {
  */
 export const RECORD: Readonly<Record<Profile, readonly RegExp[]>> = { write: POLICY.bash.write, read: [...RUNS, ...READS, FILES, CD] };
 
+/** What a shell may run, by the name an agent definition gives it (`shell`): `bash` for the tool, `record` for `record_terminal`. */
+export const SHELLS: Readonly<Record<string, { readonly bash: readonly RegExp[]; readonly record: readonly RegExp[] }>> = {
+  write: { bash: POLICY.bash.write, record: RECORD.write },
+  read: { bash: POLICY.bash.read, record: RECORD.read },
+};
+
 /**
  * The maker's and the checker's default models. The maker is gpt-6.1-sol and the checker gpt-6.1-terra, by Aaron's ruling (10 November
- * 2026: Sol 6.1 for coding). Both are flags, and any model the gateway serves may be named.
+ * 2026: Sol 6.1 for coding). Both are flags, and any model the gateway serves may be named. An agent's own model is in
+ * its definition (`loops/agents/`); these two are what is allowed when the gateway cannot say what it serves.
  */
 export const MAKER_MODEL = "gpt-6.1-sol";
 export const CHECKER_MODEL = "gpt-6.1-terra";

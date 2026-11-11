@@ -6,7 +6,7 @@
  */
 import { isAbsolute, normalize, relative, resolve } from "node:path";
 import { AgentDoc, defineExtension, hook, ToolTask, type Extension } from "@earendil-works/pi-durable";
-import type { Policy, Profile } from "../types.ts";
+import type { Policy } from "../types.ts";
 import { commandsOf } from "./shell.ts";
 
 const FILE_TOOLS = new Set(["read", "write", "edit"]);
@@ -63,18 +63,21 @@ export const refusePath = (path: string, cwd: string, write: boolean, deny: read
   return undefined;
 };
 
-/** The extension for one profile; select it on a conversation next to `coding-tools`. */
-export const confine = (profile: Profile, policy: Policy): Extension =>
+/** What one profile is held to: what its bash may run, what the file tools may not write, which further tools it may call. */
+export interface Rules { readonly bash: readonly RegExp[]; readonly denyWrite: Policy["denyWrite"]; readonly tools: readonly string[]; readonly writes?: boolean | undefined; readonly hints?: Policy["hints"] }
+
+/** The extension for the profile named `name`; select it on a conversation next to `coding-tools`. */
+export const confine = (name: string, rules: Rules): Extension =>
   defineExtension({
-    name: `confine-${profile}`,
+    name: `confine-${name}`,
     hooks: [hook(ToolTask, {
       beforeTool: async (call, api, context) => {
         const cwd = (await api.snapshot(AgentDoc, api.conversationId, context))?.cwd;
         if (!cwd) return { block: "this agent has no directory" };
         const args = call.arguments as { path?: string; command?: string };
-        const why = FILE_TOOLS.has(call.name) ? refusePath(String(args.path ?? "."), cwd, call.name !== "read", policy.denyWrite)
-          : call.name === "bash" ? refuseBash(String(args.command ?? ""), cwd, policy.bash[profile], profile === "write" ? { deny: policy.denyWrite } : undefined, policy.hints)
-          : policy.tools?.includes(call.name) ? undefined
+        const why = FILE_TOOLS.has(call.name) ? refusePath(String(args.path ?? "."), cwd, call.name !== "read", rules.denyWrite)
+          : call.name === "bash" ? refuseBash(String(args.command ?? ""), cwd, rules.bash, rules.writes ? { deny: rules.denyWrite } : undefined, rules.hints)
+          : rules.tools.includes(call.name) ? undefined
           : `the tool ${call.name} is not available`;
         return why ? { block: `Refused by the loop's policy: ${why}` } : undefined;
       },

@@ -4,6 +4,7 @@
  * reaches the repository through commands and files, never through imports.
  */
 import type { Models } from "@earendil-works/pi-ai";
+import type { Agent } from "../definitions/types.ts";
 import type { Evidence, Exec, Tooling } from "../evidence/types.ts";
 import type { Lane } from "../lanes/service.ts";
 import type { Run } from "../runs/service.ts";
@@ -30,6 +31,8 @@ export interface Ctx {
   readonly env: Readonly<Record<string, string | undefined>>;
   readonly now: () => Date;
   readonly say: (line: string) => void;
+  /** The agents a script may ask for, by name: the definitions in `packages/loop/agents/`, loaded by `main.ts` (`loadDefinitions`). */
+  readonly agents: readonly Agent[];
   /** Tests hand in a fake provider's models. */
   readonly models?: Models;
   /** Tests hand in short waits; absent, pi retries a request 3 times and the loop then waits 20 s, 60 s and 3 min for the gateway. */
