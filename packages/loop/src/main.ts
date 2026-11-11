@@ -4,9 +4,10 @@
 // root: the only place that reads the process, prints, or exits. See packages/loop/README.md.
 
 import { execFileSync } from "node:child_process";
-import { clean, DEFAULTS, logs, merge, resume, serve, showFull, showJson, spendText, start, status, statusJson, stop, watch, watchAll, work, type Ctx, type Opts } from "./index.ts";
+import { clean, DEFAULTS, loadDefinitions, logs, merge, resume, serve, showFull, showJson, spendText, start, status, statusJson, stop, watch, watchAll, work, type Ctx, type Opts } from "./index.ts";
 
 const USAGE = [
+  "       loop agents [--json] (definitions in packages/loop/agents/)",
   "usage: loop run <task id> [--script pair] [--model provider/id] [--checker-model provider/id] [--sandbox none|light|heavy]",
   "                          [--rounds 3] [--budget-usd 5] [--timeout-min 30] [--checkers reviewer,adversary]",
   "       loop resume <run id> | stop <run id> | merge <run id> | clean [<run id>]",
@@ -40,7 +41,10 @@ const optsOf = (f: Map<string, string>): Opts => {
 const main = async (argv: readonly string[]): Promise<number> => {
   const [cmd, ...rest] = argv;
   const { words, f } = parse(rest);
-  const ctx: Ctx = { root: execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim(), env: process.env, now: () => new Date(), say: (l) => console.log(l) };
+  const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim(), defined = await loadDefinitions(root);
+  const ctx: Ctx = { root, env: process.env, now: () => new Date(), say: (l) => console.log(l), agents: defined.agents };
+  // A definition that is not sound stops whatever would start an agent, before a run is made; looking at runs goes on.
+  if (defined.problems.length > 0 && ["run", "resume", "work", "agents"].includes(cmd ?? "")) { defined.problems.forEach((p) => console.error(p)); return 1; }
   const ended = (s: { id: string; status: string; round: number; spentUsd: number; tokens: number; reasons: string[]; error?: string }): number => {
     console.log(`run ${s.id}: ${s.status}, ${s.round} round(s), used ${spendText(s.spentUsd, s.tokens)}${s.error ? `, error: ${s.error}` : ""}`);
     s.reasons.forEach((r) => console.log(`  ${r.slice(0, 300)}`));
@@ -69,6 +73,7 @@ const main = async (argv: readonly string[]): Promise<number> => {
       await new Promise(() => undefined);
       return 0;
     }
+    case "agents": console.log(f.has("json") ? JSON.stringify({ agents: ctx.agents }) : ctx.agents.map((a) => `${a.name.padEnd(12)}${a.model.padEnd(16)}${a.tools.join(" ")}`).join("\n")); return 0;
     case "logs": return need ? (await logs(ctx, need, f.has("f")), 0) : (console.error(USAGE), 2);
     case "watch": return need ? (await watch(ctx, need), 0) : (await watchAll(ctx), 0);
     case "work": await work(ctx, { concurrency: Number(f.get("concurrency") ?? 2), tasks: f.get("task")?.split(",") ?? [], opts: optsOf(f), wait: f.has("wait") }); return 0;

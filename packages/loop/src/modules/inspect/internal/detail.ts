@@ -8,7 +8,7 @@ import { judge, type Capture, type Judged } from "../../evidence/service.ts";
 import { AssistantEntry, type EntryRecord } from "@earendil-works/pi-durable";
 import { entriesOf, type Host } from "../../agents/service.ts";
 import type { Info } from "../../runs/types.ts";
-import type { AgentSession, Changes, Entry, RunDetail, StepRecord } from "../types.ts";
+import type { AgentRecord, AgentSession, Changes, Entry, RunDetail, StepRecord } from "../types.ts";
 import { scrubText } from "./scrub.ts";
 
 export const CAPS = { prompt: 9000, reply: 9000, output: 2200, argument: 1600, tail: 1400, instructions: 7000, diff: 14_000 } as const;
@@ -36,7 +36,7 @@ const allEntries = async (host: Host, id: number): Promise<readonly EntryRecord[
   return out;
 };
 
-const sessionOf = async (host: Host, key: string, id: number, clean: Clean): Promise<AgentSession> => {
+const sessionOf = async (host: Host, key: string, id: number, clean: Clean, definition?: AgentRecord): Promise<AgentSession> => {
   const conv = await host.harness.conversation(id as never, host.context);
   const items = await allEntries(host, id);
   const view = conv ? await conv.watch(host.context) : undefined;
@@ -69,11 +69,20 @@ const sessionOf = async (host: Host, key: string, id: number, clean: Clean): Pro
     } else if (m.role === "user") entries.push({ id, role: "user", at, text: clean(textOf(m.content), CAPS.prompt), note: e.kind !== "pi.user" });
   }
   return {
-    key, role: roleOf(key), model: agent?.model?.modelId ?? null, tools: agent?.tools ?? [], instructions: clean(instructions, CAPS.instructions),
+    key, role: definition?.name ?? roleOf(key), model: agent?.model?.modelId ?? null, tools: agent?.tools ?? [], instructions: clean(instructions, CAPS.instructions),
+    ...(definition ? { definition, skills: definition.skills } : {}),
     state: live?.run !== undefined ? "working" : live?.runFailure ? "failed" : "done",
     failure: live?.runFailure ? { reason: live.runFailure.reason ?? "", detail: clean(String(live.runFailure.detail ?? ""), 500) } : null,
     startedAt: first || null, endedAt: last || null, usage, messages: entries,
   };
+};
+
+/** The definition the agent of step `key` ran under: the run's own record of it (`loop.agent`), read as data. */
+const definitionOf = (ledger: readonly EntryRecord[], key: string, clean: Clean): AgentRecord | undefined => {
+  const d = ledger.find((e) => e.kind === "loop.agent" && (e.data as { name?: unknown } | undefined)?.name === key)?.data as { definition?: Partial<Record<keyof AgentRecord, unknown>> } | undefined;
+  const r = d?.definition, list = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
+  if (!r || typeof r.name !== "string") return undefined;
+  return { name: r.name, description: clean(String(r.description ?? ""), 400), tools: list(r.tools), skills: list(r.skills), shell: String(r.shell ?? ""), ...(typeof r.sandbox === "string" ? { sandbox: r.sandbox } : {}) };
 };
 
 const stepsOf = (ledger: readonly EntryRecord[], clean: Clean, changes: (commit: string) => Changes | null, claims: (by: string, json: unknown) => Judged[]): StepRecord[] => {
@@ -118,7 +127,7 @@ export const detailOf = async (host: Host, info: Info, secrets: readonly string[
     status: info.status, round: info.round, rounds: typeof opts.rounds === "number" ? opts.rounds : null, startedAt: info.startedAt, endedAt: info.endedAt ?? null, updatedAt: info.updatedAt,
     tokens: info.tokens, branch: lane.branch ?? null, base: lane.base ?? null, reasons: info.reasons.map((r) => clean(r, 600)), error: info.error ? clean(info.error, 600) : null, step: info.step,
     steps: stepsOf(ledger, clean, changes, (by, json) => judge((json as { evidence?: unknown } | null)?.evidence, captures, { by, evals: task.evals ?? [] })),
-    agents: await Promise.all(named.map((d) => sessionOf(host, d.name!, d.id!, clean))),
+    agents: await Promise.all(named.map((d) => sessionOf(host, d.name!, d.id!, clean, definitionOf(ledger, d.name!, clean)))),
     captures: captures.map((c) => ("command" in c.source ? { ...c, source: { ...c.source, command: clean(c.source.command, 600) } } : c)),
   };
 };

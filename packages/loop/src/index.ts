@@ -3,6 +3,7 @@
  * first; the Capxul-specific vocabulary and commands are the last line.
  */
 export * from "./modules/agents/service.ts";
+export * from "./modules/definitions/service.ts";
 export * from "./modules/lanes/service.ts";
 export type { Info, Run, Status } from "./modules/runs/service.ts";
 export { spendText } from "./modules/runs/service.ts";

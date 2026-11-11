@@ -15,6 +15,23 @@ export interface ProviderConfig { baseUrl: string; apiKeyEnv: string | null; mod
 /** Which tools an agent gets: `write` is read, write, edit and a limited bash; `read` is read and a bash that only reads git. */
 export type Profile = "write" | "read";
 
+export type CodingTool = "read" | "write" | "edit" | "bash";
+
+/**
+ * A profile of the caller's own, by name, beside the two above: for an agent whose tools are chosen one by one (an agent
+ * definition). `hostAs` hands it out.
+ */
+export interface ProfileSpec {
+  readonly writes?: boolean;
+  /** Which of the coding tools it has. */
+  readonly tools: readonly CodingTool[];
+  /** What its bash may run: every segment of a command must match one of these. */
+  readonly bash: readonly RegExp[];
+  /** The tools beyond the coding ones it may call, by name. */
+  readonly also: readonly string[];
+}
+
+
 /** The confinement policy (README: it is a policy on tool calls, not a security boundary). */
 export interface Policy {
   /** A bash command is run only if every `&&`/`;`/`|` segment of it matches one of these. */
@@ -36,11 +53,14 @@ export interface HostOptions {
   readonly policy: Policy;
   /** Look without driving: opens the storage for reading, recovers nothing, writes nothing. */
   readonly readOnly?: boolean;
+  readonly profiles?: Readonly<Record<string, ProfileSpec>>;
   /** pi's own retries of one model request: how many, and the first wait in milliseconds (it doubles). Default 3 and 2,000. */
   readonly retry?: { readonly maxRetries: number; readonly baseDelayMs: number };
 }
 
-export interface Host { readonly harness: Harness; readonly registry: Registry; readonly parts: Readonly<Record<Profile, { extensions: Extension[]; tools: ToolRegistration[] }>>; readonly root: Conversation; readonly context: Context; /** Notes sent to an agent that `ask` has yet to see settle, by the agent's key. */ readonly notes: Map<string, Submission[]>; close(): Promise<void> }
+export interface Part { readonly extensions: Extension[]; readonly tools: ToolRegistration[] }
+
+export interface Host { readonly harness: Harness; readonly registry: Registry; readonly parts: Readonly<Record<Profile, { extensions: Extension[]; tools: ToolRegistration[] }>>; readonly profiles: ReadonlyMap<string, Part>; readonly root: Conversation; readonly context: Context; /** Notes sent to an agent that `ask` has yet to see settle, by the agent's key. */ readonly notes: Map<string, Submission[]>; close(): Promise<void> }
 
 export interface Ask {
   /** Names the agent within the run. The same key after a restart finds the same conversation and the same question. */

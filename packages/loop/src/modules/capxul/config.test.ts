@@ -6,9 +6,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { ask, openHost, refuseBash, refusePath } from "../agents/service.ts";
-import { allowedModel, GATEWAYS, gatewayOf, modelsOf } from "./internal/config.ts";
+import { lacks, makes, modelOf, profilesOf, systemOf } from "./internal/agents.ts";
+import { allowedModel, CHECKER_MODEL, GATEWAYS, gatewayOf, MAKER_MODEL, modelsOf } from "./internal/config.ts";
 import { findingsOf } from "./internal/gates.ts";
-import { gatesOf, POLICY } from "./service.ts";
+import { DEFAULTS, gatesOf, loadDefinitions, POLICY } from "./service.ts";
 
 test("the gates are the root scripts, whichever name the design folder has; the frozen baseline is protected under both names", () => {
   const dir = mkdtempSync(join(tmpdir(), "loop-gates-"));
@@ -56,7 +57,7 @@ test("every request to the gateway carries the conversation's own session id, on
   await new Promise<void>((ready) => gateway.listen(0, "127.0.0.1", () => ready()));
   const dir = mkdtempSync(join(tmpdir(), "loop-session-"));
   const env = { LOOP_MODEL_BASE_URL: `http://127.0.0.1:${(gateway.address() as { port: number }).port}/v1` };   // the default gateway asks for no key
-  const host = await openHost({ file: join(dir, "run.sqlite"), models: modelsOf({ root: dir, env, now: () => new Date(), say: () => undefined }), env: {}, policy: POLICY });
+  const host = await openHost({ file: join(dir, "run.sqlite"), models: modelsOf({ root: dir, env, now: () => new Date(), say: () => undefined, agents: [] }), env: {}, policy: POLICY });
   try {
     const one = await ask(host, { key: "make.1", model: "gateway/gpt-6.1-sol", system: "s", prompt: "p", cwd: dir, profile: "read" });
     assert.equal(one.text, "ok", one.error);
@@ -68,7 +69,7 @@ test("every request to the gateway carries the conversation's own session id, on
 });
 
 test("the gateway is named: the proxy on this machine by default, with no key; another by LOOP_GATEWAY; its parts can still be overridden", () => {
-  const of = (env: Record<string, string>) => gatewayOf({ root: "/", env, now: () => new Date(), say: () => undefined });
+  const of = (env: Record<string, string>) => gatewayOf({ root: "/", env, now: () => new Date(), say: () => undefined, agents: [] });
   assert.deepEqual(of({}), { name: "local", baseUrl: "http://127.0.0.1:8317/v1", keyEnv: null });
   assert.deepEqual(of({ LOOP_GATEWAY: "router" }), { name: "router", ...GATEWAYS["router"] });
   assert.deepEqual(of({ LOOP_MODEL_BASE_URL: "http://x/v1", LOOP_MODEL_KEY_ENV: "SOME_KEY" }), { name: "local", baseUrl: "http://x/v1", keyEnv: "SOME_KEY" });
@@ -86,7 +87,7 @@ test("a builder is told where its own lane's findings are: the folder the checko
 test("any model the gateway serves may be used; one it does not serve is refused; when it does not answer, only the two defaults", async () => {
   const gateway = createServer((req, res) => { res.writeHead(req.url === "/v1/models" ? 200 : 404, { "content-type": "application/json" }); res.end(JSON.stringify({ data: [{ id: "gpt-6.1-sol" }, { id: "claude-sonnet-5-5" }] })); });
   await new Promise<void>((ready) => gateway.listen(0, "127.0.0.1", () => ready()));
-  const ctx = (url: string) => ({ root: "/", env: { LOOP_MODEL_BASE_URL: url }, now: () => new Date(), say: () => undefined });
+  const ctx = (url: string) => ({ root: "/", env: { LOOP_MODEL_BASE_URL: url }, now: () => new Date(), say: () => undefined, agents: [] });
   const up = ctx(`http://127.0.0.1:${(gateway.address() as { port: number }).port}/v1`);
   try {
     assert.deepEqual([await allowedModel(up, "gateway/claude-sonnet-5-5"), await allowedModel(up, "gateway/gpt-6.1-sol"), await allowedModel(up, "gateway/not-served")], [true, true, false]);
@@ -94,4 +95,29 @@ test("any model the gateway serves may be used; one it does not serve is refused
   } finally { await new Promise((done) => gateway.close(done)); }
   const down = ctx("http://127.0.0.1:1/v1");
   assert.deepEqual([await allowedModel(down, "gateway/gpt-6.1-terra"), await allowedModel(down, "gateway/claude-sonnet-5-5")], [true, false]);
+});
+
+test("the definitions in packages/loop/agents: five, sound, each on its side's model unless the run names another, and only a maker's tools write", async () => {
+  const root = join(import.meta.dirname, "../../../../.."), { agents, problems } = await loadDefinitions(root);
+  assert.deepEqual(problems, []);
+  assert.deepEqual(agents.map((a) => [a.name, a.side, a.model, a.shell, makes(a)]), [
+    ["adversary", "checker", CHECKER_MODEL, "read", false], ["builder", "maker", MAKER_MODEL, "write", true], ["diagnoser", "checker", CHECKER_MODEL, "read", false],
+    ["researcher", "maker", MAKER_MODEL, "read", false], ["reviewer", "checker", CHECKER_MODEL, "read", false],
+  ]);
+  const [builder, reviewer] = [agents.find((a) => a.name === "builder")!, agents.find((a) => a.name === "reviewer")!];
+  const ctx = (env: Record<string, string> = {}) => ({ root, env, now: () => new Date(), say: () => undefined, agents });
+  assert.deepEqual([modelOf(ctx(), DEFAULTS, builder), modelOf(ctx(), DEFAULTS, reviewer)], [`gateway/${MAKER_MODEL}`, `gateway/${CHECKER_MODEL}`]);
+  assert.deepEqual([modelOf(ctx({ LOOP_MODEL: "m" }), DEFAULTS, builder), modelOf(ctx({ LOOP_MODEL: "m", LOOP_CHECKER_MODEL: "c" }), DEFAULTS, reviewer)], ["gateway/m", "gateway/c"]);
+  const named = { ...DEFAULTS, model: "a/x", checkerModel: "b/y" };
+  assert.deepEqual([modelOf(ctx({ LOOP_MODEL: "m" }), named, builder), modelOf(ctx(), named, reviewer)], ["a/x", "b/y"]);   // a flag wins over the environment, and each side has its own
+  const profiles = profilesOf(agents);
+  assert.deepEqual(profiles["agent.builder"]!.tools, ["read", "write", "edit", "bash"]);
+  assert.deepEqual([profiles["agent.reviewer"]!.tools, profiles["agent.reviewer"]!.also, profiles["agent.reviewer"]!.bash], [["read", "bash"], ["record_terminal", "browser", "screenshot", "record_screen"], POLICY.bash.read]);
+  assert.match(builder.instructions, /^You make one plan task true\./);                    // the role file's body: its front matter is Claude Code's
+  assert.equal(systemOf(builder, root), builder.instructions);                                      // no skills: nothing is added
+  const skilled = { ...builder, skills: [{ name: "careful", description: "Check twice.", file: join(root, "loops/skills/careful/SKILL.md") }] };
+  assert.match(systemOf(skilled, root), /## Skills\n.*\n- careful: Check twice\. \(`loops\/skills\/careful\/SKILL\.md`\)$/);
+  assert.equal(lacks(builder, { kind: "none", env: {} }), undefined);
+  assert.equal(lacks({ ...builder, sandbox: "light" }, undefined), "the builder needs a light sandbox and this run has none: start the run with --sandbox light");
+  assert.equal(lacks({ ...builder, sandbox: "light" }, { kind: "heavy", env: {} }), undefined);
 });

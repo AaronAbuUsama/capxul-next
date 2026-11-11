@@ -19,7 +19,7 @@ import { CAP, WHY_CAP, type EventLine, type RunDetail, type RunStatus, type RunV
 const _statuses: [Exclude<RunStatus, "dead">] extends [Info["status"]] ? ([Info["status"]] extends [Exclude<RunStatus, "dead">] ? true : never) : never = true;
 void _statuses;
 
-export type { AgentSession, Call, Changes, Entry, EventLine, RunDetail, RunStatus, RunView, StepRecord } from "./types.ts";
+export type { AgentRecord, AgentSession, Call, Changes, Entry, EventLine, RunDetail, RunStatus, RunView, StepRecord } from "./types.ts";
 
 /** What a view is made from: the runs' folder, how to open one run's storage read-only, the clock, the environment (only its secrets are looked at). */
 export interface Look {

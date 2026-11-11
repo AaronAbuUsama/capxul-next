@@ -8,7 +8,8 @@ import { git } from "../../lanes/service.ts";
 import { capturesOf, evidenceTools, FOLDER, judge, nodeExec, toolingOf, type Capture, type Judged, type Tooling } from "../../evidence/service.ts";
 import { refuseBash } from "../../agents/service.ts";
 import type { Job } from "../types.ts";
-import { POLICY, RECORD } from "./config.ts";
+import type { Agent } from "../../definitions/service.ts";
+import { POLICY, SHELLS } from "./config.ts";
 
 export const evidenceDir = (job: Job): string => join(job.run.dir, FOLDER);
 
@@ -25,16 +26,18 @@ export const toolingFor = (job: Job): Tooling => {
 export const HOSTS: readonly string[] = ["127.0.0.1", "localhost", "*.localhost"];
 
 /**
- * The capture tools for one agent step. A maker records what its shell may run. A reader's shell only reads, so a reader
- * may run the lane's checks and the product only through `record_terminal`: everything it executes is on camera.
+ * The capture tools for one agent step: those its definition lists, of those this machine can make. A maker records what
+ * its shell may run. A reader's shell only reads, so a reader may run the lane's checks and the product only through
+ * `record_terminal`: everything it executes is on camera.
  */
-export const kitFor = (job: Job, by: string, readOnly: boolean): ReturnType<typeof evidenceTools> => {
+export const kitFor = (job: Job, by: string, agent: Agent): ReturnType<typeof evidenceTools> => {
   const cwd = job.lane!.dir, tooling = toolingFor(job);
-  return evidenceTools({
+  const kit = evidenceTools({
     dir: evidenceDir(job), by, cwd, env: job.env, now: job.ctx.now, exec: job.ctx.evidence?.exec ?? nodeExec, tooling,
-    refuse: (command) => refuseBash(command, cwd, RECORD[readOnly ? "read" : "write"], readOnly ? undefined : { deny: POLICY.denyWrite }, POLICY.hints),
+    refuse: (command) => refuseBash(command, cwd, SHELLS[agent.shell]?.record ?? [], agent.shell === "write" ? { deny: POLICY.denyWrite } : undefined, POLICY.hints),
     hosts: tooling.browser ? HOSTS : [],
   });
+  return { tools: kit.tools.filter((t) => agent.tools.includes(t.name)), close: kit.close };
 };
 
 /** A reader changes nothing. What its recorded commands left in the lane is undone, and named. */

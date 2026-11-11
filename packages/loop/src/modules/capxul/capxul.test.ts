@@ -5,7 +5,7 @@ import { test } from "node:test";
 import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import pair from "../../../../../loops/pair.ts";       // the real standard script, played here against a fake provider
 import { git } from "../lanes/service.ts";
-import { clean, DEFAULTS, lane, logs, merge, resume, showFull, start, status, stop, watch, work, type Ctx, type Opts } from "./service.ts";
+import { agent, answered, clean, DEFAULTS, lane, loadDefinitions, logs, merge, resume, showFull, start, status, stop, watch, work, type Ctx, type Opts } from "./service.ts";
 import * as plan from "./internal/plan.ts";
 import { check, handback, makes, opts, rig } from "./testing.ts";
 
@@ -191,10 +191,31 @@ test("evidence: both agents record commands; claims are judged against what the 
   assert.deepEqual(step("make.1").evidence, [{ capture: "make.1.it-runs", shows: "node answers", ok: true }, { capture: "made-up", shows: "nothing", ok: false, why: "no capture named made-up was made in this run" }]);
   assert.deepEqual(step("reviewer.1.agent").evidence, [{ capture: "reviewer.1.agent.tried-it", shows: "it runs", ok: true }]);
   const reviewer = full.agents.find((a) => a.key === "reviewer.1.agent")!, said = JSON.stringify(reviewer.messages);
-  assert.ok(reviewer.tools.includes("record_terminal"));
+  assert.deepEqual([reviewer.role, reviewer.tools, reviewer.definition?.tools], ["reviewer", ["read", "bash", "record_terminal"], ["read", "bash", "record_terminal", "browser", "screenshot", "record_screen"]]);   // handed: its definition's tools, less the browser this machine lacks
+  assert.deepEqual(full.agents.find((a) => a.key === "make.1")!.tools, ["read", "write", "edit", "bash", "record_terminal"]);
   assert.match(said, /terminal `make\.1\.it-runs`: the maker says it shows \\"node answers\\"\. The loop recorded: `node -v` ended with 0\./);
   assert.match(said, /THROWN OUT `made-up`: no capture named made-up was made in this run\./);
   assert.match(said, /Refused by the loop's policy: `git commit -m x` is not a command this agent may run/);   // a reader runs things on camera, but still changes nothing
   assert.equal(existsSync(join(r.root, "var", "runs", info.id, "lane", "stray.txt")), false);
   assert.ok(r.lines.includes("reviewer.1.agent left 1 change(s) in the lane; they are undone"), r.lines.join("\n"));
+});
+
+const DEFINED = await loadDefinitions(join(import.meta.dirname, "../../../../.."));
+test("an agent is what its definition says: it has the tools listed and no others, a name nobody defined is an error, and so is a sandbox the run lacks", async () => {
+  const r = rig(), base = DEFINED.agents.find((a) => a.name === "researcher")!;
+  const agents = [...DEFINED.agents, { ...base, name: "looker", description: "Only reads.", tools: ["read"] }, { ...base, name: "boxed", sandbox: "light" }];
+  r.faux.setResponses([fauxAssistantMessage(fauxToolCall("bash", { command: "ls" }), { stopReason: "toolUse" }), fauxAssistantMessage(fauxToolCall("record_terminal", { name: "x", command: "ls" }), { stopReason: "toolUse" }), fauxAssistantMessage("looked")]);
+  const errors: (string | undefined)[] = [];
+  const info = await start({ ...r.ctx(), agents }, "t1", opts, async (job) => {
+    await lane(job, { install: false });
+    for (const role of ["nobody", "boxed", "looker"]) errors.push((await agent(job, `try.${role}`, { role, prompt: "look" })).error);
+    await answered(job, "looked");
+  });
+  assert.equal(info.status, "answered", info.error);
+  assert.match(errors[0]!, /^there is no agent named nobody: packages\/loop\/agents defines adversary, builder, diagnoser, researcher, reviewer, looker, boxed$/);
+  assert.equal(errors[1], "the boxed needs a light sandbox and this run has none: start the run with --sandbox light");
+  assert.equal(errors[2], undefined);
+  const looker = (await showFull(r.ctx(), info.id))!.agents.find((a) => a.key === "try.looker")!;
+  assert.deepEqual([looker.role, looker.tools, looker.definition], ["looker", ["read"], { name: "looker", description: "Only reads.", tools: ["read"], skills: [], shell: "read" }]);
+  assert.equal(looker.messages.filter((m) => m.role === "tool" && m.isError).length, 2, JSON.stringify(looker.messages));   // bash and record_terminal: neither is its to call
 });

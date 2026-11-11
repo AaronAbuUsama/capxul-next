@@ -8,7 +8,7 @@ import { existsSync } from "node:fs";
 import type { Answer, Ask, Host, Note } from "./types.ts";
 import { entriesOf, recall, record, remember } from "./internal/ledger.ts";
 
-export { openHost } from "./internal/host.ts";
+export { hostAs, openHost } from "./internal/host.ts";
 export { modelsFrom } from "./internal/models.ts";
 export { mcpTools, type McpServer } from "./internal/mcp.ts";
 export { confine, refuseBash, refusePath, segmentsOf } from "./internal/policy.ts";
