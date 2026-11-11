@@ -62,3 +62,13 @@ export const reapEnded = async (ctx: Ctx, playing: (runId: string) => boolean): 
   const r = await reap(l, { now: ctx.now(), keep: (b) => !b.owner.startsWith("run:") || playing(b.owner.slice(4)) }).catch(() => undefined);
   return r?.ok ? r.value.map((g) => `${g.box.name} (${g.box.owner}): ${g.why}`) : [];
 };
+
+/** How often the host sweeps boxes. */
+const REAP_MS = 5 * 60_000;
+
+/** Runs `reapEnded` every five minutes, saying what it took down; returns what stops it. */
+export const sweepBoxes = (ctx: Ctx, playing: (runId: string) => boolean): (() => void) => {
+  const timer = setInterval(() => { void reapEnded(ctx, playing).then((gone) => { for (const g of gone) ctx.say(`sandbox reaped ${g}`); }); }, REAP_MS);
+  timer.unref();
+  return () => clearInterval(timer);
+};

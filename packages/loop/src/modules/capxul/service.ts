@@ -22,7 +22,7 @@ import { findingsOf, gatesFor, runGates } from "./internal/gates.ts";
 import * as plan from "./internal/plan.ts";
 import { checkerPrompt, makerPrompt as renderMaker, researchPrompt, type CheckInput } from "./internal/prompts.ts";
 import { runnerOf, startSandbox, stopSandbox } from "./internal/sandbox.ts";
-import { boxFor, downOwned, inBox, reapEnded } from "./internal/cloud.ts";
+import { boxFor, downOwned, inBox, sweepBoxes } from "./internal/cloud.ts";
 import { sandboxTools } from "./internal/boxes.ts";
 import { baseOf, runDir, runsDir } from "./internal/where.ts";
 import { cleanEnv } from "./internal/sh.ts";
@@ -192,9 +192,7 @@ const playJob = (ctx: Ctx, id: string, task: Task, opts: Opts, script?: Script):
         await (script ?? await loadScript(ctx, opts.script))(job);
       } finally {
         await door.close(); door = undefined;
-        // However the run ends (ready, blocked, failed, stopped), its boxes go down, whichever sandbox it ran in (its
-        // agents may have made their own); a resume starts its own again.
-        await downOwned(ctx, id);
+        await downOwned(ctx, id);   // however the run ends, its boxes (and its agents' own) go down; a resume starts its own again
       }
     },
   });
@@ -295,12 +293,7 @@ export const serve = (ctx: Ctx, o: { port: number; sinceHours?: number }): Promi
     evidence: (id) => (existsSync(join(runsDir(ctx), id, "status.json")) ? join(runsDir(ctx), id, EVIDENCE) : null),
   }, { port: o.port, ...(ctx.env.LOOP_HOST_ORIGINS ? { origins: ctx.env.LOOP_HOST_ORIGINS.split(",") } : {}), ui: ctx.env.LOOP_UI_DIR ?? join(ctx.root, "packages/loop-ui/dist") })
     .then((served) => {
-      // The runaway guard's sweep on this side: every five minutes, the boxes of runs no process is playing go down.
-      const playing = (id: string): boolean => { try { const i = readInfo(runDir(ctx, id)); return i.status === "running" && alive(i.pid); } catch { return false; } };
-      const sweep = setInterval(() => { void reapEnded(ctx, playing).then((gone) => { for (const g of gone) ctx.say(`sandbox reaped ${g}`); }); }, REAP_MS);
-      sweep.unref();
-      return { ...served, close: () => { clearInterval(sweep); return served.close(); } };
+      const halt = sweepBoxes(ctx, (id) => { try { const i = readInfo(runDir(ctx, id)); return i.status === "running" && alive(i.pid); } catch { return false; } });
+      return { ...served, close: () => { halt(); return served.close(); } };
     });
 };
-/** How often the host sweeps boxes. */
-const REAP_MS = 5 * 60_000;
