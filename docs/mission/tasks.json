@@ -14890,7 +14890,7 @@
         "pilot",
         "pilot-closure"
       ],
-      "goal": "`capxul org feature list` does what operation org.feature.list promises: its 1 acceptance claims and 1 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Every feature with its state, whether it is on by default and what it is. On by default: accounts (with banking), people (staff records, leave and expenses), projects, CRM. Installed but off: payroll (until the UK filing route is chosen). Off: WhatsApp sending, attendance, recruitment, reviews, stock, manufacturing.",
+      "goal": "`capxul org feature list` does what operation org.feature.list promises: its 1 acceptance claims and 1 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Every feature with its state, whether it is on by default and what it is. On by default: accounts (with banking), people (staff records, leave and expenses), projects, CRM. Installed but off: payroll (until the first jurisdiction and its payroll support are chosen, aaron.jurisdiction-open). Off: WhatsApp sending, attendance, recruitment, reviews, stock, manufacturing.",
       "needs": [
         "door:organizations",
         "door:sites",

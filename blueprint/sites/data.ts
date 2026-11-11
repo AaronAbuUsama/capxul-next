@@ -60,7 +60,7 @@ export const table_site_features = defineTable({
   about:
     "One row per (Organization, feature): on, off or switching, who asked and when. Off closes the part's screens and API (every request refuses with FEATURE_NOT_AVAILABLE) and keeps its " +
     "data; on makes it reachable again with everything that was there. Every supported app is installed on every site, so a switch never installs or uninstalls anything (sites.features-reachability). " +
-    "A new site starts with accounts (with banking), people (staff records, leave and expenses), projects and crm on; payroll installed but off until the UK filing route is chosen; whatsapp, attendance, " +
+    "A new site starts with accounts (with banking), people (staff records, leave and expenses), projects and crm on; payroll installed but off until the first jurisdiction and its payroll support are chosen (aaron.jurisdiction-open); whatsapp, attendance, " +
     "recruitment, reviews, stock and manufacturing off.",
   was: [`${SPIKE} (Feature switches: what off is)`],
   concept: concept_sites,

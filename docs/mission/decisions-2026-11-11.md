@@ -1,5 +1,9 @@
 # Decisions the thin line and the spike's move are waiting on (11 November 2026)
 
+**On the Questions page since 11 November 2026, 23:00 UTC** as decision records in `blueprint/shared/questions.ts`:
+1 is `thin-line.bundler`, 2 is `books.founder-funding`, 3 is `devnet.core-service-home`, 4 is `devnet.cli-split`,
+5 is `devnet.record-home`. Answer there; this note keeps the reasoning.
+
 Written by the cloud thread on branch `claude/project-thread-mwv0z6` (PR #2) while binding the thin line's twelve tests
 (`evals/thin-line.md`) and moving the spike into packages. Nothing here is decided or applied: each item is a question
 for Aaron with the options and one recommendation. Where the blueprint already decides something, it is cited, not

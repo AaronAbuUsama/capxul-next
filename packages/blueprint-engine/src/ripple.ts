@@ -85,7 +85,8 @@ export const rippleOf = (before: Built, after: Built): Ripple => {
   const reached = [...found.values()].sort((a, c) => a.distance - c.distance || a.key.localeCompare(c.key));
   const byKind: Record<string, number> = {};
   for (const d of reached) byKind[d.kind] = (byKind[d.kind] ?? 0) + 1;
-  const claims = (b: Built) => new Map(b.evals.map((e) => [e.id, e.claim]));
+  // An eval is re-worded when its contract changes: its claim, or how the claim is observed.
+  const claims = (b: Built) => new Map(b.evals.map((e) => [e.id, `${e.claim}\u0000${e.observes ?? ""}`]));
   const was = claims(before), now = claims(after);
   return {
     added, removed, changed, reached, byKind, decisions: [...decisions].sort(),

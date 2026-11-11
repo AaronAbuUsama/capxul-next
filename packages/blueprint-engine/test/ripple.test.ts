@@ -29,3 +29,10 @@ test("a removed record reaches what depended on it before; an added one is liste
   const back = rippleOf(build(f.records.filter((x) => x !== f.invitationSent)), before);
   assert.ok(back.added.includes("event:invitation_sent"));
 });
+
+test("an acceptance line whose observes changes re-words its eval, as a changed claim does", () => {
+  const observed = (observes: string) => ({ ...f.invite, acceptance: [{ claim: "An Owner's invitation is pending and the invitee gets one email.", observes }, null, "A Seat that is not an Owner is refused."] });
+  const was = build(f.records.map((r) => (r === f.invite ? observed("cli: prints the invitation") : r)));
+  const now = build(f.records.map((r) => (r === f.invite ? observed("cli: prints nothing; read: the mail sink holds one email") : r)));
+  assert.deepEqual(rippleOf(was, now).evals.reworded, ["acc:org.member.invite/1"]);
+});

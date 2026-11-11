@@ -14,6 +14,9 @@ export interface EvalDef {
   readonly subject: string; // record key
   readonly claim: string;
   readonly decider: Decider;
+  /** How the claim is observed (an acceptance line's `observes`). Part of the eval's contract: a verdict recorded
+   * against other words goes stale, as it does when the claim changes. */
+  readonly observes?: string;
 }
 
 const ofKind = (b: Pick<Blueprint, "records">, kind: string) => [...b.records.values()].filter((r) => r._kind === kind);
@@ -21,8 +24,8 @@ const list = <T>(u: unknown) => (u ?? []) as T[];
 
 export const deriveEvals = (b: Pick<Blueprint, "records">): EvalDef[] => {
   const out: EvalDef[] = [];
-  const e = (id: string, level: Level, subject: AnyRecord, claim: string, decider: Decider = "machine") =>
-    out.push({ id, level, subject: `${subject._kind}:${subject.id}`, claim, decider });
+  const e = (id: string, level: Level, subject: AnyRecord, claim: string, decider: Decider = "machine", observes?: string) =>
+    out.push({ id, level, subject: `${subject._kind}:${subject.id}`, claim, decider, ...(observes === undefined ? {} : { observes }) });
 
   const machines = new Map(ofKind(b, "machine").map((m) => [m.id, m]));
   const get = (key: string) => b.records.get(key);
@@ -41,8 +44,9 @@ export const deriveEvals = (b: Pick<Blueprint, "records">): EvalDef[] => {
   };
 
   for (const o of ofKind(b, "operation")) {
-    list<string | null | { claim: string }>(o.acceptance).forEach((line, i) => {
-      if (line !== null) e(`acc:${o.id}/${i + 1}`, "L1", o, typeof line === "string" ? line : line.claim);
+    list<string | null | { claim: string; observes?: string }>(o.acceptance).forEach((line, i) => {
+      if (line !== null)
+        e(`acc:${o.id}/${i + 1}`, "L1", o, typeof line === "string" ? line : line.claim, "machine", typeof line === "string" ? undefined : line.observes);
     });
     e(`ret:${o.id}`, "L1", o, "a success prints exactly the returns schema with --json");
     const refusalCases = new Map<string, number>();

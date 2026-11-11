@@ -19,6 +19,8 @@ export const EvalStatus = Schema.Struct({
   evidence: Schema.optionalKey(Nonempty),
   /** The claim as it read when the verdict was recorded. A verdict whose claim has since changed is stale. */
   claim: Schema.optionalKey(Nonempty),
+  /** How the claim was to be observed when the verdict was recorded. A verdict whose `observes` has since changed is stale. */
+  observes: Schema.optionalKey(Nonempty),
 });
 export type EvalStatus = typeof EvalStatus.Type;
 
@@ -58,11 +60,12 @@ export const mergeResults = (b: Pick<Blueprint, "evals">, doc: StatusDocument | 
   const known = new Set(b.evals.map((e) => e.id));
   const unknown = run.results.filter((r) => !known.has(r.id)).map((r) => r.id);
   if (unknown.length > 0) return { ok: false, errors: unknown.map((id) => `${id}: the blueprint derives no such eval`) };
-  const claims = new Map(b.evals.map((e) => [e.id, e.claim]));
+  const defs = new Map(b.evals.map((e) => [e.id, e]));
   const evals: Record<string, EvalStatus> = { ...(doc?.evals ?? {}) };
   for (const r of run.results)
     evals[r.id] = {
-      verdict: r.verdict, commit: run.commit, at: run.at, claim: claims.get(r.id) ?? r.id,
+      verdict: r.verdict, commit: run.commit, at: run.at, claim: defs.get(r.id)?.claim ?? r.id,
+      ...(defs.get(r.id)?.observes === undefined ? {} : { observes: defs.get(r.id)?.observes as string }),
       ...(run.run === undefined ? {} : { run: run.run }), ...(r.evidence === undefined ? {} : { evidence: r.evidence }),
     };
   return { ok: true, value: { version: 1, evals: Object.fromEntries(Object.keys(evals).sort().map((id) => [id, evals[id] as EvalStatus])) } };
@@ -76,13 +79,18 @@ export const passing = (doc: StatusDocument | null, ids: readonly string[]): num
   ids.filter((id) => verdictOf(doc, id) === "pass").length;
 
 /**
- * The ids whose verdict no longer speaks for the blueprint: the eval's claim changed since the verdict was recorded,
- * the entry records no claim, or the blueprint no longer derives the id (an eval renumbered or removed).
+ * The ids whose verdict no longer speaks for the blueprint: the eval's contract (its claim, and how the claim is
+ * observed) changed since the verdict was recorded, the entry records no claim, or the blueprint no longer derives the
+ * id (an eval renumbered or removed). An entry recorded before `observes` was kept counts as changed when the eval has one.
  */
 export const staleEvals = (b: Pick<Blueprint, "evals">, doc: StatusDocument | null): string[] => {
-  const claims = new Map(b.evals.map((e) => [e.id, e.claim]));
+  const defs = new Map(b.evals.map((e) => [e.id, e]));
   return Object.entries(doc?.evals ?? {})
-    .filter(([id, s]) => s.verdict !== "not_run" && (!claims.has(id) || s.claim !== claims.get(id)))
+    .filter(([id, s]) => {
+      if (s.verdict === "not_run") return false;
+      const e = defs.get(id);
+      return !e || s.claim !== e.claim || s.observes !== e.observes;
+    })
     .map(([id]) => id)
     .sort();
 };

@@ -21,7 +21,7 @@ export const feature_people = defineFeature({
 export const feature_payroll = defineFeature({
   id: "payroll", title: "Payroll", about: "Payroll runs: Frappe HR's Payroll module and its API.", concept,
   label: "Payroll", default: "on", modules: ["Payroll"], prefixes: ["hrms.payroll."],
-  owes: [{ decision: reach, change: "Off by default until the UK filing route is chosen (cut.uk-payroll-filing); the end-to-end check B5 expects it on today." }],
+  owes: [{ decision: reach, change: "Off by default until the first jurisdiction and its payroll support are chosen (aaron.jurisdiction-open); the end-to-end check B5 expects it on today." }],
 });
 export const feature_projects = defineFeature({
   id: "projects", title: "Projects", about: "Projects and their tasks.", concept,

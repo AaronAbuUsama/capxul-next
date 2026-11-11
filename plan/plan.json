@@ -75,7 +75,7 @@
           "id": "g2",
           "claim": "The book builds with no problems and every open gap is closed or has a recorded reason.",
           "state": "met",
-          "evidence": "08e52a6: pnpm blueprint 2652 records, 0 problems, 0 gaps, 147 standing; every merge check passes"
+          "evidence": "30d1d21: pnpm blueprint 2736 records, 0 problems, 4 gaps (the owed changes capxul-hat-map, capxul-hat-role, feature payroll, feature people, each with its recorded decision), 147 standing; every merge check passes in CI (.github/workflows/blueprint.yml)"
         },
         {
           "id": "g3",
@@ -87,7 +87,7 @@
           "id": "g4",
           "claim": "Where code exists a check proves the book matches it.",
           "state": "met",
-          "evidence": "pnpm contracts:check-book on the real book: 0 undeclared differences (commit 029ca65)"
+          "evidence": "30d1d21: shapes, not behaviour. pnpm contracts:check-blueprint compares 9 contracts (124 functions, 41 events, 113 errors) with 0 undeclared differences, 10 allowed by decisions, 8 third-party records not compared; pnpm frappe:check-blueprint compares 12 DocTypes (42 fields), 7 hats and 8 features with 0 differences. Behaviour (call direction, accounting, journeys) is proven only by evals: 17 bound."
         },
         {
           "id": "g5",
@@ -1825,12 +1825,13 @@
       "title": "Agents launch in a cloud sandbox, not on Aaron's Mac",
       "why": "Aaron, 11 Nov: the pass condition of the orchestration layer",
       "milestone": "m1",
-      "state": "todo",
+      "state": "dropped",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "droppedWhy": "Superseded: agent work moves to Amp orbs (Aaron, 21:57 UTC 11 November 2026); packages/sandbox was deleted in PR #10"
     },
     {
       "id": "m1-portal-board",
@@ -1881,12 +1882,11 @@
   "path": {
     "tasks": [
       "m1-no-command-gate",
-      "m1-cloud-sandbox",
       "m1-eval-coverage",
       "m1-model-gateway",
       "m1-loop-hardening"
     ],
-    "why": "Aaron accepted the book at 07c0e05 (g7 met, 20:27 UTC) and took the sixteen (7af7472). Left for m1: g8 (the shared world, m3b) and g9 (the orchestration layer)",
+    "why": "Aaron accepted the book at 07c0e05 (g7 met, 20:27 UTC) and took the sixteen (7af7472). Left for m1: g8 (the shared world, m3b) and g9 (the orchestration layer). m1-cloud-sandbox dropped 11 November 2026 (Amp replaces it); the rest of this path is the coordinator's to redraw for Amp.",
     "written": "2026-11-11"
   },
   "notes": [
@@ -2119,6 +2119,16 @@
       "date": "2026-11-11",
       "by": "coordinator",
       "text": "m1-bind-doc-create-11110927 blocked only because the lane's policy refuses bash -n; the coordinator ran bash -n and evals check (9 bound, 33 near-misses, 0 problems) and merges it by hand, then runs the eval on the Mac"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "claude-audit-thread",
+      "text": "Audit fixes (PR #12): m3b-bench-image is not done: the image builds and bin/check.sh passes 22/22 (PR #4), but its done-when also needs the end-to-end script against the image, which waits on the spike's graduation (devnet.core-service-home). m2-contracts-under-sites: the stand-ins are deleted and the end-to-end script runs on the real v4 contracts (PR #2); it is closed only when a run passes in full (see this PR's eval run)."
+    },
+    {
+      "date": "2026-11-11",
+      "by": "claude-audit-thread",
+      "text": "Audit fixes (PR #12), for the coordinator: m1-cloud-sandbox is superseded by Amp (packages/sandbox deleted in PR #10) and is on the path, so drop it and redraw the path. m3b-bench-image is not done: the image builds and bin/check.sh passes 22/22 (PR #4), but its done-when also needs the end-to-end script against the image, which waits on devnet.core-service-home. m2-contracts-under-sites: stand-ins deleted and the end-to-end script runs on the real v4 contracts (PR #2); close it when a full run passes."
     }
   ]
 }

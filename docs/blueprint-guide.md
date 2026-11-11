@@ -220,8 +220,11 @@ changes" list in the portal (or run `impact.ts`) to see what depends on it. Two 
   every later id now points at a different claim, carrying the old claim's verdict with it. Add new lines at the end;
   a line that is dropped is kept as a gap in the list (`null`) so the numbers after it do not move. The same holds for
   repeated refusal codes (`/2`, `/3`).
-- **A changed claim keeps its old verdict.** The status file records the commit an eval passed at, but nothing marks
-  a verdict stale when the claim's words change. Run the eval again after you change what it claims.
+- **A changed claim or observation drops its old verdict.** The status file records, with each verdict, the claim and
+  (for an acceptance line) the `observes` it was checked against. When either changes, the verdict is stale and counts
+  as not run (`staleEvals` in `packages/blueprint-engine/src/status.ts`); the ripple lists the eval as re-worded. Run
+  the eval again after you change what it claims or how it is observed. Other inputs (the world a refusal starts from,
+  a schema the claim names) are not part of that fingerprint yet.
 
 ### A new concept
 
@@ -317,12 +320,14 @@ is what happens:
   schemas, the SDK client and the CLI wiring from the records. They are planned work; no `src/generated/` folder
   exists in the repository today, so the `doc` and `sys:generated` evals have nothing to check yet.
 - **Live evals (L4) are not derived.** No operation can reach the *done* stand until they are.
-- **The checks are not run automatically.** `pnpm test` does not run `pnpm blueprint` or `pnpm frozen`, and the
-  repository has no CI workflow, so the merge checks run only when someone runs them.
+- **The checks run on every pull request.** `.github/workflows/blueprint.yml` runs the typechecks, `pnpm blueprint`,
+  the Frappe and contract checks, `pnpm frozen` and `pnpm test` on every pull request into `integration/build` and on
+  every push to it, and writes the blueprint ripple into the run's summary. `pnpm test` alone still does not run
+  `pnpm blueprint` or `pnpm frozen`.
 - **A load error is hard to place.** A schema error at load prints the field but not the record or its file, followed
   by a long dump of the schema.
-- **Nothing checks that a decision's choice is one of its options.** The judgments report quietly falls back to the
-  raw word. Today every decision's choice does match: see the table below.
+- **A decision's choice must be one of its options.** The build reports a `decision-chosen` problem otherwise
+  (`chosenProblem` in `packages/blueprint-engine/src/reach.ts`), so `pnpm blueprint` fails on it.
 - **Some counts in older docs are out of date.** `blueprint/CONVENTIONS.md` and `docs/blueprint.md` speak of 23
   concepts; the blueprint holds the number in the table at the top of this page. Trust the tables here over a typed
   number anywhere else.

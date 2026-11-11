@@ -17,7 +17,8 @@ if [ ! -x "$TOOLS/bin/anvil" ]; then
 fi
 for v in 0.8.28 0.8.24; do   # packages/contracts pins 0.8.28; spikes/skeleton/core/contracts pin 0.8.24
   if [ ! -x "$TOOLS/solc-$v/solc" ]; then
-    mkdir -p "$TOOLS/solc-$v" && (cd "$TOOLS/solc-$v" && npm i --no-save --silent "solc@$v")
+    # A package.json of its own, or npm installs into the nearest parent node_modules (Foundry's, in $TOOLS) instead.
+    mkdir -p "$TOOLS/solc-$v" && (cd "$TOOLS/solc-$v" && { [ -f package.json ] || echo '{"private":true}' > package.json; } && npm i --no-save --silent "solc@$v")
     cp "$HERE/solc-js.cjs" "$TOOLS/solc-$v/solc" && chmod +x "$TOOLS/solc-$v/solc"
   fi
 done
