@@ -2,7 +2,7 @@
 import { unknownEvals, type AnyRecord, type Blueprint, type StatusDocument } from "@capxul/blueprint-engine";
 
 import { coverage } from "./internal/coverage.ts";
-import { evals, identical, planTasks, questions, stands } from "./internal/data.ts";
+import { climb, evals, identical, planTasks, questions, stands } from "./internal/data.ts";
 import { links } from "./internal/links.ts";
 import type { Expect, Outcome, PlanExpect } from "./types.ts";
 
@@ -46,6 +46,7 @@ export const check = (files: ReadonlyMap<string, string>, again: ReadonlyMap<str
   outcome("every internal link and anchor resolves", links(files)),
   outcome("two generations are byte-identical", identical(files, again)),
   outcome("the Questions list equals the judgments list plus the plan's needs of the owner", questions(files, expected.waiting)),
+  outcome("the Overview climb statuses agree with their counts", climb(files)),
   outcome("every operation has a stand", stands(files, expected.operations)),
   outcome("the eval catalogue lists every eval the blueprint derives", evals(files, expected.evals)),
   outcome("the plan is honest against the blueprint (plan check)", expected.plan.problems),

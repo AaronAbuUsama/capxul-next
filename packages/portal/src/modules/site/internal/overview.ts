@@ -26,21 +26,21 @@ export const NAV: readonly Ref[] = [
 ];
 
 const climb = (ctx: Ctx): readonly ClimbCard[] => {
-  const { blueprint, direction } = ctx.input;
+  const { blueprint } = ctx.input;
   const decisions = ofKind(ctx, "decision").length;
-  const waiting = ctx.waiting.length;
+  const waiting = inbox(ctx).length;
   const operations = ofKind(ctx, "operation").length;
   const built = [...ctx.stands.values()].filter((s) => s.stand.stand === "observe" || s.stand.stand === "done").length;
   const proven = passing(ctx.input.status, blueprint.evals.map((e) => e.id));
   return [
-    { step: "Specify", status: direction.climb.specify, tone: "blue", big: plural(blueprint.records.size, "record"),
+    { step: "Specify", status: `${plural(blueprint.problems.length, "problem")}, ${plural(blueprint.gaps.length, "gap")}`, tone: "blue", big: plural(blueprint.records.size, "record"),
       sub: `${plural(blueprint.problems.length, "problem")}, ${plural(blueprint.gaps.length, "gap")}, ${plural(ctx.input.concepts.length, "concept")}`, bar: "full" },
     { step: "Decide", status: waiting > 0 ? `${count(waiting)} wait for you` : "Nothing waits for you", tone: waiting > 0 ? "orange" : "blue",
-      big: plural(decisions, "decision"), sub: `${count(decisions - waiting)} made, ${count(waiting)} waiting`, bar: waiting > 0 ? "split" : "full" },
-    { step: "Build", status: direction.climb.build, tone: "grey", big: `${count(built)} of ${count(operations)}`,
-      sub: "operations built", bar: barOf(built, operations) },
-    { step: "Prove", status: direction.climb.prove, tone: "grey", big: `${count(proven)} of ${count(blueprint.evals.length)}`,
-      sub: ctx.input.status === null ? "evals run against real code" : "evals passing against real code", bar: barOf(proven, blueprint.evals.length) },
+      big: plural(waiting, "question"), sub: `${plural(decisions, "decision")} in the blueprint`, bar: waiting > 0 ? "split" : "full" },
+    { step: "Build", status: `${count(built)} at observe or done`, tone: "grey", big: `${count(built)} of ${count(operations)}`,
+      sub: "operations at observe or done", bar: barOf(built, operations) },
+    { step: "Prove", status: `${count(proven)} passing`, tone: "grey", big: `${count(proven)} of ${count(blueprint.evals.length)}`,
+      sub: "evals with recorded passing verdicts", bar: barOf(proven, blueprint.evals.length) },
   ];
 };
 

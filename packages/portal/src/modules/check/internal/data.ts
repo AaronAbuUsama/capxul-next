@@ -60,3 +60,35 @@ export const planTasks = (files: ReadonlyMap<string, string>, expected: number |
   const listed = (Array.isArray(groups) ? groups : []).reduce((n: number, g: unknown) => n + (isFields(g) && Array.isArray(g["tasks"]) ? g["tasks"].length : 0), 0);
   return listed === expected ? [] : [`the Plan page lists ${listed} tasks, the plan holds ${expected}`];
 };
+
+/** The climb's words must describe its adjacent counts, in both the model and the page people read. */
+export const climb = (files: ReadonlyMap<string, string>): readonly string[] => {
+  const page = read(files, "data/index.json");
+  const cards = page?.["climb"];
+  if (!Array.isArray(cards) || cards.length !== 4) return ["Overview: no four climb cards"];
+  const failures: string[] = [];
+  const questions = read(files, "data/review.json")?.["questions"];
+  if (!Array.isArray(questions) || !Array.isArray(page?.["waiting"]) || questions.length !== page["waiting"].length) {
+    failures.push("Overview: waiting count differs from Questions");
+  }
+  const html = files.get("index.html") ?? "";
+  const shown = [...html.matchAll(/<span class="climb-status[^\"]*">([^<]*)<\/span>/g)].map((m) => m[1]);
+  const number = (s: unknown): number => Number(String(s).match(/[\d,]+/)?.[0]?.replaceAll(",", "") ?? NaN);
+  const format = (n: number): string => n.toLocaleString("en-US");
+  for (const [i, card] of cards.entries()) {
+    if (!isFields(card)) { failures.push(`Overview: invalid climb card ${i}`); continue; }
+    const n = number(card["big"]);
+    const waiting = Array.isArray(page?.["waiting"]) ? page["waiting"].length : NaN;
+    const problems = Array.isArray(page?.["problems"]) ? page["problems"].length : NaN;
+    const gaps = Array.isArray(page?.["gaps"]) ? page["gaps"].length : NaN;
+    const wanted = [
+      `${format(problems)} ${problems === 1 ? "problem" : "problems"}, ${format(gaps)} ${gaps === 1 ? "gap" : "gaps"}`,
+      waiting > 0 ? `${format(waiting)} wait for you` : "Nothing waits for you",
+      `${format(n)} at observe or done`, `${format(n)} passing`,
+    ][i];
+    if (card["status"] !== wanted || shown[i] !== wanted || (i === 1 && n !== waiting)) {
+      failures.push(`Overview ${String(card["step"])}: status contradicts its count (expected ${wanted})`);
+    }
+  }
+  return failures;
+};

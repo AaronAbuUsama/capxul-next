@@ -31,7 +31,7 @@ const climbCard = (c: ClimbCard, i: number): string =>
   `<p class="climb-big">${esc(c.big)}</p><p class="climb-sub">${esc(c.sub)}</p><div class="bar bar-${c.bar}"><i></i></div></div>`;
 
 const climb = (p: OverviewPage): string =>
-  `<section class="block"><h2 id="climb">The climb</h2><div class="climb">${p.climb.map(climbCard).join("")}</div>` +
+  `<section class="block"><h2 id="climb">The climb at this build</h2><div class="climb">${p.climb.map(climbCard).join("")}</div>` +
   `<div class="banner"><div class="banner-words"><p class="banner-title">${prose(p.banner.title)}</p>` +
   `<p class="banner-text">${prose(p.banner.text)}</p></div>` +
   `<div class="banner-count"><span class="banner-big">${p.verdicts.given} of ${p.verdicts.of}</span>` +
