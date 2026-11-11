@@ -804,3 +804,11 @@ export const decision_portal_provenance_artifacts = defineDecision({
   source: "Task m1-portal-provenance, round 2 review, 11 November 2026",
   affects: [f.system_capxul, decision_portal_verdict_provenance],
 });
+
+export const decision_portal_board = defineDecision({
+  id: "portal.overview-board", title: "Overview opens with the work board",
+  question: "How does the front door show current work without inventing state?",
+  options: [{ label: "facts", text: "Overview shows Working now from the live loop host summary, refreshed every 15 seconds; Next preserves the authored critical path; Blocked lists each plan blocker; Needs you uses the Questions inbox; Done today lists done tasks and git merges since midnight UTC with commit evidence. Build-time sections are dated snapshots. Keep the climb below the board." }, { label: "snapshot", text: "Freeze running work into generated HTML; rejected because it goes stale." }],
+  chosen: "facts", why: "Aaron, 11 November: he needs to see what is being worked on. Reuse plan, inbox, host and git rather than a second state store.",
+  source: "Task m1-portal-board, 11 November 2026", affects: [f.system_capxul],
+});

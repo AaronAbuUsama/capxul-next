@@ -6,7 +6,7 @@ import { catalogueOf } from "./catalogue.ts";
 import { findingRows, head, membersOf, ofKind, titleOf, type Ctx } from "./context.ts";
 import { EVALS } from "./evalCatalogue.ts";
 import { hasPage, refOf } from "./locate.ts";
-import { goalSummary } from "./plan.ts";
+import { blockedOf, taskOf, goalSummary } from "./plan.ts";
 import { HAND_WRITTEN, inbox } from "./questions.ts";
 import { count, plural } from "./values.ts";
 
@@ -57,6 +57,13 @@ export const overview = (ctx: Ctx): OverviewPage => {
   const paged = [...ctx.byKind].filter(([kind]) => hasPage(kind));
   return {
     ...head("index", "Overview", HAND_WRITTEN, null), type: "overview", commit,
+    board: {
+      date: ctx.input.today ?? new Date().toISOString().slice(0, 10),
+      next: (ctx.input.plan?.plan.path.tasks ?? []).flatMap((id) => { const t = ctx.input.plan?.plan.tasks.find((t) => t.id === id); return t ? [taskOf(ctx, t)] : []; }),
+      blocked: (ctx.input.plan?.plan.tasks ?? []).filter((t) => t.state === "blocked").map((t) => blockedOf(ctx, t)),
+      done: (ctx.input.plan?.plan.tasks ?? []).filter((t) => t.state === "done" && t.updated.slice(0, 10) === (ctx.input.today ?? new Date().toISOString().slice(0, 10))).map((t) => taskOf(ctx, t)),
+      merges: ctx.input.mergesToday ?? [],
+    },
     planNote: ctx.input.plan?.plan.notes[ctx.input.plan.plan.notes.length - 1] ?? null, inbox: inbox(ctx).length, planGoal: goalSummary(ctx.input.plan?.files.outline ?? null),
     hero: direction.hero, needsYou: direction.needsYou, banner: direction.banner, climb: climb(ctx),
     verdicts: { given: concepts.filter((c) => c.verdict !== "none").length, of: concepts.length },
