@@ -2,7 +2,7 @@
 # up.sh: start the bench (secrets and data folders made on first run). Returns when the frontend answers.
 set -euo pipefail
 . "$(dirname "$0")/lib.sh"
-[ -e "$CAPXUL_ENV_DIR/mariadb.env" ] || "$BENCH_DIR/bin/env.sh" "$CAPXUL_ENV_DIR"
+"$BENCH_DIR/bin/env.sh" "$CAPXUL_ENV_DIR" >/dev/null   # makes only what is missing or empty; never overwrites
 for d in capxul-sites capxul-bench-logs capxul-mariadb-data capxul-redis-queue-data; do mkdir -p "$CAPXUL_VOLUMES/$d"; done
 # the bench runs as uid 1000 (frappe), group 0; MariaDB and Redis set up their own folders
 for d in capxul-sites capxul-bench-logs; do

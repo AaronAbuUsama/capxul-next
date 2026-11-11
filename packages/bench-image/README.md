@@ -12,7 +12,9 @@ packages/bench-image/bin/down.sh --wipe                 # stop, and delete the l
 
 In a Claude cloud container start Docker first (`packages/devnet/cloud/setup.sh` does it, or `sudo dockerd`) and build
 with `CAPXUL_BUILD_CA=/root/.ccr/ca-bundle.crt`: the proxy inspects TLS, so the build must trust its CA. The CA is a
-build secret and never enters the image. The running bench needs no outbound network at all.
+build secret and never enters the image. The running bench needs no outbound network at all. A cold build needs about 20 GB of free disk
+(the base images, the build cache and the 6.4 GB image); a full disk mid-build fails the build, and `bin/env.sh` treats
+an empty secrets file as missing, so a run cut short is safe to repeat.
 
 ## What is in it
 
