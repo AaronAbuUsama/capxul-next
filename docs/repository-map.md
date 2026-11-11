@@ -13,7 +13,7 @@ book" or "the book" and lived in `books/`; older documents and records still say
 - A script lives in the package it serves. There is no `tools/` directory.
 - Dead material is in `archive/` at its old path: what was `tools/workflows` is `archive/tools/workflows`. An older
   document that names a path which no longer exists means that path under `archive/`.
-- Working data (loop runs) is under `var/`, which git ignores.
+- Working data is under `var/`, which git ignores.
 - A thing the blueprint, a package, a check, the plan or the portal cites moves only together with every citation.
 
 ## The top level
@@ -27,22 +27,22 @@ book" or "the book" and lived in `books/`; older documents and records still say
 | `GROUNDING.md` | The four fixed points of the product, in Aaron's words | the blueprint and the plan cite it |
 | `blueprint/` | The design, as typed records: one folder per concept and `shared/`; `baseline/` is the old system's behaviour, never edited | `packages/blueprint-engine` builds it; every check reads it |
 | `packages/` | The code, one package per component (below) | pnpm workspace |
-| `plan/` | The coordinator's plan: `plan.json`, the log, the owner's answers, one file per task | `pnpm plan`, the loop, the portal's Questions (needs of the owner) |
+| `plan/` | The coordinator's plan: `plan.json`, the log, the owner's answers, one file per task | `pnpm plan`, the portal's Questions (needs of the owner) |
 | `evals/` | `bindings/`: which check proves which eval of the blueprint | `pnpm evals` |
 | `status/` | The scoreboard: `status.json` and the evidence of each run | written only by `pnpm evals`; read by the portal and the plan |
-| `loops/` | The scripts the loop runs (`pair.ts`, `research.ts`) | `pnpm loop run <task id> --script <name>` |
-| `spikes/` | `skeleton/`: proven throwaway code (real Frappe v16 on the real v4 contracts; its Frappe app has moved to `packages/frappe-app`) | the loop's sandbox, the evals bindings; deleted when plan task `m2-graduate-spike` is done |
+| `spikes/` | `skeleton/`: proven throwaway code (real Frappe v16 on the real v4 contracts; its Frappe app has moved to `packages/frappe-app`) | the evals bindings; deleted when plan task `m2-graduate-spike` is done |
 | `docs/` | Written designs, evidence and generated reports (below) | the blueprint cites most of it |
 | `archive/` | Dead material at its old path; `archive/README.md` lists each thing | nothing live |
-| `var/` | Loop run folders, on the machine that ran them; not in git | `pnpm loop` |
-| `.claude/` | `agents/`: the role prompts the loop gives its agents; `skills/`: the coordinator's skills (coordinate, plan-tasks, dispatch, ask-aaron, portal-ops); `launch.json` | `packages/loop` reads `agents/<role>.md` |
+| `var/` | Working data (the built blueprint, eval runs); not in git | `pnpm blueprint`, `pnpm evals` |
+| `.claude/` | `agents/`: Claude Code role prompts; `skills/ask-aaron` | Claude Code |
+| `.agents/` | Amp's orb `setup` and `resume` scripts | Amp (decision `build.amp`) |
 | `.github/` | The pull request template and twelve issue forms written for the swarmD ledger | `docs/design/swarm*.md`, three blueprint files |
 | `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.gitignore` | The workspace | pnpm, git |
 
 | | Directories | Documents |
 |---|---|---|
 | 10 November, before | `books demo docs evals kit loops packages plan runs spikes status tools` | `CLAUDE.md GROUNDING.md HANDOFF.md README.md START-HERE.md` |
-| Now | `archive blueprint docs evals loops packages plan spikes status` (+ `var/`, ignored) | `AGENTS.md CLAUDE.md GROUNDING.md README.md START-HERE.md` |
+| Now | `archive blueprint docs evals packages plan spikes status` (+ `var/`, ignored) | `AGENTS.md CLAUDE.md GROUNDING.md README.md START-HERE.md` |
 
 ## `packages/`
 
@@ -52,7 +52,6 @@ book" or "the book" and lived in `books/`; older documents and records still say
 | `portal` | Generates and serves the portal from the blueprint, the plan and the scoreboard | |
 | `plan` | The plan CLI, the plan's checks and the task tree | `src/main.ts` (`pnpm plan`), `src/tasks.ts` (`pnpm tasks`) |
 | `evals` | Runs the checks bound to evals; the only writer of `status/` | `src/record-status.ts` |
-| `loop` | The agent runner on pi-durable; this is where pi-durable is used | |
 | `sandbox` | Boxes off the Mac (Cloudflare containers, or local Docker) that a person, a run or one agent creates, works in and destroys; the runaway guard | `src/main.ts` (`pnpm sandbox`), `image/`, `worker/`, `deploy.sh` |
 | `contracts` | The product's contracts (Foundry) | `abi-check/`: `main.ts` (`pnpm contracts:check-blueprint`), `export-abi.ts` (`pnpm contracts:export-abi`) |
 | `sdk` | The product SDK | |
@@ -90,8 +89,8 @@ Every `pnpm` script name is unchanged.
 | `decisions/` | The first decisions, of 7 November, and the policy pack | 4 to 13 blueprint files each |
 | `design/` | The written designs behind the blueprint's records | 1 to 18 blueprint files each; the portal reads `worlds-platform.md` |
 | `design/command-surface.md` | The command tree of 9 November | 4 blueprint files. **Overtaken by the cut**: see its banner |
-| `design/swarm.md`, `swarm-templates.md` | The design of the agent team | `.claude/agents`, `.github`, `packages/loop` |
-| `mission/tasks.json` | The task tree, generated by `pnpm tasks` | `pnpm tasks:check`, the loop |
+| `design/swarm.md`, `swarm-templates.md` | The design of the agent team | history (decision `build.amp` replaced the loop) |
+| `mission/tasks.json` | The task tree, generated by `pnpm tasks` | `pnpm tasks:check` |
 | `mission/` (the rest) | Current findings and designs for worlds and hosting; `findings.md` (the old system measured); `progress.md` | 1 to 11 blueprint files each, the plan |
 | `spec/` | The six specification pages the blueprint was built from | 9 blueprint files, the portal |
 | `vision/erp.md` | The ERP vision and its checks C1 to C27 | 6 blueprint files |
