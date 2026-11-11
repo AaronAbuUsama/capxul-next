@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { promisify } from "node:util";
 import { isAddress, type Address, type Hex } from "viem";
-import { abis, deployment, orgId, publicClient, sendPayment, syncTime, toUnits, touchChainTx, wallet, wears } from "./chain.ts";
+import { deployment, publicClient, sendPayment, syncTime, toUnits, touchChainTx, wears } from "./chain.ts";
 import { config } from "./config.ts";
 import { CliError, refuse } from "./errors.ts";
 import { sign } from "./hmac.ts";
@@ -45,22 +45,9 @@ async function actingAdmin(slug: string, as?: string) {
 
 async function ensureOnChain(slug: string, admin: string, budget: string, fund: string): Promise<{ safe: Address; created: boolean }> {
   const d = deployment();
-  if (config.chainMode === "v4") {
-    await syncTime();
-    const { v4EnsureOrg } = await import("./v4.ts");
-    return v4EnsureOrg(slug, person(admin), toUnits(budget), toUnits(fund), d.usdc);
-  }
-  const id = orgId(slug);
-  const existing = await publicClient.readContract({ address: d.payments, abi: abis.payments, functionName: "safeOf", args: [id] }) as Address;
-  if (/^0x0{40}$/.test(existing)) {
-    const op = wallet(operatorKey);
-    const hash = await op.writeContract({ address: d.orgs, abi: abis.orgs, functionName: "createOrg",
-      args: [slug, person(admin).address as Address, toUnits(budget), toUnits(fund)] });
-    await publicClient.waitForTransactionReceipt({ hash });
-    const safe = await publicClient.readContract({ address: d.payments, abi: abis.payments, functionName: "safeOf", args: [id] }) as Address;
-    return { safe, created: true };
-  }
-  return { safe: existing, created: false };
+  await syncTime();
+  const { v4EnsureOrg } = await import("./v4.ts");
+  return v4EnsureOrg(slug, person(admin), toUnits(budget), toUnits(fund), d.usdc);
 }
 
 export async function orgCreate(args: string[]): Promise<string[]> {
@@ -110,27 +97,13 @@ async function hat(kind: "grant" | "revoke", args: string[]): Promise<string[]> 
   const admin = await actingAdmin(slug, flag(args, "as"));
   // --address: a wearer Core has no person for (the end-to-end script's poison event, B4g)
   const wearer = (flag(args, "address") ?? person(email).address) as Address;
-  if (config.chainMode === "v4") {
-    if (!(await wears(slug, admin.address as Address, "admin"))) throw refuse("CHAIN_REFUSED", `chain refused hat ${kind}: NotAdmin (${admin.email} does not wear admin in ${slug})`);
-    await syncTime();
-    const { v4Hat } = await import("./v4.ts");
-    try {
-      const hash = await v4Hat(kind, slug, hatName, wearer, dept);
-      touchChainTx(hash, `hat ${kind}`);
-      return [`chain: ${hatName} ${kind === "grant" ? "granted to" : "revoked from"} ${email}${dept ? ` (${dept})` : ""} by the Board at ${admin.email}'s request, tx ${hash}`];
-    } catch (e) {
-      throw refuse("CHAIN_REFUSED", `chain refused hat ${kind}: ${(e as Error).message.split("\n").slice(0, 3).join(" ")}`);
-    }
-  }
-  const d = deployment();
-  const w = wallet(admin.privateKey);
-  const params = { address: d.hats, abi: abis.hats, functionName: kind, account: w.account,
-    args: [orgId(slug), hatName, wearer, dept] } as const;
+  if (!(await wears(slug, admin.address as Address, "admin"))) throw refuse("CHAIN_REFUSED", `chain refused hat ${kind}: NotAdmin (${admin.email} does not wear admin in ${slug})`);
+  await syncTime();
+  const { v4Hat } = await import("./v4.ts");
   try {
-    await publicClient.simulateContract(params);
-    const hash = await w.writeContract(params);
-    await publicClient.waitForTransactionReceipt({ hash });
-    return [`chain: ${hatName} ${kind === "grant" ? "granted to" : "revoked from"} ${email}${dept ? ` (${dept})` : ""} by ${admin.email}, tx ${hash}`];
+    const hash = await v4Hat(kind, slug, hatName, wearer, dept);
+    touchChainTx(hash, `hat ${kind}`);
+    return [`chain: ${hatName} ${kind === "grant" ? "granted to" : "revoked from"} ${email}${dept ? ` (${dept})` : ""} by the Board at ${admin.email}'s request, tx ${hash}`];
   } catch (e) {
     throw refuse("CHAIN_REFUSED", `chain refused hat ${kind}: ${(e as Error).message.split("\n").slice(0, 3).join(" ")}`);
   }
@@ -201,21 +174,31 @@ async function featureSwitch(kind: "on" | "off", args: string[]): Promise<string
 export const featureOn = (a: string[]) => featureSwitch("on", a);
 export const featureOff = (a: string[]) => featureSwitch("off", a);
 
-// The company's Safe as the chain itself says it is (the end-to-end script's B1 check): the stand-in's Payments.safeOf,
-// or on the real contracts the Safe Companies House derives for the company's founder and name, which must have code.
+// What Core knows of the org: its name, its Safe and its admin (one line each, `--json` gives them as one object).
+export async function orgShow(args: string[]): Promise<string[]> {
+  const [slug] = args;
+  if (!slug) throw refuse("USAGE", "usage: org show <slug>");
+  const info = await core("/admin/org-info", { slug });
+  if (!info.safe) throw refuse("UNKNOWN_ORG", `Core knows no org ${slug}`);
+  return [`org ${info.slug}: ${info.name ?? ""}`, `safe ${info.safe}`, `admin ${info.adminEmail ?? "-"}`];
+}
+
+// The company's Safe as the chain itself says it is (the end-to-end script's B1 checks): the CompanySafeMinted event
+// Companies House emitted for the company's founder and name. The first line is what the chain says (the event's Safe and
+// founderSafe, the founder's personal Safe by the claimer, the company Safe's owners); the last line is the Safe alone.
 export async function orgChainSafe(args: string[]): Promise<string[]> {
   const [slug] = args;
   if (!slug) throw refuse("USAGE", "usage: org chain-safe <slug>");
-  if (config.chainMode === "v4") {
-    const { proto, v4Org } = await import("./v4.ts");
-    const { companySafeOf } = await import("../../../../packages/devnet/src/modules/company/service.ts");
-    const info = await core("/admin/org-info", { slug });
-    if (!v4Org(slug) || !info.adminEmail) throw refuse("UNKNOWN_ORG", `no company ${slug} on the chain`);
-    const p = await proto();
-    const safe = await companySafeOf(p, info.adminEmail, slug);
-    if ((await publicClient.getCode({ address: safe })) === undefined) throw refuse("UNKNOWN_ORG", `Companies House's Safe for ${slug} (${safe}) has no code`);
-    return [safe];
-  }
-  const d = deployment();
-  return [await publicClient.readContract({ address: d.payments, abi: abis.payments, functionName: "safeOf", args: [orgId(slug)] }) as string];
+  const { proto, v4Org } = await import("./v4.ts");
+  const { companySafeMinted, founderSafeOf } = await import("../../../../packages/devnet/src/modules/company/service.ts");
+  const { SAFE_ABI } = await import("../../../../packages/devnet/src/modules/protocol/service.ts");
+  const info = await core("/admin/org-info", { slug });
+  if (!v4Org(slug) || !info.adminEmail) throw refuse("UNKNOWN_ORG", `no company ${slug} on the chain`);
+  const p = await proto();
+  const minted = await companySafeMinted(p, info.adminEmail, slug);
+  if (!minted) throw refuse("UNKNOWN_ORG", `Companies House emitted no CompanySafeMinted for ${slug} founded by ${info.adminEmail}`);
+  if ((await publicClient.getCode({ address: minted.safe })) === undefined) throw refuse("UNKNOWN_ORG", `the Safe minted for ${slug} (${minted.safe}) has no code`);
+  const owners = await publicClient.readContract({ address: minted.safe, abi: SAFE_ABI, functionName: "getOwners" }) as string[];
+  const facts = { safe: minted.safe, founderSafe: minted.founderSafe, founderPersonalSafe: await founderSafeOf(p, info.adminEmail), owners, mintTx: minted.txHash };
+  return [JSON.stringify(facts), minted.safe];
 }

@@ -4,14 +4,12 @@
 # Needs anvil 8545, the Core stub 8787 and the Frappe stack 8000; it starts them if they are down (core/bin/up.sh,
 # frappe/bin/up.sh). Re-running with a slug that exists continues: `org create` is idempotent, the per-run people and
 # documents are created fresh. Throwaway; dev keys only.
-#
 # Every check has a stable name, <behaviour>.<what> (B3.ledger-posted). A check prints a human line (PASS/FAIL) and then
 # one machine line, which tools/run-evals.ts reads:
 #     @check<TAB>name<TAB>pass|fail<TAB>ms since the previous check<TAB>detail (one line, at most 300 characters)
 # A name may repeat in a run (B7's four payments, PRIVACY's three sites); the runner folds the repeats. A check that is only
 # ever a `bad` is a guard: it prints nothing when it holds, and fails the run when it does not.
 # Exit code: non-zero on any FAIL.
-#
 # --only runs the named behaviours (B1..B9, PRIVACY, NAMES) and the behaviours they need to have run first: B1 always
 # (the company and the sign-in), and the earlier ones whose people, documents and hats a behaviour uses (see `deps`). The
 # checks of those run, print and count as well. --list prints every check name and whether it is a check or a guard.
@@ -40,13 +38,12 @@ set -a; . "$HERE/.env"; set +a
 SITE="$SLUG.localhost"; COMPANY="${COMPANY:-Acme Trading Ltd}"
 STACK_FRAPPE="${SKELETON_FRAPPE:-$HERE/frappe}"
 FR=http://127.0.0.1:8000; CORE=http://127.0.0.1:8787; RPC=http://127.0.0.1:8545
-ADMIN=hannah@acme.test        # the org's admin hat (chain: createOrg)
+ADMIN=hannah@acme.test        # the org's admin hat and its founder (Companies House)
 BUDGET=marcus@acme.test       # budget-holder, department Finance
 PAYROLL=tomas@acme.test       # payroll-approver: Frappe roles, but the chain refuses his payments
 SUPPLIER="Brightside Cleaning Ltd"; SUPPLIER_ADDR=0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc   # elena (test key)
 DIRECT_TO=0x90F79bf6EB2c4f870365E785982E1f101E93b906                                              # priya (test key)
-T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
-pass=0; fail=0
+T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT; pass=0; fail=0
 ms() { python3 -c 'import time;print(int(time.time()*1000))'; }
 LAST_MS=$(ms)
 emit() { local now; now=$(ms); printf '@check\t%s\t%s\t%s\t%s\n' "$1" "$2" "$((now - LAST_MS))" "$(printf '%s' "$3" | tr '\t\n\r' '   ' | cut -c1-300)"; LAST_MS=$now; }
@@ -123,7 +120,10 @@ existed=$(curl -s -o /dev/null -w '%{http_code}' -H "X-Frappe-Site-Name: $SITE" 
 t0=$(ms); out=$(core org create "$SLUG" "$COMPANY" --admin $ADMIN 2>"$T/create.err"); rc=$?; create_ms=$(( $(ms) - t0 ))
 [ $rc = 0 ] && ok B1.org-create "B1 org create exits 0 in $((create_ms/1000)) s" || { bad B1.org-create "B1 org create" "rc=$rc $(tail -c 400 "$T/create.err")"; exit 1; }
 SAFE=$(echo "$out" | tail -1 | jget "d['safe']")
-chk B1.safe-on-chain-is-the-sites-safe "B1 chain: the Safe on the chain is the one the site was given" "$(core org chain-safe "$SLUG" | tail -1 | tr 'A-F' 'a-f')" "$(echo "$SAFE" | tr 'A-F' 'a-f')" "$SAFE holds $(usdc "$SAFE") units of test USDC"
+MINTED=$(core org chain-safe "$SLUG" | tr 'A-F' 'a-f'); M1=$(echo "$MINTED" | head -1); SAFE_LC=$(echo "$SAFE" | tr 'A-F' 'a-f')
+chk B1.safe-on-chain-is-the-sites-safe "B1 chain: the Safe on the chain is the one the site was given" "$(echo "$MINTED" | tail -1)" "$SAFE_LC" "$SAFE holds $(usdc "$SAFE") units of test USDC"
+chk B1.company-safe-minted-for-founder "B1 chain: CompanySafeMinted names the site's Safe, with the admin's personal Safe as founderSafe and sole owner" "$(echo "$M1" | jget "[d['safe'], d['founderSafe'] == d['founderPersonalSafe'], d['owners'] == [d['founderSafe']]]")" "['$SAFE_LC', True, True]" "minted in tx $(echo "$M1" | jget "d['mintTx']")"
+chk B1.org-show-prints-the-safe "B1 read: org show prints the Safe CompanySafeMinted named" "$(core org show "$SLUG" | sed -n 's/^safe //p' | tr 'A-F' 'a-f')" "$SAFE_LC"
 chk B1.site-answers-by-name "B1 the site answers (by name, $SITE:8000)" "$(curl -s --resolve "$SITE:8000:127.0.0.1" http://$SITE:8000/api/method/ping | jget "d['message']")" pong
 login_admin
 ABBR=$(lst "$T/admin" Company '[]' '["name","abbr"]' | jget "d['data'][0]['abbr']")

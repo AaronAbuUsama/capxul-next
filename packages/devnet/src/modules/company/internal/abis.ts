@@ -8,6 +8,7 @@ export const CLAIMER = parseAbi([
 export const MINTER = parseAbi([
   "function mint(string namespace, string company, address founderSafe) returns (address safe)",
   "function companySafeAddressFor(address owner, string namespace, string company, address founderSafe) pure returns (address)",
+  "event CompanySafeMinted(address indexed safe, address indexed founderSafe, string company, bool deployed)",
 ]);
 
 export const HATS = parseAbi([

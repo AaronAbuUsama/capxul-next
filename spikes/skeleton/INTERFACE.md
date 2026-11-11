@@ -20,7 +20,7 @@ Aaron's direction, 10 November 2026, which the skeleton tests:
 |---|---|---|
 | `spikes/skeleton/INTERFACE.md` | coordinator | this file; neither half edits it, both report disagreements |
 | `spikes/skeleton/frappe/**` | Frappe half | compose file, bench, the `capxul` Frappe app, `bin/new-site.sh` |
-| `spikes/skeleton/core/**` | Core half | stand-in contracts, the Core stub service, the CLI |
+| `spikes/skeleton/core/**` | Core half | the Core stub service and the CLI, on the real v4 contracts (`packages/contracts`) |
 | `spikes/skeleton/FINDINGS.md` | both | one section each: `## Frappe half`, `## Core half` |
 
 ## Addresses (all local, dev only)
@@ -39,10 +39,11 @@ how the host resolves `*.localhost`.
 Every call between the halves carries `X-Capxul-Signature: <hex hmac-sha256(SKELETON_SECRET, raw body)>`. A call
 without a valid signature is refused with 401.
 
-## Hats (the only four the skeleton knows)
+## Hats (seven officer hats, created when the company is installed)
 
-`admin`, `budget-holder` (may carry a department), `payroll-approver`, `member`. On the stand-in chain a payment
-reverts unless the signer wears `admin` or `budget-holder` in that org and the budget has room. The Frappe half owns
+`admin`, `budget-holder` (may carry a department), `payroll-approver`, `member`, `sales`, `hr-manager`,
+`project-manager`. On the v4 contracts a payment (`Budgets.spend`) reverts unless the signer wears `admin` or
+`budget-holder` in that company and the budget has room; a grant or revoke is a Board action. The Frappe half owns
 the map from hat to Frappe roles (a DocType, so it can be read and changed on the site).
 
 ## Core → Frappe: one endpoint
@@ -122,8 +123,8 @@ Test people live in `core/people.json`: `email`, `name`, and the anvil account e
 node --experimental-strip-types spikes/skeleton/core/src/main.ts org create acme "Acme Trading Ltd" --admin hannah@acme.test
 ```
 
-Core, in order: registers the org on the stand-in chain (which gives it a Safe stand-in holding test USDC and gives
-the admin the `admin` hat); runs the Frappe half's script; then delivers the org's events from `seq` 1.
+Core, in order: has Companies House mint the company's Safe for the admin as founder, installs the v4 contracts in it,
+funds it with test USDC and has the Board give the admin the `admin` hat; runs the Frappe half's script; then delivers the org's events from `seq` 1.
 
 ```bash
 spikes/skeleton/frappe/bin/new-site.sh <slug> "<company name>" <safe address> <admin email>
@@ -188,7 +189,7 @@ These become the first evals. Each is run by a script and prints pass or fail.
 ## Rules for both halves
 
 - No fork of Frappe, ERPNext or HR unless a hook cannot do it. If you fork, write exactly what and why in FINDINGS.
-- Stand-ins are labelled as stand-ins in code and in FINDINGS: the contracts are not Capxul's v4, the pop-up is not
+- Stand-ins are labelled as stand-ins in code and in FINDINGS: the pop-up is not
   the OpenFort iframe, the provider is not Capxul's auth.
 - No real key, token or personal data anywhere. Anvil's published test keys only.
 - Do not commit. Do not touch anything outside `spikes/skeleton/` (the Frappe half may add ignore lines for its own

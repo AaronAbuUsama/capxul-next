@@ -42,6 +42,19 @@ export async function companySafeOf(p: Protocol, founderEmail: string, company: 
 }
 
 /**
+ * The CompanySafeMinted event that minted this founder's company Safe of this name, read from Companies House's logs (the
+ * minter runs by delegatecall from the Companies House Safe, so the event's address is Companies House's): the event's Safe is the minter's companySafeAddressFor and its founderSafe is the founder's personal Safe. Undefined if
+ * no such event was emitted.
+ */
+export async function companySafeMinted(p: Protocol, founderEmail: string, company: string): Promise<{ safe: Hex; founderSafe: Hex; company: string; deployed: boolean; txHash: Hex } | undefined> {
+  const [founderSafe, safe] = await Promise.all([founderSafeOf(p, founderEmail), companySafeOf(p, founderEmail, company)]);
+  const logs = await p.chain.client.getContractEvents({ address: p.record.companiesHouse, abi: MINTER, eventName: "CompanySafeMinted", args: { safe, founderSafe }, fromBlock: 0n });
+  const l = logs.find((x) => x.args.company === company);
+  if (l === undefined) return undefined;
+  return { safe: l.args.safe as Hex, founderSafe: l.args.founderSafe as Hex, company, deployed: l.args.deployed as boolean, txHash: l.transactionHash as Hex };
+}
+
+/**
  * A company is born: the founder's personal Safe is claimed, the company Safe is minted owned by it, and the authority is
  * installed (hats with the Board's top hat on the company Safe, Roles, the Signer Gate, Budgets and a top budget for the
  * token). The token is not minted here: fund the company Safe separately.

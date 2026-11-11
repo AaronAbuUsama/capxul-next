@@ -1,4 +1,4 @@
-// The real chain (CHAIN_MODE=v4): the v4 contracts are already in the seeded state, so a world's setup only deploys its
+// The v4 contracts are already in the seeded state, so a world's setup only deploys its
 // test token (packages/contracts' MockERC20, 6 decimals) and writes deployment.json in the stand-in's shape, with mode v4.
 // Run by bin/chain-up.sh.
 import { writeFileSync } from "node:fs";
