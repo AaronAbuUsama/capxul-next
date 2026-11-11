@@ -385,7 +385,7 @@ source has many readers:
 | Generators | tables, rpcs, flows, operations, machines, events | migrations, schemas, the `RpcGroup`, the SDK client, the CLI wiring, the telemetry catalogue | B1 |
 | The product runtime | the generated code (see below) | the error catalogue, the transition tables, integration timeouts and retries, span names | B1 and B3 |
 | The eval harness | `evals.json`, the worlds, each refusal's `given` | a pass or a fail per eval | B2 |
-| The factory: swarmD managers and pairs | operations and their links, gaps, evals, decisions | the work queue, the order of work and the definition of done | B4 |
+| The work loop: the plan, the lead Amp thread and one orb thread per task (`docs/handoff-amp.md`; swarmD is retired) | operations and their links, gaps, evals, decisions | the work queue, the order of work and the definition of done | built: plan and evals; Amp from 11 November 2026 |
 | PostHog | events, budgets, journeys | the telemetry catalogue, alerts at the p95 budgets, journey funnels | B3 and B5 |
 | CI | the build and the evals | fail a change whose blueprint has problems, or whose code fails an eval | B1 |
 
@@ -416,10 +416,12 @@ the factory still keeps no state of its own about what is done. The rules are un
 operation stands", below.
 
 The link graph is the work plan. An operation's work depends on the records under it: its flow,
-the flow's rpcs, the procedures they invoke and the tables those write. So a swarmD manager can
-order the lanes by concept and run them in parallel, without anyone writing a dependency by hand.
-A checker's verdict is a set of eval results, and the swarmD ledger
-(`docs/spec/10-swarmd-ledger.md`) keeps them as evidence.
+the flow's rpcs, the procedures they invoke and the tables those write. So the coordinator can
+order the tasks by concept and run them in parallel, without anyone writing a dependency by hand.
+A checker's verdict is a set of eval results: `pnpm evals` writes them to `status/status.json`, with
+each run's evidence under `status/runs/`. (Until 11 November 2026 this section named swarmD's
+managers and ledger as the factory; they were never built and are retired. Today the plan in
+`plan/` and Amp threads, one per task and one pull request each, do that work: `docs/handoff-amp.md`.)
 
 ### In the product itself
 

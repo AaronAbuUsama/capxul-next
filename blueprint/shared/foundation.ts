@@ -136,7 +136,9 @@ export const component_backend = defineComponent({
     "transaction (A3). The runtime resolves a session or assistant token by its hash in that transaction (no JWKS), " +
     "admits a browser origin by the bootstrap's origin token or TRUSTED_ORIGINS, writes each transition's event to the " +
     "outbox in that transaction and has one relay send it on, and wakes a waiting process by its key (rules.process-wakeups). It reads Ponder's tables in the same Postgres, and calls the chain, the bundler and paymaster, and the vendors " +
-    "through integrations.",
+    "through integrations. That is the staging and production shape; in a devnet and a shared world the same rpcs run " +
+    "as the lean world service on one SQLite file with the chain reader folded in (devnet.lean-world; where its code " +
+    "lives waits on devnet.core-service-home).",
   runtime: "node",
   exposes: ["rpc", "http", "ws"],
   dependsOn: [component_postgres, component_ponder, component_chain, component_bundler_paymaster],
@@ -433,18 +435,17 @@ export const concept_books = defineConcept({
   id: "books",
   title: "Books",
   about:
-    "An Organization's books in the shape of ERPNext's accounting (ADR-0042, aaron.books-first-principles): the " +
-    "accounting half of its Company (chart template, currency, time zone, fiscal year, closed periods), the Account and " +
-    "Cost Center trees, the assets it tracks, USD prices (from Chainlink), the annotations that give a Payment or Movement " +
-    "its account, party, cost centre, project and memo (`activity annotate`), and the append-only facts that record every " +
-    "change, numbered without a gap per Organization so a ledger can follow the feed and never skip one. Each money fact " +
-    "posts its voucher; a connected head's own vouchers (invoices, accruals, closings) come in through the books' sync " +
-    "with that head. It scans each token an Organization adds at run time (Ponder has no source for it; P3 keeps the " +
-    "cron) and derives the reports, the reconcile against what the chain holds and the QuickBooks export. Payments and " +
-    "banking write a money fact's book fact in their own transaction (`books.record-money-fact`, " +
-    "`books.reverse-money-fact`; one live fact per money fact), and payroll posts the accrual of a run Capxul computed " +
-    "through `books.record-payroll-accrual`; books never reads payments or payroll back. It reads projects to check an " +
-    "annotation's project. Old books, old activity's annotations, the Chainlink price sync and the added-token Movement scan.",
+    "What is left of the books in Capxul once ERPNext owns them (cut.books, aaron.frappe-native): the chain reader's half. " +
+    "ERPNext Accounts, in each company's site, owns the chart of accounts and Cost Center trees, the GL, Journal and Payment " +
+    "Entries, the reports (Balance Sheet, Profit and Loss, Trial Balance, General Ledger), bank reconciliation and every " +
+    "export, reached through the door (`doc`, `report run`). Capxul keeps what only it knows: the append-only money facts " +
+    "read from the chain, numbered without a gap per Organization so a site can follow the feed and never skip one; the " +
+    "annotations that give a Payment or Movement its account, party, cost centre and memo (`activity annotate`); and the " +
+    "tokens an Organization watches, scanned at run time (Ponder has no source for an added token; P3 keeps the cron). " +
+    "Payments and banking write a money fact's book fact in their own transaction (`books.record-money-fact`, " +
+    "`books.reverse-money-fact`; one live fact per money fact); books never reads payments back. Whether Capxul also keeps " +
+    "its own copy of the chart (the book-companies and book-accounts tables, and the feed's vouchers) or leaves it to " +
+    "ERPNext alone is open: books.chart-owner. Old books' facts, old activity's annotations and the added-token Movement scan.",
   component: B,
   dependsOn: [concept_access, concept_indexing, concept_organizations],
   was: [`${OLD}/books/README.md:3`, `${OLD}/activity/README.md:3`],
@@ -659,17 +660,18 @@ export const environment_devnet = defineEnvironment({
     "The whole stack on one machine from one command, for development and every machine eval. One per machine, on fixed " +
     "loopback ports. A self-contained world (aaron.world-clock): one clock, the supervisor's, frozen or running at a rate " +
     "(one to sixty world seconds a real second, decision devnet.clock-rate), which the chain, the backend, Ponder, the " +
-    "stand-ins and a connected head all follow, and nothing it sends leaves the machine (time.world-channels). Worlds are " +
-    "the supervisor's named snapshots of the chain, Postgres (both schemas) and Ponder together, with the clock, restored " +
-    "in seconds. Devnet-only rpcs (the devnet concept) answer only here and in a shared world. Fakes: the mock paymaster, " +
+    "stand-ins and a connected head all follow, and nothing it sends leaves the machine (time.world-channels). It runs the " +
+    "lean world (devnet.lean-world): one small Capxul service per world on one SQLite file, with the chain reader folded " +
+    "in, and no Postgres, no Ponder and no bundler, except the one canary world that keeps the real bundler " +
+    "(thin-line.bundler, waiting for Aaron); which package builds that service waits on devnet.core-service-home. Worlds " +
+    "are the supervisor's named snapshots of the chain and the service's database file together, with the clock, " +
+    "restored in seconds. Devnet-only rpcs (the devnet concept) answer only here and in a shared world. Fakes: the mock paymaster, " +
     "the mail sink, the stand-in WhatsApp, the stand-in head and FDE host, scripted prices and gates, Bridge's sandbox or " +
     "a local stand-in.",
   runs: [
     { component: component_chain, on: "Anvil forking Base Sepolia (84532) at a pinned block, 127.0.0.1:8545; Companies House deploys and verifies every v4 contract at `up`." },
-    { component: component_postgres, on: "A real Postgres server from a pinned binary, on loopback, with the `app` and `ponder` schemas and row-level security on." },
-    { component: component_ponder, on: "Ponder on the same Postgres, polling the Anvil node every 100 ms or subscribed to new heads, so a stop never waits half a second a block." },
-    { component: component_bundler_paymaster, on: "alto on 127.0.0.1:4337 behind the mock paymaster on 127.0.0.1:4338, which sponsors every operation." },
-    { component: component_backend, on: "The backend as one Node process on loopback, with the devnet integration layers (fakes) and devnet-only rpcs." },
+    { component: component_bundler_paymaster, on: "Only in the canary world (devnet.lean-world, point 3): alto on 127.0.0.1:4337 behind the mock paymaster on 127.0.0.1:4338, which sponsors every operation. Other worlds have none." },
+    { component: component_backend, on: "The lean world service (devnet.lean-world): one Node process on loopback with one SQLite file and the chain reader folded in (no Postgres, no Ponder), with the devnet integration layers (fakes) and devnet-only rpcs. The Postgres and Ponder design is staging's." },
     { component: component_core_sdk, on: "Inside the CLI, the MCP server and a local browser app on the same machine; its devnet entry reaches the supervisor." },
     { component: component_react_sdk, on: "A local browser app, for the approval page and browser-mode evals." },
     { component: component_cli, on: "On the same machine after `capxul use env devnet`, with the devnet's fixed test identities." },
@@ -691,8 +693,6 @@ export const environment_devnet = defineEnvironment({
     "BUNDLER_RPC_URL",
     "PROTOCOL_V4_DEPLOYMENT",
     "COMPANIES_HOUSE_NAMESPACE",
-    "PONDER_SCHEMA",
-    "PONDER_START_BLOCK",
     "SITE_URL",
     "TRUSTED_ORIGINS",
     "SENDER_EMAIL",
@@ -829,10 +829,8 @@ export const environment_shared_world = defineEnvironment({
     "backend, so devnet-only rpcs answer here too, behind the world's gateway, each by the grant's role.",
   runs: [
     { component: component_chain, on: "Anvil forking Base Sepolia (84532) at a pinned block on the world's host, mined only by its supervisor at the world's now; reached only through the gateway." },
-    { component: component_postgres, on: "A real Postgres server on the world's host, with the `app`, `ponder` and `devnet` schemas and row-level security on." },
-    { component: component_ponder, on: "Ponder on the same Postgres, polling the world's Anvil every 100 ms or subscribed to new heads." },
-    { component: component_bundler_paymaster, on: "The devnet's bundler stand-in behind the mock paymaster, on the world's host, both following its clock." },
-    { component: component_backend, on: "The devnet build of the backend on the world's host, behind the world's gateway (HTTPS), which admits a request only with a world grant." },
+    { component: component_bundler_paymaster, on: "Only when the shared world is the canary world (devnet.lean-world, point 3; thin-line.bundler): alto behind the mock paymaster on the world's host, both following its clock." },
+    { component: component_backend, on: "The lean world service (devnet.lean-world) on the world's host, one SQLite file with the chain reader folded in (no Postgres, no Ponder), behind the world's gateway (HTTPS), which admits a request only with a world grant." },
     { component: component_core_sdk, on: "Inside each joiner's CLI and MCP server, pointed at the world by CAPXUL_BOOTSTRAP_URL and carrying the joiner's grant." },
     { component: component_react_sdk, on: "The world's web app, served behind its gateway, for the approval page and browser use." },
     { component: component_cli, on: "On each joiner's machine, with CAPXUL_BOOTSTRAP_URL set to the world's address and CAPXUL_WORLD_GRANT to the joiner's grant file; its CLI home stays there." },
@@ -854,8 +852,6 @@ export const environment_shared_world = defineEnvironment({
     "BUNDLER_RPC_URL",
     "PROTOCOL_V4_DEPLOYMENT",
     "COMPANIES_HOUSE_NAMESPACE",
-    "PONDER_SCHEMA",
-    "PONDER_START_BLOCK",
     "SITE_URL",
     "TRUSTED_ORIGINS",
     "SENDER_EMAIL",
