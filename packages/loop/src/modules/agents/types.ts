@@ -6,6 +6,7 @@
 import type { Context } from "@earendil-works/chord";
 import type { Models } from "@earendil-works/pi-ai";
 import type { Conversation, Extension, Harness, Registry, Submission, ToolRegistration } from "@earendil-works/pi-durable";
+import type { ExecutionEnv } from "@earendil-works/pi-durable/env";
 
 /** A model entry as `~/.pi/agent/models.json` writes it; the fields are pi-ai's `Model`. */
 export interface ModelEntry { id: string; name?: string; reasoning?: boolean; input?: ("text" | "image")[]; cost?: { input: number; output: number; cacheRead: number; cacheWrite: number }; contextWindow?: number; maxTokens?: number; compat?: Record<string, unknown> }
@@ -56,6 +57,11 @@ export interface HostOptions {
   readonly profiles?: Readonly<Record<string, ProfileSpec>>;
   /** pi's own retries of one model request: how many, and the first wait in milliseconds (it doubles). Default 3 and 2,000. */
   readonly retry?: { readonly maxRetries: number; readonly baseDelayMs: number };
+  /**
+   * Where a tool call runs, asked at each call: an environment elsewhere (a box off this machine) for a directory, or
+   * undefined for this machine. The files and commands of every coding tool then happen there.
+   */
+  readonly envFor?: (cwd: string) => ExecutionEnv | undefined;
 }
 
 export interface Part { readonly extensions: Extension[]; readonly tools: ToolRegistration[] }

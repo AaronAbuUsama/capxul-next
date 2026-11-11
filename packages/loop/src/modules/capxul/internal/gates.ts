@@ -6,7 +6,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { Ctx, Gate, Task } from "../types.ts";
-import { sh } from "./sh.ts";
+import { sh, type Ran } from "./sh.ts";
 import { questionsGate } from "./questions.ts";
 
 
@@ -52,7 +52,8 @@ const storedBase = (dir: string, out: string): string => {
   return lane.base;
 };
 
-export const runGates = async (ctx: Ctx, dir: string, task: Task, o: { env?: Record<string, string>; out: string; stopped?: () => boolean }): Promise<Gate[]> => {
+/** `run`: where the gates execute (a cloud sandbox's box); this machine when absent. */
+export const runGates = async (ctx: Ctx, dir: string, task: Task, o: { env?: Record<string, string>; out: string; stopped?: () => boolean; run?: (command: string, o: { cwd: string; env?: Record<string, string>; file?: string; timeoutMs?: number; stopped?: () => boolean }) => Promise<Ran> }): Promise<Gate[]> => {
   if (o.stopped?.()) throw new Error("stopped");
   const out: Gate[] = [];
   if (existsSync(join(dir, "blueprint/index.ts"))) {
@@ -60,7 +61,7 @@ export const runGates = async (ctx: Ctx, dir: string, task: Task, o: { env?: Rec
     catch (cause) { out.push({ name: "no new questions for Aaron", ok: false, tail: `Cannot read stored lane base: ${String(cause)}` }); }
   }
   for (const g of gatesFor(ctx, dir, task)) {
-    const r = await sh(ctx, g.sh, { cwd: dir, ...(o.env ? { env: o.env } : {}), file: join(o.out), timeoutMs: 15 * 60_000, ...(o.stopped ? { stopped: o.stopped } : {}) });
+    const r = await (o.run ?? ((c, x) => sh(ctx, c, x)))(g.sh, { cwd: dir, ...(o.env ? { env: o.env } : {}), file: join(o.out), timeoutMs: 15 * 60_000, ...(o.stopped ? { stopped: o.stopped } : {}) });
     if (r.stopped) throw new Error("stopped");
     out.push({ name: g.name, ok: r.code === 0, tail: r.out.slice(-1200) });
   }

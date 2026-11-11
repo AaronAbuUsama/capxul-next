@@ -12,7 +12,7 @@ import { clean, DEFAULTS, loadDefinitions, logs, merge, resume, serve, showFull,
 const USAGE = [
   "       loop alerts [--once] (preview once, or reconcile notifications every 30 seconds)",
   "       loop agents [--json] (definitions in packages/loop/agents/)",
-  "usage: loop run <task id> [--script pair] [--model provider/id] [--checker-model provider/id] [--sandbox none|light|heavy]",
+  "usage: loop run <task id> [--script pair] [--model provider/id] [--checker-model provider/id] [--sandbox cloud|none|light|heavy]",
   "                          [--rounds 3] [--budget-usd 5] [--timeout-min 30] [--checkers reviewer,adversary]",
   "       loop resume <run id> | stop <run id> | merge <run id> | clean [<run id>]",
   "       loop work [--concurrency 2] [--task a,b] [--wait]   (the options of run apply to every run it starts)",
@@ -33,7 +33,7 @@ const parse = (argv: readonly string[]): { words: string[]; f: Map<string, strin
 
 const optsOf = (f: Map<string, string>): Opts => {
   const sandbox = f.get("sandbox") ?? DEFAULTS.sandbox;
-  if (!["none", "light", "heavy"].includes(sandbox)) throw new Error("--sandbox is one of none, light, heavy");
+  if (!["none", "light", "heavy", "cloud"].includes(sandbox)) throw new Error("--sandbox is one of cloud, none, light, heavy");
   return {
     script: f.get("script") ?? DEFAULTS.script, sandbox: sandbox as Opts["sandbox"], rounds: Number(f.get("rounds") ?? DEFAULTS.rounds),
     budgetUsd: Number(f.get("budget-usd") ?? DEFAULTS.budgetUsd), timeoutMin: Number(f.get("timeout-min") ?? DEFAULTS.timeoutMin),

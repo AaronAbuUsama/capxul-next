@@ -4,11 +4,12 @@
  * through the spike's CLI against the Docker stack that is already running, and removed after. Starting is safe to repeat:
  * a sandbox that still answers is reused. Both talk to the repository through commands, never imports.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { freePort, type Lane } from "../../lanes/service.ts";
 import type { Ctx, SandboxInfo, SandboxKind } from "../types.ts";
-import { sh } from "./sh.ts";
+import { sh, type Ran } from "./sh.ts";
+import { boxFor, startCloud, stopCloud } from "./cloud.ts";
 
 const answers = (url: string): Promise<boolean> =>
   fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}', signal: AbortSignal.timeout(1500) }).then((r) => r.ok, () => false);
@@ -39,11 +40,20 @@ const heavy = async (ctx: Ctx, id: string, was?: SandboxInfo): Promise<SandboxIn
 };
 
 export const startSandbox = (ctx: Ctx, kind: SandboxKind, lane: Lane, runId: string, was?: SandboxInfo): Promise<SandboxInfo> =>
-  kind === "light" ? light(ctx, lane, was) : kind === "heavy" ? heavy(ctx, runId, was) : Promise.resolve({ kind: "none", env: {} });
+  kind === "light" ? light(ctx, lane, was) : kind === "heavy" ? heavy(ctx, runId, was) : kind === "cloud" ? startCloud(ctx, lane, runId, was) : Promise.resolve({ kind: "none", env: {} });
+
+/** What runs a command to its end for this sandbox: in its box when it is `cloud`, on this machine otherwise. */
+export type Runner = (command: string, o: { cwd: string; env?: Record<string, string>; file?: string; timeoutMs?: number; stopped?: () => boolean }) => Promise<Ran>;
+export const runnerOf = (ctx: Ctx, s: SandboxInfo | undefined): Runner => {
+  const box = boxFor(ctx, s);
+  if (!box) return (command, o) => sh(ctx, command, o);
+  return (command, o) => box.run(command, { cwd: o.cwd, ...(o.env ? { env: o.env } : {}), ...(o.timeoutMs ? { timeoutMs: o.timeoutMs } : {}), ...(o.stopped ? { stopped: o.stopped } : {}), ...(o.file ? { onOutput: (t: string) => appendFileSync(o.file!, t) } : {}) });
+};
 
 /** Stops it and removes what it made. Never throws: a sandbox that is already gone is the goal. */
-export const stopSandbox = async (ctx: Ctx, lane: Lane | undefined, s: SandboxInfo | undefined): Promise<void> => {
+export const stopSandbox = async (ctx: Ctx, lane: Lane | undefined, s: SandboxInfo | undefined, runId = ""): Promise<void> => {
   if (!s || s.kind === "none") return;
+  if (s.kind === "cloud") return stopCloud(ctx, runId);
   if (s.kind === "light" && lane) await sh(ctx, ["bash", "packages/contracts/bin/chain-down.sh"], { cwd: lane.dir, env: { CHAIN_PORT: String(s.port) } });
   if (s.kind === "heavy" && s.world) await spike(ctx, "world", "delete", s.world, "--as", "operator");
 };

@@ -15,6 +15,8 @@ export const evidenceDir = (job: Job): string => join(job.run.dir, FOLDER);
 
 /** The programs on this machine: a test's own, or what the run's `PATH` holds. `LOOP_BROWSER=off` takes the browser away. */
 export const toolingFor = (job: Job): Tooling => {
+  // In a cloud sandbox the recorders and the browser would run on this machine, not where the agent works: none is offered.
+  if (job.box?.kind === "cloud") return { asciinema: null, agg: null, browser: null, ffmpeg: null };
   const found = job.ctx.evidence?.tooling ?? toolingOf(job.ctx.env.PATH);
   return job.ctx.env.LOOP_BROWSER === "off" ? { ...found, browser: null } : found;
 };

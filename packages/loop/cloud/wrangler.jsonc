@@ -1,0 +1,12 @@
+// The Worker in front of the boxes. deploy.sh copies this beside worker/index.ts with IMAGE replaced by the pushed image.
+{
+	"name": "capxul-loop-sandbox",
+	"main": "index.ts",
+	"compatibility_date": "2026-11-05",
+	"compatibility_flags": ["nodejs_compat"],
+	"observability": { "enabled": true },
+	"workers_dev": true,
+	"containers": [{ "class_name": "Box", "scheduling_policy": "durable_object", "max_instances": 10, "images": { "box": { "image": "IMAGE" } } }],
+	"durable_objects": { "bindings": [{ "class_name": "Box", "name": "BOX" }] },
+	"exports": { "Box": { "type": "durable-object", "storage": "sqlite" } }
+}

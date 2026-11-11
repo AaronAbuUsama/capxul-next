@@ -15,7 +15,7 @@ import { POLICY, qualify, SHELLS } from "./config.ts";
 export const FOLDER = "packages/loop/agents";
 const CODING = ["read", "write", "edit", "bash"] as const;
 /** What a definition may name here. The capture tools are the evidence module's; the sandboxes go from the least to the most. */
-export const VOCABULARY: Vocabulary = { tools: [...CODING, ...TOOL_NAMES], shells: Object.keys(SHELLS), sandboxes: ["none", "light", "heavy"] };
+export const VOCABULARY: Vocabulary = { tools: [...CODING, ...TOOL_NAMES], shells: Object.keys(SHELLS), sandboxes: ["none", "light", "cloud", "heavy"] };
 
 /** The definitions of the repository at `root`. `main.ts` loads them once and hands them in as `ctx.agents`. */
 export const loadDefinitions = (root: string): Promise<Loaded> => loadAgents(join(root, FOLDER), VOCABULARY);
