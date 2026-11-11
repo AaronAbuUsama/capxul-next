@@ -406,3 +406,12 @@
 {"at":"2026-11-11T08:54:06.212Z","by":"loop","action":"task.start","args":{"id":"m1-portal-provenance","thread":"m1-portal-provenance-11110854"},"commit":"ba56b48"}
 {"at":"2026-11-11T08:54:06.434Z","by":"loop","action":"task.start","args":{"id":"m1-portal-answer-states","thread":"m1-portal-answer-states-11110854"},"commit":"ba56b48"}
 {"at":"2026-11-11T08:54:38.721Z","by":"coordinator","action":"note","args":{"text":"11:40: ramp at 12 done: 12 runs at once, 0 model failures, 16 refused. Merging m1-portal-overview-true-11110835 (reviewer approve, round 2)"},"commit":"ba56b48"}
+{"at":"2026-11-11T09:00:43.908Z","by":"loop","action":"task.done","args":{"id":"m1-portal-overview-true","evidence":"69d03398dd77a52df012f95679ec66b3d84edc82"},"commit":"69d0339"}
+{"at":"2026-11-11T09:01:59.191Z","by":"coordinator","action":"task.done","args":{"id":"r-m3-site-stops-calling","evidence":"run r-m3-site-stops-calling-11110835 answered; docs/mission/research-2026-11-11.md"},"commit":"69d0339"}
+{"at":"2026-11-11T09:02:03.306Z","by":"coordinator","action":"task.done","args":{"id":"r-m3b-bench-image","evidence":"run r-m3b-bench-image-11110835 answered; docs/mission/research-2026-11-11.md"},"commit":"69d0339"}
+{"at":"2026-11-11T09:02:08.695Z","by":"coordinator","action":"task.done","args":{"id":"r-m3b-first-shared-world","evidence":"run r-m3b-first-shared-world-11110835 answered; docs/mission/research-2026-11-11.md"},"commit":"69d0339"}
+{"at":"2026-11-11T09:02:10.870Z","by":"coordinator","action":"task.done","args":{"id":"r-m2-lean-service","evidence":"run r-m2-lean-service-11110835 answered; docs/mission/research-2026-11-11.md"},"commit":"69d0339"}
+{"at":"2026-11-11T09:02:23.556Z","by":"coordinator","action":"task.done","args":{"id":"r-m2-graduate-spike","evidence":"run r-m2-graduate-spike-11110835 answered; docs/mission/research-2026-11-11.md"},"commit":"69d0339"}
+{"at":"2026-11-11T09:02:25.922Z","by":"coordinator","action":"task.done","args":{"id":"r-m4-people-signin","evidence":"run r-m4-people-signin-11110835 answered; docs/mission/research-2026-11-11.md"},"commit":"69d0339"}
+{"at":"2026-11-11T09:02:27.482Z","by":"coordinator","action":"task.done","args":{"id":"r-m3b-world-service","evidence":"run r-m3b-world-service-11110835 answered; docs/mission/research-2026-11-11.md"},"commit":"69d0339"}
+{"at":"2026-11-11T09:02:29.025Z","by":"coordinator","action":"task.done","args":{"id":"r-m1-payroll-uk","evidence":"run r-m1-payroll-uk-11110835 answered; docs/mission/research-2026-11-11.md"},"commit":"69d0339"}

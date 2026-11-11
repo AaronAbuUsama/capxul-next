@@ -1539,10 +1539,12 @@
       "title": "The Overview says only what its numbers say",
       "why": "exit g7: the first page contradicts itself",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "69d03398dd77a52df012f95679ec66b3d84edc82"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "m1-portal-overview-true-11110835"
@@ -1578,10 +1580,12 @@
       "title": "Research: the first step of m3-site-stops-calling",
       "why": "the gateway ramp at twelve agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-m3-site-stops-calling-11110835 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m3-site-stops-calling-11110835"
@@ -1591,10 +1595,12 @@
       "title": "Research: the first step of m3b-bench-image",
       "why": "the gateway ramp at twelve agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-m3b-bench-image-11110835 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m3b-bench-image-11110835"
@@ -1604,10 +1610,12 @@
       "title": "Research: the first step of m3b-first-shared-world",
       "why": "the gateway ramp at twelve agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-m3b-first-shared-world-11110835 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m3b-first-shared-world-11110835"
@@ -1617,10 +1625,12 @@
       "title": "Research: the first step of m2-lean-service",
       "why": "the gateway ramp at twelve agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-m2-lean-service-11110835 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m2-lean-service-11110835"
@@ -1630,10 +1640,12 @@
       "title": "Research: the first step of m2-graduate-spike",
       "why": "the gateway ramp at twelve agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-m2-graduate-spike-11110835 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m2-graduate-spike-11110835"
@@ -1643,10 +1655,12 @@
       "title": "Research: the first step of m4-people-signin",
       "why": "the gateway ramp at twelve agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-m4-people-signin-11110835 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m4-people-signin-11110835"
@@ -1656,10 +1670,12 @@
       "title": "Research: the first step of m3b-world-service",
       "why": "the gateway ramp at twelve agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-m3b-world-service-11110835 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m3b-world-service-11110835"
@@ -1669,10 +1685,12 @@
       "title": "Research: the first step of m1-payroll-uk",
       "why": "the gateway ramp at twelve agents",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run r-m1-payroll-uk-11110835 answered; docs/mission/research-2026-11-11.md"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "r-m1-payroll-uk-11110835"
