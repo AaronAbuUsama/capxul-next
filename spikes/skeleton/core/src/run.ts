@@ -4,7 +4,7 @@
 // `--json` anywhere gives {"ok":true,"trace":...,"data":...} or {"ok":false,"trace":...,"error":{code,reason,detail}}; exit code 0, 1 (refused or failed), 2 (usage).
 import { parseArgs } from "./args.ts";
 import { CliError, refuse } from "./errors.ts";
-import { eventsRedeliver, featureList, featureOff, featureOn, eventsResend, eventsStatus, hatGrant, hatRevoke, orgCreate, payDirect } from "./cli.ts";
+import { eventsRedeliver, featureList, featureOff, featureOn, eventsResend, eventsStatus, hatGrant, hatRevoke, orgChainSafe, orgCreate, orgShow, payDirect } from "./cli.ts";
 import { approvalSign, docAmend, docCall, docCancel, docCreate, docDelete, docGet, docList, docNext, docSchema, docSubmit, docTypes, docUpdate, reportList, reportRun, type Out } from "./doc.ts";
 import { clockAdvance, clockReset, clockSet, clockShow } from "./clock.ts";
 import { recordExport, recordShow, recordTail } from "./recordcmd.ts";
@@ -34,7 +34,7 @@ const usage = `usage:
   any command: --json`;
 
 const commands: Record<string, { run: (a: string[]) => Promise<Out>; noSlug?: boolean }> = {
-  "org create": { run: orgCreate }, "hat grant": { run: hatGrant }, "hat revoke": { run: hatRevoke },
+  "org create": { run: orgCreate }, "org chain-safe": { run: orgChainSafe }, "org show": { run: orgShow }, "hat grant": { run: hatGrant }, "hat revoke": { run: hatRevoke },
   "events status": { run: eventsStatus }, "events resend": { run: eventsResend }, "events redeliver": { run: eventsRedeliver }, "pay direct": { run: payDirect },
   "feature list": { run: featureList }, "feature on": { run: featureOn }, "feature off": { run: featureOff },
   "doc types": { run: docTypes }, "doc schema": { run: docSchema }, "doc list": { run: docList }, "doc get": { run: docGet }, "doc create": { run: docCreate },

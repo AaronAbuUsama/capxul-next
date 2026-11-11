@@ -22,6 +22,7 @@ const corePort = Number(env("CORE_PORT", "8787"));
 
 export const config = {
   secret: env("SKELETON_SECRET", ""),
+  chainId: Number(env("CHAIN_ID", "84532")),   // the seeded v4 chain (packages/contracts state/core.json)
   stateDir,
   rpcUrl: env("RPC_URL", "http://127.0.0.1:8545"),
   deploymentFile: env("DEPLOYMENT_FILE", join(stateDir, "deployment.json")),
