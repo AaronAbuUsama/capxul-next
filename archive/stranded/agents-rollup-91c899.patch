@@ -1,0 +1,1155 @@
+diff --git a/loops/agents/adversary.ts b/loops/agents/adversary.ts
+new file mode 100644
+index 0000000..21e381e
+--- /dev/null
++++ b/loops/agents/adversary.ts
+@@ -0,0 +1,12 @@
++// The adversary, as the loop runs it. Its standing instructions are the role file Claude Code's own subagent of that name reads.
++import { defineAgent } from "../../packages/loop/src/index.ts";
++
++export default defineAgent({
++  name: "adversary",
++  description: "A second checker on money tasks: tries to break the change and reports only what lands.",
++  model: "gpt-6.1-terra",
++  side: "checker",                         // --checker-model replaces its model, never --model: a check stays on another model than the work
++  instructions: "../../.claude/agents/adversary.md",
++  tools: ["read", "bash", "record_terminal", "browser", "screenshot", "record_screen"],
++  shell: "read",
++});
+diff --git a/loops/agents/builder.ts b/loops/agents/builder.ts
+new file mode 100644
+index 0000000..4a2d466
+--- /dev/null
++++ b/loops/agents/builder.ts
+@@ -0,0 +1,11 @@
++// The builder, as the loop runs it. Its standing instructions are the role file Claude Code's own subagent of that name reads.
++import { defineAgent } from "../../packages/loop/src/index.ts";
++
++export default defineAgent({
++  name: "builder",
++  description: "Makes the task's change in its lane, runs the checks itself, and hands back a note and a handover.",
++  model: "gpt-6.1-sol",
++  instructions: "../../.claude/agents/builder.md",
++  tools: ["read", "write", "edit", "bash", "record_terminal", "browser", "screenshot", "record_screen"],
++  shell: "write",                           // what it leaves in its lane is committed as its work
++});
+diff --git a/loops/agents/diagnoser.ts b/loops/agents/diagnoser.ts
+new file mode 100644
+index 0000000..1480549
+--- /dev/null
++++ b/loops/agents/diagnoser.ts
+@@ -0,0 +1,12 @@
++// The diagnoser, as the loop runs it. Its standing instructions are the role file Claude Code's own subagent of that name reads.
++import { defineAgent } from "../../packages/loop/src/index.ts";
++
++export default defineAgent({
++  name: "diagnoser",
++  description: "Fresh eyes on a pair that stopped converging: finds the cause and returns options. Changes nothing.",
++  model: "gpt-6.1-terra",
++  side: "checker",                         // --checker-model replaces its model, never --model: a check stays on another model than the work
++  instructions: "../../.claude/agents/diagnoser.md",
++  tools: ["read", "bash", "record_terminal", "browser", "screenshot", "record_screen"],
++  shell: "read",
++});
+diff --git a/loops/agents/researcher.ts b/loops/agents/researcher.ts
+new file mode 100644
+index 0000000..fe36f7a
+--- /dev/null
++++ b/loops/agents/researcher.ts
+@@ -0,0 +1,11 @@
++// The researcher, as the loop runs it. Its standing instructions are the role file Claude Code's own subagent of that name reads.
++import { defineAgent } from "../../packages/loop/src/index.ts";
++
++export default defineAgent({
++  name: "researcher",
++  description: "Answers one question from the repository, with sources and a recommendation. Changes nothing.",
++  model: "gpt-6.1-sol",
++  instructions: "../../.claude/agents/researcher.md",
++  tools: ["read", "bash", "record_terminal", "browser", "screenshot", "record_screen"],
++  shell: "read",
++});
+diff --git a/loops/agents/reviewer.ts b/loops/agents/reviewer.ts
+new file mode 100644
+index 0000000..4a72e5c
+--- /dev/null
++++ b/loops/agents/reviewer.ts
+@@ -0,0 +1,12 @@
++// The reviewer, as the loop runs it. Its standing instructions are the role file Claude Code's own subagent of that name reads.
++import { defineAgent } from "../../packages/loop/src/index.ts";
++
++export default defineAgent({
++  name: "reviewer",
++  description: "Reads the builder's change against the task and the repository's rules. Approves or asks for changes.",
++  model: "gpt-6.1-terra",
++  side: "checker",                         // --checker-model replaces its model, never --model: a check stays on another model than the work
++  instructions: "../../.claude/agents/reviewer.md",
++  tools: ["read", "bash", "record_terminal", "browser", "screenshot", "record_screen"],
++  shell: "read",                            // its shell only reads; what it runs, it runs recorded, and that is undone after it
++});
+diff --git a/loops/research.ts b/loops/research.ts
+index be59c64..f170438 100644
+--- a/loops/research.ts
++++ b/loops/research.ts
+@@ -4,7 +4,7 @@ import { agent, answered, blocked, lane, researchPrompt, sandbox, type Job } fro
+ export default async function research(job: Job): Promise<void> {
+   await lane(job, { install: false });                 // a fresh worktree to read; nothing to install
+   const box = await sandbox(job);
+-  const said = await agent(job, "research", { role: "researcher", readOnly: true, prompt: researchPrompt(job.task, box.env.CAPXUL_CHAIN_RPC ?? "") });
++  const said = await agent(job, "research", { role: "researcher", prompt: researchPrompt(job.task, box.env.CAPXUL_CHAIN_RPC ?? "") });
+   const answer = said.json as { answer?: string; recommendation?: string; sources?: string[] } | undefined;
+   if (!said.ok || !answer?.answer) return blocked(job, [`no answer: ${said.error ?? "the last message was not the research json"}`]);
+   return answered(job, `${answer.answer}\n\nRecommendation: ${answer.recommendation ?? ""}\nSources: ${(answer.sources ?? []).join(", ")}`);
+diff --git a/packages/loop-ui/src/app/AgentsPage.tsx b/packages/loop-ui/src/app/AgentsPage.tsx
+index ca729e7..94a7d95 100644
+--- a/packages/loop-ui/src/app/AgentsPage.tsx
++++ b/packages/loop-ui/src/app/AgentsPage.tsx
+@@ -1,4 +1,7 @@
+-/** The agents as things in their own right: each role, what it is and may do, and every session it has run. */
++/**
++ * The agents as things in their own right: each definition, what it is and may do, and every session it has run. What a
++ * definition is comes from the runs themselves: each session carries the definition it ran under (`agent.definition`).
++ */
+ import { Bot } from "lucide-react";
+ import { Badge } from "@/components/ui/badge";
+ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+@@ -9,30 +12,27 @@ import { href } from "./router.ts";
+ import { TopBar } from "./TopBar.tsx";
+ import type { Agent, Run } from "./types.ts";
+ 
+-const ABOUT: Record<string, string> = {
+-  builder: "Makes the task's change in its lane, runs the checks itself, and hands back a note and a handover.",
+-  reviewer: "Reads the builder's change against the task and the repository's rules. Approves or asks for changes.",
+-  adversary: "A second checker on money tasks: tries to break the change and reports only what lands.",
+-  researcher: "Answers one question from the repository, with sources and a recommendation. Changes nothing.",
+-};
+-const ROLES = ["builder", "reviewer", "adversary", "researcher"];
+ interface Session { run: Run; agent: Agent }
++/** Every definition that ran in the runs on the page, by name, the one that ran last first. */
++const rolesOf = (runs: Run[]): string[] => [...new Set(runs.flatMap((run) => run.agents).sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0)).map((a) => a.role))];
++const label = (role: string): string => roleLabel[role] ?? role.replace(/^./, (c) => c.toUpperCase());
+ const sessionsOf = (runs: Run[], role: string): Session[] => runs.flatMap((run) => run.agents.filter((a) => a.role === role).map((agent) => ({ run, agent }))).sort((a, b) => (b.agent.startedAt ?? 0) - (a.agent.startedAt ?? 0));
+ const used = (s: Session[]): number => s.reduce((n, x) => n + x.agent.usage.tokensIn + x.agent.usage.tokensOut, 0);
+ 
+ const Roster = ({ runs }: { runs: Run[] }) => (
+   <div className="grid gap-3 md:grid-cols-2">
+-    {ROLES.map((role) => {
+-      const sessions = sessionsOf(runs, role), working = sessions.filter((s) => s.agent.state === "working"), models = [...new Set(sessions.map((s) => s.agent.model))];
++    {rolesOf(runs).length === 0 && <p className="text-sm text-muted-foreground md:col-span-2">No agent has run yet. An agent is listed here once a run uses its definition (<span className="font-mono">loops/agents/</span>; <span className="font-mono">pnpm loop agents</span> lists them all).</p>}
++    {rolesOf(runs).map((role) => {
++      const sessions = sessionsOf(runs, role), working = sessions.filter((s) => s.agent.state === "working"), models = [...new Set(sessions.map((s) => s.agent.model))], defined = sessions[0]?.agent.definition;
+       return (
+         <a key={role} href={href("agents", role)}>
+           <Card size="sm" className="h-full hover:bg-muted/40">
+             <CardHeader>
+-              <CardTitle className="flex items-center gap-2"><Bot className="size-4" /> {roleLabel[role]} {working.length > 0 && <Badge className="gap-1.5 bg-blue-600 text-white"><span className="size-1.5 animate-pulse rounded-full bg-white" /> working</Badge>}</CardTitle>
+-              <CardDescription>{ABOUT[role]}</CardDescription>
++              <CardTitle className="flex items-center gap-2"><Bot className="size-4" /> {label(role)} {working.length > 0 && <Badge className="gap-1.5 bg-blue-600 text-white"><span className="size-1.5 animate-pulse rounded-full bg-white" /> working</Badge>}</CardTitle>
++              <CardDescription>{defined?.description ?? ""}</CardDescription>
+             </CardHeader>
+             <CardContent className="space-y-1 text-sm">
+-              <p className="flex flex-wrap gap-1">{(sessions[0]?.agent.tools ?? []).map((t) => <Badge key={t} variant="outline" className="font-mono">{t}</Badge>)}</p>
++              <p className="flex flex-wrap gap-1">{(defined?.tools ?? sessions[0]?.agent.tools ?? []).map((t) => <Badge key={t} variant="outline" className="font-mono">{t}</Badge>)}</p>
+               <p className="text-muted-foreground">{sessions.length === 0 ? "No sessions today" : `${plural(sessions.length, "session")} today · ${tokens(used(sessions))} tokens · ${models.join(", ")}`}</p>
+             </CardContent>
+           </Card>
+@@ -43,10 +43,10 @@ const Roster = ({ runs }: { runs: Run[] }) => (
+ );
+ 
+ const Detail = ({ runs, role }: { runs: Run[]; role: string }) => {
+-  const sessions = sessionsOf(runs, role), sample = sessions[0]?.agent;
++  const sessions = sessionsOf(runs, role), sample = sessions[0]?.agent, defined = sample?.definition;
+   return (
+     <div className="space-y-6">
+-      <div><h2 className="text-xl font-semibold">{roleLabel[role] ?? role}</h2><p className="text-sm text-muted-foreground">{ABOUT[role]}</p></div>
++      <div><h2 className="text-xl font-semibold">{label(role)}</h2><p className="text-sm text-muted-foreground">{defined?.description ?? ""}</p></div>
+       <section className="space-y-2">
+         <h3 className="text-sm font-semibold">Sessions</h3>
+         <div className="divide-y rounded-lg border">
+@@ -65,8 +65,9 @@ const Detail = ({ runs, role }: { runs: Run[]; role: string }) => {
+         <section className="space-y-2">
+           <h3 className="text-sm font-semibold">Definition</h3>
+           <div className="rounded-lg border p-3 text-sm">
+-            <p className="flex flex-wrap items-center gap-1.5"><span className="text-muted-foreground">Model</span> <Badge variant="secondary">{sample.model}</Badge> <span className="ml-2 text-muted-foreground">Tools</span> {sample.tools.map((t) => <Badge key={t} variant="outline" className="font-mono">{t}</Badge>)}</p>
+-            <p className="mt-2 flex flex-wrap items-center gap-1.5"><span className="text-muted-foreground">Skills</span> {sample.skills && sample.skills.length > 0 ? sample.skills.map((s) => <Badge key={s} variant="secondary">{s}</Badge>) : <span className="text-muted-foreground">none attached yet</span>}</p>
++            <p className="flex flex-wrap items-center gap-1.5"><span className="text-muted-foreground">Model</span> <Badge variant="secondary">{sample.model}</Badge> <span className="ml-2 text-muted-foreground">Tools</span> {(defined?.tools ?? sample.tools).map((t) => <Badge key={t} variant="outline" className={sample.tools.includes(t) ? "font-mono" : "font-mono text-muted-foreground line-through"} title={sample.tools.includes(t) ? undefined : "Not handed over in its last session: this machine could not make it"}>{t}</Badge>)}</p>
++            {defined && <p className="mt-2 flex flex-wrap items-center gap-1.5"><span className="text-muted-foreground">Shell</span> <Badge variant="secondary">{defined.shell === "write" ? "runs and commits in its lane" : defined.shell === "read" ? "only reads" : defined.shell}</Badge>{defined.sandbox && <><span className="ml-2 text-muted-foreground">Needs</span> <Badge variant="secondary">a {defined.sandbox} sandbox</Badge></>}</p>}
++            <p className="mt-2 flex flex-wrap items-center gap-1.5"><span className="text-muted-foreground">Skills</span> {sample.skills && sample.skills.length > 0 ? sample.skills.map((s) => <Badge key={s} variant="secondary">{s}</Badge>) : <span className="text-muted-foreground">none</span>}</p>
+             <pre className="mt-3 max-h-96 overflow-auto rounded-md bg-muted p-2 text-xs leading-relaxed whitespace-pre-wrap">{sample.instructions}</pre>
+           </div>
+         </section>
+@@ -77,7 +78,7 @@ const Detail = ({ runs, role }: { runs: Run[]; role: string }) => {
+ 
+ export const AgentsPage = ({ runs, role }: { runs: Run[]; role?: string }) => (
+   <>
+-    <TopBar crumbs={role ? [<a href={href("agents")}>Agents</a>, roleLabel[role] ?? role] : ["Agents"]} />
++    <TopBar crumbs={role ? [<a href={href("agents")}>Agents</a>, label(role)] : ["Agents"]} />
+     <div className="flex-1 overflow-y-auto"><div className="mx-auto w-full max-w-4xl p-4 md:p-6">{role ? <Detail runs={runs} role={role} /> : <Roster runs={runs} />}</div></div>
+   </>
+ );
+diff --git a/packages/loop-ui/src/app/Inspector.tsx b/packages/loop-ui/src/app/Inspector.tsx
+index 1827122..e2dc2cd 100644
+--- a/packages/loop-ui/src/app/Inspector.tsx
++++ b/packages/loop-ui/src/app/Inspector.tsx
+@@ -46,12 +46,12 @@ export const AgentPanel = ({ agent, round }: { agent: Agent; round: number | nul
+       </Block>
+       <Block title="May do">
+         <div className="mb-2 flex flex-wrap gap-1">{agent.tools.map((t) => <Badge key={t} variant="outline" className="font-mono">{t}</Badge>)}</div>
+-        <p className="text-sm leading-relaxed text-muted-foreground">{MAY[agent.role] ?? ""}</p>
++        <p className="text-sm leading-relaxed text-muted-foreground">{MAY[agent.role] ?? agent.definition?.description ?? ""}</p>
+       </Block>
+       <Block title="Skills">
+         {agent.skills && agent.skills.length > 0
+           ? <div className="flex flex-wrap gap-1">{agent.skills.map((s) => <Badge key={s} variant="secondary">{s}</Badge>)}</div>
+-          : <p className="text-sm text-muted-foreground">None attached. Skills come with agent definitions, which the loop does not have yet.</p>}
++          : <p className="text-sm text-muted-foreground">{agent.definition ? "Its definition lists none." : "This run is older than agent definitions."}</p>}
+       </Block>
+       <Block title="Instructions">
+         <Collapsible>
+diff --git a/packages/loop/src/index.ts b/packages/loop/src/index.ts
+index 17eb068..2d142e5 100644
+--- a/packages/loop/src/index.ts
++++ b/packages/loop/src/index.ts
+@@ -3,6 +3,7 @@
+  * first; the Capxul-specific vocabulary and commands are the last line.
+  */
+ export * from "./modules/agents/service.ts";
++export * from "./modules/definitions/service.ts";
+ export * from "./modules/lanes/service.ts";
+ export type { Info, Run, Status } from "./modules/runs/service.ts";
+ export { spendText } from "./modules/runs/service.ts";
+diff --git a/packages/loop/src/main.ts b/packages/loop/src/main.ts
+index 5065ecc..0f501ae 100644
+--- a/packages/loop/src/main.ts
++++ b/packages/loop/src/main.ts
+@@ -4,7 +4,7 @@
+ // root: the only place that reads the process, prints, or exits. See packages/loop/README.md.
+ 
+ import { execFileSync } from "node:child_process";
+-import { clean, DEFAULTS, logs, merge, resume, serve, showFull, showJson, spendText, start, status, statusJson, stop, watch, work, type Ctx, type Opts } from "./index.ts";
++import { clean, DEFAULTS, loadDefinitions, logs, merge, resume, serve, showFull, showJson, spendText, start, status, statusJson, stop, watch, work, type Ctx, type Opts } from "./index.ts";
+ 
+ const USAGE = [
+   "usage: loop run <task id> [--script pair] [--model provider/id] [--checker-model provider/id] [--sandbox none|light|heavy]",
+@@ -12,6 +12,7 @@ const USAGE = [
+   "       loop resume <run id> | stop <run id> | merge <run id> | clean [<run id>]",
+   "       loop work [--concurrency 2] [--task a,b] [--wait]   (the options of run apply to every run it starts)",
+   "       loop serve [--port 4392] [--since-hours 24]   (the host: runs as they change, for a page or a terminal)",
++  "       loop agents [--json]   (the agents a script may ask for: the definitions in loops/agents/)",
+   "       loop status [--json [--since-hours 24]] | show <run id> --json [--full] | logs <run id> [-f] | watch <run id>",
+ ].join("\n");
+ 
+@@ -40,7 +41,10 @@ const optsOf = (f: Map<string, string>): Opts => {
+ const main = async (argv: readonly string[]): Promise<number> => {
+   const [cmd, ...rest] = argv;
+   const { words, f } = parse(rest);
+-  const ctx: Ctx = { root: execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim(), env: process.env, now: () => new Date(), say: (l) => console.log(l) };
++  const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim(), defined = await loadDefinitions(root);
++  const ctx: Ctx = { root, env: process.env, now: () => new Date(), say: (l) => console.log(l), agents: defined.agents };
++  // A definition that is not sound stops whatever would start an agent, before a run is made; looking at runs goes on.
++  if (defined.problems.length > 0 && ["run", "resume", "work", "agents"].includes(cmd ?? "")) { defined.problems.forEach((p) => console.error(p)); return 1; }
+   const ended = (s: { id: string; status: string; round: number; spentUsd: number; tokens: number; reasons: string[]; error?: string }): number => {
+     console.log(`run ${s.id}: ${s.status}, ${s.round} round(s), used ${spendText(s.spentUsd, s.tokens)}${s.error ? `, error: ${s.error}` : ""}`);
+     s.reasons.forEach((r) => console.log(`  ${r.slice(0, 300)}`));
+@@ -69,6 +73,7 @@ const main = async (argv: readonly string[]): Promise<number> => {
+       await new Promise(() => undefined);
+       return 0;
+     }
++    case "agents": console.log(f.has("json") ? JSON.stringify({ agents: ctx.agents }) : ctx.agents.map((a) => `${a.name.padEnd(12)}${a.model.padEnd(16)}${a.side.padEnd(9)}shell: ${a.shell.padEnd(7)}${a.tools.join(" ")}${a.skills.length > 0 ? `   skills: ${a.skills.map((s) => s.name).join(" ")}` : ""}`).join("\n")); return 0;
+     case "logs": return need ? (await logs(ctx, need, f.has("f")), 0) : (console.error(USAGE), 2);
+     case "watch": return need ? (await watch(ctx, need), 0) : (console.error(USAGE), 2);
+     case "work": await work(ctx, { concurrency: Number(f.get("concurrency") ?? 2), tasks: f.get("task")?.split(",") ?? [], opts: optsOf(f), wait: f.has("wait") }); return 0;
+diff --git a/packages/loop/src/modules/agents/internal/host.ts b/packages/loop/src/modules/agents/internal/host.ts
+index 1e26c78..fb9abb2 100644
+--- a/packages/loop/src/modules/agents/internal/host.ts
++++ b/packages/loop/src/modules/agents/internal/host.ts
+@@ -1,11 +1,11 @@
+ /** Opening the harness on a run's SQLite file, with the coding tools, the confinement and an environment that inherits nothing. */
+ import { existsSync } from "node:fs";
+ import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
+-import { createRegistry, Harness } from "@earendil-works/pi-durable";
++import { createRegistry, Harness, type ToolRegistration } from "@earendil-works/pi-durable";
+ import { NodeExecutionEnv } from "@earendil-works/pi-durable/env/node";
+ import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
+ import { CodingTools, createBashTool, createEditTool, createReadTool, createWriteTool } from "@earendil-works/pi-durable/tools";
+-import type { Host, HostOptions } from "../types.ts";
++import type { CodingTool, Host, HostOptions, Part, ProfileSpec } from "../types.ts";
+ import { confine } from "./policy.ts";
+ 
+ /** A local environment whose commands see exactly `clean` and the call's own variables, never the process's. */
+@@ -21,10 +21,19 @@ export const openHost = async (o: HostOptions): Promise<Host> => {
+   if (o.readOnly && !existsSync(o.file)) throw new Error(`there is no storage at ${o.file}: a reader does not create one`);
+   const registry = createRegistry();
+   registry.install(CodingTools);
+-  const [cw, cr] = [confine("write", o.policy), confine("read", o.policy)];
+-  registry.install(cw);
+-  registry.install(cr);
+-  const [read, write, edit, bash] = [createReadTool(), createWriteTool(), createEditTool(), createBashTool()];
++  const coding: Readonly<Record<CodingTool, ToolRegistration>> = { read: createReadTool(), write: createWriteTool(), edit: createEditTool(), bash: createBashTool() };
++  const also = o.policy.tools ?? [];
++  const specs: Readonly<Record<string, ProfileSpec>> = {
++    ...o.profiles,
++    write: { tools: ["read", "write", "edit", "bash"], bash: o.policy.bash.write, also },
++    read: { tools: ["read", "bash"], bash: o.policy.bash.read, also },
++  };
++  // Every profile's confinement is installed before the harness opens, so a conversation that is resumed finds its own.
++  const profiles = new Map<string, Part>(Object.entries(specs).map(([name, spec]) => {
++    const held = confine(name, { bash: spec.bash, denyWrite: o.policy.denyWrite, tools: spec.also });
++    registry.install(held);
++    return [name, { extensions: [CodingTools, held], tools: spec.tools.map((t) => coding[t]) }];
++  }));
+   const context = BACKGROUND_CONTEXT;
+   const harness = await Harness.open(await openNodeSqliteStorage(o.file), {
+     models: o.models, registry, readOnly: o.readOnly ?? false,
+@@ -34,6 +43,14 @@ export const openHost = async (o: HostOptions): Promise<Host> => {
+   }, context);
+   const root = await harness.root(context);
+   if (!o.readOnly) harness.resume();
+-  const parts = { write: { extensions: [CodingTools, cw], tools: [read, write, edit, bash] }, read: { extensions: [CodingTools, cr], tools: [read, bash] } };
+-  return { harness, registry, parts, root, context, close: () => harness.close(context) };
++  return { harness, registry, parts: { write: profiles.get("write")!, read: profiles.get("read")! }, profiles, root, context, close: () => harness.close(context) };
++};
++
++/**
++ * The same host, handing out the profile named `name` whichever of the two built-in ones is asked for, or undefined when
++ * there is no such profile. For an agent whose tools are its definition's: `ask(hostAs(host, name), ...)`.
++ */
++export const hostAs = (host: Host, name: string): Host | undefined => {
++  const part = host.profiles.get(name);
++  return part ? { ...host, parts: { write: part, read: part } } : undefined;
+ };
+diff --git a/packages/loop/src/modules/agents/internal/policy.ts b/packages/loop/src/modules/agents/internal/policy.ts
+index 3d6e6ce..cc357f4 100644
+--- a/packages/loop/src/modules/agents/internal/policy.ts
++++ b/packages/loop/src/modules/agents/internal/policy.ts
+@@ -6,7 +6,7 @@
+  */
+ import { isAbsolute, relative, resolve } from "node:path";
+ import { AgentDoc, defineExtension, hook, ToolTask, type Extension } from "@earendil-works/pi-durable";
+-import type { Policy, Profile } from "../types.ts";
++import type { Policy } from "../types.ts";
+ 
+ const FILE_TOOLS = new Set(["read", "write", "edit"]);
+ 
+@@ -53,18 +53,21 @@ export const refusePath = (path: string, cwd: string, write: boolean, deny: read
+   return undefined;
+ };
+ 
+-/** The extension for one profile; select it on a conversation next to `coding-tools`. */
+-export const confine = (profile: Profile, policy: Policy): Extension =>
++/** What one profile is held to: what its bash may run, what the file tools may not write, which further tools it may call. */
++export interface Rules { readonly bash: readonly RegExp[]; readonly denyWrite: Policy["denyWrite"]; readonly tools: readonly string[] }
++
++/** The extension for the profile named `name`; select it on a conversation next to `coding-tools`. */
++export const confine = (name: string, rules: Rules): Extension =>
+   defineExtension({
+-    name: `confine-${profile}`,
++    name: `confine-${name}`,
+     hooks: [hook(ToolTask, {
+       beforeTool: async (call, api, context) => {
+         const cwd = (await api.snapshot(AgentDoc, api.conversationId, context))?.cwd;
+         if (!cwd) return { block: "this agent has no directory" };
+         const args = call.arguments as { path?: string; command?: string };
+-        const why = FILE_TOOLS.has(call.name) ? refusePath(String(args.path ?? "."), cwd, call.name !== "read", policy.denyWrite)
+-          : call.name === "bash" ? refuseBash(String(args.command ?? ""), cwd, policy.bash[profile])
+-          : policy.tools?.includes(call.name) ? undefined
++        const why = FILE_TOOLS.has(call.name) ? refusePath(String(args.path ?? "."), cwd, call.name !== "read", rules.denyWrite)
++          : call.name === "bash" ? refuseBash(String(args.command ?? ""), cwd, rules.bash)
++          : rules.tools.includes(call.name) ? undefined
+           : `the tool ${call.name} is not available`;
+         return why ? { block: `Refused by the loop's policy: ${why}` } : undefined;
+       },
+diff --git a/packages/loop/src/modules/agents/service.ts b/packages/loop/src/modules/agents/service.ts
+index 4a64bd1..609f5dc 100644
+--- a/packages/loop/src/modules/agents/service.ts
++++ b/packages/loop/src/modules/agents/service.ts
+@@ -8,7 +8,7 @@ import { existsSync } from "node:fs";
+ import type { Answer, Ask, Host } from "./types.ts";
+ import { entriesOf, recall, record, remember } from "./internal/ledger.ts";
+ 
+-export { openHost } from "./internal/host.ts";
++export { hostAs, openHost } from "./internal/host.ts";
+ export { modelsFrom } from "./internal/models.ts";
+ export { mcpTools, type McpServer } from "./internal/mcp.ts";
+ export { confine, refuseBash, refusePath, segmentsOf } from "./internal/policy.ts";
+diff --git a/packages/loop/src/modules/agents/types.ts b/packages/loop/src/modules/agents/types.ts
+index d70f5e8..e8793ec 100644
+--- a/packages/loop/src/modules/agents/types.ts
++++ b/packages/loop/src/modules/agents/types.ts
+@@ -15,6 +15,21 @@ export interface ProviderConfig { baseUrl: string; apiKeyEnv: string | null; mod
+ /** Which tools an agent gets: `write` is read, write, edit and a limited bash; `read` is read and a bash that only reads git. */
+ export type Profile = "write" | "read";
+ 
++export type CodingTool = "read" | "write" | "edit" | "bash";
++
++/**
++ * A profile of the caller's own, by name, beside the two above: for an agent whose tools are chosen one by one (an agent
++ * definition). `hostAs` hands it out.
++ */
++export interface ProfileSpec {
++  /** Which of the coding tools it has. */
++  readonly tools: readonly CodingTool[];
++  /** What its bash may run: every segment of a command must match one of these. */
++  readonly bash: readonly RegExp[];
++  /** The tools beyond the coding ones it may call, by name. */
++  readonly also: readonly string[];
++}
++
+ /** The confinement policy (README: it is a policy on tool calls, not a security boundary). */
+ export interface Policy {
+   /** A bash command is run only if every `&&`/`;`/`|` segment of it matches one of these. */
+@@ -34,11 +49,21 @@ export interface HostOptions {
+   readonly policy: Policy;
+   /** Look without driving: opens the storage for reading, recovers nothing, writes nothing. */
+   readonly readOnly?: boolean;
++  /** Profiles beside `write` and `read`, by name (those two names are taken). */
++  readonly profiles?: Readonly<Record<string, ProfileSpec>>;
+   /** pi's own retries of one model request: how many, and the first wait in milliseconds (it doubles). Default 3 and 2,000. */
+   readonly retry?: { readonly maxRetries: number; readonly baseDelayMs: number };
+ }
+ 
+-export interface Host { readonly harness: Harness; readonly registry: Registry; readonly parts: Readonly<Record<Profile, { extensions: Extension[]; tools: ToolRegistration[] }>>; readonly root: Conversation; readonly context: Context; close(): Promise<void> }
++/** What a profile comes to on a conversation: the extensions to select and the tools to hand over. */
++export interface Part { readonly extensions: Extension[]; readonly tools: ToolRegistration[] }
++
++export interface Host {
++  readonly harness: Harness; readonly registry: Registry; readonly parts: Readonly<Record<Profile, Part>>;
++  /** Every profile by name: `write`, `read` and the caller's own (`HostOptions.profiles`). */
++  readonly profiles: ReadonlyMap<string, Part>;
++  readonly root: Conversation; readonly context: Context; close(): Promise<void>;
++}
+ 
+ export interface Ask {
+   /** Names the agent within the run. The same key after a restart finds the same conversation and the same question. */
+diff --git a/packages/loop/src/modules/capxul/capxul.test.ts b/packages/loop/src/modules/capxul/capxul.test.ts
+index cd6ba4d..937b58a 100644
+--- a/packages/loop/src/modules/capxul/capxul.test.ts
++++ b/packages/loop/src/modules/capxul/capxul.test.ts
+@@ -7,11 +7,13 @@ import { createModels } from "@earendil-works/pi-ai/models";
+ import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
+ import pair from "../../../../../loops/pair.ts";       // the real standard script, played here against a fake provider
+ import { git } from "../lanes/service.ts";
+-import { clean, DEFAULTS, lane, logs, merge, resume, showFull, start, status, stop, watch, work, type Ctx, type Opts } from "./service.ts";
++import { agent, answered, clean, DEFAULTS, lane, loadDefinitions, logs, merge, resume, showFull, start, status, stop, watch, work, type Ctx, type Opts } from "./service.ts";
+ import type { Exec } from "../evidence/service.ts";
+ import * as plan from "./internal/plan.ts";
+ 
+-const AGENTS = join(import.meta.dirname, "../../../../../.claude/agents");
++const REPO = join(import.meta.dirname, "../../../../..");
++const AGENTS = join(REPO, ".claude/agents");
++const DEFINED = await loadDefinitions(REPO);            // the real definitions (loops/agents), as main.ts loads them
+ const FAKE_PLAN = `import fs from "node:fs";
+ const a = process.argv.slice(2);
+ if (a[0] === "show" && a[1] === "--json") console.log(fs.readFileSync("plan.json", "utf8"));
+@@ -52,7 +54,7 @@ const rig = () => {
+   const models = createModels();
+   models.setProvider(faux.provider);
+   const lines: string[] = [];
+-  const ctx = (gates: { name: string; sh: string }[] = [{ name: "ok", sh: "true" }]): Ctx => ({ root, env: { PATH: process.env.PATH ?? "", HOME: dir }, now: () => new Date(), say: (l) => lines.push(l), models, gates, retry: { maxRetries: 0, baseDelayMs: 1, waitsMs: [5, 5] }, evidence: { tooling: { asciinema: "asciinema", agg: "agg", browser: null, ffmpeg: null }, exec: recorder } });
++  const ctx = (gates: { name: string; sh: string }[] = [{ name: "ok", sh: "true" }]): Ctx => ({ root, env: { PATH: process.env.PATH ?? "", HOME: dir }, now: () => new Date(), say: (l) => lines.push(l), models, gates, agents: DEFINED.agents, retry: { maxRetries: 0, baseDelayMs: 1, waitsMs: [5, 5] }, evidence: { tooling: { asciinema: "asciinema", agg: "agg", browser: null, ffmpeg: null }, exec: recorder } });
+   const calls = (): string[] => (existsSync(join(root, "plan-calls.log")) ? readFileSync(join(root, "plan-calls.log"), "utf8").split("\n").filter(Boolean) : []);
+   return { dir, root, origin, faux, ctx, calls, lines };
+ };
+@@ -244,10 +246,30 @@ test("evidence: both agents record commands; claims are judged against what the
+   assert.deepEqual(step("make.1").evidence, [{ capture: "make.1.it-runs", shows: "node answers", ok: true }, { capture: "made-up", shows: "nothing", ok: false, why: "no capture named made-up was made in this run" }]);
+   assert.deepEqual(step("reviewer.1.agent").evidence, [{ capture: "reviewer.1.agent.tried-it", shows: "it runs", ok: true }]);
+   const reviewer = full.agents.find((a) => a.key === "reviewer.1.agent")!, said = JSON.stringify(reviewer.messages);
+-  assert.ok(reviewer.tools.includes("record_terminal"));
++  assert.deepEqual([reviewer.role, reviewer.tools, reviewer.definition?.tools], ["reviewer", ["read", "bash", "record_terminal"], ["read", "bash", "record_terminal", "browser", "screenshot", "record_screen"]]);   // handed: its definition's tools, less the browser this machine lacks
++  assert.deepEqual(full.agents.find((a) => a.key === "make.1")!.tools, ["read", "write", "edit", "bash", "record_terminal"]);
+   assert.match(said, /terminal `make\.1\.it-runs`: the maker says it shows \\"node answers\\"\. The loop recorded: `node -v` ended with 0\./);
+   assert.match(said, /THROWN OUT `made-up`: no capture named made-up was made in this run\./);
+   assert.match(said, /Refused by the loop's policy: `git commit -m x` is not a command this agent may run/);   // a reader runs things on camera, but still changes nothing
+   assert.equal(existsSync(join(r.root, "var", "runs", info.id, "lane", "stray.txt")), false);
+   assert.ok(r.lines.includes("reviewer.1.agent left 1 change(s) in the lane; they are undone"), r.lines.join("\n"));
+ });
++
++test("an agent is what its definition says: it has the tools listed and no others, a name nobody defined is an error, and so is a sandbox the run lacks", async () => {
++  const r = rig(), base = DEFINED.agents.find((a) => a.name === "researcher")!;
++  const agents = [...DEFINED.agents, { ...base, name: "looker", description: "Only reads.", tools: ["read"] }, { ...base, name: "boxed", sandbox: "light" }];
++  r.faux.setResponses([fauxAssistantMessage(fauxToolCall("bash", { command: "ls" }), { stopReason: "toolUse" }), fauxAssistantMessage(fauxToolCall("record_terminal", { name: "x", command: "ls" }), { stopReason: "toolUse" }), fauxAssistantMessage("looked")]);
++  const errors: (string | undefined)[] = [];
++  const info = await start({ ...r.ctx(), agents }, "t1", opts, async (job) => {
++    await lane(job, { install: false });
++    for (const role of ["nobody", "boxed", "looker"]) errors.push((await agent(job, `try.${role}`, { role, prompt: "look" })).error);
++    await answered(job, "looked");
++  });
++  assert.equal(info.status, "answered", info.error);
++  assert.match(errors[0]!, /^there is no agent named nobody: loops\/agents defines adversary, builder, diagnoser, researcher, reviewer, looker, boxed$/);
++  assert.equal(errors[1], "the boxed needs a light sandbox and this run has none: start the run with --sandbox light");
++  assert.equal(errors[2], undefined);
++  const looker = (await showFull(r.ctx(), info.id))!.agents.find((a) => a.key === "try.looker")!;
++  assert.deepEqual([looker.role, looker.tools, looker.definition], ["looker", ["read"], { name: "looker", description: "Only reads.", tools: ["read"], skills: [], shell: "read" }]);
++  assert.equal(looker.messages.filter((m) => m.role === "tool" && m.isError).length, 2, JSON.stringify(looker.messages));   // bash and record_terminal: neither is its to call
++});
+diff --git a/packages/loop/src/modules/capxul/config.test.ts b/packages/loop/src/modules/capxul/config.test.ts
+index 67f3d8e..0693328 100644
+--- a/packages/loop/src/modules/capxul/config.test.ts
++++ b/packages/loop/src/modules/capxul/config.test.ts
+@@ -6,9 +6,10 @@ import { tmpdir } from "node:os";
+ import { join } from "node:path";
+ import { test } from "node:test";
+ import { ask, openHost, refuseBash, refusePath } from "../agents/service.ts";
+-import { allowedModel, GATEWAYS, gatewayOf, modelsOf } from "./internal/config.ts";
++import { lacks, makes, modelOf, profilesOf, systemOf } from "./internal/agents.ts";
++import { allowedModel, CHECKER_MODEL, GATEWAYS, gatewayOf, MAKER_MODEL, modelsOf } from "./internal/config.ts";
+ import { findingsOf } from "./internal/gates.ts";
+-import { gatesOf, POLICY } from "./service.ts";
++import { DEFAULTS, gatesOf, loadDefinitions, POLICY } from "./service.ts";
+ 
+ test("the gates are the root scripts, whichever name the design folder has; the frozen baseline is protected under both names", () => {
+   const dir = mkdtempSync(join(tmpdir(), "loop-gates-"));
+@@ -56,7 +57,7 @@ test("every request to the gateway carries the conversation's own session id, on
+   await new Promise<void>((ready) => gateway.listen(0, "127.0.0.1", () => ready()));
+   const dir = mkdtempSync(join(tmpdir(), "loop-session-"));
+   const env = { LOOP_MODEL_BASE_URL: `http://127.0.0.1:${(gateway.address() as { port: number }).port}/v1` };   // the default gateway asks for no key
+-  const host = await openHost({ file: join(dir, "run.sqlite"), models: modelsOf({ root: dir, env, now: () => new Date(), say: () => undefined }), env: {}, policy: POLICY });
++  const host = await openHost({ file: join(dir, "run.sqlite"), models: modelsOf({ root: dir, env, now: () => new Date(), say: () => undefined, agents: [] }), env: {}, policy: POLICY });
+   try {
+     const one = await ask(host, { key: "make.1", model: "gateway/gpt-6.1-sol", system: "s", prompt: "p", cwd: dir, profile: "read" });
+     assert.equal(one.text, "ok", one.error);
+@@ -68,7 +69,7 @@ test("every request to the gateway carries the conversation's own session id, on
+ });
+ 
+ test("the gateway is named: the proxy on this machine by default, with no key; another by LOOP_GATEWAY; its parts can still be overridden", () => {
+-  const of = (env: Record<string, string>) => gatewayOf({ root: "/", env, now: () => new Date(), say: () => undefined });
++  const of = (env: Record<string, string>) => gatewayOf({ root: "/", env, now: () => new Date(), say: () => undefined, agents: [] });
+   assert.deepEqual(of({}), { name: "local", baseUrl: "http://127.0.0.1:8317/v1", keyEnv: null });
+   assert.deepEqual(of({ LOOP_GATEWAY: "router" }), { name: "router", ...GATEWAYS["router"] });
+   assert.deepEqual(of({ LOOP_MODEL_BASE_URL: "http://x/v1", LOOP_MODEL_KEY_ENV: "SOME_KEY" }), { name: "local", baseUrl: "http://x/v1", keyEnv: "SOME_KEY" });
+@@ -86,7 +87,7 @@ test("a builder is told where its own lane's findings are: the folder the checko
+ test("any model the gateway serves may be used; one it does not serve is refused; when it does not answer, only the two defaults", async () => {
+   const gateway = createServer((req, res) => { res.writeHead(req.url === "/v1/models" ? 200 : 404, { "content-type": "application/json" }); res.end(JSON.stringify({ data: [{ id: "gpt-6.1-sol" }, { id: "claude-sonnet-5-5" }] })); });
+   await new Promise<void>((ready) => gateway.listen(0, "127.0.0.1", () => ready()));
+-  const ctx = (url: string) => ({ root: "/", env: { LOOP_MODEL_BASE_URL: url }, now: () => new Date(), say: () => undefined });
++  const ctx = (url: string) => ({ root: "/", env: { LOOP_MODEL_BASE_URL: url }, now: () => new Date(), say: () => undefined, agents: [] });
+   const up = ctx(`http://127.0.0.1:${(gateway.address() as { port: number }).port}/v1`);
+   try {
+     assert.deepEqual([await allowedModel(up, "gateway/claude-sonnet-5-5"), await allowedModel(up, "gateway/gpt-6.1-sol"), await allowedModel(up, "gateway/not-served")], [true, true, false]);
+@@ -95,3 +96,28 @@ test("any model the gateway serves may be used; one it does not serve is refused
+   const down = ctx("http://127.0.0.1:1/v1");
+   assert.deepEqual([await allowedModel(down, "gateway/gpt-6.1-terra"), await allowedModel(down, "gateway/claude-sonnet-5-5")], [true, false]);
+ });
++
++test("the definitions in loops/agents: five, sound, each on its side's model unless the run names another, and only a maker's tools write", async () => {
++  const root = join(import.meta.dirname, "../../../../.."), { agents, problems } = await loadDefinitions(root);
++  assert.deepEqual(problems, []);
++  assert.deepEqual(agents.map((a) => [a.name, a.side, a.model, a.shell, makes(a)]), [
++    ["adversary", "checker", CHECKER_MODEL, "read", false], ["builder", "maker", MAKER_MODEL, "write", true], ["diagnoser", "checker", CHECKER_MODEL, "read", false],
++    ["researcher", "maker", MAKER_MODEL, "read", false], ["reviewer", "checker", CHECKER_MODEL, "read", false],
++  ]);
++  const [builder, reviewer] = [agents.find((a) => a.name === "builder")!, agents.find((a) => a.name === "reviewer")!];
++  const ctx = (env: Record<string, string> = {}) => ({ root, env, now: () => new Date(), say: () => undefined, agents });
++  assert.deepEqual([modelOf(ctx(), DEFAULTS, builder), modelOf(ctx(), DEFAULTS, reviewer)], [`gateway/${MAKER_MODEL}`, `gateway/${CHECKER_MODEL}`]);
++  assert.deepEqual([modelOf(ctx({ LOOP_MODEL: "m" }), DEFAULTS, builder), modelOf(ctx({ LOOP_MODEL: "m", LOOP_CHECKER_MODEL: "c" }), DEFAULTS, reviewer)], ["gateway/m", "gateway/c"]);
++  const named = { ...DEFAULTS, model: "a/x", checkerModel: "b/y" };
++  assert.deepEqual([modelOf(ctx({ LOOP_MODEL: "m" }), named, builder), modelOf(ctx(), named, reviewer)], ["a/x", "b/y"]);   // a flag wins over the environment, and each side has its own
++  const profiles = profilesOf(agents);
++  assert.deepEqual(profiles["agent.builder"]!.tools, ["read", "write", "edit", "bash"]);
++  assert.deepEqual([profiles["agent.reviewer"]!.tools, profiles["agent.reviewer"]!.also, profiles["agent.reviewer"]!.bash], [["read", "bash"], ["record_terminal", "browser", "screenshot", "record_screen"], POLICY.bash.read]);
++  assert.match(builder.instructions, /^You make one Capxul task's evals pass\./);                    // the role file's body: its front matter is Claude Code's
++  assert.equal(systemOf(builder, root), builder.instructions);                                      // no skills: nothing is added
++  const skilled = { ...builder, skills: [{ name: "careful", description: "Check twice.", file: join(root, "loops/skills/careful/SKILL.md") }] };
++  assert.match(systemOf(skilled, root), /## Skills\n.*\n- careful: Check twice\. \(`loops\/skills\/careful\/SKILL\.md`\)$/);
++  assert.equal(lacks(builder, { kind: "none", env: {} }), undefined);
++  assert.equal(lacks({ ...builder, sandbox: "light" }, undefined), "the builder needs a light sandbox and this run has none: start the run with --sandbox light");
++  assert.equal(lacks({ ...builder, sandbox: "light" }, { kind: "heavy", env: {} }), undefined);
++});
+diff --git a/packages/loop/src/modules/capxul/internal/agents.ts b/packages/loop/src/modules/capxul/internal/agents.ts
+new file mode 100644
+index 0000000..33c512d
+--- /dev/null
++++ b/packages/loop/src/modules/capxul/internal/agents.ts
+@@ -0,0 +1,55 @@
++/**
++ * Agent definitions, as this repository's runs use them: where they are (`loops/agents/`), what a definition may name
++ * here (the tools, the shells, the sandboxes), and what each field comes to when an agent starts. The record and its
++ * loading are the definitions module's; this file only decides for Capxul.
++ */
++import { join, relative } from "node:path";
++import type { ProfileSpec } from "../../agents/service.ts";
++import { agentNamed, loadAgents, type Agent, type Loaded, type Vocabulary } from "../../definitions/service.ts";
++import { TOOL_NAMES } from "../../evidence/types.ts";
++import type { AgentRecord } from "../../inspect/types.ts";
++import type { Ctx, Opts, SandboxInfo } from "../types.ts";
++import { POLICY, qualify, SHELLS } from "./config.ts";
++
++/** Where the definitions are, from the repository's root: one file an agent, beside the scripts that use them. */
++export const FOLDER = "loops/agents";
++const CODING = ["read", "write", "edit", "bash"] as const;
++/** What a definition may name here. The capture tools are the evidence module's; the sandboxes go from the least to the most. */
++export const VOCABULARY: Vocabulary = { tools: [...CODING, ...TOOL_NAMES], shells: Object.keys(SHELLS), sandboxes: ["none", "light", "heavy"] };
++
++/** The definitions of the repository at `root`. `main.ts` loads them once and hands them in as `ctx.agents`. */
++export const loadDefinitions = (root: string): Promise<Loaded> => loadAgents(join(root, FOLDER), VOCABULARY);
++
++export const definitionOf = (ctx: Ctx, name: string): Agent | undefined => agentNamed(ctx.agents, name);
++export const namesOf = (ctx: Ctx): string => ctx.agents.map((a) => a.name).join(", ") || "none";
++
++/** The host's name for a definition's tools (`hostAs`): never one of the two profiles the host has anyway. */
++export const profileOf = (agent: Agent): string => `agent.${agent.name}`;
++
++/** Each definition as a profile of the host: its coding tools, what its bash may run, and the other tools it may call. */
++export const profilesOf = (agents: readonly Agent[]): Record<string, ProfileSpec> => Object.fromEntries(agents.map((a) => [profileOf(a), {
++  tools: CODING.filter((t) => a.tools.includes(t)), bash: SHELLS[a.shell]?.bash ?? [], also: (POLICY.tools ?? []).filter((t) => a.tools.includes(t)),
++}]));
++
++/** An agent that has `write` or `edit` makes: what it leaves in its lane is committed as its work. Any other only reads, and what its commands leave is undone. */
++export const makes = (agent: Agent): boolean => agent.tools.includes("write") || agent.tools.includes("edit");
++
++/** The model an agent of this run uses: the run's choice for its side (`--model`, `--checker-model`, then `LOOP_MODEL`, `LOOP_CHECKER_MODEL`), else its definition's. */
++export const modelOf = (ctx: Ctx, opts: Opts, agent: Agent): string =>
++  qualify((agent.side === "checker" ? opts.checkerModel ?? ctx.env.LOOP_CHECKER_MODEL : opts.model ?? ctx.env.LOOP_MODEL) ?? agent.model);
++
++/** Why this agent cannot work in this run's sandbox, or undefined when it can. */
++export const lacks = (agent: Agent, box: SandboxInfo | undefined): string | undefined => {
++  const has = box?.kind ?? "none", order = VOCABULARY.sandboxes;
++  return agent.sandbox && order.indexOf(has) < order.indexOf(agent.sandbox) ? `the ${agent.name} needs a ${agent.sandbox} sandbox and this run has ${has === "none" ? "none" : `a ${has} one`}: start the run with --sandbox ${agent.sandbox}` : undefined;
++};
++
++/** What the agent is told to be: its instructions, then its skills by name and description, each with the file to read when it uses one. */
++export const systemOf = (agent: Agent, root: string): string => agent.skills.length === 0 ? agent.instructions : [
++  agent.instructions, "", "## Skills", "When one of these fits what you are doing, read its file first and follow it.",
++  ...agent.skills.map((s) => `- ${s.name}: ${s.description} (\`${relative(root, s.file)}\`)`),
++].join("\n");
++
++/** The definition as the run records it when the agent starts (`loop.agent` in the ledger), for whoever looks at the run later. */
++export const recordOf = (agent: Agent): Record<string, string | string[]> =>
++  ({ name: agent.name, description: agent.description, tools: [...agent.tools], skills: agent.skills.map((s) => s.name), shell: agent.shell, ...(agent.sandbox ? { sandbox: agent.sandbox } : {}) }) satisfies AgentRecord;
+diff --git a/packages/loop/src/modules/capxul/internal/config.ts b/packages/loop/src/modules/capxul/internal/config.ts
+index d1137d0..e22a841 100644
+--- a/packages/loop/src/modules/capxul/internal/config.ts
++++ b/packages/loop/src/modules/capxul/internal/config.ts
+@@ -38,9 +38,16 @@ export const POLICY: Policy = {
+  */
+ export const RECORD: Readonly<Record<Profile, readonly RegExp[]>> = { write: POLICY.bash.write, read: [...RUNS, ...READS, FILES, CD] };
+ 
++/** What a shell may run, by the name an agent definition gives it (`shell`): `bash` for the tool, `record` for `record_terminal`. */
++export const SHELLS: Readonly<Record<string, { readonly bash: readonly RegExp[]; readonly record: readonly RegExp[] }>> = {
++  write: { bash: POLICY.bash.write, record: RECORD.write },
++  read: { bash: POLICY.bash.read, record: RECORD.read },
++};
++
+ /**
+  * The maker's and the checker's default models. The maker is gpt-6.1-sol and the checker gpt-6.1-terra, by Aaron's ruling (10 November
+- * 2026: Sol 6.1 for coding). Both are flags, and any model the gateway serves may be named.
++ * 2026: Sol 6.1 for coding). Both are flags, and any model the gateway serves may be named. An agent's own model is in
++ * its definition (`loops/agents/`); these two are what is allowed when the gateway cannot say what it serves.
+  */
+ export const MAKER_MODEL = "gpt-6.1-sol";
+ export const CHECKER_MODEL = "gpt-6.1-terra";
+diff --git a/packages/loop/src/modules/capxul/internal/evidence.ts b/packages/loop/src/modules/capxul/internal/evidence.ts
+index 6c84b5b..72eb3ca 100644
+--- a/packages/loop/src/modules/capxul/internal/evidence.ts
++++ b/packages/loop/src/modules/capxul/internal/evidence.ts
+@@ -8,7 +8,8 @@ import { git } from "../../lanes/service.ts";
+ import { capturesOf, evidenceTools, FOLDER, judge, nodeExec, toolingOf, type Capture, type Judged, type Tooling } from "../../evidence/service.ts";
+ import { refuseBash } from "../../agents/service.ts";
+ import type { Job } from "../types.ts";
+-import { RECORD } from "./config.ts";
++import type { Agent } from "../../definitions/service.ts";
++import { SHELLS } from "./config.ts";
+ 
+ export const evidenceDir = (job: Job): string => join(job.run.dir, FOLDER);
+ 
+@@ -25,16 +26,18 @@ export const toolingFor = (job: Job): Tooling => {
+ export const HOSTS: readonly string[] = ["127.0.0.1", "localhost", "*.localhost"];
+ 
+ /**
+- * The capture tools for one agent step. A maker records what its shell may run. A reader's shell only reads, so a reader
+- * may run the lane's checks and the product only through `record_terminal`: everything it executes is on camera.
++ * The capture tools for one agent step: those its definition lists, of those this machine can make. A maker records what
++ * its shell may run. A reader's shell only reads, so a reader may run the lane's checks and the product only through
++ * `record_terminal`: everything it executes is on camera.
+  */
+-export const kitFor = (job: Job, by: string, readOnly: boolean): ReturnType<typeof evidenceTools> => {
++export const kitFor = (job: Job, by: string, agent: Agent): ReturnType<typeof evidenceTools> => {
+   const cwd = job.lane!.dir, tooling = toolingFor(job);
+-  return evidenceTools({
++  const kit = evidenceTools({
+     dir: evidenceDir(job), by, cwd, env: job.env, now: job.ctx.now, exec: job.ctx.evidence?.exec ?? nodeExec, tooling,
+-    refuse: (command) => refuseBash(command, cwd, RECORD[readOnly ? "read" : "write"]),
++    refuse: (command) => refuseBash(command, cwd, SHELLS[agent.shell]?.record ?? []),
+     hosts: tooling.browser ? HOSTS : [],
+   });
++  return { tools: kit.tools.filter((t) => agent.tools.includes(t.name)), close: kit.close };
+ };
+ 
+ /** A reader changes nothing. What its recorded commands left in the lane is undone, and named. */
+diff --git a/packages/loop/src/modules/capxul/service.ts b/packages/loop/src/modules/capxul/service.ts
+index 6ed790d..dd67e91 100644
+--- a/packages/loop/src/modules/capxul/service.ts
++++ b/packages/loop/src/modules/capxul/service.ts
+@@ -5,12 +5,13 @@
+  * run's ledger, so a script replayed after a restart skips what is done.
+  */
+ import { execFileSync } from "node:child_process";
+-import { existsSync, readFileSync, statSync } from "node:fs";
++import { existsSync, statSync } from "node:fs";
+ import { join } from "node:path";
+-import { ask, lastJson, openHost, type Host } from "../agents/service.ts";
++import { ask, hostAs, lastJson, openHost, record, type Host } from "../agents/service.ts";
+ import { commitAll, ensureLane, git, head, laneBlocked, slug, type Lane } from "../lanes/service.ts";
+ import { acquire, alive, ledgerLines, listRuns, play, readInfo, SETTLED, stop as stopRun, table, watchRun, work as workLoop, type Info, type Run } from "../runs/service.ts";
+-import { allowedModel, defaultCheckerModel, defaultModel, gatewayOf, modelsOf, POLICY, qualify } from "./internal/config.ts";
++import { definitionOf, FOLDER as AGENTS, lacks, makes, modelOf, namesOf, profileOf, profilesOf, recordOf, systemOf } from "./internal/agents.ts";
++import { allowedModel, gatewayOf, modelsOf, POLICY } from "./internal/config.ts";
+ import { evidenceBrief, evidenceLines, kitFor, restore } from "./internal/evidence.ts";
+ import { FOLDER as EVIDENCE } from "../evidence/service.ts";
+ import { serve as serveHost, type Served } from "../host/service.ts";
+@@ -26,9 +27,9 @@ import type { Check, Ctx, Finding, Gate, Handback, Job, Opts, SandboxInfo, Said,
+ export type * from "./types.ts";
+ export { gatesOf } from "./internal/gates.ts";
+ export { POLICY } from "./internal/config.ts";
++export { loadDefinitions, VOCABULARY } from "./internal/agents.ts";
+ 
+ export const DEFAULTS: Opts = { script: "pair", sandbox: "none", rounds: 3, budgetUsd: 5, timeoutMin: 30 };
+-const CHECKER_ROLES = new Set(["reviewer", "adversary", "diagnoser"]);
+ /** How many agents may work at once across every run of this checkout (`LOOP_MAX_AGENTS`, default 3: what the gateway has carried). */
+ const maxAgents = (ctx: Ctx): number => Math.max(1, Number(ctx.env.LOOP_MAX_AGENTS) || 3);
+ /** How long the loop waits for a failing gateway before it continues an agent, after pi's own retries of the request. */
+@@ -56,33 +57,38 @@ export const sandbox = async (job: Job): Promise<SandboxInfo> => {
+ };
+ 
+ const boxLine = (box: SandboxInfo): string => box.kind === "none" ? "" : `A ${box.kind} sandbox is running for you: ${Object.entries(box.env).map(([k, v]) => `${k}=${v}`).join(" ")} (these are set in your shell)`;
+-const roleBody = (job: Job, role: string): string => {
+-  const m = /^---\n[\s\S]*?\n---\n([\s\S]*)$/.exec(readFileSync(join(job.ctx.root, ".claude/agents", `${role}.md`), "utf8"));
+-  return (m?.[1] ?? "").trim();
+-};
+ 
+ /** The maker's brief for round `round`: the task, the open findings, the last handover, the sandbox (swarm-templates.md 2.1). */
+ export const makerPrompt = (job: Job, round: number, open: Finding[], last?: Handback): string =>
+   renderMaker({ task: job.task, round, budgetUsd: job.opts.budgetUsd, spentUsd: job.run.info.spentUsd, spentTokens: job.run.info.tokens, branch: job.lane!.branch, sandbox: boxLine(job.box!), open, ...(last?.handover ? { handover: last.handover } : {}) }, gatesFor(job.ctx, job.lane!.dir, job.task).map((g) => g.sh), findingsOf(job.lane!.dir), evidenceBrief(job, false));
+ 
+-/** One agent (pi-durable conversation, the role's definition as its system prompt, tools confined to the lane) as one step. Its work is committed after. */
+-export const agent = (job: Job, name: string, o: { role: string; prompt: string; readOnly?: boolean }): Promise<Said> => job.run.step(name, async () => {
++/**
++ * One agent as one step: a pi-durable conversation that is what the definition named `role` says (`loops/agents/`): its
++ * instructions, its model, its tools and no others, confined to the lane. What a maker leaves is committed after; what a
++ * reader leaves is undone.
++ */
++export const agent = (job: Job, name: string, o: { role: string; prompt: string }): Promise<Said> => job.run.step(name, async () => {
+   const wt = job.lane!, left = job.opts.budgetUsd - job.run.info.spentUsd;
+-  if (left <= 0 && job.run.info.spentUsd > 0) return { ok: false, text: "", costUsd: 0, tokens: 0, head: head(wt.dir), error: `the budget of $${job.opts.budgetUsd} is spent` };
+-  const maker = job.opts.model ? qualify(job.opts.model) : defaultModel(job.ctx);
+-  const model = qualify(CHECKER_ROLES.has(o.role) ? job.opts.checkerModel ?? defaultCheckerModel(job.ctx) : maker);
+-  if (!(await allowedModel(job.ctx, model))) return { ok: false, text: "", costUsd: 0, tokens: 0, head: head(wt.dir), error: `the model ${model} is not one the gateway serves; \`curl ${gatewayOf(job.ctx).baseUrl}/models\` lists them` };
++  const none = (error: string): Said => ({ ok: false, text: "", costUsd: 0, tokens: 0, head: head(wt.dir), error });
++  if (left <= 0 && job.run.info.spentUsd > 0) return none(`the budget of $${job.opts.budgetUsd} is spent`);
++  const def = definitionOf(job.ctx, o.role), host = def && hostAs(job.run.host, profileOf(def));
++  if (!def || !host) return none(`there is no agent named ${o.role}: ${AGENTS} defines ${namesOf(job.ctx)}`);
++  const short = lacks(def, job.box);
++  if (short) return none(short);
++  const model = modelOf(job.ctx, job.opts, def), reads = !makes(def);
++  if (!(await allowedModel(job.ctx, model))) return none(`the model ${model} is not one the gateway serves; \`curl ${gatewayOf(job.ctx).baseUrl}/models\` lists them`);
+   // The gateway carries only so many agents at once: an agent takes a slot shared by every run and process of this checkout, and waits for one.
+   const release = await acquire(join(runsDir(job.ctx), ".agents"), maxAgents(job.ctx), { stopped: () => existsSync(job.run.stopFile), waiting: () => job.ctx.say(`${name} waits: ${maxAgents(job.ctx)} agents are already working`), ...(job.ctx.retry ? { pollMs: 20 } : {}) });
+-  const kit = kitFor(job, name, o.readOnly ?? false);                 // the capture tools: what this agent shows is made by them
+-  const said = await ask(job.run.host, {
+-    key: name, model, system: roleBody(job, o.role), prompt: o.prompt, cwd: wt.dir, tools: kit.tools,
+-    profile: o.readOnly ? "read" : "write", maxTurns: 80, timeoutMs: job.opts.timeoutMin * 60_000, stopFile: job.run.stopFile, modelWaitsMs: job.ctx.retry?.waitsMs ?? MODEL_WAITS_MS,
++  const kit = kitFor(job, name, def);                                 // the capture tools: what this agent shows is made by them
++  await record(job.run.host, "loop.agent", name, { definition: recordOf(def) });       // the definition it runs under, for whoever looks at the run
++  const said = await ask(host, {                                       // `host` hands out the definition's tools, whichever profile is named
++    key: name, model, system: systemOf(def, job.ctx.root), prompt: o.prompt, cwd: wt.dir, tools: kit.tools,
++    profile: "read", maxTurns: 80, timeoutMs: job.opts.timeoutMin * 60_000, stopFile: job.run.stopFile, modelWaitsMs: job.ctx.retry?.waitsMs ?? MODEL_WAITS_MS,
+   }).finally(() => { release(); return kit.close(); });
+-  if (o.readOnly) { const undone = restore(wt.dir); if (undone.length > 0) job.ctx.say(`${name} left ${undone.length} change(s) in the lane; they are undone`); }
++  if (reads) { const undone = restore(wt.dir); if (undone.length > 0) job.ctx.say(`${name} left ${undone.length} change(s) in the lane; they are undone`); }
+   // A model that never answered is not a hand-back and not a review: the run fails here, with the gateway's words, and no round is spent on it.
+   if (!said.ok && /^unanswered: (model_error|no_model|interrupted)/.test(said.error ?? "")) throw new Error(`${name}: the model did not answer (${said.error!.replace("unanswered: ", "").replace("_", " ")}), after waiting for it ${(job.ctx.retry?.waitsMs ?? MODEL_WAITS_MS).length} times. ${modelSaid(said.detail)}`);
+-  return { ...said, head: o.readOnly ? head(wt.dir) : commitAll(wt.dir, `loop: ${name}`) } as unknown as Said;
++  return { ...said, head: reads ? head(wt.dir) : commitAll(wt.dir, `loop: ${name}`) } as unknown as Said;
+ });
+ 
+ /** What the maker handed back (swarm-templates.md section 3), or nothing if its last message was not one. */
+@@ -99,12 +105,13 @@ export interface ReviewSpec { role: string; round: number; made: Said; gates: Ga
+ 
+ /** A checker with a fresh context and read-only tools reviews the diff and returns the Check of swarm-templates.md 4.1. */
+ export const review = (job: Job, name: string, o: ReviewSpec): Promise<Check> => job.run.step(name, async () => {
+-  const wt = job.lane!, to = o.made.head;
++  const wt = job.lane!, to = o.made.head, def = definitionOf(job.ctx, o.role);
++  if (def && makes(def)) return { verdict: "changes", fixed: [], findings: [{ severity: "blocking", text: `The ${o.role} cannot check: its definition has write or edit, and a checker changes nothing.` }] } as unknown as Check;
+   const input: CheckInput = {
+     task: job.task, role: o.role, round: o.round, version: to, from: o.from ?? git(wt.dir, "merge-base", wt.base, to), open: o.open, branch: wt.branch,
+     note: handback(o.made)?.submit?.note ?? "", shown: evidenceLines(job, `make.${o.round}`, o.made.json ?? lastJson(o.made.text)), evidence: evidenceBrief(job, true), machine: o.gates.map((g) => `- ${g.ok ? "pass" : "FAIL"} ${g.name}${g.ok ? "" : `\n${g.tail}`}`).join("\n"),
+   };
+-  const said = await agent(job, `${name}.agent`, { role: o.role, prompt: checkerPrompt(input), readOnly: true });
++  const said = await agent(job, `${name}.agent`, { role: o.role, prompt: checkerPrompt(input) });
+   const c = said.json as Check | undefined;
+   if (!said.ok || !c || !Array.isArray(c.findings)) {
+     return { verdict: "changes", fixed: [], findings: [{ severity: "blocking", text: `The ${o.role} returned no check (${said.error ?? "its last message was not the json block"}).` }] } as unknown as Check;
+@@ -157,7 +164,7 @@ const loadScript = async (ctx: Ctx, name: string): Promise<Script> => {
+ };
+ 
+ const open = (ctx: Ctx, dir: string, env: Record<string, string>, readOnly = false, wanted: string[] = []): Promise<Host> =>
+-  openHost({ file: join(dir, "run.sqlite"), models: modelsOf(ctx, wanted), env, policy: POLICY, readOnly, ...(ctx.retry ? { retry: { maxRetries: ctx.retry.maxRetries, baseDelayMs: ctx.retry.baseDelayMs } } : {}) });
++  openHost({ file: join(dir, "run.sqlite"), models: modelsOf(ctx, [...wanted, ...ctx.agents.map((a) => a.model)]), env, policy: POLICY, profiles: profilesOf(ctx.agents), readOnly, ...(ctx.retry ? { retry: { maxRetries: ctx.retry.maxRetries, baseDelayMs: ctx.retry.baseDelayMs } } : {}) });
+ 
+ const playJob = (ctx: Ctx, id: string, task: Task, opts: Opts, script?: Script): Promise<Info> => {
+   const dir = join(runsDir(ctx), id), env: Record<string, string> = cleanEnv(ctx);
+diff --git a/packages/loop/src/modules/capxul/types.ts b/packages/loop/src/modules/capxul/types.ts
+index fabaaf3..6e66907 100644
+--- a/packages/loop/src/modules/capxul/types.ts
++++ b/packages/loop/src/modules/capxul/types.ts
+@@ -4,6 +4,7 @@
+  * reaches the repository through commands and files, never through imports.
+  */
+ import type { Models } from "@earendil-works/pi-ai";
++import type { Agent } from "../definitions/types.ts";
+ import type { Evidence, Exec, Tooling } from "../evidence/types.ts";
+ import type { Lane } from "../lanes/service.ts";
+ import type { Run } from "../runs/service.ts";
+@@ -30,6 +31,8 @@ export interface Ctx {
+   readonly env: Readonly<Record<string, string | undefined>>;
+   readonly now: () => Date;
+   readonly say: (line: string) => void;
++  /** The agents a script may ask for, by name: the definitions in `loops/agents/`, loaded by `main.ts` (`loadDefinitions`). */
++  readonly agents: readonly Agent[];
+   /** Tests hand in a fake provider's models. */
+   readonly models?: Models;
+   /** Tests hand in short waits; absent, pi retries a request 3 times and the loop then waits 20 s, 60 s and 3 min for the gateway. */
+diff --git a/packages/loop/src/modules/definitions/definitions.test.ts b/packages/loop/src/modules/definitions/definitions.test.ts
+new file mode 100644
+index 0000000..0209b4f
+--- /dev/null
++++ b/packages/loop/src/modules/definitions/definitions.test.ts
+@@ -0,0 +1,50 @@
++import assert from "node:assert/strict";
++import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
++import { tmpdir } from "node:os";
++import { join } from "node:path";
++import { test } from "node:test";
++import { agentNamed, defineAgent, loadAgents, resolveAgent, type AgentDefinition, type Vocabulary } from "./service.ts";
++
++const KNOWN: Vocabulary = { tools: ["read", "write", "bash"], shells: ["write", "read"], sandboxes: ["none", "light"] };
++const SOUND: AgentDefinition = { name: "maker", description: "Makes a thing.", model: "m-1", instructions: "./maker.md", tools: ["read", "write", "bash"], shell: "write" };
++
++/** A folder of definitions as a person would keep it: a file an agent, the instructions and a skill beside them. */
++const folder = (files: Record<string, unknown>): string => {
++  const dir = mkdtempSync(join(tmpdir(), "loop-definitions-"));
++  mkdirSync(join(dir, "skills/careful"), { recursive: true });
++  writeFileSync(join(dir, "maker.md"), "---\nname: maker\ntools: Read\n---\n\nYou make one thing.\n\nThen you stop.\n");
++  writeFileSync(join(dir, "skills/careful/SKILL.md"), "---\ndescription: \"Check twice before you write.\"\n---\n\nThe long text an agent reads when it uses the skill.\n");
++  writeFileSync(join(dir, "skills/unsaid.md"), "No front matter here.\n");
++  for (const [name, d] of Object.entries(files)) writeFileSync(join(dir, name), typeof d === "string" ? d : `export default ${JSON.stringify(d)};\n`);
++  return dir;
++};
++
++test("a folder of definitions is loaded: each file's default export, its paths followed from the file, its defaults filled in", async () => {
++  const dir = folder({ "maker.ts": { ...SOUND, skills: ["./skills/careful/SKILL.md"], sandbox: "light" }, "looker.ts": { ...SOUND, name: "looker", side: "checker", tools: ["read"], shell: "read" } });
++  const { agents, problems } = await loadAgents(dir, KNOWN);
++  assert.deepEqual(problems, []);
++  assert.deepEqual(agents.map((a) => a.name), ["looker", "maker"]);
++  const maker = agentNamed(agents, "maker")!;
++  assert.equal(maker.instructions, "You make one thing.\n\nThen you stop.");          // the front matter is another reader's
++  assert.deepEqual(maker.skills, [{ name: "careful", description: "Check twice before you write.", file: join(dir, "skills/careful/SKILL.md") }]);
++  assert.deepEqual([maker.side, maker.sandbox, maker.file], ["maker", "light", join(dir, "maker.ts")]);
++  assert.equal(agentNamed(agents, "looker")!.side, "checker");
++  assert.equal(agentNamed(agents, "nobody"), undefined);
++  assert.deepEqual(await loadAgents(join(dir, "not-there"), KNOWN), { agents: [], problems: [] });
++  assert.equal(defineAgent(SOUND), SOUND);                                             // a definition is the data it was written as
++});
++
++test("a definition that is not sound is a problem that says which and why, and that agent is left out", async () => {
++  const dir = folder({
++    "a-twin.ts": SOUND, "maker.ts": SOUND, "broken.ts": "throw new Error('no such thing');\n", "empty.ts": "export const other = 1;\n",
++    "wrong.ts": { name: "Wrong One", model: "", instructions: "./gone.md", tools: ["read", "fly", "read"], shell: "root", side: "both", sandbox: "heavy", skills: ["./skills/unsaid.md", "./skills/gone.md"] },
++  });
++  const { agents, problems } = await loadAgents(dir, KNOWN), said = problems.join("\n");
++  assert.deepEqual(agents.map((a) => [a.name, a.file]), [["maker", join(dir, "a-twin.ts")]]);
++  for (const why of [
++    /maker \(.*maker\.ts\): .*a-twin\.ts already defines an agent of that name/, /broken\.ts: it cannot be loaded: no such thing/, /empty\.ts: its default export is not a definition/,
++    /wrong\.ts\): a definition's name is lower-case letters, digits and dashes/, /it has no description/, /it names no model/, /its side is maker or checker/, /there is no tool named fly: the tools are read, write, bash/,
++    /it lists a tool twice/, /its shell is one of write, read/, /its sandbox is one of none, light/, /its instructions are not at .*gone\.md/, /the skill at .*unsaid\.md has no description/, /its skill is not at .*skills\/gone\.md/,
++  ]) assert.match(said, why);
++  assert.deepEqual(resolveAgent({ ...SOUND, tools: [] }, join(dir, "x.ts"), KNOWN).problems, [`maker (${join(dir, "x.ts")}): it lists no tools`]);
++});
+diff --git a/packages/loop/src/modules/definitions/internal/read.ts b/packages/loop/src/modules/definitions/internal/read.ts
+new file mode 100644
+index 0000000..5e37476
+--- /dev/null
++++ b/packages/loop/src/modules/definitions/internal/read.ts
+@@ -0,0 +1,33 @@
++/** Reading the files a definition points at: its instructions and its skills. A file that is not there is a problem, as a value. */
++import { existsSync, readFileSync } from "node:fs";
++import { basename, dirname, resolve } from "node:path";
++import type { Skill } from "../types.ts";
++
++const FRONT = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/;
++
++/** A markdown file as its front matter's lines and its body. No front matter: the whole text is the body. */
++const parts = (text: string): { front: string; body: string } => {
++  const m = FRONT.exec(text);
++  return m ? { front: m[1]!, body: m[2]! } : { front: "", body: text };
++};
++
++const field = (front: string, key: string): string => new RegExp(`^${key}:[ \\t]*(.*)$`, "m").exec(front)?.[1]?.trim().replace(/^(['"])(.*)\1$/, "$2") ?? "";
++
++export type Read<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly why: string };
++
++/** The instructions at `path` (relative to the definition's file): the body, without its front matter. */
++export const instructionsAt = (from: string, path: string): Read<string> => {
++  const file = resolve(dirname(from), path);
++  if (!existsSync(file)) return { ok: false, why: `its instructions are not at ${file}` };
++  const body = parts(readFileSync(file, "utf8")).body.trim();
++  return body === "" ? { ok: false, why: `its instructions at ${file} are empty` } : { ok: true, value: body };
++};
++
++/** The skill at `path`: its name (the front matter's, or its folder's) and its description, which it must have. */
++export const skillAt = (from: string, path: string): Read<Skill> => {
++  const file = resolve(dirname(from), path);
++  if (!existsSync(file)) return { ok: false, why: `its skill is not at ${file}` };
++  const front = parts(readFileSync(file, "utf8")).front, description = field(front, "description");
++  if (description === "") return { ok: false, why: `the skill at ${file} has no description in its front matter: an agent is told a skill by its description` };
++  return { ok: true, value: { name: field(front, "name") || basename(dirname(file)), description, file } };
++};
+diff --git a/packages/loop/src/modules/definitions/service.ts b/packages/loop/src/modules/definitions/service.ts
+new file mode 100644
+index 0000000..2c60bbd
+--- /dev/null
++++ b/packages/loop/src/modules/definitions/service.ts
+@@ -0,0 +1,69 @@
++/**
++ * GENERIC. The door of the definitions module: write a definition (`defineAgent`), load a folder of them (`loadAgents`),
++ * find one by name. See types.ts.
++ */
++import { existsSync, readdirSync } from "node:fs";
++import { join } from "node:path";
++import { pathToFileURL } from "node:url";
++import { instructionsAt, skillAt } from "./internal/read.ts";
++import type { Agent, AgentDefinition, Loaded, Skill, Vocabulary } from "./types.ts";
++
++export type * from "./types.ts";
++
++/** A definition, as its file's default export. It changes nothing: it is here so the file is checked as it is written. */
++export const defineAgent = (definition: AgentDefinition): AgentDefinition => definition;
++
++const NAME = /^[a-z][a-z0-9-]*$/;
++const strings = (v: unknown): v is readonly string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
++
++/** One definition from `file`, with its paths followed, or why it is not sound. Pure but for reading the files it names. */
++export const resolveAgent = (raw: unknown, file: string, known: Vocabulary): { agent?: Agent; problems: string[] } => {
++  if (!raw || typeof raw !== "object") return { problems: [`${file}: its default export is not a definition (\`export default defineAgent({ ... })\`)`] };
++  const d = raw as Partial<Record<keyof AgentDefinition, unknown>>;
++  const name = typeof d.name === "string" ? d.name : "", at = name ? `${name} (${file})` : file, problems: string[] = [];
++  const bad = (why: string): void => { problems.push(`${at}: ${why}`); };
++  if (!NAME.test(name)) bad("a definition's name is lower-case letters, digits and dashes");
++  if (typeof d.description !== "string" || d.description.trim() === "") bad("it has no description");
++  if (typeof d.model !== "string" || d.model.trim() === "") bad("it names no model");
++  if (d.side !== undefined && d.side !== "maker" && d.side !== "checker") bad("its side is maker or checker");
++  const tools = strings(d.tools) ? d.tools : [];
++  if (!strings(d.tools) || tools.length === 0) bad("it lists no tools");
++  for (const t of tools.filter((t) => !known.tools.includes(t))) bad(`there is no tool named ${t}: the tools are ${known.tools.join(", ")}`);
++  if (new Set(tools).size !== tools.length) bad("it lists a tool twice");
++  if (typeof d.shell !== "string" || !known.shells.includes(d.shell)) bad(`its shell is one of ${known.shells.join(", ")}`);
++  if (d.sandbox !== undefined && (typeof d.sandbox !== "string" || !known.sandboxes.includes(d.sandbox))) bad(`its sandbox is one of ${known.sandboxes.join(", ")}`);
++  if (d.skills !== undefined && !strings(d.skills)) bad("its skills are a list of paths");
++  const text = typeof d.instructions === "string" ? instructionsAt(file, d.instructions) : { ok: false as const, why: "it names no instructions file" };
++  if (!text.ok) bad(text.why);
++  const skills: Skill[] = [];
++  for (const path of strings(d.skills) ? d.skills : []) { const s = skillAt(file, path); if (s.ok) skills.push(s.value); else bad(s.why); }
++  if (new Set(skills.map((s) => s.name)).size !== skills.length) bad("two of its skills have the same name");
++  if (problems.length > 0 || !text.ok) return { problems };
++  return { problems, agent: {
++    name, description: (d.description as string).trim(), model: (d.model as string).trim(), side: d.side === "checker" ? "checker" : "maker",
++    instructions: text.value, tools, shell: d.shell as string, skills, ...(typeof d.sandbox === "string" ? { sandbox: d.sandbox } : {}), file,
++  } };
++};
++
++/**
++ * Every definition in `dir`: each `.ts` file's default export. A folder that is not there holds none. A file that
++ * cannot be imported, a definition that is not sound and a name used twice are problems, and those agents are left out.
++ */
++export const loadAgents = async (dir: string, known: Vocabulary): Promise<Loaded> => {
++  const files = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts")).sort().map((f) => join(dir, f)) : [];
++  const agents: Agent[] = [], problems: string[] = [];
++  for (const file of files) {
++    let raw: unknown;
++    try { raw = ((await import(pathToFileURL(file).href)) as { default?: unknown }).default; }
++    catch (cause) { problems.push(`${file}: it cannot be loaded: ${cause instanceof Error ? cause.message.split("\n")[0] : String(cause)}`); continue; }
++    const got = resolveAgent(raw, file, known);
++    problems.push(...got.problems);
++    if (!got.agent) continue;
++    const twin = agents.find((a) => a.name === got.agent!.name);
++    if (twin) problems.push(`${got.agent.name} (${file}): ${twin.file} already defines an agent of that name`);
++    else agents.push(got.agent);
++  }
++  return { agents, problems };
++};
++
++export const agentNamed = (agents: readonly Agent[], name: string): Agent | undefined => agents.find((a) => a.name === name);
+diff --git a/packages/loop/src/modules/definitions/types.ts b/packages/loop/src/modules/definitions/types.ts
+new file mode 100644
+index 0000000..e8b0cf9
+--- /dev/null
++++ b/packages/loop/src/modules/definitions/types.ts
+@@ -0,0 +1,65 @@
++/**
++ * GENERIC. An agent as a record. One definition says everything about one agent: its name, its model, its standing
++ * instructions, the tools it is handed, what its shell may run, its skills and the sandbox it needs. A definition is
++ * plain data (no functions, no patterns), so a run can record the one an agent ran under, a page can show it, and a
++ * screen can write one.
++ *
++ * Nothing here knows which tools, shells or sandboxes exist: the caller says (`Vocabulary`), and a definition that names
++ * something else is a problem, found when it is loaded and never when an agent is half-way through its work.
++ */
++
++/** What a person writes, in a file of its own (`defineAgent`). Paths are relative to that file. */
++export interface AgentDefinition {
++  /** Lower-case letters, digits and dashes. A script asks for the agent by this name. */
++  readonly name: string;
++  /** One line a roster can show: what this agent is for. */
++  readonly description: string;
++  /** The model it uses when the run names no other for its side: a gateway's id (`gpt-6.1-sol`) or `provider/id`. */
++  readonly model: string;
++  /**
++   * Which of a run's two model choices replaces `model`: the maker's or the checker's. A run keeps the two apart so a
++   * review is on a different model from the work it reviews. Absent: the maker's.
++   */
++  readonly side?: Side;
++  /** Its standing instructions: a markdown file. A front matter block at its top is dropped. */
++  readonly instructions: string;
++  /** The tools it is handed, by name, and no others: a tool that is not listed is refused when it is called. */
++  readonly tools: readonly string[];
++  /** What its shell may run (bash, and a command it records): the name of one of the caller's lists. */
++  readonly shell: string;
++  /** Its skills: each a `SKILL.md`. The agent is told each one's name and description and reads the file when it uses it. */
++  readonly skills?: readonly string[];
++  /** The least sandbox it needs, by the caller's name for it. Absent: it needs none. */
++  readonly sandbox?: string;
++}
++
++export type Side = "maker" | "checker";
++
++/** A skill as an agent is told of it. The body stays in its file. */
++export interface Skill { readonly name: string; readonly description: string; readonly file: string }
++
++/** A definition after it was loaded: every path followed, every default filled in. */
++export interface Agent {
++  readonly name: string;
++  readonly description: string;
++  readonly model: string;
++  readonly side: Side;
++  /** The instructions' text. */
++  readonly instructions: string;
++  readonly tools: readonly string[];
++  readonly shell: string;
++  readonly skills: readonly Skill[];
++  readonly sandbox?: string;
++  /** The definition's own file. */
++  readonly file: string;
++}
++
++/** What a caller can hand out, by name. A definition may name only these. `sandboxes` goes from the least to the most. */
++export interface Vocabulary {
++  readonly tools: readonly string[];
++  readonly shells: readonly string[];
++  readonly sandboxes: readonly string[];
++}
++
++/** What loading a folder found: the agents that are sound, and why each of the others is not. */
++export interface Loaded { readonly agents: readonly Agent[]; readonly problems: readonly string[] }
+diff --git a/packages/loop/src/modules/inspect/internal/detail.ts b/packages/loop/src/modules/inspect/internal/detail.ts
+index 7de0e61..350c1b7 100644
+--- a/packages/loop/src/modules/inspect/internal/detail.ts
++++ b/packages/loop/src/modules/inspect/internal/detail.ts
+@@ -8,7 +8,7 @@ import { judge, type Capture, type Judged } from "../../evidence/service.ts";
+ import { AssistantEntry, type EntryRecord } from "@earendil-works/pi-durable";
+ import { entriesOf, type Host } from "../../agents/service.ts";
+ import type { Info } from "../../runs/types.ts";
+-import type { AgentSession, Changes, Entry, RunDetail, StepRecord } from "../types.ts";
++import type { AgentRecord, AgentSession, Changes, Entry, RunDetail, StepRecord } from "../types.ts";
+ import { scrubText } from "./scrub.ts";
+ 
+ export const CAPS = { prompt: 9000, reply: 9000, output: 2200, argument: 1600, tail: 1400, instructions: 7000, diff: 14_000 } as const;
+@@ -36,7 +36,7 @@ const allEntries = async (host: Host, id: number): Promise<readonly EntryRecord[
+   return out;
+ };
+ 
+-const sessionOf = async (host: Host, key: string, id: number, clean: Clean): Promise<AgentSession> => {
++const sessionOf = async (host: Host, key: string, id: number, clean: Clean, definition?: AgentRecord): Promise<AgentSession> => {
+   const conv = await host.harness.conversation(id as never, host.context);
+   const items = await allEntries(host, id);
+   const view = conv ? await conv.watch(host.context) : undefined;
+@@ -69,13 +69,22 @@ const sessionOf = async (host: Host, key: string, id: number, clean: Clean): Pro
+     } else if (m.role === "user") entries.push({ id, role: "user", at, text: clean(textOf(m.content), CAPS.prompt), note: e.kind !== "pi.user" });
+   }
+   return {
+-    key, role: roleOf(key), model: agent?.model?.modelId ?? null, tools: agent?.tools ?? [], instructions: clean(instructions, CAPS.instructions),
++    key, role: definition?.name ?? roleOf(key), model: agent?.model?.modelId ?? null, tools: agent?.tools ?? [], instructions: clean(instructions, CAPS.instructions),
++    ...(definition ? { definition, skills: definition.skills } : {}),
+     state: live?.run !== undefined ? "working" : live?.runFailure ? "failed" : "done",
+     failure: live?.runFailure ? { reason: live.runFailure.reason ?? "", detail: clean(String(live.runFailure.detail ?? ""), 500) } : null,
+     startedAt: first || null, endedAt: last || null, usage, messages: entries,
+   };
+ };
+ 
++/** The definition the agent of step `key` ran under: the run's own record of it (`loop.agent`), read as data. */
++const definitionOf = (ledger: readonly EntryRecord[], key: string, clean: Clean): AgentRecord | undefined => {
++  const d = ledger.find((e) => e.kind === "loop.agent" && (e.data as { name?: unknown } | undefined)?.name === key)?.data as { definition?: Partial<Record<keyof AgentRecord, unknown>> } | undefined;
++  const r = d?.definition, list = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
++  if (!r || typeof r.name !== "string") return undefined;
++  return { name: r.name, description: clean(String(r.description ?? ""), 400), tools: list(r.tools), skills: list(r.skills), shell: String(r.shell ?? ""), ...(typeof r.sandbox === "string" ? { sandbox: r.sandbox } : {}) };
++};
++
+ const stepsOf = (ledger: readonly EntryRecord[], clean: Clean, changes: (commit: string) => Changes | null, claims: (by: string, json: unknown) => Judged[]): StepRecord[] => {
+   const steps: StepRecord[] = [];
+   const at = (name: string): StepRecord => steps.find((s) => s.name === name) ?? (steps.push({ name, state: "running" }), steps.at(-1)!);
+@@ -118,7 +127,7 @@ export const detailOf = async (host: Host, info: Info, secrets: readonly string[
+     status: info.status, round: info.round, rounds: typeof opts.rounds === "number" ? opts.rounds : null, startedAt: info.startedAt, endedAt: info.endedAt ?? null, updatedAt: info.updatedAt,
+     tokens: info.tokens, branch: lane.branch ?? null, base: lane.base ?? null, reasons: info.reasons.map((r) => clean(r, 600)), error: info.error ? clean(info.error, 600) : null, step: info.step,
+     steps: stepsOf(ledger, clean, changes, (by, json) => judge((json as { evidence?: unknown } | null)?.evidence, captures, { by, evals: task.evals ?? [] })),
+-    agents: await Promise.all(named.map((d) => sessionOf(host, d.name!, d.id!, clean))),
++    agents: await Promise.all(named.map((d) => sessionOf(host, d.name!, d.id!, clean, definitionOf(ledger, d.name!, clean)))),
+     captures: captures.map((c) => ("command" in c.source ? { ...c, source: { ...c.source, command: clean(c.source.command, 600) } } : c)),
+   };
+ };
+diff --git a/packages/loop/src/modules/inspect/service.ts b/packages/loop/src/modules/inspect/service.ts
+index 6dc33d0..d069a26 100644
+--- a/packages/loop/src/modules/inspect/service.ts
++++ b/packages/loop/src/modules/inspect/service.ts
+@@ -18,7 +18,7 @@ import { CAP, WHY_CAP, type EventLine, type RunDetail, type RunStatus, type RunV
+ const _statuses: [Exclude<RunStatus, "dead">] extends [Info["status"]] ? ([Info["status"]] extends [Exclude<RunStatus, "dead">] ? true : never) : never = true;
+ void _statuses;
+ 
+-export type { AgentSession, Call, Changes, Entry, EventLine, RunDetail, RunStatus, RunView, StepRecord } from "./types.ts";
++export type { AgentRecord, AgentSession, Call, Changes, Entry, EventLine, RunDetail, RunStatus, RunView, StepRecord } from "./types.ts";
+ 
+ /** What a view is made from: the runs' folder, how to open one run's storage read-only, the clock, the environment (only its secrets are looked at). */
+ export interface Look {
+diff --git a/packages/loop/src/modules/inspect/types.ts b/packages/loop/src/modules/inspect/types.ts
+index 3571cfa..fa76587 100644
+--- a/packages/loop/src/modules/inspect/types.ts
++++ b/packages/loop/src/modules/inspect/types.ts
+@@ -70,15 +70,30 @@ export interface Entry {
+   readonly refused?: boolean;
+   readonly durationMs?: number | null;
+ }
++/** An agent definition as a run records it: what the agent was, by name, when it started. The instructions are the session's own. */
++export interface AgentRecord {
++  readonly name: string;
++  readonly description: string;
++  /** The tools the definition lists. */
++  readonly tools: readonly string[];
++  readonly skills: readonly string[];
++  /** What its shell may run, by the name of the list. */
++  readonly shell: string;
++  /** The least sandbox it needs, when it needs one. */
++  readonly sandbox?: string;
++}
+ export interface AgentUsage { turns: number; tools: Record<string, number>; refused: number; errors: number; tokensIn: number; tokensOut: number }
+ /** An agent's durable conversation in a run, addressed as run plus `key` (`make.1`, `reviewer.1.agent`). */
+ export interface AgentSession {
+   readonly key: string;
+   readonly role: string;
+   readonly model: string | null;
++  /** The tools it was handed: its definition's, less those this machine could not make. */
+   readonly tools: readonly string[];
+-  /** The skills attached to this agent, by name. None today: they come with agent definitions (docs/design/workflow-dx.md). */
++  /** The skills of its definition, by name. */
+   readonly skills?: readonly string[];
++  /** The definition it ran under, as the run recorded it when the agent started. Absent on a run older than definitions. */
++  readonly definition?: AgentRecord;
+   readonly instructions: string;
+   readonly state: "working" | "failed" | "done";
+   readonly failure: { readonly reason: string; readonly detail: string } | null;

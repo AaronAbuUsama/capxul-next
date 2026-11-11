@@ -1156,14 +1156,15 @@
       "title": "An agent is a record: the loop reads agent definitions, and the Runs app lists them",
       "why": "Aaron, 10 Nov: create agents in the UI, code mode, PostHog MCP, enrichment agents; all need an agent as a record. The agents-rollup session's first slice",
       "milestone": "m1",
-      "state": "todo",
+      "state": "dropped",
       "needs": [
         "m1-loop-watched-run"
       ],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-11",
+      "droppedWhy": "its patch was in var/stranded, which a lane cannot read; replaced by m1-agent-records with the patch in archive/stranded"
     },
     {
       "id": "m1-gaps-unproduced-errors",
@@ -1252,6 +1253,42 @@
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "m1-gaps-dev-stand-11110802"
+    },
+    {
+      "id": "m1-agent-records",
+      "title": "An agent is a record: the loop reads agent definitions, and the Runs app lists them",
+      "why": "Aaron, 10 Nov: agents in the UI, code mode, PostHog MCP, enrichment agents all need an agent as a record",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "m1-loop-decision",
+      "title": "The book records how the build runs: the loop, its lanes, its merge gate and its gateway",
+      "why": "m1-loop-hardening: the decision for the loop is not in the book; swarm.ts still describes swarmD",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "m1-eval-near-misses",
+      "title": "Each near-miss check is bound to a whole claim, or stands with its reason",
+      "why": "m1-eval-coverage: 34 checks prove part of an eval and score nothing",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
     }
   ],
   "path": {
@@ -1430,6 +1467,11 @@
       "date": "2026-11-11",
       "by": "coordinator",
       "text": "08:45: merging m1-gaps-refusal-worlds-11110800 (9bc22e6) and m1-gaps-dev-stand-11110802 (d02e5a5), both reviewer approve. dev-stand failed only on a transient GitHub push; pushed by hand and resumed to ready; the push now retries (3b7a2ff)"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "09:00: three runs at once, LOOP_MAX_AGENTS=3: m1-agent-records (packages/loop, loop-ui), m1-loop-decision (blueprint/shared/swarm.ts only), m1-eval-near-misses (concept folders, evals bindings). The agents patch moved to archive/stranded so a lane can read it"
     }
   ]
 }
