@@ -1,3 +1,12 @@
+# Traps, 11 November 2026 (read before anything else)
+
+Two coordinator sessions hung for hours on 11 November (02:18 and 03:41 UTC). Both froze on the same call: the built-in browser pane (`mcp__Claude_Browser__*`) opening `https://macbook.tail4b9a40.ts.net:8443`. The call never returned, and the session could not read messages after it.
+
+- Never open the portal with the built-in browser tools. Read pages with `curl --max-time` or headless Playwright under `timeout` (playwright-core in `~/.hermes/hermes-agent/node_modules`, browser `~/Library/Caches/ms-playwright/chromium_headless_shell-1243`).
+- `pnpm loop watch` never exits. Start it only in the background.
+- Test an answer button on a throwaway clone served on another port, never on the real portal. A POST to the live `/api/answers` with an invalid body (422) proves the host and origin path without recording anything.
+- Background every run, server and long check, with output to `var/*.log`.
+
 # Coordinator handoff, 10 November 2026, evening
 
 **Read this section first.** The coordinator in the Capxul Next Claude project wrote it. That coordinator ran from about 16:30 to 17:45 UTC, then handed over to a fresh coordinator thread on the Mac, as Aaron asked. The older handoff (from the first coordinator session, 9 and 10 November) follows below, unchanged. Its open items still stand, except where this section says otherwise.

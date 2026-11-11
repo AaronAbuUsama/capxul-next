@@ -1214,24 +1214,40 @@
       "title": "The dev commands get their acceptance lines",
       "why": "Exit g2: 6 of the last 11 gaps are dev commands with no acceptance lines",
       "milestone": "m1",
-      "state": "todo",
+      "state": "dropped",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-gaps-dev-acceptance-11110800",
+      "droppedWhy": "run m1-gaps-dev-acceptance-11110800 blocked rightly: the freeze forbids new acceptance lines and devnet.surface-gap-disposition already keeps them empty. Replaced by m1-gaps-dev-stand"
     },
     {
       "id": "m1-gaps-refusal-worlds",
       "title": "Every refusal is reached by a world, or stands with its own reason",
       "why": "Exit g2: 5 of the last 11 gaps are refusals that no world reaches",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-gaps-refusal-worlds-11110800"
+    },
+    {
+      "id": "m1-gaps-dev-stand",
+      "title": "The six dev commands' empty acceptance lists stand with their recorded reason",
+      "why": "Exit g2: decision devnet.surface-gap-disposition keeps the six dev commands' acceptance lists empty (the freeze requires equal lengths), but it records no stands, so they still count as 6 open gaps",
+      "milestone": "m1",
+      "state": "doing",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11",
+      "thread": "m1-gaps-dev-stand-11110802"
     }
   ],
   "path": {
@@ -1385,6 +1401,31 @@
       "date": "2026-11-11",
       "by": "coordinator",
       "text": "08:12: two runs at once, LOOP_MAX_AGENTS=2: m1-gaps-dev-acceptance and m1-gaps-refusal-worlds (blueprint/ only, disjoint records). m1-agent-definitions waits: its patch is in var/stranded, outside a lane"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "lock test 1"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "lock test 2"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "lock test 3"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "08:20: 'lock test 1-3' were three plan notes written at once to prove the plan write lock (var/plan.lock); all three kept. m1-gaps-refusal-worlds' start was lost to the race at 08:00:31 and is written again"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "08:45: merging m1-gaps-refusal-worlds-11110800 (9bc22e6) and m1-gaps-dev-stand-11110802 (d02e5a5), both reviewer approve. dev-stand failed only on a transient GitHub push; pushed by hand and resumed to ready; the push now retries (3b7a2ff)"
     }
   ]
 }
