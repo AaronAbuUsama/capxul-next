@@ -5,6 +5,7 @@ import { abis, deployment, publicClient, fromUnits, orgId } from "./chain.ts";
 import { byAddress } from "./people.ts";
 import { enqueue, ensureOrg, orgByHash } from "./outbox.ts";
 import { loadJson, saveJson } from "./store.ts";
+import { config } from "./config.ts";
 
 const log = (m: string) => console.log(`${new Date().toISOString()} [watcher] ${m}`);
 let cursor = loadJson<{ block: number }>("cursor.json", { block: -1 }).block;
@@ -18,6 +19,7 @@ export function poll(): Promise<void> {
 
 async function run(): Promise<void> {
   const d = deployment();
+  if (config.chainMode === "v4") return runV4(d.chainId, d.deployedBlock);
   const latest = Number(await publicClient.getBlockNumber());
   if (latest <= cursor) return;
   const from = BigInt(cursor + 1);
@@ -62,4 +64,34 @@ async function handle(l: Log, chainId: number, hats: string, orgs: string, payme
       block_time: new Date(Number(block.timestamp) * 1000).toISOString().replace(".000Z", "Z"),
     });
   }
+}
+
+// The real chain (CHAIN_MODE=v4): Hats' TransferSingle and Payments' PaymentSent, for the companies this Core made. Core
+// made the company, so it knows it before any of its logs (no OrgCreated is needed). Reading starts at the block the
+// chain was set up at: the seeded state has no logs before it.
+async function runV4(chainId: number, deployedBlock: number): Promise<void> {
+  const { v4Addresses, v4Decode } = await import("./v4.ts");
+  const latest = Number(await publicClient.getBlockNumber());
+  const start = Math.max(cursor, deployedBlock);
+  if (latest <= start) return;
+  const { hats, payments } = await v4Addresses();
+  const logs = await publicClient.getLogs({ address: [hats, payments], fromBlock: BigInt(start + 1), toBlock: BigInt(latest) });
+  for (const l of logs) {
+    const ev = await v4Decode(l);
+    if (!ev) continue;
+    const key = `${chainId}:${l.blockHash}:${l.logIndex}`;
+    const org = ensureOrg(ev.slug, orgId(ev.slug), { safe: ev.safe });
+    if (ev.kind === "payment_sent") {
+      const block = await publicClient.getBlock({ blockNumber: l.blockNumber! });
+      enqueue(org.slug, key, "payment_sent", {
+        payment_id: ev.paymentId, document_hash: ev.documentHash, from_safe: ev.from, to: ev.to,
+        amount: fromUnits(ev.amount), asset: "USDC", tx_hash: l.transactionHash,
+        block_time: new Date(Number(block.timestamp) * 1000).toISOString().replace(".000Z", "Z"),
+      });
+    } else {
+      enqueue(org.slug, key, ev.kind, { hat: ev.hat, ...personData(ev.wearer), department: ev.department, tx_hash: l.transactionHash });
+    }
+  }
+  cursor = latest;
+  saveJson("cursor.json", { block: cursor });
 }

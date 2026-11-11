@@ -52,9 +52,8 @@ async function hatsOf(slug: string | undefined, email: string | undefined): Prom
   try {
     // Offline commands have no hats to query. Do not load viem or compiled
     // contract artifacts until an actor and organization actually need them.
-    const { abis, deployment, orgId, publicClient } = await import("./chain.ts");
-    const d = deployment();
-    const worn = await Promise.all(HATS.map((h) => publicClient.readContract({ address: d.hats, abi: abis.hats, functionName: "wears", args: [orgId(slug), p.address as Address, h] })));
+    const { wears } = await import("./chain.ts");
+    const worn = await Promise.all(HATS.map((h) => wears(slug, p.address as Address, h)));
     return HATS.filter((_, i) => worn[i]);
   } catch { return []; }
 }

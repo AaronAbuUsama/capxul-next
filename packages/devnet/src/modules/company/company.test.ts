@@ -13,7 +13,7 @@ import { encodeFunctionData, keccak256, stringToHex, type Abi, type Hex } from "
 import { connect, send } from "../chain/service.ts";
 import type { DeploymentRecord } from "../protocol/types.ts";
 import { testKey } from "../test-keys/service.ts";
-import { createCompany, createDepartment, ERC20, grantHat, leftOf, pay, setBudget, wears, type Protocol } from "./service.ts";
+import { createCompany, createDepartment, ERC20, grantHat, leftOf, pay, revokeHat, setBudget, wears, type Protocol } from "./service.ts";
 
 const rpc = process.env.DEVNET_RPC;
 const contracts = join(fileURLToPath(new URL(".", import.meta.url)), "../../../../contracts");
@@ -65,4 +65,9 @@ test("a company is born, gets a department with a hat and a budget, and its wear
   assert.deepEqual([stranger.ok, !stranger.ok && stranger.reason], [false, "NOT_AUTHORISED"]);
   const over = await pay(p, { key: holder.key, budget: department, to: payee, amount: 5_000n * UNIT, kind: 1, documentHash: hash("y"), jobNonce: hash(`${name} y`) });
   assert.deepEqual([over.ok, !over.ok && over.reason], [false, "OVER_BUDGET"]);
+
+  await revokeHat(p, company, finance, holder.address);
+  assert.equal(await wears(p, holder.address, finance), false, "the hat is gone after the Board takes it back");
+  const revoked = await pay(p, { key: holder.key, budget: department, to: payee, amount: UNIT, kind: 1, documentHash: hash("z"), jobNonce: hash(`${name} z`) });
+  assert.deepEqual([revoked.ok, !revoked.ok && revoked.reason], [false, "NOT_AUTHORISED"]);
 });

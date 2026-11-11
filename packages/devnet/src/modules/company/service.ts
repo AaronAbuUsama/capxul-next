@@ -103,6 +103,14 @@ export async function grantHat(p: Protocol, c: Company, hat: bigint, wearer: Hex
   return board(p, c, [{ to: THIRD_PARTY.hats, data: encodeFunctionData({ abi: HATS, functionName: "mintHat", args: [hat, wearer] }) }]);
 }
 
+/**
+ * The Board takes a hat back. The company Safe is the officer hats' eligibility module (InstallerMoney), so it marks the
+ * wearer ineligible, and Hats burns the hat.
+ */
+export async function revokeHat(p: Protocol, c: Company, hat: bigint, wearer: Hex): Promise<Hex> {
+  return board(p, c, [{ to: THIRD_PARTY.hats, data: encodeFunctionData({ abi: HATS, functionName: "setHatWearerStatus", args: [hat, wearer, false, true] }) }]);
+}
+
 /** The Board sets what a budget may spend this period. */
 export async function setBudget(p: Protocol, c: Company, budget: bigint, amount: bigint): Promise<Hex> {
   return board(p, c, [{ to: at(p, "Budgets"), data: encodeFunctionData({ abi: BUDGETS, functionName: "setAmount", args: [budget, amount] }) }]);

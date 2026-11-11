@@ -27,7 +27,7 @@ void setRecordSlug;
 
 const exec = promisify(execFile);
 const root = join(coreDir, "state", "snapshots");
-const CORE_FILES = ["outbox.json", "cursor.json", "approvals.json", "deployment.json", "clock.json", "tx-trace.jsonl"];
+const CORE_FILES = ["outbox.json", "cursor.json", "approvals.json", "deployment.json", "clock.json", "tx-trace.jsonl", "v4-orgs.json"];
 const sha = (p: string) => createHash("sha256").update(readFileSync(p)).digest("hex");
 const size = (p: string): number => (statSync(p).isDirectory() ? readdirSync(p).reduce((n, f) => n + size(join(p, f)), 0) : statSync(p).size);
 const siteName = (w: string, c: string) => (w === "main" ? `${c}.localhost` : `${c}.${w}.localhost`);

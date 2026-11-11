@@ -6,7 +6,7 @@ import {
   type Abi, type Address, type Hex,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { foundry } from "viem/chains";
+import { defineChain } from "viem";
 import { config } from "./config.ts";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { touched, touchTx, trace } from "./trace.ts";
@@ -18,10 +18,14 @@ export type Deployment = {
 
 // every call to the chain carries the command's trace id (anvil ignores it; a real node's gateway logs would join on it)
 export const transport = () => http(config.rpcUrl, { fetchOptions: { headers: { "x-capxul-trace": trace } } });
+const foundry = defineChain({ id: config.chainId, name: `skeleton-${config.chainId}`, nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: { default: { http: [config.rpcUrl] } } });
 export const publicClient = createPublicClient({ chain: foundry, transport: transport(), pollingInterval: 200 });
 
-export const loadAbi = (file: string, name: string): Abi =>
-  (JSON.parse(readFileSync(`${config.outDir}/${file}.sol/${name}.json`, "utf8")) as { abi: Abi }).abi;
+// The stand-in's artifacts; on the real chain (CHAIN_MODE=v4) they may be absent, and only the token's ABI is used.
+export const loadAbi = (file: string, name: string): Abi => {
+  try { return (JSON.parse(readFileSync(`${config.outDir}/${file}.sol/${name}.json`, "utf8")) as { abi: Abi }).abi; }
+  catch (e) { if (config.chainMode === "v4") return []; throw e; }
+};
 
 export const abis = {
   usdc: loadAbi("TestUSDC", "TestUSDC"), hats: loadAbi("Hats", "Hats"),
@@ -62,7 +66,20 @@ export const wallet = (privateKey: Hex) => {
   return w;
 };
 
+// A transaction sent by another client (the v4 adapter's), noted and filed like wallet() does.
+export function touchChainTx(hash: Hex, what: string): void {
+  touchTx(hash, what);
+  mkdirSync(config.stateDir, { recursive: true });
+  appendFileSync(`${config.stateDir}/tx-trace.jsonl`, JSON.stringify({ tx: hash, trace }) + "\n");
+}
+
 // Revert -> the contract error name, or undefined if this was not a contract revert.
+/** Whether someone wears a hat in an org, on whichever chain this Core runs on. */
+export async function wears(slug: string, who: Address, hat: string): Promise<boolean> {
+  if (config.chainMode === "v4") { const { v4Wears } = await import("./v4.ts"); return v4Wears(slug, who, hat); }
+  return publicClient.readContract({ address: deployment().hats, abi: abis.hats, functionName: "wears", args: [orgId(slug), who, hat] }) as Promise<boolean>;
+}
+
 export function revertName(e: unknown): string | undefined {
   if (!(e instanceof BaseError)) return undefined;
   const r = e.walk((x) => x instanceof ContractFunctionRevertedError);
@@ -85,6 +102,13 @@ export type SendResult =
 // refusal is reported by us (payment_failed), not read from the chain.
 export async function sendPayment(a: SendArgs): Promise<SendResult> {
   touched.org = a.org;
+  if (config.chainMode === "v4") {
+    await syncTime();
+    const { v4Pay } = await import("./v4.ts");
+    const r = await v4Pay(a.org, a.to, a.amount, a.documentHash, a.privateKey);
+    if (r.ok) { touchTx(r.txHash, "spend"); mkdirSync(config.stateDir, { recursive: true }); appendFileSync(`${config.stateDir}/tx-trace.jsonl`, JSON.stringify({ tx: r.txHash, trace }) + "\n"); }
+    return r;
+  }
   const d = deployment();
   const w = wallet(a.privateKey);
   const params = { address: d.payments, abi: abis.payments, functionName: "send", account: w.account,

@@ -13,6 +13,8 @@ export const MINTER = parseAbi([
 export const HATS = parseAbi([
   "function mintHat(uint256 hatId, address wearer) returns (bool success)",
   "function isWearerOfHat(address user, uint256 hatId) view returns (bool)",
+  "function setHatWearerStatus(uint256 hatId, address wearer, bool eligible, bool standing) returns (bool updated)",
+  "event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 amount)",
 ]);
 
 export const BUDGETS = parseAbi([

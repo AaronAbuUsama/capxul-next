@@ -123,7 +123,7 @@ existed=$(curl -s -o /dev/null -w '%{http_code}' -H "X-Frappe-Site-Name: $SITE" 
 t0=$(ms); out=$(core org create "$SLUG" "$COMPANY" --admin $ADMIN 2>"$T/create.err"); rc=$?; create_ms=$(( $(ms) - t0 ))
 [ $rc = 0 ] && ok B1.org-create "B1 org create exits 0 in $((create_ms/1000)) s" || { bad B1.org-create "B1 org create" "rc=$rc $(tail -c 400 "$T/create.err")"; exit 1; }
 SAFE=$(echo "$out" | tail -1 | jget "d['safe']")
-chk B1.safe-on-chain-is-the-sites-safe "B1 chain: the Safe on the chain is the one the site was given" "$(cast call "$PAYMENTS" "safeOf(bytes32)(address)" "$(cast keccak "$SLUG")" --rpc-url $RPC | tr 'A-F' 'a-f')" "$(echo "$SAFE" | tr 'A-F' 'a-f')" "$SAFE holds $(usdc "$SAFE") units of test USDC"
+chk B1.safe-on-chain-is-the-sites-safe "B1 chain: the Safe on the chain is the one the site was given" "$(core org chain-safe "$SLUG" | tail -1 | tr 'A-F' 'a-f')" "$(echo "$SAFE" | tr 'A-F' 'a-f')" "$SAFE holds $(usdc "$SAFE") units of test USDC"
 chk B1.site-answers-by-name "B1 the site answers (by name, $SITE:8000)" "$(curl -s --resolve "$SITE:8000:127.0.0.1" http://$SITE:8000/api/method/ping | jget "d['message']")" pong
 login_admin
 ABBR=$(lst "$T/admin" Company '[]' '["name","abbr"]' | jget "d['data'][0]['abbr']")
@@ -239,7 +239,7 @@ out=$(request "$T/admin" "$PE4"); chk B4f.administrator-request-refused "4f Admi
 # (g) an event the site cannot apply must not block the org's later events: a hat granted to an address Core has no email for
 UNKNOWN=$(python3 -c 'import secrets;print("0x"+secrets.token_hex(20))'); HATS=$(python3 -c "import json;print(json.load(open('$HERE/core/state/deployment.json'))['hats'])")
 HK=$(python3 -c "import json;print([p for p in json.load(open('$HERE/core/people.json'))['people'] if p['email']=='$ADMIN'][0]['privateKey'])")   # anvil's published test key
-cast send "$HATS" "grant(bytes32,string,address,string)" "$(cast keccak "$SLUG")" member "$UNKNOWN" "" --private-key "$HK" --rpc-url $RPC >/dev/null 2>&1
+core hat grant "$SLUG" member nobody@unknown.test --address "$UNKNOWN" --as $ADMIN >/dev/null 2>&1   # straight to the chain: Core has no person for the address
 t0=$(ms); wait_for 30 bash -c "core events status $SLUG | head -1 | grep -q 'pending=0'"
 chk B4g.poison-event-outbox-drains "4g poison event: Core's outbox drains (the unappliable event is parked, not retried for ever)" "$(core events status "$SLUG" | head -1 | grep -o 'pending=[0-9]*')" "pending=0" "$((WAITED))ms"
 chk B4g.parked-event-visible-with-reason "4g the parked event is visible on the site with its reason" "$(lst "$T/admin" "Capxul Chain Event" '[["status","=","Parked"]]' '["error"]' | jget "'has no person_email' in d['data'][-1]['error']")" True

@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { promisify } from "node:util";
 import { isAddress, type Address, type Hex } from "viem";
-import { abis, deployment, orgId, publicClient, sendPayment, toUnits, wallet } from "./chain.ts";
+import { abis, deployment, orgId, publicClient, sendPayment, syncTime, toUnits, touchChainTx, wallet, wears } from "./chain.ts";
 import { config } from "./config.ts";
 import { CliError, refuse } from "./errors.ts";
 import { sign } from "./hmac.ts";
@@ -45,6 +45,11 @@ async function actingAdmin(slug: string, as?: string) {
 
 async function ensureOnChain(slug: string, admin: string, budget: string, fund: string): Promise<{ safe: Address; created: boolean }> {
   const d = deployment();
+  if (config.chainMode === "v4") {
+    await syncTime();
+    const { v4EnsureOrg } = await import("./v4.ts");
+    return v4EnsureOrg(slug, person(admin), toUnits(budget), toUnits(fund), d.usdc);
+  }
   const id = orgId(slug);
   const existing = await publicClient.readContract({ address: d.payments, abi: abis.payments, functionName: "safeOf", args: [id] }) as Address;
   if (/^0x0{40}$/.test(existing)) {
@@ -103,10 +108,24 @@ async function hat(kind: "grant" | "revoke", args: string[]): Promise<string[]> 
   if (!slug || !hatName || !email) throw refuse("USAGE", `usage: hat ${kind} <slug> <hat> <email> [--department <name>] [--as <admin email>]`);
   const dept = flag(args, "department") ?? "";
   const admin = await actingAdmin(slug, flag(args, "as"));
+  // --address: a wearer Core has no person for (the end-to-end script's poison event, B4g)
+  const wearer = (flag(args, "address") ?? person(email).address) as Address;
+  if (config.chainMode === "v4") {
+    if (!(await wears(slug, admin.address as Address, "admin"))) throw refuse("CHAIN_REFUSED", `chain refused hat ${kind}: NotAdmin (${admin.email} does not wear admin in ${slug})`);
+    await syncTime();
+    const { v4Hat } = await import("./v4.ts");
+    try {
+      const hash = await v4Hat(kind, slug, hatName, wearer, dept);
+      touchChainTx(hash, `hat ${kind}`);
+      return [`chain: ${hatName} ${kind === "grant" ? "granted to" : "revoked from"} ${email}${dept ? ` (${dept})` : ""} by the Board at ${admin.email}'s request, tx ${hash}`];
+    } catch (e) {
+      throw refuse("CHAIN_REFUSED", `chain refused hat ${kind}: ${(e as Error).message.split("\n").slice(0, 3).join(" ")}`);
+    }
+  }
   const d = deployment();
   const w = wallet(admin.privateKey);
   const params = { address: d.hats, abi: abis.hats, functionName: kind, account: w.account,
-    args: [orgId(slug), hatName, person(email).address as Address, dept] } as const;
+    args: [orgId(slug), hatName, wearer, dept] } as const;
   try {
     await publicClient.simulateContract(params);
     const hash = await w.writeContract(params);
@@ -175,10 +194,28 @@ async function featureSwitch(kind: "on" | "off", args: string[]): Promise<string
   if (!slug || !feature || !as) throw refuse("USAGE", `usage: feature ${kind} <slug> <feature> --as <admin email>`);
   const who = person(as);
   touched.actor = as;
-  const d = deployment();
-  const isAdmin = await publicClient.readContract({ address: d.hats, abi: abis.hats, functionName: "wears", args: [orgId(slug), who.address as Address, "admin"] }) as boolean;
+  const isAdmin = await wears(slug, who.address as Address, "admin");
   if (!isAdmin) throw refuse("NOT_ADMIN", `refused: ${as} does not wear the admin hat in ${slug} on the chain, so cannot turn ${feature} ${kind}. Nothing was changed.`);
   return [`chain: ${as} wears admin in ${slug}`, ...showFeatures(await featureScript(slug, [kind, feature]))];
 }
 export const featureOn = (a: string[]) => featureSwitch("on", a);
 export const featureOff = (a: string[]) => featureSwitch("off", a);
+
+// The company's Safe as the chain itself says it is (the end-to-end script's B1 check): the stand-in's Payments.safeOf,
+// or on the real contracts the Safe Companies House derives for the company's founder and name, which must have code.
+export async function orgChainSafe(args: string[]): Promise<string[]> {
+  const [slug] = args;
+  if (!slug) throw refuse("USAGE", "usage: org chain-safe <slug>");
+  if (config.chainMode === "v4") {
+    const { proto, v4Org } = await import("./v4.ts");
+    const { companySafeOf } = await import("../../../../packages/devnet/src/modules/company/service.ts");
+    const info = await core("/admin/org-info", { slug });
+    if (!v4Org(slug) || !info.adminEmail) throw refuse("UNKNOWN_ORG", `no company ${slug} on the chain`);
+    const p = await proto();
+    const safe = await companySafeOf(p, info.adminEmail, slug);
+    if ((await publicClient.getCode({ address: safe })) === undefined) throw refuse("UNKNOWN_ORG", `Companies House's Safe for ${slug} (${safe}) has no code`);
+    return [safe];
+  }
+  const d = deployment();
+  return [await publicClient.readContract({ address: d.payments, abi: abis.payments, functionName: "safeOf", args: [orgId(slug)] }) as string];
+}
