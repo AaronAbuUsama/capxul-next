@@ -48,6 +48,11 @@
         "id": "g8",
         "claim": "A shared world runs on the sites machine, not a laptop, created by one command, with a thin line through every part of the stack proven by tests that run there: the real contracts on its chain, the service, a company's site, the door, a payment held and signed by key, the record, the clock, and a snapshot restored as a separate world.",
         "state": "open"
+      },
+      {
+        "id": "g9",
+        "claim": "The orchestration layer is done: agents launch in a sandbox off Aaron's Mac with the right tooling, run with no command gate, and Aaron sees what is being worked on from the portal's board",
+        "state": "open"
       }
     ]
   },
@@ -1810,18 +1815,58 @@
       "created": "2026-11-11",
       "updated": "2026-11-11",
       "thread": "m1-ops-supervisor-11110955"
+    },
+    {
+      "id": "m1-cloud-sandbox",
+      "title": "Agents launch in a cloud sandbox, not on Aaron's Mac",
+      "why": "Aaron, 11 Nov: the pass condition of the orchestration layer",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "m1-portal-board",
+      "title": "The portal's front door is a board: working now, next, blocked, needs you, done today",
+      "why": "Aaron, 11 Nov: he needs to see what is being worked on",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
+    },
+    {
+      "id": "m1-no-command-gate",
+      "title": "The loop has no command gate: agents run what they need",
+      "why": "Aaron's decision, 11 Nov: no allow-list, no home-made sandbox. This session's Auto mode refused the edit as 'Security Weaken'; it waits for a session in Bypass mode",
+      "milestone": "m1",
+      "state": "blocked",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11",
+      "blockedBy": {
+        "need": "A coordinator session in Bypass permissions mode: this session's Auto mode refuses the change",
+        "who": "coordinator"
+      }
     }
   ],
   "path": {
     "tasks": [
       "m1-ops-supervisor",
+      "m1-no-command-gate",
+      "m1-portal-board",
+      "m1-cloud-sandbox",
       "m1-aaron-accepts",
-      "m1-eval-coverage",
-      "m1-model-gateway",
-      "m1-loop-hardening",
-      "m1-time-proof"
+      "m1-eval-coverage"
     ],
-    "why": "Aaron's standing rule (11 Nov): never ask him to run a command. The supervisor goes first; the eval rerun waits for it",
+    "why": "Aaron, 11 Nov: the layer passes when agents run in a cloud sandbox with no command gate and he can see the work on a board. Those come first, then his read and the score",
     "written": "2026-11-11"
   },
   "notes": [
