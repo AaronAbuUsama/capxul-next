@@ -159,15 +159,27 @@ export const decision_sites_worlds = dec({
 
 export const decision_sites_bench_image = defineDecision({
   id: "sites.bench-image",
-  title: "The hosted bench runs one pinned production image, one container per process",
-  question: "What image do the sites people rely on run, what is in it, and how is it known to be the same image everywhere?",
+  title: "How the company sites are packaged to run on our server",
+  question:
+    "Every company on Capxul gets its own Frappe site (its books, CRM and HR). To run those sites on our server for real, " +
+    "rather than in the test setup, they need to be packaged: which software, at which exact versions, run in which way. " +
+    "Should we package them as one locked, production-ready bundle that we test before it goes anywhere?",
   options: [
-    { label: "pinned-production-image", text: "One image, `packages/bench-image`, built from `apps.lock.json`: the frappe/build and frappe/base images by digest; Frappe, ERPNext, Frappe HR, Frappe CRM and the WhatsApp app the CRM reads (sites.crm), each pinned by commit, and the build refuses a checkout whose commit differs; the capxul app copied from this repository, so building needs no token. Assets are built for production and kept in the image, linked into the sites folder at every start, so an image change always serves its own assets. It runs as gunicorn, two workers (short, long), the scheduler, the socket server and nginx, one container each, with MariaDB 11.8 and two Redis (cache without persistence, queue append-only); never `bench start` or `bench serve`. Only nginx is published, on loopback; the origin proxy sits in front on the machine. Secrets are generated once into an env folder (mode 0600) and only the site-admin container, which creates sites, holds the database root password. The image carries `capxul-image.json` (bases and commits) for receipts and run manifests. `bin/check.sh` is the proof: a site with all six apps, reached through nginx by its Host header, signs in, serves the desk, CRM, assets and socket, runs a job on each queue, reports nothing outward, and survives a restart." },
-    { label: "frappe-docker-layered", text: "Use frappe_docker's layered Containerfile with an apps.json of branches, as its documentation suggests." },
-    { label: "dev-image-hosted", text: "Run the test sites' development bench (frappe/bench, `bench start`) on the machine." },
+    { label: "one-locked-bundle", text: "One bundle, built from this repository, with every piece locked to an exact version: Frappe, ERPNext, Frappe HR, Frappe CRM, the WhatsApp add-on and our own Capxul app. The same bundle is tested here and then runs on the server, so what we tested is exactly what people use. It runs the way a live service should: each part separate and restarted on its own, no developer tools, nothing reporting usage to outside companies, and only one door open to the outside. A built-in check proves a company site comes up on it before it goes anywhere (22 checks, all passing today)." },
+    { label: "follow-latest-versions", text: "Use Frappe's standard packaging, which picks up whatever each app's latest weekly release is at build time. Less to maintain, but two builds a week apart are not the same software, so a test no longer proves what will run." },
+    { label: "reuse-test-setup", text: "Run the test sites' development setup on the server. Quickest, but it is a developer tool: everything restarts together, it is slower and less safe, and the first start takes 10 to 25 minutes." },
   ],
-  chosen: "pinned-production-image",
-  why: "The coordinator, 11 November 2026, with Aaron away and the blueprint silent on the image (task m3b-bench-image; docs/mission/sites-host/compose.md is the unbuilt draft it follows). Branches move weekly (Frappe published v16.52 to v16.56 in four weeks), so an apps.json of branches is not the same image twice; pinning by commit is. The layered file also takes apps only from a remote, and the capxul app is in this repository. The development bench restarts everything together, serves through werkzeug and rebuilds on first start (10 to 25 minutes, the spike's up.sh). WhatsApp is in the image because every supported app is installed on every site (sites.features-reachability); it stays off by default.",
-  source: "packages/bench-image (README, apps.lock.json, bin/check.sh); docs/mission/sites-host/compose.md; plan task m3b-bench-image",
+  chosen: "one-locked-bundle",
+  why:
+    "Recommended because it is the only option where the thing we tested is the thing that runs, and it is already built and passing its check. " +
+    "Nothing here is hard to undo: a later bundle can change any version or any part, and nothing has been put on the server yet. " +
+    "Detail for agents: packages/bench-image builds the image from apps.lock.json, which pins the frappe/build and frappe/base images by digest and each app by commit; the build refuses a checkout whose commit differs. " +
+    "The capxul app is copied from this repository, so no token is needed to build. Assets are built for production and linked into the sites folder at every start. " +
+    "It runs as gunicorn, two workers (short, long), the scheduler, the socket server and nginx, one container each, with MariaDB 11.8 and two Redis (cache without persistence, queue append-only); never bench start or bench serve. " +
+    "Only nginx is published, on loopback, with the origin proxy in front on the machine. Secrets are generated once into an env folder (mode 0600), and only the site-admin container, which creates sites, holds the database root password. " +
+    "The image carries capxul-image.json (bases and commits) for receipts and run manifests. bin/check.sh is the proof. " +
+    "Frappe published v16.52 to v16.56 in four weeks, which is why branches are not pinned. WhatsApp is in the bundle because every supported app is installed on every site (sites.features-reachability); it stays off by default. " +
+    "Proposed by a cloud thread on 11 November 2026 while Aaron was away (task m3b-bench-image), following the unbuilt draft docs/mission/sites-host/compose.md; Aaron's to confirm.",
+  source: "packages/bench-image (README, apps.lock.json, bin/check.sh); docs/mission/sites-host/compose.md and bench-image.md; plan task m3b-bench-image",
   affects: [f.system_capxul, f.concept_sites, f.component_frappe_app, f.component_site_service, integration_site_service] as never,
 });
