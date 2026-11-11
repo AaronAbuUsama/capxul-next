@@ -4,14 +4,12 @@
 # Needs anvil 8545, the Core stub 8787 and the Frappe stack 8000; it starts them if they are down (core/bin/up.sh,
 # frappe/bin/up.sh). Re-running with a slug that exists continues: `org create` is idempotent, the per-run people and
 # documents are created fresh. Throwaway; dev keys only.
-#
 # Every check has a stable name, <behaviour>.<what> (B3.ledger-posted). A check prints a human line (PASS/FAIL) and then
 # one machine line, which tools/run-evals.ts reads:
 #     @check<TAB>name<TAB>pass|fail<TAB>ms since the previous check<TAB>detail (one line, at most 300 characters)
 # A name may repeat in a run (B7's four payments, PRIVACY's three sites); the runner folds the repeats. A check that is only
 # ever a `bad` is a guard: it prints nothing when it holds, and fails the run when it does not.
 # Exit code: non-zero on any FAIL.
-#
 # --only runs the named behaviours (B1..B9, PRIVACY, NAMES) and the behaviours they need to have run first: B1 always
 # (the company and the sign-in), and the earlier ones whose people, documents and hats a behaviour uses (see `deps`). The
 # checks of those run, print and count as well. --list prints every check name and whether it is a check or a guard.
@@ -27,7 +25,7 @@ while [ $# -gt 0 ]; do case "$1" in
   *) SLUG="$1"; shift;;
 esac; done
 if [ -n "$LIST" ]; then   # the check names, from this file: every `ok|chk|bad <name>` call
-  grep -oE '(chk|ok|bad) [A-Z][A-Za-z0-9]*\.[a-z0-9.-]+' "$0" | awk '{k=($1=="bad")?"guard":"check"; if(!($2 in s)||k=="check")s[$2]=k} END{for(n in s)print n"\t"s[n]}' | sort
+  grep -ohE '(chk|ok|bad) [A-Z][A-Za-z0-9]*\.[a-z0-9.-]+' "$0" "$HERE/thin-line-checks.sh" | awk '{k=($1=="bad")?"guard":"check"; if(!($2 in s)||k=="check")s[$2]=k} END{for(n in s)print n"\t"s[n]}' | sort
   exit 0
 fi
 deps() { case "$1" in   # what a behaviour uses from the ones before it
@@ -40,13 +38,12 @@ set -a; . "$HERE/.env"; set +a
 SITE="$SLUG.localhost"; COMPANY="${COMPANY:-Acme Trading Ltd}"
 STACK_FRAPPE="${SKELETON_FRAPPE:-$HERE/frappe}"
 FR=http://127.0.0.1:8000; CORE=http://127.0.0.1:8787; RPC=http://127.0.0.1:8545
-ADMIN=hannah@acme.test        # the org's admin hat (chain: createOrg)
+ADMIN=hannah@acme.test        # the org's admin hat and its founder (Companies House)
 BUDGET=marcus@acme.test       # budget-holder, department Finance
 PAYROLL=tomas@acme.test       # payroll-approver: Frappe roles, but the chain refuses his payments
 SUPPLIER="Brightside Cleaning Ltd"; SUPPLIER_ADDR=0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc   # elena (test key)
 DIRECT_TO=0x90F79bf6EB2c4f870365E785982E1f101E93b906                                              # priya (test key)
-T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
-pass=0; fail=0
+T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT; pass=0; fail=0
 ms() { python3 -c 'import time;print(int(time.time()*1000))'; }
 LAST_MS=$(ms)
 emit() { local now; now=$(ms); printf '@check\t%s\t%s\t%s\t%s\n' "$1" "$2" "$((now - LAST_MS))" "$(printf '%s' "$3" | tr '\t\n\r' '   ' | cut -c1-300)"; LAST_MS=$now; }
@@ -120,10 +117,13 @@ REC="$HERE/core/state/record/main.jsonl"; REC0=$( [ -f "$REC" ] && wc -l < "$REC
 echo "== Behaviour 1: an org is one command"
 existed=$(curl -s -o /dev/null -w '%{http_code}' -H "X-Frappe-Site-Name: $SITE" $FR/api/method/ping)
 [ "$existed" = 200 ] && info "site $SITE already exists: org create continues idempotently (reuses the Safe, re-runs the site script)"
-t0=$(ms); out=$(core org create "$SLUG" "$COMPANY" --admin $ADMIN 2>"$T/create.err"); rc=$?; create_ms=$(( $(ms) - t0 ))
+t0=$(ms); out=$(core org create "$SLUG" "$COMPANY" --admin $ADMIN --co-director priya@acme.test 2>"$T/create.err"); rc=$?; create_ms=$(( $(ms) - t0 ))
 [ $rc = 0 ] && ok B1.org-create "B1 org create exits 0 in $((create_ms/1000)) s" || { bad B1.org-create "B1 org create" "rc=$rc $(tail -c 400 "$T/create.err")"; exit 1; }
 SAFE=$(echo "$out" | tail -1 | jget "d['safe']")
-chk B1.safe-on-chain-is-the-sites-safe "B1 chain: the Safe on the chain is the one the site was given" "$(cast call "$PAYMENTS" "safeOf(bytes32)(address)" "$(cast keccak "$SLUG")" --rpc-url $RPC | tr 'A-F' 'a-f')" "$(echo "$SAFE" | tr 'A-F' 'a-f')" "$SAFE holds $(usdc "$SAFE") units of test USDC"
+MINTED=$(core org chain-safe "$SLUG" | tr 'A-F' 'a-f'); M1=$(echo "$MINTED" | head -1); SAFE_LC=$(echo "$SAFE" | tr 'A-F' 'a-f')
+chk B1.safe-on-chain-is-the-sites-safe "B1 chain: the Safe on the chain is the one the site was given" "$(echo "$MINTED" | tail -1)" "$SAFE_LC" "$SAFE holds $(usdc "$SAFE") units of test USDC"
+chk B1.company-safe-minted-for-founder "B1 chain: CompanySafeMinted names the site's Safe, with the admin's personal Safe as founderSafe; its owners are the founding Directors' personal Safes" "$(echo "$M1" | jget "[d['safe'], d['founderSafe'] == d['founderPersonalSafe'] == d['directorSafes'][0], sorted(map(str.lower, d['owners'])) == sorted(map(str.lower, d['directorSafes']))]")" "['$SAFE_LC', True, True]" "minted in tx $(echo "$M1" | jget "d['mintTx']")"
+chk B1.org-show-prints-the-safe "B1 read: org show prints the Safe CompanySafeMinted named" "$(core org show "$SLUG" | sed -n 's/^safe //p' | tr 'A-F' 'a-f')" "$SAFE_LC"
 chk B1.site-answers-by-name "B1 the site answers (by name, $SITE:8000)" "$(curl -s --resolve "$SITE:8000:127.0.0.1" http://$SITE:8000/api/method/ping | jget "d['message']")" pong
 login_admin
 ABBR=$(lst "$T/admin" Company '[]' '["name","abbr"]' | jget "d['data'][0]['abbr']")
@@ -239,7 +239,7 @@ out=$(request "$T/admin" "$PE4"); chk B4f.administrator-request-refused "4f Admi
 # (g) an event the site cannot apply must not block the org's later events: a hat granted to an address Core has no email for
 UNKNOWN=$(python3 -c 'import secrets;print("0x"+secrets.token_hex(20))'); HATS=$(python3 -c "import json;print(json.load(open('$HERE/core/state/deployment.json'))['hats'])")
 HK=$(python3 -c "import json;print([p for p in json.load(open('$HERE/core/people.json'))['people'] if p['email']=='$ADMIN'][0]['privateKey'])")   # anvil's published test key
-cast send "$HATS" "grant(bytes32,string,address,string)" "$(cast keccak "$SLUG")" member "$UNKNOWN" "" --private-key "$HK" --rpc-url $RPC >/dev/null 2>&1
+core hat grant "$SLUG" member nobody@unknown.test --address "$UNKNOWN" --as $ADMIN >/dev/null 2>&1   # straight to the chain: Core has no person for the address
 t0=$(ms); wait_for 30 bash -c "core events status $SLUG | head -1 | grep -q 'pending=0'"
 chk B4g.poison-event-outbox-drains "4g poison event: Core's outbox drains (the unappliable event is parked, not retried for ever)" "$(core events status "$SLUG" | head -1 | grep -o 'pending=[0-9]*')" "pending=0" "$((WAITED))ms"
 chk B4g.parked-event-visible-with-reason "4g the parked event is visible on the site with its reason" "$(lst "$T/admin" "Capxul Chain Event" '[["status","=","Parked"]]' '["error"]' | jget "'has no person_email' in d['data'][-1]['error']")" True
@@ -388,7 +388,7 @@ for step in 10d 10d 9d; do
 done
 chk B7.world-at-31-march-all-agree "B7 the world is at 31 March after three advances; every site of the world and the chain agree" "$(dj world clock show main | jget "(d['data']['time'][:10], d['data']['chainLatestBlock'][:10], sorted(set(s['today'] for s in d['data']['sites'])), len(d['data']['sites'])>=3)")" "('2026-03-31', '2026-03-31', ['2026-03-31'], True)"
 chk B7.ledger-dates-are-world-dates "B7 the ledger's dates are the world's dates: each payment and each sales invoice posted on the day the world was at" "$(lst "$T/admin" "GL Entry" "[[\"voucher_no\",\"in\",$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1:]))' "${PES[@]}" "${SIS[@]}")],[\"is_cancelled\",\"=\",0]]" '["voucher_type","posting_date"]' | jget "sorted(set((g['voucher_type'],g['posting_date']) for g in d['data']))")" "[('Payment Entry', '2026-03-02'), ('Payment Entry', '2026-03-12'), ('Payment Entry', '2026-03-22'), ('Payment Entry', '2026-03-31'), ('Sales Invoice', '2026-03-02'), ('Sales Invoice', '2026-03-12'), ('Sales Invoice', '2026-03-22'), ('Sales Invoice', '2026-03-31')]"
-blocks=""; for tx in "${TXS[@]}"; do n=$(cast receipt "$tx" blockNumber --rpc-url $RPC); blocks+="$(date -u -r "$(cast block "$n" -f timestamp --rpc-url $RPC)" +%F) "; done
+blocks=""; for tx in "${TXS[@]}"; do n=$(cast receipt "$tx" blockNumber --rpc-url $RPC); blocks+="$(python3 -c "import datetime,sys;print(datetime.datetime.fromtimestamp(int(sys.argv[1]),datetime.timezone.utc).date())" "$(cast block "$n" -f timestamp --rpc-url $RPC)") "; done   # python, not date -r, which only macOS reads as an epoch
 chk B7.chain-block-times-are-world-dates "B7 the chain's block times agree: each payment's block carries the world's date" "$blocks" "2026-03-02 2026-03-12 2026-03-22 2026-03-31 "
 chk B7.payment-reference-date-from-block "B7 the payment entries took their reference date from the block (chain time, not host time)" "$(for pe in "${PES[@]}"; do pe_field "$pe" reference_date; done | tr '\n' ' ')" "2026-03-02 2026-03-12 2026-03-22 2026-03-31 "
 # a recurring document and scheduled jobs: made by the scheduler's own rules at each day crossed
@@ -486,7 +486,7 @@ r=[x for x in rs if x["command"]=="world snapshot restore" and x["changes"].get(
 print(len(r)>=1, rs[-1]["seq"]==len(rs))' "$REC")" "True True"
 core world clock reset main --as operator >/dev/null; login_admin
 info "B9 measured: save ${save_ms}ms, ${SNAP_MB} MB; restore into a new world (1 company) ${into_ms}ms; restore in place (whole world) ${inplace_ms}ms"
-fi
+. "$HERE/thin-line-checks.sh"; fi
 
 if want PRIVACY; then
 echo "== Privacy: nothing phones home"

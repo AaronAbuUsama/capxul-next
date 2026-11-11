@@ -23,7 +23,7 @@ claim work already running in another thread. Read [plan/outline.md](plan/outlin
 
 1. **Plan:** `pnpm plan show`, backed by [plan/plan.json](plan/plan.json). It says where work stands and what comes next. Coordination uses the plan and loop, not swarmD or a handoff folder.
 2. **Rulings and blueprint:** [blueprint/shared/rulings.ts](blueprint/shared/rulings.ts) records Aaron's direction; concept decisions hold the design. In particular, `aaron.frappe-native`, `aaron.one-door`, `aaron.one-product` and `aaron.jurisdiction-open` govern this direction. **The first jurisdiction is open**, neither UK nor US; a crypto-friendly place is preferred. Equity, hosted FDE and individuals are parked, not current build scope ([cut archive](docs/cut-archive/INDEX.md)). Older direction does not override the plan or current rulings.
-3. **Portal:** run `pnpm portal && pnpm portal:serve`, then open the address printed. `/plan/` shows the plan; the portal also presents the blueprint, Questions and scoreboard. Owner answers are applied by the coordinator as rulings, not left in chat.
+3. **Portal:** run `pnpm portal && pnpm portal:serve`, then open the address printed. The portal shows the product and where it stands: the blueprint, Questions, the architecture and where every operation stands. The plan is `pnpm plan show`, not a portal page. Owner answers are applied by the coordinator as rulings, not left in chat.
 
 Before editing, read [CLAUDE.md](CLAUDE.md) for rules and current checks, then [docs/blueprint.md](docs/blueprint.md) for blueprint work. The engine is `packages/blueprint-engine`, **not `packages/book`**.
 

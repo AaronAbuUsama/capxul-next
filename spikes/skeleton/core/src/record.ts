@@ -52,9 +52,8 @@ async function hatsOf(slug: string | undefined, email: string | undefined): Prom
   try {
     // Offline commands have no hats to query. Do not load viem or compiled
     // contract artifacts until an actor and organization actually need them.
-    const { abis, deployment, orgId, publicClient } = await import("./chain.ts");
-    const d = deployment();
-    const worn = await Promise.all(HATS.map((h) => publicClient.readContract({ address: d.hats, abi: abis.hats, functionName: "wears", args: [orgId(slug), p.address as Address, h] })));
+    const { wears } = await import("./chain.ts");
+    const worn = await Promise.all(HATS.map((h) => wears(slug, p.address as Address, h)));
     return HATS.filter((_, i) => worn[i]);
   } catch { return []; }
 }
@@ -140,11 +139,13 @@ export function verifyChain(slug: string): { ok: boolean; count: number; head: s
   lines.forEach((l, i) => { const r = JSON.parse(l); if (r.seq !== i + 1 || r.prev !== prev) ok = false; prev = sha(l); });
   return { ok, count: lines.length, head: prev };
 }
-export function exportRecord(slug: string, out?: string, org?: string): { path: string; count: number; chainOk: boolean } {
+/** `lineage` names the world this one was restored from (null for a world that was born here); it is the export's first line. */
+export function exportRecord(slug: string, out?: string, org?: string, lineage: Record<string, unknown> | null = null): { path: string; count: number; lines: number; chainOk: boolean; lineage: Record<string, unknown> | null } {
   const v = verifyChain(slug);
   const path = out ?? `${dir}/export/${slug}-${worldIso().replace(/[:.]/g, "")}.jsonl`;
   mkdirSync(path.replace(/\/[^/]*$/, ""), { recursive: true });
-  const head = { type: "capxul-record-export", schema: 1, slug, exported_at: new Date().toISOString(), world_time: worldIso(), count: v.count, chain_ok: v.ok, head_sha256: v.head };
-  writeFileSync(path, [line(head), ...readAll(slug, org).map((r) => line(r))].join("\n") + "\n");
-  return { path, count: v.count, chainOk: v.ok };
+  const head = { type: "capxul-record-export", schema: 1, slug, lineage, exported_at: new Date().toISOString(), world_time: worldIso(), count: v.count, chain_ok: v.ok, head_sha256: v.head };
+  const entries = readAll(slug, org);
+  writeFileSync(path, [line(head), ...entries.map((r) => line(r))].join("\n") + "\n");
+  return { path, count: v.count, lines: entries.length + 1, chainOk: v.ok, lineage };
 }

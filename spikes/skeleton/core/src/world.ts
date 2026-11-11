@@ -8,9 +8,13 @@ export const world = process.env.CAPXUL_WORLD ?? "main";
 // A company's site: `acme.localhost` in the default world, `acme.<world>.localhost` in any other (the world is in the name).
 export const siteOf = (slug: string): string => (world === "main" ? `${slug}.localhost` : `${slug}.${world}.localhost`);
 
-type Clock = { offsetMs: number; changedAt: string; rate?: number };
+/** `frozenAtMs`: a frozen world (devnet.deterministic-worlds) whose time moves only when its clock is set or advanced. */
+type Clock = { offsetMs: number; changedAt: string; rate?: number; frozenAtMs?: number };
 export const clock = (): Clock => loadJson<Clock>("clock.json", { offsetMs: 0, changedAt: "" });
 export const offsetMs = (): number => clock().offsetMs;
-export const worldNowMs = (): number => Date.now() + offsetMs();
+export const worldNowMs = (): number => { const c = clock(); return c.frozenAtMs ?? Date.now() + c.offsetMs; };
 export const worldIso = (): string => new Date(worldNowMs()).toISOString();
-export function setOffset(ms: number): void { saveJson("clock.json", { ...clock(), offsetMs: ms, changedAt: new Date().toISOString() }); }
+export function setOffset(ms: number): void {
+  const c = clock();
+  saveJson("clock.json", { ...c, offsetMs: ms, changedAt: new Date().toISOString(), ...(c.frozenAtMs !== undefined ? { frozenAtMs: Date.now() + ms } : {}) });
+}

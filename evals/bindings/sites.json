@@ -57,17 +57,18 @@
         "B6.hr-employee-and-approved-leave"
       ],
       "why": "The HR person reads the Leave Application back through the door's `doc get --as` and the check finds its docstatus and status: a document read as the caller, with its status."
-    }
-  ],
-  "near": [
+    },
     {
       "eval": "acc:doc.submit/2",
       "checks": [
-        "B3.submit-waits-for-signature",
-        "B3.still-a-draft-while-waiting"
+        "TL.doc-submit-safe-payment-held-signer-named",
+        "TL.held-payment-posts-no-ledger-line",
+        "TL.signed-payment-posts-once"
       ],
-      "missing": "The Payment Entry is held and not posted, but nothing checks that the answer names the signer."
-    },
+      "why": "The budget holder submits a Payment Entry from the Safe through the door's `doc submit --json`: the answer says held true, gives an approval id and names whom it awaits (the budget holder, as Core's approval does). The entry is still a draft with no ledger line; after `approval sign` lands it is submitted and the Safe account is credited once."
+    }
+  ],
+  "near": [
     {
       "eval": "acc:report.run/1",
       "checks": [

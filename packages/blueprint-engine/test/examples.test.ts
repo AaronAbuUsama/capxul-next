@@ -43,3 +43,11 @@ test("an operation with no example is a no-example gap in a blueprint, and gains
   assert.deepEqual(one.gaps.filter((g) => g.rule === "no-example").map((g) => g.record), ["operation:invite.accept"]);
   assert.equal(buildBlueprint({ name: "t", stage: "as-is", records: f.records }).gaps.some((g) => g.rule === "no-example"), false);
 });
+
+test("a refusal example whose error has no message, or a message that is not text, is a mismatch", () => {
+  assert.deepEqual(found(withExamples([refusal])), []);
+  const noMessage = { ...refusal, output: { error: { code: "ROLE_PERMISSION_DENIED" } } };
+  const numeric = { ...refusal, output: { error: { code: "ROLE_PERMISSION_DENIED", message: 3 } } };
+  assert.equal(found(withExamples([noMessage])).length, 1);
+  assert.equal(found(withExamples([numeric])).length, 1);
+});

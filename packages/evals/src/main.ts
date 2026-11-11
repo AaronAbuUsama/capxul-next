@@ -15,6 +15,7 @@ import { join, resolve } from "node:path";
 import { parseStatus, type Blueprint } from "@capxul/blueprint-engine";
 
 import { loadTarget } from "../../blueprint-engine/scripts/target.ts";
+import { claims } from "./claims.ts";
 import { gapsOf, loadBindings, parseBindingFile, parseScriptList, selectEvals, type BindingFile, type Bindings, type Index, type ScriptChecks, type What } from "./modules/bindings/service.ts";
 import { cap, evidenceText, fileNameOf, foldChecks, parseCheckLines, redact, resultsFile, scoreEvals, type CheckLine, type RunInfo } from "./modules/runs/service.ts";
 
@@ -209,4 +210,4 @@ const list = async (): Promise<number> => {
 };
 
 const [first, ...rest] = process.argv.slice(2).filter((a) => a !== "--");
-process.exitCode = await (first === "check" ? check() : first === "gaps" ? gaps(rest.includes("--json")) : first === "list" ? list() : run(first === "run" ? rest : [first ?? "", ...rest].filter((a) => a !== "")));
+process.exitCode = await (first === "claims" ? claims() : first === "check" ? check() : first === "gaps" ? gaps(rest.includes("--json")) : first === "list" ? list() : run(first === "run" ? rest : [first ?? "", ...rest].filter((a) => a !== "")));

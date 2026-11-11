@@ -76,29 +76,8 @@ const unfinished = (p: OverviewPage): string => {
   return parts === "" ? "" : `<section class="block"><h2 id="unfinished">What the blueprint still lacks</h2>${parts}</section>`;
 };
 
-/** What the goal is in two sentences, the coordinator's latest note, and the way to the plan and to what waits. */
-const planBlock = (p: OverviewPage): string =>
-  p.planNote === null ? "" :
-    `<section class="block"><div class="col-head"><h2 id="plan">Where the plan is</h2>` +
-    `<span><a href="${esc(hrefTo(p.id, { label: "", page: "plan", anchor: "" }))}">The whole plan ${ARROW}</a> · ` +
-    `<a href="${esc(hrefTo(p.id, REVIEW))}">${plural(p.inbox, "question")} for you</a></span></div>` +
-    (p.planGoal === "" ? "" : `<p class="lead lead-wide">${prose(p.planGoal)}</p>`) +
-    `<div class="banner"><div class="banner-words"><p class="banner-title">${prose(p.planNote.text)}</p>` +
-    `<p class="banner-text">The coordinator, ${esc(p.planNote.date)}</p></div>` +
-    `<a class="banner-count" href="${esc(hrefTo(p.id, REVIEW))}"><span class="banner-big">${count(p.inbox)}</span><span class="banner-sub">${p.inbox === 1 ? "thing waits" : "things wait"} for you</span></a></div></section>`;
-
-const board = (p: OverviewPage): string => {
-  const tasks = (rows: OverviewPage["board"]["next"]): string => rows.map((t) => '<div class="row">' + link(p.id, t.ref) + (t.evidence.length ? '<span class="row-text">' + esc(t.evidence.join(" · ")) + '</span>' : '') + '</div>').join("") || '<p>None recorded.</p>';
-  return '<section class="block" aria-label="Work board"><p class="caption">Plan and git snapshot: ' + esc(p.board.date) + ' UTC · Working now refreshes from the loop host.</p>' +
-    '<h2 id="working-now">Working now</h2><div id="board-running" aria-live="polite">Live work unavailable until connected to the loop host.</div>' +
-    '<h2 id="next">Next</h2>' + tasks(p.board.next) +
-    '<h2 id="blocked">Blocked</h2>' + (p.board.blocked.map((b) => '<div class="row">' + link(p.id, b.task.ref) + '<span class="row-text">' + esc([b.who, b.need].filter(Boolean).join(": ")) + '</span></div>').join("") || '<p>None recorded.</p>') +
-    waiting(p) + '<h2 id="done-today">Done today</h2><p class="caption">Since midnight UTC</p>' + tasks(p.board.done) +
-    p.board.merges.map((m) => '<div class="row">Merge: ' + esc(m.title) + '<code>' + esc(m.commit) + '</code></div>').join("") + '</section>';
-};
-
 export const overview = (p: OverviewPage): string =>
-  `<main class="page">${hero(p)}${board(p)}${planBlock(p)}${climb(p)}<div class="cols">${holds(p)}</div>${concepts(p)}${unfinished(p)}` +
+  `<main class="page">${hero(p)}${climb(p)}<div class="cols">${waiting(p)}${holds(p)}</div>${concepts(p)}${unfinished(p)}` +
   `<p class="all-kinds">Every record has a page. Start from a concept, or from ` +
   `${link(p.id, { label: "Docs", page: "docs", anchor: "" })} for the commands and the errors, or ` +
   `${link(p.id, { label: "Build", page: "build", anchor: "" })} for where each operation stands.</p></main>`;

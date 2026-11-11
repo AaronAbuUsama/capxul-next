@@ -53,14 +53,6 @@ export const evals = (files: ReadonlyMap<string, string>, expected: number): rea
   return listed === expected ? [] : [`the eval catalogue lists ${listed} evals, the blueprint derives ${expected}`];
 };
 
-/** The Plan page's JSON twin lists every task of the plan once, by state. */
-export const planTasks = (files: ReadonlyMap<string, string>, expected: number | null): readonly string[] => {
-  if (expected === null) return [];
-  const groups = read(files, "data/plan.json")?.["groups"];
-  const listed = (Array.isArray(groups) ? groups : []).reduce((n: number, g: unknown) => n + (isFields(g) && Array.isArray(g["tasks"]) ? g["tasks"].length : 0), 0);
-  return listed === expected ? [] : [`the Plan page lists ${listed} tasks, the plan holds ${expected}`];
-};
-
 /** The climb's words must describe its adjacent counts, in both the model and the page people read. */
 export const climb = (files: ReadonlyMap<string, string>): readonly string[] => {
   const page = read(files, "data/index.json");
@@ -103,4 +95,18 @@ export const climb = (files: ReadonlyMap<string, string>): readonly string[] => 
     }
   }
   return failures;
+};
+
+/** The Blueprint page: every `generated` marker in its guide became a table, and the record it follows is in the blueprint. */
+export const guide = (files: ReadonlyMap<string, string>): readonly string[] => {
+  const page = read(files, "data/blueprint.json");
+  if (page === null) return ["data/blueprint.json: absent, though the guide is in the repository"];
+  const unknown = Array.isArray(page["unknownMarkers"]) ? page["unknownMarkers"].map(String) : [];
+  const tables = (Array.isArray(page["sections"]) ? page["sections"] : []).flatMap((s: unknown) =>
+    isFields(s) && Array.isArray(s["parts"]) ? s["parts"].filter((p: unknown) => isFields(p) && p["t"] === "table").map((p: Fields) => p["table"]) : []);
+  const followed = tables.find((t: unknown) => isFields(t) && t["anchor"] === "followed");
+  return [
+    ...unknown.map((m) => `docs/blueprint-guide.md: the marker "generated: ${m}" names no table the portal makes`),
+    ...(isFields(followed) && Array.isArray(followed["rows"]) && followed["rows"].length > 0 ? [] : ["the Blueprint page follows no record: the operation it names is not in the blueprint"]),
+  ];
 };

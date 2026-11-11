@@ -67,7 +67,7 @@ async function move(targetMs: number, kind: "set" | "advance", step: number): Pr
     : (targetMs < before ? bench(s, "capxul.clock.rewind_jobs", {}) : Promise.resolve({}))));
   if (kind === "advance" && first) await bench(first, "capxul.clock.write_world", { world, offset_ms: newOffset });   // the one write every site of the world reads
   setOffset(newOffset);
-  const data = { world, from: new Date(before).toISOString(), to: new Date(targetMs).toISOString(), chainBlock: await chainTime(), sites: sites.length,
+  const data = { world, from: new Date(before).toISOString(), to: new Date(targetMs).toISOString(), worldNow: new Date(targetMs).toISOString(), chainBlock: await chainTime(), sites: sites.length,
     ...(kind === "advance" ? { stopsPerSite: per[0]?.stops, jobsRun: per.reduce((n: number, p: any) => n + (p.jobs_run ?? 0), 0) } : {}), ms: Date.now() - t0 };
   touched.extra.clock = { world, from: data.from, to: data.to };
   return { data, lines: [`world ${world} ${data.from} -> ${data.to} in ${data.ms} ms; chain block at ${data.chainBlock}; ${sites.length} sites${kind === "advance" ? `; ${data.stopsPerSite} stops each, ${data.jobsRun} scheduled jobs ran` : ""}`] };
@@ -82,6 +82,7 @@ export async function clockSet(args: string[]): Promise<Out> {
 export async function clockAdvance(args: string[]): Promise<Out> {
   const { pos, flags } = need(args, 2, "world clock advance <world> <duration> --as operator [--step 1d]");
   requireOperator(asOf(flags.as), "world clock advance <world> <duration>");
+  if (pos[1]!.startsWith("-")) throw refuse("INVALID_INPUT", `a warp only moves forward (got ${pos[1]}); to go back, use world clock set`);
   const step = typeof flags.step === "string" ? Math.max(1, Math.round(parseDuration(flags.step) / 864e5)) : 1;
   return move(worldNowMs() + parseDuration(pos[1]!), "advance", step);
 }

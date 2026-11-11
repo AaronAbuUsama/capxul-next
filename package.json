@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "check": "tsc -b packages/blueprint-engine",
-    "test": "pnpm --filter @capxul/blueprint-engine test && pnpm --filter @capxul/portal test && pnpm record:test && pnpm contracts:check-blueprint:test && pnpm evals:test && pnpm loop:test && pnpm plan:test && pnpm plan:check && pnpm tasks:check && pnpm evals:check && pnpm layout:test && pnpm layout",
+    "test": "pnpm --filter @capxul/blueprint-engine test && pnpm --filter @capxul/portal test && pnpm record:test && pnpm contracts:check-blueprint:test && pnpm frappe:check-blueprint:test && pnpm frappe:check-blueprint && pnpm evals:test && pnpm loop:test && pnpm plan:test && pnpm plan:check && pnpm tasks:check && pnpm evals:check && pnpm layout:test && pnpm layout",
     "record:test": "node --experimental-strip-types --test spikes/skeleton/core/test/record-schema.test.ts spikes/skeleton/core/test/record-runtime.test.ts",
     "blueprint": "node --experimental-strip-types packages/blueprint-engine/src/main.ts blueprint/index.ts var/blueprint",
     "frozen": "node --experimental-strip-types packages/blueprint-engine/scripts/check-frozen.ts",
@@ -13,6 +13,9 @@
     "portal:check": "node --experimental-strip-types --no-warnings packages/portal/src/main.ts check",
     "contracts:test": "pnpm --filter @capxul/contracts test",
     "contracts:check-blueprint": "node --experimental-strip-types --no-warnings packages/contracts/abi-check/main.ts",
+    "blueprint:ripple": "node --experimental-strip-types --no-warnings packages/blueprint-engine/scripts/ripple.ts",
+    "frappe:check-blueprint": "node --experimental-strip-types --no-warnings packages/frappe-app/blueprint-check/main.ts",
+    "frappe:check-blueprint:test": "node --experimental-strip-types --no-warnings --test packages/frappe-app/blueprint-check/check.test.ts",
     "contracts:check-blueprint:test": "node --experimental-strip-types --no-warnings --test packages/contracts/abi-check/abi-check.test.ts",
     "contracts:export-abi": "node --experimental-strip-types --no-warnings packages/contracts/abi-check/export-abi.ts",
     "contracts:fork": "pnpm --filter @capxul/contracts fork",

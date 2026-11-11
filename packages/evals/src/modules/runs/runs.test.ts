@@ -78,7 +78,7 @@ const merge = (output: string, asked: string[], before: StatusDocument | null) =
 
 test("merged: a pass is recorded with its commit, time, run and evidence; one that did not run stays as it was", () => {
   const status = merge(out(line("B1.a", "pass")), ["acc:one", "acc:three"], doc("pass"));
-  assert.deepEqual(status.evals["acc:one"], { verdict: "pass", commit: "abc1234", at: "2026-11-10T12:00:00Z", run: "run-1", evidence: "status/runs/run-1/evidence/acc:one.txt" });
+  assert.deepEqual(status.evals["acc:one"], { verdict: "pass", commit: "abc1234", at: "2026-11-10T12:00:00Z", claim: "c", run: "run-1", evidence: "status/runs/run-1/evidence/acc:one.txt" });
   assert.deepEqual(status.evals["acc:three"], { verdict: "pass", commit: "old0000", at: "2026-11-09T12:00:00Z" });
 });
 

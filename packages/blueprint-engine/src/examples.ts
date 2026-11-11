@@ -34,6 +34,8 @@ const check = (b: Records, op: AnyRecord, ex: ExampleRow): string | null => {
   }
   const code = codeOf(ex.output);
   if (code === null) return `it exits ${ex.exit} but prints no { error: { code } }`;
+  const message = (ex.output as { error?: { message?: unknown } }).error?.message;
+  if (typeof message !== "string" || message === "") return `it exits ${ex.exit} but its { error } has no message`;
   const declared = [
     ...((op.refusals as { error: AnyRecord }[] | undefined) ?? []).map((r) => r.error),
     ...((op.errors as AnyRecord[] | undefined) ?? []),

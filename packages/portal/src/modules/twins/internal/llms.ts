@@ -6,7 +6,7 @@ import { plain } from "./md.ts";
 
 const FIXED: Readonly<Record<string, string>> = {
   overview: "where the blueprint stands, what waits for an answer, what the blueprint holds",
-  plan: "the coordinator's plan: the goal, the milestones, the critical path, what is blocked and why, the tasks and the threads working on them",
+  guide: "the blueprint explained: the idea, how the build works, one record followed to its verdict, how to add to it, what happens when something is wrong, and the workflow",
   questions: "every decision that waits for an answer, with its options and the recommendation",
   architecture: "the system's parts, how it is deployed, and how the architecture changes",
   build: "every operation with its evals and where it stands",
@@ -27,6 +27,6 @@ export const llms = (site: Site): string => {
     "Every page has three files: `<page>/index.html` for a person, `<page>.md` with the same content as Markdown, and `data/<page>.json` with the page as data.",
     `${site.waiting} decisions wait for an answer; the blueprint has ${site.problems} problems.`, "",
     "## Pages", "", ...fixed, "", "## Catalogues", "", ...catalogues, "", "## Concepts", "", ...concepts, "", "## Records", "", ...kinds, "",
-    "## Data", "", "- [The whole site's counts, findings and sitemap](data/index.json)", "- [The waiting decisions](data/review.json)", "- [The plan: goal, milestones, critical path, tasks](data/plan.json)", "",
+    "## Data", "", "- [The whole site's counts, findings and sitemap](data/index.json)", "- [The waiting decisions](data/review.json)", "",
   ].join("\n");
 };

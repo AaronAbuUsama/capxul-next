@@ -1,0 +1,13 @@
+eval     acc:world.create/2
+claim    A new world runs with its clock and a record that begins with its birth.
+verdict  pass
+run      run-20261111171129  at 2026-11-11T17:11:29Z  commit 6425ccc
+script   spikes/skeleton/run.sh  world main  company cloudv4i
+why      `world create tlfrozen --clock frozen --template empty --json` answers running, clockMode frozen, epoch 1 and no company. Its clock holds while the host's moves (two reads 2 s apart agree) and the chain is at its epoch. `world show` says running and frozen, and the world's record begins with its birth: entry 1 is the `world create` with its born block, the only one, and the hash chain holds. (The world's Core records its own start as entry 2, so recordHead is 2 here, not 1.)
+
+PASS  TL.world-create-runs-frozen  x1  11073 ms
+      TL world create tlfrozen --clock frozen --template empty: the world runs, on a frozen clock, at epoch 1, with no company
+PASS  TL.world-frozen-clock-holds  x1  3035 ms
+      TL its clock holds while the host's moves (two reads 2 s apart agree) and the chain is at its epoch
+PASS  TL.world-record-begins-with-birth  x1  1088 ms
+      TL world show tlfrozen says running and frozen; its record's first entry is its birth, the only one, and the hash chain holds

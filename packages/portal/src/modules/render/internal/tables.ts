@@ -30,9 +30,9 @@ export const cell = (at: string, c: Cell, cites: Cites): string => {
   }
 };
 
-/** A section's heading, caption and table. A table with no rows says what the blueprint is silent on. */
-export const tableSection = (at: string, s: TableSection, cites: Cites): string => {
-  const head = `<h2 id="${esc(s.anchor)}">${esc(s.title)}</h2>${s.caption === "" ? "" : `<p class="caption">${rich(at, s.caption, cites)}</p>`}`;
+/** A section's heading, caption and table. A table with no rows says what the blueprint is silent on. `level` is its heading's. */
+export const tableSection = (at: string, s: TableSection, cites: Cites, level = 2): string => {
+  const head = `<h${level} id="${esc(s.anchor)}">${esc(s.title)}</h${level}>${s.caption === "" ? "" : `<p class="caption">${rich(at, s.caption, cites)}</p>`}`;
   if (s.rows.length === 0) return `<section class="block">${head}<p class="silent">${rich(at, s.empty, cites)}</p></section>`;
   const rows = s.rows.map((r, i) => {
     const group = r.group !== "" && r.group !== s.rows[i - 1]?.group

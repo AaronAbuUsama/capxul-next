@@ -3,23 +3,24 @@
   "script": "spikes/skeleton/run.sh",
   "worlds": ["main"],
   "secrets": ["spikes/skeleton/.env", "spikes/skeleton/core/people.json"],
-  "bindings": [],
-  "near": [
-    {
-      "eval": "acc:world.create/2",
-      "checks": ["B1.org-create", "B1.site-answers-by-name"],
-      "missing": "Startup provides a working company site, but reuses main rather than world create; running state, frozen clock, epoch and birth record are not read. No hosted placement or real v4 deployment is established."
-    },
+  "bindings": [
     {
       "eval": "acc:org.create/6",
-      "checks": ["B1.org-create", "B1.safe-on-chain-is-the-sites-safe", "B1.site-answers-by-name", "B1.company-exists", "B1.safe-bank-account", "B1.admin-hat-reaches-site", "B1.admin-sign-in-chain"],
-      "missing": "The company, chain Safe and site agree, but the stub does not establish CompanySafeMinted with founderSafe at the minter's companySafeAddressFor."
+      "checks": ["B1.org-create", "B1.safe-on-chain-is-the-sites-safe", "B1.company-safe-minted-for-founder", "B1.org-show-prints-the-safe"],
+      "why": "`org create` runs on the real v4 contracts. The checks read Companies House's CompanySafeMinted event for the company: its Safe is the minter's companySafeAddressFor for the admin (the founder) and the company's name, is the Safe the site was given, and has the founder's personal Safe (the claimer's safeAddressFor) as founderSafe; the company Safe's owners are the founding Directors' personal Safes (the founder's and priya's, as the run makes the company with a second Director); `org show` prints that Safe."
+    },
+    {
+      "eval": "acc:world.create/2",
+      "checks": ["TL.world-create-runs-frozen", "TL.world-frozen-clock-holds", "TL.world-record-begins-with-birth"],
+      "why": "`world create tlfrozen --clock frozen --template empty --json` answers running, clockMode frozen, epoch 1 and no company. Its clock holds while the host's moves (two reads 2 s apart agree) and the chain is at its epoch. `world show` says running and frozen, and the world's record begins with its birth: entry 1 is the `world create` with its born block, the only one, and the hash chain holds. (The world's Core records its own start as entry 2, so recordHead is 2 here, not 1.)"
     },
     {
       "eval": "acc:org.member.grant/1",
-      "checks": ["B2.hat-grant-on-chain", "B2.roles-follow-grant", "B2.department-limit-exists"],
-      "missing": "The grant reaches the chain and site roles, but there is no waiting Director proposal, second Director approval, or applied change read through org member get."
-    },
+      "checks": ["TL.grant-proposal-waits-for-second-director", "TL.grant-proposal-non-director-refused", "TL.grant-proposal-applied-after-second-director", "TL.grant-proposal-roles-reach-site"],
+      "why": "The run's company is born with a second Director (priya), so its Board threshold is both Directors. `hat grant --propose` makes a Board proposal: the founder's Safe approves the company Safe's batch on chain and `org proposal get` reads it waiting, approved by the founder and not by priya, while `org member get` shows elena wearing nothing. A non-Director's approval is refused (ROLE_PERMISSION_DENIED). After priya approves, the batch executes: the proposal reads applied with both approvals and a transaction, `org member get` shows elena wearing member, and the hat's mapped roles reach the site."
+    }
+  ],
+  "near": [
     {
       "eval": "acc:payment.send/1",
       "checks": ["B3.sign-sends-chain-transaction", "B3.chain-moved-the-money", "B3.payment-entry-submitted", "B3.entry-carries-transaction-hash", "B3.ledger-posted", "B3.invoice-nothing-outstanding"],
@@ -28,7 +29,7 @@
     {
       "eval": "jrn:thin_line",
       "checks": ["B1.org-create", "B1.safe-on-chain-is-the-sites-safe", "B1.site-answers-by-name", "B2.roles-follow-grant", "B3.budget-holder-makes-invoice-and-payment-entry", "B3.submit-waits-for-signature", "B3.still-a-draft-while-waiting", "B3.sign-sends-chain-transaction", "B3.chain-moved-the-money", "B3.ledger-posted", "B3.invoice-nothing-outstanding", "B6.reports-run", "B7.world-at-31-march-all-agree", "B8.export-one-file-line-by-line", "B9.snapshot-saved", "B9.restore-into-new-world", "B9.new-world-payment-not-in-old", "B9.old-world-payment-not-in-new", "B9.new-world-record-begins-with-old-then-lineage"],
-      "missing": "Partial end-to-end evidence only. Missing one-command full hosted world creation, real v4 deployment and payment path, Director proposal, door creation of the payment documents, signer identity in the hold answer, books/chain reconciliation, due-job assertion, complete record export assertions, snapshot untouched assertion, and world show lineage. See the twelve ordered tests in evals/thin-line.md; the spike uses localhost and main and cannot prove g8 on the sites machine."
+      "missing": "Partial end-to-end evidence only. Missing one-command full hosted world creation, real v4 UserOperation payment path, door creation of the payment documents, signer identity in the hold answer, books/chain reconciliation, due-job assertion, complete record export assertions, snapshot untouched assertion, and world show lineage. See the twelve ordered tests in evals/thin-line.md; the spike uses localhost and main and cannot prove g8 on the sites machine."
     }
   ]
 }

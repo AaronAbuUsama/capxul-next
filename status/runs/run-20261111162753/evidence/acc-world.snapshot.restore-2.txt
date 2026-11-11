@@ -1,0 +1,13 @@
+eval     acc:world.snapshot.restore/2
+claim    A restore into a separate world leaves the first world untouched and the two never see each other.
+verdict  pass
+run      run-20261111162753  at 2026-11-11T16:27:53Z  commit 1c2504a
+script   spikes/skeleton/run.sh  world main  company cloudv4g
+why      The snapshot is restored into a second world beside the first. A payment made in the new world is in its documents and its chain and not in the old world's, which stay at their counts and balance; a payment made in the old world is not in the new.
+
+PASS  B9.restore-into-new-world  x1  29285 ms
+      B9 restored into a NEW world w2 beside the original (own chain, own Core, site cloudv4g.w2.localhost) in 26676ms: {'chain+core files': 10, 'start chain and Core': 1161, 'sites': 22788, 'clock': 2182}
+PASS  B9.new-world-payment-not-in-old  x1  5682 ms
+      B9 ... is in the new world (8 payment entries, Safe down 7.25) and not in the old (7, unchanged)
+PASS  B9.old-world-payment-not-in-new  x1  13242 ms
+      B9 a payment made in the old world is not in the new one (old 8, new still 8)

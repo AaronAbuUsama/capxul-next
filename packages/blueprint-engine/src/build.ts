@@ -7,6 +7,11 @@ import { BUDGET_DEFAULTS } from "./budgets.ts";
 import { exampleGaps, exampleProblems } from "./examples.ts";
 import { classifyFindings, isErrorProducer } from "./findings.ts";
 import { telemetryGaps } from "./telemetry.ts";
+import { siteGaps, siteProblems } from "./site.ts";
+import { signalGaps, signalProblems } from "./signals.ts";
+import { screenProblems } from "./screens.ts";
+import { argsOf, chosenProblem, reachedStates, sendsEvent } from "./reach.ts";
+export { argsOf };
 
 export interface AnyRecord {
   readonly _kind: Kind;
@@ -103,7 +108,7 @@ export const buildBlueprint = (input: { name: string; stage: "as-is" | "target";
 
   const blueprint = { name: input.name, stage: input.stage, records, links, linkedBy, problems, gaps: [] as Finding[], standing: [] as StandingFinding[], evals: [] as EvalDef[] };
   checkRules(blueprint, problems);
-  problems.push(...exampleProblems(blueprint, all(blueprint, "operation")));
+  problems.push(...exampleProblems(blueprint, all(blueprint, "operation")), ...siteProblems(blueprint), ...signalProblems(blueprint), ...screenProblems(blueprint));
   if (input.stage === "target") checkTargetRules(blueprint, problems);
   const gaps = deriveGaps(blueprint, input.stage);
   return classifyFindings(blueprint, gaps, problems);
@@ -130,22 +135,6 @@ export const propsOf = (s: unknown): Set<string> | undefined => {
 
 /** The columns every indexed log carries besides its arguments, as Ponder's rows name them. */
 export const LOG_ENVELOPE = ["chain_id", "contract_address", "block_number", "block_hash", "tx_hash", "log_index"] as const;
-
-/** A chain event's argument names, read from its signature: `Transfer(address indexed from, address indexed to, uint256 value)`. */
-export const argsOf = (signature: string): string[] => {
-  const open = signature.indexOf("(");
-  const body = open < 0 ? "" : signature.slice(open + 1, signature.lastIndexOf(")"));
-  const parts: string[] = [];
-  let depth = 0;
-  let cur = "";
-  for (const ch of body) {
-    if (ch === "(") depth++;
-    if (ch === ")") depth--;
-    if (ch === "," && depth === 0) { parts.push(cur); cur = ""; } else cur += ch;
-  }
-  if (cur.trim()) parts.push(cur);
-  return parts.map((p) => p.trim().split(/\s+/).pop() ?? "").filter(Boolean);
-};
 
 /** What a wait key's carrier carries, by name; undefined when the blueprint cannot tell (a call has no input schema). */
 const carried = (b: Draft, on: AnyRecord): Set<string> | undefined => {
@@ -350,6 +339,8 @@ const checkRules = (b: Draft, problems: Finding[]) => {
       }
     });
   }
+
+  for (const d of all(b, "decision")) { const c = chosenProblem(d); if (c) problems.push(c); }
 };
 
 // ── target rules: what a rebuilt design must satisfy (the accepted policies) ────────────────
@@ -435,12 +426,12 @@ const deriveGaps = (b: Draft, stage: "as-is" | "target"): Finding[] => {
   for (const t of all(b, "table")) if (t.tenancy !== "chain" && by(t, "writes").length === 0) g(t, "unwritten-table", "no operation or workflow writes it");
   for (const t of all(b, "transition")) if (by(t, "drives").length === 0) g(t, "undriven-transition", "no operation or workflow drives it");
   for (const m of all(b, "machine")) {
-    const reached = new Set([m.initial as string, ...Object.values(m.transitions as Record<string, { to: string }>).map((t) => t.to)]);
+    const reached = reachedStates(m);
     for (const s of m.states as { id: string }[]) if (!reached.has(s.id)) g(m, "unreachable-state", `no transition reaches ${s.id}`);
   }
-  // A wait that is woken by an event listens to it; it does not send it.
-  for (const e of all(b, "event")) if (by(e).filter((l) => l.field !== "waits").length === 0) g(e, "unsent-event", "no transition, operation or workflow sends it");
+  for (const e of all(b, "event")) if (!e.producer && !by(e).some(sendsEvent)) g(e, "unsent-event", "no transition, operation or workflow sends it");
   for (const e of all(b, "error")) if (!by(e).some(isErrorProducer)) g(e, "unproduced-error", "nothing produces it");
+  for (const r of b.records.values()) for (const o of (r.owes ?? []) as { decision: AnyRecord; change: string }[]) g(r, "owed-change", `${o.decision.id}: ${o.change}`);
   for (const c of all(b, "call")) if (by(c, "calls").length === 0) g(c, "unused-call", "nothing calls it");
   for (const f of all(b, "function")) if (by(f, "chain").length === 0) g(f, "uncalled-function", "nothing calls it");
   for (const e of all(b, "chainEvent")) if (by(e).length === 0) g(e, "unconsumed-chain-event", "no workflow is triggered by it or waits on it");
@@ -465,5 +456,5 @@ const deriveGaps = (b: Draft, stage: "as-is" | "target"): Finding[] => {
   for (const i of all(b, "invariant")) if (i.check === "reconcile" && !i.by) g(i, "unchecked-invariant", "a reconcile check names no workflow");
   // What a target operation shows beyond its design: an example, the spans it names, an event for a change of state.
   if (stage === "target") gaps.push(...exampleGaps(all(b, "operation")), ...telemetryGaps(b, all(b, "operation")));
-  return gaps;
+  return [...gaps, ...siteGaps(b), ...signalGaps(b, stage)];
 };
