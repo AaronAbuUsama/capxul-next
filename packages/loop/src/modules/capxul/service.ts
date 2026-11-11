@@ -22,7 +22,8 @@ import { findingsOf, gatesFor, runGates } from "./internal/gates.ts";
 import * as plan from "./internal/plan.ts";
 import { checkerPrompt, makerPrompt as renderMaker, researchPrompt, type CheckInput } from "./internal/prompts.ts";
 import { runnerOf, startSandbox, stopSandbox } from "./internal/sandbox.ts";
-import { boxFor, inBox } from "./internal/cloud.ts";
+import { boxFor, downOwned, inBox, reapEnded } from "./internal/cloud.ts";
+import { sandboxTools } from "./internal/boxes.ts";
 import { baseOf, runDir, runsDir } from "./internal/where.ts";
 import { cleanEnv } from "./internal/sh.ts";
 import type { Check, Ctx, Finding, Gate, Handback, Job, Opts, SandboxInfo, Said, Task } from "./types.ts";
@@ -87,7 +88,7 @@ export const agent = (job: Job, name: string, o: { role: string; prompt: string;
   const kit = kitFor(job, name, def);                                 // the capture tools: what this agent shows is made by them
   await record(job.run.host, "loop.agent", name, { definition: recordOf(def) });       // the definition it runs under, for whoever looks at the run
   const said = await ask(host, {                                       // `host` hands out the definition's tools, whichever profile is named
-    key: name, model, system: systemOf(def, job.ctx.root), prompt: o.prompt, cwd: wt.dir, tools: kit.tools,
+    key: name, model, system: systemOf(def, job.ctx.root), prompt: o.prompt, cwd: wt.dir, tools: [...kit.tools, ...sandboxTools(job, def.tools)],
     profile: "read", maxTurns: 80, timeoutMs: job.opts.timeoutMin * 60_000, stopFile: job.run.stopFile, modelWaitsMs: job.ctx.retry?.waitsMs ?? MODEL_WAITS_MS,
   }).finally(() => { release(); return kit.close(); });
   const box = boxFor(job.ctx, job.box);
@@ -189,7 +190,11 @@ const playJob = (ctx: Ctx, id: string, task: Task, opts: Opts, script?: Script):
       try {
         if (task.source === "plan") await run.step("plan.claim", async () => { plan.claim(ctx, task.id, id); return true; });
         await (script ?? await loadScript(ctx, opts.script))(job);
-      } finally { await door.close(); door = undefined; }
+      } finally {
+        await door.close(); door = undefined;
+        // However the run ends (ready, blocked, failed, stopped), its boxes go down; a resume starts its own again.
+        if (opts.sandbox === "cloud") await downOwned(ctx, id);
+      }
     },
   });
 };
@@ -287,5 +292,14 @@ export const serve = (ctx: Ctx, o: { port: number; sinceHours?: number }): Promi
     note: (id, n) => sendNote(ctx, id, n),
     say: ctx.say,
     evidence: (id) => (existsSync(join(runsDir(ctx), id, "status.json")) ? join(runsDir(ctx), id, EVIDENCE) : null),
-  }, { port: o.port, ...(ctx.env.LOOP_HOST_ORIGINS ? { origins: ctx.env.LOOP_HOST_ORIGINS.split(",") } : {}), ui: ctx.env.LOOP_UI_DIR ?? join(ctx.root, "packages/loop-ui/dist") });
+  }, { port: o.port, ...(ctx.env.LOOP_HOST_ORIGINS ? { origins: ctx.env.LOOP_HOST_ORIGINS.split(",") } : {}), ui: ctx.env.LOOP_UI_DIR ?? join(ctx.root, "packages/loop-ui/dist") })
+    .then((served) => {
+      // The runaway guard's sweep on this side: every five minutes, the boxes of runs no process is playing go down.
+      const playing = (id: string): boolean => { try { const i = readInfo(runDir(ctx, id)); return i.status === "running" && alive(i.pid); } catch { return false; } };
+      const sweep = setInterval(() => { void reapEnded(ctx, playing).then((gone) => { for (const g of gone) ctx.say(`sandbox reaped ${g}`); }); }, REAP_MS);
+      sweep.unref();
+      return { ...served, close: () => { clearInterval(sweep); return served.close(); } };
+    });
 };
+/** How often the host sweeps boxes. */
+const REAP_MS = 5 * 60_000;

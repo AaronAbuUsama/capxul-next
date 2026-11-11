@@ -14,7 +14,7 @@ let link: Link, close: () => Promise<void>;
 
 before(async () => {
   if (IMAGE) {
-    const d = docker(IMAGE), r = await d.start("box-test");
+    const d = docker(IMAGE), r = await d.start("box-test", { owner: "test", ttlMs: 600_000 });
     if (!r.ok) throw new Error(r.error.message);
     link = r.value; close = () => d.stop("box-test");
   } else {

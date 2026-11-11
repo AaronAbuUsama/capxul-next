@@ -2,6 +2,7 @@
 import type { Models } from "@earendil-works/pi-ai";
 import { modelsFrom, type Policy, type Profile } from "../../agents/service.ts";
 import { TOOL_NAMES } from "../../evidence/types.ts";
+import { SANDBOX_TOOLS } from "./boxes.ts";
 import type { Ctx } from "../types.ts";
 
 const FILES = /^(ls|cat|head|tail|wc|nl|grep|sort|uniq|cut|tr|diff|echo|printf|pwd|true|basename|dirname|stat|du|jq)( |$)/;
@@ -43,7 +44,7 @@ export const POLICY: Policy = {
   },
   // var/ is the lane's own working data (the build writes var/blueprint); only the runs' storage under it is kept out
   denyWrite: [/^books\/frozen\//, /^blueprint\/baseline\//, /(^|\/)src\/generated\//, /^\.git(\/|$)/, /^\.claude\//, /^var\/runs(\/|$)/],
-  tools: TOOL_NAMES,                       // the capture tools (modules/evidence): each checks its own arguments
+  tools: [...TOOL_NAMES, ...SANDBOX_TOOLS], // the capture tools (modules/evidence) and an agent's own boxes (boxes.ts): each checks its own arguments
   hints: [
     [/^pnpm (-s |--silent )?(--dir \S+ )?(install|i|add)( |$)/, "the lane's dependencies are installed before it starts; if one is missing, say so in your hand-back"],
     [/^python3?( |$)/, "use node for a script"],

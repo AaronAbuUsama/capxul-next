@@ -52,11 +52,21 @@ export interface Box {
   restore(dir: string): Promise<Result<string[]>>;
 }
 
-/** Starts and stops boxes: a Cloudflare container through the Worker, or a local Docker container of the same image. */
+/** A live box as its launcher knows it. Times are ISO strings. */
+export interface BoxRecord { readonly name: string; readonly owner: string; readonly startedAt: string; readonly expiresAt: string; readonly running: boolean }
+
+/** Who a box is for (a person, a run, an agent: free text, it is how boxes are found and reaped) and how long it may live. */
+export interface StartOptions { readonly owner: string; readonly ttlMs: number }
+
+/** Starts, finds, lists and stops boxes: Cloudflare containers through the Worker, or local Docker containers of the same image. */
 export interface Launcher {
-  readonly name: "cloudflare" | "docker";
-  /** A box for this run, started or found again (safe to repeat). */
-  start(id: string): Promise<Result<Link>>;
+  readonly name: "cloudflare" | "docker" | "running";
+  /** Starts the box `name`, or finds it running (safe to repeat), and waits until it answers. */
+  start(name: string, o: StartOptions): Promise<Result<Link>>;
+  /** How to reach a box that is running. */
+  link(name: string): Result<Link>;
   /** Removes it. Never fails: a box that is already gone is the goal. */
-  stop(id: string): Promise<void>;
+  stop(name: string): Promise<void>;
+  /** Every box this launcher has, running or not. */
+  list(): Promise<Result<BoxRecord[]>>;
 }

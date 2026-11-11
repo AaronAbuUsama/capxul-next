@@ -1,5 +1,5 @@
-// The server inside a box (packages/loop/cloud/Dockerfile runs it). Reads its port and its checkout from the environment.
-import { serveBox } from "../modules/cloud/service.ts";
+// The server inside a box (packages/sandbox/image/Dockerfile runs it). Reads its port and its checkout from the environment.
+import { serveBox } from "../modules/box/service.ts";
 
 const machine: Record<string, string> = {};
 for (const k of ["PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR"]) { const v = process.env[k]; if (v) machine[k] = v; }

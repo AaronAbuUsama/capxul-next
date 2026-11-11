@@ -55,8 +55,8 @@ export interface Task {
   readonly budgetUsd?: number;
 }
 
-/** `url` and `launcher`: where a `cloud` sandbox's box answers and what started it (never its key). */
-export interface SandboxInfo { readonly kind: SandboxKind; readonly env: Readonly<Record<string, string>>; readonly port?: number; readonly pid?: number; readonly world?: string; readonly url?: string; readonly launcher?: string }
+/** `box`, `url` and `launcher`: a `cloud` sandbox's box, where it answers and what started it (never its key). */
+export interface SandboxInfo { readonly kind: SandboxKind; readonly env: Readonly<Record<string, string>>; readonly port?: number; readonly pid?: number; readonly world?: string; readonly url?: string; readonly launcher?: string; readonly box?: string }
 
 /** What a script is handed: the run, the task, the options, and (once made) its lane and sandbox. */
 export interface Job { readonly ctx: Ctx; readonly run: Run; /** What the agents' commands see: filled in by `sandbox`. */ readonly env: Record<string, string>; readonly task: Task; readonly opts: Opts; lane?: Lane; box?: SandboxInfo }

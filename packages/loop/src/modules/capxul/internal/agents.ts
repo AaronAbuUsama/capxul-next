@@ -7,6 +7,7 @@ import { join, relative } from "node:path";
 import type { ProfileSpec } from "../../agents/service.ts";
 import { agentNamed, loadAgents, type Agent, type Loaded, type Vocabulary } from "../../definitions/service.ts";
 import { TOOL_NAMES } from "../../evidence/types.ts";
+import { SANDBOX_TOOLS } from "./boxes.ts";
 import type { AgentRecord } from "../../inspect/types.ts";
 import type { Ctx, Opts, SandboxInfo } from "../types.ts";
 import { POLICY, qualify, SHELLS } from "./config.ts";
@@ -15,7 +16,7 @@ import { POLICY, qualify, SHELLS } from "./config.ts";
 export const FOLDER = "packages/loop/agents";
 const CODING = ["read", "write", "edit", "bash"] as const;
 /** What a definition may name here. The capture tools are the evidence module's; the sandboxes go from the least to the most. */
-export const VOCABULARY: Vocabulary = { tools: [...CODING, ...TOOL_NAMES], shells: Object.keys(SHELLS), sandboxes: ["none", "light", "cloud", "heavy"] };
+export const VOCABULARY: Vocabulary = { tools: [...CODING, ...TOOL_NAMES, ...SANDBOX_TOOLS], shells: Object.keys(SHELLS), sandboxes: ["none", "light", "cloud", "heavy"] };
 
 /** The definitions of the repository at `root`. `main.ts` loads them once and hands them in as `ctx.agents`. */
 export const loadDefinitions = (root: string): Promise<Loaded> => loadAgents(join(root, FOLDER), VOCABULARY);
