@@ -77,6 +77,8 @@ export const RULE_WORDS: readonly RuleWords[] = [
   { rule: "unread-event", kind: "gap", means: "No journey, insight or alert reads a product event." },
   { rule: "unwatched-failure", kind: "gap", means: "No alert watches a failure event." },
   { rule: "unlogged-operation", kind: "gap", means: "No log row is written for every endpoint, or for every workflow." },
+  { rule: "insight-reads", kind: "problem", means: "An insight's query names a signal it does not list, or lists one it never queries." },
+  { rule: "unused-insight", kind: "gap", means: "No dashboard shows an insight and no alert evaluates it." },
   { rule: "admission-in-prose", kind: "gap", means: "A table's words say someone else may read its rows, but no rule records who." },
   { rule: "unwritten-table", kind: "gap", means: "Nothing writes a table." },
   { rule: "undriven-transition", kind: "gap", means: "Nothing makes a state machine take this move." },

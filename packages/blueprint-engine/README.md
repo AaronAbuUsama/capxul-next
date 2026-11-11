@@ -17,7 +17,9 @@ pnpm --filter @capxul/blueprint-engine test
   compares these records with `packages/frappe-app` and fails the merge on a difference.
 - `src/records/telemetry.ts`, `src/signals.ts`: `defineLog` and `defineMetric`, and an event's `purpose` (transition,
   product, failure, operator), `producer`, `pii` and `groups`, with their rules, gaps and evals (`ana:`, `log:`, `met:`).
-  The system's `envelope` is what every signal carries.
+  The system's `envelope` is what every signal carries. `defineInsight` (a query over them), `defineAlert` (an insight,
+  a condition, a route and a runbook) and `defineDashboard` (insights and journeys, in order) derive `ins:`, `alr:` and
+  `dsh:` evals.
 - `src/ripple.ts`: what a change reaches. `pnpm blueprint:ripple [--base <ref>] [--json]` compares this branch's
   blueprint with the base's (built with the base's own engine, `scripts/at.ts`): records added, removed and changed,
   everything that depends on them, the decisions to read again and the evals whose verdicts go stale.

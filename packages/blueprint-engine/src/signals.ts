@@ -1,4 +1,5 @@
-// The rules and evals for what the product says about itself: events beyond transitions, log rows and metrics.
+// The rules and evals for what the product says about itself (events beyond transitions, log rows, metrics) and what
+// is asked of it (insights, alerts, dashboards).
 // A signal with nothing sending it, or a field it names that it does not have, is a problem; a product event nothing
 // reads and a failure nothing watches are gaps; in a target design, a kind of call no log row covers is a gap on the system.
 
@@ -35,16 +36,28 @@ export const signalProblems = (b: Records): Finding[] => {
     if (l.per !== "once" && l.producer) p(l, "log-producer", `every ${String(l.per)} writes it; it names no single producer`);
     named(l, l.attributes, l.redact, "redact");
   }
+  const signals = [...of(b, "event"), ...of(b, "log"), ...of(b, "metric")];
+  for (const i of of(b, "insight")) {
+    if (typeof i.query !== "string") continue;
+    const reads = new Set((i.reads as AnyRecord[]).map(key));
+    for (const s of signals)
+      if (!reads.has(key(s)) && new RegExp(`['"\`]${s.id.replace(/[.]/g, "\\.")}['"\`]`).test(i.query)) p(i, "insight-reads", `its query names ${key(s)}, which reads does not list`);
+    for (const r of i.reads as AnyRecord[])
+      if (!i.query.includes(r.id)) p(i, "insight-reads", `reads lists ${key(r)}, which its query never names`);
+  }
   return out;
 };
 
 export const signalGaps = (b: Linked, stage: "as-is" | "target"): Finding[] => {
   const out: Finding[] = [];
   const readers = (r: AnyRecord) => (b.linkedBy.get(key(r)) ?? []).filter((l) => l.field !== "affects" && !l.from.startsWith("decision:"));
+  const watched = new Set(of(b, "alert").flatMap((a) => ((b.records.get(key(a.insight as AnyRecord))?.reads ?? []) as AnyRecord[]).map(key)));
   for (const e of of(b, "event")) {
     if (purposeOf(e) === "product" && readers(e).length === 0) out.push({ record: key(e), rule: "unread-event", detail: "no journey, insight or alert reads it" });
-    if (purposeOf(e) === "failure" && readers(e).length === 0) out.push({ record: key(e), rule: "unwatched-failure", detail: "no alert watches it" });
+    if (purposeOf(e) === "failure" && !watched.has(key(e))) out.push({ record: key(e), rule: "unwatched-failure", detail: "no alert watches it" });
   }
+  for (const i of of(b, "insight"))
+    if (readers(i).length === 0) out.push({ record: key(i), rule: "unused-insight", detail: "no dashboard shows it and no alert evaluates it" });
   const covered = new Set(of(b, "log").map((l) => String(l.per)));
   if (stage === "target")
   for (const s of of(b, "system"))
@@ -66,5 +79,19 @@ export const signalEvals = (b: Records): EvalDef[] => {
     if (Array.isArray(l.redact) && l.redact.length) e(`log:${l.id}/redacted`, l, `no value of ${(l.redact as string[]).join(", ")} leaves the component`);
   }
   for (const m of of(b, "metric")) e(`met:${m.id}/emitted`, m, `its producer emits it as a ${String(m.instrument)} in ${String(m.unit)}, with its attributes`);
+  for (const i of of(b, "insight")) {
+    e(`ins:${i.id}/runs`, i, `on a seeded world it returns rows shaped for a ${String(i.display)}`);
+    if (typeof i.answer === "string") e(`ins:${i.id}/answers`, i, `on the thin-line world it answers: ${i.answer}`);
+  }
+  for (const a of of(b, "alert")) {
+    const to = (a.route as string[]).join(", ");
+    e(`alr:${a.id}/fires`, a, `a world with the fault seeded fires it once, to ${to}, when ${String(a.condition)}`);
+    e(`alr:${a.id}/quiet`, a, "a healthy world under load does not fire it");
+    e(`alr:${a.id}/clears`, a, "when the fault is repaired, it clears");
+  }
+  for (const d of of(b, "dashboard")) {
+    if (d.where !== "portal") e(`dsh:${d.id}/synced`, d, `the live ${String(d.where)} dashboard equals the record, tile for tile`);
+    e(`dsh:${d.id}/shows`, d, "opened, every tile renders a value, and a screenshot is kept");
+  }
   return out;
 };
