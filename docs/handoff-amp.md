@@ -93,20 +93,28 @@ coordinator and hill-climbs it with the skills in `.agents/skills/` (`coordinate
 Open, his call: plan tasks blocked on him show on Questions as plain text without option buttons, unlike blueprint
 decisions, so a choice for him reads better as a decision record than as a plan need (the `ask-aaron` skill says so).
 
-## 5b. Known open work from the blueprint audit (11 November)
+## 5b. The blueprint audit (11 November)
 
 An outside audit of the blueprint was checked against `integration/build` at `222d334`, and every finding held
-(evidence: https://claude.ai/artifact/QNjtyttvfv9BgU8Qsf4Rn2). None is fixed yet:
+(evidence: https://claude.ai/artifact/QNjtyttvfv9BgU8Qsf4Rn2). Aaron said "fix all"; the fixes landed in one pull
+request from the thread "Validate the blueprint audit findings":
 
-- A pass survives a change to an acceptance line's `observes` (`packages/blueprint-engine`: evals and status).
-- The shared-world records say Postgres and Ponder; the chosen decision says SQLite; the code uses JSON files.
-- The `books` concept still describes Core owning the chart of accounts, untracked.
-- Goal g4 over-claims what is proven.
-- `docs/blueprint-guide.md` has three false statements and swarmD text.
-- Aaron's five open decisions (`docs/mission/decisions-2026-11-11.md`) are not on the Questions page: make them
-  decision records so they show there with buttons.
-- `blueprint/shared/cut.ts` maps the trial balance to the Balance Sheet.
-- The plan still shows `todo` for work merged in PRs #2, #4 and #8: the coordinator's first sweep closes them.
+- **Fixed:** a verdict now goes stale when its acceptance line's `observes` changes, not only its claim (engine:
+  `evals.ts`, `status.ts`, `ripple.ts`); the 16 recorded acceptance passes were run again to record it.
+- **Fixed:** the `books` concept now says what `cut.books` ruled (ERPNext owns the chart, reports and exports).
+- **Fixed:** the `devnet` and `shared-world` environments and the `backend` component now describe the lean world
+  (`devnet.lean-world`: one SQLite service, chain reader folded in, a bundler only in the canary world).
+- **Fixed:** `docs/blueprint-guide.md`'s three false statements and `docs/blueprint.md`'s swarmD factory text; the
+  trial balance mapping in `cut.ts`; payroll's "UK filing" wording (now `aaron.jurisdiction-open`).
+- **On the Questions page, waiting for Aaron** (`blueprint/shared/questions.ts`): `thin-line.bundler` and
+  `books.founder-funding` (thin line rows 6 and 7), `devnet.core-service-home`, `devnet.cli-split`,
+  `devnet.record-home` (the spike's move into packages), and `books.chart-owner` (whether Core keeps its own copy of
+  the chart; the `books` tables and the head feed still model the copy until he answers).
+- **Plan:** g2 and g4 evidence refreshed to what is actually checked (g4's wording is a milestone exit, so his);
+  `m1-cloud-sandbox` dropped (Amp replaces it); what is left of `m3b-bench-image` and `m2-contracts-under-sites` is in
+  the plan's notes.
+- **Still open:** the verdict fingerprint covers the claim and `observes`, not a refusal's starting world or the
+  schemas a claim names.
 
 ## 6. Next tasks (each one Amp thread, one pull request into integration/build)
 
