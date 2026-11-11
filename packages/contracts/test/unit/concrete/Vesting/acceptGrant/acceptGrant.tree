@@ -1,0 +1,20 @@
+AcceptGrant_Vesting_Unit_Concrete_Test
+├── when the grant does not exist
+│   └── it should revert with UnknownGrant
+├── when the caller is not the shareholder
+│   └── it should revert with OnlyShareholder
+├── when the grant was already accepted
+│   └── it should revert with GrantExists
+├── when the offer has expired
+│   └── it should revert with OfferExpired
+├── when the terms hash is not the document hash
+│   └── it should revert with TermsMismatch
+├── when the shareholder already has a live grant on this class
+│   └── it should revert with GrantExists
+├── when the shareholder holds fewer unlocked shares than the amount
+│   └── it should revert with NotEnoughShares
+└── when the shareholder accepts the exact terms in time
+    ├── it should mark the grant accepted
+    ├── it should set the shareholder's live grant on the class
+    ├── it should lock by the grant's schedule from now on
+    └── it should emit GrantAccepted

@@ -1,0 +1,639 @@
+{
+  "_comment": "Calendar v4 vectors (spec/calendar.md): periodIndex/periodStart/nextPeriodStart, periodFigure and monthsBetween. Expected values computed by Python's datetime and calendar modules (docs/planning/protocol-v4/plans/Calendar.md), apart from the Solidity library and its tests' model. Periods: month|quarter|year; rate periods: week|month|year.",
+  "periodIndex": [
+    {
+      "name": "month holding 1970-01-01T00:00:00Z",
+      "period": "month",
+      "at": 0,
+      "index": 23640,
+      "start": 0,
+      "nextStart": 2678400
+    },
+    {
+      "name": "quarter holding 1970-01-01T00:00:00Z",
+      "period": "quarter",
+      "at": 0,
+      "index": 7880,
+      "start": 0,
+      "nextStart": 7776000
+    },
+    {
+      "name": "year holding 1970-01-01T00:00:00Z",
+      "period": "year",
+      "at": 0,
+      "index": 1970,
+      "start": 0,
+      "nextStart": 31536000
+    },
+    {
+      "name": "month holding 2026-01-01T00:00:00Z",
+      "period": "month",
+      "at": 1767225600,
+      "index": 24312,
+      "start": 1767225600,
+      "nextStart": 1769904000
+    },
+    {
+      "name": "quarter holding 2026-01-01T00:00:00Z",
+      "period": "quarter",
+      "at": 1767225600,
+      "index": 8104,
+      "start": 1767225600,
+      "nextStart": 1775001600
+    },
+    {
+      "name": "year holding 2026-01-01T00:00:00Z",
+      "period": "year",
+      "at": 1767225600,
+      "index": 2026,
+      "start": 1767225600,
+      "nextStart": 1798761600
+    },
+    {
+      "name": "month holding 2026-03-31T23:59:59Z",
+      "period": "month",
+      "at": 1775001599,
+      "index": 24314,
+      "start": 1772323200,
+      "nextStart": 1775001600
+    },
+    {
+      "name": "quarter holding 2026-03-31T23:59:59Z",
+      "period": "quarter",
+      "at": 1775001599,
+      "index": 8104,
+      "start": 1767225600,
+      "nextStart": 1775001600
+    },
+    {
+      "name": "year holding 2026-03-31T23:59:59Z",
+      "period": "year",
+      "at": 1775001599,
+      "index": 2026,
+      "start": 1767225600,
+      "nextStart": 1798761600
+    },
+    {
+      "name": "month holding 2026-04-01T00:00:00Z",
+      "period": "month",
+      "at": 1775001600,
+      "index": 24315,
+      "start": 1775001600,
+      "nextStart": 1777593600
+    },
+    {
+      "name": "quarter holding 2026-04-01T00:00:00Z",
+      "period": "quarter",
+      "at": 1775001600,
+      "index": 8105,
+      "start": 1775001600,
+      "nextStart": 1782864000
+    },
+    {
+      "name": "year holding 2026-04-01T00:00:00Z",
+      "period": "year",
+      "at": 1775001600,
+      "index": 2026,
+      "start": 1767225600,
+      "nextStart": 1798761600
+    },
+    {
+      "name": "month holding 2026-12-31T23:59:59Z",
+      "period": "month",
+      "at": 1798761599,
+      "index": 24323,
+      "start": 1796083200,
+      "nextStart": 1798761600
+    },
+    {
+      "name": "quarter holding 2026-12-31T23:59:59Z",
+      "period": "quarter",
+      "at": 1798761599,
+      "index": 8107,
+      "start": 1790812800,
+      "nextStart": 1798761600
+    },
+    {
+      "name": "year holding 2026-12-31T23:59:59Z",
+      "period": "year",
+      "at": 1798761599,
+      "index": 2026,
+      "start": 1767225600,
+      "nextStart": 1798761600
+    },
+    {
+      "name": "month holding 2027-01-01T00:00:00Z",
+      "period": "month",
+      "at": 1798761600,
+      "index": 24324,
+      "start": 1798761600,
+      "nextStart": 1801440000
+    },
+    {
+      "name": "quarter holding 2027-01-01T00:00:00Z",
+      "period": "quarter",
+      "at": 1798761600,
+      "index": 8108,
+      "start": 1798761600,
+      "nextStart": 1806537600
+    },
+    {
+      "name": "year holding 2027-01-01T00:00:00Z",
+      "period": "year",
+      "at": 1798761600,
+      "index": 2027,
+      "start": 1798761600,
+      "nextStart": 1830297600
+    },
+    {
+      "name": "month holding 2028-02-29T12:00:00Z",
+      "period": "month",
+      "at": 1835438400,
+      "index": 24337,
+      "start": 1832976000,
+      "nextStart": 1835481600
+    },
+    {
+      "name": "quarter holding 2028-02-29T12:00:00Z",
+      "period": "quarter",
+      "at": 1835438400,
+      "index": 8112,
+      "start": 1830297600,
+      "nextStart": 1838160000
+    },
+    {
+      "name": "year holding 2028-02-29T12:00:00Z",
+      "period": "year",
+      "at": 1835438400,
+      "index": 2028,
+      "start": 1830297600,
+      "nextStart": 1861920000
+    },
+    {
+      "name": "month holding 2100-02-28T23:59:59Z",
+      "period": "month",
+      "at": 4107542399,
+      "index": 25201,
+      "start": 4105123200,
+      "nextStart": 4107542400
+    },
+    {
+      "name": "quarter holding 2100-02-28T23:59:59Z",
+      "period": "quarter",
+      "at": 4107542399,
+      "index": 8400,
+      "start": 4102444800,
+      "nextStart": 4110220800
+    },
+    {
+      "name": "year holding 2100-02-28T23:59:59Z",
+      "period": "year",
+      "at": 4107542399,
+      "index": 2100,
+      "start": 4102444800,
+      "nextStart": 4133980800
+    },
+    {
+      "name": "month holding 2100-03-01T00:00:00Z",
+      "period": "month",
+      "at": 4107542400,
+      "index": 25202,
+      "start": 4107542400,
+      "nextStart": 4110220800
+    },
+    {
+      "name": "quarter holding 2100-03-01T00:00:00Z",
+      "period": "quarter",
+      "at": 4107542400,
+      "index": 8400,
+      "start": 4102444800,
+      "nextStart": 4110220800
+    },
+    {
+      "name": "year holding 2100-03-01T00:00:00Z",
+      "period": "year",
+      "at": 4107542400,
+      "index": 2100,
+      "start": 4102444800,
+      "nextStart": 4133980800
+    }
+  ],
+  "periodFigure": [
+    {
+      "rate": "1",
+      "ratePeriod": "week",
+      "budgetPeriod": "month",
+      "figure": "5"
+    },
+    {
+      "rate": "1",
+      "ratePeriod": "week",
+      "budgetPeriod": "quarter",
+      "figure": "14"
+    },
+    {
+      "rate": "1",
+      "ratePeriod": "week",
+      "budgetPeriod": "year",
+      "figure": "53"
+    },
+    {
+      "rate": "1",
+      "ratePeriod": "month",
+      "budgetPeriod": "month",
+      "figure": "1"
+    },
+    {
+      "rate": "1",
+      "ratePeriod": "month",
+      "budgetPeriod": "quarter",
+      "figure": "3"
+    },
+    {
+      "rate": "1",
+      "ratePeriod": "month",
+      "budgetPeriod": "year",
+      "figure": "12"
+    },
+    {
+      "rate": "1",
+      "ratePeriod": "year",
+      "budgetPeriod": "month",
+      "figure": "1"
+    },
+    {
+      "rate": "1",
+      "ratePeriod": "year",
+      "budgetPeriod": "quarter",
+      "figure": "1"
+    },
+    {
+      "rate": "1",
+      "ratePeriod": "year",
+      "budgetPeriod": "year",
+      "figure": "1"
+    },
+    {
+      "rate": "7",
+      "ratePeriod": "week",
+      "budgetPeriod": "month",
+      "figure": "35"
+    },
+    {
+      "rate": "7",
+      "ratePeriod": "week",
+      "budgetPeriod": "quarter",
+      "figure": "98"
+    },
+    {
+      "rate": "7",
+      "ratePeriod": "week",
+      "budgetPeriod": "year",
+      "figure": "371"
+    },
+    {
+      "rate": "7",
+      "ratePeriod": "month",
+      "budgetPeriod": "month",
+      "figure": "7"
+    },
+    {
+      "rate": "7",
+      "ratePeriod": "month",
+      "budgetPeriod": "quarter",
+      "figure": "21"
+    },
+    {
+      "rate": "7",
+      "ratePeriod": "month",
+      "budgetPeriod": "year",
+      "figure": "84"
+    },
+    {
+      "rate": "7",
+      "ratePeriod": "year",
+      "budgetPeriod": "month",
+      "figure": "1"
+    },
+    {
+      "rate": "7",
+      "ratePeriod": "year",
+      "budgetPeriod": "quarter",
+      "figure": "2"
+    },
+    {
+      "rate": "7",
+      "ratePeriod": "year",
+      "budgetPeriod": "year",
+      "figure": "7"
+    },
+    {
+      "rate": "13",
+      "ratePeriod": "week",
+      "budgetPeriod": "month",
+      "figure": "65"
+    },
+    {
+      "rate": "13",
+      "ratePeriod": "week",
+      "budgetPeriod": "quarter",
+      "figure": "182"
+    },
+    {
+      "rate": "13",
+      "ratePeriod": "week",
+      "budgetPeriod": "year",
+      "figure": "689"
+    },
+    {
+      "rate": "13",
+      "ratePeriod": "month",
+      "budgetPeriod": "month",
+      "figure": "13"
+    },
+    {
+      "rate": "13",
+      "ratePeriod": "month",
+      "budgetPeriod": "quarter",
+      "figure": "39"
+    },
+    {
+      "rate": "13",
+      "ratePeriod": "month",
+      "budgetPeriod": "year",
+      "figure": "156"
+    },
+    {
+      "rate": "13",
+      "ratePeriod": "year",
+      "budgetPeriod": "month",
+      "figure": "2"
+    },
+    {
+      "rate": "13",
+      "ratePeriod": "year",
+      "budgetPeriod": "quarter",
+      "figure": "4"
+    },
+    {
+      "rate": "13",
+      "ratePeriod": "year",
+      "budgetPeriod": "year",
+      "figure": "13"
+    },
+    {
+      "rate": "250000000",
+      "ratePeriod": "week",
+      "budgetPeriod": "month",
+      "figure": "1250000000"
+    },
+    {
+      "rate": "250000000",
+      "ratePeriod": "week",
+      "budgetPeriod": "quarter",
+      "figure": "3500000000"
+    },
+    {
+      "rate": "250000000",
+      "ratePeriod": "week",
+      "budgetPeriod": "year",
+      "figure": "13250000000"
+    },
+    {
+      "rate": "250000000",
+      "ratePeriod": "month",
+      "budgetPeriod": "month",
+      "figure": "250000000"
+    },
+    {
+      "rate": "250000000",
+      "ratePeriod": "month",
+      "budgetPeriod": "quarter",
+      "figure": "750000000"
+    },
+    {
+      "rate": "250000000",
+      "ratePeriod": "month",
+      "budgetPeriod": "year",
+      "figure": "3000000000"
+    },
+    {
+      "rate": "250000000",
+      "ratePeriod": "year",
+      "budgetPeriod": "month",
+      "figure": "20833334"
+    },
+    {
+      "rate": "250000000",
+      "ratePeriod": "year",
+      "budgetPeriod": "quarter",
+      "figure": "62500000"
+    },
+    {
+      "rate": "250000000",
+      "ratePeriod": "year",
+      "budgetPeriod": "year",
+      "figure": "250000000"
+    },
+    {
+      "rate": "3000000000",
+      "ratePeriod": "week",
+      "budgetPeriod": "month",
+      "figure": "15000000000"
+    },
+    {
+      "rate": "3000000000",
+      "ratePeriod": "week",
+      "budgetPeriod": "quarter",
+      "figure": "42000000000"
+    },
+    {
+      "rate": "3000000000",
+      "ratePeriod": "week",
+      "budgetPeriod": "year",
+      "figure": "159000000000"
+    },
+    {
+      "rate": "3000000000",
+      "ratePeriod": "month",
+      "budgetPeriod": "month",
+      "figure": "3000000000"
+    },
+    {
+      "rate": "3000000000",
+      "ratePeriod": "month",
+      "budgetPeriod": "quarter",
+      "figure": "9000000000"
+    },
+    {
+      "rate": "3000000000",
+      "ratePeriod": "month",
+      "budgetPeriod": "year",
+      "figure": "36000000000"
+    },
+    {
+      "rate": "3000000000",
+      "ratePeriod": "year",
+      "budgetPeriod": "month",
+      "figure": "250000000"
+    },
+    {
+      "rate": "3000000000",
+      "ratePeriod": "year",
+      "budgetPeriod": "quarter",
+      "figure": "750000000"
+    },
+    {
+      "rate": "3000000000",
+      "ratePeriod": "year",
+      "budgetPeriod": "year",
+      "figure": "3000000000"
+    },
+    {
+      "rate": "40000000000",
+      "ratePeriod": "week",
+      "budgetPeriod": "month",
+      "figure": "200000000000"
+    },
+    {
+      "rate": "40000000000",
+      "ratePeriod": "week",
+      "budgetPeriod": "quarter",
+      "figure": "560000000000"
+    },
+    {
+      "rate": "40000000000",
+      "ratePeriod": "week",
+      "budgetPeriod": "year",
+      "figure": "2120000000000"
+    },
+    {
+      "rate": "40000000000",
+      "ratePeriod": "month",
+      "budgetPeriod": "month",
+      "figure": "40000000000"
+    },
+    {
+      "rate": "40000000000",
+      "ratePeriod": "month",
+      "budgetPeriod": "quarter",
+      "figure": "120000000000"
+    },
+    {
+      "rate": "40000000000",
+      "ratePeriod": "month",
+      "budgetPeriod": "year",
+      "figure": "480000000000"
+    },
+    {
+      "rate": "40000000000",
+      "ratePeriod": "year",
+      "budgetPeriod": "month",
+      "figure": "3333333334"
+    },
+    {
+      "rate": "40000000000",
+      "ratePeriod": "year",
+      "budgetPeriod": "quarter",
+      "figure": "10000000000"
+    },
+    {
+      "rate": "40000000000",
+      "ratePeriod": "year",
+      "budgetPeriod": "year",
+      "figure": "40000000000"
+    }
+  ],
+  "monthsBetween": [
+    {
+      "name": "31 January 2026 to 28 February",
+      "start": 1769817600,
+      "to": 1772236800,
+      "months": 1
+    },
+    {
+      "name": "31 January 2026 to one second before 28 February",
+      "start": 1769817600,
+      "to": 1772236799,
+      "months": 0
+    },
+    {
+      "name": "31 January 2026 to 30 March (the 31st again)",
+      "start": 1769817600,
+      "to": 1774828800,
+      "months": 1
+    },
+    {
+      "name": "31 January 2026 to 31 March",
+      "start": 1769817600,
+      "to": 1774915200,
+      "months": 2
+    },
+    {
+      "name": "31 January 2026 to 30 April",
+      "start": 1769817600,
+      "to": 1777507200,
+      "months": 3
+    },
+    {
+      "name": "31 January 2028 to 29 February (leap)",
+      "start": 1832889600,
+      "to": 1835395200,
+      "months": 1
+    },
+    {
+      "name": "29 February 2028 to 28 February 2029",
+      "start": 1835424000,
+      "to": 1866960000,
+      "months": 12
+    },
+    {
+      "name": "29 February 2028 to one second before 28 February 2029",
+      "start": 1835424000,
+      "to": 1866959999,
+      "months": 11
+    },
+    {
+      "name": "29 February 2028 to 29 February 2032",
+      "start": 1835424000,
+      "to": 1961654400,
+      "months": 48
+    },
+    {
+      "name": "10 December 2026 to 10 January 2027",
+      "start": 1796860800,
+      "to": 1799539200,
+      "months": 1
+    },
+    {
+      "name": "31 December 2026 to 31 January 2027",
+      "start": 1798761599,
+      "to": 1801439999,
+      "months": 1
+    },
+    {
+      "name": "31 December 2026 to 30 January 2027",
+      "start": 1798675200,
+      "to": 1801267200,
+      "months": 0
+    },
+    {
+      "name": "15 March 2026 09:30 to 15 March 2030 09:30",
+      "start": 1773567000,
+      "to": 1899797400,
+      "months": 48
+    },
+    {
+      "name": "same instant",
+      "start": 1777939200,
+      "to": 1777939200,
+      "months": 0
+    },
+    {
+      "name": "backwards",
+      "start": 1777939200,
+      "to": 1775347200,
+      "months": 0
+    }
+  ]
+}

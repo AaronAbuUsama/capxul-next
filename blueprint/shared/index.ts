@@ -1,0 +1,48 @@
+import * as ops from "./ops.ts";
+import * as errorGaps from "./error-gaps.ts";
+import * as stateGaps from "./state-gaps.ts";
+import * as contractGaps from "./contract-gaps.ts";
+// The shared records of the target book: the system, components, concepts, environments, errors,
+// integrations, contracts and the architecture's decisions; landings.ts maps every old area onto
+// them. blueprint/index.ts adds each concept's records to these.
+
+import * as foundation from "./foundation.ts";
+import * as cloud from "./cloud.ts";
+import * as cli from "./cli.ts";
+import * as vocabulary from "./vocabulary.ts";
+import * as external from "./external.ts";
+import * as decisions from "./decisions.ts";
+import * as decisionReview from "./decision-review.ts";
+import * as landings from "./landings.ts";
+import * as tooling from "./tooling.ts";
+import * as portal from "./portal.ts";
+import * as swarm from "./swarm.ts";
+import * as time from "./time.ts";
+import * as rulings from "./rulings.ts";
+import * as alerts from "./alerts.ts";
+import * as alertsFresh from "./alerts-fresh.ts";
+import * as signals from "./signals.ts";
+import * as surface from "./surface.ts";
+import * as cut from "./cut.ts";
+import * as cutMoves from "./cut-moves.ts";
+import * as milestones from "./milestones.ts";
+import * as contractRecords from "./contracts.ts";
+
+/** Records carried by a parent (a machine's transitions, an integration's calls, a contract's parts) come with it. */
+const CHILDREN = new Set(["transition", "call", "function", "chainEvent"]);
+
+/** A module's exported records, once each. Plain exports (OPERATION_OWNERS, CONCEPTS) are not records. */
+export const recordsOf = (modules: readonly object[]): unknown[] => [
+  ...new Set(
+    modules
+      .flatMap((m) => Object.values(m as Record<string, unknown>))
+      .filter(
+        (u) =>
+          typeof u === "object" && u !== null && !Array.isArray(u) && "_kind" in u && "id" in u &&
+          typeof (u as { id: unknown }).id === "string" && !CHILDREN.has((u as { _kind: string })._kind),
+      ),
+  ),
+];
+
+export const sharedModules = [ops, alertsFresh, alerts, errorGaps, stateGaps, contractGaps, foundation, cloud, cli, vocabulary, external, decisions, decisionReview, landings, tooling, portal, swarm, time, rulings, surface, cut, cutMoves, milestones, contractRecords, signals] as const;
+export const sharedRecords = recordsOf(sharedModules);

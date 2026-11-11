@@ -1,0 +1,15 @@
+{
+  "about": "What the Capxul bench image is built from. Every input is pinned by commit (tags are for people); bin/build.sh refuses a checkout whose commit differs. Change a pin here, rebuild, and run bin/check.sh before anything uses the new image.",
+  "base": {
+    "build": "frappe/build:v16.54.0@sha256:d97ec9f1f4c7330ac419658716244f725b3d03396ca4420ce697181dd6d31cbe",
+    "runtime": "frappe/base:v16.54.0@sha256:40378c85636a851375a3f6de1896b0c7d61358ee18a90019752604db59ee0882"
+  },
+  "frappe": { "url": "https://github.com/frappe/frappe", "tag": "v16.54.0", "commit": "2fcb9397a1f1da353b21e53d2f97ec56653acd02" },
+  "apps": [
+    { "name": "erpnext", "url": "https://github.com/frappe/erpnext", "tag": "v16.54.0", "commit": "495380b59c8701629f25089bd3807e6ddf7f26c6" },
+    { "name": "hrms", "url": "https://github.com/frappe/hrms", "tag": "v16.53.2", "commit": "ba5371c5057ae90c3eb6041f28866fe3d749a4f0" },
+    { "name": "crm", "url": "https://github.com/frappe/crm", "tag": "v16.0.2", "commit": "19786bf033b62c9e686713234ca54d10f612a8af" },
+    { "name": "frappe_whatsapp", "url": "https://github.com/shridarpatil/frappe_whatsapp", "tag": "master (1.0.12, as the spike ran)", "commit": "08bc1f6af2e36022d7a5f77641c8ba2ef8c16aaa" }
+  ],
+  "capxul": "the app comes from this repository (the build context named capxul-app), never from a remote, so no token is needed to build"
+}

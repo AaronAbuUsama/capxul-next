@@ -1,0 +1,105 @@
+{
+  "$schema": "./scenario.schema.json",
+  "name": "claimer",
+  "start": "2026-11-02T09:00:00Z",
+  "source": "written by hand for W0 (docs/planning/protocol-v4/slices/W0.md item 10)",
+  "namespace": "capxul:scenario:email:v1",
+  "contracts": ["CompaniesHouseClaimer"],
+  "actors": {
+    "companiesHouse": "companies-house",
+    "amira": { "role": "person", "email": "amira@capxul.test" },
+    "ben": { "role": "person", "email": "ben@capxul.test" },
+    "jordan": { "role": "person", "email": "jordan@capxul.test" }
+  },
+  "events": [
+    {
+      "at": "+0d",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "amira@capxul.test",
+        "signer": "amira.signer"
+      }
+    },
+    {
+      "at": "+0d",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "Ben@capxul.test",
+        "signer": "ben.signer"
+      },
+      "expect": { "revert": "EmailNotNormalized" }
+    },
+    {
+      "at": "+1d",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "ben@capxul.test",
+        "signer": "ben.signer"
+      }
+    },
+    {
+      "at": "+1d",
+      "actor": "anyone",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "jordan@capxul.test",
+        "signer": "jordan.signer"
+      },
+      "expect": { "revert": "NotDelegateCall" }
+    },
+    {
+      "at": "+2d",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "jordan@capxul.test",
+        "signer": "jordan.signer"
+      }
+    },
+    {
+      "at": "+2d",
+      "actor": "amira",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "eve@capxul.test",
+        "signer": "amira.signer"
+      },
+      "expect": { "revert": "NotDelegateCall" }
+    }
+  ],
+  "checkpoints": [
+    {
+      "at": "+1d",
+      "name": "day-2",
+      "save": true,
+      "expect": {
+        "safes": {
+          "amira": { "deployed": true, "owners": ["amira.signer"], "threshold": "1" },
+          "ben": { "deployed": true, "owners": ["ben.signer"], "threshold": "1" },
+          "jordan": { "deployed": false }
+        }
+      }
+    },
+    {
+      "at": "+2d",
+      "name": "day-3",
+      "save": true,
+      "expect": {
+        "safes": {
+          "amira": { "deployed": true, "owners": ["amira.signer"], "threshold": "1" },
+          "ben": { "deployed": true, "owners": ["ben.signer"], "threshold": "1" },
+          "jordan": { "deployed": true, "owners": ["jordan.signer"], "threshold": "1" }
+        }
+      }
+    }
+  ]
+}

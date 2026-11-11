@@ -1,0 +1,10 @@
+ApproveTransfer_Exits_Unit_Concrete_Test
+├── when the caller is not the Safe
+│   └── it should revert with OnlyBoard
+├── when the transfer was never offered
+│   └── it should revert with UnknownTransfer
+├── when the transfer was already bought
+│   └── it should revert with AlreadyBought
+└── when the Board approves an offered sale
+    ├── it should mark the transfer approved
+    └── it should emit TransferApproved

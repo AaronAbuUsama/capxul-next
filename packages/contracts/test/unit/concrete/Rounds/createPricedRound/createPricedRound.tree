@@ -1,0 +1,10 @@
+CreatePricedRound_Rounds_Unit_Concrete_Test
+├── when the caller is not the Safe
+│   └── it should revert with OnlyBoard
+├── when the price or the maximum shares is 0 or the pay by date is past
+│   └── it should revert with InvalidRound
+├── when the class does not exist
+│   └── it should revert with UnknownClass
+└── when the round is valid
+    ├── it should record the priced round
+    └── it should emit PricedRoundCreated

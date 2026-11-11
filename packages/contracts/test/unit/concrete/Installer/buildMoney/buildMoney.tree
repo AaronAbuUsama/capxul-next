@@ -1,0 +1,47 @@
+BuildMoney_Installer_Unit_Concrete_Test
+├── when the Safe or the founder's Safe is zero or has no code
+│   └── it should revert with InvalidInstall
+├── when the deployment's Roles or Gate does not name the Safe
+│   └── it should revert with InvalidInstall
+├── when the founder's Safe or a co-Director's Safe does not wear the Director hat
+│   └── it should revert with InvalidInstall
+├── when the founder's Safe or a co-Director's Safe is the company Safe
+│   └── it should revert with InvalidInstall
+├── when a co-Director's Safe is zero or has no code or is repeated or is the founder's Safe
+│   └── it should revert with InvalidInstall
+├── when the Gate's threshold min is above the number of founding Directors
+│   └── it should revert with InvalidInstall
+├── when no token is given or a token is given twice
+│   └── it should revert with InvalidInstall
+├── when a top budget's hat is 0
+│   └── it should revert with InvalidInstall
+├── when a top budget's period is above BUDGET_YEAR
+│   └── it should revert with InvalidInstall
+├── when a faulty Gate returns an invalid or changing threshold
+│   └── it should cap the generated Safe threshold at the number of founding Directors
+└── when the install is valid
+    ├── given a yearly top budget
+    │   └── it should set the allowance period to 366 days
+    ├── given the Gate has different threshold configurations
+    │   └── it should build the Safe threshold change for the founding Directors
+    ├── it should first disable every module the Safe has now including the 4337 module
+    ├── given the fallback handler is the 4337 module
+    │   └── it should set the CompatibilityFallbackHandler
+    ├── it should point Roles at the Gate
+    ├── it should assign Budgets as the only member of the payout role
+    ├── it should scope approve to Payments and send to each token's item
+    ├── it should set one allowance per token at its ceiling for its budget period
+    ├── it should configure Budgets for the Safe
+    ├── it should create one top budget per token with its hat
+    ├── it should enable the Gate as module and then set it as guard
+    ├── it should claim every founding Director's Safe as signer and remove every other owner
+    ├── given no owner is removed and the Safe's threshold differs from the config's
+    │   └── it should set the Safe's threshold to what the config gives
+    ├── it should never enable Roles on the Safe
+    ├── it should hold no funds and no role itself
+    └── given the Safe executes the calls in one MultiSend
+        ├── it should leave the Gate as the Safe's only module and its guard
+        ├── it should leave the founding Directors' Safes as the only owners at the threshold the config gives
+        ├── it should let a top budget's hat wearer spend within the budget
+        ├── it should let Roles refuse a spend above the ceiling
+        └── it should let the Gate refuse a later addOwner or disableModule batch

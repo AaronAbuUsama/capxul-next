@@ -1,0 +1,15 @@
+Release_Vesting_Unit_Concrete_Test
+├── when the grant is not accepted
+│   └── it should revert with NotAccepted
+├── when the grant does not exist
+│   └── it should revert with UnknownGrant
+├── when the grant was already released
+│   ├── it should revert with UnknownGrant
+│   └── it should keep the account's next grant live and locked
+├── when the grant has not ended and was not settled
+│   └── it should revert with NotYet
+└── when the grant has ended or its revocation settled
+    ├── it should let anyone call it
+    ├── it should clear the account's grant on the class
+    ├── it should let the account receive a new grant on the class
+    └── it should emit Released

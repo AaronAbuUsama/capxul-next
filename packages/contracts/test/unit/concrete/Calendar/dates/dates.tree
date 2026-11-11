@@ -1,0 +1,15 @@
+Dates_Calendar_Unit_Concrete_Test
+├── when days is 0
+│   └── it should return 1970-01-01
+├── when the date is 29 February in a leap year
+│   └── it should round trip through daysOf and dateOf
+├── when the year is divisible by 100 but not by 400
+│   └── it should treat it as a common year
+├── when the year is divisible by 400
+│   └── it should treat it as a leap year
+├── when the date is before 1970
+│   ├── given it is 31 December 1969
+│   │   └── it should revert with DateBeforeEpoch
+│   └── given the year is 0 in January or February
+│       └── it should revert with DateBeforeEpoch and not panic
+└── it should round trip daysOf of dateOf for every day

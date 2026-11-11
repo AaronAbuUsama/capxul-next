@@ -1,0 +1,11 @@
+{
+  "name": "@capxul/bench-image",
+  "private": true,
+  "description": "The hosted bench's production image and its check (decision sites.bench-image)",
+  "scripts": {
+    "build": "bin/build.sh",
+    "check": "bin/check.sh",
+    "up": "bin/up.sh",
+    "down": "bin/down.sh"
+  }
+}

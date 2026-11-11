@@ -1,0 +1,7 @@
+PredictAddress_EscrowFactory_Unit_Concrete_Test
+├── when the terms are invalid
+│   └── it should revert
+└── when the terms are valid
+    ├── it should return the CREATE2 address of the escrow for these terms and salt
+    └── when the salt or any term changes
+        └── it should return a different address

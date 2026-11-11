@@ -1,0 +1,15 @@
+OfferTransfer_Exits_Unit_Concrete_Test
+├── when the buyer or token is zero
+│   └── it should revert with ZeroAddress
+├── when the offer has zero shares
+│   └── it should revert with ZeroAmount
+├── when the offer has zero price
+│   └── it should revert with ZeroAmount
+├── when the offer has no document hash
+│   └── it should revert with ZeroDocumentHash
+└── when the seller offers a sale
+    ├── it should record the offer with the caller as the seller
+    ├── it should not move shares or money
+    ├── it should not count as the seller's consent
+    ├── it should return the transfer id
+    └── it should emit TransferOffered

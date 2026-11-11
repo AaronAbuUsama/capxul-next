@@ -1,0 +1,26 @@
+Buy_Exits_Unit_Concrete_Test
+├── when the transfer does not exist
+│   └── it should revert with UnknownTransfer
+├── when the caller is not the buyer
+│   └── it should revert with NotBuyer
+├── when the Board has not approved it
+│   └── it should revert with NotApproved
+├── when it was already bought
+│   └── it should revert with AlreadyBought
+├── when the seller did not consent to the transfer in the Captable
+│   └── it should revert with ConsentMissing and move no money
+├── when the seller's shares are locked
+│   └── it should revert with SharesLocked and move no money
+├── when the buyer buys an approved and consented sale
+│   ├── it should pay the seller the shares times the price through Payments with kind 5
+│   ├── it should move the shares to the buyer by a forced transfer with the document hash
+│   ├── it should use up the seller's consent
+│   ├── when the payment fails
+│   │   └── it should revert and move no shares
+│   └── it should emit Bought
+├── when the incoming transfer has a fee and Exits has donations
+│   └── it should revert without spending the donated tokens or moving shares
+├── when the outgoing transfer charges Exits an extra fee
+│   └── it should revert without spending the donated tokens or moving shares
+└── when a purchase transfer changes Exits balance unexpectedly
+    └── it should revert without spending the donation or moving shares

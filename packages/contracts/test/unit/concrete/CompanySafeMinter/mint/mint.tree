@@ -1,0 +1,31 @@
+Mint_CompanySafeMinter_Unit_Concrete_Test
+├── when the minter is called directly and not by delegatecall
+│   └── it should revert with NotDelegateCall
+├── when the namespace is empty
+│   └── it should revert with EmptyNamespace
+├── when the company is empty
+│   └── it should revert with EmptyCompany
+├── when the founder's Safe is the zero address
+│   └── it should revert with InvalidFounderSafe
+├── when the founder's Safe is the owners sentinel
+│   └── it should revert with InvalidFounderSafe
+├── when the founder's Safe is Companies House
+│   └── it should revert with InvalidFounderSafe
+├── when the founder's Safe has no code
+│   └── it should revert with InvalidFounderSafe
+├── when the factory deploys at another address than the derived one
+│   └── it should revert with DerivedAddressMismatch
+├── given the derived Safe has no code
+│   ├── it should deploy it through the Safe proxy factory with the Safe L2 singleton and no module and the namespace and company and founder salt
+│   ├── it should swap Companies House for the founder's Safe through a v 1 approved signature
+│   ├── it should emit CompanySafeMinted with deployed true
+│   ├── it should write no storage of Companies House
+│   └── it should return the Safe
+├── given the derived Safe is already deployed
+│   ├── it should deploy nothing
+│   ├── it should swap Companies House for the founder's Safe
+│   └── it should emit CompanySafeMinted with deployed false
+├── given the Safe was already minted
+│   └── it should revert because Companies House is no longer an owner
+└── when the Safe refuses the swap without reverting
+    └── it should revert with SwapRefused

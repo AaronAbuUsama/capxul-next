@@ -1,0 +1,16 @@
+SetHat_Budgets_Unit_Concrete_Test
+├── when a call into Budgets is already running
+│   └── it should revert with ReentrantCall
+├── when the budget does not exist
+│   └── it should revert with UnknownBudget
+├── when the budget is a top budget and the caller is not its Safe
+│   └── it should revert with NotAuthorised
+├── when the budget is a child and the caller is not authorised for its parent
+│   └── it should revert with NotAuthorised
+├── when the hat is 0
+│   └── it should revert with InvalidHat
+└── when the caller may manage the budget and the hat is not 0
+    ├── it should replace the hat
+    ├── it should stop the old hat's wearers acting on the budget
+    ├── it should leave running agreements and pending scheduled payments unchanged
+    └── it should emit BudgetHatSet

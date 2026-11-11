@@ -1,0 +1,10 @@
+CreateSafeRound_Rounds_Unit_Concrete_Test
+├── when the token has no code or its decimals call reverts
+│   └── it should reject the token
+├── when the caller is not the Safe
+│   └── it should revert with OnlyBoard
+├── when the cap is 0 or the discount is 10000 or more or the close date is past
+│   └── it should revert with InvalidRound
+└── when the terms are valid
+    ├── it should record the SAFE round
+    └── it should emit SafeRoundCreated

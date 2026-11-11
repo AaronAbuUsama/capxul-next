@@ -1,0 +1,34 @@
+# The merge gate: the blueprint builds with 0 problems, the code agrees with it, and every check in AGENTS.md passes.
+# The ripple of the change (what it reaches, which decisions to read again, which verdicts go stale) is written to the
+# run's summary.
+name: blueprint
+on:
+  pull_request:
+  push:
+    branches: [integration/build]
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec tsc -p packages/blueprint-engine && pnpm exec tsc -p blueprint
+      - run: pnpm blueprint
+      - run: pnpm frappe:check-blueprint
+      - run: pnpm contracts:check-blueprint
+      - run: pnpm frozen
+      - run: pnpm test
+      - name: Ripple
+        if: github.event_name == 'pull_request'
+        # A report, not a gate. main predates the blueprint, so a pull request into main has no base to compare with.
+        run: |
+          pnpm -s blueprint:ripple --base "origin/${{ github.base_ref }}" >> "$GITHUB_STEP_SUMMARY" \
+            || echo "Ripple skipped: the blueprint at origin/${{ github.base_ref }} cannot be built." >> "$GITHUB_STEP_SUMMARY"

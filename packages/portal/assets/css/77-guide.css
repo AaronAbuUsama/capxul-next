@@ -1,0 +1,12 @@
+/* The Blueprint page: the guide reads in the plan's column, and its generated tables use the page's whole width. */
+.guide .main-col { max-width: none; }
+.guide .md { max-width: 76ch; }
+.guide .md .code, .guide .md .table-wrap { margin: 14px 0; max-width: 100%; }
+.guide .md .code-body { white-space: pre; overflow-x: auto; }
+.guide .block > .block { margin-top: 20px; }
+.guide .block > .block + .md { margin-top: 20px; }
+.guide .block h3 { font-size: 16px; margin: 0 0 6px; }
+.guide-toc { margin: 24px 0 8px; max-width: 76ch; }
+.guide-toc ol { margin: 6px 0 0; padding-left: 22px; columns: 2; column-gap: 32px; }
+.guide-toc li { margin: 0 0 6px; break-inside: avoid; }
+@media (max-width: 720px) { .guide-toc ol { columns: 1; } }

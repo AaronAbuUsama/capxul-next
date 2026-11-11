@@ -1,0 +1,9 @@
+VestedOf_Options_Unit_Concrete_Test
+├── when the time is before the cliff
+│   └── it should return 0
+├── when the time is between the cliff and the end
+│   └── it should return the shares vested by whole calendar months
+├── when the time is at or after the end
+│   └── it should return all the shares
+└── given the grant was ended
+    └── it should stop vesting at the end date

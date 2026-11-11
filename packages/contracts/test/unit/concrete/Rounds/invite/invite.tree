@@ -1,0 +1,11 @@
+Invite_Rounds_Unit_Concrete_Test
+├── when the round does not exist
+│   └── it should reject the unknown round
+├── when the caller is not the Safe
+│   └── it should revert with OnlyBoard
+├── when the round is closed
+│   └── it should revert with RoundIsClosed
+├── when the round is cancelled
+│   └── it should revert with RoundIsCancelled
+└── when the round is open
+    └── it should record the investor's maximum

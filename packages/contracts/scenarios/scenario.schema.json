@@ -1,0 +1,389 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://capxul.com/schemas/protocol-v4/scenario.schema.json",
+  "title": "Capxul Protocol v4 scenario",
+  "description": "A company's life as data (docs/planning/protocol-v4/spec/scenario-player.md). Read by the Foundry runner (test/scenario/Scenario_Test.t.sol) and the player (packages/scenarios/src/protocol-v4). An address argument or expectation is an address expression: an actor's name (a person's personal Safe, Companies House's Safe, the `anyone` account), `<actor>.signer` (the actor's own key), a contract name from `contracts`, or a 0x address.",
+  "type": "object",
+  "required": ["name", "start", "actors", "events", "checkpoints"],
+  "additionalProperties": false,
+  "$defs": {
+    "at": {
+      "description": "An offset from `start` (`+<n>s`, `+<n>m` minutes, `+<n>h`, `+<n>d`, `+<n>w`) or an absolute UTC time `YYYY-MM-DDTHH:MM:SSZ`.",
+      "type": "string",
+      "pattern": "^(\\+[0-9]+[smhdw]|[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z)$"
+    },
+    "units": {
+      "description": "Exact token units: digits, or digits e digits (600000e6).",
+      "type": "string",
+      "pattern": "^[0-9]+(e[0-9]+)?$"
+    },
+    "actor": {
+      "oneOf": [
+        {
+          "description": "The role: `companies-house`, `anyone`, `company` (the company Safe, claimed for its email like a person's; its key installs money, then the Board acts for it), or any other word (founder, ops, employee) for a person.",
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "required": ["role"],
+          "additionalProperties": false,
+          "properties": {
+            "role": {
+              "type": "string"
+            },
+            "email": {
+              "description": "A person's normalised email: their personal Safe is the one Companies House claims for `namespace` and this email.",
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "safeExpectation": {
+      "type": "object",
+      "required": ["deployed"],
+      "additionalProperties": false,
+      "properties": {
+        "deployed": {
+          "type": "boolean"
+        },
+        "owners": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "threshold": {
+          "$ref": "#/$defs/units"
+        }
+      }
+    },
+    "amount": {
+      "description": "Exact units, or within a tolerance (the Capxul exit vectors match to within $1).",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/uint"
+        },
+        {
+          "type": "object",
+          "required": ["about", "within"],
+          "additionalProperties": false,
+          "properties": {
+            "about": {
+              "$ref": "#/$defs/units"
+            },
+            "within": {
+              "$ref": "#/$defs/units"
+            }
+          }
+        }
+      ]
+    },
+    "call": {
+      "description": "`<Contract>.<function>` with args by the interface's parameter names. Values: a uint is digits, digits e digits, a UTC time (its Unix seconds), an `ids` name or a hat (Board, Shareholders, Director, an officer's details); a bytes32 is 0x and 64 hex digits or text (its keccak256); an address is an address expression, a token, an `addresses` name, or `money.<field>` / `equity.<field>` of the recorded deployment; a struct may be `Installer.deployMoney` or `Installer.deployEquity` (what that call returned); any value may be `@name` (the `data` entry). Pseudo-calls: `Board.approveHash` (args {}: a Director's Safe approves the next `Board.execTransaction`'s company Safe transaction, ruling D1), `Board.execTransaction` ({ calls }: a Director's Safe executes it with v = 1 for itself and every Director who approved since the last batch), `Safe.batch` ({ calls }: the actor's own Safe runs them), `Governor.propose` ({ calls, description }), `Governor.castVote` ({ description, support }), `Governor.execute` ({ description }), `Payments.sendBatch` ({ exitSaleId, holdings }: the exit payouts `Exits.preview` gives). In a batch, `Installer.buildMoney` and `Installer.buildEquity` stand for the calls they return (buildEquity: the Safe's in a Board batch, the founder's in a Safe.batch); one plain call is sent as a call, anything else as a MultiSendCallOnly 1.4.1 delegatecall.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_]+\\.[A-Za-z0-9_]+$"
+    },
+    "namedCall": {
+      "type": "object",
+      "required": ["call"],
+      "additionalProperties": false,
+      "properties": {
+        "call": {
+          "$ref": "#/$defs/call"
+        },
+        "args": {
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "string",
+              "pattern": "^@"
+            }
+          ]
+        }
+      }
+    },
+    "uint": {
+      "description": "Digits, digits e digits (600000e6), or a name (an `ids` entry or a hat).",
+      "type": "string",
+      "pattern": "^([0-9]+(e[0-9]+)?|[A-Za-z][A-Za-z0-9]*)$"
+    }
+  },
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "start": {
+      "description": "The chain's clock is set here first.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "source": {
+      "type": "string"
+    },
+    "namespace": {
+      "description": "The Companies House salt namespace of the people's personal Safes.",
+      "type": "string"
+    },
+    "contracts": {
+      "description": "v4 contracts without constructor arguments that Companies House deploys first, each by CREATE2 with salt keccak256(\"capxul:v4:<Name>\").",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "actors": {
+      "description": "Each actor by name. A person acts from their personal Safe (D1); companies-house acts as Companies House's Safe by delegatecall (D13); anyone acts from its own key. `anyone` needs no entry.",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/actor"
+      }
+    },
+    "tokens": {
+      "description": "ERC-20s on the fork, by name (an address expression and a `<name>.approve` / `<name>.transfer` call target); `fund` sets balances at setup.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["address"],
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": "string",
+            "pattern": "^0x[0-9a-fA-F]{40}$"
+          },
+          "decimals": {
+            "type": "integer"
+          },
+          "fund": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/$defs/units"
+            }
+          }
+        }
+      }
+    },
+    "events": {
+      "description": "In time order; events at the same instant run in file order.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["at", "actor", "call"],
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "$ref": "#/$defs/at"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "call": {
+            "$ref": "#/$defs/call"
+          },
+          "args": {
+            "type": "object"
+          },
+          "expect": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "revert": {
+                "description": "The custom error the call must revert with: a bare name for an error without parameters, else its signature, e.g. `DerivedAddressMismatch(address,address)`.",
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "checkpoints": {
+      "description": "In time order. A checkpoint runs after every event at or before its time.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["at", "name"],
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "$ref": "#/$defs/at"
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "save": {
+            "type": "boolean"
+          },
+          "expect": {
+            "type": "object",
+            "properties": {
+              "safes": {
+                "description": "Each person's personal Safe.",
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/$defs/safeExpectation"
+                }
+              },
+              "Budgets": {
+                "description": "By budget name: amount, childrenAmount, ownSpent, ownCommitted, spent, committed (effective values), left, parent, hat.",
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/$defs/amount"
+                  }
+                }
+              },
+              "balances": {
+                "description": "By address expression, then token name.",
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/$defs/amount"
+                  }
+                }
+              },
+              "Agreements": {
+                "description": "By agreement name: collected, reserved, available, earned.",
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/$defs/amount"
+                  }
+                }
+              },
+              "Scheduled": {
+                "description": "By scheduled payment name.",
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "state": {
+                      "enum": ["Pending", "Cancelled", "Paid"]
+                    }
+                  }
+                }
+              },
+              "hats": {
+                "description": "By hat name, then address expression: whether it wears the hat.",
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "shares": {
+                "description": "By address expression, then class name: the class token balance.",
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/$defs/amount"
+                  }
+                }
+              },
+              "locked": {
+                "description": "By address expression, then class name: Vesting.lockedOf at the checkpoint.",
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/$defs/amount"
+                  }
+                }
+              },
+              "classes": {
+                "description": "By class name: totalSupply, authorised, conversionPrice.",
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/$defs/amount"
+                  }
+                }
+              },
+              "options": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "pool": {
+                    "$ref": "#/$defs/units"
+                  },
+                  "allocated": {
+                    "$ref": "#/$defs/units"
+                  }
+                }
+              },
+              "closedForExit": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false,
+            "description": "Checked at the checkpoint; then every checkpoint re-checks B1, B2, B6, A1, A2 and P2 over the whole company, and E1 and E3 once equity is installed."
+          }
+        }
+      }
+    },
+    "addresses": {
+      "description": "Third-party contracts by name (Hats, the Hats Signer Gate implementation, ...), usable as address expressions.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^0x[0-9a-fA-F]{40}$"
+      }
+    },
+    "deploy": {
+      "description": "v4 contracts Companies House deploys after `contracts`, in order, each by CREATE2 with salt keccak256(\"capxul:v4:<name>\"); `source` is the file under src/ (as deploy/manifest.json), `args` the constructor's arguments, all address expressions.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "source"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "wire": {
+      "description": "Calls Companies House sends as plain calls right after the deploys (Budgets.setAgreements: only the deployer may).",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/namedCall"
+      }
+    },
+    "ids": {
+      "description": "Names for ids (budgets, agreements, scheduled payments, classes, rounds, notes, grants, transfers, sales), each digits. Ids are what the contracts' counters give on a fresh deploy.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9]+$"
+      }
+    },
+    "data": {
+      "description": "Values an argument names with `@name` (a struct shared by two events, an exit's holdings).",
+      "type": "object"
+    }
+  }
+}

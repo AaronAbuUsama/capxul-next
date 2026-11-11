@@ -1,0 +1,10 @@
+Cancel_Rounds_Unit_Concrete_Test
+├── when the caller is not the Safe
+│   └── it should revert with OnlyBoard
+├── when any investor has paid
+│   └── it should revert with PaymentsStarted
+├── when safe notes were converted into the round
+│   └── it should revert with PaymentsStarted
+└── when nobody has paid
+    ├── it should mark the round cancelled
+    └── it should emit RoundCancelled

@@ -1,0 +1,11 @@
+Grant_Options_Unit_Concrete_Test
+├── when the caller is not the Safe
+│   └── it should revert with OnlyBoard
+├── when the shares are more than the pool left
+│   └── it should revert with PoolExceeded
+├── when the schedule is invalid or the expiry is not after the vesting end
+│   └── it should revert with InvalidSchedule
+└── when the grant fits
+    ├── it should record an offered grant
+    ├── it should add the shares to allocated
+    └── it should emit OptionsGranted

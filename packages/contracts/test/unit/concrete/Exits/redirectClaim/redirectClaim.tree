@@ -1,0 +1,22 @@
+RedirectClaim_Exits_Unit_Concrete_Test
+├── when the outgoing transfer charges Exits an extra fee
+│   └── it should revert and preserve the claim and unrelated donation
+├── when the claim token starts charging transfer fees
+│   └── it should revert and keep the claim fully funded
+├── when the claim escrow has donations
+│   └── it should carry the surplus to the new payee
+├── when the caller is not the company Governor
+│   └── it should revert with OnlyGovernor
+├── when there is no claim at the index
+│   └── it should revert with NoClaim
+├── when the new payee is zero
+│   └── it should revert with ZeroAddress
+├── when the new payee is Exits itself or the claim escrow
+│   ├── it should revert with ZeroAddress
+│   └── it should leave the claim recorded and its escrow open and fully funded
+└── when a passed vote names a new payee
+    ├── it should move the money from the old claim escrow into a new claim escrow for the new payee
+    ├── it should make the new payee the claim's payee
+    ├── it should stop the old payee claiming or collecting
+    ├── it should hold no token itself afterwards
+    └── it should emit ClaimRedirected

@@ -1,0 +1,46 @@
+Claim_Exits_Unit_Concrete_Test
+├── when the token reduces the claim escrow balance
+│   └── it should reject the short claim and keep it open
+├── when the outgoing transfer shorts the recipient
+│   └── it should revert and keep the claim fully funded
+├── when direct collection changes balances unexpectedly
+│   └── it should revert and preserve the claim and surplus
+├── when claim transfers change balances unexpectedly
+│   └── it should revert and preserve the claim and unrelated balances
+├── when direct collection charges escrow an extra sender fee
+│   └── it should revert and preserve the claim and its surplus
+├── when the outgoing transfer charges Exits an extra fee
+│   └── it should revert and preserve the claim and unrelated donation
+├── when there is no claim at the index
+│   └── it should revert with NoClaim
+├── when the caller is not the claim's payee
+│   └── it should revert with NotPayee
+├── when the address to send to is zero
+│   └── it should revert with ZeroAddress
+├── when the address to send to is Exits itself or the claim escrow
+│   ├── it should revert with ZeroAddress
+│   └── it should leave the claim recorded and its escrow open and fully funded
+├── when the payee already collected from the claim escrow
+│   └── it should revert with NoClaim
+├── when the payee collects an exit escrow with donations
+│   └── it should send the claim and surplus to the shareholder
+├── when the payee claims an exit escrow with donations
+│   └── it should send the claim and surplus to the named recipient
+├── when the claim token starts charging transfer fees
+│   └── it should revert and keep the claim fully funded
+├── when the exit surplus transfer charges a separate fee
+│   └── it should revert and keep the claim fully funded
+├── when the payee collects with limited gas
+│   └── it should either pay the claim and surplus to the shareholder or leave the escrow unchanged
+└── when the payee claims
+    ├── it should clear the claim before the transfer
+    ├── it should refund the claim escrow to Exits and send the whole amount on in the same call
+    ├── it should send the amount to the address the payee names
+    ├── given the payee names an address other than their own
+    │   └── it should send it there
+    ├── when the token refuses the transfer
+    │   └── it should revert and keep the claim
+    ├── when the token re-enters claim during the transfer
+    │   └── it should revert with NoClaim on the inner call
+    ├── it should hold no token itself afterwards
+    └── it should emit Claimed

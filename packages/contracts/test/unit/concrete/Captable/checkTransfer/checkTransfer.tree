@@ -1,0 +1,34 @@
+CheckTransfer_Captable_Unit_Concrete_Test
+├── when the caller is not the class's token
+│   └── it should revert with OnlyModule
+├── when the amount would dip into the sender's locked shares
+│   └── it should revert with SharesLocked
+├── when the amount is more than the sender's balance
+│   └── it should revert with SharesLocked and never panic
+├── given the sender has no grant
+│   └── it should go on to the rule with nothing locked
+├── when the rule is DenyAll
+│   └── it should revert with TransferNotAllowed
+├── when the rule is AllowAll
+│   └── it should allow it
+├── when the rule is ToClassShareholders
+│   ├── when the receiver already holds this class
+│   │   └── it should allow it
+│   └── when the receiver does not
+│       └── it should revert with TransferNotAllowed
+├── when the rule is ToAnyShareholder
+│   ├── when the receiver holds any class
+│   │   └── it should allow it
+│   └── when the receiver holds none
+│       └── it should revert with TransferNotAllowed
+└── when the rule is Custom
+    ├── when the rule contract returns true
+    │   └── it should allow it
+    ├── when the rule contract returns false
+    │   └── it should revert with TransferNotAllowed
+    ├── when the rule contract reverts
+    │   └── it should revert with TransferNotAllowed
+    ├── when the rule contract returns malformed data
+    │   └── it should revert with TransferNotAllowed
+    └── when the rule contract burns all the gas it is given
+        └── it should stop it at the gas cap and revert with TransferNotAllowed

@@ -1,0 +1,13 @@
+Allocate_Rounds_Unit_Concrete_Test
+├── when the caller is not the Safe
+│   └── it should revert with OnlyBoard
+├── when the investor has not committed
+│   └── it should revert with NotInvited
+├── when the investor already paid
+│   └── it should revert with AlreadyPaid
+├── when the shares would take the round past its maximum
+│   └── it should revert with OverAllocated
+└── when the allocation fits
+    ├── it should record the investor's shares
+    ├── it should add them to the round's allocated shares
+    └── it should emit Allocated

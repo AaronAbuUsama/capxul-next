@@ -1,79 +1,21 @@
 <!--
-One pull request per task, from its branch (lane/<concept>, lane/integrations, lane/journeys, ms/<step> or
-review/<decision>) into integration/build. Title: [<task key>] <task title>.
-The builder writes this body at its first submit and rewrites it at every submit. It holds only the Handback
-(docs/design/swarm-templates.md, section 3.3). Every round's gate, evals, checks, signals and the merge are
-comments posted by code (section 9.2), not edits here. Fill every heading; write _none_ where a part is empty.
-Never paste a token, key or password. A maker never says done: the verdicts do.
+One pull request per task, from its own branch into integration/build. Never into main (only Aaron approves a
+pull request into main). Never paste a token, key or password. The checks and the evals say done, not the author.
 -->
-Task: `<task key>` · <K-n, or "stage 0">
-Round: <n> of 5 · head `<7 hex>` · spent $<x.xx> of $<budget>
-Checkers: reviewer<, adversary>
-Task card: #<issue, at stage 0; otherwise _none_>
+## What changed
 
-## Submit
-
-**Version:** `<the 40-hex commit you pushed>`
-**Addresses:** <F-n, F-m, or none>
-**Note:** Changed: <what changed, one or two sentences>. Should move: <eval ids>. Ran: <n> pass, <n> fail, <n> unverifiable, <n> error (<command>). Disputes: <F-n (why), or none>.
-
-<!-- The note is at most 600 characters, in these four parts and this order. -->
+<!-- One or two sentences. Name the blueprint records or decisions changed first, if any. -->
 
 ## Evals
 
-<!-- Every eval of the task, in the task's order, with its claim and your own run's result. Your run is for
-information only: the verdicts that count are the sandbox's (stage 1) or Mission Control's run (stage 0). -->
+<!-- The eval ids this should move, and the result of `pnpm evals -- <ids>` (pass, fail, not run). _none_ if none. -->
 
-| Eval | Claim | Own run |
-|---|---|---|
-| `<eval id>` | <claim> | <pass, fail, unverifiable, error or not run> |
+## Checks
 
-**Own run:** <n> pass · <n> fail · <n> unverifiable · <n> error · `<the command you ran>`
+- [ ] `pnpm exec tsc -p packages/blueprint-engine && pnpm test`
+- [ ] `pnpm exec tsc -p blueprint && pnpm blueprint` (0 problems)
+- [ ] `pnpm frozen`, `pnpm contracts:check-blueprint`, `pnpm portal:check`, `pnpm layout`
 
-## Handover
+## Needs Aaron
 
-<!-- What the next maker needs if another round follows. Done: each with the evals it passed in your run.
-Left: what is not, and why; something needed outside the task's paths is "outside <path>: <what>", never a change.
-Decisions: each a decision record id or matter id. Where: path:line, at most 6. -->
-
-### Done
-
-- <what is built> (<evals it passed in your run>)
-
-### Left
-
-- <what is not, and why>
-
-### Decisions
-
-- `<decision id or M-n>`: <what it settled>
-
-### Where
-
-- `<path>:<line>` <why to look there first>
-
-## Book first
-
-<!-- Records and decision records this change adds or edits, in its own concept's folder, or "No record changed".
-A rewritten claim keeps the frozen claim first in its was and carries a decision. -->
-
-- **Records:** <record keys, or No record changed>
-- **Decisions:** <decision ids added or edited, or none>
-- **Plan:** <docs/mission/tasks.json regenerated, or unchanged>
-- **Book checks:** `pnpm exec tsc -p books` <result> · book <n> problems · `check-frozen` <n> breaches
-
-## Findings
-
-<!-- Every finding open at the start of this round: fixed (how), or disputed (why it is wrong). A disputed finding
-stays open until its checker marks it fixed. Round 1: _none_. -->
-
-| Finding | Answer |
-|---|---|
-| F-<n> | <fixed: how · or · disputed: why> |
-
-## After merge
-
-<!-- The task's evals that came back unverifiable, each with why. They do not block the merge (retro D7); a person on
-the project's waive list may waive them. -->
-
-- `<eval id>`: <why it cannot run here, and where it will>
+<!-- A decision only he can make, as one question with options and a recommendation, or _none_. -->

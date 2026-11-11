@@ -1,0 +1,13 @@
+Clock_Calendar_Unit_Concrete_Test
+├── when the period is WEEK
+│   └── it should return t times WEEK_UNITS_PER_SECOND
+├── when the period is MONTH or YEAR
+│   ├── it should return the month index times MONTH_UNITS plus the seconds into the month times LCM_DAYS divided by the days in the month
+│   ├── given t is the first second of a month
+│   │   └── it should return exactly the month index times MONTH_UNITS
+│   ├── given t is the last second of a month
+│   │   └── it should return less than the next month index times MONTH_UNITS
+│   └── given t is in February of a leap year
+│       └── it should count 29 days so the month still runs exactly MONTH_UNITS
+└── when the period is not WEEK or MONTH or YEAR
+    └── it should revert with InvalidPeriod

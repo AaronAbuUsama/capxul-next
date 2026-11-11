@@ -1,0 +1,10 @@
+Transfer_ShareClass_Unit_Concrete_Test
+├── when the Captable's checkTransfer refuses
+│   └── it should revert with the Captable's error
+└── when the Captable's checkTransfer allows it
+    ├── it should move the balance
+    ├── it should move the delegated votes
+    ├── given the receiver is the Safe
+    │   └── it should checkpoint the Safe's balance and give it no votes
+    └── given it is a transferFrom
+        └── it should ask the Captable with the owner as the sender

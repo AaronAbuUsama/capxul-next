@@ -1,0 +1,12 @@
+SetAgreements_Budgets_Unit_Concrete_Test
+├── when a call into Budgets is already running
+│   └── it should revert with ReentrantCall
+├── when the caller is not the deployer
+│   └── it should revert with NotDeployer
+├── when agreements is already set
+│   └── it should revert with AlreadySet
+├── when the address is zero
+│   └── it should revert with ZeroAddress
+└── when the deployer sets it once
+    ├── it should store it
+    └── it should emit AgreementsSet

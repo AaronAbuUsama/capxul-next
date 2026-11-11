@@ -1,0 +1,9 @@
+CheckTransaction_AgentOwner_Unit_Concrete_Test
+├── when the transaction calls the agent's own Safe
+│   └── it should revert with AgentSelfCall
+├── when the transaction is a delegatecall
+│   └── it should revert with AgentSelfCall
+├── when the transaction calls another address
+│   └── it should pass
+└── when the transaction has run
+    └── it should check nothing after it

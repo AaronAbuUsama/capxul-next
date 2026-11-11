@@ -1,6 +1,6 @@
 # Payroll: Frappe HR's payroll, synced, with payslips from on-chain pay
 
-Lane: **payroll**. Owns `books/target/payroll` and the payslip documents in `books/target/documents`.
+Lane: **payroll**. Owns `blueprint/payroll` and the payslip documents in `blueprint/documents`.
 Written 8 November 2026, main-line design, book first. The records are the design; this page explains
 them and lists what other lanes must change.
 
@@ -555,7 +555,7 @@ once the edge exists. Books sits below payments, so that edge points down too.
 
 ## Records changed
 
-- `books/target/payroll/data.ts`:
+- `blueprint/payroll/data.ts`:
   - **New tables:** `employees`, `salary-components`, `salary-structures`,
     `salary-structure-assignments`, `payroll-entries` and `salary-slips`, each with `version`; and
     `payroll-settings`, `payroll-changes` and `payroll-head-syncs` for the sync.
@@ -592,7 +592,7 @@ once the edge exists. Books sits below payments, so that edge points down too.
   - `documents/operations.ts`: `document render` #1 is kept word for word.
   - `documents/reading.ts`: render names a payslip's employer and employee.
 
-Checks: `npx tsc -p books` is clean, the book builds with 0 problems, and `tools/check-frozen.ts`
+Checks: `npx tsc -p blueprint` is clean, the book builds with 0 problems, and `packages/blueprint-engine/scripts/check-frozen.ts`
 reports 0 breaches. There are 548 kept claims; `document render` #1 moved from rewritten to kept.
 
 ### Changed in review
@@ -702,7 +702,7 @@ An adversarial review against Frappe's sources and payments' machine changed the
   - Both follow `salary_slip_transitioned` or `payment_transitioned` through the outbox.
 - **Devnet:** `org-with-documents` (`documents.worlds`) now holds a submitted payroll run's payslip
   for an Employee. Its builder needs an Employee, a structure, an assignment and a submitted run.
-- **Tooling:** in `tools/report-judgments.ts`, `FLAGGED` can drop `documents.acceptance-rewrites`.
+- **Tooling:** in `packages/blueprint-engine/scripts/report-judgments.ts`, `FLAGGED` can drop `documents.acceptance-rewrites`.
   Its line is now kept word for word, and W1 is settled.
 - **The CLI pass (done):** the commands pass booked the 28 operations of `payroll.hr-surface`, accepted, in the
   grammar of `docs/design/new-commands.md` (section 5.3), with acceptance claims and worlds, spelt since in the

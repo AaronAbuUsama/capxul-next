@@ -1,0 +1,8 @@
+## What
+Choose the first jurisdiction from a short comparison of crypto-friendly places (the UAE named by Aaron as a candidate, and others worth naming): what Frappe HR and ERPNext already have for each, what payroll and tax filing each needs, and what each says about paying wages in a stablecoin. Rewrite decision payroll.jurisdiction-first to the recommendation. Then make neutral or revisit the places in the book that assume a country: the UK list and the US list carried by aaron.jurisdiction-open. Until then the book assumes no country and none of them is changed.
+## Why
+Aaron, 10 November 2026: "let's leave the jurisdiction an open thing... not focus on the UK or the US", with a preference for a crypto-friendly or blockchain-friendly place, the UAE a candidate. He set aside the United States first (aaron.us-first). The payroll route that does not depend on a country stays the coordinator's recommendation (payroll.route): buy calculation and filing where a provider exists, Frappe as the record of staff and pay, contractors paid in a stablecoin first, a lawyer for wages in a stablecoin. Not on the owner's list.
+## Done when
+- The comparison exists as a research note and names, for each place, what Frappe HR and ERPNext have, what payroll and filing need, and what its law says about wages in a stablecoin.
+- payroll.jurisdiction-first is rewritten to a recommendation, and put to Aaron only if the call is his.
+- The places aaron.jurisdiction-open lists (GB and GBP examples, USD books, UK English, payroll held off for a UK filing route) are made neutral or revisited as the chosen place needs.

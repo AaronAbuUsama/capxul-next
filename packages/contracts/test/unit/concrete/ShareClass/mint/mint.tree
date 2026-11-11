@@ -1,0 +1,9 @@
+Mint_ShareClass_Unit_Concrete_Test
+├── when the caller is not the Captable
+│   └── it should revert with OnlyCaptable
+└── when the caller is the Captable
+    ├── it should mint without calling checkTransfer
+    ├── it should checkpoint the total supply at this timestamp
+    └── given the receiver is the Safe
+        ├── it should checkpoint the Safe's balance
+        └── it should give the Safe no delegate

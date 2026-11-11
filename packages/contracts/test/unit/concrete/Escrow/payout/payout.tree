@@ -1,0 +1,20 @@
+Payout_Escrow_Unit_Concrete_Test
+├── when the token is a precompile without code
+│   └── it should reject a token without code
+├── when a call is already running
+│   └── it should revert with ReentrantCall
+├── when the condition is not invoice amount reached
+│   └── it should revert with InvalidCondition
+├── when the escrow is not open
+│   └── it should revert with JobNotOpen
+├── given the payment id was already paid through Payments by someone else
+│   ├── it should mark the escrow paid
+│   ├── it should return any balance to the owner Safe
+│   └── it should emit InvoicePaymentCompleted with the surplus
+├── when the escrow holds less than the amount
+│   └── it should revert with ConditionNotMet
+└── when the escrow holds at least the amount
+    ├── it should mark the escrow paid before paying
+    ├── it should approve Payments for the amount and send the fixed item
+    ├── it should return any surplus to the owner Safe
+    └── it should emit EscrowPaid

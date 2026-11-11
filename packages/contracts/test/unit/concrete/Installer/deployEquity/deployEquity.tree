@@ -1,0 +1,11 @@
+DeployEquity_Installer_Unit_Concrete_Test
+├── when the Safe is zero or the company already has equity
+│   └── it should revert with InvalidInstall
+├── given someone deployed equity for the Safe first with other terms
+│   └── it should still deploy the company's own clones
+└── when the install is valid
+    ├── it should clone and initialize the Captable and Options and Governor and Rounds and Exits
+    ├── it should wire every clone to the others once
+    ├── it should create the template's initial classes in the Captable's initialize
+    ├── it should give no clone any power until the Safe executes the equity calls
+    └── it should emit EquityDeployed with every address

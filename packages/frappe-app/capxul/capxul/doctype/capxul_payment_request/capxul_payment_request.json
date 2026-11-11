@@ -1,0 +1,92 @@
+{
+ "doctype": "DocType",
+ "name": "Capxul Payment Request",
+ "module": "Capxul",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "payment_entry",
+  "document_hash",
+  "status",
+  "requested_by",
+  "approval_id",
+  "approval_url",
+  "tx_hash",
+  "reason",
+  "canonical_json"
+ ],
+ "fields": [
+  {
+   "fieldname": "payment_entry",
+   "fieldtype": "Link",
+   "label": "Payment Entry",
+   "options": "Payment Entry",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "document_hash",
+   "fieldtype": "Data",
+   "label": "Document Hash",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Requesting\nWaiting for signature\nSent\nFailed\nMismatch",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "requested_by",
+   "fieldtype": "Link",
+   "label": "Requested By",
+   "options": "User"
+  },
+  {
+   "fieldname": "approval_id",
+   "fieldtype": "Data",
+   "label": "Approval Id"
+  },
+  {
+   "fieldname": "approval_url",
+   "fieldtype": "Data",
+   "label": "Approval Url"
+  },
+  {
+   "fieldname": "tx_hash",
+   "fieldtype": "Data",
+   "label": "Tx Hash"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason"
+  },
+  {
+   "fieldname": "canonical_json",
+   "fieldtype": "Code",
+   "label": "Canonical Json",
+   "options": "JSON"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "creation": "2026-11-10 00:00:00.000000",
+ "modified": "2026-11-10 00:00:00.000000",
+ "owner": "Administrator",
+ "modified_by": "Administrator",
+ "autoname": "format:CPR-{#####}"
+}

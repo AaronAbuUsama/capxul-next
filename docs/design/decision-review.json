@@ -1,0 +1,1421 @@
+{
+  "task": "m1-old-decisions",
+  "date": "2026-11-11",
+  "proposal": "docs/design/cut-proposal.json",
+  "reviews": [
+    {
+      "id": "concepts.books",
+      "disposition": "rewritten",
+      "reason": "Books retains chain money facts, activity annotations and Chainlink prices. An annotation still classifies a money row and prices still value it. The editable chart, Journal Entry and GL Entry are ERPNext documents on the site, not duplicate Core business tables; plugs projects the money facts to them.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "concepts.books-token-scan",
+      "disposition": "rewritten",
+      "reason": "Books owns scanning tokens explicitly added to its asset list, because it knows the add block and the company Safe. The scanner writes idempotent outside-money facts; indexing remains the chain read model, not a second owner of the added-token list.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "concepts.budgets",
+      "disposition": "confirmed",
+      "reason": "Confirmed concepts.budgets: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.principle; aaron.one-door; sites.door; portal.plan-page.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "concepts.contacts",
+      "disposition": "rewritten",
+      "reason": "There is no active Core contacts concept or private replicated address book. Contact, Address and CRM documents live on the company site and are reached through the door under projected site roles. Core parties remains the identity/Safe directory and banking owns saved bank accounts.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "concepts.documents",
+      "disposition": "rewritten",
+      "reason": "Retain Core hash stamps, verification and participant admissions for chain document evidence, with participants supplied by retained money subjects. Reject the old Core payroll dependency: Frappe HR owns payroll runs and Salary Slips on the company site. Printing uses the door; held payments carry the canonical site document hash without requiring duplicate Core payroll documents or documents.store calls.",
+      "authority": "cut.documents; plugs.document-canon",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "concepts.line-budgets",
+      "disposition": "confirmed",
+      "reason": "Confirmed concepts.line-budgets: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.principle; aaron.one-door; sites.door; portal.plan-page.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "concepts.map",
+      "disposition": "rewritten",
+      "reason": "The built foundation dependency graph, not the historical count of 23, is the concept map. Contacts, projects and HR business records move to sites through the door; chain agreements stay in payments; plugs owns chain-to-site projection. Parked equity and hosted FDE work do not impose active build layers.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "concepts.organizations",
+      "disposition": "rewritten",
+      "reason": "Organizations owns identity, members, invitations, deployment and setup. Setup provisions a hosted company site through sites; it does not run optional-head connection or hosted-FDE setup. Board authority remains in board and parked equity is not folded back into organizations.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "concepts.parties",
+      "disposition": "confirmed",
+      "reason": "Confirmed concepts.parties: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow aaron.frappe-native; plugs.user-from-hat; sites.door.",
+      "authority": "aaron.frappe-native; plugs.user-from-hat; sites.door",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "dependencies.activity-books",
+      "disposition": "rewritten",
+      "reason": "Activity reads books annotations and prices; books never reads activity. Activity does not read a parallel Core chart: editable accounts and ledger reports belong to ERPNext through the door.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "dependencies.books-below-money",
+      "disposition": "confirmed",
+      "reason": "Confirmed dependencies.books-below-money: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "dependencies.books-payroll",
+      "disposition": "archived",
+      "reason": "Archive the Core payroll-to-books accrual procedure edge: Frappe HR submits and cancels its own runs and posts their accrual on the site. No Core run submission invokes books.record-payroll-accrual. Core retains chain money facts and plugs delivers their settlement to the site.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "dependencies.payments-payroll",
+      "disposition": "rewritten",
+      "reason": "Payments never calls a Core payroll settle-run procedure. Frappe HR requests a held payment through plugs; Core owns the command, signature and chain settlement, and the service delivers the result back to the site. Agreement collections remain chain Payments, not Core salary runs.",
+      "authority": "cut.payroll; cut.agreements-in-payments; plugs.held-payment",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "dependencies.board-below-proposers",
+      "disposition": "confirmed",
+      "reason": "Confirmed dependencies.board-below-proposers: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.principle; aaron.one-door; sites.door; portal.plan-page.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "integrations.indexer",
+      "disposition": "rewritten",
+      "reason": "Indexed table reads and progress-dependent calls are distinct: head, awaitBlock and factsOf must time out or fail visibly when the chain reader lags. In lean worlds the reader is folded into the SQLite service, not a mandatory Ponder/Postgres sidecar; this does not turn unavailable progress into a successful empty result.",
+      "authority": "devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "operations.contact-get-in-banking",
+      "disposition": "archived",
+      "reason": "Archive the composition over contacts.book.get: that rpc is removed. The door reads Frappe Contact/Address; banking remains the owner of masked bank accounts by Party. The cut classification, not this old Core flow, carries contact.get reachability.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "operations.owners",
+      "disposition": "confirmed",
+      "reason": "Confirmed operations.owners: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.principle; aaron.one-door; sites.door; portal.plan-page.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "responsibilities.keepers",
+      "disposition": "rewritten",
+      "reason": "Manage books means the on-chain Books hat, granted and revoked through board and read from hat wearers, never a keepers table. Its site permissions are the versioned hat-to-role projection; granting a Frappe role by hand cannot confer chain authority.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "responsibilities.landings",
+      "disposition": "confirmed",
+      "reason": "Confirmed responsibilities.landings: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.principle; aaron.one-door; sites.door; portal.plan-page.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "rules.fde-acts-for-asker",
+      "disposition": "archived",
+      "reason": "Archive the hosted act-for-token tenant guard: hosted FDE work is parked. No current caller gets an asker's Seat or hats by presenting an old org-fde-asks token. Self-run agents use their explicitly granted authority; a future hosted impersonation feature requires a new decision before enabling it.",
+      "authority": "cut.organizations; cut.fde-parked; sites.lifecycle; plugs.roles-follow-hats",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "rules.new-operations",
+      "disposition": "confirmed",
+      "reason": "Confirmed rules.new-operations: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.principle; aaron.one-door; sites.door; portal.plan-page.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "system.build-order",
+      "disposition": "rewritten",
+      "reason": "The coordinator authors build order and critical path in plan/plan.json. Dependencies still constrain imports and doors must exist before their callers, but the old layer list and equity-last scheduling are not an automatic scheduler. The plan and loop, not swarmD stages, coordinate work.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "system.frozen-behaviour",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (The freeze keeps behaviour; each old operation is booked or classified) still applies. Removed subjects in its historical evidence are not restored; cut.principle; aaron.one-door; sites.door; portal.plan-page governs their replacement.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "system.size",
+      "disposition": "confirmed",
+      "reason": "Confirmed system.size: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.principle; aaron.one-door; sites.door; portal.plan-page.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/shared/decisions.ts"
+    },
+    {
+      "id": "tooling.generated-header",
+      "disposition": "confirmed",
+      "reason": "Confirmed tooling.generated-header: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow system.layout; sites.door; portal.plan-page.",
+      "authority": "system.layout; sites.door; portal.plan-page",
+      "path": "blueprint/shared/tooling.ts"
+    },
+    {
+      "id": "tooling.hooks",
+      "disposition": "rewritten",
+      "reason": "Pre-commit checks staged formatting, lint and secret leakage; pre-push checks the current tree and refuses protected-branch updates. Use the current CLAUDE.md gates (test, blueprint, frozen, layout and contract reconciliation), not the old pnpm book spelling or a swarmD merge gate. Hook timing targets do not authorize skipping a gate.",
+      "authority": "system.layout; sites.door; portal.plan-page",
+      "path": "blueprint/shared/tooling.ts"
+    },
+    {
+      "id": "swarm.accounts",
+      "disposition": "archived",
+      "reason": "Archive accounts: No swarmD namespace, App installation or provider-account setup is required by the current plan/portal/repository loop; protected-branch policy remains a repository obligation.",
+      "authority": "portal.plan-page",
+      "path": "blueprint/shared/swarm.ts"
+    },
+    {
+      "id": "swarm.artifact",
+      "disposition": "archived",
+      "reason": "Archive artifact: The portal renders the authored plan and loop state; the old swarmD master board and its ledger queries are not an additional state store.",
+      "authority": "portal.plan-page",
+      "path": "blueprint/shared/swarm.ts"
+    },
+    {
+      "id": "swarm.checker-family",
+      "disposition": "archived",
+      "reason": "Archive checker-family: The current loop configures models per run. The historical OpenAI-only/provider-credit instruction is not a current model-routing restriction.",
+      "authority": "portal.plan-page",
+      "path": "blueprint/shared/swarm.ts"
+    },
+    {
+      "id": "swarm.layers",
+      "disposition": "archived",
+      "reason": "Archive layers: The coordinator authors task dependencies and critical path in the plan. Computed swarmD layers and automatic after:lane promotion no longer schedule work.",
+      "authority": "portal.plan-page",
+      "path": "blueprint/shared/swarm.ts"
+    },
+    {
+      "id": "swarm.master-prompt",
+      "disposition": "archived",
+      "reason": "Archive master-prompt: The loop uses its checked-in operating instructions; it does not concatenate a swarmD built-in manager prompt with the archived initializer.",
+      "authority": "portal.plan-page",
+      "path": "blueprint/shared/swarm.ts"
+    },
+    {
+      "id": "swarm.nested-entry",
+      "disposition": "archived",
+      "reason": "Archive nested-entry: There is no planned migration to nested swarmD managers. Its four-lane/cost/latency entry thresholds do not gate the current loop.",
+      "authority": "portal.plan-page",
+      "path": "blueprint/shared/swarm.ts"
+    },
+    {
+      "id": "swarm.pacing",
+      "disposition": "archived",
+      "reason": "Archive pacing: Loop concurrency and per-lane isolation are configured for the run; the old stage-0 subscription-window and stage-1 four-pair/six-agent thresholds are not current capacity rules.",
+      "authority": "portal.plan-page",
+      "path": "blueprint/shared/swarm.ts"
+    },
+    {
+      "id": "swarm.pr-mirror",
+      "disposition": "archived",
+      "reason": "Archive pr-mirror: The current run and plan retain maker/reviewer evidence. The old swarmD marked-comment event mirror is not a second required ledger or permission to post comments outside the runner protocol.",
+      "authority": "portal.plan-page",
+      "path": "blueprint/shared/swarm.ts"
+    },
+    {
+      "id": "swarm.sandbox",
+      "disposition": "archived",
+      "reason": "Archive sandbox: The repository loop uses isolated worktrees and explicit gates, not golden swarmD sandbox boots or App-token egress. Keep old-system reference read-only and do not reuse an incompatible world snapshot.",
+      "authority": "portal.plan-page",
+      "path": "blueprint/shared/swarm.ts"
+    },
+    {
+      "id": "swarm.skills",
+      "disposition": "archived",
+      "reason": "Archive skills: Repository instructions and the brief supply required context. The old .swarmd skills pass-through and pi-agent loader are not required runtime components.",
+      "authority": "portal.plan-page",
+      "path": "blueprint/shared/swarm.ts"
+    },
+    {
+      "id": "swarm.spend-envelope",
+      "disposition": "archived",
+      "reason": "Archive spend-envelope: The authored plan/run sets budgets; the historical $4,000 rollout and 75-percent swarmD matter threshold do not authorize current spend.",
+      "authority": "portal.plan-page",
+      "path": "blueprint/shared/swarm.ts"
+    },
+    {
+      "id": "swarm.stage0-profiles",
+      "disposition": "archived",
+      "reason": "Archive stage0-profiles: The repository loop is the coordinator, not a temporary Claude-profile stage before swarmD. Historical opus/sonnet/haiku profiles are not a current role contract.",
+      "authority": "portal.plan-page",
+      "path": "blueprint/shared/swarm.ts"
+    },
+    {
+      "id": "swarm.stages",
+      "disposition": "archived",
+      "reason": "Archive stages: Archive the three-stage migration and ledger-entry checklist: plan, portal and loop are the current coordination design, with no swarmD stage transition.",
+      "authority": "portal.plan-page",
+      "path": "blueprint/shared/swarm.ts"
+    },
+    {
+      "id": "swarm.state",
+      "disposition": "archived",
+      "reason": "Archive state: Durable coordination state is the authored plan, loop run evidence and repository, not the swarmD ledger or a manager conversation. The portal is a view, not another task authority.",
+      "authority": "portal.plan-page",
+      "path": "blueprint/shared/swarm.ts"
+    },
+    {
+      "id": "swarm.superset",
+      "disposition": "archived",
+      "reason": "Archive superset: No pi-durable extension-section passthrough is required. Any future extension that changes worker instructions needs its own reviewed boundary.",
+      "authority": "portal.plan-page",
+      "path": "blueprint/shared/swarm.ts"
+    },
+    {
+      "id": "swarm.task-cards",
+      "disposition": "archived",
+      "reason": "Archive task-cards: Tasks live in the authored plan and their checked-in explanation files. There is no stage-1 ledger/room replacement of a stage-0 GitHub issue-per-task requirement.",
+      "authority": "portal.plan-page",
+      "path": "blueprint/shared/swarm.ts"
+    },
+    {
+      "id": "swarm.team-definition",
+      "disposition": "archived",
+      "reason": "Archive team-definition: The current loop owns worker orchestration; archive defineManager/defineRouter swarmD declarations and their API migration. They are not a dependency of lane work.",
+      "authority": "portal.plan-page",
+      "path": "blueprint/shared/swarm.ts"
+    },
+    {
+      "id": "time.chain-judged-deadlines",
+      "disposition": "confirmed",
+      "reason": "Confirmed time.chain-judged-deadlines: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/shared/time.ts"
+    },
+    {
+      "id": "time.drift-watch",
+      "disposition": "rewritten",
+      "reason": "Chain lag is now minus the observed chain head timestamp and is recorded on reads. Host skew monitoring must cover the service and site hosts; a lean SQLite world cannot query Postgres clock_timestamp(). Staging alerts retain the chain-lag -2 s to +60 s for five minutes and host-skew one-second thresholds; world time never substitutes for elapsed transport time.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/shared/time.ts"
+    },
+    {
+      "id": "time.world-channels",
+      "disposition": "rewritten",
+      "reason": "Devnet mail goes to the world sink; staging mail is allowlisted before the vendor call. Site mail uses the same isolation. WhatsApp uses world stand-ins or staging test recipients. Hosted sites follow business world time in simulation and host time on staging. Bridge sandbox times are never a world-clock oracle. Hosted FDE namespaces and seasons are parked, not required channels.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/shared/time.ts"
+    },
+    {
+      "id": "aaron.books-first-principles",
+      "disposition": "rewritten",
+      "reason": "The earlier instruction to redesign and synchronize books is superseded as an ownership model by aaron.frappe-native: ERPNext is the book of record on every company site. Chain money still posts accounting entries through plugs. Keep the first-principles and no-fork intent, not a complete second Core ledger waiting for an optional head.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/shared/rulings.ts"
+    },
+    {
+      "id": "aaron.contacts-permissions",
+      "disposition": "rewritten",
+      "reason": "Reading business contacts and editing them are distinct permissions. Core does not restore a contacts-book edit flag: People and other hats project site roles and the door acts as the caller. A site role must authorize an edit; possession of a Core Seat alone is not a write permission.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/shared/rulings.ts"
+    },
+    {
+      "id": "aaron.crm-frappe-shape",
+      "disposition": "rewritten",
+      "reason": "The global Core directory identifies people, companies and their Safes; it is not a global editable CRM. Each company site owns Frappe CRM and its tenant business contacts. This narrows the earlier global-CRM wording under aaron.frappe-native without making another tenant's contacts readable.",
+      "authority": "aaron.frappe-native; aaron.one-door; sites.features-reachability; plugs.roles-follow-hats",
+      "path": "blueprint/shared/rulings.ts"
+    },
+    {
+      "id": "aaron.frappe-shape",
+      "disposition": "rewritten",
+      "reason": "Accounting, Frappe HR payroll, CRM and Projects are present on the company's hosted site from the start. They are native Frappe business records, not Core copies synchronized later with an optional head. Other installed features are reached through the door subject to feature reachability and caller roles; hosted FDE provisioning is parked.",
+      "authority": "aaron.frappe-native; aaron.one-door; sites.features-reachability; plugs.roles-follow-hats",
+      "path": "blueprint/shared/rulings.ts"
+    },
+    {
+      "id": "aaron.projects",
+      "disposition": "rewritten",
+      "reason": "Projects remains fundamental on every company site. ERPNext owns Project, Task and Timesheet and the door reaches their verbs; do not recreate a Core projects concept, replicated tables or one explicit Core operation per DocType.",
+      "authority": "aaron.frappe-native; aaron.one-door; sites.features-reachability; plugs.roles-follow-hats",
+      "path": "blueprint/shared/rulings.ts"
+    },
+    {
+      "id": "aaron.sdk-reaches-everything",
+      "disposition": "rewritten",
+      "reason": "The Core SDK and CLI reach Core capabilities and site capabilities through one door, with the caller's projected roles and world business clock. No optional-head connection is required. React screens may use Core SDK rather than mirroring every method; arbitrary site access never implies a signer.",
+      "authority": "aaron.frappe-native; aaron.one-door; sites.features-reachability; plugs.roles-follow-hats",
+      "path": "blueprint/shared/rulings.ts"
+    },
+    {
+      "id": "surface.fit-calls",
+      "disposition": "rewritten",
+      "reason": "The eleven retained agreement commands keep their frozen verbs, including show, under payroll; bare org director writes remain retired in favor of board. Removed explicit HR and CRM families do not survive as fit-review exceptions: their verbs are reached through the site door, whose grammar and help are current authority.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/shared/surface.ts"
+    },
+    {
+      "id": "surface.frappe-reach",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/shared/surface.ts"
+    },
+    {
+      "id": "surface.head-group",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/shared/surface.ts"
+    },
+    {
+      "id": "surface.head-methods",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/shared/surface.ts"
+    },
+    {
+      "id": "surface.payroll-group",
+      "disposition": "rewritten",
+      "reason": "The eleven chain agreement commands move: agreement accept, agreement collect, agreement list and agreement show become payroll agreement accept, payroll agreement collect, payroll agreement list and payroll agreement show. org agreement offer, org agreement change, org agreement pause, org agreement resume, org agreement end, org agreement withdraw and org agreement list each gain payroll after org. Components, structures, runs and salary slips are Frappe HR documents reached through the door, not new parallel Core payroll commands.",
+      "authority": "cut.payroll; cut.agreements-in-payments; plugs.held-payment",
+      "path": "blueprint/shared/surface.ts"
+    },
+    {
+      "id": "surface.projects-group",
+      "disposition": "archived",
+      "reason": "Archive the explicit 36-command org projects family. ERPNext Project, Task, Timesheet, Activity Type and Project Type are reached through the door. No Core projects RPC or bill-time operation is reinstated by this spelling decision.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/shared/surface.ts"
+    },
+    {
+      "id": "surface.tree",
+      "disposition": "rewritten",
+      "reason": "Keep organization scope and one SDK call per CLI action for retained Core commands. Site-owned HR, CRM, Projects and accounting verbs are generated through the door, not the old thirteen-group/119-move catalogue. The eleven chain agreement commands retain payroll grouping; help derives from the surviving surface.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/shared/surface.ts"
+    },
+    {
+      "id": "parties.frappe-identity",
+      "disposition": "rewritten",
+      "reason": "Parties owns global identity, display name, mailbox resolution, Safe and ownership. Frappe Contact, Customer, Supplier and Employee are company-site business documents linked to identities, not global CRM replicas. A site user is identified by person/account address and hat, never mailbox alone, and agents receive no implied human site user.",
+      "authority": "aaron.frappe-native; plugs.user-from-hat; sites.door",
+      "path": "blueprint/parties/decisions.ts"
+    },
+    {
+      "id": "parties.head-parties",
+      "disposition": "rewritten",
+      "reason": "Site business documents may carry the Core Party link, but a site never selects a Safe or grants chain authority. A Customer or Supplier without a Party stays a site-only record until resolved by Core; it cannot be paid merely because its email matches. Site users follow account-address/hat identity rather than the old email-matched head sync.",
+      "authority": "aaron.frappe-native; plugs.user-from-hat; sites.door",
+      "path": "blueprint/parties/decisions.ts"
+    },
+    {
+      "id": "indexing.reorgs-are-ponders",
+      "disposition": "rewritten",
+      "reason": "The chain reader rolls back reorganized views and replays canonical logs. Money readers wait for configured finality and reconcile later reorgs; folded-in lean-world readers have the same obligation as Ponder. Site corrections use explicit ordered reversal events, not silent deletion of a posted payment.",
+      "authority": "devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion",
+      "path": "blueprint/indexing/decisions.ts"
+    },
+    {
+      "id": "indexing.tables-only",
+      "disposition": "rewritten",
+      "reason": "Indexing owns chain read views; concepts read them through their own behavior and progress-dependent calls use the indexer integration. Only the reader writes them. In lean worlds it is folded into the service, so tables-only is an ownership boundary, not a requirement to deploy a separate Ponder/Postgres component.",
+      "authority": "devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion",
+      "path": "blueprint/indexing/decisions.ts"
+    },
+    {
+      "id": "organizations.app-commands",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.command-priorities",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.command-worlds",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.commands",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.company-shape",
+      "disposition": "rewritten",
+      "reason": "The organization supplies company abbreviation, currency, time zone and fiscal-year defaults at creation. Sites provisions ERPNext Company with them; ERPNext is the authority for accounting settings. Do not create an immutable second book-company settings copy or a later optional-head setup wizard.",
+      "authority": "cut.organizations; cut.fde-parked; sites.lifecycle; plugs.roles-follow-hats",
+      "path": "blueprint/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.deployment-row",
+      "disposition": "confirmed",
+      "reason": "Confirmed organizations.deployment-row: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.organizations; cut.fde-parked; sites.lifecycle; plugs.roles-follow-hats.",
+      "authority": "cut.organizations; cut.fde-parked; sites.lifecycle; plugs.roles-follow-hats",
+      "path": "blueprint/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.doc-authority",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.doc-family",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.doc-log",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.doc-reach",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.doc-worlds",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.founder-people-hat",
+      "disposition": "confirmed",
+      "reason": "Confirmed organizations.founder-people-hat: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.organizations; cut.fde-parked; sites.lifecycle; plugs.roles-follow-hats.",
+      "authority": "cut.organizations; cut.fde-parked; sites.lifecycle; plugs.roles-follow-hats",
+      "path": "blueprint/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.head-claims",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.head-clock",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.head-commands",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.head-fit",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.head-group",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.head-users",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.reach-holes",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.startup",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in organizations",
+      "path": "docs/cut-archive/organizations/organizations/decisions.ts"
+    },
+    {
+      "id": "organizations.tables",
+      "disposition": "rewritten",
+      "reason": "Organizations keeps company identity, setup, deployment, membership and invitations, not business CRM/HR tables, Directors, proposals or equity. Hosted-site lifecycle lives in sites and role projection in plugs. The historical count of five does not justify restoring optional-head or FDE tables.",
+      "authority": "cut.organizations; cut.fde-parked; sites.lifecycle; plugs.roles-follow-hats",
+      "path": "blueprint/organizations/decisions.ts"
+    },
+    {
+      "id": "agents.fde-authority",
+      "disposition": "archived",
+      "reason": "Archive hosted-FDE turn impersonation and its preview/signing hand-over protocol while hosted FDE is parked. Self-run agents act only with their own grants and keys. No current agent borrows a person's hats or receives site Administrator authority by being called an FDE.",
+      "authority": "cut.organizations; cut.fde-parked; sites.lifecycle; plugs.roles-follow-hats",
+      "path": "blueprint/agents/decisions.ts"
+    },
+    {
+      "id": "projects.dependencies",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in projects",
+      "path": "docs/cut-archive/projects/projects/decisions.ts"
+    },
+    {
+      "id": "books.acceptance-rewrites",
+      "disposition": "confirmed",
+      "reason": "Confirmed books.acceptance-rewrites: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.account-at-posting",
+      "disposition": "rewritten",
+      "reason": "A chain money fact records immutable money evidence, not a mutable Core account id. Classification and site account resolution happen on the company site using the event's account-code and cost-centre labels. A correction cannot repost a submitted Safe payment in place: use the plugs reversal/refund and open-period rules.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.added-token-opening",
+      "disposition": "confirmed",
+      "reason": "Confirmed books.added-token-opening: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.added-token-scan",
+      "disposition": "rewritten",
+      "reason": "The added-token scanner keeps next_block per added asset, runs each minute and reads only finalized Transfer logs. Writes are keyed by Transfer so replay does not duplicate money. The old no-reversals assumption is rejected: a later reorg must reverse the affected fact and site projection through the same reconciliation path as other money facts.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.annotation-project",
+      "disposition": "rewritten",
+      "reason": "A project classification must resolve to a Project of the same company on the site. Do not validate it against a removed Core projects table or sync head_name. An invalid cross-company project cannot post; unmatched money remains visible for review rather than disappearing.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.annotations-one-table",
+      "disposition": "confirmed",
+      "reason": "Confirmed books.annotations-one-table: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.births-are-transitions",
+      "disposition": "confirmed",
+      "reason": "Confirmed books.births-are-transitions: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.budgets",
+      "disposition": "rewritten",
+      "reason": "Retained Core books reads use read, annotation writes write, chain metadata reads chain-read and token/price background work background. Site door calls use their declared vendor budgets. There is no books head-sync budget: that workflow is superseded by plugs event delivery.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.capxul-assets",
+      "disposition": "confirmed",
+      "reason": "Confirmed books.capxul-assets: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.chart-tree",
+      "disposition": "archived",
+      "reason": "ERPNext owns the Account tree and its ledger/group checks. Archive Core's six-type code allocator, parent conversion and template-protected account algorithm; chart creation and edits go through the door under site permissions. Safe-account ledger hooks still prohibit credit without chain evidence.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.closed-periods",
+      "disposition": "rewritten",
+      "reason": "The site's closing state governs postings. Late chain events post into the first open period while retaining original block time. Closed-period corrections are open-period adjustments, never rewriting history. Do not pull Period Closing Vouchers into a second Core chart or forbid unrelated ERPNext Accounting Period usage through the old sync algorithm.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.company-settings",
+      "disposition": "rewritten",
+      "reason": "ERPNext Company owns currency, time zone and fiscal year. Site posting dates use its time zone and functional currency; chain facts keep exact token units and block time. Archive the immutable Core copy made at chart import and the requirement that chart import find a Chainlink currency pair: site accounting is not a duplicate Core USD ledger.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.cost-centers",
+      "disposition": "rewritten",
+      "reason": "Cost Center documents and the company's default cost centre belong to ERPNext. Posting uses the supplied cost-centre label validated on that site. Archive Core's import-created Main and cost-centre pull mirror; no Core cost-centre machine or edit API is introduced.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.escrow-held",
+      "disposition": "confirmed",
+      "reason": "Confirmed books.escrow-held: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.fact-read",
+      "disposition": "rewritten",
+      "reason": "A fact read retains the side's Safe, chain, block, transaction, log index, exact amount, fee and known counterparty Party. Payments/banking supply this evidence at record time. The site owns posting date and voucher; those are projection results rather than authority for changing the original chain evidence.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.feed",
+      "disposition": "rewritten",
+      "reason": "Ordered money delivery needs a per-organization sequence and idempotent replay; timestamps alone cannot be a cursor because facts arrive late. The current stream and delivery cursors belong to plugs. Archive the old book-companies row-lock allocator and books.sync.feed as the implementation of that stream.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.frappe-shape",
+      "disposition": "archived",
+      "reason": "Archive one-Core-table-per-ERPNext-DocType. Company, Account, Cost Center, Journal Entry, Payment Entry and GL Entry are real site documents, not Core replicas carrying capxul_id for bidirectional sync. Core retains chain facts, annotations and prices only as money evidence/read models.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.guards",
+      "disposition": "rewritten",
+      "reason": "Core money/annotation reads remain tenant guarded and changes require the applicable chain hat. Site account and voucher actions use projected roles through the caller's door session. Archive email-matched head-user edits and books head-sync authorization; a site never holds a Core key or gains authority by writing a User email.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.machines",
+      "disposition": "rewritten",
+      "reason": "Retained Core annotation waiting/decided and added-asset added/removed states emit their machine events; facts stay append-only without a lifecycle. ERPNext owns Account and submitted/cancelled voucher states. The historical five-machine list does not authorize a second Core accounting lifecycle.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.party-lines",
+      "disposition": "rewritten",
+      "reason": "The site resolves a known Party to Customer, Supplier or Employee and uses ERPNext's permitted party/account combinations. Unknown counterparties or invalid classifications remain unmatched and visible. Archive the fixed 6999 waiting account and Core-generated unallocated advance algorithm; own-bank transfers must not become expenses merely because no party exists.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.payroll-accrual",
+      "disposition": "archived",
+      "reason": "Frappe HR owns run submission, cancellation and its accrual Journal Entry. Archive books.record-payroll-accrual and payroll document-voucher/feed copies; no Core submit/cancel transaction posts another accrual. Chain payment settlement arrives separately through plugs and clears the appropriate site payable once.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.payroll-defaults",
+      "disposition": "archived",
+      "reason": "Payroll Payable, salary expense and treasury defaults are configured in Frappe HR/ERPNext Company and structures. Archive Core role-account lookups by 2200/5000 and null-before-chart filling. A Safe ledger account is still guarded by the chain-payment hook, not made editable by setting a default.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.payroll-lines",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in books",
+      "path": "docs/cut-archive/books/books/decisions.ts"
+    },
+    {
+      "id": "books.payroll-postings",
+      "disposition": "rewritten",
+      "reason": "A site payroll net is paid by a held Core payment; settlement submits the matching site entry once with chain transaction and document hash. Frappe owns the accrual and Employee payable. Archive collection-created Core salary slips, duplicate accruals and Core-generated Payroll Entry allocation algorithms; refunds and late postings follow plugs rules.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.rows-by-id",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in books",
+      "path": "docs/cut-archive/books/books/decisions.ts"
+    },
+    {
+      "id": "books.startup",
+      "disposition": "rewritten",
+      "reason": "Company setup provisions the hosted site and initializes ERPNext accounting there. Archive the lazy Core Company birth at first money fact and org books accounts import first-sitting requirement, including the hosted FDE chart step. Recording a chain fact must not depend on an editable Core chart already existing.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.straddling-row",
+      "disposition": "confirmed",
+      "reason": "Confirmed books.straddling-row: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.sync",
+      "disposition": "archived",
+      "reason": "Archive bidirectional books.head.sync. There is no optional head or shared authorship of chart/annotations across two ledgers. ERPNext is the book of record; the service delivers ordered idempotent chain events through plugs, and site edits remain site edits subject to ledger hooks.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.vouchers",
+      "disposition": "rewritten",
+      "reason": "The site posts real ERPNext vouchers when chain evidence arrives, with exact money labels and idempotent event identity. Archive read-time frappe-v1 voucher derivation and cancel/amend-on-version sync. Posted Safe payments cannot be deleted or cancelled to undo money: a refund is a new chain payment and a matched reversing entry. Late facts use the open period.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "books.worlds",
+      "disposition": "rewritten",
+      "reason": "Keep signed-out, company-without-chart, classified/unclassified money, added-token and node-failure scenarios as coverage obligations. Build site accounting fixtures on real hosted world sites through the door; do not recreate a Core chart-import world. Whole-world snapshots include those site documents and chain facts.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/books/decisions.ts"
+    },
+    {
+      "id": "documents.kinds",
+      "disposition": "rewritten",
+      "reason": "Core stores canonical chain-backed memo, Invoice, agreement terms and receipt bytes with hash verification and participant admissions. HR salary slips are site documents, not a second Core payslip envelope created by a Core run. Receipt limits and retained wire types are unchanged; rendering belongs to the site.",
+      "authority": "cut.documents; plugs.document-canon",
+      "path": "blueprint/documents/decisions.ts"
+    },
+    {
+      "id": "documents.no-org-hint",
+      "disposition": "confirmed",
+      "reason": "Confirmed documents.no-org-hint: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.documents; plugs.document-canon.",
+      "authority": "cut.documents; plugs.document-canon",
+      "path": "blueprint/documents/decisions.ts"
+    },
+    {
+      "id": "documents.participants",
+      "disposition": "rewritten",
+      "reason": "Retain caller-supplied participants and admission via current Seats for Core chain documents, but remove the obsolete Core payroll dependency. Frappe HR owns Salary Slips and site HR permissions govern their reads; held site payments bind a canonical draft hash without duplicating payroll documents in Core.",
+      "authority": "cut.documents; plugs.document-canon",
+      "path": "blueprint/documents/decisions.ts"
+    },
+    {
+      "id": "documents.payslip-kind",
+      "disposition": "archived",
+      "reason": "Archive Core salary-slip payslip-envelope creation at run submit/head import. Frappe HR owns Salary Slip and its print form; any payment document hash uses the current canonical form. This does not expose salary lines to every company member or restore a Core payroll run.",
+      "authority": "cut.documents; plugs.document-canon",
+      "path": "blueprint/documents/decisions.ts"
+    },
+    {
+      "id": "documents.payslip-readers",
+      "disposition": "rewritten",
+      "reason": "Employee salary data is private: the employee and authorized HR/People roles on the site may read it, not every company Seat. Archive the Core kind=payslip participant exception as the implementation; site HR permissions enforce the rule and no generic door read bypasses them.",
+      "authority": "cut.documents; plugs.document-canon",
+      "path": "blueprint/documents/decisions.ts"
+    },
+    {
+      "id": "documents.rpcs-and-flows",
+      "disposition": "rewritten",
+      "reason": "Core retains canonical get and verify and local file export of those bytes. Print Format/rendering and salary-slip export use the company site through the door. Archive the removed documents.reading.render rpc and do not make the Core SDK a second rendering engine.",
+      "authority": "cut.documents; plugs.document-canon",
+      "path": "blueprint/documents/decisions.ts"
+    },
+    {
+      "id": "documents.tenancy",
+      "disposition": "confirmed",
+      "reason": "Confirmed documents.tenancy: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.documents; plugs.document-canon.",
+      "authority": "cut.documents; plugs.document-canon",
+      "path": "blueprint/documents/decisions.ts"
+    },
+    {
+      "id": "documents.unsigned",
+      "disposition": "confirmed",
+      "reason": "Confirmed documents.unsigned: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.documents; plugs.document-canon.",
+      "authority": "cut.documents; plugs.document-canon",
+      "path": "blueprint/documents/decisions.ts"
+    },
+    {
+      "id": "documents.verify-answers",
+      "disposition": "confirmed",
+      "reason": "Confirmed documents.verify-answers: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.documents; plugs.document-canon.",
+      "authority": "cut.documents; plugs.document-canon",
+      "path": "blueprint/documents/decisions.ts"
+    },
+    {
+      "id": "documents.worlds",
+      "disposition": "rewritten",
+      "reason": "Retain removed-member, newly admitted member, counterparty, stranger, no-Party and tampered-byte document cases on world snapshots. Salary-slip privacy/rendering cases run on the site, not on a submitted Core payroll fixture. signed-out still proves unauthenticated refusal.",
+      "authority": "cut.documents; plugs.document-canon",
+      "path": "blueprint/documents/decisions.ts"
+    },
+    {
+      "id": "contacts.budgets",
+      "disposition": "archived",
+      "reason": "Archive Core contacts read/write and guided-flow budget overrides: contacts RPCs are removed. Door operations take their site/vendor budgets with person waits excluded; banking's retained account actions retain their own budgets, not a hidden contacts second round trip.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/contacts/decisions.ts"
+    },
+    {
+      "id": "contacts.crm-permission",
+      "disposition": "rewritten",
+      "reason": "Site CRM reads and edits require the caller's projected roles; People and sales jobs are proven separately by the hat job evals. Archive a blanket all-members-read/People-only-write Core CRM guard; a lead owner field grants neither chain authority nor unrestricted cross-company access.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/contacts/decisions.ts"
+    },
+    {
+      "id": "contacts.get-bank-accounts",
+      "disposition": "archived",
+      "reason": "Archive the move-to-banking composition over contacts.book.get. Frappe Contact is reached through the door, banking reads saved accounts only for a resolved Party, and no contacts RPC is reinstated to satisfy the old return shape.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/contacts/decisions.ts"
+    },
+    {
+      "id": "contacts.get-moved",
+      "disposition": "archived",
+      "reason": "Archive the residual contacts.book.list picker and contacts.book.get rpc. Contact selection/read is site-owned through the door; banking retains its Party-keyed masked-account query without rebuilding the removed Core contacts module.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/contacts/decisions.ts"
+    },
+    {
+      "id": "contacts.head-mapping",
+      "disposition": "archived",
+      "reason": "Archive push/pull naming, mailbox adoption and head_name mappings for Contact, CRM Organization and converted leads. Frappe names and links its own documents on the authoritative site; Core only owns Party/Safe resolution and explicit identity links. A rename or same mailbox must not silently change a payment recipient.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/contacts/decisions.ts"
+    },
+    {
+      "id": "contacts.head-sync",
+      "disposition": "archived",
+      "reason": "Archive contacts.head.sync and its gap-free contact-changes replica. CRM edits commit on the company site under projected roles; there is no second Core CRM to push back conflicts or deletions to. The service calls the site, not vice versa.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/contacts/decisions.ts"
+    },
+    {
+      "id": "contacts.lead-conversion",
+      "disposition": "archived",
+      "reason": "Frappe CRM owns lead conversion, its transactional duplicate/conversion checks and resulting deal/contact links. Archive Core's lead lock, provisional Party creation and converted-deal idempotency implementation. Converting a lead alone cannot create a payable identity or select a Safe.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/contacts/decisions.ts"
+    },
+    {
+      "id": "contacts.members-derived",
+      "disposition": "archived",
+      "reason": "Archive the read-time join of Core Seats into a contacts book. Site users and roles follow chain hats through plugs; CRM contacts are site records, not a derived membership list. Revoking a hat disables the corresponding authority without deleting CRM history.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/contacts/decisions.ts"
+    },
+    {
+      "id": "contacts.private-entries",
+      "disposition": "rewritten",
+      "reason": "A site Contact or CRM Organization may have no Core Party. It remains business data, not a payable Safe; paying requires explicit Core recipient resolution. Archive contact_<ulid> ids, ref-null wire shapes and contact link as the private Core-book implementation.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/contacts/decisions.ts"
+    },
+    {
+      "id": "contacts.relationships",
+      "disposition": "archived",
+      "reason": "Archive Core manual/member relationship types and last-change lastActivityAt. The site owns CRM relationship and timeline fields. A chain-derived money timeline may show only proven money, but does not overwrite site contact activity with a Core synthetic relationship.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/contacts/decisions.ts"
+    },
+    {
+      "id": "contacts.resolve-in-add",
+      "disposition": "archived",
+      "reason": "Archive contacts.book.add invoking parties.resolve-recipient: the RPC is removed. Creating a Frappe contact does not automatically register a Core recipient. Party resolution is explicit at a money/identity boundary, preventing address-book edits from redirecting a Safe.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/contacts/decisions.ts"
+    },
+    {
+      "id": "contacts.server-pages",
+      "disposition": "archived",
+      "reason": "Archive contacts.book.list's (last change, PartyId) keyset cursor and 25/100 limits. The generated site door pages Frappe records under caller permissions; no private Core contacts pagination endpoint survives.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/contacts/decisions.ts"
+    },
+    {
+      "id": "contacts.timeline-money",
+      "disposition": "rewritten",
+      "reason": "Site CRM owns its timeline. Any Core chain-money projection must show proven PaymentSent and escrow facts only, scoped to the company and resolved Party; unfunded requests and scheduled payments are not settled money. Archive the Core contacts timeline query and do not reintroduce contact RPCs.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/contacts/decisions.ts"
+    },
+    {
+      "id": "payments.money-sides",
+      "disposition": "rewritten",
+      "reason": "Each settled side retains its own Safe, log, block time, counterparty, fee, document hash and accounting labels. The payer of a claim escrow is the funding Safe, never the escrow. Account codes/cost centres are labels for site posting, not Core chart ids; site-owned invoice/payroll meaning accompanies held payments without duplicating those documents.",
+      "authority": "cut.requests; plugs.held-payment; plugs.repoint-money-fact",
+      "path": "blueprint/payments/decisions.ts"
+    },
+    {
+      "id": "payments.payroll-door",
+      "disposition": "confirmed",
+      "reason": "Confirmed payments.payroll-door: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.payroll; cut.agreements-in-payments; plugs.held-payment.",
+      "authority": "cut.payroll; cut.agreements-in-payments; plugs.held-payment",
+      "path": "blueprint/payments/decisions.ts"
+    },
+    {
+      "id": "payroll.accrual",
+      "disposition": "rewritten",
+      "reason": "Frappe HR is the sole author of run accruals and site payment posting. Core records chain money and delivers settlement once through plugs; it does not compute salary runs or call a books accrual door. Escrow-held money is not settled payroll and cannot close the payable until claimed.",
+      "authority": "cut.payroll; cut.agreements-in-payments; plugs.held-payment",
+      "path": "blueprint/payments/agreements/decisions.ts"
+    },
+    {
+      "id": "payroll.agreements-in-frappe-shape",
+      "disposition": "rewritten",
+      "reason": "Retained chain agreements live in payments and are not automatically Core Employee/assignment/slip records. Frappe HR owns any corresponding employee and salary structure. Archive automatic hire/termination and exclusion-of-agreement-assignments sync logic; a collection must not cause a second salary run payment.",
+      "authority": "cut.payroll; cut.agreements-in-payments; plugs.held-payment",
+      "path": "blueprint/payments/agreements/decisions.ts"
+    },
+    {
+      "id": "payroll.budgets",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (Payroll's budgets are class defaults) still applies. Removed subjects in its historical evidence are not restored; cut.payroll; cut.agreements-in-payments; plugs.held-payment governs their replacement.",
+      "authority": "cut.payroll; cut.agreements-in-payments; plugs.held-payment",
+      "path": "blueprint/payments/agreements/decisions.ts"
+    },
+    {
+      "id": "payroll.collection-accrual",
+      "disposition": "archived",
+      "reason": "Archive the Core collection process calling books.record-payroll-accrual and generating a salary liability. A collection is chain money projected once to the company site; HR/accounting classification is site-owned. Organization payees are not manufactured as Employees.",
+      "authority": "cut.payroll; cut.agreements-in-payments; plugs.held-payment",
+      "path": "blueprint/payments/agreements/decisions.ts"
+    },
+    {
+      "id": "payroll.collection-slips",
+      "disposition": "archived",
+      "reason": "Archive one Core born-paid Salary Slip per collection. The collection retains Payment id, transaction, block, time and agreement terms as chain evidence; any HR Salary Slip is a site document, not another chain-settlement record.",
+      "authority": "cut.payroll; cut.agreements-in-payments; plugs.held-payment",
+      "path": "blueprint/payments/agreements/decisions.ts"
+    },
+    {
+      "id": "payroll.dropped",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (Old agreement rpcs that are folded in or dropped) still applies. Removed subjects in its historical evidence are not restored; cut.payroll; cut.agreements-in-payments; plugs.held-payment governs their replacement.",
+      "authority": "cut.payroll; cut.agreements-in-payments; plugs.held-payment",
+      "path": "blueprint/payments/agreements/decisions.ts"
+    },
+    {
+      "id": "payroll.flows",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (One flow per write command, one rpc per read; the designed SDK names win) still applies. Removed subjects in its historical evidence are not restored; cut.payroll; cut.agreements-in-payments; plugs.held-payment governs their replacement.",
+      "authority": "cut.payroll; cut.agreements-in-payments; plugs.held-payment",
+      "path": "blueprint/payments/agreements/decisions.ts"
+    },
+    {
+      "id": "payroll.head-sync",
+      "disposition": "archived",
+      "reason": "Archive the six-record payroll replica, change log and capxul_id/head_name push/pull process. Frappe HR owns employees, structures, assignments, runs and slips from the start; plugs delivers chain payment results, not business-data sync.",
+      "authority": "cut.payroll; cut.agreements-in-payments; plugs.held-payment",
+      "path": "blueprint/payments/agreements/decisions.ts"
+    },
+    {
+      "id": "payroll.no-door",
+      "disposition": "archived",
+      "reason": "Governed only records that left the built book; archived with them.",
+      "authority": "the records it governed are in payroll",
+      "path": "docs/cut-archive/payroll/payroll/decisions.ts"
+    },
+    {
+      "id": "payroll.one-live-employee",
+      "disposition": "archived",
+      "reason": "Archive Core one-live-Employee indexes and rehire row creation: the Core Employee table is removed. Frappe HR owns employment history and rehire validation on the site; chain agreement acceptance must not silently create or replace an Employee.",
+      "authority": "cut.payroll; cut.agreements-in-payments; plugs.held-payment",
+      "path": "blueprint/payments/agreements/decisions.ts"
+    },
+    {
+      "id": "payroll.payee-reads",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (An agreement is its payer's row; the payee reads it by its own Safe) still applies. Removed subjects in its historical evidence are not restored; cut.payroll; cut.agreements-in-payments; plugs.held-payment governs their replacement.",
+      "authority": "cut.payroll; cut.agreements-in-payments; plugs.held-payment",
+      "path": "blueprint/payments/agreements/decisions.ts"
+    },
+    {
+      "id": "payroll.surface-moves",
+      "disposition": "rewritten",
+      "reason": "Only the eleven chain agreement commands keep the payroll/org payroll group, with the original verbs. Archive the explicit hr leave, attendance, expense, advance, employee and payroll run/component/structure/payslip families: those business documents are reached on Frappe HR through the door. A frozen agreement id does not change when its command gains payroll.",
+      "authority": "cut.payroll; cut.agreements-in-payments; plugs.held-payment",
+      "path": "blueprint/payments/agreements/decisions.ts"
+    },
+    {
+      "id": "banking.contact-get",
+      "disposition": "archived",
+      "reason": "Archive contact.get's Core contacts picker/get composition. Contact/Address is read through the site door. Banking only supplies masked bank accounts for an explicitly resolved Party; absent/private contacts cannot acquire another Party's accounts by a label or email match.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/banking/decisions.ts"
+    },
+    {
+      "id": "banking.flows",
+      "disposition": "rewritten",
+      "reason": "Retain banking flows for verification, invite acceptance, bank pay and adding bank accounts; single-rpc operations stay single calls. Archive the contact.get flow over contacts RPCs: site Contact/Address reads use the door and banking supplies masked accounts only for resolved Parties.",
+      "authority": "cut.requests; plugs.held-payment; plugs.repoint-money-fact",
+      "path": "blueprint/banking/decisions.ts"
+    },
+    {
+      "id": "banking.matched-deposit-meaning",
+      "disposition": "confirmed",
+      "reason": "Confirmed banking.matched-deposit-meaning: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.requests; plugs.held-payment; plugs.repoint-money-fact.",
+      "authority": "cut.requests; plugs.held-payment; plugs.repoint-money-fact",
+      "path": "blueprint/banking/decisions.ts"
+    },
+    {
+      "id": "banking.payout-books",
+      "disposition": "confirmed",
+      "reason": "Confirmed banking.payout-books: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+      "authority": "cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
+      "path": "blueprint/banking/decisions.ts"
+    },
+    {
+      "id": "banking.private-entries",
+      "disposition": "rewritten",
+      "reason": "A site-only contact with no resolved Party has no Core saved bank accounts and cannot be paid through a fabricated Party. Refuse before any quote or write and require explicit recipient resolution. Archive contact_<id>/ref shapes and removed contact link instructions.",
+      "authority": "cut.contacts; sites.crm; plugs.roles-follow-hats",
+      "path": "blueprint/banking/decisions.ts"
+    },
+    {
+      "id": "banking.worlds",
+      "disposition": "rewritten",
+      "reason": "Retain verified people/companies, USD/EUR details, GBP payout, deposit-state and Bridge-failure fixtures, plus signed-out and invitation states. Contact fixtures now live on real company sites, not a Core contacts book; snapshots save those sites with the chain/service world.",
+      "authority": "cut.requests; plugs.held-payment; plugs.repoint-money-fact",
+      "path": "blueprint/banking/decisions.ts"
+    },
+    {
+      "id": "requests.acceptance-rewrites",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (Eleven acceptance lines rewritten as outcomes) still applies. Removed subjects in its historical evidence are not restored; cut.requests; plugs.held-payment; plugs.repoint-money-fact governs their replacement.",
+      "authority": "cut.requests; plugs.held-payment; plugs.repoint-money-fact",
+      "path": "blueprint/requests/decisions.ts"
+    },
+    {
+      "id": "requests.bill-time",
+      "disposition": "archived",
+      "reason": "Archive the Core org projects timesheet bill operation and projects.bill-time transaction. ERPNext owns timesheet billing and invoice cancellation/unbilling; the door reaches them. A resulting payment still uses the held-payment chain path, not a second Core invoice-from-hours implementation.",
+      "authority": "cut.requests; plugs.held-payment; plugs.repoint-money-fact",
+      "path": "blueprint/requests/decisions.ts"
+    },
+    {
+      "id": "requests.bill-time-currency",
+      "disposition": "archived",
+      "reason": "Archive Core timesheet-currency token conversion and its three-other-concept transaction allowance. ERPNext owns timesheet/invoice currencies; a chain payment must use an admitted asset and exact raw amount without silently converting unsupported currency. No projects.bill-time procedure is restored.",
+      "authority": "cut.requests; plugs.held-payment; plugs.repoint-money-fact",
+      "path": "blueprint/requests/decisions.ts"
+    },
+    {
+      "id": "requests.budget-overrides",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (A preview then a write gets 2.5 s at p95) still applies. Removed subjects in its historical evidence are not restored; cut.requests; plugs.held-payment; plugs.repoint-money-fact governs their replacement.",
+      "authority": "cut.requests; plugs.held-payment; plugs.repoint-money-fact",
+      "path": "blueprint/requests/decisions.ts"
+    },
+    {
+      "id": "requests.income-meaning",
+      "disposition": "rewritten",
+      "reason": "A held invoice payment carries its document hash and account/cost-centre labels to site posting. Core requests may retain payment intent but do not own a second income account or Sales Invoice. Invalid site classification stays visible/unmatched; it must not lose the money fact or redirect the payer.",
+      "authority": "cut.requests; plugs.held-payment; plugs.repoint-money-fact",
+      "path": "blueprint/requests/decisions.ts"
+    },
+    {
+      "id": "requests.invoicing-hat",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (An Organization's request writes need its Invoicing hat, bank match included) still applies. Removed subjects in its historical evidence are not restored; cut.requests; plugs.held-payment; plugs.repoint-money-fact governs their replacement.",
+      "authority": "cut.requests; plugs.held-payment; plugs.repoint-money-fact",
+      "path": "blueprint/requests/decisions.ts"
+    },
+    {
+      "id": "requests.one-table",
+      "disposition": "rewritten",
+      "reason": "Core retains requests and payer inbox for chain payment intent. ERPNext owns invoices and service/timesheet business documents through the door; archive Core services and service-revisions storage as business authority. Payment attempts remain payments rows rather than duplicate checkout payment records.",
+      "authority": "cut.requests; plugs.held-payment; plugs.repoint-money-fact",
+      "path": "blueprint/requests/decisions.ts"
+    },
+    {
+      "id": "requests.owner-tenancy",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (A request is its issuer's row; its payer reads it across tenants by Safe) still applies. Removed subjects in its historical evidence are not restored; cut.requests; plugs.held-payment; plugs.repoint-money-fact governs their replacement.",
+      "authority": "cut.requests; plugs.held-payment; plugs.repoint-money-fact",
+      "path": "blueprint/requests/decisions.ts"
+    },
+    {
+      "id": "requests.telemetry",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (The emit actions and the notify workflow are not ported) still applies. Removed subjects in its historical evidence are not restored; cut.requests; plugs.held-payment; plugs.repoint-money-fact governs their replacement.",
+      "authority": "cut.requests; plugs.held-payment; plugs.repoint-money-fact",
+      "path": "blueprint/requests/decisions.ts"
+    },
+    {
+      "id": "requests.worlds",
+      "disposition": "rewritten",
+      "reason": "Retain issuer/payer, paid/declined/cancelled, underfunded Safe, lagging reader, credited-deposit and missing-Invoicing-hat scenarios. Service and invoice business records live on the real company site: do not build removed Core services tables. signed-out still reaches unauthenticated refusals.",
+      "authority": "cut.requests; plugs.held-payment; plugs.repoint-money-fact",
+      "path": "blueprint/requests/decisions.ts"
+    },
+    {
+      "id": "applications.invoicing-hat",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (An Organization's keys: any member reads them, the Invoicing hat changes them) still applies. Removed subjects in its historical evidence are not restored; cut.principle; aaron.one-door; sites.door; portal.plan-page governs their replacement.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/applications/decisions.ts"
+    },
+    {
+      "id": "activity.row-ids",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (A Movement's id is its Transfer and side; a Payment's is payments' id) still applies. Removed subjects in its historical evidence are not restored; cut.principle; aaron.one-door; sites.door; portal.plan-page governs their replacement.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/activity/decisions.ts"
+    },
+    {
+      "id": "activity.row-shapes",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (Feed rows carry the reader's side only; a Payment in full is payments' own view) still applies. Removed subjects in its historical evidence are not restored; cut.principle; aaron.one-door; sites.door; portal.plan-page governs their replacement.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/activity/decisions.ts"
+    },
+    {
+      "id": "activity.valuation",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (The USD headline uses books' Chainlink prices, valued by the backend) still applies. Removed subjects in its historical evidence are not restored; cut.principle; aaron.one-door; sites.door; portal.plan-page governs their replacement.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/activity/decisions.ts"
+    },
+    {
+      "id": "notices.chain-reads",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (Live chain state for a notice is read through chain-rpc, not indexing) still applies. Removed subjects in its historical evidence are not restored; cut.notices; cut.fde-parked; plugs.service-calls-site governs their replacement.",
+      "authority": "cut.notices; cut.fde-parked; plugs.service-calls-site",
+      "path": "blueprint/notices/decisions.ts"
+    },
+    {
+      "id": "notices.first-attempt",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (The outbox workflow makes the first attempt; a held notice gets a retry process) still applies. Removed subjects in its historical evidence are not restored; cut.notices; cut.fde-parked; plugs.service-calls-site governs their replacement.",
+      "authority": "cut.notices; cut.fde-parked; plugs.service-calls-site",
+      "path": "blueprint/notices/decisions.ts"
+    },
+    {
+      "id": "notices.head-and-fde",
+      "disposition": "archived",
+      "reason": "Archive head-stalled and fde-ready templates and triggers: optional head connections are gone and hosted FDE setup is parked. Hosted-site delivery faults remain visible through plugs event state and operator handling, not an invented head connection lifecycle.",
+      "authority": "cut.notices; cut.fde-parked; plugs.service-calls-site",
+      "path": "blueprint/notices/decisions.ts"
+    },
+    {
+      "id": "notices.hr",
+      "disposition": "archived",
+      "reason": "Frappe HR sends leave, expense and advance approval/result notices under site rules. Archive the eleven Core HR transition workflows and department-hat recipient queries; do not duplicate site mail or leak applicant data to generic company members.",
+      "authority": "cut.notices; cut.fde-parked; plugs.service-calls-site",
+      "path": "blueprint/notices/decisions.ts"
+    },
+    {
+      "id": "notices.kinds",
+      "disposition": "rewritten",
+      "reason": "Core sends notices only for retained money and authority transitions. HR/payslip notices belong to Frappe HR; optional-head and hosted-FDE templates are archived. The old list of 44 templates is evidence, not a requirement to resurrect removed subjects.",
+      "authority": "cut.notices; cut.fde-parked; plugs.service-calls-site",
+      "path": "blueprint/notices/decisions.ts"
+    },
+    {
+      "id": "notices.no-staleness-check",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (A notice tells the transition that committed, even if the subject moved on) still applies. Removed subjects in its historical evidence are not restored; cut.notices; cut.fde-parked; plugs.service-calls-site governs their replacement.",
+      "authority": "cut.notices; cut.fde-parked; plugs.service-calls-site",
+      "path": "blueprint/notices/decisions.ts"
+    },
+    {
+      "id": "notices.payslip",
+      "disposition": "archived",
+      "reason": "Frappe HR owns salary-slip email and print attachment. Archive the Core settle-triggered payslip email and replacement of email_salary_slip. A chain settlement still updates the site before it can send a paid notice; escrow funding alone is not salary paid.",
+      "authority": "cut.notices; cut.fde-parked; plugs.service-calls-site",
+      "path": "blueprint/notices/decisions.ts"
+    },
+    {
+      "id": "notices.priority-and-budgets",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (Notices run at normal priority on the background budget) still applies. Removed subjects in its historical evidence are not restored; cut.notices; cut.fde-parked; plugs.service-calls-site governs their replacement.",
+      "authority": "cut.notices; cut.fde-parked; plugs.service-calls-site",
+      "path": "blueprint/notices/decisions.ts"
+    },
+    {
+      "id": "notices.recipients",
+      "disposition": "rewritten",
+      "reason": "Retained money/authority notices reach a person at the source mailbox or principal email, never an agent mailbox. Company notices resolve current Directors; budget notices resolve current hat wearers, not stale membership. HR approval and salary-slip recipients belong to Frappe HR and do not reuse Core payroll/Employee recipient queries.",
+      "authority": "cut.notices; cut.fde-parked; plugs.service-calls-site",
+      "path": "blueprint/notices/decisions.ts"
+    },
+    {
+      "id": "devnet.clock-rate",
+      "disposition": "rewritten",
+      "reason": "Keep rate as world seconds per real second (1 to 60), preserved by freeze, warp and snapshots; it never changes transport/session elapsed time. Clock moves serialize and shared-world rate changes require the owner. Seasons are parked; lean service and real site jobs, not optional heads, consume rate events.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/devnet/decisions.ts"
+    },
+    {
+      "id": "devnet.command-worlds",
+      "disposition": "archived",
+      "reason": "Archive org-with-head/FDE hosting/allowance command fixtures. Every full world uses real hosted company sites on the bench; site-down is a delivery-failure case. Parked hosted FDE billing or payment fixtures are not prerequisites for current world commands.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/devnet/decisions.ts"
+    },
+    {
+      "id": "devnet.fault-switches",
+      "disposition": "rewritten",
+      "reason": "Faults and supervisor actions remain explicit, saved world controls: node errors, indexer lag, Bridge failure, signer/bundler receipt holds, tampered documents and external chain facts. Site failure/replay tests target the real hosted site and plugs delivery, not a stand-in optional head. Mail stays in the world sink and snapshots restore armed faults.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/devnet/decisions.ts"
+    },
+    {
+      "id": "devnet.follow-at-a-rate",
+      "disposition": "rewritten",
+      "reason": "Followers compute running now as min(stopAt, now + rate times elapsed since realAt), frozen now unchanged, never moving backward. Remote followers measure clock offset and report earlier due work immediately. Real sites and the lean service acknowledge due work before the barrier advances; parked hosted-FDE turns and optional stand-in heads are not followers.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/devnet/decisions.ts"
+    },
+    {
+      "id": "devnet.followers",
+      "disposition": "rewritten",
+      "reason": "Each active follower reports its clock version, idle state and next due instant; the barrier waits for due work, pending chain transactions, chain-reader progress, outbox delivery and wake routing. Lean worlds fold backend and reader into one service; real company sites report scheduled jobs and delivery work. Remove optional-head and hosted-FDE follower requirements. A deliberately held fault counts as idle only for the held work, never for unrelated pending work.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/devnet/decisions.ts"
+    },
+    {
+      "id": "devnet.head-follows-world",
+      "disposition": "rewritten",
+      "reason": "Renamed and rewritten as devnet.site-follows-world by the earlier world-clock pass; the real hosted site follows its world, not an optional head.",
+      "authority": "devnet.site-follows-world",
+      "path": "blueprint/devnet/decisions.ts"
+    },
+    {
+      "id": "devnet.head-warp-stops",
+      "disposition": "rewritten",
+      "reason": "A real company site follows its world: daily-or-slower Frappe jobs report next due in site time zone; hourly/faster jobs run at stops rather than making every minute a stop. There is no optional stand-in head reporting no jobs. Barriers must await site job completion.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/devnet/decisions.ts"
+    },
+    {
+      "id": "devnet.mine-to-depth",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (A stop mines empty blocks until its last transaction is twice the finality depth) still applies. Removed subjects in its historical evidence are not restored; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world governs their replacement.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/devnet/decisions.ts"
+    },
+    {
+      "id": "devnet.no-machines",
+      "disposition": "rewritten",
+      "reason": "Devnet mail, faults, clock rate and test controls are infrastructure values, not business lifecycles needing product transition events. Real site document docstatus belongs to Frappe and is saved in site backups, not a stand-in head document table. This does not remove machines from retained Core money/authority concepts.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/devnet/decisions.ts"
+    },
+    {
+      "id": "devnet.only-miner",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (The supervisor is the chain's only miner, and every block is mined at now) still applies. Removed subjects in its historical evidence are not restored; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world governs their replacement.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/devnet/decisions.ts"
+    },
+    {
+      "id": "devnet.own-schema",
+      "disposition": "rewritten",
+      "reason": "Devnet-only faults, mail and world metadata must not be production business data. Lean worlds keep this state in their own SQLite service database, not a mandatory Postgres devnet schema. Staging/production never migrate test controls.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/devnet/decisions.ts"
+    },
+    {
+      "id": "devnet.payslip-world",
+      "disposition": "archived",
+      "reason": "Archive the Core payroll-command recipe for Kai's Salary Slip. Salary-slip fixtures are created in Frappe HR on the world's real site and saved in its site backup; Core stores only associated chain payment/document evidence.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/devnet/decisions.ts"
+    },
+    {
+      "id": "devnet.running-stops",
+      "disposition": "rewritten",
+      "reason": "A running clock caps at the earliest reported due instant, settles the service, chain reader and real site jobs, then resumes at its configured rate. Newly earlier due work lowers the cap; stop limits are real elapsed time and busy followers remain visible. Minute transport polling is not a business-time stop and optional head/FDE syncs do not run.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/devnet/decisions.ts"
+    },
+    {
+      "id": "devnet.season-players",
+      "disposition": "archived",
+      "reason": "Seasons were dropped for now by Aaron (aaron.seasons-dropped): the shared world keeps its clock, snapshots and grants, and a season, the schedule that ran them, can be added later.",
+      "authority": "cut.seasons",
+      "path": "docs/cut-archive/parked/seasons/devnet/decisions.ts"
+    },
+    {
+      "id": "devnet.season-reset",
+      "disposition": "archived",
+      "reason": "Seasons were dropped for now by Aaron (aaron.seasons-dropped): the shared world keeps its clock, snapshots and grants, and a season, the schedule that ran them, can be added later.",
+      "authority": "cut.seasons",
+      "path": "docs/cut-archive/parked/seasons/devnet/decisions.ts"
+    },
+    {
+      "id": "devnet.stateful-followers",
+      "disposition": "rewritten",
+      "reason": "A snapshot saves chain, lean-service SQLite state and every company site backup with files as one world lineage. Restore freezes the clock and restores every manifest component before following resumes, including into another world. Missing required component state refuses before partial restore. Hosted FDE namespaces are parked.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/devnet/decisions.ts"
+    },
+    {
+      "id": "devnet.warp-barrier",
+      "disposition": "rewritten",
+      "reason": "Warp visits each due instant through target T in order and waits for timers, scheduled real-site jobs, outbox delivery, pending chain transactions, configured finality and reader wake routing to settle. jobs=false skips scheduled jobs without skipping timers. Serialize moves, fail a nonsettling stop visibly and preserve the last settled time; folded-in readers and real sites replace Ponder sidecars and stand-in heads without weakening the barrier.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/devnet/decisions.ts"
+    },
+    {
+      "id": "devnet.world-pass-worlds",
+      "disposition": "archived",
+      "reason": "Archive the stand-in head document engine and hosted-FDE turn fixtures. Door/HR/Projects behavior is exercised on real Frappe sites backed up with the world; mail stays isolated in the world sink and Bridge/chain faults remain explicit controls. Do not simulate ledger hooks or DocType permissions in a second Core document store.",
+      "authority": "devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
+      "path": "blueprint/devnet/decisions.ts"
+    },
+    {
+      "id": "journeys.onto-target",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (Each old journey is a journey of target operations, proved by machine events) still applies. Removed subjects in its historical evidence are not restored; cut.principle; aaron.one-door; sites.door; portal.plan-page governs their replacement.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/journeys.ts"
+    },
+    {
+      "id": "journeys.steps",
+      "disposition": "confirmed",
+      "reason": "The surviving rule (Optional operations leave the journeys; the refused `org director` writes go) still applies. Removed subjects in its historical evidence are not restored; cut.principle; aaron.one-door; sites.door; portal.plan-page governs their replacement.",
+      "authority": "cut.principle; aaron.one-door; sites.door; portal.plan-page",
+      "path": "blueprint/journeys.ts"
+    }
+  ]
+}

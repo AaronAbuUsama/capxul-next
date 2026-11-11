@@ -1,0 +1,8 @@
+SetPool_Options_Unit_Concrete_Test
+├── when the caller is not the Safe
+│   └── it should revert with OnlyBoard
+├── when the amount is below what is allocated
+│   └── it should revert with PoolBelowAllocated
+└── when the amount covers what is allocated
+    ├── it should set the pool
+    └── it should emit PoolSet

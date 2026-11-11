@@ -1,0 +1,14 @@
+Reopen_Budgets_Unit_Concrete_Test
+├── when a call into Budgets is already running
+│   └── it should revert with ReentrantCall
+├── when the budget does not exist
+│   └── it should revert with UnknownBudget
+├── when the caller may not manage the budget
+│   └── it should revert with NotAuthorised
+├── when the budget is not closed
+│   └── it should revert with NotClosed
+└── when the budget is closed
+    ├── it should mark it open
+    ├── given a budget above it is still closed
+    │   └── it should still refuse spends with BudgetIsClosed naming that budget
+    └── it should emit BudgetReopened

@@ -1,0 +1,16 @@
+Close_Budgets_Unit_Concrete_Test
+├── when a call into Budgets is already running
+│   └── it should revert with ReentrantCall
+├── when the budget does not exist
+│   └── it should revert with UnknownBudget
+├── when the caller may not manage the budget
+│   └── it should revert with NotAuthorised
+├── when the budget is already closed
+│   └── it should revert with AlreadyClosed
+└── when the budget is open
+    ├── it should mark it closed
+    ├── it should keep its amount counted in its parent's childrenAmount
+    ├── it should stop spends and schedules and commitments and children on it and every budget under it
+    ├── it should let pending scheduled payments still execute
+    ├── it should let running agreements still collect
+    └── it should emit BudgetClosed

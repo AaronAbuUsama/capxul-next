@@ -1,6 +1,6 @@
 # CRM: people and companies in Frappe CRM's shape
 
-Lane: **crm**. Owns `books/target/parties` and `books/target/contacts`. Written 8 November 2026,
+Lane: **crm**. Owns `blueprint/parties` and `blueprint/contacts`. Written 8 November 2026,
 main-line design, book first. The records are the design; this page explains them and lists what
 other lanes must change.
 

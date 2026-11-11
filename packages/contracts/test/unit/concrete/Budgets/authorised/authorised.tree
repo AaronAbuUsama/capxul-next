@@ -1,0 +1,21 @@
+Authorised_Budgets_Unit_Concrete_Test
+├── when the budget does not exist
+│   └── it should return false
+├── when who is the budget's Safe
+│   └── it should return true
+├── when who wears the budget's hat in good standing
+│   └── it should return true
+├── when who wears the hat of a budget above it in good standing
+│   └── it should return true
+├── when who wears the hat but is not in good standing
+│   └── it should return false
+├── when the hat is inactive or its wearer is ineligible
+│   └── it should return false
+├── when who wears only the hat of a budget below it
+│   └── it should return false
+├── when who wears only the hat of a sibling budget
+│   └── it should return false
+├── when who wears only a Director hat
+│   └── it should return false
+└── when who wears no hat on the budget's path
+    └── it should return false

@@ -1,0 +1,12 @@
+Lapse_Vesting_Unit_Concrete_Test
+├── when the grant does not exist
+│   └── it should revert with UnknownGrant
+├── when the grant was accepted
+│   └── it should revert with GrantExists
+├── when the offer has not expired
+│   └── it should revert with NotYet
+└── when the offer expired unaccepted
+    ├── it should let anyone call it
+    ├── it should delete the offer
+    ├── it should lock nothing
+    └── it should emit OfferLapsed

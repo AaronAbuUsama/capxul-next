@@ -1,0 +1,9 @@
+DelegateOnFirstReceipt_ShareClass_Unit_Concrete_Test
+├── when the receiver has no delegate and receives shares
+│   └── it should delegate the receiver to themselves
+├── when the receiver already delegated to someone
+│   └── it should keep that delegate
+├── when the receiver is the Safe
+│   └── it should leave the Safe with no delegate
+└── when the receiver is the zero address
+    └── it should do nothing

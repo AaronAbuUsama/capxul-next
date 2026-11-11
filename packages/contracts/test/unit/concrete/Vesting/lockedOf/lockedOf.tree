@@ -1,0 +1,29 @@
+LockedOf_Vesting_Unit_Concrete_Test
+├── when the lock helper receives an unaccepted offer
+│   └── it should return zero for the offer
+├── when whole months reach the schedule total
+│   └── it should return zero rather than underflow
+├── when the account has no grant on the class
+│   └── it should return 0
+├── when the grant is an offer that was not accepted
+│   └── it should return 0
+├── when the time is before the cliff
+│   └── it should return the whole amount
+├── when the time is at or after the cliff and before the end
+│   ├── it should return the amount minus the vested part by whole calendar months rounded down
+│   ├── given the time is exactly on a month step
+│   │   └── it should include that month in the vested part
+│   ├── given the time is the day before a month step
+│   │   └── it should not include that month yet
+│   └── given the grant started on the 31st
+│       └── it should step on the last day of a 30 day month
+├── when the time is at or after the end
+│   └── it should return 0
+├── when the grant was revoked and the time is at or after the effective date
+│   ├── given the revocation was not settled
+│   │   └── it should return what was locked at the effective date
+│   └── given the revocation was settled
+│       └── it should return 0
+├── given the shareholder received more shares of the class
+│   └── it should return the same locked amount
+└── it should never increase as time moves forward

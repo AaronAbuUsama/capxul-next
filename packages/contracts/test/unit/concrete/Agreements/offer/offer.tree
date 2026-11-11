@@ -1,0 +1,42 @@
+Offer_Agreements_Unit_Concrete_Test
+├── when a call into Agreements is already running
+│   └── it should revert with ReentrantCall
+├── when the budget does not exist
+│   └── it should revert with UnknownBudget from Budgets
+├── when the caller is not authorised for the budget
+│   └── it should revert with NotAuthorised
+└── when the caller is authorised
+    ├── when the payee is the zero address or the rate is 0 or the document hash is zero
+    │   └── it should revert with InvalidAgreement
+    ├── when the payee is the caller
+    │   └── it should revert with InvalidAgreement
+    ├── when the period is not WEEK or MONTH or YEAR
+    │   └── it should revert with the Calendar's InvalidPeriod
+    ├── when the step is 0
+    │   └── it should revert with InvalidStep
+    ├── when the start date is in the past
+    │   └── it should revert with InvalidDate
+    ├── when the offer expiry is not in the future
+    │   └── it should revert with InvalidDate
+    ├── when an end is set at or before the start or before the offer expiry
+    │   └── it should revert with InvalidDate
+    ├── when the budget already has 64 open agreements
+    │   └── it should revert with TooManyAgreements
+    └── when the terms are valid
+        ├── given the start date is 0
+        │   └── it should start now
+        ├── it should settle the budget's open agreements first
+        ├── when the budget or a budget above it is closed
+        │   └── it should revert with BudgetIsClosed from Budgets
+        ├── when the reservation is more than is left in the budget
+        │   └── it should revert with OverBudget from Budgets
+        └── when the reservation fits
+            ├── it should commit the reservation in the budget
+            ├── given the agreement is open ended
+            │   └── it should reserve the rate's figure for the budget's period
+            ├── given a fixed term pays less than that figure
+            │   └── it should reserve only the term's pay rounded down
+            ├── it should record the budget's token as the agreement's token
+            ├── it should add the agreement to the budget's open list
+            ├── it should return the next agreement id
+            └── it should emit AgreementOffered and AgreementEnded if an end is set

@@ -28,15 +28,15 @@ This page sets out:
 
 The records are:
 
-- `contract_escrow` and `contract_escrow_factory` in `books/target/shared/external.ts`;
+- `contract_escrow` and `contract_escrow_factory` in `blueprint/shared/external.ts`;
 - decisions `payments.general-escrow`, `payments.claim-escrow-fit`, `payments.claim-escrow-routes`,
   `payments.escrow-on-funding`, `payments.department-authority` and `payments.escrow-contract-build` in
-  `books/target/payments/decisions.ts`;
-- `budgets.claim-escrows` in `books/target/budgets/decisions.ts`;
-- `accounts.collect-any-time` in `books/target/accounts/decisions.ts`, the owner's later collection, spelled
-  `payment claim` by `aaron.payment-claim`, and `payments.claim-command` in `books/target/payments/decisions.ts`,
+  `blueprint/payments/decisions.ts`;
+- `budgets.claim-escrows` in `blueprint/budgets/decisions.ts`;
+- `accounts.collect-any-time` in `blueprint/accounts/decisions.ts`, the owner's later collection, spelled
+  `payment claim` by `aaron.payment-claim`, and `payments.claim-command` in `blueprint/payments/decisions.ts`,
   which books `payment claim` over accounts' rpc `accounts.setup.collect`;
-- the six `payments.escrow-*` invariants in `books/target/payments/data.ts`.
+- the six `payments.escrow-*` invariants in `blueprint/payments/data.ts`.
 
 The sources, all read only, are in `/home/user/factory`:
 
@@ -148,7 +148,7 @@ Each property is checked twice:
 - **On the contract**, by the Foundry trees and invariant handler in `packages/contracts`
   (`payments.escrow-contract-build`).
 - **On the devnet**, by the book's evals. The `inv:` evals are derived from the invariant records in
-  `books/target/payments/data.ts`. The `acc:`, `ref:`, `trn:` and `wfl:` evals come from the records each path
+  `blueprint/payments/data.ts`. The `acc:`, `ref:`, `trn:` and `wfl:` evals come from the records each path
   touches.
 
 | # | Property | Contract check | Book evals |

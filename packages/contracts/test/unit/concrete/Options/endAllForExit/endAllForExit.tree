@@ -1,0 +1,9 @@
+EndAllForExit_Options_Unit_Concrete_Test
+├── when a grant is made after an exit call
+│   └── it should remain live until a later exit call
+├── when the caller is not Exits
+│   └── it should revert with OnlyExits
+└── when Exits calls it at a settled sale
+    ├── it should end every grant
+    ├── it should leave no option exercisable afterwards
+    └── it should emit AllEndedForExit

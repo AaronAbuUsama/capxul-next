@@ -1,0 +1,21 @@
+Settle_Agreements_Unit_Concrete_Test
+├── when a call into Agreements is already running
+│   └── it should revert with ReentrantCall
+├── when the budget has no open agreements
+│   └── it should do nothing
+└── when the budget has open agreements
+    ├── it should let anyone call it
+    ├── it should move no money
+    ├── given an agreement's end has passed
+    │   ├── it should release what is left of its reservation
+    │   └── it should drop it from the budget's open list
+    ├── given an offer expired unaccepted
+    │   ├── it should release its whole reservation
+    │   └── it should drop it from the budget's open list
+    ├── given a rate lowering's date has passed
+    │   └── it should release the difference and keep the agreement open
+    ├── given an agreement is still running with nothing due
+    │   └── it should change nothing for it
+    ├── it should only settle the named budget
+    ├── it should let a lower setAmount that was refused with AmountBelowUse now succeed
+    └── it should emit ReservationReleased for each release

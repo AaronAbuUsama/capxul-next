@@ -1,0 +1,27 @@
+ForcedTransfer_Captable_Unit_Concrete_Test
+├── when the caller is not the company Governor nor the Safe nor Exits
+│   └── it should revert with OnlyBoard
+├── when the class does not exist
+│   └── it should revert with UnknownClass
+├── when the reason is zero
+│   └── it should revert with ZeroReason
+├── when the amount would move locked shares
+│   ├── given the caller is the company Governor
+│   │   └── it should revert with SharesLocked
+│   └── given the caller is the Safe with the holder's consent
+│       └── it should revert with SharesLocked
+├── when the caller is the Safe or Exits
+│   ├── when the holder recorded no consent for these exact terms
+│   │   └── it should revert with ConsentMissing
+│   ├── when the consent was already used
+│   │   └── it should revert with ConsentMissing
+│   └── when the holder consented to these exact terms
+│       ├── it should use up the consent
+│       ├── it should move the shares without checking the transfer rule
+│       ├── it should move the votes with them
+│       └── it should emit ForcedTransfer with the reason
+└── when the caller is the company Governor after a passed vote
+    ├── it should move the unlocked shares without the holder's consent
+    ├── it should move the shares without checking the transfer rule
+    ├── it should move the votes with them
+    └── it should emit ForcedTransfer with the reason

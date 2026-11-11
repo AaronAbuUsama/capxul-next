@@ -1,0 +1,10 @@
+Deploy_EscrowFactory_Unit_Concrete_Test
+├── when a factory dependency is zero
+│   └── it should reject an unusable factory
+├── when the terms are invalid
+│   └── it should revert with the same error the escrow would
+├── when an escrow already exists at the predicted address
+│   └── it should return that address and deploy nothing
+└── when no escrow exists there
+    ├── it should deploy the escrow at the predicted address with CREATE2
+    └── it should emit EscrowDeployed with the payment id and the salt

@@ -1,0 +1,31 @@
+SetAmount_Budgets_Unit_Concrete_Test
+├── when a call into Budgets is already running
+│   └── it should revert with ReentrantCall
+├── when the budget does not exist
+│   └── it should revert with UnknownBudget
+├── when the budget is a top budget and the caller is not its Safe
+│   └── it should revert with NotAuthorised
+├── when the budget is a child and the caller is not authorised for its parent
+│   └── it should revert with NotAuthorised
+├── given the caller wears only the budget's own hat
+│   └── it should revert with NotAuthorised
+└── when the caller may set it
+    ├── when the new amount is below own spend plus ownCommitted plus childrenAmount
+    │   └── it should revert with AmountBelowUse with what the budget uses
+    ├── given a pending scheduled payment holds part of what the budget uses
+    │   └── it should revert with AmountBelowUse until the payment is cancelled or paid
+    ├── given an ended agreement still holds its reservation until settled
+    │   └── it should revert with AmountBelowUse until Agreements settle frees it
+    ├── given the budget's period turned since it was last used
+    │   └── it should count its own spend as 0
+    ├── when the budget is a child and the raise is more than the room left in the parent
+    │   └── it should revert with ChildrenExceedParent
+    └── when the new amount fits
+        ├── it should set the amount
+        ├── given the budget is a child
+        │   └── it should move the parent's childrenAmount by the difference
+        ├── given the new amount equals exactly what the budget uses
+        │   └── it should set it and leave nothing to spend
+        ├── given the budget is closed
+        │   └── it should still set the amount
+        └── it should emit BudgetAmountSet

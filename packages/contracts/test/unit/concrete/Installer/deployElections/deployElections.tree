@@ -1,0 +1,14 @@
+DeployElections_Installer_Unit_Concrete_Test
+├── when the Director hat or the first term end is invalid
+│   └── it should revert with InvalidInstall
+├── given someone deployed the Elections clone first with another first term
+│   └── it should revert with InvalidInstall
+└── when the inputs are valid
+    ├── it should create the Elections clone for the Director hat through the HatsModuleFactory
+    ├── it should set the ballot box hat to the Shareholders' top hat and the admin hat to 0
+    ├── it should read back the current term end and require the first term end
+    ├── given another seat group's Director hat
+    │   └── it should create a separate Elections clone for that hat
+    ├── given the identical clone is already deployed
+    │   └── it should accept it
+    └── it should return the Elections address

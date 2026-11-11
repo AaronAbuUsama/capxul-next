@@ -1,9 +1,16 @@
 # The command surface: one tree of logical groups
 
+> **Overtaken by the cut (noted 10 November 2026).** This page and its data (`SURFACE` in
+> `blueprint/shared/surface.ts`) describe the 394 operations of 9 November. The cut to the Frappe-native design
+> left 169, so `packages/blueprint-engine/scripts/report-surface.ts` now reports 281 differences: rows for operations that are
+> gone (`dev season`, `dev time`, `org head`, …) and current operations in no row. The grouping principle below still
+> stands; the tables in section 6 do not. Redoing the tree for today's operations is design work under plan task
+> `m1-old-decisions`. Until then, the current commands are on the portal, not here.
+
 Status: designed 9 November 2026, book first, on Aaron's answer to question 48 (ninth batch): "The number was not the
 issue. We need everything you can do on Frappe to be programmatic and accessible from our tooling. It's the logical
 groupings." Applied by every owner the same day: the book spells every command as this page does
-(`tools/report-surface.ts`: 0 still to apply, 0 problems).
+(`packages/blueprint-engine/scripts/report-surface.ts`: 0 still to apply, 0 problems).
 
 This page is the whole command surface: all 394 operations (the 215 and the 179 beyond them), each with its command as
 booked, in thirteen logical groups. 380 were in the tree as designed; the devnet's eleven `dev season` commands
@@ -12,9 +19,9 @@ reachable from Capxul's CLI and Core SDK, and what to do where it is not.
 
 The records are the authority:
 
-- `books/target/shared/surface.ts` holds the tree as data: `SURFACE_GROUPS` (the thirteen groups) and `SURFACE` (every
+- `blueprint/shared/surface.ts` holds the tree as data: `SURFACE_GROUPS` (the thirteen groups) and `SURFACE` (every
   operation once: its id and command as booked, its command in the tree, its group), and the nine decisions below.
-- `node --experimental-strip-types tools/report-surface.ts` checks the book against `SURFACE`: every operation in exactly
+- `node --experimental-strip-types packages/blueprint-engine/scripts/report-surface.ts` checks the book against `SURFACE`: every operation in exactly
   one row, and each row the book does not yet spell as the tree does listed as "to apply". With `--md` it prints
   section 6 of this page from the book, and with `--check-md` it checks section 6 against the book.
 - The grammar every command follows is [`new-commands.md`](new-commands.md) section 2, updated to match this page.
@@ -36,7 +43,7 @@ The records are the authority:
 
 Nothing here changes behaviour. 119 commands changed spelling. Each of the 215 keeps its id, its claims and its
 refusals (`system.frozen-behaviour`), and the eleven of them that moved carry `surface.payroll-group`, which names each
-old command, as `tools/check-frozen.ts` requires (it reports "11 commands renamed by a decision"). A new operation's id
+old command, as `packages/blueprint-engine/scripts/check-frozen.ts` requires (it reports "11 commands renamed by a decision"). A new operation's id
 is its command's words joined by dots (`rules.new-operations`), so the 108 new commands that moved took new ids
 (`leave.apply` became `hr.leave.apply`). Each owner applied its own, book first (section 9).
 
@@ -291,8 +298,8 @@ kebab-cased, without `(orgId)`, so each renamed flow's id changes with it (`clie
 
 ## 6. Every command, by group
 
-Generated from the book by `tools/report-surface.ts --md`, and checked against it by
-`tools/report-surface.ts --check-md`: every operation once, with its id and command as booked, its group and its
+Generated from the book by `packages/blueprint-engine/scripts/report-surface.ts --md`, and checked against it by
+`packages/blueprint-engine/scripts/report-surface.ts --check-md`: every operation once, with its id and command as booked, its group and its
 owner. "Before the tree" is the command as it was booked before the tree moved it, for the 119 that moved.
 
 ### Who you are and sign-in (22)
@@ -971,7 +978,7 @@ of `docs/decisions/open-for-aaron.md`, where they are listed with question 55 (t
 ## 9. What each owner applied
 
 The moves were spelling, and each owner applied them in its own folders, book first, keeping 0 problems and 0
-breaches. `tools/report-surface.ts` shows 394 rows, 119 moves and 0 still to apply.
+breaches. `packages/blueprint-engine/scripts/report-surface.ts` shows 394 rows, 119 moves and 0 still to apply.
 
 - **payroll**: 68 commands. HR's 53 and the payslips' 4 took their new words and ids; the eleven agreement commands
   took their new words with `surface.payroll-group` on them (`payroll.surface-moves`). Each renamed flow's id follows

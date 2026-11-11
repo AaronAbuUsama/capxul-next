@@ -1,0 +1,7 @@
+PaymentId_Payments_Unit_Concrete_Test
+├── it should hash the type hash and chain id and this contract and job nonce and executor and recipient and token and amount and kind and document hash
+├── it should ignore the item's own paymentId field
+├── when any one of the hashed fields changes
+│   └── it should return a different id
+└── when the same item is hashed on another chain or by another Payments contract
+    └── it should return a different id

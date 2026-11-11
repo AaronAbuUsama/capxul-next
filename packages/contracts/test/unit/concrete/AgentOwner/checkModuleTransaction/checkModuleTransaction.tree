@@ -1,0 +1,16 @@
+CheckModuleTransaction_AgentOwner_Unit_Concrete_Test
+├── when AgentOwner is the module
+│   └── it should pass a call to the agent's own Safe
+├── when the module call has run
+│   └── it should check nothing after it
+└── when another module calls
+    ├── given the agent is frozen
+    │   └── it should revert with AgentInactive
+    ├── given the agent is removed
+    │   └── it should revert with AgentInactive
+    ├── when it calls the agent's own Safe
+    │   └── it should revert with AgentSelfCall
+    ├── when it delegatecalls
+    │   └── it should revert with AgentSelfCall
+    └── when it calls another address
+        └── it should pass

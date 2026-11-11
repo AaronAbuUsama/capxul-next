@@ -2,7 +2,7 @@
 
 T0 sets up the tooling before any product code is written: the pinned toolchain, one lint
 standard with Capxul's own rules, the formatter, the git hooks, CI and the few checks that span
-files. Every judgment here is a decision record in `books/target/shared/tooling.ts` (ids
+files. Every judgment here is a decision record in `blueprint/shared/tooling.ts` (ids
 `tooling.<topic>`). This page gives the exact files T0 writes, so the build session copies them
 and does not improvise them.
 
@@ -10,7 +10,7 @@ T0 runs before B0. The B0 spike is the first code the gates see.
 
 | # | Milestone | Exit |
 |---|---|---|
-| T0 | **Tooling** (`docs/design/tooling.md`). Pin the toolchain: Node 24.22.2, pnpm 12.18.0 workspaces with a version catalog, Vite Plus 1.5.0 (Oxlint 1.91.0, Oxfmt 0.76.0, Vitest 5.1.0), @effect/tsgo 0.67.3, TypeScript 7.0.2, gitleaks 8.30.1. Write `vite.config.ts` (lint, fmt, staged, test), the hooks, the knip, jscpd and gitleaks configs and the CI workflow, exactly as given here. Build `packages/lint` (ten `capxul/*` rules, each with good and bad fixtures) and the first target of `packages/generate` (the lint facts, from `books/target`). Format the tree once. | From a fresh clone every gate passes on the whole tree. The lint canary fires every rule on its bad fixtures and none on its good ones. The hooks refuse a bad commit and a push to `main`, within budget. CI is green on the T0 pull request. The book's counts are unchanged. The baselines are logged in `docs/mission/progress.md`. |
+| T0 | **Tooling** (`docs/design/tooling.md`). Pin the toolchain: Node 24.22.2, pnpm 12.18.0 workspaces with a version catalog, Vite Plus 1.5.0 (Oxlint 1.91.0, Oxfmt 0.76.0, Vitest 5.1.0), @effect/tsgo 0.67.3, TypeScript 7.0.2, gitleaks 8.30.1. Write `vite.config.ts` (lint, fmt, staged, test), the hooks, the knip, jscpd and gitleaks configs and the CI workflow, exactly as given here. Build `packages/lint` (ten `capxul/*` rules, each with good and bad fixtures) and the first target of `packages/generate` (the lint facts, from `blueprint`). Format the tree once. | From a fresh clone every gate passes on the whole tree. The lint canary fires every rule on its bad fixtures and none on its good ones. The hooks refuse a bad commit and a push to `main`, within budget. CI is green on the T0 pull request. The book's counts are unchanged. The baselines are logged in `docs/mission/progress.md`. |
 
 ## Contents
 
@@ -76,9 +76,9 @@ and TypeScript versions it supports. The bundle must fall inside that list.
 | ↳ oxfmt | 0.76.0 (bundled) | 3 Nov 2026 | Formatter | |
 | ↳ vitest | 5.1.0 (bundled; pinned by `overrides`) | 2 Nov 2026 | Tests | Vite Plus's local-CLI guide gives the `vite` alias and the `vitest` pin as npm `overrides`. Without them, a top-level `vitest` cannot find `vite` (reproduced: `ERR_MODULE_NOT_FOUND`). A direct `vite` devDependency is needed only where a manifest already lists `vite`, so the root has none: with the overrides alone `vp test run` passes (measured), and knip reports a root `vite` entry as unused. |
 | @effect/tsgo | 0.67.3 | 5 Nov 2026 | Effect's Oxlint rules (`effect-tsgo patch --oxlint`) | Its README's `supported-components` block lists TypeScript 7.0.2, Oxlint 1.88.0–1.91.0 and tsgolint 7.0.2004–7.0.2005. 0.67.4 (6 Nov) and 0.67.5 (7 Nov) also exist but are under 3 days old. |
-| typescript | 7.0.2 | 8 Jul 2026 | The only compiler (`tsc`, `tsc -b`) | Measured: `tsc -p books` passes clean in 4.8 s, against 10.2 s on 5.9.3, and `packages/book` passes in 0.4 s. @effect/tsgo needs a native TypeScript 7. |
-| typescript-5 | `npm:typescript@5.9.3` | | Only `tools/freeze-flags.ts`, which uses the compiler API | TypeScript 7 has no stable programmatic API. The alias keeps `books/frozen/flags.ts` reproducible. |
-| effect, @effect/platform-node, @effect/vitest | 4.1.2 | 2 Nov 2026 | Runtime and Effect tests | `packages/book` already pins `effect` 4.1.2. The other two join with the first package that uses them (B0/B3), at the same version. `@effect/vitest` has a required `vitest` peer, so a package that uses it also lists `vitest` `5.1.0` (Vite Plus's rule for a required peer). |
+| typescript | 7.0.2 | 8 Jul 2026 | The only compiler (`tsc`, `tsc -b`) | Measured: `tsc -p blueprint` passes clean in 4.8 s, against 10.2 s on 5.9.3, and `packages/blueprint-engine` passes in 0.4 s. @effect/tsgo needs a native TypeScript 7. |
+| typescript-5 | `npm:typescript@5.9.3` | | Only `archive/tools/freeze-flags.ts`, which uses the compiler API | TypeScript 7 has no stable programmatic API. The alias keeps `blueprint/baseline/flags.ts` reproducible. |
+| effect, @effect/platform-node, @effect/vitest | 4.1.2 | 2 Nov 2026 | Runtime and Effect tests | `packages/blueprint-engine` already pins `effect` 4.1.2. The other two join with the first package that uses them (B0/B3), at the same version. `@effect/vitest` has a required `vitest` peer, so a package that uses it also lists `vitest` `5.1.0` (Vite Plus's rule for a required peer). |
 | @types/node | 24.19.2 | 9 Oct 2026 | Node 24 types | |
 | knip | 6.44.1 | 31 Oct 2026 | Unused dependencies, files, exports; unlisted dependencies | 6.44.2 is under 3 days old. |
 | jscpd | 5.4.2 | 20 Oct 2026 | Duplication (CI only) | 5.4.3 is from today. |
@@ -157,7 +157,7 @@ Exactly these files, plus the plugin package (section 3) and the facts target of
   "workspaces": ["packages/*"],
   "scripts": {
     "prepare": "effect-tsgo patch --oxlint && vp config --no-agent",
-    "book": "tsc -p packages/book && pnpm --filter @capxul/book test && tsc -p books && node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target && node --experimental-strip-types tools/check-frozen.ts",
+    "book": "tsc -p packages/blueprint-engine && pnpm --filter @capxul/blueprint-engine test && tsc -p blueprint && node --experimental-strip-types packages/blueprint-engine/src/main.ts blueprint/index.ts /tmp/target && node --experimental-strip-types packages/blueprint-engine/scripts/check-frozen.ts",
     "generate": "node --experimental-strip-types packages/generate/src/main.ts",
     "generate:check": "node --experimental-strip-types packages/generate/src/main.ts --check",
     "check": "vp check && tsc -b && pnpm generate:check && pnpm book && vp test run",
@@ -194,11 +194,11 @@ packages, not install scripts. Measured on the starter kit with pnpm 12.18.0 and
 fresh install takes under 4 s, and `prepare` patches the Oxlint binding, tsgolint and `tsc`. `node_modules/.bin/tsc`
 is TypeScript 7.0.2 on every install (the alias's `tsc` does not take the link).
 
-`packages/book` drops its own `typescript` 5.9.3 and `@types/node` 22.19.1 devDependencies, so
+`packages/blueprint-engine` drops its own `typescript` 5.9.3 and `@types/node` 22.19.1 devDependencies, so
 there is one compiler and one set of Node types: the root's 7.0.2 and 24.19.2 serve it, and
 `pnpm workspace` would otherwise fail on `@types/node` at two versions. Measured: `tsc 7.0.2`
-checks `packages/book` and `books/` clean, also under `tsconfig.base.json`'s stricter flags.
-`tools/freeze-flags.ts` changes `import ts from "typescript"` to `"typescript-5"`.
+checks `packages/blueprint-engine` and `blueprint/` clean, also under `tsconfig.base.json`'s stricter flags.
+`archive/tools/freeze-flags.ts` changes `import ts from "typescript"` to `"typescript-5"`.
 
 ### `pnpm-workspace.yaml`, `.node-version`, `.gitignore`
 
@@ -276,7 +276,7 @@ others by package name, through an `exports` that points at `src`. The root is a
 ```
 
 ```json
-// tsconfig.json — every package except packages/book, which `pnpm book` checks
+// tsconfig.json — every package except packages/blueprint-engine, which `pnpm book` checks
 { "files": [], "references": [{ "path": "packages/lint" }, { "path": "packages/generate" }] }
 ```
 
@@ -294,12 +294,12 @@ Import form (decision `tooling.imports`):
 
 `packages/sdk-react` adds `"lib": ["ES2023", "DOM"]`, `"types": []` and `"jsx": "react-jsx"`. A
 package joins the root `references` when it is created; `pnpm workspace` fails a package other
-than `packages/book` that is missing from them.
+than `packages/blueprint-engine` that is missing from them.
 
 Measured with TypeScript 7.0.2: a package that imports another by name, through an `exports` that
 points at `src`, builds under `tsc -b` with no reference between them, and a type error in either
 package fails the build. The imported package's files are checked inside the importer's program,
-under the importer's options. So `packages/generate`, which imports `books/target`, also checks
+under the importer's options. So `packages/generate`, which imports `blueprint`, also checks
 the book at each `tsc -b`.
 
 ### `vite.config.ts`: lint, fmt, staged, test
@@ -340,7 +340,7 @@ export default defineConfig({
     categories: { correctness: "error", suspicious: "error", perf: "error" },
     ignorePatterns: [
       // Outside Oxlint (tooling.lint-scope): the design book and its tools are checked by `pnpm book`.
-      "books/**", "packages/book/**", "tools/**", "docs/**",
+      "books/**", "packages/blueprint-engine/**", "tools/**", "docs/**",
       // Throwaway spikes, linted by hand.
       "spikes/**",
       // The canary's fixtures, linted only by the canary: `vp lint --no-ignore` does not lift a
@@ -426,9 +426,9 @@ export default defineConfig({
     ignorePatterns: [
       "**/*.md",
       "**/src/generated/**",
-      "books/frozen/**",
+      "blueprint/baseline/**",
       "docs/as-is/archive/**",
-      "tools/workflows/**",
+      "archive/tools/workflows/**",
       "package-lock.json",
     ],
   },
@@ -443,7 +443,7 @@ export default defineConfig({
 
   test: {
     include: ["packages/*/src/**/*.test.{ts,tsx}", "packages/*/test/**/*.test.{ts,tsx}"],
-    exclude: ["packages/book/**", "**/node_modules/**"],
+    exclude: ["packages/blueprint-engine/**", "**/node_modules/**"],
   },
 });
 ```
@@ -469,21 +469,21 @@ export default defineConfig({
 #### Why the formatter is set this way (decision `tooling.fmt`)
 
 - **`printWidth: 120`.** The book's lines run to p90 = 124 characters (measured over `payments` and
-  `packages/book`). Oxfmt would reformat 226 of 293 `.ts` files at width 100 and 201 at 120. With
+  `packages/blueprint-engine`). Oxfmt would reformat 226 of 293 `.ts` files at width 100 and 201 at 120. With
   the JSON files and sorted imports, it rewrites 296 of the 330 files it formats at 120 (measured
   on the tree of 8 November). Every width needs one formatting commit, and 120 wraps fewer of the
   Effect pipe chains.
 - **`sortImports: true`.** One deterministic import order. Lanes that add imports to the same file
-  then rarely conflict. It reorders `books/target/index.ts`'s concept imports, but not the
+  then rarely conflict. It reorders `blueprint/index.ts`'s concept imports, but not the
   `conceptModules` array that fixes record order. Measured on a copy formatted with these exact
   settings: the build's output (`README.md`, `concepts/`, `evals.json`, `findings.json`) is
-  byte-identical, `tsc -p books` passes and `check-frozen` reports 0 breaches.
+  byte-identical, `tsc -p blueprint` passes and `check-frozen` reports 0 breaches.
 - **Markdown is not formatted.** Oxfmt pads every table column to its widest cell. On
-  `docs/design-book.md`, that turned 100-character rows into 400-character rows. Prose is reviewed
+  `docs/blueprint.md`, that turned 100-character rows into 400-character rows. Prose is reviewed
   by reading.
 - **Generated files are not formatted.** The header hash covers exactly what the generator wrote.
   The generator emits finished code.
-- **`books/frozen/**` is not formatted.** It is never edited.
+- **`blueprint/baseline/**` is not formatted.** It is never edited.
 
 T0 formats the whole tree once, in a commit that contains nothing else. It then proves the book is
 unchanged:
@@ -551,12 +551,12 @@ the repository's owner can turn it on (decision `tooling.branch-protection`).
   // Decision tooling.dead-code: dependencies, unlisted dependencies, files and exports, in
   // hand-written code. Generated files and the design book are out of scope.
   "ignore": ["**/src/generated/**", "packages/lint/fixtures/**"],
-  "ignoreWorkspaces": ["packages/book"],
+  "ignoreWorkspaces": ["packages/blueprint-engine"],
   "workspaces": {
     ".": {
       "entry": ["vite.config.ts"],
       "project": ["vite.config.ts"],
-      // tools/freeze-flags.ts imports the old compiler API; tools/ is outside knip (tooling.lint-scope).
+      // archive/tools/freeze-flags.ts imports the old compiler API; tools/ is outside knip (tooling.lint-scope).
       "ignoreDependencies": ["typescript-5"]
     },
     "packages/*": { "entry": ["src/index.ts", "src/main.ts"], "project": ["src/**/*.{ts,tsx}"] },
@@ -589,7 +589,7 @@ Vitest's API from `vite-plus/test` and the RuleTester from `vite-plus/lint/plugi
   "absolute": true,
   "format": ["typescript", "tsx"],
   "pattern": "packages/*/src/**/*.{ts,tsx}",
-  "ignore": ["**/src/generated/**", "**/*.test.{ts,tsx}", "**/test/**", "**/fixtures/**", "packages/book/**"]
+  "ignore": ["**/src/generated/**", "**/*.test.{ts,tsx}", "**/test/**", "**/fixtures/**", "packages/blueprint-engine/**"]
 }
 ```
 
@@ -719,7 +719,7 @@ packages/lint/
   src/rules/<rule>.ts     one rule per file
   src/rules/<rule>.test.ts   RuleTester ("vite-plus/lint/plugins-dev") valid and invalid cases
   src/config.test.ts      the config test and the canary (section 6)
-  src/generated/facts.ts  generated from books/target by packages/generate
+  src/generated/facts.ts  generated from blueprint by packages/generate
   src/main.ts             `workspace` and `loc`, the two cross-file checks (section 4)
   fixtures/good/…, fixtures/bad/…   trees that mirror packages/backend/src/<concept>/ and packages/sdk/src/<concept>/
 ```
@@ -731,7 +731,7 @@ packages/lint/
 file goes through. The writer's header line is:
 
 ```ts
-// Generated from books/target by packages/generate. Do not edit. sha256:<hex of everything after this line>
+// Generated from blueprint by packages/generate. Do not edit. sha256:<hex of everything after this line>
 export const facts = {
   concepts: {
     payments: {
@@ -757,7 +757,7 @@ export const facts = {
 ```
 
 The payments entry is the real one, with sorted lists. Every fact is derived from the records. The generator reads each concept's module list
-(`books/target/<concept>/index.ts`), because a flow record does not name its concept:
+(`blueprint/<concept>/index.ts`), because a flow record does not name its concept:
 
 | Fact | From | Rule of derivation |
 |---|---|---|
@@ -789,7 +789,7 @@ facts.
 | `capxul/workflow-body` | Inside a workflow body (the function passed to `<Name>.toLayer(…)` in `src/<c>/processes.ts` or `processes/*.ts`, where `<Name>` is the workflow's generated export), outside the arguments of a generated step call (`<Name>Steps.<step>(…)`, whose argument is the step's implementation and runs as its activity): **no** `Date`, `Math.random`, `performance`, `crypto`, `fetch`, `process`, `setTimeout`/`setInterval`/`setImmediate`; no `Clock`, `DateTime`, `Random`, `Schedule`, `DurableClock` or `ClusterCron`; no `Effect.sleep`, `delay`, `timeout*`, `retry`, `repeat`, `schedule*`, `race*`, `promise`, `tryPromise` or `callback`; nothing imported from `@capxul/runtime` (`Now` among it) or another concept's door. **Every `yield*`** is a generated step or wait of that workflow (`<Name>Steps.<step>(…)`, `<Name>Waits.<wait>(…)`, section 7), a member of `Activity`, `DurableDeferred` or `Workflow` (from `effect/workflow`), a declared error, or `Effect.all`, `forEach`, `succeed`, `fail`, `void`, `when`, `log*` or `annotateCurrentSpan` over the same. A `timer` wait is its generated wait, which calls `Timers.until` (`time.durable-timers`): a body never sleeps. **Every step and wait the book declares** for the workflow is yielded somewhere in its body. | A2 (Effect Workflow); P3; `rules.process-wakeups`; `time.durable-timers` and `time.no-direct-reads` (no `DurableClock.sleep`, `ClusterCron`, `Effect.sleep` or `Effect.timeout` in a body; no `Now` in a body, and `StepTime` inside a step). Effect Workflow re-runs a body on resume and replays recorded activity results, so anything else in the body gives a different answer on replay. Activities run at least once, which B0 proves with an idempotency key. | `workflows.*` (name, steps, waits) | good: a body that yields `PaymentsLifecyclePaymentSteps.settle(…)`, the signal wait `PaymentsLifecyclePaymentWaits.carrier(…)` and the timer wait `PaymentsLifecyclePaymentWaits.payDay(at)`, with `StepTime` read inside a step's implementation. bad: `yield* Clock.currentTimeMillis` in the body; `Effect.sleep("1 second")`; `DurableClock.sleep(…)`; `Date.now()`; `yield* helper()` imported from elsewhere; a door procedure called in the body outside a step; a declared step never run | none |
 | `capxul/span-names` | The name argument of `Effect.fn`, `Effect.withSpan`, `Effect.makeSpan`, `Effect.makeSpanScoped`, `Effect.useSpan` and `Layer.span` is a member of the generated `Spans`, never a string or template literal. Helpers that should not trace use `Effect.fnUntraced`. | P6 (the required span tree: `cli.*`, `sdk.*`, `rpc.*`, `db.tx`, `call.*`, `workflow.*`, `wait.*`, all opened by generated wrappers); an rpc's and a flow's `spans` (the book declares exactly one child span today: `sdk.step.browser-install`); evals `rpc:<id>/spans`, `flw:<id>/spans`, `spn:<op>`. A span a handler needs is added to its record first. | `spans` | good: `Effect.fn(Spans.sdk.step.browserInstall)`, `Effect.fnUntraced(…)`. bad: `Effect.fn("rpc.payments.commands.prepare")`, `` Effect.withSpan(`rpc.${id}`) `` | yes, when the literal equals a catalogue name and `Spans` is imported: rewrites it to the constant (measured in the prototype) |
 | `capxul/generated-intact` | Every file under `**/src/generated/**` starts with the header, and its `sha256` matches the rest of the file. No file outside `src/generated/` carries the header. | `system.layout` (the do-not-edit header); `sys:generated`. A hand edit is caught in the editor and at pre-commit in milliseconds; `generate:check` stays the full proof. | none (the file itself) | good: a correctly hashed file. bad: one byte changed; header missing; the header copied into `src/payments/x.ts` | none (the fix is `pnpm generate`) |
-| `capxul/no-throw` | No `throw` statement in product code (the `PRODUCT` override and the React SDK's `REACT` override; generated code included). Fail with a declared error: `return yield* new X(…)`. Make a switch exhaustive with `absurd` from `effect/Function`. In the React SDK, a misuse guard (a hook used outside its provider) takes a reasoned disable, which is counted. | The error vocabulary (`books/target/shared/vocabulary.ts`: code, class, exit code); `rpc:<id>/errors`; B1's handler type, whose error channel is the rpc's declared errors. A throw escapes both and becomes a defect. Replaces the old `no-throw-in-recipe`, widened to all product code, and the React half of the old `sdk-public-surface` (React threw only owned misuse guards). | none | good: `return yield* new NotAuthenticated({})`, `absurd(x)`. bad: `throw new Error("x")`, `throw e` in a `catch` | none |
+| `capxul/no-throw` | No `throw` statement in product code (the `PRODUCT` override and the React SDK's `REACT` override; generated code included). Fail with a declared error: `return yield* new X(…)`. Make a switch exhaustive with `absurd` from `effect/Function`. In the React SDK, a misuse guard (a hook used outside its provider) takes a reasoned disable, which is counted. | The error vocabulary (`blueprint/shared/vocabulary.ts`: code, class, exit code); `rpc:<id>/errors`; B1's handler type, whose error channel is the rpc's declared errors. A throw escapes both and becomes a defect. Replaces the old `no-throw-in-recipe`, widened to all product code, and the React half of the old `sdk-public-surface` (React threw only owned misuse guards). | none | good: `return yield* new NotAuthenticated({})`, `absurd(x)`. bad: `throw new Error("x")`, `throw e` in a `catch` | none |
 | `capxul/catch-keeps-cause` | A handler that fails again reads what it caught, other than through `void`. This covers `Effect.catch`, `catchIf`, `catchTag`, each handler of `catchTags`, `mapError`, the `catch` option of `Effect.try` and `tryPromise`, and a `catch (e)` clause. The handler must be written inline: a handler passed by name is refused, so the rule never reads across files. A handler that recovers to a value needs no cause. | The generated error classes carry an optional `cause`; Error Tracking needs the chain (old ADR-0023 R11, ADR-0039 L1). The old rule followed named handlers across files in 549 lines; requiring inline handlers removes that. | none | good: `Effect.mapError((cause) => new ProviderUnavailable({ cause }))`; a recovery to a value. bad: `mapError(() => new X())`; `catch: () => new X()`; `catchTag("A", handler)`; `(e) => { void e; return new X() }` | none |
 | `capxul/comments` | A debt marker (`TODO`, `FIXME`, `HACK`, `XXX`) is written `TODO(#123): …`, naming a GitHub issue of capxul-next. When the swarmD ledger runs, its task id is accepted too, by changing one constant. A disable directive (`oxlint-disable*`, `eslint-disable*`) names its rules and gives a reason after ` -- `. | Work is tracked, never left in a comment (`CLAUDE.md`: tracking work); `reportUnusedDisableDirectives` removes stale disables, and this rule makes every remaining one say why. Replaces the old `tech-debt` cross-file walk with a per-file rule, so the editor shows it. | none | good: `// TODO(#12): …`, `// oxlint-disable-next-line capxul/no-throw -- the CLI's exit`. bad: `// TODO tidy`, `// FIXME(aaron)`, a bare `// oxlint-disable-next-line`, `// eslint-disable-next-line no-console` with no reason | none |
 | `capxul/no-sentinel-tests` | In tests: no `expect.fail`, no `it.fails`/`test.fails`, no constant expectation (`expect(true).toBe(false)`) and no empty test body. Oxlint's vitest rules add no focused, skipped or todo tests. | Prove by running: a test that cannot fail proves nothing. Kept from the old plugin. | none | good: a test that asserts on the code's output. bad: each of the four forms | none |
@@ -810,7 +810,7 @@ each `package.json` agree with it:
 | `sdk` | none (its generated client carries the rpc contract) |
 | `cli`, `mcp`, `sdk-react` | `@capxul/sdk` |
 | `indexer`, `devnet` | none |
-| `generate`, `evals` | `@capxul/book` (and the books, by relative path) |
+| `generate`, `evals` | `@capxul/blueprint-engine` (and the books, by relative path) |
 | `lint` | none |
 
 ### Adding or changing a rule
@@ -856,7 +856,7 @@ It is never weakened by an override that nobody recorded.
 |---|---|---|---|
 | Generated files | `pnpm generate:check` | any `src/generated/` file (and, from B1, any migration) that differs from what the records generate | `sys:generated` |
 | Lines | `pnpm loc` | Prints JSON of hand-written lines (not blank, not comment-only; not tests, fixtures or `src/generated/`) per package, and per concept summed over `packages/backend/src/<c>/` and `packages/sdk/src/<c>/`, with the count of disable directives and debt markers in the same files. The product total is `runtime`, `backend`, `sdk`, `cli`, `sdk-react`, `mcp`, `indexer` and `devnet` (`system.size`'s components; the runtime is the backend's spine it counts); `book`, `generate`, `evals` and `lint` are reported apart. It fails when the product total passes 100,000, or a concept passes its `lines`. | `system.size`, `sys:loc/<c>` |
-| Workspace | `pnpm workspace` | a dependency spec that is not an exact version (`*` allowed only for `@capxul/*`); one package at two versions; `overrides.vite` or `overrides.vitest` out of step with `vite-plus`'s own dependencies (Vite Plus issue #2356: bots bump them apart); a bundled Oxlint or tsgolint outside @effect/tsgo's supported list (read from its README's `supported-components` block); a package other than `packages/book` missing from the root `tsconfig.json` references; `.node-version` outside `devEngines` | `tooling.pins`, `tooling.typescript` |
+| Workspace | `pnpm workspace` | a dependency spec that is not an exact version (`*` allowed only for `@capxul/*`); one package at two versions; `overrides.vite` or `overrides.vitest` out of step with `vite-plus`'s own dependencies (Vite Plus issue #2356: bots bump them apart); a bundled Oxlint or tsgolint outside @effect/tsgo's supported list (read from its README's `supported-components` block); a package other than `packages/blueprint-engine` missing from the root `tsconfig.json` references; `.node-version` outside `devEngines` | `tooling.pins`, `tooling.typescript` |
 | The lint canary | `vp test run packages/lint`, which runs `CAPXUL_LINT_CANARY=1 vp lint --format json` on each fixture tree | a rule that does not fire on its bad fixture, or fires on a good one, through the real `vite.config.ts` | `tooling.lint-config` |
 
 Third-party, configured only: knip (unused and unlisted dependencies, files and exports), jscpd
@@ -867,7 +867,7 @@ Third-party, configured only: knip (unused and unlisted dependencies, files and 
 | Gate | Runs | Budget | Measured on 8 November 2026 |
 |---|---|---|---|
 | pre-commit | `vp staged`: fmt and lint (type-aware, Effect, capxul) on the staged files; gitleaks on the staged diff | ≤ 5 s for a commit of up to 30 files; ≤ 15 s worst case; until B3, then re-measured and recorded | 1.4 s for 8 files (prototype); gitleaks 0.07 s on a staged fake key (measured through `vp staged`: the commit was refused in 1.1 s). Type-aware lint builds the program of each staged file's package, and `tsc 7` takes 5–7 s over `books/` (87,000 lines), so a staged file in a backend near that size may not fit 5 s: re-measure at B3. |
-| pre-push | protected-branch and HEAD checks; `vp fmt --check`, `vp lint`, `tsc -b`, `generate:check`, `pnpm book` and `vp test run`, over the whole tree | ≤ 90 s until B3, then re-measured and recorded | book checks about 15 s (`tsc -p books` 4.8 s on TypeScript 7); the lint of 6 product files 1.1 s; a full-history gitleaks scan 5.9 s (CI only) |
+| pre-push | protected-branch and HEAD checks; `vp fmt --check`, `vp lint`, `tsc -b`, `generate:check`, `pnpm book` and `vp test run`, over the whole tree | ≤ 90 s until B3, then re-measured and recorded | book checks about 15 s (`tsc -p blueprint` 4.8 s on TypeScript 7); the lint of 6 product files 1.1 s; a full-history gitleaks scan 5.9 s (CI only) |
 | CI `check` | everything in the workflow above, from a clean install | ≤ 10 min wall, install included | T0 records the first green run's step times as the baseline |
 | CI `secrets` | gitleaks over the whole history | ≤ 2 min, install included | 5.9 s scan; 32 s `go install` |
 
@@ -1030,7 +1030,7 @@ T0 is done when all of these were run and observed, and their output is in the T
 
 ## 8. The decisions
 
-Recorded in `books/target/shared/tooling.ts`. Two are Aaron's to confirm: `tooling.package-manager`
+Recorded in `blueprint/shared/tooling.ts`. Two are Aaron's to confirm: `tooling.package-manager`
 and `tooling.branch-protection`.
 
 | Id | Decision |

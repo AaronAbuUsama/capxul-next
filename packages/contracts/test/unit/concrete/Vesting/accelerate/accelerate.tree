@@ -1,0 +1,25 @@
+Accelerate_Vesting_Unit_Concrete_Test
+├── when the caller is not the Captable's Safe
+│   └── it should revert with OnlyBoard
+├── when the grant does not exist
+│   └── it should revert with UnknownGrant
+├── when the grant was revoked
+│   └── it should revert with AlreadyRevoked
+├── when the document hash is zero
+│   └── it should revert with ZeroDocument
+├── when the new end is not earlier than the current end
+│   ├── given it equals the current end
+│   │   └── it should revert with NotEarlier
+│   └── given it is later than the current end
+│       └── it should revert with NotEarlier
+└── when the new end is earlier
+    ├── it should set the end to the later of the new end and the start
+    ├── it should lower the cliff to the new end when the cliff was later
+    ├── given the new end is under one month from the start
+    │   └── it should set the cliff to the end so everything unlocks at once
+    ├── given the new end is before the start
+    │   └── it should set the end to the start
+    ├── it should never raise locked at any time
+    ├── it should move no shares and change no supply
+    ├── it should store the document hash
+    └── it should emit Accelerated with the new end and the document hash

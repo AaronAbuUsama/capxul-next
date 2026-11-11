@@ -1,0 +1,7 @@
+CastVote_Governor_Unit_Concrete_Test
+└── when the proposal is active
+    ├── it should count the voter's weighted votes at the snapshot
+    ├── given shares were issued to the voter after the snapshot
+    │   └── it should not count them
+    └── given the voter is the company Safe
+        └── it should count 0 votes

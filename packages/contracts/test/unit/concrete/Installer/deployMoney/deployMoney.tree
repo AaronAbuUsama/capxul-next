@@ -1,0 +1,26 @@
+DeployMoney_Installer_Unit_Concrete_Test
+├── when the Safe or the founder's Safe is zero or has no code
+│   └── it should revert with InvalidInstall
+├── when a co-Director's Safe is zero or has no code or is repeated or is the founder's Safe
+│   └── it should revert with InvalidInstall
+├── when the founder's Safe or a co-Director's Safe is the company Safe
+│   └── it should revert with InvalidInstall
+├── when the threshold's min is 0 or above the number of founding Directors
+│   └── it should revert with InvalidInstall
+└── when the inputs are valid
+    ├── it should let anyone call it
+    ├── it should mint the Board's top hat and hand it to the company Safe
+    ├── it should create each officer hat as a direct child of the Board's top hat
+    ├── it should make the company Safe each officer hat's eligibility and toggle
+    ├── it should mint the Shareholders' top hat and hand it to the founder's Safe
+    ├── it should create the Director hat mutable with max supply one plus the co-Directors under the Shareholders' top hat
+    ├── it should make the founder's Safe the Director hat's eligibility and toggle
+    ├── it should mint the Director hat to the founder's Safe and to every co-Director's Safe
+    ├── it should never make the company Safe an admin or eligibility or toggle of the Director hat
+    ├── it should deploy Roles with the Safe as owner and avatar and target
+    ├── it should deploy the Gate with the Shareholders' top hat as owner and the Director hat as signer hat
+    ├── it should set the Gate's threshold config to the one chosen at setup and Roles as its module
+    ├── given a correct Roles or Gate is already at the predicted address
+    │   └── it should accept it and deploy nothing there
+    ├── it should wear no hat and hold nothing afterwards
+    └── it should return the two top hats and the Director hat and the officer hats and Roles and the Gate

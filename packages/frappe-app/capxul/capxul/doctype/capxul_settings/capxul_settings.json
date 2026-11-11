@@ -1,0 +1,84 @@
+{
+ "doctype": "DocType",
+ "name": "Capxul Settings",
+ "module": "Capxul",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "org_slug",
+  "safe_address",
+  "asset",
+  "core_url",
+  "secret",
+  "safe_account",
+  "safe_bank_account",
+  "last_seq"
+ ],
+ "fields": [
+  {
+   "fieldname": "org_slug",
+   "fieldtype": "Data",
+   "label": "Org Slug",
+   "reqd": 1
+  },
+  {
+   "fieldname": "safe_address",
+   "fieldtype": "Data",
+   "label": "Safe address"
+  },
+  {
+   "fieldname": "asset",
+   "fieldtype": "Data",
+   "label": "Asset",
+   "default": "USDC"
+  },
+  {
+   "fieldname": "core_url",
+   "fieldtype": "Data",
+   "label": "Core URL",
+   "default": "http://host.docker.internal:8787"
+  },
+  {
+   "fieldname": "secret",
+   "fieldtype": "Password",
+   "label": "Secret"
+  },
+  {
+   "fieldname": "safe_account",
+   "fieldtype": "Link",
+   "label": "Safe ledger account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "safe_bank_account",
+   "fieldtype": "Link",
+   "label": "Safe bank account",
+   "options": "Bank Account"
+  },
+  {
+   "fieldname": "last_seq",
+   "fieldtype": "Int",
+   "label": "Last applied seq",
+   "read_only": 1,
+   "default": "0"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "creation": "2026-11-10 00:00:00.000000",
+ "modified": "2026-11-10 00:00:00.000000",
+ "owner": "Administrator",
+ "modified_by": "Administrator",
+ "issingle": 1
+}

@@ -1,0 +1,77 @@
+{
+  "commit": "1c2504a",
+  "at": "2026-11-11T16:27:53Z",
+  "run": "run-20261111162753",
+  "results": [
+    {
+      "id": "acc:doc.create/1",
+      "verdict": "pass",
+      "evidence": "status/runs/run-20261111162753/evidence/acc-doc.create-1.txt"
+    },
+    {
+      "id": "acc:doc.get/1",
+      "verdict": "pass",
+      "evidence": "status/runs/run-20261111162753/evidence/acc-doc.get-1.txt"
+    },
+    {
+      "id": "acc:doc.submit/1",
+      "verdict": "pass",
+      "evidence": "status/runs/run-20261111162753/evidence/acc-doc.submit-1.txt"
+    },
+    {
+      "id": "acc:doc.submit/2",
+      "verdict": "pass",
+      "evidence": "status/runs/run-20261111162753/evidence/acc-doc.submit-2.txt"
+    },
+    {
+      "id": "acc:org.create/6",
+      "verdict": "pass",
+      "evidence": "status/runs/run-20261111162753/evidence/acc-org.create-6.txt"
+    },
+    {
+      "id": "acc:org.feature.off/1",
+      "verdict": "pass",
+      "evidence": "status/runs/run-20261111162753/evidence/acc-org.feature.off-1.txt"
+    },
+    {
+      "id": "acc:org.feature.on/1",
+      "verdict": "pass",
+      "evidence": "status/runs/run-20261111162753/evidence/acc-org.feature.on-1.txt"
+    },
+    {
+      "id": "acc:org.feature.on/2",
+      "verdict": "pass",
+      "evidence": "status/runs/run-20261111162753/evidence/acc-org.feature.on-2.txt"
+    },
+    {
+      "id": "acc:record.export/1",
+      "verdict": "pass",
+      "evidence": "status/runs/run-20261111162753/evidence/acc-record.export-1.txt"
+    },
+    {
+      "id": "acc:world.show/1",
+      "verdict": "pass",
+      "evidence": "status/runs/run-20261111162753/evidence/acc-world.show-1.txt"
+    },
+    {
+      "id": "acc:world.snapshot.restore/1",
+      "verdict": "pass",
+      "evidence": "status/runs/run-20261111162753/evidence/acc-world.snapshot.restore-1.txt"
+    },
+    {
+      "id": "acc:world.snapshot.restore/2",
+      "verdict": "pass",
+      "evidence": "status/runs/run-20261111162753/evidence/acc-world.snapshot.restore-2.txt"
+    },
+    {
+      "id": "acc:world.snapshot.save/1",
+      "verdict": "pass",
+      "evidence": "status/runs/run-20261111162753/evidence/acc-world.snapshot.save-1.txt"
+    },
+    {
+      "id": "wfl:plugs.events.deliver/idempotent",
+      "verdict": "pass",
+      "evidence": "status/runs/run-20261111162753/evidence/wfl-plugs.events.deliver-idempotent.txt"
+    }
+  ]
+}

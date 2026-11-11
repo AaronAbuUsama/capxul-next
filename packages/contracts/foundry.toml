@@ -1,0 +1,89 @@
+# Capxul Protocol v4 contracts. Run forge from this folder. Dependencies are vendored in lib/
+# (bin/vendor-deps.sh), so a build needs no network and no node_modules.
+[profile.default]
+fs_permissions = [{ access = "read", path = "./scenarios" }]
+src = "src"
+test = "test"
+out = "out"
+# Default local runs stay quick. Full verification selects profile.full.
+no_match_path = "test/{exhaustive,invariant,fork,scenario,unit/fuzz}/**"
+libs = ["lib"]
+auto_detect_remappings = false
+solc_version = "0.8.28"
+# Halmos 0.3.3 cannot run the deployCode cheat code that dynamic test linking turns `new` into.
+dynamic_test_linking = false
+# The full profile can run long individual properties; coverage uses concrete tests.
+gas_limit = 9223372036854775807
+# Cancun: Hats Signer Gate v2 uses transient storage (R3, Q4 point 2).
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+# What Halmos (gate 10) reads from the artifacts. Forge's cache ignores these
+# flags, so a build without them would leave Halmos nothing to parse.
+ast = true
+extra_output = ["storageLayout", "metadata"]
+# Forge's defaults, plus 4591 ("more than 256 warnings", J15). Test contracts embed the bytecode
+# they deploy, so solc emits hundreds of code-size warnings (5574, 3860) that forge already ignores;
+# solc's own 4591 count notice would otherwise fail gate 2's `--deny warnings`. Solc reports every
+# analysis warning before any code-size warning, so the notice can only cut size warnings; a real
+# warning still fails the build (J15's proof). `--sizes` still fails a src contract over 24,576 B.
+ignored_error_codes = [
+  "license",
+  "code-size",
+  "init-code-size",
+  "transient-storage",
+  "transfer-deprecated",
+  "natspec-memory-safe-assembly-deprecated",
+  4591,
+]
+
+remappings = [
+  "@openzeppelin/contracts/=lib/openzeppelin/contracts/",
+  "@openzeppelin/contracts-upgradeable/=lib/openzeppelin/contracts-upgradeable/",
+  "forge-std/=lib/forge-std/src/",
+  # Beta CapxulPaymentsV3 and CapxulEscrow, for the differential fuzz tests (brought from packages/contracts/src of the old repository).
+  "@beta/=test/beta/",
+]
+
+# `forge test --profile exhaustive`: the one-test-per-property walks of 1970-9999 in
+# test/exhaustive (about 3 million days; far over the default 2**30 per-test gas limit).
+[profile.exhaustive]
+match_path = "test/exhaustive/*"
+# Forge profiles inherit the default filter; /dev/null cannot be a test path.
+no_match_path = "/dev/null"
+gas_limit = 9223372036854775807
+memory_limit = 2147483648
+
+# `forge test --profile fork` (pnpm contracts:fork): the fork and scenario tests, against Base Sepolia at the pinned block.
+# BASE_SEPOLIA_FORK_URL names the endpoint; bin/chain-up.sh --pin serves the same block from state/pin.json, offline.
+[profile.fork]
+match_path = "test/{fork,scenario}/**"
+no_match_path = "/dev/null"
+
+# The complete inventory, with the same fuzz and invariant settings as default.
+[profile.full]
+no_match_path = "/dev/null"
+
+[fuzz]
+runs = 10000
+
+[invariant]
+runs = 500
+depth = 100
+# Handlers bound their inputs, so a revert is a failure.
+fail_on_revert = true
+
+# As packages/contracts/foundry.toml.
+[fmt]
+bracket_spacing = true
+int_types = "long"
+line_length = 120
+multiline_func_header = "all"
+number_underscore = "thousands"
+quote_style = "double"
+tab_width = 4
+
+# J14: the lint rules protect deployed code, so gate 2's build-time lint covers src/ only. Test
+# files and Certora harnesses must still compile without solc warnings.
+[lint]
+ignore = ["test/**", "certora/**"]

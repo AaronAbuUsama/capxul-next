@@ -1,0 +1,8 @@
+PendingUntil_Governor_Unit_Concrete_Test
+├── when no proposal was ever created
+│   └── it should return 0
+└── when proposals were created
+    ├── it should return the latest snapshot of any proposal created
+    ├── given the latest proposal was cancelled or defeated
+    │   └── it should still return its snapshot
+    └── it should never decrease

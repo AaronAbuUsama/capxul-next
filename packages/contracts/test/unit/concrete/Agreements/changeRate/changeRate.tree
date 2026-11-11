@@ -1,0 +1,35 @@
+ChangeRate_Agreements_Unit_Concrete_Test
+├── when the agreement does not exist
+│   └── it should revert with InvalidAgreement
+├── when a call into Agreements is already running
+│   └── it should revert with ReentrantCall
+├── when the caller is not authorised for the agreement's budget
+│   └── it should revert with NotAuthorised
+├── when the agreement is not accepted
+│   └── it should revert with NotAccepted
+└── when the agreement is accepted
+    ├── it should accrue to now first so a due lowering takes effect
+    ├── when the new rate is 0 or equals the current rate
+    │   └── it should revert with InvalidRate
+    ├── when the agreement has an end date
+    │   └── it should revert with AlreadyEnded
+    ├── when a lowering is already pending
+    │   └── it should revert with PendingChange
+    ├── when the new rate is higher
+    │   ├── it should settle the budget first
+    │   ├── when the difference of the period figures is more than is left in the budget
+    │   │   └── it should revert with OverBudget from Budgets
+    │   └── when the difference fits
+    │       ├── it should commit the difference and add it to the reservation
+    │       ├── it should pay the new rate from now
+    │       └── it should emit RateChanged effective now
+    └── when the new rate is lower
+        ├── when the effective date is in the past
+        │   └── it should revert with InvalidDate
+        └── when the effective date is now or later
+            ├── it should record the pending lowering
+            ├── it should keep the reservation until the effective date
+            ├── given the date has passed and the agreement is next brought up to date
+            │   ├── it should release the difference of the period figures through Budgets release
+            │   └── it should keep the agreement open with the rest of its reservation
+            └── it should emit RateChanged with the effective date

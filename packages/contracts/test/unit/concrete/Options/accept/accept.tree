@@ -1,0 +1,10 @@
+Accept_Options_Unit_Concrete_Test
+├── when the caller is not the grantee
+│   └── it should revert with OnlyGrantee
+├── when the offer has expired
+│   └── it should revert with OfferExpired
+├── when the terms hash is not the document hash
+│   └── it should revert with TermsMismatch
+└── when the grantee accepts the exact terms in time
+    ├── it should mark the grant accepted
+    └── it should emit OptionsAccepted

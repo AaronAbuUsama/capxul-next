@@ -1,0 +1,13 @@
+Remove_AgentOwner_Unit_Concrete_Test
+├── when the caller is not the agent's owner
+│   └── it should revert with NotOwner
+├── given the agent was already removed
+│   └── it should revert with AgentIsRemoved
+├── given the agent is active
+│   ├── it should sweep each token to the owner
+│   ├── it should swap the agent's key out for AgentOwner
+│   ├── it should mark the agent removed
+│   └── it should emit AgentRemoved
+└── given the agent is frozen
+    ├── it should leave AgentOwner as the Safe's owner
+    └── it should mark the agent removed

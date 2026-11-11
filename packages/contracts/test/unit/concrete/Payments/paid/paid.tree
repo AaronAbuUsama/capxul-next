@@ -1,0 +1,5 @@
+Paid_Payments_Unit_Concrete_Test
+├── when the payment id was paid by send or sendBatch
+│   └── it should return true
+└── when it was never paid or its payment reverted
+    └── it should return false

@@ -1,0 +1,14 @@
+Initialize_Captable_Unit_Concrete_Test
+├── when it is the implementation
+│   └── it should revert with the initializer error
+├── when it was already initialized
+│   └── it should revert with AlreadyInitialized
+└── when it is a fresh clone
+    ├── when any wiring address is zero
+    │   └── it should revert with InvalidClass
+    └── when every address is set
+        ├── it should store the Safe and the Governor and every module address
+        ├── it should create the template's initial classes with the same checks as createClass
+        ├── given no initial classes are given
+        │   └── it should start with no classes
+        └── it should leave only the Governor able to create classes afterwards

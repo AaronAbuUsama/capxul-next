@@ -1,0 +1,21 @@
+Exercise_Options_Unit_Concrete_Test
+├── when the caller is not the grantee
+│   └── it should revert with OnlyGrantee
+├── when the grant was not accepted
+│   └── it should revert with NotAccepted
+├── when the grant expired or its exercise window closed
+│   └── it should revert with ExerciseWindowClosed
+├── when exercised plus the shares is more than vested
+│   └── it should revert with NotVested
+└── when the shares are vested and exercisable
+    ├── it should pull the strike times the shares from the grantee
+    ├── it should pay it to the Safe through Payments with kind 7
+    ├── it should hold no balance afterwards
+    ├── it should issue the shares to the grantee in the same transaction
+    ├── when the grantee's payment fails
+    │   └── it should revert and issue nothing
+    ├── when a proposal is pending in the class
+    │   └── it should revert with ProposalPending and pay nothing
+    ├── it should add the shares to exercised
+    ├── it should take the shares out of the pool and out of allocated
+    └── it should emit Exercised

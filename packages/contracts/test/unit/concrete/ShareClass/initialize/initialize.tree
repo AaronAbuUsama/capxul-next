@@ -1,0 +1,9 @@
+Initialize_ShareClass_Unit_Concrete_Test
+├── when it is the implementation
+│   └── it should revert with the initializer error
+├── when it was already initialized
+│   └── it should revert with the initializer error
+└── when it is a fresh clone
+    ├── it should set the name and the symbol and the Captable and the class id
+    ├── it should read and store the Captable's Safe
+    └── it should report 0 decimals

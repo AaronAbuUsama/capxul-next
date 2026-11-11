@@ -1,0 +1,43 @@
+# Walking-skeleton Frappe stack (throwaway). Dev only.
+name: capxul-skeleton
+services:
+  mariadb:
+    image: mariadb:11.8
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+    environment:
+      MARIADB_ROOT_PASSWORD: "123"
+    volumes:
+      - capxul_db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      retries: 30
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+  bench:
+    image: frappe/bench:latest
+    depends_on:
+      mariadb: { condition: service_healthy }
+      redis: { condition: service_started }
+    working_dir: /home/frappe
+    entrypoint: ["bash", "/workspace/docker/entrypoint.sh"]
+    ports:
+      - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      FRAPPE_BRANCH: version-16
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - capxul_bench:/home/frappe/vol                   # the bench lives in this named volume, not in the repo
+      - ../../../packages/frappe-app:/workspace/capxul   # the Capxul app (packages/frappe-app), editable in place
+      - ./docker:/workspace/docker:ro
+    restart: unless-stopped
+volumes:
+  capxul_db:
+  capxul_bench:

@@ -1,0 +1,28 @@
+CreateChildBudget_Budgets_Unit_Concrete_Test
+├── when a call into Budgets is already running
+│   └── it should revert with ReentrantCall
+├── when the parent does not exist
+│   └── it should revert with UnknownBudget
+└── when the parent exists
+    ├── when the caller is not authorised for the parent
+    │   └── it should revert with NotAuthorised
+    └── when the caller is authorised for the parent
+        ├── when the parent or a budget above it is closed
+        │   └── it should revert with BudgetIsClosed naming the nearest closed budget
+        ├── when the parent is at the maximum depth of 8
+        │   └── it should revert with TooDeep
+        ├── when the hat is 0
+        │   └── it should revert with InvalidHat
+        ├── when the amount is more than the room left in the parent
+        │   └── it should revert with ChildrenExceedParent with the parent and the room left
+        └── when the amount fits the room left in the parent
+            ├── it should give the child the parent's token and period
+            ├── it should set the child's depth to the parent's plus one
+            ├── it should store the child's hat
+            ├── it should add the amount to the parent's childrenAmount
+            ├── it should list the child under the parent
+            ├── given the caller wears the hat of a budget two levels above
+            │   └── it should allow it
+            ├── given the parent's period turned since it was last used
+            │   └── it should count the parent's room with its own spend at 0
+            └── it should emit BudgetCreated

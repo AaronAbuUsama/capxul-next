@@ -16,7 +16,7 @@ The files that carry the templates:
 | [`.claude/agents/`](../../.claude/agents/) | the six roles as Claude Code profiles for stage 0 (section 11) |
 | [`docs/spec/40-capxul-team.md`](../spec/40-capxul-team.md) | the team in short, and what this design replaced |
 
-Every judgment here is a decision record in [`books/target/shared/swarm.ts`](../../books/target/shared/swarm.ts)
+Every judgment here is a decision record in [`blueprint/shared/swarm.ts`](../../blueprint/shared/swarm.ts)
 (section 13). The swarmD pieces each template relies on are marked **built**, **planned** (in swarmD's docs, which since
 swarmD #91 are its specification) or **needed** (in neither: a brief, SD-1 to SD-20 and SD-26 to SD-28 in swarm.md section 7, and
 SD-21 to SD-25 in section 12 here). Where swarmD's docs and its code differ, the template follows the docs and says what runs
@@ -130,8 +130,8 @@ Done when every one passes at the head of integration/build. You never change on
 | … 35 more | | | |
 
 ## Brief
-- Record: `operation:payment.send` (books/target/payments/operations.ts)
-- Paths you may change: books/target/payments/, packages/backend/src/payments/, packages/sdk/src/payments/
+- Record: `operation:payment.send` (blueprint/payments/operations.ts)
+- Paths you may change: blueprint/payments/, packages/backend/src/payments/, packages/sdk/src/payments/
 - Decisions that settle it: `payments.birth-width`, `payments.prepare-command`, `payments.dated`
 - Out of scope: _none_
 - Context: portal page operation/payment.send; was: apps/backend/convex/payments/send.ts
@@ -208,7 +208,7 @@ The diagnoser gets the pair, the signal and its history (its role's input, plann
 
 ```json
 {
-  "task": { "key": "operation:payment.send", "title": "payment send: Send a payment", "goal": "…", "brief": { "record": "operation:payment.send", "paths": ["books/target/payments/"] } },
+  "task": { "key": "operation:payment.send", "title": "payment send: Send a payment", "goal": "…", "brief": { "record": "operation:payment.send", "paths": ["blueprint/payments/"] } },
   "pair": { "round": 3, "state": "signalled", "spentUsd": 2.6, "budgetUsd": 5 },
   "signal": { "kind": "round", "round": 3 },
   "history": ["r1 submit b4c5d6e: …", "r1 check reviewer changes: F-7, F-8", "r2 submit e7f8a9b: addresses F-7, F-8", "…"],
@@ -416,7 +416,7 @@ F-14 blocking `acc:payment.send/2` at packages/backend/src/payments/commands.ts:
 ```
 
 **What a checker never does** (the work contract's spirit: a reviewer never weakens an eval): propose changing,
-skipping or retiring an eval to make work pass; approve a change that edits `packages/evals`, `packages/book` or another
+skipping or retiring an eval to make work pass; approve a change that edits `packages/evals`, `packages/blueprint-engine` or another
 concept's records from a lane task, or a rewritten claim without its decision and its frozen claim kept first in `was`;
 or accept a pass no run printed.
 
@@ -540,7 +540,7 @@ The diagnoser reads the evidence first and the makers' handovers last, so it doe
 {
   "answer": "The old system signs Board payments through the Safe's execTransaction with the proposal's calldata, never a UserOperation (apps/backend/convex/board/execute.ts:51).",
   "recommendation": "Keep acc:payment.send/8 as written; the record's Budgets.schedule path matches the old behaviour.",
-  "sources": ["factory:apps/backend/convex/board/execute.ts:51", "books/target/payments/operations.ts:212", "https://docs.safe.global/…"]
+  "sources": ["factory:apps/backend/convex/board/execute.ts:51", "blueprint/payments/operations.ts:212", "https://docs.safe.global/…"]
 }
 ```
 
@@ -1011,7 +1011,7 @@ export default defineManager({
   template: "build",
   project: "capxul-next",
   model: cheap,
-  instructions: "../prompts/master.md",                                   // docs/mission/initializer.md whole, then swarm.md 1b's skeleton
+  instructions: "../prompts/master.md",                                   // archive/docs/mission/initializer.md whole, then swarm.md 1b's skeleton
   scope: { root: "K-1" },
   workers: [
     { worker: builder, role: "maker", models: [strong] },
@@ -1348,7 +1348,7 @@ swarmD prepends its built-in prompt (and, for the master, the `build` template's
 Their rules are assumptions to test and delete (swarmD's Zen, rule 6). The Claude Code profiles (section 11) carry the
 same text, with a section on where they run at stage 0.
 
-**`prompts/master.md`** is `docs/mission/initializer.md` whole, followed by swarm.md section 1b's skeleton
+**`prompts/master.md`** is `archive/docs/mission/initializer.md` whole, followed by swarm.md section 1b's skeleton
 (`swarm.master-prompt`), followed by: "Every artifact you produce follows docs/design/swarm-templates.md: decide 7.1,
 matters 7.2 and 7.3, tasks 8, room messages 9.4."
 
@@ -1361,7 +1361,7 @@ verdicts do.
   the last handover. Load the book, evals and lane skills; the money skill on a money task.
 - Work on your branch, inside the task's paths. Book first: if the code must differ from the record, change the record
   in its concept's folder with a decision record, rebuild the book to 0 problems, regenerate tasks.json, then the code.
-- Never change packages/evals, packages/book, src/generated/ by hand, or another concept's records. Never weaken,
+- Never change packages/evals, packages/blueprint-engine, src/generated/ by hand, or another concept's records. Never weaken,
   skip or retire an eval. Read the old system for behaviour; never port it. Regenerate src/generated/ and tasks.json
   with their generators after a record changes; those are the only files outside your paths you may change.
 - Push only your task's branch. Never push integration/build or main, change a pull request's base, or merge.
@@ -1433,9 +1433,9 @@ Repository knowledge, loaded when needed (`swarm.skills`; planned, pass-through 
 
 | Skill | Holds | Points at |
 |---|---|---|
-| `book` | how records, links, decisions and the build work; book first; the four book checks | `docs/design-book.md`, `books/target/CONVENTIONS.md`, `docs/decisions/README.md` |
+| `book` | how records, links, decisions and the build work; book first; the four book checks | `docs/blueprint.md`, `blueprint/CONVENTIONS.md`, `docs/decisions/README.md` |
 | `evals` | the eval kinds and ids, the worlds, how to run them (`pnpm eval`), what each result means, never weakening one | `docs/spec/30-capxul-evals.md`, the B2 harness |
-| `lane` | the layout (`system.layout`), doors, generated files, branches, the pull request template, the gate's scope rule | `books/target/shared/decisions.ts` (`system.layout`), this page |
+| `lane` | the layout (`system.layout`), doors, generated files, branches, the pull request template, the gate's scope rule | `blueprint/shared/decisions.ts` (`system.layout`), this page |
 | `money` | the money paths, K1 to K18, activities at least once, claim-before-call, the adversary's properties | `docs/as-is/payments.md`, `rules.activity-once`, section 4.3 |
 | `old-system` | where the old code lives, how to read a record's `was`, never porting it | `/workspace/factory` (stage 1), `/home/user/factory` (stage 0), `docs/mission/findings.md` |
 
@@ -1447,7 +1447,7 @@ returns, and a section on where it runs before swarmD.
 
 | Profile | Role | Model | Tools | Returns (one json block) |
 |---|---|---|---|---|
-| [`master`](../../.claude/agents/master.md) | capxul/master as Mission Control | the session's | Read, Grep, Glob, Bash, Edit, Write, Agent, GitHub (issues, pull requests, merge) | — (it writes the artifacts of 7, 8 and 9) |
+| [`master`](../../archive/.claude/agents/master.md) | capxul/master as Mission Control | the session's | Read, Grep, Glob, Bash, Edit, Write, Agent, GitHub (issues, pull requests, merge) | — (it writes the artifacts of 7, 8 and 9) |
 | [`builder`](../../.claude/agents/builder.md) | maker | opus | Read, Grep, Glob, Bash, Edit, Write, GitHub (create and update a pull request) | submit with its handover (3.1, 3.2) |
 | [`reviewer`](../../.claude/agents/reviewer.md) | checker | sonnet | Read, Grep, Glob, Bash, GitHub (read a pull request) | check with `des:` verdicts (4.1, 4.4) |
 | [`adversary`](../../.claude/agents/adversary.md) | checker on money tasks | sonnet | as the reviewer | check (4.1, 4.3) |
@@ -1471,7 +1471,7 @@ In neither swarmD's docs nor its code; each is written for swarmD's orchestrator
 
 ## 13. The decisions
 
-All in [`books/target/shared/swarm.ts`](../../books/target/shared/swarm.ts), section "the templates".
+All in [`blueprint/shared/swarm.ts`](../../blueprint/shared/swarm.ts), section "the templates".
 
 | Id | Choice |
 |---|---|
@@ -1485,11 +1485,11 @@ All in [`books/target/shared/swarm.ts`](../../books/target/shared/swarm.ts), sec
 
 ## 14. Open items for other owners
 
-- **The swarm design and `tools/plan-tasks.ts`:** a `--brief <key>` mode that prints a task's `MakerInput` (2.1) from
+- **The swarm design and `packages/plan/src/tasks.ts`:** a `--brief <key>` mode that prints a task's `MakerInput` (2.1) from
   the plan and the book (its claims, deciders, decisions and `was`), so Mission Control never composes a brief by hand;
   and leave `dec:<decision>/review` evals unowned by any derived task (`swarm.hand-tasks`), since only review tasks name
   them.
-- **D0 (`packages/book`, the portal design):** with the decision's `review` field (`portal.review-state`), derive one
+- **D0 (`packages/blueprint-engine`, the portal design):** with the decision's `review` field (`portal.review-state`), derive one
   machine eval per reviewed decision, `dec:<id>/review`, passing when its state is `accepted` or `changed` with a `ref`.
   A review task needs it to be done by its eval rather than by its merge.
 - **B2 (`packages/evals`, spec 30):** the runner's `list` prints `des:` with `check: { checker: "reviewer", rubric }`,

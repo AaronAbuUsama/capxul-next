@@ -1,0 +1,16 @@
+Earned_Calendar_Unit_Concrete_Test
+├── when to is at or before from
+│   └── it should return 0
+└── when to is after from
+    ├── when the period is MONTH
+    │   └── it should return rate times 12 times the clock difference
+    ├── when the period is WEEK or YEAR
+    │   └── it should return rate times the clock difference
+    ├── when the period is not WEEK or MONTH or YEAR
+    │   └── it should revert with InvalidPeriod
+    ├── given from and to span exactly one whole calendar month
+    │   └── it should return one month's amount times SCALE whatever the month's length
+    ├── given from and to span exactly twelve whole calendar months
+    │   └── it should return a yearly rate times SCALE exactly
+    └── when the product overflows
+        └── it should revert with the checked arithmetic panic

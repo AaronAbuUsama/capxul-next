@@ -1,0 +1,10 @@
+SetIssuerAllowance_Captable_Unit_Concrete_Test
+├── when the caller is not the Safe
+│   └── it should revert with OnlyBoard
+├── when the module is not Options or Rounds or Vesting
+│   └── it should revert with OnlyModule
+├── when the class does not exist
+│   └── it should revert with UnknownClass
+└── when the Safe sets an allowance for a known module
+    ├── it should replace the allowance
+    └── it should emit IssuerAllowanceSet

@@ -1,0 +1,16 @@
+GetPastVotes_Captable_Unit_Concrete_Test
+├── when the timepoint is not in the past
+│   └── it should revert with the ERC5805 future lookup error
+└── when the timepoint is in the past
+    ├── it should sum over classes weight times the class votes at that time times the conversion ratio at that time
+    ├── it should multiply with mulDiv and round down once per class
+    ├── given a class has weight 0
+    │   └── it should add nothing for it
+    ├── given Common
+    │   └── it should use a ratio of 1
+    ├── given a down round lowered a conversion price after the timepoint
+    │   └── it should use the price at the timepoint
+    ├── given the account is the Safe holding shares
+    │   └── it should return 0
+    └── given 32 classes at the vote bound
+        └── it should not revert

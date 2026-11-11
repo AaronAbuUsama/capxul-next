@@ -1,0 +1,8 @@
+Commit_Rounds_Unit_Concrete_Test
+├── when the investor was not invited
+│   └── it should revert with NotInvited
+├── when the amount is more than the invitation
+│   └── it should revert with OverInvited
+└── when the invited investor commits
+    ├── it should record the commitment and move no money
+    └── it should emit Committed

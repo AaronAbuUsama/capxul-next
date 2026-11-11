@@ -1,0 +1,13 @@
+SetClassGovernor_Captable_Unit_Concrete_Test
+├── when the caller is not the company Governor
+│   └── it should revert with OnlyGovernor
+├── when the class does not exist
+│   └── it should revert with UnknownClass
+├── when the class already has a class Governor
+│   └── it should revert with InvalidClass
+├── when the governor is the zero address
+│   └── it should revert with InvalidClass
+└── when the class has no class Governor
+    ├── it should store the class Governor
+    ├── it should make issuance in the class wait for that Governor's pending window
+    └── it should emit ClassGovernorSet

@@ -1,0 +1,22 @@
+Compute_Waterfall_Unit_Concrete_Test
+├── when the proceeds are 0
+│   └── it should pay nobody
+├── when inputs exceed the small arithmetic bounds
+│   └── it should preserve every unit and convert a valuable preferred class
+├── when large proceeds have no shares
+│   └── it should pay the remainder without dividing by zero
+├── when the proceeds do not cover the preferences
+│   ├── it should pay preferences by seniority
+│   ├── it should pay pari passu classes pro rata
+│   └── it should pay Common nothing
+├── when a non participating class's as converted value is more than its preference
+│   └── it should convert it and pay it as Common
+├── when a participating class is present
+│   └── it should pay its preference and then its as converted share
+├── when an option group's strike is at or above the Common price
+│   └── it should leave it unexercised and pay it nothing
+├── when an option group is in the money
+│   └── it should pay it the shares times the Common price minus the strike
+├── when the conversions and exercises do not settle within the bound
+│   └── it should revert with WaterfallDidNotSettle
+└── it should make every payout add up to the proceeds exactly

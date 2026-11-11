@@ -1,0 +1,458 @@
+{
+  "_comment": "Calendar pay vectors (CAP-989). `pay` is the exact entitlement of `rate` raw units per `period` from `from` to `to` (Unix seconds, UTC), rounded down: a week's amount per 604,800 s, and a month's amount (a year's / 12) per calendar month, prorated by that month's own seconds. Expected values were computed apart from both implementations, with exact fractions month by month. Foundry (PayrollCalendar.t.sol) and @capxul/protocol (calendar.test.ts) read this one file.",
+  "pay": [
+    {
+      "name": "February 2028, 29 days, pays one month of 40,000/year",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1832976000,
+      "to": 1835481600,
+      "pay": "3333333333"
+    },
+    {
+      "name": "February 2027, 28 days, pays one month of 40,000/year",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1801440000,
+      "to": 1803859200,
+      "pay": "3333333333"
+    },
+    {
+      "name": "January 2027, 31 days, pays one month",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1798761600,
+      "to": 1801440000,
+      "pay": "3333333333"
+    },
+    {
+      "name": "a full leap year 2028 pays exactly 40,000",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1830297600,
+      "to": 1861920000,
+      "pay": "40000000000"
+    },
+    {
+      "name": "a full common year 2027 pays exactly 40,000",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1798761600,
+      "to": 1830297600,
+      "pay": "40000000000"
+    },
+    {
+      "name": "12 whole months from 1 Mar 2027 over 29 Feb 2028",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1803859200,
+      "to": 1835481600,
+      "pay": "40000000000"
+    },
+    {
+      "name": "start on 29 Feb 2028 to 29 Mar",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1835395200,
+      "to": 1837900800,
+      "pay": "3125695216"
+    },
+    {
+      "name": "start on 29 Feb 2028 for one day",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1835395200,
+      "to": 1835481600,
+      "pay": "114942528"
+    },
+    {
+      "name": "end on 29 Feb 2028 inclusive (from 1 Feb)",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1832976000,
+      "to": 1835481600,
+      "pay": "3333333333"
+    },
+    {
+      "name": "start on the 28th: 28 Jan 2027 to 28 Feb",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1801094400,
+      "to": 1803772800,
+      "pay": "3644393241"
+    },
+    {
+      "name": "start on the 29th: 29 Jan 2027 to 1 Mar",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1801180800,
+      "to": 1803859200,
+      "pay": "3655913978"
+    },
+    {
+      "name": "start on the 30th: 30 Jan 2027 to 1 Mar",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1801267200,
+      "to": 1803859200,
+      "pay": "3548387096"
+    },
+    {
+      "name": "start on the 31st: 31 Jan 2027 to 28 Feb",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1801353600,
+      "to": 1803772800,
+      "pay": "3321812596"
+    },
+    {
+      "name": "31 Jan 2027 to 28 Feb 2027 at 3,000/month",
+      "rate": "3000000000",
+      "period": "month",
+      "from": 1801353600,
+      "to": 1803772800,
+      "pay": "2989631336"
+    },
+    {
+      "name": "half of April 2027 at 3,000/month",
+      "rate": "3000000000",
+      "period": "month",
+      "from": 1806537600,
+      "to": 1807833600,
+      "pay": "1500000000"
+    },
+    {
+      "name": "mid-month to mid-month at 3,000/month",
+      "rate": "3000000000",
+      "period": "month",
+      "from": 1807833600,
+      "to": 1810425600,
+      "pay": "2951612903"
+    },
+    {
+      "name": "one week at 250/week",
+      "rate": "250000000",
+      "period": "week",
+      "from": 1793577600,
+      "to": 1794182400,
+      "pay": "250000000"
+    },
+    {
+      "name": "a common year at 250/week (52 weeks and a day)",
+      "rate": "250000000",
+      "period": "week",
+      "from": 1798761600,
+      "to": 1830297600,
+      "pay": "13035714285"
+    },
+    {
+      "name": "a leap year at 250/week (52 weeks and two days)",
+      "rate": "250000000",
+      "period": "week",
+      "from": 1830297600,
+      "to": 1861920000,
+      "pay": "13071428571"
+    },
+    {
+      "name": "one second at 250/week",
+      "rate": "250000000",
+      "period": "week",
+      "from": 1793577600,
+      "to": 1793577601,
+      "pay": "413"
+    },
+    {
+      "name": "an hour at 1,680/week is 10",
+      "rate": "1680000000",
+      "period": "week",
+      "from": 1793577600,
+      "to": 1793581200,
+      "pay": "10000000"
+    },
+    {
+      "name": "12 months of 1,000.01/year",
+      "rate": "1000010000",
+      "period": "year",
+      "from": 1798761600,
+      "to": 1830297600,
+      "pay": "1000010000"
+    },
+    {
+      "name": "one month of 1,000.01/year",
+      "rate": "1000010000",
+      "period": "year",
+      "from": 1798761600,
+      "to": 1801440000,
+      "pay": "83334166"
+    },
+    {
+      "name": "52 weeks of 0.07/week",
+      "rate": "70000",
+      "period": "week",
+      "from": 1799020800,
+      "to": 1830470400,
+      "pay": "3640000"
+    },
+    {
+      "name": "one week of 0.07/week",
+      "rate": "70000",
+      "period": "week",
+      "from": 1799020800,
+      "to": 1799625600,
+      "pay": "70000"
+    },
+    {
+      "name": "7 units a year over a common year",
+      "rate": "7",
+      "period": "year",
+      "from": 1798761600,
+      "to": 1830297600,
+      "pay": "7"
+    },
+    {
+      "name": "7 units a year over 11 months",
+      "rate": "7",
+      "period": "year",
+      "from": 1798761600,
+      "to": 1827619200,
+      "pay": "6"
+    },
+    {
+      "name": "a fixed term mid-month, mid-week: Wed 10 Nov 2027 12:00 to Fri 18 Feb 2028 06:00",
+      "rate": "48000000000",
+      "period": "year",
+      "from": 1825848000,
+      "to": 1834466400,
+      "pay": "13112643678"
+    },
+    {
+      "name": "a weekly fixed term mid-week: Wed 10 Nov 2027 12:00 to Fri 18 Feb 2028 06:00",
+      "rate": "250000000",
+      "period": "week",
+      "from": 1825848000,
+      "to": 1834466400,
+      "pay": "3562500000"
+    },
+    {
+      "name": "a fixed term shorter than a week: 5 days",
+      "rate": "250000000",
+      "period": "week",
+      "from": 1804032000,
+      "to": 1804464000,
+      "pay": "178571428"
+    },
+    {
+      "name": "multi-year span over 2028: 15 Jun 2027 to 10 Mar 2029",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1813017600,
+      "to": 1867795200,
+      "pay": "69412186379"
+    },
+    {
+      "name": "multi-year at 3,000/month over 2028",
+      "rate": "3000000000",
+      "period": "month",
+      "from": 1813017600,
+      "to": 1867795200,
+      "pay": "62470967741"
+    },
+    {
+      "name": "400 days from 1 Nov 2026",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1793491200,
+      "to": 1828051200,
+      "pay": "43870967741"
+    },
+    {
+      "name": "Diego: 48,000/year from 1 Nov 2026 to 31 Jan 2027",
+      "rate": "48000000000",
+      "period": "year",
+      "from": 1793491200,
+      "to": 1801353600,
+      "pay": "11870967741"
+    },
+    {
+      "name": "Alice: 40,000/year November 2026",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1793491200,
+      "to": 1796083200,
+      "pay": "3333333333"
+    },
+    {
+      "name": "Alice: 40,000/year 1 Nov to 26 Nov 09:00",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1793491200,
+      "to": 1795683600,
+      "pay": "2819444444"
+    },
+    {
+      "name": "Ben: 30,000/year from 30 Oct 12:00 to 6 Nov 11:00",
+      "rate": "30000000000",
+      "period": "year",
+      "from": 1793361600,
+      "to": 1793962800,
+      "pay": "575828853"
+    },
+    {
+      "name": "one day of 30,000/year in November",
+      "rate": "30000000000",
+      "period": "year",
+      "from": 1794268800,
+      "to": 1794355200,
+      "pay": "83333333"
+    },
+    {
+      "name": "one day of 30,000/year in October",
+      "rate": "30000000000",
+      "period": "year",
+      "from": 1791590400,
+      "to": 1791676800,
+      "pay": "80645161"
+    },
+    {
+      "name": "a second before the month boundary",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1801439999,
+      "to": 1801440000,
+      "pay": "1244"
+    },
+    {
+      "name": "a second after the month boundary",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 1801440000,
+      "to": 1801440001,
+      "pay": "1377"
+    },
+    {
+      "name": "century leap rule: February 2100 has 28 days",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 4105123200,
+      "to": 4107542400,
+      "pay": "3333333333"
+    },
+    {
+      "name": "century leap rule: February 2400 has 29 days",
+      "rate": "40000000000",
+      "period": "year",
+      "from": 13572144000,
+      "to": 13574649600,
+      "pay": "3333333333"
+    },
+    {
+      "name": "a large rate: 10^30 units a year for 7 years",
+      "rate": "1000000000000000000000000000000",
+      "period": "year",
+      "from": 1798761600,
+      "to": 2019686400,
+      "pay": "7000000000000000000000000000000"
+    }
+  ],
+  "dates": [
+    {
+      "at": 0,
+      "iso": "1970-01-01T00:00:00Z",
+      "year": 1970,
+      "month": 1,
+      "day": 1,
+      "monthStart": 0,
+      "daysInMonth": 31
+    },
+    {
+      "at": 1791554790,
+      "iso": "2026-10-09T14:06:30Z",
+      "year": 2026,
+      "month": 10,
+      "day": 9,
+      "monthStart": 1790812800,
+      "daysInMonth": 31
+    },
+    {
+      "at": 1793491200,
+      "iso": "2026-11-01T00:00:00Z",
+      "year": 2026,
+      "month": 11,
+      "day": 1,
+      "monthStart": 1793491200,
+      "daysInMonth": 30
+    },
+    {
+      "at": 1803859199,
+      "iso": "2027-02-28T23:59:59Z",
+      "year": 2027,
+      "month": 2,
+      "day": 28,
+      "monthStart": 1801440000,
+      "daysInMonth": 28
+    },
+    {
+      "at": 1835438400,
+      "iso": "2028-02-29T12:00:00Z",
+      "year": 2028,
+      "month": 2,
+      "day": 29,
+      "monthStart": 1832976000,
+      "daysInMonth": 29
+    },
+    {
+      "at": 1835481600,
+      "iso": "2028-03-01T00:00:00Z",
+      "year": 2028,
+      "month": 3,
+      "day": 1,
+      "monthStart": 1835481600,
+      "daysInMonth": 31
+    },
+    {
+      "at": 1861919999,
+      "iso": "2028-12-31T23:59:59Z",
+      "year": 2028,
+      "month": 12,
+      "day": 31,
+      "monthStart": 1859241600,
+      "daysInMonth": 31
+    },
+    {
+      "at": 4107456000,
+      "iso": "2100-02-28T00:00:00Z",
+      "year": 2100,
+      "month": 2,
+      "day": 28,
+      "monthStart": 4105123200,
+      "daysInMonth": 28
+    },
+    {
+      "at": 4107542400,
+      "iso": "2100-03-01T00:00:00Z",
+      "year": 2100,
+      "month": 3,
+      "day": 1,
+      "monthStart": 4107542400,
+      "daysInMonth": 31
+    },
+    {
+      "at": 13574563200,
+      "iso": "2400-02-29T00:00:00Z",
+      "year": 2400,
+      "month": 2,
+      "day": 29,
+      "monthStart": 13572144000,
+      "daysInMonth": 29
+    },
+    {
+      "at": 2147483648,
+      "iso": "2038-01-19T03:14:08Z",
+      "year": 2038,
+      "month": 1,
+      "day": 19,
+      "monthStart": 2145916800,
+      "daysInMonth": 31
+    }
+  ]
+}

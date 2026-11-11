@@ -1,0 +1,2180 @@
+{
+  "$schema": "./scenario.schema.json",
+  "name": "equity-life",
+  "start": "2027-01-04T09:00:00Z",
+  "source": "docs/planning/protocol-v4/scenarios/capxul-vectors.json (Company Book simulation); exit payouts from test/utils/Exits/CapxulExitVectors.sol (the same algorithm in exact arithmetic on whole as-converted shares)",
+  "namespace": "capxul:scenario:email:v1",
+  "addresses": {
+    "Hats": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+    "ModuleProxyFactory": "0x000000000000aDdB49795b0f9bA5BC298cDda236",
+    "RolesMastercopy": "0xF2964CE6161ce0e75964Fe7927cE114cb0B283D5",
+    "RolesMultiSendUnwrapper": "0xB4Cd4bb764C089f20DA18700CE8bc5e49F369efD",
+    "HatsSignerGate": "0x148057884AC910Bdd93693F230C5c35a8c47CA3b",
+    "HatsModuleFactory": "0x0a3f85fa597B6a967271286aA0724811acDF5CD9",
+    "HatsElectionEligibility": "0xd3b916a8F0C4f9D1d5B6Af29c3C012dbd4f3149E",
+    "CompatibilityFallbackHandler": "0x3EfCBb83A4A7AfcB4F68D501E2c2203a38be77f4",
+    "Safe4337Module": "0x75cf11467937ce3F2f357CE24ffc3DBF8fD5c226"
+  },
+  "deploy": [
+    {
+      "name": "CompaniesHouseClaimer",
+      "source": "companies-house/CompaniesHouseClaimer.sol"
+    },
+    {
+      "name": "Payments",
+      "source": "money/Payments.sol"
+    },
+    {
+      "name": "Budgets",
+      "source": "money/Budgets.sol",
+      "args": ["Payments", "Hats"]
+    },
+    {
+      "name": "Agreements",
+      "source": "money/Agreements.sol",
+      "args": ["Budgets"]
+    },
+    {
+      "name": "EscrowFactory",
+      "source": "money/EscrowFactory.sol",
+      "args": ["Payments", "companiesHouse"]
+    },
+    {
+      "name": "Vesting",
+      "source": "equity/Vesting.sol"
+    },
+    {
+      "name": "Captable",
+      "source": "equity/Captable.sol"
+    },
+    {
+      "name": "ShareClass",
+      "source": "equity/ShareClass.sol"
+    },
+    {
+      "name": "Governor",
+      "source": "equity/Governor.sol"
+    },
+    {
+      "name": "Options",
+      "source": "equity/Options.sol"
+    },
+    {
+      "name": "Rounds",
+      "source": "equity/Rounds.sol"
+    },
+    {
+      "name": "Exits",
+      "source": "equity/Exits.sol"
+    },
+    {
+      "name": "Installer",
+      "source": "authority/Installer.sol",
+      "args": [
+        "Payments",
+        "Budgets",
+        "Agreements",
+        "Vesting",
+        "Hats",
+        "ModuleProxyFactory",
+        "RolesMastercopy",
+        "HatsSignerGate",
+        "HatsModuleFactory",
+        "HatsElectionEligibility",
+        "CompatibilityFallbackHandler",
+        "Safe4337Module",
+        "Captable",
+        "ShareClass",
+        "Governor",
+        "Options",
+        "Rounds",
+        "Exits",
+        "EscrowFactory",
+        "RolesMultiSendUnwrapper"
+      ]
+    }
+  ],
+  "wire": [
+    {
+      "call": "Budgets.setAgreements",
+      "args": {
+        "agreements_": "Agreements"
+      }
+    }
+  ],
+  "tokens": {
+    "USDC": {
+      "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "decimals": 6,
+      "fund": {
+        "angel": "250000e6",
+        "preseed": "750000e6",
+        "seedLead": "2999999495300",
+        "aLead": "11999999641500",
+        "bLead": "30000002012400",
+        "cLead": "20600001016800",
+        "acquirer": "400000000e6"
+      }
+    }
+  },
+  "ids": {
+    "Company": "1",
+    "Common": "0",
+    "Seed": "1",
+    "SeriesA": "2",
+    "SeriesB": "3",
+    "SeriesC": "4",
+    "preSeed": "1",
+    "angelNote": "1",
+    "preseedNote": "2",
+    "seedRound": "1",
+    "aRound": "2",
+    "bRound": "3",
+    "cRound": "4",
+    "engineerGrant": "1",
+    "opsAgentGrant": "2",
+    "team2028Grant": "3",
+    "team2029Grant": "4",
+    "team2030Grant": "5",
+    "secondary": "1",
+    "strongSale": "1"
+  },
+  "data": {
+    "equityInstall": {
+      "p": {
+        "safe": "company",
+        "founderSafe": "aaron",
+        "money": "Installer.deployMoney",
+        "equity": "Installer.deployEquity",
+        "founders": [
+          {
+            "shareholder": "aaron",
+            "classId": "0",
+            "amount": "5000000",
+            "start": "2027-01-04T09:00:00Z",
+            "cliff": "2028-01-04T09:00:00Z",
+            "end": "2031-01-04T09:00:00Z",
+            "accelerateOnExit": false,
+            "documentHash": "aaron founder stock agreement"
+          },
+          {
+            "shareholder": "nadia",
+            "classId": "0",
+            "amount": "3000000",
+            "start": "2027-01-04T09:00:00Z",
+            "cliff": "2028-01-04T09:00:00Z",
+            "end": "2031-01-04T09:00:00Z",
+            "accelerateOnExit": false,
+            "documentHash": "nadia founder stock agreement"
+          }
+        ],
+        "optionPool": "1000000"
+      }
+    },
+    "strongSaleHoldings": [
+      {
+        "payee": "aaron",
+        "classId": "0",
+        "option": false,
+        "grantId": "0",
+        "shares": "4600000"
+      },
+      {
+        "payee": "nadia",
+        "classId": "0",
+        "option": false,
+        "grantId": "0",
+        "shares": "3000000"
+      },
+      {
+        "payee": "cLead",
+        "classId": "0",
+        "option": false,
+        "grantId": "0",
+        "shares": "400000"
+      },
+      {
+        "payee": "angel",
+        "classId": "1",
+        "option": false,
+        "grantId": "0",
+        "shares": "250000"
+      },
+      {
+        "payee": "preseed",
+        "classId": "1",
+        "option": false,
+        "grantId": "0",
+        "shares": "750000"
+      },
+      {
+        "payee": "seedLead",
+        "classId": "1",
+        "option": false,
+        "grantId": "0",
+        "shares": "2628581"
+      },
+      {
+        "payee": "aLead",
+        "classId": "2",
+        "option": false,
+        "grantId": "0",
+        "shares": "4780305"
+      },
+      {
+        "payee": "bLead",
+        "classId": "3",
+        "option": false,
+        "grantId": "0",
+        "shares": "5058084"
+      },
+      {
+        "payee": "cLead",
+        "classId": "4",
+        "option": false,
+        "grantId": "0",
+        "shares": "8430282"
+      },
+      {
+        "payee": "engineer",
+        "classId": "0",
+        "option": true,
+        "grantId": "1",
+        "shares": "150000"
+      },
+      {
+        "payee": "opsAgent",
+        "classId": "0",
+        "option": true,
+        "grantId": "2",
+        "shares": "50000"
+      },
+      {
+        "payee": "team2028",
+        "classId": "0",
+        "option": true,
+        "grantId": "3",
+        "shares": "600000"
+      },
+      {
+        "payee": "team2029",
+        "classId": "0",
+        "option": true,
+        "grantId": "4",
+        "shares": "1000000"
+      },
+      {
+        "payee": "team2030",
+        "classId": "0",
+        "option": true,
+        "grantId": "5",
+        "shares": "800000"
+      }
+    ]
+  },
+  "actors": {
+    "companiesHouse": "companies-house",
+    "company": {
+      "role": "company",
+      "email": "company@capxul.test"
+    },
+    "aaron": {
+      "role": "founder",
+      "email": "aaron@capxul.test"
+    },
+    "nadia": {
+      "role": "founder",
+      "email": "nadia@capxul.test"
+    },
+    "engineer": {
+      "role": "employee",
+      "email": "engineer@capxul.test"
+    },
+    "opsAgent": {
+      "role": "ai-member",
+      "email": "opsagent@capxul.test"
+    },
+    "team2028": {
+      "role": "employees",
+      "email": "team2028@capxul.test"
+    },
+    "team2029": {
+      "role": "employees",
+      "email": "team2029@capxul.test"
+    },
+    "team2030": {
+      "role": "employees",
+      "email": "team2030@capxul.test"
+    },
+    "angel": {
+      "role": "investor",
+      "email": "angel@capxul.test"
+    },
+    "preseed": {
+      "role": "investor",
+      "email": "preseed@capxul.test"
+    },
+    "seedLead": {
+      "role": "investor",
+      "email": "seedlead@capxul.test"
+    },
+    "aLead": {
+      "role": "investor",
+      "email": "alead@capxul.test"
+    },
+    "bLead": {
+      "role": "investor",
+      "email": "blead@capxul.test"
+    },
+    "cLead": {
+      "role": "investor",
+      "email": "clead@capxul.test"
+    },
+    "acquirer": "anyone"
+  },
+  "events": [
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "company@capxul.test",
+        "signer": "company.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "aaron@capxul.test",
+        "signer": "aaron.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "nadia@capxul.test",
+        "signer": "nadia.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "engineer@capxul.test",
+        "signer": "engineer.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "opsagent@capxul.test",
+        "signer": "opsAgent.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "team2028@capxul.test",
+        "signer": "team2028.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "team2029@capxul.test",
+        "signer": "team2029.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "team2030@capxul.test",
+        "signer": "team2030.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "angel@capxul.test",
+        "signer": "angel.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "preseed@capxul.test",
+        "signer": "preseed.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "seedlead@capxul.test",
+        "signer": "seedLead.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "alead@capxul.test",
+        "signer": "aLead.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "blead@capxul.test",
+        "signer": "bLead.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "clead@capxul.test",
+        "signer": "cLead.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "anyone",
+      "call": "Installer.deployMoney",
+      "args": {
+        "p": {
+          "safe": "company",
+          "founderSafe": "aaron",
+          "coDirectors": ["nadia"],
+          "threshold": {
+            "thresholdType": "0",
+            "min": "2",
+            "target": "2"
+          },
+          "officers": [
+            {
+              "details": "CEO",
+              "maxSupply": "1"
+            }
+          ],
+          "salt": "0x0000000000000000000000000000000000000000000000000000000000000001"
+        }
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "company",
+      "call": "Safe.batch",
+      "args": {
+        "calls": [
+          {
+            "call": "Installer.buildMoney",
+            "args": {
+              "p": {
+                "safe": "company",
+                "founderSafe": "aaron",
+                "coDirectors": ["nadia"],
+                "deployment": "Installer.deployMoney",
+                "tokens": [
+                  {
+                    "token": "USDC",
+                    "ceiling": "100000e6",
+                    "budgetPeriod": "2",
+                    "topAmount": "100000e6",
+                    "topHat": "Board"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "anyone",
+      "call": "Installer.deployEquity",
+      "args": {
+        "p": {
+          "safe": "company",
+          "money": "Installer.deployMoney",
+          "name": "Capxul, Inc.",
+          "initialClasses": [
+            {
+              "name": "Common",
+              "ticker": "CPX-C",
+              "weight": "1",
+              "convertsInto": "255",
+              "rule": "0",
+              "customRule": "0x0000000000000000000000000000000000000000",
+              "authorised": "100000000",
+              "originalIssuePrice": "0",
+              "conversionFloorPrice": "0",
+              "preferenceMultipleBps": "0",
+              "participating": false,
+              "seniority": "0",
+              "termsHash": "Capxul, Inc. Common terms"
+            }
+          ],
+          "poolClassId": "0",
+          "governor": {
+            "votingDelay": "86400",
+            "votingPeriod": "604800",
+            "proposalThreshold": "1",
+            "quorumNumerator": "2000"
+          }
+        }
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Installer.buildEquity",
+            "args": "@equityInstall"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "aaron",
+      "call": "Safe.batch",
+      "args": {
+        "calls": [
+          {
+            "call": "Installer.buildEquity",
+            "args": "@equityInstall"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2027-03-01T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2027-03-01T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Options.grant",
+            "args": {
+              "grantee": "engineer",
+              "shares": "150000",
+              "strikeToken": "USDC",
+              "strikePrice": "50000",
+              "start": "2027-03-01T00:00:00Z",
+              "cliff": "2028-03-01T00:00:00Z",
+              "end": "2031-03-01T00:00:00Z",
+              "offerExpiresAt": "2027-03-31T00:00:00Z",
+              "expiresAt": "2037-03-01T00:00:00Z",
+              "exerciseWindowDays": "90",
+              "documentHash": "engineer option agreement"
+            }
+          },
+          {
+            "call": "Options.grant",
+            "args": {
+              "grantee": "opsAgent",
+              "shares": "50000",
+              "strikeToken": "USDC",
+              "strikePrice": "50000",
+              "start": "2027-03-01T00:00:00Z",
+              "cliff": "2028-03-01T00:00:00Z",
+              "end": "2031-03-01T00:00:00Z",
+              "offerExpiresAt": "2027-03-31T00:00:00Z",
+              "expiresAt": "2037-03-01T00:00:00Z",
+              "exerciseWindowDays": "90",
+              "documentHash": "opsAgent option agreement"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2027-03-02T09:00:00Z",
+      "actor": "engineer",
+      "call": "Options.accept",
+      "args": {
+        "id": "engineerGrant",
+        "termsHash": "engineer option agreement"
+      }
+    },
+    {
+      "at": "2027-03-02T09:00:00Z",
+      "actor": "opsAgent",
+      "call": "Options.accept",
+      "args": {
+        "id": "opsAgentGrant",
+        "termsHash": "opsAgent option agreement"
+      }
+    },
+    {
+      "at": "2028-06-01T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2028-06-01T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Rounds.createSafeRound",
+            "args": {
+              "token": "USDC",
+              "valuationCap": "10000000e6",
+              "discountBps": "0",
+              "closesAt": "2028-07-01T00:00:00Z",
+              "documentHash": "Capxul post-money SAFE"
+            }
+          },
+          {
+            "call": "Rounds.inviteSafe",
+            "args": {
+              "roundId": "preSeed",
+              "investor": "angel",
+              "maxAmount": "250000e6"
+            }
+          },
+          {
+            "call": "Rounds.inviteSafe",
+            "args": {
+              "roundId": "preSeed",
+              "investor": "preseed",
+              "maxAmount": "750000e6"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2028-06-02T09:00:00Z",
+      "actor": "angel",
+      "call": "Safe.batch",
+      "args": {
+        "calls": [
+          {
+            "call": "USDC.approve",
+            "args": {
+              "spender": "equity.rounds",
+              "value": "250000e6"
+            }
+          },
+          {
+            "call": "Rounds.signSafe",
+            "args": {
+              "roundId": "preSeed",
+              "amount": "250000e6",
+              "documentHash": "angel signed SAFE"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2028-06-02T09:00:00Z",
+      "actor": "preseed",
+      "call": "Safe.batch",
+      "args": {
+        "calls": [
+          {
+            "call": "USDC.approve",
+            "args": {
+              "spender": "equity.rounds",
+              "value": "750000e6"
+            }
+          },
+          {
+            "call": "Rounds.signSafe",
+            "args": {
+              "roundId": "preSeed",
+              "amount": "750000e6",
+              "documentHash": "preseed signed SAFE"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2028-07-02T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2028-07-02T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Rounds.closeSafeRound",
+            "args": {
+              "roundId": "preSeed"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2028-11-01T09:00:00Z",
+      "actor": "aaron",
+      "call": "Governor.propose",
+      "args": {
+        "calls": [
+          {
+            "call": "Captable.createClass",
+            "args": {
+              "p": {
+                "name": "Series Seed",
+                "ticker": "CPX-S",
+                "weight": "1",
+                "convertsInto": "0",
+                "rule": "0",
+                "customRule": "0x0000000000000000000000000000000000000000",
+                "authorised": "3628581",
+                "originalIssuePrice": "1141300",
+                "conversionFloorPrice": "570650",
+                "preferenceMultipleBps": "10000",
+                "participating": false,
+                "seniority": "0",
+                "termsHash": "Capxul, Inc. Series Seed terms"
+              }
+            }
+          }
+        ],
+        "description": "Create Series Seed"
+      }
+    },
+    {
+      "at": "2028-11-02T12:00:00Z",
+      "actor": "aaron",
+      "call": "Governor.castVote",
+      "args": {
+        "description": "Create Series Seed",
+        "support": "1"
+      }
+    },
+    {
+      "at": "2028-11-02T12:00:00Z",
+      "actor": "nadia",
+      "call": "Governor.castVote",
+      "args": {
+        "description": "Create Series Seed",
+        "support": "1"
+      }
+    },
+    {
+      "at": "2028-11-09T10:00:00Z",
+      "actor": "anyone",
+      "call": "Governor.execute",
+      "args": {
+        "description": "Create Series Seed"
+      }
+    },
+    {
+      "at": "2028-11-10T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2028-11-10T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Options.setPool",
+            "args": {
+              "amount": "1514286"
+            }
+          },
+          {
+            "call": "Captable.setIssuerAllowance",
+            "args": {
+              "module": "equity.options",
+              "classId": "0",
+              "amount": "1514286"
+            }
+          },
+          {
+            "call": "Rounds.createPricedRound",
+            "args": {
+              "classId": "Seed",
+              "token": "USDC",
+              "price": "1141300",
+              "maxShares": "2628581",
+              "payBy": "2028-11-30T00:00:00Z",
+              "documentHash": "Capxul, Inc. Series Seed round terms"
+            }
+          },
+          {
+            "call": "Rounds.invite",
+            "args": {
+              "roundId": "seedRound",
+              "investor": "seedLead",
+              "maxAmount": "2999999495300"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2028-11-11T09:00:00Z",
+      "actor": "seedLead",
+      "call": "Rounds.commit",
+      "args": {
+        "roundId": "seedRound",
+        "amount": "2999999495300",
+        "documentHash": "seedLead subscription"
+      }
+    },
+    {
+      "at": "2028-11-12T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2028-11-12T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Rounds.allocate",
+            "args": {
+              "roundId": "seedRound",
+              "investor": "seedLead",
+              "shares": "2628581"
+            }
+          },
+          {
+            "call": "Captable.setIssuerAllowance",
+            "args": {
+              "module": "equity.rounds",
+              "classId": "Seed",
+              "amount": "3628581"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2028-11-13T09:00:00Z",
+      "actor": "seedLead",
+      "call": "Safe.batch",
+      "args": {
+        "calls": [
+          {
+            "call": "USDC.approve",
+            "args": {
+              "spender": "equity.rounds",
+              "value": "2999999495300"
+            }
+          },
+          {
+            "call": "Rounds.pay",
+            "args": {
+              "roundId": "seedRound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2028-11-14T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2028-11-14T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Rounds.convertSafes",
+            "args": {
+              "noteIds": ["angelNote", "preseedNote"],
+              "pricedRoundId": "seedRound",
+              "companyCapitalization": "10000000"
+            }
+          },
+          {
+            "call": "Rounds.close",
+            "args": {
+              "roundId": "seedRound",
+              "deemedOutstandingA": "8200000"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2028-12-01T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2028-12-01T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Options.grant",
+            "args": {
+              "grantee": "team2028",
+              "shares": "600000",
+              "strikeToken": "USDC",
+              "strikePrice": "300000",
+              "start": "2028-12-01T00:00:00Z",
+              "cliff": "2029-12-01T00:00:00Z",
+              "end": "2032-12-01T00:00:00Z",
+              "offerExpiresAt": "2028-12-31T00:00:00Z",
+              "expiresAt": "2038-12-01T00:00:00Z",
+              "exerciseWindowDays": "90",
+              "documentHash": "team2028 option agreement"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2028-12-02T09:00:00Z",
+      "actor": "team2028",
+      "call": "Options.accept",
+      "args": {
+        "id": "team2028Grant",
+        "termsHash": "team2028 option agreement"
+      }
+    },
+    {
+      "at": "2029-05-01T09:00:00Z",
+      "actor": "aaron",
+      "call": "Governor.propose",
+      "args": {
+        "calls": [
+          {
+            "call": "Captable.createClass",
+            "args": {
+              "p": {
+                "name": "Series A",
+                "ticker": "CPX-A",
+                "weight": "1",
+                "convertsInto": "0",
+                "rule": "0",
+                "customRule": "0x0000000000000000000000000000000000000000",
+                "authorised": "4780305",
+                "originalIssuePrice": "2510300",
+                "conversionFloorPrice": "1255150",
+                "preferenceMultipleBps": "10000",
+                "participating": false,
+                "seniority": "0",
+                "termsHash": "Capxul, Inc. Series A terms"
+              }
+            }
+          }
+        ],
+        "description": "Create Series A"
+      }
+    },
+    {
+      "at": "2029-05-02T12:00:00Z",
+      "actor": "aaron",
+      "call": "Governor.castVote",
+      "args": {
+        "description": "Create Series A",
+        "support": "1"
+      }
+    },
+    {
+      "at": "2029-05-02T12:00:00Z",
+      "actor": "nadia",
+      "call": "Governor.castVote",
+      "args": {
+        "description": "Create Series A",
+        "support": "1"
+      }
+    },
+    {
+      "at": "2029-05-09T10:00:00Z",
+      "actor": "anyone",
+      "call": "Governor.execute",
+      "args": {
+        "description": "Create Series A"
+      }
+    },
+    {
+      "at": "2029-05-10T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2029-05-10T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Options.setPool",
+            "args": {
+              "amount": "2712089"
+            }
+          },
+          {
+            "call": "Captable.setIssuerAllowance",
+            "args": {
+              "module": "equity.options",
+              "classId": "0",
+              "amount": "2712089"
+            }
+          },
+          {
+            "call": "Rounds.createPricedRound",
+            "args": {
+              "classId": "SeriesA",
+              "token": "USDC",
+              "price": "2510300",
+              "maxShares": "4780305",
+              "payBy": "2029-05-30T00:00:00Z",
+              "documentHash": "Capxul, Inc. Series A round terms"
+            }
+          },
+          {
+            "call": "Rounds.invite",
+            "args": {
+              "roundId": "aRound",
+              "investor": "aLead",
+              "maxAmount": "11999999641500"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2029-05-11T09:00:00Z",
+      "actor": "aLead",
+      "call": "Rounds.commit",
+      "args": {
+        "roundId": "aRound",
+        "amount": "11999999641500",
+        "documentHash": "aLead subscription"
+      }
+    },
+    {
+      "at": "2029-05-12T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2029-05-12T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Rounds.allocate",
+            "args": {
+              "roundId": "aRound",
+              "investor": "aLead",
+              "shares": "4780305"
+            }
+          },
+          {
+            "call": "Captable.setIssuerAllowance",
+            "args": {
+              "module": "equity.rounds",
+              "classId": "SeriesA",
+              "amount": "4780305"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2029-05-13T09:00:00Z",
+      "actor": "aLead",
+      "call": "Safe.batch",
+      "args": {
+        "calls": [
+          {
+            "call": "USDC.approve",
+            "args": {
+              "spender": "equity.rounds",
+              "value": "11999999641500"
+            }
+          },
+          {
+            "call": "Rounds.pay",
+            "args": {
+              "roundId": "aRound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2029-05-14T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2029-05-14T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Rounds.close",
+            "args": {
+              "roundId": "aRound",
+              "deemedOutstandingA": "12428581"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2029-06-01T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2029-06-01T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Options.grant",
+            "args": {
+              "grantee": "team2029",
+              "shares": "1000000",
+              "strikeToken": "USDC",
+              "strikePrice": "900000",
+              "start": "2029-06-01T00:00:00Z",
+              "cliff": "2030-06-01T00:00:00Z",
+              "end": "2033-06-01T00:00:00Z",
+              "offerExpiresAt": "2029-06-30T00:00:00Z",
+              "expiresAt": "2039-06-01T00:00:00Z",
+              "exerciseWindowDays": "90",
+              "documentHash": "team2029 option agreement"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2029-06-02T09:00:00Z",
+      "actor": "team2029",
+      "call": "Options.accept",
+      "args": {
+        "id": "team2029Grant",
+        "termsHash": "team2029 option agreement"
+      }
+    },
+    {
+      "at": "2030-06-01T09:00:00Z",
+      "actor": "aaron",
+      "call": "Governor.propose",
+      "args": {
+        "calls": [
+          {
+            "call": "Captable.createClass",
+            "args": {
+              "p": {
+                "name": "Series B",
+                "ticker": "CPX-B",
+                "weight": "1",
+                "convertsInto": "0",
+                "rule": "0",
+                "customRule": "0x0000000000000000000000000000000000000000",
+                "authorised": "5058084",
+                "originalIssuePrice": "5931100",
+                "conversionFloorPrice": "2965550",
+                "preferenceMultipleBps": "10000",
+                "participating": false,
+                "seniority": "0",
+                "termsHash": "Capxul, Inc. Series B terms"
+              }
+            }
+          }
+        ],
+        "description": "Create Series B"
+      }
+    },
+    {
+      "at": "2030-06-02T12:00:00Z",
+      "actor": "aaron",
+      "call": "Governor.castVote",
+      "args": {
+        "description": "Create Series B",
+        "support": "1"
+      }
+    },
+    {
+      "at": "2030-06-02T12:00:00Z",
+      "actor": "nadia",
+      "call": "Governor.castVote",
+      "args": {
+        "description": "Create Series B",
+        "support": "1"
+      }
+    },
+    {
+      "at": "2030-06-09T10:00:00Z",
+      "actor": "anyone",
+      "call": "Governor.execute",
+      "args": {
+        "description": "Create Series B"
+      }
+    },
+    {
+      "at": "2030-06-10T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2030-06-10T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Options.setPool",
+            "args": {
+              "amount": "3823210"
+            }
+          },
+          {
+            "call": "Captable.setIssuerAllowance",
+            "args": {
+              "module": "equity.options",
+              "classId": "0",
+              "amount": "3823210"
+            }
+          },
+          {
+            "call": "Rounds.createPricedRound",
+            "args": {
+              "classId": "SeriesB",
+              "token": "USDC",
+              "price": "5931100",
+              "maxShares": "5058084",
+              "payBy": "2030-06-30T00:00:00Z",
+              "documentHash": "Capxul, Inc. Series B round terms"
+            }
+          },
+          {
+            "call": "Rounds.invite",
+            "args": {
+              "roundId": "bRound",
+              "investor": "bLead",
+              "maxAmount": "30000002012400"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2030-06-11T09:00:00Z",
+      "actor": "bLead",
+      "call": "Rounds.commit",
+      "args": {
+        "roundId": "bRound",
+        "amount": "30000002012400",
+        "documentHash": "bLead subscription"
+      }
+    },
+    {
+      "at": "2030-06-12T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2030-06-12T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Rounds.allocate",
+            "args": {
+              "roundId": "bRound",
+              "investor": "bLead",
+              "shares": "5058084"
+            }
+          },
+          {
+            "call": "Captable.setIssuerAllowance",
+            "args": {
+              "module": "equity.rounds",
+              "classId": "SeriesB",
+              "amount": "5058084"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2030-06-13T09:00:00Z",
+      "actor": "bLead",
+      "call": "Safe.batch",
+      "args": {
+        "calls": [
+          {
+            "call": "USDC.approve",
+            "args": {
+              "spender": "equity.rounds",
+              "value": "30000002012400"
+            }
+          },
+          {
+            "call": "Rounds.pay",
+            "args": {
+              "roundId": "bRound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2030-06-14T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2030-06-14T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Rounds.close",
+            "args": {
+              "roundId": "bRound",
+              "deemedOutstandingA": "18208886"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2030-07-01T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2030-07-01T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Options.grant",
+            "args": {
+              "grantee": "team2030",
+              "shares": "800000",
+              "strikeToken": "USDC",
+              "strikePrice": "2400000",
+              "start": "2030-07-01T00:00:00Z",
+              "cliff": "2031-07-01T00:00:00Z",
+              "end": "2034-07-01T00:00:00Z",
+              "offerExpiresAt": "2030-07-31T00:00:00Z",
+              "expiresAt": "2040-07-01T00:00:00Z",
+              "exerciseWindowDays": "90",
+              "documentHash": "team2030 option agreement"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2030-07-02T09:00:00Z",
+      "actor": "team2030",
+      "call": "Options.accept",
+      "args": {
+        "id": "team2030Grant",
+        "termsHash": "team2030 option agreement"
+      }
+    },
+    {
+      "at": "2032-09-01T09:00:00Z",
+      "actor": "aaron",
+      "call": "Governor.propose",
+      "args": {
+        "calls": [
+          {
+            "call": "Captable.createClass",
+            "args": {
+              "p": {
+                "name": "Series C",
+                "ticker": "CPX-CC",
+                "weight": "1",
+                "convertsInto": "0",
+                "rule": "0",
+                "customRule": "0x0000000000000000000000000000000000000000",
+                "authorised": "8430282",
+                "originalIssuePrice": "2372400",
+                "conversionFloorPrice": "1186200",
+                "preferenceMultipleBps": "10000",
+                "participating": false,
+                "seniority": "0",
+                "termsHash": "Capxul, Inc. Series C terms"
+              }
+            }
+          }
+        ],
+        "description": "Create Series C"
+      }
+    },
+    {
+      "at": "2032-09-02T12:00:00Z",
+      "actor": "aaron",
+      "call": "Governor.castVote",
+      "args": {
+        "description": "Create Series C",
+        "support": "1"
+      }
+    },
+    {
+      "at": "2032-09-02T12:00:00Z",
+      "actor": "nadia",
+      "call": "Governor.castVote",
+      "args": {
+        "description": "Create Series C",
+        "support": "1"
+      }
+    },
+    {
+      "at": "2032-09-09T10:00:00Z",
+      "actor": "anyone",
+      "call": "Governor.execute",
+      "args": {
+        "description": "Create Series C"
+      }
+    },
+    {
+      "at": "2032-09-10T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2032-09-10T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Rounds.createPricedRound",
+            "args": {
+              "classId": "SeriesC",
+              "token": "USDC",
+              "price": "2372400",
+              "maxShares": "8430282",
+              "payBy": "2032-09-30T00:00:00Z",
+              "documentHash": "Capxul, Inc. Series C round terms"
+            }
+          },
+          {
+            "call": "Rounds.invite",
+            "args": {
+              "roundId": "cRound",
+              "investor": "cLead",
+              "maxAmount": "20000001016800"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2032-09-11T09:00:00Z",
+      "actor": "cLead",
+      "call": "Rounds.commit",
+      "args": {
+        "roundId": "cRound",
+        "amount": "20000001016800",
+        "documentHash": "cLead subscription"
+      }
+    },
+    {
+      "at": "2032-09-12T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2032-09-12T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Rounds.allocate",
+            "args": {
+              "roundId": "cRound",
+              "investor": "cLead",
+              "shares": "8430282"
+            }
+          },
+          {
+            "call": "Captable.setIssuerAllowance",
+            "args": {
+              "module": "equity.rounds",
+              "classId": "SeriesC",
+              "amount": "8430282"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2032-09-13T09:00:00Z",
+      "actor": "cLead",
+      "call": "Safe.batch",
+      "args": {
+        "calls": [
+          {
+            "call": "USDC.approve",
+            "args": {
+              "spender": "equity.rounds",
+              "value": "20000001016800"
+            }
+          },
+          {
+            "call": "Rounds.pay",
+            "args": {
+              "roundId": "cRound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2032-09-14T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2032-09-14T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Rounds.close",
+            "args": {
+              "roundId": "cRound",
+              "deemedOutstandingA": "24066970"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2033-03-01T09:00:00Z",
+      "actor": "aaron",
+      "call": "Safe.batch",
+      "args": {
+        "calls": [
+          {
+            "call": "Captable.consentToTransfer",
+            "args": {
+              "classId": "Common",
+              "to": "cLead",
+              "amount": "400000",
+              "reason": "secondary sale agreement"
+            }
+          },
+          {
+            "call": "Exits.offerTransfer",
+            "args": {
+              "classId": "Common",
+              "buyer": "cLead",
+              "shares": "400000",
+              "price": "1500000",
+              "token": "USDC",
+              "documentHash": "secondary sale agreement"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2033-03-02T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2033-03-02T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Exits.approveTransfer",
+            "args": {
+              "transferId": "secondary"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2033-03-03T09:00:00Z",
+      "actor": "cLead",
+      "call": "Safe.batch",
+      "args": {
+        "calls": [
+          {
+            "call": "USDC.approve",
+            "args": {
+              "spender": "equity.exits",
+              "value": "600000e6"
+            }
+          },
+          {
+            "call": "Exits.buy",
+            "args": {
+              "transferId": "secondary"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2035-06-01T09:00:00Z",
+      "actor": "acquirer",
+      "call": "USDC.transfer",
+      "args": {
+        "to": "company",
+        "value": "400000000e6"
+      }
+    },
+    {
+      "at": "2035-06-01T09:00:00Z",
+      "actor": "aaron",
+      "call": "Governor.propose",
+      "args": {
+        "calls": [
+          {
+            "call": "Exits.approveSale",
+            "args": {
+              "saleId": "strongSale",
+              "token": "USDC",
+              "proceeds": "400000000e6",
+              "termsHash": "strong sale agreement"
+            }
+          }
+        ],
+        "description": "Approve the strong sale"
+      }
+    },
+    {
+      "at": "2035-06-02T12:00:00Z",
+      "actor": "aaron",
+      "call": "Governor.castVote",
+      "args": {
+        "description": "Approve the strong sale",
+        "support": "1"
+      }
+    },
+    {
+      "at": "2035-06-02T12:00:00Z",
+      "actor": "nadia",
+      "call": "Governor.castVote",
+      "args": {
+        "description": "Approve the strong sale",
+        "support": "1"
+      }
+    },
+    {
+      "at": "2035-06-09T10:00:00Z",
+      "actor": "anyone",
+      "call": "Governor.execute",
+      "args": {
+        "description": "Approve the strong sale"
+      }
+    },
+    {
+      "at": "2035-06-10T09:00:00Z",
+      "actor": "nadia",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2035-06-10T09:00:00Z",
+      "actor": "aaron",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "USDC.approve",
+            "args": {
+              "spender": "Payments",
+              "value": "400000000e6"
+            }
+          },
+          {
+            "call": "Payments.sendBatch",
+            "args": {
+              "exitSaleId": "strongSale",
+              "holdings": "@strongSaleHoldings"
+            }
+          },
+          {
+            "call": "Exits.settle",
+            "args": {
+              "saleId": "strongSale",
+              "holdings": "@strongSaleHoldings",
+              "claimIndexes": []
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "checkpoints": [
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "name": "incorporation",
+      "save": true,
+      "expect": {
+        "safes": {
+          "company": {
+            "deployed": true,
+            "owners": ["nadia", "aaron"],
+            "threshold": "2"
+          }
+        },
+        "hats": {
+          "Shareholders": {
+            "equity.governor": true,
+            "aaron": false
+          },
+          "Director": {
+            "aaron": true,
+            "nadia": true
+          }
+        },
+        "shares": {
+          "aaron": {
+            "Common": "5000000"
+          },
+          "nadia": {
+            "Common": "3000000"
+          }
+        },
+        "locked": {
+          "aaron": {
+            "Common": "5000000"
+          },
+          "nadia": {
+            "Common": "3000000"
+          }
+        },
+        "classes": {
+          "Common": {
+            "totalSupply": "8000000",
+            "authorised": "100000000"
+          }
+        },
+        "options": {
+          "pool": "1000000",
+          "allocated": "0"
+        }
+      }
+    },
+    {
+      "at": "2027-03-03T09:00:00Z",
+      "name": "first-grants",
+      "expect": {
+        "options": {
+          "pool": "1000000",
+          "allocated": "200000"
+        }
+      }
+    },
+    {
+      "at": "2028-07-03T09:00:00Z",
+      "name": "pre-seed",
+      "save": true,
+      "expect": {
+        "balances": {
+          "company": {
+            "USDC": "1000000e6"
+          },
+          "angel": {
+            "USDC": "0"
+          },
+          "preseed": {
+            "USDC": "0"
+          }
+        },
+        "shares": {
+          "aaron": {
+            "Common": "5000000"
+          }
+        },
+        "options": {
+          "pool": "1000000",
+          "allocated": "200000"
+        }
+      }
+    },
+    {
+      "at": "2028-11-15T09:00:00Z",
+      "name": "seed",
+      "save": true,
+      "expect": {
+        "shares": {
+          "seedLead": {
+            "Seed": "2628581"
+          },
+          "angel": {
+            "Seed": "250000"
+          },
+          "preseed": {
+            "Seed": "750000"
+          }
+        },
+        "classes": {
+          "Seed": {
+            "totalSupply": "3628581",
+            "authorised": "3628581",
+            "conversionPrice": "1141300"
+          },
+          "Common": {
+            "totalSupply": "8000000"
+          }
+        },
+        "options": {
+          "pool": "1514286",
+          "allocated": "200000"
+        },
+        "balances": {
+          "company": {
+            "USDC": "3999999495300"
+          },
+          "seedLead": {
+            "USDC": "0"
+          }
+        }
+      }
+    },
+    {
+      "at": "2029-05-15T09:00:00Z",
+      "name": "series-a",
+      "save": true,
+      "expect": {
+        "shares": {
+          "aLead": {
+            "SeriesA": "4780305"
+          }
+        },
+        "classes": {
+          "SeriesA": {
+            "totalSupply": "4780305",
+            "conversionPrice": "2510300"
+          },
+          "Seed": {
+            "conversionPrice": "1141300"
+          }
+        },
+        "options": {
+          "pool": "2712089",
+          "allocated": "800000"
+        },
+        "balances": {
+          "company": {
+            "USDC": "15999999136800"
+          }
+        }
+      }
+    },
+    {
+      "at": "2030-06-15T09:00:00Z",
+      "name": "series-b",
+      "save": true,
+      "expect": {
+        "shares": {
+          "bLead": {
+            "SeriesB": "5058084"
+          }
+        },
+        "classes": {
+          "SeriesB": {
+            "totalSupply": "5058084",
+            "conversionPrice": "5931100"
+          }
+        },
+        "options": {
+          "pool": "3823210",
+          "allocated": "1800000"
+        },
+        "balances": {
+          "company": {
+            "USDC": "46000001149200"
+          }
+        }
+      }
+    },
+    {
+      "at": "2032-09-15T09:00:00Z",
+      "name": "series-c",
+      "save": true,
+      "expect": {
+        "shares": {
+          "cLead": {
+            "SeriesC": "8430282"
+          }
+        },
+        "classes": {
+          "SeriesC": {
+            "totalSupply": "8430282",
+            "conversionPrice": "2372400"
+          },
+          "SeriesA": {
+            "conversionPrice": "2474526"
+          },
+          "SeriesB": {
+            "conversionPrice": "5007918"
+          },
+          "Seed": {
+            "conversionPrice": "1141300"
+          }
+        },
+        "options": {
+          "pool": "3823210",
+          "allocated": "2600000"
+        },
+        "balances": {
+          "company": {
+            "USDC": "66000002166000"
+          },
+          "cLead": {
+            "USDC": "600000e6"
+          }
+        }
+      }
+    },
+    {
+      "at": "2033-03-04T09:00:00Z",
+      "name": "secondary",
+      "save": true,
+      "expect": {
+        "shares": {
+          "aaron": {
+            "Common": "4600000"
+          },
+          "cLead": {
+            "Common": "400000",
+            "SeriesC": "8430282"
+          }
+        },
+        "classes": {
+          "Common": {
+            "totalSupply": "8000000"
+          }
+        },
+        "balances": {
+          "aaron": {
+            "USDC": "600000e6"
+          },
+          "cLead": {
+            "USDC": "0"
+          }
+        }
+      }
+    },
+    {
+      "at": "2035-06-11T09:00:00Z",
+      "name": "strong-sale",
+      "save": true,
+      "expect": {
+        "closedForExit": true,
+        "classes": {
+          "Common": {
+            "totalSupply": "0"
+          },
+          "Seed": {
+            "totalSupply": "0"
+          },
+          "SeriesA": {
+            "totalSupply": "0"
+          },
+          "SeriesB": {
+            "totalSupply": "0"
+          },
+          "SeriesC": {
+            "totalSupply": "0"
+          }
+        },
+        "shares": {
+          "aaron": {
+            "Common": "0"
+          },
+          "cLead": {
+            "Common": "0",
+            "SeriesC": "0"
+          }
+        },
+        "balances": {
+          "company": {
+            "USDC": "66000002166000"
+          },
+          "acquirer": {
+            "USDC": "0"
+          },
+          "aaron": {
+            "USDC": {
+              "about": "55940687091703",
+              "within": "1000000"
+            }
+          },
+          "nadia": {
+            "USDC": {
+              "about": "36091752451110",
+              "within": "1000000"
+            }
+          },
+          "angel": {
+            "USDC": {
+              "about": "3007646037592",
+              "within": "1000000"
+            }
+          },
+          "preseed": {
+            "USDC": {
+              "about": "9022938112777",
+              "within": "1000000"
+            }
+          },
+          "seedLead": {
+            "USDC": {
+              "about": "31623364916565",
+              "within": "1000000"
+            }
+          },
+          "aLead": {
+            "USDC": {
+              "about": "58341271176399",
+              "within": "1000000"
+            }
+          },
+          "bLead": {
+            "USDC": {
+              "about": "72069370750387",
+              "within": "1000000"
+            }
+          },
+          "cLead": {
+            "USDC": {
+              "about": "106233450672506",
+              "within": "2000000"
+            }
+          },
+          "engineer": {
+            "USDC": {
+              "about": "1797087622555",
+              "within": "1000000"
+            }
+          },
+          "opsAgent": {
+            "USDC": {
+              "about": "599029207518",
+              "within": "1000000"
+            }
+          },
+          "team2028": {
+            "USDC": {
+              "about": "7038350490222",
+              "within": "1000000"
+            }
+          },
+          "team2029": {
+            "USDC": {
+              "about": "11130584150370",
+              "within": "1000000"
+            }
+          },
+          "team2030": {
+            "USDC": {
+              "about": "7704467320296",
+              "within": "1000000"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

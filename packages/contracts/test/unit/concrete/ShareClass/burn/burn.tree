@@ -1,0 +1,8 @@
+Burn_ShareClass_Unit_Concrete_Test
+├── when the caller is not the Captable
+│   └── it should revert with OnlyCaptable
+└── when the caller is the Captable
+    ├── it should burn without calling checkTransfer
+    ├── it should lower the total supply and the holder's votes
+    └── given the holder is the Safe
+        └── it should checkpoint the Safe's lower balance
