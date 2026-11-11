@@ -1,9 +1,7 @@
-// The swarm design's records: its decisions (defineDecision) and any component or environment it
-// adds. One writer: the swarm designer. Explained in docs/design/swarm.md.
-//
-// The swarm is how the build runs: one swarmD manager (the master agent, whose instructions are the goal prompt) with its
-// workers, turning the task tree that packages/plan/src/tasks.ts derives from this book green, eval by eval. It adds no component
-// or environment record: it is the build's tooling, not part of Capxul.
+// Build-tooling decisions, including the older swarm design kept below for history.
+// The current authority for execution is loop.* at the end of this file: packages/loop,
+// the authored plan, isolated run lanes and the coordinator's merge gate, not swarmD.
+// These are the build's tooling, not part of Capxul: no component or environment record.
 
 import { defineDecision } from "../../packages/blueprint-engine/src/index.ts";
 import * as f from "./foundation.ts";
@@ -1139,4 +1137,80 @@ export const decision_swarm_team_definition = defineDecision({
     "Review, 11 November 2026: Archive team-definition: The current loop owns worker orchestration; archive defineManager/defineRouter swarmD declarations and their API migration. They are not a dependency of lane work. Authority: portal.plan-page.",
   source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul, decision_swarm_workers, decision_swarm_pacing],
+});
+
+
+// ── the current build loop (11 November 2026) ──────────────────────────────────────────────
+// These decisions supersede or narrow the named older records for today's build only.
+// Owner rulings, including model/spend rulings, are unchanged.
+const LOOP_BY = "Builder, m1-loop-decision, round 1, 11 November 2026";
+
+export const decision_loop_pair = defineDecision({
+  id: "loop.pair",
+  title: "The build runs the repository pair script, not swarmD",
+  question: "What executes a build task today?",
+  options: [
+    { label: "repository-loop", text: "packages/loop runs loops/pair.ts: a builder submits a version, the runner runs gates, then a fresh reviewer approves or refuses it. Configured additional checkers, including the adversary for money tasks, also review. Failed gates and blocking findings feed the next builder round; only passing gates, no open blocking findings and every checker approving make the run ready. Exhausted rounds or a real fork block it. Ready is not merged and is not a worker declaring the task done." },
+    { label: "swarmd", text: "Run a swarmD manager, pair engine and worker team." },
+  ],
+  chosen: "repository-loop",
+  why: "Use the checked-in script and durable run evidence already running this build. Replaces swarm.start-small and swarm.workers as runtime topology; confirms the retirement in swarm.stages, swarm.nested-entry, swarm.master-prompt, swarm.team-definition and swarm.stage0-profiles. Narrows swarm.pair-limits to the configured loop round/budget limits, not swarmD defaults; swarm.review-evals and swarm.agent-verdicts do not imply swarmD verdict posting or automatic carry-forward. swarm.money still supplies additional review requirements. swarm.handback and swarm.templates retain structured reports, not a swarmD runtime dependency.",
+  source: LOOP_BY + "; packages/loop/README.md (pair script); AGENTS.md",
+  affects: [decision_swarm_start_small, decision_swarm_workers, decision_swarm_stages, decision_swarm_nested_entry, decision_swarm_master_prompt, decision_swarm_team_definition, decision_swarm_stage0_profiles, decision_swarm_pair_limits, decision_swarm_review_evals, decision_swarm_agent_verdicts, decision_swarm_money, decision_swarm_handback, decision_swarm_templates],
+});
+
+export const decision_loop_lanes = defineDecision({
+  id: "loop.lanes",
+  title: "Each run has an isolated git lane cut from integration/build",
+  question: "Where does a builder work without changing the coordinator's checkout?",
+  options: [
+    { label: "run-lane", text: "Each run gets its own git worktree on lane/<task>, cut from integration/build. Work and build output stay inside that lane, with output under var/. Workers commit only on their own branch; they never push, merge or change another branch. The runner handles publication. No two runs share a working copy." },
+    { label: "concept-lane", text: "Reuse one lane/<concept> branch for successive concept tasks and route milestone/review work to separate branch classes." },
+  ],
+  chosen: "run-lane",
+  why: "Replaces swarm.branches' concept branch, PR and deletion lifecycle with per-run isolation; confirms swarm.sandbox's worktree replacement of golden swarmD sandboxes. Narrows swarm.scope: task paths and protected files control edits; workers do not gain permission to edit generated files or evals from the older text. swarm.review-answers and swarm.hand-tasks no longer prescribe review/<decision> or defect concept branches for loop runs.",
+  source: LOOP_BY + "; AGENTS.md; packages/loop/README.md (lane step)",
+  affects: [decision_swarm_branches, decision_swarm_sandbox, decision_swarm_scope, decision_swarm_review_answers, decision_swarm_hand_tasks],
+});
+
+export const decision_loop_merge_gate = defineDecision({
+  id: "loop.merge-gate",
+  title: "Only the coordinator merges, after gates on the lane plus current base",
+  question: "Does a ready pair authorize a merge against a base that may have moved?",
+  options: [
+    { label: "regate", text: "Only the coordinator invokes pnpm loop merge <run>. The command gates again on the lane plus the current integration/build base before merging and pushing. A ready run's earlier checks are insufficient: a failing merge gate refuses the merge. Builders and reviewers cannot merge themselves. The coordinator closes tasks from checked evidence in the plan, not from a worker's claim." },
+    { label: "ready-only", text: "Merge on the pair's earlier approval and lane checks without retesting against the current base." },
+  ],
+  chosen: "regate",
+  why: "Replaces swarm.merge's swarmD manager/GitHub release-gate machinery with the repository coordinator command. Narrows swarm.merged-tasks: a merged run is evidence for the coordinator, not an automatic swarmD frontier or waiver transition. Confirms swarm.pr-mirror is historical; neither PR comments nor old GitHub checks substitute for this gate. swarm.head-red's principle of not merging onto a failing integration head remains, not its automatic swarmD defect/revert machinery.",
+  source: LOOP_BY + "; AGENTS.md (coordinator); packages/loop/README.md (merge)",
+  affects: [decision_swarm_merge, decision_swarm_merged_tasks, decision_swarm_pr_mirror, decision_swarm_head_red],
+});
+
+export const decision_loop_plan = defineDecision({
+  id: "loop.plan",
+  title: "The authored plan is the build's one task list",
+  question: "Which list controls work and survives a coordinator restart?",
+  options: [
+    { label: "one-plan", text: "The coordinator authors the goal, milestones, dependencies, critical path and tasks through pnpm plan. plan/plan.json, its log and task explanation files are the one task list. packages/loop takes tasks from it; run ledgers retain execution evidence; the portal renders those facts. The blueprint supplies design and evals. The derived docs/mission/tasks.json tree is subordinate reference, not a second queue. Defects, splits and review work enter the same plan, not a separate swarmD ledger." },
+    { label: "derived-queue", text: "Let the derived blueprint task tree and swarmD ledger schedule work independently of the authored plan." },
+  ],
+  chosen: "one-plan",
+  why: "Replaces swarm.task-tree as task-list authority and swarm.hand-tasks' permission to open work outside it. Narrows swarm.task-unit, swarm.rpc-ownership, swarm.process-order, swarm.events-not-needs, swarm.pilots, swarm.milestone-evals and swarm.watch-tasks to design/dependency guidance, not automatic task creation, scheduling or completion. Confirms the archival boundaries in swarm.layers, swarm.state, swarm.artifact and swarm.task-cards. swarm.findings routes outside-scope needs to the coordinator for this same plan.",
+  source: LOOP_BY + "; AGENTS.md; docs/blueprint.md (The plan); portal.plan-page",
+  affects: [decision_swarm_task_tree, decision_swarm_hand_tasks, decision_swarm_task_unit, decision_swarm_rpc_ownership, decision_swarm_process_order, decision_swarm_events_not_needs, decision_swarm_pilots, decision_swarm_milestone_evals, decision_swarm_watch_tasks, decision_swarm_layers, decision_swarm_state, decision_swarm_artifact, decision_swarm_task_cards, decision_swarm_findings],
+});
+
+export const decision_loop_gateway = defineDecision({
+  id: "loop.gateway",
+  title: "The loop uses the CLI proxy on the Mac, not LiteLLM",
+  question: "Through which gateway do the build's model calls run?",
+  options: [
+    { label: "mac-cli-proxy", text: "The loop host and model gateway stay on Aaron's Mac. Model calls use the local CLI proxy (CLIProxyAPI through VibeProxy), 127.0.0.1:8317, with the OpenAI-compatible endpoint http://127.0.0.1:8317/v1. No LiteLLM router is in the loop's path. Gateway choice is build tooling, not a Capxul integration, component or environment." },
+    { label: "litellm", text: "Route loop traffic through the remote LiteLLM router at llm.capxul.com." },
+  ],
+  chosen: "mac-cli-proxy",
+  why: "Implements Aaron's ruling of 10 November 2026 to use the CLI proxy, not LiteLLM. Narrows swarm.checker-family to role/model selection, not gateway selection; does not change its owner ruling or swarm.spend-envelope. Confirms swarm.accounts no longer requires swarmD provider setup. Neither swarm.start-small nor swarm.team-definition makes swarmD a gateway dependency.",
+  source: LOOP_BY + "; Aaron's ruling, 10 November 2026; packages/loop/README.md (Model gateway); AGENTS.md (Where it runs)",
+  affects: [decision_swarm_checker_family, decision_swarm_accounts, decision_swarm_start_small, decision_swarm_team_definition],
 });
