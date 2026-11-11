@@ -1,3 +1,4 @@
+import * as refusalGaps from "./refusal-gaps.ts";
 import * as stateGaps from "./state-gaps.ts";
 // The organizations concept's modules, for blueprint/index.ts (the shape of shared/index.ts).
 
@@ -13,7 +14,7 @@ import * as flows from "./flows.ts";
 import * as operations from "./operations.ts";
 import * as decisions from "./decisions.ts";
 
-export const modules = [stateGaps,
+export const modules = [refusalGaps, stateGaps,
   data,
   procedures,
   setups,

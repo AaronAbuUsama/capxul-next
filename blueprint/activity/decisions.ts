@@ -353,9 +353,20 @@ export const decision_activity_unreachable_refusals = defineDecision({
     "The frozen surface keeps its codes (P10 rung 1), and INVALID_INPUT is still what either rpc answers for input that " +
     "does not decode. But the salt namespace is checked when the backend starts and used only when a principal is born, " +
     "the deployment has one chain so `balance` takes no chain id, and the Safe is the principal's own, so no binding can " +
-    "disagree. No devnet world can reach the conditions named; the gap `refusal-without-world` says so.",
+    "disagree. No devnet world can reach the conditions named; each `refusal-without-world` gap stands below with its " +
+    "own reason. This is not evidence that either refusal eval passes.",
   source: by("blueprint/baseline/operations.ts (address, balance refusals); docs/as-is/archive/accounts/balances.ts (read-binding)"),
   affects: [operation_address, operation_balance, rpc_activity_holdings_address, rpc_activity_holdings_balances],
+  stands: [
+    {
+      record: "operation:address", rule: "refusal-without-world",
+      why: "INVALID_INPUT's frozen malformed Safe salt namespace condition is checked at backend startup and used at principal birth, not by address. activity.address-from-principal reads the stored Safe; no running CLI world can make this read encounter the salt setting. The refusal remains defensive vocabulary, not a passing refusal eval.",
+    },
+    {
+      record: "operation:balance", rule: "refusal-without-world",
+      why: "INVALID_INPUT's frozen nonpositive chain ID or mismatched stored Safe condition has no normal balance input: the deployment fixes the chain and the principal owns its Safe directly. No catalog world corrupts that binding. Keep the defensive refusal, without inventing a chain parameter or claiming corruption coverage.",
+    },
+  ],
 });
 
 // ── what is not ported ──────────────────────────────────────────────────────────────────────

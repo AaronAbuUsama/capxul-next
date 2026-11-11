@@ -1,3 +1,4 @@
+import * as refusalGaps from "./refusal-gaps.ts";
 import * as stateGaps from "./state-gaps.ts";
 // Books' records for the target book: its tables, machines and events, its door, one file per
 // area (the chart, annotations, assets, facts, the feed, reports, the export), its durable work
@@ -14,7 +15,7 @@ import * as processes from "./processes.ts";
 import * as operations from "./operations.ts";
 import * as decisions from "./decisions.ts";
 
-export const modules = [stateGaps,
+export const modules = [refusalGaps, stateGaps,
   data,
   procedures,
   annotations,
