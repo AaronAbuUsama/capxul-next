@@ -246,15 +246,6 @@ importers:
         specifier: 'catalog:'
         version: 5.9.3
 
-  packages/ops:
-    devDependencies:
-      '@types/node':
-        specifier: 'catalog:'
-        version: 22.19.1
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-
   packages/plan:
     dependencies:
       '@capxul/blueprint-engine':

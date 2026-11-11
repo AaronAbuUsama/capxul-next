@@ -6,6 +6,7 @@
 import { defineDecision } from "../../packages/blueprint-engine/src/index.ts";
 import * as f from "./foundation.ts";
 import { decision_system_build_order, decision_system_layout, decision_system_size } from "./decisions.ts";
+import { decision_ops_group_shutdown, decision_ops_owner } from "./ops.ts";
 
 const BY = "Claude, swarm design, 8 November 2026";
 export const by = (evidence: string) => `${BY}; evidence: ${evidence}`;
@@ -1220,7 +1221,8 @@ export const decision_build_amp = defineDecision({
     "Aaron, 11 November 2026, 21:57 UTC: \"We're moving over to AMP now ... because AMP has built in orbs, inbuilt sandboxing. It has like a bunch of different providers.\" " +
     "Replaces loop.pair (no repository pair script: an Amp thread is the builder, the PR review and the evals are the checker), loop.lanes (an orb plus a branch is the isolation), " +
     "loop.merge-gate (the merge gate is the CI workflow on the pull request; `pnpm loop merge` no longer exists) and loop.gateway (Amp routes the models; no Mac proxy). " +
-    "Narrows loop.plan: packages/loop no longer takes tasks from the plan; whether plan/ stays is Aaron's open call.",
+    "Narrows loop.plan: packages/loop no longer takes tasks from the plan; whether plan/ stays is Aaron's open call. " +
+    "Retires tooling.ops-owner and tooling.ops-group-shutdown: an orb starts its own services, so the Mac supervisor (pnpm ops) is gone.",
   source: "Aaron's message in the project thread \"Clean up and hand off to Amp\", 11 November 2026; https://ampcode.com/docs/orbs",
-  affects: [decision_loop_pair, decision_loop_lanes, decision_loop_merge_gate, decision_loop_gateway, decision_loop_plan],
+  affects: [decision_loop_pair, decision_loop_lanes, decision_loop_merge_gate, decision_loop_gateway, decision_loop_plan, decision_ops_owner, decision_ops_group_shutdown],
 });
