@@ -108,8 +108,8 @@ request from the thread "Validate the blueprint audit findings":
   trial balance mapping in `cut.ts`; payroll's "UK filing" wording (now `aaron.jurisdiction-open`).
 - **On the Questions page, waiting for Aaron** (`blueprint/shared/questions.ts`): `thin-line.bundler` and
   `books.founder-funding` (thin line rows 6 and 7), `devnet.core-service-home`, `devnet.cli-split`,
-  `devnet.record-home` (the spike's move into packages), and `books.chart-owner` (whether Core keeps its own copy of
-  the chart; the `books` tables and the head feed still model the copy until he answers).
+  `devnet.record-home` (the spike's move into packages), `books.chart-owner` (whether Core keeps its own copy of
+  the chart; the `books` tables and the head feed still model the copy until he answers). Also `plan.cloud-sandbox-moot`: drop plan task `m1-cloud-sandbox`, which Amp makes moot and which still sits on the critical path.
 - **Plan:** g2 and g4 evidence refreshed to what is actually checked (g4's wording is a milestone exit, so his);
   `m1-cloud-sandbox` dropped (Amp replaces it); what is left of `m3b-bench-image` and `m2-contracts-under-sites` is in
   the plan's notes.
