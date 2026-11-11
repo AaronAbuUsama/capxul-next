@@ -3,7 +3,7 @@
 `CLAUDE.md` is a link to this file. Every agent (Claude, Codex, a loop builder or checker) reads the same rules.
 
 1. Read **[docs/philosophy.md](docs/philosophy.md)** first: how we climb, how agents behave, how work survives.
-2. **The map of this repository is [README.md](README.md).** What is current is the plan (`pnpm plan show`) and the rulings in the blueprint. [START-HERE.md](START-HERE.md) is the owner's direction of 9 November 2026, kept as a record: capxul-next is the rebuild of Capxul Core, Frappe-native, coordinated through the plan, the portal and the loop. Where an older document disagrees with the plan or a ruling, the plan and the ruling win.
+2. **The map of this repository is [README.md](README.md).** What is current is the plan (`pnpm plan show`) and the rulings in the blueprint. [START-HERE.md](START-HERE.md) is the one-page entry: the goal, the milestone and the portal. The owner's direction of 9 November 2026 is kept whole in [archive/START-HERE.md](archive/START-HERE.md). Where an older document disagrees with the plan or a ruling, the plan and the ruling win.
 
 This repository holds the Capxul rebuild: a typed blueprint (`blueprint/`, built by `packages/blueprint-engine`) and the product code it describes.
 
