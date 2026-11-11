@@ -1308,6 +1308,18 @@
       "evidence": [],
       "created": "2026-11-11",
       "updated": "2026-11-11"
+    },
+    {
+      "id": "m1-probe-stop",
+      "title": "Probe: steer and stop a run from the Runs page",
+      "why": "test of steering and Stop from the portal",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-11",
+      "updated": "2026-11-11"
     }
   ],
   "path": {
