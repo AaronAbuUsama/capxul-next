@@ -8,7 +8,8 @@ import { twinsOf } from "#src/modules/twins/service.ts";
 import { fixtureAssets, fixtureInput } from "#src/testing.ts";
 
 import type { GuideInput, GuidePage, OverviewPage, SiteInput } from "./types.ts";
-import { RULE_WORDS } from "./internal/guideWords.ts";
+import { KINDS } from "@capxul/blueprint-engine";
+import { KIND_WORDS, RULE_WORDS } from "./internal/guideWords.ts";
 import { buildSite } from "./service.ts";
 
 const TEXT = [
@@ -73,4 +74,10 @@ test("every rule the build can report is explained on the page", () => {
   assert.ok(named.size > 40, `only ${named.size} rules found: the pattern no longer reads the engine`);
   const explained = new Set(RULE_WORDS.map((r) => r.rule));
   assert.deepEqual([...named].filter((r) => !explained.has(r)).sort(), [], "rules the Blueprint page does not explain");
+});
+
+test("every kind the engine defines has its words and its list on the Blueprint page", () => {
+  for (const kind of KINDS) {
+    assert.ok(kind in KIND_WORDS, `${kind}: no words in guideWords.ts, so the Blueprint page would say "Not explained on this page yet"`);
+  }
 });

@@ -27,6 +27,15 @@ export const KIND_WORDS: Readonly<Record<string, { readonly one: string; readonl
   error: { one: "One error code of the shared vocabulary, with its exit code.", catalogue: "errors" },
   journey: { one: "A person's or an agent's path through several operations, step by step.", catalogue: "journeys" },
   invariant: { one: "Something that must always hold, and how it is checked.", catalogue: "invariants" },
+  doctype: { one: "A Frappe DocType the product defines, or the Custom Fields it adds to one of Frappe's or ERPNext's.", catalogue: "doctypes" },
+  role: { one: "A hat a person wears in a company, and the Frappe roles it grants.", catalogue: "hats" },
+  feature: { one: "A part of the site a company can turn on or off, and whether it starts on.", catalogue: "features" },
+  screen: { one: "A screen a person sees: where it is drawn, what it shows, who may see it and what they can do there.", catalogue: "screens" },
+  log: { one: "A log row the system writes: at what level, how often and with which attributes.", catalogue: "logs" },
+  metric: { one: "A number the system records over time: a counter, a gauge or a histogram.", catalogue: "metrics" },
+  insight: { one: "A saved question asked of the events, logs and metrics.", catalogue: "insights" },
+  alert: { one: "When an insight crosses a line: how loud it is, who hears it and what to do.", catalogue: "alerts" },
+  dashboard: { one: "A set of insights and journeys for one audience, and where it lives.", catalogue: "dashboards" },
   decision: { one: "A judgment: the question, the options, the choice and why.", catalogue: "decisions" },
 };
 
