@@ -15,6 +15,13 @@
       "run": "run-20261110121422",
       "evidence": "status/runs/run-20261110121422/evidence/acc-doc.submit-1.txt"
     },
+    "acc:org.create/6": {
+      "verdict": "pass",
+      "commit": "7b3a02e",
+      "at": "2026-11-11T15:49:01Z",
+      "run": "run-20261111154901",
+      "evidence": "status/runs/run-20261111154901/evidence/acc-org.create-6.txt"
+    },
     "acc:org.feature.off/1": {
       "verdict": "pass",
       "commit": "a35e9ab",
