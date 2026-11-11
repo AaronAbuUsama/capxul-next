@@ -986,6 +986,14 @@ export const decision_devnet_surface_gap_disposition = defineDecision({
     "without claiming the worlds harness proves an acceptance claim that does not exist. A future acceptance design must first settle how new lines are booked against the freeze.",
   source: "m1-gaps-surface audit, 10 November 2026; blueprint/baseline/operations.ts; packages/blueprint-engine/scripts/check-frozen.ts (acceptance length); devnet.no-acceptance; accounts.no-acceptance",
   affects: [ops.operation_dev_approve, ops.operation_dev_gates_set, ops.operation_dev_jobs_run, ops.operation_dev_mail_list, ops.operation_dev_prices_set, surface_operation_dev_fund],
+  stands: [
+    { record: "operation:dev.fund", rule: "no-acceptance", why: "Mints test tokens to fund a devnet Safe. Its frozen acceptance list is empty and equal list lengths are required; keep its returns and refusals specified without inventing a funding acceptance claim." },
+    { record: "operation:dev.approve", rule: "no-acceptance", why: "Plays another person through the mail sink's sign-in code and a dev signer to sign an approval. Its frozen list has no acceptance claims; preserve that length, not a claim that the worlds harness proves an acceptance eval." },
+    { record: "operation:dev.gates.set", rule: "no-acceptance", why: "Scripts an Organization gate through the PostHog fake, syncs once and reads the effective value. The freeze requires keeping its empty acceptance list; its specified returns and refusals do not create a new gate acceptance claim." },
+    { record: "operation:dev.jobs.run", rule: "no-acceptance", why: "Explicitly runs crons now and wakes due timers, reporting jobs by name. Its frozen acceptance list is empty and must retain its length; running due work in world setup is not evidence for a nonexistent acceptance claim." },
+    { record: "operation:dev.mail.list", rule: "no-acceptance", why: "Reads sent messages from the devnet mail sink, not inbound CRM mail. Keep its frozen empty acceptance list as required by the freeze; the specified return shape and off-devnet refusal remain distinct from acceptance claims." },
+    { record: "operation:dev.prices.set", rule: "no-acceptance", why: "Scripts a dated rate in the Chainlink fake and runs the books price sync once. The freeze requires retaining its empty acceptance list; its returns and refusals remain specified without adding a new rate acceptance claim." },
+  ],
 });
 
 export const decision_devnet_no_acceptance = defineDecision({
