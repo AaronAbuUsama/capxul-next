@@ -96,7 +96,8 @@ decisions, so a choice for him reads better as a decision record than as a plan 
 ## 6. Next tasks (each one Amp thread, one pull request into integration/build)
 
 0. **Prove an orb runs the stack**: run `.agents/setup`, then `spikes/skeleton/run.sh`, and report whether Docker,
-   Compose and outbound network work. Add `.amp/services.yaml` for the book if useful.
+   Compose and outbound network work. Start the book with `amp orb services ensure` and check its portal link and that
+   an answer on the Questions page lands in `plan/answers.jsonl`. Then delete the `lane/*` branches (section 7).
 1. **The breadth fixes** that need nothing from Aaron: stable eval ids, stale verdicts on reworded claims, one check
    file and binding file per concept, load errors that name the record (`docs/mission/breadth-fan-out-2026-11-11.md`,
    section 5).
@@ -106,8 +107,11 @@ decisions, so a choice for him reads better as a decision record than as a plan 
 5. After decisions 1 and 2: rows 6 and 7 of the thin line.
 6. With Aaron: the thin line on the AWS machine (needs his go-ahead and credentials).
 
-## 7. Left on Aaron's Mac (not reachable from a cloud agent)
+## 7. Left over
 
-A stopped test container (`capxul-box-stack-try`) and its volume, and an old test stack (Frappe on port 8000, chains on
-8545 and 8745, a leftover `loop watch`). The unmerged branch `sandbox/stack` and about 40 old `lane/*` branches are on
-GitHub; deleting them is Aaron's call.
+- **On GitHub**: Aaron asked (11 November, 22:05 UTC) for the 32 old `lane/*` branches to be deleted. The Claude cloud
+  thread could not (its git access may push only its own branch). An Amp thread can, since `gh` there acts as Aaron:
+  delete every `lane/*` branch. Their heads are listed in pull request #10 in case one is wanted back. The unmerged
+  branch `sandbox/stack` (a half-built box image, superseded by orbs) can go with them once Aaron says so.
+- **On Aaron's Mac** (not reachable from a cloud agent): a stopped test container (`capxul-box-stack-try`) and its
+  volume, and an old test stack (Frappe on port 8000, chains on 8545 and 8745, a leftover `loop watch`).
