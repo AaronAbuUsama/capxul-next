@@ -4,6 +4,7 @@
 // root: the only place that reads the process, prints, or exits. See packages/loop/README.md.
 
 import { execFileSync } from "node:child_process";
+import { launcherFrom } from "@capxul/sandbox/box";
 import { join } from "node:path";
 import { reconcile, type Alert } from "./modules/alerts/service.ts";
 import { alertRuns, closedAt, questionsAt } from "./modules/alerts/inputs.ts";
@@ -12,7 +13,7 @@ import { clean, DEFAULTS, loadDefinitions, logs, merge, resume, serve, showFull,
 const USAGE = [
   "       loop alerts [--once] (preview once, or reconcile notifications every 30 seconds)",
   "       loop agents [--json] (definitions in packages/loop/agents/)",
-  "usage: loop run <task id> [--script pair] [--model provider/id] [--checker-model provider/id] [--sandbox cloud(default)|none|light|heavy]",
+  "usage: loop run <task id> [--script pair] [--model provider/id] [--checker-model provider/id] [--sandbox cloud(default when set up)|none|light|heavy]",
   "                          [--rounds 3] [--budget-usd 5] [--timeout-min 30] [--checkers reviewer,adversary]",
   "       loop resume <run id> | stop <run id> | merge <run id> | clean [<run id>]",
   "       loop work [--concurrency 2] [--task a,b] [--wait]   (the options of run apply to every run it starts)",
@@ -31,8 +32,9 @@ const parse = (argv: readonly string[]): { words: string[]; f: Map<string, strin
   return { words, f };
 };
 
-const optsOf = (f: Map<string, string>): Opts => {
-  const sandbox = f.get("sandbox") ?? DEFAULTS.sandbox;
+/** `cloud` once a sandbox is set up (var/sandbox/box.json, or SANDBOX), so runs never fail for one that is not yet deployed. */
+const optsOf = (f: Map<string, string>, cloudReady = false): Opts => {
+  const sandbox = f.get("sandbox") ?? (cloudReady ? "cloud" : DEFAULTS.sandbox);
   if (!["none", "light", "heavy", "cloud"].includes(sandbox)) throw new Error("--sandbox is one of cloud, none, light, heavy");
   return {
     script: f.get("script") ?? DEFAULTS.script, sandbox: sandbox as Opts["sandbox"], rounds: Number(f.get("rounds") ?? DEFAULTS.rounds),
@@ -77,7 +79,7 @@ const main = async (argv: readonly string[]): Promise<number> => {
         await new Promise((r) => setTimeout(r, 30_000));   // each poll loads the blueprint in a fresh process: every 30 s, not every 2
       } while (true);
     }
-    case "run": return need ? ended(await start(ctx, need, optsOf(f))) : (console.error(USAGE), 2);
+    case "run": return need ? ended(await start(ctx, need, optsOf(f, typeof launcherFrom(process.env, root) !== "string"))) : (console.error(USAGE), 2);
     case "resume": return need ? ended(await resume(ctx, need)) : (console.error(USAGE), 2);
     case "stop": console.log(stop(ctx, need ?? "")); return 0;
     case "merge": { const out = await merge(ctx, need ?? ""); out.forEach((l) => console.log(l)); return out[0]!.startsWith("merged") && !out[0]!.includes("push failed") ? 0 : 1; }
@@ -103,7 +105,7 @@ const main = async (argv: readonly string[]): Promise<number> => {
     case "watch":
       if (need && f.has("until-idle")) { console.error("--until-idle requires watch without a run id (idle means no running runs)"); return 2; }
       return need ? (await watch(ctx, need), 0) : (await watchAll(ctx, { untilIdle: f.has("until-idle") }), 0);
-    case "work": await work(ctx, { concurrency: Number(f.get("concurrency") ?? 2), tasks: f.get("task")?.split(",") ?? [], opts: optsOf(f), wait: f.has("wait") }); return 0;
+    case "work": await work(ctx, { concurrency: Number(f.get("concurrency") ?? 2), tasks: f.get("task")?.split(",") ?? [], opts: optsOf(f, typeof launcherFrom(process.env, root) !== "string"), wait: f.has("wait") }); return 0;
     default: console.error(USAGE); return 2;
   }
 };

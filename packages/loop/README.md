@@ -26,7 +26,7 @@ pnpm loop clean [<run id>]                                   # remove finished r
 ```
 
 Flags of `run` (and of every run `work` starts): `--script pair|research`, `--model`, `--checker-model` (`provider/id`; a
-bare id is the gateway's), `--sandbox cloud|none|light|heavy` (default `cloud`), `--rounds 3`, `--budget-usd 5`, `--timeout-min 30`,
+bare id is the gateway's), `--sandbox cloud|none|light|heavy` (default `cloud` once a sandbox is set up, `none` until then), `--rounds 3`, `--budget-usd 5`, `--timeout-min 30`,
 `--checkers reviewer,adversary`. Tests: `pnpm loop:test`.
 
 ## Agent definitions
@@ -156,7 +156,7 @@ after a retry, a resume or a restart). A gateway that binds a session to one ups
 
 ## Sandboxes
 
-`cloud` (the default, Aaron's ruling of 11 November 2026): the run's agents execute in a box off this Mac
+`cloud` (the default once `packages/sandbox/deploy.sh` has set one up, Aaron's ruling of 11 November 2026): the run's agents execute in a box off this Mac
 (`packages/sandbox`, `capxul/internal/cloud.ts`). Every tool call of every agent, every gate and every commit runs in the
 run's box; the lane here gets the commits back as git, so `loop show`, the push and the merge read it as before. The
 ledger, the model calls and a person's notes stay here. The box has no network: the image holds the repository and its
