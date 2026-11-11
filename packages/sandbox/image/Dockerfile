@@ -9,6 +9,12 @@ RUN curl --fail --location --retry 5 --retry-all-errors \
       https://github.com/foundry-rs/foundry/releases/download/v1.8.5/foundry_v1.8.5_linux_amd64.tar.gz --output /tmp/foundry.tar.gz \
     && echo "6c66ffcc55fa4249197721baa3098bc208014ea1d8aa04b2ed50ac6bccffb226  /tmp/foundry.tar.gz" | sha256sum --check \
     && tar --extract --gzip --file /tmp/foundry.tar.gz --directory /usr/local/bin anvil forge cast && rm /tmp/foundry.tar.gz
+# The Solidity compilers the contracts pin (packages/contracts 0.8.28, the spike's 0.8.24), where Foundry looks for them,
+# checked against soliditylang.org's list: a box has no internet to fetch them.
+RUN for v in "0.8.28 7893614a 9a0fb7e0db2c0641dbae1c5cc645dc686820c83af516226abb1c0a2f76636f25" "0.8.24 e11b9ed9 fb03a29a517452b9f12bcf459ef37d0a543765bb3bbc911e70a87d6a37c30d5f"; do \
+      set -- $v; mkdir -p "/root/.svm/$1"; \
+      curl --fail --location --retry 5 --retry-all-errors "https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v$1+commit.$2" -o "/root/.svm/$1/solc-$1"; \
+      echo "$3  /root/.svm/$1/solc-$1" | sha256sum --check && chmod +x "/root/.svm/$1/solc-$1" || exit 1; done
 # pnpm as the repository's packageManager names it.
 COPY repo/package.json /tmp/package.json
 RUN corepack enable && cd /tmp && corepack prepare "$(node -p 'require("./package.json").packageManager')" --activate && pnpm --version
