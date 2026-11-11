@@ -1515,6 +1515,11 @@
       "date": "2026-11-11",
       "by": "coordinator",
       "text": "09:45: lesson: a task's done-when must be false when the run starts, or a run passes by adding nothing (m1-eval-near-misses)"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "10:05: merging m1-agent-records-11110813: reviewer approve, 1 round, 1.31M tokens, 6 refused, 0 failures; the five agents are definition files in packages/loop/agents"
     }
   ]
 }
