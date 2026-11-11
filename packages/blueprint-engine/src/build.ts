@@ -9,6 +9,7 @@ import { classifyFindings, isErrorProducer } from "./findings.ts";
 import { telemetryGaps } from "./telemetry.ts";
 import { siteGaps, siteProblems } from "./site.ts";
 import { signalGaps, signalProblems } from "./signals.ts";
+import { screenProblems } from "./screens.ts";
 import { argsOf, chosenProblem, reachedStates, sendsEvent } from "./reach.ts";
 export { argsOf };
 
@@ -107,7 +108,7 @@ export const buildBlueprint = (input: { name: string; stage: "as-is" | "target";
 
   const blueprint = { name: input.name, stage: input.stage, records, links, linkedBy, problems, gaps: [] as Finding[], standing: [] as StandingFinding[], evals: [] as EvalDef[] };
   checkRules(blueprint, problems);
-  problems.push(...exampleProblems(blueprint, all(blueprint, "operation")), ...siteProblems(blueprint), ...signalProblems(blueprint));
+  problems.push(...exampleProblems(blueprint, all(blueprint, "operation")), ...siteProblems(blueprint), ...signalProblems(blueprint), ...screenProblems(blueprint));
   if (input.stage === "target") checkTargetRules(blueprint, problems);
   const gaps = deriveGaps(blueprint, input.stage);
   return classifyFindings(blueprint, gaps, problems);

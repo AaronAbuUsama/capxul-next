@@ -16,6 +16,7 @@ export const KINDS = [
   "doctype",
   "role",
   "feature",
+  "screen",
   "machine",
   "transition",
   "log",
