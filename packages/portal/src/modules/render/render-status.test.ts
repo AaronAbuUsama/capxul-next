@@ -87,6 +87,7 @@ for (const commit of ["abc1234", "abc123456789", "def5678", "abc1234+dirty"]) {
   test("verdict provenance links artifacts at the built snapshot, not tested revision " + commit, () => {
     const doc = { version: 1 as const, evals: Object.fromEntries(ids.map((id) => [id, {
       verdict: "pass" as const, commit, at: "2026-11-10T10:00:00Z", run: "run-test", evidence: "status/runs/run-test/evidence/check.txt",
+      claim: fixtureInput("abc1234", "as-is", null, records).blueprint.evals.find((e) => e.id === id)?.claim ?? "",
     }])) };
     const site = buildSite(fixtureInput("abc1234", "as-is", doc, records));
     const operation = site.pages.find((p) => p.type === "operation" && p.id === "operation/invite.accept");

@@ -839,3 +839,36 @@ export const decision_portal_blueprint_guide = defineDecision({
   source: by("thread request of 11 November 2026; docs/blueprint.md; packages/blueprint-engine/src/build.ts, evals.ts, stand.ts; evals/bindings/"),
   affects: [f.system_capxul, decision_portal_sitemap, decision_portal_generated_content],
 });
+
+// ── the product-only portal (11 November 2026) ─────────────────────────────────────────────────
+
+export const decision_portal_product_only = defineDecision({
+  id: "portal.product-only",
+  title: "The portal shows the product and where it stands, not the plan or the runs",
+  question:
+    "What does the portal answer, now that the owner wants it lean, generated and decoupled from the planning and the " +
+    "software factory?",
+  options: [
+    {
+      label: "strip",
+      text:
+        "Keep the pages generated from the blueprint and its verdicts: Overview, Questions, Worlds, Blueprint, Concepts, " +
+        "Architecture, Build, Docs and every record's page. Remove the Plan page, the milestone and task pages, the work " +
+        "board and the plan note on the Overview, and the Runs entry the script added to the top bar. The plan stays in " +
+        "plan/ and `pnpm plan show`; the loop's host still answers under /runs/ when the server passes it through, but no " +
+        "page links to it. The Questions page still lists the plan's tasks blocked on a need of the owner, since that is " +
+        "where he answers them. A History page, read from git at generation, says who worked on each concept and when; " +
+        "a verdict whose claim has changed since it was recorded counts as not run.",
+    },
+    { label: "atlas", text: "Replace the portal with a new lean generated site (packages/atlas). Rejected by the owner: keep what we have." },
+    { label: "keep", text: "Keep the plan pages and the board beside the product pages, as decided in portal.plan-page and portal.overview-board." },
+  ],
+  chosen: "strip",
+  why:
+    "The owner, 11 November 2026: \"keep it based on what we have, just strip out the things that we don't need and just " +
+    "make it up to date\", after asking for a lean portal that answers only what the product is and where it is, decoupled " +
+    "from the planning and the software factory. He chose \"Strip as proposed\". This supersedes the Plan page of " +
+    "portal.plan-page (the plan itself is unchanged) and the work board of portal.overview-board.",
+  source: "Aaron, 11 November 2026, 19:38 and 19:39 UTC, in the blueprint thread (the card \"How should I trim and update the existing portal?\")",
+  affects: [f.system_capxul, decision_portal_plan_page, decision_portal_board, decision_portal_sitemap],
+});

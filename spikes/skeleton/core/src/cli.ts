@@ -11,6 +11,7 @@ import { sign } from "./hmac.ts";
 import { touched, trace } from "./trace.ts";
 import { clock, siteOf, world } from "./world.ts";
 import { byEmail, operatorKey } from "./people.ts";
+import type { Out } from "./doc.ts";
 
 const exec = promisify(execFile);
 export { CliError };
@@ -43,17 +44,18 @@ async function actingAdmin(slug: string, as?: string) {
   return person(info.adminEmail);
 }
 
-async function ensureOnChain(slug: string, admin: string, budget: string, fund: string): Promise<{ safe: Address; created: boolean }> {
+async function ensureOnChain(slug: string, admin: string, budget: string, fund: string, coDirectors: string[] = []): Promise<{ safe: Address; created: boolean }> {
   const d = deployment();
   await syncTime();
   const { v4EnsureOrg } = await import("./v4.ts");
-  return v4EnsureOrg(slug, person(admin), toUnits(budget), toUnits(fund), d.usdc);
+  return v4EnsureOrg(slug, person(admin), toUnits(budget), toUnits(fund), d.usdc, coDirectors.map(person));
 }
 
 export async function orgCreate(args: string[]): Promise<string[]> {
   const [slug, name] = args;
   const admin = flag(args, "admin");
-  if (!slug || !name || !admin) throw refuse("USAGE", 'usage: org create <slug> "<company name>" --admin <email> [--budget 10000] [--fund 50000]');
+  if (!slug || !name || !admin) throw refuse("USAGE", 'usage: org create <slug> "<company name>" --admin <email> [--co-director <email>] [--budget 10000] [--fund 50000]');
+  const coDirectors = flag(args, "co-director") ? [person(flag(args, "co-director")!).email] : [];
   if (!/^[a-z][a-z0-9-]{1,30}$/.test(slug)) throw refuse("USAGE", "slug must be lowercase letters, digits and dashes");
   person(admin);
   touched.actor = admin;
@@ -65,8 +67,8 @@ export async function orgCreate(args: string[]): Promise<string[]> {
   if (!up) throw new CliError(`Core stub is not reachable at ${config.coreUrl}. Start it with core/bin/up.sh. Nothing was created.`, "CORE_UNREACHABLE");
 
   const out: string[] = [];
-  const { safe, created } = await ensureOnChain(slug, admin, flag(args, "budget") ?? "10000", flag(args, "fund") ?? "50000");
-  out.push(created ? `chain: org ${slug} minted by Companies House, Safe ${safe}, ${admin} wears admin`
+  const { safe, created } = await ensureOnChain(slug, admin, flag(args, "budget") ?? "10000", flag(args, "fund") ?? "50000", coDirectors);
+  out.push(created ? `chain: org ${slug} minted by Companies House, Safe ${safe}, ${admin} wears admin${coDirectors.length ? `; Directors ${[admin, ...coDirectors].join(", ")}` : ""}`
     : `chain: org ${slug} already on the chain, reusing Safe ${safe}`);
   await core("/admin/org", { slug, name, safe, adminEmail: admin });
 
@@ -91,14 +93,15 @@ export async function orgCreate(args: string[]): Promise<string[]> {
   return out;
 }
 
-async function hat(kind: "grant" | "revoke", args: string[]): Promise<string[]> {
+async function hat(kind: "grant" | "revoke", args: string[]): Promise<Out> {
   const [slug, hatName, email] = args;
-  if (!slug || !hatName || !email) throw refuse("USAGE", `usage: hat ${kind} <slug> <hat> <email> [--department <name>] [--as <admin email>]`);
+  if (!slug || !hatName || !email) throw refuse("USAGE", `usage: hat ${kind} <slug> <hat> <email> [--department <name>] [--as <admin email>] [--propose]`);
   const dept = flag(args, "department") ?? "";
   const admin = await actingAdmin(slug, flag(args, "as"));
   // --address: a wearer Core has no person for (the end-to-end script's poison event, B4g)
   const wearer = (flag(args, "address") ?? person(email).address) as Address;
   if (!(await wears(slug, admin.address as Address, "admin"))) throw refuse("CHAIN_REFUSED", `chain refused hat ${kind}: NotAdmin (${admin.email} does not wear admin in ${slug})`);
+  if (kind === "grant" && args.includes("--propose")) return (await import("./proposal.ts")).proposeHatGrant(slug, hatName, email, wearer, dept, admin.email);
   await syncTime();
   const { v4Hat } = await import("./v4.ts");
   try {
@@ -200,6 +203,8 @@ export async function orgChainSafe(args: string[]): Promise<string[]> {
   if (!minted) throw refuse("UNKNOWN_ORG", `Companies House emitted no CompanySafeMinted for ${slug} founded by ${info.adminEmail}`);
   if ((await publicClient.getCode({ address: minted.safe })) === undefined) throw refuse("UNKNOWN_ORG", `the Safe minted for ${slug} (${minted.safe}) has no code`);
   const owners = await publicClient.readContract({ address: minted.safe, abi: SAFE_ABI, functionName: "getOwners" }) as string[];
-  const facts = { safe: minted.safe, founderSafe: minted.founderSafe, founderPersonalSafe: await founderSafeOf(p, info.adminEmail), owners, mintTx: minted.txHash };
+  // every founding Director's personal Safe, as the claimer derives it from their email (the founder's first)
+  const directorSafes = await Promise.all((v4Org(slug)!.directors ?? [{ email: info.adminEmail }]).map((d) => founderSafeOf(p, d.email)));
+  const facts = { safe: minted.safe, founderSafe: minted.founderSafe, founderPersonalSafe: await founderSafeOf(p, info.adminEmail), owners, directorSafes, mintTx: minted.txHash };
   return [JSON.stringify(facts), minted.safe];
 }

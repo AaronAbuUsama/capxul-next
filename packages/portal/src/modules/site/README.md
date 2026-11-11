@@ -12,7 +12,6 @@ const site = buildSite({ blueprint, commit, concepts, conceptOf, waits, frozen, 
 | Page id | Model | From |
 |---|---|---|
 | `index` | `OverviewPage` | counts, the waiting decisions, the concepts |
-| `plan` | `PlanPage` | the coordinator's plan (`plan/plan.json`, its log) beside the blueprint: the note, goal, milestones, critical path, what is blocked with its decision inline, tasks by state |
 | `review` | `QuestionsPage` | every decision `waits` holds |
 | `design` | `ArchitecturePage` | the hand-drawn diagram, then from the blueprint: what runs where, the layers, one request traced, the Frappe boundary, what the blueprint is silent on |
 | `build` | `BuildPage` | every operation with its evals and its stand, by stand and by concept |

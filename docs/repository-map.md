@@ -27,7 +27,7 @@ book" or "the book" and lived in `books/`; older documents and records still say
 | `GROUNDING.md` | The four fixed points of the product, in Aaron's words | the blueprint and the plan cite it |
 | `blueprint/` | The design, as typed records: one folder per concept and `shared/`; `baseline/` is the old system's behaviour, never edited | `packages/blueprint-engine` builds it; every check reads it |
 | `packages/` | The code, one package per component (below) | pnpm workspace |
-| `plan/` | The coordinator's plan: `plan.json`, the log, the owner's answers, one file per task | `pnpm plan`, the portal's Plan page, the loop |
+| `plan/` | The coordinator's plan: `plan.json`, the log, the owner's answers, one file per task | `pnpm plan`, the loop, the portal's Questions (needs of the owner) |
 | `evals/` | `bindings/`: which check proves which eval of the blueprint | `pnpm evals` |
 | `status/` | The scoreboard: `status.json` and the evidence of each run | written only by `pnpm evals`; read by the portal and the plan |
 | `loops/` | The scripts the loop runs (`pair.ts`, `research.ts`) | `pnpm loop run <task id> --script <name>` |
@@ -48,7 +48,7 @@ book" or "the book" and lived in `books/`; older documents and records still say
 
 | Package | What it is | Scripts that live here |
 |---|---|---|
-| `blueprint` | The blueprint's engine: record types, the builder, its checks | `scripts/`: `check-frozen.ts` (`pnpm frozen`), `report-cut.ts`, `report-surface.ts`, `report-judgments.ts` (`pnpm judgments`), `impact.ts`, `target.ts` (loads the blueprint for the others) |
+| `blueprint` | The blueprint's engine: record types, the builder, its checks | `scripts/`: `check-frozen.ts` (`pnpm frozen`), `report-cut.ts`, `report-surface.ts`, `report-judgments.ts` (`pnpm judgments`), `impact.ts`, `ripple.ts` (`pnpm blueprint:ripple`), `at.ts` (the blueprint at a commit), `target.ts` (loads the blueprint for the others) |
 | `portal` | Generates and serves the portal from the blueprint, the plan and the scoreboard | |
 | `plan` | The plan CLI, the plan's checks and the task tree | `src/main.ts` (`pnpm plan`), `src/tasks.ts` (`pnpm tasks`) |
 | `evals` | Runs the checks bound to evals; the only writer of `status/` | `src/record-status.ts` |
@@ -56,7 +56,7 @@ book" or "the book" and lived in `books/`; older documents and records still say
 | `contracts` | The product's contracts (Foundry) | `abi-check/`: `main.ts` (`pnpm contracts:check-blueprint`), `export-abi.ts` (`pnpm contracts:export-abi`) |
 | `sdk` | The product SDK | |
 | `devnet` | The local chain and worlds | `cloud/` (the product stack in a Claude cloud container), `src/modules/company/` (a company's life on the real v4 contracts) |
-| `frappe-app` | The Capxul app on every hosted Frappe site (moved from the spike) | `capxul/hooks.py`, `capxul/setup.py` |
+| `frappe-app` | The Capxul app on every hosted Frappe site (moved from the spike) | `capxul/hooks.py`, `capxul/setup.py`; `blueprint-check/` (`pnpm frappe:check-blueprint`) |
 | `layout` | The layout check | `src/main.ts` (`pnpm layout`), `oversize.json` |
 
 ## Where `tools/` went

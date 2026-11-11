@@ -33,17 +33,22 @@ export type V4Org = {
   slug: string; company: Company; hats: Record<string, string>; budgets: Record<string, string>;
   /** `${hatId}:${wearer}` -> the department the last grant named */
   departments: Record<string, string>;
+  /** Every founding Director, the founder first: their email and personal Safe (the Board's signers). */
+  directors?: { email: string; safe: string }[];
+  /** Board proposals that wait for the other Directors (proposal.ts), by id. */
+  proposals?: Record<string, V4Proposal>;
 };
+export type V4Proposal = { id: string; kind: "hat grant"; hat: string; wearer: string; department: string; safeTxHash: Hex; calls: { to: Hex; data: Hex }[]; state: "waiting" | "applied"; proposedBy: string; txHash?: Hex };
 type Registry = Record<string, V4Org>;
 
 // bigint does not survive JSON: hats and budgets are kept as decimal strings, the company's with a reviver
 const reviveCompany = (c: any): Company => ({ ...c, boardTopHat: BigInt(c.boardTopHat), officerHats: c.officerHats.map(BigInt), topBudget: BigInt(c.topBudget) });
-const registry = (): Registry => {
+export const registry = (): Registry => {
   const r = loadJson<Registry>("v4-orgs.json", {});
   for (const o of Object.values(r)) o.company = reviveCompany(o.company);
   return r;
 };
-const saveRegistry = (r: Registry) => saveJson("v4-orgs.json", JSON.parse(JSON.stringify(r, (_k, v) => (typeof v === "bigint" ? v.toString() : v))));
+export const saveRegistry = (r: Registry) => saveJson("v4-orgs.json", JSON.parse(JSON.stringify(r, (_k, v) => (typeof v === "bigint" ? v.toString() : v))));
 export const v4Org = (slug: string): V4Org | undefined => registry()[slug];
 
 let protocol: Promise<Protocol> | undefined;
@@ -66,7 +71,8 @@ export async function fundPeople(): Promise<void> {
   }
 }
 
-export async function v4EnsureOrg(slug: string, admin: { email: string; address: string; privateKey: Hex }, budget: bigint, fund: bigint, token: Address): Promise<{ safe: Address; created: boolean }> {
+type Who = { email: string; address: string; privateKey: Hex };
+export async function v4EnsureOrg(slug: string, admin: Who, budget: bigint, fund: bigint, token: Address, coDirectors: readonly Who[] = []): Promise<{ safe: Address; created: boolean }> {
   const known = v4Org(slug);
   if (known) return { safe: known.company.companySafe as Address, created: false };
   const p = await proto();
@@ -75,6 +81,7 @@ export async function v4EnsureOrg(slug: string, admin: { email: string; address:
     founderEmail: admin.email, company: slug, token,
     officers: HAT_NAMES.map((n) => ({ details: n, maxSupply: 20 })),
     ceiling: fund, topAmount: budget, salt: keccak256(toHex(`capxul-skeleton:${slug}`)),
+    coDirectors: coDirectors.map((d) => ({ email: d.email, key: d.privateKey })),
   });
   const hats = Object.fromEntries(HAT_NAMES.map((n, i) => [n, company.officerHats[i]!.toString()]));
   // One spending budget, as the stand-in's one budget per org: budget-holder's budget is a child of admin's, and Budgets
@@ -84,7 +91,8 @@ export async function v4EnsureOrg(slug: string, admin: { email: string; address:
   const spending = await createDepartment(p, company, BigInt(hats["budget-holder"]!), adminBudget);
   await setBudget(p, company, spending, budget);
   const budgets: Record<string, string> = { admin: adminBudget.toString(), "budget-holder": spending.toString() };
-  const r = registry(); r[slug] = { slug, company, hats, budgets, departments: {} }; saveRegistry(r);
+  const r = registry(); const directors = [{ email: admin.email, safe: company.founderSafe }, ...coDirectors.map((d, i) => ({ email: d.email, safe: company.coDirectors![i]!.safe }))];
+  r[slug] = { slug, company, hats, budgets, departments: {}, directors, proposals: {} }; saveRegistry(r);
   const wallet = p.chain.walletFor(operatorKey);
   const mint = await wallet.writeContract({ address: token, abi: ERC20, functionName: "mint", args: [company.companySafe, fund] });
   await p.chain.client.waitForTransactionReceipt({ hash: mint });

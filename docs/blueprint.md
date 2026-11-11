@@ -657,23 +657,20 @@ The blueprint says what to build; the plan says where the build is and what come
   `task add | start | block | unblock | done | drop | edit`, `path set`, `milestone current`, `exit met`, `check`, and
   `goal set`, `exit add`, `milestone add` to shape it. Every change takes `--by <name>` (default `coordinator`), is validated,
   written, appended to `plan/log.jsonl` (one line: time, who, action, arguments, commit; never rewritten) and printed.
-- **It is checked against the blueprint.** `pnpm plan check` (also inside `pnpm portal:check` and `pnpm test`) fails, naming the task
+- **It is checked against the blueprint.** `pnpm plan check` (also inside `pnpm test`) fails, naming the task
   and why, when: an id is used twice; a task's milestone or a `needs` entry does not exist, or `needs` form a cycle; a task is
   doing with no thread, or blocked with no blocker, or blocked on a decision the blueprint does not hold; a record key, eval id or
   concept it names does not resolve; not exactly one milestone is current; a task on the path does not exist, is done or
   dropped, or belongs to a later milestone than the current one and is not blocked (a blocked later task may stand on the path:
   the coordinator asks for it early); or an exit line is met with no evidence.
-- **It is shown at `/plan/`** (top bar, after Overview, with the count of what waits on the owner): the latest note, the goal,
-  the milestones with their exit lines and, where they name concepts, how many of those concepts' evals pass, the critical path
-  in its order and words, what is blocked (for a decision: its question, options and the blueprint's recommendation inline and a
-  link to it on the Questions page; for a need: who and what), the tasks by state with their threads, and the last twenty log
-  lines. It has Markdown and JSON twins and a line in `llms.txt`. The Overview shows the latest note and a link.
+- **It is not on the portal** (decision `portal.product-only`, 11 November 2026). The portal shows the product and where it
+  stands; the plan is read with `pnpm plan show`. Only the plan's tasks blocked on a need of the owner reach the portal, on the
+  Questions page, where he answers them.
 - **It is explained in files.** `plan/plan.json` is the state; the explanation is Markdown beside it: `plan/outline.md` (where we
   are going, what this goal is, how we get there, how the work runs, what is not in it), `plan/milestones/<id>.md` and
   `plan/tasks/<id>.md` (a task file has What, Why and Done when). `plan check` requires all of them and fails on a file that
   belongs to nothing; `pnpm plan task add` makes the file from `--what`, `--why` and `--done-when` (or a `--detail-file`) and
-  refuses without them; `pnpm plan show <task id>` prints one task in full. The portal draws a page per task
-  (`/plan/task/<id>/`) and per milestone (`/plan/milestone/<id>/`), and the Plan page reads top to bottom from them.
+  refuses without them; `pnpm plan show <task id>` prints one task in full.
 - **What waits on the owner is one list, and an answer is saved.** The Questions page holds the blueprint's waiting decisions and
   the plan's tasks blocked on a need of the owner, with one count. `pnpm portal:serve [--port 4391]` serves
   `packages/portal/dist` on 127.0.0.1 with `POST /api/answers` (one validated line appended to `plan/answers.jsonl`, or a

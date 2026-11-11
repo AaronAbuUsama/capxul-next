@@ -29,6 +29,9 @@ export const DoctypeField = Schema.Struct({
   /** Frappe's default, as Frappe stores it: a string (`"0"`, `"USDC"`). */
   default: Schema.optionalKey(Schema.String),
   about: Schema.optionalKey(Line),
+  /** On a Frappe or ERPNext DocType: a field of theirs Capxul relies on (`paid_amount`), not a Custom Field it adds.
+   * The agreement check compares only the Custom Fields. */
+  standard: Schema.optionalKey(Schema.Boolean),
 });
 
 export const DoctypePermission = Schema.Struct({
@@ -45,7 +48,8 @@ export const DoctypeSpec = Schema.Struct({
   concept: Ref("concept"),
   /** Frappe's name for it: `Capxul Hat Grant`. */
   name: Title,
-  /** Whose DocType it is. For `frappe` and `erpnext`, `fields` lists only the Custom Fields Capxul's app adds to it. */
+  /** Whose DocType it is. For `frappe` and `erpnext`, `fields` lists the Custom Fields Capxul's app adds to it,
+   * and the standard fields Capxul relies on, marked `standard`. */
   app: Schema.Literals(["capxul", "frappe", "erpnext"]),
   /** One document per site (Frappe's `issingle`). */
   single: Schema.optionalKey(Schema.Boolean),

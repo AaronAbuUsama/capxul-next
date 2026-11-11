@@ -32,7 +32,7 @@ const replaceIn = (file: string, from: string, to: string) => (copy: Map<string,
 };
 
 test("what the blueprint expects: a page per record that has one, the waiting list, the operations", () => {
-  assert.deepEqual(expected.pages.slice(0, 6), ["index", "plan", "review", "design", "build", "docs"]);
+  assert.deepEqual(expected.pages.slice(0, 5), ["index", "review", "design", "build", "docs"]);
   assert.ok(expected.pages.includes("operation/org.member.invite") && expected.pages.includes("concept/access"));
   assert.equal(expected.pages.some((p) => /^(transition|call|function|chainEvent|system)\//.test(p)), false);
   assert.deepEqual(expected.waiting, [WAITING]);
@@ -46,7 +46,7 @@ test("what the blueprint expects: a page per record that has one, the waiting li
 test("a generated site passes every part", () => {
   const outcomes = run(files, generate());
   assert.deepEqual(failed(outcomes), [], JSON.stringify(outcomes, null, 2));
-  assert.equal(outcomes.length, 11);
+  assert.equal(outcomes.length, 9);
   assert.ok(passed(outcomes));
 });
 
@@ -152,7 +152,7 @@ test("a climb status contradicting its count fails in the model or rendered Over
 
 test("recorded passes and operation progress are stated numerically, never as Not started", () => {
   const site = buildSite({ ...input, status: { version: 1, evals: {
-    "ret:invite.accept": { verdict: "pass", commit: "abc1234", at: "2026-11-10T10:00:00Z" },
+    "ret:invite.accept": { verdict: "pass", commit: "abc1234", at: "2026-11-10T10:00:00Z", claim: input.blueprint.evals.find((e) => e.id === "ret:invite.accept")?.claim ?? "" },
   } } });
   const overview = site.pages.find((p) => p.type === "overview");
   assert.ok(overview?.type === "overview");

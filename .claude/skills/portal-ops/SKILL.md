@@ -20,7 +20,7 @@ Tailscale serves `https://macbook.tail4b9a40.ts.net:8443` to `127.0.0.1:4391`. `
 ## Check
 
 ```bash
-curl -sf -o /dev/null -w "%{http_code}\n" http://127.0.0.1:4391/plan/       # 200
+curl -sf -o /dev/null -w "%{http_code}\n" http://127.0.0.1:4391/review/     # 200
 curl -sf http://127.0.0.1:4392/runs/summary.json | head -c 200             # the runs
 pnpm portal:check                                                          # every page and link
 ```

@@ -50,6 +50,12 @@ layers, so the blueprint never loops back on itself:
 - **The whole system.** The *system*, its *components* (what runs) and *environments* (where), the
   *concepts* that own everything, *errors* (one vocabulary with exit codes), *journeys* (a person's path through
   several operations) and *invariants* (what must always hold).
+- **What a person sees in Frappe.** A *doctype* is a Frappe DocType (or the fields Capxul adds to one), a *role* is a
+  hat and the Frappe roles it grants, a *feature* is a part of the site a company turns on, and a *screen* is what a
+  person sees, on which DocType, for which hats.
+- **How the running system is watched.** A *log* is a row the system writes, a *metric* a number it records, an
+  *insight* a question asked of events, logs and metrics, an *alert* what fires when an insight crosses a line, and a
+  *dashboard* the insights one audience reads.
 - **Every judgment.** A *decision* records a question, the options, what was chosen and why, and which records it
   affects.
 

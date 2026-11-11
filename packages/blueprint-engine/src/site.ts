@@ -27,6 +27,7 @@ export const siteProblems = (b: Records): Finding[] => {
       if (f.link && f.type !== "Link" && f.type !== "Table") p(d, "doctype-field", `${f.name} is ${f.type}, which links to no DocType`);
       if (f.type === "Table" && linked && !linked.child) p(d, "doctype-field", `${f.name} holds rows of ${linked.id}, which is not a child DocType`);
       if (f.type === "Link" && linked?.child) p(d, "doctype-field", `${f.name} links to ${linked.id}, a child DocType, which has no documents of its own`);
+      if ((f as { standard?: boolean }).standard && d.app === "capxul") p(d, "doctype-field", `${f.name} is marked standard, but Capxul's own DocType has no fields of Frappe's`);
       if (f.type === "Select" && !f.options?.length) p(d, "doctype-field", `${f.name} is a Select with no options`);
     }
   }

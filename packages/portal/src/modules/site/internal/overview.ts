@@ -6,7 +6,6 @@ import { catalogueOf } from "./catalogue.ts";
 import { findingRows, head, membersOf, ofKind, titleOf, type Ctx } from "./context.ts";
 import { EVALS } from "./evalCatalogue.ts";
 import { hasPage, refOf } from "./locate.ts";
-import { blockedOf, taskOf, goalSummary } from "./plan.ts";
 import { HAND_WRITTEN, inbox } from "./questions.ts";
 import { count, plural } from "./values.ts";
 
@@ -16,13 +15,14 @@ const barOf = (n: number, of: number): ClimbCard["bar"] => (n === 0 ? "empty" : 
 const HOLDS: readonly (readonly [string, string])[] = [
   ["operation", "operations"], ["decision", "decisions"], ["table", "tables"], ["event", "events"], ["error", "errors"],
   ["machine", "state machines"], ["rpc", "rpcs"], ["contract", "contracts"], ["flow", "flows"],
-  ["workflow", "workflows"], ["journey", "journeys"],
+  ["workflow", "workflows"], ["journey", "journeys"], ["doctype", "DocTypes"], ["role", "hats"], ["feature", "features"],
+  ["screen", "screens"], ["log", "logs"], ["metric", "metrics"], ["insight", "insights"], ["alert", "alerts"], ["dashboard", "dashboards"],
 ];
 
 export const NAV: readonly Ref[] = [
-  { label: "Overview", page: "index", anchor: "" }, { label: "Plan", page: "plan", anchor: "" }, { label: "Questions", page: "review", anchor: "" },
+  { label: "Overview", page: "index", anchor: "" }, { label: "Questions", page: "review", anchor: "" },
   { label: "Worlds", page: "worlds", anchor: "" }, { label: "Blueprint", page: "blueprint", anchor: "" }, { label: "Concepts", page: "index", anchor: "concepts" }, { label: "Architecture", page: "design", anchor: "" },
-  { label: "Build", page: "build", anchor: "" }, { label: "Docs", page: "docs", anchor: "" },
+  { label: "Build", page: "build", anchor: "" }, { label: "History", page: "history", anchor: "" }, { label: "Docs", page: "docs", anchor: "" },
 ];
 
 const climb = (ctx: Ctx): readonly ClimbCard[] => {
@@ -57,14 +57,7 @@ export const overview = (ctx: Ctx): OverviewPage => {
   const paged = [...ctx.byKind].filter(([kind]) => hasPage(kind));
   return {
     ...head("index", "Overview", HAND_WRITTEN, null), type: "overview", commit,
-    board: {
-      date: ctx.input.today ?? new Date().toISOString().slice(0, 10),
-      next: (ctx.input.plan?.plan.path.tasks ?? []).flatMap((id) => { const t = ctx.input.plan?.plan.tasks.find((t) => t.id === id); return t ? [taskOf(ctx, t)] : []; }),
-      blocked: (ctx.input.plan?.plan.tasks ?? []).filter((t) => t.state === "blocked").map((t) => blockedOf(ctx, t)),
-      done: (ctx.input.plan?.plan.tasks ?? []).filter((t) => t.state === "done" && t.updated.slice(0, 10) === (ctx.input.today ?? new Date().toISOString().slice(0, 10))).map((t) => taskOf(ctx, t)),
-      merges: ctx.input.mergesToday ?? [],
-    },
-    planNote: ctx.input.plan?.plan.notes[ctx.input.plan.plan.notes.length - 1] ?? null, inbox: inbox(ctx).length, planGoal: goalSummary(ctx.input.plan?.files.outline ?? null),
+    inbox: inbox(ctx).length,
     hero: direction.hero, needsYou: direction.needsYou, banner: direction.banner, climb: climb(ctx),
     verdicts: { given: concepts.filter((c) => c.verdict !== "none").length, of: concepts.length },
     waiting: inbox(ctx),
@@ -72,7 +65,7 @@ export const overview = (ctx: Ctx): OverviewPage => {
       big: count(kind === "" ? blueprint.evals.length : ofKind(ctx, kind).length), name, to: kind === "" ? EVALS : catalogueOf(kind),
     })),
     concepts, counts: Object.fromEntries([...ctx.byKind].map(([kind, held]) => [kind, held.length])), evals: blueprint.evals.length,
-    problems: findingRows(blueprint.problems), gaps: findingRows(blueprint.gaps), nav: NAV.filter((r) => (r.page !== "worlds" || ctx.input.worlds) && (r.page !== "blueprint" || ctx.input.guide)),
+    problems: findingRows(blueprint.problems), gaps: findingRows(blueprint.gaps), nav: NAV.filter((r) => (r.page !== "worlds" || ctx.input.worlds) && (r.page !== "blueprint" || ctx.input.guide) && (r.page !== "history" || (ctx.input.history ?? []).length > 0)),
     sitemap: Object.fromEntries(paged.map(([kind, held]) => [kind, held.map((r) => r.id)])),
   };
 };

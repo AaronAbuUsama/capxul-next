@@ -126,13 +126,8 @@ export interface ConceptCard {
   readonly ref: Ref; readonly title: string; readonly verdict: Verdict; readonly operations: number; readonly decisions: number;
 }
 export interface OverviewPage extends PageHead {
-  readonly board: { readonly date: string; readonly next: readonly PlanTask[]; readonly blocked: readonly PlanBlocked[]; readonly done: readonly PlanTask[]; readonly merges: readonly { readonly commit: string; readonly title: string }[] };
-  /** The coordinator's latest note, and the link to the plan: null when there is no plan file. */
-  readonly planNote: { readonly date: string; readonly by: string; readonly text: string } | null;
   /** How many things wait on the owner: the Questions page's count. */
   readonly inbox: number;
-  /** The outline's "What this goal is": its opening two sentences. Empty without a plan. */
-  readonly planGoal: string;
   readonly type: "overview"; readonly commit: string;
   readonly hero: Direction["hero"]; readonly needsYou: string; readonly banner: Direction["banner"];
   readonly climb: readonly ClimbCard[]; readonly verdicts: { readonly given: number; readonly of: number };
@@ -236,66 +231,8 @@ export interface CataloguePage extends PageHead {
   readonly type: "catalogue"; readonly nav: string; readonly eyebrow: string; readonly lead: string;
   readonly crumbs: readonly Ref[]; readonly tiles: readonly Tile[]; readonly sections: readonly TableSection[];
 }
-// ── the Plan page ───────────────────────────────────────────────────────────────────────────────
-
-/** A `##` section of one of the plan's Markdown files; `body` is Markdown, which the renderer draws and the twins print as written. */
-export interface PlanSection { readonly heading: string; readonly body: string }
-export interface PlanExit { readonly id: string; readonly claim: string; readonly met: boolean; readonly evidence: string; readonly evals: readonly Ref[] }
-export interface PlanTask {
-  readonly id: string; readonly title: string; readonly why: string; readonly milestone: string; readonly state: TaskState;
-  readonly thread: string; readonly needs: readonly string[]; readonly evidence: readonly string[]; readonly updated: string; readonly droppedWhy: string;
-  /** The first sentence of its What, and its page. */
-  readonly what: string; readonly ref: Ref;
-}
-export interface PlanMilestone {
-  readonly id: string; readonly title: string; readonly goal: string; readonly state: string; readonly order: number; readonly ref: Ref;
-  /** The first sentence of "What it delivers". */
-  readonly delivers: string; readonly tasksTotal: number; readonly tasksDone: number;
-  readonly exit: readonly PlanExit[]; readonly concepts: readonly Ref[];
-  /** True when its exit lines are the goal's, word for word: the page then says so and counts, instead of repeating them. */
-  readonly repeatsGoal: boolean;
-  /** How many of the named concepts' evals pass in the status document; null when it names no concept. */
-  readonly evals: Count | null;
-  readonly sections: readonly PlanSection[]; readonly tasks: readonly PlanTask[];
-}
-/** One step of the critical path: the task, the start of its What, and its Done-when bullets. */
-export interface PlanStep { readonly n: number; readonly task: PlanTask; readonly what: string; readonly doneWhen: readonly string[] }
-export interface PlanLogRow { readonly at: string; readonly by: string; readonly action: string; readonly summary: string; readonly commit: string }
-/** A blocked task and what blocks it, in a line; the context is on the Questions page, which `inbox` links to. */
-export interface PlanBlocked {
-  readonly task: PlanTask; readonly on: "decision" | "need"; readonly who: string; readonly need: string; readonly waitsOnOwner: boolean;
-  readonly decisionRef: Ref | null; readonly inbox: Ref | null;
-}
-export interface PlanPage extends PageHead {
-  readonly type: "plan"; readonly commit: string;
-  /** False when `plan/plan.json` is absent: the page says so and holds nothing else. */
-  readonly present: boolean; readonly owner: string;
-  /** The outline's sections, in its order. */
-  readonly outline: readonly PlanSection[];
-  readonly note: { readonly date: string; readonly by: string; readonly text: string } | null;
-  readonly goal: { readonly title: string; readonly why: string; readonly exit: readonly PlanExit[] } | null;
-  readonly milestones: readonly PlanMilestone[];
-  /** The critical path as the coordinator wrote it: in its order, in its words. */
-  readonly path: { readonly milestone: string; readonly written: string; readonly why: string; readonly steps: readonly PlanStep[] } | null;
-  readonly blocked: readonly PlanBlocked[]; readonly waitsOnOwner: number;
-  /** How many things wait on the owner: the Questions page's count. */
-  readonly inbox: number;
-  readonly groups: readonly { readonly state: TaskState; readonly title: string; readonly tasks: readonly PlanTask[] }[];
-  readonly log: readonly PlanLogRow[]; readonly problems: readonly { readonly at: string; readonly why: string }[];
-}
-/** The page of one task: its whole file, its state, what it needs and what needs it, the records it names, its history. */
-export interface PlanTaskPage extends PageHead {
-  readonly type: "plan-task"; readonly commit: string; readonly task: PlanTask; readonly milestone: PlanMilestone;
-  readonly sections: readonly PlanSection[]; readonly needs: readonly PlanTask[]; readonly neededBy: readonly PlanTask[];
-  /** The records it names, each with how many evals the blueprint derives on it. */
-  readonly records: readonly { readonly ref: Ref; readonly evals: number }[];
-  readonly blocker: PlanBlocked | null; readonly pathPosition: number | null; readonly pathLength: number;
-  readonly history: readonly PlanLogRow[];
-}
-/** The page of one milestone: its whole file, its exit lines, its tasks and its history. */
-export interface PlanMilestonePage extends PageHead {
-  readonly type: "plan-milestone"; readonly commit: string; readonly milestone: PlanMilestone; readonly history: readonly PlanLogRow[];
-}
+/** A `##` section of a Markdown document; `body` is Markdown, which the renderer draws and the twins print as written. */
+export interface Section { readonly heading: string; readonly body: string }
 // ── the Worlds page ─────────────────────────────────────────────────────────────────────────────
 
 /** What the Worlds page is made from: the readable document and the ids of the records that are the worlds design (devnet/platform-index.ts). */
@@ -306,11 +243,11 @@ export interface WorldsInput {
 /** The Worlds page: the document's sections first, then the operations, journeys, decisions and tables of the worlds design. */
 export interface WorldsPage extends PageHead {
   readonly type: "worlds"; readonly commit: string; readonly present: boolean;
-  readonly intro: string; readonly sections: readonly PlanSection[];
+  readonly intro: string; readonly sections: readonly Section[];
   readonly operations: readonly OperationRow[]; readonly journeys: readonly Brief[]; readonly decisions: readonly Brief[]; readonly tables: readonly Brief[];
 }
 export type Page =
-  | GuidePage | WorldsPage | PlanPage | PlanTaskPage | PlanMilestonePage | OverviewPage | QuestionsPage | ArchitecturePage | ConceptPage | OperationPage | RecordPage | BuildPage | CataloguePage;
+  | GuidePage | WorldsPage | OverviewPage | QuestionsPage | ArchitecturePage | ConceptPage | OperationPage | RecordPage | BuildPage | CataloguePage;
 
 export interface Site {
   readonly commit: string;
@@ -339,9 +276,13 @@ export interface FrozenCommand {
 }
 
 /** Everything the site is built from. The composition root loads it; this module reads nothing else. */
+/** One commit, as the History page reads it: who is the author, or Claude when an agent made it. */
+export interface Commit {
+  readonly sha: string; readonly at: string; readonly who: string;
+  /** `task <id>`, `cloud session`, or empty when a person committed it directly. */
+  readonly via: string; readonly subject: string; readonly files: readonly string[];
+}
 export interface SiteInput {
-  readonly today?: string;
-  readonly mergesToday?: readonly { readonly commit: string; readonly title: string }[];
   readonly blueprint: Blueprint;
   /** The commit the blueprint was read at. */
   readonly commit: string;
@@ -360,6 +301,8 @@ export interface SiteInput {
   readonly status: StatusDocument | null;
   /** `plan/plan.json` with the last lines of its log: null when the file is absent. */
   readonly plan: PlanInput | null;
+  /** The repository's commits, newest first: the History page. Absent or empty, there is no History page. */
+  readonly history?: readonly Commit[];
   /** The worlds design: null (or absent) when the document is not in the repository. */
   readonly worlds?: WorldsInput | null;
   /** The guide to the blueprint and what its tables need: null (or absent) without the document. */ readonly guide?: GuideInput | null;
