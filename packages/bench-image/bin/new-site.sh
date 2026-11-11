@@ -6,7 +6,7 @@ set -euo pipefail
 . "$(dirname "$0")/lib.sh"
 site="$1"; company="${2:-Check Company}"
 admin bash -c '
-  set -e; site="$1"; company="$2"
+  set -e; site="$1"; company="$2"; scheme="$3"
   if [ ! -d "sites/$site" ]; then
     bench new-site "$site" --mariadb-user-host-login-scope="%" \
       --db-root-password "$MARIADB_ROOT_PASSWORD" --admin-password "$CAPXUL_ADMIN_PASSWORD"
@@ -19,6 +19,6 @@ admin bash -c '
   bench --site "$site" execute capxul.setup.run_wizard --kwargs "$kw" >&2
   bench --site "$site" migrate >&2                 # every hook that runs on an image roll (names, privacy) runs now
   bench --site "$site" enable-scheduler >&2
-  bench --site "$site" set-config host_name "${CAPXUL_SITE_SCHEME:-http}://$site" >&2
+  bench --site "$site" set-config host_name "$scheme://$site" >&2
   bench --site "$site" list-apps --format json
-' _ "$site" "$company"
+' _ "$site" "$company" "${CAPXUL_SITE_SCHEME:-http}"
