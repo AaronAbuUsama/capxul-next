@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -88,6 +89,34 @@ test("merge: refuses a run that is not ready, a failing gate and a checkout off 
   assert.match((await merge(r.ctx(), info.id))[0]!, /is merged, not ready/);
   assert.equal(existsSync(join(r.root, "var", "runs", info.id, "lane")), false);   // the lane was cleaned
   assert.deepEqual(clean(r.ctx()), ["nothing to clean"]);
+});
+
+test("merge removes a completed task from the real plan's path, preserving the remaining order and reason", async () => {
+  // Exercise the real plan writer and checker, not the rig's command-logging fake.
+  for (const path of [["t2", "t1"], ["t1"], ["t2"]]) {
+    const r = rig();
+    const main = join(import.meta.dirname, "../../../../plan/src/main.ts");
+    writeFileSync(join(r.root, "package.json"), JSON.stringify({ name: "rig", private: true, scripts: { plan: `node --experimental-strip-types --no-warnings ${main}` } }));
+    const cli = (...args: string[]): string => execFileSync("pnpm", ["-s", "plan", ...args], { cwd: r.root, encoding: "utf8" });
+    cli("goal", "set", "--title", "A goal", "--why", "A reason");
+    cli("milestone", "add", "m1", "--title", "First", "--goal", "Foundation");
+    cli("milestone", "current", "m1");
+    for (const id of ["t1", "t2"]) cli("task", "add", id, "--title", id, "--milestone", "m1", "--why", "Needed", "--what", "Make it", "--done-when", "Checked");
+    writeFileSync(join(r.root, "plan/outline.md"), "A goal and its foundation.\n");
+    cli("path", "set", ...path, "--why", "The coordinator's order");
+    git(r.root, "add", "package.json", "plan"); git(r.root, "commit", "-q", "-m", "real plan fixture");
+    r.faux.setResponses([...makes("hello.txt"), fauxAssistantMessage(check("approve"))]);
+    const info = await start(r.ctx(), "t1", opts, pair);
+    assert.equal(info.status, "ready");
+    assert.match((await merge(r.ctx(), info.id))[0]!, /^merged lane\/t1/);
+    const { plan: after } = JSON.parse(cli("show", "--json"));
+    assert.equal(after.tasks.find((t: { id: string }) => t.id === "t1").state, "done");
+    assert.deepEqual(after.path.tasks, path.filter((id) => id !== "t1"));
+    assert.equal(after.path.why, "The coordinator's order");
+    assert.match(cli("check"), /plan check: 0 problems/);
+    const log = readFileSync(join(r.root, "plan/log.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
+    assert.deepEqual(log.slice(path.includes("t1") ? -2 : -1).map((entry) => entry.action), path.includes("t1") ? ["path.set", "task.done"] : ["task.done"]);
+  }
 });
 
 test("a run whose script crashed can be resumed, and the lane and plan claim are not made twice", async () => {
