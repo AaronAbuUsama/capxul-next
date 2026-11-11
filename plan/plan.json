@@ -588,7 +588,7 @@
       "title": "Aaron reads the portal and accepts the book",
       "why": "The book is fit to build from when the owner has read it and accepts it (g7).",
       "milestone": "m1",
-      "state": "todo",
+      "state": "blocked",
       "needs": [
         "m1-plan-page",
         "m1-task-tree",
@@ -607,7 +607,11 @@
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-11",
+      "blockedBy": {
+        "need": "Read the portal in the order on the task page (nine stops, about an hour), then mark done to accept the book at the commit shown at the top, or tell the coordinator what is missing",
+        "who": "aaron"
+      }
     },
     {
       "id": "m1-time-study",
@@ -1756,30 +1760,26 @@
       "title": "Aaron's reading checklist for accepting the portal",
       "why": "exit g7 needs a read with an end and a commit",
       "milestone": "m1",
-      "state": "blocked",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "written by the coordinator in plan/tasks/m1-aaron-accepts.md: the run m1-reading-checklist-11110927 could not write plan files from its lane"
+      ],
       "created": "2026-11-11",
       "updated": "2026-11-11",
-      "thread": "m1-reading-checklist-11110927",
-      "blockedBy": {
-        "need": "loop run m1-reading-checklist-11110927: F-1.1 plan/tasks/m1-aaron-accepts.md holds the ordered checklist: Seen: What remains a single general sentence, with no ordered page checklist or commit-tied acceptance. Expected: The specified portal pages in reading order, each with what to look for and the question it answers, and acceptance tied",
-        "who": "coordinator"
-      }
+      "thread": "m1-reading-checklist-11110927"
     }
   ],
   "path": {
     "tasks": [
-      "m1-reading-checklist",
       "m1-aaron-accepts",
-      "m1-bind-doc-create",
       "m1-eval-coverage",
       "m1-model-gateway",
       "m1-loop-hardening",
       "m1-time-proof"
     ],
-    "why": "m1-g5-findings merged; g5 met. Next: Aaron's read (checklist first) and the score",
+    "why": "Exits g1, g2, g3, g5 met. Left for m1: g7 (Aaron's read, now on his Questions page with the checklist), g8 (the shared world, m3b). The score is the lever while he reads",
     "written": "2026-11-11"
   },
   "notes": [
