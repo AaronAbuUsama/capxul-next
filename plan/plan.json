@@ -1801,12 +1801,13 @@
       "title": "One project command owns every long-running process: start, stop, status, and reap strays",
       "why": "Aaron, 11 Nov: asking him to run commands is not acceptable; sessions cannot raw-kill stray processes",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-ops-supervisor-11110955"
     }
   ],
   "path": {
