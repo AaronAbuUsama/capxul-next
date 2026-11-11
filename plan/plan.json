@@ -1921,6 +1921,11 @@
       "date": "2026-11-11",
       "by": "coordinator",
       "text": "12:10: m1-model-gateway ramp result: 3, 5, 8 and 12 agents at once through the local CLI proxy (127.0.0.1:8317), 0 model failures at every step; refused calls 6, 1, 8, 16 (the loop's command policy, not the gateway). No refusal from the gateway up to 12, so its ceiling is above 12. Open on the task: account stickiness shown by the gateway's usage record (r-affinity: the loop sends session headers; the gateway's own record is not read yet), and the 'gateway as a component' line conflicts with loop.gateway (build tooling, no component record), which the coordinator settles by narrowing that line"
+    },
+    {
+      "date": "2026-11-11",
+      "by": "coordinator",
+      "text": "Correction: the times at the start of this coordinator's notes from '08:12' to '12:10' are wrong labels; each note's own 'at' field holds the real UTC time"
     }
   ]
 }
