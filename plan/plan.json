@@ -1782,13 +1782,14 @@
       "title": "The test stack refuses a chain or Core started from another checkout",
       "why": "11 Nov: the eval ran against an old worktree's chain and Core and failed at B1",
       "milestone": "m1",
-      "state": "doing",
+      "state": "dropped",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
       "updated": "2026-11-11",
-      "thread": "m1-stack-owner-11110947"
+      "thread": "m1-stack-owner-11110947",
+      "droppedWhy": "superseded by m1-ops-supervisor, which refuses a port held from another checkout and reaps worktree processes; run m1-stack-owner-11110947 ended blocked on a custom-STATE_DIR edge case after 3 rounds (work kept)"
     },
     {
       "id": "m1-policy-fit",
@@ -1808,13 +1809,17 @@
       "title": "One project command owns every long-running process: start, stop, status, and reap strays",
       "why": "Aaron, 11 Nov: asking him to run commands is not acceptable; sessions cannot raw-kill stray processes",
       "milestone": "m1",
-      "state": "doing",
+      "state": "blocked",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
       "updated": "2026-11-11",
-      "thread": "m1-ops-supervisor-11110955"
+      "thread": "m1-ops-supervisor-11110955",
+      "blockedBy": {
+        "need": "loop run m1-ops-supervisor-11110955: F-1.2 coordinate and portal-ops skills say to use pnpm ops and never raw kill: Seen: Neither skill was changed; portal-ops still directs sessions to start servers with the individual launch commands. Expected: Both skills direct sessions to pnpm ops and prohibit raw kill. Fix: Update both operationa",
+        "who": "coordinator"
+      }
     },
     {
       "id": "m1-cloud-sandbox",
@@ -1833,12 +1838,13 @@
       "title": "The portal's front door is a board: working now, next, blocked, needs you, done today",
       "why": "Aaron, 11 Nov: he needs to see what is being worked on",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11"
+      "updated": "2026-11-11",
+      "thread": "m1-portal-board-11111002"
     },
     {
       "id": "m1-no-command-gate",
