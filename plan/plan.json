@@ -1901,12 +1901,14 @@
       "title": "Book a company's first funding as the founder's capital",
       "why": "Aaron accepted books.founder-funding as recommended, 12 November 2026 06:08 UTC (a-20261112T060833-a862ae).",
       "milestone": "m2",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [
         "decision:books.founder-funding"
       ],
-      "evidence": [],
+      "evidence": [
+        "fbb1d05 (PR #24); run-20261112070054: TL.books-agree-with-chain passes (the Safe account's General Ledger, founder's capital in and payments out, equals the Safe's USDC on chain), with B6.reports-run; 18 of 18 bound evals pass"
+      ],
       "created": "2026-11-12",
       "updated": "2026-11-12",
       "thread": "cmsg_01KeBXQ6nY6oC8tbE4saDwBoPmDQ2qi3fr2uZSXJB4CUZb"
@@ -1916,7 +1918,7 @@
       "title": "Give the thin line's test world the real bundler",
       "why": "Aaron accepted thin-line.bundler as recommended, 12 November 2026 06:15 UTC (a-20261112T061518-d70798): one canary world has the account-abstraction pipeline; every other test world stays small.",
       "milestone": "m2",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [
         "decision:thin-line.bundler",
@@ -1924,7 +1926,8 @@
       ],
       "evidence": [],
       "created": "2026-11-12",
-      "updated": "2026-11-12"
+      "updated": "2026-11-12",
+      "thread": "cmsg_01KeBXQ6nY6oC8tbE4saDwBoPmDQ2qi3fr2uZSXJB4CUZb"
     },
     {
       "id": "m3b-ponder-world-cost",
