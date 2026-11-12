@@ -419,4 +419,15 @@ export const decision_plugs_native_feature_defaults = dec({
   affects: [f.component_frappe_app, integration_frappe_site],
 });
 
+export const decision_plugs_role_projections = dec({
+  id: "plugs.role-projections",
+  title: "Persist role authority and its exact transitions in the source transaction",
+  question: "How do a finalized hat occurrence and the site's acknowledgement survive a Core restart?",
+  options: [{ label: "transactional-projections", text: "Tenant-keyed site-users and role-grants live in Postgres, readable in exact organization owner scope and writable only by the trusted worker. The source transaction records the grant and user, enqueues native delivery and appends the exact role_grant_transitioned event together. It receives canonical person identity and finalized occurrence identity from authoritative composition, never invents a person from email or an address. A matching native map-version acknowledgement applies the grant; a failed acknowledgement records failure. A finalized revoke retires a pending grant or revokes an applied/failed grant, queues removal and preserves roles supplied by other applied grants. Caller-supplied world milliseconds date rows and events; there is no host-time business fallback." }],
+  chosen: "transactional-projections",
+  why: "The legacy organization directory and native grant rows do not establish Core's declared projections or exact events. A caller-owned transaction closes the state/event/delivery crash window without copying ERPNext documents or sending a provider request inside the common outbox ACK. This storage boundary does not manufacture the still-pending authoritative person/finalized-fact export or claim the workflow is mounted.",
+  evidence: "Slice-zero plugs continuation; landed common outbox and canonical clock contracts, 12 November 2026",
+  affects: [d.table_site_users, d.table_role_grants, d.machine_role_grant, pr.workflow_plugs_roles_project],
+});
+
 void ops; 
