@@ -4,6 +4,31 @@
 // typed answer and a prefilled GitHub issue. It holds no credential.
 (function () {
   "use strict";
+  var marker = document.querySelector('meta[name="portal-generation"]');
+  if (!marker) return;
+  var version = marker.content;
+  var note;
+  function refresh() {
+    fetch("/live.json", { cache: "no-store" }).then(function (res) { return res.ok ? res.json() : null; }).then(function (live) {
+      if (!live || !live.version || live.version === "starting") return;
+      if (version !== live.version) { window.location.reload(); return; }
+      if (!note) {
+        note = document.createElement("p"); note.className = "note"; note.id = "live-status"; note.setAttribute("role", "status");
+        var lead = document.querySelector("main > .lead");
+        if (lead) lead.after(note); else document.querySelector("main").prepend(note);
+      }
+      note.textContent = "Live · read-only · " + live.source + " · updated " + live.at +
+        ". Local evidence is checked every 5 seconds; integration landings every minute." + (live.error ? " " + live.error : "");
+    }).catch(function () {
+      if (note) note.textContent = "Live refresh unavailable. These are the last loaded pages; completion may have changed.";
+    });
+  }
+  refresh();
+  window.setInterval(refresh, 5000);
+})();
+
+(function () {
+  "use strict";
   var main = document.querySelector("main[data-repo]");
   if (!main) return;
   document.documentElement.classList.add("js");

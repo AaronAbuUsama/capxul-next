@@ -16,3 +16,4 @@ export * from "./status.ts";
 export * from "./telemetry.ts";
 export * from "./examples.ts";
 export * from "./ripple.ts";
+export * from "./slices.ts";

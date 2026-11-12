@@ -19,14 +19,18 @@ type Records = Pick<Blueprint, "records" | "links" | "evals" | "problems" | "gap
  * the stand, never in it: a missing example must not move an operation back from build. */
 export const STAND_IGNORES: readonly string[] = ["no-example", "no-span", "state-change-without-event"];
 
-/** The fields followed from each kind of record. Concepts, components, the system, environments, decisions,
- * admissions and waits are not followed. */
+/** The fields followed from each kind of record. Concepts, components, the system, environments, decisions
+ * and table admissions are not followed. */
 const FOLLOW: Readonly<Record<string, ReadonlySet<string>>> = {
+  journey: new Set(["steps"]),
   operation: new Set(["implementedBy", "errors", "refusals"]),
   flow: new Set(["steps", "errors", "calls"]),
-  rpc: new Set(["reads", "writes", "drives", "invokes", "calls", "chain", "errors"]),
-  procedure: new Set(["reads", "writes", "drives", "invokes", "calls", "chain", "errors"]),
-  workflow: new Set(["reads", "writes", "drives", "invokes", "calls", "chain", "errors"]),
+  rpc: new Set(["reads", "writes", "drives", "invokes", "calls", "chain", "errors", "emits"]),
+  procedure: new Set(["reads", "writes", "drives", "invokes", "calls", "chain", "errors", "emits"]),
+  workflow: new Set(["reads", "writes", "drives", "invokes", "calls", "chain", "errors", "emits", "trigger", "waits"]),
+  screen: new Set(["record", "shows", "who", "feature"]),
+  insight: new Set(["reads"]),
+  alert: new Set(["insight"]),
 };
 
 export interface Under {
@@ -53,11 +57,13 @@ const nextOf = (b: Records, key: string): string[] => {
   if (!r) return [];
   if (r._kind === "transition") {
     const machine = `machine:${String(r.machine)}`;
-    const table = b.records.get(machine)?.table as AnyRecord | undefined;
-    return [machine, ...(table ? [`table:${table.id}`] : [])];
+    const parent = b.records.get(machine);
+    const table = parent?.table as AnyRecord | undefined;
+    const move = (parent?.transitions as Record<string, { emits?: AnyRecord[] }> | undefined)?.[String(r.name)];
+    return [machine, ...(table ? [`table:${table.id}`] : []), ...(move?.emits ?? []).map((e) => `event:${e.id}`)];
   }
   if (r._kind === "call") return [`integration:${String(r.integration)}`];
-  if (r._kind === "function") return [`contract:${String(r.contract)}`];
+  if (r._kind === "function" || r._kind === "chainEvent") return [`contract:${String(r.contract)}`];
   const fields = FOLLOW[r._kind];
   return fields ? (fromOf(b).get(key) ?? []).filter((l) => fields.has(l.field)).map((l) => l.to) : [];
 };
@@ -71,21 +77,39 @@ const reach = (b: Records, starts: readonly string[], seen: Set<string>): void =
   }
 };
 
+const underCache = new WeakMap<Records, Map<string, Under>>();
+
 /**
- * The records under an operation, reached from it by the rules, then one hop further: the durable processes its
- * records start (`trigger`) or resume (`signals`), with their own records followed by the same rules.
+ * The records under an operation or journey, to closure, including the processes they start/resume and explicitly
+ * associated telemetry. Chain events come from workflow triggers/waits, never every event on a function's contract.
  */
 export const underOf = (b: Records, op: AnyRecord): Under => {
   const key = `${op._kind}:${op.id}`;
+  const cache = underCache.get(b) ?? new Map<string, Under>();
+  underCache.set(b, cache);
+  const known = cache.get(key);
+  if (known) return known;
   const seen = new Set<string>();
   reach(b, [key], seen);
   const impl = op.implementedBy as AnyRecord | undefined;
   const implKey = impl ? `${impl._kind}:${impl.id}` : "";
   const own = [key, ...(implKey ? [implKey] : []),
     ...(implKey ? (fromOf(b).get(implKey) ?? []).filter((l) => l.field === "steps" && l.to.startsWith("rpc:")).map((l) => l.to) : [])];
-  const processes = b.links.filter((l) => (l.field === "trigger" || l.field === "signals") && l.from.startsWith("workflow:") && seen.has(l.to)).map((l) => l.from);
-  reach(b, processes, seen);
-  return { own: [...new Set(own)], under: [...seen] };
+  for (let size = -1; size !== seen.size;) {
+    size = seen.size;
+    const associated = b.links.filter((l) => seen.has(l.to) && (
+      ((l.field === "trigger" || l.field === "signals") && l.from.startsWith("workflow:")) ||
+      (l.field === "producer" && /^(event|log|metric):/.test(l.from)) ||
+      (l.field === "reads" && l.from.startsWith("insight:")) ||
+      (l.field === "insight" && l.from.startsWith("alert:"))
+    )).map((l) => l.from);
+    const kinds = new Set([...seen].map((k) => k.slice(0, k.indexOf(":"))));
+    associated.push(...[...b.records.values()].filter((r) => r._kind === "log" && kinds.has(String(r.per))).map((r) => `log:${r.id}`));
+    reach(b, associated, seen);
+  }
+  const result = { own: [...new Set(own)], under: [...seen] };
+  cache.set(key, result);
+  return result;
 };
 
 export interface StandOptions {

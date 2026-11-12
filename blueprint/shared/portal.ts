@@ -858,7 +858,8 @@ export const decision_portal_product_only = defineDecision({
         "plan/ and `pnpm plan show`; the loop's host still answers under /runs/ when the server passes it through, but no " +
         "page links to it. The Questions page still lists the plan's tasks blocked on a need of the owner, since that is " +
         "where he answers them. A History page, read from git at generation, says who worked on each concept and when; " +
-        "a verdict whose claim has changed since it was recorded counts as not run.",
+        "a verdict whose claim has changed since it was recorded counts as not run. The generated product-slice " +
+        "coverage board is the narrow exception recorded in portal.product-slices; it does not restore plan or run management.",
     },
     { label: "atlas", text: "Replace the portal with a new lean generated site (packages/atlas). Rejected by the owner: keep what we have." },
     { label: "keep", text: "Keep the plan pages and the board beside the product pages, as decided in portal.plan-page and portal.overview-board." },
@@ -871,4 +872,42 @@ export const decision_portal_product_only = defineDecision({
     "portal.plan-page (the plan itself is unchanged) and the work board of portal.overview-board.",
   source: "Aaron, 11 November 2026, 19:38 and 19:39 UTC, in the blueprint thread (the card \"How should I trim and update the existing portal?\")",
   affects: [f.system_capxul, decision_portal_plan_page, decision_portal_board, decision_portal_sitemap],
+});
+
+export const decision_portal_product_slices = defineDecision({
+  id: "portal.product-slices",
+  title: "Show mechanically derived product slices, not a second work orchestrator",
+  question: "How does the portal show waves and slices without restoring the retired factory?",
+  options: [{
+    label: "generated-coverage",
+    text:
+      "One deterministic journey-by-concept manifest drives blueprint:slices and the board. Wave 0/slice 0 owns " +
+      "thin_line's Postgres/Ponder + ERPNext supplier payment, reconciliation and recovery. Follow underOf to " +
+      "closure: emitted events, workflow triggers/waits, journey proves/seen, screen sources and associated " +
+      "telemetry; never assume every contract event belongs to every function. Each new record has one owner; " +
+      "later users link to that slice. Reserve unproved foundation work instead of subtracting JSON passes. " +
+      "Only complete, claim-fresh selected-stack runs prove work. Require L1, screen and associated alert claims " +
+      "together, with source-equality captures; zero-check slices remain unproved. Slice zero explicitly also " +
+      "requires supplier-invoice, payment-entry, general-ledger and safe-trial-balance shows claims and " +
+      "indexer_unready, delivery_stuck and money_event_parked quiet/fires/clears claims, even while their " +
+      "declarations are landing. Only merged, proved records are subtracted from remaining work; keep their " +
+      "slice identities and prerequisites visible. Keep journey jrn/fun proof separate and list " +
+      "empty journeys and coverage outside them. Sort breadth journeys by descending new reach, then id; " +
+      "first-fit disjoint groups are provisional waves, not a runtime schedule. Wave 1 caps thirteen concepts " +
+      "+ shared. Show one writer per concept, current doing tasks and conflicts, not a new lease or dispatch " +
+      "system. Link records, operations, events, screens, evals, prerequisites and evidence. Completed slices " +
+      "stay visible. portal:serve --live watches local inputs and fetches integration/wave-0 every minute; " +
+      "regenerate read-only snapshots without merging or switching the serving checkout. Retain the last good " +
+      "generation on errors and show its age/error; open pages refresh on new generations. Live previews take " +
+      "no Questions answers. Neither command nor page writes the plan or verdicts.",
+  }],
+  chosen: "generated-coverage",
+  why:
+    "Aaron requested wave 0 and the blueprint's waves and slices inside the portal. The audit found that " +
+    "subtracting the JSON thin-line reach hides the missing product foundation, that events and screens have no " +
+    "slice owner, and that combining historical passes can manufacture completion. Reserve dependencies rather " +
+    "than erase them, retain complete-run provenance, and make concept serialization explicit. The coordinator " +
+    "still owns priority and dispatch; neither the command nor the page writes plan or verdicts.",
+  source: "Aaron's wave/slice request, 12 November 2026; docs/mission/breadth-fan-out-2026-11-11.md; delivery audit revision 3 at 8b9550f",
+  affects: [f.system_capxul, decision_portal_product_only],
 });

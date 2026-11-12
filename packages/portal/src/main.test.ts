@@ -30,6 +30,14 @@ test("the real blueprint generates a site that passes the portal check", async (
       assert.ok(page.includes(phrase), `${path} exposes deployment record: ${phrase}`);
     }
   }
+  assert.ok(input.slices);
+  const board = JSON.parse(files.get("data/board.json") ?? "null") as { sliceManifest: unknown };
+  assert.deepEqual(board.sliceManifest, input.slices, "the CLI and board consume one manifest");
+  assert.match(files.get("board.md") ?? "", /one agent per concept/i);
+  const zero = files.get("slice/slice-0.md") ?? "";
+  for (const claim of ["scr:supplier-invoice/shows", "scr:safe-trial-balance/shows", "alr:money_event_parked/clears"]) assert.ok(zero.includes(claim));
+  assert.match(zero, /Required declaration has not landed|not run/);
+  assert.ok((files.get("slice/slice-0/index.html") ?? "").includes("Owned events and screens"));
   const outcomes = check(files, generate(input, assets), expected);
   assert.ok(passed(outcomes), JSON.stringify(outcomes.filter((o) => o.failures > 0), null, 2));
 
