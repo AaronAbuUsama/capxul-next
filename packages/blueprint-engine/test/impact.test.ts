@@ -65,7 +65,7 @@ test("a decision's impact is what it names and what depends on that", () => {
 
 test("the evals of the subject and every dependent are listed", () => {
   const ids = impactOf(blueprint, "event:invitation_sent")?.evals.map((e) => e.id) ?? [];
-  for (const id of ["acc:org.member.invite/1", "rpc:organizations.invitations.invite/budget", "trn:invitation.send", "jrn:join_organization"]) assert.ok(ids.includes(id), id);
+  for (const id of ["acc:org.member.invite/c-90dd4c9d35059050", "rpc:organizations.invitations.invite/budget", "trn:invitation.send", "jrn:join_organization"]) assert.ok(ids.includes(id), id);
   assert.ok(!ids.includes("rpc:organizations.invitations.accept/budget"));
 });
 

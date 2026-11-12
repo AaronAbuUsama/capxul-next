@@ -10,10 +10,11 @@ import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 
 import { assetsOf, generate, load } from "../../portal/src/main.ts";
+import { loadTarget } from "../../blueprint-engine/scripts/target.ts";
 
 const REPO = resolve(import.meta.dirname, "../../..");
-const FAILING = "acc:doc.submit/1";
-const PASSING = "acc:world.snapshot.restore/1";
+const FAILING = "acc:doc.submit/c-74a45893884b5bef";
+const PASSING = "acc:world.snapshot.restore/c-369b1db183b9807f";
 
 test("a failing result shows as fail on the operation's page, a passing one as pass, and one that never ran as not run", async () => {
   const tmp = mkdtempSync(join(tmpdir(), "evals-portal-"));
@@ -22,9 +23,17 @@ test("a failing result shows as fail on the operation's page, a passing one as p
   symlinkSync(join(REPO, "blueprint"), join(root, "blueprint"));
   symlinkSync(join(REPO, "plan"), join(root, "plan"));
 
+  const target = await loadTarget();
+  assert.ok(target.ok);
   const results = join(tmp, "results.json");
   writeFileSync(results, JSON.stringify({
     commit: "abc1234", at: "2026-11-10T12:00:00Z", run: "run-test",
+    receipt: {
+      version: 1, id: "run-test", commit: "abc1234", at: "2026-11-10T12:00:00Z", finishedAt: "2026-11-10T12:01:00Z", state: "complete",
+      environment: { world: "main", storage: "json", indexer: "inline", stack: "skeleton-json", components: {} },
+      requested: [FAILING, PASSING], evals: target.blueprint.evals.filter((e) => [FAILING, PASSING].includes(e.id)).map(({ id, claim, observes }) => ({ id, claim, observes })),
+      scripts: [], screens: [],
+    },
     results: [{ id: FAILING, verdict: "fail", evidence: "status/runs/run-test/evidence/x.txt" }, { id: PASSING, verdict: "pass" }],
   }));
   const status = join(root, "status/status.json");
@@ -47,6 +56,9 @@ test("a failing result shows as fail on the operation's page, a passing one as p
 
   assert.match(row(page("doc.submit"), FAILING), /chip chip-orange">fail</, "the failing eval is not shown as failing");
   assert.match(row(page("world.snapshot.restore"), PASSING), /chip chip-blue">pass</);
-  assert.match(row(page("doc.submit"), "acc:doc.submit/2"), /chip chip-quiet">not run</, "an eval with no verdict is not shown as run");
+  assert.match(row(page("doc.submit"), "acc:doc.submit/c-df3c0c51cdf3899b"), /chip chip-quiet">not run</, "an eval with no verdict is not shown as run");
   assert.doesNotMatch(row(page("doc.submit"), FAILING), /chip-blue/, "a failing eval must not also look passing");
+  assert.match(row(page("doc.submit"), FAILING), /<b>Observes<\/b>.*Purchase Invoice.*General Ledger/s, "opaque IDs must retain their own rendered observation");
+  assert.match(row(page("doc.submit"), "acc:doc.submit/c-df3c0c51cdf3899b"), /<b>Observes<\/b>.*org-with-held-payment.*awaiting/s);
+  assert.doesNotMatch(row(page("doc.submit"), FAILING), /org-with-held-payment/, "adjacent claims must not exchange observations");
 });

@@ -1,12 +1,13 @@
 /** The files a run leaves: the results file `packages/evals/src/record-status.ts` merges, and the evidence behind each verdict. */
-import type { ResultsFile } from "@capxul/blueprint-engine";
+import type { ResultsFile, RunReceipt } from "@capxul/blueprint-engine";
 import type { Row, RunInfo } from "../types.ts";
 
-/** An eval id as a file name: `acc:doc.submit/1` is `acc-doc.submit-1`. */
+/** An opaque eval id as a file name, replacing its separators. */
 export const fileNameOf = (id: string): string => id.replace(/[:/]/g, "-");
 
-export const resultsFile = (info: RunInfo, rows: readonly Row[], evidenceOf: (id: string) => string): ResultsFile => ({
+export const resultsFile = (info: RunInfo, rows: readonly Row[], evidenceOf: (id: string) => string, receipt?: RunReceipt): ResultsFile => ({
   commit: info.commit, at: info.at, run: info.run,
+  ...(receipt ? { receipt } : {}),
   results: rows.map((r) => ({ id: r.id, verdict: r.verdict, evidence: evidenceOf(r.id) })),
 });
 

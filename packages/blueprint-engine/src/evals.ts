@@ -2,6 +2,7 @@
 // also a complete definition of done. Ids follow docs/spec/30-capxul-evals.md.
 
 import type { AnyRecord, Blueprint } from "./build.ts";
+import { evalKey } from "./eval-key.ts";
 import { signalEvals } from "./signals.ts";
 import { screenEvals } from "./screens.ts";
 
@@ -44,16 +45,13 @@ export const deriveEvals = (b: Pick<Blueprint, "records">): EvalDef[] => {
   };
 
   for (const o of ofKind(b, "operation")) {
-    list<string | null | { claim: string; observes?: string }>(o.acceptance).forEach((line, i) => {
+    list<string | null | { key?: string; claim: string; observes?: string }>(o.acceptance).forEach((line) => {
       if (line !== null)
-        e(`acc:${o.id}/${i + 1}`, "L1", o, typeof line === "string" ? line : line.claim, "machine", typeof line === "string" ? undefined : line.observes);
+        e(`acc:${o.id}/${evalKey(typeof line === "string" ? line : line.claim, typeof line === "string" ? undefined : line.key)}`, "L1", o, typeof line === "string" ? line : line.claim, "machine", typeof line === "string" ? undefined : line.observes);
     });
     e(`ret:${o.id}`, "L1", o, "a success prints exactly the returns schema with --json");
-    const refusalCases = new Map<string, number>();
-    for (const r of list<{ error: AnyRecord; given: string }>(o.refusals)) {
-      const n = (refusalCases.get(r.error.id) ?? 0) + 1;
-      refusalCases.set(r.error.id, n);
-      e(`ref:${o.id}/${r.error.id}${n === 1 ? "" : `/${n}`}`, "L1", o, `from ${r.given}, it refuses with ${r.error.id}, its exit code and shape, and changes nothing`);
+    for (const r of list<{ key?: string; error: AnyRecord; given: string; when: string }>(o.refusals)) {
+      e(`ref:${o.id}/${r.error.id}/${evalKey({ given: r.given, when: r.when }, r.key)}`, "L1", o, `from ${r.given}, it refuses with ${r.error.id}, its exit code and shape, and changes nothing`, "machine", r.when);
     }
     const impl = o.implementedBy as AnyRecord;
     for (const ev of eventsOf(`${impl._kind}:${impl.id}`)) e(`evt:${o.id}/${ev}`, "L1", o, `it sends ${ev}, valid against its schema, carrying trace_id`);
@@ -82,7 +80,7 @@ export const deriveEvals = (b: Pick<Blueprint, "records">): EvalDef[] => {
     e(`tbl:${t.id}/schema`, "L1", t, "the migration creates exactly these fields, key and indexes");
     e(`tbl:${t.id}/writers`, "L1", t, "only the operations and workflows that list it in writes change it");
     // P8: a tenant's row-level policy, proven by a second tenant who can neither read nor write the first's rows.
-    const admits = list<{ match: string; field?: string; via?: { table: AnyRecord; field: string }; where?: object; reads: boolean; writes: boolean }>(t.admits);
+    const admits = list<{ key?: string; match: string; field?: string; kindField?: string; via?: { table: AnyRecord; on?: string; field: string; kindField?: string }; where?: object; reads: boolean; writes: boolean }>(t.admits);
     if (["organization", "person", "owner"].includes(String(t.tenancy)))
       e(
         `tbl:${t.id}/tenancy`,
@@ -91,13 +89,14 @@ export const deriveEvals = (b: Pick<Blueprint, "records">): EvalDef[] => {
         `a second ${String(t.tenancy)} reads and writes none of the first's rows${admits.length ? ", unless an admission names it" : ""}; only a cross-tenant index's named query reads across`,
       );
     // Each admission is one policy clause: the party it names gets exactly what it grants, on exactly its rows.
-    admits.forEach((a, i) => {
+    admits.forEach((a) => {
       const who = a.match === "anyone" ? "any caller" : `a session matched by ${a.match} on ${a.via ? `${a.via.table.id}.${a.via.field} (joined by ${a.field})` : a.field}`;
       const can = [a.reads && "reads", a.writes && "writes"].filter(Boolean).join(" and ") || "touches";
       const rows = a.where ? `the rows where ${Object.entries(a.where).map(([k, v]) => `${k} = ${String(v)}`).join(" and ")}` : "the rows it names";
       // Another clause, or the row's own tenant, may admit a session this clause does not: only one that nothing admits sees none.
       const others = t.tenancy === "chain" ? "no admission" : "neither the row's tenant nor any admission";
-      e(`tbl:${t.id}/admits/${i + 1}`, "L1", t, `${who} ${can} ${rows}${a.writes ? "" : ", and writes none"}; a session that ${others} matches sees none of them`);
+      const identity = { match: a.match, field: a.field, kindField: a.kindField, via: a.via ? { ...a.via, table: a.via.table.id } : undefined, where: a.where, reads: a.reads, writes: a.writes };
+      e(`tbl:${t.id}/admits/${evalKey(identity, a.key)}`, "L1", t, `${who} ${can} ${rows}${a.writes ? "" : ", and writes none"}; a session that ${others} matches sees none of them`);
     });
   }
   for (const t of ofKind(b, "transition")) e(`trn:${t.id}`, "L1", t, "an eval run observes this transition, with its events");
@@ -126,13 +125,10 @@ export const deriveEvals = (b: Pick<Blueprint, "records">): EvalDef[] => {
 
   for (const i of ofKind(b, "integration")) {
     e(`int:${i.id}/conformance`, "L1", i, "the devnet fake and the real service pass the same conformance suite");
-    for (const [name, call] of Object.entries(i.calls as Record<string, { failures: { error: AnyRecord; when: string }[] }>))
+    for (const [name, call] of Object.entries(i.calls as Record<string, { failures: { key?: string; error: AnyRecord; when: string }[] }>))
       {
-        const cases = new Map<string, number>();
         for (const f of call.failures) {
-          const n = (cases.get(f.error.id) ?? 0) + 1;
-          cases.set(f.error.id, n);
-          e(`int:${i.id}.${name}/${f.error.id}${n === 1 ? "" : `/${n}`}`, "L1", i, `when ${f.when}, callers see ${f.error.id}`);
+          e(`int:${i.id}.${name}/${f.error.id}/${evalKey(f.when, f.key)}`, "L1", i, `when ${f.when}, callers see ${f.error.id}`);
         }
       }
   }
