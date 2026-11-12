@@ -25,7 +25,8 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
   const admin = new pg.Client({ connectionString: url }); await admin.connect();
   const db = new Database(roleUrl("capxul_core"), roleUrl("capxul_worker"));
   const tenant = <T>(fn: (sql: pg.PoolClient) => Promise<T>, person = ctx.person_id) => db.transaction("approval-org", async (sql) => {
-    await sql.query("select set_config('app.person_id',$1,true)", [person]);
+    await sql.query(`select set_config('app.person_id',$1,true),set_config('app.owner_kind','person',true),
+      set_config('app.owner_id',$1,true),set_config('app.safe_address',$2,true)`, [person, sender]);
     return fn(sql as pg.PoolClient);
   });
   const legacy = { org: "approval-org", request_id: "legacy-request", site: "approval.test", doctype: "Purchase Invoice", name: "PINV-1",
@@ -178,6 +179,21 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
       await tenant((sql) => signingDecline(sql, signing, { approvalId: next.approval_id }));
       assert.equal(completed, 1);
       assert.equal((await admin.query("select count(*)::int as n from app.approval_carriers where approval_id=$1", [next.approval_id])).rows[0].n, 0);
+    });
+    await t.test("signing intent does not inherit a builder's changed replacement nonce or expiry", async () => {
+      const signing: SigningContext = { ...ctx, network: { name: "Test", explorerUrl: "https://explorer.test" }, requireFeature: async () => {} };
+      const original = await tenant((sql) => open(sql, ctx, { ...terms, subject_id: "intent-original", send_after: new Date(now.getTime() + 60_000).toISOString() }));
+      const first = await tenant((sql) => signingGet(sql, signing, { approvalId: original.approval_id }));
+      assert.equal(first.deadline, terms.deadline); assert.equal(first.replacement, null);
+      const fixedNonce = ((BigInt(first.nonceKey) << 64n) + 17n).toString();
+      await admin.query("update app.approvals set state='signed',nonce=$2 where approval_id=$1", [original.approval_id, fixedNonce]);
+      const replacing = await tenant((sql) => open(sql, ctx, { ...terms, subject_id: "intent-replacement", replaces: original.approval_id }));
+      const shorterExpiry = new Date(now.getTime() + 120_000);
+      await admin.query("update app.approvals set nonce=$2,valid_until=$3 where approval_id=$1", [replacing.approval_id, (BigInt(fixedNonce) + 1n).toString(), shorterExpiry]);
+      const result = await tenant((sql) => signingGet(sql, signing, { approvalId: replacing.approval_id }));
+      assert.equal(result.nonceKey, first.nonceKey);
+      assert.equal(result.deadline, terms.deadline); assert.equal(result.expiresAt, shorterExpiry.toISOString());
+      assert.deepEqual(result.replacement, { approvalId: original.approval_id, nonce: fixedNonce });
     });
     await t.test("public signing HTTP/SDK auth, atomic replay and live revocation controls", async () => {
       await signingTransportControls(db, admin, ctx, terms);

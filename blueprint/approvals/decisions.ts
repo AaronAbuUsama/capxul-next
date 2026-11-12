@@ -21,6 +21,20 @@ import { flow_client_approvals_sign } from "./flows.ts";
 const OLD = "packages/backend/src";
 const t = machine_approval.t;
 
+export const decision_approvals_signing_intent = defineDecision({
+  id: "approvals.signing-intent",
+  title: "Expose immutable intent independently of the sponsored operation",
+  question: "Which public fields let a signer check the operation's nonce and window against the opener's intent?",
+  options: [
+    { label: "intent", text: "Expose the stored nonceKey, original deadline and replacement reference with the replaced approval's persisted nonce, separately from operation and expiresAt." },
+    { label: "operation", text: "Derive the expected nonce and deadline from the operation being checked." },
+  ],
+  chosen: "intent",
+  why: "Checking an operation against itself proves nothing. Ordinary approvals bind their stored lane without fixing a sequence; replacements bind the original approval's full nonce, not the new operation's nonce. Sponsor expiry may be shorter than the opener's deadline. Calls, sender, sendAfter and these immutable fields supply intent, while chain/module/EntryPoint/multiSend come from trusted deployment configuration and the actual client chain. This detects inconsistent builder output; the client's originally prepared intent is stronger than a view when the backend itself is malicious. The SDK transport remains wire-only until an independent canonical verifier and signer are composed.",
+  source: "approvals.signing-area; approvals replacement nonce contract; signing builder owner contract, 12 November 2026",
+  affects: [rpc_approvals_signing_get, flow_client_approvals_sign],
+});
+
 export const decision_approvals_public_transport = defineDecision({
   id: "approvals.public-transport",
   title: "Bearer-authenticated live signing releases SQL between frames",

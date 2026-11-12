@@ -11,6 +11,7 @@ export type ApprovalView = {
   };
   network: { chainId: number; name: string; explorerUrl: string }; sender: string;
   calls: { to: string; value: string; data: string }[]; signer: { address: string } | null;
+  nonceKey: string; deadline: string; replacement: { approvalId: string; nonce: string } | null;
   operation: {
     userOperation: { sender: string; nonce: string; callData: string; callGasLimit: string; verificationGasLimit: string;
       preVerificationGas: string; maxFeePerGas: string; maxPriorityFeePerGas: string; paymaster: string;

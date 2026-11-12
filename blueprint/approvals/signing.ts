@@ -39,6 +39,10 @@ export const ApprovalView = Schema.Struct({
   network: Schema.Struct({ chainId: Schema.Int, name: S, explorerUrl: S }),
   sender: Address,
   calls: Schema.Array(Call),
+  /** Immutable opener intent, independent of the operation under verification. */
+  nonceKey: S,
+  deadline: Instant,
+  replacement: NullOr(Schema.Struct({ approvalId: S, nonce: S })),
   /** The Safe's owner key that must sign; null until sponsored. */
   signer: NullOr(Schema.Struct({ address: Address })),
   /** The sponsored operation; `digest` (the SafeOp hash) is the one thing the key signs. Null until sponsored. */
