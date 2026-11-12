@@ -572,12 +572,13 @@
       "title": "A lean service per world: one process, one database file, the indexer folded in",
       "why": "One small service per world keeps a world cheap and the real chain kept.",
       "milestone": "m2",
-      "state": "todo",
+      "state": "dropped",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-12",
+      "droppedWhy": "Superseded by m2-core-on-postgres: Aaron's storage decision of 12 November 2026 (aaron.postgres-and-ponder, Ponder and Postgres, one design everywhere) replaces the one-file SQLite lean service of devnet.lean-world."
     },
     {
       "id": "m1-thin-line-journey",
@@ -686,16 +687,14 @@
       "why": "Aaron settled devnet.site-follows-world for option A on 10 November 2026 and said the time has to be right. A mistake shows up as a document dated by the machine, often unnoticed until a month end, so each proof is a run. Only two of six tests exist in the spike.",
       "milestone": "m1",
       "state": "todo",
-      "needs": [
-        "m1-loop-hardening"
-      ],
+      "needs": [],
       "records": [
         "decision:devnet.time-is-right",
         "decision:devnet.site-follows-world"
       ],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-12"
     },
     {
       "id": "m1-eval-harness",
@@ -822,13 +821,11 @@
       "why": "The first real score is 8 of 4,724. The test sites' checks are real, but 56 of them prove something the book has no test for, 39 prove only part of one, and 143 of the 146 tests of the thin-line journeys have no check at all.",
       "milestone": "m1",
       "state": "todo",
-      "needs": [
-        "m1-loop-hardening"
-      ],
+      "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-12"
     },
     {
       "id": "m4-people-signin",
@@ -847,7 +844,7 @@
       "title": "The loop: make it trustworthy enough to run tasks unattended",
       "why": "The first version works but is not yet safe to leave alone: its budget is counted in turns and time, not money; its rules on what an agent may run are a filter, not a sandbox; steering a running agent and the heavy sandbox are untested; and it is 1,200 lines against a cap of 800.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "dropped",
       "needs": [
         "m1-loop-policy",
         "m1-loop-visibility",
@@ -856,21 +853,22 @@
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-12",
+      "droppedWhy": "Superseded: Aaron moved agent work to Amp orbs on 11 November 2026 (21:57 UTC); the home-made loop it builds on is gone (packages/loop has no source since PR #10)."
     },
     {
       "id": "m3b-world-service",
-      "title": "Worlds 1: the lean service, a registry of worlds, and twenty measured",
+      "title": "Worlds 1: the backend on Postgres, a registry of worlds, and twenty measured",
       "why": "Everything else in the platform stands on a world being cheap. The figure of 0.15 GiB for a world's Capxul part is an estimate until it is measured.",
       "milestone": "m3b",
       "state": "todo",
       "needs": [
-        "m2-lean-service"
+        "m2-core-on-postgres"
       ],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-12"
     },
     {
       "id": "m3b-world-join",
@@ -1037,14 +1035,15 @@
       "title": "The model gateway: the loop on CLI proxy, sticky per agent, with a measured ceiling",
       "why": "Seven agents at once made the LiteLLM container unreachable (57 of 57 errors were the edge's 504, none a rate limit), and three at once still hit it. Parallel agents are how the plan gets done, and swarms are the direction, so the gateway is a blocker we must own. Aaron ruled on 10 November: LiteLLM is out of the path; the gateway is CLI proxy, as it is, forked, or taken apart.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "dropped",
       "needs": [
         "m1-loop-watched-run"
       ],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-12",
+      "droppedWhy": "Superseded: Aaron moved agent work to Amp orbs on 11 November 2026 (21:57 UTC); the home-made loop it builds on is gone (packages/loop has no source since PR #10)."
     },
     {
       "id": "m1-engine-rules",
@@ -1855,16 +1854,13 @@
       "title": "The loop has no command gate: agents run what they need",
       "why": "Aaron's decision, 11 Nov: no allow-list, no home-made sandbox. This session's Auto mode refused the edit as 'Security Weaken'; it waits for a session in Bypass mode",
       "milestone": "m1",
-      "state": "blocked",
+      "state": "dropped",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11",
-      "blockedBy": {
-        "need": "A coordinator session in Bypass permissions mode: this session's Auto mode refuses the change",
-        "who": "coordinator"
-      }
+      "updated": "2026-11-12",
+      "droppedWhy": "Superseded: Aaron moved agent work to Amp orbs on 11 November 2026 (21:57 UTC); the home-made loop it builds on is gone (packages/loop has no source since PR #10)."
     },
     {
       "id": "m1-done-definition",
@@ -2008,13 +2004,11 @@
   ],
   "path": {
     "tasks": [
-      "m1-no-command-gate",
-      "m1-eval-coverage",
-      "m1-model-gateway",
-      "m1-loop-hardening"
+      "m1-orb-stack",
+      "m1-eval-coverage"
     ],
-    "why": "Aaron accepted the book at 07c0e05 (g7 met, 20:27 UTC) and took the sixteen (7af7472). Left for m1: g8 (the shared world, m3b) and g9 (the orchestration layer). m1-cloud-sandbox dropped 11 November 2026 (Amp replaces it); the rest of this path is the coordinator's to redraw for Amp.",
-    "written": "2026-11-11"
+    "why": "The four loop tasks left the path: Aaron moved agent work to Amp orbs on 11 November 2026 and the home-made loop is gone. What stays for m1: an orb runs the stack (m1-orb-stack), and the checks match the book's tests (m1-eval-coverage). g8, the shared world, waits on m2 and m3b work. The coordinator redraws further.",
+    "written": "2026-11-12"
   },
   "notes": [
     {
