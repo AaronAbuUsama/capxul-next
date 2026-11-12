@@ -41,6 +41,9 @@ async function emit(sql: Sql, row: Party, from: Party["state"] | null, transitio
 export async function lookup(sql: Sql, partyId: string): Promise<Party | null> {
   return (await sql.query("select * from app.parties where party_id=$1 and state<>'released'", [partyId])).rows[0] ?? null;
 }
+export async function lookupBySafe(sql: Sql, safe: string): Promise<Party | null> {
+  return (await sql.query("select * from app.parties where safe_address=$1 and state<>'released'", [safe.toLowerCase()])).rows[0] ?? null;
+}
 /** now is the caller transaction's authoritative world instant, never request data or a host fallback. */
 export async function register(sql: Sql, input: Registration, now: number): Promise<Party> {
   const handle = normalizeHandle(input.handle), safe = input.safe_address.toLowerCase();

@@ -1,10 +1,9 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { spawn } from "node:child_process";
+import { createInterface } from "node:readline";
 
 /** A maintenance connection to postgres, never to the database being copied. */
 export type Admin = (sql: string) => Promise<Record<string, unknown>[]>;
 export type Database = { name: string; oid: string };
-const exec = promisify(execFile);
 export const identifier = (s: string): string => `"${s.replaceAll('"', '""')}"`;
 const literal = (s: string): string => `'${s.replaceAll("'", "''")}'`;
 
@@ -14,14 +13,24 @@ export function psqlAdmin(url: string): Admin {
   const env = { ...process.env, PGHOST: connection.hostname, PGPORT: connection.port || "5432",
     PGDATABASE: decodeURIComponent(connection.pathname.slice(1)), PGUSER: decodeURIComponent(connection.username),
     PGPASSWORD: decodeURIComponent(connection.password), PGSSLMODE: connection.searchParams.get("sslmode") ?? "prefer" };
-  return async (sql) => {
-    try {
-      const { stdout } = await exec("psql", ["-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-c", sql], {
-        env, maxBuffer: 16 * 1024 * 1024,
-      });
-      return stdout.trim() ? stdout.trim().split("\n").map((s) => JSON.parse(s) as Record<string, unknown>) : [];
-    } catch { throw new Error("Postgres snapshot operation failed; check maintenance connectivity and database sessions"); }
-  };
+  return (sql) => new Promise((resolve, reject) => {
+    // Restored command branches exceed ARG_MAX; stream SQL and JSON rows rather than impose a response-size cap.
+    const child = spawn("psql", ["-X", "-qAt", "-v", "ON_ERROR_STOP=1"], { env, stdio: ["pipe", "pipe", "ignore"] });
+    const rows: Record<string, unknown>[] = [];
+    let failed = false;
+    const parse = (line: string) => { if (line.trim()) { try { rows.push(JSON.parse(line)); } catch { failed = true; } } };
+    const output = createInterface({ input: child.stdout, crlfDelay: Infinity });
+    output.on("line", parse);
+    output.on("error", () => { failed = true; });
+    const error = () => reject(new Error("Postgres snapshot operation failed; check maintenance connectivity and database sessions"));
+    child.on("error", error);
+    child.stdin.on("error", () => { failed = true; });
+    child.stdout.on("error", () => { failed = true; });
+    child.on("close", (code) => {
+      if (code === 0 && !failed) resolve(rows); else error();
+    });
+    child.stdin.end(sql);
+  });
 }
 
 async function metadata(admin: Admin, name: string) {

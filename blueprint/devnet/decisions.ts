@@ -139,7 +139,10 @@ export const decision_devnet_mail_sink = defineDecision({
       label: "fake-layer",
       text:
         "The `mail` integration's devnet layer writes `mail-messages` and spends `mail-faults` inside its `send`; a spent " +
-        "fault fails the send as Resend unavailable (PROVIDER_ERROR), which a notice's workflow retries. The sink keeps " +
+        "fault fails the send as Resend unavailable (PROVIDER_ERROR), which a notice's workflow retries. A replay of an " +
+        "accepted idempotency key answers its original id before spending any fault. Fault spending commits before the " +
+        "safe classified error is returned, so retries do not roll it back. The sink takes sent_at from the world's " +
+        "authoritative clock, never the host clock. The sink keeps " +
         "both directions, as the integration's fake says: each message with its sender's name, its Reply-To and its " +
         "threading headers (Message-ID, In-Reply-To, References), as a CRM mailbox sends them. `capxul-devnet mail " +
         "receive --to <mailbox> [--cc <mailbox>]… [--bcc <mailbox>]… --from <address|\"Name <address>\"> --subject " +

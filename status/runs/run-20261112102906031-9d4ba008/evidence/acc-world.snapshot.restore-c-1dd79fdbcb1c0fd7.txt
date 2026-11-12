@@ -1,0 +1,8 @@
+eval     acc:world.snapshot.restore/c-1dd79fdbcb1c0fd7
+claim    A restore into a separate world leaves the first world untouched and the two never see each other.
+verdict  not_run
+run      run-20261112102906031-9d4ba008  at 2026-11-12T10:29:06.031Z  commit 42e4def7d48a9262eae1e002db2f6b3da1e4dce2+dirty
+script     world slice-zero  company devnet-refresh
+why      no binding
+
+no check is bound to this eval, so nothing was run for it
