@@ -16,7 +16,7 @@ export type VerifiedSponsorship = {
 /** Addresses come from this world's trusted deployment, never an approval request. */
 export type SponsorConfig = {
   client: PublicClient; gateway: SponsorTransport; entryPoint: Address; module: Address; multiSend: Address;
-  paymaster: Address; claimOwner: Address; now?: () => Date;
+  paymaster: Address; claimOwner: Address; now: () => Date;
 };
 const safeAbi = parseAbi(["function getOwners() view returns (address[])", "function getThreshold() view returns (uint256)", "function isModuleEnabled(address module) view returns (bool)"]);
 const paymasterAbi = parseAbi([`function validatePaymasterUserOp(${PACKED_USER_OPERATION} userOp,bytes32 userOpHash,uint256 maxCost) returns (bytes context,uint256 validationData)`]);
@@ -42,7 +42,7 @@ export function approvalSponsor(config: SponsorConfig): (a: SponsorshipRequest) 
   const { client, gateway, module, entryPoint, multiSend, paymaster, claimOwner } = config;
   return async a => {
     try {
-      const now = (config.now?.() ?? new Date()).getTime();
+      const now = config.now().getTime();
       if (![now, a.deadline.getTime(), a.send_after?.getTime() ?? now].every(Number.isFinite)) throw new SponsorError("INVALID_INPUT", "Approval dates are invalid");
       const after = BigInt(Math.ceil(Math.max(now, a.send_after?.getTime() ?? now) / 1000));
       const until = BigInt(Math.floor(a.deadline.getTime() / 1000));
@@ -103,7 +103,8 @@ export function approvalSponsor(config: SponsorConfig): (a: SponsorshipRequest) 
       catch { throw invalid(); }
       const mask = (1n << 48n) - 1n;
       if ((validation & ((1n << 160n) - 1n)) !== 0n || ((validation >> 160n) & mask) !== until || ((validation >> 208n) & mask) !== after) throw invalid();
-      if (until * 1000n <= BigInt((config.now?.() ?? new Date()).getTime())) throw invalid();
+      const completedAt = config.now().getTime();
+      if (!Number.isFinite(completedAt) || until * 1000n <= BigInt(completedAt)) throw invalid();
       return { nonce: op.nonce, signer_address: address(owners[0]!), user_operation: op, digest, user_op_hash: userOpHash,
         valid_after: new Date(Number(after) * 1000), valid_until: new Date(Number(until) * 1000) };
     } catch (error) {

@@ -69,6 +69,19 @@ test("sponsor returns current owner, full uint256 nonce, exact rounded dates and
   assert.equal(normalized.signer_address, mixedCaseOwner.toLowerCase());
 });
 
+test("sponsor uses the canonical world clock for its start and completion expiry", async () => {
+  const { config } = fixture();
+  const input = { ...request, send_after: null };
+  const frozenNow = () => request.send_after!;
+  const result = await approvalSponsor({ ...config, now: frozenNow })(input);
+  assert.ok("user_operation" in result);
+  assert.equal(result.valid_after.toISOString(), "2026-11-12T12:01:01.000Z");
+  let reads = 0;
+  const expired = await approvalSponsor({ ...config, now: () => ++reads === 1 ? frozenNow() : request.deadline })(input);
+  assert.ok("code" in expired);
+  assert.equal(expired.code, "PROVIDER_RESPONSE_INVALID");
+});
+
 test("sponsor refuses absent/claim-owned accounts, wrong modules/hashes, consumed or foreign nonce lanes", async () => {
   for (const [change, code] of [
     [{ deployed: false }, "SMART_ACCOUNT_MISSING"], [{ owners: [claimOwner] }, "SMART_ACCOUNT_MISSING"],

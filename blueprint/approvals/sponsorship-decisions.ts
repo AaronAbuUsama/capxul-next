@@ -6,7 +6,7 @@ export const decision_approvals_verified_sponsorship = defineDecision({
   title: "Verify sponsorship bounds on the deployed paymaster before signing",
   question: "How does a sponsor adapter establish authority and time bounds when ERC-7677 does not standardize paymasterData encoding?",
   options: [
-    { label: "contract-validation", text: "Read the deployed Safe owner, module and nonce; request stub, estimate and final data; call the configured paymaster's validation from EntryPoint and require its explicit requested window. Compare local SafeOp and UserOperation hashes with the deployed contracts." },
+    { label: "contract-validation", text: "Read the deployed Safe owner, module and nonce; request stub, estimate and final data; call the configured paymaster's validation from EntryPoint and require its explicit requested window using an injected canonical world clock, never host time. Compare local SafeOp and UserOperation hashes with the deployed contracts." },
     { label: "trust-json", text: "Trust gateway metadata and a locally guessed paymasterData window without validating the final operation on chain." },
   ],
   chosen: "contract-validation",
