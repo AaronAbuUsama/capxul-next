@@ -14,6 +14,41 @@ import * as x from "./external.ts";
 const CLAUDE = "Claude, target architecture, 7 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 
+export const decision_integrations_mail_transport = defineDecision({
+  id: "integrations.mail-transport",
+  title: "Mail makes one attempt and leaves durable retry to its caller",
+  question: "Where are notice retries and world mail isolation enforced?",
+  options: [
+    { label: "caller-retry", text: "Mail forwards the caller's exact idempotency key once; notices retries durably and devnet supplies its existing sink." },
+    { label: "provider-retry", text: "Mail retries requests and maintains a second retry queue and world sink." },
+  ],
+  chosen: "caller-retry",
+  why:
+    "The existing Mail contract has zero retries. Notices owns its three durable attempts and crash replay, so Mail must not multiply them. " +
+    "The live Resend adapter checks every staging recipient before making a request and classifies recipient refusal, throttling and unavailability. " +
+    "Its transport is injectable for failure validation; local HTTP fault tests are not live Resend conformance. Devnet owns durable sink records, fault spending and world time; no parallel shared sink is created.",
+  source: "Shared123 and notices provider handoff, 12 November 2026; integration:mail; devnet.mail-sink; time.world-channels",
+  affects: [x.integration_mail],
+});
+
+export const decision_runtime_transition_outbox = defineDecision({
+  id: "runtime.transition-outbox",
+  title: "Committed transition delivery keeps source and consumer transactions separate",
+  question: "How does the common runtime outbox carry personal and organization transitions safely?",
+  options: [
+    { label: "same-connection", text: "Emit on the source transaction's SQL connection; schedule each consumer effect and ACK together in another transaction." },
+    { label: "records", text: "Reuse organization financial records or let each concept create its own source outbox." },
+  ],
+  chosen: "same-connection",
+  why:
+    "rules.outbox already requires one runtime source. An immutable caller-stable event id deduplicates retries; its properties are exactly the transition's declared event schema. " +
+    "Machine, opaque source entity, owner, actor, trace and authoritative world milliseconds are envelope metadata, never extra analytics properties. " +
+    "Unlisted admissions need no organization or principal FK. Worker-only delivery records keep each named consumer's SQL effects and ACK atomic, so death before commit rolls both back; later relay retries cannot apply an acknowledged effect twice. " +
+    "Handlers schedule durable work, never send mail or perform other network effects inside their ACK transaction. Composition names consumers explicitly rather than a plugin registry.",
+  source: "rules.outbox; integrator's isolated runtime lease and Accounts/Requests/Notices/Activity/Board/Books API agreement, 12 November 2026",
+  affects: [f.component_backend],
+});
+
 export const decision_integrations_surface_gap_audit = defineDecision({
   id: "integrations.surface-gap-audit",
   title: "Remove outside calls with no surviving Core caller",
