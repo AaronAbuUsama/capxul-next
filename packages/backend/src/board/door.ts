@@ -3,6 +3,9 @@ import { integer, type OfficerChange, type Proposal } from "./types.ts";
 
 export { migrate } from "./migrate.ts";
 export type { Call, OfficerChange, Permission, Proposal, ProposalStatus } from "./types.ts";
+export { propose, requireDirector, type BoardContext, type Propose, type Proposed } from "./proposals.ts";
+export { route as routeBoard, boardPaths, type BoardWorld } from "./routes.ts";
+export type { BoardDoors, BoardFacts, Deployment, SafeState } from "./runtime.ts";
 
 /** Internal source read, scoped by the caller's company transaction. No settlement on reads. */
 export async function readProposal(sql: Sql, orgId: string, proposalId: string): Promise<Proposal | null> {
