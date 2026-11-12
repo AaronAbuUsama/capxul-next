@@ -9,7 +9,7 @@ import { boxName, STACK, type Want, type WorldStage } from "./stage.ts";
 export interface DockerBoxSpec {
   readonly stage: WorldStage;
   readonly want: Want;
-  /** The world box image; it must start a Docker daemon (docker:<version>-dind does). */
+  /** The world box image; it must start a Docker daemon and trust a CA mounted at BOX_CA (box/Containerfile does). */
   readonly image: string;
   /** Share the host's network: a cloud container's agent proxy listens on the host's loopback. */
   readonly hostNetwork?: boolean;
@@ -19,13 +19,8 @@ export interface DockerBoxSpec {
   readonly environment?: Readonly<Record<string, string>>;
 }
 
-const BOX_CA = "/etc/ssl/certs/capxul-extra-ca.crt";
-
-/** The box's start command: trust the extra CA if one is mounted, then hand over to the image's own entrypoint. */
-const startCommand = (trustCa: boolean): string[] =>
-  trustCa
-    ? ["sh", "-c", `cat ${BOX_CA} >> /etc/ssl/certs/ca-certificates.crt && exec dockerd-entrypoint.sh`]
-    : ["dockerd-entrypoint.sh"];
+/** Where the box finds an extra CA to trust; box/box-start.sh adds it to the system bundle at every start. */
+export const BOX_CA = "/etc/ssl/certs/capxul-extra-ca.crt";
 
 /** One world, one stage: its box and the volume that keeps the box's Docker data while the world is parked. */
 export const dockerBoxStack = (spec: DockerBoxSpec) =>
@@ -39,8 +34,11 @@ export const dockerBoxStack = (spec: DockerBoxSpec) =>
       const box = yield* Docker.Container("Box", {
         name: boxName(spec.stage),
         image: spec.image,
-        command: startCommand(spec.trustCa !== undefined),
-        environment: { DOCKER_TLS_CERTDIR: "", ...spec.environment },
+        environment: {
+          DOCKER_TLS_CERTDIR: "",
+          ...(spec.trustCa ? { NODE_EXTRA_CA_CERTS: BOX_CA } : {}),
+          ...spec.environment,
+        },
         capAdd: ["ALL"],
         seccompProfile: "unconfined",
         appArmorProfile: "unconfined",

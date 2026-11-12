@@ -11,6 +11,10 @@ import Alchemy, so a breaking Alchemy release changes this package only. Alchemy
 | `src/provisioner/docker-box.ts` | The docker placement: one container that runs its own Docker daemon, plus a volume for that daemon's disk |
 | `src/provisioner/alchemy.ts` | The only call into Alchemy's programmatic API: plan, then apply, for one stage; state under `var/provisioner` |
 | `src/main.ts` | The command line: `provisioner deploy|park|resume|destroy <world>` |
+| `box/Containerfile` | The world box image: Ubuntu 24.04 with its own Docker daemon, Node, pnpm, git and psql 17 |
+| `box/box-start.sh` | The box's entrypoint: trusts an extra CA if one is mounted, then runs `dockerd` |
+| `box/run-world.sh` | Inside the box: `run-world prepare`, `create <world>`, `slice-zero <world>` through today's supervisor |
+| `bin/build-box.sh` | Builds `capxul-world-box:dev` (through the agent proxy when one is set) |
 
 ## What a world's life looks like
 
@@ -27,7 +31,8 @@ taken inside the box.
 ## Placements
 
 - `docker` (built): a laptop or a cloud container. In a Claude cloud container the box shares the host network (the agent
-  proxy is on loopback) and trusts the proxy's CA (`CAPXUL_BOX_TRUST_CA`).
+  proxy is on loopback) and trusts the proxy's CA (`CAPXUL_BOX_TRUST_CA`). Because of that shared network, two docker-placed boxes on one
+  host would collide on ports; one box per host until boxes get their own network.
 - `e2b` (next): test runs in an E2B sandbox, destroyed after the run. Alchemy's E2B provider first shipped in
   2.0.0-beta.86 (12 November 2026); the workspace's three-day minimum release age admits it from 15 November.
 - A long-lived machine with a real disk, for shared worlds: not chosen yet.
@@ -40,5 +45,5 @@ pnpm --filter @capxul/provisioner test                                   # unit 
 CAPXUL_PROVISIONER_DOCKER=1 pnpm --filter @capxul/provisioner test       # also the whole life of a box, needs Docker
 ```
 
-Environment for `src/main.ts`: `CAPXUL_WORLD_BOX_IMAGE` (default `docker:28-dind`), `CAPXUL_PROVISIONER_STATE` (default
+Environment for `src/main.ts`: `CAPXUL_WORLD_BOX_IMAGE` (default `capxul-world-box:dev`, built by `bin/build-box.sh`), `CAPXUL_PROVISIONER_STATE` (default
 `var/provisioner`), `CAPXUL_BOX_TRUST_CA`, and the proxy variables, which it passes into the box.

@@ -1,0 +1,42 @@
+# syntax=docker/dockerfile:1
+# The world box (aaron.alchemy-provisioning): an Ubuntu machine in a container, with its own Docker daemon and the
+# toolchain the devnet supervisor needs, so a world runs inside it as it runs on a machine today. Build with
+# ../bin/build-box.sh. build_ca is optional: a TLS-inspecting proxy's CA, passed as a secret so it never enters a layer.
+# psql 17 for the devnet recovery, taken with its libraries from the official image: apt.postgresql.org and Debian's
+# mirrors are not always reachable, Ubuntu's are.
+FROM postgres:17-bookworm AS psql
+RUN set -eu; mkdir -p /opt/psql17/bin /opt/psql17/lib; \
+    for b in psql pg_dump pg_restore; do cp /usr/lib/postgresql/17/bin/$b /opt/psql17/bin/; done; \
+    ldd /usr/lib/postgresql/17/bin/psql /usr/lib/postgresql/17/bin/pg_dump | awk '/=> \//{print $3}' | sort -u \
+      | grep -v -E '/(libc|libm|libresolv)\.so' | xargs -I{} cp -L {} /opt/psql17/lib/
+
+FROM ubuntu:24.04
+
+ARG NODE_VERSION=24.22.2
+ARG PNPM_VERSION=12.18.0
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN --mount=type=secret,id=build_ca,required=false \
+    set -eu; \
+    if [ -s /run/secrets/build_ca ]; then install -m 0644 /run/secrets/build_ca /tmp/build-ca.crt; \
+      export CURL_CA_BUNDLE=/tmp/build-ca.crt SSL_CERT_FILE=/tmp/build-ca.crt NODE_EXTRA_CA_CERTS=/tmp/build-ca.crt; \
+      printf 'Acquire::https::CAInfo "/tmp/build-ca.crt";\n' > /etc/apt/apt.conf.d/99build-ca; fi; \
+    sed -i 's|http://|https://|g' /etc/apt/sources.list.d/ubuntu.sources; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates curl gnupg git python3 bash xz-utils jq iproute2 iptables tini sudo; \
+    install -m 0755 -d /etc/apt/keyrings; \
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc; \
+    echo "deb [signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu noble stable" > /etc/apt/sources.list.d/docker.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends docker-ce docker-ce-cli containerd.io docker-compose-plugin docker-buildx-plugin; \
+    curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" | tar -xJ -C /usr/local --strip-components=1; \
+    npm install -g "pnpm@${PNPM_VERSION}"; \
+    rm -f /etc/apt/apt.conf.d/99build-ca /tmp/build-ca.crt; rm -rf /var/lib/apt/lists/* /root/.npm
+
+COPY --from=psql /opt/psql17 /opt/psql17
+RUN set -eu; for b in psql pg_dump pg_restore; do \
+      printf '#!/bin/sh\nLD_LIBRARY_PATH=/opt/psql17/lib exec /opt/psql17/bin/%s "$@"\n' "$b" > /usr/local/bin/$b; \
+      chmod +x /usr/local/bin/$b; done; psql --version | grep -q ' 17\.'
+
+COPY box-start.sh /usr/local/bin/box-start
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/box-start"]

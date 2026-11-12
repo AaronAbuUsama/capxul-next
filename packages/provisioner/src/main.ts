@@ -26,7 +26,7 @@ const main = async (argv: readonly string[]): Promise<number> => {
   );
   const p = provisioner(placement, {
     stateDir: env.CAPXUL_PROVISIONER_STATE ?? resolve(root, "var/provisioner"),
-    image: env.CAPXUL_WORLD_BOX_IMAGE ?? "docker:28-dind",
+    image: env.CAPXUL_WORLD_BOX_IMAGE ?? "capxul-world-box:dev",
     // A cloud container reaches the internet through a proxy on its own loopback, with its own CA.
     ...(Object.keys(proxy).length ? { hostNetwork: true, environment: proxy } : {}),
     ...(env.CAPXUL_BOX_TRUST_CA ? { trustCa: env.CAPXUL_BOX_TRUST_CA } : {}),
