@@ -119,9 +119,9 @@ export async function settleRoleDelivery(sql: Sql, org: string, key: string, ack
       born.props.transition !== "record") throw new Error("INVALID_INPUT: role delivery source occurrence");
   const row: RoleGrant | undefined = (await sql.query("select * from app.role_grants where org_id=$1 and grant_id=$2 for update", [org, born.entity_id])).rows[0];
   if (!row) throw new Error("NOT_FOUND: projected delivery grant");
-  // A rewind or repair must never reactivate an old revoked grant or repeat an applied occurrence.
-  if (row.status === "revoked" || row.status === "applied" || ack.parked && row.status === "failed") return;
   const at = await worldNow(sql);
+  // A rewind or repair must never reactivate an old revoked grant or repeat an applied occurrence.
+  if (row.status === "revoked" || row.status === "applied" || ack.parked && row.status === "failed") return at;
   const change: GrantChange = ack.parked ? { transition: "fail", failure: ack.error }
     : { transition: "apply", map_version: ack.map_version ?? "" };
   await transitionRoleGrant(sql, org, row.grant_id, change, {

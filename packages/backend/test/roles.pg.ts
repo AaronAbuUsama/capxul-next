@@ -7,7 +7,7 @@ import test from "node:test";
 import pg from "pg";
 import { Database } from "../src/platform/db.ts";
 import { migrateOutbox } from "../src/platform/outbox.ts";
-import { deliver, retryParked, signature, migrateRoleProjections, recordRoleGrant, transitionRoleGrant, readRoles, type GrantInput, type RoleOccurrence } from "../src/plugs/door.ts";
+import { deliver, enqueue, resend, retryParked, signature, migrateRoleProjections, recordRoleGrant, transitionRoleGrant, readRoles, type GrantInput, type RoleOccurrence } from "../src/plugs/door.ts";
 
 const url = process.env.PLUGS_ROLES_ADMIN_URL;
 if (!url || new URL(url).pathname !== "/plugs_roles_test" || !["127.0.0.1", "localhost"].includes(new URL(url).hostname)) {
@@ -195,9 +195,28 @@ test("role projections retain caller atomicity, exact occurrences, shared roles 
         assert.equal((await state("ack-clock")).updated_at, at);
         const applied = (await admin.query("select event from app.transition_outbox where event->>'entity_id'='ack-clock' and event->'props'->>'transition'='apply'")).rows[0].event;
         assert.equal(applied.at, at); assert.equal((await admin.query("select at from app.records where org_id='ack-clock' order by id desc limit 1")).rows[0].at.getTime(), at);
+        const replay = async (status: string) => {
+          await db.transaction("ack-clock", (sql) => resend(sql, "ack-clock", 1), true);
+          const beforeReplay = await state("ack-clock");
+          const original = (await admin.query("select * from app.role_grants where org_id='ack-clock'")).rows;
+          const saved = (await admin.query("select event from app.transition_outbox where event->>'owner_id'='ack-clock' order by id")).rows;
+          for (const clock of [null, {}, { nowMs: at, clockMode: "running", rate: 1 }]) {
+            await admin.query("delete from app.world");
+            if (clock) await admin.query("insert into app.world(world_id,clock) values ('roles-test',$1)", [clock]);
+            await assert.rejects(deliver(db, "ack-clock", origin, secret), /INVALID_CLOCK|UNSUPPORTED_CLOCK/);
+            assert.deepEqual(await state("ack-clock"), beforeReplay, `${status} replay must validate clock before committing ACK`);
+          }
+          await admin.query("update app.world set clock=$1", [{ nowMs: at + 100, clockMode: "stopped", rate: 1 }]);
+          await deliver(db, "ack-clock", origin, secret);
+          assert.equal((await state("ack-clock")).status, status);
+          assert.equal((await state("ack-clock")).events, beforeReplay.events, "historical ACK adds no authority event");
+          assert.equal((await admin.query("select at from app.records where org_id='ack-clock' order by id desc limit 1")).rows[0].at.getTime(), at + 100);
+          assert.deepEqual((await admin.query("select * from app.role_grants where org_id='ack-clock'")).rows, original);
+          assert.deepEqual((await admin.query("select event from app.transition_outbox where event->>'owner_id'='ack-clock' order by id")).rows, saved);
+        };
+        await replay("applied");
         await db.transaction("ack-clock", (sql) => transitionRoleGrant(sql, "ack-clock", "ack-clock", { transition: "revoke" }, context("ack-revoke", 101)), true);
-        await admin.query("update app.site_events set state='pending' where org_id='ack-clock' and seq=1");
-        await deliver(db, "ack-clock", origin, secret);
+        await replay("revoked");
         assert.equal((await admin.query("select status from app.role_grants where org_id='ack-clock'")).rows[0].status, "revoked");
         assert.deepEqual((await admin.query("select event from app.transition_outbox where id=$1", [applied.id])).rows[0].event, applied);
 
@@ -221,6 +240,32 @@ test("role projections retain caller atomicity, exact occurrences, shared roles 
         assert.equal(repaired.status, "applied"); assert.equal(repaired.state, "applied"); assert.equal(repaired.updated_at, at + 77);
         await repair(); assert.deepEqual(await state("ack-repair"), repaired);
 
+        await setup("repair-history"); parked = true; await deliver(db, "repair-history", origin, secret); parked = false;
+        await db.transaction("repair-history", sql => transitionRoleGrant(sql, "repair-history", "repair-history", { transition: "revoke" }, context("repair-revoke", at + 80)), true);
+        const historical = await state("repair-history");
+        const grant = (await admin.query("select * from app.role_grants where org_id='repair-history'")).rows;
+        const saved = (await admin.query("select event from app.transition_outbox where event->>'owner_id'='repair-history' order by id")).rows;
+        const repairHistory = () => db.transaction("repair-history", sql => retryParked(sql, "repair-history", "repair-history", origin, secret), true);
+        for (const clock of [null, {}, { nowMs: at, clockMode: "running", rate: 1 }]) {
+          await admin.query("delete from app.world");
+          if (clock) await admin.query("insert into app.world(world_id,clock) values ('roles-test',$1)", [clock]);
+          await assert.rejects(repairHistory(), /INVALID_CLOCK|UNSUPPORTED_CLOCK/);
+          assert.deepEqual(await state("repair-history"), historical);
+        }
+        await admin.query("update app.world set clock=$1", [{ nowMs: at + 99, clockMode: "stopped", rate: 1 }]);
+        await repairHistory();
+        assert.equal((await admin.query("select at from app.records where org_id='repair-history' order by id desc limit 1")).rows[0].at.getTime(), at + 99);
+        assert.deepEqual((await admin.query("select * from app.role_grants where org_id='repair-history'")).rows, grant);
+        assert.deepEqual((await admin.query("select event from app.transition_outbox where event->>'owner_id'='repair-history' order by id")).rows, saved);
+
+        await admin.query("insert into app.organizations(org_id,name,safe,site,admin_email,token,released) values ('legacy-ack','Legacy','safe','legacy.test','legacy@test','asset',true)");
+        await db.transaction("legacy-ack", sql => enqueue(sql, "legacy-ack", "legacy", "hat_granted", {}, "legacy"), true);
+        await admin.query("update app.world set clock='{}'");
+        await deliver(db, "legacy-ack", origin, secret);
+        assert.equal((await admin.query("select state from app.site_events where org_id='legacy-ack'")).rows[0].state, "applied");
+        assert.equal((await admin.query("select * from app.role_grants where org_id='legacy-ack'")).rowCount, 0);
+
+        await admin.query("update app.world set clock=$1", [{ nowMs: at + 100, clockMode: "stopped", rate: 1 }]);
         await setup("ack-unavailable"); unavailable = true; await deliver(db, "ack-unavailable", origin, secret);
         const retry = await state("ack-unavailable"); assert.equal(retry.state, "pending"); assert.equal(retry.status, "pending"); assert.equal(retry.failures, 1);
       } finally { receiver.closeAllConnections(); await new Promise<void>((done) => receiver.close(() => done())); }
