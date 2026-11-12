@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# A stand-in for the two `amp orb service` calls the slice-zero supervisor makes (packages/devnet/src/devnet/processes.ts),
+# for a Claude cloud container, which has no Amp and no systemd. Each service runs detached in its own session;
+# its pid and log live under $CAPXUL_AMP_SHIM_DIR (default var/amp-shim). Nothing else of Amp is imitated.
+#   amp orb service start <name> --cwd <dir> --command <shell command>
+#   amp orb service stop <name>
+#   amp orb service logs <name>
+set -euo pipefail
+DIR="${CAPXUL_AMP_SHIM_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)/var/amp-shim}"
+mkdir -p "$DIR"
+[ "${1:-}" = orb ] && [ "${2:-}" = service ] || { echo "amp shim: only 'orb service start|stop|logs' is supported" >&2; exit 2; }
+verb="${3:-}" name="${4:-}"
+[ -n "$name" ] || { echo "amp shim: service name required" >&2; exit 2; }
+pidfile="$DIR/$name.pid" log="$DIR/$name.log"
+running() { [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null; }
+case "$verb" in
+  start)
+    shift 4; cwd="$PWD" cmd=""
+    while [ $# -gt 0 ]; do
+      case "$1" in --cwd) cwd="$2"; shift 2 ;; --command) cmd="$2"; shift 2 ;; *) echo "amp shim: unknown option $1" >&2; exit 2 ;; esac
+    done
+    [ -n "$cmd" ] || { echo "amp shim: --command required" >&2; exit 2; }
+    running && exit 0
+    rm -f "$pidfile"
+    # No subshell: a backgrounded `( … & )` keeps the caller's stdout pipe open, and Node's execFile then never returns.
+    cd "$cwd"
+    # setsid may fork, so the service writes its own pid before it execs.
+    setsid bash -c "echo \$\$ >'$pidfile'; exec $cmd" >>"$log" 2>&1 </dev/null &
+    for _ in $(seq 1 50); do [ -s "$pidfile" ] && break; sleep 0.1; done
+    ;;
+  stop)
+    running || exit 0
+    pid="$(cat "$pidfile")"
+    kill -TERM "$pid" 2>/dev/null || true
+    for _ in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.2; done
+    rm -f "$pidfile"
+    ;;
+  logs) cat "$log" 2>/dev/null || true ;;
+  *) echo "amp shim: unknown verb $verb" >&2; exit 2 ;;
+esac
