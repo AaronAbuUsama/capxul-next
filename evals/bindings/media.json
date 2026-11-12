@@ -1,0 +1,11 @@
+{
+  "area": "media",
+  "script": "packages/evals/src/modules/media/run.sh",
+  "worlds": ["slice-zero"],
+  "bindings": [
+    { "eval": "tbl:files/schema", "checks": ["MEDIA.schema"], "why": "In the receipt's real selected world, inspect exact ordered Postgres column names/types/nullability, primary key, all secondary index keys/uniqueness and forced RLS, using the restricted Core role. The runner never migrates or seeds." }
+  ],
+  "near": [
+    { "eval": "tbl:files/writers", "checks": ["MEDIA.closed-table-writes"], "missing": "Runtime direct DML is denied. Component storage/pixel/expiry checks do not establish composed bearer authentication, canonical worldNow, the actual shared transactional outbox or source-correlated lifetime transitions in the same full selected-stack receipt." }
+  ]
+}

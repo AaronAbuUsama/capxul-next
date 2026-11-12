@@ -279,3 +279,17 @@ export const decision_media_budgets = defineDecision({
   source: by("packages/blueprint-engine/src/budgets.ts; P5; media.purposes (24 MB)"),
   affects: [rpc_media_files_upload, flow_client_media_upload, rpc_media_files_get, flow_client_media_fetch_image, workflow_media_files_expire_document],
 });
+
+export const decision_media_postgres_writers = defineDecision({
+  id: "media.postgres-writers",
+  title: "Restricted file operations, not table-write grants",
+  question: "How does Postgres enforce that only upload and the document lifetime process write files?",
+  options: [
+    { label: "operations", text: "Deny runtime table DML; expose fixed upload and expiration functions owned by a non-login, non-bypass role. Authenticate the uploader before setting transaction-local person ownership." },
+    { label: "table-grants", text: "Grant all Core handlers table DML and rely only on handler conventions." },
+  ],
+  chosen: "operations",
+  why: "A read admission must never become write authority. A fixed upload inserts only for the authenticated person owner, and expiration changes only due held rows, deleting bytes and recording the transition atomically. The worker has no upload privilege and neither runtime role can directly update bytes. The row's expires_at is its durable timer, so restarting Core loses no expiration work. This changes no file purpose, lifetime, admission or external infrastructure.",
+  source: "Agents/documents/media implementation, 12 November 2026; media.uploader, media.document-process and tbl:files/writers",
+  affects: [table_files, rpc_media_files_upload, workflow_media_files_expire_document],
+});

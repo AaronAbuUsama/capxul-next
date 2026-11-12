@@ -378,3 +378,45 @@ export const decision_documents_payslip_readers = defineDecision({
   source: "The coordinator, round 2, m1-old-decisions; cut.documents; plugs.document-canon",
   affects: [rpc_documents_reading_get, rpc_documents_reading_verify, table_documents],
 });
+
+export const decision_documents_core_store_scope = defineDecision({
+  id: "documents.core-store-scope",
+  title: "Reconcile new Core stores with the already accepted site HR boundary",
+  question: "Do stale PayslipContent and salary-slip creation inputs override the current-scope decisions?",
+  options: [
+    { label: "four-kinds", text: "New Core stores admit memo, invoice, terms and receipt only; reject payslip and salary-slip creation. Preserve historical row and read vocabulary without a new Core HR reader." },
+    { label: "core-hr", text: "Restore Core payslip creation and HR permission projections." },
+  ],
+  chosen: "four-kinds",
+  why: "documents.kinds, documents.payslip-kind and documents.payslip-readers already archive Core salary-slip creation and make Frappe HR the authority. The stale procedure input and prose cannot restore that mechanism. Historical stored kind/subject values and read wire shapes remain compatible; no broader historical acceptance is credited. New payslip or salary-slip store input is INVALID_INPUT before any write.",
+  source: "Sol integration agreement, 12 November 2026; current-scope documents.kinds, documents.payslip-kind, documents.payslip-readers; cut.documents",
+  affects: [procedure_documents_store, table_documents, rpc_documents_reading_get, rpc_documents_reading_verify],
+});
+
+export const decision_documents_encoding_v1 = defineDecision({
+  id: "documents.encoding-v1",
+  title: "A new explicit canonical document envelope version",
+  question: "Which exact bytes and EIP-712 message does the new Core store commit to?",
+  options: [
+    { label: "explicit-v1", text: "New v1 JSON envelopes use recursively sorted object keys, original array order, UTF-8 and no whitespace. Hash exact bytes for content_hash; use an explicit EIP-712 Document message for document_hash and fixed independent byte/hash vectors." },
+    { label: "implicit", text: "Let each writer choose its JSON ordering and typed domain." },
+  ],
+  chosen: "explicit-v1",
+  why: "This is a new version, not an assertion of old-wire compatibility. The envelope is {version:1,originId,kind,issuedAt,content}. originId is keccak256 of UTF-8 subject_kind + ':' + subject_id. EIP-712 domain is name 'Capxul Document', version '1', chainId; primary type Document has originId:bytes32, kind:string, issuedAt:uint256, contentHash:bytes32 in that order. Its contentHash is keccak256 of canonical content, avoiding a self-referential envelope hash. Addresses are lowercase; amounts are decimal integer strings. Receipt artifacts remain exact bytes with equal hashes. Known independent vectors pin both encoding and domain; changing either requires a new version.",
+  source: "Sol integration agreement, 12 November 2026; documents.store-builds and procedure documents.store lacked exact encoding; frozen document operations prescribe integrity, not a fixed byte vector",
+  affects: [procedure_documents_store, table_documents, rpc_documents_reading_get, rpc_documents_reading_verify],
+});
+
+export const decision_documents_postgres_store = defineDecision({
+  id: "documents.postgres-store",
+  title: "An immutable insert door in the invoker's checked-out Postgres transaction",
+  question: "How does the new Core storage implementation prevent runtime update/delete and serialize a repeated hash pair?",
+  options: [
+    { label: "immutable-door", text: "Runtime roles read but have no table DML. A fixed insert/replay function, owned by a non-login non-bypass role, checks current owner and the pair under a transaction lock; the canonical TypeScript store validates content before invoking it." },
+    { label: "table-dml", text: "Give runtime roles insert/update/delete and rely on callers to keep the document immutable." },
+  ],
+  chosen: "immutable-door",
+  why: "A repeated birth must not race another insert, and a chain hash must never acquire new bytes or readers. The function has fixed search_path, no public execute, no update/delete path and no independent commit. Owner tenancy permits internal subject reads; public get/verify still require current caller_safes participation and exclude salary documents, whose readers belong to Frappe HR. This is local implementation scope, not production migration or security-design approval, and does not establish complete writer or participant acceptance without the composed real-stack run.",
+  source: "Agents/documents/media implementation, 12 November 2026; documents.tenancy, documents.participants, documents.core-store-scope; same-Sql contract",
+  affects: [procedure_documents_store, table_documents, rpc_documents_reading_get, rpc_documents_reading_verify],
+});
