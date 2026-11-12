@@ -26,7 +26,9 @@ export const FLAGGED: readonly string[] = [
   "agents.org-owned", "board.failed-proposal",
   "contacts.members-write", "notices.claim-escrow", "system.size",
   // Aaron's open questions of 11 November 2026 (shared/questions.ts)
-  "thin-line.bundler", "books.founder-funding", "devnet.core-service-home", "devnet.cli-split", "devnet.record-home", "books.chart-owner", "plan.cloud-sandbox-moot",
+  "thin-line.bundler", "books.founder-funding", "devnet.cli-split", "devnet.record-home", "books.chart-owner", "plan.cloud-sandbox-moot",
+  // 12 November 2026 (shared/questions.ts)
+  "system.one-storage-design",
 ];
 
 /** Decisions that carry out one of Aaron's own; they cite him but need nothing from him.

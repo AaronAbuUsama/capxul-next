@@ -1,4 +1,4 @@
-// Aaron's open questions of 11 November 2026, as decision records so the book's Questions page shows each one with a
+// Aaron's open questions of 11 and 12 November 2026, as decision records so the book's Questions page shows each one with a
 // button per option. Five come from docs/mission/decisions-2026-11-11.md (written while binding the thin line and
 // moving the spike into packages); the sixth, who owns the chart of accounts, comes from the blueprint audit of the
 // same night. `chosen` is the recommendation, not his answer: each stays "for Aaron" (waiting.ts FLAGGED) until his
@@ -50,27 +50,6 @@ export const decision_books_founder_funding = defineDecision({
     "debiting the Safe account and crediting share capital, the founder as the party.",
   source: SOURCE,
   affects: [f.system_capxul, f.concept_books],
-});
-
-export const decision_devnet_core_service_home = defineDecision({
-  id: "devnet.core-service-home",
-  title: "Where the working prototype of Capxul's own service goes",
-  question:
-    "The service that holds Capxul's own part (who may pay, budgets, payments) runs today as a prototype in spikes/ and saves to plain " +
-    "files. The blueprint has two homes for it that do not match: one large service on Postgres, and a small service per test world on " +
-    "a single SQLite file (the cheap test worlds already chosen). Where should the prototype be rebuilt?",
-  options: [
-    { label: "lean-service-in-devnet", text: "As the small per-world service, on SQLite, in the test-world package, using the prototype as its reference and keeping every check that passes today. The large production service is built separately when the staging server is next on the path." },
-    { label: "one-service-two-storages", text: "One service for both: the same code runs on SQLite in test worlds and Postgres in staging. One service to build, but the Postgres design has to bend to fit." },
-    { label: "move-then-convert", text: "Move the prototype as it is, then convert it to SQLite. Fastest move, but it carries the plain-file design into a real package." },
-  ],
-  chosen: "lean-service-in-devnet",
-  why:
-    "Recommended because the small world is what the thin line runs on, and building it on SQLite from the start avoids porting the storage twice. " +
-    "It also settles which storage each environment uses: the devnet and shared-world environments run the lean service (devnet.lean-world); staging " +
-    "keeps the Postgres design (component backend). Detail for agents: plan task m2-graduate-spike; spikes/skeleton/core.",
-  source: SOURCE,
-  affects: [f.system_capxul, f.component_backend, f.component_devnet, f.environment_devnet, f.environment_shared_world],
 });
 
 export const decision_devnet_cli_split = defineDecision({
@@ -152,4 +131,36 @@ export const decision_plan_cloud_sandbox_moot = defineDecision({
     "would track the same work twice. Detail for agents: plan task m1-cloud-sandbox; plan path; milestone m1 exit g9.",
   source: "Cloud thread \"Validate the blueprint audit findings\", 11 November 2026, from the blueprint audit's plan findings",
   affects: [f.system_capxul],
+});
+
+export const decision_system_one_storage_design = defineDecision({
+  id: "system.one-storage-design",
+  title: "Should Capxul have one storage and indexing design everywhere, and if so which?",
+  question:
+    "Today test worlds are meant to use one small database file and read the chain themselves, while staging and production are " +
+    "meant to use a big Postgres database with a separate indexer called Ponder. That means building and testing everything twice. " +
+    "Which single design should every environment use? This replaces the earlier, unanswered card on where the working " +
+    "prototype of Capxul's own service is rebuilt: whichever design you pick here, the prototype is rebuilt as that design's " +
+    "service, keeping every check that passes today. A second part " +
+    "of the same choice: the chain reader is recorded as reading every transfer of the admitted coins on the whole chain, which on " +
+    "Base is a flood for any indexer. Because Capxul creates every company's Safe, it could read only transfers to or from Safes " +
+    "it made. Picking 'Lean everywhere' includes narrowing it that way.",
+  options: [
+    { label: "lean-everywhere", text: "Lean everywhere: every world, staging and production included, runs one Capxul service with one database file and its own chain reader. Ponder and Postgres are dropped from the design. Each company keeps its own Frappe site. The chain reader reads only transfers to or from Safes Capxul made." },
+    { label: "postgres-ponder-everywhere", text: "Postgres and Ponder everywhere: every test world also runs Postgres and Ponder. One design, about four times the memory per world, and the lean-world decision is reversed." },
+    { label: "keep-both", text: "Keep both: test worlds stay lean; staging and production keep Postgres and Ponder. Cheapest now, but every concept is built twice." },
+    { label: "one-service-two-databases", text: "One service, two databases: the same code runs on a file in test worlds and on Postgres in staging, reading the chain itself in both. No Ponder, but two databases to test." },
+  ],
+  chosen: "lean-everywhere",
+  why:
+    "Recommended because it is what the working prototype and the thin line already run on, a world stays one file to snapshot, and " +
+    "what passes in a test world proves the code that runs in production. The cost is that we write and test our own reorg handling " +
+    "before anything runs on Base. The old system points the same way: its team hand-wrote reorg-safe log identity on top of Ponder " +
+    "anyway, and many of its 36 Ponder commits were fixes for keeping Ponder alive around devnet snapshots and restarts, and for " +
+    "replaying its schema on every staging change. Detail for agents: write-up https://claude.ai/artifact/MbNQS2XzjeUcA9ZqtVVwHn; " +
+    "replaces devnet.core-service-home (withdrawn unanswered, 12 November; plan task m2-graduate-spike follows this answer); affects components postgres, ponder, backend, devnet, " +
+    "environment staging, decisions components.ponder, indexing.scope-by-parties, indexing.reorgs-are-ponders, indexing.tables-only, and " +
+    "indexing.transfers (narrow to Capxul-made Safes is part of this choice; the record is unchanged until answered).",
+  source: "Cloud thread \"Decide one indexer and storage architecture\", 12 November 2026",
+  affects: [f.system_capxul, f.component_postgres, f.component_ponder, f.component_backend, f.component_devnet, f.environment_staging],
 });

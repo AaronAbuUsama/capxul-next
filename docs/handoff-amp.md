@@ -107,7 +107,8 @@ request from the thread "Validate the blueprint audit findings":
 - **Fixed:** `docs/blueprint-guide.md`'s three false statements and `docs/blueprint.md`'s swarmD factory text; the
   trial balance mapping in `cut.ts`; payroll's "UK filing" wording (now `aaron.jurisdiction-open`).
 - **On the Questions page, waiting for Aaron** (`blueprint/shared/questions.ts`): `thin-line.bundler` and
-  `books.founder-funding` (thin line rows 6 and 7), `devnet.core-service-home`, `devnet.cli-split`,
+  `books.founder-funding` (thin line rows 6 and 7), `devnet.core-service-home` (withdrawn on 12 November, replaced by
+  `system.one-storage-design`: one storage and indexing design everywhere), `devnet.cli-split`,
   `devnet.record-home` (the spike's move into packages), `books.chart-owner` (whether Core keeps its own copy of
   the chart; the `books` tables and the head feed still model the copy until he answers). Also `plan.cloud-sandbox-moot`: drop plan task `m1-cloud-sandbox`, which Amp makes moot and which still sits on the critical path.
 - **Plan:** g2 and g4 evidence refreshed to what is actually checked (g4's wording is a milestone exit, so his);
