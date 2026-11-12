@@ -8,7 +8,8 @@ app_license = "MIT"
 after_install = "capxul.setup.after_install"
 boot_session = "capxul.setup.boot_session"
 
-doctype_js = {"Payment Entry": "public/js/payment_entry.js"}
+doctype_js = {"Payment Entry": "public/js/payment_entry.js", "Purchase Invoice": "public/js/purchase_invoice.js"}
+extend_doctype_class = {"Report": ["capxul.reports.LedgerTrace"]}
 
 doc_events = {
     # roles follow hats: nobody edits them by hand

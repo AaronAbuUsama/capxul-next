@@ -13,7 +13,11 @@
   "approval_url",
   "tx_hash",
   "reason",
-  "canonical_json"
+  "canonical_json",
+  "request_seq",
+  "request_json",
+  "answer_json",
+  "awaiting"
  ],
  "fields": [
   {
@@ -69,6 +73,32 @@
    "fieldtype": "Code",
    "label": "Canonical Json",
    "options": "JSON"
+  },
+  {
+   "fieldname": "request_seq",
+   "fieldtype": "Int",
+   "label": "Request Sequence",
+   "read_only": 1
+  },
+  {
+   "fieldname": "request_json",
+   "fieldtype": "Code",
+   "label": "Request Body",
+   "options": "JSON",
+   "read_only": 1
+  },
+  {
+   "fieldname": "answer_json",
+   "fieldtype": "Code",
+   "label": "Core Answer",
+   "options": "JSON",
+   "read_only": 1
+  },
+  {
+   "fieldname": "awaiting",
+   "fieldtype": "Data",
+   "label": "Awaiting Signer",
+   "read_only": 1
   }
  ],
  "permissions": [

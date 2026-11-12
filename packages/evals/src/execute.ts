@@ -1,0 +1,125 @@
+// Run I/O: save intent before starting children; only finalize passing evidence after every child finishes.
+import { randomUUID } from "node:crypto";
+import { spawn, spawnSync } from "node:child_process";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { mergeResults, parseRunReceipt, type Blueprint, type RunEnvironment, type RunReceipt } from "@capxul/blueprint-engine";
+import type { Bindings } from "./modules/bindings/service.ts";
+import { cap, evidenceText, fileNameOf, foldChecks, parseCheckLines, redact, resultsFile, scoreEvals, type CheckLine, type Row, type RunInfo } from "./modules/runs/service.ts";
+
+const atomicJson = (path: string, value: unknown): void => {
+  writeFileSync(`${path}.tmp`, `${JSON.stringify(value, null, 2)}\n`);
+  renameSync(`${path}.tmp`, path);
+};
+
+const runScript = (root: string, dir: string, script: string, args: string[], json: boolean): Promise<{ output: string; exitCode: number | null; signal: string | null }> =>
+  new Promise((done) => {
+    const child = spawn("bash", [join(root, script), ...args], { cwd: root, env: { ...process.env, CAPXUL_EVAL_RUN_DIR: dir } });
+    let output = "";
+    const take = (chunk: Buffer): void => { output += chunk.toString(); (json ? process.stderr : process.stdout).write(chunk); };
+    child.stdout.on("data", take);
+    child.stderr.on("data", take);
+    child.on("error", (error) => { output += `\n${error.message}\n`; });
+    child.on("close", (exitCode, signal) => done({ output, exitCode, signal }));
+  });
+
+export const executeRun = async (root: string, blueprint: Blueprint, bindings: Bindings, asked: readonly string[],
+  options: { world: string; slug: string; environment?: string; screens?: string; json?: boolean }, commit: string, secrets: readonly string[]): Promise<number> => {
+  const log = (...args: string[]): void => { (options.json ? console.error : console.log)(...args); };
+  const at = new Date().toISOString();
+  const info: RunInfo = { run: `run-${at.replace(/\D/g, "")}-${randomUUID().slice(0, 8)}`, commit, at, script: "", world: options.world, slug: options.slug };
+  const out = `status/runs/${info.run}`;
+  const dir = join(root, out);
+  const plans = [...new Set(asked.flatMap((id) => bindings.byEval.get(id)?.file.script ?? []))].map((script) => {
+    const files = bindings.files.filter((f) => f.script === script && f.bindings.some((b) => asked.includes(b.eval)));
+    if (files.some((f) => !f.worlds.includes(options.world))) throw new Error(`${script} does not support world ${options.world}`);
+    const names = files.flatMap((f) => f.bindings).filter((b) => asked.includes(b.eval)).flatMap((b) => b.checks);
+    return { script, behaviours: [...new Set(names.map((n) => /^[A-Z]+[0-9]*/.exec(n)?.[0] ?? n))].sort() };
+  });
+  const environment: RunEnvironment = options.environment
+    ? JSON.parse(readFileSync(resolve(root, options.environment), "utf8")) as RunEnvironment
+    : { world: options.world, storage: "json", indexer: "inline", stack: "skeleton-json", components: { core: commit } };
+  if (environment.world !== options.world) throw new Error("environment world differs from --world");
+  if (plans.some((p) => p.script === "spikes/skeleton/run.sh") && (environment.storage !== "json" || environment.indexer !== "inline" || environment.stack !== "skeleton-json"))
+    throw new Error("the JSON skeleton cannot supply selected-stack evidence");
+  const contracts = blueprint.evals.filter((e) => asked.includes(e.id)).map(({ id, claim, observes }) => ({ id, claim, ...(observes === undefined ? {} : { observes }) }));
+  let receipt: RunReceipt = { version: 1, id: info.run, state: "running", commit, at, environment, requested: asked,
+    evals: contracts, scripts: plans.map(({ script }) => ({ script, exitCode: null, signal: null })), screens: [] };
+  const parsed = parseRunReceipt(receipt);
+  if (!parsed.ok) throw new Error(parsed.errors.join("\n"));
+  mkdirSync(join(dir, "evidence"), { recursive: true });
+  const evidenceOf = (id: string): string => `${out}/evidence/${fileNameOf(id)}.txt`;
+  const save = (rows: readonly Row[]): boolean => {
+    const results = resultsFile(info, rows, evidenceOf, receipt);
+    const snapshot = mergeResults(blueprint, null, results);
+    if (!snapshot.ok) throw new Error(snapshot.errors.join("\n"));
+    atomicJson(join(dir, "status.json"), snapshot.value);
+    atomicJson(join(dir, "results.json"), results);
+    // Publish the complete receipt last: readers cannot see complete before its status snapshot exists.
+    atomicJson(join(dir, "receipt.json"), receipt);
+    const recorded = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(root, "packages/evals/src/record-status.ts"), join(dir, "results.json"), "--status", join(root, "status/status.json")], { cwd: root, encoding: "utf8" });
+    log(recorded.stdout.trim(), recorded.stderr.trim());
+    return recorded.status === 0;
+  };
+  const finish = (rows: readonly Row[], recorded: boolean): number => {
+    const count = (v: string) => rows.filter((r) => r.verdict === v).length;
+    const counts = { pass: count("pass"), fail: count("fail"), not_run: count("not_run") };
+    const passed = recorded && receipt.state === "complete" && asked.length > 0 && counts.pass === asked.length;
+    const exitCode = passed ? 0 : 1;
+    if (options.json) console.log(JSON.stringify({ version: 1, run: info.run, runDir: out, state: receipt.state, passed, counts, exitCode }));
+    else log(`run ${info.run}: ${receipt.state}; ${counts.pass} pass, ${counts.fail} fail, ${counts.not_run} not_run`);
+    return exitCode;
+  };
+  const pending = asked.map((id) => ({ id, verdict: "not_run" as const, checks: [] }));
+  if (!save(pending)) return finish(pending, false);
+  const lines: CheckLine[] = [];
+  const byScript = new Map<string, readonly CheckLine[]>();
+  const logs: string[] = [];
+  let malformed = false;
+  try {
+    for (const plan of plans) {
+      log(`${plan.script}: company ${options.slug}, behaviours ${plan.behaviours.join(", ")}`);
+      const result = await runScript(root, dir, plan.script, [options.slug, "--only", plan.behaviours.join(",")], options.json ?? false);
+      logs.push(`$ ${plan.script} (exit ${result.exitCode}, signal ${result.signal})\n${result.output}`);
+      const got = parseCheckLines(result.output);
+      malformed ||= got.malformed.length > 0;
+      lines.push(...got.lines);
+      byScript.set(plan.script, got.lines);
+      receipt = { ...receipt, scripts: receipt.scripts.map((s) => s.script === plan.script ? { script: s.script, exitCode: result.exitCode, signal: result.signal } : s) };
+      atomicJson(join(dir, "receipt.json"), receipt);
+    }
+    const manifest = options.screens ? resolve(root, options.screens) : join(dir, "screens.json");
+    if (options.screens || existsSync(manifest)) {
+      const file = manifest;
+      const screens: unknown = JSON.parse(readFileSync(file, "utf8"));
+      const validated = parseRunReceipt({ ...receipt, screens });
+      if (!validated.ok) throw new Error(validated.errors.join("\n"));
+      for (const screen of validated.value.screens) {
+        const target = join(dir, screen.path);
+        const source = resolve(dirname(file), screen.path);
+        if (!existsSync(source)) throw new Error(`screen evidence missing: ${screen.path}`);
+        if (source !== target) { mkdirSync(dirname(target), { recursive: true }); copyFileSync(source, target); }
+      }
+      receipt = { ...receipt, screens: validated.value.screens };
+    }
+  } catch (error) {
+    malformed = true;
+    logs.push(String(error));
+    console.error(error);
+  }
+  // A script can only prove its own bindings, even if another script prints the same check name.
+  const scores = asked.map((id) => scoreEvals([id], bindings, foldChecks(byScript.get(bindings.byEval.get(id)?.file.script ?? "") ?? [])));
+  const scored = { rows: scores.flatMap((s) => s.rows), unfinished: scores.flatMap((s) => s.unfinished) };
+  const complete = !malformed && scored.unfinished.length === 0 && receipt.scripts.every((s) => s.exitCode === 0 && s.signal === null);
+  receipt = { ...receipt, state: complete ? "complete" : "incomplete", finishedAt: new Date().toISOString() };
+  const rows = scored.rows.map((r) => !complete && r.verdict === "pass" ? { ...r, verdict: "not_run" as const } : r);
+  const claimOf = new Map(contracts.map((e) => [e.id, e.claim]));
+  for (const row of rows) {
+    const bound = bindings.byEval.get(row.id);
+    writeFileSync(join(root, evidenceOf(row.id)), cap(redact(evidenceText({ ...info, script: bound?.file.script ?? "" }, row, claimOf.get(row.id) ?? "", bound?.binding.why ?? "no binding"), secrets), 60_000));
+  }
+  writeFileSync(join(dir, "checks.tsv"), redact(lines.map((l) => `${l.name}\t${l.verdict}\t${l.ms}\t${l.detail}`).join("\n") + "\n", secrets));
+  writeFileSync(join(dir, "run.log"), cap(redact(logs.join("\n"), secrets), 400_000));
+  const recorded = save(rows);
+  return finish(rows, recorded);
+};

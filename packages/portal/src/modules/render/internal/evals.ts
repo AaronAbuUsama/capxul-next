@@ -8,9 +8,9 @@ import { chip, esc, link, plural, table } from "./html.ts";
 
 import { rich, type Cites } from "./prose.ts";
 
-/** The acceptance claim an `acc` eval checks: its number is the last part of the eval's id. */
+/** Match the claim, not the opaque eval key; display numbering is independent of identity. */
 const observes = (p: OperationPage, e: EvalRow): string =>
-  e.kind !== "acc" ? "" : p.acceptance.find((a) => String(a.n) === e.id.slice(e.id.lastIndexOf("/") + 1))?.observes ?? "";
+  e.kind !== "acc" ? "" : p.acceptance.find((a) => a.claim === e.claim)?.observes ?? "";
 
 const rows = (p: OperationPage, evals: readonly EvalRow[], cites: Cites): readonly string[] =>
   evals.map((e) => {

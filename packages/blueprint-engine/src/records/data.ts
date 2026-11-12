@@ -10,6 +10,7 @@ import { AnySchema, Common, Id, Line, make, Ref } from "./base.ts";
  * `chain` table, the parties it admits at all (decision rules.admissions-and-wait-keys). One admission is one policy clause.
  */
 export const Admission = Schema.Struct({
+  key: Schema.optionalKey(Id),
   /** How the session is matched to the column:
    * - `tenant`: the column names a tenant (with `kindField`, an owner pair), matched as the tenant column is;
    * - `safe`: the column holds a Safe, or a list of Safes: the Safe of a Party in parties' directory whose owner

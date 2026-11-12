@@ -12,6 +12,7 @@
   "status",
   "attempts",
   "error",
+  "map_version",
   "data"
  ],
  "fields": [
@@ -59,6 +60,12 @@
    "fieldname": "error",
    "fieldtype": "Small Text",
    "label": "Error"
+  },
+  {
+   "fieldname": "map_version",
+   "fieldtype": "Data",
+   "label": "Map Version",
+   "read_only": 1
   },
   {
    "fieldname": "data",
