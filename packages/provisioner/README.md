@@ -38,7 +38,8 @@ taken inside the box.
   Docker bridge; set `CAPXUL_BOX_PROXY=http://172.17.0.1:<port>` and `CAPXUL_BOX_TRUST_CA` to the proxy's CA.
 - `e2b` (next): test runs in an E2B sandbox, destroyed after the run, through `@alchemy.run/e2b`. Waits on an
   `E2B_API_KEY` in the environment.
-- A long-lived machine with a real disk, for shared worlds: not chosen yet.
+- A long-lived machine with a real disk, for shared worlds: not chosen yet. Its shared worlds keep their Frappe sites on
+  the host's one shared bench (aaron.shared-bench-for-shared-worlds); a box at the docker or e2b placement keeps its own.
 
 ## Checks
 

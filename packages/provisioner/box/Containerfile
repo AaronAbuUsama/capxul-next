@@ -10,6 +10,8 @@ RUN set -eu; mkdir -p /opt/psql17/bin /opt/psql17/lib; \
     ldd /usr/lib/postgresql/17/bin/psql /usr/lib/postgresql/17/bin/pg_dump | awk '/=> \//{print $3}' | sort -u \
       | grep -v -E '/(libc|libm|libresolv)\.so' | xargs -I{} cp -L {} /opt/psql17/lib/
 
+# Chrome for the screen checks (agent-browser drives it). Its download hosts are not reachable from every network, so
+# build-box.sh passes a local Chrome for Testing build as the named context "chrome" (its chrome-linux64 folder).
 FROM ubuntu:24.04
 
 ARG NODE_VERSION=24.22.2
@@ -23,20 +25,26 @@ RUN --mount=type=secret,id=build_ca,required=false \
       printf 'Acquire::https::CAInfo "/tmp/build-ca.crt";\n' > /etc/apt/apt.conf.d/99build-ca; fi; \
     sed -i 's|http://|https://|g' /etc/apt/sources.list.d/ubuntu.sources; \
     apt-get update; \
-    apt-get install -y --no-install-recommends ca-certificates curl gnupg git python3 bash xz-utils jq iproute2 iptables tini sudo; \
+    apt-get install -y --no-install-recommends ca-certificates curl gnupg git python3 bash xz-utils jq iproute2 iptables tini sudo \
+      libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 \
+      libxfixes3 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 libdrm2 libxshmfence1 fonts-liberation; \
     install -m 0755 -d /etc/apt/keyrings; \
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc; \
     echo "deb [signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu noble stable" > /etc/apt/sources.list.d/docker.list; \
     apt-get update; \
     apt-get install -y --no-install-recommends docker-ce docker-ce-cli containerd.io docker-compose-plugin docker-buildx-plugin; \
     curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" | tar -xJ -C /usr/local --strip-components=1; \
-    npm install -g "pnpm@${PNPM_VERSION}"; \
+    npm install -g "pnpm@${PNPM_VERSION}" agent-browser@0.42.0; \
     rm -f /etc/apt/apt.conf.d/99build-ca /tmp/build-ca.crt; rm -rf /var/lib/apt/lists/* /root/.npm
 
 COPY --from=psql /opt/psql17 /opt/psql17
 RUN set -eu; for b in psql pg_dump pg_restore; do \
       printf '#!/bin/sh\nLD_LIBRARY_PATH=/opt/psql17/lib exec /opt/psql17/bin/%s "$@"\n' "$b" > /usr/local/bin/$b; \
       chmod +x /usr/local/bin/$b; done; psql --version | grep -q ' 17\.'
+
+COPY --from=chrome . /opt/chrome
+RUN set -eu; printf '#!/bin/sh\n[ "$(id -u)" -ne 0 ] || set -- --no-sandbox "$@"\nexec /opt/chrome/chrome "$@"\n' > /usr/bin/google-chrome; \
+    chmod +x /usr/bin/google-chrome; google-chrome --headless=new --version
 
 COPY box-start.sh /usr/local/bin/box-start
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/box-start"]

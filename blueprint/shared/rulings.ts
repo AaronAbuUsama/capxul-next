@@ -1176,3 +1176,29 @@ export const decision_aaron_alchemy_release_age = defineDecision({
   source: "Aaron, 12 November 2026, in the project thread \"Rethink infrastructure around Alchemy\" (18:49 UTC)",
   affects: [f.system_capxul, f.component_provisioner],
 });
+
+export const decision_aaron_shared_bench_for_shared_worlds = defineDecision({
+  id: "aaron.shared-bench-for-shared-worlds",
+  title: "Shared worlds share one bench per host; devnets and test runs keep their own",
+  question:
+    "aaron.alchemy-provisioning put a Frappe bench inside every world's box, which replaced aaron.postgres-and-ponder's " +
+    "one shared bench per host without Aaron choosing that. Where should each world's Frappe sites run?",
+  options: [
+    {
+      label: "shared-bench-for-shared-worlds",
+      text:
+        "Shared worlds on a host use that host's one shared bench (one set of sites per world; about 15 worlds per 16 GB " +
+        "host). A devnet on a laptop and a test run in an E2B sandbox keep a small bench inside their box and work offline.",
+    },
+    { label: "shared-bench-everywhere", text: "Every world, laptop devnets included, uses the shared bench host over the network." },
+    { label: "bench-in-every-box", text: "Each world fully self-contained with its own bench; about 8 to 10 worlds per 16 GB host." },
+  ],
+  chosen: "shared-bench-for-shared-worlds",
+  why:
+    "Aaron, thread \"Rethink infrastructure around Alchemy\", 12 November 2026: at 18:48 he asked \"There should have been, as " +
+    "I remember, ... one shared bench that you can connect to ... You don't have like the MariaDB on every single sandbox, " +
+    "do you?\"; at 19:16 he chose \"Shared bench for shared worlds\" on the decision card. A shared world's save then " +
+    "includes its own sites' databases from the shared bench; parking a shared world stops its box but not the bench.",
+  source: "Aaron, 12 November 2026, in the project thread \"Rethink infrastructure around Alchemy\" (19:16 UTC)",
+  affects: [f.component_provisioner, f.component_site_service, f.environment_shared_world, cloud.component_sites_host, cloud.environment_worlds],
+});
