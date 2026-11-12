@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { Database, transaction } from "../src/platform/db.ts";
-import { activate, lookup, register, release, resolveRecipient } from "../src/parties/door.ts";
+import { activate, lookup, lookupBySafe, register, release, resolveRecipient } from "../src/parties/door.ts";
 import { companySafeAddress, personalSafeAddress } from "../src/platform/safe.ts";
 
 if (process.env.CAPXUL_DISPOSABLE !== "true" || !process.env.CAPXUL_WORLD || process.env.CAPXUL_WORLD === "main") throw new Error("named disposable migrated Postgres required");
@@ -81,8 +81,19 @@ test("registration, activation and release preserve caller atomicity, idempotenc
   assert.equal((await lookup(db.worker, second.party_id))!.state, "pending");
   await db.transaction("", async (sql) => { await release(sql, second.party_id, advanced); await release(sql, second.party_id, advanced + 1); }, true);
   assert.equal(await lookup(db.worker, second.party_id), null);
+  assert.equal(await lookupBySafe(db.worker, second.safe_address), null);
   const reborn = await db.transaction("", (sql) => register(sql, { ...input, handle: `${handle}-two`, safe_address: address(stamp + 1) }, now), true);
   assert.notEqual(reborn.party_id, second.party_id);
+  const beforeRead = await eventCount();
+  const sql = await db.tenant.connect();
+  try {
+    await sql.query("begin read only");
+    assert.equal((await lookupBySafe(sql, reborn.safe_address.toUpperCase()))!.party_id, reborn.party_id);
+    assert.equal((await lookupBySafe(sql, row!.safe_address))!.display_name, "Acme");
+    assert.equal(await lookupBySafe(sql, address(stamp + 17)), null);
+    await sql.query("commit");
+  } finally { await sql.query("rollback"); sql.release(); }
+  assert.equal(await eventCount(), beforeRead, "name lookup must not mutate the directory or append an event");
   const events = (await db.worker.query("select data->>'transition' as transition,at from app.party_events where party_id=$1 order by id", [row!.party_id])).rows;
   assert.deepEqual(events.map((r) => r.transition), ["register", "activate"]);
   assert.deepEqual(events.map((r) => Number(r.at)), [now, advanced]);
