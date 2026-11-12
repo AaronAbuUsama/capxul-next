@@ -10,18 +10,23 @@ export class Database {
   }
   async transaction<T>(org: string, run: (sql: Sql) => Promise<T>, system = false): Promise<T> {
     const client = await (system ? this.worker : this.tenant).connect();
-    try {
-      await client.query("BEGIN");
-      await client.query("select set_config('app.org_id', $1, true)", [org]);
-      const result = await run(client);
-      await client.query("COMMIT");
-      return result;
-    } catch (error) {
-      await client.query("ROLLBACK");
-      throw error;
-    } finally { client.release(); }
+    try { return await transaction(client, org, run); }
+    finally { client.release(); }
   }
   async close() { await Promise.all([this.tenant.end(), this.worker.end()]); }
+}
+
+export async function transaction<T>(client: Sql, org: string, run: (sql: Sql) => Promise<T>): Promise<T> {
+  try {
+    await client.query("BEGIN");
+    await client.query("select set_config('app.org_id', $1, true)", [org]);
+    const result = await run(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  }
 }
 
 export async function record(sql: Sql, org: string, kind: string, trace: string, data: unknown) {

@@ -1,12 +1,13 @@
 import { io, type Socket } from "socket.io-client";
 import { prepare, type Prepare } from "../approvals/door.ts";
-import type { Database } from "../platform/db.ts";
+import { transaction, type Database } from "../platform/db.ts";
 import { signature } from "./door.ts";
 
 type Site = { org_id: string; site: string };
 type Options = { frappe: string; socket: string; secret: string; url: string; running: () => boolean };
+type Listener = { socket?: Socket; retry?: ReturnType<typeof setTimeout>; dirty: boolean; work?: Promise<void>; connecting?: Promise<void> };
 export class RequestCollector {
-  private listeners = new Map<string, { socket?: Socket; retry?: ReturnType<typeof setTimeout>; dirty: boolean; work?: Promise<void> }>();
+  private listeners = new Map<string, Listener>();
   private db: Database;
   private options: Options;
   constructor(db: Database, options: Options) { this.db = db; this.options = options; }
@@ -26,7 +27,7 @@ export class RequestCollector {
     try {
       if (!(await lock.query("select pg_try_advisory_lock(hashtextextended($1,0)) as locked", [key])).rows[0].locked) return;
       while (this.options.running()) {
-        const after = Number((await this.db.worker.query("select request_cursor from app.organizations where org_id=$1", [site.org_id])).rows[0].request_cursor);
+        const after = Number((await lock.query("select request_cursor from app.organizations where org_id=$1", [site.org_id])).rows[0].request_cursor);
         const page = await this.call(site, "collect_payment_requests", { org: site.org_id, after, limit: 100 });
         if (!Array.isArray(page.requests)) throw new Error("invalid site request page");
         let cursor = after;
@@ -40,7 +41,8 @@ export class RequestCollector {
             ...(request.department ? { department: request.department } : {}),
           };
           const trace = String(request.trace_id ?? "");
-          const saved = await this.db.transaction(site.org_id, async (sql) => {
+          // Reuse the lock connection: simultaneous collectors must not borrow twice from the bounded worker pool.
+          const saved = await transaction(lock, site.org_id, async (sql) => {
             const old = (await sql.query("select answer,request=$3::jsonb as same from app.site_request_answers where org_id=$1 and request_id=$2", [site.org_id, body.request_id, body])).rows[0];
             if (old) {
               if (!old.same) throw new Error("IDEMPOTENCY_CONFLICT: site request changed after its first answer");
@@ -60,31 +62,32 @@ export class RequestCollector {
             }
             await sql.query("insert into app.site_request_answers (org_id,request_id,request,answer) values ($1,$2,$3,$4)", [site.org_id, body.request_id, body, answer]);
             return answer;
-          }, true);
+          });
           // The answer/approval is committed before calling the site. A lost ACK repeats precisely that answer.
           // The gateway origin belongs to the running world, not the copied approval's identity.
           const answer = saved.approval_id ? { ...saved, approval_url: `${this.options.url}/approve/${saved.approval_id}` } : saved;
           const ack = await this.call(site, "answer_payment_request", answer, trace);
           if (ack.request_id !== body.request_id || typeof ack.status !== "string" || typeof ack.duplicate !== "boolean") throw new Error("site did not acknowledge request answer");
-          await this.db.worker.query("update app.organizations set request_cursor=$2,collected_at=now(),collector_error=null where org_id=$1", [site.org_id, request.cursor]);
+          await lock.query("update app.organizations set request_cursor=$2,collected_at=now(),collector_error=null where org_id=$1", [site.org_id, request.cursor]);
           cursor = request.cursor;
         }
         if (page.requests.length < 100) return;
       }
     } finally {
-      await lock.query("select pg_advisory_unlock(hashtextextended($1,0))", [key]);
-      lock.release();
+      try { await lock.query("select pg_advisory_unlock(hashtextextended($1,0))", [key]); }
+      finally { lock.release(); }
     }
   }
   connect(site: Site) {
     if (this.listeners.has(site.org_id) || !this.options.running()) return;
-    const listener: { socket?: Socket; retry?: ReturnType<typeof setTimeout>; dirty: boolean; work?: Promise<void> } = { dirty: false };
+    const listener: Listener = { dirty: false };
     this.listeners.set(site.org_id, listener);
     const reconnect = () => {
       listener.socket?.removeAllListeners(); listener.socket?.disconnect();
       if (this.options.running() && !listener.retry) listener.retry = setTimeout(() => { listener.retry = undefined; startConnect(); }, 1000);
     };
     const catchUp = () => {
+      if (!this.options.running()) return;
       listener.dirty = true;
       if (listener.work) return;
       listener.work = (async () => {
@@ -110,13 +113,16 @@ export class RequestCollector {
         reconnect();
       }
     };
-    // Track the authorization request as work too, so snapshot pause drains it before returning.
-    const startConnect = () => { listener.work = connect().finally(() => { listener.work = undefined; if (listener.dirty) catchUp(); }); };
+    // Reauthorization can overlap an outstanding answer; neither promise may hide the other from pause.
+    const startConnect = () => {
+      if (listener.connecting || !this.options.running()) return;
+      listener.connecting = connect().finally(() => { listener.connecting = undefined; });
+    };
     startConnect();
   }
   async pause() {
     for (const listener of this.listeners.values()) { clearTimeout(listener.retry); listener.socket?.removeAllListeners(); listener.socket?.disconnect(); }
-    await Promise.all([...this.listeners.values()].map((l) => l.work));
+    await Promise.all([...this.listeners.values()].flatMap((l) => [l.connecting, l.work]));
     this.listeners.clear();
   }
 }

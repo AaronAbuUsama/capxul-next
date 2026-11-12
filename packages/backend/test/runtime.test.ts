@@ -192,3 +192,78 @@ test("real v4/Ponder payment survives Core death, lost site ACK and replay witho
     console.log(JSON.stringify({ proof: "real-postgres-ponder-v4-with-site-protocol-receiver", approval: a.approval_id, txHash: sent.txHash, paymentPosts: 1, faultTxHash: fault.txHash, repairedPosts: 1, durableEvents: received.size, deliveryCalls, answerCalls, recordHead: cut.recordHead }));
   } finally { await kill(); await db.close(); await new Promise<void>((done) => realtime.close(() => done())); }
 });
+
+test("concurrent collectors drain outstanding answers across reconnect without starving readiness", { timeout: 30_000 }, async () => {
+  const database = new Database(process.env.DATABASE_URL!, process.env.WORKER_DATABASE_URL!);
+  const run = Date.now();
+  const sites = Array.from({ length: 4 }, (_, i) => ({ org: `collect-proof-${run}-${i}`, site: `collect-${run}-${i}.core.test` }));
+  const released = (await database.worker.query("update app.organizations set released=false where released returning org_id")).rows.map((r) => r.org_id);
+  const authorizations = new Map<string, number>(), answered = new Set<string>();
+  let releaseAnswers!: () => void;
+  const heldAnswers = new Promise<void>((done) => { releaseAnswers = done; });
+  let releasePeers!: () => void;
+  const heldPeers = new Promise<void>((done) => { releasePeers = done; });
+  let collects = 0;
+  const receiver = createServer(async (req, res) => {
+    const chunks = []; for await (const chunk of req) chunks.push(chunk);
+    const raw = Buffer.concat(chunks).toString();
+    assert.equal(req.headers["x-capxul-signature"], signature(raw, secret));
+    const b = JSON.parse(raw), site = sites.find((s) => s.org === b.org)!;
+    const reply = (message: unknown) => { res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify({ message })); };
+    if (req.url?.endsWith("payment_request_listener")) {
+      authorizations.set(b.org, (authorizations.get(b.org) ?? 0) + 1);
+      return reply({ authorization: "CapxulListener fixture", namespace: `/${site.site}`, event: "capxul_payment_request" });
+    }
+    if (req.url?.endsWith("collect_payment_requests")) {
+      collects++;
+      // The missing terms produce a durable refusal, not a synthetic approval or money movement.
+      return reply({ requests: b.after ? [] : [{ org: b.org, site: site.site, request_id: "collect-refusal", cursor: 1 }] });
+    }
+    assert.ok(req.url?.endsWith("answer_payment_request"));
+    assert.equal(b.error.code, "INVALID_INPUT");
+    answered.add(b.org); await (b.org === sites[0]!.org ? heldAnswers : heldPeers);
+    reply({ request_id: b.request_id, status: "Failed", duplicate: false });
+  });
+  const realtime = new Server(receiver);
+  for (const site of sites) realtime.of(`/${site.site}`);
+  await new Promise<void>((done) => receiver.listen(0, "127.0.0.1", done));
+  const siteUrl = `http://127.0.0.1:${(receiver.address() as any).port}`;
+  const core = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("../src/main.ts", import.meta.url))], {
+    env: { ...process.env, CAPXUL_SECRET: secret, CORE_URL: coreUrl, CORE_PORT: "18787", CORE_HOST: "127.0.0.1", FRAPPE_URL: siteUrl, FRAPPE_SOCKET_URL: siteUrl, SITE_SERVICE_URL: siteUrl, SITE_SERVICE_TOKEN: "fixture-only", FINALITY_DEPTH: "0", CORE_START_PAUSED: "true" },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  core.stdout?.on("data", () => {}); core.stderr?.on("data", () => {});
+  try {
+    await until(() => fetch(`${coreUrl}/health`).then((r) => r.status, () => 0), (s) => s === 200, "paused Core health");
+    for (const [i, site] of sites.entries()) await database.worker.query(`insert into app.organizations (org_id,name,safe,site,admin_email,token,released)
+      values ($1,$1,$2,$3,'collector@core.test',$4,true)`, [site.org, `0x${String(run + i).padStart(40, "0")}`, site.site, fixture.token]);
+    await post("/admin/snapshot/resume", {});
+    await until(async () => answered.size, (n) => n === sites.length, "four concurrent collectors saved and answered requests", 5000);
+    releasePeers();
+    await until(() => database.worker.query("select count(*)::int as n from app.organizations where org_id=any($1::text[]) and request_cursor=1", [sites.map((s) => s.org)]), (r) => r.rows[0].n === 3, "three ACKs committed while one answer remains outstanding");
+    for (const site of sites) realtime.of(`/${site.site}`).disconnectSockets(true);
+    await until(async () => sites.every((s) => (authorizations.get(s.org) ?? 0) >= 2), Boolean, "fresh authorization on every reconnect", 5000);
+    let paused = false;
+    const ready = fetch(`${coreUrl}/ready`).then((r) => r.json());
+    const pause = post("/admin/snapshot/pause", {}).then((cut) => { paused = true; return cut; });
+    await wait(200); assert.equal(paused, false, "pause must wait for all outstanding answer ACKs");
+    releaseAnswers();
+    const cut = await Promise.race([pause, wait(5000).then(() => { throw new Error("snapshot drain deadlocked"); })]);
+    await ready;
+    assert.equal(cut.activeRequests, 0); assert.equal(cut.activeDeliveries, 0);
+    const rows = (await database.worker.query("select request_cursor from app.organizations where org_id=any($1::text[])", [sites.map((s) => s.org)])).rows;
+    assert.deepEqual(rows.map((r) => r.request_cursor), ["1", "1", "1", "1"]);
+    const stopped = collects; await wait(350); assert.equal(collects, stopped);
+    assert.equal((await fetch(`${coreUrl}/ready`)).status, 503);
+    await post("/admin/snapshot/resume", {});
+    await until(async () => collects, (n) => n >= stopped + sites.length, "all collectors resume from durable cursors");
+    console.log(JSON.stringify({ proof: "four-concurrent-collectors-and-reconnect-drain", answered: answered.size, cursors: rows.map((r) => r.request_cursor), activeRequests: cut.activeRequests, activeDeliveries: cut.activeDeliveries }));
+  } finally {
+    releaseAnswers(); releasePeers();
+    core.kill("SIGKILL"); await new Promise<void>((done) => { if (core.exitCode !== null || core.signalCode !== null) done(); else core.once("exit", () => done()); });
+    await new Promise<void>((done) => realtime.close(() => done()));
+    await database.worker.query("update app.organizations set released=false where org_id=any($1::text[])", [sites.map((s) => s.org)]);
+    await database.worker.query("update app.organizations set released=true where org_id=any($1::text[])", [released]);
+    await database.close();
+  }
+});

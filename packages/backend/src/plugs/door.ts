@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import { record, type Database, type Sql } from "../platform/db.ts";
+export { RequestCollector } from "./collector.ts";
 
 export async function enqueue(sql: Sql, org: string, key: string, kind: string, data: unknown, trace: string) {
   await sql.query("select pg_advisory_xact_lock(hashtextextended($1,0))", [org]);
