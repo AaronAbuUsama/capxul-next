@@ -10,6 +10,38 @@ export type Verdict = typeof Verdict.Type;
 const At = Schema.String.pipe(Schema.check(Schema.isPattern(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(Z|[+-]\d\d:\d\d)$/)));
 const Nonempty = Schema.String.pipe(Schema.check(Schema.isMinLength(1)));
 
+export const RunEnvironment = Schema.Struct({
+  world: Nonempty,
+  storage: Schema.Literals(["json", "postgres"]),
+  indexer: Schema.Literals(["inline", "ponder"]),
+  stack: Nonempty,
+  components: Schema.Record(Schema.String, Nonempty),
+  chainId: Schema.optionalKey(Schema.Int),
+  databaseSchemaVersion: Schema.optionalKey(Nonempty),
+});
+export type RunEnvironment = typeof RunEnvironment.Type;
+
+/** Paths are relative to this run's directory, never a URL or a path outside it. */
+const RelativePath = Nonempty.pipe(Schema.check(Schema.isPattern(/^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))(?!.*[:\\]).+$/)));
+export const ScreenEvidence = Schema.Struct({ screen: Nonempty, path: RelativePath, source: Nonempty, assertion: Nonempty });
+export type ScreenEvidence = typeof ScreenEvidence.Type;
+
+/** Written before execution, finalized after it. Missing or running receipts cannot establish completion. */
+export const RunReceipt = Schema.Struct({
+  version: Schema.Literal(1),
+  id: Nonempty,
+  state: Schema.Literals(["running", "complete", "incomplete"]),
+  commit: Nonempty,
+  at: At,
+  finishedAt: Schema.optionalKey(At),
+  environment: RunEnvironment,
+  requested: Schema.Array(Nonempty),
+  evals: Schema.Array(Schema.Struct({ id: Nonempty, claim: Nonempty, observes: Schema.optionalKey(Nonempty) })),
+  scripts: Schema.Array(Schema.Struct({ script: Nonempty, exitCode: Schema.NullOr(Schema.Int), signal: Schema.NullOr(Nonempty) })),
+  screens: Schema.Array(ScreenEvidence),
+});
+export type RunReceipt = typeof RunReceipt.Type;
+
 /** What is known about one eval: the verdict, the commit it was run at, when, and optionally which run and where its evidence is. */
 export const EvalStatus = Schema.Struct({
   verdict: Verdict,
@@ -32,6 +64,7 @@ export const ResultsFile = Schema.Struct({
   commit: Nonempty,
   at: At,
   run: Schema.optionalKey(Nonempty),
+  receipt: Schema.optionalKey(RunReceipt),
   results: Schema.Array(Schema.Struct({ id: Nonempty, verdict: Verdict, evidence: Schema.optionalKey(Nonempty) })),
 });
 export type ResultsFile = typeof ResultsFile.Type;
@@ -48,6 +81,19 @@ const decode = <S extends Schema.Top>(schema: S, what: string, u: unknown): Pars
 
 export const parseStatus = (u: unknown): Parsed<StatusDocument> => decode(StatusDocument, "status document", u);
 export const parseResults = (u: unknown): Parsed<ResultsFile> => decode(ResultsFile, "results file", u);
+export const parseRunReceipt = (u: unknown): Parsed<RunReceipt> => {
+  const parsed = decode(RunReceipt, "run receipt", u);
+  if (!parsed.ok) return parsed;
+  const r = parsed.value;
+  const requested = new Set(r.requested), contracts = new Set(r.evals.map((e) => e.id));
+  if (requested.size !== r.requested.length || contracts.size !== r.evals.length || requested.size !== contracts.size || r.evals.some((e) => !requested.has(e.id)))
+    return { ok: false, errors: ["receipt contracts must match every requested eval exactly once"] };
+  if (r.state === "complete" && (!r.finishedAt || Date.parse(r.finishedAt) < Date.parse(r.at) || r.scripts.some((s) => s.exitCode !== 0 || s.signal !== null)))
+    return { ok: false, errors: ["a complete run must finish every script successfully"] };
+  if (r.environment.stack === "postgres-ponder-erpnext-v4" && (r.environment.storage !== "postgres" || r.environment.indexer !== "ponder"))
+    return { ok: false, errors: ["the selected stack requires Postgres and Ponder"] };
+  return parsed;
+};
 
 /** The ids in a status document that the blueprint does not derive. */
 export const unknownEvals = (b: Pick<Blueprint, "evals">, doc: StatusDocument): string[] => {
@@ -61,13 +107,29 @@ export const mergeResults = (b: Pick<Blueprint, "evals">, doc: StatusDocument | 
   const unknown = run.results.filter((r) => !known.has(r.id)).map((r) => r.id);
   if (unknown.length > 0) return { ok: false, errors: unknown.map((id) => `${id}: the blueprint derives no such eval`) };
   const defs = new Map(b.evals.map((e) => [e.id, e]));
+  if (run.receipt) {
+    const receipt = run.receipt;
+    const parsed = parseRunReceipt(receipt);
+    if (!parsed.ok) return parsed;
+    const ids = run.results.map((r) => r.id);
+    if (receipt.id !== run.run || receipt.commit !== run.commit || receipt.at !== run.at ||
+      new Set(ids).size !== ids.length || ids.length !== receipt.requested.length || receipt.requested.some((id) => !ids.includes(id)))
+      return { ok: false, errors: ["receipt and results must name the same run, commit, time and complete requested set"] };
+    if (receipt.state !== "complete" && run.results.some((r) => r.verdict === "pass"))
+      return { ok: false, errors: ["an unfinished run cannot record a pass"] };
+    if (receipt.evals.some((e) => defs.get(e.id)?.claim !== e.claim || defs.get(e.id)?.observes !== e.observes))
+      return { ok: false, errors: ["receipt eval contracts differ from the blueprint or requested set"] };
+  }
   const evals: Record<string, EvalStatus> = { ...(doc?.evals ?? {}) };
-  for (const r of run.results)
+  for (const r of run.results) {
+    // An older run finishing late cannot replace the intent or outcome of a newer run of this eval.
+    if (evals[r.id] && Date.parse(evals[r.id]!.at) > Date.parse(run.at)) continue;
     evals[r.id] = {
       verdict: r.verdict, commit: run.commit, at: run.at, claim: defs.get(r.id)?.claim ?? r.id,
       ...(defs.get(r.id)?.observes === undefined ? {} : { observes: defs.get(r.id)?.observes as string }),
       ...(run.run === undefined ? {} : { run: run.run }), ...(r.evidence === undefined ? {} : { evidence: r.evidence }),
     };
+  }
   return { ok: true, value: { version: 1, evals: Object.fromEntries(Object.keys(evals).sort().map((id) => [id, evals[id] as EvalStatus])) } };
 };
 

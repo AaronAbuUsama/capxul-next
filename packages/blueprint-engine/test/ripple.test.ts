@@ -34,5 +34,5 @@ test("an acceptance line whose observes changes re-words its eval, as a changed 
   const observed = (observes: string) => ({ ...f.invite, acceptance: [{ claim: "An Owner's invitation is pending and the invitee gets one email.", observes }, null, "A Seat that is not an Owner is refused."] });
   const was = build(f.records.map((r) => (r === f.invite ? observed("cli: prints the invitation") : r)));
   const now = build(f.records.map((r) => (r === f.invite ? observed("cli: prints nothing; read: the mail sink holds one email") : r)));
-  assert.deepEqual(rippleOf(was, now).evals.reworded, ["acc:org.member.invite/1"]);
+  assert.deepEqual(rippleOf(was, now).evals.reworded, ["acc:org.member.invite/c-90dd4c9d35059050"]);
 });

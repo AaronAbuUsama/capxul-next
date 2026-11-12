@@ -823,3 +823,17 @@ export const decision_tooling_lane_gate = defineDecision({
   source: by("the cross-file table in docs/design/tooling.md; oxlint over a copy of the book (456 schema-number)"),
   affects: SHIPPED,
 });
+
+export const decision_tooling_amp_orbs = defineDecision({
+  id: "tooling.amp-orbs",
+  title: "One independent development stack per Amp orb, without a nested worker box",
+  question: "How does an Amp agent run the current Frappe and Core stack without provisioning another agent sandbox?",
+  options: [
+    { label: "orb", text: "Amp owns the worker checkout and lifecycle. Setup caches the pinned bench image, Node, pnpm, native Solidity compilers, Foundry and contract artifacts. Runtime provides local Postgres, MariaDB, Redis, Frappe and a seeded v4 chain; Frappe HTTP and Socket.IO are published only on loopback. The Core/Ponder package owns its schema, migrations, restricted roles and readiness; its running services do not inherit migration/admin credentials. Amp supervises the processes. No Cloudflare worker, loop host or model proxy is started inside the orb." },
+    { label: "nested-box", text: "Keep creating a Cloudflare worker box from every Amp orb." },
+  ],
+  chosen: "orb",
+  why: "Aaron asked for one full stack per agent orb and, on 12 November, one Postgres/Ponder design everywhere. The built-in orb supports a systemd-owned Docker daemon: bench containers need not be rewritten as native services, nor does Docker need a world-writable socket. build.amp already removed the home-made worker provisioner. Product tenant boundaries, HMAC checks, test-only keys, world clocks, snapshots and cleanup remain. Setup contains no running company sites or runtime authentication. A legacy Core smoke check is not wave-zero acceptance: real Postgres/Ponder, a reconciled supplier payment and recovery must be proven together. This decision does not change the project's base branch, provision a paid wave or claim a measured fifteen-stack capacity.",
+  source: "Aaron through the Amp Space, 11–12 November 2026; aaron.postgres-and-ponder; build.amp; ampcode.com/docs/orbs/customizing; evals/thin-line.md",
+  affects: [f.system_capxul, f.component_devnet],
+});

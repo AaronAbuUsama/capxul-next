@@ -37,9 +37,10 @@ export const score = (asked: readonly string[], bindings: Bindings, folded: Read
     if (!bound) { rows.push({ id, verdict: "not_run", checks: [] }); continue; }
     const seen = bound.binding.checks.flatMap((c) => { const f = folded.get(c); return f ? [f] : []; });
     const missing = bound.binding.checks.filter((c) => !folded.has(c));
+    if (missing.length > 0) unfinished.push({ id, missing });
     if (seen.some((c) => c.verdict === "fail")) rows.push({ id, verdict: "fail", checks: seen });
     else if (missing.length === 0) rows.push({ id, verdict: "pass", checks: seen });
-    else unfinished.push({ id, missing });
+    else rows.push({ id, verdict: "not_run", checks: seen });
   }
   return { rows, unfinished };
 };

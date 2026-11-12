@@ -29,12 +29,12 @@ test("transitions, calls and links are registered and reversed", () => {
   assert.deepEqual(writers, ["rpc:organizations.invitations.accept", "rpc:organizations.invitations.invite", "workflow:organizations.invitations.expire"]);
 });
 
-test("evals are derived from records, and a retired acceptance line keeps its number", () => {
+test("evals are derived from records, and a retired acceptance line has no identity", () => {
   const ids = blueprint(f.records).evals.map((e) => e.id);
   for (const id of [
-    "acc:org.member.invite/1",
-    "acc:org.member.invite/3",
-    "ref:org.member.invite/ROLE_PERMISSION_DENIED",
+    "acc:org.member.invite/c-90dd4c9d35059050",
+    "acc:org.member.invite/c-d0bca981e62da410",
+    "ref:org.member.invite/ROLE_PERMISSION_DENIED/c-bbadd2729ef28c1b",
     "evt:org.member.invite/invitation_sent",
     "evt:invite.accept/invitation_accepted",
     "rpc:organizations.invitations.accept/budget",
@@ -43,7 +43,7 @@ test("evals are derived from records, and a retired acceptance line keeps its nu
     "bud:org.member.invite/p95",
     "trn:invitation.expire",
     "wfl:organizations.invitations.expire/idempotent",
-    "int:mail.send/PROVIDER_UNAVAILABLE",
+    "int:mail.send/PROVIDER_UNAVAILABLE/c-58095d84fffe1657",
     "jrn:join_organization",
     "inv:one-open-invitation",
     "sys:loc/organizations",
@@ -52,7 +52,7 @@ test("evals are derived from records, and a retired acceptance line keeps its nu
     "sys:generated",
   ])
     assert.ok(ids.includes(id), id);
-  assert.ok(!ids.includes("acc:org.member.invite/2"));
+  assert.equal(ids.filter((id) => id.startsWith("acc:org.member.invite/")).length, 2);
 });
 
 test("a missing record is a dangling link", () => {
@@ -202,7 +202,10 @@ test("an admission is one policy clause over the table's own columns, and yields
   const b = blueprint([...f.records.filter((r) => r !== f.invitations), invitations]);
   assert.deepEqual(b.problems, []);
   const evals = b.evals.filter((e) => e.id.startsWith("tbl:invitations/admits/")).map((e) => e.id);
-  assert.deepEqual(evals, ["tbl:invitations/admits/1", "tbl:invitations/admits/2"]);
+  assert.equal(evals.length, 2);
+  assert.ok(evals.every((id) => /^tbl:invitations\/admits\/c-[a-f0-9]{16}$/.test(id)));
+  const reordered = blueprint([...f.records.filter((r) => r !== f.invitations), defineTable({ ...f.invitations, admits: [...admits].reverse() })]);
+  assert.deepEqual(reordered.evals.filter((e) => e.id.startsWith("tbl:invitations/admits/")).map((e) => e.id).sort(), [...evals].sort());
   assert.match(b.evals.find((e) => e.id === "tbl:invitations/tenancy")?.claim ?? "", /unless an admission names it/);
   // a join: a grant is admitted to whoever its Organization's invitation is addressed to
   const grants = defineTable({ ...f.grants, admits: [{ match: "email", field: "organizationId", via: { table: f.invitations, on: "organizationId", field: "email" }, reads: true, writes: false, about: "x" }] });

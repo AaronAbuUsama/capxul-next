@@ -10,7 +10,12 @@
   ],
   "bindings": [
     {
-      "eval": "acc:world.snapshot.restore/1",
+      "eval": "acc:world.create/c-52e22ec1e2a6c1cc",
+      "checks": ["TL.world-create-runs-frozen", "TL.world-frozen-clock-holds", "TL.world-record-begins-with-birth"],
+      "why": "`world create tlfrozen --clock frozen --template empty --json` answers running, clockMode frozen, epoch 1 and no company. Its clock holds while the host's moves (two reads 2 s apart agree) and the chain is at its epoch. `world show` says running and frozen, and the world's record begins with its birth: entry 1 is the `world create` with its born block, the only one, and the hash chain holds. (The world's Core records its own start as entry 2, so recordHead is 2 here, not 1.)"
+    },
+    {
+      "eval": "acc:world.snapshot.restore/c-369b1db183b9807f",
       "checks": [
         "B9.in-place-state-back-at-saved-moment",
         "B9.in-place-clock-back-at-saved-time",
@@ -19,7 +24,7 @@
       "why": "The world is saved, a payment is made, then `world snapshot restore --in-place` runs. The checks find documents, ledger, hats, features and the Safe balance as saved, the clock back at the saved time on the chain and every site, and the record grown with an entry that names what it was restored from."
     },
     {
-      "eval": "acc:world.snapshot.restore/2",
+      "eval": "acc:world.snapshot.restore/c-1dd79fdbcb1c0fd7",
       "checks": [
         "B9.restore-into-new-world",
         "B9.new-world-payment-not-in-old",
@@ -28,7 +33,7 @@
       "why": "The snapshot is restored into a second world beside the first. A payment made in the new world is in its documents and its chain and not in the old world's, which stay at their counts and balance; a payment made in the old world is not in the new."
     },
     {
-      "eval": "acc:world.snapshot.save/1",
+      "eval": "acc:world.snapshot.save/c-69e4dbcdf13e3750",
       "checks": [
         "TL.snapshot-save-prints-epoch-and-record-seq",
         "TL.snapshot-save-leaves-world-untouched",
@@ -39,14 +44,14 @@
       "why": "`world snapshot save main` prints the world's epoch and its record position. Before and after the save the site's documents, ledger, hats, features and events, the Safe's balance and the clock are the same, and the record gains the save's entry and no other; `snapshot list` lists it. What the save holds is everything that makes the world: restored into a new world it gives the same documents, ledger, hats and features."
     },
     {
-      "eval": "acc:world.show/1",
+      "eval": "acc:world.show/c-6aa449b0c9f7abaf",
       "checks": [
         "TL.world-show-names-parent"
       ],
       "why": "After `world snapshot restore <snapshot> --into w2`, `world show w2 --json` prints parentWorld main, parentSnapshot the snapshot's id and parentSeq the record position it was saved at."
     },
     {
-      "eval": "acc:record.export/1",
+      "eval": "acc:record.export/c-bd1acd26102d2d92",
       "checks": [
         "TL.export-prints-lines-and-lineage",
         "TL.export-lineage-first-then-every-entry-once-in-order"
@@ -54,7 +59,7 @@
       "why": "`record export w2 --out <file> --json`, for the world restored from main, prints the file's line count and a lineage naming main and the snapshot. The file's first line is that lineage; the entries follow in sequence order, each once, and they are the world's whole record up to the export."
     },
     {
-      "eval": "acc:world.clock.warp/1",
+      "eval": "acc:world.clock.warp/c-2bceeaa41942995d",
       "checks": [
         "TL.warp-moves-chain-and-every-site-a-week-on",
         "TL.warp-ran-daily-job-once-each-day",
@@ -77,7 +82,7 @@
       "missing": "The clock, a snapshot, a restore into another world and the export run, but not `world create`, `world show` or the funnel events."
     },
     {
-      "eval": "acc:record.show/1",
+      "eval": "acc:record.show/c-a30f5eeeefc41cd3",
       "checks": [
         "B8.no-secret-in-record",
         "B8.record-show-by-trace-id"
@@ -85,7 +90,7 @@
       "missing": "The record and its export are searched for every test key and the shared secret and hold none, but tokens and passwords are not searched for."
     },
     {
-      "eval": "acc:record.list/1",
+      "eval": "acc:record.list/c-d0d43eee5c3b4406",
       "checks": [
         "B8.one-record-entry-per-command",
         "B8.sequence-gap-free-and-hash-chained"
@@ -93,14 +98,14 @@
       "missing": "Every command of the run is in the record, in order and hash-chained, but who ran it under which hat is not read."
     },
     {
-      "eval": "acc:world.snapshot.list/1",
+      "eval": "acc:world.snapshot.list/c-cf6253b906e89f1d",
       "checks": [
         "B9.snapshot-list"
       ],
       "missing": "A saved snapshot is listed with its world and name, but the newest-first order and the record position of each are not read."
     },
     {
-      "eval": "acc:world.list/1",
+      "eval": "acc:world.list/c-d8be631ba4f0acce",
       "checks": [
         "B9.world-list-shows-origin"
       ],
