@@ -4,3 +4,6 @@ Run the backend on Postgres (m2-core-on-postgres, with Ponder per aaron.postgres
 Everything else in the platform stands on a world being cheap. A world's cost on Postgres and Ponder is an estimate until it is measured (m3b-ponder-world-cost measures one).
 ## Done when
 - Twenty core worlds run at once on the machine and the measured figures replace the estimates in the book
+## From the Ponder measurement, 12 November 2026 (docs/mission/world-cost.md, Part 1)
+- A world's birth must give the chain two-second blocks and 200 mined blocks, or Ponder cannot start on a world seeded from --load-state.
+- Postgres max_connections defaults to 100 and each Ponder holds up to 6 while catching up: raise the limit or put a pooler in front before many worlds share one Postgres.

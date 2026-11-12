@@ -1934,12 +1934,14 @@
       "title": "Measure Ponder in one world",
       "why": "Aaron's storage decision, 12 November 2026 (aaron.postgres-and-ponder): keep Ponder and Postgres, one design everywhere. The world-cost estimates for Ponder are marked [E], not measured.",
       "milestone": "m3b",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [
         "decision:aaron.postgres-and-ponder"
       ],
-      "evidence": [],
+      "evidence": [
+        "2e9d485 (PR #27): docs/mission/world-cost.md Part 1, measured, with its method and the runs in docs/mission/world-cost-runs/ (Postgres about 210 to 240 MB, PGlite 450 to 650 MB; up in 2 to 4 s on Postgres, 4 to 9 s on PGlite; catch-up 92 s on both for 3,950 events)"
+      ],
       "created": "2026-11-12",
       "updated": "2026-11-12",
       "thread": "cmsg_01KeBXQ6nY6oC8tbE4saDwBoJjUomNz8rFyB7zqsWwbLmD"
