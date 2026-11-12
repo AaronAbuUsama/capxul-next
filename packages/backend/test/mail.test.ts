@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { once } from "node:events";
 import { test } from "node:test";
-import { MailError, resendMail } from "../src/shared/door.ts";
+import { MailError, resendMail, type MailMessage } from "../src/shared/door.ts";
 
 test("Mail preserves the caller key, isolates staging and classifies one HTTP attempt", async () => {
   const requests: { key: string | undefined; body: unknown }[] = [];
@@ -16,7 +16,7 @@ test("Mail preserves the caller key, isolates staging and classifies one HTTP at
   const address = server.address(); assert(address && typeof address !== "string");
   const mail = resendMail({ environment: "staging", allowedRecipients: ["recipient@capxul.test"], from: "sender@capxul.test", apiKey: "not-a-live-key",
     transport: (_url, init) => fetch(`http://127.0.0.1:${address.port}/emails`, init) });
-  const message = { to: " Recipient@capxul.test ", subject: "A notice", text: "Immutable notice", idempotencyKey: JSON.stringify(["recipient@capxul.test", "notice-731"]) };
+  const message: MailMessage = { to: " Recipient@capxul.test ", template: "payment.sent", subject: "A notice", text: "Immutable notice", idempotencyKey: JSON.stringify(["recipient@capxul.test", "notice-731"]) };
   try {
     assert.deepEqual(await mail.send(message), { id: "mail-731" });
     assert.deepEqual(requests[0], { key: message.idempotencyKey, body: { from: "sender@capxul.test", to: ["recipient@capxul.test"], subject: message.subject, text: message.text } });

@@ -20,8 +20,16 @@ SHARED_MASTERS = {  # DocTypes other parts need to exist, so they stay reachable
 # prefixes: dotted method paths that are the part's own API. paths: website routes. needs: other features that must be on.
 CATALOG = {
     "accounts": dict(label="Accounts", modules=["Accounts"], default=1),
-    "people": dict(label="People (HR)", modules=["HR", "Tax and Benefits", "Performance", "Expenses", "Leaves", "Shift and Attendance", "Recruitment", "Tenure", "HR Setup"], default=1),
-    "payroll": dict(label="Payroll", modules=["Payroll"], prefixes=["hrms.payroll."], default=1),
+    "people": dict(label="People (HR)", modules=["HR", "Tax and Benefits", "Expenses", "Leaves", "Tenure", "HR Setup"], default=1),
+    "payroll": dict(label="Payroll", modules=["Payroll"], prefixes=["hrms.payroll."], default=0),
+    "attendance": dict(label="Attendance", modules=["Shift and Attendance"], default=0,
+                       doctypes=["Attendance", "Attendance Request", "Employee Checkin", "Employee Attendance Tool", "Shift Assignment", "Shift Assignment Tool", "Shift Request", "Shift Type", "Shift Location", "Shift Schedule", "Shift Schedule Assignment", "Overtime Type", "Overtime Slip", "Overtime Details"],
+                       paths=["/hr/roster"]),
+    "recruitment": dict(label="Recruitment", modules=["Recruitment"], default=0,
+                        doctypes=["Job Opening", "Job Opening Template", "Job Applicant", "Job Applicant Source", "Job Requisition", "Job Offer", "Job Offer Term", "Job Offer Term Template", "Offer Term", "Interview", "Interview Round", "Interview Type", "Interview Detail", "Interviewer", "Interview Feedback", "Employee Referral", "Staffing Plan", "Staffing Plan Detail", "Appointment Letter", "Appointment Letter Template", "Appointment Letter Content"],
+                        paths=["/jobs"]),
+    "reviews": dict(label="Reviews", modules=["Performance"], default=0,
+                    doctypes=["Goal", "Appraisal", "Appraisal Cycle", "Appraisal Template", "Appraisal KRA", "Appraisal Goal", "Appraisal Template Goal", "Appraisee", "KRA", "Employee Performance Feedback", "Employee Feedback Criteria", "Employee Feedback Rating"]),
     "projects": dict(label="Projects", modules=["Projects"], prefixes=["erpnext.projects."], default=1),
     "crm": dict(label="CRM (Frappe CRM)", apps=["crm"], prefixes=["crm."], paths=["/crm", "/crm-form"], app="crm", default=1),
     "whatsapp": dict(label="WhatsApp", apps=["frappe_whatsapp"], prefixes=["frappe_whatsapp."], needs=["crm"], app="frappe_whatsapp", default=0),
@@ -61,17 +69,28 @@ def _modules_of(feature):
 def _compute():
     """{doctype: feature} for every off feature, plus the off modules, prefixes and paths. Cached; cleared on every switch."""
     st, dts, mods, prefixes, paths = state(), {}, set(), [], []
+    owners = {dt: f for f, c in CATALOG.items() for dt in c.get("doctypes", [])}
+    reachable_modules = set()
     for f, c in CATALOG.items():
         if st[f] == "on":
             continue
         m = _modules_of(f)
         mods |= m
-        for d in frappe.get_all("DocType", {"module": ["in", list(m)]} if m else {"name": ""}, ["name"]):
+        for d in frappe.get_all("DocType", {"module": ["in", list(m)]} if m else {"name": ""}, ["name", "module"]):
+            owner = owners.get(d.name, f)
+            if owner != f:
+                if st[owner] == "on":
+                    reachable_modules.add(d.module)
+                continue
             if d.name not in SHARED_MASTERS.get(f, ()):
                 dts[d.name] = f
+        # Pinned HRMS keeps these features' DocTypes in HR, not in their desk modules.
+        for dt in c.get("doctypes", []):
+            dts[dt] = f
+            prefixes.append((f"hrms.hr.doctype.{frappe.scrub(dt)}.", f))
         prefixes += [(p, f) for p in c.get("prefixes", [])]
         paths += [(p, f) for p in c.get("paths", [])]
-    return {"doctypes": dts, "modules": sorted(mods), "prefixes": prefixes, "paths": paths}
+    return {"doctypes": dts, "modules": sorted(mods - reachable_modules), "prefixes": prefixes, "paths": paths}
 
 
 def off_map():
