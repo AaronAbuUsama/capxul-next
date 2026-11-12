@@ -33,9 +33,8 @@ export const procedure_parties_register = defineProcedure({
   about:
     "Money fact: a handle and the Safe it routes money to are one fact, so an Organization or an agent is born with its " +
     "Party or not at all (dependencies.parties-registration). Organizations invokes it in `org create`'s birth transaction " +
-    "with the company Safe's predicted address (`companySafeAddressFor`), and a second time in the same transaction when " +
-    "the setup carries an FDE: kind agent, owner the Organization, at `AgentOwner.safeAddressFor` of the FDE's key and the " +
-    "company Safe (organizations.fde-handle); agents in `agent create`'s with the agent's " +
+    "with the company Safe's predicted address (`companySafeAddressFor`); agents in an ordinary self-run `agent create`'s " +
+    "birth transaction with the agent's " +
     "predicted Safe (`AgentOwner.safeAddressFor`). The handle is trimmed, lowercased and stripped of a leading `@`, then " +
     "must be 3 to 30 of a-z, 0-9, `_` or `-` and not reserved (admin, api, capxul, help, root, support, system, www). A " +
     "handle ending in `-fde` or starting with `fde-` is kept for its Organization's FDE: `<p>-fde` only for an agent an " +
@@ -83,8 +82,8 @@ export const procedure_parties_activate = defineProcedure({
   about:
     "Money fact: a handle routes money to its Safe only once that Safe is live, so the Party turns `active` in the same " +
     "transaction that makes its Organization or agent live. Organizations invokes it when its setup sees the company Safe " +
-    "minted (the Organization's Party) and when the setup completes (its FDE's, whose create rode on the install); " +
-    "agents when the agent's create lands. Until then resolution answers the Party as `pending`, and a payment " +
+    "minted (the Organization's Party); agents when the self-run agent's create lands. Until then resolution answers " +
+    "the Party as `pending`, and a payment " +
     "can refuse it, because parties cannot read whether an agent's Safe exists. Activating an active Party is a no-op; a " +
     "released one refuses with `WRONG_STATE`, which is a defect in the invoker.",
   concept: concept_parties,
@@ -106,7 +105,7 @@ export const procedure_parties_release = defineProcedure({
     "Money fact: a handle whose Safe will never exist must stop naming it, so no payment is routed to a Safe nobody can " +
     "deploy; the release commits with the transition that ends the birth. Agents invokes it when a create the chain " +
     "refused, or one whose approval lapsed unsent, fails ('fails and frees its handle'); organizations when a setup " +
-    "fails for good: its FDE's Party, still pending, always, and the Organization's only while it is still pending (a " +
+    "fails for good, only while the Organization's Party is still pending (a " +
     "setup that fails after its company Safe was minted keeps the Organization's handle). The handle is cleared, the id " +
     "is kept for the records that point at it. Releasing a released " +
     "Party is a no-op; an active one refuses with `WRONG_STATE`: a live Safe's handle is never freed, so a removed agent's " +

@@ -609,5 +609,38 @@
       }
     }
   ],
+  "proseAlignments": {
+    "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure; integrator scoped follow-up 12 November 2026",
+    "sourceArchive": "parties/procedures.ts",
+    "sourceCommit": "e30fd974a53518eb5a0ddbb9c5926c1604bd20b6",
+    "sourceSha256": "d56d23ce2d1e0bd440bc4d0c83d628268165a422ea0979ee9b68d951c45644a2",
+    "records": [
+      {
+        "key": "procedure:parties.register",
+        "owner": "parties",
+        "disposition": "retained-prose-only; not retired or replaced",
+        "retainedEvals": ["prc:parties.register/atomic"],
+        "before": "Organizations registers its company Party and a second hosted-FDE Party carried by setup.",
+        "after": "Organizations registers its company Party; ordinary self-run agent creation registers its own predicted Safe Party."
+      },
+      {
+        "key": "procedure:parties.activate",
+        "owner": "parties",
+        "disposition": "retained-prose-only; not retired or replaced",
+        "retainedEvals": ["prc:parties.activate/atomic"],
+        "before": "Setup activates the company Party at mint and the hosted FDE Party when install completes.",
+        "after": "Setup activates the company Party at mint; self-run agent creation activates its own Party when create lands."
+      },
+      {
+        "key": "procedure:parties.release",
+        "owner": "parties",
+        "disposition": "retained-prose-only; not retired or replaced",
+        "retainedEvals": ["prc:parties.release/atomic"],
+        "before": "Failed setup always releases the pending hosted FDE Party and releases the company Party only while pending.",
+        "after": "Failed setup releases the company Party only while pending; existing agent-create failure release behavior remains."
+      }
+    ],
+    "unchanged": "All Party record and eval IDs, procedure inputs/outputs/atomicity, explicit reserved FDE-handle authority, slice prerequisites and declaration counts remain unchanged. No eval is removed, replaced, weakened or marked passed by this prose follow-up."
+  },
   "verdicts": "No status or receipt modified. All retained and replacement contracts remain unproved until a fresh complete real-stack run."
 }
