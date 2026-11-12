@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import test from "node:test";
 import { Database, type Sql } from "../src/platform/db.ts";
-import { callerSafes, requireSeat, type Actor } from "../src/organizations/door.ts";
+import { callerSafes, readSeatBySafe, requireSeat, type Actor } from "../src/organizations/door.ts";
+import { lookup } from "../src/parties/door.ts";
 
 if (process.env.CAPXUL_DISPOSABLE !== "true" || !process.env.CAPXUL_WORLD || process.env.CAPXUL_WORLD === "main")
   throw new Error("named disposable migrated Postgres required");
@@ -14,7 +15,7 @@ const addr = () => `0x${randomBytes(20).toString("hex")}`;
 const orgs = [0, 1, 2].map(n => ({ id: `seat-${suffix}-${n}`, safe: addr(), party: `org-party-${suffix}-${n}` }));
 const people = ["human", "other", "agent", "no-party", "released"].map(name => ({
   id: `${name}-${suffix}`, safe: addr(), party: `${name}-party-${suffix}`, token: randomBytes(32).toString("base64url"),
-  kind: name === "agent" ? "agent" : "person",
+  kind: name === "agent" ? "agent" : "person", signer: name === "agent" ? addr() : null,
 }));
 const human = people[0]!, other = people[1]!, agent = people[2]!, noParty = people[3]!, released = people[4]!;
 const actor = (p: typeof human): Actor => ({ principalId: p.id, kind: p.kind === "agent" ? "agent" : "human", safe: p.safe });
@@ -40,12 +41,13 @@ test.before(async () => {
     for (const p of people) {
       await sql.query(`insert into app.principals(person_id,kind,email,safe_address,signer_address,created_at)
         values($1,$2,$3,$4,$5,$6)`, [p.id, p.kind, p.kind === "person" ? `${p.id}@example.test` : null,
-        p.safe, p.kind === "agent" ? addr() : null, new Date(now)]);
+        p.safe, p.signer, new Date(now)]);
       await sql.query(`insert into app.sessions(person_id,session_id,token_hash,method,status,client,created_at,expires_at)
         values($1,$1,$2,'code','active','organizations-native',$3,$4)`,
       [p.id, access.digest(p.token), new Date(now), new Date(now + 3600_000)]);
-      if (p !== noParty) await sql.query(`insert into app.parties(party_id,kind,state,safe_address,owner_kind,owner_id,created_at,updated_at)
-        values($1,$2,$3,$4,'person',$5,$6,$6)`, [p.party, p.kind, p === released ? "released" : "active", p.safe, p.id, now]);
+      if (p !== noParty) await sql.query(`insert into app.parties(party_id,kind,state,safe_address,owner_kind,owner_id,created_at,updated_at,display_name)
+        values($1,$2,$3,$4,'person',$5,$6,$6,$7)`, [p.party, p.kind, p === released ? "released" : "active", p.safe, p.id, now,
+        p === human ? "Directory human" : null]);
     }
     for (const [p, indices] of [[human, [0, 1]], [other, [2]], [agent, [1]], [released, [0]]] as const) {
       for (const i of indices) await sql.query(`insert into app.org_members
@@ -99,13 +101,43 @@ test("agent Seat uses its own authenticated Safe despite null principal; no Part
   for (const p of [noParty, released]) await as(p, async sql => assert.deepEqual(await callerSafes(sql), []));
 });
 
+test("worker reads committed Seats by Organization and wearer Safe without authenticating an actor", async () => {
+  const sql = await db.worker.connect();
+  const identity = async () => (await sql.query(`select current_setting('app.person_id',true) as person,
+    current_setting('app.safe_address',true) as safe`)).rows[0];
+  try {
+    await sql.query("begin read only");
+    const before = await identity();
+    assert.equal(before.person ?? "", ""); assert.equal(before.safe ?? "", "");
+    for (const [p, i] of [[human, 0], [agent, 1]] as const) {
+      const seat = (await readSeatBySafe(sql, orgs[i]!.id, p.safe.toUpperCase()))!;
+      assert.equal(seat.member_id, `${p.id}-${i}`);
+      assert.equal(seat.party_id, p.party);
+      assert.equal(seat.principal_id, p === agent ? null : p.id);
+      assert.equal(seat.kind, p === agent ? "agent" : "human");
+      assert.equal(seat.safe_address, p.safe);
+      assert.equal((await lookup(sql, seat.party_id))!.display_name, p === human ? "Directory human" : null);
+      assert.equal(await readSeatBySafe(sql, orgs[2]!.id, p.safe), null);
+      for (const notSafe of [p.id, p.party, p.signer].filter((s): s is string => s !== null))
+        assert.equal(await readSeatBySafe(sql, orgs[i]!.id, notSafe), null);
+    }
+    assert.equal(await readSeatBySafe(sql, orgs[0]!.id, other.safe), null);
+    assert.equal(await readSeatBySafe(sql, "missing-org", human.safe), null);
+    await assert.rejects(requireSeat(sql, orgs[0]!.id, actor(human)), /ROLE_PERMISSION_DENIED/);
+    assert.deepEqual(await identity(), before, "directory reads must not establish an actor");
+  } finally { await sql.query("rollback"); sql.release(); }
+  await db.transaction("", async sql => assert.equal(await readSeatBySafe(sql, orgs[0]!.id, human.safe), null));
+});
+
 test("Seat removal is immediately effective and a rolled-back removal preserves admission", async () => {
   await assert.rejects(db.transaction("", async sql => {
     await sql.query("update app.org_members set status='removed',removed_reason='agent_removed',removed_at=$3,updated_at=$3 where org_id=$1 and party_id=$2", [orgs[1]!.id, agent.party, now + 47000]);
     throw new Error("abort-removal");
   }, true), /abort-removal/);
   await as(agent, sql => requireSeat(sql, orgs[1]!.id, actor(agent)));
+  assert.equal((await readSeatBySafe(db.worker, orgs[1]!.id, agent.safe))!.party_id, agent.party);
   await db.transaction("", sql => sql.query("update app.org_members set status='removed',removed_reason='agent_removed',removed_at=$3,updated_at=$3 where org_id=$1 and party_id=$2", [orgs[1]!.id, agent.party, now + 47000]), true);
+  assert.equal(await readSeatBySafe(db.worker, orgs[1]!.id, agent.safe), null);
   await as(agent, async sql => {
     await assert.rejects(requireSeat(sql, orgs[1]!.id, actor(agent)), /ROLE_PERMISSION_DENIED/);
     assert.deepEqual(await callerSafes(sql), [agent.safe]);

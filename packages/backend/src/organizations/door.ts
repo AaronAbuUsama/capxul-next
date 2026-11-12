@@ -15,6 +15,12 @@ export type Seat = {
   joined_at: string; removed_at: string | null; updated_at: string;
 };
 
+/** Committed-source worker read, not actor authentication; the caller's existing RLS still applies. */
+export async function readSeatBySafe(sql: Sql, orgId: string, wearerSafe: string): Promise<Seat | null> {
+  return (await sql.query("select * from app.org_members where org_id=$1 and safe_address=$2 and status='active'",
+    [orgId, wearerSafe.toLowerCase()])).rows[0] ?? null;
+}
+
 /** Actor is mapped from Access.authenticate, not request fields; owner scope is not authentication. */
 export async function requireSeat(sql: Sql, orgId: string, actor: Actor): Promise<Seat> {
   const row: Seat | undefined = (await sql.query(`select m.* from app.org_members m join app.principals p
