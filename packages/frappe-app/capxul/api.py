@@ -4,7 +4,7 @@ import json
 import frappe
 from frappe import _
 
-from capxul import hats, payments, sign
+from capxul import capital, hats, payments, sign
 
 PARK_AFTER = 3  # a handler failing this many times for one event is given up on (parked), so the queue moves on
 
@@ -13,6 +13,7 @@ KINDS = {
     "hat_revoked": hats.apply_hat_revoked,
     "payment_sent": payments.apply_payment_sent,
     "payment_failed": payments.apply_payment_failed,
+    "founder_capital": capital.apply_founder_capital,
 }
 
 
