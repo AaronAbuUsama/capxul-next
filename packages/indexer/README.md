@@ -1,0 +1,9 @@
+# @capxul/indexer
+
+The slice-zero Ponder 0.18.6 app. It writes only Postgres `ponder`: real v4 company births, personal-Safe claims, PaymentSent, admitted-token Transfers, Hats TransferSingle, EntryPoint UserOperationEvent and block progress. It is not the world-cost benchmark and has no PGlite/SQLite/JSON fallback. Equity and the remaining breadth projections are not implemented here yet.
+
+Run `pnpm --filter @capxul/indexer start --schema ponder --port 42069 --hostname 127.0.0.1` with `PONDER_DATABASE_URL`, `RPC_URL`, `DEPLOYMENT_FILE` and `ENTRY_POINT_ADDRESS`. The deployment file is the chain bootstrap's static addresses/genesis block, not application state. `/health` is process liveness; `/ready` is Ponder's completed-backfill readiness. No GraphQL or SQL HTTP API is installed. Core reads Safe-scoped SQL views, not HTTP data endpoints.
+
+Use Postgres 17, a separate world database, and a writer role owning only the `ponder` schema. `@capxul/backend` owns role/schema setup. Stop Ponder before a whole-database snapshot or restore. Restart with exactly the same config/schema to recover; do not use `ponder dev` for acceptance because hot reload deliberately rebuilds tables.
+
+`DEPLOYMENT_FILE` contains `{chainId,usdc,payments,hats,installer,companiesHouse,deployedBlock}` with real deployed addresses and a numeric starting block. `ENTRY_POINT_ADDRESS` is the deployment's v0.7 EntryPoint. Native Anvil recovery requires saved `--state` plus `--preserve-historical-states`; the supervisor must await clean exit before copying state. Ponder rewinds/replays the non-finalized tail on restart, so check the expected facts after catch-up as well as readiness. Do not mine extra history on every restart; preparation of a new clockless fixture belongs to bootstrap.
