@@ -79,8 +79,8 @@ test("role projections retain caller atomicity, exact occurrences, shared roles 
       await change("grant-832", { transition: "revoke" }, "revoke-b", 53);
       assert.deepEqual((await write((sql) => readRoles(sql, "org-a", input.person_id))).roles, []);
       assert.equal((await admin.query("select status from app.site_users")).rows[0].status, "disabled");
-      await write((sql) => recordRoleGrant(sql, { ...input, grant_id: "grant-933", chain_log_index: 5 }, context("birth-933", 59)));
-      await write((sql) => recordRoleGrant(sql, { ...input, grant_id: "grant-1044", chain_log_index: 6 }, context("birth-1044", 61)));
+      await write((sql) => recordRoleGrant(sql, { ...input, grant_id: "grant-933", department: null, chain_log_index: 5 }, context("birth-933", 59)));
+      await write((sql) => recordRoleGrant(sql, { ...input, grant_id: "grant-1044", department: "", chain_log_index: 6 }, context("birth-1044", 61)));
       await change("grant-1044", { transition: "apply", map_version: "shipped-map-7" }, "apply-d", 63);
       await change("grant-933", { transition: "retire" }, "retire-c", 65);
       assert.equal((await admin.query("select 1 from app.site_events where event_key='retire-c'")).rowCount, 0, "retiring an old occurrence cannot remove the newer same-hat native grant");
@@ -98,9 +98,31 @@ test("role projections retain caller atomicity, exact occurrences, shared roles 
       ]);
       assert.equal(JSON.stringify(events).includes("Employee unavailable"), false, "failure details stay out of transition props");
     });
+    await t.test("empty and null departments share native identity in either grant order and on replay", async () => {
+      const old = { ...input, grant_id: "grant-1155", department: "", chain_log_index: 7 };
+      const newer = { ...input, grant_id: "grant-1266", department: null, chain_log_index: 8 };
+      const born = await write((sql) => recordRoleGrant(sql, old, context("birth-1155", 71)));
+      assert.equal(born.department, null);
+      // Fixture the preceding implementation's representation; committed history must not be rewritten.
+      await admin.query("update app.role_grants set department='' where grant_id=$1", [old.grant_id]);
+      await admin.query("update app.transition_outbox set event=jsonb_set(event,'{props,department}',to_jsonb(''::text)) where event->>'entity_id'=$1", [old.grant_id]);
+      const history = (await admin.query("select event from app.transition_outbox where event->>'entity_id'=$1", [old.grant_id])).rows[0].event;
+      await change(old.grant_id, { transition: "apply", map_version: "shipped-map-7" }, "apply-e", 73);
+      await write((sql) => recordRoleGrant(sql, newer, context("birth-1266", 75)));
+      await change(newer.grant_id, { transition: "apply", map_version: "shipped-map-7" }, "apply-f", 77);
+      const before = await counts();
+      await write((sql) => recordRoleGrant(sql, { ...old, department: null }, context("birth-1155", 71)));
+      assert.deepEqual(await counts(), before);
+      assert.deepEqual((await admin.query("select event from app.transition_outbox where id=$1", [history.id])).rows[0].event, history);
+      await change(old.grant_id, { transition: "revoke" }, "revoke-e", 79);
+      assert.equal((await admin.query("select 1 from app.site_events where event_key='revoke-e'")).rowCount, 0);
+      assert.deepEqual((await write((sql) => readRoles(sql, "org-a", input.person_id))).roles, ["Accounts User", "Shared"]);
+      await change(newer.grant_id, { transition: "revoke" }, "revoke-f", 81);
+      assert.deepEqual((await write((sql) => readRoles(sql, "org-a", input.person_id))).roles, []);
+    });
     await t.test("exact organization owner scope is required; tenant and Ponder cannot write", async () => {
       const read = (owner: { kind: "person" | "organization"; id: string }) => db.ownerTransaction(owner, (sql) => readRoles(sql, "org-a", input.person_id));
-      assert.equal((await read({ kind: "organization", id: "org-a" })).grants.length, 4);
+      assert.equal((await read({ kind: "organization", id: "org-a" })).grants.length, 6);
       for (const owner of [{ kind: "organization", id: "org-b" }, { kind: "person", id: "org-a" }] as const) {
         assert.deepEqual(await read(owner), { person: input.person_id, frappeUser: null, grants: [], roles: [] });
       }

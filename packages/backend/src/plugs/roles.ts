@@ -42,6 +42,7 @@ export async function recordRoleGrant(sql: Sql, input: GrantInput, occurrence: R
     throw new Error("INVALID_INPUT: finalized role grant");
   }
   source.address = source.address.toLowerCase(); source.chain_tx_hash = source.chain_tx_hash.toLowerCase();
+  source.department = source.department || null;
   source.roles = [...source.roles].sort();
   const row: RoleGrant = { ...source, status: "pending", failure: null, created_at: occurrence.at, updated_at: occurrence.at };
   const born = event(row, occurrence, null, "pending", "record");
@@ -51,8 +52,9 @@ export async function recordRoleGrant(sql: Sql, input: GrantInput, occurrence: R
   [source.org_id, source.grant_id, source.chain_tx_hash, source.chain_log_index])).rows[0];
   if (old) {
     const { status: _status, failure: _failure, created_at: _created, updated_at: _updated, ...identity } = old;
+    identity.department = identity.department || null;
     if (!isDeepStrictEqual(identity, source)) throw new Error("IDEMPOTENCY_CONFLICT: role occurrence changed");
-    await emit(sql, born); return old;
+    await emit(sql, event(old, occurrence, null, "pending", "record")); return old;
   }
   const user = (await sql.query("select * from app.site_users where org_id=$1 and person_id=$2 for update", [source.org_id, source.person_id])).rows[0];
   if (user && user.address !== source.address) throw new Error("IDEMPOTENCY_CONFLICT: canonical person address changed");
@@ -94,7 +96,7 @@ export async function transitionRoleGrant(sql: Sql, org: string, grantId: string
   if (to === "revoked") {
     const user = (await sql.query("select frappe_user,name from app.site_users where org_id=$1 and person_id=$2", [org, row.person_id])).rows[0]!;
     const retained = await sql.query(`select 1 from app.role_grants where org_id=$1 and person_id=$2 and hat=$3
-      and department is not distinct from $4 and status<>'revoked'`, [org, row.person_id, row.hat, row.department]);
+      and nullif(department,'') is not distinct from nullif($4::text,'') and status<>'revoked'`, [org, row.person_id, row.hat, row.department]);
     // Native grants are keyed by person/hat/department, not the historical source log.
     if (!retained.rowCount) await enqueue(sql, org, occurrence.id, "hat_revoked", {
       hat: row.hat, person_email: user.frappe_user, person_name: user.name, address: row.address, department: row.department,
