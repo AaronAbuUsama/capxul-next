@@ -12,9 +12,9 @@ const atomicJson = (path: string, value: unknown): void => {
   renameSync(`${path}.tmp`, path);
 };
 
-const runScript = (root: string, dir: string, script: string, args: string[], json: boolean): Promise<{ output: string; exitCode: number | null; signal: string | null }> =>
+const runProcess = (root: string, dir: string, argv: readonly string[], json: boolean): Promise<{ output: string; exitCode: number | null; signal: string | null }> =>
   new Promise((done) => {
-    const child = spawn("bash", [join(root, script), ...args], { cwd: root, env: { ...process.env, CAPXUL_EVAL_RUN_DIR: dir } });
+    const child = spawn(argv[0]!, argv.slice(1), { cwd: root, env: { ...process.env, CAPXUL_EVAL_RUN_DIR: dir }, stdio: ["ignore", "pipe", "pipe"] });
     let output = "";
     const take = (chunk: Buffer): void => { output += chunk.toString(); (json ? process.stderr : process.stdout).write(chunk); };
     child.stdout.on("data", take);
@@ -24,7 +24,7 @@ const runScript = (root: string, dir: string, script: string, args: string[], js
   });
 
 export const executeRun = async (root: string, blueprint: Blueprint, bindings: Bindings, asked: readonly string[],
-  options: { world: string; slug: string; environment?: string; screens?: string; json?: boolean }, commit: string, secrets: readonly string[]): Promise<number> => {
+  options: { world: string; slug: string; environment?: string; screens?: string; prepare?: string; json?: boolean }, commit: string, secrets: readonly string[]): Promise<number> => {
   const log = (...args: string[]): void => { (options.json ? console.error : console.log)(...args); };
   const at = new Date().toISOString();
   const info: RunInfo = { run: `run-${at.replace(/\D/g, "")}-${randomUUID().slice(0, 8)}`, commit, at, script: "", world: options.world, slug: options.slug };
@@ -43,8 +43,11 @@ export const executeRun = async (root: string, blueprint: Blueprint, bindings: B
   if (plans.some((p) => p.script === "spikes/skeleton/run.sh") && (environment.storage !== "json" || environment.indexer !== "inline" || environment.stack !== "skeleton-json"))
     throw new Error("the JSON skeleton cannot supply selected-stack evidence");
   const contracts = blueprint.evals.filter((e) => asked.includes(e.id)).map(({ id, claim, observes }) => ({ id, claim, ...(observes === undefined ? {} : { observes }) }));
+  const prepare: RunReceipt["prepare"] = options.prepare ? {
+    argv: JSON.parse(readFileSync(resolve(root, options.prepare), "utf8")) as string[], exitCode: null, signal: null, log: "prepare.log",
+  } : undefined;
   let receipt: RunReceipt = { version: 1, id: info.run, state: "running", commit, at, environment, requested: asked,
-    evals: contracts, scripts: plans.map(({ script }) => ({ script, exitCode: null, signal: null })), screens: [] };
+    evals: contracts, scripts: plans.map(({ script }) => ({ script, exitCode: null, signal: null })), ...(prepare ? { prepare } : {}), screens: [] };
   const parsed = parseRunReceipt(receipt);
   if (!parsed.ok) throw new Error(parsed.errors.join("\n"));
   mkdirSync(join(dir, "evidence"), { recursive: true });
@@ -77,9 +80,18 @@ export const executeRun = async (root: string, blueprint: Blueprint, bindings: B
   const logs: string[] = [];
   let malformed = false;
   try {
+    if (prepare) {
+      log(`prepare: ${JSON.stringify(prepare.argv)}`);
+      const result = await runProcess(root, dir, prepare.argv, options.json ?? false);
+      logs.push(`$ prepare (exit ${result.exitCode}, signal ${result.signal})\n${result.output}`);
+      writeFileSync(join(dir, prepare.log), cap(redact(result.output, secrets), 400_000));
+      receipt = { ...receipt, prepare: { ...prepare, exitCode: result.exitCode, signal: result.signal } };
+      atomicJson(join(dir, "receipt.json"), receipt);
+      if (result.exitCode !== 0 || result.signal !== null) throw new Error("preparation did not finish successfully; binding scripts were not started");
+    }
     for (const plan of plans) {
       log(`${plan.script}: company ${options.slug}, behaviours ${plan.behaviours.join(", ")}`);
-      const result = await runScript(root, dir, plan.script, [options.slug, "--only", plan.behaviours.join(",")], options.json ?? false);
+      const result = await runProcess(root, dir, ["bash", join(root, plan.script), options.slug, "--only", plan.behaviours.join(",")], options.json ?? false);
       logs.push(`$ ${plan.script} (exit ${result.exitCode}, signal ${result.signal})\n${result.output}`);
       const got = parseCheckLines(result.output);
       malformed ||= got.malformed.length > 0;
@@ -110,7 +122,8 @@ export const executeRun = async (root: string, blueprint: Blueprint, bindings: B
   // A script can only prove its own bindings, even if another script prints the same check name.
   const scores = asked.map((id) => scoreEvals([id], bindings, foldChecks(byScript.get(bindings.byEval.get(id)?.file.script ?? "") ?? [])));
   const scored = { rows: scores.flatMap((s) => s.rows), unfinished: scores.flatMap((s) => s.unfinished) };
-  const complete = !malformed && scored.unfinished.length === 0 && receipt.scripts.every((s) => s.exitCode === 0 && s.signal === null);
+  const complete = !malformed && scored.unfinished.length === 0 && receipt.scripts.every((s) => s.exitCode === 0 && s.signal === null) &&
+    (!receipt.prepare || (receipt.prepare.exitCode === 0 && receipt.prepare.signal === null));
   receipt = { ...receipt, state: complete ? "complete" : "incomplete", finishedAt: new Date().toISOString() };
   const rows = scored.rows.map((r) => !complete && r.verdict === "pass" ? { ...r, verdict: "not_run" as const } : r);
   const claimOf = new Map(contracts.map((e) => [e.id, e.claim]));
