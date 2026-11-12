@@ -39,7 +39,7 @@ and keeping the book rebuilt (skill `portal-ops`). Aaron still uses Claude for C
 | `packages/contracts` | The real Capxul v4 contracts (Foundry), and the check that the contract records match them. |
 | `packages/frappe-app` | The Capxul app installed on every hosted Frappe site (Python, Frappe v16), and its blueprint check. |
 | `packages/bench-image` | The production Frappe image (Frappe, ERPNext, HR, CRM, WhatsApp, capxul) and its smoke test. |
-| `packages/devnet` | The local chain and worlds; `devnet/cloud/setup.sh` makes a box able to run the stack. |
+| `packages/devnet` | The local chain and worlds; `devnet/orb/setup.sh` prepares a native Amp orb, while `cloud/` retains the Claude proxy recipe. |
 | `packages/sdk` | The product SDK. |
 | `spikes/skeleton` | Proven throwaway code: the Core service stub, CLI and Frappe test stack, with `run.sh`, the end-to-end script. It moves into packages (section 6). |
 | `packages/evals`, `evals/`, `status/` | Which check proves which eval, the runner, and the scoreboard. |
@@ -89,25 +89,31 @@ and keep it even when he pushes back, unless his argument actually changes it.
 
 ## 5. Bring the stack up in an orb
 
-`.agents/setup` runs once per orb snapshot: `pnpm install`, then `packages/devnet/cloud/setup.sh`, which installs Foundry
-1.7.1 from npm, solc 0.8.28 and 0.8.24 (as solc-js behind a native-looking wrapper), and the Docker Compose plugin, and
-starts Docker. `.agents/resume` starts Docker on every wake. In a fresh shell, `source packages/devnet/cloud/setup.sh`
-again to get `PATH` and `FOUNDRY_SOLC` (quick once installed).
+`.agents/setup` prepares native tools, dependencies, contract artifacts and the pinned six-app bench/backing images
+through `packages/devnet/orb/setup.sh`. It does not start an application stack or company sites. The recipe uses
+Node 24.22.2, pnpm 12.18.0, Foundry 1.8.5 and native solc 0.8.28/0.8.24, not the Claude proxy/solc-js workaround.
+It installs the separate skeleton Core lockfile too, so `viem` resolves, and builds Installer/MockERC20 artifacts.
+`.agents/resume` starts Docker on wake without making its socket world-writable.
 
 - **Repository checks** (seconds to minutes, no Docker): the list in AGENTS.md, plus `pnpm check` and `pnpm tasks:check`.
-- **Contracts**: `pnpm contracts:prove` (the first forge build is slow with solc-js; later builds are cached).
-- **The end-to-end run on real contracts**: `FOUNDRY_SOLC=$CAPXUL_SOLC_0824 spikes/skeleton/run.sh <fresh-company-slug>`.
-  It starts anvil (8545), the Core stub (8787) and the Frappe stack (8000) if they are down. The first Frappe bench
-  build takes about five minutes. `--only B9` runs one behaviour and what it needs; `--list` prints the checks.
+- **Contracts**: `pnpm contracts:prove`; setup already builds the narrower runtime/deployment artifacts offline.
+- **Development foundation**: source `packages/devnet/orb/env.sh`, then `amp orb service restart capxul-stack`.
+  This starts private Postgres 17, MariaDB, Redis, the six-app bench and v4 Anvil, never the JSON-file Core stub.
+- **Selected slice**: the slice-zero supervisor owns real Core/Ponder/site-service startup and production-shaped bench
+  recovery. Do not start the development foundation beside it on the same ports. See
+  `packages/devnet/orb/README.md` for role URLs, new-world history preparation and the source-integration boundary.
+- **Historical skeleton**: `spikes/skeleton/run.sh <fresh-company-slug>` still starts its Core stub and tests real
+  contracts. `--only B9` selects a behaviour; `--list` lists checks. A skeleton pass is not Postgres/Ponder slice acceptance.
 - **Score it**: `pnpm evals -- --journey thin_line` (or eval ids). Only this writes `status/status.json`.
 - **The bench image**: `packages/bench-image/README.md`.
 - **The book**: `pnpm portal && pnpm portal:serve --port 4391`, or in the coordinator's orb through
   `.amp/services.yaml` (`amp orb services ensure`).
 
-**Not yet proven in an orb.** Amp's docs say Docker Engine is installed with its daemon stopped and Compose is not. They
-do not say whether outbound internet is open or whether containers can share the host network. The scripts ran clean
-in a Claude cloud container on 11 November. That is why `m1-orb-stack` comes first. If an a1.medium orb (8 GB) runs out
-of memory with the Frappe stack, use a1.large.
+**Verified 12 November:** the scoped native recipe bootstrapped an existing fresh a1.medium orb with no Docker images
+in 6m 59s; its unchanged rerun took 5.38s. All six apps, healthy backing databases, Socket.IO and chain 84532 were
+observed. This is not automatic default-branch/snapshot activation, a real Core/Ponder payment/recovery pass or a
+measurement of fifteen simultaneous full stacks. Publish the reviewed setup to the project's default branch before
+expecting new orbs to inherit it. Extra paid capacity and shared setting changes still need Aaron's approval.
 
 ## 6. Next tasks for Amp, in order
 

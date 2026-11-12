@@ -17,3 +17,8 @@ var/
 *.tsbuildinfo
 
 .DS_Store
+
+# Amp-generated state (tracked lifecycle and service declarations stay visible).
+.amp/portals/
+.amp/in/
+.amp/orb/

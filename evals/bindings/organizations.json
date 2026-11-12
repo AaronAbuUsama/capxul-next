@@ -1,0 +1,19 @@
+{
+  "area": "organizations",
+  "script": "spikes/skeleton/run.sh",
+  "worlds": ["main"],
+  "secrets": ["spikes/skeleton/.env", "spikes/skeleton/core/people.json"],
+  "bindings": [
+    {
+      "eval": "acc:org.create/c-37a24168b5b82483",
+      "checks": ["B1.org-create", "B1.safe-on-chain-is-the-sites-safe", "B1.company-safe-minted-for-founder", "B1.org-show-prints-the-safe"],
+      "why": "`org create` runs on the real v4 contracts. The checks read Companies House's CompanySafeMinted event for the company: its Safe is the minter's companySafeAddressFor for the admin (the founder) and the company's name, is the Safe the site was given, and has the founder's personal Safe (the claimer's safeAddressFor) as founderSafe; the company Safe's owners are the founding Directors' personal Safes (the founder's and priya's, as the run makes the company with a second Director); `org show` prints that Safe."
+    },
+    {
+      "eval": "acc:org.member.grant/c-6412f20281167621",
+      "checks": ["TL.grant-proposal-waits-for-second-director", "TL.grant-proposal-non-director-refused", "TL.grant-proposal-applied-after-second-director", "TL.grant-proposal-roles-reach-site"],
+      "why": "The run's company is born with a second Director (priya), so its Board threshold is both Directors. `hat grant --propose` makes a Board proposal: the founder's Safe approves the company Safe's batch on chain and `org proposal get` reads it waiting, approved by the founder and not by priya, while `org member get` shows elena wearing nothing. A non-Director's approval is refused (ROLE_PERMISSION_DENIED). After priya approves, the batch executes: the proposal reads applied with both approvals and a transaction, `org member get` shows elena wearing member, and the hat's mapped roles reach the site."
+    }
+  ],
+  "near": []
+}
