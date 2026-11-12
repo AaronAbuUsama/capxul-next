@@ -1,4 +1,5 @@
 import * as stateGaps from "./state-gaps.ts";
+import * as bundlerDecisions from "./bundler-decisions.ts";
 // The devnet concept's module list: its records, in the order the conventions give. worlds.ts holds
 // the eval world catalog as plain data (no records), listed so the book's readers find it.
 
@@ -32,5 +33,6 @@ import * as platformProcesses from "./platform-processes.ts";
 import * as platformJourneys from "./platform-journeys.ts";
 import * as platformDecisions from "./platform-decisions.ts";
 import * as platformDecisionsData from "./platform-decisions-data.ts";
+import * as supervisor from "./supervisor.ts";
 
-export const modules = [stateGaps, recordEntry, data, procedures, mail, gates, prices, jobs, processes, flows, worlds, worldData, worldRpcs, worldOps, worldProcesses, worldDecisions, operations, decisions, worldEvidence, platformData, platformLifecycle, platformAccess, platformScenarios, platformRuns, platformDatasets, platformCohorts, platformEnv, platformProcesses, platformJourneys, platformDecisions, platformDecisionsData] as const;
+export const modules = [stateGaps, bundlerDecisions, recordEntry, data, procedures, mail, gates, prices, jobs, processes, flows, worlds, worldData, worldRpcs, worldOps, worldProcesses, worldDecisions, operations, decisions, worldEvidence, platformData, platformLifecycle, platformAccess, platformScenarios, platformRuns, platformDatasets, platformCohorts, platformEnv, platformProcesses, platformJourneys, platformDecisions, platformDecisionsData, supervisor] as const;

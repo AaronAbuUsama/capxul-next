@@ -45,3 +45,10 @@ valid. The `--json` result and `passed` rule are unchanged.
 This hook only establishes timing and process completion. Concept checks still verify `journey.json`, the actual public
 operations, independent persisted reads/native integrity and correlated events. A paid fixture or successful preparation
 does not itself earn a journey/funnel pass.
+
+An asked binding whose script does not support `--world` is recorded, not refused before saving intent. Every requested
+contract and planned script remains in the receipt. After receipt-first preparation, skip a whole plan if any requested
+binding file for it excludes the world, or if it is the JSON skeleton against a non-skeleton environment. Never run that
+script or expand binding worlds. Its exit/signal stay null, with the reason in `run.log` and per-eval evidence. Compatible
+plans may run, but the attempt stays incomplete, exits 1 and supplies no passing verdicts; skipped requests are `not_run`.
+Invalid argv/environment and a mismatched environment world still fail preflight (`system.eval-unsupported-worlds`).
