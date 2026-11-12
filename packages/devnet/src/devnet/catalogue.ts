@@ -181,17 +181,18 @@ export function worldCatalogue(query: Admin, secrets: readonly string[]) {
       if (saved.abandoned.snapshots.some((s) => s.world_id !== world.world_id)) throw new Error("INVALID_INPUT: snapshots belong to another world");
       const incoming = `jsonb_populate_recordset(NULL::app.command_records,${json(branch)})`;
       const incomingSnapshots = `jsonb_populate_recordset(NULL::app.world_snapshots,${json(saved.abandoned.snapshots)})`;
-      const compatible = `DO $branch$ BEGIN IF EXISTS (SELECT FROM ${incoming} r JOIN app.command_records p USING(world_id,epoch,seq)
-        WHERE (to_jsonb(r)-'branch_abandoned')<>(to_jsonb(p)-'branch_abandoned')) THEN RAISE EXCEPTION 'WRONG_STATE: abandoned prefix differs'; END IF; END $branch$;`;
+      // Quote the entire PL/pgSQL body: retained user text may contain any dollar-quote delimiter.
+      const compatible = `DO ${text(`BEGIN IF EXISTS (SELECT FROM ${incoming} r JOIN app.command_records p USING(world_id,epoch,seq)
+        WHERE (to_jsonb(r)-'branch_abandoned')<>(to_jsonb(p)-'branch_abandoned')) THEN RAISE EXCEPTION 'WRONG_STATE: abandoned prefix differs'; END IF; END`)};`;
       const retain = `INSERT INTO app.command_records SELECT * FROM ${incoming} ON CONFLICT (world_id,epoch,seq) DO NOTHING;
-        DO $integrity$ BEGIN IF EXISTS (SELECT FROM (SELECT seq,prev,row_number() OVER (PARTITION BY epoch ORDER BY seq) AS expected_seq,
+        DO ${text(`BEGIN IF EXISTS (SELECT FROM (SELECT seq,prev,row_number() OVER (PARTITION BY epoch ORDER BY seq) AS expected_seq,
           lag(${hash("p")}) OVER (PARTITION BY epoch ORDER BY seq) AS expected_prev FROM app.command_records p WHERE world_id=${text(world.world_id)}) h
           WHERE seq<>expected_seq OR prev<>coalesce(expected_prev,repeat('0',64))) THEN RAISE EXCEPTION 'WRONG_STATE: abandoned record chain is invalid'; END IF;
           IF NOT EXISTS (SELECT FROM app.command_records r WHERE world_id=${text(world.world_id)} AND epoch=${saved.abandoned.cut.epoch} AND seq=${saved.abandoned.cut.seq} AND ${hash("r")}=${text(saved.abandoned.cut.head)})
           OR (SELECT max(seq) FROM app.command_records WHERE world_id=${text(world.world_id)} AND epoch=${saved.abandoned.cut.epoch})<>${saved.abandoned.cut.seq}
           THEN RAISE EXCEPTION 'WRONG_STATE: abandoned branch head differs'; END IF;
           IF EXISTS (SELECT FROM ${incomingSnapshots} s JOIN app.world_snapshots p USING(world_id,name) WHERE to_jsonb(s)<>to_jsonb(p))
-          THEN RAISE EXCEPTION 'WRONG_STATE: retained snapshot metadata differs'; END IF; END $integrity$;
+          THEN RAISE EXCEPTION 'WRONG_STATE: retained snapshot metadata differs'; END IF; END`)};
         UPDATE app.command_records SET branch_abandoned=true WHERE world_id=${text(world.world_id)} AND (epoch>${saved.cut.epoch} OR (epoch=${saved.cut.epoch} AND seq>${saved.cut.seq}));
         INSERT INTO app.world_snapshots SELECT * FROM ${incomingSnapshots} ON CONFLICT (world_id,name) DO NOTHING;`;
       const assignments = ["name", "kind", "profile", "address", "template", "chain_id", "chain_instance", "clock_mode", "rate", "world_now", "epoch", "parent_world", "parent_snapshot", "parent_seq", "hosted", "state", "created_at", "updated_at"].map((key) => `${key}=r.${key}`).join(",");

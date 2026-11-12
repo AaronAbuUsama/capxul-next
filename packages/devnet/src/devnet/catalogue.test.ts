@@ -101,8 +101,8 @@ test("native catalogue preserves command history, atomic mutations and restricte
     const cut = await store.cut("town1");
     assert.equal(cut.epoch, 1); assert.equal(cut.seq, 16); assert.match(cut.head, /^[a-f0-9]{64}$/);
     await cloneDatabase(maintenanceQuery, database, copies[0]!);
-    await store.append("town1", { ...command, command: "after snapshot", result: { abandoned: true } });
-    await store.save({ ...snapshot, name: "may", created_at: now + 2000 }, { ...command, command: "world snapshot save" });
+    await store.append("town1", { ...command, command: "after snapshot", args: { text: "$branch$ and $integrity$ are ordinary recorded text" }, result: { abandoned: true } });
+    await store.save({ ...snapshot, name: "may", chain_state_ref: "/private/$integrity$/state", created_at: now + 2000 }, { ...command, command: "world snapshot save" });
     const abandoned = await store.history("town1");
     await cloneDatabase(maintenanceQuery, copies[0]!, copies[1]!);
     await maintenanceQuery(`ALTER DATABASE "${copies[1]}" ALLOW_CONNECTIONS true`);
@@ -142,6 +142,8 @@ test("native catalogue preserves command history, atomic mutations and restricte
     assert.equal(history.length, 20);
     assert.deepEqual((await store.snapshots("town1")).map((s) => s.name), ["may", "april", "march"], "in-place restore must not hide retained snapshot bundles");
     assert.equal(history.find((r) => r.command === "after snapshot")!.branch_abandoned, true);
+    assert.equal(JSON.parse(history.find((r) => r.command === "after snapshot")!.args as string).text, "$branch$ and $integrity$ are ordinary recorded text");
+    assert.equal((await store.snapshots("town1"))[0]!.chain_state_ref, "/private/$integrity$/state");
     assert.deepEqual(history.filter((r) => r.epoch === 2).map((r) => r.seq), [1, 2]);
     assert(!(await store.records("town1")).some((r) => r.command === "after snapshot"));
     const largeArgs = { text: "☃".repeat(60000) }, largeResult = { text: "☃".repeat(11000) };
