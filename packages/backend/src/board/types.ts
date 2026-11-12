@@ -22,6 +22,9 @@ export type OfficerChange = {
 
 /** pg returns int8 as strings; reject overflow rather than silently changing a Safe nonce. */
 export function integer(value: unknown): number {
+  if (typeof value !== "number" && typeof value !== "bigint" && (typeof value !== "string" || !/^\d+$/.test(value))) {
+    throw new Error("PROVIDER_RESPONSE_INVALID: invalid indexed integer");
+  }
   const n = Number(value);
   if (!Number.isSafeInteger(n) || n < 0) throw new Error("PROVIDER_RESPONSE_INVALID: invalid indexed integer");
   return n;
