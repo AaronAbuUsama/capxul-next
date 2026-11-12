@@ -14,6 +14,24 @@ import * as x from "./external.ts";
 const CLAUDE = "Claude, target architecture, 7 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 
+export const decision_contracts_gate_threshold_read = defineDecision({
+  id: "contracts.gate-threshold-read",
+  title: "Read the Gate's actual threshold configuration for Board cleanup",
+  question: "Which existing contract read exposes the rule needed to evaluate a lapsed-owner removal?",
+  options: [
+    { label: "gate-config", text: "Expose the verified Gate thresholdConfig tuple and combine it with live owners and signer validity." },
+    { label: "safe-threshold", text: "Infer the configured rule from the Safe's current threshold alone." },
+  ],
+  chosen: "gate-config",
+  why:
+    "The verified Hats Signer Gate v2 implementation returns one tuple with uint8 thresholdType and uint120 min/target. " +
+    "InstallerMoney already reads this getter and computes the configured required signatures against the owner count, capped by that count. " +
+    "Safe.getThreshold alone cannot distinguish absolute and proportional configuration after an owner lapses. " +
+    "This adds contract-reading parity only; it neither changes the contract nor establishes a historical owner snapshot or Board cleanup proof.",
+  source: "Base Sepolia verified HatsSignerGate 0x148057884AC910Bdd93693F230C5c35a8c47CA3b thresholdConfig ABI/source; packages/contracts/src/authority/InstallerMoney.sol:16,305-313, 12 November 2026",
+  affects: [x.contract_hats_signer_gate, f.concept_board],
+});
+
 export const decision_integrations_indexed_claim = defineDecision({
   id: "integrations.indexed-claim",
   title: "Claim admission requires a real indexed occurrence and current sole signer",
