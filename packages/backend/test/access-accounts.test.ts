@@ -24,14 +24,33 @@ const catalogue: GateCatalogue = { "beta-access": { target: "person", money: fal
 
 before(async () => {
   await admin.connect();
-  for (const role of ["capxul_core", "capxul_worker"]) {
-    if (!(await admin.query("select 1 from pg_roles where rolname=$1", [role])).rowCount)
-      await admin.query(`create role ${role} login nosuperuser nocreatedb nocreaterole noinherit nobypassrls`);
-    const password = randomBytes(24).toString("hex");
-    await admin.query(`alter role ${role} password '${password}'`);
-    const target = new URL(url!); target.username = role; target.password = password;
-    if (role === "capxul_core") process.env.ACCESS_TEST_TENANT = target.href;
-    else process.env.ACCESS_TEST_WORKER = target.href;
+  const roles = [
+    { role: "capxul_core", env: "ACCESS_TEST_TENANT" },
+    { role: "capxul_worker", env: "ACCESS_TEST_WORKER" },
+  ];
+  const existing = (await admin.query("select rolname from pg_roles where rolname=any($1)", [roles.map(({ role }) => role)])).rows;
+  // Roles are cluster-wide. Refuse before migrations or role writes if an existing
+  // account has no supplied credentials; never reset another database's password.
+  for (const { role, env } of roles)
+    if (existing.some((row) => row.rolname === role) && !process.env[env])
+      throw new Error(`${env} must supply existing ${role} credentials for the disposable database`);
+  for (const { role, env } of roles) {
+    if (!existing.some((row) => row.rolname === role)) {
+      const password = randomBytes(24).toString("hex");
+      await admin.query(`create role ${role} login nosuperuser nocreatedb nocreaterole noinherit nobypassrls password '${password}'`);
+      const target: URL = new URL(url!); target.username = role; target.password = password;
+      process.env[env] = target.href;
+    }
+    const target: URL = new URL(process.env[env]!);
+    const origin: URL = new URL(url!);
+    assert.equal(target.host, origin.host, `${env} must use the disposable Postgres instance`);
+    assert.equal(target.pathname, origin.pathname, `${env} must use the disposable database`);
+    const client = new pg.Client({ connectionString: target.href });
+    try {
+      await client.connect();
+      const identity = (await client.query(`select current_user as role, rolsuper, rolbypassrls from pg_roles where rolname=current_user`)).rows[0];
+      assert.deepEqual(identity, { role, rolsuper: false, rolbypassrls: false });
+    } finally { await client.end(); }
   }
   await admin.query("begin");
   try {
