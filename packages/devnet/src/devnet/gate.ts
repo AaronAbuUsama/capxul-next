@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile, stat, writeFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { parseRunReceipt, parseStatus, type EvalStatus, type RunEnvironment } from "../../../blueprint-engine/src/index.ts";
+import { sitesEnvironment } from "./fixture.ts";
 import { command } from "./processes.ts";
 import { runtimeEnv } from "./service.ts";
 import type { Config } from "./supervisor.ts";
@@ -70,7 +71,7 @@ export async function runGate(c: Config, slug: string, token: string, configFile
   let stdout: string;
   try {
     stdout = await command(["pnpm", "--silent", "evals", "--", ...required, "--world", "slice-zero", "--slug", slug, "--environment", metadata, "--prepare", prepare, "--json"], c.root,
-      { ...runtimeEnv(c, "anvil"), CAPXUL_SECRET: c.secret, CAPXUL_ACCEPTANCE_FIXTURE: fixture, CAPXUL_WORLD_CONFIG: resolve(configFile), CAPXUL_WORLD_RUN_TOKEN: token });
+      { ...runtimeEnv(c, "anvil"), ...sitesEnvironment(c), CAPXUL_SECRET: c.secret, CAPXUL_ACCEPTANCE_FIXTURE: fixture, CAPXUL_WORLD_CONFIG: resolve(configFile), CAPXUL_WORLD_RUN_TOKEN: token });
   } catch (error: any) {
     // Exit 1 is a truthful failed/not_run attempt and still has a JSON receipt pointer. Preflight errors do not.
     if (typeof error.cause?.stdout !== "string" || !error.cause.stdout.trim()) throw error;

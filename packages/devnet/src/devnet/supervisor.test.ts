@@ -7,6 +7,7 @@ import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { gateway } from "./gateway.ts";
 import { verifyRun } from "./gate.ts";
+import { bench, sitesEnvironment } from "./fixture.ts";
 import { prepareSlice } from "./preparation.ts";
 import { command, supervised } from "./processes.ts";
 import { runtimeEnv } from "./service.ts";
@@ -42,7 +43,29 @@ test("runtime children receive only their restricted world credentials, never op
       assert.equal(env.PG_ADMIN_URL, undefined); assert.equal(env.CAPXUL_PRIVATE_KEY, undefined);
     }
     assert.equal(ponder.DATABASE_URL, undefined); assert.equal(anvil.CAPXUL_SECRET, undefined);
+    const caller = sitesEnvironment(c);
+    assert.match(caller.CAPXUL_PRIVATE_KEY!, /^0x[0-9a-f]{64}$/);
+    assert.notEqual(caller.CAPXUL_PRIVATE_KEY, process.env.CAPXUL_PRIVATE_KEY);
+    assert.equal(caller.CAPXUL_CORE_URL, loopback(c.ports.publicCore));
+    assert.equal(caller.CAPXUL_SITES_ACTORS, join(c.controlDir, "sites-actors.json"));
   } finally { delete process.env.PG_ADMIN_URL; delete process.env.CAPXUL_PRIVATE_KEY; }
+});
+
+test("native bench reads preserve raw scalars, structured JSON and empty None results", async () => {
+  const root = await mkdtemp(join(tmpdir(), "world-bench-output-")), c = config(root);
+  const previous = { PATH: process.env.PATH, BENCH_RESULT: process.env.BENCH_RESULT };
+  try {
+    await writeFile(join(root, "docker"), `#!${process.execPath}\nprocess.stdout.write(process.env.BENCH_RESULT);\n`, { mode: 0o700 });
+    process.env.PATH = `${root}:${process.env.PATH}`;
+    for (const [output, expected] of [["harbourlineproof\n", "harbourlineproof"], ["0xc97056edb98c2dce657fdd1ab7928035745fde51\n", "0xc97056edb98c2dce657fdd1ab7928035745fde51"],
+      ['["Company",125.5]\n', ["Company", 125.5]], ["", null], ['diagnostic\nJSON:{"posted":true}\n', { posted: true }]] as const) {
+      process.env.BENCH_RESULT = output;
+      assert.deepEqual(await bench(c, "fixture.localhost", "fixture.read"), expected);
+    }
+  } finally {
+    for (const [key, value] of Object.entries(previous)) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
+    await rm(root, { recursive: true });
+  }
 });
 
 test("ingress blocks Core admin, drains a real in-flight mutation, and closes RPC and bench together", async () => {

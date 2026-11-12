@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { parseRunReceipt } from "../../../blueprint-engine/src/index.ts";
+import { testKey } from "../modules/test-keys/service.ts";
 import type { composeWorld } from "./composition.ts";
 import { acceptanceFixture, bench, fixturePath, persistFixture, preparePayment, provisionFixture, requirePaymentSlot, settledPayment, submitPayment, type FixtureState } from "./fixture.ts";
 import { signedCore } from "./supervisor.ts";
@@ -36,7 +37,9 @@ export async function prepareSlice(stack: Awaited<ReturnType<typeof composeWorld
     world: { id: c.world.id, epoch: c.world.epoch }, kind: "fixture-preparation-not-journey-proof",
     phases: [] as { name: string; startedAt: string; finishedAt?: string; sourcePath?: string }[] };
   const secrets = [c.secret, c.siteToken, c.bench.dbPassword, c.bench.adminPassword, process.env.CAPXUL_WORLD_RUN_TOKEN,
-    ...Object.values(c.database).flatMap((url) => [url, decodeURIComponent(new URL(url).password)])].filter((s): s is string => !!s);
+    ...["founder", "second", "deployer", "tierService"].map((role) => testKey(role as Parameters<typeof testKey>[0]).key),
+    ...Object.values(c.database).flatMap((url) => [url, decodeURIComponent(new URL(url).password)])]
+    .filter((s): s is string => !!s).flatMap((s) => /^0x[0-9a-f]{64}$/i.test(s) ? [s, s.slice(2)] : [s]);
   const save = () => writeFile(join(directory, "preparation.json"), JSON.stringify(record, null, 2), { mode: 0o600 });
   const phase = async <T>(name: string, action: () => Promise<T>): Promise<T> => {
     const entry: typeof record.phases[number] = { name, startedAt: new Date().toISOString() };

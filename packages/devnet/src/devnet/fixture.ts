@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { createHmac, randomBytes } from "node:crypto";
-import { readFile, writeFile } from "node:fs/promises";
+import { open, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { keccak256, parseAbi, parseUnits, toBytes, zeroAddress, type Hex } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { connect } from "../modules/chain/service.ts";
 import * as companies from "../modules/company/service.ts";
 import type { Company, Protocol } from "../modules/company/types.ts";
@@ -12,10 +13,27 @@ import { loopback, signedCore, until, writeConfig, type Config } from "./supervi
 
 export type FixtureState = {
   slug: string; site: string; name: string; email: string; company: Company; budget: bigint;
+  member?: { name: string; email: string; address: Hex; personalSafe: Hex };
   invoice?: string; paymentEntry?: string; txHash?: Hex; userOpHash?: Hex; safeAccount?: string;
 };
 const serialize = (value: unknown) => JSON.stringify(value, (_, v) => typeof v === "bigint" ? v.toString() : v);
 export const fixturePath = (c: Config) => join(c.controlDir, "fixture.json");
+/** Caller credentials are inherited privately, never added to public argv or acceptance evidence. */
+export const sitesEnvironment = (c: Config): NodeJS.ProcessEnv => ({
+  CAPXUL_CORE_URL: loopback(c.ports.publicCore), CAPXUL_PRIVATE_KEY: testKey("founder").key,
+  CAPXUL_SITES_ACTORS: join(c.controlDir, "sites-actors.json"),
+});
+async function writeSitesActors(c: Config, f: FixtureState) {
+  assert(f.member, "selected fixture has no registered negative-control member");
+  const actors = await open(sitesEnvironment(c).CAPXUL_SITES_ACTORS!, "w", 0o600);
+  try {
+    await actors.chmod(0o600);
+    await actors.writeFile(JSON.stringify({ version: 1, world: { id: c.world.id, epoch: c.world.epoch }, org: f.slug, site: f.site,
+      director: { name: "Harbourline Director", email: f.email, address: privateKeyToAccount(f.company.founderKey).address,
+        personalSafe: f.company.founderSafe, privateKey: f.company.founderKey },
+      member: { ...f.member, privateKey: testKey("second").key } }));
+  } finally { await actors.close(); }
+}
 export async function persistFixture(c: Config, f: FixtureState) { await writeFile(fixturePath(c), serialize(f), { mode: 0o600 }); }
 export async function readFixture(c: Config): Promise<FixtureState> {
   const f = JSON.parse(await readFile(fixturePath(c), "utf8"));
@@ -32,9 +50,11 @@ export async function protocol(c: Config): Promise<Protocol> {
 export async function bench(c: Config, site: string, method: string, args: unknown[] = [], kwargs?: object): Promise<any> {
   const text = await command(["docker", "compose", ...c.bench.composeArgs, "run", "--rm", "-T", "--no-deps", "site-admin", "bench",
     "--site", site, "execute", method, ...(kwargs ? ["--kwargs", JSON.stringify(kwargs)] : ["--args", JSON.stringify(args)])], c.root);
-  // Test helpers print JSON:<payload>; native bench execute prints JSON directly.
+  // Native bench execute prints strings verbatim, structured values as JSON, and None as nothing.
   const marked = text.split("\n").findLast((line) => line.startsWith("JSON:"));
-  return JSON.parse(marked ? marked.slice(5) : text);
+  if (marked) return JSON.parse(marked.slice(5));
+  if (!text) return null;
+  try { return JSON.parse(text); } catch { return text; }
 }
 const single = (c: Config, site: string, field: string) => bench(c, site, "frappe.db.get_single_value", ["Capxul Settings", field]);
 
@@ -94,11 +114,22 @@ export async function provisionFixture(c: Config, file: string, slug: string): P
     const { rm } = await import("node:fs/promises"); await rm(pending);
   }
   if (!c.world.sites.some((site) => site.company === slug)) { c.world.sites.push({ company: slug, name: f.site }); await writeConfig(file, c); }
+  const p = await protocol(c);
+  if (!f.member) {
+    const email = `${slug}-member@example.invalid`, key = testKey("second");
+    const personalSafe = await companies.claimPersonalSafe(p, testKey("tierService").key, email, key.address);
+    f.member = { name: "Harbourline Member", email, address: key.address, personalSafe };
+    await persistFixture(c, f);
+  }
+  const founder = { email: f.email, name: "Harbourline Director", address: privateKeyToAccount(f.company.founderKey).address, personalSafe: f.company.founderSafe };
+  for (const hat of [f.company.boardTopHat, ...f.company.officerHats]) {
+    assert.equal(await companies.wears(p, f.member.personalSafe, hat), false, "negative-control member must not wear a company hat");
+  }
   await signedCore(c, "/admin/org", { slug, name: f.name, safe: f.company.companySafe, site: f.site, adminEmail: f.email, token: f.company.token,
     hats: { [f.company.officerHats[0]!.toString()]: { name: "admin" } },
-    people: [{ email: f.email, name: "Harbourline Founder", address: testKey("founder").address, personalSafe: f.company.founderSafe }] });
-  const caller: NodeJS.ProcessEnv = { PATH: process.env.PATH, HOME: process.env.HOME,
-    CAPXUL_CORE_URL: loopback(c.ports.publicCore), CAPXUL_PRIVATE_KEY: testKey("founder").key };
+    people: [founder, f.member] });
+  await writeSitesActors(c, f);
+  const caller: NodeJS.ProcessEnv = { PATH: process.env.PATH, HOME: process.env.HOME, ...sitesEnvironment(c) };
   const result = JSON.parse(await command(["pnpm", "--silent", "capxul", "org", "site", "provision", "--org", slug, "--confirm", "--json"], c.root, caller));
   assert.equal(result.site, f.site); assert.equal(result.safe.toLowerCase(), f.company.companySafe.toLowerCase()); assert.equal(result.state, "provisioned");
   await verifySite(c, f);
@@ -106,7 +137,7 @@ export async function provisionFixture(c: Config, file: string, slug: string): P
   assert.equal(clock.clockMode, "stopped");
   await bench(c, f.site, "capxul.clock.write_world", [], { world: c.world.id, offset_ms: 0, frozen_at_ms: clock.nowMs, rate: clock.rate });
   // An indexed mint, not a current balance, identifies the one fixture funding even after money is spent.
-  const p = await protocol(c), abi = parseAbi(["function mint(address,uint256)", "event Transfer(address indexed from,address indexed to,uint256 value)"]);
+  const abi = parseAbi(["function mint(address,uint256)", "event Transfer(address indexed from,address indexed to,uint256 value)"]);
   const funding = await p.chain.client.getContractEvents({ address: f.company.token, abi, eventName: "Transfer", args: { from: zeroAddress, to: f.company.companySafe }, fromBlock: 0n });
   if (!funding.length) {
     const hash = await p.chain.walletFor(testKey("deployer").key).writeContract({ address: f.company.token, abi, functionName: "mint", args: [f.company.companySafe, 500_000_000n] });
@@ -165,6 +196,7 @@ export async function settledPayment(c: Config, f: FixtureState): Promise<void> 
 /** Native Frappe one-time login, after the real on-chain hat has created the user. No password/Administrator session. */
 export async function acceptanceFixture(c: Config, f: FixtureState, configFile: string, snapshot: string): Promise<string> {
   await settledPayment(c, f);
+  await writeSitesActors(c, f);
   const link = await bench(c, f.site, "frappe.www.login._generate_temporary_login_link", [], { email: f.email, expiry: 5 });
   const path = new URL(link, loopback(c.ports.publicBench));
   const response = await fetch(new URL(path.pathname + path.search, loopback(c.ports.publicBench)), { redirect: "manual", headers: { "X-Frappe-Site-Name": f.site } });
