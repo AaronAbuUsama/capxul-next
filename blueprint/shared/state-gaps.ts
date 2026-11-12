@@ -40,6 +40,31 @@ export const decision_system_eval_runs = defineDecision({
   source: "Aaron's parallel breadth preparation, 12 November 2026; reproduced zero-result run retaining old passes",
   affects: [f.system_capxul],
 });
+
+export const decision_system_eval_preparation = defineDecision({
+  id: "system.eval-preparation", title: "Journey preparation belongs to the scoring attempt",
+  question: "How can provisioning, payment and recovery happen inside the eval run that scores their evidence?",
+  options: [
+    { label: "receipt-first", text: "An optional --prepare argv-JSON file names one executable and its literal arguments. Save its argv, pending exit and prepare.log path in the running receipt and clear requested prior verdicts before spawning it with CAPXUL_EVAL_RUN_DIR. Await success and save its exit/signal before any bound script. Failure or interruption makes the attempt incomplete and skips bound scripts. Preparation output cannot satisfy check bindings. Keep old receipts without preparation readable. Credentials belong in environment or files, never argv; preparation output must be sanitized." },
+    { label: "external-fixture", text: "Prepare the world before starting the harness, then inspect its finished state. This cannot establish that the public journey actions occurred in the scoring attempt." },
+  ],
+  chosen: "receipt-first", why: "A paid or restored fixture predating the running receipt cannot prove a same-run journey. The harness owns attempt timing and failure; concept checks still own the exact public actions, independent persisted reads, native integrity and correlated events. A successful preparation process alone supplies no eval pass.",
+  source: "Slice zero runtime and world CLI integration, 12 November 2026; system.eval-runs; preparation previously preceded executeRun",
+  affects: [f.system_capxul],
+});
+
+export const decision_system_eval_unsupported_worlds = defineDecision({
+  id: "system.eval-unsupported-worlds", title: "Unsupported bindings remain visible in the scoring attempt",
+  question: "How does a full selected-stack attempt record requests whose bound scripts support only another world?",
+  options: [
+    { label: "record-and-skip", text: "Save every requested eval contract and clear its prior verdict before preparation. Keep every planned script in the receipt; skip a plan if any requested binding file for it excludes the selected world, or if it is the JSON skeleton against a non-skeleton environment. Leave skipped exits unknown, record the reason in run.log and per-eval evidence, and finish incomplete with those requests not_run. Other compatible scripts may run, but an incomplete attempt supplies no passing verdicts. Never expand binding worlds, execute the skeleton on the selected stack, drop requests or score preparation output." },
+    { label: "preflight-refusal", text: "Refuse the entire selection before a receipt exists. This conceals the full attempt and prevents preparation or compatible checks from recording same-run evidence." },
+  ],
+  chosen: "record-and-skip", why: "The first honest full-gate attempt must preserve missing world support as evidence, not require weakening bindings to get past preflight. Unknown script exits and unchanged complete-run rules keep the failure closed.",
+  source: "Selected runtime first full-gate attempt, 12 November 2026; executeRun world and skeleton guards refused before saving intent; system.eval-runs",
+  affects: [f.system_capxul],
+});
+
 export const decision_system_standing_gaps = defineDecision({
   id: "system.standing-gaps", title: "A standing gap carries a decision and a current reason",
   question: "How can the build distinguish an open gap from an explicitly retained boundary?",

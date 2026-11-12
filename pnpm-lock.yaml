@@ -263,6 +263,9 @@ importers:
 
   packages/devnet:
     dependencies:
+      '@capxul/backend':
+        specifier: workspace:*
+        version: link:../backend
       '@capxul/sdk':
         specifier: workspace:*
         version: link:../sdk
