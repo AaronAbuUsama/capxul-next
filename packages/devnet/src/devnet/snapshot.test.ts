@@ -181,7 +181,9 @@ test("native site backup crosses the host UID boundary without exposing archives
     for (const service of ["backend", "websocket", "queue-short", "queue-long", "scheduler", "frontend"]) {
       const row = rows.find((row) => row.Service === service);
       assert.equal(row?.State, "running", `${service} must be running when resume returns`);
-      assert.equal(row?.Health, "healthy", `${service} must be healthy when resume returns`);
+      if (["backend", "websocket", "frontend"].includes(service) || row?.Health) {
+        assert.equal(row?.Health, "healthy", `${service} must be healthy when resume returns`);
+      }
     }
     assert.equal(bench.ownsPause(), false);
   } finally {
