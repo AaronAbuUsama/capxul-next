@@ -123,5 +123,6 @@ async function initializeDeployment(c: Config) {
   // Ponder starts before company birth, and the deployment shape never changes on restore.
   await writeFile(join(c.world.stateDir, "deployment.json"), JSON.stringify({ chainId: c.chainId, usdc: receipt.contractAddress,
     payments: record.contracts.Payments.address, hats: THIRD_PARTY.hats, installer: record.contracts.Installer.address,
+    budgets: record.contracts.Budgets.address, agreements: record.contracts.Agreements.address, agentOwner: record.contracts.AgentOwner.address,
     companiesHouse: record.companiesHouse, deployedBlock: Number(receipt.blockNumber) }), { flag: "wx", mode: 0o600 });
 }
