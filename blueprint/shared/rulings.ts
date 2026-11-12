@@ -4,6 +4,7 @@
 
 import { defineDecision } from "../../packages/blueprint-engine/src/index.ts";
 import * as f from "./foundation.ts";
+import * as cloud from "./cloud.ts";
 
 const AARON = "Aaron, 8 November 2026, in the build-preparation conversation";
 
@@ -1081,5 +1082,71 @@ export const decision_aaron_postgres_and_ponder = defineDecision({
     f.environment_shared_world,
     f.environment_staging,
     f.concept_indexing,
+  ],
+});
+
+export const decision_aaron_alchemy_provisioning = defineDecision({
+  id: "aaron.alchemy-provisioning",
+  title: "Alchemy provisions everything; every world is an Alchemy stage",
+  question:
+    "Capxul provisions and destroys environments all the time (a devnet on every machine, test worlds per run, shared " +
+    "worlds, staging, production), so far with CloudFormation templates, hand-run steps and one supervisor per machine. " +
+    "Should Alchemy (alchemy.run, TypeScript and Effect infrastructure as code, with AWS, Docker, Cloudflare and sandbox " +
+    "providers) provision all of it, and how far should it go?",
+  options: [
+    {
+      label: "full-alchemy-now",
+      text:
+        "Alchemy provisions every environment and the slow-changing pieces (machines, DNS, certificates, the snapshot " +
+        "bucket), and a world is an Alchemy stage from now on: one world image holds anvil, Alto, Core, Ponder, the " +
+        "world's own Postgres, the Frappe bench with MariaDB and Redis, and the devnet supervisor; deploying stage " +
+        "`<world>` starts one box from it at a placement (docker for a devnet on a laptop or cloud container, a sandbox " +
+        "for test runs, a machine with a real disk for shared worlds; production is its own stack with no sandboxes); " +
+        "parking stops the box and keeps its disk; destroying the stage removes everything it made. The world image and " +
+        "the stage-per-world service are built straight away and the sandbox provider is picked up front.",
+    },
+    {
+      label: "full-alchemy-step-by-step",
+      text:
+        "The same end state, proven in steps: the existing AWS pieces into Alchemy first (a plan with no changes), then " +
+        "one world image run through Docker, then one sandbox measured, and only then worlds as stages.",
+    },
+    {
+      label: "infrastructure-only",
+      text: "Machines, DNS, certificates and buckets move into Alchemy; worlds stay processes on a shared machine under its supervisor.",
+    },
+  ],
+  chosen: "full-alchemy-now",
+  why:
+    "Aaron, thread \"Rethink infrastructure around Alchemy\", 12 November 2026 18:12 UTC, after the write-up " +
+    "https://claude.ai/artifact/5EFHi43Z5QD2deokhYc7VT: \"let's not say moving off of AWS, right, but we can still use " +
+    "Alchemy to provision everything though, no? ... We, by our very definition, need to do a lot of provisioning and " +
+    "destroying. Right, Alchemy works with AWS as well. ... We are Affect Native and this is for Affect. It has sandboxes " +
+    "... like Daytona, E2B, and modal. ... Maybe not full stack Cloudflare, but at least full stack Alchemy though. ... " +
+    "every machine needs a dev net, right? Could we not create this with Alchemy? Then we need to have shared worlds. Could " +
+    "we not create this with Alchemy? Then our production\" ('Affect' is dictation for Effect). At 18:23 he chose \"Full " +
+    "Alchemy now, worlds as stages\" on the decision card, over the recommended step-by-step option; at 18:24: \"we already " +
+    "have e2b account\", so the sandbox placement is E2B. Consequences he was shown: Alchemy 2 is a beta in the path of " +
+    "every world create, so it sits behind one door, pinned to an exact version, with a plain Docker placement behind the " +
+    "same door; a provider snapshot saves a disk, not a consistent world, so the supervisor's own snapshot (chain, Postgres " +
+    "and sites paused and saved together) stays the source of truth inside the box; a box per world carries its own Frappe " +
+    "bench (about 0.85 GB), so a 16 GB machine holds about 8 to 10 worlds instead of 15. This replaces two details of " +
+    "aaron.postgres-and-ponder's elaboration (one Postgres server per host with a database per world, and one shared bench " +
+    "for all worlds) with one Postgres and one bench inside each world's box; the storage choice itself (Postgres and Ponder " +
+    "everywhere, MariaDB only for Frappe) stands. Not settled here: how a world service that creates worlds by itself signs " +
+    "in to AWS (an assumed role, never an IAM user or key), whether Cloudflare fronts the worlds, and the placement for " +
+    "long-lived shared worlds.",
+  source: "Aaron, 12 November 2026, in the project thread \"Rethink infrastructure around Alchemy\" (18:12 and 18:23 UTC)",
+  affects: [
+    f.system_capxul,
+    f.component_provisioner,
+    f.component_devnet,
+    f.component_postgres,
+    f.component_site_service,
+    f.environment_devnet,
+    f.environment_shared_world,
+    cloud.component_sites_host,
+    cloud.environment_worlds,
+    cloud.environment_production,
   ],
 });

@@ -202,7 +202,7 @@ export const component_devnet = defineComponent({
   id: "devnet",
   title: "Devnet supervisor",
   about:
-    "The process that boots a whole world on one machine (Anvil, the world's database on the host's Postgres server, Ponder " +
+    "The process that boots a whole world inside its box (aaron.alchemy-provisioning: one world image, one box per world; Anvil, the world's own Postgres, Ponder " +
     "and the backend, aaron.postgres-and-ponder; alto with the mock paymaster only in the canary world, thin-line.bundler), " +
     "deploys v4, and saves and restores named worlds (the chain, the world's database with both schemas, and Ponder's state " +
     "together) and the clocks, through an owner-only control socket. Eval worlds are its snapshots. Nothing in " +
@@ -247,6 +247,24 @@ export const component_site_service = defineComponent({
   runtime: "node (and the Frappe bench's bench CLI)",
   exposes: ["http"],
   dependsOn: [component_backend],
+});
+
+/** Alchemy stacks: every environment, and every world as a stage (aaron.alchemy-provisioning). */
+export const component_provisioner = defineComponent({
+  id: "provisioner",
+  title: "The provisioner: every environment as an Alchemy stack, every world as a stage",
+  about:
+    "Alchemy 2 (alchemy.run, pinned to one exact version) provisions every environment from one TypeScript program " +
+    "(aaron.alchemy-provisioning): the devnet, test worlds, shared worlds, staging and production, and the slow-changing pieces " +
+    "(machines, DNS, certificates, the snapshot bucket) that were CloudFormation templates and hand-run steps. A world is a " +
+    "stage: deploying stage `<world>` starts one box from the one world image at a placement (docker, sandbox or machine), " +
+    "gives it its addresses and a place for its snapshots; parking stops the box and keeps its disk; destroying the stage " +
+    "removes everything it made. Alchemy is reached only through this package's door (deploy, park, resume, destroy), with a " +
+    "plain Docker placement behind the same door, so a breaking Alchemy release changes one package. It never saves a world's " +
+    "data: a consistent world is the devnet supervisor's own snapshot, taken inside the box.",
+  runtime: "node (Alchemy 2 on Effect)",
+  exposes: ["cli"],
+  dependsOn: [component_devnet],
 });
 
 // ── concepts: the target map (each after everything it depends on) ─────────────────────────
@@ -663,22 +681,23 @@ export const environment_devnet = defineEnvironment({
     "(one to sixty world seconds a real second, decision devnet.clock-rate), which the chain, the backend, Ponder, the " +
     "stand-ins and a connected head all follow, and nothing it sends leaves the machine (time.world-channels). It runs the " +
     "same stack as staging (aaron.postgres-and-ponder): the backend on Postgres, with Capxul's data in the `app` schema and " +
-    "Ponder's index in the `ponder` schema of the same database. One Postgres server per host holds a database per world; " +
-    "one Ponder runs per active world and stops when the world parks. There is no bundler except in the one canary world " +
+    "Ponder's index in the `ponder` schema of the same database. Each world runs in its own box from the one world image " +
+    "(aaron.alchemy-provisioning), with its own Postgres holding its one database; its Ponder stops when the world parks. There is no bundler except in the one canary world " +
     "that keeps the real bundler (thin-line.bundler). Worlds are the supervisor's named snapshots of the chain and the " +
-    "world's database together (a snapshot copies the database from a template), with the clock. Devnet-only rpcs (the devnet concept) answer only here and in a shared world. Fakes: the mock paymaster, " +
+    "world's database together (a snapshot copies the database from a template inside the box), with the clock; the box itself is an Alchemy stage at the docker placement. Devnet-only rpcs (the devnet concept) answer only here and in a shared world. Fakes: the mock paymaster, " +
     "the mail sink, the stand-in WhatsApp, the stand-in head and FDE host, scripted prices and gates, Bridge's sandbox or " +
     "a local stand-in.",
   runs: [
     { component: component_chain, on: "Anvil forking Base Sepolia (84532) at a pinned block, 127.0.0.1:8545; Companies House deploys and verifies every v4 contract at `up`." },
     { component: component_bundler_paymaster, on: "Canary only: foreground Alto on a world-assigned loopback port, with a funded accept-all MockPaymaster at EntryPoint v0.7 (devnet.canary-alto). Empty paymasterData needs no signed sponsor server; staging policy is not proven. Other worlds have none." },
-    { component: component_postgres, on: "A real Postgres server on loopback (aaron.postgres-and-ponder), one database per world with the `app` and `ponder` schemas and row-level security on." },
+    { component: component_postgres, on: "A real Postgres server on loopback inside the world's box (aaron.postgres-and-ponder, aaron.alchemy-provisioning): the world's database with the `app` and `ponder` schemas and row-level security on." },
     { component: component_ponder, on: "Ponder on the world's database, polling the Anvil node every 100 ms or subscribed to new heads, so a stop never waits half a second a block; stopped while the world is parked." },
     { component: component_backend, on: "The backend's devnet build on loopback, on the world's database, with the devnet integration layers (fakes) and devnet-only rpcs." },
     { component: component_core_sdk, on: "Inside the CLI, the MCP server and a local browser app on the same machine; its devnet entry reaches the supervisor." },
     { component: component_react_sdk, on: "A local browser app, for the approval page and browser-mode evals." },
     { component: component_cli, on: "On the same machine after `capxul use env devnet`, with the devnet's fixed test identities." },
     { component: component_mcp_server, on: "A local MCP server on loopback, for assistant evals." },
+    { component: component_provisioner, on: "On the developer's machine or cloud container: deploys the world as an Alchemy stage at the docker placement, one box from the world image (aaron.alchemy-provisioning)." },
     {
       component: component_devnet,
       on: "The supervisor: its time authority, capxul.devnet/1 on loopback with an owner-only handoff file beside its owner-only socket; `capxul-devnet up [--rate <n>]`, `reset`, `down`.",
@@ -833,7 +852,7 @@ export const environment_shared_world = defineEnvironment({
   runs: [
     { component: component_chain, on: "Anvil forking Base Sepolia (84532) at a pinned block on the world's host, mined only by its supervisor at the world's now; reached only through the gateway." },
     { component: component_bundler_paymaster, on: "Only when the shared world is the canary world (devnet.lean-world, point 3; thin-line.bundler): alto behind the mock paymaster on the world's host, both following its clock." },
-    { component: component_postgres, on: "The host's Postgres server (aaron.postgres-and-ponder): the world's own database, `app` and `ponder` schemas, row-level security on." },
+    { component: component_postgres, on: "The Postgres server inside the world's box (aaron.postgres-and-ponder, aaron.alchemy-provisioning): the world's own database, `app` and `ponder` schemas, row-level security on." },
     { component: component_ponder, on: "Ponder on the world's database, following its anvil; stopped while the world is parked." },
     { component: component_backend, on: "The backend's devnet build on the world's host, on the world's database, behind the world's gateway (HTTPS), which admits a request only with a world grant." },
     { component: component_core_sdk, on: "Inside each joiner's CLI and MCP server, pointed at the world by CAPXUL_BOOTSTRAP_URL and carrying the joiner's grant." },
