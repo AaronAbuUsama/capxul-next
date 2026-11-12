@@ -7,6 +7,7 @@
 
 import { defineDecision } from "../../packages/blueprint-engine/src/index.ts";
 import {
+  component_backend,
   component_ponder,
   component_postgres,
   concept_activity,
@@ -557,4 +558,18 @@ export const decision_indexing_not_ported = defineDecision({
     "payments' Movements are triggered by the Transfer itself, and an added token is books' scan.",
   source: by("docs/as-is/archive/indexing/data.ts; docs/as-is/archive/indexing/drifts.ts; docs/as-is/archive/indexing/movements.ts; apps/indexer/ponder.schema.ts:62"),
   affects: [concept_indexing, table_safe_owners, table_transfers, table_chain_payments, decision_concepts_indexing, decision_concepts_permissions, decision_components_ponder],
+});
+
+export const decision_indexing_slice_zero_runtime = defineDecision({
+  id: "indexing.slice-zero-runtime",
+  title: "Slice zero consumes Ponder facts through durable Postgres delivery",
+  question: "What replaces the JSON Core and its home-made chain watcher for the first supplier payment?",
+  options: [
+    { label: "postgres-ponder", text: "Ponder 0.18.6 writes the world's ponder schema on Postgres 17. The backend owns app data, approvals and site delivery. A transaction consumes final indexed facts and assigns each company's gap-free delivery sequence; the site's durable acknowledgement completes delivery. The trusted person directory keeps signing address and optional personalSafe separately: provisioning authenticates the signing key, while hat and UserOperation attribution resolves the personal Safe. No duplicate email rows and no JSON runtime fallback." },
+    { label: "json-with-postgres", text: "Keep the skeleton watcher and JSON state beside a database until breadth is built." },
+  ],
+  chosen: "postgres-ponder",
+  why: "Aaron's aaron.postgres-and-ponder ruling and wave-zero direction require the selected runtime, not a green JSON skeleton. Slice zero indexes company births, admitted-token Transfers, Hats changes, PaymentSent and UserOperationEvent; this is a bounded implementation of the existing indexing records, not a claim that equity and every v4 projection exist. Ponder alone writes chain facts and handles pre-finality reorgs. Core reads facts in Postgres, never through Ponder's SQL HTTP API, and keeps no foreign key into a rebuildable Ponder table. Tenant transactions SET LOCAL the company on a non-owner, non-BYPASSRLS role; a separate worker role is admitted for system delivery. Approval identity, transaction trace, consumed log identity and site delivery are durable rows. Restart and redelivery may repeat a request, never a company sequence or business posting. A 200 response without an applied/duplicate acknowledgement at the expected sequence is not delivery. A parked money event remains an alert, not a successful posting. Whole-world snapshot acceptance still requires chain, this database, MariaDB/files and clock together; a database-only restart is not that claim.",
+  source: "aaron.postgres-and-ponder; Capxul delivery plan, 12 November 2026; Ponder 0.18.6 self-hosting and direct-SQL contract",
+  affects: [component_backend, component_postgres, component_ponder, table_indexer_progress, table_chain_logs, table_chain_payments, table_transfers, table_user_operations],
 });

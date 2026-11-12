@@ -1,4 +1,5 @@
 node_modules
+packages/indexer/.ponder
 *.zip
 packages/portal/dist
 packages/loop-ui/dist

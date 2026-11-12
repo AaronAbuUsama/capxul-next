@@ -292,15 +292,15 @@ export const table_site_request_cursors = defineTable({
   id: "site-request-cursors",
   title: "Request cursors: where the service has got to in a site's request outbox",
   about:
-    "One row per Organization: the cursor of the last payment request the service collected from the site's outbox and the time of the last poll. The service asks the site for requests after the cursor " +
-    "(a poll or a long-poll) and answers each by calling the site with the approval or the refusal. A site that was down simply has more after the cursor when it returns: nothing is lost, and the site never needs " +
+    "One row per Organization: the monotonic integer cursor of the last payment request whose durable approval or refusal the site acknowledged, and the last catch-up time. The service asks the site for requests after the cursor " +
+    "on startup, outbound listener reconnect and after-commit wake-up hints, then answers each by calling the site with the approval or the refusal. A site that was down simply has more after the cursor when it returns: nothing is lost, and the site never needs " +
     "a route to the service (plugs.service-calls-site).",
   was: ["spikes/skeleton/INTERFACE.md (Frappe to Core /prepare, which this replaces)"],
   concept: concept_plugs,
   tenancy: "organization",
   tenantField: "org_id",
   scope: ORG,
-  fields: Schema.Struct({ org_id: S, cursor: S, polled_at: N, state: Schema.Literals(["polling", "unreachable"]), updated_at: N }),
+  fields: Schema.Struct({ org_id: S, cursor: N, collected_at: N, state: Schema.Literals(["listening", "unreachable"]), updated_at: N }),
   key: ["org_id"],
   indexes: [{ name: "site-request-cursors-by-state", fields: ["org_id", "state"], for: "The collect process and the status command read whether a site is unreachable." }],
   retention: "Kept while the site exists.",
