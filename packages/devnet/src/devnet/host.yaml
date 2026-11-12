@@ -1,0 +1,17 @@
+# One Postgres per local host; every world and snapshot is a distinct database.
+name: capxul-world-host
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${CAPXUL_PG_USER:?set CAPXUL_PG_USER}
+      POSTGRES_PASSWORD: ${CAPXUL_PG_PASSWORD:?set CAPXUL_PG_PASSWORD}
+      POSTGRES_DB: postgres
+    ports: ["127.0.0.1:${CAPXUL_PG_PORT:-5432}:5432"]
+    volumes: [capxul-world-postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U $$POSTGRES_USER -d postgres"]
+      interval: 3s
+      retries: 40
+volumes:
+  capxul-world-postgres:

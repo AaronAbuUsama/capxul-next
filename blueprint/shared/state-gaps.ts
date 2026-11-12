@@ -53,6 +53,18 @@ export const decision_system_eval_preparation = defineDecision({
   affects: [f.system_capxul],
 });
 
+export const decision_system_eval_unsupported_worlds = defineDecision({
+  id: "system.eval-unsupported-worlds", title: "Unsupported bindings remain visible in the scoring attempt",
+  question: "How does a full selected-stack attempt record requests whose bound scripts support only another world?",
+  options: [
+    { label: "record-and-skip", text: "Save every requested eval contract and clear its prior verdict before preparation. Keep every planned script in the receipt; skip a plan if any requested binding file for it excludes the selected world, or if it is the JSON skeleton against a non-skeleton environment. Leave skipped exits unknown, record the reason in run.log and per-eval evidence, and finish incomplete with those requests not_run. Other compatible scripts may run, but an incomplete attempt supplies no passing verdicts. Never expand binding worlds, execute the skeleton on the selected stack, drop requests or score preparation output." },
+    { label: "preflight-refusal", text: "Refuse the entire selection before a receipt exists. This conceals the full attempt and prevents preparation or compatible checks from recording same-run evidence." },
+  ],
+  chosen: "record-and-skip", why: "The first honest full-gate attempt must preserve missing world support as evidence, not require weakening bindings to get past preflight. Unknown script exits and unchanged complete-run rules keep the failure closed.",
+  source: "Selected runtime first full-gate attempt, 12 November 2026; executeRun world and skeleton guards refused before saving intent; system.eval-runs",
+  affects: [f.system_capxul],
+});
+
 export const decision_system_standing_gaps = defineDecision({
   id: "system.standing-gaps", title: "A standing gap carries a decision and a current reason",
   question: "How can the build distinguish an open gap from an explicitly retained boundary?",
