@@ -4,12 +4,12 @@ import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync,
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { parseRunReceipt, parseStatus } from "@capxul/blueprint-engine";
+import { parseRunReceipt, parseStatus, type RunReceipt } from "@capxul/blueprint-engine";
 import { loadTarget } from "../../blueprint-engine/scripts/target.ts";
 import { executeRun } from "./execute.ts";
 import { loadBindings, parseScriptList } from "./modules/bindings/service.ts";
 
-test("only a complete child run replaces prior passes; every attempt keeps intent, exits and same-run contracts", async () => {
+test("completed assertions differ from crashes and missing output; every attempt keeps same-run contracts", async () => {
   const target = await loadTarget();
   assert.ok(target.ok);
   const blueprint = target.blueprint;
@@ -28,38 +28,48 @@ test("only a complete child run replaces prior passes; every attempt keeps inten
       bindings: [{ eval: "ret:doc.update", checks: ["B1.done"], why: "an unselected script must not constrain main" }],
     }], { evals: new Set([...ids, "ret:doc.update"]), scripts: new Map([["run.sh", parseScriptList("B1.done\tcheck\nB2.done\tcheck")], ["other.sh", parseScriptList("B1.done\tcheck")]]) });
     assert.ok(loaded.ok);
-    const output = (name: string) => `printf '@check\\t${name}\\tpass\\t1\\tok\\n'`;
+    const output = (name: string, verdict = "pass") => `printf '@check\\t${name}\\t${verdict}\\t1\\tok\\n'`;
     const both = `${output("B1.done")}\n${output("B2.done")}`;
-    for (const [script, complete, exit, signal] of [
-      [both, true, 0, null], ["exit 0", false, 0, null],
-      [output("B1.done"), false, 0, null], [`${both}\nexit 7`, false, 7, null],
-      [`${both}\nkill -TERM $$`, false, null, "SIGTERM"],
-      [`${both}\nprintf '@check\\tbroken\\n'`, false, 0, null],
-      [`${both}\nprintf image > "$CAPXUL_EVAL_RUN_DIR/screen.png"\nprintf '[{"screen":"payment","path":"screen.png","source":"doctype:Payment Entry","assertion":"source-equality"}]' > "$CAPXUL_EVAL_RUN_DIR/screens.json"`, true, 0, null],
-    ] as const) {
+    const failed = `${output("B1.done")}\n${output("B2.done", "fail")}`;
+    const cases = [
+      [both, true, ["pass", "pass"], 0, null], ["exit 0", false, ["not_run", "not_run"], 0, null],
+      [output("B1.done"), false, ["not_run", "not_run"], 0, null], [`${both}\nexit 7`, false, ["not_run", "not_run"], 7, null],
+      [`${both}\nkill -TERM $$`, false, ["not_run", "not_run"], null, "SIGTERM"],
+      [`${both}\nprintf '@check\\tbroken\\n'`, false, ["not_run", "not_run"], 0, null],
+      [`${failed}\nexit 1`, true, ["pass", "fail"], 1, null],
+      [failed, true, ["pass", "fail"], 0, null],
+      [`${both}\nexit 1`, false, ["not_run", "not_run"], 1, null],
+      [`${failed}\nexit 7`, false, ["not_run", "fail"], 7, null],
+      [output("B2.done", "fail"), false, ["not_run", "fail"], 0, null],
+      [`${both}\nprintf '[{"screen":"payment","path":"missing.png","source":"doctype:Payment Entry","assertion":"source-equality"}]' > "$CAPXUL_EVAL_RUN_DIR/screens.json"`, false, ["not_run", "not_run"], 0, null],
+      [`${both}\nprintf image > "$CAPXUL_EVAL_RUN_DIR/screen.png"\nprintf '[{"screen":"payment","path":"screen.png","source":"doctype:Payment Entry","assertion":"source-equality"}]' > "$CAPXUL_EVAL_RUN_DIR/screens.json"`, true, ["pass", "pass"], 0, null],
+    ] as const;
+    for (const [script, complete, verdicts, exit, signal] of cases) {
       writeFileSync(join(root, "status/status.json"), JSON.stringify({ version: 1, evals: Object.fromEntries(ids.map((id) => [id, { verdict: "pass", commit: "old", at: "2026-01-01T00:00:00Z" }])) }));
       writeFileSync(join(root, "run.sh"), script);
       const code = await executeRun(root, blueprint, loaded.value, ids, { world: "main", slug: "test" }, "abc1234", []);
-      assert.equal(code, complete ? 0 : 1, script);
+      assert.equal(code, verdicts.every((v) => v === "pass") ? 0 : 1, script);
       const dirs = readdirSync(join(root, "status/runs")).sort();
       const dir = join(root, "status/runs", dirs.at(-1)!);
       const receipt = parseRunReceipt(JSON.parse(readFileSync(join(dir, "receipt.json"), "utf8")));
       assert.ok(receipt.ok);
       assert.equal(receipt.value.state, complete ? "complete" : "incomplete");
       assert.deepEqual(receipt.value.requested, ids);
-      assert.deepEqual(receipt.value.scripts, [{ script: "run.sh", exitCode: exit, signal }]);
+      assert.deepEqual(receipt.value.scripts.map(({ script, exitCode, signal }) => ({ script, exitCode, signal })), [{ script: "run.sh", exitCode: exit, signal }]);
       assert.deepEqual([...receipt.value.evals].sort((a, b) => a.id.localeCompare(b.id)), [...ids].sort().map((id) => ({ id, claim: blueprint.evals.find((e) => e.id === id)!.claim })));
       for (const file of [join(root, "status/status.json"), join(dir, "status.json")]) {
         const status = parseStatus(JSON.parse(readFileSync(file, "utf8")));
         assert.ok(status.ok);
-        for (const id of ids) {
-          assert.equal(status.value.evals[id]?.verdict, complete ? "pass" : "not_run");
+        for (const [i, id] of ids.entries()) {
+          assert.equal(status.value.evals[id]?.verdict, verdicts[i], script);
           assert.equal(status.value.evals[id]?.run, receipt.value.id);
+          assert.equal(status.value.evals[id]?.at, receipt.value.at);
+          assert.equal(status.value.evals[id]?.commit, receipt.value.commit);
         }
       }
-      assert.equal(receipt.value.screens.length, script.includes("screens.json") ? 1 : 0);
+      assert.equal(receipt.value.screens.length, complete && script.includes("screens.json") ? 1 : 0);
     }
-    assert.equal(readdirSync(join(root, "status/runs")).length, 7, "same-second attempts never overwrite one another");
+    assert.equal(readdirSync(join(root, "status/runs")).length, cases.length, "same-second attempts never overwrite one another");
     // Equal names in two scripts cannot let one concept's output satisfy another concept's missing check.
     const split = loadBindings(ids.map((id, i) => ({
       source: `${i}.json`, area: `concept${i}`, script: `${i}.sh`, worlds: ["main"], secrets: [], near: [],
@@ -67,12 +77,25 @@ test("only a complete child run replaces prior passes; every attempt keeps inten
     })), { evals: new Set(ids), scripts: new Map([0, 1].map((i) => [`${i}.sh`, parseScriptList("B1.done\tcheck")])) });
     assert.ok(split.ok);
     writeFileSync(join(root, "0.sh"), output("B1.done"));
-    writeFileSync(join(root, "1.sh"), "exit 0");
-    assert.equal(await executeRun(root, blueprint, split.value, ids, { world: "main", slug: "test" }, "abc1234", []), 1);
-    const status = parseStatus(JSON.parse(readFileSync(join(root, "status/status.json"), "utf8")));
-    assert.ok(status.ok);
-    assert.ok(ids.every((id) => status.value.evals[id]?.verdict === "not_run"));
-    // Complete execution is not success when even one requested eval has no binding.
+    for (const [script, verdict] of [
+      ["exit 0", "not_run"], [`${output("B1.done")}\nexit 7`, "not_run"],
+      [`${output("B1.done")}\nkill -TERM $$`, "not_run"],
+      [`${output("B1.done")}\nprintf '@check\\tbroken\\n'`, "not_run"],
+      [`${output("B1.done", "fail")}\nexit 7`, "fail"],
+    ] as const) {
+      writeFileSync(join(root, "1.sh"), script);
+      assert.equal(await executeRun(root, blueprint, split.value, ids, { world: "main", slug: "test" }, "abc1234", []), 1);
+      const status = parseStatus(JSON.parse(readFileSync(join(root, "status/status.json"), "utf8")));
+      assert.ok(status.ok);
+      assert.deepEqual(ids.map((id) => status.value.evals[id]?.verdict), ["pass", verdict]);
+      const dir = join(root, "status/runs", readdirSync(join(root, "status/runs")).sort().at(-1)!);
+      const receipt = parseRunReceipt(JSON.parse(readFileSync(join(dir, "receipt.json"), "utf8")));
+      assert.ok(receipt.ok);
+      assert.equal(receipt.value.state, "incomplete");
+      assert.deepEqual(receipt.value.scripts.map((s) => [s.evals, s.completed]), [[[ids[0]], true], [[ids[1]], false]]);
+      if (verdict === "fail") assert.match(readFileSync(join(dir, "checks.tsv"), "utf8"), /B1.done\tfail/);
+    }
+    // An unbound requested eval cannot make an attempt complete or successful.
     assert.equal(await executeRun(root, blueprint, loaded.value, ["ret:record.export"], { world: "main", slug: "test" }, "abc1234", []), 1);
     const unbound = parseStatus(JSON.parse(readFileSync(join(root, "status/status.json"), "utf8")));
     assert.ok(unbound.ok);
@@ -104,6 +127,8 @@ const receipt=JSON.parse(readFileSync(dir+'/receipt.json'));
 assert.equal(receipt.state,'running');
 assert.equal(receipt.prepare.exitCode,null);
 assert.equal(receipt.scripts[0].exitCode,null);
+assert.deepEqual(receipt.scripts[0].evals,['${id}']);
+assert.equal(receipt.scripts[0].completed,false);
 assert.equal(JSON.parse(readFileSync('status/status.json')).evals['${id}'].verdict,'not_run');
 assert.deepEqual(process.argv.slice(2),['literal ; $(not-a-shell)', '']);
 writeFileSync(dir+'/prepared.json',JSON.stringify(receipt));
@@ -211,7 +236,7 @@ console.log('@check\\tB1.done\\tpass\\t1\\tnot binding evidence');
       assert.equal(receipt.state, "incomplete", mode);
       assert.deepEqual(receipt.requested, ids);
       assert.deepEqual(receipt.evals, target.blueprint.evals.filter((e) => ids.includes(e.id)).map(({ id, claim, observes }) => ({ id, claim, ...(observes === undefined ? {} : { observes }) })));
-      assert.deepEqual(receipt.scripts, [{ script: "supported.sh", exitCode: 0, signal: null }, { script, exitCode: null, signal: null }]);
+      assert.deepEqual(receipt.scripts.map(({ script, exitCode, signal }) => ({ script, exitCode, signal })), [{ script: "supported.sh", exitCode: 0, signal: null }, { script, exitCode: null, signal: null }]);
       assert.equal(receipt.prepare?.exitCode, 0);
       const before = JSON.parse(readFileSync(join(dir, "prepared.json"), "utf8"));
       assert.deepEqual(before.requested, ids);
@@ -225,8 +250,13 @@ console.log('@check\\tB1.done\\tpass\\t1\\tnot binding evidence');
         const status = parseStatus(JSON.parse(readFileSync(file, "utf8")));
         assert.ok(status.ok);
         for (const id of ids) {
-          assert.equal(status.value.evals[id]?.verdict, "not_run");
+          assert.equal(status.value.evals[id]?.verdict, id === ids[0] ? "pass" : "not_run");
           assert.equal(status.value.evals[id]?.run, receipt.id);
+          assert.equal(status.value.evals[id]?.at, receipt.at);
+          assert.equal(status.value.evals[id]?.commit, receipt.commit);
+          const contract: RunReceipt["evals"][number] = receipt.evals.find((e) => e.id === id)!;
+          assert.equal(status.value.evals[id]?.claim, contract.claim);
+          assert.equal(status.value.evals[id]?.observes, contract.observes);
         }
       }
       assert.match(readFileSync(join(dir, "evidence/ret-doc.create.txt"), "utf8"), /skipped.*(?:does not support world slice-zero|JSON skeleton)/);
@@ -239,7 +269,7 @@ console.log('@check\\tB1.done\\tpass\\t1\\tnot binding evidence');
       assert.ok(skipped.ok);
       assert.equal(skipped.value.state, "incomplete");
       assert.deepEqual(skipped.value.requested, [ids[1]]);
-      assert.deepEqual(skipped.value.scripts, [{ script, exitCode: null, signal: null }]);
+      assert.deepEqual(skipped.value.scripts.map(({ script, exitCode, signal }) => ({ script, exitCode, signal })), [{ script, exitCode: null, signal: null }]);
       assert.equal(readdirSync(only).includes("unsupported-ran"), false);
     }
   } finally { rmSync(root, { recursive: true, force: true }); }
