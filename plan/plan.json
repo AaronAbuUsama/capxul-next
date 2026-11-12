@@ -748,11 +748,13 @@
       "why": "The spike is proven but lives in spikes/ and was written fast. Rewriting it from nothing would throw the proof away; leaving it there means the product never starts.",
       "milestone": "m2",
       "state": "todo",
-      "needs": [],
+      "needs": [
+        "m2-core-on-postgres"
+      ],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-12"
     },
     {
       "id": "m1-old-decisions",
@@ -1927,6 +1929,81 @@
       "evidence": [],
       "created": "2026-11-12",
       "updated": "2026-11-12"
+    },
+    {
+      "id": "m3b-ponder-world-cost",
+      "title": "Measure Ponder in one world",
+      "why": "Aaron's storage decision, 12 November 2026 (aaron.postgres-and-ponder): keep Ponder and Postgres, one design everywhere. The world-cost estimates for Ponder are marked [E], not measured.",
+      "milestone": "m3b",
+      "state": "doing",
+      "needs": [],
+      "records": [
+        "decision:aaron.postgres-and-ponder"
+      ],
+      "evidence": [],
+      "created": "2026-11-12",
+      "updated": "2026-11-12",
+      "thread": "cmsg_01KeBXQ6nY6oC8tbE4saDwBoJjUomNz8rFyB7zqsWwbLmD"
+    },
+    {
+      "id": "m1-orb-stack",
+      "title": "Run the stack in an Amp orb",
+      "why": "Aaron's storage decision, 12 November 2026 (aaron.postgres-and-ponder): keep Ponder and Postgres, one design everywhere. Agent work moved to Amp orbs (11 November); an orb must run the stack the thin line needs.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [
+        "decision:aaron.postgres-and-ponder"
+      ],
+      "evidence": [],
+      "created": "2026-11-12",
+      "updated": "2026-11-12"
+    },
+    {
+      "id": "m2-ponder-v4",
+      "title": "Ponder app for v4 in a package",
+      "why": "Aaron's storage decision, 12 November 2026 (aaron.postgres-and-ponder): keep Ponder and Postgres, one design everywhere.",
+      "milestone": "m2",
+      "state": "todo",
+      "needs": [],
+      "records": [
+        "decision:aaron.postgres-and-ponder",
+        "decision:indexing.log-identity"
+      ],
+      "evidence": [],
+      "created": "2026-11-12",
+      "updated": "2026-11-12"
+    },
+    {
+      "id": "m2-core-on-postgres",
+      "title": "Rebuild the prototype's Core as the backend on Postgres",
+      "why": "Aaron's storage decision, 12 November 2026 (aaron.postgres-and-ponder): keep Ponder and Postgres, one design everywhere. It replaces the SQLite route for the service that devnet.core-service-home recommended.",
+      "milestone": "m2",
+      "state": "todo",
+      "needs": [
+        "m2-ponder-v4"
+      ],
+      "records": [
+        "decision:aaron.postgres-and-ponder",
+        "decision:devnet.core-service-home"
+      ],
+      "evidence": [],
+      "created": "2026-11-12",
+      "updated": "2026-11-12"
+    },
+    {
+      "id": "m3-world-snapshots",
+      "title": "Snapshot a world's database by template copy",
+      "why": "Aaron's storage decision, 12 November 2026 (aaron.postgres-and-ponder): keep Ponder and Postgres, one design everywhere. A world's Postgres database is snapshotted by template copy, with the chain and the site backups.",
+      "milestone": "m3",
+      "state": "todo",
+      "needs": [],
+      "records": [
+        "decision:aaron.postgres-and-ponder"
+      ],
+      "evidence": [],
+      "created": "2026-11-12",
+      "updated": "2026-11-12"
     }
   ],
   "path": {
@@ -2179,6 +2256,11 @@
       "date": "2026-11-11",
       "by": "claude-audit-thread",
       "text": "Audit fixes (PR #12), for the coordinator: m1-cloud-sandbox is superseded by Amp (packages/sandbox deleted in PR #10) and is on the path, so drop it and redraw the path. m3b-bench-image is not done: the image builds and bin/check.sh passes 22/22 (PR #4), but its done-when also needs the end-to-end script against the image, which waits on devnet.core-service-home. m2-contracts-under-sites: stand-ins deleted and the end-to-end script runs on the real v4 contracts (PR #2); close it when a full run passes."
+    },
+    {
+      "date": "2026-11-12",
+      "by": "coordinator",
+      "text": "Storage decision of 12 November (aaron.postgres-and-ponder), for Aaron later: (1) chain-first keys in indexing.keys; (2) narrowing indexing.transfers to the Safes Capxul made. Parked, which he said may not be for now: a path from the site to the service that does not poll."
     }
   ]
 }
