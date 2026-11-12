@@ -49,10 +49,10 @@ test("real v4/Ponder payment survives Core death, lost site ACK and replay witho
       if (answers.length && !isDeepStrictEqual(b, answers[0])) return reply({ error: "Conflicting answer for payment request" }, 409);
       answerCalls++; answers.push(b);
       if (dropAnswer) { req.socket.destroy(); return; }
-      return reply({ request_id: b.request_id, status: "Awaiting Signature", duplicate: answerCalls > 1 });
+      return reply({ request_id: b.request_id, status: "Waiting for signature", duplicate: answerCalls > 1 });
     }
     if (req.url?.endsWith("retry_parked_event")) {
-      if (parked) return reply({ applied: false, parked: true, last_seq: lastSeq, error: "voucher is still invalid" });
+      if (parked) return reply({ applied: false, duplicate: false, parked: true, last_seq: lastSeq, error: "voucher is still invalid" });
       assert.ok(received.has(b.event_key));
       effects.set(b.event_key, received.get(b.event_key));
       return reply({ applied: true, duplicate: false, parked: false, last_seq: lastSeq });
@@ -218,12 +218,14 @@ test("concurrent collectors drain outstanding answers across reconnect without s
     const reply = (message: unknown) => { res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify({ message })); };
     if (req.url?.endsWith("payment_request_listener")) {
       authorizations.set(b.org, (authorizations.get(b.org) ?? 0) + 1);
-      return reply({ authorization: "CapxulListener fixture", namespace: `/${site.site}`, event: "capxul_payment_request" });
+      return reply({ authorization: "CapxulListener fixture", namespace: `/${site.site}`, event: "capxul_payment_request", expires_at: Math.floor(Date.now() / 1000) + 60 });
     }
     if (req.url?.endsWith("collect_payment_requests")) {
       collects++;
-      // The missing terms produce a durable refusal, not a synthetic approval or money movement.
-      return reply({ requests: b.after ? [] : [{ org: b.org, site: site.site, request_id: "collect-refusal", cursor: 1 }] });
+      // The transport shape is valid; the invalid document hash produces a durable business refusal.
+      return reply({ cursor: 1, requests: b.after ? [] : [{ org: b.org, site: site.site, request_id: "collect-refusal", idempotency_key: "collect-refusal", cursor: 1,
+        trace_id: "", doctype: "Payment Entry", name: "PE-refused", document_hash: "not-a-hash", requested_by: "collector@core.test",
+        to_party: "Supplier", to_address: "0x" + "1".repeat(40), amount: "12.34", asset: "USDC", department: "" }] });
     }
     assert.ok(req.url?.endsWith("answer_payment_request"));
     assert.equal(b.error.code, "INVALID_INPUT");
