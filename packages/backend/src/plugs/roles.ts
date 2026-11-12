@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { isDeepStrictEqual } from "node:util";
 import type { Sql } from "../platform/db.ts";
 import { emit, readEvent, type TransitionEvent } from "../platform/outbox.ts";
+import { worldNow } from "../devnet/door.ts";
+import type { SiteAck } from "./site-contracts.ts";
 import { enqueue } from "./door.ts";
 
 export type RoleOccurrence = { id: string; at: number; trace_id: string; actor: string | null };
@@ -107,6 +109,25 @@ export async function transitionRoleGrant(sql: Sql, org: string, grantId: string
   }
   await emit(sql, candidate);
   return { ...row, status: to, failure, updated_at: occurrence.at };
+}
+
+/** Same delivery/repair transaction. Only our durable record occurrence can identify a projected grant. */
+export async function settleRoleDelivery(sql: Sql, org: string, key: string, ack: SiteAck): Promise<number | undefined> {
+  const born = await readEvent(sql, JSON.stringify(["plugs.role-grant", org, key]));
+  if (!born) return; // Legacy hat events have no Core grant projection.
+  if (born.name !== "role_grant_transitioned" || born.owner_kind !== "organization" || born.owner_id !== org ||
+      born.props.transition !== "record") throw new Error("INVALID_INPUT: role delivery source occurrence");
+  const row: RoleGrant | undefined = (await sql.query("select * from app.role_grants where org_id=$1 and grant_id=$2 for update", [org, born.entity_id])).rows[0];
+  if (!row) throw new Error("NOT_FOUND: projected delivery grant");
+  // A rewind or repair must never reactivate an old revoked grant or repeat an applied occurrence.
+  if (row.status === "revoked" || row.status === "applied" || ack.parked && row.status === "failed") return;
+  const at = await worldNow(sql);
+  const change: GrantChange = ack.parked ? { transition: "fail", failure: ack.error }
+    : { transition: "apply", map_version: ack.map_version ?? "" };
+  await transitionRoleGrant(sql, org, row.grant_id, change, {
+    id: JSON.stringify(["native-ack", key, change.transition]), at, trace_id: born.trace_id, actor: null,
+  });
+  return at;
 }
 
 /** Internal read: the public caller must authorize self/Director before selecting organization owner scope. */

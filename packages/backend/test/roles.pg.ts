@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { once } from "node:events";
 import { spawn } from "node:child_process";
+import { createServer } from "node:http";
 import test from "node:test";
 import pg from "pg";
 import { Database } from "../src/platform/db.ts";
 import { migrateOutbox } from "../src/platform/outbox.ts";
-import { migrateRoleProjections, recordRoleGrant, transitionRoleGrant, readRoles, type GrantInput, type RoleOccurrence } from "../src/plugs/door.ts";
+import { deliver, retryParked, signature, migrateRoleProjections, recordRoleGrant, transitionRoleGrant, readRoles, type GrantInput, type RoleOccurrence } from "../src/plugs/door.ts";
 
 const url = process.env.PLUGS_ROLES_ADMIN_URL;
 if (!url || new URL(url).pathname !== "/plugs_roles_test" || !["127.0.0.1", "localhost"].includes(new URL(url).hostname)) {
@@ -21,6 +22,7 @@ test("role projections retain caller atomicity, exact occurrences, shared roles 
   await admin.query(`grant usage on schema app to capxul_core,capxul_worker;
     grant select,insert,update on app.organizations,app.site_events to capxul_worker;
     grant select,insert on app.records to capxul_worker; grant usage on all sequences in schema app to capxul_worker;
+    grant select on app.world to capxul_worker;
     insert into app.organizations(org_id,name,safe,site,admin_email,token)
       values ('org-a','A','safe-a','a.test','a@example.test','asset-a'),('org-b','B','safe-b','b.test','b@example.test','asset-b')`);
   await migrateOutbox(admin); await migrateRoleProjections(admin); await migrateRoleProjections(admin);
@@ -146,6 +148,82 @@ test("role projections retain caller atomicity, exact occurrences, shared roles 
       assert.equal((await admin.query("select * from app.site_events where org_id='org-b'")).rowCount, 0);
       assert.equal((await admin.query("select * from app.transition_outbox where event->>'owner_id'='org-b'")).rowCount, 0);
       assert.equal((await admin.query("select next_seq::int as next from app.organizations where org_id='org-b'")).rows[0].next, 1);
+    });
+    await t.test("delivery and repair atomically settle authority at stored world time, never swallow SQL validation failures", async () => {
+      const at = 978307200357, secret = "role-ack-test-only";
+      let parked = false, wrongMap = false, unavailable = false;
+      const seen = new Set<string>();
+      const receiver = createServer(async (req, res) => {
+        const chunks = []; for await (const chunk of req) chunks.push(chunk);
+        const raw = Buffer.concat(chunks).toString(); assert.equal(req.headers["x-capxul-signature"], signature(raw, secret));
+        const b = JSON.parse(raw); const repair = req.url?.endsWith("retry_parked_event");
+        if (unavailable) { res.writeHead(503); res.end(); return; }
+        const duplicate = seen.has(b.event_key); seen.add(b.event_key);
+        const seq = repair ? 1 : b.seq;
+        res.setHeader("content-type", "application/json");
+        res.end(JSON.stringify({ message: parked && !repair
+          ? { applied: false, duplicate: false, parked: true, last_seq: seq, error: "native role missing" }
+          : { applied: repair || !duplicate, duplicate: !repair && duplicate, last_seq: seq, map_version: wrongMap ? "other-map" : input.map_version } }));
+      });
+      await new Promise<void>((done) => receiver.listen(0, "127.0.0.1", done));
+      const origin = `http://127.0.0.1:${(receiver.address() as { port: number }).port}`;
+      await admin.query("insert into app.world(world_id,clock) values ('roles-test',$1)", [{ nowMs: at, clockMode: "stopped", rate: 1 }]);
+      const setup = async (org: string) => {
+        await admin.query("insert into app.organizations(org_id,name,safe,site,admin_email,token,released) values ($1,$1,$1,$1,'role@test','asset',true)", [org]);
+        await db.transaction(org, (sql) => recordRoleGrant(sql, { ...input, org_id: org, grant_id: org }, context(org)), true);
+      };
+      const state = async (org: string) => (await admin.query(`select e.state,e.attempts,o.last_ack,o.failures,g.status,g.updated_at,
+        (select count(*)::int from app.transition_outbox where event->>'owner_id'=$1) events,
+        (select count(*)::int from app.records where org_id=$1) records
+        from app.organizations o join app.site_events e using(org_id) join app.role_grants g using(org_id) where o.org_id=$1`, [org])).rows[0];
+      try {
+        await setup("ack-clock"); const before = await state("ack-clock");
+        for (const clock of [{}, { nowMs: "wrong", clockMode: "stopped", rate: 1 }, { nowMs: at, clockMode: "running", rate: 1 }]) {
+          await admin.query("update app.world set clock=$1", [clock]);
+          await assert.rejects(deliver(db, "ack-clock", origin, secret), /INVALID_CLOCK|UNSUPPORTED_CLOCK/);
+          assert.deepEqual(await state("ack-clock"), before, "ACK/cursor/attempt/state/outbox/record must all roll back");
+        }
+        await admin.query("delete from app.world");
+        await assert.rejects(deliver(db, "ack-clock", origin, secret), /INVALID_CLOCK/);
+        assert.deepEqual(await state("ack-clock"), before);
+        await admin.query("insert into app.world(world_id,clock) values ('roles-test',$1)", [{ nowMs: at, clockMode: "stopped", rate: 1 }]);
+        wrongMap = true;
+        await assert.rejects(deliver(db, "ack-clock", origin, secret), /PROVIDER_RESPONSE_INVALID/);
+        assert.deepEqual(await state("ack-clock"), before);
+        wrongMap = false; await deliver(db, "ack-clock", origin, secret);
+        assert.equal((await state("ack-clock")).status, "applied");
+        assert.equal((await state("ack-clock")).updated_at, at);
+        const applied = (await admin.query("select event from app.transition_outbox where event->>'entity_id'='ack-clock' and event->'props'->>'transition'='apply'")).rows[0].event;
+        assert.equal(applied.at, at); assert.equal((await admin.query("select at from app.records where org_id='ack-clock' order by id desc limit 1")).rows[0].at.getTime(), at);
+        await db.transaction("ack-clock", (sql) => transitionRoleGrant(sql, "ack-clock", "ack-clock", { transition: "revoke" }, context("ack-revoke", 101)), true);
+        await admin.query("update app.site_events set state='pending' where org_id='ack-clock' and seq=1");
+        await deliver(db, "ack-clock", origin, secret);
+        assert.equal((await admin.query("select status from app.role_grants where org_id='ack-clock'")).rows[0].status, "revoked");
+        assert.deepEqual((await admin.query("select event from app.transition_outbox where id=$1", [applied.id])).rows[0].event, applied);
+
+        await setup("ack-conflict");
+        const id = JSON.stringify(["plugs.role-grant", "ack-conflict", JSON.stringify(["native-ack", "ack-conflict", "apply"])]);
+        await admin.query("insert into app.transition_outbox(id,event) values ($1,$2)", [id, { ...applied, id, owner_id: "ack-conflict", entity_id: "conflicting-source" }]);
+        const conflictBefore = await state("ack-conflict");
+        await assert.rejects(deliver(db, "ack-conflict", origin, secret), /IDEMPOTENCY_CONFLICT/);
+        assert.deepEqual(await state("ack-conflict"), conflictBefore, "semantic emission refusal after grant/ACK writes must escape retry catch");
+
+        await setup("ack-repair"); parked = true; await deliver(db, "ack-repair", origin, secret); parked = false;
+        const failed = await state("ack-repair"); assert.equal(failed.state, "parked"); assert.equal(failed.status, "failed");
+        assert.equal((await admin.query("select failure from app.role_grants where org_id='ack-repair'")).rows[0].failure, "native role missing");
+        const repair = () => db.transaction("ack-repair", (sql) => retryParked(sql, "ack-repair", "ack-repair", origin, secret), true);
+        await admin.query("update app.world set clock='{}'"); await assert.rejects(repair(), /INVALID_CLOCK/);
+        assert.deepEqual(await state("ack-repair"), failed);
+        await admin.query("update app.world set clock=$1", [{ nowMs: at + 77, clockMode: "stopped", rate: 1 }]);
+        wrongMap = true; await assert.rejects(repair(), /PROVIDER_RESPONSE_INVALID/); wrongMap = false;
+        assert.deepEqual(await state("ack-repair"), failed);
+        await repair(); const repaired = await state("ack-repair");
+        assert.equal(repaired.status, "applied"); assert.equal(repaired.state, "applied"); assert.equal(repaired.updated_at, at + 77);
+        await repair(); assert.deepEqual(await state("ack-repair"), repaired);
+
+        await setup("ack-unavailable"); unavailable = true; await deliver(db, "ack-unavailable", origin, secret);
+        const retry = await state("ack-unavailable"); assert.equal(retry.state, "pending"); assert.equal(retry.status, "pending"); assert.equal(retry.failures, 1);
+      } finally { receiver.closeAllConnections(); await new Promise<void>((done) => receiver.close(() => done())); }
     });
   } finally { await db.close(); await admin.end(); }
 });

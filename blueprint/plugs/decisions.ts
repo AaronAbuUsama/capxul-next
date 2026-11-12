@@ -430,4 +430,15 @@ export const decision_plugs_role_projections = dec({
   affects: [d.table_site_users, d.table_role_grants, d.machine_role_grant, pr.workflow_plugs_roles_project],
 });
 
+export const decision_plugs_role_delivery = dec({
+  id: "plugs.role-delivery",
+  title: "Settle native role acknowledgements with the authoritative clock",
+  question: "Where does a native role acknowledgement become durable Core authority?",
+  options: [{ label: "atomic-ack", text: "Existing delivery and parked repair settle the site's ACK, grant transition and exact outbox emission on the same caller Sql. worldNow reads that transaction's stored stopped clock; missing, malformed or running clocks refuse without a host/block-time fallback. Only provider transport failures enter delivery retry handling; settlement failures propagate and roll back. A successful matching native map applies a pending/failed grant, parked failure fails a pending grant, and historical applied/revoked replay cannot resurrect authority. Native readHatMap observes release DEFAULT_HAT_ROLES, its canonical hash and actual installed Role availability. The backend admits only its known release hash and refuses altered maps or unavailable roles. The map contains no numeric chain-hat admission, departments, jobs, scope or person names; those remain separate authoritative composition prerequisites." }],
+  chosen: "atomic-ack",
+  why: "Catching a clock or transition failure after ACK writes can commit delivery without its authority event. A read-only native map observation closes the release/availability gap without accepting editable hat registration as chain admission or inventing department/name metadata.",
+  evidence: "Integrator's same-Sql worldNow and migration agreement, landed wave458a747; native setup.DEFAULT_HAT_ROLES and hats.map_version, 12 November 2026",
+  affects: [integration_frappe_site, d.machine_role_grant, pr.workflow_plugs_events_deliver],
+});
+
 void ops; 

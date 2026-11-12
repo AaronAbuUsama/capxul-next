@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 import { Effect, Result } from "effect";
 import { record, type Database, type Sql } from "../platform/db.ts";
 import { createFrappeSite } from "./site.ts";
+import { settleRoleDelivery } from "./roles.ts";
 export { RequestCollector } from "./collector.ts";
 export { FrappeSite, FrappeSiteError, createFrappeSite, frappeSiteLayer } from "./site.ts";
 export type { AccountInput, DoorInput, ReportInput, SiteInput } from "./site.ts";
@@ -43,7 +44,8 @@ export async function retryParked(sql: Sql, org: string, key: string, frappe: st
   }));
   if (ack.parked || ack.last_seq < Number(event.seq)) throw new Error("REPAIR_FAILED: site has not applied parked money event");
   await sql.query("update app.site_events set state='applied',last_error=null,applied_at=now(),map_version=$3 where org_id=$1 and event_key=$2", [org, key, ack.map_version ?? null]);
-  await record(sql, org, "site_event_repaired", event.trace, { event_key: key, seq: event.seq });
+  const at = event.kind === "hat_granted" ? await settleRoleDelivery(sql, org, key, ack) : undefined;
+  await record(sql, org, "site_event_repaired", event.trace, { event_key: key, seq: event.seq }, at);
   return status(sql, org);
 }
 
@@ -56,31 +58,30 @@ export async function deliver(db: Database, org: string, frappe: string, secret:
     const event = (await sql.query("select * from app.site_events where org_id=$1 and state='pending' order by seq limit 1 for update", [org])).rows[0];
     if (!event) return;
     await sql.query("update app.site_events set attempts=attempts+1,last_attempt_at=now() where org_id=$1 and seq=$2", [org, event.seq]);
-    try {
-      const result = await Effect.runPromise(Effect.result(createFrappeSite({ baseUrl: frappe, secret }).applyEvent({
-        orgId: org, site: company.site, traceId: event.trace,
-        event_key: event.event_key, seq: Number(event.seq), kind: event.kind, data: event.data,
-      })));
-      if (Result.isFailure(result)) {
-        const { expected } = result.failure;
-        if (result.failure.code !== "WRONG_STATE" || expected === undefined) throw result.failure;
+    const result = await Effect.runPromise(Effect.result(createFrappeSite({ baseUrl: frappe, secret }).applyEvent({
+      orgId: org, site: company.site, traceId: event.trace,
+      event_key: event.event_key, seq: Number(event.seq), kind: event.kind, data: event.data,
+    })));
+    if (Result.isFailure(result)) {
+      const { expected } = result.failure;
+      if (result.failure.code === "WRONG_STATE" && expected !== undefined) {
         if (expected >= Number(event.seq)) throw new Error("invalid site cursor acknowledgement");
         await sql.query("update app.site_events set state=case when seq<$2 then 'applied' else 'pending' end where org_id=$1 and state!='parked'", [org, expected]);
         await sql.query("update app.organizations set last_ack=$2-1,retry_at=null where org_id=$1", [org, expected]);
         return;
       }
-      const ack = result.success;
-      if (ack.last_seq < Number(event.seq) || ack.last_seq >= Number(company.next_seq)) {
-        throw new Error(`site did not acknowledge sequence ${event.seq}`);
-      }
-      const state = ack.parked ? "parked" : "applied";
-      await sql.query("update app.site_events set state=$3,applied_at=now(),last_error=$4,map_version=$5 where org_id=$1 and seq=$2", [org, event.seq, state, ack.parked ? String(ack.error ?? "parked by site") : null, ack.map_version ?? null]);
-      await sql.query("update app.organizations set last_ack=$2,retry_at=null,failures=0 where org_id=$1", [org, event.seq]);
-      await record(sql, org, "site_event_acknowledged", event.trace, { seq: event.seq, state, duplicate: !ack.applied, map_version: ack.map_version ?? null });
-    } catch (error) {
-      const message = (error as Error).message.slice(0, 400);
+      const message = result.failure.message.slice(0, 400);
       await sql.query("update app.site_events set last_error=$3 where org_id=$1 and seq=$2", [org, event.seq, message]);
       await sql.query("update app.organizations set failures=failures+1,retry_at=now() + least(8, power(2,least(failures,3))) * interval '1 second' where org_id=$1", [org]);
+      return;
     }
+    // Settlement is outside transport retry handling: any clock/transition/emission failure rolls back the ACK.
+    const ack = result.success;
+    if (ack.last_seq < Number(event.seq) || ack.last_seq >= Number(company.next_seq)) throw new Error(`site did not acknowledge sequence ${event.seq}`);
+    const state = ack.parked ? "parked" : "applied";
+    await sql.query("update app.site_events set state=$3,applied_at=now(),last_error=$4,map_version=$5 where org_id=$1 and seq=$2", [org, event.seq, state, ack.parked ? ack.error : null, ack.map_version ?? null]);
+    await sql.query("update app.organizations set last_ack=$2,retry_at=null,failures=0 where org_id=$1", [org, event.seq]);
+    const at = event.kind === "hat_granted" ? await settleRoleDelivery(sql, org, event.event_key, ack) : undefined;
+    await record(sql, org, "site_event_acknowledged", event.trace, { seq: event.seq, state, duplicate: !ack.applied, map_version: ack.map_version ?? null }, at);
   }, true);
 }
