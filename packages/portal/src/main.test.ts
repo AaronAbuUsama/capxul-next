@@ -40,6 +40,22 @@ test("the real blueprint generates a site that passes the portal check", async (
   for (const claim of ["scr:supplier-invoice/shows", "scr:safe-trial-balance/shows", "alr:money_event_parked/clears"]) assert.ok(zero.includes(claim));
   assert.match(zero, /Required declaration has not landed|not run/);
   assert.ok((files.get("slice/slice-0/index.html") ?? "").includes("Owned events and screens"));
+  const review = JSON.parse(files.get("data/review.json") ?? "null") as { questions: { id: string; source: string }[] };
+  const pending = new Set(review.questions.map((q) => q.id));
+  for (const id of ["indexing.slice-zero-runtime", "sites.slice-zero-acceptance", "devnet.slice-zero-supervisor"]) {
+    assert.ok(!pending.has(id), `${id} implements a settled ruling, not a new owner question`);
+    const record = input.blueprint.records.get(`decision:${id}`);
+    assert.ok(record);
+    const detail = JSON.parse(files.get(`data/decision/${id}.json`) ?? "null") as { record: { source: string; chosen: string } };
+    assert.equal(detail.record.source, record["source"], `${id} retains its provenance outside Questions`);
+    assert.equal(detail.record.chosen, record["chosen"]);
+  }
+  const books = input.blueprint.records.get("decision:books.annotate-site-chart");
+  assert.ok(books);
+  assert.ok(pending.has(books.id), "chart ownership does not settle the annotation validation tradeoff");
+  assert.equal(review.questions.find((q) => q.id === books.id)?.source, books["source"]);
+  assert.equal(input.waits({ ...books, id: "portal.unresolved-control", question: "Should Aaron change this policy?" }), true,
+    "an unclassified decision still waits even with a chosen recommendation and an agent source");
   const outcomes = check(files, generate(input, assets), expected);
   assert.ok(passed(outcomes), JSON.stringify(outcomes.filter((o) => o.failures > 0), null, 2));
 

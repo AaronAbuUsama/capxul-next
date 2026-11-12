@@ -19,6 +19,16 @@ export const decision_devnet_telemetry_contract = defineDecision({
   source: BY("docs/mission/worlds.md section 6; m1-telemetry"),
   affects: [table_record_entries, d.table_command_records],
 });
+
+export const decision_devnet_catalogue_storage = defineDecision({
+  id: "devnet.catalogue-storage", title: "The supervisor owns its catalogue in the world's Postgres database",
+  question: "Where do the declared worlds, world-snapshots and command-records tables live alongside Core's narrower recovery tables?",
+  options: [{ label: "additive-world-catalogue", text: "The devnet package migrates app.worlds, app.world_snapshots and app.command_records only during fresh creation, after Core's migration. SQL names replace the blueprint's hyphens with underscores. The existing restricted capxul_worker role writes the catalogue through the supervisor; capxul_core can read it but cannot write it. Core's app.world, app.world_record and per-company app.records remain independent and are not substituted for these tables. Every catalogue operation names its world. Commands are appended in a transaction serialized per world; sequence is gap-free per epoch, prev is SHA-256 of the preceding row's canonical JSONB excluding branch_abandoned, and that flag alone may change when retaining an abandoned branch. Snapshot and world mutations commit with their command entry. A transition's authoritative world_transitioned event is stored under that entry's changes.events, with trace_id and the declared props, in the same transaction. Runtime publication reads committed events, never guesses one from an exit code. Restore never reruns either migration. A clone keeps parent provenance and begins creating with a born entry, then starts only after runtime recovery succeeds; an in-place restore preserves the complete hash-checked abandoned command branch and advances the epoch. The restored catalogue supplies its own exact epoch/sequence/head; Core's financial record cut is never substituted. Provenance serializes that computed public digest with a 0x prefix so the shared credential sanitizer preserves it; actual known key values remain redacted." }],
+  chosen: "additive-world-catalogue",
+  why: "Aaron's Postgres/Ponder ruling puts the world's durable state together. The slice-zero audit requires the exact declared fields, keys and indexes, not a passing proof of Core's smaller lifecycle record. A separate devnet-owned migration avoids making unrelated Core tables or permissions part of this change. Runtime writes use the existing worker role rather than an admin connection. In-place restore retains newer snapshot metadata alongside the abandoned command history, because their immutable host-local bundles remain available; a conflicting saved snapshot row refuses the entire import.",
+  source: BY("aaron.postgres-and-ponder; slice-zero devnet binding audit, 12 November 2026"),
+  affects: [d.table_worlds, d.table_world_snapshots, d.table_command_records],
+});
 import * as r from "./world-rpcs.ts";
 import * as o from "./world-ops.ts";
 import * as w from "./world-processes.ts";
