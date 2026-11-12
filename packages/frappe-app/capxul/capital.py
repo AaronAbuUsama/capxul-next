@@ -53,3 +53,18 @@ def apply_founder_capital(d, event_key=None):
     je.flags.ignore_permissions = True
     je.insert(ignore_permissions=True)
     je.submit()
+
+
+def unmatched_deposit(d, why):
+    """Funding that could not be booked as capital -> an unreconciled Bank Transaction (a deposit), so it is never lost."""
+    bank_account = frappe.db.get_single_value("Capxul Settings", "safe_bank_account")
+    if frappe.db.exists("Bank Transaction", {"transaction_id": d["tx_hash"], "reference_number": d["tx_hash"]}):
+        return
+    bt = frappe.get_doc({
+        "doctype": "Bank Transaction", "date": getdate(d["block_time"][:10]), "bank_account": bank_account,
+        "deposit": flt(d["amount"]), "currency": frappe.db.get_value("Account", safe_account(), "account_currency"),
+        "transaction_id": d["tx_hash"], "reference_number": d["tx_hash"],
+        "description": f"Chain deposit from {d.get('from', '')} into {d.get('to', '')} ({why})",
+    })
+    bt.insert(ignore_permissions=True)
+    bt.submit()
