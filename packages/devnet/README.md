@@ -13,4 +13,6 @@ The local chain's tools: deploy and verify the v4 contracts, run the proof, and 
 
 `src/main.ts` is the composition root and the only place that reads the environment, files and argv, and prints:
 `deploy`, `verify`, `prove`, `seed-pin`. Run with `node --experimental-strip-types`. Anvil's published test keys only. `pnpm devnet:test`
-runs the module tests. `cloud/` makes a Claude cloud container able to run all of this (see its README).
+runs the module tests. `cloud/` makes a Claude cloud container able to run all of this (see its README). `world-cost/` is a minimal Ponder app
+over one world and the harness that measured what Ponder costs per world (`docs/mission/world-cost.md`); it has its own
+`npm install`, outside the workspace.
