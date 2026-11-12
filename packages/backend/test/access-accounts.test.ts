@@ -3,6 +3,8 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { after, before, test } from "node:test";
 import pg from "pg";
+import { createPublicClient, createWalletClient, encodeFunctionData, http, pad, parseAbi, type Address, type Hex } from "viem";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { Database } from "../src/platform/db.ts";
 import { migrateOutbox } from "../src/platform/outbox.ts";
 import { accessError, authenticate, digest, feature, readPrincipal, readPrincipalByEmail, requireFeature, revoke, routeAccess,
@@ -190,4 +192,59 @@ test("mailbox/person RLS isolates two real session actors and only guarded setup
     assert.equal((await eligibility(sql, await authenticate(sql, other.token, now + 2), catalogue, now)).access, "waiting");
   });
   await assert.rejects(db.transaction("", async (sql) => { await authenticate(sql, login.token, now + 2); await sql.query("update app.personal_safes set status='ready' where person_id=$1", [p.personId]); }), /permission denied/);
+});
+
+test("agent challenge proves actual v4 AgentOwner and sole Safe signer, refusing mismatches, frozen agents and replay", async () => {
+  const rpc = process.env.ACCESS_TEST_RPC_URL;
+  assert(rpc, "ACCESS_TEST_RPC_URL must name an isolated Anvil loaded from committed v4 core state");
+  assert(["127.0.0.1", "localhost"].includes(new URL(rpc).hostname), "component chain must be local");
+  const deployment = JSON.parse(await readFile(new URL("../../contracts/deployments/devnet.json", import.meta.url), "utf8"));
+  const agentOwner = deployment.contracts.AgentOwner.address as Address;
+  const client = createPublicClient({ transport: http(rpc) });
+  const controller = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266" as const;
+  const wallet = createWalletClient({ account: controller, transport: http(rpc) });
+  const safeAbi = parseAbi(["function setup(address[],uint256,address,bytes,address,address,uint256,address)",
+    "function execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes) returns (bool)"]);
+  const zero = "0x0000000000000000000000000000000000000000" as const;
+  const factory = { address: "0x14F2982D601c9458F93bd70B218933A6f8165e7b" as const,
+    abi: parseAbi(["function createProxyWithNonce(address,bytes,uint256) returns (address)"]) };
+  const initializer = encodeFunctionData({ abi: safeAbi, functionName: "setup", args: [[controller], 1n, zero, "0x", zero, zero, 0n, zero] });
+  const deploy = await client.simulateContract({ ...factory, functionName: "createProxyWithNonce", account: controller,
+    args: ["0xEdd160fEBBD92E350D4D398fb636302fccd67C7e", initializer, BigInt(`0x${randomBytes(16).toString("hex")}`)] });
+  assert.equal((await client.waitForTransactionReceipt({ hash: await wallet.writeContract({ ...deploy.request, chain: null }) })).status, "success");
+  const owner = deploy.result, signer = privateKeyToAccount(generatePrivateKey());
+  const abi = parseAbi(["function create(address,address) returns (address)", "function safeAddressFor(address,address) view returns (address)", "function freeze(address)", "function unfreeze(address)"]);
+  const safe = await client.readContract({ address: agentOwner, abi, functionName: "safeAddressFor", args: [signer.address, owner] });
+  const execute = async (data: Hex) => {
+    const signature = `${pad(controller, { size: 32 })}${"0".repeat(64)}01` as Hex;
+    const args = [agentOwner, 0n, data, 0, 0n, 0n, 0n, zero, zero, signature] as const;
+    const simulated = await client.simulateContract({ address: owner, abi: safeAbi, functionName: "execTransaction", args, account: controller });
+    assert.equal(simulated.result, true);
+    assert.equal((await client.waitForTransactionReceipt({ hash: await wallet.writeContract({ ...simulated.request, chain: null }) })).status, "success");
+  };
+  await execute(encodeFunctionData({ abi, functionName: "create", args: [signer.address, owner] }));
+  const services = { personalSafe: config, mail: { async send() { throw new Error("not used"); } }, agent: { secret: "component-domain-secret", domain: "component.invalid", rpc, agentOwner } };
+  const call = (path: string, input: Record<string, unknown>, bearer = "") => db.transaction("", (sql) => routeAccess(sql, path, input, bearer, services, now), true);
+  const prove = async () => {
+    const body = (await call("/access/sign-in/challenge", { safe }))!.body as { challenge: string };
+    return { safe, challenge: body.challenge, signature: await signer.signMessage({ message: body.challenge }), client: "agent-component" };
+  };
+  const input = await prove();
+  await assert.rejects(call("/access/sign-in/with-key", { ...input, safe: owner }), /NOT_AUTHENTICATED/);
+  const outsider = privateKeyToAccount(generatePrivateKey());
+  await assert.rejects(call("/access/sign-in/with-key", { ...input, signature: await outsider.signMessage({ message: input.challenge }) }), /NOT_AUTHENTICATED/);
+  const result = (await call("/access/sign-in/with-key", input))!.body as SignIn & { owner: string; signer: string };
+  assert.equal(result.owner, owner.toLowerCase()); assert.equal(result.signer, signer.address.toLowerCase());
+  const p = await db.transaction("", (sql) => authenticate(sql, result.token, now), true);
+  assert.equal(p.kind, "agent"); assert.equal(p.email, null); assert.equal(p.safeAddress, safe.toLowerCase());
+  assert.deepEqual((await call("/access/sessions/current", {}, result.token))!.body, { personId: result.personId, kind: "agent", email: null,
+    safe: safe.toLowerCase(), expiresAt: result.expiresAt, setupState: "ready" });
+  const human = await signIn(`chain-human-${run}@example.test`);
+  assert.equal(((await call("/access/sessions/current", {}, human.token))!.body as { setupState: string }).setupState, "setup-required");
+  await assert.rejects(call("/access/sign-in/with-key", input), /NOT_AUTHENTICATED/);
+  const frozenProof = await prove();
+  await execute(encodeFunctionData({ abi, functionName: "freeze", args: [safe] }));
+  await assert.rejects(call("/access/sign-in/with-key", frozenProof), /NOT_AUTHENTICATED/);
+  await execute(encodeFunctionData({ abi, functionName: "unfreeze", args: [safe] }));
+  assert.equal(((await call("/access/sign-in/with-key", frozenProof))!.body as SignIn).personId, result.personId);
 });
