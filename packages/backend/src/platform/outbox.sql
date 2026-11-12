@@ -16,11 +16,11 @@ alter table app.transition_outbox force row level security;
 drop policy if exists transition_owner on app.transition_outbox;
 create policy transition_owner on app.transition_outbox to capxul_core, capxul_worker
   using (current_user = 'capxul_worker' or
-    (event->>'owner_kind' = 'organization' and event->>'owner_id' = current_setting('app.org_id', true)) or
-    (event->>'owner_kind' = 'person' and event->>'owner_id' = current_setting('app.person_id', true)))
+    (event->>'owner_kind' = current_setting('app.owner_kind', true) and
+     event->>'owner_id' = current_setting('app.owner_id', true)))
   with check (current_user = 'capxul_worker' or
-    (event->>'owner_kind' = 'organization' and event->>'owner_id' = current_setting('app.org_id', true)) or
-    (event->>'owner_kind' = 'person' and event->>'owner_id' = current_setting('app.person_id', true)));
+    (event->>'owner_kind' = current_setting('app.owner_kind', true) and
+     event->>'owner_id' = current_setting('app.owner_id', true)));
 alter table app.transition_acks enable row level security;
 alter table app.transition_acks force row level security;
 drop policy if exists transition_worker on app.transition_acks;

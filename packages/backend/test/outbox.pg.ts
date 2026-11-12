@@ -89,15 +89,22 @@ test("committed runtime outbox: rollback, crash retry, concurrency, exact identi
       }, true);
       const client = await db.tenant.connect();
       try {
-        await transaction(client, "org-a", async (sql) => {
-          await sql.query("select set_config('app.person_id','person-a',true)");
-          assert.equal(await readEvent(sql, "org-b"), null); assert.equal(await readEvent(sql, "person-b"), null);
+        await db.ownerTransaction({ kind: "person", id: "person-a" }, async (sql) => {
+          assert.equal((await sql.query("select current_setting('app.person_id',true) as id")).rows[0].id, "");
+          assert.equal(await readEvent(sql, "org-a"), null); assert.equal(await readEvent(sql, "person-b"), null);
           assert.equal(await readEvent(sql, "unlisted"), null);
-          assert.deepEqual(await readEvent(sql, "org-a"), event("org-a", "organization", "org-a"));
           assert.deepEqual(await readEvent(sql, "committed"), event("committed"));
           await emit(sql, event("personal-source"));
         });
+        await db.ownerTransaction({ kind: "organization", id: "org-a" }, async (sql) => {
+          assert.deepEqual(await readEvent(sql, "org-a"), event("org-a", "organization", "org-a"));
+          assert.equal(await readEvent(sql, "committed"), null);
+          assert.equal(await readEvent(sql, "org-b"), null);
+          await emit(sql, event("organization-source", "organization", "org-a"));
+        });
+        await assert.rejects(db.ownerTransaction({ kind: "person", id: "person-b" }, (sql) => emit(sql, event("cross-person"))), /row-level security/);
         await assert.rejects(transaction(client, "org-a", (sql) => emit(sql, event("cross-org", "organization", "org-b"))), /row-level security/);
+        await assert.rejects(db.ownerTransaction({ kind: "person", id: "org-a" }, (sql) => emit(sql, event("wrong-kind", "organization", "org-a"))), /row-level security/);
         await assert.rejects(client.query("update app.transition_outbox set event=event"), /permission denied/);
         await assert.rejects(db.worker.query("delete from app.transition_outbox"), /permission denied/);
         await assert.rejects(client.query("insert into app.transition_acks values ('forged','committed',now())"), /permission denied/);

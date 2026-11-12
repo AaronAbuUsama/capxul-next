@@ -4,6 +4,8 @@
 
 import { concat, encodeFunctionData, pad, parseAbi, toHex, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { getUserOperationHash } from "viem/account-abstraction";
+import { bundlerProvider, httpTransport, ProviderError, type RpcTransport, type RpcUserOperation } from "../../bundler/service.ts";
 
 import type { Chain } from "../../chain/types.ts";
 
@@ -69,28 +71,40 @@ export const viaEntryPoint = (chain: Chain, key: Hex): Submit => async (op) => {
 };
 
 /** A bundler (alto) at `url`: eth_sendUserOperation in v0.7's unpacked form, then its receipt. */
-export const viaBundler = (url: string): Submit => async (op) => {
+export const viaBundler = (url: string, transport: RpcTransport = httpTransport(url)): Submit => async (op) => {
   const hi = (b: Hex) => BigInt(`0x${b.slice(2, 34)}`); const lo = (b: Hex) => BigInt(`0x${b.slice(34, 66)}`);
   const pm = op.paymasterAndData;
-  const unpacked = {
+  const unpacked: RpcUserOperation = {
     sender: op.sender, nonce: toHex(op.nonce), callData: op.callData,
     verificationGasLimit: toHex(hi(op.accountGasLimits)), callGasLimit: toHex(lo(op.accountGasLimits)),
     preVerificationGas: toHex(op.preVerificationGas),
     maxPriorityFeePerGas: toHex(hi(op.gasFees)), maxFeePerGas: toHex(lo(op.gasFees)),
-    paymaster: pm.slice(0, 42), paymasterVerificationGasLimit: toHex(BigInt(`0x${pm.slice(42, 74)}`)),
+    paymaster: pm.slice(0, 42) as Hex, paymasterVerificationGasLimit: toHex(BigInt(`0x${pm.slice(42, 74)}`)),
     paymasterPostOpGasLimit: toHex(BigInt(`0x${pm.slice(74, 106)}`)), paymasterData: "0x", signature: op.signature,
   };
-  const rpc = async (method: string, params: unknown[]) => {
-    const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) });
-    const body = (await res.json()) as { result?: any; error?: { message: string } };
-    if (body.error) throw new Error(`bundler ${method}: ${body.error.message}`);
-    return body.result;
-  };
-  const opHash = (await rpc("eth_sendUserOperation", [unpacked, ENTRY_POINT_V07])) as Hex;
+  const chainId = await transport.request("eth_chainId", []);
+  if (typeof chainId !== "string" || !/^0x[0-9a-fA-F]+$/.test(chainId) || !Number.isSafeInteger(Number(BigInt(chainId)))) throw new ProviderError("PROVIDER_RESPONSE_INVALID", "bundler returned an invalid chain id");
+  // Computed before broadcast, independently of any send/lookup answer.
+  const expectedHash = getUserOperationHash({ chainId: Number(BigInt(chainId)), entryPointAddress: ENTRY_POINT_V07, entryPointVersion: "0.7", userOperation: {
+    sender: op.sender, nonce: op.nonce, callData: op.callData, signature: op.signature,
+    callGasLimit: lo(op.accountGasLimits), verificationGasLimit: hi(op.accountGasLimits), preVerificationGas: op.preVerificationGas,
+    maxFeePerGas: lo(op.gasFees), maxPriorityFeePerGas: hi(op.gasFees),
+    paymaster: unpacked.paymaster!, paymasterVerificationGasLimit: BigInt(unpacked.paymasterVerificationGasLimit!), paymasterPostOpGasLimit: BigInt(unpacked.paymasterPostOpGasLimit!), paymasterData: "0x",
+  } });
+  const provider = bundlerProvider(transport);
+  try { await provider.send({ operation: unpacked, entryPoint: ENTRY_POINT_V07, expectedHash }); }
+  catch (error) {
+    // Alto's by-hash lookup can stay null until mining. Keep recovering the known hash, never rebroadcast.
+    if (!(error instanceof ProviderError) || error.code !== "PROVIDER_ERROR") throw error;
+  }
+  const opHash = expectedHash;
   for (let i = 0; i < 300; i++) {
-    const receipt = await rpc("eth_getUserOperationReceipt", [opHash]);
-    if (receipt) return receipt.receipt.transactionHash as Hex;
+    const { receipt } = await provider.lookup(opHash);
+    if (receipt) {
+      // Inclusion is not execution success: payByUserOp decodes this operation's on-chain result.
+      return receipt.receipt.transactionHash;
+    }
     await new Promise((r) => setTimeout(r, 100));
   }
-  throw new Error(`bundler never included user operation ${opHash}`);
+  throw new ProviderError("PROVIDER_ERROR", `bundler never included user operation ${opHash}`);
 };

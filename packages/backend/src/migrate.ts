@@ -23,6 +23,7 @@ try {
     await db.query(`alter role ${role} nosuperuser nocreatedb nocreaterole noinherit nobypassrls password ${quote(decodeURIComponent(url.password))}`);
   }
   await db.query(readFileSync(new URL("./schema.sql", import.meta.url), "utf8"));
+  await db.query(readFileSync(new URL("./parties/schema.sql", import.meta.url), "utf8"));
   await db.query("create schema if not exists ponder authorization capxul_ponder");
   // Ponder creates its versioned ponder_sync schema itself; it cannot alter/write the admin-owned app schema.
   await db.query((await db.query("select format('grant create on database %I to capxul_ponder',current_database()) as sql")).rows[0].sql);
