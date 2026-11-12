@@ -21,6 +21,20 @@ import { flow_client_approvals_sign } from "./flows.ts";
 const OLD = "packages/backend/src";
 const t = machine_approval.t;
 
+export const decision_approvals_unsponsored_replacement = defineDecision({
+  id: "approvals.unsponsored-replacement-finality",
+  title: "An inherited nonce can displace a replacement before sponsorship",
+  question: "What ends an unsponsored replacement when the original approval has already consumed their shared nonce?",
+  options: [
+    { label: "finality", text: "A matching indexed final UserOperationEvent displaces the replacement even while it is sponsoring; chain wakes include sponsoring approvals with a persisted nonce." },
+    { label: "wait", text: "Ignore final facts before sponsorship and keep rescheduling after the deadline when the nonce has moved." },
+  ],
+  chosen: "finality",
+  why: "Opening a replacement already persists the original's nonce. If its first carrier run is late, a consumed nonce cannot become usable again, and waiting for sponsorship leaves its opener stuck forever. Another operation's finalized hash is displacement proof before or after sponsorship; a raw receipt or moved nonce alone is not. Without the indexed final fact it still waits. The terminal transition, opener callback and carrier deletion remain one transaction, so callback failure rolls back and retry applies the effect once without sponsoring or sending.",
+  source: "approvals.lifecycle.carry; approvals replacement nonce; PR55 mirror4554855744 and native red control, 12 November 2026",
+  affects: [t.displace, workflow_approvals_lifecycle_carry],
+});
+
 export const decision_approvals_signing_intent = defineDecision({
   id: "approvals.signing-intent",
   title: "Expose immutable intent independently of the sponsored operation",

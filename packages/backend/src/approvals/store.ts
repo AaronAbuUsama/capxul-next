@@ -9,7 +9,7 @@ export const sources = {
   sponsor: ["sponsoring"], refuse: ["sponsoring"], sign: ["pending"], decline: ["sponsoring", "pending"],
   withdraw: ["sponsoring", "pending"], claim_send: ["signed"], accept: ["sending"], bounce: ["sending"],
   land: ["signed", "sending", "sent"], revert: ["signed", "sending", "sent"],
-  displace: ["pending", "signed", "sending", "sent"], expire: ["sponsoring", "pending", "signed", "sending", "sent"],
+  displace: ["sponsoring", "pending", "signed", "sending", "sent"], expire: ["sponsoring", "pending", "signed", "sending", "sent"],
 } as const;
 export const targets: Record<keyof typeof sources, ApprovalState> = {
   sponsor: "pending", refuse: "refused", sign: "signed", decline: "declined", withdraw: "withdrawn",

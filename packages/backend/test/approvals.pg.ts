@@ -180,6 +180,49 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
       assert.equal(completed, 1);
       assert.equal((await admin.query("select count(*)::int as n from app.approval_carriers where approval_id=$1", [next.approval_id])).rows[0].n, 0);
     });
+    await t.test("overdue unsponsored replacement ends only on indexed finality with an atomic callback", async () => {
+      const original = await tenant((sql) => open(sql, ctx, { ...terms, subject_id: "late-original", send_after: new Date(now.getTime() + 60_000).toISOString() }));
+      const lane = (await admin.query("select nonce_key from app.approvals where approval_id=$1", [original.approval_id])).rows[0].nonce_key;
+      const nonce = ((BigInt(lane) << 64n) + 29n).toString();
+      const hash = `0x${"ad".repeat(32)}`, transaction = `0x${"be".repeat(32)}`;
+      await admin.query("update app.approvals set state='signed',nonce=$2,user_op_hash=$3 where approval_id=$1", [original.approval_id, nonce, hash]);
+      const replacement = await tenant((sql) => open(sql, ctx, { ...terms, subject_id: "late-replacement", replaces: original.approval_id }));
+      let clock = new Date(new Date(terms.deadline).getTime() + 120_001), failCallback = true, callbacks = 0, outsideCalls = 0;
+      const unexpected = async (): Promise<never> => { outsideCalls++; throw new Error("unsigned replacement must not sponsor or send"); };
+      const services: CarrierServices = {
+        now: async () => clock, sponsor: unexpected, send: unexpected, lookup: unexpected, needsAndGate: unexpected,
+        nonce: async () => (BigInt(nonce) + 1n).toString(),
+        // A committed finality fixture exercises the carrier contract, not Ponder adapter conformance.
+        fact: async (sql, row) => (await sql.query("select fact from app.test_approval_facts where approval_id=$1", [row.approval_id])).rows[0]?.fact ?? null,
+        terminal: async (sql, event) => {
+          if (event.approval_id !== replacement.approval_id) return;
+          assert.equal(event.outcome, "displaced"); assert.equal(event.nonce, nonce);
+          assert.equal(event.transaction_hash, transaction); assert.equal(event.block_number, 73);
+          assert.equal((await sql.query("select state from app.approvals where approval_id=$1", [replacement.approval_id])).rows[0].state, "displaced");
+          if (failCallback) throw new Error("late replacement opener failed");
+          callbacks++;
+        },
+      };
+      await carry(db, services);
+      assert.equal((await admin.query("select state from app.approvals where approval_id=$1", [replacement.approval_id])).rows[0].state, "sponsoring",
+        "a moved nonce without indexed finality is not terminal proof");
+      assert.equal(callbacks, 0); assert.equal(outsideCalls, 0);
+      const fact = { chain_id: terms.chain_id, sender, nonce, user_op_hash: hash, success: true, transaction_hash: transaction, block_number: 73 };
+      await admin.query("insert into app.test_approval_facts values ($1,$3),($2,$3)", [original.approval_id, replacement.approval_id, fact]);
+      await db.transaction("", (sql) => wakeChain(sql, { chain_id: terms.chain_id, sender, nonce }, clock), true);
+      const immediateWake = (await admin.query("select wake_at from app.approval_carriers where approval_id=$1", [replacement.approval_id])).rows[0].wake_at;
+      clock = new Date(clock.getTime() + 1000);
+      await assert.rejects(carry(db, services), /late replacement opener failed/);
+      assert.equal((await admin.query("select state from app.approvals where approval_id=$1", [replacement.approval_id])).rows[0].state, "sponsoring");
+      assert.equal((await admin.query("select count(*)::int as n from app.approval_carriers where approval_id=$1", [replacement.approval_id])).rows[0].n, 1);
+      failCallback = false;
+      await carry(db, services); await carry(db, services);
+      const ended = (await admin.query("select state,displaced_by,ended_at from app.approvals where approval_id=$1", [replacement.approval_id])).rows[0];
+      assert.equal(ended.state, "displaced"); assert.equal(ended.displaced_by, hash); assert.deepEqual(ended.ended_at, clock);
+      assert.deepEqual(immediateWake, new Date(clock.getTime() - 1000), "chain wake reaches an unsponsored replacement with a persisted nonce");
+      assert.equal(callbacks, 1); assert.equal(outsideCalls, 0);
+      assert.equal((await admin.query("select count(*)::int as n from app.approval_carriers where approval_id=$1", [replacement.approval_id])).rows[0].n, 0);
+    });
     await t.test("signing intent does not inherit a builder's changed replacement nonce or expiry", async () => {
       const signing: SigningContext = { ...ctx, network: { name: "Test", explorerUrl: "https://explorer.test" }, requireFeature: async () => {} };
       const original = await tenant((sql) => open(sql, ctx, { ...terms, subject_id: "intent-original", send_after: new Date(now.getTime() + 60_000).toISOString() }));
