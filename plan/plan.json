@@ -1883,7 +1883,7 @@
       "title": "Redraw the books records so ERPNext alone holds the chart",
       "why": "Aaron accepted books.chart-owner as recommended, 12 November 2026 06:07 UTC (a-20261112T060739-819d79): ERPNext alone holds the chart; Capxul's service keeps only the on-chain money facts, their annotations and the tokens it watches.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [
         "decision:books.chart-owner",
@@ -1892,7 +1892,8 @@
       ],
       "evidence": [],
       "created": "2026-11-12",
-      "updated": "2026-11-12"
+      "updated": "2026-11-12",
+      "thread": "cmsg_01KeBXQ6nY6oC8tbE4saDwBoHbcY4gAFMSJ458YaGpJgN2"
     },
     {
       "id": "m2-founder-capital",
