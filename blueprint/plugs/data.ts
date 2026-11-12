@@ -14,7 +14,7 @@ import { B, J, N, Null, S, FIND } from "./kit.ts";
 const SPIKE = "spikes/skeleton/FINDINGS.md";
 const ORG = "The Organization is the tenant (P8): `org_id` leads the key and every index.";
 
-export const SiteEventKind = Schema.Literals(["hat_granted", "hat_revoked", "payment_sent", "payment_failed", "payment_reversed", "org_created", "feature_changed", "founder_capital"]);
+export const SiteEventKind = Schema.Literals(["hat_granted", "hat_revoked", "payment_sent", "payment_failed", "payment_reversed", "org_created", "feature_changed", "founder_capital", "deposit_received"]);
 export const SiteEventState = Schema.Literals(["pending", "applied", "set_aside", "unmatched"]);
 export const PaymentRequestState = Schema.Literals(["waiting", "sent", "failed", "mismatch", "abandoned", "reversed"]);
 export const RoleGrantState = Schema.Literals(["pending", "applied", "failed", "revoked"]);

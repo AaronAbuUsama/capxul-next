@@ -30,21 +30,35 @@ export const integration_frappe_site = defineIntegration({
   service: "FrappeSite",
   calls: {
     applyEvent: {
-      about: "One outbox event, in order, to `capxul.api.chain_event`. Answers {applied, last_seq}; a repeated key answers applied:false and changes nothing; a seq ahead is 409 with {expected}. A hat event took 0.1 to 0.4 s (FINDINGS).",
+      about: "POST capxul.api.chain_event: {applied,duplicate,last_seq}; applied repeats set duplicate:true. Parked repeats retain parked:true and error, never a successful duplicate. Hat grants return map_version. A seq ahead is 409 with {expected}.",
       timeoutMs: 10_000,
       retries: { max: 3, backoff: "exponential" },
       p95Ms: 2_000,
       failures: [down, badSig, unusable, { when: "The handler raises: the site answers 500 and keeps the cursor where it was", error: error_PROVIDER_ERROR }],
     },
+    retryParkedEvent: {
+      about: "POST capxul.api.retry_parked_event {org,event_key}. Reruns the saved event under the cursor lock without changing its sequence or data. Only successful real application and fallback-bank reconciliation repair it; failure remains parked. The delivery cursor never rewinds.",
+      timeoutMs: 10_000,
+      retries: { max: 3, backoff: "exponential" },
+      p95Ms: 2_000,
+      failures: [down, badSig, unusable],
+    },
     collectPaymentRequests: {
-      about: "Ask the site for the payment requests written after a cursor (its outbox, in the same transaction as the document's waiting state); a poll or a long-poll. Answers the requests and the new cursor.",
+      about: "POST capxul.api.collect_payment_requests {org,after:0,limit:100}: {requests,cursor}. Immutable prepare bodies carry request_id, trace_id, idempotency_key and a locked integer cursor. Collect on connect and hints; advance after durable prepare and answer, never on read.",
       timeoutMs: 30_000,
       retries: { max: 3, backoff: "exponential" },
       p95Ms: 5_000,
       failures: [down, badSig, unusable],
     },
     answerPaymentRequest: {
-      about: "Tell the site what became of a request it wrote: the approval and whose signature is awaited, or the refusal with its reason. Carries the request's trace id and idempotency key; a repeat answers the same.",
+      about: "POST capxul.api.answer_payment_request {org,request_id,approval_id,approval_url,requested_by,awaiting?} or {org,request_id,error:{code,message}}: {request_id,status,duplicate}. Exact retries succeed; conflicts refuse. Preserves settled state and newer drafts. Carries X-Capxul-Trace.",
+      timeoutMs: 10_000,
+      retries: { max: 3, backoff: "exponential" },
+      p95Ms: 2_000,
+      failures: [down, badSig, unusable],
+    },
+    paymentRequestListener: {
+      about: "POST capxul.api.payment_request_listener {org}: {authorization,namespace,event,expires_at}. A 60-second site-bound token authenticates only Socket.IO's get_user_info callback as a role-free Website User. Its private room gets capxul_payment_request {org,cursor} after commit.",
       timeoutMs: 10_000,
       retries: { max: 3, backoff: "exponential" },
       p95Ms: 2_000,

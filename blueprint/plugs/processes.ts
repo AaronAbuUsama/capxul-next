@@ -148,21 +148,22 @@ export const workflow_plugs_payments_settle = defineWorkflow({
 
 export const workflow_plugs_books_founder_capital = defineWorkflow({
   id: "plugs.books.founder-capital",
-  title: "Book the money that first funds a new company's Safe as the founder's capital",
+  title: "Book incoming Safe transfers as founding capital or unmatched deposits",
   about:
     "Triggered by each indexed Transfer of an admitted asset into a company Safe Capxul made. The first such Transfer into a Safe is " +
     "the funding at birth (books.founder-funding): the `founder_capital` event, carrying the amount, the transaction hash, the block time " +
     "and the founder (the Organization's founding Director), is enqueued so the site posts one Journal Entry that debits the Safe's bank " +
     "account and credits the company's capital account, with the founder as the party (a Shareholder). Every later Transfer in is not " +
-    "capital: it stays unmatched and visible, as books.party-lines says. So the General Ledger of the Safe's account equals the Safe's " +
-    "balance on chain once the funding has landed (acc:report.run/1).",
+    "capital: deposit_received carries amount, asset, tx_hash, block_time, from and to, so it stays unmatched and visible as a Bank Transaction " +
+    "(books.party-lines). Its reference is the stable event key, not just the transaction hash: distinct logs in one transaction remain distinct " +
+    "deposits and retries add no second line. The Safe's ledger equals its chain balance after founding capital lands (acc:report.run/1).",
   concept: concept_plugs,
   priority: "critical",
   trigger: { chainEvent: contract_erc20.e.Transfer },
   steps: [
     { name: "facts", about: "Reads the Transfer at the finality depth; a receiver that is not a company Safe Capxul made ends the run." },
-    { name: "first", about: "Checks the Safe's earlier Transfers in; any earlier one means this is not the funding, and the run ends." },
-    { name: "enqueue", about: "Enqueues founder_capital for the Organization, naming its founding Director." },
+    { name: "first", about: "Checks earlier admitted-asset incoming Transfers in chain order: only the first is founding capital." },
+    { name: "enqueue", about: "Enqueues founder_capital with its founding Director for the first Transfer; otherwise deposit_received. Both retain the unique chain event key." },
   ],
   reads: [table_transfers, table_org_deployments, table_org_members, table_site_events, table_site_cursors],
   writes: [table_site_events, table_site_cursors],

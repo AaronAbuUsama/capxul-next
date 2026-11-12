@@ -9,6 +9,7 @@
   "hat",
   "department",
   "roles_given",
+  "map_version",
   "event_key"
  ],
  "fields": [
@@ -37,6 +38,12 @@
    "fieldtype": "Small Text",
    "label": "Roles Given",
    "description": "JSON list: the roles this grant added"
+  },
+  {
+   "fieldname": "map_version",
+   "fieldtype": "Data",
+   "label": "Map Version",
+   "read_only": 1
   },
   {
    "fieldname": "event_key",

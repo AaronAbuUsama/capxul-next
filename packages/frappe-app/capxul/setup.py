@@ -1,6 +1,4 @@
 """Install-time and site-creation-time setup. `configure_site` is idempotent (bin/new-site.sh runs it)."""
-import json
-
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
@@ -23,8 +21,8 @@ CUSTOM_FIELDS = {
     "Employee": [dict(fieldname="capxul_wallet_address", label="Capxul Wallet Address", fieldtype="Data", insert_after="employee_name")],
     "GL Entry": [dict(fieldname="capxul_trace", label="Capxul Trace", fieldtype="Data", read_only=1, no_copy=1, search_index=1)],
     "Payment Entry": [
-        dict(fieldname="capxul_status", label="Capxul Status", fieldtype="Data", read_only=1, no_copy=1, insert_after="status"),
-        dict(fieldname="capxul_approval_url", label="Capxul Approval Link", fieldtype="Data", read_only=1, no_copy=1, hidden=1, insert_after="capxul_status"),
+        dict(fieldname="capxul_status", label="Capxul Status", fieldtype="Data", read_only=1, no_copy=1, insert_after="posting_date"),
+        dict(fieldname="capxul_approval_url", label="Capxul Approval Link", fieldtype="Data", options="URL", read_only=1, no_copy=1, hidden=0, insert_after="capxul_status"),
     ],
 }
 
@@ -36,6 +34,7 @@ def after_install():
 def after_migrate():
     """The brand and the privacy settings, again after every migrate. Both save System Settings, which needs the time zone
     the setup wizard sets, so a site that has not run the wizard yet skips them (configure_site applies them after it)."""
+    ensure_defaults()
     if not frappe.is_setup_complete():
         return
     from capxul import brand, privacy
@@ -49,40 +48,31 @@ def boot_session(bootinfo):
         bootinfo.capxul = {"safe_account": frappe.db.get_single_value("Capxul Settings", "safe_account")}
 
 
-def topup_hat_map(hat, roles):
-    """A site made before the default map grew keeps its map; add the roles it lacks (never remove one), then give them to the
-    people already wearing the hat (a map edit is otherwise not replayed to existing grants)."""
-    from capxul.locks import applying
-
-    doc = frappe.get_doc("Capxul Hat Map", hat)
-    have = {r.role for r in doc.roles}
-    add = [r for r in roles if r not in have and frappe.db.exists("Role", r)]
-    if not add:
-        return
-    for r in add:
-        doc.append("roles", {"role": r})
-    doc.save(ignore_permissions=True)
-    with applying():
-        for g in frappe.get_all("Capxul Hat Grant", {"hat": hat}, ["name", "user", "roles_given"]):
-            if frappe.db.exists("User", g.user):
-                frappe.get_doc("User", g.user).add_roles(*add)
-            frappe.db.set_value("Capxul Hat Grant", g.name, "roles_given", json.dumps(sorted(set(json.loads(g.roles_given or "[]")) | set(add))))
+def remove_legacy_oauth():
+    """Old sites and restored backups must not retain a server-to-Core OAuth exchange."""
+    frappe.db.delete("Singles", {"doctype": "Capxul Settings", "field": "core_url"})
+    if frappe.db.exists("Social Login Key", "capxul"):
+        frappe.delete_doc("Social Login Key", "capxul", ignore_permissions=True, force=True)
 
 
 def ensure_defaults():
     create_custom_fields(CUSTOM_FIELDS, ignore_validate=True)
-    for hat, roles in DEFAULT_HAT_ROLES.items():
-        if frappe.db.exists("Capxul Hat Map", hat):
-            if hat == "admin":  # the only default that has grown; other hats' maps are the site's to edit
-                topup_hat_map(hat, roles)
-            continue
-        frappe.get_doc({"doctype": "Capxul Hat Map", "hat": hat, "roles": [{"role": r} for r in roles if frappe.db.exists("Role", r)]}).insert(ignore_permissions=True)
-    from capxul import features
+    from capxul import features, hats
+    from capxul.payments import LISTENER
 
+    hats.reproject_grants()
+    for dt in ("Capxul Hat Map", "Capxul Hat Role"):
+        if frappe.db.exists("DocType", dt):
+            frappe.delete_doc("DocType", dt, ignore_permissions=True, force=True)
+    remove_legacy_oauth()
+    if not frappe.db.exists("User", LISTENER):
+        frappe.get_doc({"doctype": "User", "email": LISTENER, "first_name": "Capxul request listener",
+                        "user_type": "Website User", "send_welcome_email": 0, "enabled": 1}).insert(ignore_permissions=True)
     features.ensure_rows()
     for g in frappe.get_all("Capxul Hat Grant", pluck="user"):  # people made before hats.ensure_employee stopped ERPNext restricting them to their own Employee
         frappe.db.delete("User Permission", {"user": g, "allow": "Employee"})
     frappe.db.set_single_value("Capxul Settings", "last_seq", frappe.db.get_single_value("Capxul Settings", "last_seq") or 0)
+    frappe.db.set_single_value("Capxul Settings", "request_seq", frappe.db.get_single_value("Capxul Settings", "request_seq") or 0)
     frappe.db.commit()
 
 
@@ -138,24 +128,12 @@ def configure_site(slug, company_name, safe_address, admin_email, core_url, secr
     ba = frappe.db.get_value("Bank Account", {"integration_id": safe_address})
 
     s = frappe.get_doc("Capxul Settings")
-    s.update({"org_slug": slug, "safe_address": safe_address, "asset": "USDC", "core_url": core_url, "secret": secret,
+    # core_url remains an accepted argument for old provisioners; the site never uses it.
+    s.update({"org_slug": slug, "safe_address": safe_address, "asset": "USDC", "secret": secret,
               "safe_account": acct_name, "safe_bank_account": ba})
     s.save(ignore_permissions=True)
 
-    # sign-in: the Core stub as a custom OAuth2 / OIDC provider. One key holds both URLs: authorize is opened by the
-    # browser (localhost), token and userinfo are called by the bench container (host.docker.internal).
-    browser_base = core_url.replace("host.docker.internal", "localhost")
-    key = {
-        "doctype": "Social Login Key", "provider_name": "Capxul", "social_login_provider": "Custom", "enable_social_login": 1,
-        "client_id": "capxul-skeleton", "client_secret": secret, "custom_base_url": 0, "base_url": browser_base,  # the login button is hidden without a base_url, even though it is unused here
-        "authorize_url": browser_base + "/oauth/authorize", "access_token_url": core_url + "/oauth/token",
-        "api_endpoint": core_url + "/oauth/userinfo", "redirect_url": "/api/method/frappe.integrations.oauth2_logins.custom/capxul",
-        "auth_url_data": json.dumps({"response_type": "code", "scope": "openid profile email"}), "user_id_property": "sub", "sign_ups": "Deny",
-    }
-    if frappe.db.exists("Social Login Key", "capxul"):
-        doc = frappe.get_doc("Social Login Key", "capxul"); doc.update(key); doc.save()
-    else:
-        frappe.get_doc(key).insert()
+    remove_legacy_oauth()
     frappe.db.commit()
     if "crm" in frappe.get_installed_apps():
         print("crm link:", configure_crm(company))
