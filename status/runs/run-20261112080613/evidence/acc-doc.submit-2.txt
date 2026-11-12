@@ -1,0 +1,13 @@
+eval     acc:doc.submit/2
+claim    A Payment Entry from the Safe is held, not posted, and the signer is named.
+verdict  pass
+run      run-20261112080613  at 2026-11-12T08:06:13Z  commit fe18b4b
+script   spikes/skeleton/run.sh  world main  company uopc
+why      The budget holder submits a Payment Entry from the Safe through the door's `doc submit --json`: the answer says held true, gives an approval id and names whom it awaits (the budget holder, as Core's approval does). The entry is still a draft with no ledger line; after `approval sign` lands it is submitted and the Safe account is credited once.
+
+PASS  TL.doc-submit-safe-payment-held-signer-named  x1  10526 ms
+      TL doc submit of Safe Payment Entry ACC-PAY-2026-00008 through the door: held, with an approval id, awaiting the budget holder's signature
+PASS  TL.held-payment-posts-no-ledger-line  x1  844 ms
+      TL while held: the entry is a draft and has no ledger line
+PASS  TL.signed-payment-posts-once  x1  1620 ms
+      TL after the signature lands: the entry is submitted and posted once (one credit to the Safe account of 12.5)

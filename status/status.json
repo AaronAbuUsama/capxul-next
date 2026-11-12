@@ -3,156 +3,165 @@
   "evals": {
     "acc:doc.create/1": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "A document is created as a draft and Frappe's validations apply.",
       "observes": "cli: in `org-with-hats-on-site`, the Director's `doc create Supplier --field supplier_name=\"Brightside Cleaning Ltd\"` prints the new name; a member without the role exits ROLE_PERMISSION_DENIED and nothing is made.",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-doc.create-1.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-doc.create-1.txt"
     },
     "acc:doc.get/1": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "A document is read as the caller, with its status.",
       "observes": "cli: `doc get \"Purchase Invoice\" ACC-PINV-2026-00001 --json` prints docstatus and fields; a document that does not exist exits INVALID_INPUT.",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-doc.get-1.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-doc.get-1.txt"
     },
     "acc:doc.submit/1": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "An ordinary document posts to the ledger when submitted.",
       "observes": "cli: `doc submit \"Purchase Invoice\" ACC-PINV-2026-00001` prints docstatus 1; read: `report run \"General Ledger\"` shows its lines.",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-doc.submit-1.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-doc.submit-1.txt"
     },
     "acc:doc.submit/2": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "A Payment Entry from the Safe is held, not posted, and the signer is named.",
       "observes": "cli: in `org-with-held-payment`, `doc submit \"Payment Entry\" ACC-PAY-2026-00001 --json` prints held true, an approvalId and `awaiting`; read: no ledger line yet; after the signature lands it posts once.",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-doc.submit-2.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-doc.submit-2.txt"
     },
     "acc:org.create/6": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "The Organization's Safe is Companies House's company Safe for this founder.",
       "observes": "chain: CompanySafeMinted names the Organization's Safe with the founder's personal Safe as founderSafe, at the minter's companySafeAddressFor. read: `org show` prints that Safe.",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-org.create-6.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-org.create-6.txt"
     },
     "acc:org.feature.off/1": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "A feature turned off refuses everywhere it can be reached and keeps its data.",
       "observes": "cli: in `org-with-site-features`, `org feature off projects --json` prints switching then off; `doc list Project` exits FEATURE_NOT_AVAILABLE; a browser request to a Project API route answers 403; `org feature on projects` then lists every project that was there.",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-org.feature.off-1.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-org.feature.off-1.txt"
     },
     "acc:org.feature.on/1": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "A feature turned on becomes reachable and shows everything that was there.",
       "observes": "cli: in `org-with-site-features`, after `org feature off stock` and `org feature on stock --json` prints switching then on; read: `doc list \"Stock Entry\"` works again and lists the entries made before it was off.",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-org.feature.on-1.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-org.feature.on-1.txt"
     },
     "acc:org.feature.on/2": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "WhatsApp cannot be turned on without CRM, and the reason is said first.",
       "observes": "cli: with crm off, `org feature on whatsapp` exits WRONG_STATE naming CRM; world: no row changes.",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-org.feature.on-2.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-org.feature.on-2.txt"
     },
     "acc:org.member.grant/1": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "A grant is a Director proposal, applied once it executes.",
       "observes": "read: `org proposal get` shows the grant's proposal waiting; after the second Director approves, `org member get` shows the member wearing the hat and the change reads `applied`",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-org.member.grant-1.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-org.member.grant-1.txt"
+    },
+    "acc:payment.send/1": {
+      "verdict": "pass",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
+      "claim": "A signed personal payment is sent once and records its one Payment.",
+      "observes": "chain: one UserOperation and one PaymentSent carry the payment id; read: `payment list` shows exactly one Payment for it, settled",
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-payment.send-1.txt"
     },
     "acc:record.export/1": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "An export carries the lineage and every entry once.",
       "observes": "cli: `record export --world town3 --out run.jsonl --json` prints the line count and lineage naming town1; the file's first line is the lineage and the entries follow in order.",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-record.export-1.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-record.export-1.txt"
     },
     "acc:report.run/1": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "A report runs as the caller and the books agree with the chain.",
       "observes": "cli: `report run \"General Ledger\" --filter account=\"Capxul Safe\"` prints a ledger whose total equals the Safe's balance on chain at the world's now; a report of an off part exits FEATURE_NOT_AVAILABLE.",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-report.run-1.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-report.run-1.txt"
     },
     "acc:world.clock.warp/1": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "A warp moves the chain and every site together and runs what fell due.",
       "observes": "cli: in `world-frozen`, `world clock warp town1 --by 7d` prints worldNow a week on; a company's site shows its scheduled job ran for each day; `--by -1d` exits INVALID_INPUT.",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-world.clock.warp-1.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-world.clock.warp-1.txt"
     },
     "acc:world.create/2": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "A new world runs with its clock and a record that begins with its birth.",
       "observes": "cli: from `empty-devnet`, `world create town1 --template empty --clock frozen --json` prints creating; `world show town1` then prints running, clockMode frozen, epoch 1 and recordHead 1; `record list --world town1` lists one `born` entry.",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-world.create-2.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-world.create-2.txt"
     },
     "acc:world.show/1": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "A world restored into another names its parent.",
       "observes": "cli: in `world-with-snapshot`, after `world snapshot restore town1 m3 --as town3`, `world show town3 --json` prints parentWorld town1, parentSnapshot m3 and parentSeq.",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-world.show-1.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-world.show-1.txt"
     },
     "acc:world.snapshot.restore/1": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "An in-place restore returns the world to the snapshot and records it.",
       "observes": "cli: in `world-with-snapshot`, after more commands, `world snapshot restore town1 m3`; the diff against the saved world is empty, epoch is one higher, the record has a `restore` entry and the earlier branch is listed as abandoned.",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-world.snapshot.restore-1.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-world.snapshot.restore-1.txt"
     },
     "acc:world.snapshot.restore/2": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "A restore into a separate world leaves the first world untouched and the two never see each other.",
       "observes": "cli: `world snapshot restore town1 m3 --as town3`; both worlds list their companies on their own addresses; a command in town3 changes nothing in town1; the new born entry names town1, m3 and the sequence.",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-world.snapshot.restore-2.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-world.snapshot.restore-2.txt"
     },
     "acc:world.snapshot.save/1": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "A snapshot saves everything that makes the world and leaves it untouched.",
       "observes": "cli: `world snapshot save town1 m3 --json` prints the epoch and recordSeq; the world's record gains no entry but the save; `world snapshot list town1` lists it.",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-world.snapshot.save-1.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/acc-world.snapshot.save-1.txt"
     },
     "jrn:thin_line": {
       "verdict": "not_run",
@@ -163,11 +172,11 @@
     },
     "wfl:plugs.events.deliver/idempotent": {
       "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
+      "commit": "fe18b4b",
+      "at": "2026-11-12T08:06:13Z",
       "claim": "a second run with the same key (The site answers a repeated event key as already applied, and a transition already made is not made twice.) changes nothing",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/wfl-plugs.events.deliver-idempotent.txt"
+      "run": "run-20261112080613",
+      "evidence": "status/runs/run-20261112080613/evidence/wfl-plugs.events.deliver-idempotent.txt"
     }
   }
 }

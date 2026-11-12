@@ -1,0 +1,140 @@
+B1.org-create	pass	246850	B1 org create exits 0 in 245 s
+B1.safe-on-chain-is-the-sites-safe	pass	2176	B1 chain: the Safe on the chain is the one the site was given (0x667A0781E31E52889E211F6dBAdA40308dF2FF14 holds 50000000000 units of test USDC)
+B1.company-safe-minted-for-founder	pass	76	B1 chain: CompanySafeMinted names the site's Safe, with the admin's personal Safe as founderSafe; its owners are the founding Directors' personal Safes (minted in tx 0xc4ae1ec0330e818ab3fc7d9fe00b88d8d623c5afeb8de9164fd083700533a08c)
+B1.org-show-prints-the-safe	pass	878	B1 read: org show prints the Safe CompanySafeMinted named
+B1.site-answers-by-name	pass	42	B1 the site answers (by name, uopc.localhost:8000)
+B1.company-exists	pass	1123	B1 the Company exists
+B1.safe-bank-account	pass	93	B1 the Safe bank account exists, tied to the Safe address (Capxul Safe (USDC) - ATL)
+B1.admin-hat-reaches-site	pass	109	B1 the admin hat reached the site: the admin's User exists with roles (['Accounts Manager', 'Accounts User', 'HR Manager', 'HR User...) 42ms after org create returned
+B1.admin-sign-in-chain	pass	1014	B1 admin completes the sign-in chain against the Core stub: session user is the admin (976ms)
+B2.hat-grant-on-chain	pass	1733	B2 hat grant to a second person is on the chain
+B2.roles-follow-grant	pass	502	B2 mapped roles present 472 ms after the chain transaction was mined (['Accounts User', 'Expense Approver', 'Purchase User'])
+B2.department-limit-exists	pass	71	B2 the department limit exists (User Permission on Department) (['Finance - ATL'])
+B2.hand-edit-of-roles-refused	pass	116	B2 a hand edit of roles through the REST API (as Administrator) is refused
+B2.revoke-removes-roles	pass	1384	B2 hat revoke removes every role 456 ms after the chain transaction
+B2.revoke-removes-department-limit	pass	45	B2 revoke removes the department limit
+B3.admin-hat-person-creates-supplier	pass	2372	B3 admin-hat person creates a supplier with a wallet address (their own session, not Administrator)
+B3.budget-holder-makes-invoice-and-payment-entry	pass	1292	B3 budget-holder (session of marcus@acme.test) made Purchase Invoice ACC-PINV-2026-00001 and a Payment Entry ACC-PAY-2026-00001 from the Safe account
+B3.invoice-outstanding-before-paying	pass	48	B3 the invoice has 125.5 outstanding before paying
+B3.submit-waits-for-signature	pass	128	B3 Submit asks Capxul: the entry shows waiting for a signature (approval apr_70889e517e2210bc)
+B3.still-a-draft-while-waiting	pass	83	B3 still a draft while waiting
+B3.sign-sends-chain-transaction	pass	889	B3 sign in the Core stub pop-up sends the chain transaction (as marcus@acme.test's key) (tx 0xe7b6d30f2af1a543bb4f712749a40bf069313a2a52250b75c203ff8fb7cc5685 in 151ms)
+B3.payment-entry-submitted	pass	338	B3 the Payment Entry is submitted (274ms after the sign call returned)
+B3.chain-moved-the-money	pass	731	B3 the chain moved the test USDC: supplier +125.5, Safe -125.5
+B3.entry-carries-transaction-hash	pass	46	B3 the entry carries the transaction hash
+B3.ledger-posted	pass	50	B3 the ledger is posted (Safe account credited 125.5)
+B3.invoice-nothing-outstanding	pass	44	B3 the invoice has nothing outstanding
+TL.books-agree-with-chain	pass	2943	TL row 7 (before B4 moves money with no document) the Safe account's General Ledger, the founder's capital in and payments out, equals the Safe's USDC on chain (Capxul Safe (USDC) - ATL)
+B4a.signer-without-hat-refused-by-chain	pass	3543	4a signer without the payment hat: the chain refuses
+B4a.entry-not-posted-and-shows-why	pass	794	4a the entry is not posted and shows why (Failed: NOT_AUTHORISED: NotAuthorised(30, 0xa5f741E83FD51Dc536dF40f860f79d1C72Afe212))
+B4a.no-money-moved	pass	400	4a no money moved
+B4b.redelivery-answered-already-applied	pass	2583	4b Core delivered seq 6 (payment_sent) a second time and Frappe answered 'already applied'
+B4b.one-posting	pass	97	4b one posting: still 1 applied event, 2 ledger rows, entry submitted once
+B4c.signed-while-frappe-down-money-moved	pass	3189	4c signed while Frappe is down: the chain moved the money (tx 0xea4955f4d9991f93acc78d9f6985f5a64a41d6eec2ae7d5d7d637d7069c2c8e2)
+B4c.core-holds-undelivered-event	pass	1946	4c Core holds the undelivered event in its outbox (  pending seq 10 payment_sent attempts=2 error: network: fetch failed)
+B4c.entry-posts-after-frappe-returns	pass	17956	4c after Frappe starts the entry posts with nobody re-sending by hand (873ms after the stack answered)
+B4c.exactly-once	pass	3167	4c exactly once: 1 new applied event, 2 ledger rows, Core outbox empty
+B4d.direct-submit-refused	pass	191	4d direct submit of a Safe-backed Payment Entry (REST, as Administrator) is refused, nothing posted
+B4d.client-submit-refused	pass	260	4d the same through frappe.client.submit as the budget-holder is refused
+B4e.chain-payment-without-document-is-unreconciled	pass	1311	4e a chain payment with no document is an unreconciled Bank Transaction (tx 0x7ed429b0f65b6c3a71ff46f658ad05e2b735b697d1381d04abfea439ded01dea)
+B4f.administrator-request-refused	pass	166	4f Administrator asking for a payment is refused with the reason, nothing sent (frappe.exceptions.ValidationError: Capxul did not accept this payment request: requested_by Administrator is not a person Capxul knows (a Frappe user )
+B4g.poison-event-outbox-drains	pass	4863	4g poison event: Core's outbox drains (the unappliable event is parked, not retried for ever) (3164ms)
+B4g.parked-event-visible-with-reason	pass	41	4g the parked event is visible on the site with its reason
+B4g.later-hat-still-reaches-site	pass	3200	4g a hat granted after the poison event still reaches the site (2221ms)
+B5.feature-list-state	pass	36720	B5 feature list shows the defaults on the site
+B5.feature-state-readable-from-site	pass	58	B5 the same state is readable from the site itself (REST, as the admin-hat person)
+B5.person-without-admin-hat-refused	pass	4869	B5 a person without the admin hat is refused, with the reason
+B5.project-exists-before-switching	pass	4525	B5 a Project exists before switching (1 in the database)
+B5.before-off-rest-and-desk	pass	6593	B5 before off: the admin-hat person reads Projects over REST and has them on the desk
+B5.feature-off-by-admin	pass	13966	B5 feature off projects by the admin (9968ms)
+B5.off-project-unreachable-over-rest	pass	159	B5 off: Project is unreachable over REST for the admin-hat person (list, read one, create, client.get_list)
+B5.off-refused-for-administrator	pass	37	B5 off: also refused for Administrator over REST (the guard does not look at who)
+B5.off-gone-from-desk	pass	6066	B5 off: Projects is gone from the person's desk
+B5.off-records-kept	pass	2683	B5 off: the records are still in the database (bench-side count)
+B5.on-again-restores-everything	pass	16247	B5 on again: REST answers, the desk shows Projects, the same records are there
+B5.crm-off-refused	pass	9693	B5 crm off: Frappe CRM's /crm and its API answer 403 for the admin-hat person
+B5.whatsapp-needs-crm	pass	8413	B5 whatsapp on while crm is off is refused with the reason, nothing installed or changed
+B5.crm-on-screens-answer	pass	19939	B5 crm on: the CRM screens answer for the admin-hat person (the page and its API)
+B5.crm-not-for-member-hat	pass	83	B5 ... and not for a person with only the member hat
+B5.won-deal-becomes-customer	pass	709	B5 a deal moved to Won becomes an ERPNext Customer carrying the deal's name, type and back-reference
+B5.whatsapp-on-not-configured	fail	17696	B5 whatsapp on (crm on): installs the app if needed; it is on and answers as not configured (no credentials) :: expected [0 on True False] got [1 off False False]
+B5.hand-switch-refused	pass	13599	B5 a feature cannot be switched by hand on the site (REST PUT as Administrator is refused)
+B6.new-hats-reach-site-as-roles	pass	7232	B6 three new hats (sales, hr-manager, project-manager) reached the site as roles
+B6.discovery-document-types	pass	8777	B6 discovery: the admin-hat person reaches 527 document types on a default site (466 listable, 8681ms), from Frappe's own metadata
+B6.discovery-by-feature	pass	931	B6 discovery by feature: crm lists its own types for the sales person
+B6.discovery-schema	pass	1023	B6 discovery: a schema comes from Frappe's metadata (CRM Lead has first_name, status)
+B6.lead-to-deal	pass	2119	B6 sales person made lead CRM-LEAD-2026-00001 and converted it to deal CRM-DEAL-2026-00002
+B6.won-deal-customer-in-accounts	pass	2058	B6 deal won: the customer is in accounts (read by the sales person)
+B6.created-document-is-draft	pass	2417	B6 newly created Sales Invoice ACC-SINV-2026-00001 reads back as a draft
+B6.sales-invoice-submitted-in-ledger	pass	1956	B6 sales person made and submitted Sales Invoice ACC-SINV-2026-00001; it is in the ledger (Debtors debited 900)
+B6.hr-employee-and-approved-leave	pass	9253	B6 HR person made employee HR-EMP-00004 and leave application HR-LAP-2026-00001, approved it (submitted, status Approved)
+B6.project-task-timesheet	pass	2894	B6 project person made project PROJ-0002, task TASK-2026-00001 and timesheet TS-2026-00001
+B6.reports-run	pass	4238	B6 reports: the admin-hat person runs General Ledger and Trial Balance (rows come back)
+B6.refusals-with-reason	pass	3625	B6 refused with a reason: budget-holder creating a CRM Lead, sales person creating an Employee, HR person creating a Sales Invoice, project person running the General Ledger
+B6.no-hat-and-unknown-person-refused	pass	1709	B6 a known person with no hat on this site (elena) has no door: NO_HAT; Administrator is not a person: UNKNOWN_PERSON
+B6.no-person-refused	pass	841	B6 a door command with no --as is refused (the door never acts as Administrator)
+B6.switched-off-feature-refused	pass	11689	B6 a switched-off feature is refused through the door, with the feature's name in the reason
+B6.off-part-report-refused	pass	900	B6 a report of a switched-off part (Project Summary, projects off) exits FEATURE_NOT_AVAILABLE through the door
+B6.switched-on-again-answers	pass	10997	B6 ... and switched on again it answers
+B7.non-admin-cannot-move-clock	pass	4584	B7 a person who is not the world's admin cannot move its clock (refused, nothing changed)
+B7.clock-set-in-the-past-chain-and-sites-follow	pass	10430	B7 world clock set to 2 March 2026 (in the past): every site and the chain show it (8661ms)
+B7.payment-signed-by-key-at-world-time	pass	11831	B7 2026-03-02: invoice ACC-SINV-2026-00002, bill ACC-PINV-2026-00004, payment ACC-PAY-2026-00004 signed by key through approval sign, tx 0x058e3d17f5f28e5afdbd64fa897c8b8cc432263cba20ffb7bf5e25ea7a8d2da2
+B7.payment-signed-by-key-at-world-time	pass	144656	B7 2026-03-12: invoice ACC-SINV-2026-00003, bill ACC-PINV-2026-00005, payment ACC-PAY-2026-00005 signed by key through approval sign, tx 0xf9bae1c13994e3ada7cca5b98bf9199bb3ba8c040e372fcaadf8cc3338f9ff92
+B7.payment-signed-by-key-at-world-time	pass	135868	B7 2026-03-22: invoice ACC-SINV-2026-00004, bill ACC-PINV-2026-00006, payment ACC-PAY-2026-00006 signed by key through approval sign, tx 0x83befefdb691f13d3acbe977ba7b2de454f28c86fb0da329b257e19d263f0b74
+B7.payment-signed-by-key-at-world-time	pass	126185	B7 2026-03-31: invoice ACC-SINV-2026-00005, bill ACC-PINV-2026-00007, payment ACC-PAY-2026-00007 signed by key through approval sign, tx 0xcf75ee0f8fa0e30dd198c2ffa8708f7e99d2b4497de3a2d7c9559167bf2fd32b
+B7.world-at-31-march-all-agree	pass	894	B7 the world is at 31 March after three advances; every site of the world and the chain agree
+B7.ledger-dates-are-world-dates	pass	72	B7 the ledger's dates are the world's dates: each payment and each sales invoice posted on the day the world was at
+B7.chain-block-times-are-world-dates	pass	3139	B7 the chain's block times agree: each payment's block carries the world's date
+B7.payment-reference-date-from-block	pass	112	B7 the payment entries took their reference date from the block (chain time, not host time)
+B7.month-closed	pass	887	B7 the month is closed: Accounting Period March 2026 close 1794471245 - ATL (Sales Invoice, Purchase Invoice, Payment Entry, Journal Entry closed for March)
+B7.closed-month-invoice-refused	pass	916	B7 a Sales Invoice dated in the closed month is refused
+B7.clock-reset-to-host-time	pass	5651	B7 clock reset: the chain and every site are back on the host's time
+B8.one-record-entry-per-command	pass	453	B8 the record has one entry per command of this run (every command, not only the successful ones)
+B8.sequence-gap-free-and-hash-chained	pass	706	B8 in order: sequence numbers run 1..n with no gap and each line carries the hash of the one before (tamper-evident)
+B8.world-time-in-entries	pass	76	B8 world time is in the entries: the March payments are recorded at their world dates
+B8.record-names-chain-transaction	pass	82	B8 the command's record names the chain transaction (trace tr_mwda5ax2abd6641d -> 0xcf75ee0f8fa0e30dd198c2ffa8708f7e99d2b4497de3a2d7c9559167bf2fd32b)
+B8.ledger-entries-carry-trace-id	pass	43	B8 ... and the ledger entries carry the same trace id (GL Entry.capxul_trace), for the payment's voucher
+B8.payment-timeline-carries-trace-id	pass	48	B8 ... and the Payment Entry's own timeline holds the trace id (a Comment)
+B8.core-log-carries-trace-id	pass	20	B8 ... and Core's log has the call under that trace id
+B8.record-show-by-trace-id	pass	740	B8 record show finds the command by its trace id
+B8.export-one-file-line-by-line	pass	879	B8 record export produces one file: a header line and every record, readable line by line
+B8.no-secret-in-record	pass	107	B8 no secret in the record or the export (grep for every test key and the shared secret)
+B9.snapshot-saved	pass	56709	B9 world main saved as snap_main_mwda65f3: every company, the whole chain, Core's state, the clock, record position 1473; 34681ms, 40.5 MB
+B9.snapshot-list	pass	623	B9 snapshot list shows it with its world, name and record position
+B9.non-operator-cannot-save-or-restore	pass	1406	B9 a person who is not the operator cannot save or restore a world
+B9.restore-into-new-world	pass	30369	B9 restored into a NEW world w2 beside the original (own chain, own Core, site uopc.w2.localhost) in 27637ms: {'chain+core files': 18, 'start chain and Core': 1626, 'sites': 23287, 'clock': 1997}
+B9.new-world-same-documents-ledger-hats-features	pass	3602	B9 the new world has the same documents, ledger balances, hats, features and event position as the saved one
+B9.new-world-same-safe-balance	pass	436	B9 the new world's chain has the same balance in the company's Safe (49366000000 units)
+B9.new-world-clock-resumed	pass	2039	B9 the new world's clock resumed at the saved world time (1 June), on its chain and its site; the original is on the host's time
+B9.restored-site-door-works	pass	1008	B9 the restored site signs people in through the new world's Core and the door works there (hannah lists invoices as herself)
+B9.world-list-shows-origin	pass	815	B9 the world list shows both worlds and where the new one came from
+B9.payment-made-in-new-world	pass	10662	B9 a payment made in w2 (invoice ACC-SINV-2026-00006, payment ACC-PAY-2026-00008, tx 0x0fc9f5dd78f6b66a072f429e2f9196aa047c944ae79437b6a7c5f0c01cb93b86)
+B9.new-world-payment-not-in-old	pass	6835	B9 ... is in the new world (8 payment entries, Safe down 7.25) and not in the old (7, unchanged)
+B9.old-world-payment-not-in-new	pass	15312	B9 a payment made in the old world is not in the new one (old 8, new still 8)
+B9.new-world-record-begins-with-old-then-lineage	pass	754	B9 the new world's record begins with the old world's up to the snapshot, then says which snapshot it came from; its own commands follow
+B9.old-world-record-says-it-made-new	pass	121	B9 the old world's record says it made the new one (restore --into) and its own trace is not in the new world's record
+B9.restore-in-place	pass	90988	B9 restore --in-place of the whole world main in 90914ms: {'chain+core files': 39, 'start chain and Core': 1606, 'sites': 83171, 'clock': 2048}
+B9.in-place-state-back-at-saved-moment	pass	3374	B9 in place: main is back at the saved moment (the payment made after the save is gone: documents, ledger, hats, features, balance)
+B9.in-place-clock-back-at-saved-time	pass	2086	B9 in place: the world clock is back at the saved world time on the chain and on all three sites
+B9.in-place-record-not-rewound	pass	82	B9 in place: the record of main was not rewound (it grew), and says what it was restored from
+TL.doc-submit-safe-payment-held-signer-named	pass	10526	TL doc submit of Safe Payment Entry ACC-PAY-2026-00008 through the door: held, with an approval id, awaiting the budget holder's signature
+TL.held-payment-posts-no-ledger-line	pass	844	TL while held: the entry is a draft and has no ledger line
+TL.payment-is-one-user-operation	pass	2859	TL the payment is exactly one successful UserOperation (named by approval sign) from marcus@acme.test's personal Safe, sponsored by the paymaster, with one PaymentSent
+TL.signed-payment-posts-once	pass	1620	TL after the signature lands: the entry is submitted and posted once (one credit to the Safe account of 12.5)
+TL.payment-list-shows-one-settled	pass	731	TL payment list shows exactly one Payment for the signed payment id, settled, with its transaction
+TL.grant-proposal-waits-for-second-director	pass	2337	TL hat grant --propose: the proposal waits, approved by the founder and not yet by priya; elena wears nothing yet
+TL.grant-proposal-non-director-refused	pass	1598	TL a person who is not a Director (marcus@acme.test) cannot approve: ROLE_PERMISSION_DENIED, and the proposal still waits
+TL.grant-proposal-applied-after-second-director	pass	1848	TL after priya approves: the proposal reads applied with both approvals, and org member get shows elena wearing member
+TL.grant-proposal-roles-reach-site	pass	1386	TL the member hat's roles reach the site once the proposal is applied (1350ms)
+TL.snapshot-save-prints-epoch-and-record-seq	pass	32229	TL world snapshot save prints the world's epoch and its record position (the entries before the save)
+TL.snapshot-save-leaves-world-untouched	pass	4262	TL after the save the world is as it was: documents, ledger, hats, features and events on the site, the Safe's balance, the clock's offset
+TL.snapshot-save-record-gains-only-the-save	pass	886	TL the world's record gained the save's entry and nothing else; snapshot list lists it
+TL.world-show-names-parent	pass	804	TL world show w2 names its parent world, the snapshot and the record position it was restored from
+TL.export-prints-lines-and-lineage	pass	841	TL record export w2 prints its line count and a lineage naming main
+TL.export-lineage-first-then-every-entry-once-in-order	pass	129	TL the file's first line is the lineage; the entries follow in order, each once: the world's whole record up to the export
+TL.warp-moves-chain-and-every-site-a-week-on	pass	109004	TL world clock advance main 7d: worldNow is a week on, and the chain and every site of the world show that day
+TL.warp-ran-daily-job-once-each-day	pass	82	TL uopc.localhost shows Capxul's daily job ran once for each of the seven days warped over
+TL.warp-backwards-refused	pass	1777	TL a warp backwards (-1d) is refused as invalid input and moves nothing
+TL.world-create-runs-frozen	pass	12389	TL world create tlfrozen --clock frozen --template empty: the world runs, on a frozen clock, at epoch 1, with no company
+TL.world-frozen-clock-holds	pass	3600	TL its clock holds while the host's moves (two reads 2 s apart agree) and the chain is at its epoch
+TL.world-record-begins-with-birth	pass	1596	TL world show tlfrozen says running and frozen; its record's first entry is its birth, the only one, and the hash chain holds
