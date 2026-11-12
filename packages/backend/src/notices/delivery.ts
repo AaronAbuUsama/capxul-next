@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { Database, Sql } from "../platform/db.ts";
 import { transaction } from "../platform/db.ts";
+import { hasPending } from "../platform/outbox.ts";
 import type { Mail } from "../shared/door.ts";
 import { render, templates, type Intent } from "./templates.ts";
 
@@ -66,13 +67,15 @@ export async function deliverDue(db: Database, mail: Mail, now: WorldNow, emit: 
             await sql.query("update app.notice_attempts set due_at=null where recipient=$1 and notice_id=$2", [key.recipient,key.notice_id]);
             return { ...row, canceled: true };
           }
+          // A bounded relay batch can leave a committed stop (or its lock-busy ACK) unseen.
+          if (references.reminder && await hasPending(sql,"notices",["payment_transitioned"])) return { ...row, deferred: true };
         }
         // A crash after this commit may hide acceptance. Never cancel that identity's replay.
         await sql.query("update app.notice_attempts set dispatch_started=true where recipient=$1 and notice_id=$2", [key.recipient,key.notice_id]);
         return row;
       });
       if (!current) continue;
-      if (current.canceled) { completed++; continue; }
+      if (current.canceled || current.deferred) { completed++; continue; }
       const intent = current.intent as Intent;
       const message = { ...render(intent), template: intent.template };
       let outcome: Outcome;

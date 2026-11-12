@@ -78,7 +78,7 @@ test("Mail accepts valid long recipients at the key boundary and replay retains 
 });
 
 test("resume stops unstarted reminders after collection/refund but replays accepted lost outcomes", async () => {
-  for (const outcome of ["collected","refunded"] as const) for (const started of [false,true]) {
+  for (const backlog of [0,101]) for (const outcome of ["collected","refunded"] as const) for (const started of [false,true]) {
     const id = randomUUID(), recipient = `${id}@reminders.test`, at = instant + 3*86_400_000;
     const event: TransitionEvent = { id, name: "payment_transitioned", machine: "payment", entity_id: id,
       owner_kind: "person", owner_id: id, actor: null, trace_id: id, at: instant,
@@ -106,11 +106,25 @@ test("resume stops unstarted reminders after collection/refund but replays accep
     } };
     if (started) await assert.rejects(deliverDue(db,mail,async () => at,async () => { throw new Error("outcome not committed"); }),/outcome not committed/);
     status = outcome === "collected" ? "settled" : "cancelled";
+    await db.transaction("",async (sql) => {
+      for (let n=0;n<backlog;n++) {
+        const filler = randomUUID();
+        await emit(sql,{ ...event, id: filler, entity_id: filler, at,
+          props: { from: "authorizing", to: "submitted", transition: "submit", payment_id: filler } });
+      }
+    },true);
     await db.transaction("",(sql) => emit(sql,{ ...event, id: randomUUID(), at,
       props: { from: "escrowed", to: status, transition: outcome === "collected" ? "settle" : "cancel", payment_id: id } }),true);
     const tick = noticesWorker(db,mail,sources,links,async () => at);
+    const acks = async () => Number((await db.worker.query("select count(*) as n from app.transition_acks where consumer='notices'")).rows[0].n);
+    const before = await acks();
     await tick();
-    assert.equal(calls,started ? 2 : 0,`${outcome}: only an already-dispatched identity may replay`);
+    assert.equal(await acks()-before,Math.min(backlog+1,100),"one worker tick must keep the bounded source batch");
+    if (!started) assert.equal(calls,0,`${outcome}, backlog ${backlog}: first resume must not dispatch ahead of the committed stop`);
+    let progress = 1, ticks = 0;
+    while (progress && ticks++ < 5) progress = await tick();
+    assert.equal(progress,0,"bounded ticks must drain the source backlog and converge");
+    assert.equal(calls,started ? 2 : 0,`${outcome}, backlog ${backlog}: only an already-dispatched identity may replay`);
     assert.equal(accepted.size,started ? 1 : 0);
     assert.equal(refunds,outcome === "refunded" ? 1 : 0,"the separate refund notice must still send");
     const rows = await db.transaction("",(sql) => readNotices(sql,{ to: recipient, template: "money-waiting-reminder" }),true);
