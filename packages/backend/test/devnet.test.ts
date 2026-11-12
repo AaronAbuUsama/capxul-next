@@ -1,11 +1,47 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { Database, exportAbandonedBranch, rewriteRestoredWorld } from "../src/devnet/door.ts";
+import { Database, exportAbandonedBranch, readSnapshotCut, rewriteRestoredWorld } from "../src/devnet/door.ts";
+import { signature } from "../src/plugs/door.ts";
+import { createCore } from "../src/server.ts";
 
 const dir = process.env.CORE_PROOF_DIR;
 if (!dir || process.env.CAPXUL_DISPOSABLE !== "true" || process.env.CAPXUL_WORLD === "main") throw new Error("CORE_PROOF_DIR and named disposable migrated Postgres/Ponder/v4 world required");
 const fixture = JSON.parse(await readFile(`${dir}/fixture.json`, "utf8"));
+
+test("public snapshot pause returns the numeric world epoch from real Postgres", { timeout: 10_000 }, async () => {
+  const database = new Database(process.env.DATABASE_URL!, process.env.WORKER_DATABASE_URL!);
+  const world = (await database.worker.query("select world_id,epoch,clock,lineage from app.world")).rows[0]!;
+  const secret = "snapshot-epoch-regression";
+  const core = createCore({
+    database: process.env.DATABASE_URL!, workerDatabase: process.env.WORKER_DATABASE_URL!,
+    secret, port: 0, host: "127.0.0.1", url: "http://127.0.0.1", frappe: "http://127.0.0.1:8000",
+    ponder: process.env.PONDER_URL!, rpc: process.env.RPC_URL!, chainId: 84532,
+    socket: "http://127.0.0.1:9000", startPaused: true, finality: 0, world: world.world_id,
+  });
+  try {
+    await database.worker.query("update app.world set epoch=17");
+    assert.equal((await database.worker.query("select epoch from app.world")).rows[0]!.epoch, "17", "pg bigint decoding must actually be exercised");
+    const address = await core.start();
+    assert(address && typeof address === "object");
+    const raw = "{}";
+    const response = await fetch(`http://127.0.0.1:${address.port}/admin/snapshot/pause`, {
+      method: "POST", body: raw, headers: { "x-capxul-signature": signature(raw, secret) }, signal: AbortSignal.timeout(5000),
+    });
+    assert.equal(response.status, 200);
+    const cut: any = await response.json();
+    assert.equal(cut.epoch, 17, "pause must satisfy the strict numeric supervisor/recovery identity contract");
+    assert.equal((await readSnapshotCut(database)).epoch, 17, "normalize at the exported storage door, not just the HTTP serializer");
+    assert.equal(cut.world_id, world.world_id);
+    assert.deepEqual(cut.clock, world.clock); assert.deepEqual(cut.lineage, world.lineage);
+    assert.equal(cut.paused, true); assert.equal(cut.activeRequests, 0); assert.equal(cut.activeDeliveries, 0);
+    console.log(JSON.stringify({ proof: "public-pause-numeric-epoch", storedType: "bigint/string", epoch: cut.epoch, paused: cut.paused }));
+  } finally {
+    await core.stop();
+    await database.worker.query("update app.world set epoch=$1", [world.epoch]);
+    await database.close();
+  }
+});
 
 test("explicit restore rebases only mapped answer origins without changing approval identity or financial records", async () => {
   const database = new Database(process.env.DATABASE_URL!, process.env.WORKER_DATABASE_URL!);
