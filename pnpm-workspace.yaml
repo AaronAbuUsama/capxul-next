@@ -12,7 +12,7 @@ catalog:
 # Supply chain: a version must be at least 3 days old, and no dependency runs an install script
 # unless it is listed here.
 minimumReleaseAge: 4320
-# The one exception (Aaron, 12 November 2026, decision aaron.alchemy-provisioning): the Alchemy beta the provisioner pins,
+# The one exception (Aaron, 12 November 2026, decision aaron.alchemy-release-age): the Alchemy beta the provisioner pins,
 # its E2B client, and the effect release it needs. Everything else keeps the three days.
 minimumReleaseAgeExclude:
   - alchemy

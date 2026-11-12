@@ -1135,11 +1135,8 @@ export const decision_aaron_alchemy_provisioning = defineDecision({
     "for all worlds) with one Postgres and one bench inside each world's box; the storage choice itself (Postgres and Ponder " +
     "everywhere, MariaDB only for Frappe) stands. Not settled here: how a world service that creates worlds by itself signs " +
     "in to AWS (an assumed role, never an IAM user or key), whether Cloudflare fronts the worlds, and the placement for " +
-    "long-lived shared worlds. At 18:49 he allowed an exception to the workspace's three-day minimum release age (decision " +
-    "tooling.package-manager) for Alchemy: \"Yeah, we can make an exception for this supply chain thing.\" It covers only " +
-    "alchemy, @alchemy.run/*, @distilled.cloud/* (the E2B client Alchemy's E2B provider uses), and effect, @effect/platform-node and " +
-    "@effect/platform-node-shared at exactly 4.1.4, which Alchemy 2.0.0-beta.86 needs; every other dependency keeps the rule.",
-  source: "Aaron, 12 November 2026, in the project thread \"Rethink infrastructure around Alchemy\" (18:12, 18:23 and 18:49 UTC)",
+    "long-lived shared worlds.",
+  source: "Aaron, 12 November 2026, in the project thread \"Rethink infrastructure around Alchemy\" (18:12 and 18:23 UTC)",
   affects: [
     f.system_capxul,
     f.component_provisioner,
@@ -1152,4 +1149,30 @@ export const decision_aaron_alchemy_provisioning = defineDecision({
     cloud.environment_worlds,
     cloud.environment_production,
   ],
+});
+
+export const decision_aaron_alchemy_release_age = defineDecision({
+  id: "aaron.alchemy-release-age",
+  title: "Alchemy may be younger than the three-day release age",
+  question:
+    "Alchemy's E2B provider first shipped in 2.0.0-beta.86 on 12 November 2026, and beta.86 needs effect 4.1.4 (11 " +
+    "November). The workspace refuses any version under three days old (tooling.package-manager, tooling.pins). Wait until " +
+    "15 November, or allow an exception?",
+  options: [
+    {
+      label: "exception-for-alchemy",
+      text:
+        "minimumReleaseAgeExclude in pnpm-workspace.yaml lists only alchemy, @alchemy.run/*, @distilled.cloud/* (the E2B " +
+        "client the provider uses), and effect, @effect/platform-node and @effect/platform-node-shared at exactly 4.1.4. " +
+        "Only packages/provisioner uses effect 4.1.4; the catalog stays at 4.1.2 and every other dependency keeps the rule.",
+    },
+    { label: "wait", text: "Stay on beta.85 and take beta.86 when it is three days old (15 November)." },
+  ],
+  chosen: "exception-for-alchemy",
+  why:
+    "Aaron, thread \"Rethink infrastructure around Alchemy\", 12 November 2026 18:49 UTC: \"Yeah, we can make an exception " +
+    "for this supply chain thing.\" The provisioner's door keeps Alchemy away from every other package, so the younger " +
+    "versions reach only that package; install scripts stay off (onlyBuiltDependencies is unchanged).",
+  source: "Aaron, 12 November 2026, in the project thread \"Rethink infrastructure around Alchemy\" (18:49 UTC)",
+  affects: [f.system_capxul, f.component_provisioner],
 });

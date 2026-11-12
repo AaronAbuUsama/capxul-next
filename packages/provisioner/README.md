@@ -33,8 +33,8 @@ taken inside the box.
 - `docker` (built): a laptop or a cloud container. In a Claude cloud container the box shares the host network (the agent
   proxy is on loopback) and trusts the proxy's CA (`CAPXUL_BOX_TRUST_CA`). Because of that shared network, two docker-placed boxes on one
   host would collide on ports; one box per host until boxes get their own network.
-- `e2b` (next): test runs in an E2B sandbox, destroyed after the run. Alchemy's E2B provider first shipped in
-  2.0.0-beta.86 (12 November 2026); the workspace's three-day minimum release age admits it from 15 November.
+- `e2b` (next): test runs in an E2B sandbox, destroyed after the run, through `@alchemy.run/e2b`. Waits on an
+  `E2B_API_KEY` in the environment.
 - A long-lived machine with a real disk, for shared worlds: not chosen yet.
 
 ## Checks
