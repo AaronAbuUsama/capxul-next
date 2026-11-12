@@ -257,7 +257,18 @@ test("concurrent collectors drain outstanding answers across reconnect without s
     assert.equal((await fetch(`${coreUrl}/ready`)).status, 503);
     await post("/admin/snapshot/resume", {});
     await until(async () => collects, (n) => n >= stopped + sites.length, "all collectors resume from durable cursors");
-    console.log(JSON.stringify({ proof: "four-concurrent-collectors-and-reconnect-drain", answered: answered.size, cursors: rows.map((r) => r.request_cursor), activeRequests: cut.activeRequests, activeDeliveries: cut.activeDeliveries }));
+    const raw = JSON.stringify({ org: sites[0]!.org });
+    const polls = await Promise.all(Array.from({ length: 8 }, async () => {
+      const response = await fetch(`${coreUrl}/admin/alerts`, { method: "POST", body: raw, signal: AbortSignal.timeout(5000), headers: { "x-capxul-signature": signature(raw, secret) } });
+      assert.equal(response.status, 200);
+      const value: any = await response.json();
+      assert.deepEqual(value.alerts.map((a: any) => a.id), ["indexer_unready", "delivery_stuck", "money_event_parked"]);
+      assert.ok(value.alerts.every((a: any) => !a.active));
+      return value;
+    }));
+    assert.equal((await fetch(`${coreUrl}/health`)).status, 200);
+    await post("/admin/snapshot/pause", {});
+    console.log(JSON.stringify({ proof: "four-concurrent-collectors-and-reconnect-drain", answered: answered.size, cursors: rows.map((r) => r.request_cursor), alertPolls: polls.length, activeRequests: cut.activeRequests, activeDeliveries: cut.activeDeliveries }));
   } finally {
     releaseAnswers(); releasePeers();
     core.kill("SIGKILL"); await new Promise<void>((done) => { if (core.exitCode !== null || core.signalCode !== null) done(); else core.once("exit", () => done()); });

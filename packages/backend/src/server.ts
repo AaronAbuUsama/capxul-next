@@ -78,7 +78,7 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
           case "/approvals/get": return get(sql, org, b.id);
           case "/approvals/submitted": return submitted(sql, org, b.id, b.txHash, b.signer);
           case "/admin/record": return (await sql.query("select * from app.records where org_id=$1 order by id", [org])).rows;
-          case "/admin/alerts": return alerts(db, org, config.ponder, config.chainId, config.rpc);
+          case "/admin/alerts": return alerts(db, sql, org, config.ponder, config.chainId, config.rpc);
           default: throw new Error("NOT_FOUND: unknown route");
         }
       });
