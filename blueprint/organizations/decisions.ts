@@ -3,7 +3,7 @@
 // old code (/home/user/factory, integration/factory) and the as-is book as evidence.
 
 import { defineDecision } from "../../packages/blueprint-engine/src/index.ts";
-import { concept_activity, concept_board, concept_budgets, concept_notices, concept_organizations, concept_parties } from "../shared/foundation.ts";
+import { concept_activity, concept_board, concept_budgets, concept_notices, concept_organizations, concept_parties, concept_plugs } from "../shared/foundation.ts";
 import { error_CANCELLED, error_FEATURE_NOT_AVAILABLE, error_SEAT_LIMIT_REACHED, error_WRONG_STATE } from "../shared/vocabulary.ts";
 import {
   event_org_invite_transitioned,
@@ -135,6 +135,20 @@ export const decision_organizations_deployment_row = defineDecision({
     "The concept map gives organizations the deployment ('which officer hat is which') so every concept above can name hats without knowing the install's officer order. The event is emitted once per company and its ids never change, so the row cannot drift, which is what P3's 'nothing copies chain rows' guards against. The install batch is built from it, so the setup needs it anyway. Who wears a hat now, the budgets and the Board's signers stay indexing's views. Review, 11 November 2026: Confirmed organizations.deployment-row; original choice retained.",
   source: by("IInstaller.sol:46-60 (MoneyDeployment); packages/backend/src/organizations/setups/external/deploys.ts:213; concepts.organizations"),
   affects: [table_org_deployments, workflow_organizations_setups_set_up],
+});
+
+export const decision_organizations_native_hat_binding_authority = defineDecision({
+  id: "organizations.native-hat-binding-authority",
+  title: "Proposed: native hat bindings follow authorized canonical intents",
+  question: "Should the numeric Hat to native named hat and Department binding belong to the existing authorized intent, or a separately editable Director registry?",
+  options: [
+    { label: "canonical-intents", text: "Carry an explicit typed binding in the canonical Organization setup, Board or budget intent. Validate its named hat against the shipped native release map/version and its Department against the site's canonical Department key. Activate the binding only when that intent's numeric deployment/hat fact is finalized. No separate editor gains authority to change what a chain hat means." },
+    { label: "director-registry", text: "Add a separately editable registry authorized by the current Director. It binds finalized numeric hats to release-validated native names and canonical Department keys without a setup/Board/budget intent. This permits independent correction but creates another administrative authority and audit lifecycle." },
+  ],
+  chosen: "canonical-intents",
+  why: "Recommendation only; awaiting Aaron's answer before implementing this new admission mapping. organizations.deployment-row and plugs.roles.project already resolve finalized numeric facts through the Organization's deployment, while plugs.hat-map-ships owns the release's named hat/role map. Neither currently defines the missing binding writer or canonical native Department admission. Only the owning setup, Board or budget procedure may carry the proposed descriptor under its existing authentication and authorization; Organizations would validate and retain its exact intent, release version and finalized occurrence provenance, never trust app.hats, Hat.details, legacy people, caller role labels or signer strings. Plugs would join that admitted binding to Core's same-Sql finalized hat occurrence, active Seat, Access principal and nullable Party name. A missing or mismatched source fails closed. A reorg invalidating the binding's provenance makes it unavailable, and Plugs revokes or reverses derived native grants while retaining original binding/grant/event history; a replay creates nothing twice. Wearer transfers and revocations still follow finalized indexing facts, not copied Safe/Hats authority. Department keys must identify actual native Departments, not names inferred from a budget or officer position. This proposal changes no schema, runtime authority, required eval, acceptance claim or scope disposition.",
+  source: "Amp Organizations owner, proposed 12 November 2026 at integrator request; source review with Board PR58 e5a5cab, Core PR59 9a5cc287 and Plugs PR69; blueprint/plugs/processes.ts plugs.roles.project; organizations.deployment-row; plugs.hat-map-ships; plugs.hat-roles-by-job",
+  affects: [table_org_deployments, table_org_members, concept_organizations, concept_board, concept_budgets, concept_plugs, concept_parties],
 });
 
 export const decision_organizations_setup_machine = defineDecision({
