@@ -1,0 +1,126 @@
+import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
+import test from "node:test";
+import pg from "pg";
+import { Database, transaction } from "../src/platform/db.ts";
+import { consume, emit, migrateOutbox, readEvent, relay, type TransitionEvent } from "../src/platform/outbox.ts";
+
+// Explicit standalone PG control, not part of the Ponder/v4 fixture suite's *.test.ts glob.
+const url = process.env.OUTBOX_TEST_ADMIN_URL;
+if (!url || new URL(url).pathname !== "/outbox_test" || !["localhost", "127.0.0.1"].includes(new URL(url).hostname)) {
+  throw new Error("OUTBOX_TEST_ADMIN_URL must name a dedicated loopback outbox_test database");
+}
+
+test("committed runtime outbox: rollback, crash retry, concurrency, exact identity and person/org RLS", { timeout: 30_000 }, async (t) => {
+  const admin = new pg.Client({ connectionString: url }); await admin.connect();
+  const roleUrl = (role: string) => { const u = new URL(url); u.username = role; return u.href; };
+  await admin.query(`create role capxul_core login nosuperuser nobypassrls;
+    create role capxul_worker login nosuperuser nobypassrls; create schema app;
+    grant usage on schema app to capxul_core,capxul_worker`);
+  await migrateOutbox(admin);
+  await admin.query(`create table app.outbox_source_probe (id text primary key);
+    create table app.outbox_effect_probe (consumer text,event_id text,primary key(consumer,event_id));
+    grant select,insert on app.outbox_source_probe,app.outbox_effect_probe to capxul_worker`);
+  const db = new Database(roleUrl("capxul_core"), roleUrl("capxul_worker"));
+  const event = (id: string, owner_kind: TransitionEvent["owner_kind"] = "person", owner_id: string | null = "person-a"): TransitionEvent => ({
+    id, name: "request_transitioned", machine: "request", entity_id: "req-731", owner_kind, owner_id, actor: "person-a",
+    trace_id: "trace-731", at: 1_234_567,
+    props: { from: null, to: "open", transition: "issue", request_id: "req-731", owner_kind: "person", owner_id: "person-a", kind: "invoice", payer_kind: "none" },
+  });
+  const effect = async (sql: Parameters<typeof consume>[0], e: TransitionEvent) => {
+    await sql.query("insert into app.outbox_effect_probe values ('notices',$1)", [e.id]);
+  };
+  try {
+    await t.test("source mutation and emitted event roll back together", async () => {
+      await assert.rejects(db.transaction("", async (sql) => {
+        await sql.query("insert into app.outbox_source_probe values ('rolled-back')");
+        await emit(sql, event("rolled-back")); throw new Error("source failed after emit");
+      }, true), /source failed/);
+      assert.equal((await admin.query("select * from app.outbox_source_probe")).rowCount, 0);
+      assert.equal(await readEvent(admin, "rolled-back"), null);
+      await db.transaction("", async (sql) => {
+        await sql.query("insert into app.outbox_source_probe values ('committed')"); await emit(sql, event("committed"));
+      }, true);
+      assert.deepEqual(await readEvent(admin, "committed"), event("committed"));
+      assert.equal((await admin.query("select * from app.outbox_source_probe")).rowCount, 1);
+    });
+    await t.test("exact retries deduplicate and changed envelopes cannot overwrite history", async () => {
+      await db.transaction("", (sql) => emit(sql, event("committed")), true);
+      await assert.rejects(db.transaction("", (sql) => emit(sql, { ...event("committed"), at: 1_234_568 }), true), /IDEMPOTENCY_CONFLICT/);
+      assert.equal((await admin.query("select * from app.transition_outbox")).rowCount, 1);
+      assert.deepEqual(await readEvent(admin, "committed"), event("committed"));
+    });
+    await t.test("consumer effect and ACK roll back on error, then retry once under concurrent relays", async () => {
+      await assert.rejects(relay(db, "notices", ["request_transitioned"], async (sql, e) => { await effect(sql, e); throw new Error("handler failed"); }), /handler failed/);
+      assert.equal((await admin.query("select * from app.outbox_effect_probe")).rowCount, 0);
+      assert.equal((await admin.query("select * from app.transition_acks")).rowCount, 0);
+      const counts = await Promise.all([relay(db, "notices", ["request_transitioned"], effect), relay(db, "notices", ["request_transitioned"], effect)]);
+      assert.equal(counts.reduce((a, b) => a + b), 1);
+      assert.equal((await admin.query("select * from app.outbox_effect_probe")).rowCount, 1);
+      assert.equal((await admin.query("select * from app.transition_acks where consumer='notices'")).rowCount, 1);
+      assert.equal(await relay(db, "notices", ["request_transitioned"], effect), 0);
+      assert.equal(await relay(db, "activity", ["request_transitioned"], async (sql, e) => {
+        await sql.query("insert into app.outbox_effect_probe values ('activity',$1)", [e.id]);
+      }), 1, "each consumer has its own ACK");
+    });
+    await t.test("process death after effect+ACK but before commit leaves both retryable", async () => {
+      await db.transaction("", (sql) => emit(sql, event("crash")), true);
+      const source = `import pg from 'pg'; import {consume} from ${JSON.stringify(new URL("../src/platform/outbox.ts", import.meta.url).href)};
+        const client=new pg.Client({connectionString:process.env.OUTBOX_WORKER_URL}); await client.connect(); await client.query('begin');
+        await consume(client,'crash-consumer','crash',async(sql,e)=>{await sql.query("insert into app.outbox_effect_probe values ('crash-consumer',$1)",[e.id]);});
+        process.send('acked-before-commit'); await new Promise(()=>{});`;
+      const child = spawn(process.execPath, ["--experimental-strip-types", "--no-warnings", "--input-type=module", "-e", source], {
+        cwd: new URL("..", import.meta.url), env: { ...process.env, OUTBOX_WORKER_URL: roleUrl("capxul_worker") }, stdio: ["ignore", "pipe", "pipe", "ipc"],
+      });
+      const [phase] = await Promise.race([once(child, "message"), once(child, "exit").then(() => { throw new Error("crash child exited before ACK boundary"); })]);
+      assert.equal(phase, "acked-before-commit"); const exit = once(child, "exit"); child.kill("SIGKILL"); await exit;
+      assert.equal((await admin.query("select * from app.outbox_effect_probe where consumer='crash-consumer'")).rowCount, 0);
+      assert.equal((await admin.query("select * from app.transition_acks where consumer='crash-consumer'")).rowCount, 0);
+      assert.equal(await db.transaction("", (sql) => consume(sql, "crash-consumer", "crash", async (s, e) => {
+        await s.query("insert into app.outbox_effect_probe values ('crash-consumer',$1)", [e.id]);
+      }), true), true);
+      assert.equal(await db.transaction("", (sql) => consume(sql, "crash-consumer", "crash", async () => { throw new Error("replay invoked effect"); }), true), false);
+    });
+    await t.test("personal, organization and pre-principal events need no organization FK and stay scoped", async () => {
+      await db.transaction("", async (sql) => {
+        await emit(sql, event("org-a", "organization", "org-a")); await emit(sql, event("org-b", "organization", "org-b"));
+        await emit(sql, event("person-b", "person", "person-b")); await emit(sql, event("unlisted", null, null));
+      }, true);
+      const client = await db.tenant.connect();
+      try {
+        await db.ownerTransaction({ kind: "person", id: "person-a" }, async (sql) => {
+          assert.equal((await sql.query("select current_setting('app.person_id',true) as id")).rows[0].id, "");
+          assert.equal(await readEvent(sql, "org-a"), null); assert.equal(await readEvent(sql, "person-b"), null);
+          assert.equal(await readEvent(sql, "unlisted"), null);
+          assert.deepEqual(await readEvent(sql, "committed"), event("committed"));
+          await emit(sql, event("personal-source"));
+        });
+        await db.ownerTransaction({ kind: "organization", id: "org-a" }, async (sql) => {
+          assert.deepEqual(await readEvent(sql, "org-a"), event("org-a", "organization", "org-a"));
+          assert.equal(await readEvent(sql, "committed"), null);
+          assert.equal(await readEvent(sql, "org-b"), null);
+          await emit(sql, event("organization-source", "organization", "org-a"));
+        });
+        await assert.rejects(db.ownerTransaction({ kind: "person", id: "person-b" }, (sql) => emit(sql, event("cross-person"))), /row-level security/);
+        await assert.rejects(transaction(client, "org-a", (sql) => emit(sql, event("cross-org", "organization", "org-b"))), /row-level security/);
+        await assert.rejects(db.ownerTransaction({ kind: "person", id: "org-a" }, (sql) => emit(sql, event("wrong-kind", "organization", "org-a"))), /row-level security/);
+        await assert.rejects(client.query("update app.transition_outbox set event=event"), /permission denied/);
+        await assert.rejects(db.worker.query("delete from app.transition_outbox"), /permission denied/);
+        await assert.rejects(client.query("insert into app.transition_acks values ('forged','committed',now())"), /permission denied/);
+      } finally { client.release(); }
+    });
+    await t.test("a source committing behind another delivered sequence is not lost", async () => {
+      const late = await db.worker.connect(); await late.query("begin");
+      try {
+        await emit(late, { ...event("late"), name: "late_transitioned" });
+        await db.transaction("", (sql) => emit(sql, { ...event("early"), name: "late_transitioned" }), true);
+        const seen: string[] = [];
+        assert.equal(await relay(db, "late-reader", ["late_transitioned"], async (_sql, e) => { seen.push(e.id); }), 1);
+        await late.query("commit");
+        assert.equal(await relay(db, "late-reader", ["late_transitioned"], async (_sql, e) => { seen.push(e.id); }), 1);
+        assert.deepEqual(seen, ["early", "late"]);
+      } finally { await late.query("rollback"); late.release(); }
+    });
+  } finally { await db.close(); await admin.end(); }
+});

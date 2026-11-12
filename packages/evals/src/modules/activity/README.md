@@ -1,0 +1,9 @@
+# Activity selected-stack checks
+
+`bash run.sh --list` needs no fixture. Normal execution requires the supervisor's private `CAPXUL_WORLD_CONFIG`, post-restore `CAPXUL_ACCEPTANCE_FIXTURE` and harness-owned running `CAPXUL_EVAL_RUN_DIR`. It uses only restricted tenant/worker connections, validates the pinned live world through public `world inspect`, and saves sanitized introspection under the same run's `activity/`. It never migrates, restores, changes the original paid rows, or treats a direct appender test as a workflow run.
+
+The three table bindings remain **near-only**: schema introspection, actual owner-feed row equality and writer ACLs cover only their stated portions. Eleven payment workflow p95/idempotency/resume claims remain unbound until the real payment lifecycle, shared transition outbox and source dispatcher are integrated and exercised. There are no unconditional workflow checks, skipped-success checks or copied component receipts.
+
+`packages/backend/src/activity/door.ts` exports `migrateActivity(Sql)` for explicit world creation and `note(Sql,event)` for the committed source outbox consumer. Source event identity/time are immutable across retry; caller commits the appender and its consumer ACK in the same transaction after the source commit. Site business ACK is unrelated. The appender follows all eleven payment transitions and only Movement `record`.
+
+Component validation is deliberately separate: with a fresh disposable Postgres17 `activity_test` database, run `ACTIVITY_TEST_ADMIN_URL=… node --experimental-strip-types --no-warnings --test packages/backend/test/activity/run.test.ts`. Its minimal payment-side fixtures are **not** public payment lifecycle, ERPNext, Ponder or v4 proof. It checks schema, restricted roles, asymmetric owner kinds/IDs, concurrent and reciprocal appends, duplicate delivery, rollback, a cursor's no-overtake boundary and actual SIGKILL before/after commit. Nothing from it writes a scoreboard verdict.

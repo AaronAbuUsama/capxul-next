@@ -633,6 +633,16 @@ Environment is `{world,storage:"json"|"postgres",indexer:"inline"|"ponder",stack
 
 `--json` returns `{version:1,run,runDir,state,passed,counts:{pass,fail,not_run},exitCode}` on stdout, with script logs on stderr. `passed` requires a nonempty complete run with every requested eval passing. Complete execution with an unbound `not_run` eval still exits 1; completion alone never means success. `runDir` is repository-relative. Validation errors before a run starts have no run directory. Use `pnpm --silent evals -- ... --json` to omit pnpm's banner.
 
+`--prepare <argv-json-file>` runs one optional preparation command after the running receipt and cleared requested verdicts
+are saved, before binding scripts. The JSON is `[executable,...literalArguments]`, validated before creating an attempt and
+spawned directly without shell expansion from the repository root. It inherits `CAPXUL_ACCEPTANCE_FIXTURE` and receives
+`CAPXUL_EVAL_RUN_DIR`, so it can create the fixture only after the receipt exists. The receipt adds optional
+`prepare:{argv,exitCode:null|number,signal:null|string,log:"prepare.log"}`; intent precedes launch and exits precede scripts.
+Failure/signal/spawn error skips binding scripts and makes the attempt incomplete. Preparation output never supplies
+checks; concepts still prove their public journey actions, persisted reads/native integrity and correlated events.
+Keep credentials out of argv and preparation output; the combined `prepare.log` uses declared-secret redaction and the
+same cap as `run.log`. Old receipts without preparation remain readable (`system.eval-preparation`).
+
 ```bash
 pnpm evals -- all                                      # every eval that has a check (company slug: a fresh one; --slug to choose, --world main)
 pnpm evals -- acc:doc.submit/c-74a45893884b5bef acc:world.snapshot.restore/c-369b1db183b9807f
