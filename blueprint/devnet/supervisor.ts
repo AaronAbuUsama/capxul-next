@@ -56,3 +56,17 @@ export const decision_devnet_preparation_host_context = defineDecision({
   source: "Retained solsock run-20261112123816458-aff2bc98 CLI error and paired read-only supervision controls, 12 November 2026",
   affects: [component_devnet, concept_devnet],
 });
+
+export const decision_devnet_preparation_host_user = defineDecision({
+  id: "devnet.preparation-host-user",
+  title: "Preparation launches supervised services as the operating-system caller",
+  question: "Which execution identity may the restricted host preparation supply when resuming its own world?",
+  options: [
+    { label: "os-caller", text: "The gate supplies USER from the operating system's current user identity to its harness/preparation child, alongside the explicit host marker. Application runtime environments remain unchanged. Neither caller-supplied USER nor a broad operator environment determines the service account." },
+    { label: "omit-user", text: "Leave execution identity out of the restricted preparation environment, allowing the service CLI to choose unknown." },
+  ],
+  chosen: "os-caller",
+  why: "Solgate published its native snapshot but source resume failed before bash or Anvil ran: the new transient service had User=unknown and exited 217/USER. Two distinct disposable sleep-service controls reproduce that missing identity under the restricted environment and launch a real process when USER alone names the actual caller. The CLI reporting started and exiting zero is not wrapper readiness. The preparation process must retain the operator's actual host identity without importing authentication credentials or granting application children host supervision context.",
+  source: "Retained solgate run-20261112131330936-216fd544 systemd/CLI evidence and isolated USER-only supervisor controls, 12 November 2026",
+  affects: [component_devnet, concept_devnet],
+});
