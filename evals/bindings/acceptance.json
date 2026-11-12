@@ -1,0 +1,38 @@
+{
+  "area": "acceptance",
+  "script": "packages/evals/src/modules/acceptance/run.sh",
+  "worlds": ["slice-zero"],
+  "secrets": ["spikes/skeleton/.env", "spikes/skeleton/core/people.json"],
+  "bindings": [
+    {
+      "eval": "scr:supplier-invoice/shows",
+      "checks": ["ACCEPT.selected-stack", "ACCEPT.money-reconciled", "ACCEPT.invoice-screen-source-equal"],
+      "why": "On the disposable selected-stack world, a signed-in hat holder opens the real invoice. Rendered company, supplier, currency, total and zero outstanding equal the API document and the allocated USDC payment. Each rendered field has a retained screenshot and source assertion."
+    },
+    {
+      "eval": "scr:payment-entry/shows",
+      "checks": ["ACCEPT.selected-stack", "ACCEPT.money-reconciled", "ACCEPT.payment-screen-source-equal"],
+      "why": "The posted entry's rendered party, amount, status, approval link and transaction equal its API source, the unique Payment Request and the fixture transaction. The ledger posts the amount once; screenshots are retained. This binds shows, not actions, refusals or other lifecycle states."
+    },
+    {
+      "eval": "scr:general-ledger/shows",
+      "checks": ["ACCEPT.selected-stack", "ACCEPT.money-reconciled", "ACCEPT.ledger-screen-source-equal"],
+      "why": "The actual General Ledger report renders the selected payment's Safe account, amount and posting trace. API double-entry, Trial Balance and the same-cutoff chain balance independently reconcile; a screenshot is retained."
+    },
+    {
+      "eval": "scr:safe-trial-balance/shows",
+      "checks": ["ACCEPT.selected-stack", "ACCEPT.money-reconciled", "ACCEPT.balance-screen-source-equal"],
+      "why": "The real Trial Balance report renders the Safe account's remaining balance. Its closing debit/credit agree with the independent API ledger sum and chain balance at the saved block cutoff; the DOM assertion and screenshot are retained."
+    },
+    { "eval": "alr:indexer_unready/quiet", "checks": ["ACCEPT.selected-stack", "ACCEPT.alerts-quiet-under-load"], "why": "Three actual load/replay operations each return complete fresh diagnostics with every money-path alert inactive." },
+    { "eval": "alr:delivery_stuck/quiet", "checks": ["ACCEPT.selected-stack", "ACCEPT.alerts-quiet-under-load"], "why": "Brief healthy delivery/replay stays quiet; missing diagnostics do not count as quiet." },
+    { "eval": "alr:money_event_parked/quiet", "checks": ["ACCEPT.selected-stack", "ACCEPT.alerts-quiet-under-load"], "why": "The loaded world has no unresolved parked money issue and fresh complete operator diagnostics." },
+    { "eval": "alr:indexer_unready/fires", "checks": ["ACCEPT.selected-stack", "ACCEPT.indexer_unready-fires"], "why": "Stopping the real indexer produces exactly the expected operator-visible active alert across two polls; the test never substitutes an alert boolean." },
+    { "eval": "alr:delivery_stuck/fires", "checks": ["ACCEPT.selected-stack", "ACCEPT.delivery_stuck-fires"], "why": "A real unacknowledged due event held past the threshold produces one delivery alert, not an unrelated or duplicate alert." },
+    { "eval": "alr:money_event_parked/fires", "checks": ["ACCEPT.selected-stack", "ACCEPT.money_event_parked-fires"], "why": "A poisoned money event produces one operator-visible parked-money alert with a reason across successive polls." },
+    { "eval": "alr:indexer_unready/clears", "checks": ["ACCEPT.selected-stack", "ACCEPT.indexer_unready-fires", "ACCEPT.indexer_unready-clears", "ACCEPT.payment-unchanged-after-faults"], "why": "After real indexer repair/catch-up all alerts become inactive and the original payment still reconciles without another posting." },
+    { "eval": "alr:delivery_stuck/clears", "checks": ["ACCEPT.selected-stack", "ACCEPT.delivery_stuck-fires", "ACCEPT.delivery_stuck-clears", "ACCEPT.payment-unchanged-after-faults"], "why": "Site delivery repair clears the observed fault; original invoice, payment posting and chain/books reconciliation still hold." },
+    { "eval": "alr:money_event_parked/clears", "checks": ["ACCEPT.selected-stack", "ACCEPT.money_event_parked-fires", "ACCEPT.money_event_parked-clears", "ACCEPT.payment-unchanged-after-faults"], "why": "Repair/retry resolves the previously observed money fault and does not post the original payment twice." }
+  ],
+  "near": []
+}
