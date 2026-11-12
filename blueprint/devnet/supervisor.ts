@@ -42,3 +42,17 @@ export const decision_devnet_bench_callback_startup = defineDecision({
   source: "Retained solsup run-20261112121451347-3ccaf6fc listener controls, 12 November 2026; Frappe realtime/utils.js; devnet/processes.ts benchUp",
   affects: [component_devnet, concept_devnet],
 });
+
+export const decision_devnet_preparation_host_context = defineDecision({
+  id: "devnet.preparation-host-context",
+  title: "Receipt-first preparation retains its host supervision context",
+  question: "How can the restricted preparation child recover its own world without importing operator credentials?",
+  options: [
+    { label: "explicit-host-marker", text: "The gate forwards inherited AMP_ORB to its harness/preparation child, in addition to its restricted runtime and selected fixture inputs. Runtime application children stay unchanged; no broad environment copy or Amp authentication credentials are forwarded." },
+    { label: "application-only", text: "Run the supervisor preparation with only an application's runtime environment, losing its host service context." },
+  ],
+  chosen: "explicit-host-marker",
+  why: "The solsock snapshot-save failed before bench pause: its preparation child resolved the live ingress service as not running. Read-only same-service controls reproduced this under the restricted environment; forwarding only AMP_ORB restored the actual active PID, while AMP_URL alone did not. The preparation process is the receipt-bound host supervisor, not an application child. Its existing recovery authority must address the same supervised services without gaining operator database or unrelated authentication keys.",
+  source: "Retained solsock run-20261112123816458-aff2bc98 CLI error and paired read-only supervision controls, 12 November 2026",
+  affects: [component_devnet, concept_devnet],
+});

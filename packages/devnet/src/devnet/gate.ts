@@ -71,7 +71,8 @@ export async function runGate(c: Config, slug: string, token: string, configFile
   let stdout: string;
   try {
     stdout = await command(["pnpm", "--silent", "evals", "--", ...required, "--world", "slice-zero", "--slug", slug, "--environment", metadata, "--prepare", prepare, "--json"], c.root,
-      { ...runtimeEnv(c, "anvil"), ...sitesEnvironment(c), CAPXUL_STORAGE_EVAL_DATABASE: databaseUrl(c.database.tenant, c.world),
+      { ...runtimeEnv(c, "anvil"), ...(process.env.AMP_ORB ? { AMP_ORB: process.env.AMP_ORB } : {}),
+        ...sitesEnvironment(c), CAPXUL_STORAGE_EVAL_DATABASE: databaseUrl(c.database.tenant, c.world),
         CAPXUL_SECRET: c.secret, CAPXUL_ACCEPTANCE_FIXTURE: fixture, CAPXUL_WORLD_CONFIG: resolve(configFile), CAPXUL_WORLD_RUN_TOKEN: token });
   } catch (error: any) {
     // Exit 1 is a truthful failed/not_run attempt and still has a JSON receipt pointer. Preflight errors do not.
