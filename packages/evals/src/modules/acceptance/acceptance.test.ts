@@ -10,10 +10,12 @@ import { cents, reconcile, type Sources } from "./sources.ts";
 const fixture = {
   invoice: "PI-17", paymentEntry: "PE-29", company: "Acceptance Ltd", supplier: "Window Cleaning Ltd",
   safeAccount: "Safe - A", amountAtomic: "125500000", txHash: `0x${"a".repeat(64)}`,
+  safe: `0x${"1".repeat(40)}`, token: `0x${"2".repeat(40)}`,
 } as Fixture;
 
 const source = (): Sources => ({
   invoice: { name: "PI-17", company: "Acceptance Ltd", supplier: "Window Cleaning Ltd", currency: "USD", docstatus: 1, grand_total: 125.5, outstanding_amount: 0 },
+  supplier: { name: "Window Cleaning Ltd", capxul_wallet_address: `0x${"3".repeat(40)}` },
   payment: { name: "PE-29", company: "Acceptance Ltd", party: "Window Cleaning Ltd", paid_from: "Safe - A", paid_from_account_currency: "USD", docstatus: 1,
     paid_amount: 125.5, capxul_status: "Sent", reference_no: fixture.txHash, capxul_approval_url: "/approve/17",
     references: [{ reference_doctype: "Purchase Invoice", reference_name: "PI-17", allocated_amount: 125.5 }] },
@@ -26,6 +28,11 @@ const source = (): Sources => ({
   ],
   trial: [{ account: "Safe - A", closing_debit: 874.75, closing_credit: 0 }],
   safeAtomic: "874750000", block: "0x2a", observedAt: "2026-11-12T08:00:00Z",
+  receipt: { transactionHash: fixture.txHash, status: "0x1", blockNumber: "0x29", logs: [{
+    address: fixture.token, transactionHash: fixture.txHash, removed: false,
+    topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", `0x${"0".repeat(24)}${"1".repeat(40)}`, `0x${"0".repeat(24)}${"3".repeat(40)}`],
+    data: "0x00000000000000000000000000000000000000000000000000000000077afA60",
+  }] },
 });
 
 const diagnostics = (active = "", at = new Date().toISOString()): Observation => ({
@@ -58,6 +65,27 @@ test("acceptance reconciles independent chain, ledger, allocation and Trial Bala
   assert.equal(cents("1000.2500"), 100025n);
   assert.equal(cents("-0.01"), -1n);
   assert.throws(() => cents("125.501"));
+});
+
+test("the selected supplier payment needs its own successful token-transfer receipt at the cutoff", () => {
+  const atCutoff = source(); atCutoff.receipt!.blockNumber = atCutoff.block;
+  reconcile(fixture, atCutoff);
+  const mistakes: Record<string, (s: Sources) => void> = {
+    "nonexistent transaction": (s) => { s.receipt = null; },
+    "failed transaction": (s) => { s.receipt!.status = "0x0"; },
+    "different transaction": (s) => { s.receipt!.transactionHash = `0x${"b".repeat(64)}`; },
+    "after cutoff": (s) => { s.receipt!.blockNumber = "0x2b"; },
+    "no transfer": (s) => { s.receipt!.logs = []; },
+    "different token": (s) => { s.receipt!.logs[0].address = `0x${"4".repeat(40)}`; },
+    "different sender": (s) => { s.receipt!.logs[0].topics[1] = `0x${"4".repeat(64)}`; },
+    "different supplier": (s) => { s.receipt!.logs[0].topics[2] = `0x${"4".repeat(64)}`; },
+    "different amount": (s) => { s.receipt!.logs[0].data = "0x77afa61"; },
+    "duplicate transfer": (s) => { s.receipt!.logs.push({ ...s.receipt!.logs[0] }); },
+    "removed transfer": (s) => { s.receipt!.logs[0].removed = true; },
+  };
+  for (const [name, mutate] of Object.entries(mistakes)) {
+    const s = source(); mutate(s); assert.throws(() => reconcile(fixture, s), name);
+  }
 });
 
 test("alert observations fail closed for missing, duplicate, stale and wrong-type diagnostics", () => {
@@ -112,7 +140,7 @@ test("operator HTTP contract authenticates every poll; seeded transitions repair
     }
     assert.equal(req.url, "/admin/alerts"); assert.equal(req.method, "POST");
     assert.equal(req.headers["x-capxul-signature"], createHmac("sha256", secret).update(body).digest("hex"));
-    assert.deepEqual(JSON.parse(body), { slug: "acceptance" });
+    assert.deepEqual(JSON.parse(body), { org: "acceptance" });
     res.setHeader("Content-Type", "application/json");
     res.end(JSON.stringify(diagnostics(active)));
   });
@@ -122,7 +150,7 @@ test("operator HTTP contract authenticates every poll; seeded transitions repair
   const fault = (id: string) => ({ seed: control("seed", id), repair: control("repair", id) });
   const f = { ...fixture, slug: "acceptance", coreUrl: origin, load: [process.execPath, "-e", "process.exit(0)"],
     faults: { indexer_unready: fault("indexer_unready"), delivery_stuck: fault("delivery_stuck"), money_event_parked: fault("money_event_parked") } } as Fixture;
-  const previous = process.env["SKELETON_SECRET"]; process.env["SKELETON_SECRET"] = secret;
+  const previous = process.env["CAPXUL_SECRET"]; process.env["CAPXUL_SECRET"] = secret;
   try {
     await readAlerts(f);
     const results: { name: string; passed: boolean }[] = [];
@@ -142,7 +170,7 @@ test("operator HTTP contract authenticates every poll; seeded transitions repair
     assert.equal(repairs.at(-1), "indexer_unready"); assert.equal(active, "");
     assert(!results.some((r) => r.name.includes("delivery_stuck")), "must stop after an unattributable/failed seed");
   } finally {
-    if (previous === undefined) delete process.env["SKELETON_SECRET"]; else process.env["SKELETON_SECRET"] = previous;
+    if (previous === undefined) delete process.env["CAPXUL_SECRET"]; else process.env["CAPXUL_SECRET"] = previous;
     server.close(); await once(server, "close");
   }
 });

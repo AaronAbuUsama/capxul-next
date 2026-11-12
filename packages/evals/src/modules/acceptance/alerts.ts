@@ -67,9 +67,9 @@ export function observation(value: unknown, now = Date.now()): Observation {
 }
 
 export async function readAlerts(f: Fixture): Promise<Observation> {
-  const secret = process.env["SKELETON_SECRET"];
-  assert(secret, "SKELETON_SECRET is required for authenticated operator diagnostics");
-  const body = JSON.stringify({ slug: f.slug });
+  const secret = process.env["CAPXUL_SECRET"];
+  assert(secret, "CAPXUL_SECRET is required for authenticated operator diagnostics");
+  const body = JSON.stringify({ org: f.slug });
   const res = await fetch(new URL("/admin/alerts", f.coreUrl), {
     method: "POST", headers: { "Content-Type": "application/json", "X-Capxul-Signature": createHmac("sha256", secret).update(body).digest("hex") },
     body, signal: AbortSignal.timeout(10000),

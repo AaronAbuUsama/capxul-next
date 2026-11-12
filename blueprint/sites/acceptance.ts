@@ -70,7 +70,7 @@ export const decision_sites_slice_zero_acceptance = defineDecision({
   id: "sites.slice-zero-acceptance", title: "Slice zero keeps screen and fault evidence in its required run",
   question: "How do supplier payment acceptance checks distinguish healthy operation from missing instrumentation?",
   options: [
-    { label: "source-equal-and-faulted", text: "Check actual Frappe invoice, payment and ledger screens against same-cutoff source values; retain screenshots and DOM assertions. Observe all three money-path alerts under load, seed one real fault at a time, observe one stable operator-visible alert, repair and check that all alerts clear. Store the observations in the eval run." },
+    { label: "source-equal-and-faulted", text: "Check actual Frappe invoice, payment and ledger screens against same-cutoff source values; retain screenshots and DOM assertions. Independently require the selected successful transaction receipt to show exactly one transfer of the expected token and amount from the Safe to the invoice supplier's wallet at or before the cutoff; application hash agreement and aggregate balance alone are insufficient. Observe all three money-path alerts under load, seed one real fault at a time, observe one stable operator-visible alert, repair and check that all alerts clear. Store the observations in the eval run." },
     { label: "api-only", text: "Accept API readback and a quiet alert list without testing the screens or faults." },
   ],
   chosen: "source-equal-and-faulted",

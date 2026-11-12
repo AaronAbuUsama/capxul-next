@@ -4,10 +4,12 @@ import { sessionCookie, type Fixture } from "./fixture.ts";
 export type Doc = Record<string, any>;
 export interface Sources {
   invoice: Doc;
+  supplier: Doc;
   payment: Doc;
   request: Doc;
   ledger: Doc[];
   trial: Doc[];
+  receipt: Doc | null;
   safeAtomic: string;
   block: string;
   observedAt: string;
@@ -28,10 +30,10 @@ export async function frappe(f: Fixture, path: string, params: Record<string, st
   return res.json();
 }
 
-async function rpc(f: Fixture, method: string, params: unknown[] = []): Promise<string> {
+async function rpc<T = string>(f: Fixture, method: string, params: unknown[] = []): Promise<T> {
   const res = await fetch(f.rpcUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }), signal: AbortSignal.timeout(15000) });
-  const value = await res.json() as { result?: string; error?: unknown };
-  assert(res.ok && typeof value.result === "string" && !value.error, `chain ${method} did not return a value`);
+  const value = await res.json() as { result?: T; error?: unknown };
+  assert(res.ok && value.result !== undefined && !value.error, `chain ${method} did not return a value`);
   return value.result;
 }
 
@@ -43,20 +45,39 @@ export async function readSources(f: Fixture): Promise<Sources> {
   const list = (dt: string, filters: unknown, fields: string[]) => frappe(f, `/api/resource/${encodeURIComponent(dt)}`, {
     filters: JSON.stringify(filters), fields: JSON.stringify(fields), limit_page_length: "1000",
   }).then((r) => { assert(r.data.length < 1000, "source list is truncated"); return r.data; });
-  const [invoice, payment, requests, ledger, report, safe] = await Promise.all([
-    resource("Purchase Invoice", f.invoice), resource("Payment Entry", f.paymentEntry),
+  const [invoice, supplier, payment, requests, ledger, report, safe, receipt] = await Promise.all([
+    resource("Purchase Invoice", f.invoice), resource("Supplier", f.supplier), resource("Payment Entry", f.paymentEntry),
     list("Capxul Payment Request", [["payment_entry", "=", f.paymentEntry]], ["name", "status", "tx_hash", "approval_url"]),
     list("GL Entry", [["company", "=", f.company], ["is_cancelled", "=", 0]], ["name", "account", "debit", "credit", "voucher_no", "capxul_trace", "posting_date"]),
     frappe(f, "/api/method/frappe.desk.query_report.run", { report_name: "Trial Balance", filters: JSON.stringify({ company: f.company, fiscal_year: "2026", from_date: "2026-01-01", to_date: "2026-12-31" }), ignore_prepared_report: "1" }),
     rpc(f, "eth_call", [{ to: f.token, data: `0x70a08231${f.safe.slice(2).padStart(64, "0")}` }, block]),
+    rpc<Doc | null>(f, "eth_getTransactionReceipt", [f.txHash]),
   ]);
   assert.equal(await rpc(f, "eth_blockNumber"), block, "chain moved across the accounting cutoff; retry with a quiet clock");
   assert.equal(requests.length, 1, "the selected payment must have exactly one request");
-  return { invoice, payment, request: requests[0], ledger, trial: report.message.result, safeAtomic: BigInt(safe).toString(), block, observedAt: new Date().toISOString() };
+  return { invoice, supplier, payment, request: requests[0], ledger, trial: report.message.result, receipt, safeAtomic: BigInt(safe).toString(), block, observedAt: new Date().toISOString() };
 }
 
 export function reconcile(f: Fixture, s: Sources): void {
   const amount = BigInt(f.amountAtomic) / 10000n;
+  const receipt = s.receipt;
+  assert(receipt && receipt.status === "0x1", "selected payment has no successful chain receipt");
+  assert.equal(String(receipt.transactionHash).toLowerCase(), f.txHash.toLowerCase(), "receipt is for a different transaction");
+  assert(/^0x[0-9a-f]+$/i.test(receipt.blockNumber) && BigInt(receipt.blockNumber) <= BigInt(s.block), "selected payment receipt is not mined at/before the cutoff");
+  assert.equal(s.supplier.name, f.supplier);
+  assert(/^0x[0-9a-f]{40}$/i.test(s.supplier.capxul_wallet_address), "supplier has no chain wallet");
+  const topic = (address: string) => `0x${address.slice(2).toLowerCase().padStart(64, "0")}`;
+  assert(Array.isArray(receipt.logs), "selected payment receipt has no logs");
+  const transfers = receipt.logs.filter((log: Doc) => String(log.address).toLowerCase() === f.token.toLowerCase()
+    && log.topics?.[0] === "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+    && String(log.topics[1]).toLowerCase() === topic(f.safe));
+  assert.equal(transfers.length, 1, "selected receipt must transfer the token from the Safe exactly once");
+  const transfer = transfers[0];
+  assert.equal(transfer.removed, false, "selected transfer was removed");
+  assert.equal(String(transfer.transactionHash).toLowerCase(), f.txHash.toLowerCase());
+  assert.equal(transfer.topics.length, 3);
+  assert.equal(String(transfer.topics[2]).toLowerCase(), topic(s.supplier.capxul_wallet_address), "selected transfer paid a different supplier wallet");
+  assert.equal(BigInt(transfer.data), BigInt(f.amountAtomic), "selected transfer paid a different amount");
   const pi = s.invoice, pe = s.payment;
   assert.equal(pi.name, f.invoice); assert.equal(pe.name, f.paymentEntry);
   for (const doc of [pi, pe]) { assert.equal(doc.company, f.company); assert.equal(doc.docstatus, 1); }
