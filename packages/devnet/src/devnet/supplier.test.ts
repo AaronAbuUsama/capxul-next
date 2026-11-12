@@ -8,6 +8,7 @@ import { canaryBundlerKeys, probeBundler } from "../modules/bundler/service.ts";
 import { testKey } from "../modules/test-keys/service.ts";
 import { runDevnet } from "./command.ts";
 import { composeWorld } from "./composition.ts";
+import { command } from "./processes.ts";
 import { loopback, readConfig } from "./supervisor.ts";
 
 test("fresh native creation persists the supplied sponsor across up and snapshot recovery", {
@@ -71,5 +72,38 @@ test("fresh native creation persists the supplied sponsor across up and snapshot
   } finally {
     assert.equal(await cli("stop"), 0);
     // Keep the native world and host-local snapshot for inspection; never drop a failed recovery.
+  }
+});
+
+test("fresh bench authenticates a tenant socket through its internal callback before any restart", {
+  skip: !process.env.WORLD_SUPPLIER_NATIVE && "WORLD_SUPPLIER_NATIVE is not set", timeout: 600_000,
+}, async () => {
+  const root = resolve(import.meta.dirname, "../../../.."), id = `c${Date.now().toString(36)}`;
+  const file = join(root, "var/worlds", id, "config.json"), site = `${id}.localhost`;
+  const cli = (...args: string[]) => runDevnet(["world", ...args, "--config", file, "--json"]);
+  assert.equal(await cli("init", id), 0);
+  try {
+    assert.equal(await cli("create"), 0);
+    const c = await readConfig(file);
+    // A minimal Frappe site needs no company/payment fixture or acceptance credit.
+    await command(["docker", "compose", ...c.bench.composeArgs, "run", "--rm", "-T", "--no-deps", "site-admin", "bash", "-ec",
+      'bench new-site "$1" --mariadb-user-host-login-scope="%" --db-root-password "$MARIADB_ROOT_PASSWORD" --admin-password "$CAPXUL_ADMIN_PASSWORD"', "_", site], root);
+    const headers = { Origin: loopback(c.ports.socket), "X-Frappe-Site-Name": site, Cookie: "sid=Guest" };
+    // This creates Frappe's native socket secret; without it get_user_info deliberately returns {}.
+    assert.equal((await fetch(`${loopback(c.ports.bench)}/api/method/frappe.realtime.get_user_info`, { headers })).status, 200);
+    const url = `${loopback(c.ports.socket)}/socket.io/?EIO=4&transport=polling`;
+    const open = await (await fetch(url, { headers, signal: AbortSignal.timeout(10000) })).text();
+    assert.equal(open[0], "0");
+    const session = `${url}&sid=${encodeURIComponent(JSON.parse(open.slice(1)).sid)}`;
+    try {
+      assert.equal((await fetch(session, { method: "POST", headers, body: `40/${site},`, signal: AbortSignal.timeout(10000) })).status, 200);
+      const connected = await (await fetch(session, { headers, signal: AbortSignal.timeout(10000) })).text();
+      assert(connected.startsWith(`40/${site},`), `native namespace callback refused: ${connected}`);
+    } finally {
+      await fetch(session, { method: "POST", headers, body: "1", signal: AbortSignal.timeout(10000) });
+    }
+  } finally {
+    assert.equal(await cli("stop"), 0);
+    // Retain failed native fixtures; never repair/restart them to manufacture a green result.
   }
 });
