@@ -21,6 +21,34 @@ import { flow_client_approvals_sign } from "./flows.ts";
 const OLD = "packages/backend/src";
 const t = machine_approval.t;
 
+export const decision_approvals_transactional_carrier = defineDecision({
+  id: "approvals.transactional-carrier",
+  title: "The caller's transaction persists the carrier and its wake",
+  question: "How does a committed approval survive a crash before its process starts?",
+  options: [
+    { label: "transactional", text: "Persist the approval, transition event and durable wake on the caller's checked-out Sql connection; resolve the principal before opening and perform outside calls only after commit." },
+    { label: "after-commit", text: "Enqueue the carrier after committing the opener's intent." },
+  ],
+  chosen: "transactional",
+  why: "A crash must not leave an intent without its carrier or a carrier without its wake. A collector already holds a bounded-pool connection, so opening another transaction can deadlock. Principal context comes from the trusted access boundary, not client-supplied sender fields. Durable events and wakes are process infrastructure, not a second approval or send-attempt store.",
+  source: "rules.procedures; approvals.open; approvals.lifecycle.carry; Core and approvals integration contract, 12 November 2026",
+  affects: [procedure_approvals_open, workflow_approvals_lifecycle_carry, event_approval_transitioned],
+});
+
+export const decision_approvals_site_compatibility = defineDecision({
+  id: "approvals.site-compatibility",
+  title: "Preserve committed site payment answers while installing signer approvals",
+  question: "How does the declared signer store replace the narrow site's prepared-payment table without losing committed answers?",
+  options: [
+    { label: "rename", text: "Rename the narrow table to site_payment_approvals in the migration transaction, preserve its existing API and row policies, and install the declared principal approvals table. All legacy reads and settlement go through the approvals door." },
+    { label: "discard", text: "Discard the old prepared-payment rows and request answers." },
+  ],
+  chosen: "rename",
+  why: "Existing collector answers, originating traces and lost-ACK replay remain facts. The compatibility store does not carry a UserOperation or replace approvals.open; new chain-writing intents use the declared signer carrier. A committed answer lookup reads site_request_answers, never infers collection from an approval row, and binds requested_by to the authenticated caller. Shared migration composition serializes rename, grants and callers.",
+  source: "Core34 committed site-answer replay; approvals.tenant-is-signer; Core/Sites integration contract, 12 November 2026",
+  affects: [table_approvals, procedure_approvals_open],
+});
+
 export const decision_approvals_one_table = defineDecision({
   id: "approvals.one-table",
   title: "One approvals table holds the approval and its one UserOperation",
