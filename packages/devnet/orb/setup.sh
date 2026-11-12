@@ -39,8 +39,8 @@ docker info >/dev/null
 
 step "Seed checksums and offline contract artifacts"
 (cd packages/contracts/state && sha256sum --check CHECKSUMS)
-# Runtime/deployment artifacts and the test currency, not the entire fuzz/exhaustive test inventory.
-(cd packages/contracts && forge build src test/mocks/MockERC20.sol --offline)
+# Runtime/deployment artifacts, test currency and local sponsor, not the entire fuzz/exhaustive test inventory.
+(cd packages/contracts && forge build src test/mocks/MockERC20.sol test/mocks/MockPaymaster.sol --offline)
 
 step "Pinned six-app bench image and backing images"
 # Docker's own content cache handles changed lock/app inputs and warm no-op builds.
