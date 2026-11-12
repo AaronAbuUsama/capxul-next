@@ -14,6 +14,24 @@ import * as x from "./external.ts";
 const CLAUDE = "Claude, target architecture, 7 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 
+export const decision_integrations_indexed_claim = defineDecision({
+  id: "integrations.indexed-claim",
+  title: "Claim admission requires a real indexed occurrence and current sole signer",
+  question: "What proves personal-Safe setup or adoption when it need not send a new transaction?",
+  options: [
+    { label: "indexed-occurrence", text: "Read the owner-scoped indexed claim, current sole-owner projection and real Ponder progress in one SQL snapshot, with deployment finality." },
+    { label: "ownership-only", text: "Trust current chain ownership or an injected claimed boolean without the claim occurrence." },
+  ],
+  chosen: "indexed-occurrence",
+  why:
+    "Adoption may use a prior CapxulSafeClaimed rather than a new receipt. Ownership alone does not prove that event or its transaction/block identity. " +
+    "The same-Sql provider reads app views, not raw Ponder, and returns the actual occurrence only after readiness, cutoff/finality and current sole-signer checks. " +
+    "A missing or lagging occurrence returns pending; unavailable or malformed provider state refuses safely. No separate read may combine a pre-reindex claim with a post-reindex checkpoint. " +
+    "This current-ownership admission is not a historical owner/approval snapshot for Board settlement.",
+  source: "indexer; accounts setup/adoption provider contract; Core projection PR59, 12 November 2026",
+  affects: [x.integration_indexer, f.concept_accounts],
+});
+
 export const decision_integrations_claim_signer = defineDecision({
   id: "integrations.claim-signer",
   title: "The personal-Safe service signer exposes only its configured claim role",
