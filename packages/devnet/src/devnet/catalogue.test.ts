@@ -150,6 +150,16 @@ test("native catalogue preserves command history, atomic mutations and restricte
     const summary = JSON.parse(large.result as string);
     assert.equal(summary.truncated, true); assert.equal(summary.bytes, Buffer.byteLength(JSON.stringify(largeResult)));
     assert(summary.head.length <= 2000);
+    const masked = worldCatalogue(query, [known, "1234", "tail\\"]);
+    const redacted = await masked.append("town1", { ...command, durationMs: 1234,
+      args: { number: 1234, flag: true, empty: null, secret: "1234", path: "before tail\\ after",
+        nested: JSON.stringify({ secret: "tail\\", number: 1234 }) },
+      result: { ordinary: 'quoted "value" and backslash \\', secret: known } });
+    assert.equal(redacted.duration_ms, 1234, "a numeric credential collision must preserve numeric envelope fields");
+    const args = JSON.parse(redacted.args as string);
+    assert.deepEqual(args, { number: 1234, flag: true, empty: null, secret: "[REDACTED]", path: "before [REDACTED] after",
+      nested: JSON.stringify({ secret: "[REDACTED]", number: 1234 }) });
+    assert.deepEqual(JSON.parse(redacted.result as string), { ordinary: 'quoted "value" and backslash \\', secret: "[REDACTED]" });
   } finally {
     await maintenanceQuery(`DROP DATABASE IF EXISTS "${database}" WITH (FORCE)`);
     for (const copy of copies) await maintenanceQuery(`DROP DATABASE IF EXISTS "${copy}" WITH (FORCE)`);

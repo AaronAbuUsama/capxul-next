@@ -43,15 +43,27 @@ export async function migrateCatalogue(admin: Admin): Promise<void> {
 /** The caller supplies a restricted worker connection retargeted to this world's database. */
 export function worldCatalogue(query: Admin, secrets: readonly string[]) {
   const sensitive = [...new Set(secrets.filter(Boolean).flatMap((secret) => /^0x[0-9a-f]{64}$/i.test(secret) ? [secret, secret.slice(2)] : [secret]))].sort((a, b) => b.length - a.length);
+  const mask = (value: unknown): unknown => {
+    if (typeof value === "string") {
+      // Recorder fields can themselves carry JSON text. Mask its string values, not its serialized syntax.
+      let nested: unknown;
+      if (/^\s*[\[{]/.test(value)) {
+        try { nested = JSON.parse(value); } catch { /* Ordinary non-JSON text. */ }
+        if (nested !== undefined) return JSON.stringify(mask(nested));
+      }
+      let text = redactSecrets(value);
+      for (const secret of sensitive) text = text.replaceAll(secret, "[REDACTED]");
+      return text;
+    }
+    if (Array.isArray(value)) return value.map(mask);
+    if (value !== null && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, mask(entry)]));
+    // A credential's digit sequence can equal a legitimate duration/sequence. Preserve scalar types.
+    return value;
+  };
   const clean = (value: unknown): string | null => {
     if (value === undefined) return null;
-    let encoded = redactSecrets(JSON.stringify(value));
-    for (const secret of sensitive) {
-      encoded = encoded.replaceAll(secret, "[REDACTED]");
-      encoded = encoded.replaceAll(JSON.stringify(secret).slice(1, -1), "[REDACTED]");
-    }
-    if (sensitive.some((secret) => encoded.includes(secret))) throw new Error("record contains credential material; append refused");
-    return encoded;
+    // The shared sanitizer handles labelled credential fields; known-value masking stays structural.
+    return JSON.stringify(mask(JSON.parse(redactSecrets(JSON.stringify(value)))));
   };
   const appendSql = (world: string, command: Command, event?: { from: string; to: string; transition: string }) => {
     let result = clean(command.result);
