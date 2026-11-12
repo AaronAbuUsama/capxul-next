@@ -14,7 +14,7 @@ export async function readSnapshotCut(db: Database) {
     const heads = (await sql.query(`select distinct on (org_id) org_id,id,hash from app.records order by org_id,id desc`)).rows;
     const recordSeq = heads.reduce((max, h) => Math.max(max, Number(h.id)), 0);
     const recordHead = createHash("sha256").update(JSON.stringify(heads)).digest("hex");
-    return { ...world, recordSeq, recordHead, heads };
+    return { ...world, epoch: Number(world.epoch), recordSeq, recordHead, heads };
   }, true);
 }
 export async function rewriteRestoredWorld(db: Database, input: {
