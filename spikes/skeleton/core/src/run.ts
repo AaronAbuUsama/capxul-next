@@ -5,7 +5,7 @@
 import { parseArgs } from "./args.ts";
 import { CliError, refuse } from "./errors.ts";
 import { eventsRedeliver, featureList, featureOff, featureOn, eventsResend, eventsStatus, hatGrant, hatRevoke, orgChainSafe, orgCreate, orgShow, payDirect } from "./cli.ts";
-import { approvalSign, docAmend, docCall, docCancel, docCreate, docDelete, docGet, docList, docNext, docSchema, docSubmit, docTypes, docUpdate, reportList, reportRun, type Out } from "./doc.ts";
+import { approvalSign, paymentList, docAmend, docCall, docCancel, docCreate, docDelete, docGet, docList, docNext, docSchema, docSubmit, docTypes, docUpdate, reportList, reportRun, type Out } from "./doc.ts";
 import { clockAdvance, clockReset, clockSet, clockShow } from "./clock.ts";
 import { orgMemberGet, orgProposalApprove, orgProposalGet } from "./proposal.ts";
 import { recordExport, recordShow, recordTail } from "./recordcmd.ts";
@@ -28,6 +28,7 @@ const usage = `usage:
   main.ts doc call <slug> <method> --as <email> [--args <json>]     main.ts doc next <slug> <DocType> <name> --as <email>
   main.ts report list <slug> --as <email>      main.ts report run <slug> <name> --as <email> [--filters <json>]
   main.ts approval sign <slug> <approval id> --as <email>
+  main.ts payment list <slug> [--id <payment id>]
   main.ts world create <name> --as operator | list | show <name> | delete <name> --as operator      main.ts world clock show <world>
   main.ts world clock set <world> <iso> | advance <world> <30d> | reset <world>  --as operator
   main.ts record tail <world> [--org <company>] [--n 20]   main.ts record show <id>   main.ts record export <world> [--org <company>] [--out <file>]
@@ -44,7 +45,7 @@ const commands: Record<string, { run: (a: string[]) => Promise<Out>; noSlug?: bo
   "doc types": { run: docTypes }, "doc schema": { run: docSchema }, "doc list": { run: docList }, "doc get": { run: docGet }, "doc create": { run: docCreate },
   "doc update": { run: docUpdate }, "doc delete": { run: docDelete }, "doc submit": { run: docSubmit }, "doc cancel": { run: docCancel }, "doc amend": { run: docAmend },
   "doc call": { run: docCall }, "doc next": { run: docNext }, "report list": { run: reportList }, "report run": { run: reportRun },
-  "approval sign": { run: approvalSign },
+  "approval sign": { run: approvalSign }, "payment list": { run: paymentList },
   "world clock show": { noSlug: true, run: clockShow }, "world clock set": { noSlug: true, run: clockSet }, "world clock advance": { noSlug: true, run: clockAdvance }, "world clock reset": { noSlug: true, run: clockReset },
   "record tail": { noSlug: true, run: recordTail }, "record show": { run: recordShow, noSlug: true }, "record export": { noSlug: true, run: recordExport },
   "world create": { noSlug: true, run: worldCreate }, "world list": { noSlug: true, run: worldList }, "world show": { noSlug: true, run: worldShow }, "world delete": { noSlug: true, run: worldDelete },

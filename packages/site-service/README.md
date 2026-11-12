@@ -16,6 +16,8 @@ Only this service holds the bench command, database password, Administrator pass
 
 `pnpm --filter @capxul/site-service start` binds loopback port 8788 (`PORT` overrides it). Run under the orb supervisor, never expose it through a portal. `GET /health` is a liveness check. `POST /sites/create` requires `Authorization: Bearer <SITE_SERVICE_TOKEN>` and `{org,name,safe,adminEmail}`.
 
+SIGINT and SIGTERM stop new connections and wait for accepted creation work and responses to finish before exiting with code 0. The entrypoint does not force an early process exit; the supervisor can wait for that clean stop before taking a snapshot.
+
 Required environment:
 
 - `SITE_SERVICE_TOKEN`, `CAPXUL_SECRET`: private backend/service credentials.
