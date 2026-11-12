@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { parseUnits } from "viem";
 import { record, type Sql } from "../platform/db.ts";
+import type { Approval } from "./types.ts";
 
 export { siteRequestAnswer, type SiteAnswer } from "./site-answer.ts";
 export type { ApprovalContext, Open, Opened, TerminalEvent, Terminal } from "./types.ts";
@@ -8,6 +9,13 @@ export { open, withdraw } from "./store.ts";
 export { migrateApprovals } from "./migrate.ts";
 export { signingGet, signingReview, signingSign, signingDecline, type SigningContext } from "./signing.ts";
 export { carry, wakeChain, type CarrierServices, type ChainFact, type Sponsorship } from "./carrier.ts";
+
+/** Internal command replay only: authorize the stored command first. Tenant callers see no row. */
+export async function readApproval(sql: Sql, approvalId: string): Promise<Pick<Approval, "approval_id" | "deadline" | "state" | "person_id" | "sender"> | null> {
+  return (await sql.query<Pick<Approval, "approval_id" | "deadline" | "state" | "person_id" | "sender">>(
+    `select approval_id,deadline,state,person_id,sender from app.approvals
+      where approval_id=$1 and current_user='capxul_worker'`, [approvalId])).rows[0] ?? null;
+}
 
 export type Prepare = {
   request_id: string; org: string; site: string; doctype: string; name: string; document_hash: string;

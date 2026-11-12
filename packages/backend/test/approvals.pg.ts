@@ -5,7 +5,7 @@ import pg from "pg";
 import { privateKeyToAccount } from "viem/accounts";
 import { Database } from "../src/platform/db.ts";
 import { migrateOutbox } from "../src/platform/outbox.ts";
-import { open, withdraw, prepare, get, submitted, settleSitePayment, migrateApprovals, signingGet, signingSign, signingDecline, carry, wakeChain,
+import { open, withdraw, prepare, get, submitted, settleSitePayment, migrateApprovals, signingGet, signingSign, signingDecline, carry, wakeChain, readApproval,
   type ApprovalContext, type Open, type SigningContext, type CarrierServices } from "../src/approvals/door.ts";
 
 const url = process.env.APPROVALS_TEST_DATABASE;
@@ -75,6 +75,17 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
       assert.equal((await admin.query("select count(*)::int as n from app.transition_outbox")).rows[0].n, 1);
       assert.equal((await tenant((sql) => withdraw(sql, ctx, { approval_id: first.approval_id, reason: "ended intent" }))).state, "withdrawn");
       assert.equal((await tenant((sql) => withdraw(sql, ctx, { approval_id: first.approval_id, reason: "repeat" }))).state, "withdrawn");
+      // Stored command replay keeps its terminal approval even when the current budget wearer changed.
+      const replay = await db.transaction("approval-org", async (sql) => {
+        await sql.query("select set_config('app.person_id','new-budget-wearer',true)");
+        return readApproval(sql, first.approval_id);
+      }, true);
+      assert.deepEqual(replay, { approval_id: first.approval_id, deadline: new Date(terms.deadline),
+        state: "withdrawn", person_id: ctx.person_id, sender });
+      assert.equal(await tenant((sql) => readApproval(sql, first.approval_id)), null);
+      assert.equal(await tenant((sql) => readApproval(sql, first.approval_id), "new-budget-wearer"), null);
+      assert.equal(await db.transaction("", (sql) => readApproval(sql, "missing-approval"), true), null);
+      assert.equal((await admin.query("select count(*)::int as n from app.approvals")).rows[0].n, 1);
     });
     await t.test("committed sending resumes by hash, never resends after lost answer", async () => {
       let clock = now, sends = 0, held = false, terminal = 0;
