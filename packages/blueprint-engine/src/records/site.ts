@@ -82,6 +82,8 @@ export const FeatureSpec = Schema.Struct({
   default: Schema.Literals(["on", "off"]),
   /** Frappe modules whose DocTypes and desk pages belong to it. */
   modules: Schema.optionalKey(Schema.Array(Schema.String)),
+  /** DocTypes in a shared upstream module that belong only to this feature. */
+  doctypes: Schema.optionalKey(Schema.Array(Schema.String)),
   /** Apps every module of which belongs to it. */
   apps: Schema.optionalKey(Schema.Array(Schema.String)),
   /** The app that must be installed for it to be switched on. */
