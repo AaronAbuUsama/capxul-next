@@ -719,3 +719,21 @@ export const decision_board_agent_officer_hats = defineDecision({
   source: asmBy("blueprint/agents/decisions.ts (agents.fde-authority, agents.fde-people-hat); blueprint/payroll/employees.ts (WHO); blueprint/organizations/invitations.ts (handle grantees)"),
   affects: [rpc_board_officers_grant, rpc_board_officers_revoke, op.operation_org_member_grant, op.operation_org_member_revoke],
 });
+
+export const decision_board_officer_seat_identity = defineDecision({
+  id: "board.officer-seat-identity",
+  title: "An officer change keeps the Seat's nullable principal and authoritative Safe",
+  question: "How does an officer grant identify an active agent whose Seat predates its first sign-in?",
+  options: [
+    { label: "seat-identity", text: "Keep the Seat's member, Party and Safe; its principal is nullable exactly as on the Seat." },
+    { label: "require-sign-in", text: "Refuse a grant until the agent signs in and acquires a principal." },
+  ],
+  chosen: "seat-identity",
+  why:
+    "organizations.fde-seat deliberately leaves an FDE's principal null and authorizes agent sessions by verified Safe. " +
+    "board.agent-officer-hats already permits an active agent's Seat to receive a hat by handle. Requiring sign-in would " +
+    "reverse that contract; inventing a principal would forge identity. The change records its existing Seat and Safe " +
+    "without changing the proposing Director's actor or the privacy of officer_change_transitioned.",
+  source: "Amp, board implementation, 12 November 2026; blueprint/organizations/data.ts org-members; organizations.fde-seat; board.agent-officer-hats",
+  affects: [table_officer_changes, rpc_board_officers_grant, rpc_board_officers_revoke],
+});
