@@ -80,3 +80,19 @@ test("remaining work subtracts merged fresh proof, without dropping a slice's id
   assert.deepEqual(landed.slices.map((s) => [s.id, s.records]), pending.slices.map((s) => [s.id, s.records]));
   assert.ok(landed.slices[0]?.operations.includes(subject));
 });
+
+test("wave one admits thirteen concepts but queues a fourteen-concept journey without dropping its slices", () => {
+  for (const count of [13, 14]) {
+    const screens = Array.from({ length: count }, (_, i) => defineScreen({ ...screen, id: `wide-${i}` }));
+    const wide = defineJourney({ ...f.getInvited, id: "wide", steps: screens.map((seen) => ({ operation: f.invite, as: "owner", proves: f.invitationSent, seen })) });
+    const blueprint = buildBlueprint({ name: "wide journey", stage: "as-is", records: [...f.records, role, ...screens, wide] });
+    assert.equal(blueprint.problems.length, 0);
+    const owners = new Map([...blueprint.records.keys()].map((key) => [key, "shared"]));
+    screens.forEach((s, i) => owners.set(keyOf(s), `lane-${i}`));
+    const manifest = slicesOf(blueprint, { conceptOf: owners });
+    assert.ok(manifest.waves.find((w) => w.id === 1)!.concepts.length <= 13);
+    const held = manifest.slices.filter((s) => s.journey === "wide" && s.concept !== "shared");
+    assert.equal(held.length, count);
+    assert.ok(held.every((s) => s.wave === (count === 13 ? 1 : 2)));
+  }
+});

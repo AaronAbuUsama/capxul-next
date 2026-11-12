@@ -140,7 +140,7 @@ export const slicesOf = (b: Blueprint, options: SliceOptions): SliceManifest => 
   const breadth = journeys.filter((j) => j.id !== "thin_line").map((j) => ({ journey: j.id,
     keys: new Set([...(reaches.get(j.id) ?? [])].filter((k) => !foundation.has(k)))
   })).sort((a, z) => z.keys.size - a.keys.size || a.journey.localeCompare(z.journey, "en"));
-  const packs: { keys: Set<string>; concepts: Set<string>; journeys: typeof breadth }[] = [];
+  const packs: { keys: Set<string>; concepts: Set<string>; journeys: typeof breadth }[] = [{ keys: new Set(), concepts: new Set(), journeys: [] }];
   for (const j of breadth) {
     const concepts = new Set([...j.keys].map(owner).filter((c) => c !== "shared"));
     let pack = packs.find((p, i) => ![...j.keys].some((k) => p.keys.has(k)) && (i !== 0 || new Set([...p.concepts, ...concepts]).size <= 13));
