@@ -7,6 +7,7 @@ import { checkTemplate, cloneDatabase, connections, dropDatabase, renameDatabase
 export { cloneDatabase, dropDatabase, psqlAdmin, type Admin } from "./postgres.ts";
 export { composeBench } from "./bench.ts";
 export { localRuntime, type Processes, type CoreStore } from "./runtime.ts";
+export { migrateCatalogue, worldCatalogue, type WorldCatalogue, type WorldRow, type Command, type SnapshotRow, type CatalogueCut, type CatalogueHistory, type RestoreCatalogue } from "./catalogue.ts";
 export type Site = { company: string; name: string };
 export type World = { id: string; kind: "local" | "simulated"; database: string; stateDir: string; sites: Site[]; epoch: number };
 export type Cut = { nowMs: number; clockMode: "stopped" | "running"; rate: number; recordSeq: number; recordHead: string;
