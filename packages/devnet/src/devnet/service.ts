@@ -32,11 +32,12 @@ export function runtimeEnv(c: Config, component: Component): NodeJS.ProcessEnv {
 async function serve(c: Config, component: Component): Promise<() => Promise<void>> {
   if (component === "ingress") return gateway(c);
   const argv = component === "anvil" ? ["anvil", "--host", "127.0.0.1", "--port", String(c.ports.anvil), "--chain-id", String(c.chainId), "--preserve-historical-states", "--state", join(c.world.stateDir, "anvil-state.json")] :
-    component === "ponder" ? ["pnpm", "--filter", "@capxul/indexer", "start", "--schema", "ponder", "--port", String(c.ports.ponder), "--hostname", "127.0.0.1"] :
+    component === "ponder" ? [join(c.root, "packages/indexer/node_modules/.bin/ponder"), "start", "--schema", "ponder", "--port", String(c.ports.ponder), "--hostname", "127.0.0.1"] :
     component === "core" ? [process.execPath, "--experimental-strip-types", "--no-warnings", join(c.root, "packages/backend/src/main.ts")] :
     component === "bundler" ? c.bundler!.argv : [process.execPath, "--experimental-strip-types", "--no-warnings", join(c.root, "packages/site-service/src/main.ts")];
-  // A process group lets pnpm and its child receive the same graceful stop, inside Amp's service cgroup.
-  const child = spawn(argv[0]!, argv.slice(1), { cwd: c.root, env: runtimeEnv(c, component), stdio: "inherit", detached: true });
+  // Launch Ponder itself: pnpm exits on signal before its indexer has drained.
+  const child = spawn(argv[0]!, argv.slice(1), { cwd: component === "ponder" ? join(c.root, "packages/indexer") : c.root,
+    env: runtimeEnv(c, component), stdio: "inherit", detached: true });
   const exited = new Promise<void>((done, reject) => {
     child.once("error", reject);
     child.once("exit", (code, signal) => code === 0 && !signal ? done() : reject(new Error(`${component} exited ${code ?? signal}`)));

@@ -7,6 +7,7 @@ import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { gateway } from "./gateway.ts";
 import { verifyRun } from "./gate.ts";
+import { prepareSlice } from "./preparation.ts";
 import { command, supervised } from "./processes.ts";
 import { runtimeEnv } from "./service.ts";
 import { databaseUrl, loopback, readConfig, signedCore, up, writeConfig, type Config } from "./supervisor.ts";
@@ -126,14 +127,27 @@ test("slice acceptance requires the full fresh same-run contract and every sourc
   const required = ["opaque-b", "opaque-a"];
   const receipt = { version: 1, id: "run-test", state: "complete", commit: "fixture", at, finishedAt: at, environment,
     requested: required, evals: required.map((id) => ({ id, claim: `claim ${id}` })), scripts: [],
+    prepare: { argv: ["actual-prepare"], exitCode: 0, signal: null, log: "prepare.log" },
     screens: ["supplier-invoice", "payment-entry", "general-ledger", "trial-balance"].map((screen) => ({ screen, path: `${screen}.png`, source: "source.json", assertion: "source-equality" })) };
   const summary = { version: 1, run: receipt.id, runDir: "status/runs/run-test", state: "complete", passed: true, counts: { pass: 2, fail: 0, not_run: 0 }, exitCode: 0 };
   const status = { version: 1, evals: Object.fromEntries(required.map((id) => [id, { verdict: "pass", commit: "fixture", at, run: receipt.id, claim: `claim ${id}` }])) };
   const save = async () => { await writeFile(join(directory, "receipt.json"), JSON.stringify(receipt)); await writeFile(join(directory, "status.json"), JSON.stringify(status)); };
   try {
     for (const screen of receipt.screens) await writeFile(join(directory, screen.path), "capture");
+    await writeFile(join(directory, "prepare.log"), "prepared");
+    const preparation = { run: { id: receipt.id, at, commit: "fixture" } };
+    await writeFile(join(directory, "preparation.json"), JSON.stringify(preparation));
     await writeFile(join(directory, "source.json"), "{}");
     await save(); assert.equal(await verifyRun(root, summary, required, environment, started), true);
+    receipt.prepare.exitCode = 1; await save();
+    await assert.rejects(verifyRun(root, summary, required, environment, started), /preparation|invalid/);
+    receipt.prepare.exitCode = 0; await save();
+    preparation.run.id = "earlier-run"; await writeFile(join(directory, "preparation.json"), JSON.stringify(preparation));
+    await assert.rejects(verifyRun(root, summary, required, environment, started), /another run/);
+    preparation.run.id = receipt.id; await writeFile(join(directory, "preparation.json"), JSON.stringify(preparation));
+    receipt.screens[0]!.source = "../older-source.json"; await save();
+    await assert.rejects(verifyRun(root, summary, required, environment, started), /belong to this run/);
+    receipt.screens[0]!.source = "source.json"; await save();
     await writeFile(join(directory, "source.json"), "");
     await assert.rejects(verifyRun(root, summary, required, environment, started), /source evidence/);
     await writeFile(join(directory, "source.json"), "{}");
@@ -150,4 +164,36 @@ test("slice acceptance requires the full fresh same-run contract and every sourc
     status.evals["opaque-a"]!.verdict = "not_run"; await save();
     assert.equal(await verifyRun(root, { ...summary, passed: false, exitCode: 1 }, required, environment, started), false);
   } finally { await rm(root, { recursive: true }); }
+});
+
+test("preparation cannot retrofit an earlier fixture or use a finished/wrong-build receipt", async () => {
+  const root = await mkdtemp(join(tmpdir(), "world-prepare-")), c = config(root);
+  const directory = join(root, "status/runs/run-prepare"), configFile = join(root, "world.json");
+  const previous = { CAPXUL_EVAL_RUN_DIR: process.env.CAPXUL_EVAL_RUN_DIR, CAPXUL_WORLD_CONFIG: process.env.CAPXUL_WORLD_CONFIG,
+    CAPXUL_ACCEPTANCE_FIXTURE: process.env.CAPXUL_ACCEPTANCE_FIXTURE };
+  const receipt = { version: 1, id: "run-prepare", at: new Date().toISOString(), state: "running", commit: c.codeVersion,
+    environment: { world: "slice-zero", stack: "postgres-ponder-erpnext-v4", storage: "postgres", indexer: "ponder", components: { core: c.codeVersion } },
+    requested: ["an-eval"], evals: [{ id: "an-eval", claim: "a claim" }], scripts: [], screens: [] };
+  const save = () => writeFile(join(directory, "receipt.json"), JSON.stringify(receipt));
+  // Every case must reject before network/chain/site work; this intentionally supplies no runtime methods.
+  const stack = { c } as Parameters<typeof prepareSlice>[0];
+  try {
+    await mkdir(directory, { recursive: true }); await mkdir(c.controlDir); await save();
+    delete process.env.CAPXUL_EVAL_RUN_DIR;
+    await assert.rejects(prepareSlice(stack, configFile, "harbourline"), /running receipt/);
+    Object.assign(process.env, { CAPXUL_EVAL_RUN_DIR: directory, CAPXUL_WORLD_CONFIG: configFile, CAPXUL_ACCEPTANCE_FIXTURE: join(c.controlDir, "acceptance.json") });
+    receipt.state = "complete"; await save();
+    await assert.rejects(prepareSlice(stack, configFile, "harbourline"), /running|invalid/);
+    receipt.state = "running"; receipt.commit = "previous-build"; await save();
+    await assert.rejects(prepareSlice(stack, configFile, "harbourline"), /build differs/);
+    receipt.commit = c.codeVersion; await save();
+    await writeFile(join(c.controlDir, "fixture.json"), "{}");
+    await assert.rejects(prepareSlice(stack, configFile, "harbourline"), /fresh fixture/);
+    await rm(join(c.controlDir, "fixture.json"));
+    await assert.rejects(prepareSlice(stack, configFile, "harbourline"), /real bundler/);
+    await assert.rejects(readFile(join(directory, "preparation.json")), { code: "ENOENT" });
+  } finally {
+    for (const [key, value] of Object.entries(previous)) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
+    await rm(root, { recursive: true });
+  }
 });

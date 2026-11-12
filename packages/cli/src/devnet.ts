@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve, join } from "node:path";
+import { inspect } from "node:util";
 import { initializeConfig } from "../../devnet/src/devnet/local-config.ts";
 import { checkCodeVersion } from "../../devnet/src/devnet/processes.ts";
 import { readConfig, stop, up, writeConfig } from "../../devnet/src/devnet/supervisor.ts";
@@ -25,9 +26,10 @@ export async function runDevnet(args: string[]): Promise<number> {
     await mkdir(config.controlDir, { recursive: true, mode: 0o700 });
     const candidate = join(config.controlDir, ".operation");
     let nested = false;
-    if (["fixture", "inspect"].includes(commandName!) && process.env.CAPXUL_WORLD_RUN_TOKEN) {
+    if (["fixture", "inspect", "prepare"].includes(commandName!) && process.env.CAPXUL_WORLD_RUN_TOKEN) {
       nested = await readFile(join(candidate, "token"), "utf8").then((token) => token === process.env.CAPXUL_WORLD_RUN_TOKEN, () => false);
     }
+    if (commandName === "prepare" && !nested) throw new Error("prepare is a nested eval-harness command, not standalone fixture setup");
     if (!nested) {
       try { await mkdir(candidate); } catch { throw new Error("another world operation holds the lock; inspect before clearing a stale lock"); }
       locks.push(candidate);
@@ -61,38 +63,29 @@ export async function runDevnet(args: string[]): Promise<number> {
       const { fixtureOperation } = await import("../../devnet/src/devnet/faults.ts");
       await fixtureOperation(stack, rest[0]!, rest[1]!);
       console.log(JSON.stringify({ fixture: rest[0], target: rest[1], state: "complete" })); return 0;
+    } else if (commandName === "prepare" && rest.length === 1) {
+      const { prepareSlice } = await import("../../devnet/src/devnet/preparation.ts");
+      const result = await prepareSlice(stack, configFile, rest[0]!);
+      console.log(JSON.stringify(result)); return 0;
     } else if (commandName === "provision" && rest.length === 1) {
       await up(stack.c, stack.host);
       const { provisionFixture } = await import("../../devnet/src/devnet/fixture.ts");
       const f = await provisionFixture(stack.c, configFile, rest[0]!);
       console.log(JSON.stringify({ org: f.slug, site: f.site, safe: f.company.companySafe, state: "delivered" })); return 0;
     } else if (commandName === "run" && rest[0] === "slice-zero" && (rest.length === 1 || rest.length === 3 && rest[1] === "--slug")) {
-      const { acceptanceFixture, persistFixture, preparePayment, provisionFixture, requirePaymentSlot, settledPayment, submitPayment } = await import("../../devnet/src/devnet/fixture.ts");
+      const { requirePaymentSlot } = await import("../../devnet/src/devnet/fixture.ts");
       await requirePaymentSlot(stack.c);
       await up(stack.c, stack.host);
-      const f = await provisionFixture(stack.c, configFile, rest[2] ?? "harbourline");
-      if (!f.paymentEntry) {
-        const payment = await preparePayment(stack.c, f, 125.5);
-        f.invoice = payment.pi; f.paymentEntry = payment.pe;
-        await persistFixture(stack.c, f);
-        const result = await submitPayment(stack.c, f, payment.approval);
-        f.txHash = result.txHash; f.userOpHash = result.userOpHash; await persistFixture(stack.c, f);
-      }
-      if (!f.txHash) throw new Error("a prior payment submission has an unknown outcome; inspect its existing Core approval, never create another payment");
-      await settledPayment(stack.c, f);
-      const snapshot = `slicezero_${Date.now()}`;
-      await stack.save(snapshot); await stack.read(snapshot); await stack.restore(snapshot);
-      const fixture = await acceptanceFixture(stack.c, f, configFile, snapshot);
       const token = randomBytes(24).toString("hex");
       await writeFile(join(candidate, "token"), token, { mode: 0o600 });
       const { runGate } = await import("../../devnet/src/devnet/gate.ts");
-      return await runGate(stack.c, fixture, f.slug, token, configFile);
+      return await runGate(stack.c, rest[2] ?? "harbourline", token, configFile);
     } else throw new Error("usage: world init <id>; world create|up|stop|inspect; world provision <slug>; world snapshot save|read|restore <id> [--as CONFIG]; world run slice-zero [--slug SLUG] --config FILE [--json]");
     console.log(JSON.stringify({ world: stack.c.world.id, state: commandName === "stop" ? "stopped" : "running" }));
     return 0;
   } catch (error) {
-    const child = (error as Error).cause as { stdout?: string; stderr?: string } | undefined;
-    if (diagnostics && child && (child.stdout || child.stderr)) await writeFile(diagnostics, `${child.stdout ?? ""}\n${child.stderr ?? ""}`, { mode: 0o600 });
+    // Nested startup/cleanup failures must retain their causes privately, without leaking argv or credentials to stdout.
+    if (diagnostics) await writeFile(diagnostics, inspect(error, { depth: 10 }), { mode: 0o600 });
     console.error(JSON.stringify({ error: { code: "WORLD_RUNTIME_ERROR", message: (error as Error).message } }));
     return 1;
   } finally { for (const lock of locks.reverse()) await rm(lock, { recursive: true }); }
