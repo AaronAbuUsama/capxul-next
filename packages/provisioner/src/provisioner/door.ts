@@ -18,7 +18,6 @@ export interface ProvisionerConfig {
   readonly stateDir: string;
   /** The world box image. */
   readonly image: string;
-  readonly hostNetwork?: boolean;
   readonly trustCa?: string;
   readonly environment?: Readonly<Record<string, string>>;
 }
@@ -57,7 +56,6 @@ export const provisioner = (placement: Placement, config: ProvisionerConfig): Pr
       stage: worldStage(world, placement),
       want,
       image: config.image,
-      ...(config.hostNetwork !== undefined ? { hostNetwork: config.hostNetwork } : {}),
       ...(config.trustCa !== undefined ? { trustCa: config.trustCa } : {}),
       ...(config.environment !== undefined ? { environment: config.environment } : {}),
     };

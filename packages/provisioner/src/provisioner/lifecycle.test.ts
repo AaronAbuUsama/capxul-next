@@ -34,11 +34,9 @@ const waitForDaemon = (box: string) => {
 test("a world box lives and dies as an Alchemy stage", { skip: !enabled && "set CAPXUL_PROVISIONER_DOCKER=1" }, async () => {
   const stateDir = mkdtempSync(join(tmpdir(), "provisioner-"));
   const env = process.env;
-  const proxy = Object.fromEntries(["HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY"].flatMap((k) => (env[k] ? [[k, env[k]]] : [])));
   const p = provisioner("docker", {
     stateDir,
     image: "docker:28-dind",
-    ...(Object.keys(proxy).length ? { hostNetwork: true, environment: proxy } : {}),
     ...(env.CAPXUL_BOX_TRUST_CA ? { trustCa: env.CAPXUL_BOX_TRUST_CA } : {}),
   });
   const world = `life${process.pid % 100000000}`;

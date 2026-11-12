@@ -11,8 +11,6 @@ export interface DockerBoxSpec {
   readonly want: Want;
   /** The world box image; it must start a Docker daemon and trust a CA mounted at BOX_CA (box/Containerfile does). */
   readonly image: string;
-  /** Share the host's network: a cloud container's agent proxy listens on the host's loopback. */
-  readonly hostNetwork?: boolean;
   /** A CA bundle the box's daemon must trust (a TLS-inspecting proxy), mounted read-only. */
   readonly trustCa?: string;
   /** Environment for the box (proxy settings, never secrets: Alchemy keeps props in its state). */
@@ -47,7 +45,6 @@ export const dockerBoxStack = (spec: DockerBoxSpec) =>
           { hostPath: "/sys/fs/cgroup", containerPath: "/sys/fs/cgroup" },
           ...(spec.trustCa ? [{ hostPath: spec.trustCa, containerPath: BOX_CA, readOnly: true }] : []),
         ],
-        ...(spec.hostNetwork ? { networkMode: "host" as const } : {}),
         labels: { "capxul.world": spec.stage.world, "capxul.placement": "docker" },
         restart: "no",
         start: spec.want === "running",

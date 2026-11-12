@@ -14,6 +14,7 @@ import Alchemy, so a breaking Alchemy release changes this package only. Alchemy
 | `box/Containerfile` | The world box image: Ubuntu 24.04 with its own Docker daemon, Node, pnpm, git and psql 17 |
 | `box/box-start.sh` | The box's entrypoint: trusts an extra CA if one is mounted, then runs `dockerd` |
 | `box/run-world.sh` | Inside the box: `run-world prepare`, `create <world>`, `slice-zero <world>` through today's supervisor |
+| `bin/proxy-relay.mjs` | Cloud containers only: serves the loopback agent proxy on the Docker bridge for boxes |
 | `bin/build-box.sh` | Builds `capxul-world-box:dev` (through the agent proxy when one is set) |
 
 ## What a world's life looks like
@@ -30,9 +31,11 @@ taken inside the box.
 
 ## Placements
 
-- `docker` (built): a laptop or a cloud container. In a Claude cloud container the box shares the host network (the agent
-  proxy is on loopback) and trusts the proxy's CA (`CAPXUL_BOX_TRUST_CA`). Because of that shared network, two docker-placed boxes on one
-  host would collide on ports; one box per host until boxes get their own network.
+- `docker` (built): a laptop or a cloud container. Each box has its own network, so the Docker inside it owns its own
+  firewall rules and two boxes never share ports. (Sharing the host's network broke the sites: the box's Docker and the
+  host's wrote rules into the same firewall, and containers on one world's network could not reach each other.) In a
+  Claude cloud container, whose agent proxy listens only on loopback, `bin/proxy-relay.mjs` serves that proxy on the
+  Docker bridge; set `CAPXUL_BOX_PROXY=http://172.17.0.1:<port>` and `CAPXUL_BOX_TRUST_CA` to the proxy's CA.
 - `e2b` (next): test runs in an E2B sandbox, destroyed after the run, through `@alchemy.run/e2b`. Waits on an
   `E2B_API_KEY` in the environment.
 - A long-lived machine with a real disk, for shared worlds: not chosen yet.
@@ -46,4 +49,4 @@ CAPXUL_PROVISIONER_DOCKER=1 pnpm --filter @capxul/provisioner test       # also 
 ```
 
 Environment for `src/main.ts`: `CAPXUL_WORLD_BOX_IMAGE` (default `capxul-world-box:dev`, built by `bin/build-box.sh`), `CAPXUL_PROVISIONER_STATE` (default
-`var/provisioner`), `CAPXUL_BOX_TRUST_CA`, and the proxy variables, which it passes into the box.
+`var/provisioner`), `CAPXUL_BOX_TRUST_CA` and `CAPXUL_BOX_PROXY` (the proxy as the box sees it).

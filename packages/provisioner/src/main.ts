@@ -19,16 +19,24 @@ const main = async (argv: readonly string[]): Promise<number> => {
   const placement = (flag >= 0 ? rest[flag + 1] : "docker") as Placement;
   const root = resolve(import.meta.dirname, "../../..");
   const env = process.env;
-  const proxy = Object.fromEntries(
-    ["HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "https_proxy", "http_proxy", "no_proxy"]
-      .filter((k) => env[k] !== undefined)
-      .map((k) => [k, env[k] as string]),
-  );
+  // A box keeps its own network, so the Docker inside it owns its own firewall rules. When this host reaches the
+  // internet through a proxy on its loopback (a Claude cloud container), CAPXUL_BOX_PROXY is that proxy as the box sees
+  // it (bin/proxy-relay.mjs serves it on the Docker bridge).
+  const boxProxy = env.CAPXUL_BOX_PROXY;
+  const proxy: Record<string, string> = boxProxy
+    ? {
+        HTTPS_PROXY: boxProxy,
+        HTTP_PROXY: boxProxy,
+        https_proxy: boxProxy,
+        http_proxy: boxProxy,
+        NO_PROXY: "localhost,127.0.0.1,.localhost,host.docker.internal",
+        no_proxy: "localhost,127.0.0.1,.localhost,host.docker.internal",
+      }
+    : {};
   const p = provisioner(placement, {
     stateDir: env.CAPXUL_PROVISIONER_STATE ?? resolve(root, "var/provisioner"),
     image: env.CAPXUL_WORLD_BOX_IMAGE ?? "capxul-world-box:dev",
-    // A cloud container reaches the internet through a proxy on its own loopback, with its own CA.
-    ...(Object.keys(proxy).length ? { hostNetwork: true, environment: proxy } : {}),
+    ...(boxProxy ? { environment: proxy } : {}),
     ...(env.CAPXUL_BOX_TRUST_CA ? { trustCa: env.CAPXUL_BOX_TRUST_CA } : {}),
   });
   const applied = await Effect.runPromise(p[verb as Verb](world));
