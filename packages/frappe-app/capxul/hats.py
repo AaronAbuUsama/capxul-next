@@ -1,4 +1,5 @@
 """hat_granted / hat_revoked -> Frappe User, Has Role, User Permission."""
+import hashlib
 import json
 
 import frappe
@@ -7,9 +8,38 @@ from capxul.locks import applying
 
 
 def hat_roles(hat):
-    if not frappe.db.exists("Capxul Hat Map", hat):
-        frappe.throw(f"Unknown hat {hat!r}: no row in Capxul Hat Map", frappe.ValidationError)
-    return [r.role for r in frappe.get_doc("Capxul Hat Map", hat).roles if frappe.db.exists("Role", r.role)]
+    from capxul.setup import DEFAULT_HAT_ROLES
+
+    if hat not in DEFAULT_HAT_ROLES:
+        frappe.throw(f"Unknown hat {hat!r}: not in the shipped hat map", frappe.ValidationError)
+    return [r for r in DEFAULT_HAT_ROLES[hat] if frappe.db.exists("Role", r)]
+
+
+def map_version():
+    from capxul.setup import DEFAULT_HAT_ROLES
+
+    raw = json.dumps(DEFAULT_HAT_ROLES, sort_keys=True, separators=(",", ":")).encode()
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def reproject_grants():
+    """Upgrade existing grants from release data, never from an editable site's map."""
+    grants = frappe.get_all("Capxul Hat Grant", fields=["name", "hat", "user", "department", "roles_given"])
+    old, wanted = {}, {}
+    with applying():
+        for g in grants:
+            roles = hat_roles(g.hat)
+            old.setdefault(g.user, set()).update(json.loads(g.roles_given or "[]"))
+            wanted.setdefault(g.user, set()).update(roles)
+            if "Employee" in roles:
+                ensure_employee(g.user, g.user, g.department)
+            frappe.db.set_value("Capxul Hat Grant", g.name, {"roles_given": json.dumps(roles), "map_version": map_version()})
+        for email, roles in wanted.items():
+            if frappe.db.exists("User", email):
+                user = ensure_user(email, email, sorted(roles))
+                drop = old[email] - roles
+                if drop:
+                    user.remove_roles(*drop)
 
 
 def ensure_department(name):
@@ -76,7 +106,7 @@ def apply_hat_granted(data, event_key=None):
         if not frappe.db.exists("Capxul Hat Grant", {"user": email, "hat": hat, "department": dept}):
             frappe.get_doc(
                 {"doctype": "Capxul Hat Grant", "user": email, "hat": hat, "department": dept,
-                 "roles_given": json.dumps(roles), "event_key": event_key}
+                 "roles_given": json.dumps(roles), "map_version": map_version(), "event_key": event_key}
             ).insert(ignore_permissions=True)
         if dept:
             from frappe.permissions import add_user_permission

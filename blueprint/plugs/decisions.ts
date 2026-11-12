@@ -12,6 +12,7 @@ import * as si from "./signin.ts";
 import * as ro from "./roles.ts";
 import * as ev from "./events.ts";
 import * as pr from "./processes.ts";
+import { doctype_gl_entry } from "./doctypes.ts";
 import { integration_frappe_site, integration_site_service } from "./integrations.ts";
 
 const dec = (spec: { id: string; title: string; question: string; options: { label: string; text: string }[]; chosen: string; why: string; evidence: string; affects: readonly never[] | readonly object[] }) =>
@@ -344,6 +345,45 @@ export const decision_plugs_service_calls_site = dec({
   why: "The owner, 10 November: one hosted bench should be shared by everything, including developers' local devnets whose service a hosted bench cannot reach, and a hosted world's service should need no inbound route from the bench. The precedent is the old head design: 'Capxul always calls; the head only rings a doorbell' (the archived integration frappe-head). The spike breaks the rule in two places (spikes/skeleton/INTERFACE.md: the site posts /prepare to the service; the sign-in exchanges the code server to server); both are replaced here. Assumption, not yet tested: the site's outbox of requests, the poll and its latency (the skeleton's sign to posted was 533 to 728 ms and Frappe-down recovery 2.0 to 3.8 s with the site calling); m3-site-stops-calling proves them.",
   evidence: FIND.e2e,
   affects: [f.system_capxul, d.table_site_request_cursors, d.table_site_links, d.table_payment_requests, pr.workflow_plugs_payments_collect, sg.rpc_plugs_payments_prepare, si.rpc_plugs_oauth_authorize, si.rpc_plugs_oauth_token, ops.operation_org_site_link, ops.operation_payment_prepare_document, integration_frappe_site],
+});
+
+export const decision_plugs_site_request_boundary = dec({
+  id: "plugs.site-request-boundary",
+  title: "Durable site requests, with Core-initiated wake-up subscriptions",
+  question: "How does slice zero replace the site's outbound prepare and OAuth calls without periodic request polling?",
+  options: [
+    { label: "durable-with-hints", text: "Submit locks the draft and a site request counter, writes an immutable prepare body and trace with the draft's Requesting state, then commits once. Signed service-only collect/answer methods use a monotonic integer cursor and stable request id; duplicate answers succeed, conflicting answers refuse, late answers never overwrite settlement or a newer draft. Core subscribes outbound to the existing site Socket.IO server and collects at startup, reconnect and after after-commit hints; hints contain only org and cursor. A 60-second, site-bound CapxulListener Authorization token authenticates only the socket server's get_user_info callback as a dedicated Website User with no business roles, never Administrator. It is not a customer session or a document credential. Legacy Capxul Social Login Keys are removed on configure/migrate/restore; agent assertions remain the caller door and human sign-in remains outside this slice. Restore rewrites names without resuming the scheduler. The hat map is read only from shipped app data, its content hash is the version recorded on grants and returned to Core, and migration removes the legacy editable map DocTypes and reprojects existing grants." },
+    { label: "periodic-poll", text: "Keep a periodic service-to-site poll, with the same durable outbox." },
+  ],
+  chosen: "durable-with-hints",
+  why: "Implements plugs.service-calls-site and plugs.hat-map-ships while honoring Aaron's parked concern about polling in aaron.postgres-and-ponder. Socket.IO already authenticates an Authorization header through the site's get_user_info callback and automatically joins that user's private room. Notifications only wake the durable collector; they never acknowledge money or advance its cursor. A missing hint is recovered on reconnect. No inbound Core route, customer API key, or Administrator session is introduced. Parked-event repair reruns stored facts under the cursor lock; only successful application and reconciliation of any fallback Bank Transaction changes it to Applied, never clearing an alert row alone. Submit retries a rolled-back database conflict up to three times: MariaDB 11.8 snapshot isolation can reject a waiting row lock after another Submit commits, even though the request identity remains idempotent.",
+  evidence: "Slice zero Frappe/Core boundary agreement, 12 November 2026; Frappe v16.54.0 realtime/middlewares/authenticate.js, realtime/handlers.js and frappe/realtime/__init__.py",
+  affects: [f.component_frappe_app, integration_frappe_site, d.table_hat_role_map, d.table_role_grants, d.table_payment_requests, d.table_site_request_cursors, pr.workflow_plugs_payments_collect],
+});
+
+export const decision_plugs_ledger_trace_display = dec({
+  id: "plugs.ledger-trace-display",
+  title: "Show persisted traces on the native General Ledger",
+  question: "How can a person verify the command trace on the actual ledger row without forking ERPNext?",
+  options: [
+    { label: "report-extension", text: "Use Frappe's Report extension hook. Run the unchanged ERPNext General Ledger, retain its name, filters and permission checks, then add Capxul Trace from persisted GL Entry.capxul_trace keyed by the returned gl_entry. Totals without a ledger identity have no trace. Never substitute the current request trace. Place Payment Entry's read-only Capxul status and approval reference alongside its posting date, visible on the primary details tab before and after settlement." },
+    { label: "api-only", text: "Keep the trace field in the API without displaying it in General Ledger." },
+  ],
+  chosen: "report-extension",
+  why: "Slice zero acceptance requires a person to see the same trace as the settled payment's persisted GL rows. ERPNext v16.54.0 returns each row's gl_entry identity but does not select or render this custom field. A narrow Report mixin adds the field while preserving native calculations and access controls, rather than copying or editing ERPNext. The Payment Entry's existing approval URL remains an ordinary read-only URL field after settlement: the signing action is draft-only, but the source approval reference is a permanent part of the readable audit trail. Purchase Invoice and Payment Entry explicitly show their native Company control even on a one-company site, retaining ERPNext's edit/read-only rules so the readable transaction context does not disappear.",
+  evidence: "Slice zero screens/alerts acceptance contract, 12 November 2026; pinned erpnext/accounts/report/general_ledger/general_ledger.py and Frappe extend_doctype_class hook",
+  affects: [f.component_frappe_app, doctype_gl_entry],
+});
+
+export const decision_plugs_later_deposits = dec({
+  id: "plugs.later-deposits",
+  title: "Later incoming transfers are not founder capital",
+  question: "Which site event represents ordinary money arriving after the founding deposit?",
+  options: [{ label: "unmatched-deposit", text: "Core delivers deposit_received with amount, asset, tx_hash, block_time, from and to. The site creates one idempotent unreconciled Bank Transaction deposit. Only founder_capital creates the founding Shareholder and Journal Entry." }],
+  chosen: "unmatched-deposit",
+  why: "Preserves books.founder-funding and books.party-lines. A later incoming Transfer with no founding person is not capital and must not attempt to create a nameless Shareholder or hide ordinary incoming money behind a parked capital event.",
+  evidence: "Core/Frappe slice zero protocol agreement, 12 November 2026; capxul.capital.unmatched_deposit",
+  affects: [f.component_frappe_app, integration_frappe_site, pr.workflow_plugs_books_founder_capital],
 });
 
 void ops; 

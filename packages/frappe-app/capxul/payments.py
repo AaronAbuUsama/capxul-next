@@ -2,14 +2,14 @@
 import json
 
 import frappe
-import requests
 from frappe import _
-from frappe.utils import flt, getdate, now_datetime
+from frappe.utils import flt, getdate
 
 from capxul.canon import canonical, document_hash, money, to_address_for
-from capxul.sign import sign
 
 WAITING = "Waiting for signature"
+LISTENER = "capxul-listener@service.invalid"
+REQUEST_EVENT = "capxul_payment_request"
 
 
 def settings():
@@ -56,11 +56,14 @@ def guard_gl_entry(doc, method=None):
         frappe.throw(_("The Safe's ledger account is only credited when the chain says money moved."))
 
 
-# ---- Frappe -> Core ---------------------------------------------------------------------------------------
+# ---- site-local request outbox ---------------------------------------------------------------------------
 
 def request_payment(name):
     s = settings()
-    pe = frappe.get_doc("Payment Entry", name)
+    # The document lock prevents two Submit requests creating two approvals for the same draft. The counter lock
+    # serializes outbox commits across documents: collecting past N can never skip an uncommitted N-1.
+    frappe.db.sql("select name from `tabPayment Entry` where name=%s for update", name)
+    pe = frappe.get_doc("Payment Entry", name, for_update=True)
     pe.check_permission("submit")
     if not is_safe_backed(pe):
         return {"safe": False}
@@ -68,45 +71,82 @@ def request_payment(name):
         frappe.throw(_("Only a draft can be sent for signature"))
     h = document_hash(pe, s.asset)
     open_req = frappe.db.get_value(
-        "Capxul Payment Request", {"payment_entry": name, "document_hash": h, "status": WAITING}, ["name", "approval_url", "approval_id"], as_dict=True
+        "Capxul Payment Request", {"payment_entry": name, "document_hash": h, "status": ["in", ["Requesting", WAITING]]}, ["name", "status", "approval_url"], as_dict=True, for_update=True
     )
     if open_req:
-        return {"safe": True, "status": WAITING, "approval_url": open_req.approval_url, "request": open_req.name}
+        return {"safe": True, "status": open_req.status, "approval_url": open_req.approval_url, "request": open_req.name}
     to_addr = to_address_for(pe)
     if not to_addr:
         frappe.throw(_("{0} has no wallet address (Capxul Wallet Address)").format(pe.party))
     dept = frappe.db.get_value("Capxul Hat Grant", {"user": frappe.session.user, "department": ["!=", ""]}, "department") or ""
+    row = frappe.db.sql("select value from tabSingles where doctype='Capxul Settings' and field='request_seq' for update")
+    if not row:
+        frappe.throw(_("Migrate this site before requesting a payment"))
+    seq = int(row[0][0] or 0) + 1
+    frappe.db.set_single_value("Capxul Settings", "request_seq", seq)
     req = frappe.get_doc(
         {"doctype": "Capxul Payment Request", "payment_entry": name, "document_hash": h, "status": "Requesting",
-         "requested_by": frappe.session.user, "canonical_json": canonical(pe, s.asset)}
+         "requested_by": frappe.session.user, "canonical_json": canonical(pe, s.asset), "request_seq": seq}
     ).insert(ignore_permissions=True)
     body = {
+        "request_id": req.name, "idempotency_key": req.name, "cursor": seq,
+        "trace_id": frappe.flags.get("capxul_trace") or "",
         "org": s.org_slug, "site": frappe.local.site, "doctype": "Payment Entry", "name": name, "document_hash": h,
         "requested_by": frappe.session.user, "to_party": pe.party_name or pe.party, "to_address": to_addr,
         "amount": money(pe.paid_amount), "asset": s.asset, "department": dept,
     }
-    raw = json.dumps(body, separators=(",", ":")).encode()
-    try:
-        r = requests.post(
-            s.core_url.rstrip("/") + "/prepare", data=raw, timeout=10,
-            headers={"Content-Type": "application/json", "X-Capxul-Signature": sign(raw), "X-Capxul-Trace": frappe.flags.get("capxul_trace") or ""},
-        )
-    except Exception as e:  # keep the failed request visible, then tell the person
-        req.db_set({"status": "Failed", "reason": f"PREPARE_UNREACHABLE: {e}"[:400]})
-        frappe.db.commit()
-        frappe.throw(_("Capxul Core could not be reached to prepare this payment: {0}").format(e))
-    if r.status_code >= 400:  # Core understood and said no (for example: this Frappe user is not a person it knows)
-        try:
-            why = r.json().get("error") or r.text
-        except Exception:
-            why = r.text
-        req.db_set({"status": "Failed", "reason": f"PREPARE_REFUSED: {why}"[:400]})
-        frappe.db.commit()
-        frappe.throw(_("Capxul did not accept this payment request: {0}").format(why))
-    ans = r.json()
-    req.db_set({"status": WAITING, "approval_id": ans["approval_id"], "approval_url": ans["approval_url"]})
-    frappe.db.set_value("Payment Entry", name, {"capxul_status": WAITING, "capxul_approval_url": ans["approval_url"]}, update_modified=False)
-    return {"safe": True, "status": WAITING, "approval_url": ans["approval_url"], "request": req.name}
+    req.db_set({"request_json": json.dumps(body, sort_keys=True)})
+    frappe.db.set_value("Payment Entry", name, {"capxul_status": "Requesting", "capxul_approval_url": ""}, update_modified=False)
+    frappe.publish_realtime(REQUEST_EVENT, {"org": s.org_slug, "cursor": seq}, user=LISTENER, after_commit=True)
+    return {"safe": True, "status": "Requesting", "approval_url": None, "request": req.name}
+
+
+def collect_requests(after=0, limit=100):
+    after, limit = int(after), int(limit)
+    if after < 0 or not 1 <= limit <= 100:
+        frappe.throw(_("Invalid request cursor or limit"), frappe.ValidationError)
+    rows = frappe.get_all("Capxul Payment Request", filters={"request_seq": [">", after]},
+                          fields=["request_seq", "request_json"], order_by="request_seq asc", limit_page_length=limit)
+    # A restored world's site name is new; the request identity and its business facts are unchanged.
+    bodies = [dict(json.loads(r.request_json), site=frappe.local.site) for r in rows]
+    return {"requests": bodies, "cursor": int(rows[-1].request_seq) if rows else after}
+
+
+def answer_request(body):
+    name = body["request_id"]
+    entry = frappe.db.get_value("Capxul Payment Request", name, "payment_entry")
+    if not entry:
+        frappe.throw(_("Unknown payment request"), frappe.DoesNotExistError)
+    # Same lock order as Submit and settlement.
+    frappe.db.sql("select name from `tabPayment Entry` where name=%s for update", entry)
+    req = frappe.get_doc("Capxul Payment Request", name, for_update=True)
+    error = body.get("error")
+    if error:
+        answer = {"error": {"code": error["code"], "message": error["message"]}}
+    else:
+        if body.get("requested_by") != req.requested_by or not body.get("approval_id") or not body.get("approval_url"):
+            frappe.throw(_("Invalid approval answer"), frappe.ValidationError)
+        answer = {k: body.get(k) or "" for k in ("approval_id", "approval_url", "requested_by", "awaiting")}
+    encoded = json.dumps(answer, sort_keys=True)
+    if req.answer_json:
+        if req.answer_json != encoded:
+            frappe.throw(_("Conflicting answer for payment request"), frappe.ValidationError)
+        return {"request_id": name, "status": req.status, "duplicate": True}
+    updates = {"answer_json": encoded}
+    if not error:
+        updates.update({k: answer[k] for k in ("approval_id", "approval_url", "awaiting")})
+    if req.status == "Requesting":
+        reason = f"{error['code']}: {error['message']}"[:400] if error else ""
+        updates.update(status="Failed" if error else WAITING, reason=reason)
+        pe = frappe.get_doc("Payment Entry", entry, for_update=True)
+        latest = frappe.db.get_value("Capxul Payment Request", {"payment_entry": entry}, "name", order_by="creation desc", for_update=True)
+        if pe.docstatus == 0 and latest == name and document_hash(pe, settings().asset) == req.document_hash:
+            frappe.db.set_value("Payment Entry", entry, {
+                "capxul_status": f"Failed: {reason}"[:140] if error else WAITING,
+                "capxul_approval_url": "" if error else answer["approval_url"],
+            }, update_modified=False)
+    req.db_set(updates)
+    return {"request_id": name, "status": req.status, "duplicate": False}
 
 
 def payment_status(name):
@@ -132,7 +172,9 @@ def apply_payment_sent(d, event_key=None):
             _unmatched(d, "no Frappe document asked for this payment")
         return
     req = frappe.get_doc("Capxul Payment Request", req_name)
-    pe = frappe.get_doc("Payment Entry", req.payment_entry)
+    frappe.db.sql("select name from `tabPayment Entry` where name=%s for update", req.payment_entry)
+    req = frappe.get_doc("Capxul Payment Request", req_name, for_update=True)
+    pe = frappe.get_doc("Payment Entry", req.payment_entry, for_update=True)
     if pe.docstatus == 1:
         if pe.reference_no == d["tx_hash"]:  # the payment that posted this entry, delivered again
             req.db_set({"status": "Sent", "tx_hash": d["tx_hash"]})

@@ -5,7 +5,6 @@
 
 import { defineDoctype, type Doctype } from "../../packages/blueprint-engine/src/index.ts";
 import { concept_plugs, concept_sites } from "../shared/foundation.ts";
-import { decision_plugs_hat_map_ships } from "./decisions.ts";
 
 const ADMIN = [{ role: "System Manager", read: true, write: true, create: true, delete: true }];
 const theirs = (id: string, name: string, app: "frappe" | "erpnext", about: string, fields: Doctype["fields"] = []) =>
@@ -26,7 +25,7 @@ export const doctype_gl_entry = theirs("gl-entry", "GL Entry", "erpnext", "A led
 ]);
 export const doctype_payment_entry = theirs("payment-entry", "Payment Entry", "erpnext", "A payment from the Safe, held until the chain confirms it.", [
   { name: "capxul_status", type: "Data", readOnly: true },
-  { name: "capxul_approval_url", type: "Data", readOnly: true },
+  { name: "capxul_approval_url", type: "Data", readOnly: true, options: ["URL"] },
 ]);
 
 // ── Capxul's own ────────────────────────────────────────────────────────────────────────────
@@ -34,7 +33,7 @@ export const doctype_payment_entry = theirs("payment-entry", "Payment Entry", "e
 export const doctype_capxul_settings = defineDoctype({
   id: "capxul-settings",
   title: "Capxul Settings",
-  about: "The site's one settings document: its Organization, its Safe and asset, where Core is, the secret Core signs with, and the last chain event applied.",
+  about: "The site's one settings document: its Organization, Safe and asset, the secret Core signs with, and locked chain and request cursors. The site never calls Core.",
   concept: concept_plugs,
   name: "Capxul Settings",
   app: "capxul",
@@ -43,11 +42,11 @@ export const doctype_capxul_settings = defineDoctype({
     { name: "org_slug", type: "Data", required: true },
     { name: "safe_address", type: "Data" },
     { name: "asset", type: "Data", default: "USDC" },
-    { name: "core_url", type: "Data", default: "http://host.docker.internal:8787" },
     { name: "secret", type: "Password" },
     { name: "safe_account", type: "Link", link: doctype_account },
     { name: "safe_bank_account", type: "Link", link: doctype_bank_account },
     { name: "last_seq", type: "Int", readOnly: true, default: "0" },
+    { name: "request_seq", type: "Int", readOnly: true, default: "0" },
   ],
   permissions: ADMIN,
 });
@@ -68,6 +67,7 @@ export const doctype_capxul_chain_event = defineDoctype({
     { name: "status", type: "Select", options: ["Applied", "Failed", "Parked"], default: "Applied" },
     { name: "attempts", type: "Int", default: "0" },
     { name: "error", type: "Small Text" },
+    { name: "map_version", type: "Data", readOnly: true },
     { name: "data", type: "Code", options: ["JSON"] },
   ],
   permissions: ADMIN,
@@ -89,35 +89,6 @@ export const doctype_capxul_feature = defineDoctype({
   permissions: [{ role: "System Manager", read: true, write: false, create: false, delete: false }],
 });
 
-export const doctype_capxul_hat_role = defineDoctype({
-  id: "capxul-hat-role",
-  title: "Capxul Hat Role",
-  about: "One Frappe role in a hat's row of the editable hat map.",
-  concept: concept_plugs,
-  name: "Capxul Hat Role",
-  app: "capxul",
-  child: true,
-  fields: [{ name: "role", type: "Link", link: doctype_role, required: true }],
-  permissions: [],
-  owes: [{ decision: decision_plugs_hat_map_ships, change: "Remove it: the map ships inside the app and no site can edit it." }],
-});
-
-export const doctype_capxul_hat_map = defineDoctype({
-  id: "capxul-hat-map",
-  title: "Capxul Hat Map",
-  about: "The spike's hat-to-role map: one document per hat, editable on the site. The blueprint ships the map inside the app instead (plugs.hat-map-ships), so this goes.",
-  concept: concept_plugs,
-  name: "Capxul Hat Map",
-  app: "capxul",
-  naming: "field:hat",
-  fields: [
-    { name: "hat", type: "Data", required: true, unique: true },
-    { name: "roles", type: "Table", link: doctype_capxul_hat_role },
-  ],
-  permissions: ADMIN,
-  owes: [{ decision: decision_plugs_hat_map_ships, change: "Remove it: the map ships inside the app and no site can edit it." }],
-});
-
 export const doctype_capxul_hat_grant = defineDoctype({
   id: "capxul-hat-grant",
   title: "Capxul Hat Grant",
@@ -131,6 +102,7 @@ export const doctype_capxul_hat_grant = defineDoctype({
     { name: "hat", type: "Data", required: true },
     { name: "department", type: "Data" },
     { name: "roles_given", type: "Small Text", about: "JSON list: the roles this grant added." },
+    { name: "map_version", type: "Data", readOnly: true },
     { name: "event_key", type: "Data" },
   ],
   permissions: ADMIN,
@@ -139,7 +111,7 @@ export const doctype_capxul_hat_grant = defineDoctype({
 export const doctype_capxul_payment_request = defineDoctype({
   id: "capxul-payment-request",
   title: "Capxul Payment Request",
-  about: "A Payment Entry from the Safe, held while the chain is asked to pay it: the document's hash, the approval, the transaction, and why it failed.",
+  about: "A Payment Entry from the Safe, held while the chain is asked to pay it. Also the site's immutable request outbox: request_seq is allocated under a transaction lock, request_json captures the prepare body and trace, answer_json makes Core's answer idempotent. No request is published before commit.",
   concept: concept_plugs,
   name: "Capxul Payment Request",
   app: "capxul",
@@ -154,6 +126,10 @@ export const doctype_capxul_payment_request = defineDoctype({
     { name: "tx_hash", type: "Data" },
     { name: "reason", type: "Small Text" },
     { name: "canonical_json", type: "Code", options: ["JSON"] },
+    { name: "request_seq", type: "Int", readOnly: true },
+    { name: "request_json", type: "Code", options: ["JSON"], readOnly: true },
+    { name: "answer_json", type: "Code", options: ["JSON"], readOnly: true },
+    { name: "awaiting", type: "Data", readOnly: true },
   ],
   permissions: ADMIN,
 });

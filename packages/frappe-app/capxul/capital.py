@@ -55,6 +55,10 @@ def apply_founder_capital(d, event_key=None):
     je.submit()
 
 
+def apply_deposit_received(d, event_key=None):
+    unmatched_deposit(d, "later incoming transfer, not founder capital")
+
+
 def unmatched_deposit(d, why):
     """Funding that could not be booked as capital -> an unreconciled Bank Transaction (a deposit), so it is never lost."""
     bank_account = frappe.db.get_single_value("Capxul Settings", "safe_bank_account")
