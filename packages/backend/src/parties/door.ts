@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import { readFileSync } from "node:fs";
 import type { Sql } from "../platform/db.ts";
 import { personalSafeAddress, type PersonalSafeConfig } from "../platform/safe.ts";
 
@@ -107,4 +108,93 @@ export async function resolveRecipient(sql: Sql, locator: Locator, config: Perso
   if (row.state === "released") return { resolved: false, reason: "released" };
   return { resolved: true, party_id: row.party_id, kind: row.kind, state: row.state, handle: row.handle,
     display_name: row.display_name, safe_address: row.safe_address, named };
+}
+
+export type Profile = {
+  party_id: string; display_name: string; photo_file_id: string | null; country: string;
+  safe_address: string; created_at: number; updated_at: number;
+};
+export type ProfileInput = { display_name: string; country: string; photo_file_id?: string | null };
+export type ProfileServices = {
+  personalSafe: PersonalSafeConfig;
+  /** Composition supplies Media.requireImage, on this same Sql, never anonymous Media.get. */
+  requireImage(sql: Sql, fileId: string): Promise<{ file_id: string; content_type: string; size: number }>;
+};
+/** Privileged provisioning only, after Access and the Party directory. */
+export async function migrateProfiles(sql: Sql): Promise<void> {
+  await sql.query(readFileSync(new URL("./profiles.sql", import.meta.url), "utf8"));
+}
+
+// ISO 3166-1 alpha-2 assigned codes; not CLDR groups, user-assigned or reserved region codes.
+const countries = new Set("AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW".split(" "));
+async function profilePerson(sql: Sql) {
+  const person = (await sql.query<{ person_id: string; email: string; safe_address: string }>(`select person_id,email,safe_address
+    from app.principals where kind='person' and person_id=nullif(current_setting('app.person_id',true),'')
+    and email=nullif(current_setting('app.email',true),'') and safe_address=nullif(current_setting('app.safe_address',true),'')`)).rows[0];
+  if (!person) throw new Error("NOT_AUTHENTICATED: person session required");
+  return person;
+}
+async function profileFor(sql: Sql, personId: string): Promise<Profile | null> {
+  const row = (await sql.query(`select p.party_id,p.display_name,p.photo_file_id,p.safe_address,
+    f.country,f.created_at,f.updated_at from app.profiles f join app.parties p using(party_id)
+    where f.person_id=$1 and p.kind='person' and p.state='active' and p.owner_kind='person' and p.owner_id=$1`, [personId])).rows[0];
+  return row ? { ...row, created_at: Number(row.created_at), updated_at: Number(row.updated_at) } : null;
+}
+export async function getProfile(sql: Sql): Promise<Profile | null> {
+  return profileFor(sql, (await profilePerson(sql)).person_id);
+}
+export async function requireProfile(sql: Sql): Promise<Profile> {
+  const profile = await getProfile(sql);
+  if (!profile) throw new Error("PROFILE_NOT_FOUND: complete your profile");
+  return profile;
+}
+
+/** Access authenticates first; now is the authoritative transaction world instant, not body data. */
+export async function saveProfile(sql: Sql, input: ProfileInput, services: ProfileServices, now: number): Promise<Profile> {
+  const person = await profilePerson(sql);
+  if (typeof input.display_name !== "string" || !input.display_name.trim() || input.display_name.trim().length > 80)
+    throw new Error("INVALID_INPUT: display_name");
+  if (typeof input.country !== "string" || !countries.has(input.country.trim().toUpperCase())) throw new Error("INVALID_INPUT: country");
+  if (input.photo_file_id !== undefined && input.photo_file_id !== null &&
+    (typeof input.photo_file_id !== "string" || !input.photo_file_id)) throw new Error("INVALID_INPUT: photo_file_id");
+  const name = input.display_name.trim(), country = input.country.trim().toUpperCase();
+  if (typeof input.photo_file_id === "string") await services.requireImage(sql, input.photo_file_id);
+  const safe = personalSafeAddress(services.personalSafe, person.email);
+  if (safe !== person.safe_address) throw new Error("INVALID_INPUT: personal Safe configuration");
+  const digest = createHash("sha256").update(person.email).digest("hex");
+  await lock(sql, `safe:${safe}`);
+  const candidates = (await sql.query<Party>(`select * from app.parties where (safe_address=$1 and state<>'released')
+    or mailbox_digest=$2 for update`, [safe, digest])).rows;
+  let row = candidates[0];
+  if (candidates.length > 1 || row && (row.safe_address !== safe ||
+    !(row.state === "outside" && row.kind === "address" && row.owner_id === null ||
+      row.state === "provisional" && row.kind === "person" && row.owner_id === null ||
+      row.state === "active" && row.kind === "person" && row.owner_kind === "person" && row.owner_id === person.person_id)))
+    throw new Error("INVALID_INPUT: Party identity conflict");
+  const before = await profileFor(sql, person.person_id);
+  const photo = input.photo_file_id === undefined ? row?.photo_file_id ?? null : input.photo_file_id;
+  const changed = !before || before.display_name !== name || before.photo_file_id !== photo || before.country !== country;
+  if (!row) {
+    row = (await sql.query<Party>(`insert into app.parties(party_id,kind,state,display_name,photo_file_id,safe_address,
+      mailbox_digest,owner_kind,owner_id,created_at,updated_at) values($1,'person','active',$2,$3,$4,$5,'person',$6,$7,$7) returning *`,
+    [newId("party"), name, photo, safe, digest, person.person_id, now])).rows[0]!;
+    await emit(sql, row, null, "onboard", now);
+  } else if (row.state !== "active" || row.display_name !== name || row.photo_file_id !== photo) {
+    const from = row.state;
+    row = (await sql.query<Party>(`update app.parties set kind='person',state='active',display_name=$2,photo_file_id=$3,
+      mailbox_digest=$4,owner_kind='person',owner_id=$5,updated_at=$6 where party_id=$1 returning *`,
+    [row.party_id, name, photo, digest, person.person_id, now])).rows[0]!;
+    if (from !== "active") await emit(sql, row, from, "claim", now);
+  }
+  if (changed) await sql.query(`insert into app.profiles(person_id,party_id,country,created_at,updated_at) values($1,$2,$3,$4,$4)
+    on conflict(person_id) do update set country=excluded.country,updated_at=excluded.updated_at`, [person.person_id, row.party_id, country, now]);
+  return (await profileFor(sql, person.person_id))!;
+}
+
+export const profilePaths = ["/parties/profiles/save", "/parties/profiles/get"] as const;
+/** Mounted after Access.authenticate inside the caller's drained transaction; errors must roll back. */
+export async function routeProfiles(sql: Sql, path: string, input: Record<string, unknown>, services: ProfileServices, now: number) {
+  if (path === "/parties/profiles/get") return { status: 200, body: await getProfile(sql) };
+  if (path === "/parties/profiles/save") return { status: 200, body: await saveProfile(sql, input as ProfileInput, services, now) };
+  return null;
 }

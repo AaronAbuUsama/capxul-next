@@ -233,7 +233,12 @@ export const decision_parties_claim_at_profile = defineDecision({
     "the profile is the earliest write that knows who the person is and what to call them. The claim keeps the Party's " +
     "id, so what payments, contacts and invitations saved for the mailbox before signup still points at the person. " +
     "Whether money to the person goes straight to their Safe or into a claim escrow is the chain's CapxulSafeClaimed, " +
-    "read by payments, not the Party's state.",
+    "read by payments, not the Party's state. Runtime profile reads, writes and requireProfile recheck the person-only " +
+    "Access principal against the same Sql transaction's authenticated person, verified mailbox and Safe settings; " +
+    "owner labels and agent sessions cannot admit a profile. All input and the real same-Sql Media requireImage " +
+    "ownership check precede writes. Claim/onboard, private profile and party_transitioned commit or roll back together " +
+    "at the mandatory caller-supplied authoritative world instant, never host time. Exact repeats change no timestamp. " +
+    "The private profile has its own explicit privileged migration after Access and the Party directory, not a restore hook.",
   source: by("account.show.yaml (mistakes: PROFILE_NOT_FOUND); profiles/onboardings/operations/complete.ts:23; concepts.access"),
   affects: [machine_party, rpc_parties_profiles_save, concept_parties],
 });
