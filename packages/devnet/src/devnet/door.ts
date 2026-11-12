@@ -79,6 +79,7 @@ export async function saveSnapshot(options: Options, world: World, id: string): 
     // Reserve the name without ever replacing an existing snapshot.
     await mkdir(final, { mode: 0o700 });
     let database: Database | undefined, published = false;
+    const errors: unknown[] = [];
     try {
       await mkdir(temp, { mode: 0o700 });
       const cut = await options.runtime.quiesce(world);
@@ -99,6 +100,9 @@ export async function saveSnapshot(options: Options, world: World, id: string): 
       await rm(final, { recursive: true });
       await rename(temp, final); published = true;
       return manifest;
+    } catch (error) {
+      errors.push(error);
+      throw error;
     } finally {
       try {
         if (!published) {
@@ -106,10 +110,17 @@ export async function saveSnapshot(options: Options, world: World, id: string): 
           await rm(final, { recursive: true, force: true });
           if (database) await dropDatabase(options.admin, database.name);
         }
-      } finally {
-        // Also runs when pause partially failed: the supervisor must implement idempotent resume.
-        await options.runtime.resume(world);
+      } catch (error) {
+        errors.push(error);
       }
+      try {
+        // Attempt recovery after partial quiesce without masking its failure if resume refuses.
+        await options.runtime.resume(world);
+      } catch (error) {
+        errors.push(error);
+      }
+      if (errors.length > 1) throw new AggregateError(errors, "snapshot save encountered multiple failures", { cause: errors[0] });
+      if (errors.length === 1) throw errors[0];
     }
   });
 }

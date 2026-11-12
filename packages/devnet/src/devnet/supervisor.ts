@@ -9,7 +9,7 @@ export type Config = {
   version: 1; root: string; controlDir: string; snapshots: string; codeVersion: string; world: World;
   database: { admin: string; tenant: string; worker: string; ponder: string };
   ports: { anvil: number; ponder: number; core: number; siteService: number; bench: number; socket: number;
-    publicCore: number; publicRpc: number; publicBench: number; publicBundler: number };
+    publicCore: number; publicRpc: number; publicBench: number; publicBundler: number; bundler?: number };
   secret: string; siteToken: string; finality: number; chainId: number;
   bench: { composeArgs: string[]; env: Record<string, string>; dbPassword: string; adminPassword: string; baseDomain: string };
   bundler?: { argv: string[]; url: string; env: Record<string, string>; paymaster?: string };

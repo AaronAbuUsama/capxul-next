@@ -28,3 +28,45 @@ export const decision_devnet_selected_world_now = defineDecision({
   source: "docs/design/time.md sections 3 and 7; selected supervisor clock callback; integration clock-door assignment, 12 November 2026",
   affects: [component_devnet, concept_devnet],
 });
+
+export const decision_devnet_bench_callback_startup = defineDecision({
+  id: "devnet.bench-callback-startup",
+  title: "Bench callback configuration precedes websocket startup",
+  question: "When must the internal Frappe callback address become available to realtime consumers?",
+  options: [
+    { label: "configurator-barrier", text: "The shared bench configurator writes webserver_host=http://backend and webserver_port=8000 before dependent processes start. The supervisor does not rewrite these settings after startup. The same dependency barrier applies to create, up and recovery." },
+    { label: "rewrite-after-start", text: "Write the callback after containers become healthy, leaving existing realtime consumers with their original module-static configuration." },
+  ],
+  chosen: "configurator-barrier",
+  why: "Frappe realtime caches get_conf at module initialization. In solsup the listener's normal loopback Origin failed with fetch failed, while the same token and live websocket connected with the internal backend Origin; a fresh process authenticated against the current config. A healthy listening port did not establish a working callback. Configuring the existing dependency barrier fixes the source of truth without restarting a failed world, bypassing collection, or preparing chain state on up/restore.",
+  source: "Retained solsup run-20261112121451347-3ccaf6fc listener controls, 12 November 2026; Frappe realtime/utils.js; devnet/processes.ts benchUp",
+  affects: [component_devnet, concept_devnet],
+});
+
+export const decision_devnet_preparation_host_context = defineDecision({
+  id: "devnet.preparation-host-context",
+  title: "Receipt-first preparation retains its host supervision context",
+  question: "How can the restricted preparation child recover its own world without importing operator credentials?",
+  options: [
+    { label: "explicit-host-marker", text: "The gate forwards inherited AMP_ORB to its harness/preparation child, in addition to its restricted runtime and selected fixture inputs. Runtime application children stay unchanged; no broad environment copy or Amp authentication credentials are forwarded." },
+    { label: "application-only", text: "Run the supervisor preparation with only an application's runtime environment, losing its host service context." },
+  ],
+  chosen: "explicit-host-marker",
+  why: "The solsock snapshot-save failed before bench pause: its preparation child resolved the live ingress service as not running. Read-only same-service controls reproduced this under the restricted environment; forwarding only AMP_ORB restored the actual active PID, while AMP_URL alone did not. The preparation process is the receipt-bound host supervisor, not an application child. Its existing recovery authority must address the same supervised services without gaining operator database or unrelated authentication keys.",
+  source: "Retained solsock run-20261112123816458-aff2bc98 CLI error and paired read-only supervision controls, 12 November 2026",
+  affects: [component_devnet, concept_devnet],
+});
+
+export const decision_devnet_preparation_host_user = defineDecision({
+  id: "devnet.preparation-host-user",
+  title: "Preparation launches supervised services as the operating-system caller",
+  question: "Which execution identity may the restricted host preparation supply when resuming its own world?",
+  options: [
+    { label: "os-caller", text: "The gate supplies USER from the operating system's current user identity to its harness/preparation child, alongside the explicit host marker. Application runtime environments remain unchanged. Neither caller-supplied USER nor a broad operator environment determines the service account." },
+    { label: "omit-user", text: "Leave execution identity out of the restricted preparation environment, allowing the service CLI to choose unknown." },
+  ],
+  chosen: "os-caller",
+  why: "Solgate published its native snapshot but source resume failed before bash or Anvil ran: the new transient service had User=unknown and exited 217/USER. Two distinct disposable sleep-service controls reproduce that missing identity under the restricted environment and launch a real process when USER alone names the actual caller. The CLI reporting started and exiting zero is not wrapper readiness. The preparation process must retain the operator's actual host identity without importing authentication credentials or granting application children host supervision context.",
+  source: "Retained solgate run-20261112131330936-216fd544 systemd/CLI evidence and isolated USER-only supervisor controls, 12 November 2026",
+  affects: [component_devnet, concept_devnet],
+});
