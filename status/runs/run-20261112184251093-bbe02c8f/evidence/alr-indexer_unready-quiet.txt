@@ -1,0 +1,11 @@
+eval     alr:indexer_unready/quiet
+claim    a healthy world under load does not fire it
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script   packages/evals/src/modules/acceptance/run.sh  world slice-zero  company harbourline
+why      Three actual load/replay operations each return complete fresh diagnostics with every money-path alert inactive.
+
+PASS  ACCEPT.selected-stack  x1  46 ms
+      source equality / expected alert transition established
+PASS  ACCEPT.alerts-quiet-under-load  x1  57580 ms
+      source equality / expected alert transition established

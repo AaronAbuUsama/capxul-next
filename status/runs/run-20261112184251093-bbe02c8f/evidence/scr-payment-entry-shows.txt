@@ -1,0 +1,13 @@
+eval     scr:payment-entry/shows
+claim    opened as admin, budget-holder on the thin-line world, every value equals its source, and a screenshot is kept
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script   packages/evals/src/modules/acceptance/run.sh  world slice-zero  company harbourline
+why      The posted entry's rendered party, amount, status, approval link and transaction equal its API source, the unique Payment Request and the fixture transaction. The ledger posts the amount once; screenshots are retained. This binds shows, not actions, refusals or other lifecycle states.
+
+PASS  ACCEPT.selected-stack  x1  46 ms
+      source equality / expected alert transition established
+PASS  ACCEPT.money-reconciled  x1  1 ms
+      source equality / expected alert transition established
+PASS  ACCEPT.payment-screen-source-equal  x1  2193 ms
+      source equality / expected alert transition established

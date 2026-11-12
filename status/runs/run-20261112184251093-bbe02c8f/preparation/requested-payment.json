@@ -1,0 +1,24 @@
+{
+  "pi": "ACC-PINV-2026-00001",
+  "pe": "ACC-PAY-2026-00001",
+  "safe": "Capxul Safe (USDC) - HL",
+  "outstanding": 125.5,
+  "approval": {
+    "org": "harbourline",
+    "name": "ACC-PAY-2026-00001",
+    "site": "harbourline-s0g.localhost",
+    "asset": "USDC",
+    "amount": "125.50",
+    "doctype": "Payment Entry",
+    "to_party": "Harbourline Supplier",
+    "request_id": "CPR-00001",
+    "to_address": "0x976ea74026e726554db657fa54763abd0c3a0aa9",
+    "requested_by": "harbourline@example.invalid",
+    "document_hash": "0xc96bd8c5205778323ee33038447f0ca78fed6c304bf04616da76a9ea521f6348",
+    "id": "apr_ab09dd3c7fdc4d9dad8756ce29a412b5",
+    "status": "pending",
+    "trace": "tr_1dce58608ae6dd062ce2e94b",
+    "txHash": null,
+    "createdAt": "2026-11-12T18:47:12.624Z"
+  }
+}

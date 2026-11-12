@@ -1,0 +1,74 @@
+{
+  "schema": "capxul-world-snapshot/2",
+  "id": "slicezero_run_20261112184251093_bbe02c8f",
+  "world": "s0g",
+  "codeVersion": "44a8c13fbc66883a699387f562056141f1360fdb",
+  "source": {
+    "database": "world_s0g",
+    "stateDir": "/home/user/capxul-next/var/worlds/s0g/state"
+  },
+  "createdAt": "2026-11-12T18:47:53.638Z",
+  "epoch": 1,
+  "cut": {
+    "rate": 1,
+    "nowMs": 1794509320000,
+    "clockMode": "stopped",
+    "recordSeq": 12,
+    "recordHead": "ae54fa52e83b5b516e1c763c23e83f508ab68a40f2552cdc9995bd8c514a3f9d",
+    "heads": [
+      {
+        "org_id": "harbourline",
+        "id": "12",
+        "hash": "3686b6bb35de004e0e8cabf2b24c65735d37fdd0326a33dc354f83293671383d"
+      }
+    ]
+  },
+  "database": {
+    "name": "snap_730a5c4d74a64bd9a2949750ed1c26a8",
+    "oid": "34040"
+  },
+  "sites": [
+    {
+      "company": "harbourline",
+      "name": "harbourline-s0g.localhost"
+    }
+  ],
+  "files": {
+    "site-service/harbourline-s0g.localhost.json": {
+      "bytes": 190,
+      "sha256": "491581d6507e18848e567f6d3c674b808cba49310d55b2d8b6345910eb919d2d"
+    },
+    "sites/harbourline/20261112_184840-harbourline-s0g_localhost-database.sql.gz": {
+      "bytes": 1251293,
+      "sha256": "27c85d1f120fdea4bbe184a651851617fb18d56ac1c48cee4f6a845ad3aed134"
+    },
+    "sites/harbourline/20261112_184840-harbourline-s0g_localhost-files.tar": {
+      "bytes": 10240,
+      "sha256": "904da8f6ccafe821a615b6d07256a33580cec0e5c85c9f45c7ea8b930978142a"
+    },
+    "sites/harbourline/20261112_184840-harbourline-s0g_localhost-private-files.tar": {
+      "bytes": 10240,
+      "sha256": "7eabbe884ce32acae4f55623ff853c81525429b1fd09f9e01b711afdc6f2b0ca"
+    },
+    "sites/harbourline/20261112_184840-harbourline-s0g_localhost-site_config_backup.json": {
+      "bytes": 395,
+      "sha256": "8ae5003defa3ce0d96d3e78fe6b49c728f30306ddd7cd59a75991cb0a23f2d57"
+    },
+    "sites/harbourline/original-site-config.json": {
+      "bytes": 350,
+      "sha256": "5ae66b1b404f79d957b82ff39cb8c6f863a9e5d627bd6b4d0b4c56dcd7691c52"
+    },
+    "sites/harbourline/scheduler-enabled.json": {
+      "bytes": 4,
+      "sha256": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b"
+    },
+    "state/anvil-state.json": {
+      "bytes": 206725116,
+      "sha256": "1c753b39cdb2c0481350e82ecf98fc333f726ff10db9764a0ed0ee6dfb656343"
+    },
+    "state/deployment.json": {
+      "bytes": 549,
+      "sha256": "10b5b3f2ff67a02c4e49f2343752582736097f80ef048cf1467a4e0dbfb1ed79"
+    }
+  }
+}

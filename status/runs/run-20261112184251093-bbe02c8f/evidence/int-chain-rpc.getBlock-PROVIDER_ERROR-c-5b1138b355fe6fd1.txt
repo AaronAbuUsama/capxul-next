@@ -1,0 +1,8 @@
+eval     int:chain-rpc.getBlock/PROVIDER_ERROR/c-5b1138b355fe6fd1
+claim    when Every configured node timed out, was down or throttled on every attempt (mode timeout, upstream-down or rate-limited), callers see PROVIDER_ERROR
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

@@ -1,0 +1,9 @@
+eval     acc:doc.submit/c-df3c0c51cdf3899b
+claim    A Payment Entry from the Safe is held, not posted, and the signer is named.
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script   spikes/skeleton/run.sh  world slice-zero  company harbourline
+why      The budget holder submits a Payment Entry from the Safe through the door's `doc submit --json`: the answer says held true, gives an approval id and names whom it awaits (the budget holder, as Core's approval does). The entry is still a draft with no ledger line; after `approval sign` lands it is submitted and the Safe account is credited once.
+skipped: does not support world slice-zero
+
+no check is bound to this eval, so nothing was run for it

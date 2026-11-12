@@ -1,0 +1,9 @@
+eval     wfl:plugs.events.deliver/idempotent
+claim    a second run with the same key (The site answers a repeated event key as already applied, and a transition already made is not made twice.) changes nothing
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script   spikes/skeleton/run.sh  world slice-zero  company harbourline
+why      Core delivers the same payment_sent event to the real site a second time. The first check finds the site answering 'already applied'; the second finds one applied event, the same ledger rows and one submission: a second run with the same key changes nothing.
+skipped: does not support world slice-zero
+
+no check is bound to this eval, so nothing was run for it

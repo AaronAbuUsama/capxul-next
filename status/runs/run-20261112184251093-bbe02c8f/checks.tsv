@@ -1,0 +1,18 @@
+ACCEPT.selected-stack	pass	46	source equality / expected alert transition established
+ACCEPT.money-reconciled	pass	1	source equality / expected alert transition established
+ACCEPT.invoice-screen-source-equal	pass	2906	source equality / expected alert transition established
+ACCEPT.payment-screen-source-equal	pass	2193	source equality / expected alert transition established
+ACCEPT.ledger-screen-source-equal	pass	1978	source equality / expected alert transition established
+ACCEPT.balance-screen-source-equal	pass	1615	source equality / expected alert transition established
+ACCEPT.alerts-quiet-under-load	pass	57580	source equality / expected alert transition established
+ACCEPT.indexer_unready-fires	pass	6127	source equality / expected alert transition established
+ACCEPT.indexer_unready-clears	pass	12	source equality / expected alert transition established
+ACCEPT.delivery_stuck-fires	pass	331014	source equality / expected alert transition established
+ACCEPT.delivery_stuck-clears	pass	12	source equality / expected alert transition established
+ACCEPT.money_event_parked-fires	pass	25835	source equality / expected alert transition established
+ACCEPT.money_event_parked-clears	pass	9	source equality / expected alert transition established
+ACCEPT.payment-unchanged-after-faults	pass	87	source equality / expected alert transition established
+DEVNET.selected-stack	pass	0	private fixture, running receipt and live public inspection identify one selected stack
+DEVNET.worlds-schema	pass	65	live restricted-store fields/types/nullability/key/indexes/enums equal the declared catalogue
+DEVNET.snapshots-schema	pass	62	live restricted-store fields/types/nullability/key/indexes/enums equal the declared catalogue
+DEVNET.records-schema	pass	64	live restricted-store fields/types/nullability/key/indexes/enums equal the declared catalogue

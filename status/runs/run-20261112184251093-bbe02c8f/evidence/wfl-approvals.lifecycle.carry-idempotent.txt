@@ -1,0 +1,8 @@
+eval     wfl:approvals.lifecycle.carry/idempotent
+claim    a second run with the same key (One instance per approval id; each transition is guarded by the state it leaves, so a replayed step writes nothing; `sending` is committed before the send, so a resumed instance looks it up by hash and never sends twice (K4).) changes nothing
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

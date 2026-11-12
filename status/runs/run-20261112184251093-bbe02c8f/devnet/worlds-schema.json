@@ -1,0 +1,122 @@
+{
+  "key": [
+    "world_id"
+  ],
+  "checks": [
+    "CHECK ((chain_id > 0))",
+    "CHECK ((clock_mode = ANY (ARRAY['frozen'::text, 'running'::text])))",
+    "CHECK ((epoch > 0))",
+    "CHECK ((kind = ANY (ARRAY['local'::text, 'simulated'::text, 'staging'::text, 'production'::text])))",
+    "CHECK (((parent_seq IS NULL) OR (parent_seq >= 0)))",
+    "CHECK ((profile = ANY (ARRAY['core'::text, 'full'::text])))",
+    "CHECK (((rate >= 1) AND (rate <= 60)))",
+    "CHECK ((state = ANY (ARRAY['creating'::text, 'running'::text, 'stopped'::text, 'restoring'::text, 'parked'::text, 'closed'::text])))",
+    "CHECK ((world_id ~ '^[a-z][a-z0-9]{0,11}$'::text))"
+  ],
+  "columns": [
+    {
+      "name": "world_id",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "name",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "kind",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "profile",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "address",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "template",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "chain_id",
+      "type": "bigint",
+      "nullable": false
+    },
+    {
+      "name": "chain_instance",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "clock_mode",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "rate",
+      "type": "integer",
+      "nullable": false
+    },
+    {
+      "name": "world_now",
+      "type": "bigint",
+      "nullable": false
+    },
+    {
+      "name": "epoch",
+      "type": "integer",
+      "nullable": false
+    },
+    {
+      "name": "parent_world",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "parent_snapshot",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "parent_seq",
+      "type": "bigint",
+      "nullable": true
+    },
+    {
+      "name": "hosted",
+      "type": "boolean",
+      "nullable": false
+    },
+    {
+      "name": "state",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "created_at",
+      "type": "bigint",
+      "nullable": false
+    },
+    {
+      "name": "updated_at",
+      "type": "bigint",
+      "nullable": false
+    }
+  ],
+  "indexes": [
+    {
+      "name": "worlds-by-name",
+      "fields": [
+        "name"
+      ],
+      "unique": true
+    }
+  ]
+}

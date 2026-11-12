@@ -1,0 +1,8 @@
+eval     int:site-service.createSite/PROVIDER_RESPONSE_INVALID/c-d7717a962738c342
+claim    when The service answers something that is not its documented shape, callers see PROVIDER_RESPONSE_INVALID
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

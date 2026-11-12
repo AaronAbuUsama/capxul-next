@@ -1,0 +1,8 @@
+eval     int:frappe-site.applyEvent/PROVIDER_ERROR/c-7b95c54fa59898d8
+claim    when The handler raises: the site answers 500 and keeps the cursor where it was, callers see PROVIDER_ERROR
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

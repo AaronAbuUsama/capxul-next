@@ -1,0 +1,18 @@
+{"screen":"supplier-invoice","name":"ACC-PINV-2026-00001","field":"supplier","expected":"Harbourline Supplier","rendered":["Harbourline Supplier"]}
+{"screen":"supplier-invoice","name":"ACC-PINV-2026-00001","field":"currency","expected":"USD","rendered":["USD"]}
+{"screen":"supplier-invoice","name":"ACC-PINV-2026-00001","field":"grand_total","expected":125.5,"rendered":["$ 125.50"]}
+{"screen":"supplier-invoice","name":"ACC-PINV-2026-00001","field":"outstanding_amount","expected":0,"rendered":["$ 0.00"]}
+{"screen":"supplier-invoice","name":"ACC-PINV-2026-00001","field":"company","expected":"harbourline Ltd","rendered":["harbourline Ltd"]}
+{"screen":"payment-entry","name":"ACC-PAY-2026-00001","field":"party","expected":"Harbourline Supplier","rendered":["Harbourline Supplier"]}
+{"screen":"payment-entry","name":"ACC-PAY-2026-00001","field":"paid_amount","expected":125.5,"rendered":["$ 125.50"]}
+{"screen":"payment-entry","name":"ACC-PAY-2026-00001","field":"capxul_status","expected":"Sent","rendered":["Sent"]}
+{"screen":"payment-entry","name":"ACC-PAY-2026-00001","field":"reference_no","expected":"0xac94dc05810d23758f307bf134498a7f3ae165f1ff87de489d5ac2071732d70f","rendered":["0xac94dc05810d23758f307bf134498a7f3ae165f1ff87de489d5ac2071732d70f"]}
+{"screen":"payment-entry","name":"ACC-PAY-2026-00001","field":"company","expected":"harbourline Ltd","rendered":["harbourline Ltd"]}
+{"screen":"payment-entry","name":"ACC-PAY-2026-00001","field":"capxul_approval_url","expected":"http://127.0.0.1:18006/approve/apr_ab09dd3c7fdc4d9dad8756ce29a412b5","rendered":["http://127.0.0.1:18006/approve/apr_ab09dd3c7fdc4d9dad8756ce29a412b5"]}
+{"screen":"general-ledger","index":1,"field":"account","expected":"Capxul Safe (USDC) - HL","rendered":"Capxul Safe (USDC) - HL"}
+{"screen":"general-ledger","index":1,"field":"debit","expected":0,"rendered":"$ 0.00"}
+{"screen":"general-ledger","index":1,"field":"credit","expected":125.5,"rendered":"$ 125.50"}
+{"screen":"general-ledger","index":1,"field":"capxul_trace","expected":"tr_1dce58608ae6dd062ce2e94b","rendered":"tr_1dce58608ae6dd062ce2e94b"}
+{"screen":"safe-trial-balance","index":3,"field":"account","expected":"Capxul Safe (USDC)","rendered":"Capxul Safe (USDC)"}
+{"screen":"safe-trial-balance","index":3,"field":"closing_debit","expected":374.5,"rendered":"$ 374.50"}
+{"screen":"safe-trial-balance","index":3,"field":"closing_credit","expected":0,"rendered":"$ 0.00"}

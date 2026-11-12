@@ -1,0 +1,8 @@
+eval     int:devnet-control.timeStartAt/WRONG_STATE/c-0ca159d3ac09c3af
+claim    when The clock already moved: the world is not fresh, or another move of the clock is running, callers see WRONG_STATE
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

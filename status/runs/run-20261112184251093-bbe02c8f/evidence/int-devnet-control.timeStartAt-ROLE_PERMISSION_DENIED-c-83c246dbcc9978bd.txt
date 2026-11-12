@@ -1,0 +1,8 @@
+eval     int:devnet-control.timeStartAt/ROLE_PERMISSION_DENIED/c-83c246dbcc9978bd
+claim    when In a shared world the grant may not do this: only the owner's grant moves the clock and saves or restores the world, and only the owner's or a follower grant follows it, callers see ROLE_PERMISSION_DENIED
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

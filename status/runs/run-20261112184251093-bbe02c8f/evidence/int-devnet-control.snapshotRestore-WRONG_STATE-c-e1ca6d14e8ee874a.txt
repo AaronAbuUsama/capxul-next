@@ -1,0 +1,8 @@
+eval     int:devnet-control.snapshotRestore/WRONG_STATE/c-e1ca6d14e8ee874a
+claim    when The world was saved with other backend code, so its data may not match it, callers see WRONG_STATE
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

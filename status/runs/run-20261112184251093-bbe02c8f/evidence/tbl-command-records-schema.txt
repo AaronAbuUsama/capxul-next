@@ -1,0 +1,9 @@
+eval     tbl:command-records/schema
+claim    the migration creates exactly these fields, key and indexes
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script   packages/evals/src/modules/devnet/run.sh  world slice-zero  company harbourline
+why      Reads the selected world's actual app.command_records through the restricted tenant role after the live-stack guard. Independently checks all searchable fields/types/nullability, world/epoch/sequence key, named actor/trace indexes and kind/actor/outcome/surface enums. Does not substitute Core's narrower app.records or claim command capture, writer exclusivity, lifecycle, telemetry, budgets or composed recovery.
+
+PASS  DEVNET.records-schema  x1  64 ms
+      live restricted-store fields/types/nullability/key/indexes/enums equal the declared catalogue

@@ -1,0 +1,8 @@
+eval     wfl:organizations.setups.set-up/idempotent
+claim    a second run with the same key (One process per Organization (`org-setup:<orgId>`). The mint and deployMoney are each sent once (the service signer records the signed bytes before broadcast, CAP-1097); one install approval at a time; the host's provision is keyed by the Organization's id.) changes nothing
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

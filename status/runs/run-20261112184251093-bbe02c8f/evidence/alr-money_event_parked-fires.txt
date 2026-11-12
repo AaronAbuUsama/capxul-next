@@ -1,0 +1,11 @@
+eval     alr:money_event_parked/fires
+claim    a world with the fault seeded fires it once, to operator, when at least one money event is parked or unmatched with an unresolved application error
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script   packages/evals/src/modules/acceptance/run.sh  world slice-zero  company harbourline
+why      A poisoned money event produces one operator-visible parked-money alert with a reason across successive polls.
+
+PASS  ACCEPT.selected-stack  x1  46 ms
+      source equality / expected alert transition established
+PASS  ACCEPT.money_event_parked-fires  x1  25835 ms
+      source equality / expected alert transition established

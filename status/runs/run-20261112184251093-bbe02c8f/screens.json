@@ -1,0 +1,110 @@
+[
+  {
+    "screen": "supplier-invoice",
+    "path": "acceptance/supplier-invoice-supplier.png",
+    "source": "acceptance/sources.json#/invoice/supplier",
+    "assertion": "source-equality"
+  },
+  {
+    "screen": "supplier-invoice",
+    "path": "acceptance/supplier-invoice-currency.png",
+    "source": "acceptance/sources.json#/invoice/currency",
+    "assertion": "source-equality"
+  },
+  {
+    "screen": "supplier-invoice",
+    "path": "acceptance/supplier-invoice-grand_total.png",
+    "source": "acceptance/sources.json#/invoice/grand_total",
+    "assertion": "source-equality"
+  },
+  {
+    "screen": "supplier-invoice",
+    "path": "acceptance/supplier-invoice-outstanding_amount.png",
+    "source": "acceptance/sources.json#/invoice/outstanding_amount",
+    "assertion": "source-equality"
+  },
+  {
+    "screen": "supplier-invoice",
+    "path": "acceptance/supplier-invoice-company.png",
+    "source": "acceptance/sources.json#/invoice/company",
+    "assertion": "source-equality"
+  },
+  {
+    "screen": "payment-entry",
+    "path": "acceptance/payment-entry-party.png",
+    "source": "acceptance/sources.json#/payment/party",
+    "assertion": "source-equality"
+  },
+  {
+    "screen": "payment-entry",
+    "path": "acceptance/payment-entry-paid_amount.png",
+    "source": "acceptance/sources.json#/payment/paid_amount",
+    "assertion": "source-equality"
+  },
+  {
+    "screen": "payment-entry",
+    "path": "acceptance/payment-entry-capxul_status.png",
+    "source": "acceptance/sources.json#/payment/capxul_status",
+    "assertion": "source-equality"
+  },
+  {
+    "screen": "payment-entry",
+    "path": "acceptance/payment-entry-reference_no.png",
+    "source": "acceptance/sources.json#/payment/reference_no",
+    "assertion": "source-equality"
+  },
+  {
+    "screen": "payment-entry",
+    "path": "acceptance/payment-entry-company.png",
+    "source": "acceptance/sources.json#/payment/company",
+    "assertion": "source-equality"
+  },
+  {
+    "screen": "payment-entry",
+    "path": "acceptance/payment-entry-capxul_approval_url.png",
+    "source": "acceptance/sources.json#/payment/capxul_approval_url",
+    "assertion": "source-equality"
+  },
+  {
+    "screen": "general-ledger",
+    "path": "acceptance/general-ledger-account.png",
+    "source": "acceptance/sources.json#/ledger/0",
+    "assertion": "source-equality"
+  },
+  {
+    "screen": "general-ledger",
+    "path": "acceptance/general-ledger-debit.png",
+    "source": "acceptance/sources.json#/ledger/0",
+    "assertion": "source-equality"
+  },
+  {
+    "screen": "general-ledger",
+    "path": "acceptance/general-ledger-credit.png",
+    "source": "acceptance/sources.json#/ledger/0",
+    "assertion": "source-equality"
+  },
+  {
+    "screen": "general-ledger",
+    "path": "acceptance/general-ledger-capxul_trace.png",
+    "source": "acceptance/sources.json#/ledger/0",
+    "assertion": "source-equality"
+  },
+  {
+    "screen": "safe-trial-balance",
+    "path": "acceptance/safe-trial-balance-account.png",
+    "source": "acceptance/sources.json#/trial/0",
+    "assertion": "source-equality"
+  },
+  {
+    "screen": "safe-trial-balance",
+    "path": "acceptance/safe-trial-balance-closing_debit.png",
+    "source": "acceptance/sources.json#/trial/0",
+    "assertion": "source-equality"
+  },
+  {
+    "screen": "safe-trial-balance",
+    "path": "acceptance/safe-trial-balance-closing_credit.png",
+    "source": "acceptance/sources.json#/trial/0",
+    "assertion": "source-equality"
+  }
+]

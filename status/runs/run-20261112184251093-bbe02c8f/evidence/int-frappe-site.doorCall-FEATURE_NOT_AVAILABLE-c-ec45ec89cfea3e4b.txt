@@ -1,0 +1,8 @@
+eval     int:frappe-site.doorCall/FEATURE_NOT_AVAILABLE/c-ec45ec89cfea3e4b
+claim    when The part that owns the DocType is switched off for this company (403 from the site's request guard), callers see FEATURE_NOT_AVAILABLE
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

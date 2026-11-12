@@ -1,0 +1,9 @@
+eval     tbl:worlds/schema
+claim    the migration creates exactly these fields, key and indexes
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script   packages/evals/src/modules/devnet/run.sh  world slice-zero  company harbourline
+why      Within a running selected-stack receipt, verifies the private fixture and public live world inspection, then reads this world's actual app.worlds schema through capxul_core. Compares every field's SQL type and nullability, primary-key order, named index fields/uniqueness and validated enums with independent blueprint expectations. Missing runtime/schema evidence fails.
+
+PASS  DEVNET.worlds-schema  x1  65 ms
+      live restricted-store fields/types/nullability/key/indexes/enums equal the declared catalogue

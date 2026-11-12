@@ -1,0 +1,8 @@
+eval     acc:world.create/c-4ee06f2f1dd89e20
+claim    Production is never made without the platform owner's approval.
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

@@ -1,0 +1,199 @@
+{
+  "key": [
+    "world_id",
+    "epoch",
+    "seq"
+  ],
+  "checks": [
+    "CHECK ((duration_ms >= (0)::double precision))",
+    "CHECK ((epoch > 0))",
+    "CHECK ((kind = ANY (ARRAY['command'::text, 'tool-call'::text, 'reply'::text, 'born'::text, 'restore'::text, 'clock'::text, 'event'::text, 'join'::text, 'handover'::text, 'score'::text])))",
+    "CHECK ((outcome = ANY (ARRAY['ok'::text, 'refused'::text, 'failed'::text])))",
+    "CHECK ((prev ~ '^[0-9a-f]{64}$'::text))",
+    "CHECK ((seq > 0))",
+    "CHECK ((surface = ANY (ARRAY['cli'::text, 'sdk'::text, 'mcp'::text, 'http'::text, 'workflow'::text])))",
+    "CHECK ((v = 1))",
+    "CHECK ((who_kind = ANY (ARRAY['person'::text, 'agent'::text, 'system'::text])))"
+  ],
+  "columns": [
+    {
+      "name": "world_id",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "epoch",
+      "type": "integer",
+      "nullable": false
+    },
+    {
+      "name": "seq",
+      "type": "bigint",
+      "nullable": false
+    },
+    {
+      "name": "prev",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "v",
+      "type": "integer",
+      "nullable": false
+    },
+    {
+      "name": "id",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "trace_id",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "kind",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "command",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "args",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "actor_email",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "actor_address",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "actor_hats",
+      "type": "text[]",
+      "nullable": false
+    },
+    {
+      "name": "who_kind",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "org_id",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "site",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "world_time",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "world_time_end",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "real_time",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "duration_ms",
+      "type": "double precision",
+      "nullable": false
+    },
+    {
+      "name": "outcome",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "error_code",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "error_reason",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "error_detail",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "result",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "changes",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "run_id",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "model",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "policy_version",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "surface",
+      "type": "text",
+      "nullable": true
+    },
+    {
+      "name": "cause_seq",
+      "type": "bigint",
+      "nullable": true
+    },
+    {
+      "name": "branch_abandoned",
+      "type": "boolean",
+      "nullable": false
+    }
+  ],
+  "indexes": [
+    {
+      "name": "command-records-by-trace",
+      "fields": [
+        "world_id",
+        "trace_id"
+      ],
+      "unique": false
+    },
+    {
+      "name": "command-records-by-who",
+      "fields": [
+        "world_id",
+        "actor_email",
+        "world_time"
+      ],
+      "unique": false
+    }
+  ]
+}

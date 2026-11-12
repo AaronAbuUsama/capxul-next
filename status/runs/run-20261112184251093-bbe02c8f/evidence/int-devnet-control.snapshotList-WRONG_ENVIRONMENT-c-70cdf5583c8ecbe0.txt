@@ -1,0 +1,8 @@
+eval     int:devnet-control.snapshotList/WRONG_ENVIRONMENT/c-70cdf5583c8ecbe0
+claim    when This machine runs no devnet (no control handoff: the supervisor's address and token, or not this user's), or a shared world's address was given no grant, or a revoked one, callers see WRONG_ENVIRONMENT
+verdict  not_run
+run      run-20261112184251093-bbe02c8f  at 2026-11-12T18:42:51.093Z  commit 44a8c13fbc66883a699387f562056141f1360fdb
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it
