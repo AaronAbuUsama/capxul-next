@@ -1,0 +1,24 @@
+{
+  "area": "activity",
+  "script": "packages/evals/src/modules/activity/run.sh",
+  "worlds": ["slice-zero"],
+  "secrets": [],
+  "bindings": [],
+  "near": [
+    {
+      "eval": "tbl:activity-changes/schema",
+      "checks": ["ACTIVITY.selected-stack", "ACTIVITY.schema"],
+      "missing": "Live restricted-role introspection checks exact fields/types/nullability/key/indexes. Constraint rejection cases and migration through the actual selected-world creation path must also be proved before activating this binding."
+    },
+    {
+      "eval": "tbl:activity-changes/tenancy",
+      "checks": ["ACTIVITY.selected-stack", "ACTIVITY.tenancy", "ACTIVITY.writer-acl"],
+      "missing": "Exact visible-row equality and transaction-local owner reset cover existing person/organization feeds. Authenticated/revoked admitted sessions and forbidden cross-owner mutation attempts through the actual selected stack still need execution; this is not a full tenancy proof."
+    },
+    {
+      "eval": "tbl:activity-changes/writers",
+      "checks": ["ACTIVITY.selected-stack", "ACTIVITY.writer-acl"],
+      "missing": "Only the worker may append and no runtime role may mutate/delete rows. All eleven actual payment-transition workflows and movement record, plus unauthorized-operation controls, still need execution through the committed source outbox. No synthetic event or direct component appender call proves this claim."
+    }
+  ]
+}
