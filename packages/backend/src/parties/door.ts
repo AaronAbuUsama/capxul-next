@@ -83,7 +83,8 @@ export async function resolveRecipient(sql: Sql, locator: Locator, config: Perso
     if (!row) return { resolved: false, reason: locator._tag === "party" ? "unknown-party" : "unknown-handle" };
   } else {
     const email = locator._tag === "mailbox" ? locator.mailbox.trim().toLowerCase() : null;
-    if (email !== null && (!/^[\x21-\x7e]+@[^@\s]+\.[^@\s]+$/.test(email) || email.includes(" "))) return { resolved: false, reason: "malformed" };
+    if (email !== null && (email.length > 254 || email.split("@")[0]!.length > 64 ||
+      !/^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/.test(email))) return { resolved: false, reason: "malformed" };
     const safe = email !== null ? personalSafeAddress(config, email) : (locator as { address: string }).address.toLowerCase();
     if (!addressPattern.test(safe)) return { resolved: false, reason: "malformed" };
     if (safe === zero) return { resolved: false, reason: "zero-address" };

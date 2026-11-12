@@ -98,11 +98,21 @@ test("resolution names atomically, adopts outside identity and refuses malformed
   assert(again.resolved); assert.equal(again.named, false);
   const named = await db.transaction("", (sql) => resolveRecipient(sql, { _tag: "mailbox", mailbox: `another-${mailbox}` }, config), true);
   assert(named.resolved); assert.equal(named.state, "provisional");
+  const asymmetric = await db.transaction("", (sql) => resolveRecipient(sql,
+    { _tag: "mailbox", mailbox: `  A+B.O'C-${Date.now()}@Sub-Domain.Example.Test  ` }, config), true);
+  assert(asymmetric.resolved); assert.equal(asymmetric.state, "provisional"); assert.equal(asymmetric.named, true);
+  const counts = async () => (await db.worker.query("select (select count(*) from app.parties) as parties,(select count(*) from app.party_events) as events")).rows[0];
+  const beforeMalformed = await counts();
   for (const [locator, reason] of [
     [{ _tag: "mailbox", mailbox: "bad" }, "malformed"], [{ _tag: "address", address: address(0) }, "zero-address"],
+    [{ _tag: "mailbox", mailbox: "alice@example.com@evil.test" }, "malformed"],
+    [{ _tag: "mailbox", mailbox: "alice@example.com/evil.test" }, "malformed"],
+    [{ _tag: "mailbox", mailbox: ".alice@example.test" }, "malformed"],
+    [{ _tag: "mailbox", mailbox: "alice@-example.test" }, "malformed"],
     [{ _tag: "address", address: "not-address" }, "malformed"], [{ _tag: "handle", handle: "unregistered" }, "unknown-handle"],
     [{ _tag: "party", party_id: "unknown" }, "unknown-party"],
   ] as const) assert.deepEqual(await db.transaction("", (sql) => resolveRecipient(sql, locator, config), true), { resolved: false, reason });
+  assert.deepEqual(await counts(), beforeMalformed, "refused locators must not insert a Party or transition event");
   const events = (await db.worker.query("select data from app.party_events where party_id=$1 order by id", [person.party_id])).rows.map((r) => r.data);
   assert.deepEqual(events.map((e) => [e.from, e.to, e.transition]), [[null, "outside", "name_address"], ["outside", "provisional", "adopt_mailbox"]]);
   for (const event of events) for (const privateKey of ["handle", "mailbox", "display_name", "safe_address"]) assert(!(privateKey in event));
