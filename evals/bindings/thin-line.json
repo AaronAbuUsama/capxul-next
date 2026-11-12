@@ -23,13 +23,13 @@
   "near": [
     {
       "eval": "acc:payment.send/1",
-      "checks": ["B3.sign-sends-chain-transaction", "B3.chain-moved-the-money", "B3.payment-entry-submitted", "B3.entry-carries-transaction-hash", "B3.ledger-posted", "B3.invoice-nothing-outstanding"],
-      "missing": "A test key signs through the stub's approval sign and the real site posts; the real v4 UserOperation and PaymentSent carrying the payment id and payment list settled are not asserted."
+      "checks": ["B3.sign-sends-chain-transaction", "B3.chain-moved-the-money", "B3.payment-entry-submitted", "B3.entry-carries-transaction-hash", "B3.ledger-posted", "B3.invoice-nothing-outstanding", "TL.payment-is-one-user-operation", "TL.payment-list-shows-one-settled"],
+      "missing": "The payment is one ERC-4337 UserOperation from the holder's personal Safe, sponsored by the mock paymaster, with one PaymentSent, and payment list shows it settled; but it reaches the EntryPoint by the operator's handleOps, not through a bundler, and thin-line.bundler asks for a real bundler (alto) in the canary world. Bound once alto runs in the world (CAPXUL_BUNDLER_URL) and a check shows the op came through it."
     },
     {
       "eval": "jrn:thin_line",
       "checks": ["B1.org-create", "B1.safe-on-chain-is-the-sites-safe", "B1.site-answers-by-name", "B2.roles-follow-grant", "B3.budget-holder-makes-invoice-and-payment-entry", "B3.submit-waits-for-signature", "B3.still-a-draft-while-waiting", "B3.sign-sends-chain-transaction", "B3.chain-moved-the-money", "B3.ledger-posted", "B3.invoice-nothing-outstanding", "B6.reports-run", "B7.world-at-31-march-all-agree", "B8.export-one-file-line-by-line", "B9.snapshot-saved", "B9.restore-into-new-world", "B9.new-world-payment-not-in-old", "B9.old-world-payment-not-in-new", "B9.new-world-record-begins-with-old-then-lineage"],
-      "missing": "Partial end-to-end evidence only. Missing one-command full hosted world creation, real v4 UserOperation payment path, door creation of the payment documents, signer identity in the hold answer, books/chain reconciliation, due-job assertion, complete record export assertions, snapshot untouched assertion, and world show lineage. See the twelve ordered tests in evals/thin-line.md; the spike uses localhost and main and cannot prove g8 on the sites machine."
+      "missing": "Partial end-to-end evidence only. Missing one-command full hosted world creation, door creation of the payment documents, signer identity in the hold answer, books/chain reconciliation, due-job assertion, complete record export assertions, snapshot untouched assertion, and world show lineage. See the twelve ordered tests in evals/thin-line.md; the spike uses localhost and main and cannot prove g8 on the sites machine."
     }
   ]
 }

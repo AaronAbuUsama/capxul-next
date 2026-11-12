@@ -1,11 +1,12 @@
 // The v4 contracts are already in the seeded state, so a world's setup only deploys its
-// test token (packages/contracts' MockERC20, 6 decimals) and writes deployment.json in the stand-in's shape, with mode v4.
+// test token (packages/contracts' MockERC20, 6 decimals) and the mock paymaster that pays its UserOperations' gas
+// (MockPaymaster, funded at the EntryPoint; thin-line.bundler), and writes deployment.json in the stand-in's shape, with mode v4.
 // Run by bin/chain-up.sh.
 import { writeFileSync } from "node:fs";
 import type { Address } from "viem";
 import { config } from "./config.ts";
 import { operatorKey } from "./people.ts";
-import { fundPeople, proto, tokenArtifact, v4Addresses } from "./v4.ts";
+import { ensurePaymaster, fundPeople, proto, tokenArtifact, v4Addresses } from "./v4.ts";
 
 const p = await proto();
 await fundPeople();
@@ -20,4 +21,5 @@ const out = {
   companiesHouse: p.record.companiesHouse, deployedBlock: Number(r.blockNumber),
 };
 writeFileSync(config.deploymentFile, JSON.stringify(out, null, 2));
-console.log(`  test USDC ${out.usdc}; v4 Payments ${out.payments}, Budgets ${out.budgets}, Hats ${out.hats}\nwrote ${config.deploymentFile}`);
+const paymaster = await ensurePaymaster();   // after deployment.json exists: it records itself there
+console.log(`  test USDC ${out.usdc}; paymaster ${paymaster}; v4 Payments ${out.payments}, Budgets ${out.budgets}, Hats ${out.hats}\nwrote ${config.deploymentFile}`);
