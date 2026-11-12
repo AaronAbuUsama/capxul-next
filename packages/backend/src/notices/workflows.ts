@@ -27,6 +27,7 @@ export const sourceNames = ["waitlist_entry_transitioned", "proposal_transitione
 
 /** Shared relay calls this and ACKs using the same Sql. No mail and no source mutation. */
 export async function schedule(sql: Sql, event: TransitionEvent) {
+  await sql.query("select pg_advisory_xact_lock(hashtextextended('notices:dispatch-boundary',0))");
   if (event.name === "payment_transitioned" && event.props.to !== "escrowed") {
     // Correlate both payment and owner. A different Payment never ends another instance.
     await sql.query(`update app.notice_workflows set finished_at=$1 where workflow=$2 and finished_at is null
@@ -48,6 +49,7 @@ export async function prepareDue(db: Database, now: WorldNow, resolve: Resolve) 
   let prepared = 0;
   for (const key of due) {
     prepared += await db.transaction("", async (sql) => {
+      await sql.query("select pg_advisory_xact_lock(hashtextextended('notices:dispatch-boundary',0))");
       const at = await now(sql);
       const job = (await sql.query(`select * from app.notice_workflows where workflow=$1 and event_id=$2
         and finished_at is null and failed_at is null and checkpoint is null and due_at<=$3

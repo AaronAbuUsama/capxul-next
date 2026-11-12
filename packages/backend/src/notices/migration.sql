@@ -64,6 +64,7 @@ create table if not exists app.notice_workflows (
 create table if not exists app.notice_attempts (
   recipient text not null, notice_id text not null, intent jsonb not null,
   scheduled_attempts integer not null default 0 check (scheduled_attempts between 0 and 3),
+  dispatch_started boolean not null default false,
   due_at double precision,
   primary key (recipient,notice_id)
 );

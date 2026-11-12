@@ -6,6 +6,8 @@ import { emit, type TransitionEvent } from "../src/platform/outbox.ts";
 import { noticesWorker, readNotices, type Sources } from "../src/notices/door.ts";
 import { deliverDue, planDelivery } from "../src/notices/delivery.ts";
 import { resendMail } from "../src/shared/door.ts";
+import { createResolver } from "../src/notices/resolve.ts";
+import { prepareDue, schedule } from "../src/notices/workflows.ts";
 
 if (process.env.CAPXUL_DISPOSABLE !== "true" || !process.env.CAPXUL_WORLD || process.env.CAPXUL_WORLD === "main")
   throw new Error("notices tests require an explicitly disposable migrated Postgres world");
@@ -73,4 +75,81 @@ test("Mail accepts valid long recipients at the key boundary and replay retains 
     emittedKeys.push(keys[0]!);
   }
   assert.equal(new Set(emittedKeys).size,4,"identities differing only after character 256 must not collide");
+});
+
+test("resume stops unstarted reminders after collection/refund but replays accepted lost outcomes", async () => {
+  for (const outcome of ["collected","refunded"] as const) for (const started of [false,true]) {
+    const id = randomUUID(), recipient = `${id}@reminders.test`, at = instant + 3*86_400_000;
+    const event: TransitionEvent = { id, name: "payment_transitioned", machine: "payment", entity_id: id,
+      owner_kind: "person", owner_id: id, actor: null, trace_id: id, at: instant,
+      props: { transition: "escrow", from: "submitted", to: "escrowed", payment_id: id } };
+    let status = "escrowed";
+    const unused = (): never => { throw new Error("unexpected source read"); };
+    const sources: Sources = { admission: unused, principal: unused, principalBySafe: unused, principalByEmail: unused,
+      partyName: unused, organization: unused, proposal: unused, officerChange: unused, commandPayments: unused,
+      hatWearers: unused, request: unused, safeOwners: unused,
+      payment: async () => ({ id, owner_kind: "person", owner_id: id, command_id: null, chain_id: 1,
+        route: "claim_escrow", status, outcome, pay_at: null, budget_id: null, payer_label: "Sender",
+        payee_kind: null, payee_id: null, payee_mailbox: recipient, amount_raw: "12345", decimals: 2,
+        asset: "USD", escrow_address: "0x123", shortfall: null }) };
+    const links = { quickstart: "https://capxul.test/start", chat: "https://capxul.test/chat", support: "support@capxul.test",
+      signup: "https://capxul.test/signup", approval: unused, explorer: () => "https://capxul.test/escrow" };
+    const resolve = createResolver(sources,links);
+    await db.transaction("",(sql) => schedule(sql,event),true);
+    // This is the committed worker boundary before Mail; the initial notice is not under test.
+    await prepareDue(db,async () => at,(sql,w,e,days) => w.endsWith("money-reminders") ? resolve(sql,w,e,days) : Promise.resolve({ intents: [] }));
+    const accepted = new Map<string,string>(); let calls = 0, refunds = 0;
+    const mail = { async send(message: { idempotencyKey: string; template?: string }) {
+      if (message.template === "money-taken-back") { refunds++; return { id: `refund-${id}` }; }
+      calls++; if (!accepted.has(message.idempotencyKey)) accepted.set(message.idempotencyKey,`accepted-${id}`);
+      return { id: accepted.get(message.idempotencyKey)! };
+    } };
+    if (started) await assert.rejects(deliverDue(db,mail,async () => at,async () => { throw new Error("outcome not committed"); }),/outcome not committed/);
+    status = outcome === "collected" ? "settled" : "cancelled";
+    await db.transaction("",(sql) => emit(sql,{ ...event, id: randomUUID(), at,
+      props: { from: "escrowed", to: status, transition: outcome === "collected" ? "settle" : "cancel", payment_id: id } }),true);
+    const tick = noticesWorker(db,mail,sources,links,async () => at);
+    await tick();
+    assert.equal(calls,started ? 2 : 0,`${outcome}: only an already-dispatched identity may replay`);
+    assert.equal(accepted.size,started ? 1 : 0);
+    assert.equal(refunds,outcome === "refunded" ? 1 : 0,"the separate refund notice must still send");
+    const rows = await db.transaction("",(sql) => readNotices(sql,{ to: recipient, template: "money-waiting-reminder" }),true);
+    assert.equal(rows.length,started ? 1 : 0);
+    if (started) { assert.equal(rows[0]!.mail_id,`accepted-${id}`); assert.equal(rows[0]!.attempts,1); }
+    assert.equal(await tick(),0,"stopped targets must not remain due on every resume");
+  }
+});
+
+test("shared payer reminder survives one stopped payment and a canceled never-started batch can rearm", async () => {
+  for (const stopAll of [false,true]) {
+    const id = randomUUID(), recipient = `${id}@payer.test`, at = instant + 10*86_400_000;
+    const event = (payment: string): TransitionEvent => ({ id: payment, name: "payment_transitioned", machine: "payment",
+      entity_id: payment, owner_kind: "person", owner_id: id, actor: null, trace_id: id, at: instant,
+      props: { transition: "escrow", to: "escrowed", payment_id: payment } });
+    const a = event(randomUUID()), b = event(randomUUID()), c = event(randomUUID());
+    const prepare = () => prepareDue(db,async () => at,async (_sql,w,e) => ({ intents: w.endsWith("money-reminders") ? [{
+      recipient, notice_id: `money-uncollected:${id}:10`, template: "money-uncollected", subject_kind: "payment",
+      subject_id: e.entity_id, cause: "stop", person_id: id, org_id: null, trace_id: id,
+      facts: { amount: "123.45", asset: "USD", days: 10, mailbox: "payee@test.example", payments: e.entity_id },
+    }] : [] }));
+    for (const e of [a,b]) await db.transaction("",(sql) => schedule(sql,e),true);
+    await prepare();
+    for (const e of stopAll ? [a,b] : [a]) await db.transaction("",(sql) => schedule(sql,{ ...e, id: randomUUID(), at,
+      props: { transition: "settle", to: "settled", payment_id: e.entity_id } }),true);
+    let calls = 0;
+    const mail = { async send() { calls++; return { id: `batch-${id}` }; } };
+    await deliverDue(db,mail,async () => at,async () => {});
+    assert.equal(calls,stopAll ? 0 : 1,"any remaining live workflow still needs the shared target");
+    if (stopAll) {
+      await db.transaction("",(sql) => schedule(sql,c),true);
+      await prepare();
+      await deliverDue(db,mail,async () => at,async () => {});
+      assert.equal(calls,1,"a new live checkpoint rearms only a never-started canceled identity");
+    }
+    const rows = await db.transaction("",(sql) => readNotices(sql,{ to: recipient }),true);
+    assert.equal(rows.length,1); assert.equal(rows[0]!.attempts,1); assert.equal(rows[0]!.mail_id,`batch-${id}`);
+    if (stopAll) assert.equal(rows[0]!.facts.payments,c.entity_id,"rearmed work must use the new live batch facts");
+    for (const e of [a,b,c]) await db.transaction("",(sql) => schedule(sql,{ ...e, id: randomUUID(), at,
+      props: { transition: "settle", to: "settled", payment_id: e.entity_id } }),true);
+  }
 });

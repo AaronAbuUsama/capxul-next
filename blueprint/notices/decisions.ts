@@ -99,6 +99,20 @@ export const decision_notices_provider_key_bound = defineDecision({
   affects: [table_notices, machine_notice, workflow_notices_delivery_retry],
 });
 
+export const decision_notices_reminder_dispatch = defineDecision({
+  id: "notices.reminder-dispatch",
+  title: "Ending a reminder stops unstarted sends, not ambiguous provider replay",
+  question: "What happens to a committed reminder intent when collection or refund ends its workflow before Mail?",
+  options: [
+    { label: "dispatch-boundary", text: "Serialize source wake, recipient checkpoint and a durable dispatch-start marker in short SQL transactions. Suppress a never-started intent whose reminder references have ended and no live workflow still needs it. Preserve the provider key and replay once dispatch may have reached Mail." },
+    { label: "checkpoint-is-send", text: "Always send checkpointed reminders even if the payment has left escrow before dispatch." },
+  ],
+  chosen: "dispatch-boundary",
+  why: "A recipient checkpoint alone is not a provider attempt. A crash before Mail must not send stale money-waiting reminders after a committed stop. Once dispatch is durably started, a lost response may hide provider acceptance, so cancellation cannot erase its replay or classified delivery retries. Shared payer/command targets remain required while any referencing workflow lives; a later live checkpoint can rearm a canceled never-started target. No lock or transaction spans Mail except the existing per-identity session lock. The exact public delivery schema and outcome-only birth remain unchanged.",
+  source: "Notices PR68 mirror finding4549944806 reproduced on real Postgres worker resume, 12 November 2026; notices.money-waiting-reminders; notices.postgres-execution; notices.first-attempt",
+  affects: [workflow_notices_payments_money_reminders, workflow_notices_delivery_retry, table_notices],
+});
+
 /** The workflows that tell an Organization through its Directors. */
 const TO_DIRECTORS = [
   workflow_notices_board_threshold_changed,

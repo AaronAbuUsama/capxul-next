@@ -24,9 +24,12 @@ export async function planDelivery(sql: Sql, input: Intent, at: number) {
   const intent = { ...input, recipient: input.recipient.trim().toLowerCase() };
   if (!intent.recipient || !intent.notice_id || !intent.subject_id || !intent.cause || !templates.includes(intent.template)
       || !Number.isSafeInteger(at) || at < 0) throw new Error("INVALID_INPUT: notice intent and world time required");
+  await sql.query("select pg_advisory_xact_lock(hashtextextended('notices:dispatch-boundary',0))");
   // The same payer/command occasion is deliberately shared across a batch's source workflows.
   await sql.query(`insert into app.notice_attempts (recipient,notice_id,intent,due_at) values ($1,$2,$3,$4)
-    on conflict (recipient,notice_id) do nothing`, [intent.recipient, intent.notice_id, intent, at]);
+    on conflict (recipient,notice_id) do update set due_at=excluded.due_at,intent=excluded.intent
+    where notice_attempts.scheduled_attempts=0 and not notice_attempts.dispatch_started and notice_attempts.due_at is null`,
+  [intent.recipient, intent.notice_id, intent, at]);
 }
 
 export async function recordOutcome(sql: Sql, recipient: string, notice: string, expected: number, outcome: Outcome, at: number, emit: Emit) {
@@ -50,8 +53,26 @@ export async function deliverDue(db: Database, mail: Mail, now: WorldNow, emit: 
     try {
       locked = (await client.query("select pg_try_advisory_lock(hashtextextended($1,0)) as locked", [lock])).rows[0].locked;
       if (!locked) continue;
-      const current = (await client.query("select * from app.notice_attempts where recipient=$1 and notice_id=$2", [key.recipient, key.notice_id])).rows[0];
-      if (!current || current.scheduled_attempts !== key.scheduled_attempts || current.due_at === null || current.due_at > await now(client)) continue;
+      const current = await transaction(client, "", async (sql) => {
+        // Serialize with source wake and recipient checkpoint, never across the network call.
+        await sql.query("select pg_advisory_xact_lock(hashtextextended('notices:dispatch-boundary',0))");
+        const row = (await sql.query("select * from app.notice_attempts where recipient=$1 and notice_id=$2 for update", [key.recipient,key.notice_id])).rows[0];
+        if (!row || row.scheduled_attempts !== key.scheduled_attempts || row.due_at === null || row.due_at > await now(sql)) return null;
+        if (!row.dispatch_started && row.scheduled_attempts === 0) {
+          const references = (await sql.query(`select bool_or(workflow='notices.payments.money-reminders') as reminder,
+            bool_or(finished_at is null and failed_at is null) as live from app.notice_workflows
+            where checkpoint @> $1::jsonb`, [JSON.stringify({ targets: [{ recipient: key.recipient, notice_id: key.notice_id }] })])).rows[0];
+          if (references.reminder && !references.live) {
+            await sql.query("update app.notice_attempts set due_at=null where recipient=$1 and notice_id=$2", [key.recipient,key.notice_id]);
+            return { ...row, canceled: true };
+          }
+        }
+        // A crash after this commit may hide acceptance. Never cancel that identity's replay.
+        await sql.query("update app.notice_attempts set dispatch_started=true where recipient=$1 and notice_id=$2", [key.recipient,key.notice_id]);
+        return row;
+      });
+      if (!current) continue;
+      if (current.canceled) { completed++; continue; }
       const intent = current.intent as Intent;
       const message = { ...render(intent), template: intent.template };
       let outcome: Outcome;
