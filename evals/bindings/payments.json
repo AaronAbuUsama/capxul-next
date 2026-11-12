@@ -1,0 +1,14 @@
+{
+  "area": "payments",
+  "script": "spikes/skeleton/run.sh",
+  "worlds": ["main"],
+  "secrets": ["spikes/skeleton/.env", "spikes/skeleton/core/people.json"],
+  "bindings": [],
+  "near": [
+    {
+      "eval": "acc:payment.send/c-c9400dfaeba081e7",
+      "checks": ["B3.sign-sends-chain-transaction", "B3.chain-moved-the-money", "B3.payment-entry-submitted", "B3.entry-carries-transaction-hash", "B3.ledger-posted", "B3.invoice-nothing-outstanding"],
+      "missing": "A test key signs through the stub's approval sign and the real site posts; the real v4 UserOperation and PaymentSent carrying the payment id and payment list settled are not asserted."
+    }
+  ]
+}

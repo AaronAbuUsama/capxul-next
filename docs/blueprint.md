@@ -251,8 +251,8 @@ What the build makes of these four records:
   - The machine sends only `payment_transitioned` (`one-event-per-machine`).
   - Each budget is at its class default, or says why it is not (`budget-override-why`).
 - **Evals.**
-  - For the operation: `acc:payment.send/1` to `/9`, one per acceptance line.
-  - `ref:payment.send/INSUFFICIENT_BALANCE` and the other refusals.
+  - For the operation: `acc:payment.send/<key>`, one per acceptance claim.
+  - `ref:payment.send/INSUFFICIENT_BALANCE/<key>` and the other refusal cases.
   - `ret:payment.send`, the shape of its `--json` output.
   - `evt:payment.send/<event>`, one for each event sent anywhere under the flow:
     `payment_transitioned`, `party_transitioned`, `approval_transitioned` and
@@ -262,7 +262,7 @@ What the build makes of these four records:
     operation's text and what it does agree.
   - For the records below it: `flw:client.payments.pay/budget` and `/spans`;
     `rpc:payments.commands.prepare/budget`, `/spans` and `/errors`; `trn:payment.open`;
-    `tbl:payments/schema`, `/writers`, `/tenancy` and `/admits/1` (the payee's read of a Payment);
+    `tbl:payments/schema`, `/writers`, `/tenancy` and `/admits/<key>` (the payee's read of a Payment);
     `prc:<procedure>/atomic` for each procedure it invokes; and, for the Payment's durable
     process, `wfl:payments.lifecycle.payment/resume` and one `/wake/<wait>` per keyed wait.
 - **Gaps.** For example, a refusal whose world no devnet can build yet (`refusal-without-world`),
@@ -590,7 +590,7 @@ nothing has run. Its type is `StatusDocument` in `packages/blueprint-engine/src/
 | `run`, `evidence` | optional: the run's id, and the path of its evidence |
 
 `packages/evals/src/record-status.ts <results.json> [--status <file>]` merges one run into it. A results file is
-`{ "commit", "at", "run"?, "results": [{ "id", "verdict", "evidence"? }] }`. The tool refuses the
+`{ "commit", "at", "run", "receipt", "results": [{ "id", "verdict", "evidence"? }] }`. New writes require a receipt; historical status remains readable. The tool refuses the
 whole run, and writes nothing, when it names an eval id the blueprint does not derive. The file's keys
 are written sorted, so two runs of the same results give the same file. The portal reads the file,
 shows the evals passing per operation, per concept and in total, and `pnpm portal:check` fails
@@ -603,13 +603,12 @@ the score; only a run writes it. Agents' reports are not evidence: a run's resul
 
 An eval is a claim in the blueprint. A **check** is code that proves it: a named step of an executable script and its expected
 outcome (pass). A **binding** says which checks prove which evals. The runner is `packages/evals` (decision `system.layout`
-names `packages/evals` for the harness); the bindings are `evals/bindings/<area>.json`, one file per area (`sites`, `plugs`,
-`devnet`), each:
+names `packages/evals` for the harness); the bindings are `evals/bindings/<concept>.json`, one file per concept, each:
 
 ```jsonc
 { "area": "devnet", "script": "spikes/skeleton/run.sh", "worlds": ["main"], "secrets": ["spikes/skeleton/.env"],
-  "bindings": [ { "eval": "acc:world.snapshot.restore/1", "checks": ["B9.in-place-state-back-at-saved-moment", "…"], "why": "…" } ],
-  "near":     [ { "eval": "acc:world.snapshot.save/1",    "checks": ["B9.snapshot-saved", "…"], "missing": "…" } ] }
+  "bindings": [ { "eval": "acc:world.snapshot.restore/c-369b1db183b9807f", "checks": ["B9.in-place-state-back-at-saved-moment", "…"], "why": "…" } ],
+  "near":     [ { "eval": "acc:world.snapshot.save/c-69e4dbcdf13e3750",    "checks": ["B9.snapshot-saved", "…"], "missing": "…" } ] }
 ```
 
 - **A binding is strict.** An eval is bound to a check only if the check establishes the whole claim; the eval passes when every
@@ -617,22 +616,27 @@ names `packages/evals` for the harness); the bindings are `evals/bindings/<area>
   never scores. An eval is bound once. The loader fails on an eval id the blueprint does not derive, a check the script does not
   list, a guard (a check that can only fail), an eval bound twice, and an eval both bound and a near-miss.
 - **The script contract.** `run.sh [company] [--only B1,B6]` runs the behaviours asked for, and the ones they need first
-  (`deps` in the script); `run.sh --list` prints each check's name and whether it is a check or a guard. Each check prints a human
+  (registered dependencies); `run.sh --list` prints each check's name and whether it is a check or a guard. Skeleton checks live in automatically discovered `evals/checks/<concept>.sh` libraries. Each registers its order, behaviour, function and dependencies, without running while sourced. Each check prints a human
   `PASS`/`FAIL` line and one machine line, `@check<TAB>name<TAB>pass|fail<TAB>ms<TAB>detail`. A name is stable
   (`<behaviour>.<what>`); a name that repeats in a run (the four payments of B7) passes only if every repeat passed.
 - **Truthful states.** An eval asked for with no binding is written `not_run`, never `pass`. A bound eval with a failing check is
-  `fail` (the portal shows it orange). A bound eval whose checks did not all run and none failed writes nothing, so it stays as it
-  was. `status/status.json` is written only by `packages/evals/src/record-status.ts`, which the runner calls with the run's results file.
-- **Evidence.** Each run keeps `status/runs/<run id>/`: `results.json` (what was merged), `checks.tsv` (every check line),
+  `fail` (the portal shows it orange). Before children start, every requested eval is reset to `not_run`. Missing checks, malformed output, a nonzero exit or a signal make the run incomplete: no pass from it is published, and the runner exits nonzero. Unrequested evals remain untouched. `status/status.json` is written only through `pnpm evals`; normal recording serializes read/merge/atomic rename so parallel concept runs cannot lose each other's results.
+- **Evidence.** Each run keeps `status/runs/<run id>/`: `receipt.json` (intent and completion), `status.json` (only this run's verdicts and immutable claim/observes snapshots), `results.json` (what was merged), `checks.tsv` (every check line),
   `evidence/<eval>.txt` (the eval, its claim, its checks with their details, the run, the commit; at most 60 000 characters) and
   `run.log` (the script's whole output, at most 400 000 characters, not committed). Values from the files a binding lists under
   `secrets` (keys, secrets, passwords, tokens) are replaced with `[redacted]`. Only anvil's published test keys exist in a run.
-  A commit that has uncommitted changes to tracked files outside `status/` is recorded as `<sha>+dirty`.
+  A commit that has uncommitted tracked changes or untracked files outside `status/` is recorded as `<sha>+dirty`.
+
+The engine exports `RunReceipt` and `parseRunReceipt`. Receipt version 1 contains `id`, `state` (`running`, `complete`, `incomplete`), `commit`, `at`, optional `finishedAt`, `requested` IDs, `evals: [{id,claim,observes?}]`, `scripts: [{script,exitCode,signal}]`, `environment`, and `screens`. Intent exists before a child starts, even if it prints nothing or the runner is killed. Every requested ID has a verdict in the run's status snapshot. Complete is published last, only after every script has exited zero and every bound requested check ran. Historical directories are not rewritten or treated as complete receipts.
+
+Environment is `{world,storage:"json"|"postgres",indexer:"inline"|"ponder",stack,components:Record<string,string>,chainId?,databaseSchemaVersion?}`. Supply `--environment <json>` for a real runtime's metadata; the JSON skeleton is always `stack:"skeleton-json"`, never `postgres-ponder-erpnext-v4`. Children receive `CAPXUL_EVAL_RUN_DIR` and may write its `screens.json`: `[{screen,path,source,assertion}]`. The runner validates existing run-relative capture paths and includes them in the final receipt. `assertion:"source-equality"` identifies a screen whose values were checked against the source readback kept in that run. `--screens <manifest>` imports an external manifest and captures. A slice's completion must use fresh same-run verdicts from a complete receipt in its required environment, never a mixture of historical JSON-stack passes.
+
+`--json` returns `{version:1,run,runDir,state,passed,counts:{pass,fail,not_run},exitCode}` on stdout, with script logs on stderr. `passed` requires a nonempty complete run with every requested eval passing. Complete execution with an unbound `not_run` eval still exits 1; completion alone never means success. `runDir` is repository-relative. Validation errors before a run starts have no run directory. Use `pnpm --silent evals -- ... --json` to omit pnpm's banner.
 
 ```bash
 pnpm evals -- all                                      # every eval that has a check (company slug: a fresh one; --slug to choose, --world main)
-pnpm evals -- acc:doc.submit/1 acc:world.snapshot.restore/1
-pnpm evals -- --journey run_a_world                    # the journey's evals and its steps' acceptance, returns, refusals, events
+pnpm evals -- acc:doc.submit/c-74a45893884b5bef acc:world.snapshot.restore/c-369b1db183b9807f
+pnpm evals -- --journey run_a_world                    # journey, step acceptance/returns/refusals/events, and seen screens
 pnpm evals -- --milestone m1                           # the eval ids named by the milestone's exit lines and its tasks
 pnpm evals -- check                                    # the bindings against the blueprint and the scripts; no entry that is pass or fail without a binding (also in pnpm test)
 pnpm evals -- gaps                                     # checks no eval is proved by; checks that prove part of one; journey evals with no check
@@ -698,10 +702,7 @@ For `unproduced-error`, only producer declarations count: `errors` on operations
 and procedures, or `failures` on integration calls. Decision `affects` and operation `refusals`
 are references, not producers; reserving a code in a decision does not erase its gap.
 
-Every derived eval id is globally unique (`system.eval-identity`); a collision is a build problem.
-For repeated operation refusal codes or integration failure codes, the first case keeps its
-existing id and subsequent cases append `/2`, `/3`, etc. Declaration order is stable identity,
-just as acceptance line order is; preserve it when extending a record. All cases retain their claims.
+Every derived eval id is globally unique (`system.eval-identity`); a collision is a build problem. Collection members use an explicit `key` when supplied, otherwise `c-` plus the first 16 SHA-256 hex digits of their canonical identity: an acceptance's claim, a refusal's `{given,when}`, an admission's policy fields, or a provider failure's `when`. Object keys are sorted; array order within a policy is meaningful. IDs never use array positions or occurrence counts, including the first refusal/failure case. Inserting, retiring or reordering members cannot redirect an existing binding. Use an explicit key to preserve an ID across rewording; the old verdict still becomes stale when the claim or observes changes. `pnpm evals -- migrate-ids <saved-old-evals.json>` refuses changed contracts, migrates binding/scoreboard IDs, and leaves historical run directories untouched.
 
 ## What the schema does not cover yet
 

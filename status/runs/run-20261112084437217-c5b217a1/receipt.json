@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "run-20261112084437217-c5b217a1",
+  "state": "complete",
+  "commit": "5567b4c+dirty",
+  "at": "2026-11-12T08:44:37.217Z",
+  "environment": {
+    "world": "main",
+    "storage": "json",
+    "indexer": "inline",
+    "stack": "skeleton-json",
+    "components": {
+      "core": "5567b4c+dirty"
+    }
+  },
+  "requested": [
+    "ret:record.export"
+  ],
+  "evals": [
+    {
+      "id": "ret:record.export",
+      "claim": "a success prints exactly the returns schema with --json"
+    }
+  ],
+  "scripts": [],
+  "screens": [],
+  "finishedAt": "2026-11-12T08:44:38.235Z"
+}
