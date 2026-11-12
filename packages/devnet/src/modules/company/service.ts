@@ -12,11 +12,13 @@ import { localPrivateKeySigner } from "@capxul/sdk";
 import { privateKeyToAccount } from "viem/accounts";
 import { BUDGETS, CLAIMER, HATS, MINTER, PAYMENTS } from "./internal/abis.ts";
 import { refusalOf } from "./internal/refusal.ts";
+import { buildUserOp, ENTRY_POINT, ENTRY_POINT_V07, type Submit } from "./internal/user-op.ts";
 import type { BirthKeys, Company, CreateCompany, Director, Pay, PayResult, Proposal, Protocol, Refusal } from "./types.ts";
 
 export type * from "./types.ts";
 export { AGENT_OWNER, BUDGETS, CLAIMER, ERC20, HATS, MINTER, PAYMENTS } from "./internal/abis.ts";
 export { refusalOf } from "./internal/refusal.ts";
+export { ENTRY_POINT, ENTRY_POINT_V07, viaBundler, viaEntryPoint, type Submit } from "./internal/user-op.ts";
 
 const NAMESPACE = "capxul:devnet:email:v1";
 const COMPANY_NAMESPACE = "capxul:devnet:company:v1";
@@ -55,6 +57,20 @@ export async function companySafeMinted(p: Protocol, founderEmail: string, compa
 }
 
 /**
+ * A person's personal Safe, claimed through Companies House if it is not yet on chain: owned by `signer`, with the
+ * Safe4337Module enabled, so the person acts through it by UserOperation. Idempotent.
+ */
+export async function claimPersonalSafe(p: Protocol, tierServiceKey: Hex, email: string, signer: Hex): Promise<Hex> {
+  const safe = await founderSafeOf(p, email);
+  if ((await p.chain.client.getCode({ address: safe })) === undefined) {
+    const tier = p.record.tiers[0]?.tier ?? "devnet";
+    const claim = encodeFunctionData({ abi: CLAIMER, functionName: "claim", args: [NAMESPACE, email, signer] });
+    await send(p.chain, { from: tierServiceKey, to: p.record.companiesHouseRoles, data: throughRoles(claimRoleKey(tier), at(p, "CompaniesHouseClaimer"), claim) });
+  }
+  return safe;
+}
+
+/**
  * A company is born: the founder's personal Safe is claimed, the company Safe is minted owned by it, and the authority is
  * installed (hats with the Board's top hat on the company Safe, Roles, the Signer Gate, Budgets and a top budget for the
  * token). The token is not minted here: fund the company Safe separately.
@@ -65,14 +81,7 @@ export async function createCompany(p: Protocol, keys: BirthKeys, c: CreateCompa
   const relayer = privateKeyToAccount(keys.relayer).address;
   const tier = record.tiers[0]?.tier ?? "devnet";
 
-  const claimed = async (email: string, signer: Hex): Promise<Hex> => {
-    const safe = await founderSafeOf(p, email);
-    if ((await chain.client.getCode({ address: safe })) === undefined) {
-      const claim = encodeFunctionData({ abi: CLAIMER, functionName: "claim", args: [NAMESPACE, email, signer] });
-      await send(chain, { from: keys.tierService, to: record.companiesHouseRoles, data: throughRoles(claimRoleKey(tier), at(p, "CompaniesHouseClaimer"), claim) });
-    }
-    return safe;
-  };
+  const claimed = (email: string, signer: Hex) => claimPersonalSafe(p, keys.tierService, email, signer);
   const founderSafe = await claimed(c.founderEmail, founder);
   const coDirectors: Director[] = [];
   for (const d of c.coDirectors ?? []) coDirectors.push({ safe: await claimed(d.email, privateKeyToAccount(d.key).address), key: d.key });
@@ -212,4 +221,38 @@ export async function pay(p: Protocol, x: Pay): Promise<PayResult> {
     }
   }
   throw new Error(`spend ${txHash} succeeded but Payments emitted no PaymentSent with document hash ${x.documentHash}`);
+}
+
+/**
+ * The same spend as `pay`, made by the wearer's personal Safe as an ERC-4337 UserOperation (v4 D1): the Safe wears the
+ * hat, its owner signs the op, a paymaster pays the gas, and `submit` takes it to the EntryPoint (a bundler, or
+ * handleOps directly). A refusal is found by simulating the spend from the Safe first, so it leaves nothing on chain.
+ */
+export async function payByUserOp(p: Protocol, x: Omit<Pay, "key"> & { safe: Hex; ownerKey: Hex; paymaster: Hex; submit: Submit }): Promise<PayResult & { userOpHash?: Hex }> {
+  const data = encodeFunctionData({ abi: BUDGETS, functionName: "spend", args: [x.budget, x.to, x.amount, x.kind, x.documentHash, x.jobNonce] });
+  const budgets = at(p, "Budgets");
+  const why = await refusalOf(p.chain, { from: x.safe, to: budgets, data }, BUDGETS);
+  if (why !== undefined) return { ok: false, reason: refusal(why), detail: why };
+  const op = await buildUserOp(p.chain, { safe: x.safe, ownerKey: x.ownerKey, module: THIRD_PARTY.safe4337Module, paymaster: x.paymaster, to: budgets, data });
+  const txHash = await x.submit(op);
+  const receipt = await p.chain.client.getTransactionReceipt({ hash: txHash });
+  let userOpHash: Hex | undefined; let paymentId: Hex | undefined;
+  for (const log of receipt.logs) {
+    try {
+      if (same(log.address, ENTRY_POINT_V07)) {
+        const e = decodeEventLog({ abi: ENTRY_POINT, data: log.data, topics: log.topics });
+        if (e.eventName === "UserOperationEvent" && same(e.args.sender, x.safe)) {
+          if (!e.args.success) return { ok: false, reason: "REVERTED", detail: `user operation ${e.args.userOpHash} failed in ${txHash}` };
+          userOpHash = e.args.userOpHash;
+        }
+      } else if (same(log.address, at(p, "Payments"))) {
+        const e = decodeEventLog({ abi: PAYMENTS, data: log.data, topics: log.topics });
+        if (e.eventName === "PaymentSent" && e.args.documentHash === x.documentHash) paymentId = e.args.paymentId;
+      }
+    } catch {
+      // another event
+    }
+  }
+  if (userOpHash === undefined || paymentId === undefined) throw new Error(`user operation in ${txHash} carried no PaymentSent with document hash ${x.documentHash}`);
+  return { ok: true, txHash, paymentId, userOpHash };
 }

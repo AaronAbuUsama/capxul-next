@@ -10,7 +10,7 @@ import { person } from "./cli.ts";
 import type { Out } from "./doc.ts";
 import { refuse } from "./errors.ts";
 import { touched } from "./trace.ts";
-import { HAT_NAMES, proto, registry, saveRegistry, v4Org, v4Wears, type V4Org, type V4Proposal } from "./v4.ts";
+import { HAT_NAMES, proto, registry, saveRegistry, v4Org, v4Wears, wearerFor, type V4Org, type V4Proposal } from "./v4.ts";
 
 const orgOf = (slug: string): V4Org => v4Org(slug) ?? (() => { throw refuse("UNKNOWN_ORG", `no company ${slug} on the chain`); })();
 const proposalOf = (o: V4Org, id: string): V4Proposal => o.proposals?.[id] ?? (() => { throw refuse("NOT_FOUND", `no proposal ${id} in ${o.slug}`); })();
@@ -27,7 +27,8 @@ const linesOf = (v: Awaited<ReturnType<typeof view>>) => [
 ];
 
 /** `hat grant --propose`: the founder proposes the grant; it waits for the other Directors. */
-export async function proposeHatGrant(slug: string, hat: string, email: string, wearer: Address, department: string, by: string): Promise<Out> {
+export async function proposeHatGrant(slug: string, hat: string, email: string, who: Address, department: string, by: string): Promise<Out> {
+  const wearer = await wearerFor(who);   // the person's personal Safe wears the hat
   const r = registry(); const o = r[slug] ?? orgOf(slug);
   if ((o.directors ?? []).length < 2) throw refuse("INVALID_INPUT", `${slug} has one Director: its Board acts at once, so there is nothing to propose (grant without --propose)`);
   const id = o.hats[hat]; if (id === undefined) throw refuse("UNKNOWN_HAT", `no hat ${hat} in ${slug}`);
