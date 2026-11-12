@@ -29,13 +29,13 @@
       "observes": "cli: `doc submit \"Purchase Invoice\" ACC-PINV-2026-00001` prints docstatus 1; read: `report run \"General Ledger\"` shows its lines."
     },
     "acc:doc.submit/c-df3c0c51cdf3899b": {
-      "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-doc.submit-2.txt",
+      "verdict": "not_run",
+      "commit": "c0b4d33c618819ac5fca1c8196a979a9f8e9c313+dirty",
+      "at": "2026-11-12T11:11:19.156Z",
       "claim": "A Payment Entry from the Safe is held, not posted, and the signer is named.",
-      "observes": "cli: in `org-with-held-payment`, `doc submit \"Payment Entry\" ACC-PAY-2026-00001 --json` prints held true, an approvalId and `awaiting`; read: no ledger line yet; after the signature lands it posts once."
+      "observes": "cli: in `org-with-held-payment`, `doc submit \"Payment Entry\" ACC-PAY-2026-00001 --json` prints held true, an approvalId and `awaiting`; read: no ledger line yet; after the signature lands it posts once.",
+      "run": "run-20261112111119156-e2f011ea",
+      "evidence": "status/runs/run-20261112111119156-e2f011ea/evidence/acc-doc.submit-c-df3c0c51cdf3899b.txt"
     },
     "acc:org.create/c-37a24168b5b82483": {
       "verdict": "pass",
@@ -92,13 +92,13 @@
       "observes": "cli: `record export --world town3 --out run.jsonl --json` prints the line count and lineage naming town1; the file's first line is the lineage and the entries follow in order."
     },
     "acc:report.run/c-6c39c42c744b8c91": {
-      "verdict": "pass",
-      "commit": "0113712",
-      "at": "2026-11-12T07:00:54Z",
-      "run": "run-20261112070054",
-      "evidence": "status/runs/run-20261112070054/evidence/acc-report.run-1.txt",
+      "verdict": "not_run",
+      "commit": "c0b4d33c618819ac5fca1c8196a979a9f8e9c313+dirty",
+      "at": "2026-11-12T11:11:19.156Z",
       "claim": "A report runs as the caller and the books agree with the chain.",
-      "observes": "cli: `report run \"General Ledger\" --filter account=\"Capxul Safe\"` prints a ledger whose total equals the Safe's balance on chain at the world's now; a report of an off part exits FEATURE_NOT_AVAILABLE."
+      "observes": "cli: `report run \"General Ledger\" --filter account=\"Capxul Safe\"` prints a ledger whose total equals the Safe's balance on chain at the world's now; a report of an off part exits FEATURE_NOT_AVAILABLE.",
+      "run": "run-20261112111119156-e2f011ea",
+      "evidence": "status/runs/run-20261112111119156-e2f011ea/evidence/acc-report.run-c-6c39c42c744b8c91.txt"
     },
     "acc:world.clock.warp/c-2bceeaa41942995d": {
       "verdict": "pass",
@@ -165,9 +165,9 @@
       "verdict": "not_run",
       "commit": "5567b4c+dirty",
       "at": "2026-11-12T08:44:37.217Z",
-      "claim": "a success prints exactly the returns schema with --json",
       "run": "run-20261112084437217-c5b217a1",
-      "evidence": "status/runs/run-20261112084437217-c5b217a1/evidence/ret-record.export.txt"
+      "evidence": "status/runs/run-20261112084437217-c5b217a1/evidence/ret-record.export.txt",
+      "claim": "a success prints exactly the returns schema with --json"
     },
     "wfl:plugs.events.deliver/idempotent": {
       "verdict": "pass",

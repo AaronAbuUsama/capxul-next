@@ -4,7 +4,7 @@ import { ServiceError } from "./http.ts";
 
 type Sql = Pick<pg.PoolClient, "query">;
 type Database = { transaction<T>(org: string, run: (sql: Sql) => Promise<T>, system?: boolean): Promise<T> };
-type RecordEvent = (sql: Sql, org: string, kind: string, trace: string, data: unknown) => Promise<void>;
+type RecordEvent = (sql: Sql, org: string, kind: string, trace: string, data: unknown, at: number) => Promise<void>;
 export type SiteRow = { org_id: string; site_id: string; world_id: string; slug: string; host: string;
   state: "creating" | "ready" | "suspended" | "archived" | "failed"; bench: string;
   app_version: string | null; map_version: string | null; failure: string | null;
@@ -33,7 +33,10 @@ export async function rewriteSites(sql: Sql, input: { world: string; bench: stri
 export class SitesStore {
   readonly db: Database;
   readonly record: RecordEvent;
-  constructor(db: Database, record: RecordEvent) { this.db = db; this.record = record; }
+  readonly worldNow: (sql: Sql) => Promise<number>;
+  constructor(db: Database, record: RecordEvent, worldNow: (sql: Sql) => Promise<number>) {
+    this.db = db; this.record = record; this.worldNow = worldNow;
+  }
 
   site(org: string): Promise<SiteRow | undefined> {
     return this.db.transaction(org, async (sql) => (await sql.query<SiteRow>("select * from app.sites where org_id=$1", [org])).rows[0]);
@@ -58,17 +61,17 @@ export class SitesStore {
       if (old && ["suspended", "archived"].includes(old.state))
         throw new ServiceError(403, "ROLE_PERMISSION_DENIED", "The site is not being served");
       if (old && old.state !== "failed") return;
-      const now = Date.now();
+      const now = await this.worldNow(sql);
       await sql.query(`insert into app.sites (org_id,site_id,world_id,slug,host,state,bench,created_at,updated_at)
         values ($1,$1,$2,$1,$3,'creating',$4,$5,$5) on conflict (org_id,site_id)
         do update set state='creating',failure=null,updated_at=excluded.updated_at`, [input.org, input.world, input.host, input.bench, now]);
       await this.record(sql, input.org, "site_transitioned", input.trace,
-        { from: old?.state ?? null, to: "creating", transition: old ? "retry" : "begin", org_id: input.org, world_id: input.world });
+        { from: old?.state ?? null, to: "creating", transition: old ? "retry" : "begin", org_id: input.org, world_id: input.world }, now);
       for (const [feature, wanted] of Object.entries(defaults)) {
         const result = await sql.query(`insert into app.site_features (org_id,feature,state,wanted,updated_at)
           values ($1,$2,$3,$4,$5) on conflict do nothing returning feature`, [input.org, feature, wanted ? "on" : "off", wanted, now]);
         if (result.rowCount) await this.record(sql, input.org, "site_feature_transitioned", input.trace,
-          { from: null, to: wanted ? "on" : "off", transition: wanted ? "seed_on" : "seed_off", org_id: input.org, feature });
+          { from: null, to: wanted ? "on" : "off", transition: wanted ? "seed_on" : "seed_off", org_id: input.org, feature }, now);
       }
     });
   }
@@ -91,13 +94,13 @@ export class SitesStore {
         if (!delivery?.acknowledged) throw new ServiceError(409, "WRONG_STATE", "First site events are not acknowledged");
       }
       if (event === "fail" && !details.failure) throw new ServiceError(400, "INVALID_INPUT", "A failed creation must retain its failure");
-      const now = Date.now();
+      const now = await this.worldNow(sql);
       await sql.query(`update app.sites set state=$2,updated_at=$3,failure=$4,
         ready_at=case when $2='ready' then coalesce(ready_at,$3) else ready_at end,
         app_version=coalesce($5,app_version),map_version=coalesce($6,map_version) where org_id=$1`,
       [org, target, now, event === "fail" ? details.failure : null, details.appVersion ?? null, details.mapVersion ?? null]);
       await this.record(sql, org, "site_transitioned", trace,
-        { from: row.state, to: target, transition: event, org_id: org, world_id: row.world_id });
+        { from: row.state, to: target, transition: event, org_id: org, world_id: row.world_id }, now);
     });
   }
 
@@ -109,12 +112,13 @@ export class SitesStore {
           old.docname && call.name && old.docname !== call.name)) throw new ServiceError(400, "INVALID_INPUT", "The call id belongs to a different call");
       // Keep the first successful effect, even if its replay is refused after the person's permission was revoked.
       if (old && ["ok", "held"].includes(old.outcome)) return;
+      const now = await this.worldNow(sql);
       await sql.query(`insert into app.door_calls (org_id,call_id,person_id,verb,doctype,docname,outcome,refusal,created_at)
         values ($1,$2,$3,$4,$5,$6,$7,$8,$9) on conflict (org_id,call_id)
         do update set docname=excluded.docname,outcome=excluded.outcome,refusal=excluded.refusal`,
-      [call.org, call.callId, call.person, call.verb, call.doctype, call.name, call.outcome, call.refusal, Date.now()]);
+      [call.org, call.callId, call.person, call.verb, call.doctype, call.name, call.outcome, call.refusal, now]);
       await this.record(sql, call.org, "document_door_call", call.trace,
-        { call_id: call.callId, verb: call.verb, doctype: call.doctype, docname: call.name, outcome: call.outcome, refusal: call.refusal });
+        { call_id: call.callId, verb: call.verb, doctype: call.doctype, docname: call.name, outcome: call.outcome, refusal: call.refusal }, now);
     });
   }
 }

@@ -2,7 +2,7 @@ import { defineDecision, defineDoctype } from "../../packages/blueprint-engine/s
 import { concept_sites } from "../shared/foundation.ts";
 import { doctype_user } from "../plugs/doctypes.ts";
 import { rpc_sites_door_create, rpc_sites_door_submit } from "./door.ts";
-import { table_door_calls, table_sites } from "./data.ts";
+import { table_door_calls, table_site_features, table_sites } from "./data.ts";
 import { workflow_sites_create } from "./processes.ts";
 import { integration_frappe_site } from "../plugs/integrations.ts";
 
@@ -67,4 +67,17 @@ export const decision_sites_restore_identity = defineDecision({
   why: "A native restore preserves the accounting and event cut; changed host routing is recovery metadata, not a new site transition. Only the paused recovery path may change immutable serving identity. Missing mappings must fail before any row changes rather than silently leaving a source-world host.",
   source: "Sites/runtime integration agreement, 12 November 2026; devnet localRuntime.rewrite and whole-world recovery.",
   affects: [table_sites],
+});
+
+export const decision_sites_business_clock = defineDecision({
+  id: "sites.business-clock", title: "Site rows use the world's clock inside their transaction",
+  question: "Which instant dates site lifecycle, feature and document-call rows in a stopped world?",
+  options: [
+    { label: "transaction-clock", text: "Core supplies its canonical worldNow(Sql) authority to SitesStore. Each mutation reads it on the same checked-out tenant transaction before recording its rows and event. There is no host-time fallback. A missing or unsupported authority fails the transaction. Offline restore preserves the saved timestamps. Real elapsed time still bounds provider waits and transport freshness; it never becomes a business row instant." },
+    { label: "host-clock", text: "Date the rows from the host clock even when the site's world is frozen, causing the business story to advance while its authority is stopped." },
+  ],
+  chosen: "transaction-clock",
+  why: "aaron.world-clock and time.real-elapsed separate product instants from transport time. Injecting the existing Core authority keeps one clock and one SQL transaction without a site-service replica or a guessed running-clock calculation.",
+  source: "Sites source review, 12 November 2026; canonical backend/devnet worldNow contract owned by Runtime.",
+  affects: [table_sites, table_site_features, table_door_calls],
 });
