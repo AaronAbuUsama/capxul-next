@@ -49,6 +49,19 @@ export const decision_devnet_snapshot_of_a_world = dec({
   evidence: SNAP,
 });
 
+export const decision_devnet_snapshot_consistency = dec({
+  id: "devnet.snapshot-consistent-cut",
+  title: "A world snapshot is published only after every stopped component is captured",
+  question: "How does a save or restore keep the chain, Postgres/Ponder and Frappe at one recoverable cut?",
+  options: [
+    { label: "quiesce-template-bundle", text: "Close mutating ingress and drain in-flight requests, site jobs and deliveries. Stop Core, Ponder, the bundler and chain writers; block new database connections before cloning the entire Postgres 17 world database into a non-connectable template. All schemas, roles/ACLs, approvals, delivery acknowledgements, fact identities and record are kept together. While sites remain paused, capture MariaDB, public/private files, full site configuration including encryption keys, the chain, clock and optional host-local site-service creation intents. Restored intents keep company/Safe identity but use the target world/site and filename. Publish a versioned manifest last, atomically, with every file's SHA-256 and the template reference. A failed save removes partial files/template and resumes the source. Restore checks version, file inventory and all hashes before changing anything; it clones the saved template into a separate non-connectable target database, installs the chain, files and sites, rewrites world identity/endpoints and writes the saved clock before reopening the target. In-place failures leave the target stopped, never serving a mixed cut. The abandoned record branch is kept. Redis is not a durable business queue: the pause barrier must drain jobs and sessions/caches are invalidated on restore. A partial-company restore is refused because its chain and Postgres are whole-world state. A process lock serializes save/restore of one world. Template copies are host-local, not portable exports; sharing across hosts and encryption key management still require their own design." },
+    { label: "live-copies", text: "Copy each component while it runs. This is smaller but cannot establish one business cut across the chain, Core and ERPNext." },
+  ],
+  chosen: "quiesce-template-bundle",
+  why: "Aaron's Postgres/Ponder ruling requires the whole world database by template copy. The orb save also exceeded viem's 10 MiB RPC response limit; Anvil state is saved to disk when stopped, avoiding that transport ceiling. A quiet delivery queue alone does not prevent a new payment, site job or chain fact between copies. Publication and validation must fail closed; source resumption on save failure is separate from target recovery on restore failure.",
+  evidence: "aaron.postgres-and-ponder; wave 0 slice 0 brief, 12 November 2026; Orb stack readiness artifact 1f687af7-3070-4f93-b6eb-a6ead6d4e456",
+});
+
 export const decision_devnet_company_template = dec({
   id: "devnet.company-template",
   title: "A new company is restored from a template, 47 s against 132 s",

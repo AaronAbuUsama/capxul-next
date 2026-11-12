@@ -5,12 +5,12 @@ How Frappe reads time: `frappe.utils.data.now_datetime()` is the root. `nowdate(
 (`Scheduled Job Type.is_event_due` compares `now_datetime()` with the next cron time after `last_execution`).
 
 What this does (keyed by WORLD, not by bench or site): each site names its world in its own `site_config.json` (`capxul_world`, default `main`), and the
-world's clock is one entry in `sites/capxul-world-clocks.json` on the bench: {world: offset_ms}. One write moves every site of that world, and two worlds
+world's clock is one entry in `sites/capxul-world-clocks.json` on the bench: a legacy offset or a clock with mode/rate. One write moves every site of that world, and two worlds
 on one bench can run at different times (designed and read by the code below; proven only for a world that is not `main` by FINDINGS.md's measurements).
 `install()` (run when the app is imported, in every process that loads it) replaces that one function with a wrapper that
 adds the site's offset, and replaces every earlier `from frappe.utils import now_datetime` reference too. The offset is read
 from that file (cached by its modification time), or from `frappe.local.conf["capxul_clock_override_ms"]` while `advance` is stepping this site
-through its stops. World time = host time + offset: a running clock, not frozen.
+through its stops. A frozen clock holds an absolute UTC instant; a running clock advances at its saved rate.
 
 Not followed (still the host's): see FINDINGS.md "What follows the clock".
 """
@@ -56,7 +56,13 @@ def offset_ms() -> int:
         o = frappe.local.conf.get(OVERRIDE)
         if o is not None:
             return int(o)
-        return int(read_clocks().get(world_of_site()) or 0)
+        c = read_clocks().get(world_of_site()) or 0
+        if isinstance(c, dict):
+            host = datetime.now(timezone.utc).timestamp() * 1000
+            if c.get("frozen_at_ms") is not None:
+                return int(c["frozen_at_ms"] - host)
+            return int(c["offset_ms"] + (host - c["host_anchor_ms"]) * (c["rate"] - 1))
+        return int(c)
     except Exception:  # no site initialised yet (import time, bench commands without a site)
         return 0
 
@@ -74,6 +80,16 @@ def install():
         return
 
     def now_datetime():
+        try:
+            conf = frappe.local.conf
+        except (AttributeError, RuntimeError):  # commands may read time before frappe.init()
+            return orig()
+        if conf and conf.get(OVERRIDE) is None:
+            c = read_clocks().get(world_of_site())
+            if isinstance(c, dict) and c.get("frozen_at_ms") is not None:
+                from zoneinfo import ZoneInfo
+
+                return datetime.fromtimestamp(c["frozen_at_ms"] / 1000, ZoneInfo(frappe.utils.get_system_timezone())).replace(tzinfo=None)
         off = offset_ms()
         t = orig()
         return t + timedelta(milliseconds=off) if off else t
@@ -113,16 +129,34 @@ def join_world(world):
 
 
 @emit
-def write_world(world, offset_ms):
-    """The one write that moves every site of the world (atomic)."""
+def write_world(world, offset_ms, frozen_at_ms=None, rate=1):
+    """Move every site together. Old two-argument callers still write a running rate-one offset."""
+    import fcntl
     import os
+    import tempfile
 
+    rate = float(rate)
+    if not 1 <= rate <= 60:
+        raise ValueError("world clock rate must be 1 to 60")
     p = _clocks_path()
-    data = dict(read_clocks())
-    data[world] = int(offset_ms)
-    with open(p + ".tmp", "w") as f:
-        json.dump(data, f)
-    os.replace(p + ".tmp", p)
+    with open(p + ".lock", "a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        _cache["mtime"] = None
+        data = dict(read_clocks())
+        data[world] = int(offset_ms) if frozen_at_ms is None and rate == 1 else {
+            "offset_ms": int(offset_ms), "frozen_at_ms": int(frozen_at_ms) if frozen_at_ms is not None else None,
+            "rate": rate, "host_anchor_ms": int(datetime.now(timezone.utc).timestamp() * 1000),
+        }
+        fd, temp = tempfile.mkstemp(dir=os.path.dirname(p))
+        try:
+            with os.fdopen(fd, "w") as f:
+                json.dump(data, f)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temp, p)
+        finally:
+            if os.path.exists(temp):
+                os.unlink(temp)
     _cache["mtime"] = None
     return data
 

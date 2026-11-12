@@ -105,7 +105,7 @@ export const rpc_devnet_worlds_snapshot_save = rpc({
   id: "devnet.worlds.snapshot-save",
   title: "Save a snapshot of a whole world",
   about:
-    "Saves the world's chain, service state, every company's site, the clock and the place in the record under a name. On the save event each stateful follower saves its own state, including each site's database and files (devnet.stateful-followers). " +
+    "Closes mutating ingress, drains work and stops Core, Ponder and chain writers before capturing the chain, clock, record and every site's MariaDB, files and configuration. Copies the entire world Postgres database into a non-connectable template, including app, ponder and any other schemas. Publishes a checksummed manifest only after every component succeeds (devnet.snapshot-consistent-cut). A failed save removes partial state and resumes the source. " +
     "A name taken is WRONG_STATE unless `replace` is asked. Measured by the spike (Behaviour 9): 9.4 s and 9.5 MB for four companies and the chain. The snapshot carries every site's encryption key and the whole database, so it is as sensitive as production (devnet.snapshot-of-a-world).",
   concept: concept_devnet, kind: "action", who: WHO_OWNER, input: Schema.Struct({ world: S, name: S, replace: B, template: B }), output: SnapshotView,
   errors: errorsOf("snapshotSave", [error_INVALID_INPUT]), reads: [table_worlds], writes: [table_world_snapshots, table_command_records], calls: [integration_devnet_control.c.snapshotSave, integration_site_service.c.saveSnapshot],
@@ -126,7 +126,7 @@ export const rpc_devnet_worlds_snapshot_restore = rpc({
   title: "Restore a snapshot, in place or into a separate world",
   about:
     "In place: the world's clock freezes, the snapshot is restored, the epoch goes up, a `restore` entry is appended and the abandoned branch stays in the record, flagged. With `--as <new world>`: a separate world is made, keeping the chain id and using a new chain instance, " +
-    "every site's address, world name and secret, the sign-in addresses, ports, token, mail addresses and database names renamed, and the new record's `born` entry names the parent world, snapshot and sequence. The old world is untouched. Grants stay outside the snapshot.",
+    "with distinct world/site/host names, ports and database credentials. The saved site encryption key and Core/site shared secret remain unchanged; signed assertions must name the new exact site. The new record's `born` entry names the parent world, snapshot and sequence. Validate version and every component checksum before stopping the target; clone the full Postgres template and restore all sites, chain and clock before starting any writer. A failed restore stays stopped. Partial-company restores are refused. The old world is untouched. Owner access grants stay outside the saved world; database ACLs are copied.",
   concept: concept_devnet, kind: "action", who: WHO_OWNER, input: Schema.Struct({ world: S, name: S, as: Null(S) }), output: WorldView,
   errors: errorsOf("restoreAs", [error_INVALID_INPUT]).concat(errorsOf("snapshotRestore")).filter((e, i, a) => a.findIndex((x) => x.id === e.id) === i),
   reads: [table_world_snapshots, table_worlds], writes: [table_worlds, table_command_records], drives: [machine_world.t.restore, machine_world.t.restored],
