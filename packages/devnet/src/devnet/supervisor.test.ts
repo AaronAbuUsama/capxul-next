@@ -53,7 +53,7 @@ test("runtime children receive only their restricted world credentials, never op
 
 test("gate retains host supervision context without operator credentials and preserves a failed verdict", async () => {
   const root = await mkdtemp(join(tmpdir(), "world-gate-env-")), c = config(root);
-  const previous = { PATH: process.env.PATH, AMP_ORB: process.env.AMP_ORB, AMP_THREAD_IDENTITY_AUTH: process.env.AMP_THREAD_IDENTITY_AUTH };
+  const previous = { PATH: process.env.PATH, AMP_ORB: process.env.AMP_ORB, USER: process.env.USER, AMP_THREAD_IDENTITY_AUTH: process.env.AMP_THREAD_IDENTITY_AUTH };
   try {
     await mkdir(c.controlDir);
     for (const dir of ["packages/bench-image", "packages/indexer"]) await mkdir(join(root, dir), { recursive: true });
@@ -67,6 +67,7 @@ else {
   assert.equal(url.username,"capxul_core"); assert.equal(url.pathname,"/world_slice0"); assert.equal(url.password,"tenant-secret");
   assert.equal(process.env.PG_ADMIN_URL,undefined); assert.equal(process.env.WORKER_DATABASE_URL,undefined);
   assert.equal(process.env.AMP_ORB,"1"); assert.equal(process.env.AMP_THREAD_IDENTITY_AUTH,undefined);
+  assert.equal(process.env.USER,require("node:os").userInfo().username);
   const args=process.argv,env=JSON.parse(fs.readFileSync(args[args.indexOf("--environment")+1],"utf8"));
   const at=new Date().toISOString(),id="run-storage",dir=path.resolve("status/runs",id); fs.mkdirSync(dir,{recursive:true});
   fs.writeFileSync(path.join(dir,"receipt.json"),JSON.stringify({version:1,id,state:"complete",commit:env.components.core,at,finishedAt:at,environment:env,
@@ -77,8 +78,10 @@ else {
 `, { mode: 0o700 });
     process.env.PATH = `${root}:${previous.PATH}`;
     process.env.AMP_ORB = "1";
+    process.env.USER = "not-the-operating-system-caller";
     process.env.AMP_THREAD_IDENTITY_AUTH = "unrelated-operator-credential";
     assert.equal(runtimeEnv(c, "core").AMP_ORB, undefined, "application children do not acquire host supervision context");
+    assert.equal(runtimeEnv(c, "core").USER, undefined, "application children do not acquire host execution identity");
     assert.equal(await runGate(c, "harbourline", "private-run-token", join(root, "config.json")), 1);
   } finally {
     for (const [key, value] of Object.entries(previous)) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
