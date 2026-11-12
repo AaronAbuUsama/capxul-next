@@ -31,6 +31,24 @@ export const decision_integrations_mail_transport = defineDecision({
   affects: [x.integration_mail],
 });
 
+export const decision_runtime_transition_outbox = defineDecision({
+  id: "runtime.transition-outbox",
+  title: "Committed transition delivery keeps source and consumer transactions separate",
+  question: "How does the common runtime outbox carry personal and organization transitions safely?",
+  options: [
+    { label: "same-connection", text: "Emit on the source transaction's SQL connection; schedule each consumer effect and ACK together in another transaction." },
+    { label: "records", text: "Reuse organization financial records or let each concept create its own source outbox." },
+  ],
+  chosen: "same-connection",
+  why:
+    "rules.outbox already requires one runtime source. An immutable caller-stable event id deduplicates retries; its properties are exactly the transition's declared event schema. " +
+    "Machine, opaque source entity, owner, actor, trace and authoritative world milliseconds are envelope metadata, never extra analytics properties. " +
+    "Unlisted admissions need no organization or principal FK. Worker-only delivery records keep each named consumer's SQL effects and ACK atomic, so death before commit rolls both back; later relay retries cannot apply an acknowledged effect twice. " +
+    "Handlers schedule durable work, never send mail or perform other network effects inside their ACK transaction. Composition names consumers explicitly rather than a plugin registry.",
+  source: "rules.outbox; integrator's isolated runtime lease and Accounts/Requests/Notices/Activity/Board/Books API agreement, 12 November 2026",
+  affects: [f.component_backend],
+});
+
 export const decision_integrations_surface_gap_audit = defineDecision({
   id: "integrations.surface-gap-audit",
   title: "Remove outside calls with no surviving Core caller",
