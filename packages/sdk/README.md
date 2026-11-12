@@ -1,6 +1,6 @@
 # @capxul/sdk (Core SDK, started)
 
-For now only the key signing path, brought from `packages/sdk/src/signing` of `Xelmar-tech/infrastructure` at
+The key signing path was brought from `packages/sdk/src/signing` of `Xelmar-tech/infrastructure` at
 `62e49471019d19f13536dde264cfd05c3dd5fedb`. Per decision `system.layout` this is the Core SDK package; signing belongs to the
 `access` concept (`src/access/`), reached through its door `src/access/door.ts`.
 
@@ -23,3 +23,5 @@ of the SDK. Reaching the signing files by their old imports pulled in 542 files 
 `src/testing/expect.ts`, a small `describe`/`it`/`expect` shim. One test lost its dependency on the Openfort SDK's
 `PasskeyUserCancelledError`: it uses an object with the same `error` field instead. `safe4337-split-sign.test.ts` and the
 Openfort tests were left behind.
+
+**Site provisioning:** `createSitesClient({coreUrl,account}).provision({org})` signs a short-lived public request to Core. The account supplies `address` and `signMessage`, as a viem local account does. It does not receive or send bench passwords, the site-service token or Core's HMAC secret. This is the narrow post-chain-birth stage, not full company onboarding. See `packages/site-service/README.md` for registration, retry and delivery boundaries. The public CLI (`pnpm capxul org site provision --org <slug> --confirm --json`) calls this same method.
