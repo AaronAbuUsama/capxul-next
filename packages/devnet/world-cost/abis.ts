@@ -24,7 +24,7 @@ export const V4 = {
   Exits: eventsOf("Exits"),
 } as const;
 
-/** Safe 1.4.1's owner, threshold, module, guard and execution events. */
+/** Safe 1.5.0's owner, threshold, module, guard and execution events (the owner is indexed, as on chain). */
 export const SAFE = parseAbi([
   "event AddedOwner(address indexed owner)",
   "event RemovedOwner(address indexed owner)",
