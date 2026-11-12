@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
+import type { RunReceipt } from "@capxul/blueprint-engine";
 
 import { check, expect, passed } from "#src/modules/check/service.ts";
 
 import { assetsOf, extraPagesOf, generate, load, ownerNeedsOf, ROOT } from "./main.ts";
+import { sliceRunsOf } from "./run-input.ts";
 import { closedFor, waitingOf } from "./serve.ts";
 
 test("the real blueprint generates a site that passes the portal check", async () => {
@@ -30,6 +32,14 @@ test("the real blueprint generates a site that passes the portal check", async (
       assert.ok(page.includes(phrase), `${path} exposes deployment record: ${phrase}`);
     }
   }
+  assert.ok(input.slices);
+  const board = JSON.parse(files.get("data/board.json") ?? "null") as { sliceManifest: unknown };
+  assert.deepEqual(board.sliceManifest, input.slices, "the CLI and board consume one manifest");
+  assert.match(files.get("board.md") ?? "", /one agent per concept/i);
+  const zero = files.get("slice/slice-0.md") ?? "";
+  for (const claim of ["scr:supplier-invoice/shows", "scr:safe-trial-balance/shows", "alr:money_event_parked/clears"]) assert.ok(zero.includes(claim));
+  assert.match(zero, /Required declaration has not landed|not run/);
+  assert.ok((files.get("slice/slice-0/index.html") ?? "").includes("Owned events and screens"));
   const outcomes = check(files, generate(input, assets), expected);
   assert.ok(passed(outcomes), JSON.stringify(outcomes.filter((o) => o.failures > 0), null, 2));
 
@@ -44,6 +54,33 @@ test("the real blueprint generates a site that passes the portal check", async (
 test("a folder with no books is an error value, not a throw", async () => {
   const loaded = await load("/nonexistent-capxul-root", "test000");
   assert.equal(loaded.ok, false);
+});
+
+test("slice evidence reads the immutable matching run and only in-run capture files", () => {
+  const root = mkdtempSync(join(tmpdir(), "portal-receipt-"));
+  try {
+    const directory = join(root, "status/runs/fixture");
+    mkdirSync(directory, { recursive: true });
+    const receipt: RunReceipt = { version: 1, id: "fixture", state: "complete", commit: "fixture-only", at: "2026-11-12T10:00:00Z", finishedAt: "2026-11-12T10:00:01Z",
+      environment: { world: "fixture", storage: "postgres", indexer: "ponder", stack: "postgres-ponder-erpnext-v4", components: { fixture: "1" } },
+      requested: ["scr:fixture/shows"], evals: [{ id: "scr:fixture/shows", claim: "Shows source values." }], scripts: [{ script: "fixture", exitCode: 0, signal: null }],
+      screens: [{ screen: "fixture", path: "capture.png", source: "acceptance/sources.json#fixture", assertion: "source-equality" }] };
+    writeFileSync(join(directory, "receipt.json"), JSON.stringify(receipt));
+    const verdict = { verdict: "pass", run: receipt.id, commit: receipt.commit, at: receipt.at, claim: receipt.evals[0]!.claim };
+    const status = (run: string) => writeFileSync(join(directory, "status.json"), JSON.stringify({ version: 1, evals: { "scr:fixture/shows": { ...verdict, run } } }));
+    status("another-run");
+    // A global historical pass must not fill in an absent or foreign-run immutable result.
+    writeFileSync(join(root, "status/status.json"), JSON.stringify({ version: 1, evals: { "scr:fixture/shows": verdict } }));
+    assert.deepEqual(sliceRunsOf(root)[0]?.status.evals, {});
+    status(receipt.id);
+    assert.equal(sliceRunsOf(root)[0]?.status.evals["scr:fixture/shows"]?.verdict, "pass");
+    assert.equal(sliceRunsOf(root)[0]?.screens.length, 0);
+    writeFileSync(join(directory, "capture.png"), "fixture capture");
+    assert.equal(sliceRunsOf(root)[0]?.screens.length, 1);
+    rmSync(join(directory, "capture.png"));
+    symlinkSync(join(root, "status/status.json"), join(directory, "capture.png"));
+    assert.equal(sliceRunsOf(root)[0]?.screens.length, 0, "an outside symlink is not an in-run capture");
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
 test("a server started from a linked worktree takes no answers; one started from the repository's own checkout does", () => {

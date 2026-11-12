@@ -12,6 +12,7 @@ import { operation } from "./internal/operation.ts";
 import { overview } from "./internal/overview.ts";
 import { inbox, questions } from "./internal/questions.ts";
 import { record } from "./internal/record.ts";
+import { slicePages } from "./internal/slices.ts";
 import { worlds } from "./internal/worlds.ts";
 import type { Site, SiteInput } from "./types.ts";
 
@@ -34,7 +35,7 @@ export const buildSite = (input: SiteInput): Site => {
       overview(ctx), ...(input.worlds ? [worlds(ctx)] : []), ...(input.guide ? [guide(ctx)] : []), questions(ctx), architecture(ctx), build(ctx), ...[history(ctx)].filter((p) => p !== null), ...(index ? [index] : []),
       ...ofKind(ctx, "concept").map((c) => concept(ctx, c)),
       ...rest.map((r) => (r._kind === "operation" ? operation(ctx, r) : record(ctx, r))),
-      ...catalogues, ...evalCatalogue(ctx),
+      ...catalogues, ...evalCatalogue(ctx), ...slicePages(ctx),
     ],
   };
 };

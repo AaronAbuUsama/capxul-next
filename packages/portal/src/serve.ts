@@ -12,6 +12,7 @@ import { respond, MAX_BODY, type Deps, type Waiting } from "#src/modules/answers
 import type { SiteInput } from "#src/modules/site/types.ts";
 
 import type { Result } from "./load.ts";
+import type { LiveInfo } from "./live.ts";
 
 const TYPES: Readonly<Record<string, string>> = {
   ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
@@ -60,7 +61,7 @@ export const closedFor = (root: string): string | undefined => {
     : undefined;
 };
 
-const depsOf = (input: SiteInput, root: string, dist: string, port: number, extraHosts: readonly string[] = []): Deps => ({
+const depsOf = (input: SiteInput, root: string, dist: string, port: number, extraHosts: readonly string[] = [], live?: () => LiveInfo): Deps => ({
   now: () => new Date().toISOString(),
   newId: () => `a-${new Date().toISOString().replace(/[-:.]/g, "").slice(0, 15)}-${randomBytes(3).toString("hex")}`,
   waiting: () => waitingOf(input, root, dist),
@@ -68,12 +69,14 @@ const depsOf = (input: SiteInput, root: string, dist: string, port: number, extr
   log: () => lines(join(root, "plan/log.jsonl")).split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l) as LogEntry),
   append: (line) => appendFileSync(join(root, "plan/answers.jsonl"), line),
   file: (path) => {
+    if (path === "live.json" && live) return { type: TYPES[".json"]!, body: Buffer.from(JSON.stringify(live())) };
     const full = resolve(dist, path);
     if (!full.startsWith(dist + sep) || !existsSync(full) || !statSync(full).isFile()) return null;
     return { type: TYPES[extname(full)] ?? "application/octet-stream", body: readFileSync(full) };
   },
   hosts: [`127.0.0.1:${port}`, `localhost:${port}`, ...extraHosts],
-  ...(closedFor(root) === undefined ? {} : { closed: closedFor(root)! }),
+  ...(live ? { closed: "This live product preview is read-only. Answer on the coordinator's Questions portal." } :
+    closedFor(root) === undefined ? {} : { closed: closedFor(root)! }),
 });
 
 /**
@@ -82,16 +85,16 @@ const depsOf = (input: SiteInput, root: string, dist: string, port: number, extr
  * Without it, a page could offer a decision the server had never heard of ("is not a decision that waits for you",
  * 10 November 2026).
  */
-export const listen = (input: SiteInput, root: string, port: number, extraHosts: readonly string[] = [], reload?: () => Promise<Result<SiteInput>>): Promise<Result<{ readonly server: Server; readonly url: string; readonly closed?: string }>> => {
+export const listen = (input: SiteInput, root: string, port: number, extraHosts: readonly string[] = [], reload?: () => Promise<Result<SiteInput>>, live?: () => LiveInfo): Promise<Result<{ readonly server: Server; readonly url: string; readonly closed?: string }>> => {
   const dist = resolve(root, "packages/portal/dist");
   if (!existsSync(join(dist, "index.html"))) return Promise.resolve({ ok: false, error: `${dist} holds no site: run pnpm portal first` });
   const built = (): number => { try { return statSync(join(dist, "index.html")).mtimeMs; } catch { return 0; } };
-  let deps = depsOf(input, root, dist, port, extraHosts), loadedFor = built();
+  let deps = depsOf(input, root, dist, port, extraHosts, live), loadedFor = built();
   const fresh = async (): Promise<void> => {
     const now = built();
-    if (!reload || now === loadedFor) return;
+    if (!reload || live || now === loadedFor) return;
     const again = await reload();
-    if (again.ok) { deps = depsOf(again.value, root, dist, port, extraHosts); loadedFor = now; }
+    if (again.ok) { deps = depsOf(again.value, root, dist, port, extraHosts, live); loadedFor = now; }
   };
   const server = createServer((req, res) => {
     const chunks: Buffer[] = [];

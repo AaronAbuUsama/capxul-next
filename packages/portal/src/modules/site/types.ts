@@ -2,7 +2,7 @@
  * The site module: a built Blueprint in, typed page models out. A page model is plain data: the renderer draws it,
  * the twins print it as Markdown and JSON, and the check reads it back. Nothing here knows about HTML.
  */
-import type { AnyRecord, Blueprint, Stand, StandOf, StatusDocument, EvalStatus, Verdict as EvalVerdict } from "@capxul/blueprint-engine";
+import type { AnyRecord, Blueprint, Stand, StandOf, StatusDocument, EvalStatus, SliceManifest, Verdict as EvalVerdict } from "@capxul/blueprint-engine";
 import type { GuideInput, GuidePage } from "./guide-types.ts";
 import type { Diagram, Direction, Step, Verdict } from "#content/shape.ts";
 import type { PlanInput, TaskState } from "@capxul/plan";
@@ -232,6 +232,7 @@ export interface BuildPage extends PageHead {
 export interface CataloguePage extends PageHead {
   readonly type: "catalogue"; readonly nav: string; readonly eyebrow: string; readonly lead: string;
   readonly crumbs: readonly Ref[]; readonly tiles: readonly Tile[]; readonly sections: readonly TableSection[];
+  readonly sliceManifest?: SliceManifest;
 }
 /** A `##` section of a Markdown document; `body` is Markdown, which the renderer draws and the twins print as written. */
 export interface Section { readonly heading: string; readonly body: string }
@@ -305,6 +306,8 @@ export interface SiteInput {
   readonly plan: PlanInput | null;
   /** The repository's commits, newest first: the History page. Absent or empty, there is no History page. */
   readonly history?: readonly Commit[];
+  /** The engine's mechanical coverage manifest, shared with pnpm blueprint:slices. */
+  readonly slices?: SliceManifest;
   /** The worlds design: null (or absent) when the document is not in the repository. */
   readonly worlds?: WorldsInput | null;
   /** The guide to the blueprint and what its tables need: null (or absent) without the document. */ readonly guide?: GuideInput | null;
