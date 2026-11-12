@@ -8,6 +8,7 @@
     "test": "node --experimental-strip-types --no-warnings --test 'src/**/*.test.ts'"
   },
   "dependencies": {
+    "@capxul/backend": "workspace:*",
     "@capxul/sdk": "workspace:*",
     "viem": "catalog:"
   },
