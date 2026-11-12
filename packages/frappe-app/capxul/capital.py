@@ -68,3 +68,12 @@ def unmatched_deposit(d, why):
     })
     bt.insert(ignore_permissions=True)
     bt.submit()
+
+
+def guard_cancel(doc, method=None):
+    """The founder's capital follows the chain: the funding stays on chain, so its entry cannot be cancelled here."""
+    if frappe.flags.get("capxul_chain_posting") or not doc.cheque_no:
+        return
+    safe = safe_account()
+    if safe and any(a.account == safe and flt(a.debit_in_account_currency) > 0 for a in doc.accounts):
+        frappe.throw(_("This entry books money the chain moved into the Safe; it cannot be cancelled here."))
