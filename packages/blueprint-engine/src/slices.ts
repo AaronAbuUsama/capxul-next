@@ -1,16 +1,9 @@
 /** Mechanical product coverage. This module neither schedules work nor writes plan/status. */
 import { keyOf, type AnyRecord, type Blueprint } from "./build.ts";
 import { underOf } from "./stand.ts";
-import { freshStatus, type StatusDocument } from "./status.ts";
+import { freshStatus, type RunReceipt, type StatusDocument } from "./status.ts";
 
-export interface SliceRun {
-  readonly id: string;
-  readonly at: string;
-  readonly commit: string;
-  readonly state: "running" | "complete" | "incomplete";
-  readonly environment: { readonly world: string; readonly storage: string; readonly indexer: string; readonly stack: string };
-  readonly requested: readonly string[];
-  readonly screens: readonly { readonly screen: string; readonly path: string; readonly source: string; readonly assertion: string }[];
+export interface SliceRun extends Pick<RunReceipt, "id" | "at" | "commit" | "state" | "environment" | "requested" | "screens"> {
   readonly landed?: boolean;
   readonly status: StatusDocument;
 }

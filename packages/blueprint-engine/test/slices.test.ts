@@ -40,7 +40,7 @@ const ids = b.evals.filter((e) => e.subject === "operation:org.member.invite").s
 const run = (id: string, evalIds = ids, state: SliceRun["state"] = "complete"): SliceRun => {
   const status = mergeResults(b, null, { commit: "abc1234", at: `2026-11-12T10:00:0${id}Z`, run: id, results: evalIds.map((id) => ({ id, verdict: "pass" })) });
   assert.ok(status.ok);
-  return { id, at: `2026-11-12T10:00:0${id}Z`, commit: "abc1234", state, environment: { world: "fixture", storage: "postgres", indexer: "ponder", stack: "postgres-ponder-erpnext-v4" }, requested: ids, screens: [], status: status.value, landed: true };
+  return { id, at: `2026-11-12T10:00:0${id}Z`, commit: "abc1234", state, environment: { world: "fixture", storage: "postgres", indexer: "ponder", stack: "postgres-ponder-erpnext-v4", components: { fixture: "1" } }, requested: ids, screens: [], status: status.value, landed: true };
 };
 
 test("completion never unions runs or accepts JSON, zero checks, stale claims, or a later zero-output interruption", () => {
