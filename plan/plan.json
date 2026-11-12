@@ -1899,14 +1899,15 @@
       "title": "Book a company's first funding as the founder's capital",
       "why": "Aaron accepted books.founder-funding as recommended, 12 November 2026 06:08 UTC (a-20261112T060833-a862ae).",
       "milestone": "m2",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [
         "decision:books.founder-funding"
       ],
       "evidence": [],
       "created": "2026-11-12",
-      "updated": "2026-11-12"
+      "updated": "2026-11-12",
+      "thread": "cmsg_01KeBXQ6nY6oC8tbE4saDwBoPmDQ2qi3fr2uZSXJB4CUZb"
     },
     {
       "id": "m2-bundler-world",
