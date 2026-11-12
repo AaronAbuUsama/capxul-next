@@ -28,6 +28,7 @@ import {
   Reference,
   table_book_annotations,
   table_book_facts,
+  table_book_feeds,
 } from "./data.ts";
 
 const OLD = "packages/backend/src";
@@ -67,7 +68,7 @@ export const rpc_books_annotations_save = defineRpc({
     "counterparty Party the row's money fact proves), a Cost Center and a Project of the site, and the documents it " +
     "pays, each of a type its party may reference in ERPNext, allocating at most the row's value (else INVALID_INPUT; " +
     "books.vouchers). The annotation keeps the site's names, which the Capxul app resolves again when it posts " +
-    "(books.party-lines). The first account is an `account_assigned` fact, each later change of account, party or " +
+    "(books.party-lines). The first account is an `account_assigned` fact (its number from book-feeds: books.feed), each later change of account, party or " +
     "documents `recategorized`; the site posts the change, in its first open period if the original's is closed " +
     "(books.closed-periods). A suggestion goes only beside a not-decided account. A person's row takes a code of the " +
     "fixed personal chart, calls no site and keeps no fact (books.annotate-known-rows). Old clients' free-text " +
@@ -110,8 +111,8 @@ export const rpc_books_annotations_save = defineRpc({
     error_PROVIDER_ERROR,
     error_PROVIDER_RESPONSE_INVALID,
   ],
-  reads: [table_org_members, table_org_deployments, table_hat_wearers, table_book_annotations, table_book_facts],
-  writes: [table_book_annotations, table_book_facts],
+  reads: [table_org_members, table_org_deployments, table_hat_wearers, table_book_feeds, table_book_annotations, table_book_facts],
+  writes: [table_book_feeds, table_book_annotations, table_book_facts],
   drives: [
     machine_book_annotation.t.queue,
     machine_book_annotation.t.assign,
