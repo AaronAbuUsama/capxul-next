@@ -1,13 +1,36 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { Database, exportAbandonedBranch, readSnapshotCut, rewriteRestoredWorld } from "../src/devnet/door.ts";
+import { Database, exportAbandonedBranch, readSnapshotCut, rewriteRestoredWorld, worldNow } from "../src/devnet/door.ts";
 import { signature } from "../src/plugs/door.ts";
 import { createCore } from "../src/server.ts";
 
 const dir = process.env.CORE_PROOF_DIR;
 if (!dir || process.env.CAPXUL_DISPOSABLE !== "true" || process.env.CAPXUL_WORLD === "main") throw new Error("CORE_PROOF_DIR and named disposable migrated Postgres/Ponder/v4 world required");
 const fixture = JSON.parse(await readFile(`${dir}/fixture.json`, "utf8"));
+
+test("business time follows frozen and restored database authority, never the host or an unanchored running clock", async () => {
+  const database = new Database(process.env.DATABASE_URL!, process.env.WORKER_DATABASE_URL!);
+  const client = await database.worker.connect();
+  try {
+    await client.query("BEGIN");
+    for (const nowMs of [1772442000123, 1772443800123, 1772442000123]) {
+      await client.query("update app.world set clock=$1", [{ nowMs, clockMode: "stopped", rate: 7 }]);
+      assert.equal(await worldNow(client), nowMs, "explicit advancement and recovery must be visible in this transaction");
+      await client.query("select pg_sleep(0.02)");
+      assert.equal(await worldNow(client), nowMs, "a frozen instant cannot advance with real time");
+    }
+    await client.query("update app.world set clock=$1", [{ nowMs: 1772442000123, clockMode: "running", rate: 7 }]);
+    await assert.rejects(worldNow(client), /UNSUPPORTED_CLOCK/);
+    for (const clock of [{}, { nowMs: "1772442000123", clockMode: "stopped", rate: 1 },
+      { nowMs: 1772442000123, clockMode: "stopped", rate: 61 }]) {
+      await client.query("update app.world set clock=$1", [clock]);
+      await assert.rejects(worldNow(client), /INVALID_CLOCK/);
+    }
+  } finally {
+    await client.query("ROLLBACK"); client.release(); await database.close();
+  }
+});
 
 test("public snapshot pause returns the numeric world epoch from real Postgres", { timeout: 10_000 }, async () => {
   const database = new Database(process.env.DATABASE_URL!, process.env.WORKER_DATABASE_URL!);
