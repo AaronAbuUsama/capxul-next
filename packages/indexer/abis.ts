@@ -31,6 +31,7 @@ export const HATS = parseAbi([
   "function isWearerOfHat(address wearer,uint256 hatId) view returns (bool)",
 ]);
 export const SAFE = parseAbi([
+  "event SafeSetup(address indexed initiator,address[] owners,uint256 threshold,address initializer,address fallbackHandler)",
   "event AddedOwner(address indexed owner)", "event RemovedOwner(address indexed owner)",
   "event ChangedThreshold(uint256 threshold)", "event EnabledModule(address indexed module)",
   "event DisabledModule(address indexed module)", "event ChangedGuard(address indexed guard)",

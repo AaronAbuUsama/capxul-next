@@ -9,10 +9,18 @@ const log = (t: PgColumnsBuilders) => ({
 export const chainLogs = onchainTable("chain_logs", (t) => ({
   ...log(t), contract: t.text().notNull(), contract_address: t.hex().notNull(), event: t.text().notNull(),
   safes: t.hex().array().notNull(), args: t.jsonb().notNull(),
+}), (t) => ({
+  event: index("chain-logs-by-event").on(t.contract, t.event, t.block_number, t.log_index),
+  tx: uniqueIndex("chain-logs-by-tx").on(t.chain_id, t.tx_hash, t.tx_log_ordinal),
+  safe: index("chain-logs-by-safe").on(t.safes, t.contract, t.block_number),
 }));
 export const transfers = onchainTable("transfers", (t) => ({
-  ...log(t), token: t.hex().notNull(), from: t.hex().notNull(), to: t.hex().notNull(), amount: t.bigint().notNull(),
-}), (t) => ({ incoming: index().on(t.to, t.block_number), outgoing: index().on(t.from, t.block_number) }));
+  ...log(t), token: t.hex().notNull(), from_address: t.hex().notNull(), to_address: t.hex().notNull(), amount: t.bigint().notNull(),
+}), (t) => ({
+  incoming: index("transfers-by-to").on(t.to_address, t.block_number, t.log_index),
+  outgoing: index("transfers-by-from").on(t.from_address, t.block_number, t.log_index),
+  tx: uniqueIndex("transfers-by-tx").on(t.chain_id, t.tx_hash, t.tx_log_ordinal),
+}));
 export const chainPayments = onchainTable("chain_payments", (t) => ({
   ...log(t), payment_id: t.hex().notNull(), sender: t.hex().notNull(), recipient: t.hex().notNull(),
   token: t.hex().notNull(), amount: t.bigint().notNull(), kind: t.integer().notNull(), document_hash: t.hex().notNull(),
@@ -26,7 +34,12 @@ export const chainPayments = onchainTable("chain_payments", (t) => ({
 }));
 export const userOperations = onchainTable("user_operations", (t) => ({
   ...log(t), user_op_hash: t.hex().notNull(), sender: t.hex().notNull(), paymaster: t.hex().notNull(),
-  nonce: t.bigint().notNull(), success: t.boolean().notNull(), actual_gas_cost: t.bigint().notNull(), actual_gas_used: t.bigint().notNull(),
+  nonce_key: t.text().notNull(), nonce_sequence: t.text().notNull(),
+  success: t.boolean().notNull(), actual_gas_cost: t.bigint().notNull(), actual_gas_used: t.bigint().notNull(),
+}), (t) => ({
+  hash: uniqueIndex("user-operations-by-hash").on(t.user_op_hash),
+  nonce: uniqueIndex("user-operations-by-sender-nonce").on(t.sender, t.nonce_key, t.nonce_sequence),
+  tx: uniqueIndex("user-operations-by-tx").on(t.chain_id, t.tx_hash, t.tx_log_ordinal),
 }));
 export const progress = onchainTable("indexer_progress", (t) => ({
   chain_id: t.integer().primaryKey(), indexed_block: t.bigint().notNull(), indexed_block_hash: t.hex().notNull(), indexed_block_time: t.bigint().notNull(),

@@ -34,7 +34,7 @@ export async function consume(sql: Sql, org: string, chain: number, finality: nu
       from app.chain_payments p where p.chain_id=$2 and p.sender=$3 and p.token=$4 and p.block_number<=$5
     union all
     select t.log_id,t.block_number,t.log_index,t.tx_hash,t.block_time,'transfer_in',to_jsonb(t) || jsonb_build_object('amount',t.amount::text)
-      from app.transfers t where t.chain_id=$2 and t.to=$3 and t.token=$4 and t.block_number<=$5
+      from app.transfers t where t.chain_id=$2 and t.to_address=$3 and t.token=$4 and t.block_number<=$5
     union all
     select l.log_id,l.block_number,l.log_index,l.tx_hash,l.block_time,'hat',to_jsonb(l)
       from app.chain_logs l join app.hats h on h.org_id=$1 and h.hat_id=l.args->>'id'
@@ -63,7 +63,7 @@ export async function consume(sql: Sql, org: string, chain: number, finality: nu
       const founder = (await sql.query("select * from app.people where org_id=$1 and email=$2", [org, company.admin_email])).rows[0];
       const capital = first && founder;
       await enqueue(sql, org, row.log_id, capital ? "founder_capital" : "deposit_received", {
-        to: f.to, from: f.from, amount: amount(f.amount), asset: "USDC", tx_hash: f.tx_hash, block_time: time,
+        to: f.to_address, from: f.from_address, amount: amount(f.amount), asset: "USDC", tx_hash: f.tx_hash, block_time: time,
         ...(capital ? { founder_email: founder.email, founder_name: founder.name } : {}),
       }, trace);
     } else {

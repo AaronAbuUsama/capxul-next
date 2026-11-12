@@ -9,7 +9,7 @@ import "./budgets.ts";
 
 ponder.on("Payments:PaymentSent", async ({ event, context }) => {
   const a = event.args;
-  if (!await context.db.find(knownSafes, { address: lower(a.sender) })) return;
+  // Payments is the configured protocol contract. Outside senders still produce incoming money.
   const receipt = await context.client.getTransactionReceipt({ hash: event.transaction.hash });
   const source: { budget_id: string | null; scheduled_id: string | null; agreement_id: string | null; escrow_address: `0x${string}` | null } = {
     budget_id: null, scheduled_id: null, agreement_id: null, escrow_address: null,
@@ -34,7 +34,7 @@ ponder.on("Payments:PaymentSent", async ({ event, context }) => {
 });
 ponder.on("Token:Transfer", async ({ event, context }) => {
   await context.db.insert(transfers).values({
-    ...await identity(event, context), token: lower(event.log.address), from: lower(event.args.from), to: lower(event.args.to), amount: event.args.value,
+    ...await identity(event, context), token: lower(event.log.address), from_address: lower(event.args.from), to_address: lower(event.args.to), amount: event.args.value,
   });
 });
 ponder.on("Company:CompanySafeMinted", async ({ event, context }) => {
@@ -72,7 +72,8 @@ ponder.on("EntryPoint:UserOperationEvent", async ({ event, context }) => {
   const a = event.args;
   if (!await context.db.find(knownSafes, { address: lower(a.sender) })) return;
   await context.db.insert(userOperations).values({
-    ...await identity(event, context), user_op_hash: lower(a.userOpHash), sender: lower(a.sender), paymaster: lower(a.paymaster), nonce: a.nonce,
+    ...await identity(event, context), user_op_hash: lower(a.userOpHash), sender: lower(a.sender), paymaster: lower(a.paymaster),
+    nonce_key: (a.nonce >> 64n).toString(), nonce_sequence: (a.nonce & ((1n << 64n) - 1n)).toString(),
     success: a.success, actual_gas_cost: a.actualGasCost, actual_gas_used: a.actualGasUsed,
   });
 });
