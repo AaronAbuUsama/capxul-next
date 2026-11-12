@@ -85,11 +85,14 @@ test("registration, activation and release preserve caller atomicity, idempotenc
   const reborn = await db.transaction("", (sql) => register(sql, { ...input, handle: `${handle}-two`, safe_address: address(stamp + 1) }, now), true);
   assert.notEqual(reborn.party_id, second.party_id);
   const beforeRead = await eventCount();
-  await db.transaction("unrelated-org", async sql => {
+  const sql = await db.tenant.connect();
+  try {
+    await sql.query("begin read only");
     assert.equal((await lookupBySafe(sql, reborn.safe_address.toUpperCase()))!.party_id, reborn.party_id);
     assert.equal((await lookupBySafe(sql, row!.safe_address))!.display_name, "Acme");
     assert.equal(await lookupBySafe(sql, address(stamp + 17)), null);
-  });
+    await sql.query("commit");
+  } finally { await sql.query("rollback"); sql.release(); }
   assert.equal(await eventCount(), beforeRead, "name lookup must not mutate the directory or append an event");
   const events = (await db.worker.query("select data->>'transition' as transition,at from app.party_events where party_id=$1 order by id", [row!.party_id])).rows;
   assert.deepEqual(events.map((r) => r.transition), ["register", "activate"]);
