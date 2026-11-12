@@ -71,9 +71,12 @@ def unmatched_deposit(d, why):
 
 
 def guard_cancel(doc, method=None):
-    """The founder's capital follows the chain: the funding stays on chain, so its entry cannot be cancelled here."""
+    """The founder's capital follows the chain: the funding stays on chain, so its entry cannot be cancelled here.
+
+    Only an entry that a founder_capital chain event posted is protected: one whose cheque_no is that event's tx_hash.
+    A hand-made Journal Entry with a reference number of its own cancels as usual."""
     if frappe.flags.get("capxul_chain_posting") or not doc.cheque_no:
         return
-    safe = safe_account()
-    if safe and any(a.account == safe and flt(a.debit_in_account_currency) > 0 for a in doc.accounts):
-        frappe.throw(_("This entry books money the chain moved into the Safe; it cannot be cancelled here."))
+    for data in frappe.get_all("Capxul Chain Event", filters={"kind": "founder_capital", "status": "Applied"}, pluck="data"):
+        if (frappe.parse_json(data or "{}").get("tx_hash") or "").lower() == doc.cheque_no.lower():
+            frappe.throw(_("This entry books money the chain moved into the Safe; it cannot be cancelled here."))
