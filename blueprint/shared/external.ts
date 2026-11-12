@@ -738,51 +738,6 @@ export const integration_devnet_control = defineIntegration({
   was: ["packages/sdk/src/devnet/index.ts:5", "packages/protocol/src/devnet/control.ts:107", "packages/devnet/src/modules/guardian/standing-config.ts:20"],
 });
 
-// ── fde-host ────────────────────────────────────────────────────────────────────────────────
-
-/** A host call: one HTTPS call to Capxul's FDE host, idempotent by the agent id (and a send by its ask). */
-const HOST_CALL = { timeoutMs: 10_000, retries: { max: 3, backoff: "exponential" }, p95Ms: 2_000 } as const;
-const hostFailures = [
-  unavailable("The FDE host"),
-  { when: "The FDE host answered 429 and the retries ran out", error: error_RATE_LIMITED },
-  unusable("The FDE host"),
-] as const;
-
-export const integration_fde_host = defineIntegration({
-  id: "fde-host",
-  title: "Capxul's FDE host: each Organization's hosted Forward Deployed Engineer",
-  about:
-    "The durable runtime Capxul runs each Organization's FDE on (aaron.fde-hosted; organizations.fde-host): Capxul's " +
-    "swarmD namespace, one persistent agent per Organization keyed `fde:<orgId>`, its conversation kept durable and " +
-    "its tools run in a sandbox, behind the Effect service `FdeHost`, reached over HTTPS with the host token. The host " +
-    "makes and keeps the FDE's key: Capxul only ever learns its address, which the install batch passes to " +
-    "`AgentOwner.create` with the company Safe as owner, so the Board owns the FDE. Hosted, it acts only as the asker " +
-    "of its turn (organizations.fde-for-the-asker): each send carries an act-for token the host gives the FDE's CLI for " +
-    "that turn alone. Every call is idempotent by the agent id, a send by its ask id too, so a retried step changes " +
-    "nothing twice. Its agents' timers are instants on the world's clock: a world that hosts real FDEs gets its own " +
-    "namespace, which follows that world's clock as one follower and fires them at its stops " +
-    "(devnet.fde-host-follows-world, time.world-channels).",
-  component: component_backend,
-  system: "swarmd",
-  service: "FdeHost",
-  calls: {
-    provision: {
-      about: "Makes the Organization's FDE agent and its key, or finds them; keeps the key and answers the agent id and the key's address.",
-      ...HOST_CALL,
-      failures: [...hostFailures],
-    },
-  },
-  fake:
-    "The devnet's stand-in host (devnet.fde-host-stand-in): the supervisor serves it on loopback and keeps its agents in " +
-    "devnet's `fde-host-agents`. Keys come from the agent id, each turn ends with a scripted reply as it is posted, " +
-    "`capxul-devnet fde run <org> --ask <askId> -- <command>` runs a command as the FDE under that open ask's act-for " +
-    "token (devnet.world-pass-worlds), and its fault switch has down, hold (new turns stay working) and clear. It runs " +
-    "no model and no sandbox. The real host's namespace for a world follows it stateful: swarmD saves and restores the " +
-    "namespace's agents under the world's name, beside its timers on the world's clock (devnet.stateful-followers).",
-  secrets: ["FDE_HOST_TOKEN"],
-  was: ["blueprint/organizations/decisions.ts (organizations.fde-host)", "/home/user/swarmd/docs/SPEC.md (B.15, B.16, B.19)"],
-});
-
 // ── frappe-head ─────────────────────────────────────────────────────────────────────────────
 
 /** A head call is a vendor call to one Frappe site: 2 s p95, retried only where the call is idempotent by version. */

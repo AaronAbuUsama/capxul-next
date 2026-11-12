@@ -9,10 +9,8 @@
 
 import { table_principals } from "../access/data.ts";
 import {
-  machine_org_fde,
   machine_org_invite,
   machine_org_setup,
-  table_org_fdes,
   table_org_invitations,
   table_org_setups,
   table_organizations,
@@ -99,4 +97,3 @@ const GUEST_ABOUT =
   "they are admitted to the beta (`accounts.admit` via fde-guest, so this is their welcome), how to sign in and how " +
   "to ask its FDE, which does for them only what an outside party may (organizations.fde-for-the-asker). A removal " +
   "sends nothing.";
-

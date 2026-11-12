@@ -11,9 +11,7 @@ import { defineProcedure } from "../../packages/blueprint-engine/src/index.ts";
 import { concept_organizations } from "../shared/foundation.ts";
 import { error_INVALID_INPUT, error_WRONG_STATE } from "../shared/vocabulary.ts";
 import {
-  machine_org_fde,
   machine_seat_purchase,
-  table_org_fdes,
   table_org_invitations,
   table_org_seat_purchases,
   table_organizations,
@@ -116,4 +114,3 @@ export const procedure_organizations_return_bought_seats = defineProcedure({
 // ── the hosted FDE's hosting payments (aaron.fde-hosted, aaron.test-prices) ─────────────────
 
 const HOSTING = "blueprint/shared/rulings.ts (aaron.fde-hosted, aaron.test-prices); organizations.fde-hosting";
-

@@ -401,7 +401,7 @@ export const decision_time_world_channels = defineDecision({
     "Review, 11 November 2026: Devnet mail goes to the world sink; staging mail is allowlisted before the vendor call. Site mail uses the same isolation. WhatsApp uses world stand-ins or staging test recipients. Hosted sites follow business world time in simulation and host time on staging. Bridge sandbox times are never a world-clock oracle. Hosted FDE namespaces and seasons are parked, not required channels. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
   source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [
-    x.integration_mail, x.integration_fde_host, x.integration_bridge, x.integration_bundler,
+    x.integration_mail, x.integration_bridge, x.integration_bundler,
     x.integration_chainlink, x.integration_posthog, f.environment_devnet, f.environment_staging, f.environment_shared_world,
     f.component_frappe_app,
   ],

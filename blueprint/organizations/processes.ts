@@ -13,15 +13,11 @@ import {
   contract_installer,
   contract_safe,
   integration_chain_rpc,
-  integration_fde_host,
   integration_indexer,
   integration_service_signer,
 } from "../shared/external.ts";
 import {
-  event_org_fde_transitioned,
   event_org_setup_transitioned,
-  machine_org_fde,
-  table_org_fdes,
   event_org_app_transitioned,
   event_org_member_transitioned,
   machine_org_app,
@@ -43,7 +39,7 @@ import {
   rpc_organizations_invitations_invite,
 } from "./invitations.ts";
 import { procedure_approvals_open } from "../approvals/procedures.ts";
-import { procedure_parties_activate, procedure_parties_register, procedure_parties_release } from "../parties/procedures.ts";
+import { procedure_parties_activate, procedure_parties_release } from "../parties/procedures.ts";
 import { table_hat_wearers, table_safe_executions } from "../indexing/data.ts";
 import { event_approval_transitioned } from "../approvals/data.ts";
 import { table_indexer_progress } from "../indexing/data.ts";
@@ -70,12 +66,9 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     "landed at finality completes it and seats the founder; refused (by the paymaster's simulation), declined, " +
     "expired, reverted or displaced stalls it with that reason and approvals' code (organizations.approval-endings). A " +
     "provider outage that outlasts a step's retries stalls it too. `org retry` resumes it from its last finished step. " +
-    "With `with_fde`, once the company Safe is the founder's, it asks Capxul's FDE host to provision the FDE " +
-    "(organizations.fde-at-start-up, aaron.fde-hosted): the host makes and keeps its key and answers its address; one " +
-    "transaction records it with the FDE's Safe, registers its Party pending (`parties.register`) and births its hosting " +
-    "(`org-fdes`). The install batch also calls `AgentOwner.create(that key, the company Safe)`, so one signature creates " +
-    "the FDE, which completion seats and activates. A failed setup releases the FDE's Party, and the Organization's " +
-    "while pending. It replaces the old observe workflow, its recovery cron and ten internal rpcs.",
+    "Hosted FDE provisioning, keys and agent installation are parked by cut.fde-parked; this setup seats only the " +
+    "founder. A failed setup releases the Organization's Party while pending. It replaces the old observe workflow, " +
+    "its recovery cron and ten internal rpcs.",
   was: [
     "docs/as-is/archive/organizations/setups.ts:709",
     "docs/as-is/archive/organizations/setups.ts:751",
@@ -118,7 +111,7 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
       name: "install-final",
       for: "indexer",
       key: [{ on: [table_indexer_progress], props: ["chain_id"], reaches: "indexed_block" }],
-      about: "The install's facts at finality: the Gate as module and guard, the hats minted, and the FDE's AgentCreated when it carries one.",
+      about: "The install's facts at finality: the Gate as module and guard and the hats minted.",
     },
     {
       name: "retry",
@@ -130,19 +123,14 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
   steps: [
     { name: "mint", about: "Send CompanySafeMinter.mint with the company-Safe role, unless mint_tx_hash is recorded; then follow that one." },
     { name: "confirm-mint", about: "At finality, read the mint's facts: steps gains safe_minted and the Party is activated, or the setup fails and the Party is released." },
-    {
-      name: "host-fde",
-      about:
-        "With `with_fde` and no FDE recorded: ask the FDE host to provision the FDE; record its key's address and Safe, register its Party, birth its hosting.",
-    },
     { name: "deploy", about: "Send Installer.deployMoney with the tier key, unless deploy_tx_hash is recorded: it mints new hats each time it runs." },
     { name: "confirm-deploy", about: "At finality, read MoneyDeployed; write the deployment; steps gains money_deployed." },
-    { name: "open-install", about: "Read buildMoney's batch, add AgentOwner.create of the host's FDE key when one is recorded, open the founder's install approval; request_authorization." },
+    { name: "open-install", about: "Read buildMoney's batch, open the founder's install approval; request_authorization." },
     { name: "await-founder", about: "Wait for the founder's signature; authorize once the approval is signed." },
-    { name: "complete", about: "At finality, check the install's facts (AgentCreated for the FDE's Safe too); complete; seat the founder (`seat`) and the FDE (`organization`); activate the FDE's Party." },
+    { name: "complete", about: "At finality, check the install's facts; complete; seat the founder (`seat`)." },
   ],
-  reads: [table_org_setups, table_organizations, table_org_deployments, table_org_fdes],
-  writes: [table_org_setups, table_org_deployments, table_org_members, table_org_fdes],
+  reads: [table_org_setups, table_organizations, table_org_deployments],
+  writes: [table_org_setups, table_org_deployments, table_org_members],
   drives: [
     machine_org_setup.t.request_authorization,
     machine_org_setup.t.authorize,
@@ -150,9 +138,8 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     machine_org_setup.t.stall,
     machine_org_setup.t.fail,
     machine_org_member.t.seat,
-    machine_org_fde.t.provision,
   ],
-  invokes: [procedure_approvals_open, procedure_parties_activate, procedure_parties_release, procedure_parties_register],
+  invokes: [procedure_approvals_open, procedure_parties_activate, procedure_parties_release],
   emits: [],
   calls: [
     integration_service_signer.c.send,
@@ -160,7 +147,6 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     integration_indexer.c.awaitBlock,
     integration_indexer.c.factsOf,
     integration_chain_rpc.c.readContract,
-    integration_fde_host.c.provision,
   ],
   chain: [
     contract_company_safe_minter.f.mint,
@@ -169,14 +155,11 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     contract_budgets.f.configure,
     contract_safe.f.execTransaction,
     contract_hats.f.mintHat,
-    contract_agent_owner.f.create,
-    contract_agent_owner.f.safeAddressFor,
   ],
   idempotency:
     "One process per Organization (`org-setup:<orgId>`). The mint and deployMoney are each sent once (the service " +
-    "signer records the signed bytes before broadcast, CAP-1097); one install approval at a time; the host's provision " +
-    "is keyed by the Organization's id.",
-  // Real time bounding one run's work between its waits (time.real-elapsed): sends, receipts and a host call with retries.
+    "signer records the signed bytes before broadcast, CAP-1097); one install approval at a time.",
+  // Real time bounding one run's work between waits (time.real-elapsed): sends and receipts with retries.
   timeoutMs: 30 * 60_000,
   retries: { max: 5, backoff: "exponential" },
   compensation:
@@ -290,4 +273,3 @@ export const workflow_organizations_members_end_agent_seats = defineWorkflow({
   retries: { max: 5, backoff: "exponential" },
   budget: budget("background"),
 });
-

@@ -31,10 +31,10 @@ const Instant = Schema.DateTimeUtc;
 export const OwnerKind = Schema.Literals(["person", "organization"]);
 
 /**
- * Where the agent's key is kept: on its creator's machine (a private file, or printed once for `CAPXUL_PRIVATE_KEY`),
- * or, for an Organization's hosted FDE, by Capxul's FDE host, which made it (aaron.fde-hosted, agents.fde).
+ * Where the self-run agent's key is kept: on its creator's machine (a private file, or printed once for
+ * `CAPXUL_PRIVATE_KEY`). Hosted keys are parked by cut.fde-parked.
  */
-export const KeyStore = Schema.Literals(["file", "env", "host"]);
+export const KeyStore = Schema.Literals(["file", "env"]);
 
 /** Where a key made on the caller's machine is kept: what `agent create` and `agent key rotate` choose. */
 export const LocalKeyStore = Schema.Literals(["file", "env"]);
@@ -83,15 +83,13 @@ export const table_agents = defineTable({
     "AgentOwner.safeAddressFor(signer, owner's Safe), known before the Safe exists and never changed, so it is the " +
     "agent's chain key. `signer_address` is the key that signs for it now: the key it was created with, replaced only " +
     "when a rotation lands on chain naming that new key. `key_store` is where the key is kept, as its creator said: on " +
-    "their machine (`file`, `env`), or `host` for an Organization's hosted FDE, whose key Capxul's FDE host made and " +
-    "keeps (never the key: the backend only ever sees its address); a landed rotation sets its new key's. The owner is a person (`owner_kind` person, " +
+    "their machine (`file`, `env`); a landed rotation sets its new key's. The owner is a person (`owner_kind` person, " +
     "`owner_id` their principal id) or an Organization (`owner_kind` organization, `owner_id` its org_id); it never " +
     "changes, because AgentOwner binds the owner's Safe at creation. Name and handle are read from the Party, the " +
     "agent's principal (its accountId) from access by its Safe, the owner's email and Safe from the owner's own rows: " +
     "the old copies of each are gone. Only agents' rpcs and its processes write it. The one live agent an Organization " +
-    "owns is its Forward Deployed Engineer (aaron.fde-agent, agents.fde): born with the Organization's setup, its key made " +
-    "by Capxul's FDE host and its create in the install batch (aaron.fde-hosted), or later by `agent create --org`, a " +
-    "self-run agent of the Organization's own, when it has none.",
+    "owns is a self-run agent created through `agent create --org` when it has none. Hosted birth from organization " +
+    "setup is parked by cut.fde-parked (organizations.hosted-fde-closure).",
   concept: concept_agents,
   tenancy: "owner",
   tenantField: "owner_id",
@@ -221,31 +219,20 @@ export const machine_agent = defineMachine({
       guard: "A trimmed name; a free handle; a key of its own; the owner's Safe claimed, or the caller a Director of the owning Organization.",
       emits: A,
     },
-    found: {
-      from: [],
-      to: "creating",
-      about:
-        "The Organization's hosted FDE, born when Capxul's FDE host has made its key for its Organization's setup (the " +
-        "hosting's `provision`): its key is the host's (`host`), its Party is the one the setup registered, and its create " +
-        "is the setup's install batch, not a change of its own (agents.fde).",
-      emits: A,
-    },
     activate: {
       from: ["creating"],
       to: "active",
       about:
-        "Its create landed: the carrier's transaction holds AgentCreated naming its Safe, its owner's Safe and its key. For " +
-        "the FDE the carrier is its Organization's install, and the setup's completion has activated its Party already.",
-      guard: "In the same transaction its Party is activated (`parties.activate`), except the FDE's, which organizations activates.",
+        "Its create landed: the carrier's transaction holds AgentCreated naming its Safe, its owner's Safe and its key.",
+      guard: "In the same transaction its Party is activated (`parties.activate`).",
       emits: A,
     },
     fail: {
       from: ["creating"],
       to: "failed",
       about:
-        "Its create change failed: declined, lapsed unsent, refused, reverted, rejected, or landed without its AgentCreated; " +
-        "or, for the FDE, its Organization's setup failed.",
-      guard: "In the same transaction its Party is released (`parties.release`), except the FDE's, which organizations releases.",
+        "Its create change failed: declined, lapsed unsent, refused, reverted, rejected, or landed without its AgentCreated.",
+      guard: "In the same transaction its Party is released (`parties.release`).",
       emits: A,
     },
     freeze: {

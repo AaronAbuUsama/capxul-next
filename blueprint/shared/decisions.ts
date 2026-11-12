@@ -27,12 +27,12 @@ export const decision_integrations_surface_gap_audit = defineDecision({
     "chain-rpc.getTransactionReceipt has no caller: indexing and the bundler receipt path serve settlement. " +
     "chainlink.usdRate lost its price-sync workflow in the books cut; Core keeps the rate call it uses. " +
     "devnet-control.worldRead and worldList duplicate the surviving world rpcs, which read registry rows even while the chain is stopped. " +
-    "fde-host.start, pause, resume, retire, send and turn lost their lifecycle and conversation callers in the FDE cut; provision remains reached. " +
+    "fde-host.start, pause, resume, retire, send and turn lost their callers in the FDE cut. The stale setup provision caller is now closed too: cut.fde-parked was accepted 2026-11-10T10:55:49Z, reaffirmed by organizations.tables and aaron.frappe-shape; organizations.hosted-fde-closure archives provision and its integration, not a passed proof. " +
     "mail.getReceived and whatsapp.readNumber, subscribeApp and sendMessage belonged to Core CRM conversations; Frappe owns those now. " +
     "posthog.capture and exportTelemetry have no product caller: tracing and the world record are runtime facilities, not new business workflows. " +
     "Removing these 16 members does not remove any operation, refusal or acceptance claim.",
   source: "m1-gaps-surface, 10 November 2026; evidence: lane var/blueprint/findings.json; blueprint/shared/cut.ts; blueprint/devnet/world-rpcs.ts",
-  affects: [x.integration_chain_rpc, x.integration_chainlink, x.integration_devnet_control, x.integration_fde_host, x.integration_mail, x.integration_whatsapp, x.integration_posthog],
+  affects: [x.integration_chain_rpc, x.integration_chainlink, x.integration_devnet_control, x.integration_mail, x.integration_whatsapp, x.integration_posthog],
 });
 
 // ── components ──────────────────────────────────────────────────────────────────────────────
@@ -3038,6 +3038,6 @@ export const decision_rules_fde_acts_for_asker = defineDecision({
   source: "The coordinator, round 2, m1-old-decisions; cut.organizations; cut.fde-parked; sites.lifecycle; plugs.roles-follow-hats",
   affects: [
     f.concept_organizations, f.concept_agents, f.concept_contacts, f.concept_payments,
-    f.concept_budgets, f.component_core_sdk, x.integration_fde_host,
+    f.concept_budgets, f.component_core_sdk,
   ],
 });

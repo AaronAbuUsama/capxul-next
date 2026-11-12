@@ -50,8 +50,7 @@ import {
 } from "./flows.ts";
 import * as op from "./operations.ts";
 
-import { workflow_agents_fde_follow_setup } from "./processes.ts";
-import { table_org_fdes, table_org_members, table_org_setups } from "../organizations/data.ts";
+import { table_org_members, table_org_setups } from "../organizations/data.ts";
 import { concept_organizations } from "../shared/foundation.ts";
 
 const CLAUDE = "Claude, agents design, 8 November 2026";
@@ -676,12 +675,13 @@ const FDE_RULING = by("blueprint/shared/rulings.ts (aaron.fde-agent, aaron.seats
 
 export const decision_agents_fde = defineDecision({
   id: "agents.fde",
-  title: "The Organization's own agent is its FDE; Capxul hosts the one its setup makes",
+  title: "Self-run agents remain; hosted setup birth is parked",
   question:
     "Every Organization has a Forward Deployed Engineer, its own agent, which Capxul hosts (its key on Capxul's FDE " +
     "host, never the founder's machine). agents.org-own-agent limits an Organization to one live agent of its own. How " +
     "are the two the same agent, how is the FDE recorded, and what of an own agent made later with `agent create --org`?",
   options: [
+    { label: "park-hosted", text: "Apply accepted cut.fde-parked: no hosted keys, found transition or follow-setup workflow. Preserve self-run organization agents created by Board proposal with local keys." },
     {
       label: "own-agent-is-fde",
       text:
@@ -697,19 +697,11 @@ export const decision_agents_fde = defineDecision({
     { label: "separate-fde", text: "The FDE is a second, special kind of agent beside the Organization's own one." },
     { label: "host-every-own-agent", text: "`agent create --org` also asks the host for the key, so every own agent is hosted." },
   ],
-  chosen: "own-agent-is-fde",
+  chosen: "park-hosted",
   why:
-    "The seat ruling names the Organization's own agent, and the FDE is it, so a second kind would need a second limit " +
-    "the ruling does not give. Writing the row from the hosting's `provision` keeps agents the writer of its own table, " +
-    "while organizations, which builds the install batch and asks the host, keeps the Party, the Seat and the hosting. " +
-    "Starting from `provision` rather than the setup's `begin` is needed now that the key is made after the mint, by " +
-    "the host. No change row is born: a change is carried by an approval or proposal agents opened, and the install is " +
-    "organizations'; its later freeze, key rotation, sweep and removal are ordinary changes by Board proposal " +
-    "(agents.org-owned). `agent create --org` keeps its frozen behaviour, a key made on the creating machine, so the " +
-    "hosted FDE is the setup's; hosting a later own agent needs a command no pack lists. Every frozen claim keeps its " +
-    "world, because the worlds start Acme with `--no-fde` (organizations.startup-worlds).",
-  source: FDE_RULING,
-  affects: [table_agents, machine_agent, workflow_agents_fde_follow_setup, rpc_agents_changes_create, table_org_setups, table_org_fdes, op.operation_agent_create],
+    "Aaron accepted cut.fde-parked on 10 November; organizations.tables and aaron.frappe-shape reaffirm no restored hosted provisioning. Original rationale and full records are preserved in docs/cut-archive/parked/fde-hosted/closure/agents/. Historical alternatives above are not implementation authority. Agent creation, carrier finality, Party activation/release, Board control and one live own agent remain unchanged; no hosted source or successful check is invented.",
+  source: "cut.fde-parked; plan/answers.jsonl 2026-11-10T10:55:49Z; organizations.tables; aaron.frappe-shape; integrator scope reconciliation 12 November 2026",
+  affects: [table_agents, machine_agent, rpc_agents_changes_create, table_org_setups, op.operation_agent_create],
 });
 
 export const decision_agents_fde_authority = defineDecision({
@@ -741,12 +733,13 @@ const asmBy = (evidence: string) => `${ASSEMBLY}; evidence: ${evidence}`;
 
 export const decision_agents_fde_people_hat = defineDecision({
   id: "agents.fde-people-hat",
-  title: "The setup grants the FDE no People hat; hosted, it works the CRM as its asker",
+  title: "No automatic People hat or hosted impersonation",
   question:
     "Only a People hat wearer edits an Organization's contact book and CRM (aaron.contacts-permissions), so the FDE " +
     "cannot work the CRM, or import a business's contacts at start-up, without it. Does the setup grant it, or does the " +
     "founder?",
   options: [
+    { label: "park-hosted", text: "No hosted start-up agent or borrowed asker authority. A self-run agent gains People only through an explicit Board grant; ordinary founder hats are unchanged." },
     {
       label: "founder-grants",
       text:
@@ -765,14 +758,9 @@ export const decision_agents_fde_people_hat = defineDecision({
     },
     { label: "create-flag", text: "As install-batch, but only when the founder passes `org create --fde-people`." },
   ],
-  chosen: "founder-grants",
+  chosen: "park-hosted",
   why:
-    "Accepted by Aaron as recommended (sixth batch): the setup grants no People hat. The People hat is more than the " +
-    "CRM: it invites members and offers Seats, manages projects (projects.permissions), and is Frappe HR's HR Manager " +
-    "for payroll's employees, components and runs, so granting it at install gives an AI agent people and payroll " +
-    "authority no person chose. aaron.fde-anyone removes the cost of waiting: the hosted FDE acts as its asker, so in " +
-    "the start-up sitting it imports the founder's contacts as the founder, who wears the People hat, with no Board " +
-    "approval at all (contacts.startup).",
-  source: asmBy("docs/design/frappe/crm.md (FDE and organizations); blueprint/contacts/decisions.ts (contacts.crm-permission); blueprint/shared/rulings.ts (aaron.fde-anyone)"),
+    "cut.fde-parked supersedes the hosted part of the historical alternatives. No agent borrows a founder's hats; agents.fde-authority already archives that protocol. Self-run explicit grants and ordinary founder installation remain. Original rationale is preserved in docs/cut-archive/parked/fde-hosted/closure/agents/decisions.ts.",
+  source: "cut.fde-parked; agents.fde-authority; organizations.hosted-fde-closure; 12 November 2026",
   affects: [table_agents, table_org_members, table_org_setups, concept_organizations],
 });

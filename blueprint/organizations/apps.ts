@@ -7,9 +7,8 @@
 // Who may: any member reads the list; a Director, or the Organization's own agent acting as itself
 // (a self-run one), adds and removes an app, because a connected head's host is then asked to install
 // it, which is the Organization's choice (docs/design/new-commands.md G4, docs/design/authority.md).
-// The hosted FDE never acts as itself: it acts as its asker (organizations.fde-for-the-asker), so it
-// does so only for a Director, and the tenant guard refuses its call with no act-for token. The
-// Director hat is read from indexing's wearers, never remembered.
+// Hosted-FDE asker impersonation is parked by cut.fde-parked. The Director hat is read from
+// indexing's wearers, never remembered.
 
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../packages/blueprint-engine/src/index.ts";
@@ -45,8 +44,8 @@ export const AppView = Schema.Struct({
 
 /** The tenant guard every organizations command on an Organization's records runs first. */
 export const MEMBER_GUARD =
-  "It first finds the caller's active Seat in the Organization (by principal, an agent's by its Safe; for the hosted " +
-  "FDE, only with an act-for token, its open ask's asker's, organizations.fde-for-the-asker): none, or an " +
+  "It first finds the authenticated caller's active Seat in the Organization (a person's by principal, an agent's " +
+  "by the Safe its principal proved; no hosted act-for token substitutes another person's authority): none, or an " +
   "Organization that does not exist, is ROLE_PERMISSION_DENIED alike and nothing is read or written.";
 
 /** The Director-or-FDE guard of `org head app add|remove`. */
@@ -58,11 +57,8 @@ const DIRECTOR_OR_FDE_GUARD =
 export const WHO_DIRECTOR_OR_FDE =
   "Director or FDE: a Director of the Organization (a member whose own Safe wears the Director hat, as indexing reads " +
   "the chain), or the Organization's own agent acting as itself, which only a self-run one does (agents.fde-authority). " +
-  "The hosted FDE acts as whoever asked it " +
-  "(aaron.fde-anyone), so it adds or removes an app only for a Director who asks. Authority is the hat's or the " +
+  "Hosted asker impersonation is parked by cut.fde-parked. Authority is the hat's or the " +
   "Seat's, never a named person's.";
 
 export const WHO_MEMBER =
-  "Any member of the Organization: an active Seat, a person's or an agent's. The hosted FDE reads only as the member " +
-  "who asked it (aaron.fde-anyone), never as itself; a self-run own agent reads as itself.";
-
+  "Any member of the Organization: an active Seat, a person's or a self-run agent's. No hosted act-for authority.";

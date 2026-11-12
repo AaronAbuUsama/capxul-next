@@ -27,8 +27,6 @@ const NullOr = Schema.NullOr;
 const Lifecycle = Schema.Struct({ organizationId: S, lifecycle: SetupView });
 /** The SDK's own deadline over a write and the setup it starts: 120 s by default, 1 to 3600. */
 const Deadline = { timeoutSeconds: Schema.optionalKey(N) };
-/** How long `org fde ask` waits for the FDE's turn: 300 s by default, 1 to 3600. */
-const AskDeadline = { timeoutSeconds: Schema.optionalKey(N) };
 /** Without an id, the SDK takes the saved choice, else the one unfinished setup the caller founded. */
 const OrgChoice = { orgId: Schema.optionalKey(S) };
 
@@ -42,10 +40,8 @@ export const flow_client_onboarding_begin_organization = defineFlow({
     "approval page in the browser, where their own signer signs it (approvals' `client.approvals.sign`), then follows " +
     "the setup until it is ready or stops, within one deadline over the write and " +
     "its setup. At the deadline it stops waiting and the setup carries on. The CLI shows the preview and asks before it " +
-    "calls this method. Start-up (organizations.startup, organizations.fde-at-start-up): unless `fde` is false " +
-    "(`--no-fde`), the setup asks Capxul's FDE host to make the Organization's Forward Deployed Engineer, whose key the " +
-    "host keeps (aaron.fde-hosted), so the founder's one install signature also creates the FDE; this machine makes and " +
-    "keeps no key for it, and a resume from any machine finds the same FDE.",
+    "calls this method. Hosted provisioning and key creation are parked by cut.fde-parked; the founder's install " +
+    "signature installs the company, not an autonomous hosted agent.",
   was: [`${SDK}/profiles/organization-onboarding.ts:83`, "docs/as-is/archive/organizations/flows.ts:55"],
   component: component_core_sdk,
   sdk: "client.onboarding.beginOrganization",
@@ -60,8 +56,6 @@ export const flow_client_onboarding_begin_organization = defineFlow({
     timeZone: Schema.optionalKey(S),
     fiscalYearStart: Schema.optionalKey(S),
     apps: Schema.optionalKey(Schema.Array(S)),
-    /** False starts the Organization without its hosted FDE (`--no-fde`), and so without paying to host one. */
-    fde: Schema.optionalKey(Schema.Boolean),
     ...Deadline,
   }),
   output: Lifecycle,
@@ -248,4 +242,3 @@ export const flow_client_operator_organizations_seats_raise = defineFlow({
 // ── the head and the hosted FDE (organizations.commands) ────────────────────────────────────
 
 // ── the document family (organizations.doc-family) ─────────────────────────────────────────
-

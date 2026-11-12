@@ -21,7 +21,6 @@ import {
   integration_chain_rpc,
   integration_chainlink,
   integration_devnet_control,
-  integration_fde_host,
   integration_indexer,
   integration_mail,
   integration_posthog,
@@ -1288,7 +1287,7 @@ export const decision_devnet_follow_at_a_rate = defineDecision({
   why:
     "Review, 11 November 2026: Followers compute running now as min(stopAt, now + rate times elapsed since realAt), frozen now unchanged, never moving backward. Remote followers measure clock offset and report earlier due work immediately. Real sites and the lean service acknowledge due work before the barrier advances; parked hosted-FDE turns and optional stand-in heads are not followers. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
   source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
-  affects: [flow_devnet_time_follow, flow_devnet_time_watch, integration_devnet_control, component_devnet, component_frappe_app, integration_fde_host],
+  affects: [flow_devnet_time_follow, flow_devnet_time_watch, integration_devnet_control, component_devnet, component_frappe_app],
 });
 
 export const decision_devnet_site_follows_world = defineDecision({
@@ -1439,7 +1438,7 @@ export const decision_devnet_world_pass_worlds = defineDecision({
   affects: [
     concept_devnet, concept_organizations, concept_contacts, concept_payments, 
     table_mail_messages, 
-    integration_fde_host, component_devnet,
+    component_devnet,
   ],
 });
 
@@ -1468,7 +1467,7 @@ export const decision_devnet_stateful_followers = defineDecision({
   source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [
     flow_devnet_time_follow, flow_devnet_snapshots_save, flow_devnet_snapshots_restore, worldOps.operation_world_snapshot_save,
-    worldOps.operation_world_snapshot_restore, integration_devnet_control, integration_fde_host,
+    worldOps.operation_world_snapshot_restore, integration_devnet_control,
     component_frappe_app, component_devnet,
   ],
 });

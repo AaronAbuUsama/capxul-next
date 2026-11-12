@@ -604,8 +604,8 @@ export const operation_org_seats_show = defineOperation({
       "cli: from org-ready, `org seats show --json` prints seatLimit 10, seatsUsed 1, offersReserved 0, seatsBought 0 and price 10 USDC.",
     ),
     claim(
-      "An open offer reserves a seat, and the Organization's own FDE rides beside the ten.",
-      "cli: from org-with-pending-invitation, offersReserved 1; from org-with-fde, seatsUsed 1 and ownAgent true.",
+      "An open offer reserves a seat, and the Organization's own self-run agent rides beside the ten.",
+      "cli: from org-with-pending-invitation, offersReserved 1; from org-with-own-agent, seatsUsed 1 and ownAgent true. The agent is created with a local key and its Board proposal approved, with no hosted birth.",
     ),
   ],
   returns: rpc_organizations_seats_show.output,
@@ -649,4 +649,3 @@ const notPermitted = (what: string) => ({
 const unknownDoc = { error: error_INVALID_INPUT, given: W_HEAD_DOCS, when: "The name is one the head does not have (`HR-OPN-2026-9999`): nothing is read or written." };
 const DOC_ERRORS = [error_CLI_USAGE];
 const DOC_AREA = AREA;
-

@@ -58,8 +58,6 @@ export const SetupView = Schema.Struct({
   checkedAt: N,
   /** Once ready, from the chain: the Directors (the Gate's valid signers), the threshold, the next nonce, the proposals waiting. */
   board: NullOr(Schema.Struct({ directors: N, threshold: N, nonce: N, waitingProposals: N })),
-  /** The Organization's hosted FDE, once the host has made it: its Party and Safe; live once the install has landed. */
-  fde: NullOr(Schema.Struct({ partyId: S, safe: S })),
 });
 
 const OneOrganization = Schema.Struct({ orgId: S });
@@ -83,8 +81,8 @@ export const rpc_organizations_setups_begin = defineRpc({
     "the country unless given (USD for a country currency with no USD price pair; an unpriced currency, a bad zone or " +
     "`MM-DD` is INVALID_INPUT); the fundamental apps are " +
     "born installed and native, each app in `apps` wanted (one not in HEAD_APPS, or a fundamental one, is INVALID_INPUT), " +
-    "and each fundamental app's concept starts itself from `begin`. Unless `fde` is false, it records `with_fde`: the " +
-    "setup's process asks Capxul's FDE host for the FDE later (organizations.fde-at-start-up); no key is made here.",
+    "and each fundamental app's concept starts itself from `begin`. Hosted-FDE provisioning and keys remain parked " +
+    "under cut.fde-parked; this transaction and the install create no hosted agent.",
   was: [
     `${AS_IS}:200`,
     `${SET}/operations/begin.ts:11`,
@@ -110,8 +108,6 @@ export const rpc_organizations_setups_begin = defineRpc({
     fiscalYearStart: Schema.optionalKey(S),
     /** Frappe apps beyond the fundamental ones, wanted until a head installs them. */
     apps: Schema.optionalKey(Schema.Array(S)),
-    /** False starts the Organization without its hosted FDE (`--no-fde`); absent or true, the setup asks the FDE host for one. */
-    fde: Schema.optionalKey(Schema.Boolean),
   }),
   output: Schema.Struct({ orgId: S, resumed: Schema.Boolean, setup: SetupView }),
   errors: [error_NOT_AUTHENTICATED, error_FEATURE_NOT_AVAILABLE, error_INVALID_INPUT, error_WRONG_STATE],

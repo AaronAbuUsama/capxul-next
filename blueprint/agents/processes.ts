@@ -20,7 +20,6 @@ import { machine_agent, machine_agent_change, table_agent_changes, table_agents 
 import { event_approval_transitioned } from "../approvals/data.ts";
 import { event_proposal_transitioned } from "../board/data.ts";
 import { table_indexer_progress } from "../indexing/data.ts";
-import { event_org_setup_transitioned, machine_org_fde, table_org_fdes, table_org_setups } from "../organizations/data.ts";
 import { table_parties } from "../parties/data.ts";
 
 const OLD = "packages/backend/src/accounts/agents";
@@ -116,48 +115,4 @@ export const workflow_agents_changes_carry = defineWorkflow({
     "None: nothing is written until the carrier has ended, and the settlement is one transaction. A step that fails " +
     "retries; Ponder still behind after its wait leaves the change waiting and the process waiting for the next attempt.",
   budget: { ...budget("background"), excludes: ["wait.carrier", "wait.executed", "wait.indexed"] },
-});
-
-export const workflow_agents_fde_follow_setup = defineWorkflow({
-  id: "agents.fde.follow-setup",
-  title: "The Organization's hosted FDE: born with its setup, live when the install lands",
-  about:
-    "Started by the Organization's hosted FDE's `provision`, through the outbox: Capxul's FDE host has made the FDE's " +
-    "key for the setup (organizations.fde-at-start-up, aaron.fde-hosted), and organizations has recorded its address, " +
-    "its predicted Safe and its Party. In one transaction it writes the FDE's agent row: owned by the Organization, its " +
-    "Party the one the setup registered (found by its Safe), its key's address, its key kept by the host (`host`), " +
-    "created by the founder (`found`). Then it waits for the setup to end: `complete` means the install landed at " +
-    "finality with AgentCreated for that Safe, owner and key, so the agent is active (`activate`); `fail` means the " +
-    "setup will never install, so the agent fails (`fail`). Its Party's states are the setup's to move, and so is its " +
-    "Seat: the FDE is the Organization's own agent, seated with the founder (organizations.fde-seat); its hosting is " +
-    "organizations' (`organizations.fde.host`). Every later change of the FDE is an ordinary agent change, carried by " +
-    "a Board proposal (agents.org-owned).",
-  concept: concept_agents,
-  priority: "normal",
-  trigger: { transition: machine_org_fde.t.provision },
-  instance: { per: table_agents },
-  waits: [
-    {
-      name: "setup-ended",
-      for: "chain",
-      key: [{ on: [event_org_setup_transitioned], props: ["org_id"] }],
-      about: "The setup completed (the install landed at finality) or failed; any other transition of it keeps the wait.",
-    },
-  ],
-  steps: [
-    { name: "found", about: "Read the hosted FDE's key, Safe and Party from organizations; write the agent row, creating, its key the host's." },
-    { name: "await-setup", about: "Wait for the setup's complete or fail." },
-    { name: "settle", about: "complete: activate, checked against the install's AgentCreated; fail: fail." },
-  ],
-  reads: [table_org_fdes, table_org_setups, table_parties, table_agents],
-  writes: [table_agents],
-  drives: [machine_agent.t.found, machine_agent.t.activate, machine_agent.t.fail],
-  invokes: [],
-  emits: [],
-  calls: [integration_indexer.c.factsOf],
-  chain: [],
-  idempotency: "One process per Organization's FDE (`agent-fde:<orgId>`): the agent row is keyed by its Safe, so a replay finds it.",
-  timeoutMs: 30 * 24 * 60 * MINUTE,
-  retries: { max: 5, backoff: "exponential" },
-  budget: budget("background"),
 });

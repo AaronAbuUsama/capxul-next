@@ -653,39 +653,6 @@
       ]
     },
     {
-      "key": "integration:fde-host",
-      "kind": "integration",
-      "lane": "integrations",
-      "layer": -1,
-      "parent": "lane:integrations",
-      "priority": "normal",
-      "evals": [
-        "int:fde-host.provision/PROVIDER_ERROR/c-b4e1521b3614f109",
-        "int:fde-host.provision/PROVIDER_RESPONSE_INVALID/c-64b9514111d2dff3",
-        "int:fde-host.provision/RATE_LIMITED/c-082564ac625296da",
-        "int:fde-host/conformance"
-      ],
-      "record": "integration:fde-host",
-      "title": "Integration: fde-host, Capxul's FDE host: each Organization's hosted Forward De…",
-      "goal": "The fde-host integration is an Effect service with its fake, and every call keeps its timeout, retries and error mapping as the record says.",
-      "needs": [
-        "milestone:m2",
-        "milestone:m3"
-      ],
-      "labels": [
-        "kind:integration",
-        "lane:integrations",
-        "layer:-1"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "packages/runtime/src/integrations/"
-      ]
-    },
-    {
       "key": "integration:frappe-site",
       "kind": "integration",
       "lane": "integrations",
@@ -3231,9 +3198,6 @@
         "tbl:org-deployments/schema",
         "tbl:org-deployments/tenancy",
         "tbl:org-deployments/writers",
-        "tbl:org-fdes/schema",
-        "tbl:org-fdes/tenancy",
-        "tbl:org-fdes/writers",
         "tbl:org-invitations/schema",
         "tbl:org-invitations/tenancy",
         "tbl:org-invitations/writers",
@@ -3254,14 +3218,6 @@
         "trn:org-app.remove",
         "trn:org-app.want",
         "trn:org-app.want_again",
-        "trn:org-fde.extend",
-        "trn:org-fde.fall_due",
-        "trn:org-fde.pause",
-        "trn:org-fde.provision",
-        "trn:org-fde.resume",
-        "trn:org-fde.retire",
-        "trn:org-fde.start",
-        "trn:org-fde.wake",
         "trn:org-invite.accept",
         "trn:org-invite.begin_cleanup",
         "trn:org-invite.cancel",
@@ -3410,7 +3366,6 @@
         "door:organizations",
         "door:parties",
         "integration:chain-rpc",
-        "integration:fde-host",
         "integration:indexer",
         "integration:service-signer",
         "milestone:m2",
@@ -4165,8 +4120,8 @@
       "parent": "lane:organizations",
       "priority": "normal",
       "evals": [
+        "acc:org.seats.show/c-c94d2b5d0bc5e8f4",
         "acc:org.seats.show/c-e392ad888a66d6b1",
-        "acc:org.seats.show/c-e972e82052a7c15d",
         "bud:org.seats.show/p95",
         "des:org.seats.show",
         "doc:org.seats.show",
@@ -7245,7 +7200,6 @@
         "trn:agent.activate",
         "trn:agent.create",
         "trn:agent.fail",
-        "trn:agent.found",
         "trn:agent.freeze",
         "trn:agent.remove",
         "trn:agent.unfreeze"
@@ -7294,45 +7248,6 @@
         "door:approvals",
         "door:board",
         "door:indexing",
-        "door:parties",
-        "integration:indexer",
-        "milestone:m2",
-        "milestone:m3"
-      ],
-      "labels": [
-        "kind:process",
-        "lane:agents",
-        "layer:8"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "blueprint/agents/",
-        "packages/backend/src/agents/",
-        "packages/sdk/src/agents/"
-      ]
-    },
-    {
-      "key": "workflow:agents.fde.follow-setup",
-      "kind": "process",
-      "lane": "agents",
-      "layer": 8,
-      "parent": "lane:agents",
-      "priority": "normal",
-      "evals": [
-        "bud:agents.fde.follow-setup/p95",
-        "wfl:agents.fde.follow-setup/idempotent",
-        "wfl:agents.fde.follow-setup/resume",
-        "wfl:agents.fde.follow-setup/wake/setup-ended"
-      ],
-      "record": "workflow:agents.fde.follow-setup",
-      "title": "Process: agents.fde.follow-setup",
-      "goal": "The durable process agents.fde.follow-setup (The Organization's hosted FDE: born with its setup, live when the install lands) runs as its record says: it resumes after a crash, each activity's side effect lands once, and every keyed wait is woken by what its key names.",
-      "needs": [
-        "door:agents",
-        "door:organizations",
         "door:parties",
         "integration:indexer",
         "milestone:m2",

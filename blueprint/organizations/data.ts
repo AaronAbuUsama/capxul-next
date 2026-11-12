@@ -151,11 +151,8 @@ export const table_org_setups = defineTable({
     "once: the service signer records the signed bytes before it broadcasts), the founder's install approval, the issue " +
     "it stopped on, and when it last checked. The old row's scheduling plumbing (generation, lease, dispatch and send " +
     "tokens, due times, park, unresolved counters, the preparation and submission copies) is gone: the workflow engine " +
-    "holds the schedule, and approvals hold the UserOperation. Unless the founder started without one (`with_fde` " +
-    "false), the setup asks Capxul's FDE host to make the Organization's Forward Deployed Engineer once the company Safe " +
-    "is minted (organizations.fde-at-start-up, aaron.fde-hosted): the host makes and keeps its key, and the setup keeps " +
-    "only that key's address, the FDE's predicted Safe and its Party; the install batch creates the FDE on chain and the " +
-    "setup seats it. Its hosting is `org-fdes`'.",
+    "holds the schedule, and approvals hold the UserOperation. Hosted provisioning and keys are parked by " +
+    "cut.fde-parked; setup creates no hosted agent or runtime.",
   was: [`${T}/setups.ts:35`, `${AS_IS}:203`],
   concept: concept_organizations,
   tenancy: "organization",
@@ -166,11 +163,9 @@ export const table_org_setups = defineTable({
     founder_principal_id: S,
     /**
      * Hash of name, handle, country, bio, size, logo and the start-up choices (currency, time zone, fiscal-year start,
-     * apps, and whether it starts with an FDE) as begun: the same intent resumes, another refuses.
+     * and apps) as begun: the same intent resumes, another refuses.
      */
     intent_hash: S,
-    /** Whether the Organization starts with its hosted FDE: false only for `org create --no-fde`. */
-    with_fde: Schema.Boolean,
     status: Schema.Literals(["processing", "awaiting_authorization", "needs_attention", "ready", "failed"]),
     steps: Schema.Array(SetupStep),
     mint_tx_hash: NullOr(S),
@@ -178,15 +173,6 @@ export const table_org_setups = defineTable({
     /** The founder's install batch: an approval opened with `approvals.open` in this concept's transaction. */
     install_approval_id: NullOr(S),
     issue: NullOr(SetupIssue),
-    /**
-     * The FDE's key (its address only), made and held by Capxul's FDE host when the setup asked it; null before then and
-     * when the Organization starts without one. The key itself never leaves the host.
-     */
-    fde_signer: NullOr(S),
-    /** AgentOwner.safeAddressFor(fde_signer, the company Safe), computed when the host answered. */
-    fde_safe: NullOr(S),
-    /** The FDE's Party, registered pending when the host answered, activated when the install lands, released if the setup fails. */
-    fde_party_id: NullOr(S),
     checked_at: N,
     ready_at: NullOr(N),
     created_at: N,
@@ -255,8 +241,8 @@ export const table_org_members = defineTable({
     "invitation, not a Seat. `seat_use` is what the Seat takes of the Organization's limits, as its offer reserved it: a " +
     "person's counts one of `seat_limit`; an agent's rides on its owner's Seat here (`covering_member_id`, one agent per " +
     "Seat) or is the Organization's own agent (one), and any other agent's counts one (organizations.seat-limit). The " +
-    "Organization's FDE is seated by its setup, before it has ever signed in, so its `principal_id` stays null (nothing " +
-    "writes it when the FDE signs in); an agent's session is always matched to its Seat by its Safe (`by_org_safe`), " +
+    "Organization's self-run agent is matched to its Seat by its authoritative Safe, not an assumed principal created " +
+    "by setup; an agent's session is always matched to its Seat by its Safe (`by_org_safe`), " +
     "which access' principals hold one to one, so every concept's tenant guard looks an agent up by Safe " +
     "(organizations.fde-seat).",
   was: [`${T}/members.ts:10`, `${AS_IS}:391`],
@@ -267,7 +253,7 @@ export const table_org_members = defineTable({
     org_id: S,
     member_id: S,
     party_id: S,
-    /** The access principal: a person, or an agent; null for an FDE's Seat, which is matched by its Safe. */
+    /** The access principal; nullable for an agent matched by its authoritative Safe, never a fabricated principal. */
     principal_id: NullOr(S),
     kind: Schema.Literals(["human", "agent"]),
     safe_address: S,
@@ -293,7 +279,7 @@ export const table_org_members = defineTable({
     {
       name: "by_org_safe",
       fields: ["org_id", "safe_address"],
-      for: "The same guard for an agent's session, by the Safe its principal proved: the FDE's Seat is born before its principal.",
+      for: "The same guard for an agent's session, by the Safe its authenticated principal proved.",
     },
     {
       name: "by_org_party",
@@ -549,77 +535,11 @@ export const table_org_apps = defineTable({
 
 // ── head: the Organization's connected Frappe site ──────────────────────────────────────────
 
-// ── the hosted FDE (aaron.fde-hosted): its hosting, what paid for it, and who asked it what ──
-
-/** The calendar months one hosting payment may buy: 1 to 12 (organizations.fde-hosting). */
-export const MAX_HOSTING_MONTHS = 12;
-
 /** The Frappe apps Capxul can ask a head's host to install, beyond the fundamental ones (organizations.app-commands). */
 export const HEAD_APPS = [
   "helpdesk", "insights", "lms", "wiki", "drive", "gameplan", "builder", "print_designer", "lending", "education",
   "healthcare", "webshop", "ecommerce_integrations",
 ] as const;
-
-export const table_org_fdes = defineTable({
-  id: "org-fdes",
-  title: "Hosted FDEs: the Organization's Forward Deployed Engineer on Capxul's host",
-  about:
-    "One row per Organization whose Forward Deployed Engineer Capxul hosts (aaron.fde-hosted): a durable agent on a " +
-    "durable runtime with sandboxes, which Capxul's FDE host (swarmD, organizations.fde-host) runs for the Organization. " +
-    "Born when the setup's `host-fde` step has the host's answer: the host's id for the agent, the key's address the " +
-    "host made and keeps (never the key), the FDE's predicted Safe and its Party. Its one durable process " +
-    "(`organizations.fde.host`) starts the agent on the host when the setup is ready, pauses it when its hosting lapses " +
-    "and resumes it when it is paid again (organizations.fde-hosting). `paid_through` is the instant its hosting is paid " +
-    "to: the start-up month from the setup's readiness, then moved on by each settled hosting payment " +
-    "(`organizations.extend-fde-hosting`, invoked by payments' settlement) and back by a reorg's reversal; null while the " +
-    "deployment sets no FDE_HOSTING_PRICE, when hosting is not charged. Nothing here is a chain fact: the FDE's Safe, " +
-    "its hats and its owner (the company Safe) are read from indexing, and its agent row is agents'.",
-  concept: concept_organizations,
-  tenancy: "organization",
-  tenantField: "org_id",
-  fields: Schema.Struct({
-    org_id: S,
-    /** The host's id for this Organization's FDE agent: `fde:<orgId>`, so a repeated provision finds the same agent. */
-    host_agent_id: S,
-    party_id: S,
-    safe_address: S,
-    /**
-     * The key's address the host made. Never replaced: only the company Safe can swap an agent's key (AgentOwner.swapSigner),
-     * `agent key rotate` makes the new key on a Director's machine, and the host makes no second key, so a landed rotation
-     * retires the hosting.
-     */
-    signer_address: S,
-    status: Schema.Literals(["provisioned", "running", "due", "paused", "resuming", "retired"]),
-    /** When the host first started it, once the setup was ready. */
-    started_at: NullOr(N),
-    /** The instant its hosting is paid to; null while hosting is not charged (no FDE_HOSTING_PRICE). */
-    paid_through: NullOr(N),
-    /** When it last paused for an unpaid month, and when it last resumed. */
-    paused_at: NullOr(N),
-    resumed_at: NullOr(N),
-    retired_at: NullOr(N),
-    retire_reason: NullOr(Schema.Literals(["setup_failed", "agent_removed", "key_moved"])),
-    /** The last time anyone asked it something (`org fde ask`), and who: a member's id, or a guest's. */
-    last_asked_at: NullOr(N),
-    last_asked_by: NullOr(S),
-    created_at: N,
-    updated_at: N,
-  }),
-  key: ["org_id"],
-  indexes: [
-    {
-      name: "by_safe",
-      fields: ["safe_address"],
-      unique: true,
-      crossTenant: true,
-      for: "The hosting an AgentRemoved or AgentSignerSwapped names by the FDE's Safe.",
-    },
-  ],
-  retention: KEPT,
-});
-
-/** How long an ask lets the hosted FDE act for its asker, at most, on the world's clock (organizations.fde-for-the-asker). */
-export const FDE_ASK_HOURS = 4;
 
 // ── the document family (aaron.sdk-reaches-everything): what it may reach, and its log ───────
 
@@ -857,7 +777,7 @@ export const machine_org_member = defineMachine({
     seat: {
       from: [],
       to: "active",
-      about: "Birth: the founder's Seat and the FDE's (when the setup carries one) when the setup completes, or the invitee's when they accept.",
+      about: "Birth: the founder's Seat when setup completes, or the invitee's when they accept. No automatic hosted-FDE Seat.",
       emits: [event_org_member_transitioned],
     },
     remove: {
@@ -1095,92 +1015,3 @@ export const machine_org_app = defineMachine({
     },
   },
 });
-
-export const event_org_fde_transitioned = defineEvent({
-  id: "org_fde_transitioned",
-  about:
-    "An Organization's hosted FDE was provisioned on the host, started, fell due, paused for an unpaid month, was paid " +
-    "(extended, or woken from a pause), resumed or retired. Notices reminds the Directors from `fall_due` and `pause`; " +
-    "agents writes the FDE's agent row from `provision`.",
-  props: Schema.Struct({
-    from: From,
-    to: S,
-    transition: S,
-    org_id: S,
-    safe_address: S,
-    paid_through: NullOr(N),
-  }),
-});
-
-export const machine_org_fde = defineMachine({
-  id: "org-fde",
-  title: "Hosted FDE",
-  about:
-    "org-fdes.status, owned by the hosting's one durable process except the two moves a settled hosting payment makes " +
-    "(`extend`, `wake`, driven by `organizations.extend-fde-hosting` in payments' settling transaction). Born provisioned " +
-    "when the host has made the FDE's key; running once the setup is ready and the host started it; due seven days " +
-    "before `paid_through`; paused when `paid_through` passes unpaid; resuming once paid again, until the host has " +
-    "resumed it; retired for good when the setup failed, the chain removed the agent, or its key moved off the host.",
-  table: table_org_fdes,
-  field: "status",
-  initial: "provisioned",
-  states: [
-    { id: "provisioned", about: "The host made the FDE's key; it waits for the install to create it on chain and the setup to be ready." },
-    { id: "running", about: "Running on the host: it answers `org fde ask`, and acts for each asker through the CLI as that asker." },
-    { id: "due", about: "Running, with its hosting paid through a day less than seven days ahead: the Directors are reminded." },
-    { id: "paused", about: "Its hosting lapsed unpaid: the host keeps its key, conversation and workspace, and it takes no turn." },
-    { id: "resuming", about: "Paid again: waiting for the host to resume it." },
-    { id: "retired", about: "Hosting ended: the setup failed, the agent was removed, or its key is no longer the host's.", terminal: true },
-  ],
-  transitions: {
-    provision: {
-      from: [],
-      to: "provisioned",
-      about: "Birth: the setup's `host-fde` step has the host's answer (its agent id and key's address).",
-      emits: [event_org_fde_transitioned],
-    },
-    start: {
-      from: ["provisioned"],
-      to: "running",
-      about: "The setup is ready: the host started the FDE, and its start-up month begins (`paid_through`, when a price is set).",
-      emits: [event_org_fde_transitioned],
-    },
-    fall_due: {
-      from: ["running"],
-      to: "due",
-      about: "Seven days before `paid_through`, by the process's own timer.",
-      emits: [event_org_fde_transitioned],
-    },
-    extend: {
-      from: ["running", "due"],
-      to: "running",
-      about: "A hosting payment settled: `paid_through` moved on by its months (the door, in payments' settlement).",
-      emits: [event_org_fde_transitioned],
-    },
-    pause: {
-      from: ["running", "due"],
-      to: "paused",
-      about: "`paid_through` passed unpaid: the host paused the FDE.",
-      emits: [event_org_fde_transitioned],
-    },
-    wake: {
-      from: ["paused"],
-      to: "resuming",
-      about: "A hosting payment settled while it was paused: `paid_through` runs on from the settlement (the door).",
-      emits: [event_org_fde_transitioned],
-    },
-    resume: {
-      from: ["resuming"],
-      to: "running",
-      about: "The host resumed the FDE.",
-      emits: [event_org_fde_transitioned],
-    },
-    retire: {
-      from: ["provisioned", "running", "due", "paused", "resuming"],
-      to: "retired",
-      about: "The setup failed, AgentRemoved names its Safe, or AgentSignerSwapped names a key the host did not make; the host retired its runtime.",
-      emits: [event_org_fde_transitioned],
-    },
-  },
-});
-

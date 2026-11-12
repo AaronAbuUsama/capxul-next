@@ -1,0 +1,613 @@
+{
+  "version": 1,
+  "base": "e30fd974a53518eb5a0ddbb9c5926c1604bd20b6",
+  "authority": "Aaron accepted cut.fde-parked, a-20261110T105549-97fc52 at 2026-11-10T10:55:49.335Z; reaffirmed organizations.tables and aaron.frappe-shape 11 November",
+  "counts": {
+    "recordsBefore": 2752,
+    "recordsAfter": 2738,
+    "evalsBefore": 5247,
+    "evalsAfter": 5227,
+    "removedEvals": 21,
+    "addedEvals": 1,
+    "changedEvals": 1
+  },
+  "removedRecords": [
+    {
+      "key": "integration:fde-host",
+      "kind": "integration",
+      "id": "fde-host",
+      "owner": "shared",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut"
+    },
+    {
+      "key": "call:fde-host.provision",
+      "kind": "call",
+      "id": "fde-host.provision",
+      "owner": "shared",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut"
+    },
+    {
+      "key": "event:org_fde_transitioned",
+      "kind": "event",
+      "id": "org_fde_transitioned",
+      "owner": "organizations",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut"
+    },
+    {
+      "key": "machine:org-fde",
+      "kind": "machine",
+      "id": "org-fde",
+      "owner": "organizations",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut"
+    },
+    {
+      "key": "transition:org-fde.provision",
+      "kind": "transition",
+      "id": "org-fde.provision",
+      "owner": "organizations",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut"
+    },
+    {
+      "key": "transition:org-fde.start",
+      "kind": "transition",
+      "id": "org-fde.start",
+      "owner": "organizations",
+      "slices": [],
+      "disposition": "parked-by-accepted-cut"
+    },
+    {
+      "key": "transition:org-fde.fall_due",
+      "kind": "transition",
+      "id": "org-fde.fall_due",
+      "owner": "organizations",
+      "slices": [],
+      "disposition": "parked-by-accepted-cut"
+    },
+    {
+      "key": "transition:org-fde.extend",
+      "kind": "transition",
+      "id": "org-fde.extend",
+      "owner": "organizations",
+      "slices": [],
+      "disposition": "parked-by-accepted-cut"
+    },
+    {
+      "key": "transition:org-fde.pause",
+      "kind": "transition",
+      "id": "org-fde.pause",
+      "owner": "organizations",
+      "slices": [],
+      "disposition": "parked-by-accepted-cut"
+    },
+    {
+      "key": "transition:org-fde.wake",
+      "kind": "transition",
+      "id": "org-fde.wake",
+      "owner": "organizations",
+      "slices": [],
+      "disposition": "parked-by-accepted-cut"
+    },
+    {
+      "key": "transition:org-fde.resume",
+      "kind": "transition",
+      "id": "org-fde.resume",
+      "owner": "organizations",
+      "slices": [],
+      "disposition": "parked-by-accepted-cut"
+    },
+    {
+      "key": "transition:org-fde.retire",
+      "kind": "transition",
+      "id": "org-fde.retire",
+      "owner": "organizations",
+      "slices": [],
+      "disposition": "parked-by-accepted-cut"
+    },
+    {
+      "key": "table:org-fdes",
+      "kind": "table",
+      "id": "org-fdes",
+      "concept": "organizations",
+      "owner": "organizations",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut"
+    },
+    {
+      "key": "transition:agent.found",
+      "kind": "transition",
+      "id": "agent.found",
+      "owner": "agents",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut"
+    },
+    {
+      "key": "workflow:agents.fde.follow-setup",
+      "kind": "workflow",
+      "id": "agents.fde.follow-setup",
+      "concept": "agents",
+      "owner": "agents",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut"
+    }
+  ],
+  "addedRecords": [
+    {
+      "key": "decision:organizations.hosted-fde-closure",
+      "kind": "decision",
+      "id": "organizations.hosted-fde-closure"
+    }
+  ],
+  "removed": [
+    {
+      "id": "acc:org.seats.show/c-e972e82052a7c15d",
+      "level": "L1",
+      "subject": "operation:org.seats.show",
+      "claim": "An open offer reserves a seat, and the Organization's own FDE rides beside the ten.",
+      "decider": "machine",
+      "observes": "cli: from org-with-pending-invitation, offersReserved 1; from org-with-fde, seatsUsed 1 and ownAgent true.",
+      "owner": "organizations",
+      "slices": [],
+      "disposition": "replaced-self-run-control",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "tbl:org-fdes/schema",
+      "level": "L1",
+      "subject": "table:org-fdes",
+      "claim": "the migration creates exactly these fields, key and indexes",
+      "decider": "machine",
+      "owner": "organizations",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "tbl:org-fdes/writers",
+      "level": "L1",
+      "subject": "table:org-fdes",
+      "claim": "only the operations and workflows that list it in writes change it",
+      "decider": "machine",
+      "owner": "organizations",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "tbl:org-fdes/tenancy",
+      "level": "L1",
+      "subject": "table:org-fdes",
+      "claim": "a second organization reads and writes none of the first's rows; only a cross-tenant index's named query reads across",
+      "decider": "machine",
+      "owner": "organizations",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "trn:org-fde.provision",
+      "level": "L1",
+      "subject": "transition:org-fde.provision",
+      "claim": "an eval run observes this transition, with its events",
+      "decider": "machine",
+      "owner": "organizations",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "trn:org-fde.start",
+      "level": "L1",
+      "subject": "transition:org-fde.start",
+      "claim": "an eval run observes this transition, with its events",
+      "decider": "machine",
+      "owner": "organizations",
+      "slices": [],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "trn:org-fde.fall_due",
+      "level": "L1",
+      "subject": "transition:org-fde.fall_due",
+      "claim": "an eval run observes this transition, with its events",
+      "decider": "machine",
+      "owner": "organizations",
+      "slices": [],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "trn:org-fde.extend",
+      "level": "L1",
+      "subject": "transition:org-fde.extend",
+      "claim": "an eval run observes this transition, with its events",
+      "decider": "machine",
+      "owner": "organizations",
+      "slices": [],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "trn:org-fde.pause",
+      "level": "L1",
+      "subject": "transition:org-fde.pause",
+      "claim": "an eval run observes this transition, with its events",
+      "decider": "machine",
+      "owner": "organizations",
+      "slices": [],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "trn:org-fde.wake",
+      "level": "L1",
+      "subject": "transition:org-fde.wake",
+      "claim": "an eval run observes this transition, with its events",
+      "decider": "machine",
+      "owner": "organizations",
+      "slices": [],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "trn:org-fde.resume",
+      "level": "L1",
+      "subject": "transition:org-fde.resume",
+      "claim": "an eval run observes this transition, with its events",
+      "decider": "machine",
+      "owner": "organizations",
+      "slices": [],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "trn:org-fde.retire",
+      "level": "L1",
+      "subject": "transition:org-fde.retire",
+      "claim": "an eval run observes this transition, with its events",
+      "decider": "machine",
+      "owner": "organizations",
+      "slices": [],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "trn:agent.found",
+      "level": "L1",
+      "subject": "transition:agent.found",
+      "claim": "an eval run observes this transition, with its events",
+      "decider": "machine",
+      "owner": "agents",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "wfl:agents.fde.follow-setup/idempotent",
+      "level": "L1",
+      "subject": "workflow:agents.fde.follow-setup",
+      "claim": "a second run with the same key (One process per Organization's FDE (`agent-fde:<orgId>`): the agent row is keyed by its Safe, so a replay finds it.) changes nothing",
+      "decider": "machine",
+      "owner": "agents",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "wfl:agents.fde.follow-setup/resume",
+      "level": "L1",
+      "subject": "workflow:agents.fde.follow-setup",
+      "claim": "killed mid-run, it resumes and finishes with the same result",
+      "decider": "machine",
+      "owner": "agents",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "bud:agents.fde.follow-setup/p95",
+      "level": "L1",
+      "subject": "workflow:agents.fde.follow-setup",
+      "claim": "system time p95 ≤ 15000 ms from trigger to done, excluding its waits (wait.setup-ended, chain.confirm)",
+      "decider": "machine",
+      "owner": "agents",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "wfl:agents.fde.follow-setup/wake/setup-ended",
+      "level": "L1",
+      "subject": "workflow:agents.fde.follow-setup",
+      "claim": "wait setup-ended is woken by org_setup_transitioned by org_id, and one that differs wakes no other instance",
+      "decider": "machine",
+      "owner": "agents",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "int:fde-host/conformance",
+      "level": "L1",
+      "subject": "integration:fde-host",
+      "claim": "the devnet fake and the real service pass the same conformance suite",
+      "decider": "machine",
+      "owner": "shared",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "int:fde-host.provision/PROVIDER_ERROR/c-b4e1521b3614f109",
+      "level": "L1",
+      "subject": "integration:fde-host",
+      "claim": "when The FDE host timed out, was down or throttled on every attempt (mode timeout, upstream-down or rate-limited), callers see PROVIDER_ERROR",
+      "decider": "machine",
+      "owner": "shared",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "int:fde-host.provision/RATE_LIMITED/c-082564ac625296da",
+      "level": "L1",
+      "subject": "integration:fde-host",
+      "claim": "when The FDE host answered 429 and the retries ran out, callers see RATE_LIMITED",
+      "decider": "machine",
+      "owner": "shared",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    },
+    {
+      "id": "int:fde-host.provision/PROVIDER_RESPONSE_INVALID/c-64b9514111d2dff3",
+      "level": "L1",
+      "subject": "integration:fde-host",
+      "claim": "when The FDE host answered something that does not decode as the expected shape, callers see PROVIDER_RESPONSE_INVALID",
+      "decider": "machine",
+      "owner": "shared",
+      "slices": [
+        "slice-0"
+      ],
+      "disposition": "parked-by-accepted-cut",
+      "authority": "cut.fde-parked; a-20261110T105549-97fc52; organizations.hosted-fde-closure"
+    }
+  ],
+  "added": [
+    {
+      "id": "acc:org.seats.show/c-c94d2b5d0bc5e8f4",
+      "level": "L1",
+      "subject": "operation:org.seats.show",
+      "claim": "An open offer reserves a seat, and the Organization's own self-run agent rides beside the ten.",
+      "decider": "machine",
+      "observes": "cli: from org-with-pending-invitation, offersReserved 1; from org-with-own-agent, seatsUsed 1 and ownAgent true. The agent is created with a local key and its Board proposal approved, with no hosted birth."
+    }
+  ],
+  "changed": [
+    {
+      "before": {
+        "id": "wfl:organizations.setups.set-up/idempotent",
+        "level": "L1",
+        "subject": "workflow:organizations.setups.set-up",
+        "claim": "a second run with the same key (One process per Organization (`org-setup:<orgId>`). The mint and deployMoney are each sent once (the service signer records the signed bytes before broadcast, CAP-1097); one install approval at a time; the host's provision is keyed by the Organization's id.) changes nothing",
+        "decider": "machine"
+      },
+      "after": {
+        "id": "wfl:organizations.setups.set-up/idempotent",
+        "level": "L1",
+        "subject": "workflow:organizations.setups.set-up",
+        "claim": "a second run with the same key (One process per Organization (`org-setup:<orgId>`). The mint and deployMoney are each sent once (the service signer records the signed bytes before broadcast, CAP-1097); one install approval at a time.) changes nothing",
+        "decider": "machine"
+      },
+      "owner": "organizations",
+      "disposition": "retained-non-hosted-contract; prior proof stale, not passed"
+    }
+  ],
+  "sliceDiffs": [
+    {
+      "id": "slice-0",
+      "records": {
+        "removed": [
+          "call:fde-host.provision",
+          "contract:agent-owner",
+          "event:agent_transitioned",
+          "event:org_fde_transitioned",
+          "function:agent-owner.create",
+          "function:agent-owner.safeAddressFor",
+          "integration:fde-host",
+          "machine:agent",
+          "machine:org-fde",
+          "table:agents",
+          "table:org-fdes",
+          "transition:agent.activate",
+          "transition:agent.fail",
+          "transition:agent.found",
+          "transition:org-fde.provision",
+          "workflow:agents.fde.follow-setup"
+        ],
+        "added": []
+      },
+      "evals": {
+        "removed": [
+          "bud:agents.fde.follow-setup/p95",
+          "int:fde-host.provision/PROVIDER_ERROR/c-b4e1521b3614f109",
+          "int:fde-host.provision/PROVIDER_RESPONSE_INVALID/c-64b9514111d2dff3",
+          "int:fde-host.provision/RATE_LIMITED/c-082564ac625296da",
+          "int:fde-host/conformance",
+          "tbl:agents/admits/c-3bf78a078e8a740a",
+          "tbl:agents/schema",
+          "tbl:agents/tenancy",
+          "tbl:agents/writers",
+          "tbl:org-fdes/schema",
+          "tbl:org-fdes/tenancy",
+          "tbl:org-fdes/writers",
+          "trn:agent.activate",
+          "trn:agent.fail",
+          "trn:agent.found",
+          "trn:org-fde.provision",
+          "wfl:agents.fde.follow-setup/idempotent",
+          "wfl:agents.fde.follow-setup/resume",
+          "wfl:agents.fde.follow-setup/wake/setup-ended"
+        ],
+        "added": []
+      },
+      "prerequisites": {
+        "removed": [],
+        "added": []
+      },
+      "concepts": {
+        "removed": [
+          "agents"
+        ],
+        "added": []
+      }
+    },
+    {
+      "id": "delegate_to_agent--agents",
+      "records": {
+        "removed": [],
+        "added": [
+          "event:agent_transitioned",
+          "machine:agent",
+          "table:agents",
+          "transition:agent.activate",
+          "transition:agent.fail"
+        ]
+      },
+      "evals": {
+        "removed": [],
+        "added": [
+          "tbl:agents/admits/c-3bf78a078e8a740a",
+          "tbl:agents/schema",
+          "tbl:agents/tenancy",
+          "tbl:agents/writers",
+          "trn:agent.activate",
+          "trn:agent.fail"
+        ]
+      },
+      "prerequisites": {
+        "removed": [],
+        "added": []
+      },
+      "concepts": {
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "delegate_to_agent--shared",
+      "records": {
+        "removed": [],
+        "added": [
+          "contract:agent-owner",
+          "function:agent-owner.create",
+          "function:agent-owner.safeAddressFor"
+        ]
+      },
+      "evals": {
+        "removed": [],
+        "added": []
+      },
+      "prerequisites": {
+        "removed": [
+          "slice-0"
+        ],
+        "added": []
+      },
+      "concepts": {
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "get_started--access",
+      "records": {
+        "removed": [],
+        "added": []
+      },
+      "evals": {
+        "removed": [],
+        "added": []
+      },
+      "prerequisites": {
+        "removed": [],
+        "added": [
+          "delegate_to_agent--shared"
+        ]
+      },
+      "concepts": {
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "get_started--shared",
+      "records": {
+        "removed": [],
+        "added": []
+      },
+      "evals": {
+        "removed": [],
+        "added": []
+      },
+      "prerequisites": {
+        "removed": [
+          "slice-0"
+        ],
+        "added": [
+          "delegate_to_agent--shared"
+        ]
+      },
+      "concepts": {
+        "removed": [],
+        "added": []
+      }
+    }
+  ],
+  "verdicts": "No status or receipt modified. All retained and replacement contracts remain unproved until a fresh complete real-stack run."
+}

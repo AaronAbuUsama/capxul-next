@@ -84,11 +84,20 @@ import { rpc_organizations_seats_show } from "./members.ts";
 import {
   operation_org_seats_show,
 } from "./operations.ts";
-import {
-  machine_org_fde,
-  table_org_fdes,
-} from "./data.ts";
 import { concept_agents, concept_devnet, concept_payments } from "../shared/foundation.ts";
+
+const HOSTED_PARK = { label: "park-hosted", text: "Accepted cut.fde-parked parks this hosted behavior. Earlier alternatives and rationale are historical only; full source is archived under docs/cut-archive/parked/fde-hosted/closure/organizations/. No hosted key, provisioning, install dependency or impersonation is implemented." };
+
+export const decision_organizations_hosted_fde_closure = defineDecision({
+  id: "organizations.hosted-fde-closure",
+  title: "Close hosted start-up dependencies under the accepted FDE cut",
+  question: "Do stale hosted start-up records reopen the FDE parked by Aaron?",
+  options: [HOSTED_PARK, { label: "reopen", text: "Restore hosted provisioning; requires an explicit later Aaron reversal, none is recorded." }],
+  chosen: "park-hosted",
+  why: "Aaron accepted cut.fde-parked at 2026-11-10T10:55:49Z; aaron.frappe-shape and organizations.tables reaffirm it on 11 November. Ordinary mint/deploy/install/founder Seat setup stays; self-run agents keep their changes and Board control. Archive org-fdes, org-fde/event/transitions and agents.fde.follow-setup/found; remove hosted key fields and setup carrier dependencies. Revised historical decisions retain their identities but choose park-hosted, not former alternatives. Every removed eval receives an explicit parked disposition, never a passed verdict. No frozen operation or unaffected claim is removed; no runtime hosted schema/source is restored.",
+  source: "cut.fde-parked; plan/answers.jsonl 2026-11-10T10:55:49Z; aaron.frappe-shape; organizations.tables; GROUNDING.md; integrator reconciliation 12 November 2026",
+  affects: [table_org_setups, workflow_organizations_setups_set_up, rpc_organizations_setups_begin, flow_client_onboarding_begin_organization, operation_org_create, operation_org_seats_show, table_org_members, concept_agents],
+});
 
 const CLAUDE = "Claude, organizations design, 8 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
@@ -844,12 +853,13 @@ export const decision_organizations_apps_native_or_head = defineDecision({
 
 export const decision_organizations_fde_at_start_up = defineDecision({
   id: "organizations.fde-at-start-up",
-  title: "Start-up asks Capxul's FDE host for the FDE; the install batch creates it",
+  title: "Parked: hosted start-up provisioning and installation",
   question:
     "aaron.fde-agent: every Organization has a Forward Deployed Engineer, its own agent (aaron.seats). aaron.fde-hosted: " +
     "it is not on the founder's machine but a durable agent on a durable runtime with sandboxes, which Capxul hosts and " +
     "the Organization pays for. How is it born at start-up, and where is its key?",
   options: [
+    HOSTED_PARK,
     {
       label: "hosted-key",
       text:
@@ -872,8 +882,9 @@ export const decision_organizations_fde_at_start_up = defineDecision({
       text: "After the setup is ready, a Board proposal creates the FDE with a key the host made.",
     },
   ],
-  chosen: "hosted-key",
+  chosen: "park-hosted",
   why:
+    "Historical rationale only, superseded by organizations.hosted-fde-closure: " +
     "Superseded by aaron.fde-hosted, which answered this record's question to Aaron (where the FDE runs): Capxul hosts " +
     "it, so its key is the host's, never the founder's machine's. The install batch still carries the create: before the " +
     "install the founder's Safe is the company Safe's only owner, so the batch calls AgentOwner.create from the company " +
@@ -890,16 +901,17 @@ export const decision_organizations_fde_at_start_up = defineDecision({
     "own, with its key on its creator's machine and no hosting to pay (agents.fde).",
   source: by("blueprint/shared/rulings.ts (aaron.fde-hosted, aaron.fde-agent); AgentOwner.sol:182 (msg.sender == owner); blueprint/board/procedures.ts"),
   affects: [
-    table_org_setups, table_org_fdes, machine_org_fde, rpc_organizations_setups_begin, workflow_organizations_setups_set_up,
+    table_org_setups, rpc_organizations_setups_begin, workflow_organizations_setups_set_up,
     flow_client_onboarding_begin_organization, operation_org_create, contract_agent_owner,
   ],
 });
 
 export const decision_organizations_fde_seat = defineDecision({
   id: "organizations.fde-seat",
-  title: "The setup seats the FDE before it signs in; it serves only its Organization",
+  title: "Parked: hosted setup Seat; self-run Safe-based guards remain",
   question: "The FDE's Seat is the Organization's own agent's (seat_use organization). When is it born, and can the FDE sit in another Organization?",
   options: [
+    HOSTED_PARK,
     {
       label: "at-completion",
       text:
@@ -909,8 +921,9 @@ export const decision_organizations_fde_seat = defineDecision({
     },
     { label: "by-invitation", text: "The FDE accepts an invitation like any agent." },
   ],
-  chosen: "at-completion",
+  chosen: "park-hosted",
   why:
+    "Historical setup birth, superseded by organizations.hosted-fde-closure. Agent Safe-based matching remains: " +
     "An invitation would need someone to invite the FDE and the FDE to accept before it could help, and the ruling says " +
     "it is the Organization's from the start. A null principal is what agents already says of an agent's account before " +
     "its first sign-in (agents.account-at-first-sign-in), and access holds one principal per Safe, so matching an agent " +
@@ -925,9 +938,10 @@ export const decision_organizations_fde_seat = defineDecision({
 
 export const decision_organizations_fde_handle = defineDecision({
   id: "organizations.fde-handle",
-  title: "The FDE's handle is `<handle>-fde`, or `fde-` and the Organization's id",
+  title: "Parked: automatic hosted-FDE handle assignment",
   question: "Every agent's Party has a handle (3 to 30 characters). What is the FDE's, and what if it is taken?",
   options: [
+    HOSTED_PARK,
     {
       label: "derived",
       text:
@@ -936,8 +950,9 @@ export const decision_organizations_fde_handle = defineDecision({
     },
     { label: "chosen", text: "The founder chooses it at `org create`." },
   ],
-  chosen: "derived",
+  chosen: "park-hosted",
   why:
+    "Historical rationale; no setup creates this Party while cut.fde-parked applies. Namespace reservations remain: " +
     "`org create` must never be refused because of the FDE's name, and a founder should not have to choose one. The " +
     "derived handle is free in practice; the fallback is unique by the id. Its last ten characters are the ULID's random " +
     "part: the first ten are its instant, which two Organizations born at one frozen instant share (time.read-once), so " +
@@ -954,12 +969,16 @@ const asmBy = (evidence: string) => `${ASSEMBLY}; evidence: ${evidence}`;
 
 export const decision_organizations_buy_seats = defineDecision({
   id: "organizations.buy-seats",
-  title: "Decision pack: a company buys seats and its FDE's hosting from a budget",
+  title: "A company buys seats from a budget; the former hosted half is parked",
   question:
     "aaron.buy-seats: a company may buy more seats itself, paid in stablecoins from the company Safe; a Capxul operator " +
     "may still raise the limit; the price is Aaron's to set. What is the command, who may run it, how is it paid, and " +
     "when does the limit rise?",
   options: [
+    {
+      label: "seats-only",
+      text: "Keep org seats show/buy and add-bought-seats/return-bought-seats. A person wearing People and authorised on the budget buys permanent seats at SEAT_PRICE (10 USDC once on test USDC); settlement counts them for the paying command's organization owner, and reversal returns them in the same transaction. No hosting purchase or extension door: cut.fde-parked, accepted 2026-11-10T10:55:49Z, supersedes that half of the historical pack. The ownAgent seats-show control uses org-with-own-agent, a locally keyed self-run agent approved by the Board, not hosted provisioning; it still consumes no human seat.",
+    },
     {
       label: "payments-command",
       text:
@@ -993,26 +1012,9 @@ export const decision_organizations_buy_seats = defineDecision({
     },
     { label: "subscription", text: "As payments-command, but seats are priced per month and lapse unless paid again." },
   ],
-  chosen: "payments-command",
+  chosen: "seats-only",
   why:
-    "A decision pack under rules.new-operations, which Aaron accepted as recommended (sixth batch); the prices are set " +
-    "(aaron.test-prices: a seat 10 USDC once, the hosted FDE 20 USDC a month). `org.seats.buy` and `org.fde.pay` " +
-    "(payments') and `org.seats.show` (organizations', organizations.seats-show) serve aaron.buy-seats, aaron.fde-hosted " +
-    "and aaron.test-prices; organizations books the purchases' two doors and the hosting's two " +
-    "(`organizations.extend-fde-hosting`, `organizations.return-fde-hosting`). Since a People-hat wearer holds no " +
-    "department or team office (ROLE_CONFLICT), a buyer spends from an allowance whose hat their Safe wears now, or one " +
-    "above it: a founder who wears only the People hat first has the Board make them an allowance " +
-    "(organizations.founder-people-hat). The hosting is paid on the same route because it is a second thing an " +
-    "Organization buys from Capxul, from a budget, in a stablecoin, counted when it settles; by the month, in advance " +
-    "(organizations.fde-hosting). Organizations cannot birth the payment: `payments.prepare-command` is a door of a " +
-    "concept above it, and depending on payments would be a cycle; so what was bought follows the payment only through a " +
-    "door payments invokes. Counting it in the settlement's own transaction keeps payments' one settlement path " +
-    "(payments.one-settlement-path) and makes 'counted once the payment settles' exact, across a reorg too. A request " +
-    "from Capxul would put an issuer in every purchase; a budget is the route the door already has. An agent never buys " +
-    "(agents.fde-authority). The Organization counted is the paying command's owner, never a value the source carries, " +
-    "so one company cannot buy for another. A seat subscription needs a lapse that lowers a limit, which nothing designs. " +
-    "This pack's `affects` cannot list payments' records (a decision imports only its concept's dependencies), so " +
-    "payments.seat-purchase and payments.fde-hosting-purchase cite it and list `org.seats.buy` and `org.fde.pay`.",
+    "Aaron's accepted cut.fde-parked supersedes only the hosted half of the sixth-batch pack; its complete previous rationale is archived under docs/cut-archive/parked/fde-hosted/closure/organizations/decisions.ts. Keep aaron.buy-seats and aaron.test-prices: permanent seats cost 10 USDC once. A People-hat wearer spends through an allowance authorised for their Safe, not a department office (ROLE_CONFLICT); agents never buy. Payments owns prepare-command and settlement, invoking add-bought-seats or return-bought-seats in the settling transaction. The paying command's owner is the Organization, never a source-supplied label. This keeps payments.one-settlement-path, including reorg reversal, without a dependency cycle or a second issuer. No seat subscription or hosted extension door is required. Self-run own agents remain outside the human limit; org-with-own-agent proves that without a host. This correction changes declarations, not verdicts.",
   source: asmBy("blueprint/shared/rulings.ts (aaron.buy-seats); blueprint/payments/procedures.ts (payments.prepare-command)"),
   affects: [
     table_organizations, table_org_seat_purchases, machine_seat_purchase, event_seat_purchase_transitioned,
@@ -1029,11 +1031,12 @@ const passBy = (evidence: string) => `${PASS}; evidence: ${evidence}`;
 
 export const decision_organizations_fde_commands = defineDecision({
   id: "organizations.fde-commands",
-  title: "FDE: any member or named guest asks it, and it acts as the asker",
+  title: "Parked: hosted-FDE conversation commands",
   question:
     "The FDE runs on Capxul's host, not beside the founder's CLI. How does the Organization see it and talk to it, " +
     "and who may?",
   options: [
+    HOSTED_PARK,
     {
       label: "show-and-ask",
       text:
@@ -1054,8 +1057,9 @@ export const decision_organizations_fde_commands = defineDecision({
     },
     { label: "host-surface", text: "No ask command: people talk to the FDE on the host's own surface." },
   ],
-  chosen: "any-member",
+  chosen: "park-hosted",
   why:
+    "Historical rationale only, superseded by accepted cut.fde-parked: " +
     "Aaron's ruling aaron.fde-anyone (8 November 2026, night; docs/decisions/open-for-aaron.md question 36): 'I think " +
     "anyone should be able to talk to the FDE, or anyone that the management is speaking to. The FDE is not on the " +
     "critical path anyway.' It supersedes show-and-ask, the Director-only booking, whose reason was that the FDE acted " +
@@ -1070,7 +1074,7 @@ export const decision_organizations_fde_commands = defineDecision({
   source: passBy("blueprint/shared/rulings.ts (aaron.fde-agent, aaron.fde-hosted, aaron.fde-anyone); docs/decisions/open-for-aaron.md (question 36)"),
   affects: [
     
-    table_org_fdes,
+    concept_organizations,
   ],
 });
 
@@ -1100,11 +1104,12 @@ export const decision_organizations_seats_show = defineDecision({
 
 export const decision_organizations_fde_host = defineDecision({
   id: "organizations.fde-host",
-  title: "Capxul's FDE host is swarmD: a component and the `fde-host` integration",
+  title: "Parked: hosted-FDE runtime and key provider",
   question:
     "The FDE is a durable agent on a durable runtime with sandboxes, which Capxul runs for each Organization. What is " +
     "that runtime in the book, and how does the backend reach it?",
   options: [
+    HOSTED_PARK,
     {
       label: "swarmd",
       text:
@@ -1122,8 +1127,9 @@ export const decision_organizations_fde_host = defineDecision({
     { label: "own-containers", text: "A container per Organization on Capxul's own servers, with a scheduler Capxul writes." },
     { label: "founder-machine", text: "Keep the FDE beside the founder's CLI, the earlier choice, which the hosting ruling rules out." },
   ],
-  chosen: "swarmd",
+  chosen: "park-hosted",
   why:
+    "Historical rationale only, superseded by accepted cut.fde-parked: " +
     "swarmD is what the ruling describes: a durable agent whose conversation survives restarts in a Durable Object, a " +
     "sandbox per worker restored from a snapshot, secrets added on the way out so they never enter the sandbox, and an " +
     "SDK, CLI and MCP surface for the backend; Capxul's own build already runs on it (swarm.superset). Booking the host " +
@@ -1134,18 +1140,19 @@ export const decision_organizations_fde_host = defineDecision({
     "FDE_HOST_TOKEN in the environments, and wired each call into its record's `calls`.",
   source: passBy("blueprint/shared/rulings.ts (aaron.fde-hosted, aaron.machine-login); /home/user/swarmd/docs/SPEC.md (B.15, B.16)"),
   affects: [
-    system_capxul, table_org_fdes, workflow_organizations_setups_set_up, 
+    system_capxul, workflow_organizations_setups_set_up,
     concept_agents,
   ],
 });
 
 export const decision_organizations_fde_hosting = defineDecision({
   id: "organizations.fde-hosting",
-  title: "The FDE is paid a month ahead from a budget; an unpaid month pauses it",
+  title: "Parked: hosted-FDE billing and pause lifecycle",
   question:
     "The Organization pays Capxul for hosting its FDE, FDE_HOSTING_PRICE a month, a deployment setting. How is it " +
     "charged each month through `payments.prepare-command`, and what happens when it is not paid?",
   options: [
+    HOSTED_PARK,
     {
       label: "in-advance",
       text:
@@ -1169,8 +1176,9 @@ export const decision_organizations_fde_hosting = defineDecision({
     { label: "dated-payments", text: "`org fde pay --monthly` schedules a dated payment for each month (Budgets.schedule), executed on its day by anyone." },
     { label: "grace", text: "As in-advance, but the first month is due at once, with seven days' grace before the pause." },
   ],
-  chosen: "in-advance",
+  chosen: "park-hosted",
   why:
+    "Historical rationale only, superseded by accepted cut.fde-parked: " +
     "Paying in advance through `payments.prepare-command` is the route seats already take: one settlement path, one " +
     "book fact, counted only when the payment settles and only for the Organization that paid, and nothing for Capxul " +
     "to collect. The payment is the department's whose budget pays: whoever wears its hat, or one above it, now " +
@@ -1186,7 +1194,6 @@ export const decision_organizations_fde_hosting = defineDecision({
     "answers; the alternative is the standing agreement, an automatic monthly charge.",
   source: passBy("blueprint/shared/rulings.ts (aaron.fde-hosted, aaron.test-prices, aaron.departments); payments.prepare-command"),
   affects: [
-    table_org_fdes, machine_org_fde, 
     concept_payments,
     concept_notices,
   ],
@@ -1225,19 +1232,19 @@ export const decision_organizations_founder_people_hat = defineDecision({
 import { procedure_accounts_admit } from "../accounts/procedures.ts";
 import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
 import { component_core_sdk, concept_accounts, concept_approvals } from "../shared/foundation.ts";
-import { integration_fde_host as integration_fde_host_ } from "../shared/external.ts";
 
 const WORLD = "Claude, organizations world pass (doc-family lane), 8 November 2026";
 const worldBy = (evidence: string) => `${WORLD}; evidence: ${evidence}`;
 
 export const decision_organizations_fde_for_the_asker = defineDecision({
   id: "organizations.fde-for-the-asker",
-  title: "The hosted FDE acts as its asker: their Seat and hats, their signature",
+  title: "Parked: hosted asker impersonation and token authority",
   question:
     "aaron.fde-anyone: 'the host passes the asker's Seat, so the FDE does for them only what their own hats allow'. The " +
     "FDE signs in with its own key and its Safe wears its own hats. How does a call it makes for an asker carry the " +
     "asker's authority, and what signs?",
   options: [
+    HOSTED_PARK,
     {
       label: "act-as-asker",
       text:
@@ -1260,8 +1267,9 @@ export const decision_organizations_fde_for_the_asker = defineDecision({
     },
     { label: "own-hats", text: "The FDE acts with its own Seat and hats, whoever asks (the Director-only booking's premise)." },
   ],
-  chosen: "act-as-asker",
+  chosen: "park-hosted",
   why:
+    "Historical rationale only, superseded by cut.fde-parked and agents.fde-authority: " +
     "The ruling's words: the host passes the asker's Seat, and the FDE does only what the asker's hats allow. Acting as " +
     "the asker is exactly that, with nothing for any concept's guard to learn, because the Seat lookup every guard " +
     "already runs is organizations' and answers the asker. The chain enforces it too: what moves money is signed by " +
@@ -1277,17 +1285,18 @@ export const decision_organizations_fde_for_the_asker = defineDecision({
   source: worldBy("blueprint/shared/rulings.ts (aaron.fde-anyone, aaron.departments); docs/design/authority.md (Agents and the FDE); access.assistants (the person signs every approval)"),
   affects: [
     
-    table_org_members, integration_fde_host_, component_core_sdk, concept_approvals, concept_agents,
+    table_org_members, component_core_sdk, concept_approvals, concept_agents,
   ],
 });
 
 export const decision_organizations_fde_guests = defineDecision({
   id: "organizations.fde-guests",
-  title: "Guests: People or a Director names the outside people who may talk to the FDE",
+  title: "Parked: hosted-FDE guest admission and conversation",
   question:
     "aaron.fde-anyone lets 'anyone that the management is speaking to' talk to the FDE. Capxul cannot know who that is. " +
     "Who says, how is an outside person reached, and what may the FDE do for them?",
   options: [
+    HOSTED_PARK,
     {
       label: "named-guests",
       text:
@@ -1302,8 +1311,9 @@ export const decision_organizations_fde_guests = defineDecision({
     { label: "any-party", text: "Anyone the Organization has a record with (a contact, a payee, a payer) may ask, with no list." },
     { label: "members-only", text: "Only members ask; outside people talk to the management, who ask for them." },
   ],
-  chosen: "named-guests",
+  chosen: "park-hosted",
   why:
+    "Historical rationale only, superseded by accepted cut.fde-parked: " +
     "The ruling names two groups: any member, and anyone the management is speaking to. The second is the management's " +
     "to say, so it names them; inferring it from records would let anyone who was once paid run the Organization's " +
     "hosted agent, which it pays for. Management is People or a Director: the People hat already decides who comes " +
@@ -1327,4 +1337,3 @@ export const decision_organizations_fde_guests = defineDecision({
 
 const SURFACE_PASS = "Claude, surface pass, 9 November 2026 (question 48)";
 const surfaceBy = (evidence: string) => `${SURFACE_PASS}; evidence: ${evidence}`;
-
