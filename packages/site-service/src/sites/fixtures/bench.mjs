@@ -38,6 +38,8 @@ if (args[0] === "new-site") {
   } else if (method === "capxul.clock.join_world") {
     const data = load(); data.world = JSON.parse(args[5]).world; save(data);
   } else if (method === "frappe.db.get_single_value") {
-    console.log(JSON.stringify(load().settings[JSON.parse(args[5])[1]] ?? null));
+    // Match native bench execute's quote-stripped scalar output (and no output for None).
+    const value = load().settings[JSON.parse(args[5])[1]];
+    if (value) console.log(value);
   } else process.exit(1);
 } else if (args[2] !== "clear-cache" && args[2] !== "enable-scheduler") process.exit(1);
