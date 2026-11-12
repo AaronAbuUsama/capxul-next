@@ -643,6 +643,14 @@ checks; concepts still prove their public journey actions, persisted reads/nativ
 Keep credentials out of argv and preparation output; the combined `prepare.log` uses declared-secret redaction and the
 same cap as `run.log`. Old receipts without preparation remain readable (`system.eval-preparation`).
 
+Unsupported requested script plans do not refuse the attempt before its receipt exists (`system.eval-unsupported-worlds`).
+Keep every requested contract and planned script, clear prior verdicts, and run preparation after saving intent as usual.
+Skip a whole plan if any of its requested binding files excludes `--world`, or if it is the JSON skeleton against a
+non-skeleton environment. Never execute that script or change its binding worlds. Its receipt exit/signal stay null;
+`run.log` and per-eval evidence explain the skip. Compatible plans may still execute, but skipped plans leave the run
+incomplete, exit 1, and no passing verdicts. Their requested evals remain same-run `not_run`, not omitted or proved by
+preparation output. Malformed argv/environment and mismatched environment world remain preflight validation errors.
+
 ```bash
 pnpm evals -- all                                      # every eval that has a check (company slug: a fresh one; --slug to choose, --world main)
 pnpm evals -- acc:doc.submit/c-74a45893884b5bef acc:world.snapshot.restore/c-369b1db183b9807f

@@ -14,6 +14,24 @@ import * as x from "./external.ts";
 const CLAUDE = "Claude, target architecture, 7 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 
+export const decision_runtime_record_business_instant = defineDecision({
+  id: "runtime.record-business-instant",
+  title: "Record a supplied business instant in the source transaction",
+  question: "How can migrated concept writers date their records without silently retaining host time?",
+  options: [
+    { label: "explicit-instant", text: "The common record writer accepts an optional epoch-millisecond instant; migrated callers require and supply canonical world time in the same SQL transaction." },
+    { label: "database-now", text: "Keep dating every record with the database clock even when its source row uses world time." },
+  ],
+  chosen: "explicit-instant",
+  why:
+    "time.real-elapsed excludes host time from product timestamps. Sites supplies the same canonical instant for its row and event, including when the world is stopped. " +
+    "The existing record writer retains its source transaction, organization lock, ordering and hash chain. An explicit zero is an instant, not an omitted value. " +
+    "Existing five-argument callers retain database-time behavior until separately migrated; the optional parameter does not claim those callers satisfy world-clock acceptance. " +
+    "This adds no clock derivation, fallback for migrated callers, schema migration or public route.",
+  source: "time.real-elapsed; Sites native frozen-clock regression and integrator event-writer lease, 12 November 2026",
+  affects: [f.component_backend],
+});
+
 export const decision_runtime_retained_spans = defineDecision({
   id: "runtime.retained-spans",
   title: "Retain completed Effect spans independently of business records",

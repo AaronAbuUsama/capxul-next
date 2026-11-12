@@ -911,3 +911,20 @@ export const decision_portal_product_slices = defineDecision({
   source: "Aaron's wave/slice request, 12 November 2026; docs/mission/breadth-fan-out-2026-11-11.md; delivery audit revision 3 at 8b9550f",
   affects: [f.system_capxul, decision_portal_product_only],
 });
+
+export const decision_portal_questions_carry_out = defineDecision({
+  id: "portal.questions-carry-out",
+  title: "Confirmed implementation records carry out rulings without asking again",
+  question: "How do the three confirmed slice-zero implementation records leave Questions without inventing owner acceptance?",
+  options: [
+    {
+      label: "explicit-carry-out",
+      text: "Classify indexing.slice-zero-runtime, sites.slice-zero-acceptance and devnet.slice-zero-supervisor in waiting.ts CARRIES_OUT. Keep their original source, options, choice and rationale on their decision pages. Keep books.annotate-site-chart unresolved: chart ownership alone does not settle its validation and availability tradeoff. Other unclassified decisions mentioning the owner still wait under the existing predicate.",
+    },
+    { label: "infer-from-citation", text: "Hide any decision that cites a ruling. Rejected: a follow-up can cite an accepted ruling while still proposing a new tradeoff." },
+  ],
+  chosen: "explicit-carry-out",
+  why: "The three workers implemented already-settled real-stack and acceptance briefs. Their references to the owner made the text predicate ask the same basic choices again. Explicit carry-out classification corrects that without recording a human answer or changing the heuristic for genuinely unresolved decisions.",
+  source: "Amp, 12 November 2026; scoped owner approval relayed by the Space in https://ampcode.com/threads/T-01a1cfa5-bece-7775-9f00-23257eb28e24; provenance investigation in that thread",
+  affects: [f.system_capxul],
+});

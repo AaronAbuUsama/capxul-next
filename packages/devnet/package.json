@@ -8,7 +8,9 @@
     "test": "node --experimental-strip-types --no-warnings --test 'src/**/*.test.ts'"
   },
   "dependencies": {
+    "@capxul/backend": "workspace:*",
     "@capxul/sdk": "workspace:*",
+    "@pimlico/alto": "0.0.21",
     "viem": "catalog:"
   },
   "devDependencies": {

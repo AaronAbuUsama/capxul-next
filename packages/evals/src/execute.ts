@@ -30,18 +30,18 @@ export const executeRun = async (root: string, blueprint: Blueprint, bindings: B
   const info: RunInfo = { run: `run-${at.replace(/\D/g, "")}-${randomUUID().slice(0, 8)}`, commit, at, script: "", world: options.world, slug: options.slug };
   const out = `status/runs/${info.run}`;
   const dir = join(root, out);
-  const plans = [...new Set(asked.flatMap((id) => bindings.byEval.get(id)?.file.script ?? []))].map((script) => {
-    const files = bindings.files.filter((f) => f.script === script && f.bindings.some((b) => asked.includes(b.eval)));
-    if (files.some((f) => !f.worlds.includes(options.world))) throw new Error(`${script} does not support world ${options.world}`);
-    const names = files.flatMap((f) => f.bindings).filter((b) => asked.includes(b.eval)).flatMap((b) => b.checks);
-    return { script, behaviours: [...new Set(names.map((n) => /^[A-Z]+[0-9]*/.exec(n)?.[0] ?? n))].sort() };
-  });
   const environment: RunEnvironment = options.environment
     ? JSON.parse(readFileSync(resolve(root, options.environment), "utf8")) as RunEnvironment
     : { world: options.world, storage: "json", indexer: "inline", stack: "skeleton-json", components: { core: commit } };
   if (environment.world !== options.world) throw new Error("environment world differs from --world");
-  if (plans.some((p) => p.script === "spikes/skeleton/run.sh") && (environment.storage !== "json" || environment.indexer !== "inline" || environment.stack !== "skeleton-json"))
-    throw new Error("the JSON skeleton cannot supply selected-stack evidence");
+  const plans = [...new Set(asked.flatMap((id) => bindings.byEval.get(id)?.file.script ?? []))].map((script) => {
+    const files = bindings.files.filter((f) => f.script === script && f.bindings.some((b) => asked.includes(b.eval)));
+    const skip = files.some((f) => !f.worlds.includes(options.world)) ? `does not support world ${options.world}`
+      : script === "spikes/skeleton/run.sh" && (environment.storage !== "json" || environment.indexer !== "inline" || environment.stack !== "skeleton-json")
+        ? "the JSON skeleton cannot supply selected-stack evidence" : undefined;
+    const names = files.flatMap((f) => f.bindings).filter((b) => asked.includes(b.eval)).flatMap((b) => b.checks);
+    return { script, behaviours: [...new Set(names.map((n) => /^[A-Z]+[0-9]*/.exec(n)?.[0] ?? n))].sort(), skip };
+  });
   const contracts = blueprint.evals.filter((e) => asked.includes(e.id)).map(({ id, claim, observes }) => ({ id, claim, ...(observes === undefined ? {} : { observes }) }));
   const prepare: RunReceipt["prepare"] = options.prepare ? {
     argv: JSON.parse(readFileSync(resolve(root, options.prepare), "utf8")) as string[], exitCode: null, signal: null, log: "prepare.log",
@@ -90,6 +90,12 @@ export const executeRun = async (root: string, blueprint: Blueprint, bindings: B
       if (result.exitCode !== 0 || result.signal !== null) throw new Error("preparation did not finish successfully; binding scripts were not started");
     }
     for (const plan of plans) {
+      if (plan.skip) {
+        const reason = `${plan.script} skipped: ${plan.skip}`;
+        log(reason);
+        logs.push(reason);
+        continue;
+      }
       log(`${plan.script}: company ${options.slug}, behaviours ${plan.behaviours.join(", ")}`);
       const result = await runProcess(root, dir, ["bash", join(root, plan.script), options.slug, "--only", plan.behaviours.join(",")], options.json ?? false);
       logs.push(`$ ${plan.script} (exit ${result.exitCode}, signal ${result.signal})\n${result.output}`);
@@ -129,7 +135,9 @@ export const executeRun = async (root: string, blueprint: Blueprint, bindings: B
   const claimOf = new Map(contracts.map((e) => [e.id, e.claim]));
   for (const row of rows) {
     const bound = bindings.byEval.get(row.id);
-    writeFileSync(join(root, evidenceOf(row.id)), cap(redact(evidenceText({ ...info, script: bound?.file.script ?? "" }, row, claimOf.get(row.id) ?? "", bound?.binding.why ?? "no binding"), secrets), 60_000));
+    const skip = plans.find((p) => p.script === bound?.file.script)?.skip;
+    const why = `${bound?.binding.why ?? "no binding"}${skip ? `\nskipped: ${skip}` : ""}`;
+    writeFileSync(join(root, evidenceOf(row.id)), cap(redact(evidenceText({ ...info, script: bound?.file.script ?? "" }, row, claimOf.get(row.id) ?? "", why), secrets), 60_000));
   }
   writeFileSync(join(dir, "checks.tsv"), redact(lines.map((l) => `${l.name}\t${l.verdict}\t${l.ms}\t${l.detail}`).join("\n") + "\n", secrets));
   writeFileSync(join(dir, "run.log"), cap(redact(logs.join("\n"), secrets), 400_000));
