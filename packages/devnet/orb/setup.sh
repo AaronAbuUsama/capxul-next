@@ -16,6 +16,15 @@ pnpm install --frozen-lockfile
 # The walking skeleton is deliberately outside the product workspace and has its own lockfile.
 (cd spikes/skeleton/core && pnpm install --ignore-workspace --frozen-lockfile)
 
+step "Native PostgreSQL 17 recovery client"
+if [ ! -x /usr/lib/postgresql/17/bin/psql ]; then
+  sudo apt-get update
+  sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql-client-17
+fi
+# Bypass pg_wrapper's version selection; recovery requires this major even if others are installed.
+ln -sfn /usr/lib/postgresql/17/bin/psql "$TOOLS/psql"
+psql --version
+
 step "Docker, Compose and Buildx (systemd owns the daemon)"
 if ! sudo -n /usr/bin/docker compose version >/dev/null 2>&1 || ! sudo -n /usr/bin/docker buildx version >/dev/null 2>&1; then
   sudo apt-get update
