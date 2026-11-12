@@ -1247,7 +1247,8 @@ export const decision_payments_payroll_door = defineDecision({
   title: "Payroll pays a run through the door; settled_at is the block's time",
   question:
     "Payroll asked the door for purpose payroll, an optional source on each item (the slip, its run, its Employee) kept " +
-    "on the Payment and its book fact, and a mailbox for a payee with no account; and for `settled_at` to be the " +
+    "on the Payment, posting provenance carried to books through `against` with source=Payment, and a mailbox for a " +
+    "payee with no account; and for `settled_at` to be the " +
     "settling block's time, with the settled transaction and block readable by the payer's tenant (C6). Which does " +
     "payments take?",
   options: [

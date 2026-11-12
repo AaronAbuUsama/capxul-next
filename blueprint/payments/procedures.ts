@@ -48,7 +48,7 @@ export const PreparedItem = Schema.Struct({
   against: Schema.optionalKey(Against),
   /** What the payee's books post it against, when the invoker knows: a paid request's income account, Customer and invoice. */
   payee_against: Schema.optionalKey(Against),
-  /** The payroll slip or remittance it pays, kept on the Payment and passed with its book fact. */
+  /** The payroll slip or remittance it pays, retained on Payment.source; Books' source names the Payment, while `against` carries payroll posting details (payments.payroll-door). */
   source: Schema.optionalKey(PaymentSource),
   /** A rail's fee inside `amount_raw` (a bank payout's quoted `fee_amount`), in the token's units. */
   fee_raw: Schema.optionalKey(Schema.String),
