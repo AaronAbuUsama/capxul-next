@@ -71,6 +71,20 @@ import { workflow_notices_delivery_retry, workflow_notices_payroll_daily } from 
 const by = (evidence: string) => `Claude, notices target design, 8 November 2026; evidence: ${evidence}`;
 const OLD = "packages/backend/src";
 
+export const decision_notices_postgres_execution = defineDecision({
+  id: "notices.postgres-execution",
+  title: "Persist notice execution separately from the first delivery outcome",
+  question: "How does an outbox workflow survive death between provider acceptance and recording its first outcome?",
+  options: [
+    { label: "durable-execution", text: "Persist the workflow and its resolved recipient intents in Postgres. The delivery row is still born only after the first attempt. Serialize each recipient intent, replay its provider key after a crash, and commit the guarded outcome and privacy-safe transition event together." },
+    { label: "queued-delivery", text: "Add a queued delivery state before calling mail." },
+  ],
+  chosen: "durable-execution",
+  why: "A queued delivery state would contradict notices.first-attempt. Private workflow checkpoints are execution metadata, not delivery records or a new public notice procedure. A database session lock serializes attempts without keeping a transaction open across mail; a process death releases it. The provider key covers the accepted-send/lost-record window. Delivery mutation is available only through the guarded outcome function; ordinary mailbox sessions cannot write delivery rows. Retry deadlines and reminder stops use the supplied world clock, not host time.",
+  source: "Notices slice-zero implementation, 12 November 2026; notices.first-attempt; notices.delivery-record; notices.no-door; aaron.postgres-and-ponder",
+  affects: [table_notices, machine_notice, event_notice_transitioned, workflow_notices_delivery_retry, workflow_notices_payments_money_reminders],
+});
+
 /** The workflows that tell an Organization through its Directors. */
 const TO_DIRECTORS = [
   workflow_notices_board_threshold_changed,
