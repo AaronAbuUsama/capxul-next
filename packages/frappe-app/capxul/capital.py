@@ -56,18 +56,19 @@ def apply_founder_capital(d, event_key=None):
 
 
 def apply_deposit_received(d, event_key=None):
-    unmatched_deposit(d, "later incoming transfer, not founder capital")
+    unmatched_deposit(d, "later incoming transfer, not founder capital", event_key)
 
 
-def unmatched_deposit(d, why):
+def unmatched_deposit(d, why, event_key=None):
     """Funding that could not be booked as capital -> an unreconciled Bank Transaction (a deposit), so it is never lost."""
     bank_account = frappe.db.get_single_value("Capxul Settings", "safe_bank_account")
-    if frappe.db.exists("Bank Transaction", {"transaction_id": d["tx_hash"], "reference_number": d["tx_hash"]}):
+    reference = event_key or d["tx_hash"]
+    if frappe.db.exists("Bank Transaction", {"transaction_id": d["tx_hash"], "reference_number": reference}):
         return
     bt = frappe.get_doc({
         "doctype": "Bank Transaction", "date": getdate(d["block_time"][:10]), "bank_account": bank_account,
         "deposit": flt(d["amount"]), "currency": frappe.db.get_value("Account", safe_account(), "account_currency"),
-        "transaction_id": d["tx_hash"], "reference_number": d["tx_hash"],
+        "transaction_id": d["tx_hash"], "reference_number": reference,
         "description": f"Chain deposit from {d.get('from', '')} into {d.get('to', '')} ({why})",
     })
     bt.insert(ignore_permissions=True)

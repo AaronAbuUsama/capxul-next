@@ -138,9 +138,24 @@ class SiteRequestBoundary(unittest.TestCase):
     def test_late_answer_preserves_chain_settlement(self):
         request = api.request_payment("PE-1")["request"]
         payments.apply_payment_sent(sent("P-1", "0xfirst", "125.50", TX_A))
-        ans = self.signed_call(api.answer_payment_request, self.approval(request))
+        answer = self.approval(request)
+        ans = self.signed_call(api.answer_payment_request, answer)
         self.assertEqual(ans["status"], "Sent")
         self.assertEqual((self.pe.docstatus, self.pe.capxul_status, self.pe.reference_no), (1, "Sent", TX_A))
+        self.assertEqual(self.pe.capxul_approval_url, answer["approval_url"])
+        self.assertTrue(self.signed_call(api.answer_payment_request, answer)["duplicate"])
+        self.assertEqual(self.pe.capxul_approval_url, answer["approval_url"])
+
+    def test_late_answer_for_an_old_request_cannot_replace_the_settled_reference(self):
+        old = api.request_payment("PE-1")["request"]
+        self.pe.hash = "0xsecond"
+        current = api.request_payment("PE-1")["request"]
+        answer = dict(self.approval(current), approval_id="A-2", approval_url="https://core.invalid/approve/A-2")
+        self.signed_call(api.answer_payment_request, answer)
+        payments.apply_payment_sent(sent("P-2", "0xsecond", "125.50", TX_B))
+        self.signed_call(api.answer_payment_request, self.approval(old))
+        self.assertEqual((self.pe.docstatus, self.pe.capxul_status, self.pe.reference_no), (1, "Sent", TX_B))
+        self.assertEqual(self.pe.capxul_approval_url, answer["approval_url"])
 
     def test_refusal_is_visible_without_submitting_or_advancing_the_read_cursor(self):
         request = api.request_payment("PE-1")["request"]
@@ -215,10 +230,14 @@ class SiteRequestBoundary(unittest.TestCase):
         DB.singles["last_seq"] = 0
         event = {"org": "boundary", "event_key": "deposit-1", "seq": 1, "kind": "deposit_received",
                  "data": {"tx_hash": TX_A, "amount": "37.20", "block_time": "2026-11-12T12:00:00Z"}}
+        other = dict(event, event_key="deposit-2", seq=2, data=dict(event["data"], amount="11.40"))
         self.assertTrue(self.signed_call(api.chain_event, event)["applied"])
+        self.assertTrue(self.signed_call(api.chain_event, other)["applied"])
         self.assertTrue(self.signed_call(api.chain_event, event)["duplicate"])
+        self.assertTrue(self.signed_call(api.chain_event, other)["duplicate"])
         lines = DB.find("Bank Transaction", {})
-        self.assertEqual([(b.deposit, b.transaction_id) for b in lines], [(37.2, TX_A)])
+        self.assertEqual([(b.deposit, b.transaction_id, b.reference_number) for b in lines],
+                         [(37.2, TX_A, "deposit-1"), (11.4, TX_A, "deposit-2")])
         self.assertEqual(DB.find("Journal Entry", {}), [])
         self.assertEqual(DB.find("Shareholder", {}), [])
 

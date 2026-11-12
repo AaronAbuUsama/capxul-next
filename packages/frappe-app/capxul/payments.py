@@ -145,6 +145,10 @@ def answer_request(body):
                 "capxul_status": f"Failed: {reason}"[:140] if error else WAITING,
                 "capxul_approval_url": "" if error else answer["approval_url"],
             }, update_modified=False)
+    elif not error and req.status == "Sent":
+        pe = frappe.get_doc("Payment Entry", entry, for_update=True)
+        if pe.docstatus == 1 and pe.reference_no == req.tx_hash and document_hash(pe, settings().asset) == req.document_hash:
+            frappe.db.set_value("Payment Entry", entry, "capxul_approval_url", answer["approval_url"], update_modified=False)
     req.db_set(updates)
     return {"request_id": name, "status": req.status, "duplicate": False}
 

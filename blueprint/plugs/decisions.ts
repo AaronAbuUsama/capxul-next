@@ -366,7 +366,7 @@ export const decision_plugs_ledger_trace_display = dec({
   title: "Show persisted traces on the native General Ledger",
   question: "How can a person verify the command trace on the actual ledger row without forking ERPNext?",
   options: [
-    { label: "report-extension", text: "Use Frappe's Report extension hook. Run the unchanged ERPNext General Ledger, retain its name, filters and permission checks, then add Capxul Trace from persisted GL Entry.capxul_trace keyed by the returned gl_entry. Totals without a ledger identity have no trace. Never substitute the current request trace. Place Payment Entry's read-only Capxul status and approval reference alongside its posting date, visible on the primary details tab before and after settlement." },
+    { label: "report-extension", text: "Use Frappe's Report extension hook. Run the unchanged ERPNext General Ledger, retain its name, filters and permission checks, then add Capxul Trace from persisted GL Entry.capxul_trace keyed by the returned gl_entry. Totals without a ledger identity have no trace. Never substitute the current request trace. Place Payment Entry's read-only Capxul status and approval reference alongside its posting date, visible on the primary details tab before and after settlement. An approval answer arriving after settlement fills the reference only when its request matches the posted transaction and document hash, without changing Sent or the posted voucher." },
     { label: "api-only", text: "Keep the trace field in the API without displaying it in General Ledger." },
   ],
   chosen: "report-extension",
@@ -379,7 +379,7 @@ export const decision_plugs_later_deposits = dec({
   id: "plugs.later-deposits",
   title: "Later incoming transfers are not founder capital",
   question: "Which site event represents ordinary money arriving after the founding deposit?",
-  options: [{ label: "unmatched-deposit", text: "Core delivers deposit_received with amount, asset, tx_hash, block_time, from and to. The site creates one idempotent unreconciled Bank Transaction deposit. Only founder_capital creates the founding Shareholder and Journal Entry." }],
+  options: [{ label: "unmatched-deposit", text: "Core delivers deposit_received with amount, asset, tx_hash, block_time, from and to. The site creates one idempotent unreconciled Bank Transaction deposit per stable chain event key, preserving distinct Transfer logs within the same transaction hash. Only founder_capital creates the founding Shareholder and Journal Entry." }],
   chosen: "unmatched-deposit",
   why: "Preserves books.founder-funding and books.party-lines. A later incoming Transfer with no founding person is not capital and must not attempt to create a nameless Shareholder or hide ordinary incoming money behind a parked capital event.",
   evidence: "Core/Frappe slice zero protocol agreement, 12 November 2026; capxul.capital.unmatched_deposit",

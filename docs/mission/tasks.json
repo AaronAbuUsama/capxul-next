@@ -12857,7 +12857,7 @@
       ],
       "record": "workflow:plugs.books.founder-capital",
       "title": "Process: plugs.books.founder-capital",
-      "goal": "The durable process plugs.books.founder-capital (Book the money that first funds a new company's Safe as the founder's capital) runs as its record says: it resumes after a crash, each activity's side effect lands once, and every keyed wait is woken by what its key names.",
+      "goal": "The durable process plugs.books.founder-capital (Book incoming Safe transfers as founding capital or unmatched deposits) runs as its record says: it resumes after a crash, each activity's side effect lands once, and every keyed wait is woken by what its key names.",
       "needs": [
         "door:indexing",
         "door:organizations",
