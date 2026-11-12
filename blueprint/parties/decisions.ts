@@ -42,6 +42,20 @@ const CRM_LANE = "Claude, parties Frappe redesign (crm lane), 8 November 2026";
 const crmBy = (evidence: string) => `${CRM_LANE}; evidence: ${evidence}`;
 const OLD = "packages/backend/src";
 
+export const decision_parties_postgres_boundary = defineDecision({
+  id: "parties.postgres-boundary",
+  title: "One Postgres directory and transaction-local owner scope",
+  question: "How do Core's chain views and caller-transaction procedures share Party authority?",
+  options: [
+    { label: "directory", text: "Migrate app.parties before binding Ponder views; use app.owner_kind and app.owner_id set locally on the caller's transaction. Keep transition events in the same transaction and stamp business rows and events with the caller's authoritative numeric world instant." },
+    { label: "copies", text: "Derive separate Safe ownership from organization and site-user directories." },
+  ],
+  chosen: "directory",
+  why: "The directory is global and remains the only Safe-ownership authority. Owner scope is a person or organization, independent of the selected app.org_id. Missing owner settings grant no chain scope. A transaction clears all three settings before reuse, including operator transactions. Party procedures take the caller's Sql, never open a connection or commit, and their append-only event outbox commits or rolls back with the Party. Released rows keep their Safe for history but are excluded from its unique index and every ownership admission. Runtime tenants can read the directory but cannot write it directly; trusted worker procedures own its mutations. No ownership is inferred from email or site membership.",
+  source: "aaron.postgres-and-ponder; concepts.parties-scope; parties.directory-tenancy; time.worlds; organizations/parties source review, 12 November 2026",
+  affects: [table_parties, event_party_transitioned, procedure_parties_register, procedure_parties_activate, procedure_parties_release, procedure_parties_resolve_recipient, concept_indexing],
+});
+
 // ── data ────────────────────────────────────────────────────────────────────────────────────
 
 export const decision_parties_directory_tenancy = defineDecision({
