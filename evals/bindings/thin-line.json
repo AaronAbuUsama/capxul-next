@@ -18,14 +18,14 @@
       "eval": "acc:org.member.grant/1",
       "checks": ["TL.grant-proposal-waits-for-second-director", "TL.grant-proposal-non-director-refused", "TL.grant-proposal-applied-after-second-director", "TL.grant-proposal-roles-reach-site"],
       "why": "The run's company is born with a second Director (priya), so its Board threshold is both Directors. `hat grant --propose` makes a Board proposal: the founder's Safe approves the company Safe's batch on chain and `org proposal get` reads it waiting, approved by the founder and not by priya, while `org member get` shows elena wearing nothing. A non-Director's approval is refused (ROLE_PERMISSION_DENIED). After priya approves, the batch executes: the proposal reads applied with both approvals and a transaction, `org member get` shows elena wearing member, and the hat's mapped roles reach the site."
-    },
-    {
-      "eval": "acc:payment.send/1",
-      "checks": ["B3.sign-sends-chain-transaction", "B3.chain-moved-the-money", "B3.payment-entry-submitted", "B3.entry-carries-transaction-hash", "B3.ledger-posted", "B3.invoice-nothing-outstanding", "TL.payment-is-one-user-operation", "TL.payment-list-shows-one-settled"],
-      "why": "The budget holder signs the held payment with their test key (`approval sign`). Hats are worn by personal Safes (claimed through Companies House, Safe4337Module enabled), so the payment is exactly one successful ERC-4337 v0.7 UserOperation from the holder's Safe, owned by the holder's key, sponsored by the world's mock paymaster and sent to the EntryPoint (thin-line.bundler), with exactly one PaymentSent. `payment list` shows exactly one Payment for its id, settled, with that transaction. The site posts the entry once, carrying the transaction hash, and the invoice has nothing outstanding."
     }
   ],
   "near": [
+    {
+      "eval": "acc:payment.send/1",
+      "checks": ["B3.sign-sends-chain-transaction", "B3.chain-moved-the-money", "B3.payment-entry-submitted", "B3.entry-carries-transaction-hash", "B3.ledger-posted", "B3.invoice-nothing-outstanding", "TL.payment-is-one-user-operation", "TL.payment-list-shows-one-settled"],
+      "missing": "The payment is one ERC-4337 UserOperation from the holder's personal Safe, sponsored by the mock paymaster, with one PaymentSent, and payment list shows it settled; but it reaches the EntryPoint by the operator's handleOps, not through a bundler, and thin-line.bundler asks for a real bundler (alto) in the canary world. Bound once alto runs in the world (CAPXUL_BUNDLER_URL) and a check shows the op came through it."
+    },
     {
       "eval": "jrn:thin_line",
       "checks": ["B1.org-create", "B1.safe-on-chain-is-the-sites-safe", "B1.site-answers-by-name", "B2.roles-follow-grant", "B3.budget-holder-makes-invoice-and-payment-entry", "B3.submit-waits-for-signature", "B3.still-a-draft-while-waiting", "B3.sign-sends-chain-transaction", "B3.chain-moved-the-money", "B3.ledger-posted", "B3.invoice-nothing-outstanding", "B6.reports-run", "B7.world-at-31-march-all-agree", "B8.export-one-file-line-by-line", "B9.snapshot-saved", "B9.restore-into-new-world", "B9.new-world-payment-not-in-old", "B9.old-world-payment-not-in-new", "B9.new-world-record-begins-with-old-then-lineage"],

@@ -241,7 +241,7 @@ export async function payByUserOp(p: Protocol, x: Omit<Pay, "key"> & { safe: Hex
     try {
       if (same(log.address, ENTRY_POINT_V07)) {
         const e = decodeEventLog({ abi: ENTRY_POINT, data: log.data, topics: log.topics });
-        if (e.eventName === "UserOperationEvent" && same(e.args.sender, x.safe)) {
+        if (e.eventName === "UserOperationEvent" && same(e.args.sender, x.safe) && e.args.nonce === op.nonce) {   // this op, not another from the same Safe in the bundle
           if (!e.args.success) return { ok: false, reason: "REVERTED", detail: `user operation ${e.args.userOpHash} failed in ${txHash}` };
           userOpHash = e.args.userOpHash;
         }
