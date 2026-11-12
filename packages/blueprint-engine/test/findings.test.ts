@@ -72,26 +72,41 @@ test("error references do not produce it; reserved errors stand until a real pro
 test("repeated refusal and failure codes preserve each case under a distinct id", () => {
   const operation = f.records.find((r) => r._kind === "operation")!;
   const refusal = operation.refusals[0];
-  const records = f.records.map((r) => r === operation ? { ...r, refusals: [refusal, { ...refusal, given: "another-world" }] } : r);
+  const refusals = [refusal, { ...refusal, given: "another-world" }];
+  const records = f.records.map((r) => r === operation ? { ...r, refusals } : r);
   const b = build(records);
   const base = `ref:${operation.id}/${refusal.error.id}`;
-  assert.ok(b.evals.some((e) => e.id === base));
-  assert.ok(b.evals.some((e) => e.id === `${base}/2` && e.claim.includes("another-world")));
+  const original = build(f.records).evals.find((e) => e.id.startsWith(`${base}/`))!;
+  assert.ok(b.evals.some((e) => e.id === original.id));
+  assert.ok(b.evals.some((e) => e.id.startsWith(`${base}/`) && e.id !== original.id && e.claim.includes("another-world")));
+  assert.deepEqual(build(f.records.map((r) => r === operation ? { ...r, refusals: [...refusals].reverse() } : r)).evals.map((e) => e.id).sort(), b.evals.map((e) => e.id).sort());
   assert.equal(new Set(b.evals.map((e) => e.id)).size, b.evals.length);
   const failures = build([{ _kind: "integration", id: "provider", calls: { send: { failures: [
     { error: { _kind: "error", id: "DOWN" }, when: "timed out" },
     { error: { _kind: "error", id: "DOWN" }, when: "refused" },
   ] } } }]);
-  assert.ok(failures.evals.some((e) => e.id === "int:provider.send/DOWN" && e.claim.includes("timed out")));
-  assert.ok(failures.evals.some((e) => e.id === "int:provider.send/DOWN/2" && e.claim.includes("refused")));
+  assert.equal(failures.evals.filter((e) => e.id.startsWith("int:provider.send/DOWN/")).length, 2);
+  assert.ok(failures.evals.some((e) => e.claim.includes("timed out")));
+  assert.ok(failures.evals.some((e) => e.claim.includes("refused")));
 });
 
 test("global eval identity collisions are problems, not deduplicated", () => {
   // Construct two distinct call names that yield the same concatenated identity.
   const d = build([
     { _kind: "integration", id: "a", calls: { "b.c": { failures: [{ error: { _kind: "error", id: "X" }, when: "one" }] } } },
-    { _kind: "integration", id: "a.b", calls: { c: { failures: [{ error: { _kind: "error", id: "X" }, when: "two" }] } } },
+    { _kind: "integration", id: "a.b", calls: { c: { failures: [{ error: { _kind: "error", id: "X" }, when: "one" }] } } },
   ]);
   assert.ok(d.problems.some((p) => p.rule === "eval-identity" && p.detail.includes("int:a.b.c/X")));
-  assert.equal(d.evals.filter((e) => e.id === "int:a.b.c/X").length, 2);
+  assert.equal(d.evals.filter((e) => e.id.startsWith("int:a.b.c/X/")).length, 2);
+});
+
+test("inserting, retiring and reordering acceptance claims does not redirect existing IDs", () => {
+  const ids = (acceptance: readonly unknown[]) => build(f.records.map((r) => r === f.invite ? { ...r, acceptance } : r)).evals.filter((e) => e.id.startsWith("acc:org.member.invite/")).map((e) => e.id);
+  const before = ids(f.invite.acceptance);
+  const after = ids(["A new acceptance claim.", ...[...f.invite.acceptance].reverse()]);
+  assert.ok(before.every((id) => after.includes(id)));
+  assert.equal(after.length, before.length + 1);
+  assert.deepEqual(ids([f.invite.acceptance[0]]), [before[0]]);
+  assert.deepEqual(ids([{ key: "pending", claim: "Old wording" }]), ["acc:org.member.invite/pending"]);
+  assert.deepEqual(ids([{ key: "pending", claim: "New wording" }]), ["acc:org.member.invite/pending"]);
 });

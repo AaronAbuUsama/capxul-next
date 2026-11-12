@@ -1,7 +1,7 @@
 // What Capxul talks to outside itself: vendor and chain integrations, and on-chain contracts.
 
 import { Schema } from "effect";
-import { Common, Line, make, Ms, Prose, Ref, Retry } from "./base.ts";
+import { Common, Id, Line, make, Ms, Prose, Ref, Retry } from "./base.ts";
 
 // ── integration: an outside system behind an Effect service ─────────────────────────────────
 
@@ -11,7 +11,7 @@ const CallSpec = Schema.Struct({
   retries: Retry,
   p95Ms: Schema.optionalKey(Ms),
   /** Every way it fails, each mapped to the error a caller sees. */
-  failures: Schema.Array(Schema.Struct({ when: Line, error: Ref("error") })),
+  failures: Schema.Array(Schema.Struct({ key: Schema.optionalKey(Id), when: Line, error: Ref("error") })),
 });
 
 export const IntegrationSpec = Schema.Struct({

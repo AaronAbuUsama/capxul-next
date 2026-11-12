@@ -11,7 +11,7 @@
 // may change; the operation may not.
 
 import { Schema } from "effect";
-import { AnySchema, Budget, Common, Line, make, Ms, Priority, Prose, Ref, Retry } from "./base.ts";
+import { AnySchema, Budget, Common, Id, Line, make, Ms, Priority, Prose, Ref, Retry } from "./base.ts";
 
 /** What server-side behaviour touches. A concept writes only its own tables; it reaches
  * another concept's tables by invoking that concept's procedures. */
@@ -131,13 +131,12 @@ export const OperationSpec = Schema.Struct({
   changes: Schema.optionalKey(Prose),
   notes: Schema.optionalKey(Schema.Array(Prose)),
   mistakes: Schema.optionalKey(Schema.Array(Schema.Struct({ what: Line, fix: Line }))),
-  /** Numbered from 1. A retired line stays as `null`, so numbers never move. In a blueprint each
-   * line is a claim (policy P1): the frozen claim, what a black-box run observes to check it, and the
-   * old book's test citation moved into `was`. */
+  /** A claim (P1), its observation and optional stable key. Without a key its claim determines identity.
+   * Keep an explicit key when rewording should retain the ID; the old verdict still becomes stale. */
   acceptance: Schema.Array(
     Schema.Union([
       Schema.NullOr(Prose),
-      Schema.Struct({ claim: Prose, observes: Prose, was: Schema.optionalKey(Schema.Array(Schema.String)) }),
+      Schema.Struct({ key: Schema.optionalKey(Id), claim: Prose, observes: Schema.optionalKey(Prose), was: Schema.optionalKey(Schema.Array(Schema.String)) }),
     ]),
   ),
   /** What it prints with `--json`. */
@@ -146,6 +145,7 @@ export const OperationSpec = Schema.Struct({
   errors: Schema.optionalKey(Schema.Array(Ref("error"))),
   refusals: Schema.Array(
     Schema.Struct({
+      key: Schema.optionalKey(Id),
       error: Ref("error"),
       /** The world (a named devnet snapshot) the refusal is reached from; `?` when none exists yet (a gap). */
       given: Schema.String,

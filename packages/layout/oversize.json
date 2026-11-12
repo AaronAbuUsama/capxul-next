@@ -31,6 +31,5 @@
   "packages/plan/src/tasks.ts": 569,
   "packages/portal/src/modules/site/types.ts": 366,
   "packages/sdk/src/access/signing/signer.test.ts": 361,
-  "packages/sdk/src/shared/protocol/errors/factories.ts": 356,
-  "spikes/skeleton/run.sh": 510
+  "packages/sdk/src/shared/protocol/errors/factories.ts": 356
 }
