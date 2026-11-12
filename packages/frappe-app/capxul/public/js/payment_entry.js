@@ -1,6 +1,7 @@
 // Safe-backed Payment Entry: Submit asks Capxul for a signature instead of posting the ledger.
 frappe.ui.form.on("Payment Entry", {
 	refresh(frm) {
+		frm.toggle_display("company", true);
 		const safe = frappe.boot.capxul && frappe.boot.capxul.safe_account;
 		if (!safe || frm.doc.paid_from !== safe || frm.doc.docstatus !== 0) return;
 		frm.savesubmit = () => capxul_request(frm);   // override the form's submit action

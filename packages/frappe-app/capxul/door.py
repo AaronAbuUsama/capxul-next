@@ -21,6 +21,27 @@ LAYOUT = {"Section Break", "Column Break", "Tab Break", "HTML", "Heading", "Fold
 # ---- sign-in ----------------------------------------------------------------------------------------------------------------
 def validate_assertion():
     """auth_hooks: runs for every request. No header: nothing to do (cookie, API key and Guest work as before)."""
+    from capxul.payments import LISTENER
+
+    authorization = frappe.get_request_header("Authorization") or ""
+    if authorization.startswith("CapxulListener "):
+        try:
+            encoded, signature = authorization.split(" ", 1)[1].split(".", 1)
+            raw = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4))
+            p = json.loads(raw)
+            ok = (sign.valid(raw, signature) and p.get("s") == frappe.local.site
+                  and p.get("aud") == "payment-request-listener" and time.time() < float(p.get("exp", 0)) <= time.time() + 60)
+        except Exception:
+            ok = False
+        if not ok or frappe.request.path != "/api/method/frappe.realtime.get_user_info":
+            frappe.throw(_("Invalid listener credential or scope"), frappe.AuthenticationError)
+        fd = frappe.local.form_dict
+        frappe.set_user(LISTENER)
+        frappe.local.form_dict = fd
+        return
+    # This service identity has no interactive or API-key login surface, even if someone sets a password for it.
+    if frappe.session.user == LISTENER:
+        frappe.throw(_("The request listener is not a person"), frappe.AuthenticationError)
     tok = frappe.get_request_header("X-Capxul-Assertion")
     if not tok:
         return

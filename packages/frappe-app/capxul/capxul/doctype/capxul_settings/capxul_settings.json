@@ -8,11 +8,11 @@
   "org_slug",
   "safe_address",
   "asset",
-  "core_url",
   "secret",
   "safe_account",
   "safe_bank_account",
-  "last_seq"
+  "last_seq",
+  "request_seq"
  ],
  "fields": [
   {
@@ -31,12 +31,6 @@
    "fieldtype": "Data",
    "label": "Asset",
    "default": "USDC"
-  },
-  {
-   "fieldname": "core_url",
-   "fieldtype": "Data",
-   "label": "Core URL",
-   "default": "http://host.docker.internal:8787"
   },
   {
    "fieldname": "secret",
@@ -59,6 +53,13 @@
    "fieldname": "last_seq",
    "fieldtype": "Int",
    "label": "Last applied seq",
+   "read_only": 1,
+   "default": "0"
+  },
+  {
+   "fieldname": "request_seq",
+   "fieldtype": "Int",
+   "label": "Last request sequence",
    "read_only": 1,
    "default": "0"
   }
