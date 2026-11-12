@@ -163,6 +163,88 @@ printf '@check\\tB1.done\\tpass\\t1\\tactual check\\n'
   }
 });
 
+test("unsupported world plans preserve the full receipt without launching incompatible scripts", async () => {
+  const target = await loadTarget();
+  assert.ok(target.ok);
+  const observed = target.blueprint.evals.find((e) => e.id.startsWith("acc:doc.submit/") && e.observes);
+  assert.ok(observed);
+  const ids = [observed.id, "ret:doc.create", "ret:doc.update", "ret:record.export"];
+  const root = mkdtempSync(join(tmpdir(), "eval-world-"));
+  try {
+    mkdirSync(join(root, "packages/evals/src"), { recursive: true });
+    symlinkSync(join(import.meta.dirname, "record-status.ts"), join(root, "packages/evals/src/record-status.ts"));
+    mkdirSync(join(root, "spikes/skeleton"), { recursive: true });
+    mkdirSync(join(root, "status"));
+    writeFileSync(join(root, "environment.json"), JSON.stringify({ world: "slice-zero", storage: "postgres", indexer: "ponder", stack: "postgres-ponder-erpnext-v4", components: { core: "abc1234" } }));
+    writeFileSync(join(root, "prepare.mjs"), `
+import assert from 'node:assert/strict';
+import {readFileSync,writeFileSync} from 'node:fs';
+const dir=process.env.CAPXUL_EVAL_RUN_DIR;
+const receipt=JSON.parse(readFileSync(dir+'/receipt.json'));
+assert.equal(receipt.state,'running');
+assert(receipt.scripts.every(s=>s.exitCode===null));
+const status=JSON.parse(readFileSync('status/status.json'));
+assert(receipt.requested.every(id=>status.evals[id].verdict==='not_run'));
+writeFileSync(dir+'/prepared.json',JSON.stringify(receipt));
+console.log('@check\\tB1.done\\tpass\\t1\\tnot binding evidence');
+`);
+    writeFileSync(join(root, "argv.json"), JSON.stringify([process.execPath, "prepare.mjs"]));
+    writeFileSync(join(root, "supported.sh"), `test -f "$CAPXUL_EVAL_RUN_DIR/prepared.json" || exit 9\nprintf yes > "$CAPXUL_EVAL_RUN_DIR/supported-ran"\nprintf '@check\\tB1.done\\tpass\\t1\\tactual selected check\\n'`);
+    for (const mode of ["other-world", "skeleton", "skeleton-wrong-alias", "shared-script"]) {
+      const script = mode.startsWith("skeleton") ? "spikes/skeleton/run.sh" : "unsupported.sh";
+      const files = [{ source: "supported.json", area: "supported", script: "supported.sh", worlds: ["slice-zero"], secrets: [], near: [],
+        bindings: [{ eval: ids[0]!, checks: ["B1.done"], why: "supported selected-world check" }] },
+      { source: "unsupported.json", area: "unsupported", script, worlds: mode === "skeleton-wrong-alias" ? ["slice-zero"] : ["main"], secrets: [], near: [],
+        bindings: [{ eval: ids[1]!, checks: ["B1.done"], why: "cannot prove another world's contract" }] }];
+      if (mode === "shared-script") files.push({ source: "shared.json", area: "shared", script, worlds: ["slice-zero"], secrets: [], near: [],
+        bindings: [{ eval: ids[2]!, checks: ["B1.done"], why: "a mixed-world script plan must not launch" }] });
+      const loaded = loadBindings(files, { evals: new Set(ids), scripts: new Map(["supported.sh", script].map((s) => [s, parseScriptList("B1.done\tcheck")])) });
+      assert.ok(loaded.ok);
+      writeFileSync(join(root, script), 'printf forbidden > "$CAPXUL_EVAL_RUN_DIR/unsupported-ran"\nprintf "@check\\tB1.done\\tpass\\t1\\tforbidden\\n"');
+      writeFileSync(join(root, "status/status.json"), JSON.stringify({ version: 1, evals: Object.fromEntries(ids.map((id) => [id, { verdict: "pass", commit: "old", at: "2026-01-01T00:00:00Z" }])) }));
+      const options = { world: "slice-zero", slug: "test", environment: "environment.json", prepare: "argv.json" };
+      assert.equal(await executeRun(root, target.blueprint, loaded.value, ids, options, "abc1234", []), 1, mode);
+      const dir = join(root, "status/runs", readdirSync(join(root, "status/runs")).sort().at(-1)!);
+      const parsed = parseRunReceipt(JSON.parse(readFileSync(join(dir, "receipt.json"), "utf8")));
+      assert.ok(parsed.ok);
+      const receipt = parsed.value;
+      assert.equal(receipt.state, "incomplete", mode);
+      assert.deepEqual(receipt.requested, ids);
+      assert.deepEqual(receipt.evals, target.blueprint.evals.filter((e) => ids.includes(e.id)).map(({ id, claim, observes }) => ({ id, claim, ...(observes === undefined ? {} : { observes }) })));
+      assert.deepEqual(receipt.scripts, [{ script: "supported.sh", exitCode: 0, signal: null }, { script, exitCode: null, signal: null }]);
+      assert.equal(receipt.prepare?.exitCode, 0);
+      const before = JSON.parse(readFileSync(join(dir, "prepared.json"), "utf8"));
+      assert.deepEqual(before.requested, ids);
+      assert.equal(before.id, receipt.id);
+      assert.equal(before.at, receipt.at);
+      assert.equal(before.commit, receipt.commit);
+      assert.equal(readdirSync(dir).includes("supported-ran"), true);
+      assert.equal(readdirSync(dir).includes("unsupported-ran"), false, mode);
+      assert.match(readFileSync(join(dir, "run.log"), "utf8"), /skipped.*(?:does not support world slice-zero|JSON skeleton)/);
+      for (const file of [join(dir, "status.json"), join(root, "status/status.json")]) {
+        const status = parseStatus(JSON.parse(readFileSync(file, "utf8")));
+        assert.ok(status.ok);
+        for (const id of ids) {
+          assert.equal(status.value.evals[id]?.verdict, "not_run");
+          assert.equal(status.value.evals[id]?.run, receipt.id);
+        }
+      }
+      assert.match(readFileSync(join(dir, "evidence/ret-doc.create.txt"), "utf8"), /skipped.*(?:does not support world slice-zero|JSON skeleton)/);
+      // Unsupported unrequested plans must not prevent a fully supported selection from passing.
+      assert.equal(await executeRun(root, target.blueprint, loaded.value, [ids[0]!], options, "abc1234", []), 0);
+      // Even with no preparation and no runnable plans, preserve the unsupported request in an incomplete attempt.
+      assert.equal(await executeRun(root, target.blueprint, loaded.value, [ids[1]!], { world: "slice-zero", slug: "test", environment: "environment.json" }, "abc1234", []), 1);
+      const only = join(root, "status/runs", readdirSync(join(root, "status/runs")).sort().at(-1)!);
+      const skipped = parseRunReceipt(JSON.parse(readFileSync(join(only, "receipt.json"), "utf8")));
+      assert.ok(skipped.ok);
+      assert.equal(skipped.value.state, "incomplete");
+      assert.deepEqual(skipped.value.requested, [ids[1]]);
+      assert.deepEqual(skipped.value.scripts, [{ script, exitCode: null, signal: null }]);
+      assert.equal(readdirSync(only).includes("unsupported-ran"), false);
+    }
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test("a check consuming stdin cannot swallow the next concept's registered checks", () => {
   const root = mkdtempSync(join(tmpdir(), "eval-dispatch-"));
   try {
