@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Database, readSnapshotCut, rewriteRestoredWorld, updateWorldClock } from "@capxul/backend/devnet";
+import { canaryBundlerKeys, prepareBundler, suppliedAlto } from "../modules/bundler/service.ts";
 import { composeBench } from "./bench.ts";
 import { psqlAdmin, readSnapshot, restoreSnapshot, saveSnapshot, type World } from "./door.ts";
 import { localRuntime } from "./runtime.ts";
@@ -32,6 +33,12 @@ export async function composeWorld(configFile: string) {
         await store(c, world, (db) => rewriteRestoredWorld(db, { ...input, coreUrl: loopback(c.ports.publicCore) }));
         await writeFile(join(world.stateDir, "clock.json"), JSON.stringify(input.clock), { mode: 0o600 });
         c.world = world;
+        const deployment = JSON.parse(await readFile(join(world.stateDir, "deployment.json"), "utf8"));
+        if (deployment.paymaster) {
+          assert(c.ports.bundler, "restored sponsor requires an assigned private bundler port");
+          c.bundler = suppliedAlto({ ...canaryBundlerKeys(), paymaster: deployment.paymaster,
+            rpcUrl: loopback(c.ports.anvil), port: c.ports.bundler, executable: join(c.root, "packages/devnet/node_modules/.bin/alto") });
+        }
         await writeConfig(configFile, c);
       },
     },
@@ -92,6 +99,7 @@ export async function createWorld(configFile: string): Promise<void> {
     await command(["pnpm", "--filter", "@capxul/backend", "migrate"], c.root, env);
     await host.start("anvil");
     await initializeDeployment(c);
+    await writeConfig(configFile, c);
     await command([process.execPath, "packages/devnet/orb/prepare-chain.mjs"], c.root, {
       ...runtimeEnv(c, "anvil"), RPC_URL: loopback(c.ports.anvil), DEPLOYMENT_FILE: join(c.world.stateDir, "deployment.json"),
     });
@@ -120,9 +128,14 @@ async function initializeDeployment(c: Config) {
   const hash = await chain.walletFor(testKey("deployer").key).deployContract({ abi: token.abi, bytecode: token.bytecode.object, args: ["World test USD", "USDC", 6] });
   const receipt = await chain.client.waitForTransactionReceipt({ hash });
   if (!receipt.contractAddress) throw new Error("test currency deployment failed");
+  assert(c.ports.bundler, "fresh sponsor setup requires an assigned private bundler port");
+  const paymasterArtifact = JSON.parse(await readFile(join(c.root, "packages/contracts/out/MockPaymaster.sol/MockPaymaster.json"), "utf8"));
+  const sponsor = await prepareBundler({ chain, fundingKey: testKey("deployer").key, paymasterArtifact });
+  c.bundler = suppliedAlto({ ...sponsor, rpcUrl: chain.rpcUrl, port: c.ports.bundler,
+    executable: join(c.root, "packages/devnet/node_modules/.bin/alto") });
   // Ponder starts before company birth, and the deployment shape never changes on restore.
   await writeFile(join(c.world.stateDir, "deployment.json"), JSON.stringify({ chainId: c.chainId, usdc: receipt.contractAddress,
     payments: record.contracts.Payments.address, hats: THIRD_PARTY.hats, installer: record.contracts.Installer.address,
     budgets: record.contracts.Budgets.address, agreements: record.contracts.Agreements.address, agentOwner: record.contracts.AgentOwner.address,
-    companiesHouse: record.companiesHouse, deployedBlock: Number(receipt.blockNumber) }), { flag: "wx", mode: 0o600 });
+    companiesHouse: record.companiesHouse, paymaster: sponsor.paymaster, deployedBlock: Number(receipt.blockNumber) }), { flag: "wx", mode: 0o600 });
 }

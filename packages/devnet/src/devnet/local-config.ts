@@ -7,7 +7,7 @@ import { writeConfig, type Config } from "./supervisor.ts";
 /** Local disposable defaults. Secrets stay under var, outside snapshots and version control. */
 export async function initializeConfig(file: string, id: string, basePort = 18000): Promise<Config> {
   if (!/^[a-z][a-z0-9]{0,11}$/.test(id)) throw new Error("world id must be 1–12 lowercase alphanumeric characters, starting with a letter");
-  if (!Number.isSafeInteger(basePort) || basePort < 1024 || basePort + 9 > 65535) throw new Error("world needs ten consecutive unprivileged ports");
+  if (!Number.isSafeInteger(basePort) || basePort < 1024 || basePort + 10 > 65535) throw new Error("world needs eleven consecutive unprivileged ports");
   try { await access(file); throw new Error("config already exists"); } catch (e: any) { if (e.code !== "ENOENT") throw e; }
   const root = resolve(import.meta.dirname, "../../../..");
   const required = (key: string) => { if (!process.env[key]) throw new Error(`${key} required; source the orb's runtime environment`); return process.env[key]!; };
@@ -23,7 +23,7 @@ export async function initializeConfig(file: string, id: string, basePort = 1800
     version: 1, root, controlDir, snapshots: join(root, "var/world-snapshots"), codeVersion: await command(["git", "rev-parse", "HEAD"], root),
     world: { id, kind: "local", database: `world_${id}`, stateDir: join(controlDir, "state"), sites: [], epoch: 1 },
     ports: { anvil: basePort, ponder: basePort + 1, core: basePort + 2, siteService: basePort + 3, bench: basePort + 4, socket: basePort + 5,
-      publicCore: basePort + 6, publicRpc: basePort + 7, publicBench: basePort + 8, publicBundler: basePort + 9 },
+      publicCore: basePort + 6, publicRpc: basePort + 7, publicBench: basePort + 8, publicBundler: basePort + 9, bundler: basePort + 10 },
     database,
     secret: random(), siteToken: random(), finality: 0, chainId: 84532,
     bench: { composeArgs: ["--env-file", join(controlDir, "env/compose.env"), "-f", join(root, "packages/bench-image/compose.yaml"), "-f", join(root, "packages/devnet/src/devnet/compose.yaml"), "-p", `world-${id}`],
