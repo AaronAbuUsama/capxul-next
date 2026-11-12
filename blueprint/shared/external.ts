@@ -1415,8 +1415,10 @@ export const contract_safe = defineContract({
     ApproveHash: { signature: "ApproveHash(bytes32 indexed approvedHash, address indexed owner)", about: "A Director approved a proposal." },
     ExecutionSuccess: { signature: "ExecutionSuccess(bytes32 indexed txHash, uint256 payment)", about: "A proposal executed." },
     ExecutionFailure: { signature: "ExecutionFailure(bytes32 indexed txHash, uint256 payment)", about: "A proposal ran and failed." },
-    AddedOwner: { signature: "AddedOwner(address owner)", about: "A signer added (a Director seated)." },
-    RemovedOwner: { signature: "RemovedOwner(address owner)", about: "A signer removed." },
+    // The owner is indexed in Safe 1.5.0: on the seeded world each AddedOwner and RemovedOwner log has two topics and no
+    // data (eth_getLogs, 12 November 2026, docs/mission/world-cost.md); the old indexer's ABI had it unindexed.
+    AddedOwner: { signature: "AddedOwner(address indexed owner)", about: "A signer added (a Director seated)." },
+    RemovedOwner: { signature: "RemovedOwner(address indexed owner)", about: "A signer removed." },
     ChangedThreshold: { signature: "ChangedThreshold(uint256 threshold)", about: "The threshold changed." },
   },
   was: [`${SAFE}:26`, "apps/indexer/src/abis.ts:12"],
