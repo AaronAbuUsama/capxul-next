@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@capxul/sdk": "workspace:*",
+    "@pimlico/alto": "0.0.21",
     "viem": "catalog:"
   },
   "devDependencies": {

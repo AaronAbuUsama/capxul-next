@@ -671,7 +671,7 @@ export const environment_devnet = defineEnvironment({
     "a local stand-in.",
   runs: [
     { component: component_chain, on: "Anvil forking Base Sepolia (84532) at a pinned block, 127.0.0.1:8545; Companies House deploys and verifies every v4 contract at `up`." },
-    { component: component_bundler_paymaster, on: "Only in the canary world (devnet.lean-world, point 3): alto on 127.0.0.1:4337 behind the mock paymaster on 127.0.0.1:4338, which sponsors every operation. Other worlds have none." },
+    { component: component_bundler_paymaster, on: "Canary only: foreground Alto on a world-assigned loopback port, with a funded accept-all MockPaymaster at EntryPoint v0.7 (devnet.canary-alto). Empty paymasterData needs no signed sponsor server; staging policy is not proven. Other worlds have none." },
     { component: component_postgres, on: "A real Postgres server on loopback (aaron.postgres-and-ponder), one database per world with the `app` and `ponder` schemas and row-level security on." },
     { component: component_ponder, on: "Ponder on the world's database, polling the Anvil node every 100 ms or subscribed to new heads, so a stop never waits half a second a block; stopped while the world is parked." },
     { component: component_backend, on: "The backend's devnet build on loopback, on the world's database, with the devnet integration layers (fakes) and devnet-only rpcs." },

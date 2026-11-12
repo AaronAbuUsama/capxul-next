@@ -3,7 +3,10 @@
 // DEVNET_RPC names that chain: `DEVNET_RPC=http://127.0.0.1:18545 pnpm devnet:test`.
 
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { readFile } from "node:fs/promises";
+import { createServer } from "node:net";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -13,7 +16,8 @@ import { encodeFunctionData, keccak256, stringToHex, type Abi, type Hex } from "
 import { connect, send } from "../chain/service.ts";
 import type { DeploymentRecord } from "../protocol/types.ts";
 import { testKey } from "../test-keys/service.ts";
-import { approvedBy, approveProposal, claimPersonalSafe, createCompany, createDepartment, ENTRY_POINT, ENTRY_POINT_V07, ERC20, grantHat, leftOf, pay, payByUserOp, proposeGrant, revokeHat, setBudget, viaEntryPoint, wears, type Protocol } from "./service.ts";
+import { httpTransport, prepareBundler, probeBundler, suppliedAlto } from "../bundler/service.ts";
+import { approvedBy, approveProposal, claimPersonalSafe, createCompany, createDepartment, ENTRY_POINT, ENTRY_POINT_V07, ERC20, grantHat, leftOf, pay, payByUserOp, proposeGrant, revokeHat, setBudget, viaBundler, viaEntryPoint, wears, type Protocol } from "./service.ts";
 
 const rpc = process.env.DEVNET_RPC;
 const contracts = join(fileURLToPath(new URL(".", import.meta.url)), "../../../../contracts");
@@ -109,7 +113,7 @@ test("with a second Director, a grant waits as a Board proposal until that Direc
   await assert.rejects(approveProposal(p, company, first, director), /STALE_PROPOSAL/);
 });
 
-test("a hat worn by a personal Safe pays by UserOperation through the EntryPoint, with a paymaster paying the gas", { skip: rpc === undefined && "DEVNET_RPC is not set" }, async () => {
+for (const ingress of ["direct EntryPoint", "Alto RPC / SIGINT", "Alto RPC / SIGTERM"] as const) test(`a hat worn by a personal Safe pays by UserOperation through ${ingress}, with a paymaster paying the gas`, { skip: rpc === undefined && "DEVNET_RPC is not set", timeout: 120_000 }, async (t) => {
   const chain = await connect(rpc as string);
   const record = JSON.parse(await readFile(join(contracts, "deployments/devnet.json"), "utf8")) as DeploymentRecord;
   const artifact = async (file: string, name: string) => JSON.parse(await readFile(join(contracts, "out", file, `${name}.json`), "utf8")) as { abi: Abi; bytecode: { object: Hex } };
@@ -121,8 +125,39 @@ test("a hat worn by a personal Safe pays by UserOperation through the EntryPoint
     return { address: (await chain.client.waitForTransactionReceipt({ hash: h })).contractAddress as Hex, abi: a.abi };
   };
   const token = (await deploy("MockERC20.sol", "MockERC20", ["Test USD", "TUSD", 6])).address;
-  const paymaster = await deploy("MockPaymaster.sol", "MockPaymaster", [ENTRY_POINT_V07]);
-  await send(chain, { from: deployer.key, to: ENTRY_POINT_V07, value: 10n ** 18n, data: encodeFunctionData({ abi: ENTRY_POINT, functionName: "depositTo", args: [paymaster.address] }) });
+  const prepared = await prepareBundler({ chain, fundingKey: deployer.key, paymasterArtifact: await artifact("MockPaymaster.sol", "MockPaymaster") });
+  const paymaster = { address: prepared.paymaster };
+  const setupNonce = await chain.client.getTransactionCount({ address: deployer.address });
+  await prepareBundler({ chain, fundingKey: deployer.key, paymasterArtifact: await artifact("MockPaymaster.sol", "MockPaymaster"), paymaster: prepared.paymaster });
+  assert.equal(await chain.client.getTransactionCount({ address: deployer.address }), setupNonce, "reusing fully funded setup sends no transactions");
+  let bundlerUrl: string | undefined;
+  if (ingress !== "direct EntryPoint") {
+    const socket = createServer();
+    await new Promise<void>(r => socket.listen(0, "127.0.0.1", r));
+    const port = (socket.address() as { port: number }).port;
+    await new Promise<void>(r => socket.close(() => r()));
+    const config = suppliedAlto({ ...prepared, rpcUrl: chain.rpcUrl, port, executable: join(contracts, "../devnet/node_modules/.bin/alto") });
+    const child = spawn(config.argv[0]!, config.argv.slice(1), { env: { PATH: process.env.PATH, HOME: process.env.HOME, ...config.env }, stdio: ["ignore", "pipe", "pipe"] });
+    let output = "";
+    child.stdout.on("data", b => { output += b; }); child.stderr.on("data", b => { output += b; });
+    const exited = once(child, "exit");
+    t.after(async () => {
+      const stopSignal = ingress.endsWith("SIGTERM") ? "SIGTERM" : "SIGINT";
+      child.kill(stopSignal);
+      const [code, signal] = await exited;
+      assert.deepEqual([code, signal], [0, null], `foreground Alto shuts down cleanly on ${stopSignal}`);
+      assert.equal(await fetch(config.url).then(() => true, () => false), false, "no listener remains after Alto exits");
+    });
+    const deadline = Date.now() + 60_000;
+    for (;;) {
+      if (child.exitCode !== null) throw new Error(`Alto exited before readiness: ${output.replace(/0x[0-9a-fA-F]{64}/g, "[redacted]")}`);
+      try { await probeBundler(config.url); break; } catch {
+        if (Date.now() > deadline) throw new Error("Alto readiness timed out");
+        await new Promise(r => setTimeout(r, 200));
+      }
+    }
+    bundlerUrl = config.url;
+  }
 
   const name = `userop-test-${Date.now()}`;
   const company = await createCompany(p, { tierService: testKey("tierService").key, relayer: deployer.key, founder: testKey("founder").key }, {
@@ -141,16 +176,36 @@ test("a hat worn by a personal Safe pays by UserOperation through the EntryPoint
   const gasBefore = await chain.client.getBalance({ address: safe });
   const payee = testKey("payee").address;
   const before = await chain.client.readContract({ address: token, abi: ERC20, functionName: "balanceOf", args: [payee] });
-  const submit = viaEntryPoint(chain, deployer.key);
+  const submit = bundlerUrl ? viaBundler(bundlerUrl) : viaEntryPoint(chain, deployer.key);
   const paid = await payByUserOp(p, { safe, ownerKey: holder.key, paymaster: paymaster.address, submit, budget: department, to: payee, amount: 125_500_000n, kind: 1, documentHash: hash(`${name} PINV-0001`), jobNonce: hash(`${name} job 1`) });
   assert.equal(paid.ok, true, JSON.stringify(paid, (_k, v) => (typeof v === "bigint" ? v.toString() : v)));
   assert.match(paid.ok ? (paid.userOpHash ?? "") : "", /^0x[0-9a-f]{64}$/, "the payment names its UserOperation");
   const after = await chain.client.readContract({ address: token, abi: ERC20, functionName: "balanceOf", args: [payee] });
   assert.equal(after - before, 125_500_000n, "the payee gained exactly 125.50");
   assert.equal(await chain.client.getBalance({ address: safe }), gasBefore, "the paymaster paid the gas, not the Safe");
+  if (bundlerUrl) {
+    assert.ok(paid.ok);
+    const carrying = await chain.client.getTransaction({ hash: paid.txHash });
+    assert.equal(carrying.from.toLowerCase(), chain.walletFor(prepared.executorKey).account.address.toLowerCase(), "the dedicated Alto executor carried the operation, not a direct relayer fallback");
+    assert.equal(carrying.to?.toLowerCase(), ENTRY_POINT_V07.toLowerCase());
+    t.diagnostic(`Alto receipt: ${paid.ok && paid.txHash}; UserOperation: ${paid.ok && paid.userOpHash}; supplier received 125500000 units`);
+    const real = httpTransport(bundlerUrl);
+    let sends = 0;
+    const uncertain = viaBundler(bundlerUrl, { async request(method, params) {
+      const answer = await real.request(method, params);
+      if (method === "eth_sendUserOperation") { sends++; throw new Error("simulated lost reply after actual acceptance"); }
+      return answer;
+    } });
+    const recovered = await payByUserOp(p, { safe, ownerKey: holder.key, paymaster: paymaster.address, submit: uncertain, budget: department, to: payee, amount: 3_250_000n, kind: 1, documentHash: hash(`${name} PINV-0002`), jobNonce: hash(`${name} job 2`) });
+    assert.equal(recovered.ok, true);
+    assert.equal(sends, 1, "uncertain send is never broadcast twice");
+    assert.equal((await chain.client.readContract({ address: token, abi: ERC20, functionName: "balanceOf", args: [payee] })) - after, 3_250_000n, "lost reply recovery paid the second invoice exactly once");
+    t.diagnostic(`Lost-reply recovery receipt: ${recovered.ok && recovered.txHash}; single broadcast; supplier received 3250000 units`);
+  }
 
   const wrongSigner = await payByUserOp(p, { safe, ownerKey: testKey("stranger").key, paymaster: paymaster.address, submit, budget: department, to: payee, amount: UNIT, kind: 1, documentHash: hash("w"), jobNonce: hash(`${name} w`) }).catch((e: Error) => e);
   assert.ok(wrongSigner instanceof Error, "an op signed by someone who does not own the Safe is refused by the EntryPoint");
+  if (bundlerUrl) assert.equal((wrongSigner as Error & { code: string }).code, "TRANSACTION_FAILED", "real Alto validation rejection maps to the public provider code");
   const over = await payByUserOp(p, { safe, ownerKey: holder.key, paymaster: paymaster.address, submit, budget: department, to: payee, amount: 5_000n * UNIT, kind: 1, documentHash: hash("y"), jobNonce: hash(`${name} y`) });
   assert.deepEqual([over.ok, !over.ok && over.reason], [false, "OVER_BUDGET"]);
 });
