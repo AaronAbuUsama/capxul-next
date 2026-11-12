@@ -386,4 +386,15 @@ export const decision_plugs_later_deposits = dec({
   affects: [f.component_frappe_app, integration_frappe_site, pr.workflow_plugs_books_founder_capital],
 });
 
+export const decision_plugs_answer_origin = dec({
+  id: "plugs.answer-origin",
+  title: "Retry the saved approval link; rewrite origins only during restore",
+  question: "How can a lost answer acknowledgement survive a changed gateway origin without conflicting with the site's accepted answer?",
+  options: [{ label: "saved-answer-explicit-rewrite", text: "Core commits the complete answer, including its approval URL, before sending it. Ordinary restart or reconnect replays that answer exactly even when CORE_URL changed. Explicit clone/restore, while both Core and the site are paused, rewrites the transport origin in Core's saved answers and the site's answer_json, request approval URLs and Payment Entry approval URLs to the restored world's public Core origin. Approval identities, request bodies except restored site names, statuses, posted money and hashed records do not change. Resume only after both rewrites succeed." }],
+  chosen: "saved-answer-explicit-rewrite",
+  why: "A site commits an answer before Core knows it was accepted. Regenerating the URL from runtime configuration makes a legitimate retry conflict with the full answer_json. Persisting the exact answer closes that crash window; coordinated explicit restore rebasing keeps links inside the cloned world without weakening conflicting-answer checks or rewriting financial history.",
+  evidence: "PR #34 mirror finding 4548573454, 12 November 2026; capxul.payments.answer_request durable answer comparison",
+  affects: [f.component_frappe_app, integration_frappe_site, d.table_payment_requests, d.table_site_request_cursors, pr.workflow_plugs_payments_collect],
+});
+
 void ops; 
