@@ -14,7 +14,10 @@ export type Emit = (sql: Sql, props: NoticeEvent, at: number, id: string, trace:
 export type WorldNow = (sql: Sql) => Promise<number>;
 export type Outcome = { id: string } | { error: { code: "PROVIDER_ERROR" | "RATE_LIMITED" | "INVALID_INPUT"; message: string } };
 
-export const providerKey = (recipient: string, notice: string) => JSON.stringify([recipient, notice]);
+export const providerKey = (recipient: string, notice: string) => {
+  const identity = JSON.stringify([recipient, notice]);
+  return identity.length <= 256 ? identity : `notice:${createHash("sha256").update(identity).digest("hex")}`;
+};
 
 /** Called only by the committed-source workflow, using its caller transaction. Not an RPC. */
 export async function planDelivery(sql: Sql, input: Intent, at: number) {

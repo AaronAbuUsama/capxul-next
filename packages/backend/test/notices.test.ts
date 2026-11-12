@@ -229,7 +229,10 @@ test("source SQL failures keep healthy recipients, back off five retries, and st
 });
 
 test("SIGKILL after provider acceptance resumes the original intent and emits one canonical event", { timeout: 15_000 }, async () => {
-  const i = intent(randomUUID()); await db.transaction("", (sql) => planDelivery(sql, i, instant), true);
+  const id = randomUUID();
+  const i = { ...intent(id), recipient: `${id}${"a".repeat(28)}@${"b".repeat(63)}.${"c".repeat(63)}.${"d".repeat(11)}` };
+  assert.equal(JSON.stringify([i.recipient,i.notice_id]).length,260);
+  await db.transaction("", (sql) => planDelivery(sql, i, instant), true);
   const messages: unknown[] = [], accepted = new Map<string,string>();
   let confirm!: () => void;
   const taken = new Promise<void>((done) => { confirm = done; });

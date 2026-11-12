@@ -85,6 +85,20 @@ export const decision_notices_postgres_execution = defineDecision({
   affects: [table_notices, machine_notice, event_notice_transitioned, workflow_notices_delivery_retry, workflow_notices_payments_money_reminders],
 });
 
+export const decision_notices_provider_key_bound = defineDecision({
+  id: "notices.provider-key-bound",
+  title: "Bound oversized Mail identities without changing existing short replay keys",
+  question: "How does a valid long mailbox keep stable delivery replay within Mail's 256-character provider-key limit?",
+  options: [
+    { label: "bounded-identity", text: "Keep the serialized recipient/notice tuple unchanged through 256 characters; above that use notice: plus the SHA-256 hex digest of the entire serialized tuple." },
+    { label: "raw-identity", text: "Always send the complete serialized tuple and refuse mail whose identity exceeds the provider limit." },
+  ],
+  chosen: "bounded-identity",
+  why: "A valid 204-character mailbox with a beta-welcome UUID produces a 260-character serialized tuple, so the actual Mail adapter refuses it before transport. Hashing the full tuple bounds only oversized keys without truncating distinguishing suffixes. Existing in-limit keys remain byte-for-byte unchanged; retries and process restarts derive the same bounded identity. Delivery records retain the original mailbox and notice id, not the provider digest.",
+  source: "Notices PR68 mirror finding4549841194 reproduced through shared Mail, 12 November 2026; notices.delivery-record; notices.first-attempt; notices.postgres-execution",
+  affects: [table_notices, machine_notice, workflow_notices_delivery_retry],
+});
+
 /** The workflows that tell an Organization through its Directors. */
 const TO_DIRECTORS = [
   workflow_notices_board_threshold_changed,
