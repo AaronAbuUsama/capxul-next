@@ -104,6 +104,9 @@ request from the thread "Validate the blueprint audit findings":
 - **Fixed:** the `books` concept now says what `cut.books` ruled (ERPNext owns the chart, reports and exports).
 - **Fixed:** the `devnet` and `shared-world` environments and the `backend` component now describe the lean world
   (`devnet.lean-world`: one SQLite service, chain reader folded in, a bundler only in the canary world).
+  **Since replaced (12 November):** Aaron chose one architecture everywhere, `aaron.postgres-and-ponder`: Postgres holds
+  Capxul's data (`app` schema) and Ponder's index (`ponder` schema) in every environment, worlds included; MariaDB holds
+  only the Frappe sites. It supersedes `devnet.lean-world` and answers `devnet.core-service-home`.
 - **Fixed:** `docs/blueprint-guide.md`'s three false statements and `docs/blueprint.md`'s swarmD factory text; the
   trial balance mapping in `cut.ts`; payroll's "UK filing" wording (now `aaron.jurisdiction-open`).
 - **On the Questions page, waiting for Aaron** (`blueprint/shared/questions.ts`): `thin-line.bundler` and

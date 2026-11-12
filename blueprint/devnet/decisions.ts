@@ -95,7 +95,7 @@ export const decision_devnet_own_schema = defineDecision({
   options: [
   {
     "label": "current-scope",
-    "text": "Devnet-only faults, mail and world metadata must not be production business data. Lean worlds keep this state in their own SQLite service database, not a mandatory Postgres devnet schema. Staging/production never migrate test controls."
+    "text": "Devnet-only faults, mail and world metadata must not be production business data. Worlds keep this state in their own database's devnet tables (aaron.postgres-and-ponder: one Postgres database per world). Staging/production never migrate test controls."
   },
   {
     "label": "historical",
@@ -104,7 +104,7 @@ export const decision_devnet_own_schema = defineDecision({
 ],
   chosen: "current-scope",
   why:
-    "Review, 11 November 2026: Devnet-only faults, mail and world metadata must not be production business data. Lean worlds keep this state in their own SQLite service database, not a mandatory Postgres devnet schema. Staging/production never migrate test controls. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+    "Review, 11 November 2026: Devnet-only faults, mail and world metadata must not be production business data. Worlds keep this state in their own database's devnet tables (aaron.postgres-and-ponder: one Postgres database per world). Staging/production never migrate test controls. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
   source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [...TABLES, concept_devnet, environment_devnet],
 });
@@ -1455,7 +1455,7 @@ export const decision_devnet_stateful_followers = defineDecision({
   options: [
   {
     "label": "current-scope",
-    "text": "A snapshot saves chain, lean-service SQLite state and every company site backup with files as one world lineage. Restore freezes the clock and restores every manifest component before following resumes, including into another world. Missing required component state refuses before partial restore. Hosted FDE namespaces are parked."
+    "text": "A snapshot saves chain, the world's Postgres database (both schemas; aaron.postgres-and-ponder) and every company site backup with files as one world lineage. Restore freezes the clock and restores every manifest component before following resumes, including into another world. Missing required component state refuses before partial restore. Hosted FDE namespaces are parked."
   },
   {
     "label": "historical",
@@ -1464,7 +1464,7 @@ export const decision_devnet_stateful_followers = defineDecision({
 ],
   chosen: "current-scope",
   why:
-    "Review, 11 November 2026: A snapshot saves chain, lean-service SQLite state and every company site backup with files as one world lineage. Restore freezes the clock and restores every manifest component before following resumes, including into another world. Missing required component state refuses before partial restore. Hosted FDE namespaces are parked. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+    "Review, 11 November 2026: A snapshot saves chain, the world's Postgres database (both schemas; aaron.postgres-and-ponder) and every company site backup with files as one world lineage. Restore freezes the clock and restores every manifest component before following resumes, including into another world. Missing required component state refuses before partial restore. Hosted FDE namespaces are parked. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
   source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [
     flow_devnet_time_follow, flow_devnet_snapshots_save, flow_devnet_snapshots_restore, worldOps.operation_world_snapshot_save,
