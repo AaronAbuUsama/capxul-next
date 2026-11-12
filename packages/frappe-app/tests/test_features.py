@@ -22,6 +22,8 @@ class NativeFeatures(unittest.TestCase):
         def get_all(doctype, *args, **kwargs):
             if doctype == "Capxul Feature":
                 return [types.SimpleNamespace(feature=k, enabled=v) for k, v in rows.items()]
+            if doctype == "DocType" and "HR" in args[0].get("module", ["in", []])[1]:
+                return [types.SimpleNamespace(name=dt, module="HR") for dt in ("Attendance", "Job Applicant", "Appraisal", "Leave Application")]
             return []
 
         frappe.get_all = get_all
@@ -88,6 +90,15 @@ class NativeFeatures(unittest.TestCase):
                     self.assertEqual([r["doctype"] for r in door.types(feature)["types"]], [dt])
                     self.assertEqual(door.schema(dt)["feature"], feature)
                     self.assertNotIn(dt, [r["doctype"] for r in door.types("people")["types"]])
+                    rows["people"] = 0
+                    self.assertTrue(features.has_permission(types.SimpleNamespace(doctype=dt)))
+                    self.assertEqual(features.query_conditions("member", dt), "")
+                    self.assertFalse(features.has_permission(types.SimpleNamespace(doctype="Leave Application")))
+                    self.assertEqual([r["doctype"] for r in door.types(feature)["types"]], [dt])
+                    user = types.SimpleNamespace(flags={}, get=lambda key: [], set=lambda key, value: setattr(user, key, value))
+                    features.apply_user_blocks(user)
+                    self.assertNotIn("HR", [r["module"] for r in user.block_modules])
+                    rows["people"] = 1
                     rows[feature] = 0
                     with self.assertRaises(features.FeatureNotAvailable):
                         door.types(feature)

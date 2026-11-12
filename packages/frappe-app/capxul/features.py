@@ -69,12 +69,19 @@ def _modules_of(feature):
 def _compute():
     """{doctype: feature} for every off feature, plus the off modules, prefixes and paths. Cached; cleared on every switch."""
     st, dts, mods, prefixes, paths = state(), {}, set(), [], []
+    owners = {dt: f for f, c in CATALOG.items() for dt in c.get("doctypes", [])}
+    reachable_modules = set()
     for f, c in CATALOG.items():
         if st[f] == "on":
             continue
         m = _modules_of(f)
         mods |= m
-        for d in frappe.get_all("DocType", {"module": ["in", list(m)]} if m else {"name": ""}, ["name"]):
+        for d in frappe.get_all("DocType", {"module": ["in", list(m)]} if m else {"name": ""}, ["name", "module"]):
+            owner = owners.get(d.name, f)
+            if owner != f:
+                if st[owner] == "on":
+                    reachable_modules.add(d.module)
+                continue
             if d.name not in SHARED_MASTERS.get(f, ()):
                 dts[d.name] = f
         # Pinned HRMS keeps these features' DocTypes in HR, not in their desk modules.
@@ -83,7 +90,7 @@ def _compute():
             prefixes.append((f"hrms.hr.doctype.{frappe.scrub(dt)}.", f))
         prefixes += [(p, f) for p in c.get("prefixes", [])]
         paths += [(p, f) for p in c.get("paths", [])]
-    return {"doctypes": dts, "modules": sorted(mods), "prefixes": prefixes, "paths": paths}
+    return {"doctypes": dts, "modules": sorted(mods - reachable_modules), "prefixes": prefixes, "paths": paths}
 
 
 def off_map():
