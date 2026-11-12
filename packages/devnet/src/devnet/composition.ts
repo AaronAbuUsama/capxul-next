@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { Database, readSnapshotCut, rewriteRestoredWorld, updateWorldClock } from "@capxul/backend/devnet";
 import { canaryBundlerKeys, prepareBundler, suppliedAlto } from "../modules/bundler/service.ts";
 import { composeBench } from "./bench.ts";
-import { psqlAdmin, readSnapshot, restoreSnapshot, saveSnapshot, type World } from "./door.ts";
+import { migrateCatalogue, psqlAdmin, readSnapshot, restoreSnapshot, saveSnapshot, type World } from "./door.ts";
 import { localRuntime } from "./runtime.ts";
 import { alive, command, supervised } from "./processes.ts";
 import { databaseUrl, httpReady, loopback, readConfig, stateFile, stop, up, writeConfig, type Config } from "./supervisor.ts";
@@ -97,6 +97,8 @@ export async function createWorld(configFile: string): Promise<void> {
     await copyFile(join(c.root, "packages/contracts/state/core.json"), join(c.world.stateDir, "anvil-state.json"));
     await admin(`CREATE DATABASE "${db}"`);
     await command(["pnpm", "--filter", "@capxul/backend", "migrate"], c.root, env);
+    // The world's own catalogue (worlds, snapshots, command records) sits beside Core's app schema in the same database.
+    await migrateCatalogue(psqlAdmin(databaseUrl(c.database.admin, c.world)));
     await host.start("anvil");
     await initializeDeployment(c);
     await writeConfig(configFile, c);

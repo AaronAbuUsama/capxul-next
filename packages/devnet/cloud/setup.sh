@@ -33,6 +33,11 @@ fi
 if ! docker compose version >/dev/null 2>&1; then
   sudo -n apt-get update -qq && (sudo -n apt-get install -y -qq docker-compose-plugin || sudo -n apt-get install -y -qq docker-compose) || true
 fi
+# Slice zero's screen checks drive a real browser through agent-browser (packages/evals/src/modules/acceptance/screens.ts).
+# A Claude container already has Chrome for Testing at /usr/bin/google-chrome, which agent-browser finds by itself.
+command -v agent-browser >/dev/null 2>&1 || npm i -g --silent agent-browser@0.42.0
+# The slice-zero supervisor starts its services through `amp orb service`; outside an Amp orb, a small stand-in does that.
+command -v amp >/dev/null 2>&1 || { mkdir -p "$HOME/.local/bin" && ln -sf "$HERE/amp" "$HOME/.local/bin/amp"; export PATH="$HOME/.local/bin:$PATH"; }
 export PATH="$TOOLS/bin:$PATH"
 export FOUNDRY_OFFLINE=true
 export FOUNDRY_SOLC="$TOOLS/solc-0.8.28/solc"   # the spike's chain-up needs "$TOOLS/solc-0.8.24/solc" instead
