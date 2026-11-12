@@ -56,9 +56,11 @@ export async function note(sql: Sql, event: ActivityEvent): Promise<void> {
   for (const owner of owners) {
     await sql.query(`insert into app.activity_changes
       (owner_id,owner_kind,seq,row_kind,row_id,change,transition,"from","to",event_id,changed_at)
-      select $1,$2,coalesce(max(seq),0)+1,$3,$4,
-        case when count(*) filter (where row_kind=$3 and row_id=$4)>0 then 'updated' else 'new' end,
-        $5,$6,$7,$8,$9 from app.activity_changes where owner_id=$1 and owner_kind=$2
+      select $1,$2,coalesce((select seq from app.activity_changes
+        where owner_id=$1 and owner_kind=$2 order by seq desc limit 1),0)+1,$3,$4,
+        case when exists(select 1 from app.activity_changes
+          where owner_id=$1 and owner_kind=$2 and row_kind=$3 and row_id=$4) then 'updated' else 'new' end,
+        $5,$6,$7,$8,$9
       on conflict (owner_id,owner_kind,event_id) do nothing`,
     [owner.id, owner.kind, rowKind, rowId, p.transition, p.from, p.to, event.id, event.at]);
   }
