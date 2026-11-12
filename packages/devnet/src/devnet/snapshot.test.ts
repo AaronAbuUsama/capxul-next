@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -174,6 +175,15 @@ test("native site backup crosses the host UID boundary without exposing archives
       assert.equal(info.mode & 0o077, 0, "no group/other access to keys or archives");
       assert(info.isDirectory() || (await readFile(file)).length > 0);
     }
+    await bench.resume();
+    const output = execFileSync("docker", ["compose", ...composeArgs, "ps", "--all", "--format", "json"], { encoding: "utf8" });
+    const rows = (output.trim().startsWith("[") ? JSON.parse(output) : output.trim().split("\n").filter(Boolean).map((line) => JSON.parse(line))) as { Service: string; State: string; Health: string }[];
+    for (const service of ["backend", "websocket", "queue-short", "queue-long", "scheduler", "frontend"]) {
+      const row = rows.find((row) => row.Service === service);
+      assert.equal(row?.State, "running", `${service} must be running when resume returns`);
+      assert.equal(row?.Health, "healthy", `${service} must be healthy when resume returns`);
+    }
+    assert.equal(bench.ownsPause(), false);
   } finally {
     if (bench.ownsPause()) await bench.resume();
     await rm(root, { recursive: true, force: true });
