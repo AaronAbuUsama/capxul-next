@@ -1,0 +1,8 @@
+eval     int:devnet-control.snapshotRestore/WRONG_STATE/c-8e7f2f1adce40d7a
+claim    when A stateful follower joined now is missing from the world's manifest (the refusal names it), callers see WRONG_STATE
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

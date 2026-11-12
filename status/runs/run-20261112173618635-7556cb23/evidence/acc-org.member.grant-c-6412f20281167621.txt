@@ -1,0 +1,9 @@
+eval     acc:org.member.grant/c-6412f20281167621
+claim    A grant is a Director proposal, applied once it executes.
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script   spikes/skeleton/run.sh  world slice-zero  company harbourline
+why      The run's company is born with a second Director (priya), so its Board threshold is both Directors. `hat grant --propose` makes a Board proposal: the founder's Safe approves the company Safe's batch on chain and `org proposal get` reads it waiting, approved by the founder and not by priya, while `org member get` shows elena wearing nothing. A non-Director's approval is refused (ROLE_PERMISSION_DENIED). After priya approves, the batch executes: the proposal reads applied with both approvals and a transaction, `org member get` shows elena wearing member, and the hat's mapped roles reach the site.
+skipped: does not support world slice-zero
+
+no check is bound to this eval, so nothing was run for it

@@ -1,0 +1,85 @@
+{
+  "key": [
+    "world_id",
+    "name"
+  ],
+  "checks": [
+    "CHECK ((clock_mode = ANY (ARRAY['frozen'::text, 'running'::text])))",
+    "CHECK ((epoch > 0))",
+    "CHECK (((rate >= 1) AND (rate <= 60)))",
+    "CHECK ((record_seq >= 0))",
+    "CHECK ((jsonb_typeof(site_backups) = 'array'::text))"
+  ],
+  "columns": [
+    {
+      "name": "world_id",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "name",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "epoch",
+      "type": "integer",
+      "nullable": false
+    },
+    {
+      "name": "record_seq",
+      "type": "bigint",
+      "nullable": false
+    },
+    {
+      "name": "chain_state_ref",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "site_backups",
+      "type": "jsonb",
+      "nullable": false
+    },
+    {
+      "name": "clock_mode",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "rate",
+      "type": "integer",
+      "nullable": false
+    },
+    {
+      "name": "world_now",
+      "type": "bigint",
+      "nullable": false
+    },
+    {
+      "name": "code_version",
+      "type": "text",
+      "nullable": false
+    },
+    {
+      "name": "template",
+      "type": "boolean",
+      "nullable": false
+    },
+    {
+      "name": "created_at",
+      "type": "bigint",
+      "nullable": false
+    }
+  ],
+  "indexes": [
+    {
+      "name": "world-snapshots-by-created",
+      "fields": [
+        "world_id",
+        "created_at"
+      ],
+      "unique": false
+    }
+  ]
+}

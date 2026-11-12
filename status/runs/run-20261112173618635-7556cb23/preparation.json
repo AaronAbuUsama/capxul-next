@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "run": {
+    "id": "run-20261112173618635-7556cb23",
+    "at": "2026-11-12T17:36:18.635Z",
+    "commit": "4beace167b1f3a010c2fe0c00d289058ddd71c93"
+  },
+  "world": {
+    "id": "s0f",
+    "epoch": 2
+  },
+  "kind": "fixture-preparation-not-journey-proof",
+  "phases": [
+    {
+      "name": "provisioned-readback",
+      "startedAt": "2026-11-12T17:36:20.408Z",
+      "finishedAt": "2026-11-12T17:40:33.604Z",
+      "sourcePath": "preparation/provisioned-readback.json"
+    },
+    {
+      "name": "requested-payment",
+      "startedAt": "2026-11-12T17:40:33.606Z",
+      "finishedAt": "2026-11-12T17:40:41.944Z",
+      "sourcePath": "preparation/requested-payment.json"
+    },
+    {
+      "name": "submitted-userop",
+      "startedAt": "2026-11-12T17:40:41.947Z",
+      "finishedAt": "2026-11-12T17:40:42.151Z",
+      "sourcePath": "preparation/submitted-userop.json"
+    },
+    {
+      "name": "settled-payment",
+      "startedAt": "2026-11-12T17:40:42.154Z",
+      "finishedAt": "2026-11-12T17:40:55.702Z",
+      "sourcePath": "preparation/settled-payment.json"
+    },
+    {
+      "name": "snapshot-save",
+      "startedAt": "2026-11-12T17:40:55.704Z",
+      "finishedAt": "2026-11-12T17:41:48.201Z",
+      "sourcePath": "preparation/snapshot-save.json"
+    },
+    {
+      "name": "snapshot-integrity",
+      "startedAt": "2026-11-12T17:41:48.202Z",
+      "finishedAt": "2026-11-12T17:41:48.620Z",
+      "sourcePath": "preparation/snapshot-integrity.json"
+    },
+    {
+      "name": "snapshot-restore",
+      "startedAt": "2026-11-12T17:41:48.624Z",
+      "finishedAt": "2026-11-12T17:42:52.738Z",
+      "sourcePath": "preparation/snapshot-restore.json"
+    },
+    {
+      "name": "restored-payment",
+      "startedAt": "2026-11-12T17:42:52.739Z",
+      "finishedAt": "2026-11-12T17:43:06.051Z",
+      "sourcePath": "preparation/restored-payment.json"
+    },
+    {
+      "name": "restored-world",
+      "startedAt": "2026-11-12T17:43:06.054Z",
+      "finishedAt": "2026-11-12T17:43:06.344Z",
+      "sourcePath": "preparation/restored-world.json"
+    }
+  ]
+}

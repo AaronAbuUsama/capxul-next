@@ -1,0 +1,8 @@
+eval     wfl:notices.payments.sent/idempotent
+claim    a second run with the same key (Per recipient, `<template>:<the transition's outbox id>`, the key of its notices row: a rerun skips every recipient already recorded, and a send lost before its record is repeated under the same provider idempotency key, taken once.) changes nothing
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

@@ -1,0 +1,61 @@
+{
+  "org": {
+    "slug": "harbourline",
+    "name": "harbourline Ltd",
+    "safe": "0x85c7953ec65bc8b18ef72f41fb057e31e5c53d27",
+    "site": "harbourline-s0f.localhost",
+    "adminEmail": "harbourline@example.invalid",
+    "token": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+    "released": true,
+    "hats": {
+      "5176310171469062170877577435450064728675957974811756324766859005001728": {
+        "name": "admin",
+        "department": null
+      }
+    },
+    "people": [
+      {
+        "email": "harbourline@example.invalid",
+        "name": "Harbourline Director",
+        "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+        "personalSafe": "0xf83778a1d673322d4c5c5020c305bbc770232ed9"
+      },
+      {
+        "email": "harbourline-member@example.invalid",
+        "name": "Harbourline Member",
+        "address": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
+        "personalSafe": "0x1b5a505f6f9d261f22f78068fc680c9492e08b17"
+      }
+    ]
+  },
+  "delivery": {
+    "slug": "harbourline",
+    "released": true,
+    "last_seq": "2",
+    "last_ack": "2",
+    "pending": [],
+    "events": [
+      {
+        "seq": "1",
+        "event_key": "84532:0x0076720550fde26c1369046c661a50d10548876bf51e6f4aa4b029d8c74f4201:1:hat_granted",
+        "kind": "hat_granted",
+        "state": "applied",
+        "attempts": 1,
+        "last_error": null,
+        "applied_at": "2026-11-12T17:40:15.864Z"
+      },
+      {
+        "seq": "2",
+        "event_key": "84532:0xb70c804473733bd7f12ac14bdc2f5b7cab1e7ea3a0abc428e6b6b5fe0b75b148:0",
+        "kind": "founder_capital",
+        "state": "applied",
+        "attempts": 1,
+        "last_error": null,
+        "applied_at": "2026-11-12T17:40:25.031Z"
+      }
+    ]
+  },
+  "company": "harbourline Ltd",
+  "site": "harbourline-s0f.localhost",
+  "safeAccount": "Capxul Safe (USDC) - HL"
+}

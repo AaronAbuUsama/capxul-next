@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "observedAt": "2026-11-12T17:43:06.344Z",
+  "codeVersion": "4beace167b1f3a010c2fe0c00d289058ddd71c93",
+  "stack": "postgres-ponder-erpnext-v4",
+  "world": {
+    "id": "s0f",
+    "epoch": 2,
+    "kind": "local",
+    "database": "world_s0f",
+    "sites": [
+      {
+        "company": "harbourline",
+        "name": "harbourline-s0f.localhost"
+      }
+    ]
+  },
+  "clock": {
+    "rate": 1,
+    "nowMs": 1794505330000,
+    "clockMode": "stopped"
+  },
+  "lineage": {
+    "snapshot": "slicezero_run_20261112173618635_7556cb23",
+    "recordSeq": 12,
+    "recordHead": "bd4c3b08457fc75afeff9b39de97337b2ff4b2a99fd39174a483d19d76f3f1f9",
+    "parentWorld": "s0f"
+  },
+  "records": {
+    "seq": 12,
+    "head": "bd4c3b08457fc75afeff9b39de97337b2ff4b2a99fd39174a483d19d76f3f1f9"
+  },
+  "components": {
+    "anvil": {
+      "pid": 14178,
+      "birth": "431587",
+      "codeVersion": "4beace167b1f3a010c2fe0c00d289058ddd71c93"
+    },
+    "ponder": {
+      "pid": 14204,
+      "birth": "431661",
+      "codeVersion": "4beace167b1f3a010c2fe0c00d289058ddd71c93"
+    },
+    "site-service": {
+      "pid": 15525,
+      "birth": "434543",
+      "codeVersion": "4beace167b1f3a010c2fe0c00d289058ddd71c93"
+    },
+    "core": {
+      "pid": 14349,
+      "birth": "432012",
+      "codeVersion": "4beace167b1f3a010c2fe0c00d289058ddd71c93"
+    },
+    "ingress": {
+      "pid": 15576,
+      "birth": "434599",
+      "codeVersion": "4beace167b1f3a010c2fe0c00d289058ddd71c93"
+    },
+    "bundler": {
+      "pid": 14273,
+      "birth": "431857",
+      "codeVersion": "4beace167b1f3a010c2fe0c00d289058ddd71c93"
+    }
+  },
+  "core": {
+    "ok": true,
+    "paused": false,
+    "storage": "postgres",
+    "indexer": "ponder",
+    "databaseSchemaVersion": "1",
+    "world": "s0f",
+    "ready": true,
+    "reason": "",
+    "head": 47893478,
+    "chainHead": 47893478,
+    "indexedBlockHash": "0x8bbdc17c59e755b29012a64ffa63766e49ef2125599603cc6360c2e2db653553",
+    "lastAdvanceAt": "2026-11-12T17:40:42.178Z",
+    "observedAt": "2026-11-12T17:43:06.087Z"
+  },
+  "chain": {
+    "chainId": 84532,
+    "blockNumber": "47893478",
+    "blockHash": "0x8bbdc17c59e755b29012a64ffa63766e49ef2125599603cc6360c2e2db653553"
+  },
+  "bench": [
+    {
+      "service": "backend",
+      "image": "sha256:94022e4f654645f0a8659545ca99c97bcfb98356c425164314ee6135f8f4b4f4",
+      "running": true,
+      "health": "healthy"
+    },
+    {
+      "service": "frontend",
+      "image": "sha256:94022e4f654645f0a8659545ca99c97bcfb98356c425164314ee6135f8f4b4f4",
+      "running": true,
+      "health": "healthy"
+    },
+    {
+      "service": "queue-long",
+      "image": "sha256:94022e4f654645f0a8659545ca99c97bcfb98356c425164314ee6135f8f4b4f4",
+      "running": true,
+      "health": null
+    },
+    {
+      "service": "queue-short",
+      "image": "sha256:94022e4f654645f0a8659545ca99c97bcfb98356c425164314ee6135f8f4b4f4",
+      "running": true,
+      "health": null
+    },
+    {
+      "service": "scheduler",
+      "image": "sha256:94022e4f654645f0a8659545ca99c97bcfb98356c425164314ee6135f8f4b4f4",
+      "running": true,
+      "health": null
+    },
+    {
+      "service": "websocket",
+      "image": "sha256:94022e4f654645f0a8659545ca99c97bcfb98356c425164314ee6135f8f4b4f4",
+      "running": true,
+      "health": "healthy"
+    }
+  ],
+  "bundlerConfigured": true
+}

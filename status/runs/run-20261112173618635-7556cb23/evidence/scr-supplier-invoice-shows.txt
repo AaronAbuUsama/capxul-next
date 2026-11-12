@@ -1,0 +1,13 @@
+eval     scr:supplier-invoice/shows
+claim    opened as admin, budget-holder on the thin-line world, every value equals its source, and a screenshot is kept
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script   packages/evals/src/modules/acceptance/run.sh  world slice-zero  company harbourline
+why      On the disposable selected-stack world, a signed-in hat holder opens the real invoice. Rendered company, supplier, currency, total and zero outstanding equal the API document and the allocated USDC payment. Each rendered field has a retained screenshot and source assertion.
+
+PASS  ACCEPT.selected-stack  x1  51 ms
+      source equality / expected alert transition established
+PASS  ACCEPT.money-reconciled  x1  1 ms
+      source equality / expected alert transition established
+PASS  ACCEPT.invoice-screen-source-equal  x1  4471 ms
+      source equality / expected alert transition established

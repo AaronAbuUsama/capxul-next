@@ -1,0 +1,11 @@
+eval     alr:money_event_parked/quiet
+claim    a healthy world under load does not fire it
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script   packages/evals/src/modules/acceptance/run.sh  world slice-zero  company harbourline
+why      The loaded world has no unresolved parked money issue and fresh complete operator diagnostics.
+
+PASS  ACCEPT.selected-stack  x1  51 ms
+      source equality / expected alert transition established
+PASS  ACCEPT.alerts-quiet-under-load  x1  55840 ms
+      source equality / expected alert transition established

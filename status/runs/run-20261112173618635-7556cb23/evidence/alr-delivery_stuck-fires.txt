@@ -1,0 +1,11 @@
+eval     alr:delivery_stuck/fires
+claim    a world with the fault seeded fires it once, to operator, when the oldest due unacknowledged site event is over 300 seconds old
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script   packages/evals/src/modules/acceptance/run.sh  world slice-zero  company harbourline
+why      A real unacknowledged due event held past the threshold produces one delivery alert, not an unrelated or duplicate alert.
+
+PASS  ACCEPT.selected-stack  x1  51 ms
+      source equality / expected alert transition established
+PASS  ACCEPT.delivery_stuck-fires  x1  330361 ms
+      source equality / expected alert transition established

@@ -1,0 +1,9 @@
+eval     tbl:world-snapshots/schema
+claim    the migration creates exactly these fields, key and indexes
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script   packages/evals/src/modules/devnet/run.sh  world slice-zero  company harbourline
+why      Uses the same selected world, receipt and live inspection, not a component proof. Reads the physical app.world_snapshots catalogue and compares all fields/types/nullability, compound key, named created-at index and clock enum; retains the actual schema observation in this run.
+
+PASS  DEVNET.snapshots-schema  x1  51 ms
+      live restricted-store fields/types/nullability/key/indexes/enums equal the declared catalogue

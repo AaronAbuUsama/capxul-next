@@ -1,0 +1,15 @@
+eval     alr:delivery_stuck/clears
+claim    when the fault is repaired, it clears
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script   packages/evals/src/modules/acceptance/run.sh  world slice-zero  company harbourline
+why      Site delivery repair clears the observed fault; original invoice, payment posting and chain/books reconciliation still hold.
+
+PASS  ACCEPT.selected-stack  x1  51 ms
+      source equality / expected alert transition established
+PASS  ACCEPT.delivery_stuck-fires  x1  330361 ms
+      source equality / expected alert transition established
+PASS  ACCEPT.delivery_stuck-clears  x1  11 ms
+      source equality / expected alert transition established
+PASS  ACCEPT.payment-unchanged-after-faults  x1  104 ms
+      source equality / expected alert transition established

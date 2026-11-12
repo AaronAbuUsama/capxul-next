@@ -1,0 +1,8 @@
+eval     tbl:agents/admits/c-3bf78a078e8a740a
+claim    a session matched by own-safe on safe_address reads the rows it names, and writes none; a session that neither the row's tenant nor any admission matches sees none of them
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

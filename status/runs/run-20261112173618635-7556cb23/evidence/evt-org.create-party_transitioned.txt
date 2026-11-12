@@ -1,0 +1,8 @@
+eval     evt:org.create/party_transitioned
+claim    it sends party_transitioned, valid against its schema, carrying trace_id
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

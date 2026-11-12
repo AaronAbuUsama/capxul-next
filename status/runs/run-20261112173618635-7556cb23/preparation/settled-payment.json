@@ -1,0 +1,26 @@
+{
+  "paymentEntry": {
+    "docstatus": 1,
+    "capxul_status": "Sent",
+    "reference_no": "0xb3b1c851dee1d45529a17cfe1e9e9478c2b9220fc89d6e3e7a5a987b0262ede1",
+    "paid_amount": 125.5
+  },
+  "outstanding": 0,
+  "safeCredit": 125.5,
+  "gl": [
+    {
+      "name": "d740380954",
+      "account": "Capxul Safe (USDC) - HL",
+      "debit": 0,
+      "credit": 125.5,
+      "voucher_no": "ACC-PAY-2026-00001"
+    },
+    {
+      "name": "fc499ef866",
+      "account": "Creditors - HL",
+      "debit": 125.5,
+      "credit": 0,
+      "voucher_no": "ACC-PAY-2026-00001"
+    }
+  ]
+}

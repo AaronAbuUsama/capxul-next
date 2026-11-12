@@ -1,0 +1,8 @@
+eval     tbl:files/admits/c-86759f99594d4211
+claim    any caller reads the rows where purpose = image and state = kept, and writes none; a session that neither the row's tenant nor any admission matches sees none of them
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

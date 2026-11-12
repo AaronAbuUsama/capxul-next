@@ -1,0 +1,9 @@
+eval     acc:doc.create/c-4a88a94b435451b9
+claim    A document is created as a draft and Frappe's validations apply.
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script   spikes/skeleton/run.sh  world slice-zero  company harbourline
+why      The sales person creates a Sales Invoice through the door's `doc create`, then reads that same new document through `doc get` before submitting it: docstatus 0 establishes it is a draft. Creating an invoice in a closed month is refused, establishing that Frappe's validations apply. Together the checks prove the whole claim.
+skipped: does not support world slice-zero
+
+no check is bound to this eval, so nothing was run for it

@@ -1,0 +1,8 @@
+eval     int:devnet-control.snapshotRestore/INVALID_INPUT/c-7c309ba91add49d8
+claim    when No world has that name; the refusal lists the worlds saved here, callers see INVALID_INPUT
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

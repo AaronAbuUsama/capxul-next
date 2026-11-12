@@ -1,0 +1,8 @@
+eval     int:bundler.sponsor/PROVIDER_ERROR/c-437d0065d83e6f2e
+claim    when The gateway timed out, was down or throttled on every attempt (mode timeout, upstream-down or rate-limited), callers see PROVIDER_ERROR
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script     world slice-zero  company harbourline
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

@@ -1,0 +1,9 @@
+eval     acc:org.create/c-37a24168b5b82483
+claim    The Organization's Safe is Companies House's company Safe for this founder.
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script   spikes/skeleton/run.sh  world slice-zero  company harbourline
+why      `org create` runs on the real v4 contracts. The checks read Companies House's CompanySafeMinted event for the company: its Safe is the minter's companySafeAddressFor for the admin (the founder) and the company's name, is the Safe the site was given, and has the founder's personal Safe (the claimer's safeAddressFor) as founderSafe; the company Safe's owners are the founding Directors' personal Safes (the founder's and priya's, as the run makes the company with a second Director); `org show` prints that Safe.
+skipped: does not support world slice-zero
+
+no check is bound to this eval, so nothing was run for it

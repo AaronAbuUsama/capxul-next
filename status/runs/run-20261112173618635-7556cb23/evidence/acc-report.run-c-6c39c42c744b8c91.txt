@@ -1,0 +1,9 @@
+eval     acc:report.run/c-6c39c42c744b8c91
+claim    A report runs as the caller and the books agree with the chain.
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script   spikes/skeleton/run.sh  world slice-zero  company harbourline
+why      The admin runs General Ledger and Trial Balance through the door and rows come back. Right after the thin line's payment (before B4 moves money with no document), the General Ledger of the Safe account, run through the door, equals the Safe's USDC balance on chain: the funding at birth is booked as the founder's capital (books.founder-funding, workflow plugs.books.founder-capital) and the payment as its Payment Entry. With projects off, `report run "Project Summary"` (a report on Project) exits FEATURE_NOT_AVAILABLE.
+skipped: does not support world slice-zero
+
+no check is bound to this eval, so nothing was run for it

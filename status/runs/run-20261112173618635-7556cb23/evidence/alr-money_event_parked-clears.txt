@@ -1,0 +1,15 @@
+eval     alr:money_event_parked/clears
+claim    when the fault is repaired, it clears
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script   packages/evals/src/modules/acceptance/run.sh  world slice-zero  company harbourline
+why      Repair/retry resolves the previously observed money fault and does not post the original payment twice.
+
+PASS  ACCEPT.selected-stack  x1  51 ms
+      source equality / expected alert transition established
+PASS  ACCEPT.money_event_parked-fires  x1  26187 ms
+      source equality / expected alert transition established
+PASS  ACCEPT.money_event_parked-clears  x1  10 ms
+      source equality / expected alert transition established
+PASS  ACCEPT.payment-unchanged-after-faults  x1  104 ms
+      source equality / expected alert transition established

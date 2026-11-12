@@ -1,0 +1,15 @@
+eval     alr:indexer_unready/clears
+claim    when the fault is repaired, it clears
+verdict  not_run
+run      run-20261112173618635-7556cb23  at 2026-11-12T17:36:18.635Z  commit 4beace167b1f3a010c2fe0c00d289058ddd71c93
+script   packages/evals/src/modules/acceptance/run.sh  world slice-zero  company harbourline
+why      After real indexer repair/catch-up all alerts become inactive and the original payment still reconciles without another posting.
+
+PASS  ACCEPT.selected-stack  x1  51 ms
+      source equality / expected alert transition established
+PASS  ACCEPT.indexer_unready-fires  x1  6251 ms
+      source equality / expected alert transition established
+PASS  ACCEPT.indexer_unready-clears  x1  10 ms
+      source equality / expected alert transition established
+PASS  ACCEPT.payment-unchanged-after-faults  x1  104 ms
+      source equality / expected alert transition established
