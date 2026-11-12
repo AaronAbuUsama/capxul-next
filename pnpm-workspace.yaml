@@ -21,3 +21,7 @@ packageImportMethod: clone-or-copy
 allowBuilds:
   "@google/genai": false
   protobufjs: false
+  # alto (packages/devnet's bundler) pulls it in; msgpackr falls back to plain JavaScript without it.
+  msgpackr-extract: false
+patchedDependencies:
+  '@pimlico/alto@0.0.21': packages/devnet/patches/@pimlico__alto@0.0.21.patch
