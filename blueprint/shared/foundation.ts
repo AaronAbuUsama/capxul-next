@@ -444,9 +444,9 @@ export const concept_books = defineConcept({
     "annotations that give a Payment or Movement its account, party, cost centre and memo (`activity annotate`); and the " +
     "tokens an Organization watches, scanned at run time (Ponder has no source for an added token; P3 keeps the cron). " +
     "Payments and banking write a money fact's book fact in their own transaction (`books.record-money-fact`, " +
-    "`books.reverse-money-fact`; one live fact per money fact); books never reads payments back. Whether Capxul also keeps " +
-    "its own copy of the chart (the book-companies and book-accounts tables, and the feed's vouchers) or leaves it to " +
-    "ERPNext alone is open: books.chart-owner. Old books' facts, old activity's annotations and the added-token Movement scan.",
+    "`books.reverse-money-fact`; one live fact per money fact); books never reads payments back. ERPNext alone holds the " +
+    "chart of accounts, the cost centres and the Company's accounting settings, on the Organization's site " +
+    "(books.chart-owner): Capxul keeps no copy, and an annotation names the site's Accounts (books.annotate-site-chart). Old books' facts, old activity's annotations and the added-token Movement scan.",
   component: B,
   dependsOn: [concept_access, concept_indexing, concept_organizations],
   was: [`${OLD}/books/README.md:3`, `${OLD}/activity/README.md:3`],

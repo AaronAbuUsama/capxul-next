@@ -1,10 +1,9 @@
 import * as refusalGaps from "./refusal-gaps.ts";
 import * as stateGaps from "./state-gaps.ts";
-// Books' records for the target book: its tables, machines and events, its door, one file per
-// area (the chart, annotations, assets, facts, the feed, reports, the export), its durable work
-// (the price sync, the added-token scan and the head sync), its Core SDK flows, its 17 operations
-// and its decisions. frappe.ts holds the ERPNext document shapes the feed and the head sync hand a
-// head; it has no records.
+// Books' records: its tables, machines and events, its door (the money-fact procedures), one file
+// per area (annotations, assets, facts), its durable work (the added-token scan), its operations
+// and its decisions. The chart of accounts, the cost centres and the entries are ERPNext's, on each
+// Organization's site (books.chart-owner); nothing here holds a copy of them.
 
 import * as data from "./data.ts";
 import * as procedures from "./procedures.ts";

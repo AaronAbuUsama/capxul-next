@@ -36,6 +36,12 @@ export const SUPERSEDED: Readonly<Record<string, string>> = {
   "books.facts-without-chart": "aaron.books-first-principles",
   "payroll.scope": "aaron.frappe-shape",
   "notices.claim-escrow": "aaron.money-waiting",
+  // Aaron's answer of 12 November 2026 06:07 UTC (a-20261112T060739-819d79): ERPNext alone holds the chart
+  "books.chart-tree": "books.chart-owner",
+  "books.head-setup": "books.chart-owner",
+  "books.company-settings": "books.chart-owner",
+  "books.cost-centers": "books.chart-owner",
+  "books.startup": "books.chart-owner",
 };
 
 /** Judgments Aaron reopened on 8 November 2026: they are redesigned, or asked again with context. */

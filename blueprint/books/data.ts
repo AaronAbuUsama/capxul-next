@@ -1,31 +1,23 @@
-// Books' tables, the state machines that live on them, and each machine's one event (P7). The
-// books are in the shape of ERPNext's accounting (aaron.books-first-principles): each table is one
-// ERPNext doctype, with Frappe's own field names wherever the content is the same, so an
-// Organization's books are complete without a head and sync one to one with an ERPNext head when
-// one is connected (books.frappe-shape). The old tables these replace are in each record's `was`.
+// Books' tables, the state machines that live on them, and each machine's one event (P7). ERPNext alone
+// holds each Organization's chart of accounts, cost centres and accounting settings on its site
+// (books.chart-owner, Aaron's answer of 12 November 2026): Capxul's service keeps only what it alone
+// knows, the on-chain money facts, their annotations and the tokens it watches, and the Capxul app
+// on the site turns each money fact into the ERPNext entry (plugs.repoint-money-fact). An
+// annotation names the site's accounts by their names there; nothing here copies the chart. The
+// old tables these replace are in each record's `was`.
 //
-// Nine tables, all an Organization's except annotations (a person's or an Organization's) and
-// prices (the system's):
-// - book-companies     the accounting half of the Organization's ERPNext Company: chart template,
-//                      currency, time zone, fiscal year, default cost centre, closed periods, and
-//                      the counter of its gap-free feed (books.feed)
-// - book-accounts      Account: the chart as Frappe's tree, archived, never deleted
-// - book-cost-centers  Cost Center: the tree every profit-and-loss line names one of
-// - book-annotations   the other side of a money row's voucher: account, party, cost centre,
-//                      project, the documents it pays, a memo (books.annotations-one-table)
-// - book-facts         the append-only facts, numbered without a gap per Organization; a money
-//                      fact posts one Journal Entry or Payment Entry (books.vouchers)
-// - book-document-vouchers the GL Entries of vouchers whose author gives their lines: a connected
-//                      head's own (invoices, accruals, closings) and a payroll run's accrual
-//                      (books.payroll-accrual); Capxul's money vouchers are derived from facts and
-//                      never stored
-// - book-head-syncs    where the books' sync with one connected head has got to (books.sync)
+// Five tables, all an Organization's except annotations (a person's or an Organization's):
+// - book-feeds         the counter of each Organization's gap-free fact numbers (books.feed)
+// - book-annotations   the other side of a money row's entry, as the site's chart names it: account,
+//                      party, cost centre, project, the documents it pays, a memo
+//                      (books.annotations-one-table)
+// - book-facts         the append-only money facts, numbered without a gap per Organization
 // - book-assets        the ERC-20s an Organization added, with the scan's next block
-// - book-prices        USD rates by pair, from the Chainlink sync
 //
 // Births are transitions with no source state (`from: []`), so a born row sends its machine's
 // event like any other change (books.births-are-transitions). Facts have no machine: they never
-// change (books.machines; invariant books.facts-append-only at the end of this file).
+// change (books.machines; invariant books.facts-append-only at the end of this file). The feed
+// counter has none either: it only counts.
 
 import { Schema } from "effect";
 import { defineEvent, defineInvariant, defineMachine, defineTable } from "../../packages/blueprint-engine/src/index.ts";
@@ -41,80 +33,8 @@ const N = Schema.Number;
 const Int = Schema.Int;
 const NullOr = Schema.NullOr;
 
-/** Capxul's six report sections (`BOOK_ACCOUNT_TYPES`): a code's first digit follows the type (1 asset … 6 expense). */
-export const AccountType = Schema.Literals(["asset", "liability", "equity", "income", "cost_of_services", "expense"]);
-/** Account.root_type: the five roots of Frappe's tree. cost_of_services and expense are both under Expenses. */
-export const RootType = Schema.Literals(["Asset", "Liability", "Equity", "Income", "Expense"]);
-/** Account.account_type, the values Capxul's chart uses (Frappe's list is longer; a head adds through Capxul). */
-export const FrappeAccountType = Schema.Literals([
-  "Bank",
-  "Cash",
-  "Receivable",
-  "Payable",
-  "Equity",
-  "Tax",
-  "Chargeable",
-  "Round Off",
-  "Fixed Asset",
-  "Accumulated Depreciation",
-  "Depreciation",
-  "Current Asset",
-  "Current Liability",
-  "Income Account",
-  "Direct Income",
-  "Direct Expense",
-  "Indirect Expense",
-  "Expense Account",
-]);
-/** Why Capxul protects an account, and which Company default it fills (books.chart-tree). */
-export const AccountRole = Schema.Literals([
-  "type_group",
-  "safe",
-  "uncategorized_income",
-  "uncategorized_expense",
-  "opening",
-  "receivable",
-  "payable",
-  "payroll_payable",
-  "salaries",
-  "bank_charges",
-  "exchange_gain_loss",
-]);
 /** Frappe's Party Type: the role a Party of the directory plays on a receivable or payable line. */
 export const PartyType = Schema.Literals(["Customer", "Supplier", "Employee", "Shareholder"]);
-/**
- * One line of a payroll accrual as payroll gives it, in the run's token (books.payroll-lines): what Frappe HR's
- * `make_accrual_jv_entry` posts, before books fixes its account and its value in the Company's currency.
- */
-export const PayrollLine = Schema.Struct({
-  /**
-   * The Salary Component Account's account, or the run's payable, by books' account id: an earning's or employer
-   * contribution's `account` (its expense), a deduction's `account` or an employer contribution's `liability_account`
-   * (its liability), the run's Payroll Payable; null for its role's (books.payroll-defaults).
-   */
-  account_id: NullOr(S),
-  /**
-   * What the line is, so a missing or unfit account falls back: `expense` to `salaries` (5000), or for an expense
-   * claim's line to books' default expense account; `advance` to Employee Advances (Frappe's
-   * default_employee_advance_account, a receivable); the others to Payroll Payable.
-   */
-  role: Schema.Literals(["expense", "liability", "payable", "advance"]),
-  party_type: NullOr(PartyType),
-  party_id: NullOr(S),
-  cost_center_id: NullOr(S),
-  project: NullOr(S),
-  /**
-   * A net's payable line names its Payroll Entry, as Frappe HR's does; an expense claim's payable line names the Expense
-   * Claim, and an advance line (a claim's advance taken, a run's advance recovery) the Employee Advance; every other
-   * line names none.
-   */
-  reference: NullOr(
-    Schema.Struct({ reference_doctype: Schema.Literals(["Payroll Entry", "Expense Claim", "Employee Advance"]), reference_name: S }),
-  ),
-  /** In the run's token, at its display precision, as the slip's rows are. */
-  debit: S,
-  credit: S,
-});
 /** The documents a Capxul voucher may pay or be paid for: what Payment Entry Reference and Journal Entry Account allow. */
 export const ReferenceDoctype = Schema.Literals([
   "Sales Invoice",
@@ -134,12 +54,11 @@ export const DocumentRef = Schema.Struct({ reference_doctype: ReferenceDoctype, 
 /** One activity row: a Payment or a Movement (payments' ids, or a scanned Transfer's chain id). */
 export const ReferenceKind = Schema.Literals(["payment", "movement"]);
 export const Reference = Schema.Struct({ kind: ReferenceKind, id: S });
-/** Every fact kind: the chart's changes, a cost centre, a row's account, a payroll run's accrual, and money (the last seven). */
+/**
+ * Every fact kind: a row's account, a payroll run's accrual, and money (the last seven). The chart's own changes are
+ * the site's: ERPNext keeps them on its Accounts (books.chart-owner).
+ */
 export const FactKind = Schema.Literals([
-  "account_created",
-  "account_renamed",
-  "account_archived",
-  "cost_center_created",
   "account_assigned",
   "recategorized",
   "rows_reclassified",
@@ -156,61 +75,28 @@ export const FactKind = Schema.Literals([
 /** What a money fact came from: the record `--source` lists by. */
 export const SourceKind = Schema.Literals(["payment", "deposit", "payout", "movement", "agreement", "asset", "payroll_run"]);
 
-/** One GL Entry line as ERPNext stores it, accounts and cost centres by Capxul's ids; `debit` and `credit` in the Company's currency, as decimal strings. */
-export const GlLine = Schema.Struct({
-  posting_date: S,
-  account_id: S,
-  party_type: NullOr(PartyType),
-  party_id: NullOr(S),
-  cost_center_id: NullOr(S),
-  project: NullOr(S),
-  debit: S,
-  credit: S,
-  account_currency: S,
-  debit_in_account_currency: S,
-  credit_in_account_currency: S,
-  against_voucher_type: NullOr(S),
-  against_voucher: NullOr(S),
-  is_opening: Schema.Literals(["No", "Yes"]),
-  is_cancelled: Schema.Boolean,
-});
-
 const KEPT = "Kept for the Organization's life: books keep their history.";
 
-// ── book companies ──────────────────────────────────────────────────────────────────────────
+// ── book feeds ──────────────────────────────────────────────────────────────────────────────
 
-export const table_book_companies = defineTable({
-  id: "book-companies",
-  title: "Book companies: the accounting half of the Organization's ERPNext Company",
+export const table_book_feeds = defineTable({
+  id: "book-feeds",
+  title: "Book feeds: the counter of an Organization's fact numbers",
   about:
-    "One row per Organization whose books have begun, born by the first fact (its first money, a token added, or the " +
-    "chart's import). It holds what ERPNext keeps on the Company for accounting, as the books were charted: " +
-    "`chart_of_accounts` (the template, null until `org books accounts import`), and the Organization's " +
-    "`default_currency`, `time_zone` and `fiscal_year_start` (organizations.company-shape), copied at the import and " +
-    "fixed from then on, so no posted voucher's date, year or currency ever moves (books.company-settings). It holds the " +
-    "default `cost_center_id` (Main) and `closed_through`, the latest `period_end_date` of the head's submitted Period " +
-    "Closing Vouchers, as ERPNext's own check reads it: nothing changes on or before it, and cancelling the latest " +
-    "closing moves it back to the one before (books.closed-periods). The Company's default accounts are the chart's accounts by role " +
-    "(books.chart-tree). `last_seq` is the feed's counter: every fact writer takes this row's lock and the next number, " +
-    "so facts commit in the order they are numbered (books.feed). `status` says whether the chart exists. Organizations " +
-    "owns the Company's name, abbreviation and country.",
+    "One row per Organization whose books have begun, born by its first fact (its first money or a token added). " +
+    "`last_seq` is the number of its latest fact: every fact writer takes this row's lock and the next number inside " +
+    "its own transaction, so facts commit in the order they are numbered and no number is skipped (books.feed). It " +
+    "holds nothing of the Company's accounting: the chart, the cost centres, the currency, the time zone, the fiscal " +
+    "year and the closed periods are ERPNext's, on the Organization's site (books.chart-owner). Replaces the old " +
+    "book-companies table, of which only this counter remains.",
   was: [`${T}:20`, `${BK}/accounts/writes/chart.ts:32`, "docs/as-is/archive/books/data.ts"],
   concept: concept_books,
   tenancy: "organization",
   tenantField: "org_id",
   fields: Schema.Struct({
     org_id: S,
-    status: Schema.Literals(["recording", "charted"]),
-    chart_of_accounts: NullOr(Schema.Literal("us-services")),
-    default_currency: NullOr(S),
-    time_zone: NullOr(S),
-    fiscal_year_start: NullOr(S),
-    cost_center_id: NullOr(S),
-    closed_through: NullOr(S),
     last_seq: Int,
-    created_by: S,
     created_at: N,
-    charted_at: NullOr(N),
     updated_at: N,
   }),
   key: ["org_id"],
@@ -218,178 +104,24 @@ export const table_book_companies = defineTable({
   retention: KEPT,
 });
 
-export const event_book_company_transitioned = defineEvent({
-  id: "book_company_transitioned",
-  about: "An Organization's books began (`open`) or got their chart (`import`). Replaces books_chart_imported.",
-  props: Schema.Struct({ from: NullOr(S), to: S, transition: S, org_id: S, template: NullOr(S), accounts: N }),
-  was: [`${BK}/accounts/operations/emit-chart-imported.ts:1`],
-});
-
-export const machine_book_company = defineMachine({
-  id: "book-company",
-  title: "Book company: recording, then charted",
-  about:
-    "The books begin recording facts at the Organization's first money, with or without a chart; the import gives them " +
-    "their chart once, and from then on every priced money fact posts a voucher. Nothing takes the chart away.",
-  was: [`${T}:27`, "docs/as-is/archive/books/data.ts"],
-  table: table_book_companies,
-  field: "status",
-  initial: "recording",
-  states: [
-    { id: "recording", about: "Facts are kept and numbered; with no chart there are no accounts, so no voucher posts yet." },
-    { id: "charted", about: "The chart exists: accounts can be added, rows given accounts, vouchers posted and reports read." },
-  ],
-  transitions: {
-    open: {
-      from: [],
-      to: "recording",
-      about: "The first fact writer of an Organization with no row births it, in the same transaction as the fact.",
-      emits: [event_book_company_transitioned],
-    },
-    import: {
-      from: ["recording"],
-      to: "charted",
-      about: "`org books accounts import` makes the chart, the cost centres and the Company's defaults.",
-      guard: "The books have no chart; the caller wears the Books hat.",
-      emits: [event_book_company_transitioned],
-    },
-  },
-});
-
-// ── book accounts ───────────────────────────────────────────────────────────────────────────
-
-export const table_book_accounts = defineTable({
-  id: "book-accounts",
-  title: "Book accounts: the chart as ERPNext's Account tree",
-  about:
-    "One Account of the chart, by a durable `acct_<ulid>` id every annotation, fact and voucher line points to (a head's " +
-    "Account carries it as the Custom Field `capxul_id`, so a rename never breaks a link). Frappe's tree: five " +
-    "roots by `root_type` and two groups under Expenses (cost of services, operating expenses) make Capxul's six types; " +
-    "they are the `type_group` accounts and have no number. Every other account sits under its type's group or under a " +
-    "group account. Only a ledger account (`is_group` false) takes postings; an account becomes a group when its first " +
-    "sub-account is added, which needs it to hold no postings, no role and no Frappe account type, as ERPNext refuses " +
-    "to make a group of any of those (books.chart-tree). `account_number` is the code: unique " +
-    "among active accounts, its first digit follows `type`, and a sub-account takes its parent's type. `account_type` is " +
-    "Frappe's (Bank for a Safe account, Receivable, Payable); `account_currency` is the Company's, or the asset's symbol for a " +
-    "Safe account. `role` marks the accounts Capxul protects and finds by role, never by code, and fills the Company's " +
-    "defaults: `safe` (one per company Safe and asset), `uncategorized_income` (4999) and `uncategorized_expense` (6999), " +
-    "the review queue, `opening` (3990), `receivable`, `payable`, `payroll_payable` (2200), `salaries` (5000, where a " +
-    "payroll expense with no account of its own posts: books.payroll-defaults), `bank_charges`, `exchange_gain_loss`. " +
-    "An archive keeps the row and frees the code.",
-  was: [`${T}:35`, `${BK}/writes.ts:91`, `${BK}/accounts/writes/chart.ts:99`, `${MODEL}:49`],
-  concept: concept_books,
-  tenancy: "organization",
-  tenantField: "org_id",
-  fields: Schema.Struct({
-    org_id: S,
-    account_id: S,
-    account_number: NullOr(S),
-    account_name: S,
-    type: AccountType,
-    root_type: RootType,
-    account_type: NullOr(FrappeAccountType),
-    is_group: Schema.Boolean,
-    parent_account_id: NullOr(S),
-    account_currency: S,
-    quickbooks_detail_type: NullOr(S),
-    status: Schema.Literals(["active", "archived"]),
-    role: NullOr(AccountRole),
-    safe_address: NullOr(S),
-    asset_id: NullOr(S),
-    created_at: N,
-    updated_at: N,
-  }),
-  key: ["org_id", "account_id"],
-  indexes: [
-    {
-      name: "by_org_code",
-      fields: ["org_id", "account_number"],
-      unique: true,
-      for: "The chart in code order (list, reports, export, next free code) and an account by its code; partial on status = active, so an archived code is free again.",
-    },
-    {
-      name: "by_org_role",
-      fields: ["org_id", "role", "asset_id"],
-      for: "A protected account by its role: a type's group, the not-decided account of a direction, 3990, a Company default, the Safe account of an asset.",
-    },
-    {
-      name: "by_org_parent",
-      fields: ["org_id", "parent_account_id"],
-      for: "A group's children: the tree, the next code in a parent's ten, an archive refused while active sub-accounts remain.",
-    },
-  ],
-  retention: "Kept for the Organization's life: an account is archived, never deleted.",
-});
-
-export const event_book_account_transitioned = defineEvent({
-  id: "book_account_transitioned",
-  about:
-    "An account was added (by an add, an import, an inline account, an accepted suggestion or the first money of a new " +
-    "asset), renamed or archived. Replaces books_account_added, books_account_renamed, books_account_archived and " +
-    "books_suggestion_accepted. It never carries an account's name.",
-  props: Schema.Struct({ from: NullOr(S), to: S, transition: S, org_id: S, account_id: S, code: NullOr(S), type: S }),
-  was: [`${BK}/accounts/events.ts:1`],
-});
-
-export const machine_book_account = defineMachine({
-  id: "book-account",
-  title: "Book account",
-  about:
-    "An account is born active, may be renamed while active, and is archived for good (Frappe's `disabled`); nothing " +
-    "brings it back. Becoming a group when its first sub-account arrives is not a state: `is_group` changes in the add.",
-  was: [`${T}:43`, `${BK}/accounts/writes/chart.ts:128`, "docs/as-is/archive/books/data.ts"],
-  table: table_book_accounts,
-  field: "status",
-  initial: "active",
-  states: [
-    { id: "active", about: "A ledger account takes new rows; its code is held against the chart's other active accounts." },
-    { id: "archived", about: "Takes no new rows; history, reports and exports keep it; its code is free again.", terminal: true },
-  ],
-  transitions: {
-    add: {
-      from: [],
-      to: "active",
-      about: "Born by an import, an add, an inline account, an accepted suggestion, or the first money of an asset with no Safe account.",
-      guard:
-        "A free code that fits the type; a parent is active, gives its type, and is a group, or a ledger account with no " +
-        "postings, no role and no Frappe account type (only those ERPNext lets become a group).",
-      emits: [event_book_account_transitioned],
-    },
-    rename: {
-      from: ["active"],
-      to: "active",
-      about: "A new name, a new code, or both; a call that changes neither is not a transition.",
-      guard: "A new code is free among active accounts and fits the type.",
-      emits: [event_book_account_transitioned],
-    },
-    archive: {
-      from: ["active"],
-      to: "archived",
-      guard: "The account has no role and no active sub-account.",
-      emits: [event_book_account_transitioned],
-    },
-  },
-});
-
-// ── book cost centres ───────────────────────────────────────────────────────────────────────
-
 // ── book annotations ────────────────────────────────────────────────────────────────────────
 
 export const table_book_annotations = defineTable({
   id: "book-annotations",
-  title: "Book annotations: the other side of a money row's voucher",
+  title: "Book annotations: the other side of a money row's entry, in the site's names",
   about:
     "The one annotation an owner (a person, or an Organization) keeps on one Payment or Movement row. For an " +
-    "Organization it is the meaning ERPNext gives a payment: the account its voucher posts against (an `acct_` id of a " +
-    "ledger account, or `personal_<code>` from the fixed personal chart for a person), the party (`party_type` and the " +
-    "directory's `party_id`, required for a receivable or payable account), the cost centre and project of its " +
-    "profit-and-loss line (`project`: one of the Organization's projects, by projects' id: books.annotation-project), " +
-    "and the documents it pays (`references`: a head's invoice, expense claim or payroll entry, with the amount " +
-    "allocated), beside a suggested account name and a memo. A save replaces it whole, last write wins. " +
-    "`status` says whether the row waits in the review queue. A row nobody annotated has no row here and posts to its " +
-    "direction's not-decided account at Main, unless a payroll collection's accrual names it; one naming a Payroll Entry " +
-    "and no account (given before the chart) posts on Payroll Payable (books.payroll-postings). Money never comes from " +
-    "here: a voucher reads it (books.account-at-posting).",
+    "Organization it is the meaning ERPNext gives a payment, in the site's own names: the `account` its entry posts " +
+    "against (the name of a ledger Account of the Organization's Company on its site, like `6100 - Cleaning - NW`, with " +
+    "its `account_number`; for a person `personal_<code>` from the fixed personal chart), the party (`party_type` and the " +
+    "directory's `party_id`), the `cost_center` (a Cost Center's name on the site) and project of its profit-and-loss " +
+    "line (`project`: a Project of the same Company on the site: books.annotation-project), and the documents it pays " +
+    "(`references`: the site's invoice, expense claim or payroll entry, with the amount allocated), beside a suggested " +
+    "account name and a memo. Capxul keeps no copy of the chart: the save checks the account against the site as the " +
+    "person saving (books.annotate-site-chart), and the Capxul app on the site resolves these names again when it posts " +
+    "the entry, leaving a line it cannot post unmatched and visible (books.party-lines). A save replaces it whole, last " +
+    "write wins. `status` says whether the row waits in the review queue. A row nobody annotated has no row here. " +
+    "Money never comes from here: the site's entry reads it (books.account-at-posting).",
   was: [`${OLD}/activity/tables.ts:8`, `${T}:56`, `${BK}/writes.ts:155`],
   concept: concept_books,
   tenancy: "owner",
@@ -399,10 +131,11 @@ export const table_book_annotations = defineTable({
     owner_id: S,
     reference_kind: ReferenceKind,
     reference_id: S,
-    account_id: NullOr(S),
+    account: NullOr(S),
+    account_number: NullOr(S),
     party_type: NullOr(PartyType),
     party_id: NullOr(S),
-    cost_center_id: NullOr(S),
+    cost_center: NullOr(S),
     project: NullOr(S),
     references: Schema.Array(DocumentRef),
     suggestion: NullOr(S),
@@ -417,8 +150,8 @@ export const table_book_annotations = defineTable({
   indexes: [
     {
       name: "by_owner_status_account",
-      fields: ["owner_kind", "owner_id", "status", "account_id", "updated_at"],
-      for: "The rows waiting in one not-decided account, oldest first: the review queue and a reclassify's candidates.",
+      fields: ["owner_kind", "owner_id", "status", "account", "updated_at"],
+      for: "The rows waiting for an account, oldest first: the review queue and a reclassify's candidates.",
     },
   ],
   retention: KEPT,
@@ -437,7 +170,7 @@ export const event_book_annotation_transitioned = defineEvent({
     owner_id: S,
     reference_kind: S,
     reference_id: S,
-    account_id: NullOr(S),
+    account: NullOr(S),
   }),
   was: [`${OLD}/activity/annotations/events.ts:36`, `${BK}/accounts/operations/emit-rows-reclassified.ts:1`],
 });
@@ -446,14 +179,14 @@ export const machine_book_annotation = defineMachine({
   id: "book-annotation",
   title: "Book annotation: waiting in review or decided",
   about:
-    "Whether a row waits in the review queue (`waiting`: no account, or a not-decided account, with or without a " +
-    "suggestion) or has an account someone decided. Every committed save is one transition, so it is reported once.",
+    "Whether a row waits in the review queue (`waiting`: no account, or the site's not-decided account for its " +
+    "direction, with or without a suggestion) or has an account of the site's chart someone decided. Every committed save is one transition, so it is reported once.",
   was: [`${BK}/writes.ts:223`, `${BK}/accounts/writes/review.ts:24`, `${BK}/accounts/writes/review.ts:98`],
   table: table_book_annotations,
   field: "status",
   initial: "waiting",
   states: [
-    { id: "waiting", about: "Posts to its direction's not-decided account; listed by `org books accounts review`." },
+    { id: "waiting", about: "The site posts it to its direction's not-decided account, or leaves it unmatched; listed by `org books accounts review`." },
     { id: "decided", about: "Posts against the account, party and documents it names." },
   ],
   transitions: {
@@ -484,15 +217,15 @@ export const machine_book_annotation = defineMachine({
     accept: {
       from: ["waiting"],
       to: "decided",
-      about: "`review --accept`: the suggestion becomes a new account and the row moves to it (`recategorized`).",
-      guard: "The caller wears the Books hat; the row waits in a not-decided account in an open period.",
+      about: "`review --accept`: the suggestion becomes a new Account on the site and the row moves to it (`recategorized`).",
+      guard: "The caller wears the Books hat; the row waits for an account.",
       emits: [event_book_annotation_transitioned],
     },
     reclassify: {
       from: ["waiting"],
       to: "decided",
       about: "`accounts reclassify` moves the row with every other in one change, under one `rows_reclassified` fact.",
-      guard: "The caller wears the Books hat; the row waits in the from-account and its money falls inside the period, after closed_through.",
+      guard: "The caller wears the Books hat; the row waits in the from-account and its money falls inside the period.",
       emits: [event_book_annotation_transitioned],
     },
   },
@@ -504,18 +237,19 @@ export const table_book_facts = defineTable({
   id: "book-facts",
   title: "Book facts: the append-only, gap-free history of an Organization's books",
   about:
-    "Every fact the books keep (ADR-0042): the chart's changes, a cost centre, a row's account, a payroll run's accrual " +
-    "posted or cancelled (`source` the run: books.payroll-accrual), and money. Never edited or " +
-    "deleted: a wrong account is a `recategorized` fact, money the chain took back a `reversed` fact naming the one it " +
-    "cancels. `seq` numbers an Organization's facts from 1 with no gap, in the order they commit (books.feed), so a " +
-    "ledger that follows the numbers reads every fact once. A money fact is keyed by the chain occurrence that moved the " +
-    "money (`money_key`) and a generation (books.money-key). It records amount, asset, direction, the Safe it moved in or " +
-    "out of, the counterparty (the chain's name for it, and its directory `party_id` when known: the voucher's party), the " +
-    "part a rail kept as a fee (`fee_raw`), source, chain, block, transaction and log, and the USD value at the rate in force at its block, once, never revalued; it " +
-    "names no account (books.account-at-posting). `posting_date` is set only when the block's day was already closed " +
-    "when the fact was recorded: the voucher posts on the first open day instead (books.closed-periods). Each standing " +
-    "priced money fact posts one voucher whose id is the fact's (books.vouchers). Chart facts carry the code and name " +
-    "they set. Only Organizations keep facts; a person's rows keep none.",
+    "Every fact the books keep (ADR-0042): a row's account, a payroll run's accrual posted or cancelled (`source` the " +
+    "run: books.payroll-accrual), and money. Never edited or deleted: a wrong account is a `recategorized` fact, money " +
+    "the chain took back a `reversed` fact naming the one it cancels. `seq` numbers an Organization's facts from 1 with " +
+    "no gap, in the order they commit (books.feed), so a reader that follows the numbers reads every fact once. A money " +
+    "fact is keyed by the chain occurrence that moved the money (`money_key`) and a generation (books.money-key). It " +
+    "records amount, asset, direction, the Safe it moved in or out of, the counterparty (the chain's name for it, and " +
+    "its directory `party_id` when known: the entry's party), the part a rail kept as a fee (`fee_raw`), source, chain, " +
+    "block, transaction and log, and the USD value at the rate in force at its block, once, never revalued; it names no " +
+    "account (books.account-at-posting). An account fact names the site's Accounts by their names there (`account`, " +
+    "`from_account`). The entry a money fact becomes, its posting date and whether its day is closed are the site's: " +
+    "the Capxul app posts it from the plugs' outbox (plugs.repoint-money-fact, books.closed-periods). The chart's own " +
+    "changes are not facts here: ERPNext keeps them (books.chart-owner). Only Organizations keep facts; a person's rows " +
+    "keep none.",
   was: [`${T}:72`, `${BK}/writes.ts:47`, `${BK}/facts/writes/money.ts:66`, `${BK}/facts/writes/standing.ts:13`, `${MODEL}:189`],
   concept: concept_books,
   tenancy: "organization",
@@ -527,13 +261,9 @@ export const table_book_facts = defineTable({
     kind: FactKind,
     occurred_at: N,
     recorded_at: N,
-    posting_date: NullOr(S),
-    // a chart fact, a cost centre, or a row's account
-    account_id: NullOr(S),
-    from_account_id: NullOr(S),
-    cost_center_id: NullOr(S),
-    code: NullOr(S),
-    name: NullOr(S),
+    // a row's account, by the site's Account names
+    account: NullOr(S),
+    from_account: NullOr(S),
     reference_kind: NullOr(ReferenceKind),
     reference_id: NullOr(S),
     rows: Schema.Array(Reference),
@@ -595,20 +325,16 @@ export const table_book_facts = defineTable({
     {
       name: "by_org_reference",
       fields: ["org_id", "reference_kind", "reference_id"],
-      for: "A row's facts: whether a row is the Organization's (annotate), its direction (review, reclassify), the vouchers an annotation reposts.",
+      for: "A row's facts: whether a row is the Organization's (annotate) and its direction (review, reclassify).",
     },
     {
       name: "by_org_asset",
       fields: ["org_id", "asset_id", "occurred_at"],
-      for: "The assets an Organization's money moved (the Safe accounts an import makes) and each asset's units for the reconcile.",
+      for: "The assets an Organization's money moved and each asset's units for the reconcile.",
     },
   ],
   retention: "Append-only: never edited or deleted (ADR-0042).",
 });
-
-// ── book document vouchers ──────────────────────────────────────────────────────────────────
-
-// ── book head syncs ─────────────────────────────────────────────────────────────────────────
 
 // ── book assets ─────────────────────────────────────────────────────────────────────────────
 
@@ -699,8 +425,6 @@ export const machine_book_asset = defineMachine({
   },
 });
 
-// ── book prices ─────────────────────────────────────────────────────────────────────────────
-
 // ── invariants over the books ───────────────────────────────────────────────────────────────
 
 export const invariant_books_one_live_money_fact = defineInvariant({
@@ -708,7 +432,7 @@ export const invariant_books_one_live_money_fact = defineInvariant({
   title: "One live money fact per Organization and money occurrence",
   about:
     "What `books.record-money-fact` and `books.reverse-money-fact` keep (K10, P4): however many writers reach the same " +
-    "money, and however often, the books count it once, so it posts one voucher. Checked by a property test over random " +
+    "money, and however often, the books count it once, so the site posts it once. Checked by a property test over random " +
     "interleavings of settlements, replays, Movement attributions and reversals.",
   statement: "For each Organization and money key, at most one money fact stands that no `reversed` fact cancels.",
   over: [table_book_facts],
@@ -719,11 +443,11 @@ export const invariant_books_feed_gap_free = defineInvariant({
   id: "books.feed-gap-free",
   title: "An Organization's facts are numbered 1, 2, 3 … in the order they commit",
   about:
-    "What makes the feed followable (vision check C5): every fact writer takes the Organization's book-companies row lock " +
+    "What makes the feed followable (vision check C5): every fact writer takes the Organization's book-feeds row lock " +
     "and the next number inside its own transaction, so a later number never commits before an earlier one and a rolled " +
     "back transaction leaves no hole. Checked by a property test of concurrent writers from payments, banking and books.",
   statement: "For each Organization, the facts' seq values are exactly 1 … last_seq, and every reader that saw n saw 1 … n−1.",
-  over: [table_book_facts, table_book_companies],
+  over: [table_book_facts, table_book_feeds],
   check: "property",
 });
 
