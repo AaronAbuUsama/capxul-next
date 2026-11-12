@@ -42,16 +42,22 @@ export async function carry(db: Database, services: CarrierServices, limit = 100
 
 async function step(sql: Sql, person: string, id: string, services: CarrierServices) {
   let row = await transaction(sql, "", (client) => read(client, person, id));
-  const metadata = (await sql.query("select trace_id from app.approval_carriers where approval_id=$1", [id])).rows[0];
+  const metadata = (await sql.query("select trace_id,wake_version from app.approval_carriers where approval_id=$1", [id])).rows[0];
   if (!metadata) return;
   const trace = metadata.trace_id as string;
+  let wakeVersion = metadata.wake_version;
   const now = await services.now();
-  const update = async (fn: (client: Sql, current: Approval) => Promise<void>) => transaction(sql, row.org_id ?? "", async (client) => {
-    const current = await read(client, person, id);
-    // A signer/withdrawal can win while a gateway call was in flight. Never overwrite that answer.
-    if (current.state !== row.state || current.updated_at.getTime() !== row.updated_at.getTime()) return;
-    await fn(client, current);
-  });
+  const update = async (fn: (client: Sql, current: Approval) => Promise<void>) => {
+    wakeVersion = await transaction(sql, row.org_id ?? "", async (client) => {
+      const current = await read(client, person, id);
+      const carrier = (await client.query("select wake_version from app.approval_carriers where approval_id=$1 for update", [id])).rows[0];
+      // Both signer changes and carrier-only chain wakes invalidate work based on the earlier read.
+      // Hold the carrier lock until commit, so a later wake wins over this step's timer as well.
+      if (current.state !== row.state || current.updated_at.getTime() !== row.updated_at.getTime() || carrier?.wake_version !== wakeVersion) return wakeVersion;
+      await fn(client, current);
+      return (await client.query("select wake_version from app.approval_carriers where approval_id=$1", [id])).rows[0]?.wake_version ?? wakeVersion;
+    });
+  };
   if (!live.includes(row.state)) {
     await transaction(sql, row.org_id ?? "", async (client) => {
       // A terminal event's same-Sql effects are guarded by the carrier deletion in this transaction.
@@ -163,7 +169,7 @@ async function step(sql: Sql, person: string, id: string, services: CarrierServi
 
 /** Indexed finality wake is keyed by the chain identity, never by a caller's guessed approval id. */
 export async function wakeChain(sql: Sql, key: Pick<ChainFact, "chain_id" | "sender" | "nonce">, now: Date) {
-  await sql.query(`update app.approval_carriers c set wake_at=$4 from app.approvals a
+  await sql.query(`update app.approval_carriers c set wake_at=$4,wake_version=c.wake_version+1 from app.approvals a
     where c.approval_id=a.approval_id and a.chain_id=$1 and a.sender=$2 and a.nonce=$3
       and a.state in ('pending','signed','sending','sent')`, [key.chain_id, key.sender, key.nonce, now]);
 }

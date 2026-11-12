@@ -86,7 +86,11 @@ export const decision_approvals_tenant_is_signer = defineDecision({
     "other Directors follow a proposal, not each other's approvals. Access gives every principal, person or agent, one " +
     "`person_id`, so one tenant column covers both. An Organization tenant would let every member see each Director's " +
     "and payer's pending signatures. Three lookups must cross tenants and say why: by id alone (the process, the " +
-    "openers' workflows, the page's link) and by a Safe's nonce (the indexed event names only the Safe).",
+    "openers' workflows, the page's link) and by a Safe's nonce (the indexed event names only the Safe). " +
+    "A trusted worker replaying a stored command may read only approval_id, deadline, state, person_id and sender by " +
+    "its stored approval id, on the caller's Sql connection. The database worker role is required even when a person " +
+    "context exists; a later budget wearer must not reopen a terminal approval or impersonate its original signer. " +
+    "The opener authorizes its command before this internal read; the read grants no signing or mutation authority.",
   source: `${OLD}/accounts/approvals/guards.ts:13; blueprint/access/data.ts (principals: person_id for both kinds); P8`,
   affects: [table_approvals, rpc_approvals_signing_get],
 });

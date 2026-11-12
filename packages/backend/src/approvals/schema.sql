@@ -30,6 +30,7 @@ create table if not exists app.approval_carriers (
   approval_id text primary key references app.approvals(approval_id), person_id text not null,
   trace_id text not null, wake_at timestamptz not null, attempts integer not null default 0, revision bigint not null default 0
 );
+alter table app.approval_carriers add column if not exists wake_version bigint not null default 0;
 alter table app.approvals enable row level security;
 alter table app.approvals force row level security;
 drop policy if exists tenant on app.approvals;

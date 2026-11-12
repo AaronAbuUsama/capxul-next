@@ -5,7 +5,7 @@ import pg from "pg";
 import { privateKeyToAccount } from "viem/accounts";
 import { Database } from "../src/platform/db.ts";
 import { migrateOutbox } from "../src/platform/outbox.ts";
-import { open, withdraw, prepare, get, submitted, settleSitePayment, migrateApprovals, signingGet, signingSign, signingDecline, carry, wakeChain,
+import { open, withdraw, prepare, get, submitted, settleSitePayment, migrateApprovals, signingGet, signingSign, signingDecline, carry, wakeChain, readApproval,
   type ApprovalContext, type Open, type SigningContext, type CarrierServices } from "../src/approvals/door.ts";
 
 const url = process.env.APPROVALS_TEST_DATABASE;
@@ -75,6 +75,17 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
       assert.equal((await admin.query("select count(*)::int as n from app.transition_outbox")).rows[0].n, 1);
       assert.equal((await tenant((sql) => withdraw(sql, ctx, { approval_id: first.approval_id, reason: "ended intent" }))).state, "withdrawn");
       assert.equal((await tenant((sql) => withdraw(sql, ctx, { approval_id: first.approval_id, reason: "repeat" }))).state, "withdrawn");
+      // Stored command replay keeps its terminal approval even when the current budget wearer changed.
+      const replay = await db.transaction("approval-org", async (sql) => {
+        await sql.query("select set_config('app.person_id','new-budget-wearer',true)");
+        return readApproval(sql, first.approval_id);
+      }, true);
+      assert.deepEqual(replay, { approval_id: first.approval_id, deadline: new Date(terms.deadline),
+        state: "withdrawn", person_id: ctx.person_id, sender });
+      assert.equal(await tenant((sql) => readApproval(sql, first.approval_id)), null);
+      assert.equal(await tenant((sql) => readApproval(sql, first.approval_id), "new-budget-wearer"), null);
+      assert.equal(await db.transaction("", (sql) => readApproval(sql, "missing-approval"), true), null);
+      assert.equal((await admin.query("select count(*)::int as n from app.approvals")).rows[0].n, 1);
     });
     await t.test("committed sending resumes by hash, never resends after lost answer", async () => {
       let clock = now, sends = 0, held = false, terminal = 0;
@@ -113,8 +124,24 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
       assert.deepEqual((await admin.query("select wake_at from app.approval_carriers where approval_id=$1", [next.approval_id])).rows[0].wake_at, before);
       await db.transaction("", (sql) => wakeChain(sql, { chain_id: 84532, sender, nonce }, clock), true);
       assert.deepEqual((await admin.query("select wake_at from app.approval_carriers where approval_id=$1", [next.approval_id])).rows[0].wake_at, clock);
-      services.fact = async () => ({ chain_id: 84532, sender, nonce, user_op_hash: opHash, success: true,
-        transaction_hash: `0x${"ef".repeat(32)}`, block_number: 41 });
+      // A real second PG connection commits a finality fixture and wake after the first read missed it.
+      // This tests scheduling concurrency, not Ponder's production finality adapter.
+      await admin.query("create table app.test_approval_facts (approval_id text primary key,fact jsonb not null); grant select,insert on app.test_approval_facts to capxul_worker");
+      const finalFact = { chain_id: 84532, sender, nonce, user_op_hash: opHash, success: true,
+        transaction_hash: `0x${"ef".repeat(32)}`, block_number: 41 };
+      services.fact = async (reader, approval) => {
+        const fact = (await reader.query("select fact from app.test_approval_facts where approval_id=$1", [approval.approval_id])).rows[0]?.fact ?? null;
+        if (!fact && approval.approval_id === next.approval_id) await db.transaction("", async (writer) => {
+          const readerPid = (await reader.query("select pg_backend_pid() as pid")).rows[0].pid;
+          assert.notEqual((await writer.query("select pg_backend_pid() as pid")).rows[0].pid, readerPid);
+          await writer.query("insert into app.test_approval_facts values ($1,$2)", [approval.approval_id, finalFact]);
+          await wakeChain(writer, { chain_id: 84532, sender, nonce }, clock);
+        }, true);
+        return fact;
+      };
+      await carry(db, services);
+      assert.deepEqual((await admin.query("select wake_at from app.approval_carriers where approval_id=$1", [next.approval_id])).rows[0].wake_at, clock,
+        "a committed chain wake must not be replaced by the later window timer");
       services.terminal = async () => { throw new Error("opener effect failed"); };
       await assert.rejects(carry(db, services), /opener effect failed/);
       assert.equal((await tenant((sql) => signingGet(sql, signing, { approvalId: next.approval_id }))).state, "sent");
