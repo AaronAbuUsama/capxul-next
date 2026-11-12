@@ -37,8 +37,9 @@ def after_migrate():
     ensure_defaults()
     if not frappe.is_setup_complete():
         return
-    from capxul import brand, privacy
+    from capxul import brand, privacy, features
 
+    features.sync()
     brand.apply()
     privacy.apply()
 
