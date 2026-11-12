@@ -1877,6 +1877,51 @@
       ],
       "created": "2026-11-11",
       "updated": "2026-11-11"
+    },
+    {
+      "id": "m1-books-chart-in-frappe",
+      "title": "Redraw the books records so ERPNext alone holds the chart",
+      "why": "Aaron accepted books.chart-owner as recommended, 12 November 2026 06:07 UTC (a-20261112T060739-819d79): ERPNext alone holds the chart; Capxul's service keeps only the on-chain money facts, their annotations and the tokens it watches.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [
+        "decision:books.chart-owner",
+        "table:book-companies",
+        "table:book-accounts"
+      ],
+      "evidence": [],
+      "created": "2026-11-12",
+      "updated": "2026-11-12"
+    },
+    {
+      "id": "m2-founder-capital",
+      "title": "Book a company's first funding as the founder's capital",
+      "why": "Aaron accepted books.founder-funding as recommended, 12 November 2026 06:08 UTC (a-20261112T060833-a862ae).",
+      "milestone": "m2",
+      "state": "todo",
+      "needs": [],
+      "records": [
+        "decision:books.founder-funding"
+      ],
+      "evidence": [],
+      "created": "2026-11-12",
+      "updated": "2026-11-12"
+    },
+    {
+      "id": "m2-bundler-world",
+      "title": "Give the thin line's test world the real bundler",
+      "why": "Aaron accepted thin-line.bundler as recommended, 12 November 2026 06:15 UTC (a-20261112T061518-d70798): one canary world has the account-abstraction pipeline; every other test world stays small.",
+      "milestone": "m2",
+      "state": "todo",
+      "needs": [],
+      "records": [
+        "decision:thin-line.bundler",
+        "component:bundler-paymaster"
+      ],
+      "evidence": [],
+      "created": "2026-11-12",
+      "updated": "2026-11-12"
     }
   ],
   "path": {
