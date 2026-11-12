@@ -8,19 +8,14 @@
 import { defineDecision } from "../../packages/blueprint-engine/src/index.ts";
 import { component_frappe_app, concept_books } from "../shared/foundation.ts";
 import {
-  event_book_account_transitioned,
   event_book_annotation_transitioned,
   event_book_asset_transitioned,
-  event_book_company_transitioned,
-  machine_book_account,
   machine_book_annotation,
   machine_book_asset,
-  machine_book_company,
-  table_book_accounts,
   table_book_annotations,
   table_book_assets,
-  table_book_companies,
   table_book_facts,
+  table_book_feeds,
   invariant_books_facts_append_only,
   invariant_books_feed_gap_free,
   invariant_books_one_live_money_fact,
@@ -92,8 +87,7 @@ export const decision_books_facts_without_chart = defineDecision({
   source: byFrappe(`rulings.ts (aaron.books-first-principles, SUPERSEDED); ${B}/facts/writes/backfill.ts:86; K10 in docs/as-is/payments.md`),
   affects: [
     table_book_facts,
-    table_book_companies,
-    machine_book_company,
+    table_book_feeds,
     procedure_books_record_money_fact,
     ops.operation_org_books_facts_list,
   ],
@@ -261,7 +255,7 @@ export const decision_books_annotate_known_rows = defineDecision({
 
 export const decision_books_machines = defineDecision({
   id: "books.machines",
-  title: "Five machines, one event each; facts and cost centres have none",
+  title: "Two machines, one event each: annotations and added tokens",
   question: "Which stored states are machines, now that every product event comes from a transition (P7)?",
   options: [
   {
@@ -278,12 +272,8 @@ export const decision_books_machines = defineDecision({
     "Review, 11 November 2026: Retained Core annotation waiting/decided and added-asset added/removed states emit their machine events; facts stay append-only without a lifecycle. ERPNext owns Account and submitted/cancelled voucher states. The historical five-machine list does not authorize a second Core accounting lifecycle. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
   source: "The coordinator, round 2, m1-old-decisions; cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
   affects: [
-    machine_book_company,
-    machine_book_account,
     machine_book_annotation,
     machine_book_asset,
-    event_book_company_transitioned,
-    event_book_account_transitioned,
     event_book_annotation_transitioned,
     event_book_asset_transitioned,
     table_book_facts,
@@ -296,13 +286,13 @@ export const decision_books_births_are_transitions = defineDecision({
   title: "A row's birth is a transition with no source state",
   question: "An import, an add or a first annotation inserts a row. How does the insert send its machine's event?",
   options: [
-    { label: "from-empty", text: "The birth is a named transition with `from: []` (open, add, queue, assign, post), emitting like any other." },
+    { label: "from-empty", text: "The birth is a named transition with `from: []` (add, queue, assign), emitting like any other." },
     { label: "none-state", text: "Give every machine a `none` state the row never stores." },
   ],
   chosen: "from-empty",
   why: "The schema accepts an empty `from`, the build's state checks pass, and no phantom state is stored or listed. The event's `from` is null for a birth. Review, 11 November 2026: Confirmed books.births-are-transitions; original choice retained.",
   source: by("packages/blueprint-engine/src/records/data.ts (TransitionSpec.from); docs/as-is/archive/books/data.ts (births said only in prose)"),
-  affects: [machine_book_company, machine_book_account, machine_book_annotation, machine_book_asset],
+  affects: [machine_book_annotation, machine_book_asset],
 });
 
 // ── authorization, assets, prices ───────────────────────────────────────────────────────────
@@ -541,18 +531,12 @@ export const decision_books_frappe_shape = defineDecision({
   why:
     "Review, 11 November 2026: Archive one-Core-table-per-ERPNext-DocType. Company, Account, Cost Center, Journal Entry, Payment Entry and GL Entry are real site documents, not Core replicas carrying capxul_id for bidirectional sync. Core retains chain facts, annotations and prices only as money evidence/read models. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
   source: "The coordinator, round 2, m1-old-decisions; cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
-  affects: [
-    concept_books,
-    table_book_companies,
-    table_book_accounts,
-    table_book_annotations,
-    table_book_facts,
-  ],
+  affects: [concept_books, table_book_annotations, table_book_facts],
 });
 
 export const decision_books_chart_tree = defineDecision({
   id: "books.chart-tree",
-  title: "Archived: The chart is ERPNext's Account tree; only ledger accounts take posting",
+  title: "Superseded by books.chart-owner: the chart is the site's Account tree alone",
   question:
     "Capxul's chart had six types by a code's first digit and sub-accounts that could hold their own money. ERPNext's chart is a tree of five root types in which only a ledger account takes GL Entries and an account with entries cannot become a group. How does Capxul's chart sit in that tree without losing a frozen behaviour?",
   options: [
@@ -567,13 +551,10 @@ export const decision_books_chart_tree = defineDecision({
 ],
   chosen: "current-scope",
   why:
-    "Review, 11 November 2026: ERPNext owns the Account tree and its ledger/group checks. Archive Core's six-type code allocator, parent conversion and template-protected account algorithm; chart creation and edits go through the door under site permissions. Safe-account ledger hooks still prohibit credit without chain evidence. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+    "Review, 11 November 2026: ERPNext owns the Account tree and its ledger/group checks. Archive Core's six-type code allocator, parent conversion and template-protected account algorithm; chart creation and edits go through the door under site permissions. Safe-account ledger hooks still prohibit credit without chain evidence. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed. " +
+    "Superseded on 12 November 2026 by Aaron's answer to books.chart-owner (ERPNext alone holds the chart): the book-accounts table, its machine and its event are gone, and an annotation names the site's Accounts by their names there (books.annotate-site-chart).",
   source: "The coordinator, round 2, m1-old-decisions; cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
-  affects: [
-    table_book_accounts,
-    machine_book_account,
-    rpc_books_annotations_save,
-  ],
+  affects: [concept_books, table_book_annotations, rpc_books_annotations_save],
 });
 
 export const decision_books_feed = defineDecision({
@@ -593,10 +574,11 @@ export const decision_books_feed = defineDecision({
 ],
   chosen: "current-scope",
   why:
-    "Review, 11 November 2026: Ordered money delivery needs a per-organization sequence and idempotent replay; timestamps alone cannot be a cursor because facts arrive late. The current stream and delivery cursors belong to plugs. Archive the old book-companies row-lock allocator and books.sync.feed as the implementation of that stream. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+    "Review, 11 November 2026: Ordered money delivery needs a per-organization sequence and idempotent replay; timestamps alone cannot be a cursor because facts arrive late. The current stream and delivery cursors belong to plugs. Archive the old book-companies row-lock allocator and books.sync.feed as the implementation of that stream. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed. " +
+    "12 November 2026 (books.chart-owner): book-companies is gone; its counter stays alone as book-feeds, because the facts still carry gap-free numbers (books.feed-gap-free, plugs.repoint-money-fact). The stream the site follows is numbered by the plugs' outbox.",
   source: "The coordinator, round 2, m1-old-decisions; cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
   affects: [
-    table_book_companies,
+    table_book_feeds,
     table_book_facts,
     invariant_books_feed_gap_free,
     procedure_books_record_money_fact,
@@ -700,17 +682,12 @@ export const decision_books_closed_periods = defineDecision({
   why:
     "Review, 11 November 2026: The site's closing state governs postings. Late chain events post into the first open period while retaining original block time. Closed-period corrections are open-period adjustments, never rewriting history. Do not pull Period Closing Vouchers into a second Core chart or forbid unrelated ERPNext Accounting Period usage through the old sync algorithm. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
   source: "The coordinator, round 2, m1-old-decisions; cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
-  affects: [
-    table_book_companies,
-    table_book_facts,
-    procedure_books_record_money_fact,
-    rpc_books_annotations_save,
-  ],
+  affects: [table_book_facts, procedure_books_record_money_fact, rpc_books_annotations_save],
 });
 
 export const decision_books_company_settings = defineDecision({
   id: "books.company-settings",
-  title: "The Organization's currency, time zone and fiscal year, fixed at the chart",
+  title: "Superseded by books.chart-owner: currency, time zone, fiscal year are the site's",
   question:
     "Vision check C18: ERPNext posts by date in the site's time zone, closes by fiscal year and keeps a functional currency, and Capxul's reports cut at 'the end of the day' without saying whose. The Organization now carries the Company's currency, time zone and fiscal year start (organizations.company-shape). How do the books use them, and what if one changes under existing books?",
   options: [
@@ -725,16 +702,15 @@ export const decision_books_company_settings = defineDecision({
 ],
   chosen: "current-scope",
   why:
-    "Review, 11 November 2026: ERPNext Company owns currency, time zone and fiscal year. Site posting dates use its time zone and functional currency; chain facts keep exact token units and block time. Archive the immutable Core copy made at chart import and the requirement that chart import find a Chainlink currency pair: site accounting is not a duplicate Core USD ledger. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+    "Review, 11 November 2026: ERPNext Company owns currency, time zone and fiscal year. Site posting dates use its time zone and functional currency; chain facts keep exact token units and block time. Archive the immutable Core copy made at chart import and the requirement that chart import find a Chainlink currency pair: site accounting is not a duplicate Core USD ledger. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed. " +
+    "Superseded on 12 November 2026 by books.chart-owner: book-companies, which held the copy, is gone; only its feed counter remains, as book-feeds.",
   source: "The coordinator, round 2, m1-old-decisions; cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
-  affects: [
-    table_book_companies,
-  ],
+  affects: [concept_books, table_book_feeds],
 });
 
 export const decision_books_cost_centers = defineDecision({
   id: "books.cost-centers",
-  title: "Main from the import; every other cost centre is the head's",
+  title: "Superseded by books.chart-owner: every cost centre is the site's",
   question:
     "ERPNext requires a cost centre on every profit-and-loss line. No frozen command makes one. Where do cost centres come from?",
   options: [
@@ -749,7 +725,8 @@ export const decision_books_cost_centers = defineDecision({
 ],
   chosen: "current-scope",
   why:
-    "Review, 11 November 2026: Cost Center documents and the company's default cost centre belong to ERPNext. Posting uses the supplied cost-centre label validated on that site. Archive Core's import-created Main and cost-centre pull mirror; no Core cost-centre machine or edit API is introduced. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+    "Review, 11 November 2026: Cost Center documents and the company's default cost centre belong to ERPNext. Posting uses the supplied cost-centre label validated on that site. Archive Core's import-created Main and cost-centre pull mirror; no Core cost-centre machine or edit API is introduced. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed. " +
+    "Superseded on 12 November 2026 by books.chart-owner, which settles it the same way.",
   source: "The coordinator, round 2, m1-old-decisions; cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
   affects: [rpc_books_annotations_save],
 });
@@ -785,7 +762,7 @@ const byAssembly = (evidence: string) => `${ASSEMBLY}; evidence: ${evidence}`;
 
 export const decision_books_startup = defineDecision({
   id: "books.startup",
-  title: "No books step at the setup's begin: the chart is the first sitting's import",
+  title: "Superseded by books.chart-owner: the site's setup makes the chart",
   question:
     "organizations.startup has each fundamental app start itself from the setup's `begin`. The projects lane asked books for a start-up there: the account tree from a template, the first Fiscal Year and the main Cost Center, reading `abbr`, `default_currency`, `time_zone` and `fiscal_year_start` from the Organization. What does books do at begin?",
   options: [
@@ -800,13 +777,10 @@ export const decision_books_startup = defineDecision({
 ],
   chosen: "current-scope",
   why:
-    "Review, 11 November 2026: Company setup provisions the hosted site and initializes ERPNext accounting there. Archive the lazy Core Company birth at first money fact and org books accounts import first-sitting requirement, including the hosted FDE chart step. Recording a chain fact must not depend on an editable Core chart already existing. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+    "Review, 11 November 2026: Company setup provisions the hosted site and initializes ERPNext accounting there. Archive the lazy Core Company birth at first money fact and org books accounts import first-sitting requirement, including the hosted FDE chart step. Recording a chain fact must not depend on an editable Core chart already existing. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed. " +
+    "Superseded on 12 November 2026 by books.chart-owner: the setup wizard of the Capxul app makes the Company and its chart (component frappe-app, capxul/setup.py); the books' only row born at the first fact is its feed counter.",
   source: "The coordinator, round 2, m1-old-decisions; cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
-  affects: [
-    concept_books,
-    table_book_companies,
-    machine_book_company,
-  ],
+  affects: [concept_books, table_book_feeds, component_frappe_app],
 });
 
 export const decision_books_payroll_defaults = defineDecision({
@@ -828,9 +802,7 @@ export const decision_books_payroll_defaults = defineDecision({
   why:
     "Review, 11 November 2026: Payroll Payable, salary expense and treasury defaults are configured in Frappe HR/ERPNext Company and structures. Archive Core role-account lookups by 2200/5000 and null-before-chart filling. A Safe ledger account is still guarded by the chain-payment hook, not made editable by setting a default. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
   source: "The coordinator, round 2, m1-old-decisions; cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
-  affects: [
-    table_book_accounts,
-  ],
+  affects: [concept_books],
 });
 
 export const decision_books_payroll_postings = defineDecision({
@@ -933,24 +905,25 @@ export const decision_books_party_lines = defineDecision({
 
 export const decision_books_head_setup = defineDecision({
   id: "books.head-setup",
-  title: "Before the first push, the Capxul app sets a head's accounting to match",
+  title: "Superseded by books.chart-owner: Capxul pushes no chart to a site",
   question:
     "A head's ERPNext Company already has a chart, a root cost centre and Main, default accounts and settings of its " +
     "own. What does a connected head's accounting look like before books pushes its first voucher, who sets it, and may a " +
     "head connect before the books are charted?",
   options: [
     {
+      label: "site-owns-chart",
+      text:
+        "Nothing is pushed. Every Organization's site is Capxul's and its chart is ERPNext's alone (books.chart-owner): " +
+        "the Capxul app's setup makes the Company with its chart, its Main cost centre and its defaults, adds the Safe's " +
+        "ledger Account and Bank Account (capxul/setup.py), and refuses any credit to the Safe's account that the chain " +
+        "did not prove (capxul/payments.py). Capxul's service sends only money facts, through the plugs' outbox.",
+    },
+    {
       label: "app-setup-before-push",
       text:
-        "A head connects at any time; books pushes nothing until the books are charted (books.sync). The first push " +
-        "then writes the chart through `upsertDocs` in tree order, each Account with its `capxul_id`, and the Capxul " +
-        "app adopts ERPNext's own root cost centre and Main (made with the Company) as Capxul's, by `capxul_id`, " +
-        "instead of making a second Main. With them it sets the Company's defaults to the role accounts (receivable, " +
-        "payable, Payroll Payable, round off and exchange gain or loss, Main as the default and round-off cost " +
-        "centre), the Fiscal Years derived from the fiscal year start, a Currency per token, each Safe account " +
-        "frozen with the app's own role as the Company's `role_allowed_for_frozen_entries`, and Accounts Settings " +
-        "`enable_immutable_ledger` on. A head user cannot then post on a Safe account, and a repost never edits a " +
-        "past day's GL.",
+        "The earlier choice: books pushes the chart it keeps through `upsertDocs` in tree order, each Account with its " +
+        "`capxul_id`, adopts the site's root cost centre and Main, and sets the Company's defaults to its role accounts.",
     },
     {
       label: "importer",
@@ -958,18 +931,59 @@ export const decision_books_head_setup = defineDecision({
     },
     { label: "head-agent", text: "The head's own agent, on a Seat wearing the Books hat, sets the head up from the books' feed." },
   ],
-  chosen: "app-setup-before-push",
+  chosen: "site-owns-chart",
   why:
-    "The accounting lane asked for a head set up before any transaction. The importer works only on an empty Company, " +
-    "and a head is often connected to a site already in use; writing the tree through the one seam, by `capxul_id`, " +
-    "works on either, and keeps a head-born account Capxul's to number (books.head.sync). ERPNext makes its root " +
-    "cost centre and Main with every Company (`create_default_cost_center`), so adopting them keeps one Main on both " +
-    "sides. A head's agent on a Seat was rejected by books.sync: Capxul calls, the head only rings, and the app holds " +
-    "no Capxul key. Freezing the Safe accounts and turning on the immutable ledger are what make 'money vouchers are " +
-    "Capxul's alone' hold on the head itself, not only in Capxul's push-back. Refusing a connection before the chart " +
-    "would hold back the CRM, projects and payroll, which sync from the first day.",
-  source: byAssembly(`accounting.md (the head connection); erpnext/setup/doctype/company/company.py:927, company.json; ${ERP}/accounts_settings/accounts_settings.json; hrms/setup.py:171`),
-  affects: [component_frappe_app, table_book_accounts, table_book_companies],
+    "Aaron answered books.chart-owner on 12 November 2026 (frappe-owns-chart, a-20261112T060739-819d79): ERPNext alone " +
+    "holds the chart, and Capxul's service keeps only the on-chain money facts, their annotations and the tokens it " +
+    "watches. With no Capxul copy there is nothing to push, so `app-setup-before-push` (chosen on 8 November, when a " +
+    "head was optional and books kept the chart) no longer holds. What it got right stays in the Capxul app: the Safe's " +
+    "account is guarded on the site itself, not only by Capxul.",
+  source: `Aaron's answer to books.chart-owner, 12 November 2026; packages/frappe-app/capxul/setup.py; packages/frappe-app/capxul/payments.py; earlier: ${ASSEMBLY}`,
+  affects: [component_frappe_app, concept_books],
+});
+
+// ── the chart on the site (12 November 2026): books.chart-owner ────────────────────────────
+
+export const decision_books_annotate_site_chart = defineDecision({
+  id: "books.annotate-site-chart",
+  title: "An annotation names the site's Accounts, checked through the site's door",
+  question:
+    "Aaron answered books.chart-owner: ERPNext alone holds the chart, on the Organization's site. `activity annotate` " +
+    "still refuses an unknown account and lets a Books hat wearer make a new account inline (frozen claims), and a " +
+    "payment's `--account` names one too. With no copy of the chart in Capxul, how does an annotation name an account, " +
+    "and who checks it?",
+  options: [
+    {
+      label: "site-names-door-check",
+      text:
+        "The annotation keeps the site's own names (the Account's name, like `6100 - Cleaning - NW`, with its number; a " +
+        "Cost Center's and a Project's names). `books.annotations.save` reads the Account through the site's door as the " +
+        "person saving (`frappe-site.doorCall`): not a ledger Account of the Company, or disabled, is INVALID_INPUT. A new " +
+        "account is inserted on the site through the same door, so ERPNext's checks and the person's site roles decide " +
+        "it. The money-fact procedures make no outside call, so a payment's `--account` is kept as given and the Capxul " +
+        "app resolves it when it posts; one it cannot post stays unmatched and visible (books.party-lines).",
+    },
+    {
+      label: "no-check",
+      text:
+        "Save whatever is given; the site resolves it when it posts the entry and leaves an unknown account unmatched. " +
+        "The frozen refusal of an unknown account code is dropped.",
+    },
+    {
+      label: "cached-copy",
+      text: "Keep a read-only copy of the site's Account list in Capxul, refreshed from the site, and check against it.",
+    },
+  ],
+  chosen: "site-names-door-check",
+  why:
+    "It keeps the frozen behaviour (an unknown account is refused, a new account needs Manage books) without a second " +
+    "copy of the chart, which is exactly what Aaron's answer removed; `cached-copy` would bring the copy back by another " +
+    "name. The door already exists for calls a person makes on the site (plugs.service-calls-site), and the site's own " +
+    "permissions then apply, as books.guards says. The cost is that an Organization's annotate now needs its site to " +
+    "answer (PROVIDER_ERROR when it does not, nothing saved); a person's own rows call no site. Names, not ids: ERPNext " +
+    "links Accounts by name, and books.account-at-posting already has the site resolve the event's account labels.",
+  source: "Thread \"Move chart of accounts into ERPNext\", 12 November 2026; books.chart-owner; activity.annotate (frozen refusals and claims 1 to 3); plugs.service-calls-site; frappe-site integration (doorCall)",
+  affects: [concept_books, table_book_annotations, table_book_facts, rpc_books_annotations_save, procedure_books_record_money_fact, ops.operation_activity_annotate],
 });
 
 // ── the world pass's build (9 November 2026): payroll's HR money (payroll.hr-money) ─────────

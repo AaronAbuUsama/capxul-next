@@ -136,9 +136,9 @@ export const component_backend = defineComponent({
     "transaction (A3). The runtime resolves a session or assistant token by its hash in that transaction (no JWKS), " +
     "admits a browser origin by the bootstrap's origin token or TRUSTED_ORIGINS, writes each transition's event to the " +
     "outbox in that transaction and has one relay send it on, and wakes a waiting process by its key (rules.process-wakeups). It reads Ponder's tables in the same Postgres, and calls the chain, the bundler and paymaster, and the vendors " +
-    "through integrations. That is the staging and production shape; in a devnet and a shared world the same rpcs run " +
-    "as the lean world service on one SQLite file with the chain reader folded in (devnet.lean-world; where its code " +
-    "lives waits on devnet.core-service-home).",
+    "through integrations. It is one service in every environment: a devnet and a shared world run the same service on " +
+    "their own Postgres with Ponder beside it, in the devnet build (aaron.postgres-and-ponder, which replaced the lean " +
+    "world's SQLite service).",
   runtime: "node",
   exposes: ["rpc", "http", "ws"],
   dependsOn: [component_postgres, component_ponder, component_chain, component_bundler_paymaster],
@@ -202,10 +202,11 @@ export const component_devnet = defineComponent({
   id: "devnet",
   title: "Devnet supervisor",
   about:
-    "The process that boots the whole stack on one machine (Anvil, a real Postgres server, Ponder, alto with the mock " +
-    "paymaster, the backend), deploys v4, and saves and restores named worlds (the chain, the database and Ponder's state " +
-    "together) and the clocks, through an owner-only control socket. Eval worlds are its snapshots. Nothing in staging " +
-    "depends on it.",
+    "The process that boots a whole world on one machine (Anvil, the world's database on the host's Postgres server, Ponder " +
+    "and the backend, aaron.postgres-and-ponder; alto with the mock paymaster only in the canary world, thin-line.bundler), " +
+    "deploys v4, and saves and restores named worlds (the chain, the world's database with both schemas, and Ponder's state " +
+    "together) and the clocks, through an owner-only control socket. Eval worlds are its snapshots. Nothing in " +
+    "staging depends on it.",
   runtime: "node",
   exposes: ["cli", "http"],
   dependsOn: [component_chain, component_postgres, component_ponder, component_bundler_paymaster, component_backend],
@@ -443,9 +444,9 @@ export const concept_books = defineConcept({
     "annotations that give a Payment or Movement its account, party, cost centre and memo (`activity annotate`); and the " +
     "tokens an Organization watches, scanned at run time (Ponder has no source for an added token; P3 keeps the cron). " +
     "Payments and banking write a money fact's book fact in their own transaction (`books.record-money-fact`, " +
-    "`books.reverse-money-fact`; one live fact per money fact); books never reads payments back. Whether Capxul also keeps " +
-    "its own copy of the chart (the book-companies and book-accounts tables, and the feed's vouchers) or leaves it to " +
-    "ERPNext alone is open: books.chart-owner. Old books' facts, old activity's annotations and the added-token Movement scan.",
+    "`books.reverse-money-fact`; one live fact per money fact); books never reads payments back. ERPNext alone holds the " +
+    "chart of accounts, the cost centres and the Company's accounting settings, on the Organization's site " +
+    "(books.chart-owner): Capxul keeps no copy, and an annotation names the site's Accounts (books.annotate-site-chart). Old books' facts, old activity's annotations and the added-token Movement scan.",
   component: B,
   dependsOn: [concept_access, concept_indexing, concept_organizations],
   was: [`${OLD}/books/README.md:3`, `${OLD}/activity/README.md:3`],
@@ -661,17 +662,19 @@ export const environment_devnet = defineEnvironment({
     "loopback ports. A self-contained world (aaron.world-clock): one clock, the supervisor's, frozen or running at a rate " +
     "(one to sixty world seconds a real second, decision devnet.clock-rate), which the chain, the backend, Ponder, the " +
     "stand-ins and a connected head all follow, and nothing it sends leaves the machine (time.world-channels). It runs the " +
-    "lean world (devnet.lean-world): one small Capxul service per world on one SQLite file, with the chain reader folded " +
-    "in, and no Postgres, no Ponder and no bundler, except the one canary world that keeps the real bundler " +
-    "(thin-line.bundler, waiting for Aaron); which package builds that service waits on devnet.core-service-home. Worlds " +
-    "are the supervisor's named snapshots of the chain and the service's database file together, with the clock, " +
-    "restored in seconds. Devnet-only rpcs (the devnet concept) answer only here and in a shared world. Fakes: the mock paymaster, " +
+    "same stack as staging (aaron.postgres-and-ponder): the backend on Postgres, with Capxul's data in the `app` schema and " +
+    "Ponder's index in the `ponder` schema of the same database. One Postgres server per host holds a database per world; " +
+    "one Ponder runs per active world and stops when the world parks. There is no bundler except in the one canary world " +
+    "that keeps the real bundler (thin-line.bundler). Worlds are the supervisor's named snapshots of the chain and the " +
+    "world's database together (a snapshot copies the database from a template), with the clock. Devnet-only rpcs (the devnet concept) answer only here and in a shared world. Fakes: the mock paymaster, " +
     "the mail sink, the stand-in WhatsApp, the stand-in head and FDE host, scripted prices and gates, Bridge's sandbox or " +
     "a local stand-in.",
   runs: [
     { component: component_chain, on: "Anvil forking Base Sepolia (84532) at a pinned block, 127.0.0.1:8545; Companies House deploys and verifies every v4 contract at `up`." },
     { component: component_bundler_paymaster, on: "Only in the canary world (devnet.lean-world, point 3): alto on 127.0.0.1:4337 behind the mock paymaster on 127.0.0.1:4338, which sponsors every operation. Other worlds have none." },
-    { component: component_backend, on: "The lean world service (devnet.lean-world): one Node process on loopback with one SQLite file and the chain reader folded in (no Postgres, no Ponder), with the devnet integration layers (fakes) and devnet-only rpcs. The Postgres and Ponder design is staging's." },
+    { component: component_postgres, on: "A real Postgres server on loopback (aaron.postgres-and-ponder), one database per world with the `app` and `ponder` schemas and row-level security on." },
+    { component: component_ponder, on: "Ponder on the world's database, polling the Anvil node every 100 ms or subscribed to new heads, so a stop never waits half a second a block; stopped while the world is parked." },
+    { component: component_backend, on: "The backend's devnet build on loopback, on the world's database, with the devnet integration layers (fakes) and devnet-only rpcs." },
     { component: component_core_sdk, on: "Inside the CLI, the MCP server and a local browser app on the same machine; its devnet entry reaches the supervisor." },
     { component: component_react_sdk, on: "A local browser app, for the approval page and browser-mode evals." },
     { component: component_cli, on: "On the same machine after `capxul use env devnet`, with the devnet's fixed test identities." },
@@ -830,7 +833,9 @@ export const environment_shared_world = defineEnvironment({
   runs: [
     { component: component_chain, on: "Anvil forking Base Sepolia (84532) at a pinned block on the world's host, mined only by its supervisor at the world's now; reached only through the gateway." },
     { component: component_bundler_paymaster, on: "Only when the shared world is the canary world (devnet.lean-world, point 3; thin-line.bundler): alto behind the mock paymaster on the world's host, both following its clock." },
-    { component: component_backend, on: "The lean world service (devnet.lean-world) on the world's host, one SQLite file with the chain reader folded in (no Postgres, no Ponder), behind the world's gateway (HTTPS), which admits a request only with a world grant." },
+    { component: component_postgres, on: "The host's Postgres server (aaron.postgres-and-ponder): the world's own database, `app` and `ponder` schemas, row-level security on." },
+    { component: component_ponder, on: "Ponder on the world's database, following its anvil; stopped while the world is parked." },
+    { component: component_backend, on: "The backend's devnet build on the world's host, on the world's database, behind the world's gateway (HTTPS), which admits a request only with a world grant." },
     { component: component_core_sdk, on: "Inside each joiner's CLI and MCP server, pointed at the world by CAPXUL_BOOTSTRAP_URL and carrying the joiner's grant." },
     { component: component_react_sdk, on: "The world's web app, served behind its gateway, for the approval page and browser use." },
     { component: component_cli, on: "On each joiner's machine, with CAPXUL_BOOTSTRAP_URL set to the world's address and CAPXUL_WORLD_GRANT to the joiner's grant file; its CLI home stays there." },

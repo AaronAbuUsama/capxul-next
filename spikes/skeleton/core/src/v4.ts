@@ -11,7 +11,7 @@
 // Throwaway like the rest of the spike: what it teaches goes into the blueprint, then into packages.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { decodeEventLog, keccak256, toHex, type Abi, type Address, type Hex, type Log } from "viem";
+import { decodeEventLog, keccak256, parseAbi, toHex, type Abi, type Address, type Hex, type Log } from "viem";
 import { randomBytes } from "node:crypto";
 import { connect } from "../../../../packages/devnet/src/modules/chain/service.ts";
 import { THIRD_PARTY } from "../../../../packages/devnet/src/modules/protocol/service.ts";
@@ -128,13 +128,25 @@ export async function v4Pay(slug: string, to: Address, amount: bigint, documentH
   return r.ok ? { ok: true, txHash: r.txHash } : r;
 }
 
+const TRANSFER = parseAbi(["event Transfer(address indexed from, address indexed to, uint256 value)"]);
+
 /** What the watcher turns into outbox events: hat grants and revokes, and payments, of companies this Core made. */
 export type V4Event =
   | { slug: string; safe: string; kind: "hat_granted" | "hat_revoked"; hat: string; wearer: string; department: string | null }
-  | { slug: string; safe: string; kind: "payment_sent"; paymentId: Hex; documentHash: Hex; from: string; to: string; amount: bigint };
+  | { slug: string; safe: string; kind: "payment_sent"; paymentId: Hex; documentHash: Hex; from: string; to: string; amount: bigint }
+  | { slug: string; safe: string; kind: "transfer_in"; from: string; amount: bigint; founderEmail: string | null };
 
-export async function v4Decode(l: Log): Promise<V4Event | undefined> {
+export async function v4Decode(l: Log, token?: Address): Promise<V4Event | undefined> {
   const r = registry(); const { hats, payments } = await v4Addresses();
+  // The admitted asset moving into a company Safe this Core made: the first one is the funding at birth (founder's capital)
+  if (token && l.address.toLowerCase() === token.toLowerCase()) {
+    let ev; try { ev = decodeEventLog({ abi: TRANSFER, data: l.data, topics: l.topics as [Hex] }); } catch { return undefined; }
+    if (ev.eventName !== "Transfer") return undefined;
+    const a = ev.args as { from: string; to: string; value: bigint };
+    const o = Object.values(r).find((x) => x.company.companySafe.toLowerCase() === a.to.toLowerCase());
+    if (!o) return undefined;
+    return { slug: o.slug, safe: o.company.companySafe, kind: "transfer_in", from: a.from, amount: a.value, founderEmail: o.directors?.[0]?.email ?? null };
+  }
   if (l.address.toLowerCase() === hats.toLowerCase()) {
     let ev; try { ev = decodeEventLog({ abi: HATS, data: l.data, topics: l.topics as [Hex] }); } catch { return undefined; }
     if (ev.eventName !== "TransferSingle") return undefined;

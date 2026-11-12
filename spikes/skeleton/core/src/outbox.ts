@@ -7,7 +7,7 @@ import { siteOf } from "./world.ts";
 import { sign } from "./hmac.ts";
 import { loadJson, saveJson } from "./store.ts";
 
-export type Kind = "hat_granted" | "hat_revoked" | "payment_sent" | "payment_failed";
+export type Kind = "hat_granted" | "hat_revoked" | "payment_sent" | "payment_failed" | "founder_capital";
 export type OutEvent = {
   seq: number; event_key: string; kind: Kind; data: Record<string, unknown>;
   applied: boolean; attempts: number; lastError?: string; lastAttemptAt?: string;

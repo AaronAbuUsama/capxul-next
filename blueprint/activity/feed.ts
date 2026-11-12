@@ -22,7 +22,7 @@ import { Outcome, PaymentStatus, Route, table_movements, table_payments } from "
 import { PaymentView } from "../payments/ledger.ts";
 import { table_parties } from "../parties/data.ts";
 import { table_org_members } from "../organizations/data.ts";
-import { table_book_accounts, table_book_annotations } from "../books/data.ts";
+import { table_book_annotations } from "../books/data.ts";
 import { Annotation } from "../books/annotations.ts";
 import { table_chain_payments, table_indexer_progress, table_transfers } from "../indexing/data.ts";
 import { table_documents } from "../documents/data.ts";
@@ -279,7 +279,7 @@ export const rpc_activity_feed_get = defineRpc({
     "escrow or Agreements, from the fact's `budget_id`, `escrow_address` and `agreement_id`). A Movement comes with its " +
     "Transfer's evidence and its Memo, which documents finds by the Transfer (`by_subject`, both sides alike). `final` compares the " +
     "block with Ponder's progress at the deployment's finality depth. The reader's annotation (books' " +
-    "`book-annotations`, its account named from `book-accounts` or the personal chart) is shown beside the row and " +
+    "`book-annotations`, its account as the site's chart names it, or from the personal chart) is shown beside the row and " +
     "never changes its evidence. A malformed id is INVALID_INPUT.",
   was: [
     `${ITEMS}/operations/get.ts:9`,
@@ -301,7 +301,6 @@ export const rpc_activity_feed_get = defineRpc({
     table_movements,
     table_parties,
     table_book_annotations,
-    table_book_accounts,
     table_chain_payments,
     table_transfers,
     table_indexer_progress,

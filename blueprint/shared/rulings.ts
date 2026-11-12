@@ -36,6 +36,12 @@ export const SUPERSEDED: Readonly<Record<string, string>> = {
   "books.facts-without-chart": "aaron.books-first-principles",
   "payroll.scope": "aaron.frappe-shape",
   "notices.claim-escrow": "aaron.money-waiting",
+  // Aaron's answer of 12 November 2026 06:07 UTC (a-20261112T060739-819d79): ERPNext alone holds the chart
+  "books.chart-tree": "books.chart-owner",
+  "books.head-setup": "books.chart-owner",
+  "books.company-settings": "books.chart-owner",
+  "books.cost-centers": "books.chart-owner",
+  "books.startup": "books.chart-owner",
 };
 
 /** Judgments Aaron reopened on 8 November 2026: they are redesigned, or asked again with context. */
@@ -1019,4 +1025,61 @@ export const decision_aaron_one_cli = defineDecision({
     "reading he gave, a separate CLI for worlds, and his answer to it. devnet.cli-split stays in its file unedited.",
   source: "Aaron, 12 November 2026, on the portal's Questions page (answer a-20261112T061037-ced04e)",
   affects: [f.system_capxul, f.component_cli, f.component_devnet],
+});
+
+// His decision on indexing and storage, in his own words, replaces devnet.core-service-home's open choice and the part of
+// devnet.lean-world that put each world on one SQLite file with its own chain reader.
+Object.assign(SUPERSEDED as Record<string, string>, {
+  "devnet.core-service-home": "aaron.postgres-and-ponder",
+  "devnet.lean-world": "aaron.postgres-and-ponder",
+});
+
+export const decision_aaron_postgres_and_ponder = defineDecision({
+  id: "aaron.postgres-and-ponder",
+  title: "Postgres for Capxul's data and Ponder's index everywhere; MariaDB for sites",
+  question:
+    "The blueprint had two designs: worlds on one SQLite file per world with the chain read by the service itself " +
+    "(devnet.lean-world), staging on Postgres with Ponder. The prototype stored JSON files. Capxul will run on many chains " +
+    "and read contracts it does not own (Safes, tokens). Which one design does every environment use?",
+  options: [
+    {
+      label: "postgres-and-ponder",
+      text:
+        "Ponder reads the chains into a `ponder` schema; Capxul's own data (approvals, proposals, people, the record, the " +
+        "outbox to sites) is an `app` schema with row-level security per company in the same Postgres, so a workflow reads a " +
+        "chain fact and queues a site's event in one transaction. MariaDB holds only the Frappe sites, one database per company " +
+        "on the shared bench. Worlds run the same stack: one Postgres server per host with a database per world (a snapshot " +
+        "copies it from a template), one Ponder per active world, stopped when the world parks. Of devnet.lean-world, the real " +
+        "anvil chain per world, parking idle worlds and the one canary world with a real bundler stand; its SQLite file and " +
+        "folded-in reader do not.",
+    },
+    { label: "sqlite-own-reader", text: "SQLite per world and Capxul's own chain reader everywhere (devnet.lean-world taken to staging and production)." },
+    { label: "mariadb-for-capxul", text: "Capxul's data in MariaDB beside the sites, with its own reader (Ponder does not run on MariaDB)." },
+    { label: "ponder-and-sqlite", text: "Ponder on Postgres for chain facts, SQLite or libsql files for Capxul's data: two databases split one transaction." },
+  ],
+  chosen: "postgres-and-ponder",
+  why:
+    "Aaron, thread \"Decide one indexer and storage architecture\", 12 November 2026 06:55 UTC, after the recommendation to keep " +
+    "Postgres and Ponder with Capxul's data in the same Postgres (https://claude.ai/artifact/MbNQS2XzjeUcA9ZqtVVwHn): \"Alright, I " +
+    "don't like the polling idea. I'm sure there's another way we can do this. I'm not sure if this is a now thing or not though, " +
+    "because I think we've just decided what we need to do. So, and of course we need to migrate this over to orbs as well. So " +
+    "anyway, I agree with you. I agree with the original as well. I think makes sense. Pondart, keep it. Or Postgres and let's push " +
+    "on.\" Confirmed 06:58 in another thread: \"We're going to use Honda in all the environments.\" ('Pondart' and 'Honda' are " +
+    "dictation for Ponder.) Earlier, 06:23: \"we will have many chains\"; 06:38: \"If we're going Ponder ... all the company data " +
+    "should go there as well\". Reason accepted: for money on many chains, production risk outweighs test-world cost. The " +
+    "per-world details were in the recommendation he agreed to; Ponder's memory per world is estimated (300 to 500 MB), not " +
+    "measured. Not settled here: chain-first keys (indexing.keys), narrowing indexing.transfers, and a site path that does not " +
+    "poll (plugs.service-calls-site).",
+  source: "Aaron, 12 November 2026, in the project thread \"Decide one indexer and storage architecture\" (06:55 UTC)",
+  affects: [
+    f.system_capxul,
+    f.component_postgres,
+    f.component_ponder,
+    f.component_backend,
+    f.component_devnet,
+    f.environment_devnet,
+    f.environment_shared_world,
+    f.environment_staging,
+    f.concept_indexing,
+  ],
 });

@@ -35,7 +35,6 @@ import {
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
 import * as approvals from "../approvals/procedures.ts";
-import * as booksData from "../books/data.ts";
 import * as budgetsData from "../budgets/data.ts";
 import { table_chain_budgets, table_hat_wearers } from "../indexing/data.ts";
 import * as orgsData from "../organizations/data.ts";
@@ -67,7 +66,7 @@ export const SendInput = Schema.Struct({
   note: Null(S),
   /** `--document <file>`: the receipt's bytes as the SDK read them (at most 128 KB), stored byte for byte by documents. */
   document: Null(ReceiptContent),
-  /** `--account`: the code of the Organization's chart it is booked to, like 6100; kept on each Payment as its `against`. */
+  /** `--account`: the Account of the Organization's site chart it is booked to, like 6100; kept on each Payment as its `against`. */
   account: Null(S),
   /** `--suggest`: a name for a new account, beside 4999 or 6999, for someone with Manage books to decide. */
   suggest: Null(S),
@@ -122,9 +121,8 @@ export const rpc_payments_commands_prepare = defineRpc({
     "and the budget as authority (`Budgets.spend` or, dated, `schedule` to the address), so whoever wears the budget's " +
     "hat or one above it then, or the Board, may take it back. A non-ASCII mailbox is INVALID_RECIPIENT " +
     "(payments.claim-escrow-routes). " +
-    "`--account` (a code of the payer's chart: the Organization's open ledger accounts, or the fixed personal chart) " +
-    "and `--suggest` (only beside 4999 or 6999) become each Payment's `against`; a bad one is INVALID_INPUT naming it " +
-    "(payments.money-sides). A dated personal payment is signed now, sent on its day. It answers the CLI's preview.",
+    "`--account` (an Account of the payer's chart: an Organization's site's, resolved there: books.annotate-site-chart) " +
+    "and `--suggest` (only beside 4999 or 6999) become each Payment's `against` (payments.money-sides). A dated personal payment is signed now, sent on its day. It answers the CLI's preview.",
   concept: concept_payments,
   kind: "action",
   who:
@@ -149,7 +147,6 @@ export const rpc_payments_commands_prepare = defineRpc({
     orgsData.table_organizations,
     orgsData.table_org_members,
     budgetsData.table_budgets,
-    booksData.table_book_accounts,
   ],
   writes: [table_payment_commands, table_payments],
   drives: [machine_payment.t.open],

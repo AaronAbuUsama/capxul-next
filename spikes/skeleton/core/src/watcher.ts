@@ -1,9 +1,11 @@
 // Reads the chain's logs and turns them into outbox events. The cursor (last block read) is persisted;
-// event_key = chainId:blockHash:logIndex keeps a re-read after a crash from creating a second event.
+// event_key = chainId:txHash:receipt ordinal (log-key.ts, decision indexing.log-identity) keeps a re-read after a crash, or
+// a payment re-mined in a new block after a reorg, from creating a second event.
 import { deployment, publicClient, fromUnits, orgId } from "./chain.ts";
-import { byAddress } from "./people.ts";
+import { byAddress, byEmail } from "./people.ts";
 import { enqueue, ensureOrg, orgByHash } from "./outbox.ts";
 import { loadJson, saveJson } from "./store.ts";
+import { logKey, type ReceiptLog } from "./log-key.ts";
 
 const log = (m: string) => console.log(`${new Date().toISOString()} [watcher] ${m}`);
 let cursor = loadJson<{ block: number }>("cursor.json", { block: -1 }).block;
@@ -34,13 +36,32 @@ async function runV4(chainId: number, deployedBlock: number): Promise<void> {
   const start = Math.max(cursor, deployedBlock);
   if (latest <= start) return;
   const { hats, payments } = await v4Addresses();
-  const logs = await publicClient.getLogs({ address: [hats, payments], fromBlock: BigInt(start + 1), toBlock: BigInt(latest) });
+  const token = deployment().usdc;
+  const logs = await publicClient.getLogs({ address: [hats, payments, token], fromBlock: BigInt(start + 1), toBlock: BigInt(latest) });
+  const receipts = new Map<string, readonly ReceiptLog[]>();
   for (const l of logs) {
-    const ev = await v4Decode(l);
+    const ev = await v4Decode(l, token);
     if (!ev) continue;
-    const key = `${chainId}:${l.blockHash}:${l.logIndex}`;
+    const tx = l.transactionHash!;
+    let receiptLogs = receipts.get(tx);
+    if (!receiptLogs) {
+      receiptLogs = (await publicClient.getTransactionReceipt({ hash: tx })).logs;
+      receipts.set(tx, receiptLogs);
+    }
+    const key = logKey(chainId, tx, receiptLogs, l.logIndex!);
     const org = ensureOrg(ev.slug, orgId(ev.slug), { safe: ev.safe });
-    if (ev.kind === "payment_sent") {
+    if (ev.kind === "transfer_in") {
+      // books.founder-funding: the first Transfer in is the founder's capital; a later one is not capital and is not
+      // posted here (it stays unmatched, books.party-lines). getOrg is read after ensureOrg, so the check sees this org.
+      if (org.events.some((e) => e.kind === "founder_capital" && e.event_key !== key)) continue;
+      const block = await publicClient.getBlock({ blockNumber: l.blockNumber! });
+      const p = ev.founderEmail ? byEmail(ev.founderEmail) : undefined;
+      enqueue(org.slug, key, "founder_capital", {
+        to: ev.safe, from: ev.from, amount: fromUnits(ev.amount), asset: "USDC", tx_hash: l.transactionHash,
+        founder_email: ev.founderEmail, founder_name: p?.name ?? null,
+        block_time: new Date(Number(block.timestamp) * 1000).toISOString().replace(".000Z", "Z"),
+      });
+    } else if (ev.kind === "payment_sent") {
       const block = await publicClient.getBlock({ blockNumber: l.blockNumber! });
       enqueue(org.slug, key, "payment_sent", {
         payment_id: ev.paymentId, document_hash: ev.documentHash, from_safe: ev.from, to: ev.to,

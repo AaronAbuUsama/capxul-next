@@ -4,8 +4,8 @@
 
 import { budget, defineWorkflow } from "../../packages/blueprint-engine/src/index.ts";
 import { concept_plugs } from "../shared/foundation.ts";
-import { contract_hats, contract_payments } from "../shared/external.ts";
-import { table_chain_payments, table_hat_wearers } from "../indexing/data.ts";
+import { contract_erc20, contract_hats, contract_payments } from "../shared/external.ts";
+import { table_chain_payments, table_hat_wearers, table_transfers } from "../indexing/data.ts";
 import { machine_approval } from "../approvals/data.ts";
 import { table_org_deployments, table_org_members } from "../organizations/data.ts";
 import { integration_frappe_site } from "./integrations.ts";
@@ -144,6 +144,38 @@ export const workflow_plugs_payments_settle = defineWorkflow({
   retries: { max: 5, backoff: "exponential" },
   budget: budget("chain-settle"),
   was: [`${SPIKE} (INTERFACE.md: payment_sent; Frappe half: Canonical JSON)`],
+});
+
+export const workflow_plugs_books_founder_capital = defineWorkflow({
+  id: "plugs.books.founder-capital",
+  title: "Book the money that first funds a new company's Safe as the founder's capital",
+  about:
+    "Triggered by each indexed Transfer of an admitted asset into a company Safe Capxul made. The first such Transfer into a Safe is " +
+    "the funding at birth (books.founder-funding): the `founder_capital` event, carrying the amount, the transaction hash, the block time " +
+    "and the founder (the Organization's founding Director), is enqueued so the site posts one Journal Entry that debits the Safe's bank " +
+    "account and credits the company's capital account, with the founder as the party (a Shareholder). Every later Transfer in is not " +
+    "capital: it stays unmatched and visible, as books.party-lines says. So the General Ledger of the Safe's account equals the Safe's " +
+    "balance on chain once the funding has landed (acc:report.run/1).",
+  concept: concept_plugs,
+  priority: "critical",
+  trigger: { chainEvent: contract_erc20.e.Transfer },
+  steps: [
+    { name: "facts", about: "Reads the Transfer at the finality depth; a receiver that is not a company Safe Capxul made ends the run." },
+    { name: "first", about: "Checks the Safe's earlier Transfers in; any earlier one means this is not the funding, and the run ends." },
+    { name: "enqueue", about: "Enqueues founder_capital for the Organization, naming its founding Director." },
+  ],
+  reads: [table_transfers, table_org_deployments, table_org_members, table_site_events, table_site_cursors],
+  writes: [table_site_events, table_site_cursors],
+  drives: [machine_site_event.t.enqueue],
+  invokes: [],
+  emits: [],
+  calls: [],
+  chain: [],
+  idempotency: "The unique event key (chain id, tx hash, receipt ordinal): a replayed Transfer enqueues nothing twice, and the site books the key once.",
+  timeoutMs: 60_000,
+  retries: { max: 5, backoff: "exponential" },
+  budget: budget("chain-settle"),
+  was: ["docs/mission/decisions-2026-11-11.md (2. How does the money that funds a Safe enter its books?)"],
 });
 
 export const workflow_plugs_payments_fail = defineWorkflow({

@@ -15,7 +15,8 @@ const at = (iso: string) => Date.parse(iso);
 
 const USDC = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
 const DAI = "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707";
-const CLEANING = { accountId: `acct_${uuid(200)}`, code: "6100", name: "Cleaning" };
+/** The Account on Northwind's site, as ERPNext names it (books.chart-owner). */
+const CLEANING = { account: "6100 - Cleaning - NW", number: "6100", name: "Cleaning" };
 
 const annotation = {
   reference: { kind: "payment", id: ID.paymentToBrightside },
@@ -44,7 +45,7 @@ export const annotate = [
     { missing: "--confirm" },
   ),
   refused(
-    "An account code that is not in the chart",
+    "An account number that is not in the site's chart",
     `capxul activity annotate --kind payment --id ${ID.paymentToBrightside} --account 9999 --confirm --json`,
     error_INVALID_INPUT,
     { account: "9999" },
@@ -87,7 +88,6 @@ const settled = {
   kind: "payment_settled",
   occurredAt: at("2026-02-10T09:31:00Z"),
   blockTime: at("2026-02-10T09:31:00Z"),
-  postingDate: "2026-02-10",
   amount: { value: "1800.00", asset: "USDC" },
   fee: null,
   usd: { value: "1800.00", rate: "1", source: "peg" },
@@ -102,7 +102,6 @@ const settled = {
   reverses: null,
   chain: { chainId: CHAIN_ID, block: 1204, txHash: hash("c3"), logIndex: 2 },
   txHash: hash("c3"),
-  voucher: `voucher_${uuid(204)}`,
   actor: { kind: "system" },
   recordedAt: at("2026-02-10T09:31:05Z"),
 };

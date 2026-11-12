@@ -4,7 +4,7 @@ import json
 import frappe
 from frappe import _
 
-from capxul import hats, payments, sign
+from capxul import capital, hats, payments, sign
 
 PARK_AFTER = 3  # a handler failing this many times for one event is given up on (parked), so the queue moves on
 
@@ -13,6 +13,7 @@ KINDS = {
     "hat_revoked": hats.apply_hat_revoked,
     "payment_sent": payments.apply_payment_sent,
     "payment_failed": payments.apply_payment_failed,
+    "founder_capital": capital.apply_founder_capital,
 }
 
 
@@ -56,10 +57,12 @@ def _process(ev):
             frappe.db.commit()
             raise
         # Deterministic failure: one event must not block every later event (money included). Park it, visibly, and move
-        # the cursor on. A payment that could not be posted is shown as an unreconciled Bank Transaction instead.
-        if kind == "payment_sent":
+        # the cursor on. Money that could not be posted (a payment out, the founder's funding in) is shown as an
+        # unreconciled Bank Transaction instead, so it never leaves the books.
+        fallback = {"payment_sent": payments._unmatched, "founder_capital": capital.unmatched_deposit}.get(kind)
+        if fallback:
             try:
-                payments._unmatched(ev["data"], f"could not be posted: {err[:100]}")
+                fallback(ev["data"], f"could not be posted: {err[:100]}")
             except Exception:
                 frappe.db.rollback()
         _record(ev, "Parked", err, attempts)

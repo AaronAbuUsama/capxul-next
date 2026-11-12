@@ -26,7 +26,7 @@ export function doorError(status: number, j: any): CliError {
   const reason = text || `Frappe answered HTTP ${status}`;
   const detail = { http: status, type, messages: msgs };
   const off = /\(feature: ([a-z]+)\)/.exec(reason);
-  if (off) return new CliError(`feature ${off[1]} is switched off for this company: ${reason}`, "FEATURE_OFF", true, detail);
+  if (off) return new CliError(`feature ${off[1]} is switched off for this company: ${reason}`, "FEATURE_NOT_AVAILABLE", true, detail);
   if (status === 401 || type === "AuthenticationError") return new CliError(reason, "NO_HAT", true, detail);
   if (status === 403 || type === "PermissionError") return new CliError(reason, "FORBIDDEN", true, detail);
   if (status === 404 || type === "DoesNotExistError") return new CliError(reason, "NOT_FOUND", true, detail);

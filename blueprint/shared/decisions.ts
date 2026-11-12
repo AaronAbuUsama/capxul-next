@@ -1326,7 +1326,7 @@ export const decision_integrations_indexer = defineDecision({
   options: [
   {
     "label": "current-scope",
-    "text": "Indexed table reads and progress-dependent calls are distinct: head, awaitBlock and factsOf must time out or fail visibly when the chain reader lags. In lean worlds the reader is folded into the SQLite service, not a mandatory Ponder/Postgres sidecar; this does not turn unavailable progress into a successful empty result."
+    "text": "Indexed table reads and progress-dependent calls are distinct: head, awaitBlock and factsOf must time out or fail visibly when the chain reader lags. Ponder is the reader in every environment, worlds included (aaron.postgres-and-ponder); unavailable progress never becomes a successful empty result."
   },
   {
     "label": "historical",
@@ -1335,7 +1335,7 @@ export const decision_integrations_indexer = defineDecision({
 ],
   chosen: "current-scope",
   why:
-    "Review, 11 November 2026: Indexed table reads and progress-dependent calls are distinct: head, awaitBlock and factsOf must time out or fail visibly when the chain reader lags. In lean worlds the reader is folded into the SQLite service, not a mandatory Ponder/Postgres sidecar; this does not turn unavailable progress into a successful empty result. Authority: devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion.",
+    "Review, 11 November 2026: Indexed table reads and progress-dependent calls are distinct: head, awaitBlock and factsOf must time out or fail visibly when the chain reader lags. Ponder is the reader in every environment, worlds included (aaron.postgres-and-ponder); unavailable progress never becomes a successful empty result. Authority: devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion.",
   source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion",
   affects: [x.integration_indexer, f.concept_indexing],
 });

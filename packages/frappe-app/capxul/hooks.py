@@ -22,6 +22,7 @@ doc_events = {
         "before_submit": "capxul.payments.guard_submit",
         "before_cancel": "capxul.payments.guard_cancel",
     },
+    "Journal Entry": {"before_cancel": "capxul.capital.guard_cancel"},
     "GL Entry": {"before_insert": ["capxul.payments.guard_gl_entry", "capxul.trace.stamp_gl"]},
     # the trace id of the command that caused a write (capxul.trace)
     "*": {"after_insert": "capxul.trace.stamp", "on_update": "capxul.trace.stamp", "on_submit": "capxul.trace.stamp", "on_cancel": "capxul.trace.stamp"},

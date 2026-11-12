@@ -4,3 +4,5 @@ Add the bundler (alto behind the mock paymaster, component bundler-paymaster) to
 Aaron accepted thin-line.bundler as recommended, 12 November 2026 06:15 UTC (a-20261112T061518-d70798): one canary world has the account-abstraction pipeline; every other test world stays small.
 ## Done when
 - Thin-line step 6 (acc:payment.send/1) passes as written, its held payment signed and sent through the bundler and the EntryPoint, while the other test worlds start without a bundler.
+## From the Ponder measurement, 12 November 2026 (docs/mission/world-cost.md, Part 1)
+- A world's birth must give the chain two-second blocks and 200 mined blocks, or Ponder cannot start on a world seeded from --load-state.
