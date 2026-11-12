@@ -142,8 +142,23 @@ chk TL.doc-submit-safe-payment-held-signer-named "TL doc submit of Safe Payment 
 chk TL.held-payment-posts-no-ledger-line "TL while held: the entry is a draft and has no ledger line" \
   "$(dj doc get $SLUG "Payment Entry" "$TLPE" --as $BUDGET | jget "d['data']['docstatus']") $(gl_of "$TLPE" | jget "len(d['data'])")" "0 0"
 dj approval sign $SLUG "$TLAPR" --as $BUDGET > "$T/tlsign.json"
+# acc:payment.send: the signature is one ERC-4337 UserOperation from the budget holder's personal Safe (which wears the
+# hat, owned by the holder's key), through the v0.7 EntryPoint with the paymaster paying; it carries one PaymentSent.
+TLTX=$(jget "d['data']['txHash']" < "$T/tlsign.json"); TLOP=$(jget "d['data']['userOpHash']" < "$T/tlsign.json")
+TLSENDER=$(cast receipt "$TLTX" --json --rpc-url $RPC | python3 -c 'import json,sys; l=[x for x in json.load(sys.stdin)["logs"] if x["topics"][0]==sys.argv[1]]; print("0x"+l[0]["topics"][2][-40:] if l else "")' "$(cast sig-event 'UserOperationEvent(bytes32,address,address,uint256,bool,uint256,uint256)')")
+chk TL.payment-is-one-user-operation "TL the payment is exactly one successful UserOperation (named by approval sign) from $BUDGET's personal Safe, sponsored by the paymaster, with one PaymentSent" \
+  "$(cast receipt "$TLTX" --json --rpc-url $RPC | python3 -c '
+import json,sys; r=json.load(sys.stdin); ev,pay,op,pm=sys.argv[1:5]
+u=[x for x in r["logs"] if x["topics"][0]==ev]; p=[x for x in r["logs"] if x["topics"][0]==pay]
+print(len(u), len(p), u[0]["topics"][1]==op.lower(), int(u[0]["data"][66:130],16)==1, u[0]["topics"][3][-40:]==pm[2:].lower(), r["to"].lower()=="0x0000000071727de22e5e9d8baf0edac6f37da032")' \
+  "$(cast sig-event 'UserOperationEvent(bytes32,address,address,uint256,bool,uint256,uint256)')" "$(cast sig-event 'PaymentSent(bytes32,address,address,address,uint256,uint16,bytes32)')" "$TLOP" \
+  "$(jget "d['paymaster']" < "$HERE/core/state/deployment.json")") $(cast call "$TLSENDER" 'getOwners()(address[])' --rpc-url $RPC | tr 'A-F' 'a-f')" \
+  "1 1 True True True True [$(python3 -c 'import json,sys; print([p["address"] for p in json.load(open(sys.argv[1]))["people"] if p["email"]==sys.argv[2]][0].lower())' "$HERE/core/people.json" "$BUDGET")]"
 # the site posts when the chain's PaymentSent reaches it through Core's outbox, so it lands a moment after the signature
 wait_for 20 bash -c "[ \"\$(node --experimental-strip-types --no-warnings '$HERE/core/src/main.ts' doc get $SLUG 'Payment Entry' '$TLPE' --as $BUDGET --json | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"data\"][\"docstatus\"])')\" = 1 ]"
 chk TL.signed-payment-posts-once "TL after the signature lands: the entry is submitted and posted once (one credit to the Safe account of 12.5)" \
   "$(dj doc get $SLUG "Payment Entry" "$TLPE" --as $BUDGET | jget "d['data']['docstatus']") $(gl_of "$TLPE" | jget "[(r['debit'], r['credit']) for r in d['data'] if r['account']=='$SAFE_ACCOUNT']")" "1 [(0.0, 12.5)]"
+TLPAY=$(jget "d['data']['paymentId']" < "$T/tlsign.json")
+chk TL.payment-list-shows-one-settled "TL payment list shows exactly one Payment for the signed payment id, settled, with its transaction" \
+  "$(dj payment list $SLUG --id "$TLPAY" | jget "[(p['status'], p['tx_hash'].lower()) for p in d['data']]")" "[('settled', '$(echo "$TLTX" | tr 'A-F' 'a-f')')]"
 }

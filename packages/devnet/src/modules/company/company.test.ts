@@ -13,7 +13,7 @@ import { encodeFunctionData, keccak256, stringToHex, type Abi, type Hex } from "
 import { connect, send } from "../chain/service.ts";
 import type { DeploymentRecord } from "../protocol/types.ts";
 import { testKey } from "../test-keys/service.ts";
-import { approvedBy, approveProposal, createCompany, createDepartment, ERC20, grantHat, leftOf, pay, proposeGrant, revokeHat, setBudget, wears, type Protocol } from "./service.ts";
+import { approvedBy, approveProposal, claimPersonalSafe, createCompany, createDepartment, ENTRY_POINT, ENTRY_POINT_V07, ERC20, grantHat, leftOf, pay, payByUserOp, proposeGrant, revokeHat, setBudget, viaEntryPoint, wears, type Protocol } from "./service.ts";
 
 const rpc = process.env.DEVNET_RPC;
 const contracts = join(fileURLToPath(new URL(".", import.meta.url)), "../../../../contracts");
@@ -107,4 +107,50 @@ test("with a second Director, a grant waits as a Board proposal until that Direc
   const first = await proposeGrant(p, company, finance, testKey("payee").address);
   await grantHat(p, company, finance, testKey("agent").address);
   await assert.rejects(approveProposal(p, company, first, director), /STALE_PROPOSAL/);
+});
+
+test("a hat worn by a personal Safe pays by UserOperation through the EntryPoint, with a paymaster paying the gas", { skip: rpc === undefined && "DEVNET_RPC is not set" }, async () => {
+  const chain = await connect(rpc as string);
+  const record = JSON.parse(await readFile(join(contracts, "deployments/devnet.json"), "utf8")) as DeploymentRecord;
+  const artifact = async (file: string, name: string) => JSON.parse(await readFile(join(contracts, "out", file, `${name}.json`), "utf8")) as { abi: Abi; bytecode: { object: Hex } };
+  const p: Protocol = { chain, record, installerAbi: (await artifact("Installer.sol", "Installer")).abi };
+  const deployer = testKey("deployer");
+  const deploy = async (file: string, name: string, args: readonly unknown[]) => {
+    const a = await artifact(file, name);
+    const h = await chain.walletFor(deployer.key).deployContract({ abi: a.abi, bytecode: a.bytecode.object, args });
+    return { address: (await chain.client.waitForTransactionReceipt({ hash: h })).contractAddress as Hex, abi: a.abi };
+  };
+  const token = (await deploy("MockERC20.sol", "MockERC20", ["Test USD", "TUSD", 6])).address;
+  const paymaster = await deploy("MockPaymaster.sol", "MockPaymaster", [ENTRY_POINT_V07]);
+  await send(chain, { from: deployer.key, to: ENTRY_POINT_V07, value: 10n ** 18n, data: encodeFunctionData({ abi: ENTRY_POINT, functionName: "depositTo", args: [paymaster.address] }) });
+
+  const name = `userop-test-${Date.now()}`;
+  const company = await createCompany(p, { tierService: testKey("tierService").key, relayer: deployer.key, founder: testKey("founder").key }, {
+    founderEmail: `${name}@acme.test`, company: name, token, officers: [{ details: "Finance", maxSupply: 3 }],
+    ceiling: 50_000n * UNIT, topAmount: 50_000n * UNIT, salt: hash(name),
+  });
+  await send(chain, { from: deployer.key, to: token, data: encodeFunctionData({ abi: ERC20, functionName: "mint", args: [company.companySafe, 10_000n * UNIT] }) });
+  const finance = company.officerHats[0] as bigint;
+  const department = await createDepartment(p, company, finance);
+  await setBudget(p, company, department, 2_000n * UNIT);
+
+  const holder = testKey("second");
+  const safe = await claimPersonalSafe(p, testKey("tierService").key, `holder-${name}@acme.test`, holder.address);
+  assert.equal(await claimPersonalSafe(p, testKey("tierService").key, `holder-${name}@acme.test`, holder.address), safe, "claiming again is a no-op");
+  await grantHat(p, company, finance, safe);
+  const gasBefore = await chain.client.getBalance({ address: safe });
+  const payee = testKey("payee").address;
+  const before = await chain.client.readContract({ address: token, abi: ERC20, functionName: "balanceOf", args: [payee] });
+  const submit = viaEntryPoint(chain, deployer.key);
+  const paid = await payByUserOp(p, { safe, ownerKey: holder.key, paymaster: paymaster.address, submit, budget: department, to: payee, amount: 125_500_000n, kind: 1, documentHash: hash(`${name} PINV-0001`), jobNonce: hash(`${name} job 1`) });
+  assert.equal(paid.ok, true, JSON.stringify(paid, (_k, v) => (typeof v === "bigint" ? v.toString() : v)));
+  assert.match(paid.ok ? (paid.userOpHash ?? "") : "", /^0x[0-9a-f]{64}$/, "the payment names its UserOperation");
+  const after = await chain.client.readContract({ address: token, abi: ERC20, functionName: "balanceOf", args: [payee] });
+  assert.equal(after - before, 125_500_000n, "the payee gained exactly 125.50");
+  assert.equal(await chain.client.getBalance({ address: safe }), gasBefore, "the paymaster paid the gas, not the Safe");
+
+  const wrongSigner = await payByUserOp(p, { safe, ownerKey: testKey("stranger").key, paymaster: paymaster.address, submit, budget: department, to: payee, amount: UNIT, kind: 1, documentHash: hash("w"), jobNonce: hash(`${name} w`) }).catch((e: Error) => e);
+  assert.ok(wrongSigner instanceof Error, "an op signed by someone who does not own the Safe is refused by the EntryPoint");
+  const over = await payByUserOp(p, { safe, ownerKey: holder.key, paymaster: paymaster.address, submit, budget: department, to: payee, amount: 5_000n * UNIT, kind: 1, documentHash: hash("y"), jobNonce: hash(`${name} y`) });
+  assert.deepEqual([over.ok, !over.ok && over.reason], [false, "OVER_BUDGET"]);
 });
