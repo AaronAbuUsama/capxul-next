@@ -1887,8 +1887,9 @@
       "needs": [],
       "records": [
         "decision:books.chart-owner",
-        "table:book-companies",
-        "table:book-accounts"
+        "decision:books.annotate-site-chart",
+        "table:book-feeds",
+        "table:book-annotations"
       ],
       "evidence": [],
       "created": "2026-11-12",

@@ -223,7 +223,7 @@ export const operation_activity_get = defineOperation({
           timing: { created_at: at("2026-02-05T10:00:00Z"), sent_at: at("2026-02-05T10:00:30Z"), settled_at: at("2026-02-05T10:01:00Z") },
         },
         annotation: {
-          reference: { kind: "payment", id: ID.paymentToBrightside }, actor: { kind: "person", id: ID.marcus }, account: { accountId: uuid(952), code: "6100", name: "Cleaning" },
+          reference: { kind: "payment", id: ID.paymentToBrightside }, actor: { kind: "person", id: ID.marcus }, account: { account: "personal_6100", number: "6100", name: "Cleaning" },
           party: { type: "Supplier", id: ID.brightside }, costCenter: null, project: null, references: [{ reference_doctype: "Purchase Invoice", reference_name: "INV-0042", allocated_amount: "1200.00" }],
           suggestion: null, memo: "Office cleaning, January", lastEditor: { kind: "person", id: ID.marcus }, updatedAt: at("2026-02-05T11:00:00Z"),
         },
