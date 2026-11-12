@@ -160,4 +160,5 @@ chk TL.signed-payment-posts-once "TL after the signature lands: the entry is sub
   "$(dj doc get $SLUG "Payment Entry" "$TLPE" --as $BUDGET | jget "d['data']['docstatus']") $(gl_of "$TLPE" | jget "[(r['debit'], r['credit']) for r in d['data'] if r['account']=='$SAFE_ACCOUNT']")" "1 [(0.0, 12.5)]"
 TLPAY=$(jget "d['data']['paymentId']" < "$T/tlsign.json")
 chk TL.payment-list-shows-one-settled "TL payment list shows exactly one Payment for the signed payment id, settled, with its transaction" \
+  "$(dj payment list $SLUG --id "$TLPAY" | jget "[(p['status'], p['tx_hash'].lower()) for p in d['data']]")" "[('settled', '$(echo "$TLTX" | tr 'A-F' 'a-f')')]"
 }
