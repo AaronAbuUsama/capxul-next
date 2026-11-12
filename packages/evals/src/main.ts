@@ -102,7 +102,8 @@ const parseWhat = (args: readonly string[]): { what: What; slug: string; world: 
   const world = flag("--world") ?? "main";
   const journey = flag("--journey");
   const milestone = flag("--milestone");
-  const valued = new Set(["--slug", "--world", "--journey", "--milestone", "--environment", "--screens"]);
+  if (args.includes("--prepare") && (!flag("--prepare") || flag("--prepare")!.startsWith("--"))) return "--prepare requires an argv JSON file";
+  const valued = new Set(["--slug", "--world", "--journey", "--milestone", "--environment", "--screens", "--prepare"]);
   const positional = args.filter((a, i) => a !== "--" && !a.startsWith("--") && !valued.has(args[i - 1] ?? ""));
   if (journey) return { what: { kind: "journey", id: journey }, slug, world };
   if (milestone) return { what: { kind: "milestone", id: milestone }, slug, world };
@@ -123,10 +124,10 @@ const run = async (args: readonly string[]): Promise<number> => {
   if (unknown.length > 0) { console.error(`the blueprint derives no eval ${unknown.join(", ")}`); return 1; }
 
   const flag = (name: string): string | undefined => { const i = args.indexOf(name); return i < 0 ? undefined : args[i + 1]; };
-  const environment = flag("--environment"), screens = flag("--screens");
+  const environment = flag("--environment"), screens = flag("--screens"), prepare = flag("--prepare");
   const secrets = loaded.value.files.flatMap((f) => f.secrets.flatMap(secretsIn));
   return executeRun(ROOT, blueprint, bindings, asked.value, { world: parsed.world, slug: parsed.slug,
-    ...(environment ? { environment } : {}), ...(screens ? { screens } : {}), json: args.includes("--json") }, commitOf(), secrets);
+    ...(environment ? { environment } : {}), ...(screens ? { screens } : {}), ...(prepare ? { prepare } : {}), json: args.includes("--json") }, commitOf(), secrets);
 };
 
 const check = async (): Promise<number> => {
