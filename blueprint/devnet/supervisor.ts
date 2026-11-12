@@ -14,3 +14,17 @@ export const decision_devnet_slice_zero_supervisor = defineDecision({
   source: "Wave 0 slice 0 integration brief, 12 November 2026; aaron.postgres-and-ponder; aaron.one-cli; devnet.snapshot-of-a-world; Core, recovery and provisioning owner interfaces",
   affects: [component_devnet, concept_devnet],
 });
+
+export const decision_devnet_selected_world_now = defineDecision({
+  id: "devnet.selected-world-now",
+  title: "Selected-world business time has one database authority",
+  question: "What time may same-transaction concept consumers use before the running-clock authority is implemented?",
+  options: [
+    { label: "persisted-stopped-authority", text: "The backend devnet door worldNow(sql) returns the safe-integer nowMs from the single app.world.clock row only in stopped mode, with a valid rate from 1 to 60. Missing, malformed or running clocks fail closed. Consumers use this same transaction's authority for business timestamps, never a caller timestamp, host fallback or independent rate calculation. Creation installs the actual chain instant; native recovery installs the saved instant offline before any consumer resumes." },
+    { label: "extrapolate", text: "Treat the unanchored stored running clock as enough information to invent elapsed time in each consumer." },
+  ],
+  chosen: "persisted-stopped-authority",
+  why: "The selected supervisor implements stopped authority only. Its current clock has no realAt or stopAt, so extrapolation cannot satisfy the existing time protocol's running stops. Refusal preserves the frozen and restored world exactly without claiming the running protocol is implemented. Running support must first supply its authoritative anchor, due-stop barrier and recovery reanchoring through this same door; consumers do not acquire their own clocks. Real time still measures operational timeouts, spans and external authentication expiry, not business time.",
+  source: "docs/design/time.md sections 3 and 7; selected supervisor clock callback; integration clock-door assignment, 12 November 2026",
+  affects: [component_devnet, concept_devnet],
+});
