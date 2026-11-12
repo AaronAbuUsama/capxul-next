@@ -40,6 +40,19 @@ export const decision_system_eval_runs = defineDecision({
   source: "Aaron's parallel breadth preparation, 12 November 2026; reproduced zero-result run retaining old passes",
   affects: [f.system_capxul],
 });
+
+export const decision_system_eval_preparation = defineDecision({
+  id: "system.eval-preparation", title: "Journey preparation belongs to the scoring attempt",
+  question: "How can provisioning, payment and recovery happen inside the eval run that scores their evidence?",
+  options: [
+    { label: "receipt-first", text: "An optional --prepare argv-JSON file names one executable and its literal arguments. Save its argv, pending exit and prepare.log path in the running receipt and clear requested prior verdicts before spawning it with CAPXUL_EVAL_RUN_DIR. Await success and save its exit/signal before any bound script. Failure or interruption makes the attempt incomplete and skips bound scripts. Preparation output cannot satisfy check bindings. Keep old receipts without preparation readable. Credentials belong in environment or files, never argv; preparation output must be sanitized." },
+    { label: "external-fixture", text: "Prepare the world before starting the harness, then inspect its finished state. This cannot establish that the public journey actions occurred in the scoring attempt." },
+  ],
+  chosen: "receipt-first", why: "A paid or restored fixture predating the running receipt cannot prove a same-run journey. The harness owns attempt timing and failure; concept checks still own the exact public actions, independent persisted reads, native integrity and correlated events. A successful preparation process alone supplies no eval pass.",
+  source: "Slice zero runtime and world CLI integration, 12 November 2026; system.eval-runs; preparation previously preceded executeRun",
+  affects: [f.system_capxul],
+});
+
 export const decision_system_standing_gaps = defineDecision({
   id: "system.standing-gaps", title: "A standing gap carries a decision and a current reason",
   question: "How can the build distinguish an open gap from an explicitly retained boundary?",

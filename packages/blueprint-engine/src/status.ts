@@ -38,6 +38,9 @@ export const RunReceipt = Schema.Struct({
   requested: Schema.Array(Nonempty),
   evals: Schema.Array(Schema.Struct({ id: Nonempty, claim: Nonempty, observes: Schema.optionalKey(Nonempty) })),
   scripts: Schema.Array(Schema.Struct({ script: Nonempty, exitCode: Schema.NullOr(Schema.Int), signal: Schema.NullOr(Nonempty) })),
+  prepare: Schema.optionalKey(Schema.Struct({
+    argv: Schema.Array(Schema.String), exitCode: Schema.NullOr(Schema.Int), signal: Schema.NullOr(Nonempty), log: Schema.Literal("prepare.log"),
+  })),
   screens: Schema.Array(ScreenEvidence),
 });
 export type RunReceipt = typeof RunReceipt.Type;
@@ -88,8 +91,11 @@ export const parseRunReceipt = (u: unknown): Parsed<RunReceipt> => {
   const requested = new Set(r.requested), contracts = new Set(r.evals.map((e) => e.id));
   if (requested.size !== r.requested.length || contracts.size !== r.evals.length || requested.size !== contracts.size || r.evals.some((e) => !requested.has(e.id)))
     return { ok: false, errors: ["receipt contracts must match every requested eval exactly once"] };
-  if (r.state === "complete" && (!r.finishedAt || Date.parse(r.finishedAt) < Date.parse(r.at) || r.scripts.some((s) => s.exitCode !== 0 || s.signal !== null)))
-    return { ok: false, errors: ["a complete run must finish every script successfully"] };
+  if (r.prepare && (!r.prepare.argv[0] || r.prepare.argv.some((arg) => arg.includes("\0"))))
+    return { ok: false, errors: ["preparation argv must name an executable and contain only NUL-free arguments"] };
+  if (r.state === "complete" && (!r.finishedAt || Date.parse(r.finishedAt) < Date.parse(r.at) || r.scripts.some((s) => s.exitCode !== 0 || s.signal !== null) ||
+    (r.prepare && (r.prepare.exitCode !== 0 || r.prepare.signal !== null))))
+    return { ok: false, errors: ["a complete run must finish preparation and every script successfully"] };
   if (r.environment.stack === "postgres-ponder-erpnext-v4" && (r.environment.storage !== "postgres" || r.environment.indexer !== "ponder"))
     return { ok: false, errors: ["the selected stack requires Postgres and Ponder"] };
   return parsed;
