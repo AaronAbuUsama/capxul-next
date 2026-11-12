@@ -825,7 +825,7 @@ export const decision_tooling_amp_orbs = defineDecision({
   title: "One independent development stack per Amp orb, without a nested worker box",
   question: "How does an Amp agent run the current Frappe and Core stack without provisioning another agent sandbox?",
   options: [
-    { label: "orb", text: "Amp owns the worker checkout and lifecycle. Setup caches the pinned bench image, Node, pnpm, native Solidity compilers, Foundry and contract artifacts. Runtime provides local Postgres, MariaDB, Redis, Frappe and a seeded v4 chain; Frappe HTTP and Socket.IO are published only on loopback. The Core/Ponder package owns its schema, migrations, restricted roles and readiness; its running services do not inherit migration/admin credentials. Amp supervises the processes. No Cloudflare worker, loop host or model proxy is started inside the orb." },
+    { label: "orb", text: "Amp owns the worker checkout and lifecycle. Setup caches the pinned bench image, Node, pnpm, native Solidity compilers, Foundry, contract artifacts and the native PostgreSQL 17 client. The host psql entrypoint selects major 17 for recovery, accepting maintenance credentials through PG environment variables rather than argv. Runtime provides local Postgres, MariaDB, Redis, Frappe and a seeded v4 chain; Frappe HTTP and Socket.IO are published only on loopback. The Core/Ponder package owns its schema, migrations, restricted roles and readiness; its running services do not inherit migration/admin credentials. Amp supervises the processes. No Cloudflare worker, loop host or model proxy is started inside the orb." },
     { label: "nested-box", text: "Keep creating a Cloudflare worker box from every Amp orb." },
   ],
   chosen: "orb",
