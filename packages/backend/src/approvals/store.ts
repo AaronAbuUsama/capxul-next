@@ -23,7 +23,7 @@ export async function read(sql: Sql, person: string, id: string): Promise<Approv
 }
 export async function wake(sql: Sql, row: Approval, trace: string, at: Date) {
   await sql.query(`insert into app.approval_carriers (approval_id,person_id,trace_id,wake_at) values ($1,$2,$3,$4)
-    on conflict (approval_id) do update set wake_at=excluded.wake_at`, [row.approval_id, row.person_id, trace, at]);
+    on conflict (approval_id) do update set wake_at=excluded.wake_at,wake_version=app.approval_carriers.wake_version+1`, [row.approval_id, row.person_id, trace, at]);
 }
 async function event(sql: Sql, row: Approval, from: ApprovalState | null, transition: string, trace: string, now: Date) {
   await wake(sql, row, trace, now);
