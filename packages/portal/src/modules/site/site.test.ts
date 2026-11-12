@@ -118,7 +118,8 @@ test("an operation carries its SDK call, its trace, and every eval under a named
   assert.deepEqual(invite.evalKinds.map((k) => k.kind), [...new Set(invite.evalKinds.map((k) => k.kind))]);
   assert.equal(invite.evals.filter((e) => invite.evalKinds.some((k) => k.kind === e.kind)).length, invite.evals.length);
   assert.ok(invite.evalKinds.every((k) => k.name !== "" && k.claims !== ""), "a kind has no plain name or claim");
-  assert.deepEqual(invite.acceptance.map((a) => a.n), invite.evals.filter((e) => e.kind === "acc").map((e) => Number(e.id.split("/").pop())));
+  assert.deepEqual(invite.acceptance.map((a) => a.n), [1, 3], "displayed line numbers are not eval identities");
+  assert.deepEqual(invite.acceptance.map((a) => a.claim), invite.evals.filter((e) => e.kind === "acc").map((e) => e.claim));
 });
 
 test("the eval catalogue counts every eval the blueprint derives, by level and by kind", () => {

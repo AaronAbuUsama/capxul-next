@@ -25,10 +25,19 @@ export const decision_system_error_producers = defineDecision({
 
 export const decision_system_eval_identity = defineDecision({
   id: "system.eval-identity", title: "Each derived eval has one identity",
-  question: "How do repeated refusal and provider codes retain separate claims?",
-  options: [{ label: "cases", text: "Keep the first code's existing eval id; subsequent cases append /2, /3 and so on in declaration order. Every derived eval id must be unique across the blueprint; a collision is a build problem, never silently deduplicated." }],
-  chosen: "cases", why: "A code can refuse several worlds and a provider can fail several ways. Preserve every claim and existing first-case binding. Case order, like acceptance order, is identity: do not reorder existing cases.",
-  source: "Builder, m1-engine-rules, 10 November 2026; repeated refusal and integration failure codes in the built eval list",
+  question: "How do collection members retain their identity when agents insert or reorder claims?",
+  options: [{ label: "stable-keys", text: "Use an explicit key when supplied; otherwise use c- plus the first 16 hex digits of SHA-256 of the member's canonical identity. Acceptance identity is its claim, refusal identity its given and when, admission identity its policy fields, and provider failure identity its when. Never use an array position or occurrence count. Eval ID collisions remain build problems. Migrate bindings and the scoreboard by matching the complete old and new eval contracts, retaining historical evidence unchanged." }],
+  chosen: "stable-keys", why: "Independent concept edits must not silently redirect a binding. Content-derived defaults avoid a key inventory across hundreds of unchanged claims; an explicit key preserves identity across a deliberate rewording, whose old verdict still becomes stale. A changed default identity fails binding validation instead of proving another claim.",
+  source: "Aaron's parallel breadth preparation, 12 November 2026; supersedes declaration-order identity from 10 November",
+  affects: [f.system_capxul],
+});
+
+export const decision_system_eval_runs = defineDecision({
+  id: "system.eval-runs", title: "Only complete runs supply passing evidence",
+  question: "What happens when a bound script stops without finishing its requested checks?",
+  options: [{ label: "receipts", text: "Before execution, save a running receipt with requested IDs, immutable claim and observes snapshots, and the world, storage and indexer. Clear requested scoreboard verdicts to not_run before starting scripts. Save every script exit; incomplete runs return failure and supply no passes. Store a per-run status snapshot alongside the receipt. Run success requires every requested eval to pass, including unbound evals which remain not_run; --json returns the run directory and an explicit passed boolean. Keep historical JSON-stack evidence, but never relabel it as Postgres/Ponder evidence. Discover check and binding files per concept; concept workers need not edit a shared registry." }],
+  chosen: "receipts", why: "A prior pass cannot stand in for an unfinished attempt. A receipt exists even when the script prints nothing or the runner is killed. Immutable per-run snapshots let the slicer require all of a slice's fresh passes from one complete run in the right environment.",
+  source: "Aaron's parallel breadth preparation, 12 November 2026; reproduced zero-result run retaining old passes",
   affects: [f.system_capxul],
 });
 export const decision_system_standing_gaps = defineDecision({
