@@ -42,7 +42,7 @@ export class RequestCollector {
           };
           const trace = String(request.trace_id ?? "");
           // Reuse the lock connection: simultaneous collectors must not borrow twice from the bounded worker pool.
-          const saved = await transaction(lock, site.org_id, async (sql) => {
+          const answer = await transaction(lock, site.org_id, async (sql) => {
             const old = (await sql.query("select answer,request=$3::jsonb as same from app.site_request_answers where org_id=$1 and request_id=$2", [site.org_id, body.request_id, body])).rows[0];
             if (old) {
               if (!old.same) throw new Error("IDEMPOTENCY_CONFLICT: site request changed after its first answer");
@@ -52,7 +52,7 @@ export class RequestCollector {
             let answer;
             try {
               const a = await prepare(sql, body, trace);
-              answer = { org: site.org_id, request_id: body.request_id, approval_id: a.id, requested_by: a.requested_by };
+              answer = { org: site.org_id, request_id: body.request_id, approval_id: a.id, approval_url: `${this.options.url}/approve/${a.id}`, requested_by: a.requested_by };
             } catch (error) {
               await sql.query("rollback to savepoint prepare_request");
               const message = (error as Error).message;
@@ -64,8 +64,6 @@ export class RequestCollector {
             return answer;
           });
           // The answer/approval is committed before calling the site. A lost ACK repeats precisely that answer.
-          // The gateway origin belongs to the running world, not the copied approval's identity.
-          const answer = saved.approval_id ? { ...saved, approval_url: `${this.options.url}/approve/${saved.approval_id}` } : saved;
           const ack = await this.call(site, "answer_payment_request", answer, trace);
           if (ack.request_id !== body.request_id || typeof ack.status !== "string" || typeof ack.duplicate !== "boolean") throw new Error("site did not acknowledge request answer");
           await lock.query("update app.organizations set request_cursor=$2,collected_at=now(),collector_error=null where org_id=$1", [site.org_id, request.cursor]);
@@ -103,7 +101,7 @@ export class RequestCollector {
         if (!this.options.running()) return;
         if (token.namespace !== `/${site.site}` || token.event !== "capxul_payment_request" || !String(token.authorization).startsWith("CapxulListener ")) throw new Error("invalid listener authorization scope");
         const socket = io(`${this.options.socket}${token.namespace}`, { reconnection: false, forceNew: true,
-          extraHeaders: { Authorization: token.authorization, "X-Frappe-Site-Name": site.site, Host: site.site, Origin: new URL(this.options.frappe).protocol + "//" + site.site } });
+          extraHeaders: { Authorization: token.authorization, "X-Frappe-Site-Name": site.site, Origin: new URL(this.options.socket).origin } });
         listener.socket = socket;
         socket.on("connect", catchUp);
         socket.on(token.event, (hint: any) => { if (hint.org === site.org_id) catchUp(); });

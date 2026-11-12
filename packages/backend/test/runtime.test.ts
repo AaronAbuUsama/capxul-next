@@ -4,11 +4,13 @@ import { createServer } from "node:http";
 import { readFile, appendFile } from "node:fs/promises";
 import { setTimeout as wait } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
+import { isDeepStrictEqual } from "node:util";
 import test from "node:test";
 import { Server } from "socket.io";
 import { encodeFunctionData } from "viem";
 import { signature } from "../src/plugs/door.ts";
 import { Database } from "../src/platform/db.ts";
+import { exportAbandonedBranch, rewriteRestoredWorld } from "../src/devnet/door.ts";
 import { connect, send } from "../../devnet/src/modules/chain/service.ts";
 import { board, ERC20, HATS, pay, type Protocol } from "../../devnet/src/modules/company/service.ts";
 import { THIRD_PARTY } from "../../devnet/src/modules/protocol/service.ts";
@@ -45,6 +47,7 @@ test("real v4/Ponder payment survives Core death, lost site ACK and replay witho
     if (req.url?.endsWith("payment_request_listener")) return reply({ authorization: "CapxulListener fixture", namespace: "/core.test", event: "capxul_payment_request", expires_at: Math.floor(Date.now() / 1000) + 60 });
     if (req.url?.endsWith("collect_payment_requests")) return reply({ requests: requests.filter((r) => r.cursor > b.after), cursor: requests.length });
     if (req.url?.endsWith("answer_payment_request")) {
+      if (answers.length && !isDeepStrictEqual(b, answers[0])) return reply({ error: "Conflicting answer for payment request" }, 409);
       answerCalls++; answers.push(b);
       if (dropAnswer) { req.socket.destroy(); return; }
       return reply({ request_id: b.request_id, status: "Awaiting Signature", duplicate: answerCalls > 1 });
@@ -67,12 +70,15 @@ test("real v4/Ponder payment survives Core death, lost site ACK and replay witho
     reply({ applied: !duplicate && !parked, duplicate, parked: parked && !duplicate, last_seq: lastSeq, ...(parked && !duplicate ? { error: "voucher is invalid" } : {}), ...(b.kind.startsWith("hat_") ? { map_version: "immutable-map-v1" } : {}) });
   });
   const realtime = new Server(receiver);
-  realtime.of("/core.test").use((socket, next) => { assert.equal(socket.handshake.headers.authorization, "CapxulListener fixture"); next(); });
+  realtime.of("/core.test").use((socket, next) => {
+    assert.equal(socket.handshake.headers.authorization, "CapxulListener fixture");
+    assert.equal(socket.handshake.headers.origin, siteUrl); next();
+  });
   await new Promise<void>((done) => receiver.listen(0, "127.0.0.1", done));
   const siteUrl = `http://127.0.0.1:${(receiver.address() as any).port}`;
-  async function start(paused = false) {
+  async function start(paused = false, origin = coreUrl) {
     core = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("../src/main.ts", import.meta.url))], {
-      env: { ...process.env, CAPXUL_SECRET: secret, CORE_URL: coreUrl, CORE_PORT: "18787", CORE_HOST: "127.0.0.1", FRAPPE_URL: siteUrl, FRAPPE_SOCKET_URL: siteUrl, SITE_SERVICE_URL: siteUrl, SITE_SERVICE_TOKEN: "fixture-only", FINALITY_DEPTH: "0", CORE_START_PAUSED: String(paused) }, stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env, CAPXUL_SECRET: secret, CORE_URL: origin, CORE_PORT: "18787", CORE_HOST: "127.0.0.1", FRAPPE_URL: siteUrl, FRAPPE_SOCKET_URL: siteUrl, SITE_SERVICE_URL: siteUrl, SITE_SERVICE_TOKEN: "fixture-only", FINALITY_DEPTH: "0", CORE_START_PAUSED: String(paused) }, stdio: ["ignore", "pipe", "pipe"],
     });
     for (const stream of [core.stdout, core.stderr]) stream?.on("data", (c) => { void appendFile(`${dir}/core.log`, c); });
     await until(() => fetch(`${coreUrl}/${paused ? "health" : "ready"}`).then((r) => r.status, () => 0), (status) => status === 200, "Core and real Ponder readiness");
@@ -105,9 +111,10 @@ test("real v4/Ponder payment survives Core death, lost site ACK and replay witho
     await until(async () => answerCalls, (n) => n > 0, "committed approval answered over scoped listener");
     await kill();
     assert.equal((await db.worker.query("select request_cursor from app.organizations where org_id=$1", [fixture.slug])).rows[0].request_cursor, "0");
-    dropAnswer = false; await start();
+    dropAnswer = false; await start(false, "http://localhost:18787");
     await until(() => db.worker.query("select request_cursor from app.organizations where org_id=$1", [fixture.slug]), (r) => r.rows[0].request_cursor === "1", "lost request answer ACK recovered");
     assert.ok(answers.length >= 2); assert.ok(answers.every((answer) => answer.approval_id === a.approval_id));
+    assert.ok(answers.every((answer) => answer.approval_url === `${coreUrl}/approve/${a.approval_id}`));
     assert.equal((await post("/approvals/get", { org: fixture.slug, id: a.approval_id })).status, "pending");
     const chain = await connect(process.env.RPC_URL!);
     const record = JSON.parse(await readFile(new URL("../../contracts/deployments/devnet.json", import.meta.url), "utf8"));
@@ -275,6 +282,50 @@ test("concurrent collectors drain outstanding answers across reconnect without s
     await new Promise<void>((done) => realtime.close(() => done()));
     await database.worker.query("update app.organizations set released=false where org_id=any($1::text[])", [sites.map((s) => s.org)]);
     await database.worker.query("update app.organizations set released=true where org_id=any($1::text[])", [released]);
+    await database.close();
+  }
+});
+
+test("explicit restore rebases only mapped answer origins without changing approval identity or financial records", async () => {
+  const database = new Database(process.env.DATABASE_URL!, process.env.WORKER_DATABASE_URL!);
+  const run = Date.now(), org = `restore-${run}`, other = `unmapped-${run}`;
+  const url = "https://old.core.test:8443/approve/original?return=%2Fbooks#sign";
+  const answer = { org, request_id: "restore-answer", approval_id: "original", approval_url: url, requested_by: "payer@core.test" };
+  const request = { site: "original.core.test", amount: "12.34", document_hash: fixture.documentHash };
+  const before = await exportAbandonedBranch(database), world = before.world[0]!;
+  try {
+    for (const [i, slug] of [org, other].entries()) {
+      await database.worker.query(`insert into app.organizations (org_id,name,safe,site,admin_email,token,request_cursor,last_ack)
+        values ($1,$1,$2,$3,'payer@core.test',$4,7,11)`, [slug, `0x${String(run + i).padStart(40, "0")}`, `${slug}.core.test`, fixture.token]);
+      await database.worker.query("insert into app.site_request_answers (org_id,request_id,request,answer) values ($1,'restore-answer',$2,$3)", [slug, request, { ...answer, org: slug }]);
+    }
+    await database.worker.query(`insert into app.approvals (org_id,id,request_id,request,status,trace,tx_hash)
+      values ($1,'original','restore-answer',$2,'settled','restore-trace','0xsettled')`, [org, request]);
+    await database.worker.query("insert into app.site_request_answers (org_id,request_id,request,answer) values ($1,'refused',$2,$3)", [org, request, { error: { code: "FORBIDDEN" }, approval_url: "" }]);
+    const input = { worldId: `cloned-${run}`, epoch: 2, clock: { nowMs: 1000, clockMode: "stopped", rate: 1 },
+      lineage: { snapshot: "fixture-cut", parentWorld: world.world_id, recordSeq: 0, recordHead: "fixture-head" }, sites: { [org]: "restored.core.test" } };
+    const readAnswers = async () => (await database.worker.query("select org_id,request_id,request,answer from app.site_request_answers where org_id=any($1::text[]) order by org_id,request_id", [[org, other]])).rows;
+    await rewriteRestoredWorld(database, input);
+    const unchanged = await readAnswers();
+    assert.equal(unchanged.find((r) => r.org_id === org && r.request_id === "restore-answer")!.answer.approval_url, url);
+    await rewriteRestoredWorld(database, { ...input, coreUrl: "" });
+    assert.deepEqual(await readAnswers(), unchanged);
+    await assert.rejects(rewriteRestoredWorld(database, { ...input, coreUrl: "file:///not-a-gateway" }), /INVALID_CORE_URL/);
+    await rewriteRestoredWorld(database, { ...input, coreUrl: "http://restored.core.test:19090/ignored?ignored#ignored" });
+    const rows = await readAnswers();
+    assert.deepEqual(rows.find((r) => r.org_id === org && r.request_id === "restore-answer"), {
+      org_id: org, request_id: "restore-answer", request: { ...request, site: "restored.core.test" },
+      answer: { ...answer, approval_url: "http://restored.core.test:19090/approve/original?return=%2Fbooks#sign" },
+    });
+    assert.deepEqual(rows.find((r) => r.org_id === other), { org_id: other, request_id: "restore-answer", request, answer: { ...answer, org: other } });
+    assert.deepEqual(rows.find((r) => r.request_id === "refused")!.answer, { error: { code: "FORBIDDEN" }, approval_url: "" });
+    const approval = (await database.worker.query("select id,status,trace,tx_hash,request from app.approvals where org_id=$1", [org])).rows[0];
+    assert.deepEqual(approval, { id: "original", status: "settled", trace: "restore-trace", tx_hash: "0xsettled", request: { ...request, site: "restored.core.test" } });
+    assert.deepEqual((await database.worker.query("select request_cursor,last_ack from app.organizations where org_id=$1", [org])).rows[0], { request_cursor: "7", last_ack: "11" });
+    assert.deepEqual((await exportAbandonedBranch(database)).records, before.records);
+    console.log(JSON.stringify({ proof: "explicit-restore-answer-origin", preserved: ["path", "query", "fragment", "identity", "status", "trace", "cursors", "hashed-records"], unmappedUnchanged: true, emptyUnchanged: true }));
+  } finally {
+    await database.worker.query("update app.world set world_id=$1,epoch=$2,clock=$3,lineage=$4", [world.world_id, world.epoch, world.clock, world.lineage]);
     await database.close();
   }
 });
