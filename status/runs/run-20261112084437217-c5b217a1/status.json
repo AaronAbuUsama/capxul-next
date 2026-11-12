@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "evals": {
+    "ret:record.export": {
+      "verdict": "not_run",
+      "commit": "5567b4c+dirty",
+      "at": "2026-11-12T08:44:37.217Z",
+      "claim": "a success prints exactly the returns schema with --json",
+      "run": "run-20261112084437217-c5b217a1",
+      "evidence": "status/runs/run-20261112084437217-c5b217a1/evidence/ret-record.export.txt"
+    }
+  }
+}
