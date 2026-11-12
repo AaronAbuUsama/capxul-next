@@ -1551,6 +1551,7 @@ export const contract_hats_signer_gate = defineContract({
     claimSignerFor: { signature: "claimSignerFor(uint256 hatId, address signer)", about: "Seats a Director the founder added." },
     removeSigner: { signature: "removeSigner(address signer)", about: "Removes a signer whose hat lapsed." },
     setThresholdConfig: { signature: "setThresholdConfig(ThresholdConfig thresholdConfig)", about: "Sets the Board's threshold." },
+    thresholdConfig: { signature: "thresholdConfig() view returns ((uint8 thresholdType, uint120 min, uint120 target) config)", about: "Reads the Gate's configured threshold rule; Board combines it with live owners and signer validity for lapsed-owner cleanup." },
     isValidSigner: { signature: "isValidSigner(address account) view returns (bool valid)", about: "Whether a Director still wears the hat." },
   },
   events: {},

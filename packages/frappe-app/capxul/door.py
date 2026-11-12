@@ -71,18 +71,21 @@ def whoami():
 
 
 # ---- discovery ---------------------------------------------------------------------------------------------------------------
-def _module_feature():
-    out = {}
+def _feature_maps():
+    modules, doctypes = {}, {}
     for f in features.CATALOG:
         for m in features._modules_of(f):
-            out[m] = f
-    return out
+            modules[m] = f
+        for dt in features.CATALOG[f].get("doctypes", []):
+            doctypes[dt] = f
+    return modules, doctypes
 
 
 @frappe.whitelist()
 def types(feature=None):
     """The DocTypes this person can read on this site (Frappe's own permission engine), with what else they may do. Off features are not listed."""
-    mf, off = _module_feature(), features.off_map()["doctypes"]
+    mf, df = _feature_maps()
+    off = features.off_map()["doctypes"]
     if feature:
         if feature != "core" and feature not in features.CATALOG:
             frappe.throw(_("Unknown feature {0}. Known: core, {1}").format(feature, ", ".join(features.CATALOG)), frappe.ValidationError)
@@ -96,7 +99,7 @@ def types(feature=None):
         if dt in off:
             continue
         m = frappe.get_meta(dt)
-        f = mf.get(m.module, "core")
+        f = df.get(dt, mf.get(m.module, "core"))
         if feature and f != feature:
             continue
         rows.append({"doctype": dt, "module": m.module, "feature": f, "single": bool(m.issingle), "child": bool(m.istable),
@@ -120,10 +123,10 @@ def _fields(meta):
 def schema(doctype):
     frappe.has_permission(doctype, "read", throw=True)
     m = frappe.get_meta(doctype)
-    mf = _module_feature()
+    mf, df = _feature_maps()
     kids = {df.fieldname: {"doctype": df.options, "fields": _fields(frappe.get_meta(df.options))} for df in m.get_table_fields()}
     perms = frappe.permissions.get_role_permissions(m)
-    return {"doctype": doctype, "module": m.module, "feature": mf.get(m.module, "core"), "single": bool(m.issingle), "child": bool(m.istable),
+    return {"doctype": doctype, "module": m.module, "feature": df.get(doctype, mf.get(m.module, "core")), "single": bool(m.issingle), "child": bool(m.istable),
             "submittable": bool(m.is_submittable), "naming": m.autoname or m.naming_rule, "title_field": m.title_field,
             "sort": f"{m.sort_field} {m.sort_order}", "you_may": {k: bool(v) for k, v in perms.items() if k in ("read", "write", "create", "delete", "submit", "cancel", "amend", "report")},
             "fields": _fields(m), "child_tables": kids,
