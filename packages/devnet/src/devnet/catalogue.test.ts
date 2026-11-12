@@ -1,8 +1,13 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import test from "node:test";
 import { cloneDatabase, psqlAdmin, migrateMailSink, devnetMail } from "./door.ts";
 import { migrateCatalogue, worldCatalogue, type Command, type WorldRow } from "./catalogue.ts";
+import { writeConfig, type Config } from "./supervisor.ts";
 
 const maintenance = process.env.WORLD_SNAPSHOT_PG;
 test("native catalogue preserves command history, atomic mutations and restricted ownership", { skip: !maintenance }, async () => {
@@ -20,10 +25,11 @@ test("native catalogue preserves command history, atomic mutations and restricte
     template: null, chain_id: 84532, chain_instance: "anvil-town1", clock_mode: "frozen", rate: 4, world_now: now, epoch: 1,
     parent_world: null, parent_snapshot: null, parent_seq: null, hosted: false, state: "creating", created_at: now, updated_at: now };
   const command: Command = { trace: randomUUID(), command: "world create", args: { positional: ["town1"] }, worldTime: now, outcome: "ok", surface: "cli" };
+  const directory = await mkdtemp(join(tmpdir(), "catalogue-cli-"));
   try {
     for (const role of ["capxul_core", "capxul_worker"]) {
       const found = await maintenanceQuery(`SELECT row_to_json(r) FROM (SELECT rolname FROM pg_roles WHERE rolname='${role}') r`);
-      if (!found.length) { await maintenanceQuery(`CREATE ROLE ${role} NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS`); ownedRoles.push(role); }
+      if (!found.length) { await maintenanceQuery(`CREATE ROLE ${role} ${role === "capxul_core" ? "LOGIN" : "NOLOGIN"} NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS`); ownedRoles.push(role); }
     }
     await maintenanceQuery(`CREATE DATABASE "${database}"`);
     await admin("CREATE SCHEMA app; GRANT USAGE ON SCHEMA app TO capxul_core,capxul_worker");
@@ -89,6 +95,50 @@ test("native catalogue preserves command history, atomic mutations and restricte
     assert.deepEqual(lines[0], { parentWorld: null, parentSnapshot: null, parentSeq: null });
     assert.equal(exported.lines, 17); assert.equal(exported.bytes, Buffer.byteLength(exported.data));
     assert.deepEqual(lines.slice(1), await store.records("town1", { includeAbandoned: true }));
+
+    // Native CLI control: only this disposable database is live, and the mutation lock is already held.
+    const restricted = (role: string) => { const u = new URL(maintenance!); u.username = role; u.password = "unused-trust-fixture"; return u.href; };
+    const configFile = join(directory, "world.json");
+    const config: Config = { version: 1, root: directory, controlDir: join(directory, "control"), snapshots: join(directory, "snapshots"), codeVersion: "no-running-build",
+      world: { id: "town1", kind: "local", database, stateDir: join(directory, "state"), sites: [], epoch: 1 },
+      database: { admin: maintenance!, tenant: restricted("capxul_core"), worker: restricted("capxul_worker"), ponder: restricted("capxul_ponder") },
+      ports: { anvil: 20100, ponder: 20101, core: 20102, siteService: 20103, bench: 20104, socket: 20105, publicCore: 20106, publicRpc: 20107, publicBench: 20108, publicBundler: 20109 },
+      secret: "private-core-secret", siteToken: "private-site-token", finality: 0, chainId: 84532,
+      bench: { composeArgs: [], env: {}, dbPassword: "private-db-secret", adminPassword: "private-admin-secret", baseDomain: "localhost" } };
+    await writeConfig(configFile, config);
+    await mkdir(join(config.controlDir, ".operation"), { recursive: true });
+    const cli = (args: string[], status = 0) => {
+      const result = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", resolve("packages/cli/src/main.ts"), ...args, "--config", configFile, "--json"], { encoding: "utf8", timeout: 15000 });
+      assert.equal(result.status, status, result.stderr);
+      return JSON.parse(status === 0 ? result.stdout : result.stderr);
+    };
+    const view = cli(["record", "list", "--world", "town1", "--who", "hannah@harbourline.test", "--from", String(now + 6000), "--to", String(now + 8000)]);
+    assert.deepEqual(view.entries.map((e: any) => e.traceId).sort(), ["trace-6", "trace-8"], "abandoned rows are opt-in and time endpoints are inclusive");
+    assert.deepEqual(cli(["record", "list", "--trace", "trace-4", "--limit", "1", "--include-abandoned"]).entries.map((e: any) => e.traceId), ["trace-4"]);
+    const shown = cli(["record", "show", "--seq", String(refused.seq)]);
+    assert.deepEqual(shown.entry, { worldId: "town1", epoch: 1, seq: refused.seq, kind: "command", worldTime: now + 4000,
+      realTime: Date.parse(String(refused.real_time)), who: "hannah@harbourline.test", hats: ["hat-0"], surface: "cli", traceId: "trace-4",
+      command: "payment send", outcome: "refused", code: "ROLE_PERMISSION_DENIED", causeSeq: null, branchAbandoned: true });
+    assert.deepEqual(Object.keys(shown).sort(), ["args", "changed", "entry", "pointers", "returned"]);
+    assert.equal(JSON.parse(shown.args).arbitrary, "[REDACTED]");
+    assert.equal(JSON.parse(shown.returned).tx, tx);
+    const snapshots = cli(["world", "snapshot", "list", "town1"]);
+    assert.deepEqual(snapshots.snapshots, [
+      { name: "april", worldId: "town1", epoch: 1, recordSeq: 14, clockMode: "frozen", rate: 4, worldNow: now, template: false, createdAt: now + 1000, sites: 1 },
+      { name: "march", worldId: "town1", epoch: 1, recordSeq: 14, clockMode: "frozen", rate: 4, worldNow: now, template: false, createdAt: now, sites: 1 },
+    ]);
+    const out = join(directory, "record.jsonl"), exportedCli = cli(["record", "export", "--out", out]);
+    assert.deepEqual(exportedCli, { lines: 17, bytes: Buffer.byteLength(exported.data), lineage: lines[0] });
+    assert.equal(await readFile(out, "utf8"), exported.data); assert.equal((await stat(out)).mode & 0o077, 0);
+    cli(["record", "export", "--out", out], 1); assert.equal(await readFile(out, "utf8"), exported.data, "existing export must not be overwritten");
+    for (const args of [["record", "list", "--world", "town3"], ["record", "list", "--limit", "0"], ["record", "list", "--limit", "10001"],
+      ["record", "list", "--from", "2", "--to", "1"], ["record", "show", "--seq", "1.5"]]) assert.equal(cli(args, 1).error.code, "INVALID_INPUT");
+    for (const args of [["record", "list", "--all"], ["record", "list", "--who"], ["record", "list", "--limit", "1", "--limit", "2"], ["record", "export"]]) assert.equal(cli(args, 2).error.code, "CLI_USAGE");
+    const absentConfig = { ...config, world: { ...config.world, id: "absent" } }; await writeConfig(configFile, absentConfig);
+    assert.equal(cli(["record", "list"], 1).error.code, "INVALID_INPUT");
+    await writeConfig(configFile, config);
+    assert.equal((await store.records("town1", { includeAbandoned: true })).length, 16, "reads must not append command entries");
+    await stat(join(config.controlDir, ".operation"));
 
     const projection = await admin(`SELECT to_jsonb(c) FROM information_schema.columns c WHERE table_schema='app' ORDER BY table_name,ordinal_position`);
     const expected = {
@@ -199,6 +249,11 @@ test("native catalogue preserves command history, atomic mutations and restricte
     assert.equal((await store.snapshots("town1"))[0]!.chain_state_ref, "/private/$integrity$/state");
     assert.deepEqual(history.filter((r) => r.epoch === 2).map((r) => r.seq), [1, 2]);
     assert(!(await store.records("town1")).some((r) => r.command === "after snapshot"));
+    assert.equal(cli(["record", "show", "--seq", "1"]).entry.epoch, 2, "default epoch must come from the catalogue, not stale config");
+    assert.equal(cli(["record", "show", "--epoch", "1", "--seq", "17"]).entry.branchAbandoned, true);
+    const restoredOut = join(directory, "restored-record.jsonl");
+    assert.equal(cli(["record", "export", "--out", restoredOut]).lines, 21);
+    assert.deepEqual((await readFile(restoredOut, "utf8")).trimEnd().split("\n").slice(1).map((line) => JSON.parse(line)), history, "public export must retain both epochs and abandoned entries");
     const largeArgs = { text: "☃".repeat(60000) }, largeResult = { text: "☃".repeat(11000) };
     const large = await store.append("town1", { ...command, args: largeArgs, result: largeResult });
     assert.deepEqual(JSON.parse(large.args as string), largeArgs, "large SQL input must not depend on the host's argv limit");
@@ -225,5 +280,6 @@ test("native catalogue preserves command history, atomic mutations and restricte
     await maintenanceQuery(`DROP DATABASE IF EXISTS "${database}" WITH (FORCE)`);
     for (const copy of copies) await maintenanceQuery(`DROP DATABASE IF EXISTS "${copy}" WITH (FORCE)`);
     for (const role of ownedRoles) await maintenanceQuery(`DROP ROLE "${role}"`);
+    await rm(directory, { recursive: true, force: true });
   }
 });
