@@ -1,18 +1,36 @@
 #!/usr/bin/env bash
 # A stand-in for the two `amp orb service` calls the slice-zero supervisor makes (packages/devnet/src/devnet/processes.ts),
 # for a Claude cloud container, which has no Amp and no systemd. Each service runs detached in its own session;
-# its pid and log live under $CAPXUL_AMP_SHIM_DIR (default var/amp-shim). Nothing else of Amp is imitated.
+# its pid, start time and log live under $CAPXUL_AMP_SHIM_DIR (default var/amp-shim). Nothing else of Amp is imitated.
 #   amp orb service start <name> --cwd <dir> --command <shell command>
 #   amp orb service stop <name>
 #   amp orb service logs <name>
+# A pid file holds "<pid> <start time>": a pid is only this service's while /proc still reports the same start time,
+# so a stale file whose pid the kernel gave to another process is never signalled. Start and stop of one service take
+# a lock, so two callers cannot start it twice or stop it while it starts. Stop sends TERM, waits, then KILLs the
+# service's whole session, and fails if the process is still alive.
 set -euo pipefail
 DIR="${CAPXUL_AMP_SHIM_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)/var/amp-shim}"
+STOP_GRACE_SECONDS="${CAPXUL_AMP_SHIM_STOP_GRACE:-60}"
 mkdir -p "$DIR"
 [ "${1:-}" = orb ] && [ "${2:-}" = service ] || { echo "amp shim: only 'orb service start|stop|logs' is supported" >&2; exit 2; }
 verb="${3:-}" name="${4:-}"
 [ -n "$name" ] || { echo "amp shim: service name required" >&2; exit 2; }
+case "$name" in */*|.*) echo "amp shim: bad service name $name" >&2; exit 2 ;; esac
 pidfile="$DIR/$name.pid" log="$DIR/$name.log"
-running() { [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null; }
+
+started_at() { awk '{ sub(/^.*\) /, ""); print $20 }' "/proc/$1/stat" 2>/dev/null; } # field 22: start time in ticks
+# Prints the service's pid when the pid file names a live process with the recorded start time.
+live_pid() {
+  [ -s "$pidfile" ] || return 1
+  local pid start
+  read -r pid start <"$pidfile" || return 1
+  [ -n "$pid" ] && [ -n "$start" ] && [ "$(started_at "$pid")" = "$start" ] || return 1
+  echo "$pid"
+}
+alive() { [ -n "$(started_at "$1")" ] && [ "$(started_at "$1")" = "$2" ]; }
+lock() { exec 9>"$DIR/$name.lock"; flock -w 120 9 || { echo "amp shim: $name is busy (lock held for 120 s)" >&2; exit 1; }; }
+
 case "$verb" in
   start)
     shift 4; cwd="$PWD" cmd=""
@@ -20,19 +38,33 @@ case "$verb" in
       case "$1" in --cwd) cwd="$2"; shift 2 ;; --command) cmd="$2"; shift 2 ;; *) echo "amp shim: unknown option $1" >&2; exit 2 ;; esac
     done
     [ -n "$cmd" ] || { echo "amp shim: --command required" >&2; exit 2; }
-    running && exit 0
-    rm -f "$pidfile"
+    [ -d "$cwd" ] || { echo "amp shim: no such directory $cwd" >&2; exit 2; }
+    lock
+    live_pid >/dev/null && exit 0
+    rm -f "$pidfile" "$pidfile.new"
     # No subshell: a backgrounded `( … & )` keeps the caller's stdout pipe open, and Node's execFile then never returns.
+    # The lock's descriptor is closed for the service, so a long-lived service never holds the lock.
     cd "$cwd"
-    # setsid may fork, so the service writes its own pid before it execs.
-    setsid bash -c "echo \$\$ >'$pidfile'; exec $cmd" >>"$log" 2>&1 </dev/null &
-    for _ in $(seq 1 50); do [ -s "$pidfile" ] && break; sleep 0.1; done
+    # setsid may fork, so the service writes its own pid before it execs; it becomes its session's leader.
+    setsid bash -c "echo \$\$ >'$pidfile.new'; exec $cmd" >>"$log" 2>&1 </dev/null 9>&- &
+    for _ in $(seq 1 50); do [ -s "$pidfile.new" ] && break; sleep 0.1; done
+    [ -s "$pidfile.new" ] || { echo "amp shim: $name did not start (see $log)" >&2; exit 1; }
+    pid="$(cat "$pidfile.new")"; start="$(started_at "$pid")"
+    [ -n "$start" ] || { rm -f "$pidfile.new"; echo "amp shim: $name exited at once (see $log)" >&2; exit 1; }
+    echo "$pid $start" >"$pidfile"; rm -f "$pidfile.new"
     ;;
   stop)
-    running || exit 0
-    pid="$(cat "$pidfile")"
-    kill -TERM "$pid" 2>/dev/null || true
-    for _ in $(seq 1 600); do kill -0 "$pid" 2>/dev/null || break; sleep 0.2; done
+    lock
+    pid="$(live_pid)" || { rm -f "$pidfile"; exit 0; }
+    read -r _ start <"$pidfile"
+    kill -TERM -- "-$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true
+    for _ in $(seq 1 $((STOP_GRACE_SECONDS * 5))); do alive "$pid" "$start" || break; sleep 0.2; done
+    if alive "$pid" "$start"; then
+      echo "amp shim: $name ignored TERM for ${STOP_GRACE_SECONDS} s; killing it" >&2
+      kill -KILL -- "-$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null || true
+      for _ in $(seq 1 25); do alive "$pid" "$start" || break; sleep 0.2; done
+      alive "$pid" "$start" && { echo "amp shim: $name (pid $pid) is still running" >&2; exit 1; }
+    fi
     rm -f "$pidfile"
     ;;
   logs) cat "$log" 2>/dev/null || true ;;
