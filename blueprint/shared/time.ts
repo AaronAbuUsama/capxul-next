@@ -293,7 +293,7 @@ export const decision_time_drift_watch = defineDecision({
   options: [
   {
     "label": "current-scope",
-    "text": "Chain lag is now minus the observed chain head timestamp and is recorded on reads. Host skew monitoring must cover the service and site hosts; a lean SQLite world cannot query Postgres clock_timestamp(). Staging alerts retain the chain-lag -2 s to +60 s for five minutes and host-skew one-second thresholds; world time never substitutes for elapsed transport time."
+    "text": "Chain lag is now minus the observed chain head timestamp and is recorded on reads. Host skew monitoring must cover the service and site hosts; every world has its own Postgres (aaron.postgres-and-ponder), so clock_timestamp() is available there too. Staging alerts retain the chain-lag -2 s to +60 s for five minutes and host-skew one-second thresholds; world time never substitutes for elapsed transport time."
   },
   {
     "label": "historical",
@@ -302,7 +302,7 @@ export const decision_time_drift_watch = defineDecision({
 ],
   chosen: "current-scope",
   why:
-    "Review, 11 November 2026: Chain lag is now minus the observed chain head timestamp and is recorded on reads. Host skew monitoring must cover the service and site hosts; a lean SQLite world cannot query Postgres clock_timestamp(). Staging alerts retain the chain-lag -2 s to +60 s for five minutes and host-skew one-second thresholds; world time never substitutes for elapsed transport time. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+    "Review, 11 November 2026: Chain lag is now minus the observed chain head timestamp and is recorded on reads. Host skew monitoring must cover the service and site hosts; every world has its own Postgres (aaron.postgres-and-ponder), so clock_timestamp() is available there too. Staging alerts retain the chain-lag -2 s to +60 s for five minutes and host-skew one-second thresholds; world time never substitutes for elapsed transport time. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
   source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [f.environment_staging, f.component_backend, f.component_postgres, x.integration_chain_rpc, x.integration_indexer],
 });

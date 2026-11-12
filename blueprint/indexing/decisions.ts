@@ -109,7 +109,7 @@ export const decision_indexing_tables_only = defineDecision({
   options: [
   {
     "label": "current-scope",
-    "text": "Indexing owns chain read views; concepts read them through their own behavior and progress-dependent calls use the indexer integration. Only the reader writes them. In lean worlds it is folded into the service, so tables-only is an ownership boundary, not a requirement to deploy a separate Ponder/Postgres component."
+    "text": "Indexing owns chain read views; concepts read them through their own behavior and progress-dependent calls use the indexer integration. Only the reader writes them. Ponder writes them in every environment, worlds included (aaron.postgres-and-ponder), so tables-only is an ownership boundary over Ponder's schema."
   },
   {
     "label": "historical",
@@ -118,7 +118,7 @@ export const decision_indexing_tables_only = defineDecision({
 ],
   chosen: "current-scope",
   why:
-    "Review, 11 November 2026: Indexing owns chain read views; concepts read them through their own behavior and progress-dependent calls use the indexer integration. Only the reader writes them. In lean worlds it is folded into the service, so tables-only is an ownership boundary, not a requirement to deploy a separate Ponder/Postgres component. Authority: devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion.",
+    "Review, 11 November 2026: Indexing owns chain read views; concepts read them through their own behavior and progress-dependent calls use the indexer integration. Only the reader writes them. Ponder writes them in every environment, worlds included (aaron.postgres-and-ponder), so tables-only is an ownership boundary over Ponder's schema. Authority: devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion.",
   source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion",
   affects: [
     concept_indexing,
@@ -247,7 +247,7 @@ export const decision_indexing_reorgs_are_ponders = defineDecision({
   options: [
   {
     "label": "current-scope",
-    "text": "The chain reader rolls back reorganized views and replays canonical logs. Money readers wait for configured finality and reconcile later reorgs; folded-in lean-world readers have the same obligation as Ponder. Site corrections use explicit ordered reversal events, not silent deletion of a posted payment."
+    "text": "The chain reader rolls back reorganized views and replays canonical logs. Money readers wait for configured finality and reconcile later reorgs; Ponder does this in every environment, worlds included (aaron.postgres-and-ponder). Site corrections use explicit ordered reversal events, not silent deletion of a posted payment."
   },
   {
     "label": "historical",
@@ -256,7 +256,7 @@ export const decision_indexing_reorgs_are_ponders = defineDecision({
 ],
   chosen: "current-scope",
   why:
-    "Review, 11 November 2026: The chain reader rolls back reorganized views and replays canonical logs. Money readers wait for configured finality and reconcile later reorgs; folded-in lean-world readers have the same obligation as Ponder. Site corrections use explicit ordered reversal events, not silent deletion of a posted payment. Authority: devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion.",
+    "Review, 11 November 2026: The chain reader rolls back reorganized views and replays canonical logs. Money readers wait for configured finality and reconcile later reorgs; Ponder does this in every environment, worlds included (aaron.postgres-and-ponder). Site corrections use explicit ordered reversal events, not silent deletion of a posted payment. Authority: devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion.",
   source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion",
   affects: [...FACT_VIEWS, ...PROJECTIONS, table_indexer_progress, integration_indexer, component_ponder],
 });
