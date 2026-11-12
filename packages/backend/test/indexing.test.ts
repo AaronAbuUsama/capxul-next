@@ -8,6 +8,7 @@ import { connect } from "../../devnet/src/modules/chain/service.ts";
 import { board } from "../../devnet/src/modules/company/service.ts";
 import { testKey } from "../../devnet/src/modules/test-keys/service.ts";
 import { bindIndexer } from "../src/bind-indexer.ts";
+import { readHatTransfer } from "../src/indexing/door.ts";
 
 if (!process.env.CORE_PROOF_DIR || process.env.CAPXUL_DISPOSABLE !== "true" || !process.env.CAPXUL_WORLD || process.env.CAPXUL_WORLD === "main")
   throw new Error("indexing checks require a named disposable real Ponder/v4 world");
@@ -54,6 +55,16 @@ test("real Ponder projections retain initial execution nonce, provenance and exa
     assert.equal(budget.committed, "0");
     assert.equal(budget.closed, false);
     assert.equal((await sql.query("select count(*)::int as n from ponder.chain_hats where company_safe=$1", [safe])).rows[0].n, 4);
+    const mint = (await sql.query("select * from ponder.chain_logs where contract='hats' and event='TransferSingle' and args->>'id'=$1 and args->>'to'=$2", [fixture.hat, testKey("second").address.toLowerCase()])).rows[0];
+    assert(mint);
+    await sql.query("set local role capxul_worker");
+    const handoff = await readHatTransfer(sql, { chainId: mint.chain_id, logId: mint.log_id, companySafe: safe, finality: 0 });
+    assert.deepEqual(handoff, { log_id: mint.log_id, chain_id: mint.chain_id, block_number: String(mint.block_number), block_hash: mint.block_hash,
+      block_time: Number(mint.block_time), tx_hash: mint.tx_hash, tx_log_ordinal: mint.tx_log_ordinal, log_index: mint.log_index,
+      company_safe: safe, hat_id: fixture.hat, operator: mint.args.operator, from: mint.args.from, to: mint.args.to, value: mint.args.value });
+    assert.equal(await readHatTransfer(sql, { chainId: mint.chain_id, logId: mint.log_id, companySafe: founder, finality: 0 }), null);
+    assert.equal(await readHatTransfer(sql, { chainId: mint.chain_id, logId: mint.log_id, companySafe: safe, finality: 1_000_000 }), null);
+    await sql.query("reset role");
     for (const table of ["safe_owners", "chain_hats", "hat_wearers", "chain_budgets"]) {
       assert.equal((await sql.query(`select count(*)::int as n from ponder.${table} where created_log_id='' or last_log_id='' or updated_block<=0`)).rows[0].n, 0);
     }

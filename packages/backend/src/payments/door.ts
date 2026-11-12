@@ -1,9 +1,12 @@
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits } from "viem";
 import { readFileSync } from "node:fs";
 import { record, type Sql } from "../platform/db.ts";
 import { enqueue } from "../plugs/door.ts";
+import { settleSitePayment } from "../approvals/door.ts";
 import type { Owner, Payment } from "./types.ts";
 export type { Owner, Payment, PaymentTransitionProps } from "./types.ts";
+export { followPayment, approvalTerminal, type PaymentContext, type PaymentFact } from "./lifecycle.ts";
+export { prepareCommand, type PrepareCommand, type PrepareContext, type PreparedCommand, type PreparedItem } from "./prepare.ts";
 
 /** Called by the admin migrator inside its existing transaction, never during resume. */
 export async function migratePayments(sql: Sql) {
@@ -48,12 +51,10 @@ export async function consume(sql: Sql, org: string, chain: number, finality: nu
     let trace = traceRow?.trace ?? "";
     const time = new Date(Number(row.block_time)).toISOString();
     if (row.kind === "payment_sent") {
-      const approval = (await sql.query("select * from app.approvals where org_id=$1 and request->>'document_hash'=$2 order by created_at limit 1 for update", [org, f.document_hash])).rows[0];
-      if (approval && approval.request.to_address === f.recipient && parseUnits(approval.request.amount, 6) === BigInt(f.amount)) {
-        // A kill before external submission is reported must not lose the originating command's trace.
-        trace ||= approval.trace;
-        await sql.query("update app.approvals set status='settled',tx_hash=$3 where org_id=$1 and id=$2", [org, approval.id, f.tx_hash]);
-      }
+      const approval = await settleSitePayment(sql, { org, document_hash: f.document_hash, recipient: f.recipient,
+        amount_raw: f.amount, tx_hash: f.tx_hash, trace });
+      // A kill before external submission is reported must not lose the originating command's trace.
+      if (approval.matched) trace = approval.trace;
       await enqueue(sql, org, row.log_id, "payment_sent", {
         payment_id: f.payment_id, document_hash: f.document_hash, from_safe: f.sender, to: f.recipient,
         amount: amount(f.amount), asset: "USDC", tx_hash: f.tx_hash, block_time: time,
