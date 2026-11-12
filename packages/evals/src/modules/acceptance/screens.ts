@@ -73,7 +73,7 @@ export async function captureScreens(f: Fixture, s: Sources, dir: string, emit: 
     };
     await emit("ACCEPT.invoice-screen-source-equal", () => form("supplier-invoice", "Purchase Invoice", f.invoice, {
       supplier: s.invoice.supplier, currency: s.invoice.currency, grand_total: s.invoice.grand_total,
-      outstanding_amount: s.invoice.outstanding_amount, company: s.invoice.company,
+      outstanding_amount: s.invoice.outstanding_amount,
     }));
     await emit("ACCEPT.payment-screen-source-equal", () => form("payment-entry", "Payment Entry", f.paymentEntry, {
       party: s.payment.party, paid_amount: s.payment.paid_amount, capxul_status: s.payment.capxul_status,
@@ -94,7 +94,7 @@ export async function captureScreens(f: Fixture, s: Sources, dir: string, emit: 
       reportRow("general-ledger", index, { account: f.safeAccount, debit: source.debit, credit: source.credit, capxul_trace: source.capxul_trace }, `acceptance/sources.json#/ledger/${s.ledger.indexOf(source)}`);
     });
     await emit("ACCEPT.balance-screen-source-equal", async () => {
-      const filters = { company: f.company, fiscal_year: "2026", from_date: "2026-01-01", to_date: "2026-12-31" };
+      const filters = { company: f.company, fiscal_year: "2026", from_date: "2026-01-01", to_date: "2026-12-31", show_net_values: "1" };
       browser("open", new URL(`/app/query-report/Trial Balance?${new URLSearchParams(filters)}`, origin).href);
       browser("wait", "--fn", "window.frappe && frappe.query_report && frappe.query_report.report_name === 'Trial Balance' && frappe.query_report.data?.length > 0 && !frappe.query_report.refreshing");
       const rows = evaluate("frappe.query_report.data").filter((r: Record<string, unknown>) => r.account === f.safeAccount);

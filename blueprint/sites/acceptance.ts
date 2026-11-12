@@ -16,15 +16,15 @@ export const doctype_purchase_invoice = defineDoctype({
 
 export const screen_supplier_invoice = defineScreen({
   id: "supplier-invoice", title: "Supplier invoice form", surface: "frappe-desk", kind: "form",
-  about: "The slice zero supplier invoice, its company, supplier, currency, total and outstanding amount after payment.",
+  about: "The slice zero supplier invoice, its supplier, currency, total and outstanding amount after payment. A Capxul site holds one company, and ERPNext hides a one-company site's Company field on purpose (decision sites.screens-follow-native-defaults).",
   record: doctype_purchase_invoice,
-  shows: [{ label: "Invoice identity, company, supplier, currency, total and outstanding amount", from: doctype_purchase_invoice }],
+  shows: [{ label: "Invoice identity, supplier, currency, total and outstanding amount", from: doctype_purchase_invoice }],
   who: [role_admin, role_budget_holder], feature: feature_accounts,
 });
 
 export const screen_safe_trial_balance = defineScreen({
   id: "safe-trial-balance", title: "Safe account Trial Balance", surface: "frappe-desk", kind: "report",
-  about: "The remaining Safe balance after founder funding and supplier payment, reconciled at one chain cutoff.",
+  about: "The remaining Safe balance after founder funding and supplier payment, reconciled at one chain cutoff, as ERPNext shows it by default: net closing values.",
   record: doctype_account,
   shows: [
     { label: "Safe account and closing debit/credit", from: doctype_account },
@@ -77,4 +77,17 @@ export const decision_sites_slice_zero_acceptance = defineDecision({
   why: "Aaron's operation-done ruling requires tests, quiet alerts and seeded faults. An empty or stale diagnostic response is not evidence of quietness. A selected-stack run requires Postgres/Ponder/ERPNext/v4 provenance; skeleton results remain explicitly partial. Faults are restricted to disposable local test worlds and every seed has a repair in finally. The operator diagnostics API is the local test alert surface, not proof of hosted paging or notification transport.",
   source: "aaron.operation-done; Aaron's wave 0 slice 0 acceptance brief, 12 November 2026",
   affects: [screen_supplier_invoice, screen_payment_entry, screen_general_ledger, screen_safe_trial_balance, insight_slice_zero_health, alert_indexer_unready, alert_delivery_stuck, alert_money_event_parked],
+});
+
+export const decision_sites_screens_follow_native_defaults = defineDecision({
+  id: "sites.screens-follow-native-defaults", title: "Slice zero's screens are checked as ERPNext shows them by default",
+  question: "When ERPNext's own screen differs from the raw API values (a hidden field, a netted column), which does a screen check compare against?",
+  options: [
+    { label: "native-defaults", text: "Compare what a person sees with ERPNext's defaults. The Purchase Invoice form hides Company on a one-company site (erpnext.hide_company), so the invoice screen does not claim it; the company is still checked in the reconciled source. The Trial Balance's source is read with the same 'show net values' filter the screen uses by default." },
+    { label: "change-erpnext", text: "Force the hidden field visible and the report to gross values, so the screen matches the raw API." },
+  ],
+  chosen: "native-defaults",
+  why: "The first full cloud run of slice zero (run-20261112171906266-c2b99242) passed 16 of 18 checks; the two screen failures were the check comparing a default ERPNext screen to differently filtered or hidden data, not wrong money. aaron.frappe-native keeps ERPNext's own screens unforked.",
+  source: "aaron.frappe-native; run-20261112171906266-c2b99242, 12 November 2026",
+  affects: [screen_supplier_invoice, screen_safe_trial_balance],
 });
