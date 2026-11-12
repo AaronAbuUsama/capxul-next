@@ -1,0 +1,38 @@
+# Private local override for the production recovery topology. No spike/JSON Core.
+x-world-process: &world-process
+  init: true
+  environment:
+    TINI_KILL_PROCESS_GROUP: "1"
+
+services:
+  frontend:
+    <<: *world-process
+    environment:
+      TINI_KILL_PROCESS_GROUP: "1"
+      # Core's private callback selects a tenant with this header; browsers fall back to Host.
+      FRAPPE_SITE_NAME_HEADER: $$capxul_site
+    volumes:
+      # Compose resolves relative paths against the first file, packages/bench-image/compose.yaml.
+      - ../devnet/src/devnet/site-name.conf:/etc/nginx/conf.d/00-capxul-site.conf:ro
+  backend:
+    <<: *world-process
+    volumes:
+      - ${CAPXUL_APP_DIR:?set CAPXUL_APP_DIR}:/home/frappe/frappe-bench/apps/capxul:ro
+  websocket:
+    <<: *world-process
+    ports: ["127.0.0.1:${CAPXUL_SOCKET_PORT:?set CAPXUL_SOCKET_PORT}:9000"]
+  queue-short:
+    <<: *world-process
+    volumes:
+      - ${CAPXUL_APP_DIR}:/home/frappe/frappe-bench/apps/capxul:ro
+  queue-long:
+    <<: *world-process
+    volumes:
+      - ${CAPXUL_APP_DIR}:/home/frappe/frappe-bench/apps/capxul:ro
+  scheduler:
+    <<: *world-process
+    volumes:
+      - ${CAPXUL_APP_DIR}:/home/frappe/frappe-bench/apps/capxul:ro
+  site-admin:
+    volumes:
+      - ${CAPXUL_APP_DIR}:/home/frappe/frappe-bench/apps/capxul:ro

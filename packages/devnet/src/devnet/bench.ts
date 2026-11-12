@@ -39,7 +39,7 @@ export function composeBench(composeArgs: string[], benchDir = "/home/frappe/fra
     async resume() {
       if (!ownsPause) throw new Error("this adapter does not own the bench pause; refusing to release another recovery's guard");
       await python(["release"]);
-      await compose(["up", "-d", "--no-deps", "backend", "websocket", "queue-short", "queue-long", "scheduler", "frontend"]);
+      await compose(["up", "-d", "--no-deps", "--wait", "--wait-timeout", "300", "backend", "websocket", "queue-short", "queue-long", "scheduler", "frontend"]);
       ownsPause = false;
     },
     async hold() {

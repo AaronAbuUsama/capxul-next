@@ -1,8 +1,17 @@
 import { createHash } from "node:crypto";
-import type { Database } from "../platform/db.ts";
+import type { Database, Sql } from "../platform/db.ts";
 export { Database } from "../platform/db.ts";
 
 export type WorldClock = { nowMs: number; clockMode: "stopped" | "running"; rate: number };
+/** Business time in the caller's transaction; no host-time fallback or unanchored extrapolation. */
+export async function worldNow(sql: Sql): Promise<number> {
+  const rows = (await sql.query("select clock from app.world")).rows;
+  const clock = rows[0]?.clock;
+  if (rows.length !== 1 || !Number.isSafeInteger(clock?.nowMs) || !Number.isFinite(clock?.rate) || clock.rate < 1 || clock.rate > 60 ||
+      !["stopped", "running"].includes(clock?.clockMode)) throw new Error("INVALID_CLOCK: one valid authority clock required");
+  if (clock.clockMode !== "stopped") throw new Error("UNSUPPORTED_CLOCK: running authority with anchored stops is not installed");
+  return clock.nowMs;
+}
 export async function updateWorldClock(db: Database, clock: WorldClock) {
   if (!Number.isSafeInteger(clock.nowMs) || !Number.isFinite(clock.rate) || clock.rate < 0 || !["stopped", "running"].includes(clock.clockMode)) throw new Error("INVALID_CLOCK: authority clock required");
   await db.worker.query("update app.world set clock=$1", [clock]);

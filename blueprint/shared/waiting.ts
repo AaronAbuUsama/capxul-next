@@ -34,7 +34,12 @@ export const FLAGGED: readonly string[] = [
 // tooling.ops-owner: how task m1-ops-supervisor carried out "asking him to run commands is not acceptable"; built and
 // merged on 11 November. Its text names him because it quotes him, which made the Questions page ask him to approve
 // the implementation (he could not answer it, and could not tell what he was being asked).
-export const CARRIES_OUT: readonly string[] = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins", "loop.gateway", "tooling.ops-owner", ...CARRIES_OUT_RULINGS];
+export const CARRIES_OUT: readonly string[] = [
+  "rules.frozen-flags-kept", "rules.frozen-flags-built-ins", "loop.gateway", "tooling.ops-owner",
+  // portal.questions-carry-out: these implement the settled slice-zero briefs, not fresh owner choices.
+  "indexing.slice-zero-runtime", "sites.slice-zero-acceptance", "devnet.slice-zero-supervisor",
+  ...CARRIES_OUT_RULINGS,
+];
 
 /** Aaron's own decisions are settled, not for his review. */
 export const byAaron = (d: Judged): boolean => /^Aaron\b/.test(String(d.source ?? ""));
