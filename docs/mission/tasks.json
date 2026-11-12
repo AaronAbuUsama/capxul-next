@@ -15052,6 +15052,55 @@
       ]
     },
     {
+      "key": "operation:org.site.provision",
+      "kind": "operation",
+      "lane": "sites",
+      "layer": 11,
+      "parent": "lane:sites",
+      "priority": "critical",
+      "evals": [
+        "acc:org.site.provision/c-7a97364c08b16479",
+        "acc:org.site.provision/c-d252bb6c00197601",
+        "bud:org.site.provision/p95",
+        "des:org.site.provision",
+        "doc:org.site.provision",
+        "ref:org.site.provision/INVALID_INPUT/c-fcb4bc04d1b4d225",
+        "ref:org.site.provision/NOT_AUTHENTICATED/c-759549f98d0445ef",
+        "ref:org.site.provision/ROLE_PERMISSION_DENIED/c-a256db5bceeae7b4",
+        "ret:org.site.provision",
+        "rpc:sites.provision/budget",
+        "rpc:sites.provision/errors",
+        "rpc:sites.provision/spans",
+        "spn:org.site.provision"
+      ],
+      "record": "operation:org.site.provision",
+      "title": "org site provision: Provision a company's site through Core",
+      "labels": [
+        "area:organizations",
+        "kind:operation",
+        "lane:sites",
+        "layer:11",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul org site provision` does what operation org.site.provision promises: its 2 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. The narrow site-creation stage used by slice zero after company birth and trusted Core registration. Requires --org and --confirm. It does not shell into bench, mint a company, or claim a ready site before delivery applies its first events.",
+      "needs": [
+        "door:organizations",
+        "door:sites",
+        "integration:site-service",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "blueprint/sites/",
+        "packages/backend/src/sites/",
+        "packages/sdk/src/sites/"
+      ]
+    },
+    {
       "key": "operation:org.site.show",
       "kind": "operation",
       "lane": "sites",
