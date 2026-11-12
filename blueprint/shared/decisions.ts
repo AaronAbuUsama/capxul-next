@@ -14,6 +14,25 @@ import * as x from "./external.ts";
 const CLAUDE = "Claude, target architecture, 7 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 
+export const decision_runtime_retained_spans = defineDecision({
+  id: "runtime.retained-spans",
+  title: "Retain completed Effect spans independently of business records",
+  question: "What authoritative source proves a server span and its provider children in the selected world?",
+  options: [
+    { label: "effect-tracer", text: "An Effect tracer retains completed spans with world, build, run and call identity; a restricted diagnostic reader reads those spans." },
+    { label: "business-records", text: "Treat arbitrary business records or caller-authored span JSON as tracing evidence." },
+  ],
+  chosen: "effect-tracer",
+  why:
+    "A business record cannot establish that a named server span ran. The native Effect span lifecycle supplies ids, parentage, timing and completion. " +
+    "Only identifier attributes are retained: no inputs, return values, error messages, bearer, mailbox, memo or suggestion. " +
+    "The collector records completion outside the source transaction so a refused or rolled-back RPC remains observable. " +
+    "Explicit flush exposes retention failure; it never claims a missing span passed. Provisioning and server/consumer composition remain integrator-owned. " +
+    "Host-clock span durations measure system time, not the stopped world's business instant; transition timestamps still come from the authoritative world clock.",
+  source: "P6; signals.envelope; Books same-run server/provider span contract, 12 November 2026",
+  affects: [f.component_backend, f.system_capxul],
+});
+
 export const decision_integrations_mail_transport = defineDecision({
   id: "integrations.mail-transport",
   title: "Mail makes one attempt and leaves durable retry to its caller",
