@@ -9,6 +9,11 @@ const AARON = "Aaron, 8 November 2026, in the build-preparation conversation";
 
 /** Judgments Aaron accepted as recommended on 8 November 2026. */
 export const ACCEPTED: readonly string[] = [
+  "books.chart-owner",            // Aaron accepted the recommendation on the portal, 12 November 2026 06:07 UTC (a-20261112T060739-819d79)
+  "books.founder-funding",        // Aaron accepted the recommendation on the portal, 12 November 2026 06:08 UTC (a-20261112T060833-a862ae)
+  "devnet.record-home",           // Aaron accepted the recommendation on the portal, 12 November 2026 06:15 UTC (a-20261112T061500-b573df)
+  "plan.cloud-sandbox-moot",      // Aaron accepted the recommendation on the portal, 12 November 2026 06:15 UTC (a-20261112T061509-12f67f)
+  "thin-line.bundler",            // Aaron accepted the recommendation on the portal, 12 November 2026 06:15 UTC (a-20261112T061518-d70798)
   "sites.bench-image",            // Aaron accepted the recommendation on the portal, 11 November 2026 21:58 UTC (a-20261111T215826-c80a8c)
   "swarm.superset",
   "portal.hosting",
@@ -989,4 +994,29 @@ export const decision_aaron_operation_done = defineDecision({
     "it stays healthy, and a break would be seen.",
   source: "Aaron, 11 November 2026, on the portal's Questions page (answer a-20261111T215920-9a0521)",
   affects: [f.system_capxul],
+});
+
+// His answer to devnet.cli-split, in his own words, replaces that decision's open choice.
+Object.assign(SUPERSEDED as Record<string, string>, { "devnet.cli-split": "aaron.one-cli" });
+
+export const decision_aaron_one_cli = defineDecision({
+  id: "aaron.one-cli",
+  title: "One Capxul CLI: no separate command-line tool for test worlds",
+  question:
+    "devnet.cli-split recommended splitting the prototype's command-line tool: the world, clock, snapshot and record commands into a " +
+    "separate test-world tool, the product commands into the real CLI. Is there a separate tool?",
+  options: [
+    { label: "one-cli", text: "No. Everything goes in the main Capxul CLI, so developers and agents operate through the same one place as everything else. How and when each command moves in is not settled by this answer." },
+    { label: "split", text: "Yes, as devnet.cli-split recommended: a separate test-world tool beside the product CLI." },
+  ],
+  chosen: "one-cli",
+  why:
+    "Aaron, on the portal's Questions page, 12 November 2026 06:10 UTC, choosing to change the recommendation (answer a-20261112T061037-ced04e), " +
+    "dictated: \"I\u2019m not really sure what you mean here but I do think if you mean like creating a separate CLA one that\u2019s separate for worlds and all " +
+    "of that stuff I don\u2019t think I think everything should be in the main capsule CLI and the reason is is because developers agents whoever they are " +
+    "they also need to operate well as well. Don\u2019t they the whole point of having one unified place where agents CLISDK where agents can do all the " +
+    "things capture everything\" ('CLA' and 'capsule' are dictation for CLI and Capxul). He said he was unsure what the card meant; this records the " +
+    "reading he gave, a separate CLI for worlds, and his answer to it. devnet.cli-split stays in its file unedited.",
+  source: "Aaron, 12 November 2026, on the portal's Questions page (answer a-20261112T061037-ced04e)",
+  affects: [f.system_capxul, f.component_cli, f.component_devnet],
 });
