@@ -84,8 +84,12 @@ def _exempt():
     return any(frappe.flags.get(f) for f in EXEMPT_FLAGS)
 
 
+class FeatureNotAvailable(frappe.PermissionError):
+    """Stable native error identity for the signed Core provider (HTTP 403)."""
+
+
 def _refuse(feature):
-    frappe.throw(_("{0} is switched off for this company (feature: {1}).").format(CATALOG[feature]["label"], feature), frappe.PermissionError)
+    frappe.throw(_("{0} is switched off for this company (feature: {1}).").format(CATALOG[feature]["label"], feature), FeatureNotAvailable)
 
 
 # ---- layer 2 and 3: permission hooks -------------------------------------------------------------------------------------------
