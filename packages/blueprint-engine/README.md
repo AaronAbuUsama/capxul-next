@@ -6,12 +6,16 @@ content and the engine no longer share a name.)
 
 ```bash
 pnpm blueprint        # node packages/blueprint-engine/src/main.ts blueprint/index.ts var/blueprint  → must print 0 problems
+pnpm blueprint:slices [--journey thin_line] [--json] # the portal's same mechanical wave/slice manifest
 pnpm --filter @capxul/blueprint-engine test
 ```
 
 - `src/records/`: the record types (`defineOperation`, `defineDecision`, …) that `blueprint/` is written with.
 - `src/build.ts`: reads every record, links them and collects problems.
 - `src/evals.ts`, `status.ts`, `stand.ts`: the evals a record derives, the scoreboard format, where each record stands.
+- `src/slices.ts`: deterministic journey-by-concept ownership and provisional waves from `underOf`, the shared
+  `sliceZeroRequired(blueprint)` acceptance gate, and same-run selected-stack evidence. Completed slices keep their identity;
+  only fresh merged proof subtracts remaining work. The portal loader supplies immutable receipts and git ancestry.
 - `src/records/site.ts`, `src/site.ts`: `defineDoctype` (a Frappe DocType Capxul defines, or the Custom Fields it adds
   to Frappe's) `defineRole` (a hat and the Frappe roles it gives) and `defineFeature` (a part a site switches), and their rules. `pnpm frappe:check-blueprint`
   compares these records with `packages/frappe-app` and fails the merge on a difference.

@@ -7,6 +7,7 @@ import { findingRows, head, membersOf, ofKind, titleOf, type Ctx } from "./conte
 import { EVALS } from "./evalCatalogue.ts";
 import { hasPage, refOf } from "./locate.ts";
 import { HAND_WRITTEN, inbox } from "./questions.ts";
+import { BOARD } from "./slices.ts";
 import { count, plural } from "./values.ts";
 
 /** Empty when none, full when all, split between. */
@@ -65,7 +66,7 @@ export const overview = (ctx: Ctx): OverviewPage => {
       big: count(kind === "" ? blueprint.evals.length : ofKind(ctx, kind).length), name, to: kind === "" ? EVALS : catalogueOf(kind),
     })),
     concepts, counts: Object.fromEntries([...ctx.byKind].map(([kind, held]) => [kind, held.length])), evals: blueprint.evals.length,
-    problems: findingRows(blueprint.problems), gaps: findingRows(blueprint.gaps), nav: NAV.filter((r) => (r.page !== "worlds" || ctx.input.worlds) && (r.page !== "blueprint" || ctx.input.guide) && (r.page !== "history" || (ctx.input.history ?? []).length > 0)),
+    problems: findingRows(blueprint.problems), gaps: findingRows(blueprint.gaps), nav: [...NAV, ...(ctx.input.slices ? [BOARD] : [])].filter((r) => (r.page !== "worlds" || ctx.input.worlds) && (r.page !== "blueprint" || ctx.input.guide) && (r.page !== "history" || (ctx.input.history ?? []).length > 0)),
     sitemap: Object.fromEntries(paged.map(([kind, held]) => [kind, held.map((r) => r.id)])),
   };
 };

@@ -22,8 +22,9 @@ async function run(): Promise<void> {
   return runV4(d.chainId, d.deployedBlock);
 }
 
-const personData = (addr: string) => {
-  const p = byAddress(addr);
+// A hat's wearer is a personal Safe; the site is told the person behind it (and the Safe as the address that wears it).
+const personData = (addr: string, ownerOfSafe: (a: string) => string) => {
+  const p = byAddress(ownerOfSafe(addr));
   return { person_email: p?.email ?? null, person_name: p?.name ?? null, address: addr };
 };
 
@@ -31,12 +32,13 @@ const personData = (addr: string) => {
 // made the company, so it knows it before any of its logs (no OrgCreated is needed). Reading starts at the block the
 // chain was set up at: the seeded state has no logs before it.
 async function runV4(chainId: number, deployedBlock: number): Promise<void> {
-  const { v4Addresses, v4Decode } = await import("./v4.ts");
+  const { knownSafes, ownerOfSafe, v4Addresses, v4Decode } = await import("./v4.ts");
   const latest = Number(await publicClient.getBlockNumber());
   const start = Math.max(cursor, deployedBlock);
   if (latest <= start) return;
   const { hats, payments } = await v4Addresses();
   const token = deployment().usdc;
+  await knownSafes();
   const logs = await publicClient.getLogs({ address: [hats, payments, token], fromBlock: BigInt(start + 1), toBlock: BigInt(latest) });
   const receipts = new Map<string, readonly ReceiptLog[]>();
   for (const l of logs) {
@@ -69,7 +71,7 @@ async function runV4(chainId: number, deployedBlock: number): Promise<void> {
         block_time: new Date(Number(block.timestamp) * 1000).toISOString().replace(".000Z", "Z"),
       });
     } else {
-      enqueue(org.slug, key, ev.kind, { hat: ev.hat, ...personData(ev.wearer), department: ev.department, tx_hash: l.transactionHash });
+      enqueue(org.slug, key, ev.kind, { hat: ev.hat, ...personData(ev.wearer, ownerOfSafe), department: ev.department, tx_hash: l.transactionHash });
     }
   }
   cursor = latest;

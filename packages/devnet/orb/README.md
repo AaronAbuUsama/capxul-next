@@ -12,6 +12,8 @@ amp orb services ensure              # supervised local stack and the book
 
 Setup installs checksum-verified Node 24.22.2, Foundry 1.8.5 and native solc 0.8.28/0.8.24, uses pnpm 12.18.0 with the frozen workspace and separate skeleton Core lockfiles, verifies the chain seed and builds contract artifacts. It builds `capxul-bench:orb` from `packages/bench-image/apps.lock.json` and pulls the backing images. Docker's own cache invalidates changed app inputs. No Claude proxy, solc-js, TLS bypass, host-network workaround, Cloudflare token or model gateway is needed.
 
+Recovery also needs a host client: setup installs the Debian `postgresql-client-17` package and pins `psql` on the orb's PATH to its major-17 binary. This is a native client, not a Docker or sudo wrapper; stdin and `PG*` connection variables pass directly to libpq, with no need to put credentials in argv. Setup does not open a database connection or persist runtime credentials.
+
 The production bench layout remains in `packages/bench-image`. The orb layout uses its pinned six-app build, a development test server and a read-only source mount for Capxul Python. Restart for Python changes; rebuild for changed assets or upstream pins.
 
 Amp's built-in orb has Docker Engine. Setup enables its systemd daemon and installs Compose/Buildx if absent. The local Docker CLI shim uses existing sudo rights without exposing Docker over TCP or making its socket world-writable. Resume restarts the daemon and fails visibly if it cannot. A backend without systemd/Docker would need a separate native bench bootstrap.

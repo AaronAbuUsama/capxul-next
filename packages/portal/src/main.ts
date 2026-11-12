@@ -20,6 +20,7 @@ import { LLMS_FILE } from "#src/modules/twins/types.ts";
 
 import { assetsOf, extraPagesOf, load, ownerNeedsOf, ROOT, type Result } from "./load.ts";
 import { listen } from "./serve.ts";
+import { startLive } from "./live.ts";
 
 export { assetsOf, extraPagesOf, load, ownerNeedsOf, ROOT };
 export type { Result };
@@ -54,9 +55,11 @@ const run = async (args: readonly string[]): Promise<{ readonly lines: readonly 
   if (command !== "check" && !(command === "generate" && outDir !== undefined)) {
     return { lines: ["usage: main.ts generate <outDir> | main.ts check | main.ts serve [--port n]"], code: 2 };
   }
-  const loaded = await load(ROOT);
+  const rootAt = args.indexOf("--root");
+  const loaded = await load(rootAt < 0 ? ROOT : resolve(args[rootAt + 1] ?? ROOT), process.env.PORTAL_BUILT_COMMIT);
   if (!loaded.ok) return { lines: [loaded.error], code: 1 };
   const input = loaded.value;
+  if (rootAt >= 0 && input.blueprint.problems.length) return { lines: ["Live snapshot has blueprint problems; retaining the previous generation."], code: 1 };
   const assets = assetsOf();
   const files = generate(input, assets);
   if (command === "generate" && outDir !== undefined) {
@@ -91,8 +94,11 @@ const serve = async (args: readonly string[]): Promise<number> => {
   if (!loaded.ok) { console.error(loaded.error); return 1; }
   /** Extra hosts the server answers on, for a private proxy in front of it (a tailnet address). Never a public one. */
   const extraHosts = (process.env.PORTAL_ALLOW_HOSTS ?? "").split(",").map((h) => h.trim()).filter((h) => h !== "");
-  const started = await listen(loaded.value, ROOT, port, extraHosts, () => load(ROOT));
-  if (!started.ok) { console.error(started.error); return 1; }
+  const live = args.includes("--live") ? startLive(ROOT) : undefined;
+  await live?.ready;
+  const started = await listen(loaded.value, ROOT, port, extraHosts, () => load(ROOT), live?.info);
+  if (!started.ok) { live?.close(); console.error(started.error); return 1; }
+  started.value.server.once("close", () => live?.close());
   console.log(`Serving packages/portal/dist at ${started.value.url} (127.0.0.1 only). ${started.value.closed ?? "Answers are appended to plan/answers.jsonl."}`);
   return 0;
 };

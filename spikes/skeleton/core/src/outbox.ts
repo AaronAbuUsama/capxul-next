@@ -145,5 +145,7 @@ export const status = (slug: string) => {
   if (!o) return undefined;
   const pending = o.events.filter((e) => !e.applied);
   return { slug, released: o.released, lastSeq: o.nextSeq - 1, applied: o.events.length - pending.length,
-    pending: pending.map((e) => ({ seq: e.seq, kind: e.kind, attempts: e.attempts, lastError: e.lastError })) };
+    pending: pending.map((e) => ({ seq: e.seq, kind: e.kind, attempts: e.attempts, lastError: e.lastError })),
+    // `payment list`: each PaymentSent on chain, settled once the site has applied it (posted its entry)
+    payments: o.events.filter((e) => e.kind === "payment_sent").map((e) => ({ ...e.data, status: e.applied ? "settled" : "sent" })) };
 };

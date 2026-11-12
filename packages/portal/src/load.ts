@@ -7,7 +7,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { buildBlueprint, keyOf, parseStatus, type AnyRecord, type StatusDocument } from "@capxul/blueprint-engine";
+import { buildBlueprint, keyOf, parseStatus, slicesOf, type AnyRecord, type StatusDocument } from "@capxul/blueprint-engine";
 
 import { planFilesOf } from "@capxul/plan";
 import { appliedTargets, check as planCheck, parseAnswerLines, parsePlan, waitsOnOwner } from "@capxul/plan";
@@ -16,6 +16,7 @@ import { direction } from "#content/direction.ts";
 import type { Assets } from "#src/modules/render/types.ts";
 import { parseLog } from "#src/modules/site/service.ts";
 import type { Commit, FrozenArgument, FrozenCommand, FrozenFlag, GuideInput, PlanInput, SiteInput, WorldsInput } from "#src/modules/site/types.ts";
+import { sliceRunsOf } from "./run-input.ts";
 
 export type Result<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: string };
 
@@ -101,8 +102,9 @@ export const load = async (root: string, commit: string = commitOf(root)): Promi
       ok: true,
       value: {
         blueprint, commit, concepts, conceptOf, direction, status: status.value, plan: plan.value,
+        slices: slicesOf(blueprint, { conceptOf, runs: sliceRunsOf(root, process.env.PORTAL_GIT_ROOT ?? root), waits: (d) => forAaron(d) === true }),
         waits: (decision) => forAaron(decision) === true,
-        frozen: frozenOf(flagBaseline), frozenOperations: new Set(Object.keys(frozen)), worlds, guide, history: historyOf(root),
+        frozen: frozenOf(flagBaseline), frozenOperations: new Set(Object.keys(frozen)), worlds, guide, history: historyOf(process.env.PORTAL_GIT_ROOT ?? root, 2000, process.env.PORTAL_BUILT_COMMIT),
       },
     };
   } catch (cause) {
@@ -213,15 +215,16 @@ export const ownerNeedsOf = (input: SiteInput): readonly string[] =>
   (input.plan?.plan.tasks ?? []).filter((t) => waitsOnOwner(t, input.direction.settings.reviewer, () => false)).map((t) => t.id);
 
 /** The pages that exist only when their document is in the repository: Worlds and Blueprint. */
-export const extraPagesOf = (input: SiteInput): readonly string[] => [...(input.worlds ? ["worlds"] : []), ...(input.guide ? ["blueprint"] : []), ...((input.history ?? []).length > 0 ? ["history"] : [])];
+export const extraPagesOf = (input: SiteInput): readonly string[] => [...(input.worlds ? ["worlds"] : []), ...(input.guide ? ["blueprint"] : []), ...((input.history ?? []).length > 0 ? ["history"] : []),
+  ...(input.slices ? ["board", ...input.slices.slices.map((s) => `slice/${s.id}`)] : [])];
 
 
 /** Git merge commits since midnight UTC, not inferred from task state. */
 
 /** The repository's last commits with their files, newest first; empty when git cannot be read. */
-export const historyOf = (root: string, limit = 2000): readonly Commit[] => {
+export const historyOf = (root: string, limit = 2000, revision?: string): readonly Commit[] => {
   try {
-    return parseLog(execFileSync("git", ["log", `-${limit}`, "--format=\u001e%H|%aI|%an|%s%n%(trailers:only,unfold)", "--name-only"],
+    return parseLog(execFileSync("git", ["log", `-${limit}`, "--format=\u001e%H|%aI|%an|%s%n%(trailers:only,unfold)", "--name-only", ...(revision ? [revision] : [])],
       { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] }));
   } catch { return []; }
 };

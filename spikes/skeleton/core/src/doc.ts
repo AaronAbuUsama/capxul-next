@@ -155,7 +155,16 @@ export async function approvalSign(args: string[]): Promise<Out> {
   if (!flags["no-wait"]) {   // wait until the site has the event (or 30 s), so a script can look at the books straight after
     for (let i = 0; i < 100; i++) { pending = (await core("/admin/status", { slug })).pending.length; if (!pending) break; await new Promise((r) => setTimeout(r, 300)); }
   }
-  return res({ approval: id, signer: who.email, txHash: s.txHash, document: `${a.doctype} ${a.name}`, amount: a.amount, to: a.to_party, outboxPending: pending },
+  return res({ approval: id, signer: who.email, txHash: s.txHash, userOpHash: s.userOpHash, paymentId: s.paymentId, document: `${a.doctype} ${a.name}`, amount: a.amount, to: a.to_party, outboxPending: pending },
     [`signed ${id} as ${who.email}: ${a.amount} ${a.asset} to ${a.to_party}, tx ${s.txHash}${pending === 0 ? ", the site has it" : ""}`]);
+}
+// `payment list <slug> [--id <payment id>]`: the company's payments as the chain made them (PaymentSent), with whether the
+// site has posted each one (settled).
+export async function paymentList(args: string[]): Promise<Out> {
+  const { pos, flags } = parseArgs(args);
+  if (!pos[0]) throw refuse("USAGE", "usage: payment list <slug> [--id <payment id>]");
+  const all = ((await core("/admin/status", { slug: pos[0] }))?.payments ?? []) as { payment_id: string; amount: string; to: string; tx_hash: string; status: string }[];
+  const rows = typeof flags.id === "string" ? all.filter((p) => p.payment_id.toLowerCase() === (flags.id as string).toLowerCase()) : all;
+  return res(rows, rows.map((p) => `${p.payment_id} ${p.amount} USDC to ${p.to}: ${p.status} (tx ${p.tx_hash})`));
 }
 export { doorError };

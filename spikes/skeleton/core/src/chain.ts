@@ -51,7 +51,7 @@ export type FailureReason = "NOT_AUTHORISED" | "OVER_BUDGET" | "REVERTED";
 
 export type SendArgs = { org: string; to: Address; amount: bigint; documentHash: Hex; privateKey: Hex };
 export type SendResult =
-  | { ok: true; txHash: Hex }
+  | { ok: true; txHash: Hex; userOpHash: Hex; paymentId: Hex }   // the transaction that carried the payer Safe's UserOperation
   | { ok: false; reason: FailureReason; detail: string };
 
 // A signed payment attempt. A refusal leaves NO log on the chain, so the attempt is simulated first and the

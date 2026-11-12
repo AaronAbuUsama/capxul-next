@@ -15,3 +15,8 @@ const service = createSiteService({
   ...(process.env.SITE_PORT ? { sitePort: Number(process.env.SITE_PORT) } : {}),
 });
 service.listen(Number(process.env.PORT ?? 8788), "127.0.0.1", () => console.log("site-service listening on loopback"));
+
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  // Stop ingress, but let active responses and bench subprocesses finish naturally.
+  process.on(signal, () => service.close(() => { process.exitCode = 0; }));
+}
