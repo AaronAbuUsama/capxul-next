@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "evals": {
+    "acc:record.export/c-bd1acd26102d2d92": {
+      "verdict": "not_run",
+      "commit": "42e4def7d48a9262eae1e002db2f6b3da1e4dce2+dirty",
+      "at": "2026-11-12T10:29:06.031Z",
+      "claim": "An export carries the lineage and every entry once.",
+      "observes": "cli: `record export --world town3 --out run.jsonl --json` prints the line count and lineage naming town1; the file's first line is the lineage and the entries follow in order.",
+      "run": "run-20261112102906031-9d4ba008",
+      "evidence": "status/runs/run-20261112102906031-9d4ba008/evidence/acc-record.export-c-bd1acd26102d2d92.txt"
+    },
+    "acc:world.clock.warp/c-2bceeaa41942995d": {
+      "verdict": "not_run",
+      "commit": "42e4def7d48a9262eae1e002db2f6b3da1e4dce2+dirty",
+      "at": "2026-11-12T10:29:06.031Z",
+      "claim": "A warp moves the chain and every site together and runs what fell due.",
+      "observes": "cli: in `world-frozen`, `world clock warp town1 --by 7d` prints worldNow a week on; a company's site shows its scheduled job ran for each day; `--by -1d` exits INVALID_INPUT.",
+      "run": "run-20261112102906031-9d4ba008",
+      "evidence": "status/runs/run-20261112102906031-9d4ba008/evidence/acc-world.clock.warp-c-2bceeaa41942995d.txt"
+    },
+    "acc:world.create/c-52e22ec1e2a6c1cc": {
+      "verdict": "not_run",
+      "commit": "42e4def7d48a9262eae1e002db2f6b3da1e4dce2+dirty",
+      "at": "2026-11-12T10:29:06.031Z",
+      "claim": "A new world runs with its clock and a record that begins with its birth.",
+      "observes": "cli: from `empty-devnet`, `world create town1 --template empty --clock frozen --json` prints creating; `world show town1` then prints running, clockMode frozen, epoch 1 and recordHead 1; `record list --world town1` lists one `born` entry.",
+      "run": "run-20261112102906031-9d4ba008",
+      "evidence": "status/runs/run-20261112102906031-9d4ba008/evidence/acc-world.create-c-52e22ec1e2a6c1cc.txt"
+    },
+    "acc:world.show/c-6aa449b0c9f7abaf": {
+      "verdict": "not_run",
+      "commit": "42e4def7d48a9262eae1e002db2f6b3da1e4dce2+dirty",
+      "at": "2026-11-12T10:29:06.031Z",
+      "claim": "A world restored into another names its parent.",
+      "observes": "cli: in `world-with-snapshot`, after `world snapshot restore town1 m3 --as town3`, `world show town3 --json` prints parentWorld town1, parentSnapshot m3 and parentSeq.",
+      "run": "run-20261112102906031-9d4ba008",
+      "evidence": "status/runs/run-20261112102906031-9d4ba008/evidence/acc-world.show-c-6aa449b0c9f7abaf.txt"
+    },
+    "acc:world.snapshot.restore/c-1dd79fdbcb1c0fd7": {
+      "verdict": "not_run",
+      "commit": "42e4def7d48a9262eae1e002db2f6b3da1e4dce2+dirty",
+      "at": "2026-11-12T10:29:06.031Z",
+      "claim": "A restore into a separate world leaves the first world untouched and the two never see each other.",
+      "observes": "cli: `world snapshot restore town1 m3 --as town3`; both worlds list their companies on their own addresses; a command in town3 changes nothing in town1; the new born entry names town1, m3 and the sequence.",
+      "run": "run-20261112102906031-9d4ba008",
+      "evidence": "status/runs/run-20261112102906031-9d4ba008/evidence/acc-world.snapshot.restore-c-1dd79fdbcb1c0fd7.txt"
+    },
+    "acc:world.snapshot.restore/c-369b1db183b9807f": {
+      "verdict": "not_run",
+      "commit": "42e4def7d48a9262eae1e002db2f6b3da1e4dce2+dirty",
+      "at": "2026-11-12T10:29:06.031Z",
+      "claim": "An in-place restore returns the world to the snapshot and records it.",
+      "observes": "cli: in `world-with-snapshot`, after more commands, `world snapshot restore town1 m3`; the diff against the saved world is empty, epoch is one higher, the record has a `restore` entry and the earlier branch is listed as abandoned.",
+      "run": "run-20261112102906031-9d4ba008",
+      "evidence": "status/runs/run-20261112102906031-9d4ba008/evidence/acc-world.snapshot.restore-c-369b1db183b9807f.txt"
+    },
+    "acc:world.snapshot.save/c-69e4dbcdf13e3750": {
+      "verdict": "not_run",
+      "commit": "42e4def7d48a9262eae1e002db2f6b3da1e4dce2+dirty",
+      "at": "2026-11-12T10:29:06.031Z",
+      "claim": "A snapshot saves everything that makes the world and leaves it untouched.",
+      "observes": "cli: `world snapshot save town1 m3 --json` prints the epoch and recordSeq; the world's record gains no entry but the save; `world snapshot list town1` lists it.",
+      "run": "run-20261112102906031-9d4ba008",
+      "evidence": "status/runs/run-20261112102906031-9d4ba008/evidence/acc-world.snapshot.save-c-69e4dbcdf13e3750.txt"
+    }
+  }
+}

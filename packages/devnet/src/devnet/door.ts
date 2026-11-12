@@ -10,6 +10,8 @@ export { localRuntime, type Processes, type CoreStore } from "./runtime.ts";
 export { runDevnet } from "./command.ts";
 export { readConfig, databaseUrl, type Config } from "./supervisor.ts";
 export { readFixture, sitesEnvironment, type FixtureState } from "./fixture.ts";
+export { migrateCatalogue, worldCatalogue, type WorldCatalogue, type WorldRow, type Command, type SnapshotRow, type CatalogueCut, type CatalogueHistory, type RestoreCatalogue } from "./catalogue.ts";
+export { migrateMailSink, devnetMail, type DevnetMail, type MailSend, type MailFail } from "./mail.ts";
 export type Site = { company: string; name: string };
 export type World = { id: string; kind: "local" | "simulated"; database: string; stateDir: string; sites: Site[]; epoch: number };
 export type Cut = { nowMs: number; clockMode: "stopped" | "running"; rate: number; recordSeq: number; recordHead: string;
