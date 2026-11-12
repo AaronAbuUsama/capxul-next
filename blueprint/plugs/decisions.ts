@@ -397,4 +397,15 @@ export const decision_plugs_answer_origin = dec({
   affects: [f.component_frappe_app, integration_frappe_site, d.table_payment_requests, d.table_site_request_cursors, pr.workflow_plugs_payments_collect],
 });
 
+export const decision_plugs_typed_site_transport = dec({
+  id: "plugs.typed-site-transport",
+  title: "One typed, signed site transport for workflows and product calls",
+  question: "How do the collector, event delivery and public document door agree on site failures and successful acknowledgements?",
+  options: [{ label: "typed-provider", text: "The backend FrappeSite Effect service owns a configured transport origin and secret, signs exact request bytes and short-lived user assertions, refuses redirects, bounds timeouts/retries and validates response schemas and request/tenant/cursor identities. Network failures, 401 and 5xx map to PROVIDER_ERROR; invalid successful answers map to PROVIDER_RESPONSE_INVALID. Product run/report responses carry explicit ok/data or ok/error envelopes. A native FeatureNotAvailable PermissionError subclass distinguishes disabled features without matching translated text. Native permission and missing-document failures retain the declared public error vocabulary. A missing readSite method is WRONG_STATE. HTTP 409 event cursor conflicts retain the site's expected sequence for durable replay; they never acknowledge money. The existing checked-out SQL connection and complete saved collector answer remain authoritative." }],
+  chosen: "typed-provider",
+  why: "The durable workflow's narrow fetch calls do not implement the declared FrappeSite error contract. Sharing one schema-checked provider prevents public handlers and workflows from interpreting the same failed site call differently, while keeping all requests inbound to the site and all transaction ownership in the existing invoker.",
+  evidence: "Slice-zero plugs binding audit and product-door/provider ownership agreement, 12 November 2026; packages/backend/src/plugs/collector.ts and door.ts",
+  affects: [f.component_backend, f.component_frappe_app, integration_frappe_site, pr.workflow_plugs_payments_collect, pr.workflow_plugs_events_deliver],
+});
+
 void ops; 
