@@ -39,7 +39,7 @@ for (const item of HATS.filter((x) => x.type === "event")) {
       }
     }
     const state = { chain_id: context.chain.id, company_safe: tree.company_safe, tree: tree.tree, admin_hat_id: parent, level,
-      details, max_supply: maxSupply, supply, eligibility: lower(eligibility), toggle: lower(toggle), active, mutable,
+      details, max_supply: BigInt(maxSupply), supply: BigInt(supply), eligibility: lower(eligibility), toggle: lower(toggle), active, mutable,
       created_log_id: old?.created_log_id ?? base.log_id, last_log_id: base.log_id, updated_block: event.block.number };
     await context.db.insert(chainHats).values({ hat_id: key, ...state }).onConflictDoUpdate(state);
 

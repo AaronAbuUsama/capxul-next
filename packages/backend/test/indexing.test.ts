@@ -72,7 +72,10 @@ test("real Ponder projections retain initial execution nonce, provenance and exa
     const held = await scoped("organization", "same-id", "safe_owners");
     assert.deepEqual(held.map((r) => r.safe_address).sort(), [safe, fixture.agentSafe.toLowerCase()].sort(), "agent-owner admission is independent of the Safe's own owner");
     const owned = await scoped("person", "same-id", "safe_owners");
-    assert.deepEqual(owned.map((r) => r.safe_address).sort(), [safe, founder].sort(), "owners-array admission is independent of the Safe's own owner");
+    assert.deepEqual(owned.filter((r) => [safe, founder, fixture.agentSafe.toLowerCase()].includes(r.safe_address)).map((r) => r.safe_address).sort(),
+      [safe, founder].sort(), "owners-array admission is independent of the Safe's own owner");
+    assert(owned.every((r) => r.safe_address === founder || r.owners.includes(founder) || r.agent_owner === founder),
+      "additional native companies are readable only through the person's actual Safe relationship");
     for (const table of ["safe_owners", "safe_approvals", "safe_executions", "chain_hats", "hat_wearers", "chain_budgets", "chain_logs"]) {
       assert((await scoped("organization", "same-id", table)).length > 0, `${table} has real company rows`);
       assert.equal((await scoped("person", "outsider", table)).length, 0, `${table} denies a different owner`);

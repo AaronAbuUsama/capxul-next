@@ -579,7 +579,7 @@ export const decision_indexing_projection_reads = defineDecision({
   title: "Projection refreshes read the emitting block, never the current chain",
   question: "How are Safe, hat and budget projections reconstructed during backfill and replay?",
   options: [
-    { label: "block-pinned", text: "Ponder refreshes affected objects using its block-pinned client. Birth reads initialize objects that existed before their admission; subsequent admitted events refresh them. Receipt-ordinal facts remain separate, and projection provenance records the actual first and last admitted log." },
+    { label: "block-pinned", text: "Ponder refreshes affected objects using its block-pinned client. Birth reads initialize objects that existed before their admission; subsequent admitted events refresh them. Receipt-ordinal facts remain separate, and projection provenance records the actual first and last admitted log. Hat max supply and supply retain the entire contract uint32 range, including 4294967295, in bigint-backed SQL columns; direct SQL consumers receive decimal strings, not signed int32 values." },
     { label: "latest", text: "Read the latest chain state during every handler, including historical backfill." },
   ],
   chosen: "block-pinned",

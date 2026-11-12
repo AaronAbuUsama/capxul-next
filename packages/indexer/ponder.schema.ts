@@ -77,8 +77,8 @@ export const safeExecutions = onchainTable("safe_executions", (t) => ({
 }));
 export const chainHats = onchainTable("chain_hats", (t) => ({
   hat_id: t.text().primaryKey(), chain_id: t.integer().notNull(), company_safe: t.hex().notNull(), tree: t.text().notNull(),
-  admin_hat_id: t.text(), level: t.integer().notNull(), details: t.text().notNull(), max_supply: t.integer().notNull(),
-  supply: t.integer().notNull(), eligibility: t.hex().notNull(), toggle: t.hex().notNull(), active: t.boolean().notNull(), mutable: t.boolean().notNull(),
+  admin_hat_id: t.text(), level: t.integer().notNull(), details: t.text().notNull(), max_supply: t.bigint().notNull(),
+  supply: t.bigint().notNull(), eligibility: t.hex().notNull(), toggle: t.hex().notNull(), active: t.boolean().notNull(), mutable: t.boolean().notNull(),
   ...provenance(t),
 }), (t) => ({
   admin: index("chain-hats-by-admin").on(t.admin_hat_id, t.hat_id),
