@@ -79,6 +79,10 @@ export function supervised(c: Config, configFile: string): Host & Processes {
       const file = stateFile(c, component);
       let receipt: Receipt;
       try { receipt = JSON.parse(await readFile(file, "utf8")); } catch (e: any) { if (e.code === "ENOENT") return; throw e; }
+      if (receipt.state === "exited") {
+        if (receipt.code !== 0 || receipt.signal) throw new Error(`${component} did not exit cleanly; snapshot refused`);
+        return;
+      }
       await command(["amp", "orb", "service", "stop", service(component)], c.root);
       await until(`${component} clean exit`, async () => !await alive(file));
       receipt = JSON.parse(await readFile(file, "utf8"));

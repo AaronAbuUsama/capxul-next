@@ -79,6 +79,9 @@ export async function delivered(c: Config, f: FixtureState, replay?: any): Promi
   await until("released company's acknowledged event stream", async () => {
     status = await signedCore(c, "/admin/status", { slug: f.slug });
     if (!(status.released === true && BigInt(status.last_seq) > 0n && BigInt(status.last_ack) === BigInt(status.last_seq) && !status.pending.length && status.events.every((e: any) => e.state === "applied"))) return false;
+    // A fully acknowledged older stream says nothing about a newly mined payment not yet consumed by Core.
+    if (f.txHash && !status.events.some((event: any) => event.kind === "payment_sent" &&
+      event.event_key.startsWith(`${c.chainId}:${f.txHash!.toLowerCase()}:`) && event.state === "applied")) return false;
     // Native reads can outlast another delivery. Retry the pair rather than comparing a stale Core head afterward.
     if (BigInt(await single(c, f.site, "last_seq")) !== BigInt(status.last_ack)) return false;
     return !replay || BigInt(status.last_ack) >= BigInt(replay.last_seq) && replay.events.every((before: any) => {
@@ -188,10 +191,11 @@ export async function submitPayment(c: Config, f: FixtureState, approval: any) {
 export async function settledPayment(c: Config, f: FixtureState): Promise<void> {
   assert(f.invoice && f.paymentEntry && f.txHash);
   await delivered(c, f);
-  const state = await bench(c, f.site, "capxul.testutil.state", [], { pe: f.paymentEntry, pi: f.invoice });
-  assert.equal(state.pe.docstatus, 1); assert.equal(state.pe.capxul_status, "Sent");
-  assert.equal(state.pe.reference_no.toLowerCase(), f.txHash.toLowerCase()); assert.equal(Number(state.outstanding), 0);
-  assert.equal(Number(state.safe_credit), 125.5);
+  await until("selected transaction's native payment settlement", async () => {
+    const state = await bench(c, f.site, "capxul.testutil.state", [], { pe: f.paymentEntry, pi: f.invoice });
+    return state.pe.docstatus === 1 && state.pe.capxul_status === "Sent" &&
+      state.pe.reference_no?.toLowerCase() === f.txHash!.toLowerCase() && Number(state.outstanding) === 0 && Number(state.safe_credit) === 125.5;
+  }, 180_000);
 }
 
 /** Native Frappe one-time login, after the real on-chain hat has created the user. No password/Administrator session. */

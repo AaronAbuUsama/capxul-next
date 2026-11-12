@@ -73,8 +73,6 @@ export async function runDevnet(args: string[]): Promise<number> {
       const f = await provisionFixture(stack.c, configFile, rest[0]!);
       console.log(JSON.stringify({ org: f.slug, site: f.site, safe: f.company.companySafe, state: "delivered" })); return 0;
     } else if (commandName === "run" && rest[0] === "slice-zero" && (rest.length === 1 || rest.length === 3 && rest[1] === "--slug")) {
-      const { requirePaymentSlot } = await import("./fixture.ts");
-      await requirePaymentSlot(stack.c);
       await up(stack.c, stack.host);
       const token = randomBytes(24).toString("hex");
       await writeFile(join(candidate, "token"), token, { mode: 0o600 });

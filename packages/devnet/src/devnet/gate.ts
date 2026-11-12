@@ -5,7 +5,7 @@ import { parseRunReceipt, parseStatus, type EvalStatus, type RunEnvironment } fr
 import { sitesEnvironment } from "./fixture.ts";
 import { command } from "./processes.ts";
 import { runtimeEnv } from "./service.ts";
-import type { Config } from "./supervisor.ts";
+import { databaseUrl, type Config } from "./supervisor.ts";
 
 /** A summary alone cannot turn an old scoreboard, wrong stack or missing screens into slice acceptance. */
 export async function verifyRun(root: string, summary: any, required: string[], environment: RunEnvironment, started: number) {
@@ -71,7 +71,8 @@ export async function runGate(c: Config, slug: string, token: string, configFile
   let stdout: string;
   try {
     stdout = await command(["pnpm", "--silent", "evals", "--", ...required, "--world", "slice-zero", "--slug", slug, "--environment", metadata, "--prepare", prepare, "--json"], c.root,
-      { ...runtimeEnv(c, "anvil"), ...sitesEnvironment(c), CAPXUL_SECRET: c.secret, CAPXUL_ACCEPTANCE_FIXTURE: fixture, CAPXUL_WORLD_CONFIG: resolve(configFile), CAPXUL_WORLD_RUN_TOKEN: token });
+      { ...runtimeEnv(c, "anvil"), ...sitesEnvironment(c), CAPXUL_STORAGE_EVAL_DATABASE: databaseUrl(c.database.tenant, c.world),
+        CAPXUL_SECRET: c.secret, CAPXUL_ACCEPTANCE_FIXTURE: fixture, CAPXUL_WORLD_CONFIG: resolve(configFile), CAPXUL_WORLD_RUN_TOKEN: token });
   } catch (error: any) {
     // Exit 1 is a truthful failed/not_run attempt and still has a JSON receipt pointer. Preflight errors do not.
     if (typeof error.cause?.stdout !== "string" || !error.cause.stdout.trim()) throw error;

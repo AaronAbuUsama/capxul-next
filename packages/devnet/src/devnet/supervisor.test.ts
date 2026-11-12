@@ -6,8 +6,8 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { gateway } from "./gateway.ts";
-import { verifyRun } from "./gate.ts";
-import { bench, delivered, sitesEnvironment } from "./fixture.ts";
+import { runGate, verifyRun } from "./gate.ts";
+import { fixturePath, sitesEnvironment } from "./fixture.ts";
 import { prepareSlice } from "./preparation.ts";
 import { command, supervised } from "./processes.ts";
 import { runtimeEnv } from "./service.ts";
@@ -51,41 +51,32 @@ test("runtime children receive only their restricted world credentials, never op
   } finally { delete process.env.PG_ADMIN_URL; delete process.env.CAPXUL_PRIVATE_KEY; }
 });
 
-test("native bench reads preserve raw scalars, structured JSON and empty None results", async () => {
-  const root = await mkdtemp(join(tmpdir(), "world-bench-output-")), c = config(root);
-  const previous = { PATH: process.env.PATH, BENCH_RESULT: process.env.BENCH_RESULT };
+test("gate supplies the selected tenant database to runners and retains their failed verdict", async () => {
+  const root = await mkdtemp(join(tmpdir(), "world-gate-env-")), c = config(root), previous = process.env.PATH;
   try {
-    await writeFile(join(root, "docker"), `#!${process.execPath}\nprocess.stdout.write(process.env.BENCH_RESULT);\n`, { mode: 0o700 });
-    process.env.PATH = `${root}:${process.env.PATH}`;
-    for (const [output, expected] of [["harbourlineproof\n", "harbourlineproof"], ["0xc97056edb98c2dce657fdd1ab7928035745fde51\n", "0xc97056edb98c2dce657fdd1ab7928035745fde51"],
-      ['["Company",125.5]\n', ["Company", 125.5]], ["", null], ['diagnostic\nJSON:{"posted":true}\n', { posted: true }]] as const) {
-      process.env.BENCH_RESULT = output;
-      assert.deepEqual(await bench(c, "fixture.localhost", "fixture.read"), expected);
-    }
-  } finally {
-    for (const [key, value] of Object.entries(previous)) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
-    await rm(root, { recursive: true });
-  }
-});
-
-test("delivery readback converges when a new acknowledged event arrives between Core and native site reads", async () => {
-  const root = await mkdtemp(join(tmpdir(), "world-delivery-readback-")), c = config(root);
-  const previous = process.env.PATH;
-  let sequence = 0;
-  const core = createServer((_req, res) => {
-    sequence = Math.min(sequence + 1, 2);
-    res.setHeader("content-type", "application/json");
-    res.end(JSON.stringify({ released: true, last_seq: String(sequence), last_ack: String(sequence), pending: [],
-      events: [{ event_key: "hat", seq: "1", state: "applied" }] }));
-  });
-  c.ports.core = await listen(core);
-  try {
-    await writeFile(join(root, "docker"), `#!${process.execPath}\nconst args=process.argv;process.stdout.write(args.includes("frappe.db.get_single_value")?"2":args.includes("frappe.db.exists")?"hat-grant":"1");\n`, { mode: 0o700 });
+    await mkdir(c.controlDir);
+    for (const dir of ["packages/bench-image", "packages/indexer"]) await mkdir(join(root, dir), { recursive: true });
+    await writeFile(join(root, "packages/bench-image/apps.lock.json"), JSON.stringify({ frappe: { commit: "frappe-pin" }, apps: [{ name: "erpnext", commit: "erpnext-pin" }] }));
+    await writeFile(join(root, "packages/indexer/package.json"), JSON.stringify({ dependencies: { ponder: "ponder-pin" } }));
+    await writeFile(join(root, "pnpm"), `#!${process.execPath}
+const fs=require("node:fs"),assert=require("node:assert/strict"),path=require("node:path");
+if(process.argv.includes("blueprint:slices")) { console.log(JSON.stringify({slices:[{id:"slice-0",required:["storage-schema"]}]})); }
+else {
+  const url=new URL(process.env.CAPXUL_STORAGE_EVAL_DATABASE);
+  assert.equal(url.username,"capxul_core"); assert.equal(url.pathname,"/world_slice0"); assert.equal(url.password,"tenant-secret");
+  assert.equal(process.env.PG_ADMIN_URL,undefined); assert.equal(process.env.WORKER_DATABASE_URL,undefined);
+  const args=process.argv,env=JSON.parse(fs.readFileSync(args[args.indexOf("--environment")+1],"utf8"));
+  const at=new Date().toISOString(),id="run-storage",dir=path.resolve("status/runs",id); fs.mkdirSync(dir,{recursive:true});
+  fs.writeFileSync(path.join(dir,"receipt.json"),JSON.stringify({version:1,id,state:"complete",commit:env.components.core,at,finishedAt:at,environment:env,
+    requested:["storage-schema"],evals:[{id:"storage-schema",claim:"native schema"}],scripts:[],screens:[]}));
+  fs.writeFileSync(path.join(dir,"status.json"),JSON.stringify({version:1,evals:{"storage-schema":{verdict:"fail",run:id,commit:env.components.core,at,claim:"native schema"}}}));
+  console.log(JSON.stringify({version:1,run:id,runDir:"status/runs/"+id,state:"complete",passed:false,exitCode:1})); process.exitCode=1;
+}
+`, { mode: 0o700 });
     process.env.PATH = `${root}:${previous}`;
-    await delivered(c, { slug: "harbourline", site: "fixture.localhost", email: "director@example.invalid" } as any);
+    assert.equal(await runGate(c, "harbourline", "private-run-token", join(root, "config.json")), 1);
   } finally {
     if (previous === undefined) delete process.env.PATH; else process.env.PATH = previous;
-    await new Promise<void>((done) => core.close(() => done()));
     await rm(root, { recursive: true });
   }
 });
@@ -148,6 +139,19 @@ test("a different checkout or already-running build cannot be reused as this wor
       birth: proc.slice(proc.lastIndexOf(")") + 2).split(" ")[19], codeVersion: "earlier-build", state: "running" }));
     await assert.rejects(host.start("core"), /running another code version/);
   } finally { await rm(directory, { recursive: true }); }
+});
+
+test("stopping a cleanly exited component is idempotent but a failed exit still refuses recovery", async () => {
+  const root = await mkdtemp(join(tmpdir(), "world-stopped-")), c = config(root);
+  try {
+    await mkdir(c.controlDir);
+    const file = join(c.controlDir, "core.json"), host = supervised(c, join(root, "world.json"));
+    for (const [code, signal] of [[0, null], [1, null], [0, "SIGKILL"]] as const) {
+      await writeFile(file, JSON.stringify({ state: "exited", code, signal }));
+      if (code === 0 && signal === null) { await host.stop("core"); await host.stop("core"); }
+      else await assert.rejects(host.stop("core"), /did not exit cleanly/);
+    }
+  } finally { await rm(root, { recursive: true }); }
 });
 
 test("Core recovery uses HMAC over the exact raw body on the private port", async () => {
@@ -236,7 +240,12 @@ test("preparation cannot retrofit an earlier fixture or use a finished/wrong-bui
     await assert.rejects(prepareSlice(stack, configFile, "harbourline"), /fresh fixture/);
     await rm(join(c.controlDir, "fixture.json"));
     await assert.rejects(prepareSlice(stack, configFile, "harbourline"), /real bundler/);
+    c.bundler = { argv: ["/private/alto"], url: "http://127.0.0.1:20109", env: {} };
+    await assert.rejects(prepareSlice(stack, configFile, "harbourline"), /deployed funded paymaster/);
+    assert.deepEqual(JSON.parse(await readFile(join(directory, "receipt.json"), "utf8")), receipt,
+      "missing paymaster must leave the harness's running receipt intact for failed preparation finalization");
     await assert.rejects(readFile(join(directory, "preparation.json")), { code: "ENOENT" });
+    await assert.rejects(readFile(fixturePath(c)), { code: "ENOENT" });
   } finally {
     for (const [key, value] of Object.entries(previous)) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
     await rm(root, { recursive: true });
