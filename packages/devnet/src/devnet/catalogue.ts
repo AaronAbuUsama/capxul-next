@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { redactSecrets } from "@capxul/sdk";
+import { isCredentialField, redactSecrets } from "@capxul/sdk";
 import type { Admin } from "./door.ts";
 
 export type WorldRow = {
@@ -56,14 +56,15 @@ export function worldCatalogue(query: Admin, secrets: readonly string[]) {
       return text;
     }
     if (Array.isArray(value)) return value.map(mask);
-    if (value !== null && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, mask(entry)]));
+    if (value !== null && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, entry]) =>
+      [key, isCredentialField(key) ? "[REDACTED]" : mask(entry)]));
     // A credential's digit sequence can equal a legitimate duration/sequence. Preserve scalar types.
     return value;
   };
   const clean = (value: unknown): string | null => {
     if (value === undefined) return null;
-    // The shared sanitizer handles labelled credential fields; known-value masking stays structural.
-    return JSON.stringify(mask(JSON.parse(redactSecrets(JSON.stringify(value)))));
+    // Normalize JSON values before traversing; prose sanitizers never touch the serialized envelope.
+    return JSON.stringify(mask(JSON.parse(JSON.stringify(value))));
   };
   const appendSql = (world: string, command: Command, event?: { from: string; to: string; transition: string }) => {
     let result = clean(command.result);

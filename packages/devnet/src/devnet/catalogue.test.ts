@@ -215,6 +215,12 @@ test("native catalogue preserves command history, atomic mutations and restricte
     assert.deepEqual(args, { number: 1234, flag: true, empty: null, secret: "[REDACTED]", path: "before [REDACTED] after",
       nested: JSON.stringify({ secret: "[REDACTED]", number: 1234 }) });
     assert.deepEqual(JSON.parse(redacted.result as string), { ordinary: 'quoted "value" and backslash \\', secret: "[REDACTED]" });
+    const prose = await worldCatalogue(query, []).append("town1", { ...command,
+      args: { note: 'password: "foo" tail', body: 'request body={"foo":"bar"}', nested: [{ apiKey: "key-to-hide", enabled: true }] } });
+    const proseArgs = JSON.parse(prose.args as string);
+    assert.equal(proseArgs.note, "password=[REDACTED] tail");
+    assert.equal(proseArgs.body, "request body=[REDACTED]");
+    assert.deepEqual(proseArgs.nested, [{ apiKey: "[REDACTED]", enabled: true }]);
   } finally {
     await maintenanceQuery(`DROP DATABASE IF EXISTS "${database}" WITH (FORCE)`);
     for (const copy of copies) await maintenanceQuery(`DROP DATABASE IF EXISTS "${copy}" WITH (FORCE)`);
