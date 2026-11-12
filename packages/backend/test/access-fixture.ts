@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import { after, before } from "node:test";
 import pg from "pg";
 import { Database } from "../src/platform/db.ts";
 import { migrateOutbox } from "../src/platform/outbox.ts";
-import { sendCode, verifyCode, type GateCatalogue, type SignIn } from "../src/access/door.ts";
+import { sendCode, verifyCode, routeAccess, accessError, type AccessServices, type GateCatalogue, type SignIn } from "../src/access/door.ts";
 
 // Component regression, not selected-stack acceptance or live Mail-provider conformance.
 const url = process.env.ACCESS_TEST_ADMIN_URL;
@@ -66,4 +67,21 @@ export async function signIn(email: string): Promise<SignIn> {
   }, now), true);
   const result = await db.transaction("", (sql) => verifyCode(sql, { email, code, client: "authority-component-test" }, config, now + 1), true);
   assert(result.ok); return result.value;
+}
+
+/** Test-only HTTP mount over the real transaction/router. Production mounting remains integrator-owned. */
+export async function publicAccess(services: AccessServices, clock: () => number) {
+  const server = createServer(async (request, response) => {
+    try {
+      const parts: Buffer[] = []; for await (const part of request) parts.push(part);
+      const bearer = request.headers.authorization?.replace(/^Bearer /, "") ?? "";
+      const result = await db.transaction("", (sql) => routeAccess(sql, request.url!, JSON.parse(Buffer.concat(parts).toString()), bearer, services, clock()), true);
+      response.writeHead(result?.status ?? 404, { "content-type": "application/json" }); response.end(JSON.stringify(result?.body ?? {}));
+    } catch (error) {
+      const result = accessError(error); response.writeHead(result.status, { "content-type": "application/json" }); response.end(JSON.stringify(result.body));
+    }
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return { url: `http://127.0.0.1:${(server.address() as { port: number }).port}`,
+    close: () => new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve())) };
 }

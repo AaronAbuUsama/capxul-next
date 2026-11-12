@@ -4,7 +4,8 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import { createPublicClient, createWalletClient, encodeFunctionData, http, pad, parseAbi, type Address, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { db, now, run, config, catalogue, signIn } from "./access-fixture.ts";
+import { db, now, run, config, catalogue, signIn, publicAccess } from "./access-fixture.ts";
+import { createAccessClient } from "../../sdk/src/access/door.ts";
 import { accessError, authenticate, digest, feature, readPrincipal, readPrincipalByEmail, requireFeature, revoke, routeAccess,
   sendCode, syncFlags, verifyCode, type Principal, type SignIn } from "../src/access/door.ts";
 import { admit, eligibility, personalSafe, readAdmission, readAdmissionForEvent, routeAccounts } from "../src/accounts/door.ts";
@@ -244,4 +245,21 @@ test("agent challenge proves actual v4 AgentOwner and sole Safe signer, refusing
   await assert.rejects(call("/access/sign-in/with-key", frozenProof), /NOT_AUTHENTICATED/);
   await execute(encodeFunctionData({ abi, functionName: "unfreeze", args: [safe] }));
   assert.equal(((await call("/access/sign-in/with-key", frozenProof))!.body as SignIn).personId, result.personId);
+  const server = await publicAccess(services, () => now);
+  try {
+    const remote = createAccessClient({ coreUrl: server.url });
+    const challenge = await remote.challenge({ safe });
+    const signed = await remote.withKey({ safe, challenge: challenge.challenge,
+      signature: await signer.signMessage({ message: challenge.challenge }), client: "public-agent" });
+    assert.equal(signed.owner, owner.toLowerCase()); assert.equal(signed.signer, signer.address.toLowerCase());
+    assert.deepEqual(await remote.current(signed.token), { personId: result.personId, kind: "agent", email: null,
+      safe: safe.toLowerCase(), expiresAt: signed.expiresAt, setupState: "ready" });
+    await remote.revoke(signed.token);
+    await assert.rejects(remote.current(signed.token), /NOT_AUTHENTICATED/);
+    const renewedChallenge = await remote.challenge({ safe });
+    const renewed = await remote.withKey({ safe, challenge: renewedChallenge.challenge,
+      signature: await signer.signMessage({ message: renewedChallenge.challenge }), client: "fresh-public-agent" });
+    assert.notEqual(renewed.token, signed.token); assert.equal(renewed.personId, signed.personId);
+    assert.equal((await remote.current(renewed.token)).safe, safe.toLowerCase());
+  } finally { await server.close(); }
 });
