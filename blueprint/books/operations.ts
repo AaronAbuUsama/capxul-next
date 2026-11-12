@@ -13,9 +13,9 @@
 // Worlds (books.worlds): org-without-chart, org-with-chart, org-with-chart-and-added-token,
 // org-with-chart-and-node-down, signed-out.
 //
-// The books are in ERPNext accounting's shape (books.frappe-shape): every claim below still holds
-// word for word on the Account tree, the vouchers and the gap-free feed; only the observations that
-// named the old chart event change (books.acceptance-rewrites).
+// The chart of accounts is ERPNext's on each Organization's site (books.chart-owner): "the chart"
+// in a claim below is the site's Account tree, and a world "with chart" is one whose site is set up.
+// Only the observations that named the old chart event change (books.acceptance-rewrites).
 
 import { Schema } from "effect";
 import { budget, defineOperation, type Ref } from "../../packages/blueprint-engine/src/index.ts";
@@ -34,7 +34,7 @@ import * as examples from "./examples.ts";
 import { Annotation, rpc_books_annotations_save } from "./annotations.ts";
 import { BookAsset, rpc_books_assets_add, rpc_books_assets_list, rpc_books_assets_remove } from "./assets.ts";
 import { BookFact, rpc_books_facts_list } from "./facts.ts";
-import { AccountType, Reference } from "./data.ts";
+import { Reference } from "./data.ts";
 
 const S = Schema.String;
 const N = Schema.Number;
@@ -80,14 +80,6 @@ const page = (id: string) => `apps/docs/factory/operations/${id}.yaml:1`;
 const CLI = "apps/cli/src/commands/org/subcommands/books/subcommands";
 const SDK = "packages/sdk/src/books";
 
-const AccountRef = Schema.Struct({ accountId: S, code: S, name: S });
-const Unpriced = Schema.Struct({ facts: Schema.Int, assets: Schema.Array(S) });
-const Rules = Schema.Struct({ basis: Schema.Literals(["cash", "accrual"]), version: S });
-const Section = Schema.Struct({
-  type: AccountType,
-  rows: Schema.Array(Schema.Struct({ account: AccountRef, parent: NullOr(S), amount: S, total: S })),
-  total: S,
-});
 
 // ── activity annotate ───────────────────────────────────────────────────────────────────────
 

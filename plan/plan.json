@@ -572,12 +572,13 @@
       "title": "A lean service per world: one process, one database file, the indexer folded in",
       "why": "One small service per world keeps a world cheap and the real chain kept.",
       "milestone": "m2",
-      "state": "todo",
+      "state": "dropped",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-12",
+      "droppedWhy": "Superseded by m2-core-on-postgres: Aaron's storage decision of 12 November 2026 (aaron.postgres-and-ponder, Ponder and Postgres, one design everywhere) replaces the one-file SQLite lean service of devnet.lean-world."
     },
     {
       "id": "m1-thin-line-journey",
@@ -686,16 +687,14 @@
       "why": "Aaron settled devnet.site-follows-world for option A on 10 November 2026 and said the time has to be right. A mistake shows up as a document dated by the machine, often unnoticed until a month end, so each proof is a run. Only two of six tests exist in the spike.",
       "milestone": "m1",
       "state": "todo",
-      "needs": [
-        "m1-loop-hardening"
-      ],
+      "needs": [],
       "records": [
         "decision:devnet.time-is-right",
         "decision:devnet.site-follows-world"
       ],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-12"
     },
     {
       "id": "m1-eval-harness",
@@ -748,11 +747,13 @@
       "why": "The spike is proven but lives in spikes/ and was written fast. Rewriting it from nothing would throw the proof away; leaving it there means the product never starts.",
       "milestone": "m2",
       "state": "todo",
-      "needs": [],
+      "needs": [
+        "m2-core-on-postgres"
+      ],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-12"
     },
     {
       "id": "m1-old-decisions",
@@ -820,13 +821,11 @@
       "why": "The first real score is 8 of 4,724. The test sites' checks are real, but 56 of them prove something the book has no test for, 39 prove only part of one, and 143 of the 146 tests of the thin-line journeys have no check at all.",
       "milestone": "m1",
       "state": "todo",
-      "needs": [
-        "m1-loop-hardening"
-      ],
+      "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-12"
     },
     {
       "id": "m4-people-signin",
@@ -845,7 +844,7 @@
       "title": "The loop: make it trustworthy enough to run tasks unattended",
       "why": "The first version works but is not yet safe to leave alone: its budget is counted in turns and time, not money; its rules on what an agent may run are a filter, not a sandbox; steering a running agent and the heavy sandbox are untested; and it is 1,200 lines against a cap of 800.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "dropped",
       "needs": [
         "m1-loop-policy",
         "m1-loop-visibility",
@@ -854,21 +853,22 @@
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-12",
+      "droppedWhy": "Superseded: Aaron moved agent work to Amp orbs on 11 November 2026 (21:57 UTC); the home-made loop it builds on is gone (packages/loop has no source since PR #10)."
     },
     {
       "id": "m3b-world-service",
-      "title": "Worlds 1: the lean service, a registry of worlds, and twenty measured",
+      "title": "Worlds 1: the backend on Postgres, a registry of worlds, and twenty measured",
       "why": "Everything else in the platform stands on a world being cheap. The figure of 0.15 GiB for a world's Capxul part is an estimate until it is measured.",
       "milestone": "m3b",
       "state": "todo",
       "needs": [
-        "m2-lean-service"
+        "m2-core-on-postgres"
       ],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-12"
     },
     {
       "id": "m3b-world-join",
@@ -1035,14 +1035,15 @@
       "title": "The model gateway: the loop on CLI proxy, sticky per agent, with a measured ceiling",
       "why": "Seven agents at once made the LiteLLM container unreachable (57 of 57 errors were the edge's 504, none a rate limit), and three at once still hit it. Parallel agents are how the plan gets done, and swarms are the direction, so the gateway is a blocker we must own. Aaron ruled on 10 November: LiteLLM is out of the path; the gateway is CLI proxy, as it is, forked, or taken apart.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "dropped",
       "needs": [
         "m1-loop-watched-run"
       ],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-12",
+      "droppedWhy": "Superseded: Aaron moved agent work to Amp orbs on 11 November 2026 (21:57 UTC); the home-made loop it builds on is gone (packages/loop has no source since PR #10)."
     },
     {
       "id": "m1-engine-rules",
@@ -1853,16 +1854,13 @@
       "title": "The loop has no command gate: agents run what they need",
       "why": "Aaron's decision, 11 Nov: no allow-list, no home-made sandbox. This session's Auto mode refused the edit as 'Security Weaken'; it waits for a session in Bypass mode",
       "milestone": "m1",
-      "state": "blocked",
+      "state": "dropped",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-11",
-      "updated": "2026-11-11",
-      "blockedBy": {
-        "need": "A coordinator session in Bypass permissions mode: this session's Auto mode refuses the change",
-        "who": "coordinator"
-      }
+      "updated": "2026-11-12",
+      "droppedWhy": "Superseded: Aaron moved agent work to Amp orbs on 11 November 2026 (21:57 UTC); the home-made loop it builds on is gone (packages/loop has no source since PR #10)."
     },
     {
       "id": "m1-done-definition",
@@ -1883,16 +1881,20 @@
       "title": "Redraw the books records so ERPNext alone holds the chart",
       "why": "Aaron accepted books.chart-owner as recommended, 12 November 2026 06:07 UTC (a-20261112T060739-819d79): ERPNext alone holds the chart; Capxul's service keeps only the on-chain money facts, their annotations and the tokens it watches.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "done",
       "needs": [],
       "records": [
         "decision:books.chart-owner",
-        "table:book-companies",
-        "table:book-accounts"
+        "decision:books.annotate-site-chart",
+        "table:book-feeds",
+        "table:book-annotations"
       ],
-      "evidence": [],
+      "evidence": [
+        "f770052 (PR #21): book-companies and book-accounts removed, blueprint/books/frappe.ts deleted, books.head-setup, books.chart-tree, books.cost-centers superseded by books.chart-owner; pnpm test and portal:check pass. Left: superseded books.facts-without-chart still names book-companies in its chosen text"
+      ],
       "created": "2026-11-12",
-      "updated": "2026-11-12"
+      "updated": "2026-11-12",
+      "thread": "cmsg_01KeBXQ6nY6oC8tbE4saDwBoHbcY4gAFMSJ458YaGpJgN2"
     },
     {
       "id": "m2-founder-capital",
@@ -1923,17 +1925,90 @@
       "evidence": [],
       "created": "2026-11-12",
       "updated": "2026-11-12"
+    },
+    {
+      "id": "m3b-ponder-world-cost",
+      "title": "Measure Ponder in one world",
+      "why": "Aaron's storage decision, 12 November 2026 (aaron.postgres-and-ponder): keep Ponder and Postgres, one design everywhere. The world-cost estimates for Ponder are marked [E], not measured.",
+      "milestone": "m3b",
+      "state": "doing",
+      "needs": [],
+      "records": [
+        "decision:aaron.postgres-and-ponder"
+      ],
+      "evidence": [],
+      "created": "2026-11-12",
+      "updated": "2026-11-12",
+      "thread": "cmsg_01KeBXQ6nY6oC8tbE4saDwBoJjUomNz8rFyB7zqsWwbLmD"
+    },
+    {
+      "id": "m1-orb-stack",
+      "title": "Run the stack in an Amp orb",
+      "why": "Aaron's storage decision, 12 November 2026 (aaron.postgres-and-ponder): keep Ponder and Postgres, one design everywhere. Agent work moved to Amp orbs (11 November); an orb must run the stack the thin line needs.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [
+        "decision:aaron.postgres-and-ponder"
+      ],
+      "evidence": [],
+      "created": "2026-11-12",
+      "updated": "2026-11-12"
+    },
+    {
+      "id": "m2-ponder-v4",
+      "title": "Ponder app for v4 in a package",
+      "why": "Aaron's storage decision, 12 November 2026 (aaron.postgres-and-ponder): keep Ponder and Postgres, one design everywhere.",
+      "milestone": "m2",
+      "state": "todo",
+      "needs": [],
+      "records": [
+        "decision:aaron.postgres-and-ponder",
+        "decision:indexing.log-identity"
+      ],
+      "evidence": [],
+      "created": "2026-11-12",
+      "updated": "2026-11-12"
+    },
+    {
+      "id": "m2-core-on-postgres",
+      "title": "Rebuild the prototype's Core as the backend on Postgres",
+      "why": "Aaron's storage decision, 12 November 2026 (aaron.postgres-and-ponder): keep Ponder and Postgres, one design everywhere. It replaces the SQLite route for the service that devnet.core-service-home recommended.",
+      "milestone": "m2",
+      "state": "todo",
+      "needs": [
+        "m2-ponder-v4"
+      ],
+      "records": [
+        "decision:aaron.postgres-and-ponder",
+        "decision:devnet.core-service-home"
+      ],
+      "evidence": [],
+      "created": "2026-11-12",
+      "updated": "2026-11-12"
+    },
+    {
+      "id": "m3-world-snapshots",
+      "title": "Snapshot a world's database by template copy",
+      "why": "Aaron's storage decision, 12 November 2026 (aaron.postgres-and-ponder): keep Ponder and Postgres, one design everywhere. A world's Postgres database is snapshotted by template copy, with the chain and the site backups.",
+      "milestone": "m3",
+      "state": "todo",
+      "needs": [],
+      "records": [
+        "decision:aaron.postgres-and-ponder"
+      ],
+      "evidence": [],
+      "created": "2026-11-12",
+      "updated": "2026-11-12"
     }
   ],
   "path": {
     "tasks": [
-      "m1-no-command-gate",
-      "m1-eval-coverage",
-      "m1-model-gateway",
-      "m1-loop-hardening"
+      "m1-orb-stack",
+      "m1-eval-coverage"
     ],
-    "why": "Aaron accepted the book at 07c0e05 (g7 met, 20:27 UTC) and took the sixteen (7af7472). Left for m1: g8 (the shared world, m3b) and g9 (the orchestration layer). m1-cloud-sandbox dropped 11 November 2026 (Amp replaces it); the rest of this path is the coordinator's to redraw for Amp.",
-    "written": "2026-11-11"
+    "why": "The four loop tasks left the path: Aaron moved agent work to Amp orbs on 11 November 2026 and the home-made loop is gone. What stays for m1: an orb runs the stack (m1-orb-stack), and the checks match the book's tests (m1-eval-coverage). g8, the shared world, waits on m2 and m3b work. The coordinator redraws further.",
+    "written": "2026-11-12"
   },
   "notes": [
     {
@@ -2175,6 +2250,11 @@
       "date": "2026-11-11",
       "by": "claude-audit-thread",
       "text": "Audit fixes (PR #12), for the coordinator: m1-cloud-sandbox is superseded by Amp (packages/sandbox deleted in PR #10) and is on the path, so drop it and redraw the path. m3b-bench-image is not done: the image builds and bin/check.sh passes 22/22 (PR #4), but its done-when also needs the end-to-end script against the image, which waits on devnet.core-service-home. m2-contracts-under-sites: stand-ins deleted and the end-to-end script runs on the real v4 contracts (PR #2); close it when a full run passes."
+    },
+    {
+      "date": "2026-11-12",
+      "by": "coordinator",
+      "text": "Storage decision of 12 November (aaron.postgres-and-ponder), for Aaron later: (1) chain-first keys in indexing.keys; (2) narrowing indexing.transfers to the Safes Capxul made. Parked, which he said may not be for now: a path from the site to the service that does not poll."
     }
   ]
 }

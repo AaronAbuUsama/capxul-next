@@ -1,36 +1,31 @@
-// Books' door: the three procedures other concepts invoke inside their own transaction (P4,
-// rules.procedures, ADR-0042 decision 1). Payments invokes the first two when a Payment settles, is
-// born from a chain fact, is reversed, or attributes a Movement of outside money; banking when a
-// bank deposit arrives or a payout comes back. Payroll invokes the third when a run Capxul computed
-// is submitted or cancelled (books.payroll-accrual). Nothing else crosses into books: reads of
-// books' tables by the concepts above it are plain reads, and books' own rpcs and workflows write
-// its tables directly. Payroll also invokes the third when its agreement process records a landed
-// collection's paid slip (books.payroll-postings).
+// Books' door: the two procedures other concepts invoke inside their own transaction (P4,
+// rules.procedures, ADR-0042 decision 1). Payments invokes them when a Payment settles, is born from
+// a chain fact, is reversed, or attributes a Movement of outside money; banking when a bank deposit
+// arrives or a payout comes back. Nothing else crosses into books: reads of books' tables by the
+// concepts above it are plain reads, and books' own rpcs and workflows write its tables directly.
 //
-// Neither procedure ever refuses: a settlement must never fail because of the books. A side whose
-// voucher choice no longer fits the chart is booked and left waiting in review. Each fact takes the
-// Organization's next feed number under its book-companies row lock (books.feed), so the fact, its
-// number and the money commit together or not at all. A call with several Organizations' sides
-// takes their locks in org id order, so two settlements between the same two never deadlock; the
-// invoker invokes a books procedure after taking its own row locks and takes no other lock after
-// it, so the books' lock is always the last one a money transaction waits on.
+// Neither procedure ever refuses: a settlement must never fail because of the books. Neither
+// reads the chart of accounts, which is ERPNext's on the Organization's site (books.chart-owner):
+// the Capxul app there turns the fact into the entry, and a choice of account the site cannot post
+// leaves the row unmatched and visible (books.party-lines). Each fact takes the Organization's next
+// feed number under its book-feeds row lock (books.feed), so the fact, its number and the money
+// commit together or not at all. A call with several Organizations' sides takes their locks in org
+// id order, so two settlements between the same two never deadlock; the invoker invokes a books
+// procedure after taking its own row locks and takes no other lock after it, so the books' lock is
+// always the last one a money transaction waits on.
 
 import { Schema } from "effect";
 import { defineProcedure } from "../../packages/blueprint-engine/src/index.ts";
 import { concept_books } from "../shared/foundation.ts";
 import {
   DocumentRef,
-  machine_book_account,
   machine_book_annotation,
-  machine_book_company,
   PartyType,
-  PayrollLine,
   Reference,
   SourceKind,
-  table_book_accounts,
   table_book_annotations,
-  table_book_companies,
   table_book_facts,
+  table_book_feeds,
 } from "./data.ts";
 
 const OLD = "packages/backend/src";
@@ -43,17 +38,19 @@ const NullOr = Schema.NullOr;
 const opt = Schema.optionalKey;
 
 /**
- * What the payer, the request or the head said the money is for, when it was instructed: the other side of its
- * voucher (books.vouchers). The command that moved the money carries it (`payment send --account`, a request's
- * invoice, a payout's account, a head's "pay this invoice with Capxul").
+ * What the payer, the request or the site said the money is for, when it was instructed: the other side of its
+ * entry (books.vouchers), in the site's names. The command that moved the money carries it (`payment send
+ * --account`, a request's invoice, a payout's account, a site's "pay this invoice with Capxul").
  */
 export const Against = Schema.Struct({
-  account_id: opt(S),
+  /** An Account of the site's chart, by its number or its name there (books.chart-owner). */
+  account: opt(S),
   suggestion: opt(S),
   same_as: opt(Reference),
   party: opt(Schema.Struct({ type: PartyType, id: S })),
-  cost_center_id: opt(S),
-  /** One of the Organization's projects, by projects' id (books.annotation-project). */
+  /** A Cost Center of the site, by its name there. */
+  cost_center: opt(S),
+  /** A Project of the same Company on the site (books.annotation-project). */
   project: opt(S),
   references: opt(Schema.Array(DocumentRef)),
 });
@@ -94,26 +91,23 @@ export const procedure_books_record_money_fact = defineProcedure({
   about:
     "Repointed (plugs.repoint-money-fact): the chain reader; the plugs' outbox carries each fact to Frappe's books. " +
     "Money fact: a settled Payment, a Payment born from a chain fact, a bank deposit, a payout's return and a Movement of " +
-    "outside money always have their book fact, written in the same transaction (K10), and so their voucher. For each " +
-    "Organization side the invoker passes, one fact under its `money_key` with the Organization's next feed number, " +
-    "taken under its book-companies row lock (born `open` if the books have not begun), with the USD value at the rate in " +
-    "force at the block for a priced asset (unpriced otherwise), chart or no chart (books.facts-without-chart). A block " +
-    "whose day is on or before `closed_through` gets the first open day as its `posting_date`. A key with a standing fact " +
-    "of the same kind and amount writes nothing (a replay, a second writer). A side from a Payment, deposit or payout " +
-    "whose key holds a standing Movement fact reverses it and records itself as the next generation; a Movement side " +
-    "never replaces one of theirs (books.money-key). With a chart, the asset's Safe account is made if missing " +
-    "(`account_created`). The `against` choice becomes the row's annotation only if nobody annotated the row yet, and " +
-    "only the parts that fit the chart: an archived or group account, a receivable or payable account with no party " +
-    "given and no counterparty Party on the side, a document its party type cannot reference, an unknown cost centre " +
-    "or a project the Organization does not have is dropped and the row waits in review. Before the chart, the party " +
-    "and documents are kept without an account; a Payroll Entry named with no account posts on Payroll Payable, as a " +
-    "slip's net does (books.payroll-postings). It never refuses and makes no outside call.",
+    "outside money always have their book fact, written in the same transaction (K10). For each Organization side the " +
+    "invoker passes, one fact under its `money_key` with the Organization's next feed number, taken under its book-feeds " +
+    "row lock (the row born if the books have not begun), with the USD value at the rate in force at the block for a " +
+    "priced asset (unpriced otherwise). A key with a standing fact of the same kind and amount writes nothing (a replay, " +
+    "a second writer). A side from a Payment, deposit or payout whose key holds a standing Movement fact reverses it and " +
+    "records itself as the next generation; a Movement side never replaces one of theirs (books.money-key). The " +
+    "`against` choice becomes the row's annotation only if nobody annotated the row yet, kept as given in the site's " +
+    "names: this procedure holds no chart and makes no outside call, so it does not check the account. The Capxul app " +
+    "on the site resolves it when it posts the entry, and a part it cannot post (an unknown, disabled or group account, " +
+    "a receivable or payable account with no party, a document its party type cannot reference, an unknown cost centre " +
+    "or project) leaves the line unmatched and visible in review (books.party-lines). Which day the entry posts on, and " +
+    "whether that day is closed, is the site's (books.closed-periods). It never refuses.",
   was: [
     `${BK}/facts/writes/money.ts:98`,
     `${BK}/facts/writes/money.ts:130`,
     `${BK}/facts/writes/outside.ts:71`,
     `${BK}/facts/writes/standing.ts:13`,
-    `${BK}/accounts/writes/chart.ts:163`,
     `${PAY}/writes/settlements.ts:145`,
     `${PAY}/writes/deposits.ts:117`,
     `${PAY}/writes/rails.ts:62`,
@@ -123,16 +117,9 @@ export const procedure_books_record_money_fact = defineProcedure({
   input: Schema.Struct({ sides: Schema.Array(MoneySide) }),
   output: Schema.Struct({ recorded: Schema.Array(S), unchanged: Schema.Array(S), superseded: Schema.Array(S) }),
   errors: [],
-  reads: [
-    table_book_companies,
-    table_book_facts,
-    table_book_accounts,
-    table_book_annotations,
-  ],
-  writes: [table_book_companies, table_book_facts, table_book_accounts, table_book_annotations],
+  reads: [table_book_feeds, table_book_facts, table_book_annotations],
+  writes: [table_book_feeds, table_book_facts, table_book_annotations],
   drives: [
-    machine_book_company.t.open,
-    machine_book_account.t.add,
     machine_book_annotation.t.queue,
     machine_book_annotation.t.assign,
   ],
@@ -147,8 +134,8 @@ export const procedure_books_reverse_money_fact = defineProcedure({
     "Money fact: money the chain took back is taken back in the books in the same transaction (K12). For each " +
     "Organization whose standing fact under `money_key` exists, a `reversed` fact `<fact id>_rev` with the next feed " +
     "number and the same amount, asset and USD value, naming the fact it cancels, dated when the reorganization was " +
-    "seen: its voucher is cancelled on that day, the immutable ledger's way, and reports net the two. Settling again " +
-    "later is the next generation, a new voucher amended from the cancelled one (`record-money-fact`). A key with no " +
+    "seen; the site takes its entry back the way books.vouchers says. Settling again later is the next generation " +
+    "(`record-money-fact`). A key with no " +
     "standing fact writes nothing; a second call is a no-op. It never refuses and makes no outside call.",
   was: [
     `${BK}/facts/writes/money.ts:163`,
@@ -168,13 +155,9 @@ export const procedure_books_reverse_money_fact = defineProcedure({
   }),
   output: Schema.Struct({ reversed: Schema.Array(S) }),
   errors: [],
-  reads: [table_book_companies, table_book_facts],
-  writes: [table_book_companies, table_book_facts],
+  reads: [table_book_feeds, table_book_facts],
+  writes: [table_book_feeds, table_book_facts],
   drives: [],
   invokes: [],
   emits: [],
 });
-
-/** One line of a payroll accrual, in the run's token, as Frappe HR's `make_accrual_jv_entry` makes it (books.payroll-lines). */
-const AccrualLine = PayrollLine;
-

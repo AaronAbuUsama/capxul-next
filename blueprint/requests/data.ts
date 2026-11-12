@@ -149,10 +149,11 @@ export const table_requests = defineTable({
     deposit_id: NullOr(S),
     /**
      * An Organization's request: what its books post the payment against once it is paid (requests.income-meaning):
-     * the income account the issuer chose, and the head's Sales Invoice when a connected head asked for the payment.
-     * Null for a person's request, or when nothing was said: the money then posts as an unclassified payment in.
+     * the income Account the issuer chose, in the site's names (books.chart-owner), and the head's Sales Invoice when a
+     * connected head asked for the payment. Null for a person's request, or when nothing was said: the money then posts
+     * as an unclassified payment in.
      */
-    income: NullOr(Schema.Struct({ account_id: NullOr(S), sales_invoice: NullOr(S) })),
+    income: NullOr(Schema.Struct({ account: NullOr(S), sales_invoice: NullOr(S) })),
     /**
      * An Invoice for logged hours (`org projects timesheet bill`, requests.bill-time): each time log it bills, by timesheet and
      * row, with the billing hours and the raw amount it asks for that log, as a Sales Invoice's Timesheet rows keep them;

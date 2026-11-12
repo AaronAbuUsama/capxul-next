@@ -47,6 +47,10 @@ the claim true without a suspense account.
 
 ## 3. Where does the spike's Core service go? (`m2-graduate-spike`)
 
+**Answered 12 November 2026, not by these options:** Aaron chose Postgres and Ponder in every environment
+(`aaron.postgres-and-ponder` in `blueprint/shared/rulings.ts`), so the Core is rebuilt as the backend on Postgres, one
+service for worlds and staging alike. The options below are kept as they were asked.
+
 **The gap.** The blueprint has two homes, and the spike's Core fits neither as it stands:
 
 - Component `backend`: one Effect 4 service on Postgres, with durable workflows (`blueprint/shared/foundation.ts`).

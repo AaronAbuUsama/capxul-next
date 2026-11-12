@@ -3,8 +3,8 @@
 // P3's list of crons: the Chainlink price sync and the scan of tokens added at run time, which Ponder
 // has no source for (shared decision concepts.books-token-scan). The old minute observer, the
 // backfill, the Safe opening and the outside-money timer go (books.one-observer,
-// books.facts-without-chart). One process per head connection syncs the books with a connected head,
-// as every app concept's own process does (books.sync, organizations.head-connection).
+// books.facts-without-chart). Nothing syncs a chart: it is ERPNext's on each site (books.chart-owner),
+// and facts reach the site through the plugs' outbox (plugs.repoint-money-fact).
 
 import { budget, defineWorkflow } from "../../packages/blueprint-engine/src/index.ts";
 import { concept_books } from "../shared/foundation.ts";
@@ -15,15 +15,7 @@ import {
   table_org_members,
 } from "../organizations/data.ts";
 import { table_hat_wearers } from "../indexing/data.ts";
-import {
-  machine_book_account,
-  machine_book_annotation,
-  table_book_accounts,
-  table_book_annotations,
-  table_book_assets,
-  table_book_companies,
-  table_book_facts,
-} from "./data.ts";
+import { table_book_assets, table_book_facts, table_book_feeds } from "./data.ts";
 
 const DAY = 86_400_000;
 
@@ -60,8 +52,8 @@ export const workflow_books_assets_scan_added = defineWorkflow({
       about: "One transaction per window: its facts, each with the Organization's next feed number (a key already standing is skipped), and the new next block.",
     },
   ],
-  reads: [table_book_assets, table_book_companies, table_book_facts],
-  writes: [table_book_companies, table_book_facts, table_book_assets],
+  reads: [table_book_assets, table_book_feeds, table_book_facts],
+  writes: [table_book_feeds, table_book_facts, table_book_assets],
   drives: [],
   invokes: [],
   emits: [],
