@@ -1,5 +1,5 @@
 // Process-level bench fixture: the service still executes argv and persists a site between calls.
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, watch, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const [root, ...args] = process.argv.slice(2);
@@ -24,6 +24,14 @@ if (args[0] === "new-site") {
   const method = args[3];
   if (method === "capxul.setup.configure_site") {
     if (existsSync(join(root, "fail-configure"))) process.exit(1);
+    if (existsSync(join(root, "block-configure"))) {
+      await new Promise((resolve) => {
+        const watcher = watch(root, () => {
+          if (!existsSync(join(root, "block-configure"))) { watcher.close(); resolve(); }
+        });
+        writeFileSync(join(root, "configure-started"), "ready");
+      });
+    }
     const data = load(); const input = JSON.parse(args[5]);
     data.settings = { org_slug: input.slug, safe_address: input.safe_address };
     data.company = input.company_name; data.core_url = input.core_url; save(data);
