@@ -61,7 +61,6 @@ lst() { fr "$1" -G "$FR/api/resource/${2// /%20}" --data-urlencode "filters=$3" 
 # wait_for <seconds> <command...>: polls every 0.15 s; sets WAITED (ms); returns 1 on timeout
 wait_for() { local lim=$1; shift; local t0; t0=$(ms); while ! "$@" >/dev/null 2>&1; do [ $(( $(ms) - t0 )) -gt $((lim*1000)) ] && { WAITED=$(( $(ms) - t0 )); return 1; }; sleep 0.15; done; WAITED=$(( $(ms) - t0 )); }
 usdc() { cast call "$USDC" "balanceOf(address)(uint256)" "$1" --rpc-url "$RPC" | awk '{print $1}'; }
-
 login_admin() {   # retries: right after a stack start or a site script the first logins can fail
   local i; for i in $(seq 1 40); do
     rm -f "$T/admin"; curl -s -c "$T/admin" -o /dev/null -H "X-Frappe-Site-Name: $SITE" -d usr=Administrator -d pwd="${CAPXUL_ADMIN_PASSWORD:-admin}" $FR/api/method/login
@@ -86,7 +85,6 @@ pe_posted() { [ "$(pe_field "$1" docstatus)" = 1 ]; }
 gl_of() { lst "$T/admin" "GL Entry" "[[\"voucher_no\",\"=\",\"$1\"],[\"is_cancelled\",\"=\",0]]" '["account","debit","credit"]'; }
 pi_outstanding() { fr "$T/admin" "$FR/api/resource/Purchase%20Invoice/$1" | jget "d['data']['outstanding_amount']"; }
 n_sent_events() { lst "$T/admin" "Capxul Chain Event" '[["kind","=","payment_sent"],["status","=","Applied"]]' '["name"]' | jget "len(d['data'])"; }
-
 # A Purchase Invoice and a draft Payment Entry from the Safe, made over REST by the signed-in person: mk_pe <jar> <amount> -> "PI PE"
 mk_pe() {
   local jar=$1 amt=$2 today pi pe body
@@ -106,7 +104,6 @@ request() { fr "$1" -X POST $FR/api/method/capxul.api.request_payment -d "{\"nam
 approval_sign() { curl -s -X POST -H 'Accept: application/json' "$CORE/approve/$1/sign"; }
 has_log() { grep -q "$1" "$HERE/core/state/core.log"; }
 
-# ---------------------------------------------------------------------------------------------------------------
 echo "== run.sh for org '$SLUG' ($SITE)"
 "$HERE/core/bin/up.sh" >/dev/null 2>&1 || { bad PRE.core-up "prerequisite: anvil + Core stub" "core/bin/up.sh failed"; exit 2; }
 "$STACK_FRAPPE/bin/up.sh" >/dev/null 2>&1 || { bad PRE.frappe-up "prerequisite: Frappe stack" "frappe/bin/up.sh failed"; exit 2; }
@@ -171,6 +168,8 @@ chk B3.chain-moved-the-money "B3 the chain moved the test USDC: supplier +125.5,
 chk B3.entry-carries-transaction-hash "B3 the entry carries the transaction hash" "$(pe_field "$PE" reference_no | tr 'A-F' 'a-f')" "$(echo "$TX" | tr 'A-F' 'a-f')"
 chk B3.ledger-posted "B3 the ledger is posted (Safe account credited 125.5)" "$(gl_of "$PE" | jget "sum(g['credit'] for g in d['data'] if g['account']=='$SAFE_ACCOUNT')")" 125.5
 chk B3.invoice-nothing-outstanding "B3 the invoice has nothing outstanding" "$(pi_outstanding "$PI")" 0.0
+GLSAFE="{\"company\":\"$COMPANY\",\"from_date\":\"2000-01-01\",\"to_date\":\"2099-12-31\",\"account\":[\"$SAFE_ACCOUNT\"]}"; gl_safe_units() { core report run $SLUG "General Ledger" --as $ADMIN --filters "$GLSAFE" ${WORLD:+--world $WORLD} --json | jget "round(sum((r.get('debit') or 0)-(r.get('credit') or 0) for r in d['data']['rows'] if r.get('voucher_no'))*10**6)"; }; books_agree() { [ "$(gl_safe_units)" = "$(usdc "$SAFE")" ]; }
+wait_for 30 books_agree; chk TL.books-agree-with-chain "TL row 7 (before B4 moves money with no document) the Safe account's General Ledger, the founder's capital in and payments out, equals the Safe's USDC on chain" "$(gl_safe_units)" "$(usdc "$SAFE")" "$SAFE_ACCOUNT"
 PE_B3=$PE
 fi
 
@@ -345,7 +344,8 @@ chk B6.no-hat-and-unknown-person-refused "B6 a known person with no hat on this 
 chk B6.no-person-refused "B6 a door command with no --as is refused (the door never acts as Administrator)" "$(refused "$(dj doc list $SLUG Customer)")" NEEDS_PERSON
 core feature off "$SLUG" projects --as $ADMIN >/dev/null 2>&1
 off=$(dj doc list $SLUG Project --as $PROJ); offt=$(dj doc types $SLUG --as $PROJ --feature projects)
-chk B6.switched-off-feature-refused "B6 a switched-off feature is refused through the door, with the feature's name in the reason" "$(echo "$off" | jget "(d['error']['code'], 'projects' in d['error']['reason'])") $(refused "$offt")" "('FEATURE_OFF', True) FEATURE_OFF"
+chk B6.switched-off-feature-refused "B6 a switched-off feature is refused through the door, with the feature's name in the reason" "$(echo "$off" | jget "(d['error']['code'], 'projects' in d['error']['reason'])") $(refused "$offt")" "('FEATURE_NOT_AVAILABLE', True) FEATURE_NOT_AVAILABLE"
+chk B6.off-part-report-refused "B6 a report of a switched-off part (Project Summary, projects off) exits FEATURE_NOT_AVAILABLE through the door" "$(refused "$(dj report run $SLUG "Project Summary" --as $ADMIN --filters "{\"company\":\"$COMPANY\"}")")" FEATURE_NOT_AVAILABLE
 core feature on "$SLUG" projects --as $ADMIN >/dev/null 2>&1
 chk B6.switched-on-again-answers "B6 ... and switched on again it answers" "$(dj doc list $SLUG Project --as $PROJ | jget "d['ok']")" True
 nx=$(dj doc next $SLUG "Sales Invoice" "$SI" --as $SALES); info "doc next: $(echo "$nx" | jget "(len(d['data']['connections']), len(d['data']['makers']))") (connections, make-methods) for a Sales Invoice"

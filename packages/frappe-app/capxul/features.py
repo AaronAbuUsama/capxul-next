@@ -123,6 +123,11 @@ def guard_request():
             v = fd.get(k)
             if isinstance(v, str) and v in m["doctypes"]:
                 _refuse(m["doctypes"][v])
+        rn = fd.get("report_name")  # frappe.desk.query_report.run: a report is off with the DocType it reports on
+        if isinstance(rn, str) and rn:
+            ref = frappe.db.get_value("Report", rn, "ref_doctype")
+            if ref in m["doctypes"]:
+                _refuse(m["doctypes"][ref])
         d = fd.get("doc")  # frappe.client.insert / save / submit send the whole document as JSON
         if isinstance(d, str) and d.startswith("{"):
             import json

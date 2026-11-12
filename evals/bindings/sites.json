@@ -66,16 +66,18 @@
         "TL.signed-payment-posts-once"
       ],
       "why": "The budget holder submits a Payment Entry from the Safe through the door's `doc submit --json`: the answer says held true, gives an approval id and names whom it awaits (the budget holder, as Core's approval does). The entry is still a draft with no ledger line; after `approval sign` lands it is submitted and the Safe account is credited once."
-    }
-  ],
-  "near": [
+    },
     {
       "eval": "acc:report.run/1",
       "checks": [
-        "B6.reports-run"
+        "B6.reports-run",
+        "TL.books-agree-with-chain",
+        "B6.off-part-report-refused"
       ],
-      "missing": "Reports run as the caller and return rows, but nothing compares the books with the chain."
-    },
+      "why": "The admin runs General Ledger and Trial Balance through the door and rows come back. Right after the thin line's payment (before B4 moves money with no document), the General Ledger of the Safe account, run through the door, equals the Safe's USDC balance on chain: the funding at birth is booked as the founder's capital (books.founder-funding, workflow plugs.books.founder-capital) and the payment as its Payment Entry. With projects off, `report run \"Project Summary\"` (a report on Project) exits FEATURE_NOT_AVAILABLE."
+    }
+  ],
+  "near": [
     {
       "eval": "acc:org.site.open/1",
       "checks": [
@@ -110,7 +112,7 @@
       "checks": [
         "B6.switched-off-feature-refused"
       ],
-      "missing": "A switched-off feature is refused under the spike's code FEATURE_OFF, with the feature named; the book's code, the exit code and the shape are not checked."
+      "missing": "A switched-off feature is refused through the door under the book's code FEATURE_NOT_AVAILABLE, with the feature named; the exit code and the shape are not checked."
     },
     {
       "eval": "jrn:create_company_site",

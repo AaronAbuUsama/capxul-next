@@ -1,0 +1,11 @@
+eval     acc:record.export/1
+claim    An export carries the lineage and every entry once.
+verdict  pass
+run      run-20261112070054  at 2026-11-12T07:00:54Z  commit 0113712
+script   spikes/skeleton/run.sh  world main  company fcapb
+why      `record export w2 --out <file> --json`, for the world restored from main, prints the file's line count and a lineage naming main and the snapshot. The file's first line is that lineage; the entries follow in sequence order, each once, and they are the world's whole record up to the export.
+
+PASS  TL.export-prints-lines-and-lineage  x1  691 ms
+      TL record export w2 prints its line count and a lineage naming main
+PASS  TL.export-lineage-first-then-every-entry-once-in-order  x1  96 ms
+      TL the file's first line is the lineage; the entries follow in order, each once: the world's whole record up to the export
