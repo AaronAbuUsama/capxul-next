@@ -98,7 +98,10 @@ def _process(ev, repair=False):
         return None
     frappe.db.savepoint("capxul_event")
     try:
-        KINDS[kind](ev["data"], key)
+        if repair and kind in ("hat_granted", "hat_revoked"):
+            hats.repair_hat(ev)
+        else:
+            KINDS[kind](ev["data"], key)
         if repair:
             _reconcile_repair(kind, ev["data"])
     except Exception as e:

@@ -138,3 +138,17 @@ def apply_hat_revoked(data, event_key=None):
             dname = frappe.db.get_value("Department", {"department_name": dept}) or dept
             for up in frappe.get_all("User Permission", {"user": email, "allow": "Department", "for_value": dname}):
                 frappe.delete_doc("User Permission", up.name, ignore_permissions=True, force=True)
+
+
+def repair_hat(ev):
+    """Reproject current authority, never undo a later successful grant or revocation."""
+    kind, data, key = ev["kind"], ev["data"], ev["event_key"]
+    identity = ((data.get("person_email") or "").strip().lower(), data.get("hat"), data.get("department") or "")
+    for later in frappe.get_all("Capxul Chain Event", filters={"status": "Applied", "seq": [">", ev["seq"]],
+                                "kind": ["in", ["hat_granted", "hat_revoked"]]},
+                                fields=["name", "kind", "data"], order_by="seq desc", limit_page_length=0):
+        newer = json.loads(later.data)
+        if ((newer.get("person_email") or "").strip().lower(), newer.get("hat"), newer.get("department") or "") == identity:
+            kind, data, key = later.kind, newer, later.name
+            break
+    {"hat_granted": apply_hat_granted, "hat_revoked": apply_hat_revoked}[kind](data, key)

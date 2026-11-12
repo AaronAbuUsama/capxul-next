@@ -219,6 +219,34 @@ class SiteRequestBoundary(unittest.TestCase):
         self.assertEqual((result["parked"], result["last_seq"], event.status, event.attempts), (True, 9, "Parked", 4))
         self.assertIn("person_email", result["error"])
 
+    def test_repaired_hats_preserve_later_authority_and_ignore_unrelated_people(self):
+        wearer = "wearer@example.invalid"
+        for old, later, person, hat, department, expected in (
+            ("hat_granted", "hat_revoked", wearer, "admin", "", False),
+            ("hat_revoked", "hat_granted", wearer, "admin", "", True),
+            ("hat_granted", "hat_revoked", "other@example.invalid", "admin", "", True),
+            ("hat_granted", "hat_revoked", wearer, "budget-holder", "", True),
+            ("hat_granted", "hat_revoked", wearer, "admin", "Operations", True),
+        ):
+            with self.subTest(parked=old, later=later, person=person, hat=hat, department=department):
+                DB.reset(org_slug="boundary", last_seq=1)
+                user = DB.insert(Doc(doctype="User", name=wearer, roles=[]))
+                if old == "hat_revoked":
+                    user.add_roles("System Manager")
+                    DB.insert(Doc(doctype="Capxul Hat Grant", user=wearer, hat="admin", department="",
+                                  roles_given='["System Manager"]'))
+                data = {"person_email": " WEARER@EXAMPLE.INVALID ", "person_name": "Wearer", "hat": "admin"}
+                saved = DB.insert(Doc(doctype="Capxul Chain Event", name="old", seq=1, org="boundary",
+                                      kind=old, data=json.dumps(data), status="Parked"))
+                with patch.object(api.hats, "hat_roles", lambda hat: ["System Manager"]), \
+                     patch.object(api.hats, "map_version", lambda: "sha256:fixture"):
+                    self.signed_call(api.chain_event, {"org": "boundary", "event_key": "later", "seq": 2,
+                                                       "kind": later, "data": dict(data, person_email=person, hat=hat, department=department)})
+                    result = self.signed_call(api.retry_parked_event, {"org": "boundary", "event_key": "old"})
+                self.assertEqual((result["applied"], result["last_seq"], saved.status), (True, 2, "Applied"))
+                self.assertEqual([role.role for role in user.roles], ["System Manager"] if expected else [])
+                self.assertEqual(bool(DB.find("Capxul Hat Grant", {"user": wearer})), expected)
+
     def test_duplicate_hat_ack_keeps_its_applied_map_version(self):
         DB.singles["last_seq"] = 4
         DB.insert(Doc({"doctype": "Capxul Chain Event", "name": "ev-4", "status": "Applied", "map_version": "sha256:previous"}))

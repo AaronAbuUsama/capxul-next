@@ -30,6 +30,12 @@ class Doc(dict):
         DB.insert(self)
         return self
 
+    def add_roles(self, *roles):
+        self.roles.extend(Doc(role=role) for role in roles if role not in {r.role for r in self.roles})
+
+    def remove_roles(self, *roles):
+        self.roles = [row for row in self.roles if row.role not in roles]
+
 
 class Flags(dict):
     __getattr__ = dict.get
@@ -144,6 +150,7 @@ def install():
         raise RuntimeError(msg)
 
     frappe.get_doc = get_doc
+    frappe.delete_doc = lambda doctype, name, **kwargs: DB.rows[doctype].remove(DB.find(doctype, name)[0])
     frappe.throw = throw
     frappe.ValidationError = frappe.AuthenticationError = frappe.PermissionError = frappe.DoesNotExistError = RuntimeError
     frappe.QueryDeadlockError = type("QueryDeadlockError", (Exception,), {})
@@ -158,7 +165,7 @@ def install():
         if order_by:
             field, direction = order_by.split()
             rows = sorted(rows, key=lambda d: d[field], reverse=direction == "desc")
-        return rows[:limit_page_length]
+        return rows[:limit_page_length] if limit_page_length else rows
 
     frappe.get_all = get_all
     frappe.publish_realtime = lambda *a, **k: None
