@@ -18,8 +18,8 @@ export function benchProvisioner(options: BenchOptions) {
   };
   const value = async (site: string, field: string): Promise<string | null> => {
     const text = await bench("--site", site, "execute", "frappe.db.get_single_value", "--args", JSON.stringify(["Capxul Settings", field]));
-    if (!text || text === "null" || text === "None") return null;
-    return JSON.parse(text);
+    // Frappe's execute prints JSON with surrounding quotes stripped: scalar strings are not JSON.
+    return text || null;
   };
   return async (identity: SiteIdentity, site: string, url: string): Promise<void> => {
     let apps: string[];
