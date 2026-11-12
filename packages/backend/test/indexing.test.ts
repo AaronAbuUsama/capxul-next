@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { setTimeout } from "node:timers/promises";
 import test from "node:test";
 import pg from "pg";
+import { decodeEventLog, encodeFunctionData, parseAbi, type Abi, type Hex } from "viem";
+import { connect } from "../../devnet/src/modules/chain/service.ts";
+import { board } from "../../devnet/src/modules/company/service.ts";
+import { testKey } from "../../devnet/src/modules/test-keys/service.ts";
 import { bindIndexer } from "../src/bind-indexer.ts";
 
 if (!process.env.CORE_PROOF_DIR || process.env.CAPXUL_DISPOSABLE !== "true" || !process.env.CAPXUL_WORLD || process.env.CAPXUL_WORLD === "main")
@@ -93,5 +98,65 @@ test("real Ponder projections retain initial execution nonce, provenance and exa
     await permission("update app.safe_owners set threshold=999");
     await permission("delete from app.chain_budgets");
     await sql.query("reset role");
+  } finally { await sql.query("rollback"); await sql.end(); }
+});
+
+test("real same-Safe nested module starts and ends retain full receipt order without broader tenant history", async () => {
+  const safeAbi = parseAbi([
+    "function enableModule(address module)", "function disableModule(address prevModule,address module)",
+    "function execTransactionFromModule(address to,uint256 value,bytes data,uint8 operation) returns (bool)",
+    "event SafeModuleTransaction(address module,address to,uint256 value,bytes data,uint8 operation)",
+    "event ExecutionFromModuleSuccess(address indexed module)", "event ExecutionFromModuleFailure(address indexed module)",
+  ]);
+  const tokenAbi = parseAbi(["function transfer(address to,uint256 amount) returns (bool)"]);
+  const record = JSON.parse(await readFile(new URL("../../contracts/deployments/devnet.json", import.meta.url), "utf8"));
+  const installer = JSON.parse(await readFile(new URL("../../contracts/out/Installer.sol/Installer.json", import.meta.url), "utf8"));
+  const chain = await connect(process.env.RPC_URL!);
+  const safe = fixture.safe.toLowerCase() as Hex;
+  const transfer = (amount: bigint) => encodeFunctionData({ abi: tokenAbi, functionName: "transfer", args: [testKey("payee").address, amount] });
+  const moduleCall = (to: Hex, data: Hex) => encodeFunctionData({ abi: safeAbi, functionName: "execTransactionFromModule", args: [to, 0n, data, 0] });
+  // Board-authorized, temporary self-module: two nested frames plus an asymmetric sibling in one Safe/transaction.
+  const txHash = await board({ chain, record, installerAbi: installer.abi as Abi }, {
+    companySafe: safe, founderSafe: fixture.founderSafe, founderKey: testKey("founder").key, relayerKey: testKey("deployer").key,
+  }, [
+    { to: safe, data: encodeFunctionData({ abi: safeAbi, functionName: "enableModule", args: [safe] }) },
+    { to: safe, data: moduleCall(safe, moduleCall(fixture.token, transfer(11n))) },
+    { to: safe, data: moduleCall(fixture.token, transfer(23n)) },
+    { to: safe, data: encodeFunctionData({ abi: safeAbi, functionName: "disableModule", args: ["0x0000000000000000000000000000000000000001", safe] }) },
+  ]);
+  const receipt = await chain.client.getTransactionReceipt({ hash: txHash });
+  const expected = receipt.logs.flatMap((log, ordinal) => {
+    if (log.address.toLowerCase() !== safe) return [];
+    try {
+      const event = decodeEventLog({ abi: safeAbi, topics: log.topics, data: log.data });
+      return [{ event: event.eventName, args: JSON.parse(JSON.stringify(event.args, (_key, value) => typeof value === "bigint" ? value.toString() : typeof value === "string" ? value.toLowerCase() : value)),
+        log_index: log.logIndex, tx_log_ordinal: ordinal, log_id: `${chain.chainId}:${txHash.toLowerCase()}:${ordinal}` }];
+    } catch { return []; }
+  });
+  assert.deepEqual(expected.map((row) => row.event), ["SafeModuleTransaction", "SafeModuleTransaction", "ExecutionFromModuleSuccess", "ExecutionFromModuleSuccess", "SafeModuleTransaction", "ExecutionFromModuleSuccess"]);
+  assert.deepEqual(expected.filter((row) => row.event === "SafeModuleTransaction").map((row) => row.args.to), [safe, fixture.token.toLowerCase(), fixture.token.toLowerCase()]);
+  const sql = new pg.Client({ connectionString: adminUrl.href });
+  await sql.connect();
+  try {
+    await sql.query("set role capxul_worker");
+    let rows: any[] = [];
+    for (let attempt = 0; attempt < 200; attempt++) {
+      rows = (await sql.query(`select event,args,log_index,tx_log_ordinal,log_id,safes from app.chain_logs
+        where chain_id=$1 and tx_hash=$2 and contract_address=$3 and event=any($4) order by block_number,log_index`,
+      [chain.chainId, txHash.toLowerCase(), safe, ["SafeModuleTransaction", "ExecutionFromModuleSuccess", "ExecutionFromModuleFailure"]])).rows;
+      if (rows.length === expected.length) break;
+      await setTimeout(100);
+    }
+    assert.deepEqual(rows.map(({ safes, ...row }) => row), expected, "all full decoded args and occurrence keys must equal the native receipt");
+    assert(rows.every((row) => JSON.stringify(row.safes) === JSON.stringify([safe])));
+    await sql.query("reset role");
+    await sql.query("begin");
+    await sql.query("delete from app.party_events; delete from app.parties");
+    await sql.query(`insert into app.parties(party_id,kind,state,safe_address,owner_kind,owner_id,created_at,updated_at)
+      values ('module-founder','person','active',$1,'person','module-person',0,0)`, [fixture.founderSafe.toLowerCase()]);
+    await sql.query("set local role capxul_core");
+    await sql.query("select set_config('app.owner_kind','person',true),set_config('app.owner_id','module-person',true)");
+    assert.equal((await sql.query("select * from app.chain_logs where tx_hash=$1 and contract_address=$2", [txHash.toLowerCase(), safe])).rowCount, 0,
+      "person's ownership of the company is not blanket company history access");
   } finally { await sql.query("rollback"); await sql.end(); }
 });

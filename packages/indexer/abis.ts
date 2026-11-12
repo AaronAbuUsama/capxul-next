@@ -39,6 +39,7 @@ export const SAFE = parseAbi([
   "event ExecutionSuccess(bytes32 indexed txHash,uint256 payment)",
   "event ExecutionFailure(bytes32 indexed txHash,uint256 payment)",
   "event ExecutionFromModuleSuccess(address indexed module)", "event ExecutionFromModuleFailure(address indexed module)",
+  "event SafeModuleTransaction(address module,address to,uint256 value,bytes data,uint8 operation)",
   "event SafeMultiSigTransaction(address to,uint256 value,bytes data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address refundReceiver,bytes signatures,bytes additionalInfo)",
   "function getOwners() view returns (address[])", "function getThreshold() view returns (uint256)",
   "function nonce() view returns (uint256)",
