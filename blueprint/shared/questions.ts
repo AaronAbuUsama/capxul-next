@@ -1,4 +1,4 @@
-// Aaron's open questions of 11 and 12 November 2026, as decision records so the book's Questions page shows each one with a
+// Aaron's open questions of 11 November 2026, as decision records so the book's Questions page shows each one with a
 // button per option. Five come from docs/mission/decisions-2026-11-11.md (written while binding the thin line and
 // moving the spike into packages); the sixth, who owns the chart of accounts, comes from the blueprint audit of the
 // same night. `chosen` is the recommendation, not his answer: each stays "for Aaron" (waiting.ts FLAGGED) until his
@@ -52,31 +52,25 @@ export const decision_books_founder_funding = defineDecision({
   affects: [f.system_capxul, f.concept_books],
 });
 
-export const decision_system_one_storage_design = defineDecision({
-  id: "system.one-storage-design",
-  title: "Choose one design for indexing the chains and storing each company's data",
+export const decision_devnet_core_service_home = defineDecision({
+  id: "devnet.core-service-home",
+  title: "Where the working prototype of Capxul's own service goes",
   question:
-    "Capxul runs on many chains and reads contracts it doesn't own, like Safes and tokens. Today the plans have two designs: " +
-    "test worlds that read the chain themselves into one small file, and a staging setup with a big Postgres database and a " +
-    "separate indexer called Ponder. Which single design should every environment use? This replaces the earlier, unanswered " +
-    "card on where the working prototype of Capxul's own service is rebuilt: it is rebuilt in whichever design is chosen here.",
+    "The service that holds Capxul's own part (who may pay, budgets, payments) runs today as a prototype in spikes/ and saves to plain " +
+    "files. The blueprint has two homes for it that do not match: one large service on Postgres, and a small service per test world on " +
+    "a single SQLite file (the cheap test worlds already chosen). Where should the prototype be rebuilt?",
   options: [
-    { label: "shared-indexer-file-per-company", text: "One shared indexer, a file per company: each environment runs one Ponder that reads every chain once, for everyone. Each company's own Capxul data sits in its own libsql file next to its own Frappe site. Test worlds run the same pieces on their private chain." },
-    { label: "shared-indexer-shared-database", text: "One shared indexer, one shared database: the same shared Ponder, but every company's Capxul data sits in one Postgres database, kept apart by database rules, as the blueprint first planned." },
-    { label: "each-world-reads-chain", text: "Each world reads the chain itself: no shared indexer; every world reads its own chain into one small file. Cheapest for test worlds, but it doesn't suit many chains or contracts we don't own." },
-    { label: "keep-both", text: "Keep both: Ponder and Postgres in staging and production, the small reader and file in test worlds. Nothing to change now, but everything is built and tested twice." },
+    { label: "lean-service-in-devnet", text: "As the small per-world service, on SQLite, in the test-world package, using the prototype as its reference and keeping every check that passes today. The large production service is built separately when the staging server is next on the path." },
+    { label: "one-service-two-storages", text: "One service for both: the same code runs on SQLite in test worlds and Postgres in staging. One service to build, but the Postgres design has to bend to fit." },
+    { label: "move-then-convert", text: "Move the prototype as it is, then convert it to SQLite. Fastest move, but it carries the plain-file design into a real package." },
   ],
-  chosen: "shared-indexer-file-per-company",
+  chosen: "lean-service-in-devnet",
   why:
-    "Recommended because the chains are read once, by a tool built for many chains. Each company's data is kept apart the same " +
-    "way Frappe already keeps it apart. Every environment then has the same three pieces. The cost is running Ponder in test " +
-    "worlds too, which should be measured first. Detail for agents: write-up https://claude.ai/artifact/MbNQS2XzjeUcA9ZqtVVwHn; " +
-    "supersedes devnet.core-service-home (withdrawn unanswered, 12 November; plan task m2-graduate-spike follows this answer). " +
-    "Affects components postgres, ponder, backend, devnet and environment staging; decisions devnet.lean-world (point 2), " +
-    "components.ponder, indexing.scope-by-parties, indexing.keys, indexing.transfers, indexing.reorgs-are-ponders and " +
-    "indexing.tables-only. None of them is changed until this is answered.",
-  source: "Cloud thread \"Decide one indexer and storage architecture\", 12 November 2026",
-  affects: [f.system_capxul, f.component_postgres, f.component_ponder, f.component_backend, f.component_devnet, f.environment_staging],
+    "Recommended because the small world is what the thin line runs on, and building it on SQLite from the start avoids porting the storage twice. " +
+    "It also settles which storage each environment uses: the devnet and shared-world environments run the lean service (devnet.lean-world); staging " +
+    "keeps the Postgres design (component backend). Detail for agents: plan task m2-graduate-spike; spikes/skeleton/core.",
+  source: SOURCE,
+  affects: [f.system_capxul, f.component_backend, f.component_devnet, f.environment_devnet, f.environment_shared_world],
 });
 
 export const decision_devnet_cli_split = defineDecision({

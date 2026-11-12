@@ -137,8 +137,8 @@ export const component_backend = defineComponent({
     "admits a browser origin by the bootstrap's origin token or TRUSTED_ORIGINS, writes each transition's event to the " +
     "outbox in that transaction and has one relay send it on, and wakes a waiting process by its key (rules.process-wakeups). It reads Ponder's tables in the same Postgres, and calls the chain, the bundler and paymaster, and the vendors " +
     "through integrations. That is the staging and production shape; in a devnet and a shared world the same rpcs run " +
-    "as the lean world service on one SQLite file with the chain reader folded in (devnet.lean-world). Whether one design serves every " +
-    "environment, and so where its code lives, waits on system.one-storage-design.",
+    "as the lean world service on one SQLite file with the chain reader folded in (devnet.lean-world; where its code " +
+    "lives waits on devnet.core-service-home).",
   runtime: "node",
   exposes: ["rpc", "http", "ws"],
   dependsOn: [component_postgres, component_ponder, component_chain, component_bundler_paymaster],
@@ -664,7 +664,7 @@ export const environment_devnet = defineEnvironment({
     "stand-ins and a connected head all follow, and nothing it sends leaves the machine (time.world-channels). It runs the " +
     "lean world (devnet.lean-world): one small Capxul service per world on one SQLite file, with the chain reader folded " +
     "in, and no Postgres, no Ponder and no bundler, except the one canary world that keeps the real bundler " +
-    "(thin-line.bundler); which package builds that service waits on system.one-storage-design. Worlds " +
+    "(thin-line.bundler); which package builds that service waits on devnet.core-service-home. Worlds " +
     "are the supervisor's named snapshots of the chain and the service's database file together, with the clock, " +
     "restored in seconds. Devnet-only rpcs (the devnet concept) answer only here and in a shared world. Fakes: the mock paymaster, " +
     "the mail sink, the stand-in WhatsApp, the stand-in head and FDE host, scripted prices and gates, Bridge's sandbox or " +
