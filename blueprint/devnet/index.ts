@@ -32,5 +32,6 @@ import * as platformProcesses from "./platform-processes.ts";
 import * as platformJourneys from "./platform-journeys.ts";
 import * as platformDecisions from "./platform-decisions.ts";
 import * as platformDecisionsData from "./platform-decisions-data.ts";
+import * as supervisor from "./supervisor.ts";
 
-export const modules = [stateGaps, recordEntry, data, procedures, mail, gates, prices, jobs, processes, flows, worlds, worldData, worldRpcs, worldOps, worldProcesses, worldDecisions, operations, decisions, worldEvidence, platformData, platformLifecycle, platformAccess, platformScenarios, platformRuns, platformDatasets, platformCohorts, platformEnv, platformProcesses, platformJourneys, platformDecisions, platformDecisionsData] as const;
+export const modules = [stateGaps, recordEntry, data, procedures, mail, gates, prices, jobs, processes, flows, worlds, worldData, worldRpcs, worldOps, worldProcesses, worldDecisions, operations, decisions, worldEvidence, platformData, platformLifecycle, platformAccess, platformScenarios, platformRuns, platformDatasets, platformCohorts, platformEnv, platformProcesses, platformJourneys, platformDecisions, platformDecisionsData, supervisor] as const;
