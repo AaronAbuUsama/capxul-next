@@ -28,3 +28,17 @@ export const decision_devnet_selected_world_now = defineDecision({
   source: "docs/design/time.md sections 3 and 7; selected supervisor clock callback; integration clock-door assignment, 12 November 2026",
   affects: [component_devnet, concept_devnet],
 });
+
+export const decision_devnet_bench_callback_startup = defineDecision({
+  id: "devnet.bench-callback-startup",
+  title: "Bench callback configuration precedes websocket startup",
+  question: "When must the internal Frappe callback address become available to realtime consumers?",
+  options: [
+    { label: "configurator-barrier", text: "The shared bench configurator writes webserver_host=http://backend and webserver_port=8000 before dependent processes start. The supervisor does not rewrite these settings after startup. The same dependency barrier applies to create, up and recovery." },
+    { label: "rewrite-after-start", text: "Write the callback after containers become healthy, leaving existing realtime consumers with their original module-static configuration." },
+  ],
+  chosen: "configurator-barrier",
+  why: "Frappe realtime caches get_conf at module initialization. In solsup the listener's normal loopback Origin failed with fetch failed, while the same token and live websocket connected with the internal backend Origin; a fresh process authenticated against the current config. A healthy listening port did not establish a working callback. Configuring the existing dependency barrier fixes the source of truth without restarting a failed world, bypassing collection, or preparing chain state on up/restore.",
+  source: "Retained solsup run-20261112121451347-3ccaf6fc listener controls, 12 November 2026; Frappe realtime/utils.js; devnet/processes.ts benchUp",
+  affects: [component_devnet, concept_devnet],
+});
