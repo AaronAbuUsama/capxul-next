@@ -118,7 +118,8 @@ export const integration_site_service = defineIntegration({
     "what the spike's scripts do: `new-site.sh` (site, apps, Company, the Safe's bank account, the sign-in key, the names), `feature.sh` (switch a part on " +
     "or off), and, for a world, set and advance the clock the site reads and save and restore the site's database and files. Creating a site for an slug " +
     "that already has one is safe to repeat (7 s in the spike). Every call is idempotent by a request key. Proved by the spike: creation (143 s cold, 47 s from a company template, 7 s to repeat), the feature switch, the clock, snapshots and dropping a site. " +
-    "Not tried, assumptions with a named test: registering a world and parking idle sites (m3b-first-shared-world).",
+    "Not tried, assumptions with a named test: registering a world and parking idle sites (m3b-first-shared-world). " +
+    "Explicit restore rebases saved approval links while paused (plugs.answer-origin): a nonempty browser_core_url replaces only scheme and authority in Capxul Payment Request.approval_url, its nonempty answer_json, and Payment Entry.capxul_approval_url together. Paths, queries, fragments, approval identities, statuses and accounting stay unchanged. Empty leaves links unchanged. The site never calls Core; only the recovery adapter resumes the scheduler.",
   component: component_backend,
   system: "site-service",
   service: "SiteService",
@@ -180,7 +181,7 @@ export const integration_site_service = defineIntegration({
       failures: [{ when: "The service is down, or the disk is full", error: error_PROVIDER_ERROR }],
     },
     restoreSnapshot: {
-      about: "Restore a site from a snapshot, in place or into a separate world under a new slug, rewriting its name, config, sign-in URLs and clock. Proved by the spike: 33 s a site.",
+      about: "Restore in place or into a separate world under a new slug, rewriting name, config, clock and saved approval origins together while paused (plugs.answer-origin). Keep approval identity, statuses and accounting. Proved by the spike: 33 s a site; link migration has a restore regression.",
       timeoutMs: 300_000,
       retries: { max: 0, backoff: "none" },
       p95Ms: 90_000,
