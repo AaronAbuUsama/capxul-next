@@ -7,7 +7,7 @@ import Alchemy, so a breaking Alchemy release changes this package only. Alchemy
 | File | What |
 |---|---|
 | `src/provisioner/door.ts` | `provisioner(placement, config)`: `deploy`, `park`, `resume` and `destroy` one world's box |
-| `src/provisioner/stage.ts` | A world id's stage (`world-<id>`) and box name (`capxul-world-<id>`); refuses ids Alchemy or a hostname cannot carry |
+| `src/provisioner/stage.ts` | A world id's stage (`world-<id>`) and box name (`capxul-world-<id>`); refuses ids the supervisor would refuse (1 to 12 letters and digits) |
 | `src/provisioner/docker-box.ts` | The docker placement: one container that runs its own Docker daemon, plus a volume for that daemon's disk |
 | `src/provisioner/alchemy.ts` | The only call into Alchemy's programmatic API: plan, then apply, for one stage; state under `var/provisioner` |
 | `src/main.ts` | The command line: `provisioner deploy|park|resume|destroy <world>` |

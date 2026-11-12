@@ -15,9 +15,9 @@ export interface WorldStage {
 /** The stack every world is a stage of. */
 export const STACK = "capxul-world";
 
-// Alchemy's stage names are [a-z0-9][-_a-z0-9]*; world ids are lower-case words joined by hyphens.
-const WORLD_ID = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
-const MAX_WORLD_ID = 40;
+// The supervisor's own rule (packages/devnet local-config): 1 to 12 lower-case letters and digits, starting with a
+// letter. It also fits Alchemy's stage names ([a-z0-9][-_a-z0-9]*) and a hostname label.
+const WORLD_ID = /^[a-z][a-z0-9]{0,11}$/;
 
 export class InvalidWorld extends Error {
   readonly code = "INVALID_WORLD";
@@ -25,10 +25,8 @@ export class InvalidWorld extends Error {
 
 /** The stage a world deploys to; refuses an id Alchemy or a hostname could not carry. */
 export const worldStage = (world: string, placement: Placement): WorldStage => {
-  if (!WORLD_ID.test(world) || world.length > MAX_WORLD_ID) {
-    throw new InvalidWorld(
-      `world id must be lower-case letters and digits in hyphen-joined words, at most ${MAX_WORLD_ID} characters`,
-    );
+  if (!WORLD_ID.test(world)) {
+    throw new InvalidWorld("world id must be 1 to 12 lower-case letters and digits, starting with a letter");
   }
   return { world, stage: `world-${world}`, placement };
 };

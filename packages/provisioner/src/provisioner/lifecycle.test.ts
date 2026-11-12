@@ -41,7 +41,7 @@ test("a world box lives and dies as an Alchemy stage", { skip: !enabled && "set 
     ...(Object.keys(proxy).length ? { hostNetwork: true, environment: proxy } : {}),
     ...(env.CAPXUL_BOX_TRUST_CA ? { trustCa: env.CAPXUL_BOX_TRUST_CA } : {}),
   });
-  const world = `lifecycle-${process.pid}`;
+  const world = `life${process.pid % 100000000}`;
   try {
     const made = await Effect.runPromise(p.deploy(world));
     assert.equal(made.summary.create, 2);
