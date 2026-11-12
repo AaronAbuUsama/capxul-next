@@ -1343,11 +1343,12 @@ export const WORLDS: readonly World[] = [
   },
   {
     name: "org-with-own-agent",
-    holds: "org-ready with a self-run @acme-bot owned by Acme, one founder human Seat, and no hosted provisioning.",
+    holds: "org-ready with a self-run @acme-bot owned by Acme and explicitly offered its own-agent Seat, one founder human Seat, and no hosted provisioning.",
     from: "org-ready",
     steps: [
       step("dana@acme.test", "capxul dev gates set owner-safe-proposals on --org acme"),
       step("dana@acme.test", "capxul agent create AcmeBot --handle acme-bot --org acme --key env --json; approve its Board proposal as Dana"),
+      step("dana@acme.test", "capxul org member invite @acme-bot --agent --org acme --json (the open offer reserves its own-agent place, not a human seat)"),
       current("dana@acme.test"),
     ],
     namedBy: ["organizations"],

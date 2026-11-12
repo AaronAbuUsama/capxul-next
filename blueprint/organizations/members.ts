@@ -134,8 +134,7 @@ export const rpc_organizations_seats_show = defineRpc({
   concept: concept_organizations,
   kind: "query",
   who:
-    "Any member of the Organization: an active Seat, a person's or an agent's. The hosted FDE reads only as the member " +
-    "who asked it (aaron.fde-anyone), never as itself; a self-run own agent reads as itself.",
+    "Any member of the Organization: an active Seat, a person's or a self-run agent's. Hosted impersonation is parked by cut.fde-parked.",
   input: Schema.Struct({ orgId: S }),
   output: SeatsShowView,
   errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED],
