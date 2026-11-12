@@ -31,9 +31,11 @@ test("whole database cut restores independently, fences failures and retains aba
   const target: World = { ...source, id: "restored", database: restoredDb, stateDir: join(dir, "restored"), epoch: 1,
     sites: [{ company: "harbourline", name: "harbourline-restored.localhost" }] };
   const paused = new Set<string>(), resumed = new Map<string, number>();
-  let failBackup = false, failRestore = false;
+  let failBackup = false, failRestore = false, sourceRunning = true;
   const runtime: Runtime = {
-    async quiesce(w) { paused.add(w.id); return { nowMs: 1772442000000, clockMode: "stopped", rate: 1, recordSeq: 8, recordHead: "a".repeat(64), heads: [{ org_id: "harbourline", id: 8, hash: "b".repeat(64) }] }; },
+    async running() { return sourceRunning; },
+    async quiesce(w) { paused.add(w.id); if (!sourceRunning) return;
+      return { nowMs: 1772442000000, clockMode: "stopped", rate: 1, recordSeq: 8, recordHead: "a".repeat(64), heads: [{ org_id: "harbourline", id: 8, hash: "b".repeat(64) }] }; },
     async backup(site, directory) {
       assert(paused.has("source"));
       if (failBackup) throw new Error("seeded backup fault");
@@ -59,7 +61,7 @@ test("whole database cut restores independently, fences failures and retains aba
         await admin(`ALTER DATABASE "${abandoned}" ALLOW_CONNECTIONS false`);
       }
     },
-    async resume(w) { paused.delete(w.id); resumed.set(w.id, (resumed.get(w.id) ?? 0) + 1); },
+    async resume(w) { if (w.id === source.id) sourceRunning = true; paused.delete(w.id); resumed.set(w.id, (resumed.get(w.id) ?? 0) + 1); },
     async hold(w) { paused.add(w.id); },
   };
   const options: Options = { root: join(dir, "snapshots"), codeVersion: "fixture-v1", admin, runtime };
@@ -88,6 +90,12 @@ test("whole database cut restores independently, fences failures and retains aba
     assert.equal(manifest.files["state/anvil-state.json"]!.bytes, 12582912);
     assert.equal(paused.size, 0);
     await assert.rejects(saveSnapshot(options, source, "paid"));
+    sourceRunning = false;
+    await assert.rejects(saveSnapshot(options, source, "stopped"), /source world must be running/);
+    assert.equal(await runtime.running(source), false, "refused save must not activate a stopped world");
+    assert.equal(paused.size, 0);
+    assert(!(await readdir(options.root)).includes("stopped"));
+    sourceRunning = true;
     await query(sourceDb, "UPDATE app.payment SET amount=999 WHERE company='harbourline'; UPDATE ponder.checkpoint SET height=9000");
     await restoreSnapshot(options, "paid", target);
     const [payment] = await query(restoredDb, "SELECT row_to_json(p) FROM app.payment p WHERE company='harbourline'");

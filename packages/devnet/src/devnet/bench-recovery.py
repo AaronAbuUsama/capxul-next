@@ -140,7 +140,7 @@ def restore(site, directory, in_place):
     write_json(GUARD, configs)
 
 
-def rewrite(site, world, now_ms, frozen, rate):
+def rewrite(site, world, now_ms, frozen, rate, site_url=None):
     frappe.init(site=site, sites_path=str(SITES))
     frappe.connect()
     try:
@@ -149,6 +149,10 @@ def rewrite(site, world, now_ms, frozen, rate):
         from capxul.world import rewrite as rewrite_world
 
         rewrite_world(world=world, core_url="", browser_core_url="", site=site)
+        if site_url is not None:
+            from frappe.installer import update_site_config
+
+            update_site_config("host_name", site_url)
         clock.write_world(world=world, offset_ms=int(now_ms - time.time() * 1000), frozen_at_ms=now_ms if frozen else None, rate=rate)
         # Neither browser credentials nor queued work from the abandoned branch may leak into the restored world.
         frappe.db.sql("DELETE FROM `tabSessions`")
@@ -200,7 +204,7 @@ elif command == "backup":
 elif command == "restore":
     restore(args[0], args[1], args[2] == "in-place")
 elif command == "rewrite":
-    rewrite(args[0], args[1], int(args[2]), args[3] == "frozen", float(args[4]))
+    rewrite(args[0], args[1], int(args[2]), args[3] == "frozen", float(args[4]), *args[5:])
 elif command == "release":
     release()
 elif command == "hold":

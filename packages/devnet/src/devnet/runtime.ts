@@ -42,6 +42,7 @@ export function localRuntime(options: {
     for (const component of ["bundler", "core", "anvil", "ponder"] as const) await processes.stop(world, component);
   };
   return {
+    running: (world) => processes.running(world, "core"),
     async quiesce(world) {
       await processes.fence(world, true);
       await bench.pause();

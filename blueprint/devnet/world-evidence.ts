@@ -58,7 +58,7 @@ export const decision_devnet_snapshot_consistency = dec({
     { label: "live-copies", text: "Copy each component while it runs. This is smaller but cannot establish one business cut across the chain, Core and ERPNext." },
   ],
   chosen: "quiesce-template-bundle",
-  why: "Aaron's Postgres/Ponder ruling requires the whole world database by template copy. The orb save also exceeded viem's 10 MiB RPC response limit; Anvil state is saved to disk when stopped, avoiding that transport ceiling. A quiet delivery queue alone does not prevent a new payment, site job or chain fact between copies. Publication and validation must fail closed; source resumption on save failure is separate from target recovery on restore failure.",
+  why: "Aaron's Postgres/Ponder ruling requires the whole world database by template copy. The orb save also exceeded viem's 10 MiB RPC response limit; Anvil state is saved to disk when stopped, avoiding that transport ceiling. A quiet delivery queue alone does not prevent a new payment, site job or chain fact between copies. Publication and validation must fail closed; source resumption on save failure is separate from target recovery on restore failure. Saving a stopped world is refused before changing lifecycle state, so cleanup cannot accidentally activate it. Before resume, the site's host_name must use its target customer origin, including a world-specific public port when the host supplies one, not a private bench port.",
   evidence: "aaron.postgres-and-ponder; wave 0 slice 0 brief, 12 November 2026; Orb stack readiness artifact 1f687af7-3070-4f93-b6eb-a6ead6d4e456",
 });
 

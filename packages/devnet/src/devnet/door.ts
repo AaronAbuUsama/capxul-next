@@ -17,6 +17,8 @@ export type Manifest = {
 };
 /** Lifecycle hooks are owned by the host supervisor, not by the product backend. */
 export type Runtime = {
+  /** Read-only save precondition: never activate a stopped world. */
+  running(world: World): Promise<boolean>;
   /** Close ingress, drain Core/site jobs and deliveries, stop Core/Ponder/bundler/Anvil. Anvil must finish flushing its state file. */
   quiesce(world: World): Promise<Cut | undefined>;
   /** Back up each site's MariaDB, public/private files and full site_config while every bench writer is stopped. */
@@ -67,6 +69,7 @@ async function locked<T>(root: string, fn: () => Promise<T>): Promise<T> {
 export async function saveSnapshot(options: Options, world: World, id: string): Promise<Manifest> {
   checkWorld(world); name(id);
   return locked(options.root, async () => {
+    if (!await options.runtime.running(world)) throw new Error("source world must be running to establish a snapshot cut");
     const final = join(options.root, id), temp = join(options.root, `.${id}-${randomUUID()}`);
     // Reserve the name without ever replacing an existing snapshot.
     await mkdir(final, { mode: 0o700 });
