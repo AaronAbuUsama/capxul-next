@@ -1,0 +1,7 @@
+# Sites selected-stack checks
+
+`run.sh` invokes the real single CLI and independently reads native ERPNext through the runtime's non-Administrator cookie. It requires a running receipt on Postgres/Ponder/ERPNext/v4, the exact pinned build and world/epoch, and runtime's mode-0600 `CAPXUL_SITES_ACTORS` file outside the evidence directory. Director and member keys are used only in child environment and redacted with and without `0x`; no keys enter argv, records or evidence.
+
+The actor contract is `{version:1,world:{id,epoch},org,site,director:{name,email,address,personalSafe,privateKey},member:{name,email,address,personalSafe,privateKey}}`. Runtime owns its production and chain/directory registration. The runner never makes a fake actor or uses a bench command instead of a public operation.
+
+Current checks cover public draft creation, native validation and role refusals, signed-out refusal, ordinary invoice submission and balanced GL, mutation replay, exact success/error shapes, and report access. Fixture documents only supply existing native item/company references and independent reads; newly asserted mutations are made through the public CLI after the running receipt exists. Sanitized invocations and source readbacks stay in that receipt's `sites/` directory. These checks do not prove budgets, spans, writer exclusivity, held-payment settlement, feature-off behavior, screen interactions or journey/funnel events; those claims remain unbound until their complete controls exist.

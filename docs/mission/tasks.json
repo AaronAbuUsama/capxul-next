@@ -14562,6 +14562,7 @@
         "door:organizations",
         "door:plugs",
         "door:sites",
+        "integration:frappe-site",
         "integration:site-service",
         "milestone:m2",
         "milestone:m3"

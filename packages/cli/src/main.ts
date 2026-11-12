@@ -2,6 +2,7 @@
 import { createSitesClient, ProvisioningError } from "@capxul/sdk";
 import { privateKeyToAccount } from "viem/accounts";
 import type { Hex } from "viem";
+import { runDocuments } from "./documents.ts";
 
 const args = process.argv.slice(2);
 try {
@@ -9,6 +10,8 @@ try {
     // The supervisor owns this adapter. Load it only for world commands, not site provisioning.
     const { runDevnet } = await import(new URL("./devnet.ts", import.meta.url).href);
     process.exitCode = await runDevnet(args);
+  } else if (args[0] === "doc" || args[0] === "report") {
+    await runDocuments(args);
   } else {
     const usage = "capxul org site provision --org <slug> --confirm [--json]";
     const rest = args.slice(3);
@@ -27,7 +30,11 @@ try {
     console.log(args.includes("--json") ? JSON.stringify(result) : `${result.org}: ${result.site} provisioned; Core delivery released`);
   }
 } catch (error) {
-  const e = error instanceof ProvisioningError ? error : new ProvisioningError("PROVIDER_ERROR", args[0] === "world" ? "World command failed" : "Provisioning failed; retry the same company");
+  const message = args[0] === "world" ? "World command failed" : args[0] === "doc" || args[0] === "report"
+    ? "Document command failed; retain the call id when retrying" : "Provisioning failed; retry the same company";
+  const e = error instanceof ProvisioningError ? error : new ProvisioningError("PROVIDER_ERROR", message);
   console.error(JSON.stringify({ error: { code: e.code, message: e.message } }));
-  process.exitCode = e.code === "CLI_USAGE" ? 2 : 1;
+  const documentExit: Record<string, number> = { CLI_USAGE: 2, INVALID_INPUT: 2, WRONG_STATE: 2, NOT_AUTHENTICATED: 3,
+    ROLE_PERMISSION_DENIED: 4, PROVIDER_ERROR: 5, PROVIDER_RESPONSE_INVALID: 5, FEATURE_NOT_AVAILABLE: 6 };
+  process.exitCode = args[0] === "doc" || args[0] === "report" ? documentExit[e.code] ?? 1 : e.code === "CLI_USAGE" ? 2 : 1;
 }
