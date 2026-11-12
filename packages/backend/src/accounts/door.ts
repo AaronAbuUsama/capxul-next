@@ -4,6 +4,7 @@ import { emit } from "../platform/outbox.ts";
 import { feature, normalizeEmail, type GateCatalogue, type Principal } from "../access/door.ts";
 
 export { startSetup, observeClaim, finishSetup } from "./setup.ts";
+export { routeAccounts, accountsPaths, type AccountsServices } from "./routes.ts";
 
 export type Admission = { email: string; person_id: string | null; status: "waiting" | "admitted"; note: string | null;
   joined_via: "waitlist" | "operator" | "referral" | "invitation" | "escrow" | "fde-guest" | "reward";

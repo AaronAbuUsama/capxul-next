@@ -1,77 +1,14 @@
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { after, before, test } from "node:test";
-import pg from "pg";
+import { test } from "node:test";
 import { createPublicClient, createWalletClient, encodeFunctionData, http, pad, parseAbi, type Address, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { Database } from "../src/platform/db.ts";
-import { migrateOutbox } from "../src/platform/outbox.ts";
+import { db, now, run, config, catalogue, signIn } from "./access-fixture.ts";
 import { accessError, authenticate, digest, feature, readPrincipal, readPrincipalByEmail, requireFeature, revoke, routeAccess,
-  sendCode, syncFlags, verifyCode, type GateCatalogue, type Principal, type SignIn } from "../src/access/door.ts";
-import { admit, eligibility, personalSafe, readAdmission, readAdmissionForEvent } from "../src/accounts/door.ts";
+  sendCode, syncFlags, verifyCode, type Principal, type SignIn } from "../src/access/door.ts";
+import { admit, eligibility, personalSafe, readAdmission, readAdmissionForEvent, routeAccounts } from "../src/accounts/door.ts";
 import { startSetup } from "../src/accounts/setup.ts";
-
-// Component regression, not selected-stack acceptance or live Mail-provider conformance.
-const url = process.env.ACCESS_TEST_ADMIN_URL;
-if (!url || process.env.CAPXUL_DISPOSABLE !== "true" || !new URL(url).pathname.startsWith("/access_"))
-  throw new Error("ACCESS_TEST_ADMIN_URL must name a disposable /access_* Postgres database");
-const admin = new pg.Client({ connectionString: url });
-let db: Database;
-const now = 1_772_442_000_000, run = randomUUID().slice(0, 8);
-const config = { companiesHouse: "0x1234567890123456789012345678901234567890" as const, namespace: "capxul:devnet:email:v1" };
-const catalogue: GateCatalogue = { "beta-access": { target: "person", money: false }, books: { target: "organization", money: true } };
-
-before(async () => {
-  await admin.connect();
-  const roles = [
-    { role: "capxul_core", env: "ACCESS_TEST_TENANT" },
-    { role: "capxul_worker", env: "ACCESS_TEST_WORKER" },
-  ];
-  const existing = (await admin.query("select rolname from pg_roles where rolname=any($1)", [roles.map(({ role }) => role)])).rows;
-  // Roles are cluster-wide. Refuse before migrations or role writes if an existing
-  // account has no supplied credentials; never reset another database's password.
-  for (const { role, env } of roles)
-    if (existing.some((row) => row.rolname === role) && !process.env[env])
-      throw new Error(`${env} must supply existing ${role} credentials for the disposable database`);
-  for (const { role, env } of roles) {
-    if (!existing.some((row) => row.rolname === role)) {
-      const password = randomBytes(24).toString("hex");
-      await admin.query(`create role ${role} login nosuperuser nocreatedb nocreaterole noinherit nobypassrls password '${password}'`);
-      const target: URL = new URL(url!); target.username = role; target.password = password;
-      process.env[env] = target.href;
-    }
-    const target: URL = new URL(process.env[env]!);
-    const origin: URL = new URL(url!);
-    assert.equal(target.host, origin.host, `${env} must use the disposable Postgres instance`);
-    assert.equal(target.pathname, origin.pathname, `${env} must use the disposable database`);
-    const client = new pg.Client({ connectionString: target.href });
-    try {
-      await client.connect();
-      const identity = (await client.query(`select current_user as role, rolsuper, rolbypassrls from pg_roles where rolname=current_user`)).rows[0];
-      assert.deepEqual(identity, { role, rolsuper: false, rolbypassrls: false });
-    } finally { await client.end(); }
-  }
-  await admin.query("begin");
-  try {
-    await admin.query(await readFile(new URL("../src/schema.sql", import.meta.url), "utf8"));
-    await admin.query("grant usage on schema app to capxul_core,capxul_worker");
-    await migrateOutbox(admin);
-    for (const name of ["access", "accounts"]) await admin.query(await readFile(new URL(`../src/${name}/schema.sql`, import.meta.url), "utf8"));
-    await admin.query("commit");
-  } catch (error) { await admin.query("rollback"); throw error; }
-  db = new Database(process.env.ACCESS_TEST_TENANT!, process.env.ACCESS_TEST_WORKER!);
-});
-after(async () => { if (db) await db.close(); await admin.end(); });
-
-async function signIn(email: string): Promise<SignIn> {
-  let code = "";
-  await db.transaction("", (sql) => sendCode(sql, { email }, {
-    async send(message) { code = message.text!.match(/\b\d{6}\b/)![0]; return { id: randomUUID() }; },
-  }, now), true);
-  const result = await db.transaction("", (sql) => verifyCode(sql, { email, code, client: "authority-component-test" }, config, now + 1), true);
-  assert(result.ok); return result.value;
-}
 
 test("opaque sessions establish only the verified person and immediately reject revocation/expiry", async () => {
   const a = await signIn(`sam-${run}@example.test`), b = await signIn(`other-${run}@elsewhere.test`);
@@ -213,6 +150,45 @@ test("mailbox/person RLS isolates two real session actors and only guarded setup
   await assert.rejects(db.transaction("", async (sql) => { await authenticate(sql, login.token, now + 2); await sql.query("update app.personal_safes set status='ready' where person_id=$1", [p.personId]); }), /permission denied/);
 });
 
+test("public setup reads project lifecycle/refusal states without starting work and authenticate the caller", async () => {
+  const email = `setup-read-${run}@example.test`, login = await signIn(email);
+  let profile = false;
+  const services = { ...config, catalogue, setupUrl: "https://component.invalid/setup",
+    async requireProfile() { if (!profile) throw new Error("PROFILE_NOT_FOUND"); } };
+  const call = (path: string, input: Record<string, unknown> = {}, bearer = login.token) =>
+    db.transaction("", (sql) => routeAccounts(sql, `/accounts/setup/${path}`, input, bearer, services, now + 2), true);
+  const required = { setupState: "setup-required", setupUrl: services.setupUrl,
+    next: { argv: ["capxul", "account", "retry"] }, safe: login.safe, claimed: false, collected: 0 };
+  await assert.rejects(call("check", {}, "forged"), /NOT_AUTHENTICATED/);
+  assert.deepEqual((await call("check"))!.body, required);
+  await assert.rejects(call("lifecycle"), /PROFILE_NOT_FOUND/);
+  profile = true; // Profile guard control, not proof of the Parties public workflow.
+  await assert.rejects(call("lifecycle"), /SMART_ACCOUNT_MISSING/);
+  await assert.rejects(call("start", { signer: "0x1111111111111111111111111111111111111111" }), /FEATURE_NOT_AVAILABLE/);
+  await db.transaction("", (sql) => admit(sql, { email, via: "invitation", ref: "setup-read" }, "setup-read", now), true);
+  const started = await call("start", { signer: "0x1111111111111111111111111111111111111111" });
+  assert.deepEqual(started!.body, { safe: login.safe, status: "claiming", attempt: 1 });
+  assert.deepEqual((await call("lifecycle"))!.body, { lifecycle: { status: "settingUp", step: "claiming" } });
+  assert.deepEqual((await call("check"))!.body, required);
+  await assert.rejects(call("lifecycle", { personId: "another-person" }), /NOT_AUTHENTICATED/);
+  // Storage fixtures cover the public read projection only, never claim/receipt acceptance.
+  for (const status of ["collecting", "ready"] as const) {
+    await db.worker.query("update app.personal_safes set status=$2,collected=3 where person_id=$1", [login.personId, status]);
+    assert.deepEqual((await call("lifecycle"))!.body, { lifecycle: { status: "ready", safe: login.safe, canTransact: true, collecting: status === "collecting" } });
+    assert.deepEqual((await call("check"))!.body, { setupState: "ready", setupUrl: null, next: null, safe: login.safe, claimed: true, collected: 3 });
+  }
+  for (const code of ["WRONG_STATE", "INVALID_INPUT", "TRANSACTION_FAILED", "PROVIDER_ERROR"] as const) {
+    await db.worker.query("update app.personal_safes set status='failed',failure_code=$2,collected=0 where person_id=$1", [login.personId, code]);
+    const before = await db.transaction("", (sql) => personalSafe(sql, login.personId), true);
+    const body = (await call("lifecycle"))!.body as { lifecycle: { status: string; at: string; error: { code: string; message: string } } };
+    assert.equal(body.lifecycle.status, "failed"); assert.equal(body.lifecycle.at, "claiming"); assert.equal(body.lifecycle.error.code, code);
+    assert(body.lifecycle.error.message.length > 0); assert(!body.lifecycle.error.message.includes("stack"));
+    if (code === "WRONG_STATE" || code === "INVALID_INPUT") await assert.rejects(call("check"), new RegExp(code));
+    else assert.deepEqual((await call("check"))!.body, required);
+    assert.deepEqual(await db.transaction("", (sql) => personalSafe(sql, login.personId), true), before);
+  }
+});
+
 test("agent challenge proves actual v4 AgentOwner and sole Safe signer, refusing mismatches, frozen agents and replay", async () => {
   const rpc = process.env.ACCESS_TEST_RPC_URL;
   assert(rpc, "ACCESS_TEST_RPC_URL must name an isolated Anvil loaded from committed v4 core state");
@@ -256,6 +232,8 @@ test("agent challenge proves actual v4 AgentOwner and sole Safe signer, refusing
   assert.equal(result.owner, owner.toLowerCase()); assert.equal(result.signer, signer.address.toLowerCase());
   const p = await db.transaction("", (sql) => authenticate(sql, result.token, now), true);
   assert.equal(p.kind, "agent"); assert.equal(p.email, null); assert.equal(p.safeAddress, safe.toLowerCase());
+  await assert.rejects(db.transaction("", (sql) => routeAccounts(sql, "/accounts/setup/check", {}, result.token,
+    { ...config, catalogue, setupUrl: "https://component.invalid/setup", async requireProfile() { throw new Error("agent must be refused first"); } }, now), true), /NOT_AUTHENTICATED/);
   assert.deepEqual((await call("/access/sessions/current", {}, result.token))!.body, { personId: result.personId, kind: "agent", email: null,
     safe: safe.toLowerCase(), expiresAt: result.expiresAt, setupState: "ready" });
   const human = await signIn(`chain-human-${run}@example.test`);
