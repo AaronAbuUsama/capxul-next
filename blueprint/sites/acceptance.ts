@@ -16,9 +16,9 @@ export const doctype_purchase_invoice = defineDoctype({
 
 export const screen_supplier_invoice = defineScreen({
   id: "supplier-invoice", title: "Supplier invoice form", surface: "frappe-desk", kind: "form",
-  about: "The slice zero supplier invoice, its supplier, currency, total and outstanding amount after payment. A Capxul site holds one company, and ERPNext hides a one-company site's Company field on purpose (decision sites.screens-follow-native-defaults).",
+  about: "The slice zero supplier invoice, its company, supplier, currency, total and outstanding amount after payment.",
   record: doctype_purchase_invoice,
-  shows: [{ label: "Invoice identity, supplier, currency, total and outstanding amount", from: doctype_purchase_invoice }],
+  shows: [{ label: "Invoice identity, company, supplier, currency, total and outstanding amount", from: doctype_purchase_invoice }],
   who: [role_admin, role_budget_holder], feature: feature_accounts,
 });
 
@@ -79,15 +79,28 @@ export const decision_sites_slice_zero_acceptance = defineDecision({
   affects: [screen_supplier_invoice, screen_payment_entry, screen_general_ledger, screen_safe_trial_balance, insight_slice_zero_health, alert_indexer_unready, alert_delivery_stuck, alert_money_event_parked],
 });
 
-export const decision_sites_screens_follow_native_defaults = defineDecision({
-  id: "sites.screens-follow-native-defaults", title: "Slice zero's screens are checked as ERPNext shows them by default",
-  question: "When ERPNext's own screen differs from the raw API values (a hidden field, a netted column), which does a screen check compare against?",
+export const decision_sites_trial_balance_net_values = defineDecision({
+  id: "sites.trial-balance-net-values", title: "The Trial Balance screen check reads net closing values, as ERPNext shows them",
+  question: "ERPNext's Trial Balance shows net closing values by default, while the report's API returns gross values unless asked. Which does the screen check compare against?",
   options: [
-    { label: "native-defaults", text: "Compare what a person sees with ERPNext's defaults. The Purchase Invoice form hides Company on a one-company site (erpnext.hide_company), so the invoice screen does not claim it; the company is still checked in the reconciled source. The Trial Balance's source is read with the same 'show net values' filter the screen uses by default." },
-    { label: "change-erpnext", text: "Force the hidden field visible and the report to gross values, so the screen matches the raw API." },
+    { label: "net-values", text: "Read the Trial Balance source with the same 'show net values' filter the screen uses by default, so a person and the check see the same closing debit and credit." },
+    { label: "gross-values", text: "Open the screen with net values turned off, so the screen matches the API's gross default." },
   ],
-  chosen: "native-defaults",
-  why: "The first full cloud run of slice zero (run-20261112171906266-c2b99242) passed 16 of 18 checks; the two screen failures were the check comparing a default ERPNext screen to differently filtered or hidden data, not wrong money. aaron.frappe-native keeps ERPNext's own screens unforked.",
+  chosen: "net-values",
+  why: "Run run-20261112171906266-c2b99242 failed safe-trial-balance.closing_debit only because the source was read gross while the screen showed net; the money was right. aaron.frappe-native keeps ERPNext's own screen defaults.",
   source: "aaron.frappe-native; run-20261112171906266-c2b99242, 12 November 2026",
-  affects: [screen_supplier_invoice, screen_safe_trial_balance],
+  affects: [screen_safe_trial_balance],
+});
+
+export const decision_sites_invoice_shows_company = defineDecision({
+  id: "sites.invoice-shows-company", title: "The supplier invoice form shows its Company even on a one-company site",
+  question: "ERPNext's transaction controller hides Company when a site has one company (erpnext.hide_company), after any form handler has run. How does Capxul keep the invoice's company readable?",
+  options: [
+    { label: "custom-refresh", text: "Show Company from the controller's custom_refresh hook, which Frappe runs after the controller's own refresh, so Capxul's choice is the last one applied." },
+    { label: "drop-company", text: "Accept ERPNext's default and stop claiming Company on the invoice screen." },
+  ],
+  chosen: "custom-refresh",
+  why: "Capxul's purchase_invoice.js already meant Company to stay readable, but it ran in a frappe.ui.form.on refresh handler, which Frappe runs before the controller's refresh, so ERPNext hid the field again (run-20261112171906266-c2b99242 failed 'Purchase Invoice.company is not rendered'). The screen keeps its Company claim; the script moves to the hook that runs last.",
+  source: "PR #77 review, 12 November 2026; run-20261112171906266-c2b99242",
+  affects: [screen_supplier_invoice],
 });

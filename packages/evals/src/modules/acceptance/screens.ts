@@ -73,7 +73,7 @@ export async function captureScreens(f: Fixture, s: Sources, dir: string, emit: 
     };
     await emit("ACCEPT.invoice-screen-source-equal", () => form("supplier-invoice", "Purchase Invoice", f.invoice, {
       supplier: s.invoice.supplier, currency: s.invoice.currency, grand_total: s.invoice.grand_total,
-      outstanding_amount: s.invoice.outstanding_amount,
+      outstanding_amount: s.invoice.outstanding_amount, company: s.invoice.company,
     }));
     await emit("ACCEPT.payment-screen-source-equal", () => form("payment-entry", "Payment Entry", f.paymentEntry, {
       party: s.payment.party, paid_amount: s.payment.paid_amount, capxul_status: s.payment.capxul_status,
