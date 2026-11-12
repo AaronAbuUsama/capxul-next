@@ -293,3 +293,17 @@ export const decision_media_postgres_writers = defineDecision({
   source: "Agents/documents/media implementation, 12 November 2026; media.uploader, media.document-process and tbl:files/writers",
   affects: [table_files, rpc_media_files_upload, workflow_media_files_expire_document],
 });
+
+export const decision_media_public_transport = defineDecision({
+  id: "media.public-transport",
+  title: "Public file hooks use real bearer authority and the shared outbox",
+  question: "How does JSON ingress carry bytes while preserving uploader authority, privacy and transactional transitions?",
+  options: [
+    { label: "base64-hooks", text: "POST /media/files/upload takes purpose, content_type and canonical bytesBase64; /media/files/get takes file_id and returns null or image metadata with bytesBase64. Upload authenticates the raw bearer through Access on the same Sql. Canonical worldNow and the real shared outbox accompany upload and worker expiration in the caller's transaction." },
+    { label: "admin", text: "Route uploads through diagnostic HMAC and accept an uploader label in the body." },
+  ],
+  chosen: "base64-hooks",
+  why: "Base64 is only JSON transport for the existing byte input/output, not another blob store or admission rule. A 32000512-byte body bound accommodates the existing 24 MB maximum; decoded bytes still pass purpose-specific admission. Public image reads never admit private files. Consumers use a same-Sql requireImage read that derives the uploader from authenticated app.person_id and checks image/kept without writing or repeating immutable upload admission. Profile writes use the worker Sql, so a fixed source-owned metadata function admits that same verified person on core or worker without granting the worker generic file reads or exposing bytes/private files. Each file transition uses one stable file/transition outbox identity; failure rolls back its storage effect. Shared server/migration/drain wiring remains the integrator's.",
+  source: "Wave0 continuation, 12 November 2026; media.uploader, media.admission-at-upload, media.serving, media.document-process; Parties profile binding contract",
+  affects: [rpc_media_files_upload, rpc_media_files_get, table_files, workflow_media_files_expire_document],
+});

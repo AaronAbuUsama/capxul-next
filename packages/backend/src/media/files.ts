@@ -65,6 +65,16 @@ export async function get(sql: Sql, id: string) {
   return row ? { ...row, size: Number(row.size) } as { file_id: string; content_type: string; size: number; bytes: Buffer } : null;
 }
 
+/** Binding admission, not public serving: uploader comes only from verified Access context.
+ * Purpose, signatures, dimensions and size were admitted at immutable upload; do not re-decode bytes.
+ */
+export async function requireImage(sql: Sql, id: string): Promise<{ file_id: string; content_type: string; size: number }> {
+  if (!/^file_[0-7][0-9A-HJKMNP-TV-Z]{25}$/.test(id)) throw new Error("INVALID_INPUT: image file");
+  const row = (await sql.query("select * from app.media_require_image($1)", [id])).rows[0];
+  if (!row) throw new Error("INVALID_INPUT: image file");
+  return { file_id: row.file_id, content_type: row.content_type, size: Number(row.size) };
+}
+
 /** Each held row is its durable timer; the conditional transition survives worker restart. */
 export async function expire(sql: Sql, runtime: MediaRuntime) {
   const at = await runtime.now(sql);

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import pg from "pg";
-import { admit, expire, get, migrateMedia, upload, type MediaRuntime } from "./door.ts";
+import { admit, expire, get, requireImage, migrateMedia, upload, type MediaRuntime } from "./door.ts";
 
 function png(width: number, height: number) {
   const bytes = Buffer.alloc(33); Buffer.from("89504e470d0a1a0a", "hex").copy(bytes);
@@ -59,6 +59,29 @@ test("native files keep public image reads separate from private identity files 
     assert.deepEqual((await as("person-b", () => core.query("select file_id from app.files order by file_id"))).rows.map((r) => r.file_id).sort(), [image.file_id, other.file_id].sort());
     assert.equal(await as("person-b", () => get(core, held.file_id)), null);
     assert.equal(await get(core, "file_00000000000000000000000000"), null);
+    assert.deepEqual(await as("person-a", () => requireImage(core, image.file_id)), {
+      file_id: image.file_id, content_type: "image/png", size: 33,
+    });
+    // A public image read never authorizes someone else to bind that image to their profile.
+    await assert.rejects(as("person-b", () => requireImage(core, image.file_id)), /INVALID_INPUT/);
+    await assert.rejects(requireImage(core, image.file_id), /INVALID_INPUT/);
+    await assert.rejects(as("person-a", () => requireImage(core, held.file_id)), /INVALID_INPUT/);
+    await assert.rejects(as("person-b", () => requireImage(core, other.file_id)), /INVALID_INPUT/);
+    await assert.rejects(as("person-a", () => requireImage(core, "file_00000000000000000000000000")), /INVALID_INPUT/);
+    // Profile admission must share the restricted worker transaction, without broadening file reads.
+    await worker.query("begin");
+    try {
+      await assert.rejects(requireImage(worker, image.file_id), /INVALID_INPUT/);
+      await worker.query("select set_config('app.person_id','person-a',true)");
+      assert.deepEqual(await requireImage(worker, image.file_id), { file_id: image.file_id, content_type: "image/png", size: 33 });
+      await assert.rejects(requireImage(worker, held.file_id), /INVALID_INPUT/);
+      await assert.rejects(requireImage(worker, other.file_id), /INVALID_INPUT/);
+      await worker.query("select set_config('app.person_id','person-b',true)");
+      await assert.rejects(requireImage(worker, image.file_id), /INVALID_INPUT/);
+      await worker.query("savepoint private_read");
+      await assert.rejects(worker.query("select bytes from app.files"), /permission denied/);
+      await worker.query("rollback to savepoint private_read");
+    } finally { await worker.query("rollback"); }
     for (const client of [core, worker]) for (const query of [
       "update app.files set bytes=null", "delete from app.files", "insert into app.files select * from app.files",
     ]) await assert.rejects(client.query(query), /permission denied/);

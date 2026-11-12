@@ -420,3 +420,17 @@ export const decision_documents_postgres_store = defineDecision({
   source: "Agents/documents/media implementation, 12 November 2026; documents.tenancy, documents.participants, documents.core-store-scope; same-Sql contract",
   affects: [procedure_documents_store, table_documents, rpc_documents_reading_get, rpc_documents_reading_verify],
 });
+
+export const decision_documents_public_transport = defineDecision({
+  id: "documents.public-transport",
+  title: "Authenticated hash-pair reads have isolated public route hooks",
+  question: "How does Core expose retained get and verify without diagnostic HMAC or caller-supplied identity?",
+  options: [
+    { label: "bearer-hooks", text: "POST /documents/reading/get and /documents/reading/verify take the existing hash-pair JSON. The integrator injects Access.authenticate on the same checked-out Sql, using the raw Authorization bearer and canonical worldNow before the read. Responses retain the existing wire shapes." },
+    { label: "diagnostic", text: "Use the admin diagnostic HMAC ingress for document readers." },
+  ],
+  chosen: "bearer-hooks",
+  why: "Diagnostic service authority is not participant authority. Public hooks use real session authentication and current-Seat SQL admission, never request owner, person or Safe labels. The integrator retains routing, transaction/drain and migration ownership. No public store route, payroll reader, changed hash encoding or acceptance credit is introduced.",
+  source: "Wave0 continuation, 12 November 2026; documents.participants; Access same-Sql opaque-session contract",
+  affects: [rpc_documents_reading_get, rpc_documents_reading_verify],
+});

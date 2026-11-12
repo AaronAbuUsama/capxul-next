@@ -85,6 +85,18 @@ alter function app.media_upload(text,text,text,bytea,double precision) owner to 
 revoke all on function app.media_upload(text,text,text,bytea,double precision) from public,capxul_worker;
 grant execute on function app.media_upload(text,text,text,bytea,double precision) to capxul_core;
 
+-- Profile mutations run on worker Sql. Expose only the verified uploader's kept-image metadata,
+-- never generic worker SELECT, private files or file bytes.
+create or replace function app.media_require_image(id text)
+returns table(file_id text,content_type text,size double precision)
+language sql security definer set search_path=pg_catalog,app as $$
+  select f.file_id,f.content_type,f.size from app.files f where f.file_id=id
+    and f.person_id=nullif(current_setting('app.person_id',true),'') and f.purpose='image' and f.state='kept'
+$$;
+alter function app.media_require_image(text) owner to capxul_media_writer;
+revoke all on function app.media_require_image(text) from public;
+grant execute on function app.media_require_image(text) to capxul_core,capxul_worker;
+
 create or replace function app.media_expire(now_ms double precision) returns setof jsonb
 language plpgsql security definer set search_path=pg_catalog,app as $$
 declare row app.files; event jsonb;

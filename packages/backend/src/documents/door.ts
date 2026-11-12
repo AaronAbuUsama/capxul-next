@@ -66,3 +66,22 @@ export async function verify(sql: Sql, pair: { documentHash: string; contentHash
   const row = await find(sql, pair);
   return { documentHash: row.document_hash, contentHash: row.content_hash, ok: intact(row), signatureStatus: row.format === "artifact" ? "opaque" : "absent" };
 }
+
+export type DocumentsServices = {
+  authenticate(sql: Sql, bearer: string, now: number): Promise<unknown>;
+  now(sql: Sql): Promise<number>;
+};
+export const documentsPaths = ["/documents/reading/get", "/documents/reading/verify"] as const;
+
+/** Mount before diagnostic HMAC ingress, in the request's drained tenant transaction.
+ * Services must be Access.authenticate and canonical worldNow; no body field supplies authority.
+ */
+export async function routeDocuments(sql: Sql, path: string, input: Record<string, unknown>, bearer: string,
+  services: DocumentsServices): Promise<{ status: number; body: unknown } | null> {
+  if (!documentsPaths.some((p) => p === path)) return null;
+  await services.authenticate(sql, bearer, await services.now(sql));
+  if (typeof input.documentHash !== "string" || typeof input.contentHash !== "string")
+    throw new Error("INVALID_INPUT: document not found");
+  const pair = { documentHash: input.documentHash, contentHash: input.contentHash };
+  return { status: 200, body: await (path === documentsPaths[0] ? get(sql, pair) : verify(sql, pair)) };
+}
