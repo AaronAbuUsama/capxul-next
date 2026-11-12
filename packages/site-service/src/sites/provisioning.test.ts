@@ -1,12 +1,15 @@
-import { after, test } from "node:test";
+import { after, test, type TestContext } from "node:test";
 import assert from "node:assert/strict";
 import { createServer, type Server } from "node:http";
 import { createHmac } from "node:crypto";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { watch } from "node:fs";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
+import { once } from "node:events";
+import { setTimeout as delay } from "node:timers/promises";
 import { promisify } from "node:util";
 import { encodeAbiParameters, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -137,3 +140,57 @@ test("private service refuses unsigned, malformed and path-injecting requests be
   }
   await assert.rejects(readFile(join(s.bench, s.info.site, "site.json")), { code: "ENOENT" });
 });
+
+async function startServiceProcess(t: TestContext) {
+  const root = await mkdtemp(join(tmpdir(), "capxul-service-stop-")); directories.push(root);
+  const bench = join(root, "bench"); await mkdir(bench);
+  const reservation = createServer();
+  const url = await listen(reservation);
+  await new Promise<void>((resolve) => reservation.close(() => resolve()));
+  const child = spawn(process.execPath, ["--experimental-strip-types", "--no-warnings", fileURLToPath(new URL("../main.ts", import.meta.url))], {
+    stdio: ["ignore", "pipe", "pipe"], env: {
+      PATH: process.env.PATH, PORT: new URL(url).port,
+      BENCH_COMMAND_JSON: JSON.stringify([process.execPath, fileURLToPath(new URL("./fixtures/bench.mjs", import.meta.url)), bench]),
+      SITE_SERVICE_TOKEN: "private-site-token", CAPXUL_SECRET: "private-hmac", SITE_SERVICE_STATE_DIR: join(root, "intents"),
+      CAPXUL_WORLD: "town1", SITE_BASE_DOMAIN: "localhost", SITE_SCHEME: "http", SITE_PORT: "8000",
+      BENCH_DB_ROOT_PASSWORD: "private-db-password", CAPXUL_ADMIN_PASSWORD: "private-admin-password",
+    },
+  });
+  let stderr = ""; child.stderr.on("data", (chunk) => { stderr += chunk; });
+  const exited = once(child, "exit").then(([code, signal]) => ({ code, signal }));
+  t.after(async () => { if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL"); await exited; });
+  await Promise.race([once(child.stdout, "data"), exited.then(() => { throw new Error(`Site service exited before listening: ${stderr}`); })]);
+  assert.equal((await fetch(`${url}/health`)).status, 200);
+  return { child, exited, root, bench, url };
+}
+
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  test(`idle site service exits cleanly on ${signal}`, { timeout: 10_000 }, async (t) => {
+    const s = await startServiceProcess(t);
+    s.child.kill(signal);
+    assert.deepEqual(await s.exited, { code: 0, signal: null });
+  });
+
+  test(`site service drains active creation before exiting on ${signal}`, { timeout: 10_000 }, async (t) => {
+    const s = await startServiceProcess(t);
+    const gate = join(s.bench, "block-configure"); await writeFile(gate, "blocked");
+    t.after(() => rm(gate, { force: true }));
+    const configuring = new Promise<void>((resolve) => {
+      const watcher = watch(s.bench, (_event, name) => { if (name === "configure-started") { watcher.close(); resolve(); } });
+      t.after(() => watcher.close());
+    });
+    const response = fetch(`${s.url}/sites/create`, {
+      method: "POST", headers: { authorization: "Bearer private-site-token" },
+      body: JSON.stringify({ org: "acme", name: "Acme", safe, adminEmail: "founder@example.test" }),
+    }).then(async (res) => ({ status: res.status, body: await res.json() })).catch((error) => ({ error: String(error) }));
+    await configuring;
+    s.child.kill(signal);
+    assert.equal(await Promise.race([s.exited.then(() => true), delay(100).then(() => false)]), false, "creation must finish before exit");
+    await assert.rejects(fetch(`${s.url}/health`, { signal: AbortSignal.timeout(1000) }));
+    await rm(gate);
+    assert.deepEqual(await response, { status: 200, body: { org: "acme", safe: safe.toLowerCase(), site: "acme-town1.localhost", url: "http://acme-town1.localhost:8000", state: "provisioned" } });
+    assert.deepEqual(await s.exited, { code: 0, signal: null });
+    const site = JSON.parse(await readFile(join(s.bench, "acme-town1.localhost", "site.json"), "utf8"));
+    assert.equal(site.settings.safe_address, safe.toLowerCase()); assert.equal(site.world, "town1");
+  });
+}
