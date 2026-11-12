@@ -441,4 +441,15 @@ export const decision_plugs_role_delivery = dec({
   affects: [integration_frappe_site, d.machine_role_grant, pr.workflow_plugs_events_deliver],
 });
 
+export const decision_plugs_selected_observations = dec({
+  id: "plugs.selected-observations",
+  title: "Selected Plugs checks do not inherit skeleton acceptance",
+  question: "What can the selected Plugs runner establish before the authority and public lifecycle composition is complete?",
+  options: [{ label: "same-run-observations", text: "Require a running selected Postgres/Ponder/ERPNext/v4 receipt for the current source, private configuration and matching live world/epoch/site. Read the native release map, actual site readiness and committed saved answers against the native request outbox. These are near-only observations, not grants, public commands, replay/crash controls or lifecycle acceptance. Remove the legacy main-world JSON skeleton replay binding instead of reusing its evidence. No selected claim passes until its complete public scenario executes in that fresh run." }],
+  chosen: "same-run-observations",
+  why: "The old Plugs binding launches a main-world skeleton and cannot prove the selected backend. Release-map availability does not authorize a numeric hat or bootstrap a native user; a consistent saved answer alone does not prove lost-ACK replay. Keeping those limits explicit prevents component history or synthetic fixture grants from silently satisfying selected evals.",
+  evidence: "Wave0 integrator source/selected-run ownership agreement, 12 November 2026; evals/bindings/plugs.json legacy skeleton binding",
+  affects: [integration_frappe_site, pr.workflow_plugs_payments_collect, pr.workflow_plugs_events_deliver],
+});
+
 void ops; 
