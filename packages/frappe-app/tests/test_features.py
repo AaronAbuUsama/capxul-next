@@ -19,7 +19,7 @@ class NativeFeatures(unittest.TestCase):
         frappe.db = types.SimpleNamespace(exists=lambda dt, name: name in rows)
         frappe.cache = types.SimpleNamespace(get_value=lambda key, generator: generator())
 
-        def get_all(doctype, *args):
+        def get_all(doctype, *args, **kwargs):
             if doctype == "Capxul Feature":
                 return [types.SimpleNamespace(feature=k, enabled=v) for k, v in rows.items()]
             return []
@@ -68,3 +68,27 @@ class NativeFeatures(unittest.TestCase):
             rows["attendance"] = 1
             self.assertTrue(features.has_permission(types.SimpleNamespace(doctype="Attendance")))
             self.assertFalse(features.has_permission(types.SimpleNamespace(doctype="Job Applicant")))
+
+            readable = ["Attendance", "Job Applicant", "Appraisal", "Leave Application"]
+            frappe.get_user = lambda: types.SimpleNamespace(get_can_read=lambda: readable, can_create=[],
+                                                           can_write=[], can_delete=[], can_submit=[], can_cancel=[])
+            frappe.get_meta = lambda dt: types.SimpleNamespace(module="HR", issingle=False, istable=False,
+                is_submittable=False, get_table_fields=lambda: [], autoname="", naming_rule="", title_field="",
+                sort_field="name", sort_order="ASC", fields=[])
+            frappe.has_permission = lambda *args, **kw: True
+            frappe.permissions = types.SimpleNamespace(get_role_permissions=lambda meta: {"read": True})
+            capxul = types.ModuleType("capxul")
+            capxul.features, capxul.sign = features, types.SimpleNamespace()
+            with patch.dict(sys.modules, {"capxul": capxul}):
+                door_spec = importlib.util.spec_from_file_location("door_under_test", path.with_name("door.py"))
+                door = importlib.util.module_from_spec(door_spec)
+                door_spec.loader.exec_module(door)
+                for feature, dt in (("attendance", "Attendance"), ("recruitment", "Job Applicant"), ("reviews", "Appraisal")):
+                    rows[feature] = 1
+                    self.assertEqual([r["doctype"] for r in door.types(feature)["types"]], [dt])
+                    self.assertEqual(door.schema(dt)["feature"], feature)
+                    self.assertNotIn(dt, [r["doctype"] for r in door.types("people")["types"]])
+                    rows[feature] = 0
+                    with self.assertRaises(features.FeatureNotAvailable):
+                        door.types(feature)
+                self.assertEqual(door.types("people")["types"][0]["doctype"], "Leave Application")
