@@ -14,6 +14,26 @@ import * as x from "./external.ts";
 const CLAUDE = "Claude, target architecture, 7 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 
+export const decision_integrations_claim_signer = defineDecision({
+  id: "integrations.claim-signer",
+  title: "The personal-Safe service signer exposes only its configured claim role",
+  question: "How does account setup recover a lost broadcast answer without signing a second transaction?",
+  options: [
+    { label: "durable-claim", text: "Accept a stable setup person/attempt key and claim arguments only; commit signed bytes and hash before a single broadcast attempt, then recover that hash." },
+    { label: "wallet", text: "Give account setup an unrestricted wallet and let each retry prepare a transaction." },
+  ],
+  chosen: "durable-claim",
+  why:
+    "Service keys belong to the backend and on-chain Roles confines the claim key to its configured claimer, namespace and delegatecall. " +
+    "The provider never accepts arbitrary targets, data, role or value. A worker-only durable lane serializes the account and keeps signed bytes before broadcast. " +
+    "An attempted send, even with an unknown answer or a crash before ingress, is never broadcast again automatically; retries return its existing hash. " +
+    "The lane stays busy until a canonical receipt is observed, not just until an RPC answers. A successful receipt must include the expected claim event from Companies House. " +
+    "Known claim reverts map to the account vocabulary; unavailable historical revert data remains TRANSACTION_FAILED, never an invented contract refusal. " +
+    "No configured service credential or verified on-chain role means no live provider proof; a generic funded wallet cannot substitute for that role.",
+  source: "responsibilities.service-lanes; components.service-keys; service-signer; Access claim boundary, 12 November 2026",
+  affects: [x.integration_service_signer, f.concept_accounts, x.contract_companies_house_claimer],
+});
+
 export const decision_runtime_retained_spans = defineDecision({
   id: "runtime.retained-spans",
   title: "Retain completed Effect spans independently of business records",
