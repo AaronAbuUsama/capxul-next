@@ -7,7 +7,7 @@ import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { gateway } from "./gateway.ts";
 import { verifyRun } from "./gate.ts";
-import { bench, sitesEnvironment } from "./fixture.ts";
+import { bench, delivered, sitesEnvironment } from "./fixture.ts";
 import { prepareSlice } from "./preparation.ts";
 import { command, supervised } from "./processes.ts";
 import { runtimeEnv } from "./service.ts";
@@ -64,6 +64,28 @@ test("native bench reads preserve raw scalars, structured JSON and empty None re
     }
   } finally {
     for (const [key, value] of Object.entries(previous)) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
+    await rm(root, { recursive: true });
+  }
+});
+
+test("delivery readback converges when a new acknowledged event arrives between Core and native site reads", async () => {
+  const root = await mkdtemp(join(tmpdir(), "world-delivery-readback-")), c = config(root);
+  const previous = process.env.PATH;
+  let sequence = 0;
+  const core = createServer((_req, res) => {
+    sequence = Math.min(sequence + 1, 2);
+    res.setHeader("content-type", "application/json");
+    res.end(JSON.stringify({ released: true, last_seq: String(sequence), last_ack: String(sequence), pending: [],
+      events: [{ event_key: "hat", seq: "1", state: "applied" }] }));
+  });
+  c.ports.core = await listen(core);
+  try {
+    await writeFile(join(root, "docker"), `#!${process.execPath}\nconst args=process.argv;process.stdout.write(args.includes("frappe.db.get_single_value")?"2":args.includes("frappe.db.exists")?"hat-grant":"1");\n`, { mode: 0o700 });
+    process.env.PATH = `${root}:${previous}`;
+    await delivered(c, { slug: "harbourline", site: "fixture.localhost", email: "director@example.invalid" } as any);
+  } finally {
+    if (previous === undefined) delete process.env.PATH; else process.env.PATH = previous;
+    await new Promise<void>((done) => core.close(() => done()));
     await rm(root, { recursive: true });
   }
 });

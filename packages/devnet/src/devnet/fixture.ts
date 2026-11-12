@@ -79,12 +79,13 @@ export async function delivered(c: Config, f: FixtureState, replay?: any): Promi
   await until("released company's acknowledged event stream", async () => {
     status = await signedCore(c, "/admin/status", { slug: f.slug });
     if (!(status.released === true && BigInt(status.last_seq) > 0n && BigInt(status.last_ack) === BigInt(status.last_seq) && !status.pending.length && status.events.every((e: any) => e.state === "applied"))) return false;
+    // Native reads can outlast another delivery. Retry the pair rather than comparing a stale Core head afterward.
+    if (BigInt(await single(c, f.site, "last_seq")) !== BigInt(status.last_ack)) return false;
     return !replay || BigInt(status.last_ack) >= BigInt(replay.last_seq) && replay.events.every((before: any) => {
       const event = status.events.find((after: any) => after.event_key === before.event_key && BigInt(after.seq) === BigInt(before.seq));
       return event?.state === "applied" && event.applied_at && !event.last_error && Number(event.attempts) > Number(before.attempts);
     });
   }, 180_000);
-  assert.equal(Number(await single(c, f.site, "last_seq")), Number(status.last_ack));
   const person = await bench(c, f.site, "frappe.db.get_value", ["User", f.email, "enabled"]);
   const grant = await bench(c, f.site, "frappe.db.exists", ["Capxul Hat Grant", { user: f.email }]);
   assert.equal(person, 1); assert(grant, "indexed personal-Safe hat did not create the fixture user");
