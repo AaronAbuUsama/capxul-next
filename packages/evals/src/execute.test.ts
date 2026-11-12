@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -76,5 +77,25 @@ test("only a complete child run replaces prior passes; every attempt keeps inten
     const unbound = parseStatus(JSON.parse(readFileSync(join(root, "status/status.json"), "utf8")));
     assert.ok(unbound.ok);
     assert.equal(unbound.value.evals["ret:record.export"]?.verdict, "not_run");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("a check consuming stdin cannot swallow the next concept's registered checks", () => {
+  const root = mkdtempSync(join(tmpdir(), "eval-dispatch-"));
+  try {
+    for (const dir of ["spikes/skeleton/core/bin", "spikes/skeleton/core/state", "spikes/skeleton/frappe/bin", "evals/checks"])
+      mkdirSync(join(root, dir), { recursive: true });
+    const script = join(root, "spikes/skeleton/run.sh");
+    writeFileSync(script, readFileSync(join(import.meta.dirname, "../../../spikes/skeleton/run.sh")));
+    writeFileSync(join(root, "spikes/skeleton/.env"), "");
+    writeFileSync(join(root, "spikes/skeleton/core/state/deployment.json"), '{"usdc":"fixture","payments":"fixture"}');
+    for (const dir of ["core", "frappe"])
+      writeFileSync(join(root, `spikes/skeleton/${dir}/bin/up.sh`), "#!/usr/bin/env bash\nexit 0\n", { mode: 0o755 });
+    writeFileSync(join(root, "evals/checks/first.sh"), 'register 10 B1 first ""\nfirst() { cat >/dev/null; ok B1.first "first completed"; }\n');
+    writeFileSync(join(root, "evals/checks/second.sh"), 'register 20 B2 second "B1"\nsecond() { ok B2.second "second completed"; }\n');
+    const result = spawnSync("bash", [script, "fixture", "--only", "B2"], { encoding: "utf8", timeout: 10_000 });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /@check\tB1.first\tpass/);
+    assert.match(result.stdout, /@check\tB2.second\tpass/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

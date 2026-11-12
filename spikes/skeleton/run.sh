@@ -122,7 +122,7 @@ USDC=$(python3 -c "import json;print(json.load(open('$HERE/core/state/deployment
 PAYMENTS=$(python3 -c "import json;print(json.load(open('$HERE/core/state/deployment.json'))['payments'])")
 
 while IFS='|' read -r order name fn needs; do
-  if want "$name" || { [ "$name" = TL ] && want B9; }; then "$fn"; fi
+  if want "$name" || { [ "$name" = TL ] && want B9; }; then "$fn" </dev/null; fi
 done < <(printf '%s\n' "${STEPS[@]}" | sort -n)
 
 echo; echo "RESULT: $pass passed, $fail failed  (site http://$SITE:8000, sign in as $ADMIN or $BUDGET through http://localhost:8787)"

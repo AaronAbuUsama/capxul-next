@@ -625,11 +625,13 @@ names `packages/evals` for the harness); the bindings are `evals/bindings/<conce
   `evidence/<eval>.txt` (the eval, its claim, its checks with their details, the run, the commit; at most 60 000 characters) and
   `run.log` (the script's whole output, at most 400 000 characters, not committed). Values from the files a binding lists under
   `secrets` (keys, secrets, passwords, tokens) are replaced with `[redacted]`. Only anvil's published test keys exist in a run.
-  A commit that has uncommitted changes to tracked files outside `status/` is recorded as `<sha>+dirty`.
+  A commit that has uncommitted tracked changes or untracked files outside `status/` is recorded as `<sha>+dirty`.
 
 The engine exports `RunReceipt` and `parseRunReceipt`. Receipt version 1 contains `id`, `state` (`running`, `complete`, `incomplete`), `commit`, `at`, optional `finishedAt`, `requested` IDs, `evals: [{id,claim,observes?}]`, `scripts: [{script,exitCode,signal}]`, `environment`, and `screens`. Intent exists before a child starts, even if it prints nothing or the runner is killed. Every requested ID has a verdict in the run's status snapshot. Complete is published last, only after every script has exited zero and every bound requested check ran. Historical directories are not rewritten or treated as complete receipts.
 
 Environment is `{world,storage:"json"|"postgres",indexer:"inline"|"ponder",stack,components:Record<string,string>,chainId?,databaseSchemaVersion?}`. Supply `--environment <json>` for a real runtime's metadata; the JSON skeleton is always `stack:"skeleton-json"`, never `postgres-ponder-erpnext-v4`. Children receive `CAPXUL_EVAL_RUN_DIR` and may write its `screens.json`: `[{screen,path,source,assertion}]`. The runner validates existing run-relative capture paths and includes them in the final receipt. `assertion:"source-equality"` identifies a screen whose values were checked against the source readback kept in that run. `--screens <manifest>` imports an external manifest and captures. A slice's completion must use fresh same-run verdicts from a complete receipt in its required environment, never a mixture of historical JSON-stack passes.
+
+`--json` returns `{version:1,run,runDir,state,passed,counts:{pass,fail,not_run},exitCode}` on stdout, with script logs on stderr. `passed` requires a nonempty complete run with every requested eval passing. Complete execution with an unbound `not_run` eval still exits 1; completion alone never means success. `runDir` is repository-relative. Validation errors before a run starts have no run directory. Use `pnpm --silent evals -- ... --json` to omit pnpm's banner.
 
 ```bash
 pnpm evals -- all                                      # every eval that has a check (company slug: a fresh one; --slug to choose, --world main)
