@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { psqlAdmin, readSnapshot, restoreSnapshot, saveSnapshot, type Options, type Runtime, type World } from "./door.ts";
+import { composeBench, psqlAdmin, readSnapshot, restoreSnapshot, saveSnapshot, type Options, type Runtime, type World } from "./door.ts";
 
 const maintenance = process.env.WORLD_SNAPSHOT_PG;
 test("whole database cut restores independently, fences failures and retains abandoned state", { skip: !maintenance }, async () => {
@@ -148,5 +148,34 @@ test("whole database cut restores independently, fences failures and retains aba
     await admin(`DROP ROLE IF EXISTS "${role}"`);
     await admin(`DROP ROLE IF EXISTS "${ponder}"`);
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+// Run as a host UID other than frappe's 1000, against an already configured disposable production bench/site.
+const nativeBench = process.env.WORLD_SNAPSHOT_BENCH;
+test("native site backup crosses the host UID boundary without exposing archives", { skip: !nativeBench }, async () => {
+  assert.notEqual(process.getuid!(), 1000, "run this control as root or another non-frappe host UID");
+  const { composeArgs, site } = JSON.parse(nativeBench!) as { composeArgs: string[]; site: string };
+  const bench = composeBench(composeArgs);
+  const root = await mkdtemp(join(tmpdir(), "capxul-native-backup-"));
+  const directory = join(root, "site");
+  await mkdir(directory, { mode: 0o755 });
+  try {
+    await bench.pause();
+    await bench.backup({ company: "harbourline", name: site }, directory);
+    const files = await readdir(directory);
+    assert(files.some((file) => file.endsWith("-database.sql.gz") || file.endsWith("-database-enc.sql.gz")));
+    assert(files.some((file) => file.endsWith("-files.tar") || file.endsWith("-files-enc.tar")));
+    assert(files.some((file) => file.endsWith("-private-files.tar") || file.endsWith("-private-files-enc.tar")));
+    assert(JSON.parse(await readFile(join(directory, "original-site-config.json"), "utf8")).encryption_key);
+    for (const file of [directory, ...files.map((file) => join(directory, file))]) {
+      const info = await stat(file);
+      assert.equal(info.uid, process.getuid!(), "the host caller must retain archive ownership");
+      assert.equal(info.mode & 0o077, 0, "no group/other access to keys or archives");
+      assert(info.isDirectory() || (await readFile(file)).length > 0);
+    }
+  } finally {
+    if (bench.ownsPause()) await bench.resume();
+    await rm(root, { recursive: true, force: true });
   }
 });

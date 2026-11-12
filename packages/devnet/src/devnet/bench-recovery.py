@@ -4,12 +4,39 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import pwd
 import secrets
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
+
+# Only archive transport runs as container root. Native bench/database work keeps frappe's UID.
+if sys.argv[1] in ("backup", "restore") and os.geteuid() == 0:
+    command, site, directory, *rest = sys.argv[1:]
+    destination = Path(directory)
+    owner = destination.stat()
+    user = pwd.getpwnam("frappe")
+    os.umask(0o077)
+    with tempfile.TemporaryDirectory(prefix="capxul-recovery-") as staging:
+        if command == "restore":
+            shutil.copytree(directory, staging, dirs_exist_ok=True)
+        else:
+            destination.chmod(0o700)
+        for path in [Path(staging), *Path(staging).rglob("*")]:
+            path.chmod(0o700 if path.is_dir() else 0o600)
+            os.chown(path, user.pw_uid, user.pw_gid)
+        subprocess.run([sys.executable, __file__, command, site, staging, *rest], check=True,
+                       user=user.pw_uid, group=user.pw_gid, extra_groups=[],
+                       env={**os.environ, "HOME": user.pw_dir, "USER": user.pw_name})
+        if command == "backup":
+            for path in Path(staging).iterdir():
+                target = destination / path.name
+                shutil.copyfile(path, target)
+                target.chmod(0o600)
+                os.chown(target, owner.st_uid, owner.st_gid)
+    sys.exit(0)
 
 import frappe
 
@@ -140,7 +167,7 @@ def restore(site, directory, in_place):
     write_json(GUARD, configs)
 
 
-def rewrite(site, world, now_ms, frozen, rate, site_url=None):
+def rewrite(site, world, now_ms, frozen, rate, site_url=None, core_url=""):
     frappe.init(site=site, sites_path=str(SITES))
     frappe.connect()
     try:
@@ -148,8 +175,8 @@ def rewrite(site, world, now_ms, frozen, rate, site_url=None):
         from capxul import clock
         from capxul.world import rewrite as rewrite_world
 
-        rewrite_world(world=world, core_url="", browser_core_url="", site=site)
-        if site_url is not None:
+        rewrite_world(world=world, core_url="", browser_core_url=core_url, site=site)
+        if site_url:
             from frappe.installer import update_site_config
 
             update_site_config("host_name", site_url)

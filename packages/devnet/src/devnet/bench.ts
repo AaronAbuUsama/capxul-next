@@ -5,7 +5,7 @@ import type { Cut, Site } from "./door.ts";
 
 const exec = promisify(execFile);
 /** The production-shaped bench compose layout: database/Redis stay up; all bench writers stop. */
-export function composeBench(composeArgs: string[], benchDir = "/home/frappe/frappe-bench", siteUrl?: (site: Site) => string) {
+export function composeBench(composeArgs: string[], benchDir = "/home/frappe/frappe-bench", siteUrl?: (site: Site) => string, coreUrl?: () => string) {
   const script = resolve(import.meta.dirname, "bench-recovery.py");
   let ownsPause = false, involved = false;
   const compose = async (args: string[]) => {
@@ -14,7 +14,7 @@ export function composeBench(composeArgs: string[], benchDir = "/home/frappe/fra
   };
   const python = async (args: string[], directory?: string) => {
     await compose(["run", "--rm", "-T", "--no-deps", "-v", `${script}:/recovery.py:ro`,
-      ...(directory ? ["-v", `${resolve(directory)}:/recovery`] : []),
+      ...(directory ? ["--user", "0:0", "-v", `${resolve(directory)}:/recovery${args[0] === "restore" ? ":ro" : ""}`] : []),
       "--workdir", benchDir, "site-admin", `${benchDir}/env/bin/python`, "/recovery.py", ...args]);
   };
   return {
@@ -35,7 +35,7 @@ export function composeBench(composeArgs: string[], benchDir = "/home/frappe/fra
     backup: (site: Site, directory: string) => python(["backup", site.name, "/recovery"], directory),
     restore: (site: Site, directory: string, inPlace: boolean) => python(["restore", site.name, "/recovery", inPlace ? "in-place" : "new"], directory),
     rewrite: (site: Site, world: string, cut: Cut) => python(["rewrite", site.name, world, String(cut.nowMs), cut.clockMode === "stopped" ? "frozen" : "running", String(cut.rate),
-      ...(siteUrl ? [siteUrl(site)] : [])]),
+      ...(siteUrl || coreUrl ? [siteUrl?.(site) ?? "", coreUrl?.() ?? ""] : [])]),
     async resume() {
       if (!ownsPause) throw new Error("this adapter does not own the bench pause; refusing to release another recovery's guard");
       await python(["release"]);
