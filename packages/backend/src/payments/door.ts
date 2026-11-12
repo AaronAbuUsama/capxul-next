@@ -1,6 +1,23 @@
 import { formatUnits, parseUnits } from "viem";
+import { readFileSync } from "node:fs";
 import { record, type Sql } from "../platform/db.ts";
 import { enqueue } from "../plugs/door.ts";
+import type { Owner, Payment } from "./types.ts";
+export type { Owner, Payment, PaymentTransitionProps } from "./types.ts";
+
+/** Called by the admin migrator inside its existing transaction, never during resume. */
+export async function migratePayments(sql: Sql) {
+  await sql.query(readFileSync(new URL("./schema.sql", import.meta.url), "utf8"));
+}
+
+/** An owner-qualified identity is required even for a worker following an outbox event. */
+export async function readPayment(sql: Sql, owner: Owner, paymentId: string): Promise<Payment | null> {
+  return (await sql.query<Payment>("select * from app.payments where owner_kind=$1 and owner_id=$2 and id=$3", [owner.kind, owner.id, paymentId])).rows[0] ?? null;
+}
+
+export async function readCommandPayments(sql: Sql, owner: Owner, commandId: string): Promise<Payment[]> {
+  return (await sql.query<Payment>("select * from app.payments where owner_kind=$1 and owner_id=$2 and command_id=$3 order by created_at,id", [owner.kind, owner.id, commandId])).rows;
+}
 
 const amount = (v: string) => formatUnits(BigInt(v), 6);
 export async function consume(sql: Sql, org: string, chain: number, finality: number) {
