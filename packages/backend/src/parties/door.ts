@@ -34,14 +34,15 @@ export function newId(prefix: string) {
 async function lock(sql: Sql, key: string) {
   await sql.query("select pg_advisory_xact_lock(hashtextextended($1, 7))", [key]);
 }
-async function emit(sql: Sql, row: Party, from: Party["state"] | null, transition: string) {
+async function emit(sql: Sql, row: Party, from: Party["state"] | null, transition: string, now: number) {
   await sql.query("insert into app.party_events(party_id,data,at) values ($1,$2,$3)", [row.party_id,
-    { from, to: row.state, transition, party_id: row.party_id, kind: row.kind, owner_kind: row.owner_kind, owner_id: row.owner_id }, Date.now()]);
+    { from, to: row.state, transition, party_id: row.party_id, kind: row.kind, owner_kind: row.owner_kind, owner_id: row.owner_id }, now]);
 }
 export async function lookup(sql: Sql, partyId: string): Promise<Party | null> {
   return (await sql.query("select * from app.parties where party_id=$1 and state<>'released'", [partyId])).rows[0] ?? null;
 }
-export async function register(sql: Sql, input: Registration): Promise<Party> {
+/** now is the caller transaction's authoritative world instant, never request data or a host fallback. */
+export async function register(sql: Sql, input: Registration, now: number): Promise<Party> {
   const handle = normalizeHandle(input.handle), safe = input.safe_address.toLowerCase();
   if (!/^[a-z0-9_-]{3,30}$/.test(handle) || reserved.has(handle) || !validSafe(safe) || !input.owner_id
     || !["person", "organization"].includes(input.owner_kind) || !["agent", "organization"].includes(input.kind)) throw new Error("INVALID_INPUT: Party registration");
@@ -60,21 +61,21 @@ export async function register(sql: Sql, input: Registration): Promise<Party> {
     throw new Error("INVALID_INPUT: handle or Safe already held");
   }
   const row: Party = (await sql.query(`insert into app.parties(party_id,kind,state,handle,display_name,safe_address,owner_kind,owner_id,created_at,updated_at)
-    values ($1,$2,'pending',$3,$4,$5,$6,$7,$8,$8) returning *`, [newId("party"), input.kind, handle, input.display_name, safe, input.owner_kind, input.owner_id, Date.now()])).rows[0];
-  await emit(sql, row, null, "register"); return row;
+    values ($1,$2,'pending',$3,$4,$5,$6,$7,$8,$8) returning *`, [newId("party"), input.kind, handle, input.display_name, safe, input.owner_kind, input.owner_id, now])).rows[0];
+  await emit(sql, row, null, "register", now); return row;
 }
-async function finish(sql: Sql, partyId: string, target: "active" | "released"): Promise<Party> {
+async function finish(sql: Sql, partyId: string, target: "active" | "released", now: number): Promise<Party> {
   const row: Party | undefined = (await sql.query("select * from app.parties where party_id=$1 for update", [partyId])).rows[0];
   if (!row || row.state !== "pending" && row.state !== target) throw new Error("WRONG_STATE: Party birth is not pending");
   if (row.state === target) return row;
   const changed: Party = (await sql.query(`update app.parties set state=$2,handle=case when $2='released' then null else handle end,updated_at=$3
-    where party_id=$1 returning *`, [partyId, target, Date.now()])).rows[0];
-  await emit(sql, changed, row.state, target === "active" ? "activate" : "release"); return changed;
+    where party_id=$1 returning *`, [partyId, target, now])).rows[0];
+  await emit(sql, changed, row.state, target === "active" ? "activate" : "release", now); return changed;
 }
-export const activate = (sql: Sql, partyId: string) => finish(sql, partyId, "active");
-export const release = (sql: Sql, partyId: string) => finish(sql, partyId, "released");
+export const activate = (sql: Sql, partyId: string, now: number) => finish(sql, partyId, "active", now);
+export const release = (sql: Sql, partyId: string, now: number) => finish(sql, partyId, "released", now);
 
-export async function resolveRecipient(sql: Sql, locator: Locator, config: PersonalSafeConfig): Promise<Resolution> {
+export async function resolveRecipient(sql: Sql, locator: Locator, config: PersonalSafeConfig, now: number): Promise<Resolution> {
   let row: Party | undefined, named = false;
   if (locator._tag === "party" || locator._tag === "handle") {
     const column = locator._tag === "party" ? "party_id" : "handle";
@@ -93,11 +94,11 @@ export async function resolveRecipient(sql: Sql, locator: Locator, config: Perso
     row = (await sql.query("select * from app.parties where (safe_address=$1 and state<>'released') or ($2::text is not null and mailbox_digest=$2) for update", [safe, digest])).rows[0];
     if (!row) {
       row = (await sql.query(`insert into app.parties(party_id,kind,state,safe_address,mailbox_digest,created_at,updated_at)
-        values ($1,$2,$3,$4,$5,$6,$6) returning *`, [newId("party"), email === null ? "address" : "person", email === null ? "outside" : "provisional", safe, digest, Date.now()])).rows[0] as Party;
-      await emit(sql, row, null, email === null ? "name_address" : "name_person"); named = true;
+        values ($1,$2,$3,$4,$5,$6,$6) returning *`, [newId("party"), email === null ? "address" : "person", email === null ? "outside" : "provisional", safe, digest, now])).rows[0] as Party;
+      await emit(sql, row, null, email === null ? "name_address" : "name_person", now); named = true;
     } else if (email !== null && row.state === "outside") {
-      row = (await sql.query("update app.parties set kind='person',state='provisional',mailbox_digest=$2,updated_at=$3 where party_id=$1 returning *", [row.party_id, digest, Date.now()])).rows[0] as Party;
-      await emit(sql, row, "outside", "adopt_mailbox"); named = true;
+      row = (await sql.query("update app.parties set kind='person',state='provisional',mailbox_digest=$2,updated_at=$3 where party_id=$1 returning *", [row.party_id, digest, now])).rows[0] as Party;
+      await emit(sql, row, "outside", "adopt_mailbox", now); named = true;
     }
   }
   if (row.state === "released") return { resolved: false, reason: "released" };
