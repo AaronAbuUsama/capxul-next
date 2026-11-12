@@ -573,3 +573,17 @@ export const decision_indexing_slice_zero_runtime = defineDecision({
   source: "aaron.postgres-and-ponder; Capxul delivery plan, 12 November 2026; Ponder 0.18.6 self-hosting and direct-SQL contract",
   affects: [component_backend, component_postgres, component_ponder, table_indexer_progress, table_chain_logs, table_chain_payments, table_transfers, table_user_operations],
 });
+
+export const decision_indexing_projection_reads = defineDecision({
+  id: "indexing.projection-reads",
+  title: "Projection refreshes read the emitting block, never the current chain",
+  question: "How are Safe, hat and budget projections reconstructed during backfill and replay?",
+  options: [
+    { label: "block-pinned", text: "Ponder refreshes affected objects using its block-pinned client. Birth reads initialize objects that existed before their admission; subsequent admitted events refresh them. Receipt-ordinal facts remain separate, and projection provenance records the actual first and last admitted log." },
+    { label: "latest", text: "Read the latest chain state during every handler, including historical backfill." },
+  ],
+  chosen: "block-pinned",
+  why: "A latest-state read makes historical rows depend on when indexing ran and can retain state from an orphaned future block. Ponder's block-pinned reads and rollback restore canonical projections. Safe execution nonce comes from SafeL2's transaction event, not end-of-block nonce minus one: several executions can share a block. A missing required historical read fails indexing rather than publishing a guessed row. Scoped app views expose only the declared columns; their keys and indexes belong to the underlying Ponder tables, since Postgres views cannot own indexes.",
+  source: "indexing.reorgs-are-ponders; indexing.one-row-per-log; slice-zero binding gap audit, 12 November 2026",
+  affects: [table_safe_owners, table_safe_approvals, table_safe_executions, table_chain_hats, table_hat_wearers, table_chain_budgets, table_chain_payments],
+});

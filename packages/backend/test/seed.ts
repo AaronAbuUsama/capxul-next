@@ -31,6 +31,8 @@ await grantHat(protocol, company, hat, testKey("second").address);
 await setBudget(protocol, company, department, 600_000_000n);
 await send(chain, { from: deployer.key, to: usdc, data: encodeFunctionData({ abi: ERC20, functionName: "mint", args: [company.companySafe, 900_000_000n] }) });
 await mkdir(dir, { recursive: true });
-await writeFile(`${dir}/deployment.json`, JSON.stringify({ chainId: chain.chainId, usdc, payments: record.contracts.Payments.address, hats: THIRD_PARTY.hats, installer: record.contracts.Installer.address, companiesHouse: record.companiesHouse, deployedBlock: Number(start) }, null, 2));
+await writeFile(`${dir}/deployment.json`, JSON.stringify({ chainId: chain.chainId, usdc, payments: record.contracts.Payments.address,
+  budgets: record.contracts.Budgets.address, agreements: record.contracts.Agreements.address, agentOwner: record.contracts.AgentOwner.address,
+  hats: THIRD_PARTY.hats, installer: record.contracts.Installer.address, companiesHouse: record.companiesHouse, deployedBlock: Number(start) }, null, 2));
 await writeFile(`${dir}/fixture.json`, JSON.stringify({ disposable: true, world: process.env.CAPXUL_WORLD, slug: "core-proof", companyName, safe: company.companySafe, founderSafe: company.founderSafe, token: usdc, hat: hat.toString(), department: department.toString(), startBlock: Number(start), documentHash: hash(`${companyName} supplier invoice`), deploymentFile: `${dir}/deployment.json` }, null, 2));
 console.log(`Real v4 company, Finance hat, budget and 900 USDC funding seeded: ${dir}/fixture.json`);
