@@ -46,5 +46,6 @@ COPY --from=chrome . /opt/chrome
 RUN set -eu; printf '#!/bin/sh\n[ "$(id -u)" -ne 0 ] || set -- --no-sandbox "$@"\nexec /opt/chrome/chrome "$@"\n' > /usr/bin/google-chrome; \
     chmod +x /usr/bin/google-chrome; google-chrome --headless=new --version
 
+COPY run-world.sh /usr/local/bin/run-world
 COPY box-start.sh /usr/local/bin/box-start
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/box-start"]

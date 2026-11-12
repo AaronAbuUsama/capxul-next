@@ -29,6 +29,10 @@ export const dockerBoxStack = (spec: DockerBoxSpec) =>
       const data = yield* Docker.Volume("BoxDocker", {
         labels: { "capxul.world": spec.stage.world },
       });
+      // The checkout and the world's own files (/work): kept when the box is replaced, as the Docker disk is.
+      const work = yield* Docker.Volume("BoxWork", {
+        labels: { "capxul.world": spec.stage.world },
+      });
       const box = yield* Docker.Container("Box", {
         name: boxName(spec.stage),
         image: spec.image,
@@ -41,12 +45,14 @@ export const dockerBoxStack = (spec: DockerBoxSpec) =>
         seccompProfile: "unconfined",
         appArmorProfile: "unconfined",
         volumes: [
-          { hostPath: data.name, containerPath: "/var/lib/docker" },
+          { hostPath: data.name, containerPath: "/var/lib/docker" }, { hostPath: work.name, containerPath: "/work" },
           { hostPath: "/sys/fs/cgroup", containerPath: "/sys/fs/cgroup" },
           ...(spec.trustCa ? [{ hostPath: spec.trustCa, containerPath: BOX_CA, readOnly: true }] : []),
         ],
         labels: { "capxul.world": spec.stage.world, "capxul.placement": "docker" },
         restart: "no",
+        // Parking stops every running world inside cleanly before the box stops (box/box-start.sh).
+        stopTimeout: "5 minutes",
         start: spec.want === "running",
       });
       return { world: spec.stage.world, box: box.name, volume: data.name };

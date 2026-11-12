@@ -12,16 +12,18 @@ import Alchemy, so a breaking Alchemy release changes this package only. Alchemy
 | `src/provisioner/alchemy.ts` | The only call into Alchemy's programmatic API: plan, then apply, for one stage; state under `var/provisioner` |
 | `src/main.ts` | The command line: `provisioner deploy|park|resume|destroy <world>` |
 | `box/Containerfile` | The world box image: Ubuntu 24.04 with its own Docker daemon, Node, pnpm, git and psql 17 |
-| `box/box-start.sh` | The box's entrypoint: trusts an extra CA if one is mounted, then runs `dockerd` |
-| `box/run-world.sh` | Inside the box: `run-world prepare`, `create <world>`, `slice-zero <world>` through today's supervisor |
+| `box/box-start.sh` | The box's entrypoint: trusts an extra CA, runs `dockerd`, stops worlds on park and starts them on resume |
+| `box/run-world.sh` | Inside the box: `run-world prepare`, `create`, `slice-zero`, `up`, `stop`, `inspect` through today's supervisor |
 | `bin/proxy-relay.mjs` | Cloud containers only: serves the loopback agent proxy on the Docker bridge for boxes |
 | `bin/build-box.sh` | Builds `capxul-world-box:dev` (through the agent proxy when one is set) |
 
 ## What a world's life looks like
 
-- **deploy**: Alchemy creates the box's disk (a Docker volume) and the box, and starts it. Deploying again changes nothing.
-- **park**: the box stops; its disk stays. Billing on a cloud placement stops with it.
-- **resume**: the same box starts again with its disk as it was.
+- **deploy**: Alchemy creates the box's two disks (Docker volumes: one for its Docker, one for `/work`, the checkout and
+  world files) and the box, and starts it. Deploying again changes nothing.
+- **park**: every running world inside stops cleanly (its supervisor fences a world that was killed), then the box
+  stops; its disks stay. Billing on a cloud placement stops with it.
+- **resume**: the same box starts again with its disks as they were, and the worlds that parking stopped come back up.
 - **destroy**: Alchemy removes everything the stage made, disk included.
 
 The box runs its own Docker daemon, so the devnet supervisor runs inside it as it runs on a machine today. No

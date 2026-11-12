@@ -42,7 +42,7 @@ test("a world box lives and dies as an Alchemy stage", { skip: !enabled && "set 
   const world = `life${process.pid % 100000000}`;
   try {
     const made = await Effect.runPromise(p.deploy(world));
-    assert.equal(made.summary.create, 2);
+    assert.equal(made.summary.create, 3);
     const box = made.output?.box ?? assert.fail("deploy returned no box");
     waitForDaemon(box);
     // A volume of the box's own daemon lives on the box's disk; no registry pull, so no rate limit.
@@ -58,10 +58,10 @@ test("a world box lives and dies as an Alchemy stage", { skip: !enabled && "set 
     assert.match(inBox(box, "volume", "ls", "--format", "{{.Name}}"), /kept-across-park/, "the disk survived parking");
 
     const again = await Effect.runPromise(p.deploy(world));
-    assert.equal(again.summary.noop, 2, "a second deploy changes nothing");
+    assert.equal(again.summary.noop, 3, "a second deploy changes nothing");
   } finally {
     const gone = await Effect.runPromise(p.destroy(world));
-    assert.equal(gone.summary.delete, 2);
+    assert.equal(gone.summary.delete, 3);
     assert.equal(docker("ps", "-a", "--filter", `name=capxul-world-${world}`, "--format", "{{.Names}}"), "");
     rmSync(stateDir, { recursive: true, force: true });
   }

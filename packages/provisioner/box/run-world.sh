@@ -4,6 +4,7 @@
 #   run-world.sh prepare           tools, dependencies and contract artifacts (no images, no world)
 #   run-world.sh create <world>    init and create the world (needs capxul-bench:orb and the backing images loaded)
 #   run-world.sh slice-zero <world>  run the slice-zero acceptance on it
+#   run-world.sh up|stop|inspect <world>  start a world again after the box resumes, stop it before the box parks, look at it
 # Behind a TLS-inspecting proxy the box's extra CA (box-start.sh) is also what the cloud recipe expects at /root/.ccr.
 set -euo pipefail
 cd /work/capxul-next
@@ -37,5 +38,9 @@ case "${1:-}" in
     env_up
     cli world run slice-zero --config "var/worlds/${2:?world id}.json" --json
     ;;
-  *) echo "usage: run-world.sh prepare | create <world> | slice-zero <world>" >&2; exit 2 ;;
+  up|stop|inspect)
+    env_up
+    cli world "$1" --config "var/worlds/${2:?world id}.json"
+    ;;
+  *) echo "usage: run-world.sh prepare | create <world> | slice-zero <world> | up|stop|inspect <world>" >&2; exit 2 ;;
 esac
