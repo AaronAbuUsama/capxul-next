@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { setTimeout } from "node:timers/promises";
 import test from "node:test";
 import pg from "pg";
-import { decodeFunctionData, encodeAbiParameters, encodeFunctionData, keccak256, parseAbi, type Abi, type Hex } from "viem";
+import { createTestClient, decodeFunctionData, encodeAbiParameters, encodeFunctionData, http, keccak256, parseAbi, type Abi, type Hex } from "viem";
 import { connect, send } from "../../devnet/src/modules/chain/service.ts";
 import { board } from "../../devnet/src/modules/company/service.ts";
 import { testKey } from "../../devnet/src/modules/test-keys/service.ts";
@@ -16,11 +16,12 @@ import { prepareCommand, type PrepareCommand, type PrepareContext } from "../src
 if (!process.env.CORE_PROOF_DIR || process.env.CAPXUL_DISPOSABLE !== "true" || !process.env.CAPXUL_WORLD || process.env.CAPXUL_WORLD === "main")
   throw new Error("payment command controls require a named disposable real Ponder/v4 world");
 
-test("same-Sql command birth, original terminal replay and exact v4 IDs/calldata", async () => {
+test("same-Sql command birth, original terminal replay and exact v4 IDs/calldata", async (t) => {
   const fixture = JSON.parse(await readFile(`${process.env.CORE_PROOF_DIR}/fixture.json`, "utf8"));
   const record = JSON.parse(await readFile(new URL("../../contracts/deployments/devnet.json", import.meta.url), "utf8"));
   const artifacts = JSON.parse(await readFile(new URL("../../contracts/abi/abi.json", import.meta.url), "utf8"));
   const chain = await connect(process.env.RPC_URL!);
+  const control = createTestClient({ mode: "anvil", transport: http(process.env.RPC_URL!) });
   const block = await chain.client.getBlock(), at = Number(block.timestamp) * 1000;
   const adminUrl = new URL(process.env.PG_ADMIN_URL!); adminUrl.pathname = new URL(process.env.DATABASE_URL!).pathname;
   const admin = new pg.Client({ connectionString: adminUrl.href });
@@ -60,6 +61,11 @@ test("same-Sql command birth, original terminal replay and exact v4 IDs/calldata
     const child = await chain.client.readContract({ address: context.budgets as Hex, abi: budgetAbi, functionName: "budgetCount" }) as bigint;
     assert.equal(await chain.client.readContract({ address: context.budgets as Hex, abi: budgetAbi,
       functionName: "authorised", args: [child, testKey("second").address] }), true);
+    const boardCalls = async (functionName: string, args: readonly unknown[]) => board({ chain, record, installerAbi: installer.abi as Abi }, {
+      companySafe: fixture.safe, founderSafe: fixture.founderSafe, founderKey: testKey("founder").key, relayerKey: testKey("deployer").key,
+    }, [{ to: context.budgets as Hex, data: encodeFunctionData({ abi: budgetAbi, functionName, args }) }]);
+    await boardCalls("createChildBudget", [child, 5_000_000n, BigInt(fixture.hat)]);
+    const grandchild = await chain.client.readContract({ address: context.budgets as Hex, abi: budgetAbi, functionName: "budgetCount" }) as bigint;
     let indexed = false;
     for (let attempt = 0; attempt < 200; attempt++) {
       indexed = Boolean((await sql.query("select 1 from app.chain_budgets where budget_id=$1", [child.toString()])).rowCount);
@@ -75,14 +81,47 @@ test("same-Sql command birth, original terminal replay and exact v4 IDs/calldata
     [owner.id, fixture.safe.toLowerCase(), owner.id, at, `${owner.id}-payee`, testKey("payee").address.toLowerCase()]);
     const bornRows = async () => (await sql.query("select * from app.payment_commands where owner_kind='organization' and owner_id=$1", [owner.id])).rows;
     const refuses = async (body: PrepareCommand, ctx = context, error = /INVALID_INPUT/) => {
-      await sql.query("savepoint refusal"); await assert.rejects(prepareCommand(sql, body, ctx), error);
-      await sql.query("rollback to savepoint refusal"); assert.deepEqual(await bornRows(), []);
+      await sql.query("savepoint refusal");
+      try { await assert.rejects(prepareCommand(sql, body, ctx), error); }
+      finally { await sql.query("rollback to savepoint refusal"); }
+      assert.deepEqual(await bornRows(), []);
     };
     await refuses({ ...input, funding: { ...input.funding, raw: "1469133" } }, context, /PAYROLL_BUDGET_EXCEEDED/);
     await refuses({ ...input, pay_at: at + 3_599_999 });
     await refuses({ ...input, items: [{ ...input.items[0]!, document_hash: `0x${"0".repeat(64)}` }] });
     await refuses(input, { ...context, owner: { kind: "person", id: owner.id } });
     await refuses(input, { ...context, approval: { ...context.approval, sender: testKey("stranger").address } }, /FORBIDDEN/);
+    await t.test("a child-authorized wearer cannot prepare through a closed ancestor", async () => {
+      await boardCalls("close", [child]);
+      try {
+        let closed = false;
+        for (let attempt = 0; attempt < 200; attempt++) {
+          closed = (await sql.query("select closed from app.chain_budgets where budget_id=$1", [child.toString()])).rows[0]?.closed;
+          if (closed) break;
+          await setTimeout(100);
+        }
+        assert(closed, "actual ancestor closure must reach Ponder");
+        assert.equal((await sql.query("select closed from app.chain_budgets where budget_id=$1", [grandchild.toString()])).rows[0].closed, false);
+        assert.equal(await chain.client.readContract({ address: context.budgets as Hex, abi: budgetAbi,
+          functionName: "authorised", args: [grandchild, testKey("second").address] }), true);
+        const args = [grandchild, testKey("payee").address, 1_234_567n, 1] as const;
+        for (const [functionName, terms] of [["spend", [...args, fixture.documentHash, `0x${"11".repeat(32)}`]],
+          ["schedule", [...args, BigInt(at / 1000 + 14_400), fixture.documentHash, `0x${"22".repeat(32)}`]]] as const)
+          await assert.rejects(chain.client.simulateContract({ address: context.budgets as Hex, abi: budgetAbi,
+            functionName, args: terms, account: testKey("second").address }), /BudgetIsClosed/);
+        const funding = { ...input.funding, raw: String(await chain.client.readContract({ address: context.budgets as Hex,
+          abi: budgetAbi, functionName: "leftOf", args: [grandchild] })) };
+        await refuses({ ...input, budget_id: grandchild.toString(), funding }, context, /WRONG_STATE:.*closed/);
+        await refuses({ ...input, budget_id: grandchild.toString(), funding, pay_at: at + 14_400_000,
+          not_after: at + 18_000_000 }, context, /WRONG_STATE:.*closed/);
+      } finally {
+        await boardCalls("reopen", [child]);
+        for (let attempt = 0; attempt < 200; attempt++) {
+          if ((await sql.query("select closed from app.chain_budgets where budget_id=$1", [child.toString()])).rows[0]?.closed === false) break;
+          await setTimeout(100);
+        }
+      }
+    });
     assert.equal((await sql.query(`select 1 from app.hat_wearers where hat_id=$1 and wearer=$2 and wearing`,
       [`0x${root.hat.toString(16).padStart(64, "0")}`, testKey("second").address.toLowerCase()])).rowCount, 0);
     await sql.query("savepoint ancestor_authority");
@@ -134,10 +173,11 @@ test("same-Sql command birth, original terminal replay and exact v4 IDs/calldata
     await sql.query(`insert into app.parties(party_id,kind,state,safe_address,owner_kind,owner_id,created_at,updated_at)
       values ($1,'person','active',$2,'person',$1,$3,$3)`, [person.id, fixture.founderSafe.toLowerCase(), at]);
     const personalContext = { ...context, owner: person, approval: { ...context.approval, person_id: person.id, sender: fixture.founderSafe } };
-    const personal = await prepareCommand(sql, { ...input, owner_kind: person.kind, owner_id: person.id, requested_by: person.id,
+    const personalInput: PrepareCommand = { ...input, owner_kind: person.kind, owner_id: person.id, requested_by: person.id,
       route: "personal", payer_safe: fixture.founderSafe, budget_id: null,
       funding: { raw: String(personalFunding), block_number: fundingBlock, of: "balance" },
-      pay_at: at + 3_600_000, not_after: at + 5_400_000 }, personalContext);
+      pay_at: at + 3_600_000, not_after: at + 18_000_000 };
+    const personal = await prepareCommand(sql, personalInput, personalContext);
     const personalApproval = (await sql.query("select calls,send_after from app.approvals where approval_id=$1", [personal.approval_id])).rows[0];
     assert.equal(personalApproval.send_after.getTime(), at + 3_600_000);
     assert.equal(personalApproval.calls.length, 2);
@@ -152,7 +192,9 @@ test("same-Sql command birth, original terminal replay and exact v4 IDs/calldata
         functionName: "paymentId", args: [item] }), item.paymentId);
     }
     await sql.query("commit");
-    const expiredAt = new Date(context.deadline + 120_001);
+    const expiredAt = new Date(context.deadline + 121_000);
+    await control.setNextBlockTimestamp({ timestamp: BigInt(expiredAt.getTime() / 1000) });
+    await control.mine({ blocks: 1 });
     const outside = async (): Promise<never> => { throw new Error("expired command must not invoke an outside signing/sending service"); };
     const services: CarrierServices = { now: async () => expiredAt, sponsor: outside, send: outside, lookup: outside,
       nonce: outside, needsAndGate: outside,
@@ -172,7 +214,44 @@ test("same-Sql command birth, original terminal replay and exact v4 IDs/calldata
     assert.equal(retried.command_id, dated.command_id); assert.deepEqual(retried.payment_ids, dated.payment_ids);
     assert.notEqual(retried.approval_id, dated.approval_id);
     assert.deepEqual((await readCommandPayments(sql, owner, dated.command_id)).map((p) => p.chain_payment_id), lapsed.map((p) => p.chain_payment_id));
+    const future = (await sql.query("select calls from app.approvals where approval_id=$1", [retried.approval_id])).rows[0].calls;
+    assert(future.every((call: { data: Hex }) => decodeFunctionData({ abi: budgetAbi, data: call.data }).functionName === "schedule"));
     await sql.query("rollback");
+    await t.test("elapsed budget and personal retries preserve IDs without elapsed scheduling", async (retryTest) => {
+      await control.setNextBlockTimestamp({ timestamp: BigInt(at / 1000 + 14_401) });
+      await control.mine({ blocks: 1 });
+      const now = new Date(Number((await chain.client.getBlock()).timestamp) * 1000);
+      assert(now.getTime() > datedInput.pay_at);
+      for (const [body, ctx, original] of [[datedInput, context, dated], [{ ...personalInput, resume: true }, personalContext, personal]] as const) {
+        await retryTest.test(body.route, async () => {
+          await sql.query("begin");
+          try {
+            const before = await readCommandPayments(sql, ctx.owner, original.command_id);
+            if (body.route === "budget") {
+              const legacy = (await sql.query("select calls from app.approvals where approval_id=$1", [original.approval_id])).rows[0].calls;
+              const call = decodeFunctionData({ abi: budgetAbi, data: legacy[0].data });
+              await assert.rejects(chain.client.simulateContract({ address: context.budgets as Hex, abi: budgetAbi,
+                functionName: call.functionName, args: call.args, account: testKey("second").address }), /InvalidPayAt/);
+            }
+            const result = await prepareCommand(sql, body, { ...ctx, approval: { ...ctx.approval, now }, deadline: now.getTime() + 1_800_000 });
+            assert.deepEqual(result.payment_ids, original.payment_ids); assert.equal(result.command_id, original.command_id);
+            const approval = (await sql.query("select calls,send_after from app.approvals where approval_id=$1", [result.approval_id])).rows[0];
+            assert.equal(approval.send_after, null);
+            if (body.route === "budget") for (const encoded of approval.calls) {
+              const call = decodeFunctionData({ abi: budgetAbi, data: encoded.data });
+              assert.equal(call.functionName, "spend");
+              const simulated = await chain.client.simulateContract({ address: context.budgets as Hex, abi: budgetAbi,
+                functionName: call.functionName, args: call.args, account: testKey("second").address });
+              assert.equal(simulated.result, before.find((p) => p.job_nonce === call.args?.[5])!.chain_payment_id);
+            }
+            const after = await readCommandPayments(sql, ctx.owner, result.command_id);
+            assert.deepEqual(after.map((p) => [p.id, p.chain_payment_id, p.job_nonce, p.pay_at]),
+              before.map((p) => [p.id, p.chain_payment_id, p.job_nonce, p.pay_at]));
+            assert(after.every((p) => Number(p.pay_at) === body.pay_at));
+          } finally { await sql.query("rollback"); }
+        });
+      }
+    });
     await sql.query("begin");
     const ended = { ...retryContext, approval: { ...retryContext.approval, now: new Date(at + 18_000_000) } };
     await assert.rejects(prepareCommand(sql, datedInput, ended), /WRONG_STATE: payment window ended/);

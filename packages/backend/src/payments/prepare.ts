@@ -94,15 +94,17 @@ export async function prepareCommand(sql: Sql, input: PrepareCommand, context: P
     if (!progress?.ready) throw new Error("INDEXER_NOT_READY: budget authority requires canonical indexed head");
     const budget = (await sql.query(`with recursive path as (
       select b.*,1 as depth from app.chain_budgets b
-        where b.budget_id=$1 and b.chain_id=$2 and b.company_safe=$3 and b.token=$4 and not b.closed
+        where b.budget_id=$1 and b.chain_id=$2 and b.company_safe=$3 and b.token=$4
       union all
       select b.*,p.depth+1 from app.chain_budgets b join path p on b.budget_id=p.parent_budget_id
         and b.chain_id=p.chain_id and b.company_safe=p.company_safe where p.depth<8
-    ) select 1 from path p where p.company_safe=$5 or exists (
+    ) select exists(select 1 from path where closed) as closed,
+      exists(select 1 from path p where p.company_safe=$5 or exists (
       select 1 from app.hat_wearers h where h.chain_id=p.chain_id and h.company_safe=p.company_safe
-        and h.hat_id=p.hat_id and h.wearer=$5 and h.wearing and h.standing) limit 1`,
-    [b.budget_id, b.chain_id, b.payer_safe, b.items[0]!.token_address, context.approval.sender.toLowerCase()])).rowCount;
-    if (!budget) throw new Error("FORBIDDEN: current budget authority required");
+        and h.hat_id=p.hat_id and h.wearer=$5 and h.wearing and h.standing)) as authorized`,
+    [b.budget_id, b.chain_id, b.payer_safe, b.items[0]!.token_address, context.approval.sender.toLowerCase()])).rows[0];
+    if (budget?.closed) throw new Error("WRONG_STATE: budget path is closed");
+    if (!budget?.authorized) throw new Error("FORBIDDEN: current budget authority required");
   }
   for (const item of b.items) {
     const party = await lookup(sql, item.payee_party_id);
@@ -123,15 +125,18 @@ export async function prepareCommand(sql: Sql, input: PrepareCommand, context: P
     if (prior && prior.chain_payment_id !== paymentId) throw new Error("WRONG_STATE: retry deployment differs");
     return { item, id: prior?.id ?? id("payment", at), nonce, paymentId, job };
   });
+  // Keep the dated intent in its digest/rows; only the replacement's executable timing changes.
+  const payAt = old && b.pay_at !== null && (b.route === "budget"
+    ? Math.floor(b.pay_at / 1000) <= Math.floor(at / 1000) : b.pay_at <= at) ? null : b.pay_at;
   const calls = b.route === "budget" ? prepared.map(({ item, nonce }) => ({ to: context.budgets, value: "0", data: encodeFunctionData({ abi: contracts.Budgets!.abi,
-    functionName: b.pay_at === null ? "spend" : "schedule", args: [BigInt(b.budget_id!), item.payee_safe, BigInt(item.amount_raw), item.kind,
-      ...(b.pay_at === null ? [] : [BigInt(Math.floor(b.pay_at / 1000))]), item.document_hash, nonce] }) })) : [
+    functionName: payAt === null ? "spend" : "schedule", args: [BigInt(b.budget_id!), item.payee_safe, BigInt(item.amount_raw), item.kind,
+      ...(payAt === null ? [] : [BigInt(Math.floor(payAt / 1000))]), item.document_hash, nonce] }) })) : [
     { to: b.items[0]!.token_address, value: "0", data: encodeFunctionData({ abi: [{ type: "function", name: "approve", inputs: [{ type: "address", name: "spender" }, { type: "uint256", name: "amount" }], outputs: [{ type: "bool" }], stateMutability: "nonpayable" }], functionName: "approve", args: [context.payments as Hex, total] }) },
     { to: context.payments, value: "0", data: encodeFunctionData({ abi: contracts.Payments!.abi, functionName: "sendBatch", args: [prepared.map(({ item, paymentId, job }) => ({ paymentId, recipient: item.payee_safe, token: item.token_address, amount: BigInt(item.amount_raw), kind: item.kind, documentHash: item.document_hash, jobNonce: job, executor: b.payer_safe }))] }) },
   ];
   const approval = await open(sql, context.approval, { org_id: b.owner_kind === "organization" ? b.owner_id : null,
     opener: "payments", subject_kind: "payment-command", subject_id: commandId, chain_id: b.chain_id, calls,
-    deadline: new Date(deadline).toISOString(), ...(b.route === "personal" && b.pay_at !== null ? { send_after: new Date(b.pay_at).toISOString() } : {}),
+    deadline: new Date(deadline).toISOString(), ...(b.route === "personal" && payAt !== null ? { send_after: new Date(payAt).toISOString() } : {}),
     summary: { title: b.summary, from: { label: b.payer_label, address: b.payer_safe }, to: { label: b.items.length === 1 ? b.items[0]!.payee_label : `${b.items.length} recipients` },
       amount: { asset: b.items[0]!.asset, value: formatUnits(total, b.items[0]!.decimals) }, recipients: b.items.map((item) => ({ label: item.payee_label,
         amount: { asset: item.asset, value: formatUnits(BigInt(item.amount_raw), item.decimals) }, requestedOutput: null, exact: true, rail: "wallet", warning: null })), warnings: [] } }, context.traceId);
