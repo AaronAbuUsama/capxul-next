@@ -1,9 +1,9 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { createHmac, randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { Effect } from "effect";
-import { isAddress, recoverMessageAddress, type Hex } from "viem";
-import { DOCUMENT_PATH, documentMessage, validDocument, validHeldDocument, validReport, type DocumentInput } from "@capxul/sdk";
+import { isAddress } from "viem";
+import { DOCUMENT_PATH, validDocument, validHeldDocument, validReport, type DocumentInput } from "@capxul/sdk";
 import { json, readBody, ServiceError } from "./http.ts";
 import type { SitesStore } from "./store.ts";
 
@@ -22,8 +22,13 @@ export type SiteRequestAnswer =
   | { status: "collecting" }
   | { status: "refused"; error: ProviderError }
   | { status: "answered"; approval_id: string; approval_url: string; requested_by: string; awaiting: string };
+export type DocumentPrincipal = {
+  personId: string; kind: "person" | "agent"; email: string | null; safeAddress: string; signerAddress: string | null;
+};
 export type DocumentOptions = {
-  publicOrigin: string; coreUrl: string; coreSecret: string; provider: DocumentProvider;
+  provider: DocumentProvider;
+  /** Core must authenticate and require the active Seat on the same Sql/now before returning this principal. */
+  authorize(input: { orgId: string; bearer: string; traceId: string }): Effect.Effect<DocumentPrincipal, ProviderError>;
   store: Pick<SitesStore, "site" | "logCall">;
   requestAnswer(input: { org: string; request_id: string; requested_by: string }): Effect.Effect<SiteRequestAnswer, ProviderError>;
 };
@@ -36,52 +41,39 @@ const refused = (code: string, message: string) => new ServiceError(status[code]
 
 /** Composed inside Core's pre-body pause/drain boundary, not a second HTTP listener. */
 export function createDocumentHandler(options: DocumentOptions) {
-  if (!options.coreSecret) throw new Error("Core signing secret is required");
-  const core = async (path: string, body: unknown, trace: string): Promise<any> => {
-    const raw = JSON.stringify(body);
-    const response = await fetch(`${options.coreUrl}${path}`, { method: "POST", body: raw,
-      signal: AbortSignal.timeout(15_000), headers: { "content-type": "application/json", "x-capxul-trace": trace,
-        "x-capxul-signature": createHmac("sha256", options.coreSecret).update(raw).digest("hex") } });
-    const result = await response.json().catch(() => null);
-    if (!response.ok) throw refused(response.status === 404 ? "INVALID_INPUT" : "PROVIDER_ERROR", "Core could not resolve the document caller or request");
-    return result;
-  };
   return async (req: IncomingMessage, res: ServerResponse): Promise<boolean> => {
     if (req.url !== DOCUMENT_PATH) return false;
     const trace = randomUUID();
-    let input: DocumentInput | undefined, user: string | undefined;
+    let input: DocumentInput | undefined, user: string | undefined, personId: string | undefined;
     let callId: string = randomUUID();
     try {
       if (req.method !== "POST") throw refused("INVALID_INPUT", "POST required");
+      const authorization = req.headers.authorization;
+      const bearer = typeof authorization === "string" ? /^Bearer ([^\s]+)$/i.exec(authorization)?.[1] : undefined;
+      if (!bearer) throw refused("NOT_AUTHENTICATED", "An Access Bearer session is required");
       const raw = await readBody(req);
       const body: unknown = JSON.parse(raw);
-      const signature = req.headers["x-capxul-signature"];
-      if (!object(body) || !isAddress(String(body.caller ?? "")) || !Number.isSafeInteger(body.expiresAt) ||
-          Number(body.expiresAt) <= Date.now() || Number(body.expiresAt) > Date.now() + 60_000 || typeof signature !== "string")
-        throw refused("NOT_AUTHENTICATED", "A signed request expiring within 60 seconds is required");
-      let signer: string;
-      try { signer = await recoverMessageAddress({ message: documentMessage(options.publicOrigin, raw), signature: signature as Hex }); }
-      catch { throw refused("NOT_AUTHENTICATED", "Invalid document signature"); }
-      if (signer.toLowerCase() !== String(body.caller).toLowerCase()) throw refused("NOT_AUTHENTICATED", "Request signature does not match caller");
+      if (!object(body)) throw refused("INVALID_INPUT", "Invalid document request");
       const keys = body.verb === "create" ? ["doctype", "fields", "callId"] : body.verb === "submit"
         ? ["doctype", "name", "callId"] : body.verb === "get" ? ["doctype", "name"] : body.verb === "report" ? ["report", "filters"] : [];
       if (!keys.length || !/^[a-z][a-z0-9-]{1,30}$/.test(String(body.orgId)) ||
-          Object.keys(body).some((key) => !["verb", "orgId", "caller", "expiresAt", ...keys].includes(key)) ||
+          Object.keys(body).some((key) => !["verb", "orgId", ...keys].includes(key)) ||
           keys.some((key) => key === "fields" ? !object(body[key]) : key === "filters" ? body[key] !== null && !object(body[key]) : !text(body[key])) ||
           (body.callId !== undefined && String(body.callId).length > 140)) throw refused("INVALID_INPUT", "Invalid document request");
       input = body as unknown as DocumentInput;
-      if ("callId" in input) callId = input.callId;
-      const info = await core("/admin/org-info", { org: input.orgId }, trace);
-      const person = info?.people?.find((p: { address: string }) => p.address?.toLowerCase() === signer.toLowerCase());
-      if (info?.slug !== input.orgId || !text(info.site) || !text(person?.email))
-        throw refused("ROLE_PERMISSION_DENIED", "The caller has no person in this company");
-      user = person.email;
+      const admitted = await Effect.runPromise(Effect.result(options.authorize({ orgId: input.orgId, bearer, traceId: trace })));
+      if (admitted._tag === "Failure") throw refused(admitted.failure.code, admitted.failure.message);
+      const principal = admitted.success;
+      if (principal.kind !== "person" || !text(principal.email) || !text(principal.personId))
+        throw refused("ROLE_PERMISSION_DENIED", "This principal has no delegated native person capability");
+      user = principal.email; personId = principal.personId;
+      if ("callId" in input) callId = createHash("sha256").update(JSON.stringify([personId, input.callId])).digest("hex");
       const site = await options.store.site(input.orgId);
-      if (!site || site.host !== info.site || site.state !== "ready") throw refused("PROVIDER_ERROR", "The company's site is not ready");
+      if (!site || site.state !== "ready") throw refused("PROVIDER_ERROR", "The company's site is not ready");
       const identity = { orgId: input.orgId, site: site.host, user: user!, traceId: trace };
       const effect = input.verb === "report" ? options.provider.doorReport({ ...identity, report: input.report, filters: input.filters })
-        : input.verb === "create" ? options.provider.doorCall({ ...identity, verb: "create", doctype: input.doctype, fields: input.fields, callId: input.callId })
-        : input.verb === "submit" ? options.provider.doorCall({ ...identity, verb: "submit", doctype: input.doctype, name: input.name, callId: input.callId })
+        : input.verb === "create" ? options.provider.doorCall({ ...identity, verb: "create", doctype: input.doctype, fields: input.fields, callId })
+        : input.verb === "submit" ? options.provider.doorCall({ ...identity, verb: "submit", doctype: input.doctype, name: input.name, callId })
         : options.provider.doorCall({ ...identity, verb: "get", doctype: input.doctype, name: input.name });
       const answer = await Effect.runPromise(Effect.result(effect));
       if (answer._tag === "Failure") throw refused(answer.failure.code, answer.failure.message);
@@ -112,15 +104,15 @@ export function createDocumentHandler(options: DocumentOptions) {
         (!("name" in input) || data.name === input.name) && (input.verb === "get" || data.docstatus === (input.verb === "create" ? 0 : 1)) ||
         input.verb === "submit" && validHeldDocument(data);
       if (!valid) throw refused("PROVIDER_RESPONSE_INVALID", "The site returned an invalid document result");
-      await options.store.logCall({ org: input.orgId, callId, person: user!, verb: input.verb,
+      await options.store.logCall({ org: input.orgId, callId, person: personId, verb: input.verb,
         doctype: "doctype" in input ? input.doctype : null, name: validDocument(data) ? data.name : "name" in input ? input.name : null,
         outcome: validHeldDocument(data) ? "held" : "ok", refusal: null, trace });
       json(res, 200, data);
     } catch (error) {
       const failure = error instanceof ServiceError ? error : error instanceof SyntaxError
         ? refused("INVALID_INPUT", "Invalid JSON") : refused("PROVIDER_ERROR", "Document service is unavailable; retry the same call id");
-      if (input && user) {
-        try { await options.store.logCall({ org: input.orgId, callId, person: user, verb: input.verb,
+      if (input && personId) {
+        try { await options.store.logCall({ org: input.orgId, callId, person: personId, verb: input.verb,
           doctype: "doctype" in input ? input.doctype : null, name: "name" in input ? input.name : null,
           outcome: failure.status >= 500 ? "failed" : "refused", refusal: failure.code, trace }); }
         catch { /* Do not turn an unavailable audit store into a successful document response. */ }

@@ -1,14 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createDocumentClient, ProvisioningError } from "@capxul/sdk";
-import { privateKeyToAccount } from "viem/accounts";
-import type { Hex } from "viem";
 
 const usage = `capxul doc create <DocType> --org <slug> [--field name=value ... | --data JSON|@FILE] [--call-id ID] [--json]
 capxul doc get <DocType> <name> --org <slug> [--json]
 capxul doc submit <DocType> <name> --org <slug> [--call-id ID] [--json]
 capxul report run <report> --org <slug> [--filter name=value ... | --filters JSON|@FILE] [--json]
-Calls run as the signing person. There is no --as impersonation or bench credential.
+Calls use the person's CAPXUL_ACCESS_TOKEN session. There is no --as impersonation, wallet signature or bench credential.
 Keep --call-id on retries of create/submit. --field and --filter values accept JSON; other values are strings.`;
 const refuse = (message: string): never => { throw new ProvisioningError("CLI_USAGE", message); };
 const record = (raw: string): Record<string, unknown> => {
@@ -50,10 +48,8 @@ export async function runDocuments(args: string[]): Promise<void> {
   if (positionals.length !== count || !orgId) return refuse(usage);
   const dataFlag = command === "doc create" ? "--data" : "--filters";
   if (flags.has(dataFlag) && Object.keys(fields).length) return refuse(`Use ${dataFlag} or ${repeated}, not both`);
-  const key = process.env.CAPXUL_PRIVATE_KEY;
-  if (!/^0x[\da-fA-F]{64}$/.test(key ?? "")) throw new ProvisioningError("NOT_AUTHENTICATED", "CAPXUL_PRIVATE_KEY must contain the caller's local signing key");
   if (!process.env.CAPXUL_CORE_URL) return refuse("CAPXUL_CORE_URL is required");
-  const client = createDocumentClient({ coreUrl: process.env.CAPXUL_CORE_URL, account: privateKeyToAccount(key as Hex) });
+  const client = createDocumentClient({ coreUrl: process.env.CAPXUL_CORE_URL, bearer: () => process.env.CAPXUL_ACCESS_TOKEN ?? "" });
   const callId = flags.get("--call-id") ?? randomUUID();
   let result: unknown;
   try {

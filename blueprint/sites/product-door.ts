@@ -1,7 +1,7 @@
 import { defineDecision, defineDoctype } from "../../packages/blueprint-engine/src/index.ts";
 import { concept_sites } from "../shared/foundation.ts";
 import { doctype_user } from "../plugs/doctypes.ts";
-import { rpc_sites_door_create, rpc_sites_door_submit } from "./door.ts";
+import { rpc_sites_door_create, rpc_sites_door_get, rpc_sites_door_reports_run, rpc_sites_door_submit } from "./door.ts";
 import { table_door_calls, table_site_features, table_sites } from "./data.ts";
 import { workflow_sites_create } from "./processes.ts";
 import { integration_frappe_site } from "../plugs/integrations.ts";
@@ -80,4 +80,18 @@ export const decision_sites_business_clock = defineDecision({
   why: "aaron.world-clock and time.real-elapsed separate product instants from transport time. Injecting the existing Core authority keeps one clock and one SQL transaction without a site-service replica or a guessed running-clock calculation.",
   source: "Sites source review, 12 November 2026; canonical backend/devnet worldNow contract owned by Runtime.",
   affects: [table_sites, table_site_features, table_door_calls],
+});
+
+export const decision_sites_document_principal = defineDecision({
+  id: "sites.document-principal", title: "Document admission uses the real Access principal and active Seat",
+  question: "Which authority admits a public document request to a company's native site?",
+  options: [
+    { label: "access-seat", text: "Core injects authorization that authenticates the raw Bearer session and requires an active Seat on the same SQL transaction and actor context. The returned human Access principal supplies the native email; Sites reads the trusted host from its durable site row and Frappe verifies the actual site's Hat Grant and native permissions. Missing, expired or revoked sessions refuse before native calls. Mutation receipt keys bind the authenticated personId and public callId, not caller fields or email alone. The SDK supplies its current opaque bearer through a callback; no key, caller email, expiry or signature goes in the operation body. Agents explicitly refuse until a documented native-person delegation capability exists." },
+    { label: "directory-key", text: "Treat a signing EOA found in org.people as sufficient authority even when its Access session or Seat has expired or been revoked." },
+    { label: "bearer-and-signature", text: "Also require an EIP-191 proof matching Principal.signerAddress. Published Access intentionally gives humans a null signerAddress, so this refuses every human; an invented Safe-owner or directory-key binding cannot repair it." },
+  ],
+  chosen: "access-seat",
+  why: "The canonical Access Principal to active Seat chain is authoritative. Human principals have an email but no signer binding; agents have a signer but no native email delegation. Bearer admission uses that real contract rather than guessing either binding. This supersedes the caller-signature admission mechanism in sites.door-retry-receipt, not its atomic native retry receipt. Frappe still checks current native permissions on every call and replay. Core alone composes the existing authorities; Sites implements neither authentication nor membership.",
+  source: "Integrator's explicit Access56/Seat67 contract and Access owner's inspected Principal invariants, 12 November 2026. Dependency review and the composed selected run remain required.",
+  affects: [concept_sites, rpc_sites_door_create, rpc_sites_door_get, rpc_sites_door_submit, rpc_sites_door_reports_run],
 });

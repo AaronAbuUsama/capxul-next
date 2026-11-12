@@ -1,9 +1,6 @@
-import type { Hex, LocalAccount } from "viem";
 import { ProvisioningError } from "./door.ts";
 
 export const DOCUMENT_PATH = "/org/site/document";
-export const documentMessage = (origin: string, raw: string): string =>
-  `Capxul document door\n${new URL(origin).origin}\nPOST ${DOCUMENT_PATH}\n${raw}`;
 
 export type Document = { doctype: string; name: string; docstatus: number; fields: Record<string, unknown> };
 export type HeldDocument = { held: true; requestId: string; approvalId: string; awaiting: string };
@@ -28,17 +25,18 @@ export function validReport(v: unknown): v is Report {
   return object(v) && exact(v, ["columns", "rows"]) && Array.isArray(v.columns) && v.columns.every(object) && Array.isArray(v.rows) && v.rows.every(object);
 }
 
-/** Calls carry the person's signature, not an email impersonation flag or a server credential. */
-export function createDocumentClient(options: { coreUrl: string; account: Pick<LocalAccount, "address" | "signMessage"> }) {
+/** Every call obtains the current opaque Access session; no wallet key or impersonated email is accepted. */
+export function createDocumentClient(options: { coreUrl: string; bearer(): string | Promise<string> }) {
   const origin = new URL(options.coreUrl).origin;
   const send = async (input: DocumentInput): Promise<unknown> => {
     if (!/^[a-z][a-z0-9-]{1,30}$/.test(input.orgId)) throw new ProvisioningError("INVALID_INPUT", "Invalid company slug");
-    const raw = JSON.stringify({ ...input, caller: options.account.address, expiresAt: Date.now() + 60_000 });
-    const signature: Hex = await options.account.signMessage({ message: documentMessage(origin, raw) });
+    const bearer = await options.bearer();
+    if (!bearer || /\s/.test(bearer)) throw new ProvisioningError("NOT_AUTHENTICATED", "An Access Bearer session is required");
+    const raw = JSON.stringify(input);
     let response: Response;
     try {
       response = await fetch(`${origin}${DOCUMENT_PATH}`, { method: "POST", body: raw,
-        headers: { "content-type": "application/json", "x-capxul-signature": signature }, signal: AbortSignal.timeout(120_000) });
+        headers: { "content-type": "application/json", authorization: `Bearer ${bearer}` }, signal: AbortSignal.timeout(120_000) });
     } catch { throw new ProvisioningError("PROVIDER_ERROR", "Document service is unreachable; retain the same call id when retrying"); }
     const result: unknown = await response.json().catch(() => null);
     if (!response.ok) {

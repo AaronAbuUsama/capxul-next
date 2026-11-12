@@ -32,22 +32,22 @@
     {
       "eval": "ref:doc.create/NOT_AUTHENTICATED/c-2716f6a776108a1d",
       "checks": ["SITES.selected-stack", "SITES.signed-out-create-refused"],
-      "why": "The public create command without a signer exits3 with exact NOT_AUTHENTICATED error and empty stdout; native source confirms no Supplier was inserted."
+      "why": "The public create command without an Access bearer exits3 with exact NOT_AUTHENTICATED error and empty stdout; native source confirms no Supplier was inserted."
     },
     {
       "eval": "ref:doc.create/ROLE_PERMISSION_DENIED/c-67ac0c9fd209c2f1",
       "checks": ["SITES.selected-stack", "SITES.member-create-refused"],
-      "why": "Runtime's independently registered nonofficer member signs public create. Exit4, exact ROLE_PERMISSION_DENIED error and empty stdout are checked, and the Director's native source read confirms no insertion."
+      "why": "Runtime's original nonofficer member uses a real post-restore Access session for public create. Live authentication and Seat admission precede native hat permissions. Exit4, exact ROLE_PERMISSION_DENIED error and empty stdout are checked, and the Director's native source read confirms no insertion."
     },
     {
       "eval": "ref:doc.submit/NOT_AUTHENTICATED/c-2716f6a776108a1d",
       "checks": ["SITES.selected-stack", "SITES.signed-out-submit-refused"],
-      "why": "Unsigned public submit exits3 with exact NOT_AUTHENTICATED error and empty stdout; native document and GL are identical before and after."
+      "why": "Public submit without an Access bearer exits3 with exact NOT_AUTHENTICATED error and empty stdout; native document and GL are identical before and after."
     },
     {
       "eval": "ref:doc.submit/ROLE_PERMISSION_DENIED/c-67ac0c9fd209c2f1",
       "checks": ["SITES.selected-stack", "SITES.member-submit-refused"],
-      "why": "The member signs public submit and exits4 with exact ROLE_PERMISSION_DENIED error and empty stdout; independent native document and GL snapshots are unchanged."
+      "why": "The member's real Access session calls public submit and exits4 with exact ROLE_PERMISSION_DENIED error and empty stdout; independent native document and GL snapshots are unchanged."
     },
     {
       "eval": "ref:doc.submit/WRONG_STATE/c-b631232869672850",
@@ -62,12 +62,12 @@
     {
       "eval": "ref:report.run/NOT_AUTHENTICATED/c-2716f6a776108a1d",
       "checks": ["SITES.selected-stack", "SITES.signed-out-report-refused"],
-      "why": "Public report without a signer exits3 with exact NOT_AUTHENTICATED error/empty stdout, and native GL stays unchanged."
+      "why": "Public report without an Access bearer exits3 with exact NOT_AUTHENTICATED error/empty stdout, and native GL stays unchanged."
     },
     {
       "eval": "ref:report.run/ROLE_PERMISSION_DENIED/c-67ac0c9fd209c2f1",
       "checks": ["SITES.selected-stack", "SITES.member-report-refused"],
-      "why": "The member signs public General Ledger; it exits4 ROLE_PERMISSION_DENIED with exact error/empty stdout, and independent GL is unchanged."
+      "why": "The member's real Access session calls public General Ledger; it exits4 ROLE_PERMISSION_DENIED with exact error/empty stdout, and independent GL is unchanged."
     }
   ],
   "near": [

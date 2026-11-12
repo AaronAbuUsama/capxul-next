@@ -5,8 +5,6 @@ import { appendFileSync, mkdirSync, readFileSync, realpathSync, statSync, writeF
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { privateKeyToAccount } from "viem/accounts";
-import type { Hex } from "viem";
 import { fixtureFrom, localUrl } from "../acceptance/fixture.ts";
 import { cents, frappe } from "../acceptance/sources.ts";
 import { redact } from "../runs/service.ts";
@@ -45,10 +43,16 @@ if (process.argv.includes("--list")) {
     assert.equal(statSync(actorsPath).mode & 0o777, 0o600);
     const actors = JSON.parse(readFileSync(actorsPath, "utf8"));
     const config = JSON.parse(readFileSync(configPath, "utf8"));
+    assert.equal(actors.version, 2, "real post-restore Access sessions are required");
     for (const actor of [actors.director, actors.member]) {
-      assert(/^0x[0-9a-fA-F]{64}$/.test(actor.privateKey));
-      secrets.push(actor.privateKey, actor.privateKey.slice(2));
-      assert.equal(privateKeyToAccount(actor.privateKey as Hex).address.toLowerCase(), actor.address.toLowerCase());
+      assert.equal(actor.access.kind, "person");
+      assert.equal(typeof actor.access.token, "string"); assert(actor.access.token && !/\s/.test(actor.access.token));
+      secrets.push(actor.access.token);
+      if (actor.privateKey) secrets.push(actor.privateKey, actor.privateKey.slice(2));
+      assert.equal(typeof actor.access.personId, "string"); assert(actor.access.personId);
+      assert(/^0x[0-9a-fA-F]{40}$/.test(actor.access.safe));
+      assert.equal(actor.access.safe.toLowerCase(), actor.personalSafe.toLowerCase());
+      assert(Number.isSafeInteger(actor.access.expiresAt));
     }
     const coreUrl = localUrl(process.env.CAPXUL_CORE_URL!).origin;
     mkdirSync(dir, { recursive: true });
@@ -56,12 +60,13 @@ if (process.argv.includes("--list")) {
     const selected = await emit("SITES.selected-stack", async () => {
       const receipt = JSON.parse(readFileSync(join(run, "receipt.json"), "utf8"));
       assert.equal(receipt.state, "running");
+      assert.deepEqual(actors.run, { id: receipt.id, at: receipt.at, commit: receipt.commit });
       assert.equal(receipt.environment.world, "slice-zero"); assert.equal(f.world, "slice-zero");
       assert.equal(receipt.environment.stack, "postgres-ponder-erpnext-v4");
       assert.equal(receipt.environment.storage, "postgres"); assert.equal(receipt.environment.indexer, "ponder");
       assert.equal(receipt.commit, config.codeVersion);
       assert.equal(receipt.environment.components.core, config.codeVersion);
-      assert.equal(actors.version, 1); assert.equal(actors.world.id, config.world.id); assert.equal(actors.world.epoch, config.world.epoch);
+      assert.equal(actors.world.id, config.world.id); assert.equal(actors.world.epoch, config.world.epoch);
       const preparation = JSON.parse(readFileSync(join(run, "preparation.json"), "utf8"));
       assert.equal(preparation.kind, "fixture-preparation-not-journey-proof");
       assert.deepEqual(preparation.run, { id: receipt.id, at: receipt.at, commit: receipt.commit });
@@ -74,7 +79,8 @@ if (process.argv.includes("--list")) {
       assert.equal(restored.codeVersion, receipt.commit); assert.equal(restored.stack, receipt.environment.stack);
       assert.equal(restored.world.id, actors.world.id); assert.equal(restored.world.epoch, actors.world.epoch);
       assert.equal(actors.org, slug); assert.equal(actors.site, f.site); assert.equal(actors.director.email, f.user);
-      assert.notEqual(actors.member.address.toLowerCase(), actors.director.address.toLowerCase());
+      assert.notEqual(actors.member.access.personId, actors.director.access.personId);
+      assert.notEqual(actors.member.access.token, actors.director.access.token);
       assert.equal(Number(new URL(coreUrl).port), config.ports.publicCore);
       const response = await fetch(new URL("/ready", coreUrl), { signal: AbortSignal.timeout(10000) });
       assert(response.ok, "live Core not ready");
@@ -93,7 +99,8 @@ if (process.argv.includes("--list")) {
       let stdout = "", stderr = "", exitCode = 0, signal: string | null = null;
       try {
         const result = await exec(process.execPath, ["--experimental-strip-types", "--no-warnings", cli, ...args, "--org", slug, "--json"],
-          { env: { ...process.env, CAPXUL_CORE_URL: coreUrl, CAPXUL_PRIVATE_KEY: actor === "signed-out" ? "" : actors[actor].privateKey }, timeout: 150000 });
+          { env: { ...process.env, CAPXUL_CORE_URL: coreUrl, CAPXUL_PRIVATE_KEY: "",
+            CAPXUL_ACCESS_TOKEN: actor === "signed-out" ? "" : actors[actor].access.token }, timeout: 150000 });
         stdout = result.stdout; stderr = result.stderr;
       } catch (error: any) {
         stdout = error.stdout ?? ""; stderr = error.stderr ?? "";
