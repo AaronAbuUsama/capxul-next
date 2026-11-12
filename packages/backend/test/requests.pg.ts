@@ -91,9 +91,12 @@ test("requests PG admission and committed payment followers", async (t) => {
       const lapsed = await source("lapsed", "lapse");
       await worker((sql) => followPayment(sql, lapsed, read));
       assert.equal((await state("lapsed")).status, "paying");
-      for (const [name, received, checked, expected] of [["funded", "12700001", at - 1, "paid"], ["short", "12700000", at - 1, "cancelled"], ["late", "12700001", at + 1, "cancelled"]] as const) {
+      for (const [name, received, checked, heldAtEnd, expected] of [["funded", "12700001", at - 1, "12700001", "paid"], ["short", "12700000", at - 1, "12700000", "cancelled"], ["late", "12700001", at + 1, "0", "cancelled"], ["stale", "12700001", at - 1, "0", "cancelled"], ["historical", "0", at + 1, "12700001", "paid"]] as const) {
         await seed(name, "cancelled", { payment_id: null, escrow_address: payer, escrow_received_raw: received, escrow_checked_at: checked, decided_at: at });
-        const id = await source(name, "settle"); await worker((sql) => followPayment(sql, id, read));
+        const id = await source(name, "settle");
+        await assert.rejects(worker((sql) => followPayment(sql, id, read)), /verification_unavailable/);
+        assert.equal((await admin.query("select count(*)::int as n from app.transition_acks where event_id=$1", [id])).rows[0].n, 0);
+        await worker((sql) => followPayment(sql, id, read, async () => heldAtEnd));
         assert.equal((await state(name)).status, expected);
       }
     });

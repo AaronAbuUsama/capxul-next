@@ -7,13 +7,16 @@ export type ReadPayment = (sql: Sql, owner: { kind: "person" | "organization"; i
   id: string; owner_kind: "person" | "organization"; owner_id: string; chain_payment_id: string; status: string;
 } | null>;
 
+/** Read the final indexed balance at the request's ending block, not a cached/current balance. Null means not indexed yet. */
+export type ReadEscrowAtEnd = (sql: Sql, request: Request) => Promise<string | null>;
+
 /** Composition passes a committed outbox identity and payments.readPayment; source+effect ACK commit together. */
-export async function followPayment(sql: Sql, eventId: string, readPayment: ReadPayment): Promise<boolean> {
-  return consume(sql, "requests.lifecycle.payment-followers", eventId, (sameSql, event) => onPaymentTransition(sameSql, event, readPayment));
+export async function followPayment(sql: Sql, eventId: string, readPayment: ReadPayment, readEscrowAtEnd?: ReadEscrowAtEnd): Promise<boolean> {
+  return consume(sql, "requests.lifecycle.payment-followers", eventId, (sameSql, event) => onPaymentTransition(sameSql, event, readPayment, readEscrowAtEnd));
 }
 
 /** Shared relay already owns consume/effect/ACK: use this handler there, not a nested consume. */
-export async function onPaymentTransition(sameSql: Sql, event: TransitionEvent, readPayment: ReadPayment): Promise<void> {
+export async function onPaymentTransition(sameSql: Sql, event: TransitionEvent, readPayment: ReadPayment, readEscrowAtEnd?: ReadEscrowAtEnd): Promise<void> {
     if (event.name !== "payment_transitioned" || event.machine !== "payment") return;
     const p = event.props;
     if (!["settle", "unsettle", "cancel"].includes(String(p.transition))) return;
@@ -27,9 +30,11 @@ export async function onPaymentTransition(sameSql: Sql, event: TransitionEvent, 
     if (p.transition === "settle") {
       if (payment.status !== "settled" || !["paying", "cancelled", "expired"].includes(row.status)) return;
       if (row.status !== "paying") {
-        const endedAt = row.decided_at ?? row.expires_at ?? row.updated_at;
-        if (!row.escrow_address || row.escrow_received_raw === null || row.escrow_checked_at === null ||
-            row.escrow_checked_at > endedAt || BigInt(row.escrow_received_raw) < BigInt(row.amount_raw)) return;
+        if (!row.escrow_address) return;
+        const held = await readEscrowAtEnd?.(sameSql, row);
+        // Do not ACK the source until its historical guard can actually be verified.
+        if (held == null) throw new Error("WRONG_STATE: verification_unavailable");
+        if (BigInt(held) < BigInt(row.amount_raw)) return;
       }
       to = "paid"; transition = "settle";
     } else if (p.transition === "unsettle") {

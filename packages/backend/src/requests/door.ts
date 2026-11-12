@@ -3,7 +3,7 @@ import type { Request, RequestIdentity } from "./types.ts";
 
 export { migrateRequests } from "./migrate.ts";
 export type { Request, RequestIdentity } from "./types.ts";
-export { followPayment, onPaymentTransition, type ReadPayment } from "./followers.ts";
+export { followPayment, onPaymentTransition, type ReadPayment, type ReadEscrowAtEnd } from "./followers.ts";
 
 /** Notices and the owning public query share the source row; normal tenant RLS still applies. */
 export async function getRequest(sql: Sql, key: RequestIdentity): Promise<Request> {
