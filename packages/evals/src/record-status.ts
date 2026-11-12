@@ -4,8 +4,9 @@
 // It refuses the whole run, and writes nothing, when it names an eval id the blueprint does not derive.
 // The format is described in docs/blueprint.md ("The status document").
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { setTimeout } from "node:timers/promises";
 import { mergeResults, parseResults, parseStatus, type StatusDocument } from "@capxul/blueprint-engine";
 import { loadTarget } from "../../blueprint-engine/scripts/target.ts";
 
@@ -30,25 +31,38 @@ const run = async (args: readonly string[]): Promise<{ lines: readonly string[];
   if (!results.ok) return { lines: [results.error], code: 1 };
   const run = parseResults(results.value);
   if (!run.ok) return { lines: run.errors, code: 1 };
-  let current: StatusDocument | null = null;
-  if (existsSync(statusPath)) {
-    const file = readJson(statusPath);
-    if (!file.ok) return { lines: [file.error], code: 1 };
-    const parsed = parseStatus(file.value);
-    if (!parsed.ok) return { lines: parsed.errors, code: 1 };
-    current = parsed.value;
-  }
+  if (!run.value.receipt) return { lines: ["new results require a run receipt; historical status remains readable"], code: 1 };
   const loaded = await loadTarget();
   if (!loaded.ok) return { lines: [loaded.error], code: 1 };
-  const merged = mergeResults(loaded.blueprint, current, run.value);
-  if (!merged.ok) return { lines: [...merged.errors, `refused: nothing was written to ${statusPath}`], code: 1 };
   mkdirSync(dirname(statusPath), { recursive: true });
-  writeFileSync(statusPath, `${JSON.stringify(merged.value, null, 2)}\n`);
-  const count = (v: string) => run.value.results.filter((r) => r.verdict === v).length;
-  return {
-    lines: [`recorded ${run.value.results.length} results at ${run.value.commit} (${count("pass")} pass, ${count("fail")} fail, ${count("not_run")} not run); ${Object.keys(merged.value.evals).length} evals now have a verdict in ${statusPath}`],
-    code: 0,
-  };
+  // Serialize the read/merge/rename, not blueprint loading: different concept runs must not lose each other's verdicts.
+  const lock = `${statusPath}.lock`;
+  let acquired = false;
+  for (let tries = 0; tries < 100 && !acquired; tries++) {
+    try { mkdirSync(lock); acquired = true; }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; await setTimeout(50); }
+  }
+  if (!acquired) return { lines: [`status writer lock is busy: ${lock}; no results were written`], code: 1 };
+  try {
+    let current: StatusDocument | null = null;
+    if (existsSync(statusPath)) {
+      const file = readJson(statusPath);
+      if (!file.ok) return { lines: [file.error], code: 1 };
+      const parsed = parseStatus(file.value);
+      if (!parsed.ok) return { lines: parsed.errors, code: 1 };
+      current = parsed.value;
+    }
+    const merged = mergeResults(loaded.blueprint, current, run.value);
+    if (!merged.ok) return { lines: [...merged.errors, `refused: nothing was written to ${statusPath}`], code: 1 };
+    const temp = `${statusPath}.${process.pid}.tmp`;
+    writeFileSync(temp, `${JSON.stringify(merged.value, null, 2)}\n`);
+    renameSync(temp, statusPath);
+    const count = (v: string) => run.value.results.filter((r) => r.verdict === v).length;
+    return {
+      lines: [`recorded ${run.value.results.length} results at ${run.value.commit} (${count("pass")} pass, ${count("fail")} fail, ${count("not_run")} not run); ${Object.keys(merged.value.evals).length} evals now have a verdict in ${statusPath}`],
+      code: 0,
+    };
+  } finally { rmdirSync(lock); }
 };
 
 const { lines, code } = await run(process.argv.slice(2));
