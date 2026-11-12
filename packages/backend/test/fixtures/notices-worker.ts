@@ -10,5 +10,5 @@ try {
     const response = await fetch(url, { method: "POST", body: JSON.stringify(message) });
     if (!response.ok) throw new Error("protocol fixture refused");
     return await response.json() as { id: string };
-  } }, async () => Number(process.env.NOTICE_TEST_NOW));
+  } });
 } finally { await db.close(); }

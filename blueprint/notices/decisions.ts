@@ -71,6 +71,20 @@ import { workflow_notices_delivery_retry, workflow_notices_payroll_daily } from 
 const by = (evidence: string) => `Claude, notices target design, 8 November 2026; evidence: ${evidence}`;
 const OLD = "packages/backend/src";
 
+export const decision_notices_worker_authority = defineDecision({
+  id: "notices.worker-authority",
+  title: "Bind the runtime worker to the canonical world clock and current Party names",
+  question: "Which authority supplies business time and personal display names when Core mounts the Notices worker?",
+  options: [
+    { label: "canonical-doors", text: "The runtime worker reads worldNow on its current worker Sql and resolves personal display names through the current principal Safe and Parties lookupBySafe on that same Sql. It accepts no replacement clock or Party-name provider." },
+    { label: "caller-providers", text: "Let the composition caller replace the runtime clock and Party-name reader along with the remaining source hooks." },
+  ],
+  chosen: "canonical-doors",
+  why: "A fixture-supplied instant cannot establish that reminder stops and retries follow the selected world's clock. The approved clock door fails closed for unsupported running clocks; Notices must not substitute host time. Personal names belong to the current unreleased Party, not a copied directory or a fixture label; a missing display name falls back to the existing principal mailbox. Lower-level delivery and resolver controls may still isolate their inputs, but they do not establish source or selected-stack acceptance. Other source doors remain composition dependencies until reviewed and landed.",
+  source: "Wave0 Notices implementation, 12 November 2026; reviewed wave60707fe; notices.postgres-execution; notices.recipients; time.world-channels",
+  affects: [table_notices, workflow_notices_accounts_welcome, workflow_notices_accounts_welcome_unlisted, workflow_notices_payments_money_reminders, workflow_notices_delivery_retry],
+});
+
 export const decision_notices_postgres_execution = defineDecision({
   id: "notices.postgres-execution",
   title: "Persist notice execution separately from the first delivery outcome",

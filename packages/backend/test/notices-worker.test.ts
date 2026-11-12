@@ -5,7 +5,9 @@ import { Database } from "../src/platform/db.ts";
 import { emit, type TransitionEvent } from "../src/platform/outbox.ts";
 import { noticesWorker, readNotices, type Sources } from "../src/notices/door.ts";
 import { deliverDue, planDelivery } from "../src/notices/delivery.ts";
-import { resendMail } from "../src/shared/door.ts";
+import { MailError, resendMail } from "../src/shared/door.ts";
+import { register, release } from "../src/parties/door.ts";
+import { updateWorldClock } from "../src/devnet/door.ts";
 import { createResolver } from "../src/notices/resolve.ts";
 import { prepareDue, schedule } from "../src/notices/workflows.ts";
 
@@ -15,8 +17,56 @@ const db = new Database(process.env.DATABASE_URL!, process.env.WORKER_DATABASE_U
 test.after(() => db.close());
 const instant = 1_800_000_000_000;
 
+test("runtime worker follows canonical clock boundaries and current Party names without replacement providers", async () => {
+  const id = randomUUID(), recipient = `${id}@authority.test`, safe = `0x${id.replaceAll("-","").padEnd(40,"a")}`;
+  const unused = (): never => { throw new Error("unexpected source read"); };
+  // Accounts is still an isolated source hook; only the landed clock, Party and outbox integration is under test.
+  const sources: Omit<Sources,"partyName"> = {
+    admission: async () => ({ email: recipient, admitted_by: "referral:friend@authority.test", referrer_email: "friend@authority.test", referral_rewarded_with_invite: false }),
+    principalByEmail: async () => ({ personId: id, kind: "person", email: "friend@authority.test", safeAddress: safe.toUpperCase() }),
+    principal: async () => ({ personId: id, kind: "person", email: "friend@authority.test", safeAddress: safe.toUpperCase() }),
+    principalBySafe: unused, organization: unused, proposal: unused, officerChange: unused, payment: unused,
+    commandPayments: unused, hatWearers: unused, request: unused, safeOwners: unused,
+  };
+  const links = { quickstart: "https://capxul.test/start", chat: "https://capxul.test/chat", support: "support@capxul.test",
+    signup: "https://capxul.test/signup", approval: unused, explorer: unused };
+  let calls = 0;
+  const tick = noticesWorker(db,{ async send(message) {
+    calls++; assert(message.text?.includes("Current Party"));
+    if (calls === 1) throw new MailError("RATE_LIMITED");
+    return { id: `authority-${id}` };
+  } },sources,links);
+  await updateWorldClock(db,{ nowMs: instant, clockMode: "stopped", rate: 1 });
+  await db.transaction("",async (sql) => {
+    const input = { kind: "agent" as const, handle: `notice-${id.slice(0,8)}`, display_name: "Stale Party", safe_address: safe,
+      owner_kind: "person" as const, owner_id: id };
+    const old = await register(sql,input,instant-10);
+    await release(sql,old.party_id,instant-5);
+    await register(sql,{ ...input, display_name: "Current Party" },instant);
+    await emit(sql,{ id, name: "waitlist_entry_transitioned", machine: "waitlist-entry", entity_id: id,
+      owner_kind: null, owner_id: null, actor: null, trace_id: id, at: instant,
+      props: { from: null, to: "admitted", transition: "admit_unlisted", person_id: null } });
+  },true);
+  assert(await tick() > 0);
+  const read = async () => (await db.transaction("",(sql) => readNotices(sql,{ to: recipient }),true))[0]!;
+  assert.equal((await read()).facts.referrer,"Current Party");
+  assert.equal((await read()).created_at,instant); assert.equal((await read()).next_attempt_at,instant+60_000);
+  await updateWorldClock(db,{ nowMs: instant+59_999, clockMode: "stopped", rate: 1 });
+  await tick(); assert.equal(calls,1,"neither host time nor an early world instant may spend the retry");
+  await updateWorldClock(db,{ nowMs: instant+60_000, clockMode: "stopped", rate: 1 });
+  await tick(); assert.equal(calls,2); assert.equal((await read()).status,"sent");
+  assert.equal((await read()).updated_at,instant+60_000);
+  const outcomes = (await db.worker.query("select event from app.transition_outbox where event->>'name'='notice_transitioned' and event->>'trace_id'=$1 order by (event->>'at')::bigint",[id])).rows.map((r) => r.event);
+  assert.deepEqual(outcomes.map((e) => [e.at,e.actor,e.props.transition]),[[instant,null,"hold"],[instant+60_000,null,"deliver"]]);
+  await assert.rejects(db.tenant.query("update app.world set clock=clock"),{ code: "42501" });
+  await updateWorldClock(db,{ nowMs: instant+60_000, clockMode: "running", rate: 1 });
+  await assert.rejects(tick(),/UNSUPPORTED_CLOCK/); assert.equal(calls,2);
+  await updateWorldClock(db,{ nowMs: instant, clockMode: "stopped", rate: 1 });
+});
+
 test("worker commits source ACK and recipients before Mail and replay keeps one outcome", async () => {
   const id = randomUUID(), recipient = `${id}@notices.test`;
+  await updateWorldClock(db,{ nowMs: instant, clockMode: "stopped", rate: 1 });
   const event: TransitionEvent = { id, name: "waitlist_entry_transitioned", machine: "waitlist-entry", entity_id: id,
     owner_kind: null, owner_id: null, actor: null, trace_id: id, at: instant,
     props: { from: null, to: "admitted", transition: "admit_unlisted", person_id: null, via: "operator", referred: false } };
@@ -36,7 +86,7 @@ test("worker commits source ACK and recipients before Mail and replay keeps one 
     assert.deepEqual(checkpoint.targets,[{ recipient, notice_id: `beta-welcome:${id}` }]);
     return { id: "committed-mail" };
   } },sources,{ quickstart: "https://capxul.test/start", chat: "https://capxul.test/chat", support: "support@capxul.test",
-    signup: "https://capxul.test/signup", approval: unused, explorer: unused },async () => instant);
+    signup: "https://capxul.test/signup", approval: unused, explorer: unused });
   assert(await tick() > 0);
   await db.transaction("",(sql) => emit(sql,event),true);
   assert.equal(await tick(),0);
@@ -115,7 +165,8 @@ test("resume stops unstarted reminders after collection/refund but replays accep
     },true);
     await db.transaction("",(sql) => emit(sql,{ ...event, id: randomUUID(), at,
       props: { from: "escrowed", to: status, transition: outcome === "collected" ? "settle" : "cancel", payment_id: id } }),true);
-    const tick = noticesWorker(db,mail,sources,links,async () => at);
+    await updateWorldClock(db,{ nowMs: at, clockMode: "stopped", rate: 1 });
+    const tick = noticesWorker(db,mail,sources,links);
     const acks = async () => Number((await db.worker.query("select count(*) as n from app.transition_acks where consumer='notices'")).rows[0].n);
     const before = await acks();
     await tick();

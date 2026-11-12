@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseRunReceipt } from "@capxul/blueprint-engine";
-import { Database } from "../../../../backend/src/devnet/door.ts";
+import { Database, worldNow } from "../../../../backend/src/devnet/door.ts";
 import { fixtureFrom } from "../acceptance/fixture.ts";
 
 const checks = ["NOTICES.selected-stack", "NOTICES.schema", "NOTICES.mailbox-reads", "NOTICES.writer-acl"];
@@ -33,6 +33,10 @@ if (process.argv.includes("--list")) {
     const selected = await emit("NOTICES.selected-stack", async () => {
       assert.equal(receipt.state,"running"); assert.equal(receipt.environment.world,"slice-zero");
       assert.equal(fixture.world,"slice-zero"); assert.notEqual(config.world.id,"main");
+      assert.equal(config.world.kind,"local");
+      assert.equal(fixture.coreUrl,`http://127.0.0.1:${config.ports.core}`);
+      assert.equal(fixture.rpcUrl,`http://127.0.0.1:${config.ports.publicRpc}`);
+      assert.equal(fixture.frappeUrl,`http://127.0.0.1:${config.ports.publicBench}`);
       assert.equal(receipt.environment.storage,"postgres"); assert.equal(receipt.environment.indexer,"ponder");
       assert.equal(receipt.environment.stack,"postgres-ponder-erpnext-v4");
       assert.equal(receipt.commit,config.codeVersion);
@@ -50,11 +54,12 @@ if (process.argv.includes("--list")) {
       db = new Database(url("tenant","capxul_core"),url("worker","capxul_worker"));
       const world = (await db.worker.query("select world_id,epoch from app.world")).rows[0];
       assert.equal(world.world_id,config.world.id); assert.equal(Number(world.epoch),config.world.epoch);
+      const worldInstant = await worldNow(db.worker);
       for (const [pool,name] of [[db.tenant,"capxul_core"],[db.worker,"capxul_worker"]] as const) {
         const role = (await pool.query("select current_user as name,rolsuper,rolbypassrls from pg_roles where rolname=current_user")).rows[0];
         assert.deepEqual(role,{ name, rolsuper: false, rolbypassrls: false });
       }
-      writeFileSync(join(dir,"selected.json"),JSON.stringify({ run: receipt.id, commit: receipt.commit, world: inspection.world, observedAt: inspection.observedAt })+"\n");
+      writeFileSync(join(dir,"selected.json"),JSON.stringify({ run: receipt.id, commit: receipt.commit, world: inspection.world, worldInstant, observedAt: inspection.observedAt })+"\n");
     });
     assert(selected && db); const database = db;
     await emit("NOTICES.schema", async () => {
@@ -118,6 +123,14 @@ if (process.argv.includes("--list")) {
         { role: "capxul_ponder", read: false, insert: false, update: false, delete: false, truncate: false, outcome: false, inspect: false },
         { role: "capxul_worker", read: true, insert: false, update: false, delete: false, truncate: false, outcome: true, inspect: true },
       ]);
+      // These statements cannot change rows even if a grant regresses; check actual permission refusal, not just ACL prose.
+      for (const pool of [database.tenant,database.worker]) {
+        for (const statement of ["update app.notices set status=status where false", "delete from app.notices where false",
+          "insert into app.notices select * from app.notices where false"])
+          await assert.rejects(pool.query(statement),{ code: "42501" });
+      }
+      await assert.rejects(database.tenant.query("select * from app.notices_by_changed()"),{ code: "42501" });
+      await assert.rejects(database.tenant.query("select app.notice_outcome(null,null,0,'{}'::jsonb,0)"),{ code: "42501" });
       writeFileSync(join(dir,"writer-acl.json"),JSON.stringify(privileges)+"\n");
     });
   } catch { failed = true; }

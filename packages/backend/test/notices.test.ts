@@ -11,6 +11,7 @@ import { finishDue, prepareDue, schedule } from "../src/notices/workflows.ts";
 import type { Sql } from "../src/platform/db.ts";
 import type { TransitionEvent } from "../src/platform/outbox.ts";
 import { readNotices } from "../src/notices/door.ts";
+import { updateWorldClock } from "../src/devnet/door.ts";
 
 if (process.env.CAPXUL_DISPOSABLE !== "true" || !process.env.CAPXUL_WORLD || process.env.CAPXUL_WORLD === "main")
   throw new Error("notices tests require an explicitly disposable migrated Postgres world");
@@ -232,6 +233,7 @@ test("SIGKILL after provider acceptance resumes the original intent and emits on
   const id = randomUUID();
   const i = { ...intent(id), recipient: `${id}${"a".repeat(28)}@${"b".repeat(63)}.${"c".repeat(63)}.${"d".repeat(11)}` };
   assert.equal(JSON.stringify([i.recipient,i.notice_id]).length,260);
+  await updateWorldClock(db,{ nowMs: instant, clockMode: "stopped", rate: 1 });
   await db.transaction("", (sql) => planDelivery(sql, i, instant), true);
   const messages: unknown[] = [], accepted = new Map<string,string>();
   let confirm!: () => void;
@@ -246,7 +248,7 @@ test("SIGKILL after provider acceptance resumes the original intent and emits on
   await new Promise<void>((done) => receiver.listen(0, "127.0.0.1", done));
   const address = receiver.address(); assert(address && typeof address === "object");
   const start = () => spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./fixtures/notices-worker.ts", import.meta.url))], {
-    env: { ...process.env, NOTICE_TEST_MAIL_URL: `http://127.0.0.1:${address.port}`, NOTICE_TEST_NOW: String(instant) }, stdio: ["ignore","pipe","pipe"],
+    env: { ...process.env, NOTICE_TEST_MAIL_URL: `http://127.0.0.1:${address.port}` }, stdio: ["ignore","pipe","pipe"],
   });
   const exit = (worker: ReturnType<typeof start>) => new Promise<{ code: number | null; signal: string | null }>((done,reject) => {
     worker.once("error", reject);

@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
 import type { Database, Sql } from "../platform/db.ts";
+import { worldNow } from "../devnet/door.ts";
+import { lookupBySafe } from "../parties/door.ts";
 import { emit, relay } from "../platform/outbox.ts";
 import type { Mail } from "../shared/door.ts";
-import { deliverDue, type Emit, type WorldNow } from "./delivery.ts";
+import { deliverDue, type Emit } from "./delivery.ts";
 import { createResolver, type Links } from "./resolve.ts";
 import type { Sources } from "./sources.ts";
 import { finishDue, prepareDue, schedule, sourceNames } from "./workflows.ts";
@@ -40,17 +42,21 @@ const transitioned: Emit = async (sql, props, at, id, trace) => {
     owner_id: props.org_id ?? props.person_id, actor: null, trace_id: trace, at, props });
 };
 
-export async function deliverNotices(db: Database, mail: Mail, worldNow: WorldNow) {
+export async function deliverNotices(db: Database, mail: Mail) {
   return deliverDue(db, mail, worldNow, transitioned);
 }
 
 /** Runtime integration, not a public notice procedure. The Core drain awaits this whole tick. */
-export function noticesWorker(db: Database, mail: Mail, sources: Sources, links: Links, worldNow: WorldNow) {
-  const resolve = createResolver(sources, links);
+export function noticesWorker(db: Database, mail: Mail, sources: Omit<Sources,"partyName">, links: Links) {
+  const resolve = createResolver({ ...sources, partyName: async (sql, owner) => {
+    const safe = owner.kind === "organization" ? (await sources.organization(sql,owner.id)).safe
+      : (await sources.principal(sql,owner.id))?.safeAddress;
+    return safe ? (await lookupBySafe(sql,safe))?.display_name ?? null : null;
+  } }, links);
   return async () => {
     const scheduled = await relay(db, "notices", sourceNames, schedule);
     const prepared = await prepareDue(db, worldNow, resolve);
-    const delivered = await deliverNotices(db, mail, worldNow);
+    const delivered = await deliverNotices(db, mail);
     const finished = await finishDue(db, worldNow);
     return scheduled + prepared + delivered + finished;
   };
