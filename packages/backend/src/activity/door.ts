@@ -1,26 +1,9 @@
 import { readFileSync } from "node:fs";
 import type { Sql } from "../platform/db.ts";
+import type { TransitionEvent } from "../platform/outbox.ts";
 
 export type Owner = { kind: "person" | "organization"; id: string };
 export const paymentTransitions = ["open", "schedule", "come_due", "escrow", "submit", "settle", "mismatch", "unsettle", "lapse", "retry", "cancel"] as const;
-type PaymentStatus = "prepared" | "scheduled" | "due" | "escrowed" | "submitted" | "needs_retry" | "settled" | "mismatched" | "cancelled";
-type Common = { owner_kind: Owner["kind"]; owner_id: string; transition: string };
-export type PaymentEvent = {
-  id: string; at: number; name: "payment_transitioned";
-  props: Common & {
-    payment_id: string; from: PaymentStatus | null; to: PaymentStatus; command_id: string | null;
-    route: "personal" | "budget" | "board" | "claim_escrow" | "chain";
-    outcome: "declined" | "refused" | "rejected" | "expired" | "displaced" | "reverted" | "window_closed" | "voided" | "budget_cancelled" | "refunded" | "withdrawn" | null;
-  };
-};
-export type MovementEvent = {
-  id: string; at: number; name: "movement_transitioned";
-  props: Common & {
-    from: "recorded" | "removed" | null; to: "recorded" | "removed";
-    chain_id: number; tx_hash: string; log_index: number; side: "in" | "out";
-  };
-};
-export type ActivityEvent = PaymentEvent | MovementEvent;
 
 /** Called only by explicit world creation/migration, never on restart or restore. */
 export async function migrateActivity(sql: Sql): Promise<void> {
@@ -28,24 +11,38 @@ export async function migrateActivity(sql: Sql): Promise<void> {
 }
 
 /** Dispatch after the source transaction commits. Caller commits the effect and its consumer ACK together. */
-export async function note(sql: Sql, event: ActivityEvent): Promise<void> {
+export async function note(sql: Sql, event: TransitionEvent): Promise<void> {
   const p = event.props;
+  if ((p.owner_kind !== "person" && p.owner_kind !== "organization") || typeof p.owner_id !== "string" || !p.owner_id ||
+      event.owner_kind !== p.owner_kind || event.owner_id !== p.owner_id ||
+      typeof p.transition !== "string" || (p.from !== null && typeof p.from !== "string") || typeof p.to !== "string") {
+    throw new Error("ACTIVITY_SOURCE_INVALID: transition owner and state required");
+  }
   let owners: Owner[] = [{ kind: p.owner_kind, id: p.owner_id }];
   let rowId: string, rowKind: "payment" | "movement";
   if (event.name === "payment_transitioned") {
-    if (!paymentTransitions.includes(event.props.transition as typeof paymentTransitions[number])) throw new Error("ACTIVITY_TRANSITION: unknown payment transition");
+    if (event.machine !== "payment" || typeof p.payment_id !== "string" || !p.payment_id || event.entity_id !== p.payment_id ||
+        !paymentTransitions.includes(p.transition as typeof paymentTransitions[number])) {
+      throw new Error("ACTIVITY_TRANSITION: invalid payment transition");
+    }
     const payment = (await sql.query(`select owner_kind,owner_id,payee_kind,payee_id from app.payments
-      where owner_kind=$1 and owner_id=$2 and id=$3`, [p.owner_kind, p.owner_id, event.props.payment_id])).rows[0];
+      where owner_kind=$1 and owner_id=$2 and id=$3`, [p.owner_kind, p.owner_id, p.payment_id])).rows[0];
     if (!payment) throw new Error("ACTIVITY_SOURCE_MISSING: payment not visible to consumer");
     if (payment.payee_kind === "person" || payment.payee_kind === "organization") {
       owners.push({ kind: payment.payee_kind, id: payment.payee_id });
     }
-    rowId = event.props.payment_id; rowKind = "payment";
-  } else {
+    rowId = p.payment_id; rowKind = "payment";
+  } else if (event.name === "movement_transitioned" && event.machine === "movement") {
     // Removal/restoration changes the live Movement read, not the append-only change log.
-    if (p.transition !== "record") return;
-    rowId = `${event.props.chain_id}:${event.props.tx_hash}:${event.props.log_index}:${event.props.side}`;
+    if (p.transition === "remove" || p.transition === "restore") return;
+    if (p.transition !== "record" || !Number.isSafeInteger(p.chain_id) || !Number.isSafeInteger(p.log_index) ||
+        typeof p.tx_hash !== "string" || (p.side !== "in" && p.side !== "out")) {
+      throw new Error("ACTIVITY_TRANSITION: invalid movement transition");
+    }
+    rowId = `${p.chain_id}:${p.tx_hash}:${p.log_index}:${p.side}`;
     rowKind = "movement";
+  } else {
+    throw new Error("ACTIVITY_TRANSITION: unsupported source event");
   }
   // A self-payment has one side. Global lock order also prevents reciprocal payments deadlocking.
   owners = [...new Map(owners.map((o) => [JSON.stringify([o.kind, o.id]), o])).entries()]
