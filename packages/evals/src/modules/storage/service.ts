@@ -52,6 +52,7 @@ export async function runStorage(area: string, contract: TableContract) {
       assert.deepEqual(preparation.run, { id: receipt.id, at: receipt.at, commit: receipt.commit });
       assert.equal(typeof preparation.world?.id, "string");
       assert(preparation.world.id.length > 0);
+      assert(Number.isSafeInteger(preparation.world.epoch) && preparation.world.epoch >= 1);
       const response = await fetch(new URL("/ready", coreUrl), { signal: AbortSignal.timeout(10000) });
       assert(response.ok);
       const health = await response.json();
@@ -62,7 +63,9 @@ export async function runStorage(area: string, contract: TableContract) {
       try {
         const role = (await sql.query("select current_user as name,rolsuper,rolbypassrls from pg_roles where rolname=current_user")).rows[0];
         assert.equal(role.name, "capxul_core"); assert.equal(role.rolsuper, false); assert.equal(role.rolbypassrls, false);
-        assert.equal((await sql.query("select world_id from app.world")).rows[0]?.world_id, preparation.world.id);
+        const world = (await sql.query("select world_id,epoch from app.world")).rows[0];
+        assert.equal(world?.world_id, preparation.world.id);
+        assert.equal(Number(world.epoch), preparation.world.epoch);
         const columns = (await sql.query(`select a.attname as name,format_type(a.atttypid,a.atttypmod) as type,a.attnotnull as required
           from pg_attribute a where a.attrelid=$1::regclass and a.attnum>0 and not a.attisdropped order by a.attnum`, [`app.${contract.table}`])).rows;
         assert.deepEqual(columns.map((c) => [c.name, c.type, c.required]), contract.columns);
