@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { createPublicClient, http, parseAbi, type Address } from "viem";
+import type { Address, Hex } from "viem";
 import type { Sql } from "../platform/db.ts";
 import { emit } from "../platform/outbox.ts";
 import type { GateCatalogue, Principal } from "../access/door.ts";
+import { IndexerError, readPersonalSafeClaim } from "../shared/door.ts";
 import { eligibility, personalSafe, type PersonalSafe } from "./door.ts";
 
 async function transition(sql: Sql, row: PersonalSafe, from: PersonalSafe["status"] | null, name: string, trace: string, now: number) {
@@ -38,21 +39,22 @@ export async function startSetup(sql: Sql, principal: Principal, signer: string,
   return row;
 }
 
-/** Chain proof, not a setup caller's assertion, admits the claiming -> collecting transition. */
-export async function observeClaim(sql: Sql, personId: string, rpc: string, trace: string, now: number): Promise<PersonalSafe> {
+/** Deployment config, never request-selected. Missing/lagging occurrence remains pending without an event. */
+export async function observeClaim(sql: Sql, personId: string, config: { chainId: number; finalityDepth: number },
+  trace: string, now: number): Promise<PersonalSafe> {
   const old = (await sql.query<PersonalSafe>("select * from app.personal_safes where person_id=$1 for update", [personId])).rows[0];
   if (!old) throw new Error("SMART_ACCOUNT_MISSING: no setup");
   if (["collecting", "ready"].includes(old.status)) return old;
   if (old.status !== "claiming") throw new Error("WRONG_STATE: setup is not claiming");
-  const chain = createPublicClient({ transport: http(rpc) }), block = await chain.getBlockNumber();
-  const [code, owners] = await Promise.all([
-    chain.getCode({ address: old.safe_address as Address, blockNumber: block }),
-    chain.readContract({ address: old.safe_address as Address, abi: parseAbi(["function getOwners() view returns (address[])"]), functionName: "getOwners", blockNumber: block }),
-  ]);
-  if (!code || code === "0x" || owners.length !== 1 || owners[0]!.toLowerCase() !== old.signer_address)
-    throw new Error("WRONG_STATE: Safe is not claimed by exactly this signer");
-  const row = (await sql.query<PersonalSafe>(`update app.personal_safes set status='collecting',claimed_at=$2,claimed_block=$3,updated_at=$2
-    where person_id=$1 and status='claiming' returning *`, [personId, now, Number(block)])).rows[0]!;
+  // The shared reader checks real progress/finality and owners together; a separate head read could cross a reindex.
+  const claim = await readPersonalSafeClaim(sql, { chainId: config.chainId, finalityDepth: config.finalityDepth,
+    safe: old.safe_address as Address, signer: old.signer_address as Address,
+    ...(old.claim_tx_hash === null ? {} : { txHash: old.claim_tx_hash as Hex }) });
+  if (!claim) return old;
+  const block = Number(claim.blockNumber);
+  if (!Number.isSafeInteger(block)) throw new IndexerError("PROVIDER_RESPONSE_INVALID");
+  const row = (await sql.query<PersonalSafe>(`update app.personal_safes set status='collecting',claim_tx_hash=$2,claimed_at=$3,claimed_block=$4,updated_at=$5
+    where person_id=$1 and status='claiming' returning *`, [personId, claim.txHash, claim.blockTime, block, now])).rows[0]!;
   await transition(sql, row, "claiming", "claim", trace, now);
   return row;
 }
