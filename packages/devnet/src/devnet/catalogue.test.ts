@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
-import { cloneDatabase, psqlAdmin } from "./door.ts";
+import { cloneDatabase, psqlAdmin, migrateMailSink, devnetMail } from "./door.ts";
 import { migrateCatalogue, worldCatalogue, type Command, type WorldRow } from "./catalogue.ts";
 
 const maintenance = process.env.WORLD_SNAPSHOT_PG;
@@ -98,6 +98,49 @@ test("native catalogue preserves command history, atomic mutations and restricte
     };
     for (const [table, columns] of Object.entries(expected)) assert.deepEqual(projection.filter((r) => r.table_name === table).map((r) => r.column_name), columns.split(" "));
 
+    await migrateMailSink(admin);
+    let mailNow = now;
+    const mail = devnetMail(query, async () => mailNow);
+    const message = { to: "  Hannah@Harbourline.test ", subject: "Invoice ready", text: "Read https://harbourline.test/invoice/123",
+      idempotencyKey: "notice:invoice-1:hannah'\\ ", template: "invoice-ready" };
+    const concurrent = await Promise.all(Array.from({ length: 8 }, () => mail.send(message)));
+    assert.equal(new Set(concurrent.map((r) => r.id)).size, 1, "concurrent retries must store one accepted send");
+    assert.match(concurrent[0]!.id, /^mail_[0-9A-HJKMNP-TV-Z]{26}$/);
+    assert.equal((await mail.list()).mail.length, 1);
+    const [kept] = await admin("SELECT to_jsonb(m) FROM devnet.mail_messages m");
+    assert.equal(kept!.idempotency_key, message.idempotencyKey, "the exact key including whitespace and escapes must survive");
+    assert.equal(Date.parse(kept!.sent_at as string), now, "mail uses world time, not wall time");
+    await mail.fail({ next: 2 });
+    await mail.fail({ next: 1, to: message.to });
+    assert.deepEqual(await devnetMail(query, async () => now).send({ ...message, subject: "changed on retry" }), concurrent[0]);
+    assert.deepEqual((await mail.fail({ list: true })).faults, [{ to: null, remaining: 2 }, { to: "hannah@harbourline.test", remaining: 1 }]);
+    const retry = { ...message, idempotencyKey: "notice:invoice-2:hannah" };
+    await assert.rejects(mail.send(retry), { code: "PROVIDER_ERROR" });
+    assert.deepEqual((await mail.fail({ list: true })).faults, [{ to: null, remaining: 2 }], "specific fault is spent before wildcard");
+    await assert.rejects(devnetMail(query, async () => now).send(retry), { code: "PROVIDER_ERROR" });
+    assert.deepEqual((await mail.fail({ list: true })).faults, [{ to: null, remaining: 1 }], "failed invocation committed its fault decrement");
+    await assert.rejects(mail.send(retry), { code: "PROVIDER_ERROR" });
+    assert.deepEqual((await mail.fail({ list: true })).faults, []);
+    mailNow += 240000;
+    await mail.send(retry);
+    await mail.send({ ...message, template: "sign-in-code", subject: "Sign in", text: "Code 041820", idempotencyKey: "signin-1" });
+    assert.equal((await mail.list({ template: "invoice-ready", limit: 1 })).mail[0]!.subject, "Invoice ready");
+    assert.equal((await mail.list({ to: " HANNAH@HARBOURLINE.TEST ", template: "sign-in-code" })).mail[0]!.text, "Code 041820");
+    await mail.send({ to: message.to, subject: "HTML only", html: '<a href="https://harbourline.test/invite">Accept</a>',
+      idempotencyKey: "html-only", template: "invitation" });
+    const htmlMail = (await mail.list({ template: "invitation" })).mail[0]!;
+    assert.equal(htmlMail.text, "Accept\nhttps://harbourline.test/invite");
+    assert.deepEqual(htmlMail.links, ["https://harbourline.test/invite"]);
+    for (const input of [{ next: 0 }, { next: 101 }, { next: 1.5 }, { list: true, next: 1 }, { clear: true, to: message.to }])
+      await assert.rejects(mail.fail(input), { code: "INVALID_INPUT" });
+    await assert.rejects(mail.send({ ...message, to: "not-an-address" }), { code: "INVALID_INPUT" });
+    await assert.rejects(query("DELETE FROM devnet.mail_messages"));
+    await assert.rejects(admin("SET ROLE capxul_core; INSERT INTO devnet.mail_faults VALUES ('*',1,now())"));
+    await assert.rejects(devnetMail(async () => { throw new Error("credential-do-not-leak"); }, async () => now).send(message),
+      { code: "PROVIDER_ERROR", message: "Devnet mail storage is unavailable" });
+    await assert.rejects(devnetMail(query, async () => { throw new Error("clock-credential"); }).send(message),
+      { code: "PROVIDER_ERROR", message: "World mail clock is unavailable" });
+    await mail.fail({ next: 2 });
     const cut = await store.cut("town1");
     assert.equal(cut.epoch, 1); assert.equal(cut.seq, 16); assert.match(cut.head, /^[a-f0-9]{64}$/);
     await cloneDatabase(maintenanceQuery, database, copies[0]!);
@@ -109,6 +152,11 @@ test("native catalogue preserves command history, atomic mutations and restricte
     const cloneUrl = new URL(url); cloneUrl.pathname = `/${copies[1]}`;
     const cloneAdmin = psqlAdmin(cloneUrl.href);
     const clone = worldCatalogue((sql) => cloneAdmin(`SET ROLE capxul_worker; ${sql}`), [known]);
+    const cloneMail = devnetMail((sql) => cloneAdmin(`SET ROLE capxul_worker; ${sql}`), async () => mailNow);
+    assert.deepEqual(await cloneMail.send(message), concurrent[0], "snapshot must retain mail idempotency across a new provider instance");
+    assert.deepEqual((await cloneMail.fail({ list: true })).faults, [{ to: null, remaining: 2 }]);
+    await cloneMail.fail({ clear: true });
+    assert.deepEqual((await mail.fail({ list: true })).faults, [{ to: null, remaining: 2 }], "clone faults must not mutate source state");
     const target = { ...world, world_id: "town3", name: "Harbour clone", chain_instance: "anvil-town3", parent_world: "town1", parent_snapshot: "march", parent_seq: cut.seq };
     const saved = { sourceWorld: "town1", snapshot: "march", cut };
     await assert.rejects(clone.rewrite(target, { ...saved, cut: { ...cut, seq: cut.seq - 1 } }, command));
@@ -123,6 +171,8 @@ test("native catalogue preserves command history, atomic mutations and restricte
     assert.deepEqual((await clone.export("town3")).lineage, { parentWorld: "town1", parentSnapshot: "march", parentSeq: 16 });
     assert.equal((await store.cut("town1")).seq, 18, "clone mutation changed the source");
 
+    await mail.fail({ clear: true });
+    await mail.send({ ...message, idempotencyKey: "post-cut" });
     await maintenanceQuery(`ALTER DATABASE "${database}" ALLOW_CONNECTIONS false; ALTER DATABASE "${database}" RENAME TO "${copies[2]}"`);
     await cloneDatabase(maintenanceQuery, copies[0]!, database);
     await maintenanceQuery(`ALTER DATABASE "${database}" ALLOW_CONNECTIONS true`);
@@ -138,6 +188,9 @@ test("native catalogue preserves command history, atomic mutations and restricte
     assert.deepEqual(JSON.parse(resumed.changes as string).events, [{ event: "world_transitioned", trace_id: command.trace, from: "restoring", to: "running", transition: "restored", world_id: "town1", kind: "simulated", epoch: 2 }]);
     assert.equal((await store.show("town1")).epoch, 2);
     assert.equal((await store.show("town1")).state, "running");
+    assert.equal((await mail.list()).mail.length, 4, "in-place restore removes post-cut sends");
+    assert.deepEqual((await mail.fail({ list: true })).faults, [{ to: null, remaining: 2 }], "in-place restore restores armed faults");
+    assert.deepEqual(await mail.send(message), concurrent[0], "restored accepted send still replays before faults");
     const history = await store.records("town1", { includeAbandoned: true });
     assert.equal(history.length, 20);
     assert.deepEqual((await store.snapshots("town1")).map((s) => s.name), ["may", "april", "march"], "in-place restore must not hide retained snapshot bundles");
