@@ -99,9 +99,17 @@ test("receipts refuse false completion, incomplete passes, stale contracts and r
   const blueprint = { evals: [{ id: "acc:one", level: "L1" as const, subject: "x", claim: "c", decider: "machine" as const }] };
   const run = { commit: info.commit, at: info.at, run: "run-1", receipt, results: [{ id: "acc:one", verdict: "pass" as const }] };
   assert.equal(mergeResults(blueprint, null, run).ok, true);
+  const prepared = { ...receipt, prepare: { argv: ["node", "command with spaces", ""], exitCode: 0, signal: null, log: "prepare.log" as const } };
+  const parsed = parseRunReceipt(prepared);
+  assert.ok(parsed.ok);
+  assert.deepEqual(parsed.value.prepare, prepared.prepare);
+  assert.equal(mergeResults(blueprint, null, { ...run, receipt: prepared }).ok, true);
   for (const bad of [
     { ...receipt, scripts: [{ script: "run.sh", exitCode: null, signal: null }] },
     { ...receipt, scripts: [{ script: "run.sh", exitCode: 0, signal: "SIGTERM" }] },
+    ...[null, 7].map((exitCode) => ({ ...prepared, prepare: { ...prepared.prepare, exitCode } })),
+    { ...prepared, prepare: { ...prepared.prepare, signal: "SIGTERM" } },
+    ...[[], [""], ["node", "nul\0arg"]].map((argv) => ({ ...prepared, prepare: { ...prepared.prepare, argv } })),
     { ...receipt, requested: ["acc:one", "acc:one"] },
     { ...receipt, evals: [] },
     { ...receipt, environment: { ...receipt.environment, stack: "postgres-ponder-erpnext-v4" } },

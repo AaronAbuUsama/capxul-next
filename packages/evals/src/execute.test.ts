@@ -80,6 +80,89 @@ test("only a complete child run replaces prior passes; every attempt keeps inten
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+test("preparation runs after saved intent and before checks; its failure or output cannot supply passes", async () => {
+  const target = await loadTarget();
+  assert.ok(target.ok);
+  const id = "ret:doc.create";
+  const root = mkdtempSync(join(tmpdir(), "eval-prepare-"));
+  const previousFixture = process.env["CAPXUL_ACCEPTANCE_FIXTURE"];
+  process.env["CAPXUL_ACCEPTANCE_FIXTURE"] = join(root, "acceptance-fixture.json");
+  try {
+    mkdirSync(join(root, "packages/evals/src"), { recursive: true });
+    symlinkSync(join(import.meta.dirname, "record-status.ts"), join(root, "packages/evals/src/record-status.ts"));
+    mkdirSync(join(root, "status"));
+    const loaded = loadBindings([{
+      source: "test.json", area: "test", script: "run.sh", worlds: ["main"], secrets: [], near: [],
+      bindings: [{ eval: id, checks: ["B1.done"], why: "preparation is not check evidence" }],
+    }], { evals: new Set([id]), scripts: new Map([["run.sh", parseScriptList("B1.done\tcheck")]]) });
+    assert.ok(loaded.ok);
+    writeFileSync(join(root, "prepare command.mjs"), `
+import assert from 'node:assert/strict';
+import {readFileSync,writeFileSync} from 'node:fs';
+const dir=process.env.CAPXUL_EVAL_RUN_DIR;
+const receipt=JSON.parse(readFileSync(dir+'/receipt.json'));
+assert.equal(receipt.state,'running');
+assert.equal(receipt.prepare.exitCode,null);
+assert.equal(receipt.scripts[0].exitCode,null);
+assert.equal(JSON.parse(readFileSync('status/status.json')).evals['${id}'].verdict,'not_run');
+assert.deepEqual(process.argv.slice(2),['literal ; $(not-a-shell)', '']);
+writeFileSync(dir+'/prepared.json',JSON.stringify(receipt));
+writeFileSync(process.env.CAPXUL_ACCEPTANCE_FIXTURE,JSON.stringify({run:receipt.id}));
+console.log('@check\\tB1.done\\tpass\\t1\\tpreparation is not a binding');
+console.error('preparation stderr');
+const mode=readFileSync('mode','utf8');
+if(mode==='failure')process.exit(7);
+if(mode==='signal')process.kill(process.pid,'SIGTERM');
+`);
+    const normal = `
+node -e 'const fs=require("node:fs"); const d=process.env.CAPXUL_EVAL_RUN_DIR; const r=JSON.parse(fs.readFileSync(d+"/receipt.json")); if(r.prepare.exitCode!==0 || r.prepare.signal!==null || JSON.parse(fs.readFileSync(process.env.CAPXUL_ACCEPTANCE_FIXTURE)).run!==r.id)process.exit(8); fs.readFileSync(d+"/prepared.json"); fs.writeFileSync(d+"/binding-ran", "yes");' || exit $?
+printf '@check\\tB1.done\\tpass\\t1\\tactual check\\n'
+`;
+    for (const mode of ["success", "failure", "signal", "spawn-error", "no-check"]) {
+      writeFileSync(join(root, "status/status.json"), JSON.stringify({ version: 1, evals: { [id]: { verdict: "pass", commit: "old", at: "2026-01-01T00:00:00Z" } } }));
+      writeFileSync(join(root, "mode"), mode);
+      const argv = mode === "spawn-error" ? [join(root, "no-such-executable")] : [process.execPath, join(root, "prepare command.mjs"), "literal ; $(not-a-shell)", ""];
+      writeFileSync(join(root, "argv.json"), JSON.stringify(argv));
+      writeFileSync(join(root, "run.sh"), mode === "no-check" ? "exit 0" : normal);
+      const passed = mode === "success";
+      assert.equal(await executeRun(root, target.blueprint, loaded.value, [id], { world: "main", slug: "test", prepare: "argv.json" }, "abc1234", []), passed ? 0 : 1, mode);
+      const dir = join(root, "status/runs", readdirSync(join(root, "status/runs")).sort().at(-1)!);
+      const parsed = parseRunReceipt(JSON.parse(readFileSync(join(dir, "receipt.json"), "utf8")));
+      assert.ok(parsed.ok);
+      const receipt = parsed.value;
+      assert.equal(receipt.state, passed ? "complete" : "incomplete");
+      assert.deepEqual(receipt.prepare?.argv, argv);
+      assert.equal(receipt.prepare?.log, "prepare.log");
+      assert.equal(receipt.prepare?.exitCode, mode === "failure" ? 7 : mode === "signal" ? null : mode === "spawn-error" ? -2 : 0);
+      assert.equal(receipt.prepare?.signal, mode === "signal" ? "SIGTERM" : null);
+      if (mode !== "spawn-error") {
+        assert.match(readFileSync(join(dir, "prepare.log"), "utf8"), /preparation stderr/);
+        const before = JSON.parse(readFileSync(join(dir, "prepared.json"), "utf8"));
+        assert.equal(before.id, receipt.id);
+        assert.equal(before.at, receipt.at);
+        assert.equal(before.commit, receipt.commit);
+      }
+      assert.equal(receipt.scripts[0]?.exitCode, mode === "success" || mode === "no-check" ? 0 : null);
+      assert.equal(readdirSync(dir).includes("binding-ran"), passed);
+      for (const file of [join(dir, "status.json"), join(root, "status/status.json")]) {
+        const status = parseStatus(JSON.parse(readFileSync(file, "utf8")));
+        assert.ok(status.ok);
+        assert.equal(status.value.evals[id]?.verdict, passed ? "pass" : "not_run");
+      }
+    }
+    for (const argv of [[], [""], ["node", null], ["node", "nul\0arg"]]) {
+      writeFileSync(join(root, "argv.json"), JSON.stringify(argv));
+      const before = readdirSync(join(root, "status/runs"));
+      await assert.rejects(executeRun(root, target.blueprint, loaded.value, [id], { world: "main", slug: "test", prepare: "argv.json" }, "abc1234", []));
+      assert.deepEqual(readdirSync(join(root, "status/runs")), before, "invalid argv is refused before creating an attempt");
+    }
+  } finally {
+    if (previousFixture === undefined) delete process.env["CAPXUL_ACCEPTANCE_FIXTURE"];
+    else process.env["CAPXUL_ACCEPTANCE_FIXTURE"] = previousFixture;
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("a check consuming stdin cannot swallow the next concept's registered checks", () => {
   const root = mkdtempSync(join(tmpdir(), "eval-dispatch-"));
   try {
