@@ -1135,8 +1135,11 @@ export const decision_aaron_alchemy_provisioning = defineDecision({
     "for all worlds) with one Postgres and one bench inside each world's box; the storage choice itself (Postgres and Ponder " +
     "everywhere, MariaDB only for Frappe) stands. Not settled here: how a world service that creates worlds by itself signs " +
     "in to AWS (an assumed role, never an IAM user or key), whether Cloudflare fronts the worlds, and the placement for " +
-    "long-lived shared worlds.",
-  source: "Aaron, 12 November 2026, in the project thread \"Rethink infrastructure around Alchemy\" (18:12 and 18:23 UTC)",
+    "long-lived shared worlds. At 18:49 he allowed an exception to the workspace's three-day minimum release age (decision " +
+    "tooling.package-manager) for Alchemy: \"Yeah, we can make an exception for this supply chain thing.\" It covers only " +
+    "alchemy, @alchemy.run/*, @distilled.cloud/* (the E2B client Alchemy's E2B provider uses), and effect, @effect/platform-node and " +
+    "@effect/platform-node-shared at exactly 4.1.4, which Alchemy 2.0.0-beta.86 needs; every other dependency keeps the rule.",
+  source: "Aaron, 12 November 2026, in the project thread \"Rethink infrastructure around Alchemy\" (18:12, 18:23 and 18:49 UTC)",
   affects: [
     f.system_capxul,
     f.component_provisioner,

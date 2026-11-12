@@ -2,7 +2,7 @@
 
 Every environment as an Alchemy stack, and every world as an Alchemy stage (Aaron's ruling
 `aaron.alchemy-provisioning`, component `provisioner` in the blueprint). Callers use `src/provisioner/door.ts` and never
-import Alchemy, so a breaking Alchemy release changes this package only. Alchemy is pinned to one exact version.
+import Alchemy, so a breaking Alchemy release changes this package only. Alchemy is pinned to one exact version (2.0.0-beta.86, admitted early under the one release-age exception Aaron allowed on 12 November).
 
 | File | What |
 |---|---|

@@ -9,10 +9,11 @@
     "test": "node --experimental-strip-types --no-warnings --test src/provisioner/*.test.ts"
   },
   "dependencies": {
-    "alchemy": "2.0.0-beta.85",
-    "@alchemy.run/docker": "2.0.0-beta.85",
-    "@effect/platform-node": "4.1.2",
-    "effect": "catalog:"
+    "alchemy": "2.0.0-beta.86",
+    "@alchemy.run/docker": "2.0.0-beta.86",
+    "@alchemy.run/e2b": "2.0.0-beta.86",
+    "@effect/platform-node": "4.1.4",
+    "effect": "4.1.4"
   },
   "devDependencies": { "@types/node": "catalog:", "typescript": "catalog:" }
 }
