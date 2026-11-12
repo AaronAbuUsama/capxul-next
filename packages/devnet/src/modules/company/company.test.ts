@@ -11,12 +11,12 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { encodeFunctionData, keccak256, stringToHex, type Abi, type Hex } from "viem";
+import { decodeEventLog, encodeFunctionData, keccak256, stringToHex, type Abi, type Hex } from "viem";
 
 import { connect, send } from "../chain/service.ts";
 import type { DeploymentRecord } from "../protocol/types.ts";
 import { testKey } from "../test-keys/service.ts";
-import { httpTransport, prepareBundler, probeBundler, suppliedAlto } from "../bundler/service.ts";
+import { httpTransport, prepareBundler, probeBundler, suppliedAlto, type UserOpReceipt } from "../bundler/service.ts";
 import { approvedBy, approveProposal, claimPersonalSafe, createCompany, createDepartment, ENTRY_POINT, ENTRY_POINT_V07, ERC20, grantHat, leftOf, pay, payByUserOp, proposeGrant, revokeHat, setBudget, viaBundler, viaEntryPoint, wears, type Protocol } from "./service.ts";
 
 const rpc = process.env.DEVNET_RPC;
@@ -201,6 +201,34 @@ for (const ingress of ["direct EntryPoint", "Alto RPC / SIGINT", "Alto RPC / SIG
     assert.equal(sends, 1, "uncertain send is never broadcast twice");
     assert.equal((await chain.client.readContract({ address: token, abi: ERC20, functionName: "balanceOf", args: [payee] })) - after, 3_250_000n, "lost reply recovery paid the second invoice exactly once");
     t.diagnostic(`Lost-reply recovery receipt: ${recovered.ok && recovered.txHash}; single broadcast; supplier received 3250000 units`);
+    if (ingress.endsWith("SIGTERM")) {
+      let mined: UserOpReceipt | undefined;
+      const observed = viaBundler(bundlerUrl, { async request(method, params) {
+        const answer = await real.request(method, params);
+        if (method === "eth_getUserOperationReceipt" && answer) mined = answer as UserOpReceipt;
+        return answer;
+      } });
+      const balanceBefore = await chain.client.readContract({ address: token, abi: ERC20, functionName: "balanceOf", args: [payee] });
+      // This hook runs only after payByUserOp's real spend simulation and signature have succeeded.
+      const raced = await payByUserOp(p, { safe, ownerKey: holder.key, paymaster: paymaster.address, submit: async op => {
+        await setBudget(p, company, department, 128_750_000n); // exactly the already spent amount: no room left
+        return observed(op);
+      }, budget: department, to: payee, amount: 1_750_000n, kind: 1, documentHash: hash(`${name} PINV-raced`), jobNonce: hash(`${name} raced`) }).catch((error: Error) => error);
+      assert.ok(mined, "Alto included the operation despite its execution-phase failure");
+      t.diagnostic(`Mined failure receipt: ${mined.receipt.transactionHash}; UserOperation: ${mined.userOpHash}; success=${mined.success}; caller=${raced instanceof Error ? "threw" : "returned refusal"}`);
+      assert.equal(mined.success, false);
+      const native = await chain.client.getTransactionReceipt({ hash: mined.receipt.transactionHash });
+      assert.equal(native.status, "success", "the EntryPoint transaction succeeded while this UserOperation failed");
+      const events = native.logs.filter(l => l.address.toLowerCase() === ENTRY_POINT_V07.toLowerCase()).flatMap(l => {
+        try { return [decodeEventLog({ abi: ENTRY_POINT, data: l.data, topics: l.topics })]; } catch { return []; }
+      });
+      assert.ok(events.some(e => e.eventName === "UserOperationEvent" && e.args.userOpHash === mined!.userOpHash && e.args.success === false));
+      assert.equal(await chain.client.readContract({ address: token, abi: ERC20, functionName: "balanceOf", args: [payee] }), balanceBefore, "the failed payment moved no supplier funds");
+      assert.ok(!(raced instanceof Error), "an included failure returns the existing payment refusal instead of throwing");
+      assert.deepEqual([raced.ok, !raced.ok && raced.reason], [false, "REVERTED"]);
+      assert.ok(!raced.ok && raced.detail.includes(mined.userOpHash) && raced.detail.includes(mined.receipt.transactionHash), "the refusal retains both on-chain identities");
+      await setBudget(p, company, department, 2_000n * UNIT);
+    }
   }
 
   const wrongSigner = await payByUserOp(p, { safe, ownerKey: testKey("stranger").key, paymaster: paymaster.address, submit, budget: department, to: payee, amount: UNIT, kind: 1, documentHash: hash("w"), jobNonce: hash(`${name} w`) }).catch((e: Error) => e);

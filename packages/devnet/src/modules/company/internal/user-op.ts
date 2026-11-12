@@ -101,7 +101,7 @@ export const viaBundler = (url: string, transport: RpcTransport = httpTransport(
   for (let i = 0; i < 300; i++) {
     const { receipt } = await provider.lookup(opHash);
     if (receipt) {
-      if (!receipt.success) throw new ProviderError("TRANSACTION_FAILED", "bundler operation reverted on chain");
+      // Inclusion is not execution success: payByUserOp decodes this operation's on-chain result.
       return receipt.receipt.transactionHash;
     }
     await new Promise((r) => setTimeout(r, 100));
