@@ -375,6 +375,20 @@ export const decision_plugs_ledger_trace_display = dec({
   affects: [f.component_frappe_app, doctype_gl_entry],
 });
 
+export const decision_plugs_request_starts_trace = dec({
+  id: "plugs.request-starts-trace",
+  title: "A payment request starts the money trail's trace when nobody sent one",
+  question: "Which trace do the approval, the chain event and the ledger rows carry when a person presses Submit in the desk, where no X-Capxul-Trace header arrives?",
+  options: [
+    { label: "site-starts-trace", text: "The site's outbox write keeps a trace that arrived with the command (the CLI, Core) and otherwise starts one (tr_ plus 24 random characters) in the same transaction, so the request row, Core's approval, the queued payment_sent event and the GL Entry rows it posts all carry one id." },
+    { label: "empty-trace", text: "Leave the trace empty unless a caller sent one; desk payments have no traced ledger rows." },
+  ],
+  chosen: "site-starts-trace",
+  why: "plugs.service-calls-site makes the trace travel with the request, and plugs.ledger-trace-display shows the settled payment's GL rows' trace to a person. A desk Submit sends no header, so the first cloud run of slice zero (run-20261112165839503-c092106f) paid and booked the supplier invoice but its GL rows had no trace and money-reconciled failed. Only the site sees the request first, so only the site can start the id.",
+  evidence: "First cloud run of world run slice-zero on main 60707fe, 12 November 2026: preparation settled, reconciliation refused 'payment ledger lost its trace'",
+  affects: [f.component_frappe_app, doctype_gl_entry, d.table_payment_requests, pr.workflow_plugs_payments_collect],
+});
+
 export const decision_plugs_later_deposits = dec({
   id: "plugs.later-deposits",
   title: "Later incoming transfers are not founder capital",

@@ -108,6 +108,19 @@ class SiteRequestBoundary(unittest.TestCase):
         return {"org": "boundary", "request_id": request, "approval_id": "A-1", "approval_url": "https://core.invalid/approve/A-1",
                 "requested_by": "admin@example.invalid", "awaiting": "0xsigner"}
 
+    def test_a_desk_submit_starts_the_trace_the_money_trail_carries(self):
+        self.frappe.flags.capxul_trace = None
+        api.request_payment("PE-1")
+        body = self.signed_call(api.collect_payment_requests, {"org": "boundary"})["requests"][0]
+        self.assertRegex(body["trace_id"], r"^tr_[0-9a-z]{8,40}$")
+        self.assertEqual(body["trace_id"], self.frappe.flags.capxul_trace)
+
+    def test_a_sent_trace_is_kept(self):
+        self.frappe.flags.capxul_trace = "tr_fromthecli0001"
+        api.request_payment("PE-1")
+        body = self.signed_call(api.collect_payment_requests, {"org": "boundary"})["requests"][0]
+        self.assertEqual(body["trace_id"], "tr_fromthecli0001")
+
     def test_submit_then_collect_is_stable_until_core_answers(self):
         first = api.request_payment("PE-1")
         self.assertEqual(api.request_payment("PE-1"), first)

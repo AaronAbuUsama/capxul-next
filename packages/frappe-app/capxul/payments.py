@@ -5,6 +5,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt, getdate
 
+from capxul import trace
 from capxul.canon import canonical, document_hash, money, to_address_for
 
 WAITING = "Waiting for signature"
@@ -90,7 +91,8 @@ def request_payment(name):
     ).insert(ignore_permissions=True)
     body = {
         "request_id": req.name, "idempotency_key": req.name, "cursor": seq,
-        "trace_id": frappe.flags.get("capxul_trace") or "",
+        # The money trail (approval, chain event, ledger rows) needs one id from here on, even from a desk Submit.
+        "trace_id": trace.ensure(),
         "org": s.org_slug, "site": frappe.local.site, "doctype": "Payment Entry", "name": name, "document_hash": h,
         "requested_by": frappe.session.user, "to_party": pe.party_name or pe.party, "to_address": to_addr,
         "amount": money(pe.paid_amount), "asset": s.asset, "department": dept,
