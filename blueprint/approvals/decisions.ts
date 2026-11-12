@@ -21,6 +21,20 @@ import { flow_client_approvals_sign } from "./flows.ts";
 const OLD = "packages/backend/src";
 const t = machine_approval.t;
 
+export const decision_approvals_public_transport = defineDecision({
+  id: "approvals.public-transport",
+  title: "Bearer-authenticated live signing releases SQL between frames",
+  question: "How do the four signing rpcs reach a public client without exposing the collector's service authority?",
+  options: [
+    { label: "bearer", text: "GET /approvals/signing/get?approvalId=… returns a snapshot, or SSE with Accept: text/event-stream; POST /approvals/signing/review, /sign and /decline take the declared JSON inputs. Resolve the raw Bearer through Access on the caller transaction and canonical world time." },
+    { label: "service", text: "Let a browser use the collector's private HMAC and identify its signer in the body." },
+  ],
+  chosen: "bearer",
+  why: "A service credential is not a person's session. Each live frame reauthenticates and checks signer ownership and any approval gate before reading, using a short transaction that releases its connection before waiting or writing to the socket. Disconnect cancels the wait. Mutations carry X-Capxul-Trace and X-Capxul-Call-Id; same-Sql signer-scoped call metadata refuses reuse with different input and preserves the original trace, but stores no second approval state. Replays invoke the idempotent signing door, not open. The SDK transport follows these frames and sends signatures only when supplied by its caller; it does not invent a SafeOp digest, sponsorship policy or signing authority.",
+  source: "approvals.signing-area; approvals.tenant-is-signer; integrator public transport contract, 12 November 2026",
+  affects: [rpc_approvals_signing_get, rpc_approvals_signing_review, rpc_approvals_signing_sign, rpc_approvals_signing_decline],
+});
+
 export const decision_approvals_transactional_carrier = defineDecision({
   id: "approvals.transactional-carrier",
   title: "The caller's transaction persists the carrier and its wake",

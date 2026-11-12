@@ -5,6 +5,7 @@ import pg from "pg";
 import { privateKeyToAccount } from "viem/accounts";
 import { Database } from "../src/platform/db.ts";
 import { migrateOutbox } from "../src/platform/outbox.ts";
+import { signingTransportControls } from "./approvals-http.ts";
 import { open, withdraw, prepare, get, submitted, settleSitePayment, migrateApprovals, signingGet, signingSign, signingDecline, carry, wakeChain, readApproval,
   type ApprovalContext, type Open, type SigningContext, type CarrierServices } from "../src/approvals/door.ts";
 
@@ -177,6 +178,9 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
       await tenant((sql) => signingDecline(sql, signing, { approvalId: next.approval_id }));
       assert.equal(completed, 1);
       assert.equal((await admin.query("select count(*)::int as n from app.approval_carriers where approval_id=$1", [next.approval_id])).rows[0].n, 0);
+    });
+    await t.test("public signing HTTP/SDK auth, atomic replay and live revocation controls", async () => {
+      await signingTransportControls(db, admin, ctx, terms);
     });
   } finally { await db.close(); await admin.end(); }
 });

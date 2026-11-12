@@ -9,6 +9,7 @@ export { open, withdraw } from "./store.ts";
 export { migrateApprovals } from "./migrate.ts";
 export { signingGet, signingReview, signingSign, signingDecline, type SigningContext } from "./signing.ts";
 export { carry, wakeChain, type CarrierServices, type ChainFact, type Sponsorship } from "./carrier.ts";
+export { createSigningHandler, type SigningTransport } from "./http.ts";
 
 /** Internal command replay only: authorize the stored command first. Tenant callers see no row. */
 export async function readApproval(sql: Sql, approvalId: string): Promise<Pick<Approval, "approval_id" | "deadline" | "state" | "person_id" | "sender"> | null> {
