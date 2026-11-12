@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# Amp runs this once per orb snapshot (https://ampcode.com/docs/orbs/customizing). Fast and safe to re-run.
-# It installs the workspace and the product stack's tools: Foundry, the pinned Solidity compilers, Docker Compose.
+# Reusable tools and images only; each orb owns its runtime databases and credentials.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-corepack enable >/dev/null 2>&1 || true
-pnpm install --frozen-lockfile
-# shellcheck source=/dev/null
-source packages/devnet/cloud/setup.sh
+exec packages/devnet/orb/setup.sh
