@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "check": "tsc -b packages/blueprint-engine",
-    "test": "pnpm --filter @capxul/blueprint-engine test && pnpm --filter @capxul/portal test && pnpm record:test && pnpm contracts:check-blueprint:test && pnpm frappe:check-blueprint:test && pnpm frappe:test && pnpm frappe:check-blueprint && pnpm evals:test && pnpm plan:test && pnpm plan:check && pnpm tasks:check && pnpm evals:check && pnpm layout:test && pnpm layout",
+    "test": "pnpm --filter @capxul/blueprint-engine test && pnpm --filter @capxul/portal test && pnpm record:test && pnpm contracts:check-blueprint:test && pnpm frappe:check-blueprint:test && pnpm frappe:test && pnpm frappe:check-blueprint && pnpm sites:test && pnpm evals:test && pnpm plan:test && pnpm plan:check && pnpm tasks:check && pnpm evals:check && pnpm layout:test && pnpm layout",
     "record:test": "node --experimental-strip-types --test spikes/skeleton/core/test/record-schema.test.ts spikes/skeleton/core/test/record-runtime.test.ts spikes/skeleton/core/test/log-key.test.ts",
     "blueprint": "node --experimental-strip-types packages/blueprint-engine/src/main.ts blueprint/index.ts var/blueprint",
     "frozen": "node --experimental-strip-types packages/blueprint-engine/scripts/check-frozen.ts",
@@ -21,6 +21,8 @@
     "contracts:fork": "pnpm --filter @capxul/contracts fork",
     "contracts:prove": "pnpm --filter @capxul/contracts prove",
     "sdk:test": "pnpm --filter @capxul/sdk test",
+    "capxul": "node --experimental-strip-types --no-warnings packages/cli/src/main.ts",
+    "sites:test": "pnpm --filter @capxul/sdk check && pnpm --filter @capxul/cli check && pnpm --filter @capxul/site-service check && pnpm --filter @capxul/site-service test",
     "devnet:test": "pnpm --filter @capxul/devnet test",
     "plan": "node --experimental-strip-types --no-warnings packages/plan/src/main.ts",
     "plan:test": "node --experimental-strip-types --no-warnings --test packages/plan/src/modules/plan/plan.test.ts",
