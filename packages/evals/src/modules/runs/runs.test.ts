@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { mergeResults, parseResults, parseStatus, verdictOf, type StatusDocument } from "@capxul/blueprint-engine";
+import { mergeResults, parseResults, parseRunReceipt, parseStatus, verdictOf, type RunReceipt, type StatusDocument } from "@capxul/blueprint-engine";
 
 import { loadBindings, parseScriptList } from "../bindings/service.ts";
 import { cap, evidenceText, foldChecks, parseCheckLines, redact, resultsFile, scoreEvals, type RunInfo } from "./service.ts";
@@ -52,14 +52,14 @@ test("an eval with no check is not_run when asked for, and never pass", () => {
   assert.deepEqual(s.rows.map((r) => [r.id, r.verdict]), [["acc:none", "not_run"], ["acc:one", "pass"]]);
 });
 
-test("a bound eval whose check did not run, and none failed, writes nothing and is listed as unfinished", () => {
+test("a bound eval whose check did not run writes not_run and is listed as unfinished", () => {
   const s = scored(out(line("B1.a", "pass")), ["acc:two", "acc:three"]);
-  assert.deepEqual(s.rows, []);
+  assert.deepEqual(s.rows.map((r) => [r.id, r.verdict]), [["acc:two", "not_run"], ["acc:three", "not_run"]]);
   assert.deepEqual(s.unfinished, [{ id: "acc:two", missing: ["B1.b"] }, { id: "acc:three", missing: ["B2.c"] }]);
 });
 
 test("an eval that was not asked for is not scored, whatever its checks did", () => {
-  assert.deepEqual(verdicts(out(line("B2.c", "fail")), ["acc:one"]), {});
+  assert.deepEqual(verdicts(out(line("B2.c", "fail")), ["acc:one"]), { "acc:one": "not_run" });
 });
 
 const info: RunInfo = { run: "run-1", commit: "abc1234", at: "2026-11-10T12:00:00Z", script: "run.sh", world: "main", slug: "s1" };
@@ -76,10 +76,11 @@ const merge = (output: string, asked: string[], before: StatusDocument | null) =
   return merged.value;
 };
 
-test("merged: a pass is recorded with its commit, time, run and evidence; one that did not run stays as it was", () => {
+test("merged: a pass keeps its provenance; a requested missing check clears an earlier pass", () => {
   const status = merge(out(line("B1.a", "pass")), ["acc:one", "acc:three"], doc("pass"));
   assert.deepEqual(status.evals["acc:one"], { verdict: "pass", commit: "abc1234", at: "2026-11-10T12:00:00Z", claim: "c", run: "run-1", evidence: "status/runs/run-1/evidence/acc:one.txt" });
-  assert.deepEqual(status.evals["acc:three"], { verdict: "pass", commit: "old0000", at: "2026-11-09T12:00:00Z" });
+  assert.equal(status.evals["acc:three"]?.verdict, "not_run");
+  assert.equal(status.evals["acc:three"]?.run, "run-1");
 });
 
 test("merged: a failing check turns an earlier pass into fail, and an asked-for eval with no check turns a stale pass into not_run", () => {
@@ -87,6 +88,32 @@ test("merged: a failing check turns an earlier pass into fail, and an asked-for 
   const stale = parseStatus({ version: 1, evals: { "acc:none": { verdict: "pass", commit: "hand", at: "2026-11-09T12:00:00Z" } } });
   assert.ok(stale.ok);
   assert.equal(verdictOf(merge(out(), ["acc:none"], stale.value), "acc:none"), "not_run");
+});
+
+test("receipts refuse false completion, incomplete passes, stale contracts and results outside the requested set", () => {
+  const receipt: RunReceipt = {
+    version: 1, id: "run-1", state: "complete", commit: info.commit, at: info.at, finishedAt: "2026-11-10T12:01:00Z",
+    environment: { world: "main", storage: "json", indexer: "inline", stack: "skeleton-json", components: {} },
+    requested: ["acc:one"], evals: [{ id: "acc:one", claim: "c" }], scripts: [{ script: "run.sh", exitCode: 0, signal: null }], screens: [],
+  };
+  const blueprint = { evals: [{ id: "acc:one", level: "L1" as const, subject: "x", claim: "c", decider: "machine" as const }] };
+  const run = { commit: info.commit, at: info.at, run: "run-1", receipt, results: [{ id: "acc:one", verdict: "pass" as const }] };
+  assert.equal(mergeResults(blueprint, null, run).ok, true);
+  for (const bad of [
+    { ...receipt, scripts: [{ script: "run.sh", exitCode: null, signal: null }] },
+    { ...receipt, scripts: [{ script: "run.sh", exitCode: 0, signal: "SIGTERM" }] },
+    { ...receipt, requested: ["acc:one", "acc:one"] },
+    { ...receipt, evals: [] },
+    { ...receipt, environment: { ...receipt.environment, stack: "postgres-ponder-erpnext-v4" } },
+    { ...receipt, screens: [{ screen: "s", path: "../outside.png", source: "data", assertion: "source-equality" }] },
+  ]) assert.equal(parseRunReceipt(bad).ok, false);
+  assert.equal(mergeResults(blueprint, null, { ...run, receipt: { ...receipt, state: "incomplete" } }).ok, false);
+  assert.equal(mergeResults(blueprint, null, { ...run, receipt: { ...receipt, evals: [{ id: "acc:one", claim: "old" }] } }).ok, false);
+  assert.equal(mergeResults(blueprint, null, { ...run, results: [] }).ok, false);
+  const newer = { version: 1 as const, evals: { "acc:one": { verdict: "not_run" as const, commit: "new", at: "2026-11-11T12:00:00Z" } } };
+  const late = mergeResults(blueprint, newer, run);
+  assert.ok(late.ok);
+  assert.deepEqual(late.value, newer, "an older run cannot restore its pass after a newer attempt");
 });
 
 test("the evidence names the checks and their details; a secret is redacted and a long text is cut in the middle", () => {

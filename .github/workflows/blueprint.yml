@@ -5,7 +5,7 @@ name: blueprint
 on:
   pull_request:
   push:
-    branches: [integration/build]
+    branches: [main, integration/build, integration/wave-0]
 jobs:
   gate:
     runs-on: ubuntu-latest

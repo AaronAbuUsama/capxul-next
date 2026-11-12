@@ -717,28 +717,24 @@ export const decision_tooling_branch_protection = defineDecision({
 
 export const decision_tooling_ci = defineDecision({
   id: "tooling.ci",
-  title: "CI: one check job and one secrets job, each step a measured gate",
+  title: "Run the repository gate on pull requests and every integration or trunk push",
   question: "What does CI run, on which events, within what time, and what becomes of the old CI's other jobs?",
   options: [
     {
-      label: "two-jobs",
+      label: "current-gate",
       text:
-        "On every pull request and on pushes to main and integration/build: check (workspace, book, generate:check, fmt, " +
-        "lint, tsc -b, tests and canary, knip, jscpd, loc to the job summary; at most 10 minutes) and secrets (gitleaks over " +
-        "the whole history; at most 2 minutes), on ubuntu-24.04 with the old repository's pinned action SHAs. B2 adds evals " +
-        "and B5 staging.",
+        "The existing blueprint workflow runs on every pull request, including PRs into main, integration/build and " +
+        "integration/wave-0, and on pushes to all three branches. Keep its existing install, typecheck, blueprint, " +
+        "Frappe, contracts, frozen and test steps unchanged; the ripple report remains pull-request-only.",
     },
-    { label: "tiers", text: "The old tiers: a fast tier on every push, a full tier when a pull request is ready." },
+    { label: "build-only", text: "Run the gate on every pull request but only integration/build pushes." },
   ],
-  chosen: "two-jobs",
+  chosen: "current-gate",
   why:
-    "One install per job keeps the wall time low, and the steps are the same commands as the hooks, so a green hook " +
-    "predicts a green CI. The old tiers existed because the full gate took 13 to 20 minutes; the target's fits 10. The " +
-    "old bundle and start-up budgets become evals of the component budgets the book declares (the CLI's startMs), the " +
-    "book-regeneration bot pull requests go because generated files are committed and checked, and the change-scoped " +
-    "selector goes because whole-tree gates fit. GitHub records each step's duration; T0 logs the first green run as the " +
-    "baseline.",
-  source: by("/home/user/factory/.github/workflows/ci.yml (tiers, 8-vCPU runners, 13-20 min); blueprint/shared/foundation.ts (component budgets)"),
+    "Aaron authorized main as the current trunk and integration/wave-0 as its reviewed integration gate on 12 November " +
+    "2026, then explicitly approved push CI on both. PR checks alone do not validate the final merged tree. Checking " +
+    "each pushed head records that evidence before main advances, without adding a different gate or deploying anything.",
+  source: "Aaron through the Amp Space, 12 November 2026; .github/workflows/blueprint.yml; wave-zero integration thread",
   affects: [f.system_capxul],
 });
 
@@ -822,4 +818,18 @@ export const decision_tooling_lane_gate = defineDecision({
     "so the mapping belongs in the generator, and the book's 97 Schema.Number fields stay as written.",
   source: by("the cross-file table in docs/design/tooling.md; oxlint over a copy of the book (456 schema-number)"),
   affects: SHIPPED,
+});
+
+export const decision_tooling_amp_orbs = defineDecision({
+  id: "tooling.amp-orbs",
+  title: "One independent development stack per Amp orb, without a nested worker box",
+  question: "How does an Amp agent run the current Frappe and Core stack without provisioning another agent sandbox?",
+  options: [
+    { label: "orb", text: "Amp owns the worker checkout and lifecycle. Setup caches the pinned bench image, Node, pnpm, native Solidity compilers, Foundry and contract artifacts. Runtime provides local Postgres, MariaDB, Redis, Frappe and a seeded v4 chain; Frappe HTTP and Socket.IO are published only on loopback. The Core/Ponder package owns its schema, migrations, restricted roles and readiness; its running services do not inherit migration/admin credentials. Amp supervises the processes. No Cloudflare worker, loop host or model proxy is started inside the orb." },
+    { label: "nested-box", text: "Keep creating a Cloudflare worker box from every Amp orb." },
+  ],
+  chosen: "orb",
+  why: "Aaron asked for one full stack per agent orb and, on 12 November, one Postgres/Ponder design everywhere. The built-in orb supports a systemd-owned Docker daemon: bench containers need not be rewritten as native services, nor does Docker need a world-writable socket. build.amp already removed the home-made worker provisioner. Product tenant boundaries, HMAC checks, test-only keys, world clocks, snapshots and cleanup remain. Setup contains no running company sites or runtime authentication. A legacy Core smoke check is not wave-zero acceptance: real Postgres/Ponder, a reconciled supplier payment and recovery must be proven together. This decision does not change the project's base branch, provision a paid wave or claim a measured fifteen-stack capacity.",
+  source: "Aaron through the Amp Space, 11–12 November 2026; aaron.postgres-and-ponder; build.amp; ampcode.com/docs/orbs/customizing; evals/thin-line.md",
+  affects: [f.system_capxul, f.component_devnet],
 });
