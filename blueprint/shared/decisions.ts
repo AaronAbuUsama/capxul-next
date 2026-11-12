@@ -14,6 +14,23 @@ import * as x from "./external.ts";
 const CLAUDE = "Claude, target architecture, 7 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 
+export const decision_integrations_mail_transport = defineDecision({
+  id: "integrations.mail-transport",
+  title: "Mail makes one attempt and leaves durable retry to its caller",
+  question: "Where are notice retries and world mail isolation enforced?",
+  options: [
+    { label: "caller-retry", text: "Mail forwards the caller's exact idempotency key once; notices retries durably and devnet supplies its existing sink." },
+    { label: "provider-retry", text: "Mail retries requests and maintains a second retry queue and world sink." },
+  ],
+  chosen: "caller-retry",
+  why:
+    "The existing Mail contract has zero retries. Notices owns its three durable attempts and crash replay, so Mail must not multiply them. " +
+    "The live Resend adapter checks every staging recipient before making a request and classifies recipient refusal, throttling and unavailability. " +
+    "Its transport is injectable for failure validation; local HTTP fault tests are not live Resend conformance. Devnet owns durable sink records, fault spending and world time; no parallel shared sink is created.",
+  source: "Shared123 and notices provider handoff, 12 November 2026; integration:mail; devnet.mail-sink; time.world-channels",
+  affects: [x.integration_mail],
+});
+
 export const decision_integrations_surface_gap_audit = defineDecision({
   id: "integrations.surface-gap-audit",
   title: "Remove outside calls with no surviving Core caller",

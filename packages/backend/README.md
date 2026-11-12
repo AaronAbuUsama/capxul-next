@@ -2,6 +2,8 @@
 
 Slice-zero Core: durable company directory (no keys), approvals, indexed-fact consumption, ordered site delivery and append-only records. Postgres is mandatory. Ponder owns `ponder`; Core owns `app`; ERPNext owns accounting. This does not implement every blueprint RPC/workflow or the rest of breadth.
 
+`src/shared/door.ts` exports `Mail`, `MailMessage`, `MailError` and `resendMail`. Notices/access inject `Mail.send({to,subject,html?,text?,idempotencyKey})`, returning `{id}`. Resend makes exactly one request, forwards the caller's key unchanged and checks the staging recipient allowlist before transport. It cannot be configured as a devnet sender: devnet supplies its durable world-time sink through the same structural interface. No caller should retry with a new key after an uncertain answer. Local HTTP fault tests validate classification/isolation, not live Resend conformance.
+
 ## Start
 
 Supply `PG_ADMIN_URL` for explicit provisioning only. `DATABASE_URL`, `WORKER_DATABASE_URL` and `PONDER_DATABASE_URL` point at the same existing world DB with login names `capxul_core`, `capxul_worker`, `capxul_ponder` and their passwords. `pnpm --filter @capxul/backend migrate` creates restricted roles and schema v1. The Core tenant role is neither owner nor BYPASSRLS; every transaction sets `app.org_id` locally. The separate system worker has an explicit policy admission across companies. Ponder cannot write `app`. Runtime never falls back to admin and startup never migrates or imports JSON.
