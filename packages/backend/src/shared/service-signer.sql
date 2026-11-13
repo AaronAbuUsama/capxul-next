@@ -17,3 +17,7 @@ alter table app.service_signer_sends force row level security;
 drop policy if exists service_signer_worker on app.service_signer_sends;
 create policy service_signer_worker on app.service_signer_sends to capxul_worker using (true) with check (true);
 grant select,insert,update on app.service_signer_sends to capxul_worker;
+-- Each key does one job (integration service-signer); the claim keeps its Safe and signer, Budgets' executor its scheduled id.
+alter table app.service_signer_sends add column if not exists job text not null default 'companies-house-claim';
+alter table app.service_signer_sends add column if not exists scheduled_id text;
+alter table app.service_signer_sends alter column safe drop not null, alter column signer drop not null;
