@@ -156,6 +156,7 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
       clock = new Date(clock.getTime() + 30_000);
       services.terminal = async (sql, event) => {
         assert.equal(event.outcome, "landed"); assert.equal(event.observedAt, clock.toISOString()); assert.equal(event.refusal, null);
+        assert.equal(event.trace_id, "resume-trace");
         assert.equal((await sql.query("select state from app.approvals where approval_id=$1", [event.approval_id])).rows[0].state, "landed");
         terminal++;
       };

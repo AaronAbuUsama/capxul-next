@@ -87,7 +87,7 @@ export async function move(sql: Sql, row: Approval, transition: keyof typeof sou
       subject_kind: next.subject_kind, subject_id: next.subject_id, outcome: next.state as Parameters<Terminal>[1]["outcome"],
       chain_id: next.chain_id, sender: next.sender, nonce: next.nonce, user_op_hash: next.user_op_hash,
       transaction_hash: next.transaction_hash, block_number: next.block_number, observedAt: now.toISOString(),
-      refusal: next.state === "refused" ? next.refusal : null });
+      refusal: next.state === "refused" ? next.refusal : null, trace_id: trace });
     // The opener effect and queue removal commit together; the carrier must not call it again.
     await sql.query("delete from app.approval_carriers where approval_id=$1", [next.approval_id]);
   }
