@@ -16,7 +16,7 @@ export type BoardReaders = {
   readHatWearersAt(sql: Sql, input: { chainId: number; hatId: string; atBlock?: string; finality: number }): Promise<{ wearer: string; wearing: boolean }[]>;
   readSafeApprovals(sql: Sql, input: { chainId: number; safe: string; safeTxHash: string; atBlock?: string; finality: number }): Promise<{ owner: string }[]>;
   readSafeExecution(sql: Sql, input: { chainId: number; safe: string; nonce: string; finality: number }): Promise<(Log & {
-    safe_tx_hash: string; success: boolean }) | null>;
+    safe_tx_hash: string; success: boolean; msg_sender: string | null; threshold: number | null }) | null>;
   readHatTransfersInTx(sql: Sql, input: { chainId: number; txHash: string; hatId: string; finality: number }): Promise<{ from: string; to: string; value: string }[]>;
   readWearerHatsAt(sql: Sql, input: { chainId: number; wearer: string; companySafe: string; atBlock?: string; finality: number }): Promise<{ details: string; wearing: boolean }[]>;
 };
@@ -57,24 +57,18 @@ export function boardFacts(r: BoardReaders): BoardFacts {
   };
 }
 
-/** Finalized, log-backed settlement reads. The settled threshold is recorded only when the indexer can prove it. */
-export function settlementFacts(r: BoardReaders, finality: number): SettlementFacts {
+/** Finalized, log-backed settlement reads at the carry world's one finality depth. Sender and threshold come from the
+ * execution's own SafeL2 additionalInfo, never from a later Safe-state projection. */
+export function settlementFacts(r: BoardReaders): SettlementFacts {
   return {
-    execution: async (sql, chainId, safe, nonce, depth) => {
-      const e = await r.readSafeExecution(sql, { chainId, safe, nonce: String(nonce), finality: depth });
-      if (!e) return null;
-      const block = integer(e.block_number);
-      let threshold: number | null = null;
-      try {
-        threshold = (await r.readSafeOwnersAt(sql, { chainId, safe, atBlock: String(block - 1), finality: depth }))?.threshold ?? null;
-      } catch (error) {
-        if (!(error instanceof Error && error.message.startsWith("HISTORICAL_UNAVAILABLE"))) throw error;
-      }
-      return { safe_tx_hash: low(e.safe_tx_hash) as Hex, success: e.success, tx_hash: low(e.tx_hash) as Hex, user_op_hash: null, block_number: block, threshold };
+    execution: async (sql, chainId, safe, nonce, finality) => {
+      const e = await r.readSafeExecution(sql, { chainId, safe, nonce: String(nonce), finality });
+      return e && { safe_tx_hash: low(e.safe_tx_hash) as Hex, success: e.success, tx_hash: low(e.tx_hash) as Hex, user_op_hash: null,
+        block_number: integer(e.block_number), sender: e.msg_sender === null ? null : low(e.msg_sender), threshold: e.threshold };
     },
-    approvalsAt: async (sql, chainId, safe, hash, block) =>
+    approvalsAt: async (sql, chainId, safe, hash, block, finality) =>
       [...new Set((await r.readSafeApprovals(sql, { chainId, safe, safeTxHash: hash, atBlock: String(block), finality })).map((a) => low(a.owner)))],
-    hatMoved: async (sql, chainId, txHash, hat, from, to) =>
+    hatMoved: async (sql, chainId, txHash, hat, from, to, finality) =>
       (await r.readHatTransfersInTx(sql, { chainId, txHash, hatId: hat, finality }))
         .some((t) => low(t.from) === low(from) && low(t.to) === low(to) && BigInt(t.value) === 1n),
   };

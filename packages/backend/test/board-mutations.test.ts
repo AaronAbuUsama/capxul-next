@@ -37,8 +37,8 @@ test("Board public adapter composes real auth/Seat/approval doors atomically", {
   // Finalized indexed execution/Hats facts are fixtures too; carry composes the real Approvals.withdraw.
   let executions: Record<number, Execution> = {}, moves: string[] = [], fault = false;
   const settlement: SettlementFacts = { execution: async (_sql, _chain, s, nonce, finality) => (assert.equal(s, safe), assert.equal(finality, 2), executions[nonce] ?? null),
-    approvalsAt: async (_sql, _chain, _safe, _hash, block) => (assert.equal(block, 90), [second]),
-    hatMoved: async (_sql, _chain, tx, hat, from, to) => moves.includes(`${tx}:${hat}:${from}:${to}`) };
+    approvalsAt: async (_sql, _chain, _safe, _hash, block, finality) => (assert.equal(block, 90), assert.equal(finality, 2), [second]),
+    hatMoved: async (_sql, _chain, tx, hat, from, to, finality) => (assert.equal(finality, 2), moves.includes(`${tx}:${hat}:${from}:${to}`)) };
   const carryWorld = (): CarryWorld => ({ chainId: 84532, finality: 2, siteUrl: "https://board.test", facts: settlement,
     withdraw: async (...a) => { if (fault) throw new Error("killed mid-run"); return approvals.withdraw(...a); } });
   const facts: BoardFacts = {
@@ -247,8 +247,8 @@ test("Board public adapter composes real auth/Seat/approval doors atomically", {
       await assert.rejects(grant(), /PROVIDER_RESPONSE_INVALID/); await empty();
     });
     const executed = (nonce: number, safe_tx_hash: `0x${string}`, success = true): Execution =>
-      (executions[nonce] = { safe_tx_hash, success, tx_hash: `0x${String(nonce).repeat(64).slice(0, 64)}`, user_op_hash: null, block_number: 90, threshold: 2 });
-    const key = (nonce: number) => ({ chainId: 84532, safe, nonce }), state = async (id: string) => (await readProposal(db, org, id))!.status;
+      (executions[nonce] = { safe_tx_hash, success, tx_hash: `0x${String(nonce).repeat(64).slice(0, 64)}`, user_op_hash: null, block_number: 90, sender: director, threshold: 2 });
+    const key = (nonce: number) => ({ orgId: org, chainId: 84532, safe, nonce }), state = async (id: string) => (await readProposal(db, org, id))!.status;
     await control("carry waits for its own finalized nonce, executes, applies the officer change and withdraws unsigned approvals once", async () => {
       const result: any = await grant(), change = (await readOfficerChange(db, org, result.change.changeId))!;
       const p = (await readProposal(db, org, change.proposal_id))!, other = await propose(db, context, input("other"));
@@ -256,7 +256,7 @@ test("Board public adapter composes real auth/Seat/approval doors atomically", {
       const exec = executed(0, p.safe_tx_hash); moves = [`${exec.tx_hash}:4:0x0000000000000000000000000000000000000000:${agent}`]; executed(1, other.safe_tx_hash);
       assert.deepEqual(await carryNonce(db, carryWorld(), key(0), now + 1, "carry-trace"), [{ proposal_id: p.proposal_id, transition: "execute" }]);
       const settled = (await readProposal(db, org, p.proposal_id))!;
-      assert.equal(settled.status, "executed"); assert.deepEqual(settled.approved_by, [second]); assert.equal(settled.threshold, 2);
+      assert.equal(settled.status, "executed"); assert.deepEqual(settled.approved_by, [second, director], "the executing Director's v=1 approval counts"); assert.equal(settled.threshold, 2);
       assert.equal(settled.settled_block, 90); assert.equal(settled.execution_tx_hash, exec.tx_hash); assert.equal(settled.settled_at, now + 1);
       assert.equal(await state(other.proposal_id), "awaiting_approvals", "a different nonce wakes no other instance");
       const e = (await readEvent(db, `proposal:${p.proposal_id}:execute`))!;
@@ -266,23 +266,23 @@ test("Board public adapter composes real auth/Seat/approval doors atomically", {
       assert.equal((await db.query("select state from app.approvals where approval_id=$1", [result.proposal.approvalId])).rows[0].state, "withdrawn");
       const events = (await db.query("select count(*)::int as n from app.transition_outbox")).rows[0].n; assert.deepEqual(await carryNonce(db, carryWorld(), key(0), now + 2), [], "second run changes nothing");
       assert.equal((await db.query("select count(*)::int as n from app.transition_outbox")).rows[0].n, events);
-      assert.deepEqual(await listProposalWaits(db, 84532), [key(1)]);
+      assert.deepEqual(await listProposalWaits(db, org, 84532), [key(1)]);
     });
     await control("carry rejects by a Capxul rejection, replaces on a foreign hash, fails, and ends a change without its hat move", async () => {
       const first: any = await grant(), p = (await readProposal(db, org, (await readOfficerChange(db, org, first.change.changeId))!.proposal_id))!;
       const rejection: any = await call("/board/proposals/reject", { proposalId: p.proposal_id });
-      assert.equal(rejection.nonce, 0); executed(0, rejection.safeTxHash);
+      assert.equal(rejection.nonce, 0); executed(0, rejection.safeTxHash).sender = outsider;
       const settled = await carryNonce(db, carryWorld(), key(0), now + 1);
       assert.deepEqual(new Map(settled.map((s) => [s.proposal_id, s.transition])), new Map([[p.proposal_id, "reject"], [rejection.proposalId, "execute"]]));
-      assert.equal((await readOfficerChange(db, org, first.change.changeId))!.state, "ended");
+      assert.equal((await readOfficerChange(db, org, first.change.changeId))!.state, "ended"); for (const id of [p.proposal_id, rejection.proposalId]) assert.deepEqual((await readProposal(db, org, id))!.approved_by, [second], "no non-Director or other-hash sender");
       const foreign = await propose(db, context, input("foreign")), failing = await propose(db, context, input("failing"));
       executed(foreign.nonce, `0x${"ab".repeat(32)}`).threshold = null; executed(failing.nonce, failing.safe_tx_hash, false);
-      assert.deepEqual(await carryNonce(db, carryWorld(), key(foreign.nonce), now + 1), [{ proposal_id: foreign.proposal_id, transition: "replace" }]); assert.equal((await readProposal(db, org, foreign.proposal_id))!.threshold, null);
+      assert.deepEqual(await carryNonce(db, carryWorld(), key(foreign.nonce), now + 1), [{ proposal_id: foreign.proposal_id, transition: "replace" }]); const f = (await readProposal(db, org, foreign.proposal_id))!; assert.equal(f.threshold, null); assert.deepEqual(f.approved_by, [second], "a Director executing another hash approved nothing here");
       assert.deepEqual(await carryNonce(db, carryWorld(), key(failing.nonce), now + 1), [{ proposal_id: failing.proposal_id, transition: "fail" }]);
-      liveNonce = 5n; const second: any = await grant();
-      const q = (await readProposal(db, org, (await readOfficerChange(db, org, second.change.changeId))!.proposal_id))!; executed(q.nonce, q.safe_tx_hash);
+      liveNonce = 5n; const again: any = await grant();
+      const q = (await readProposal(db, org, (await readOfficerChange(db, org, again.change.changeId))!.proposal_id))!; executed(q.nonce, q.safe_tx_hash);
       assert.deepEqual(await carryNonce(db, carryWorld(), key(q.nonce), now + 1), [{ proposal_id: q.proposal_id, transition: "execute" }]);
-      assert.equal((await readOfficerChange(db, org, second.change.changeId))!.state, "ended", "executed without the hat move ends"); assert(await readEvent(db, `officer-change:${second.change.changeId}:end`));
+      assert.equal((await readOfficerChange(db, org, again.change.changeId))!.state, "ended", "executed without the hat move ends"); assert(await readEvent(db, `officer-change:${again.change.changeId}:end`));
     });
     await control("carry killed mid-run writes nothing and resumes to the same settlement", async () => {
       await auth(); const p = await propose(db, context, input("resume")); executed(0, p.safe_tx_hash);
