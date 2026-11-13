@@ -15,7 +15,7 @@ empty handlers, which answer every call with `NotImplemented`. A builder never c
 | `src/client.ts` | `Capxul`, the one service a scenario is handed: a typed client with one function per blueprint operation. |
 | `src/registry.ts` | `scenarios`, every scenario the runner runs, in order. |
 | `src/<operation>/claim-<n>.ts` | The thin line's scenarios: one per claim of claims.md, 53 in all. |
-| `src/support/` | What scenarios share: reading the world back through the operations, signing with the cast's test keys, waiting for background work, and the site's documents and reports (`books.ts` reads the books with the blueprint's site vocabulary, `Site`, which it re-exports). |
+| `src/support/` | What scenarios share: reading a world through the operations (`world.ts`, `record.ts`), its chain (`chain.ts`, `hats.ts`), signing with the cast's keys (`CAST_KEYS`), waiting for background work, and the site's documents and reports in the blueprint's vocabulary, `Site` (`site.ts`). |
 | `src/examples/` | Examples: scenarios that prove no claim, to show the format and to try the runner. |
 | `test/registry.test.ts` | Unique names; each scenario proves a claim the blueprint declares, from its starting world; no claim twice. |
 | `test/claims.test.ts` | Every claim of the twelve operations is proved by a scenario. |
@@ -63,8 +63,8 @@ Put each in `src/<operation with dots as dashes>/claim-<n>.ts`.
 
 `Capxul` is the SDK's client (`Sdk.layer(Capxul)`, roadmap step 1.9), which the runner supplies at a stage's doors,
 with each call sent under its own trace id and recorded for the checks. `Given` is the starting world and its facts,
-which the runner hands (packages/runner/src/given.ts). The site's vocabulary is the blueprint's (`Site`);
-`src/support/books.ts` re-exports it under the names the scenarios use.
+which the runner hands (packages/runner/src/given.ts). The site's vocabulary is the blueprint's (`Site`), which
+the scenarios import from it.
 
 ## Checks
 

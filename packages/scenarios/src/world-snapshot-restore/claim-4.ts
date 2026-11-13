@@ -1,9 +1,10 @@
 // world.snapshot.restore, claim 4: a world made from a snapshot cannot outlive the world it came from.
+import { startingWorlds } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
 import { Capxul } from "../client.ts";
-import { expect, scenario } from "../scenario.ts";
+import { expect, given, scenario } from "../scenario.ts";
 import { hostNow, millis, refusal, same, sameInstant } from "../support/expect.ts";
-import { freshName, LIMITS, noWorld, thisView } from "../support/world.ts";
+import { freshName, LIMITS, noWorld, view } from "../support/world.ts";
 
 const MINUTE = 60_000;
 
@@ -11,7 +12,8 @@ export const worldSnapshotRestore4 = scenario(
   { operation: "world.snapshot.restore", claim: 4 },
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    const world = yield* thisView;
+    const facts = yield* given(startingWorlds.withSnapshot);
+    const world = yield* view(facts.world.world);
     const as = yield* freshName("rs4");
     const lifetimeMinutes = LIMITS.lifetimeMinutes;
     const before = yield* hostNow;

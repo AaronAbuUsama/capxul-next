@@ -1,7 +1,6 @@
-// A company's documents and reports, as the scenarios ask for them. The site's vocabulary (doctypes, field names,
-// report names, filters, row fields, the Safe account, and the documents the starting worlds make) is the
-// blueprint's (`Site`, packages/blueprint/src/documents/site.ts); it is re-exported here under the names the
-// scenarios already use. What is left here reads the site through the operations.
+// Reading and writing a company's site through the operations, in the blueprint's vocabulary (`Site`): its
+// documents, its General Ledger, Trial Balance and Accounts Payable, and the company Safe's ledger account. Every
+// call names whom it acts as, and may go `at` another world's door.
 import { Site, type Values } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
@@ -9,18 +8,10 @@ import * as Option from "effect/Option";
 import * as Str from "effect/String";
 import { Capxul } from "../client.ts";
 import { answers, present } from "./expect.ts";
-import { fieldOf, textOf, type Json } from "./world.ts";
+import { fieldOf, textOf, type Json, type Who } from "./world.ts";
 
 type Fields = typeof Values.Fields.Type;
 type Row = Fields;
-
-export const REPORTS = Site.REPORTS;
-export const BRIGHTSIDE = Site.BRIGHTSIDE;
-export const PAYEE_ADDRESS = Site.PAYEE_ADDRESS;
-export const supplierFields = Site.supplierFields;
-export const invoiceFields = Site.invoiceFields;
-export const paymentFields = Site.paymentFields;
-const SAFE_ACCOUNT_PREFIX = Site.SAFE_ACCOUNT_PREFIX;
 const ROW = Site.ROW_FIELDS;
 
 /** A JSON value as a number: ERPNext sends amounts as numbers, and sometimes as numeric text. */
@@ -29,30 +20,30 @@ export const numberOf = (value: Json | undefined): number => {
   return typeof value === "string" && Str.trim(value) !== "" ? Number(value) : 0;
 };
 
-/** A report's rows, run as `as`. */
-export const report = (org: string, name: string, filters: Fields, as: string) =>
+/** A report's rows. */
+export const report = (org: string, name: string, filters: Fields, who: Who) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    const answer = yield* capxul["report.run"]({ org, report: name, filters }, { as });
+    const answer = yield* capxul["report.run"]({ org, report: name, filters }, who);
     return answer.rows;
   });
 
 /** The General Ledger's rows that are postings (opening, total and closing rows name no voucher). */
-export const ledger = (org: string, filters: Fields, as: string) =>
-  Effect.map(report(org, REPORTS.generalLedger, filters, as), (rows) =>
+export const ledger = (org: string, filters: Fields, who: Who) =>
+  Effect.map(report(org, Site.REPORTS.generalLedger, filters, who), (rows) =>
     Arr.filter(rows, (row) => textOf(row, ROW.voucher) !== ""),
   );
 
 export const linesOf = (rows: ReadonlyArray<Row>, voucher: string) =>
   Arr.filter(rows, (row) => textOf(row, ROW.voucher) === voucher);
 
-const isSafeAccount = (account: string) => Str.startsWith(SAFE_ACCOUNT_PREFIX)(account);
+const isSafeAccount = (account: string) => Str.startsWith(Site.SAFE_ACCOUNT_PREFIX)(account);
 
 /** The company Safe's ledger account, as the General Ledger names it. */
-export const safeAccount = (org: string, as: string) =>
-  Effect.flatMap(ledger(org, {}, as), (rows) =>
+export const safeAccount = (org: string, who: Who) =>
+  Effect.flatMap(ledger(org, {}, who), (rows) =>
     present(
-      `a General Ledger line on an account named "${SAFE_ACCOUNT_PREFIX}…"`,
+      `a General Ledger line on an account named "${Site.SAFE_ACCOUNT_PREFIX}…"`,
       Option.getOrNull(
         Arr.findFirst(
           Arr.map(rows, (row) => textOf(row, ROW.account)),
@@ -75,14 +66,14 @@ export const safeCredits = (rows: ReadonlyArray<Row>) =>
   Arr.filter(rows, (row) => isSafeAccount(textOf(row, ROW.account)) && numberOf(fieldOf(row, ROW.credit)) > 0);
 
 /** What Accounts Payable says is still owed on `invoice`: 0 when it lists nothing for it. */
-export const outstanding = (org: string, invoice: string, as: string) =>
-  Effect.map(report(org, REPORTS.accountsPayable, {}, as), (rows) =>
+export const outstanding = (org: string, invoice: string, who: Who) =>
+  Effect.map(report(org, Site.REPORTS.accountsPayable, {}, who), (rows) =>
     Arr.reduce(linesOf(rows, invoice), 0, (sum, row) => sum + numberOf(fieldOf(row, ROW.outstanding))),
   );
 
 /** The Trial Balance's closing balance (debit less credit) of the company Safe's account. */
-export const trialSafeBalance = (org: string, as: string) =>
-  Effect.flatMap(report(org, REPORTS.trialBalance, {}, as), (rows) =>
+export const trialSafeBalance = (org: string, who: Who) =>
+  Effect.flatMap(report(org, Site.REPORTS.trialBalance, {}, who), (rows) =>
     Effect.map(
       present(
         "the company Safe's account in the Trial Balance",
@@ -92,34 +83,34 @@ export const trialSafeBalance = (org: string, as: string) =>
     ),
   );
 
-/** Creates a document as `as`. */
-export const create = (org: string, doctype: string, fields: Fields, as: string) =>
+/** Creates a document. */
+export const create = (org: string, doctype: string, fields: Fields, who: Who) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    return yield* capxul["doc.create"]({ org, doctype, fields }, { as });
+    return yield* capxul["doc.create"]({ org, doctype, fields }, who);
   });
 
-/** Submits a document as `as`. */
-export const submit = (org: string, doctype: string, name: string, as: string) =>
+/** Submits a document. */
+export const submit = (org: string, doctype: string, name: string, who: Who) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    return yield* capxul["doc.submit"]({ org, doctype, name }, { as });
+    return yield* capxul["doc.submit"]({ org, doctype, name }, who);
   });
 
-/** A Payment Entry from the company Safe, created and submitted as `as`: it must be held. */
+/** A Payment Entry from the company Safe, created and submitted: it must be held. */
 export const holdPayment = (
   org: string,
   payment: { readonly supplier: string; readonly invoice: string | null; readonly amount: number },
-  as: string,
+  who: Who,
 ) =>
   Effect.gen(function* () {
-    const account = yield* safeAccount(org, as);
-    const fields = paymentFields(payment.supplier, account, payment.amount, payment.invoice);
-    const created = yield* create(org, Site.DOCTYPES.paymentEntry, fields, as);
+    const account = yield* safeAccount(org, who);
+    const fields = Site.paymentFields(payment.supplier, account, payment.amount, payment.invoice);
+    const created = yield* create(org, Site.DOCTYPES.paymentEntry, fields, who);
     const held = yield* answers(
       `doc.submit of ${created.name}`,
       "Held",
-      submit(org, Site.DOCTYPES.paymentEntry, created.name, as),
+      submit(org, Site.DOCTYPES.paymentEntry, created.name, who),
     );
     return { created, held };
   });

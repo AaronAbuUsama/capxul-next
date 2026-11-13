@@ -1,13 +1,14 @@
 // Reading a world's record against the blueprint: every entry names a declared event and carries exactly that
 // event's fields, and the positions run from 1 to the head, each once, in order.
-import { operations, type EventClass, type Operation } from "@capxul/blueprint";
+import { MadeCall, operations, type EventClass, type Operation } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
+import * as Option from "effect/Option";
 import * as Order from "effect/Order";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
-import { expect } from "../scenario.ts";
+import { ExpectationFailed, expect } from "../scenario.ts";
 import { same, show } from "./expect.ts";
 import { objectOf, type Entry, type Json } from "./world.ts";
 
@@ -60,3 +61,41 @@ export const holdsInOrder = (entries: ReadonlyArray<Entry>, names: ReadonlyArray
     `the record does not hold, in order, ${show(names)}; missing from ${show(left[0])}: ${show(Arr.map(entries, (e) => e.event))}`,
   );
 };
+
+type MadeCall = typeof MadeCall.Type;
+type Codec = Schema.Codec<unknown, unknown>;
+
+const failed = (message: string) => ExpectationFailed.make({ message });
+
+/**
+ * The entries a call made in making a starting world must have left in the record, under its trace: for a
+ * successful call, exactly the events its declaration computes from its payload and answer, each carrying that,
+ * encoded as the record keeps it; for a refused call, none.
+ */
+export const entriesOfCall = (call: MadeCall) =>
+  Effect.gen(function* () {
+    if (call.outcome === "refusal") return [];
+    const byName: Readonly<Record<string, Operation>> = operations;
+    const operation = yield* Effect.fromNullishOr(Rec.get(byName, call.operation).pipe(Option.getOrNull)).pipe(
+      Effect.mapError(() => failed(`the calls fact names ${call.operation}, which the blueprint does not declare`)),
+    );
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- an operation's schemas need no services: they are the blueprint's plain Schemas, which Rpc's generic type leaves open.
+    const schemas = operation.rpc as unknown as { readonly payloadSchema: Codec; readonly successSchema: Codec };
+    const payload = yield* Schema.decodeEffect(schemas.payloadSchema)(call.payload).pipe(
+      Effect.mapError(() => failed(`the ${call.operation} call ${call.trace}'s payload is not of its schema`)),
+    );
+    const success = yield* Schema.decodeEffect(schemas.successSchema)(call.answer).pipe(
+      Effect.mapError(() => failed(`the ${call.operation} call ${call.trace}'s answer is not of its schema`)),
+    );
+    const expected = yield* Effect.fromOption(operation.expected({ payload, success })).pipe(
+      Effect.mapError(() => failed(`the ${call.operation} call ${call.trace} is no successful call of it`)),
+    );
+    return yield* Effect.forEach(expected, (each) =>
+      Schema.encodeUnknownEffect(Schema.Struct(Rec.remove(each.event.fields, "_tag")))(each.carried).pipe(
+        Effect.mapBoth({
+          onSuccess: (carried) => ({ event: each.event.identifier, carried }),
+          onFailure: () => failed(`${each.event.identifier} of ${call.trace} cannot be encoded`),
+        }),
+      ),
+    );
+  });

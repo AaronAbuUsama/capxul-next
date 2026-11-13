@@ -1,19 +1,21 @@
 // approval.sign, claim 5: a signature short of the threshold is kept, and nothing is sent until the last one
-// needed. "Nothing is sent" is read from the record: dana's signature adds approval_signed and no approval_landed.
-// That the hat is not worn is read as sam still having no site user. Not checked: the hat through the chain RPC.
+// needed: dana's signature adds approval_signed and nothing else, and the hat eli's signature minted to sam's Safe
+// was not worn by it at the block before.
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
-import { scenario } from "../scenario.ts";
-import { answers, findIn, refusal, same } from "../support/expect.ts";
-import { BRIGHTSIDE, create, supplierFields } from "../support/books.ts";
+import { Capxul } from "../client.ts";
+import { expect, scenario } from "../scenario.ts";
+import { answers, findIn, same } from "../support/expect.ts";
 import { grant } from "../support/grants.ts";
+import { mintedToSam } from "../support/hats.ts";
 import { approve } from "../support/signing.ts";
 import { entriesAfter, head, northwind } from "../support/world.ts";
 
 export const approvalSign5 = scenario(
   { operation: "approval.sign", claim: 5 },
   Effect.gen(function* () {
-    const { org } = yield* northwind;
+    const capxul = yield* Capxul;
+    const { world, org } = yield* northwind;
     const proposed = yield* grant(org, "sam", "manage-books");
     const of = (signer: string) => findIn(`${signer}'s approval`, proposed.approvals, (each) => each.signer === signer);
     const before = yield* head;
@@ -26,12 +28,13 @@ export const approvalSign5 = scenario(
       Arr.map(added, (each) => each.event),
       ["approval_signed"],
     );
-    yield* refusal(
-      "doc.create as sam before the last signature",
-      "NoSiteUser",
-      create(org, "Supplier", supplierFields(BRIGHTSIDE), "sam"),
-    );
+
     const sent = yield* answers("eli's signature", "Sent", approve(yield* of("eli")));
     yield* same("the subject sent", sent.subject, kept.subject);
+    const minted = yield* mintedToSam(world, sent.transaction);
+    const wears = (block: number | null) =>
+      capxul.chain.wears({ hats: world.contracts.hats, hat: minted.hat, wearer: minted.safe, block });
+    yield* expect(!(yield* wears(minted.sent.block - 1)), "sam's Safe wore the hat before eli's signature sent it");
+    yield* expect(yield* wears(null), "sam's Safe does not wear the hat after eli's signature");
   }),
 );
