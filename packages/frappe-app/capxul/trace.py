@@ -6,6 +6,7 @@ ledger row has no timeline and is the one thing the money trail must reach.
 Where Frappe does not: child table rows (they belong to the parent's stamp); documents written straight to the database (db_set, raw SQL,
 which fire no hooks); the wizard and installs; the data a web page's own JavaScript writes. Log doctypes are skipped on purpose.
 Where the id comes from: the `X-Capxul-Trace` request header (the CLI, Core), or `frappe.flags.capxul_trace` (bench commands).
+A payment request that arrives with neither starts one with ensure(), so its money trail still has one id (plugs.request-starts-trace).
 """
 import re
 
@@ -26,7 +27,7 @@ def from_request():
 def ensure():
     """This command's trace id; a command no caller traced (a person's desk Submit) starts its own (plugs.request-starts-trace)."""
     if not frappe.flags.get("capxul_trace"):
-        frappe.flags.capxul_trace = "tr_" + frappe.generate_hash(length=24).lower()
+        frappe.flags.capxul_trace = "tr_" + frappe.generate_hash(length=24)
     return frappe.flags.capxul_trace
 
 

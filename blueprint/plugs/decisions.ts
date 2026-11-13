@@ -380,7 +380,7 @@ export const decision_plugs_request_starts_trace = dec({
   title: "A payment request starts the money trail's trace when no caller sent one",
   question: "A person who presses Submit in the desk sends no X-Capxul-Trace, so the request, its chain event and its ledger rows carry an empty trace. Where does the trace come from then?",
   options: [
-    { label: "request-starts", text: "request_payment keeps a caller's trace and otherwise starts one (tr_ plus 24 random lowercase characters) before writing the request row. The request body carries it to Core, the approval and PaymentSent bring it back, and the posted GL rows are stamped with it." },
+    { label: "request-starts", text: "request_payment keeps a caller's trace and otherwise starts one (tr_ plus 24 random lowercase hex characters) before writing the request row. The request body carries it to Core, the approval and PaymentSent bring it back, and the posted GL rows are stamped with it." },
     { label: "caller-only", text: "Only callers that send a trace get one; desk submissions post untraced ledger rows." },
   ],
   chosen: "request-starts",

@@ -126,6 +126,7 @@ class SiteRequestBoundary(unittest.TestCase):
             self.signed_call(api.answer_payment_request, dict(answer, approval_id="OTHER"))
 
     def test_an_untraced_submit_starts_the_trace_its_request_carries_and_a_sent_trace_is_kept(self):
+        self.addCleanup(setattr, self.frappe.flags, "capxul_trace", None)
         self.frappe.flags.capxul_trace = None
         api.request_payment("PE-1")
         started = self.signed_call(api.collect_payment_requests, {"org": "boundary"})["requests"][0]["trace_id"]
@@ -135,7 +136,6 @@ class SiteRequestBoundary(unittest.TestCase):
         api.request_payment("PE-1")
         page = self.signed_call(api.collect_payment_requests, {"org": "boundary"})
         self.assertEqual(page["requests"][-1]["trace_id"], "tr_fromthecaller01")
-        self.frappe.flags.capxul_trace = None
 
     def test_edited_draft_has_a_new_request_and_old_answer_cannot_replace_it(self):
         old = api.request_payment("PE-1")["request"]
