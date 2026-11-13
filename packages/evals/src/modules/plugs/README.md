@@ -1,0 +1,7 @@
+# Selected Plugs observations
+
+`bash run.sh --list` needs no world or credentials. Execution needs the harness's running `CAPXUL_EVAL_RUN_DIR/receipt.json`, private `CAPXUL_WORLD_CONFIG` and post-restore `CAPXUL_ACCEPTANCE_FIXTURE`. It verifies the current commit, selected stack, live world/epoch, restricted roles, released company/site and configured public ports before calling the real typed `FrappeSite` provider. It never provisions, migrates, rewinds, repairs, prepares, answers or injects grants.
+
+The observations retain the admitted native release map and actual feature/app/sign-in readiness, and compare committed saved request answers against the native immutable outbox and Core approval identity/trace. Request bodies, emails, credentials and approval URLs are not exported. An absent native request/answer or legacy empty trace fails rather than becoming a skipped success.
+
+These are **near-only observations**, not selected acceptance. The old skeleton payment replay binding was removed: its `main` world, JSON Core and old process cannot prove the selected Postgres/Ponder stack. The runner makes no role bootstrap, Department authority, job/scope map, public command, lifecycle, lost-ACK, process-death or whole-world restore claim. Those evals remain unproved until their real public flows and controls execute in the same fresh run. Component PG/native logs and previous receipts are never imported.
