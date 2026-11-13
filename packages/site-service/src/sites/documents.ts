@@ -4,7 +4,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { Effect } from "effect";
 import { isAddress } from "viem";
 import { DOCUMENT_PATH, validDocument, validHeldDocument, validReport, type DocumentInput } from "@capxul/sdk";
-import { json, readBody, ServiceError } from "./http.ts";
+import { json, readBody, requestTrace, ServiceError } from "./http.ts";
 import type { SitesStore } from "./store.ts";
 
 type Row = Record<string, unknown>;
@@ -43,7 +43,7 @@ const refused = (code: string, message: string) => new ServiceError(status[code]
 export function createDocumentHandler(options: DocumentOptions) {
   return async (req: IncomingMessage, res: ServerResponse): Promise<boolean> => {
     if (req.url !== DOCUMENT_PATH) return false;
-    const trace = randomUUID();
+    const trace = requestTrace(req);
     let input: DocumentInput | undefined, user: string | undefined, personId: string | undefined;
     let callId: string = randomUUID();
     try {

@@ -19,7 +19,7 @@ export async function route(sql: Sql, authorization: string, path: string, input
   const now = await world.worldNow();
   if (!Number.isSafeInteger(now) || now < 0) throw new Error("PROVIDER_RESPONSE_INVALID: canonical world clock required");
   const principal = await world.doors.authenticate(sql, match[1]!, now);
-  const context: BoardContext = { ...world, now, principalId: principal.personId, safe: principal.safeAddress as Address,
+  const context: BoardContext = { ...world, now, principalId: principal.personId, safe: principal.safeAddress.toLowerCase() as Address,
     kind: principal.kind === "person" ? "human" : "agent" };
   if (!input || typeof input !== "object" || !("orgId" in input) || typeof input.orgId !== "string" || !input.orgId) {
     throw new Error("INVALID_INPUT: organization required");
