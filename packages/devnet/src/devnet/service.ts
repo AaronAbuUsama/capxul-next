@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { gateway } from "./gateway.ts";
@@ -38,24 +38,34 @@ async function serve(c: Config, component: Component): Promise<() => Promise<voi
   // Launch Ponder itself: pnpm exits on signal before its indexer has drained.
   const child = spawn(argv[0]!, argv.slice(1), { cwd: component === "ponder" ? join(c.root, "packages/indexer") : c.root,
     env: runtimeEnv(c, component), stdio: "inherit", detached: true });
+  return watchChild(child, component, (code) => finish(code), { asked: () => stopAsked });
+}
+
+/** The service manager's stop timeout for a world component (systemd TimeoutStopSec, measured 90 s) before it kills the group. */
+export const SERVICE_STOP_TIMEOUT_MS = 90_000;
+/**
+ * A child's exit stops the wrapper too, so no stale running receipt survives it. Exit 0 is clean only when a stop was asked:
+ * systemd signals the whole control group at once, so a fast child can exit 0 before the wrapper handles its own signal, and an
+ * exit is judged only after `settleMs`. An unasked exit 0 is unclean, because Restart=always would rerun the wrapper mid-snapshot.
+ * The child usually got the stop signal itself, and a second signal during its teardown runs its stop handler twice or kills it,
+ * so the wrapper signals only a child still running after `graceMs`, just inside the service manager's own stop timeout.
+ */
+export function watchChild(child: ChildProcess, name: string, finish: (code: number) => unknown,
+  { asked, graceMs = SERVICE_STOP_TIMEOUT_MS - 10_000, settleMs = 1000 }: { asked: () => boolean; graceMs?: number; settleMs?: number }): () => Promise<void> {
   const exited = new Promise<void>((done, reject) => {
     child.once("error", reject);
-    child.once("exit", (code, signal) => code === 0 && !signal ? done() : reject(new Error(`${component} exited ${code ?? signal}`)));
+    child.once("exit", (code, signal) => code === 0 && !signal ? done() : reject(new Error(`${name} exited ${code ?? signal}`)));
   });
-  // A child's exit must stop the wrapper too; no stale running receipt may survive it. systemd stops the whole control group at
-  // once, so a fast child (site-service) can exit 0 before this wrapper handles its own signal: exit 0 is clean whoever asked.
-  void exited.then(() => finish(0), (error) => { console.error(error.message); return finish(1); });
+  void exited.then(() => setTimeout(() => finish(asked() ? 0 : 1), settleMs), (error) => { console.error(error.message); return finish(1); });
   return async () => {
-    // A service stop usually signals the child too. A second signal during its teardown, after Node has dropped its handlers,
-    // kills it outright, so the wrapper signals only a child still running after a short grace.
     const running = () => !!child.pid && child.exitCode === null && child.signalCode === null;
-    if (running()) await Promise.race([exited.catch(() => {}), new Promise((done) => setTimeout(done, 3000))]);
+    if (running()) await Promise.race([exited.catch(() => {}), new Promise((done) => setTimeout(done, graceMs))]);
     if (running()) process.kill(-child.pid!, "SIGINT");
     await exited;
   };
 }
 
-let finish: (code?: number) => Promise<void> = async () => {};
+let finish: (code?: number) => Promise<void> = async () => {}, stopAsked = false;
 if (process.argv[1] === import.meta.filename) {
   const c = await readConfig(process.argv[2]!);
   const component = process.argv[3] as Component;
@@ -75,7 +85,7 @@ if (process.argv[1] === import.meta.filename) {
     await receipt("exited", code);
     process.exit(code);
   };
-  for (const signal of ["SIGTERM", "SIGINT"] as const) process.once(signal, () => { void finish(); });
+  for (const signal of ["SIGTERM", "SIGINT"] as const) process.once(signal, () => { stopAsked = true; void finish(); });
   try {
     close = await serve(c, component);
     await receipt("running");
