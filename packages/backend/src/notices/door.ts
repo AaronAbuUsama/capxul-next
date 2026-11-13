@@ -1,10 +1,9 @@
 import { readFileSync } from "node:fs";
 import type { Database, Sql } from "../platform/db.ts";
-import { worldNow } from "../devnet/door.ts";
 import { lookupBySafe } from "../parties/door.ts";
 import { emit, relay } from "../platform/outbox.ts";
 import type { Mail } from "../shared/door.ts";
-import { deliverDue, type Emit } from "./delivery.ts";
+import { deliverDue, type Emit, type WorldNow } from "./delivery.ts";
 import { createResolver, type Links } from "./resolve.ts";
 import type { Sources } from "./sources.ts";
 import { finishDue, prepareDue, schedule, sourceNames } from "./workflows.ts";
@@ -42,12 +41,13 @@ const transitioned: Emit = async (sql, props, at, id, trace) => {
     owner_id: props.org_id ?? props.person_id, actor: null, trace_id: trace, at, props });
 };
 
-export async function deliverNotices(db: Database, mail: Mail) {
-  return deliverDue(db, mail, worldNow, transitioned);
+/** `now` is devnet's canonical worldNow, injected by composition (notices.worker-authority); never a host clock. */
+export async function deliverNotices(db: Database, mail: Mail, now: WorldNow) {
+  return deliverDue(db, mail, now, transitioned);
 }
 
 /** Runtime integration, not a public notice procedure. The Core drain awaits this whole tick. */
-export function noticesWorker(db: Database, mail: Mail, sources: Omit<Sources,"partyName">, links: Links) {
+export function noticesWorker(db: Database, mail: Mail, sources: Omit<Sources,"partyName">, links: Links, now: WorldNow) {
   const resolve = createResolver({ ...sources, partyName: async (sql, owner) => {
     const safe = owner.kind === "organization" ? (await sources.organization(sql,owner.id)).safe
       : (await sources.principal(sql,owner.id))?.safeAddress;
@@ -55,9 +55,9 @@ export function noticesWorker(db: Database, mail: Mail, sources: Omit<Sources,"p
   } }, links);
   return async () => {
     const scheduled = await relay(db, "notices", sourceNames, schedule);
-    const prepared = await prepareDue(db, worldNow, resolve);
-    const delivered = await deliverNotices(db, mail);
-    const finished = await finishDue(db, worldNow);
+    const prepared = await prepareDue(db, now, resolve);
+    const delivered = await deliverNotices(db, mail, now);
+    const finished = await finishDue(db, now);
     return scheduled + prepared + delivered + finished;
   };
 }

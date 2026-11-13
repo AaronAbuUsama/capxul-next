@@ -1,4 +1,5 @@
 import { Database } from "../../src/platform/db.ts";
+import { worldNow } from "../../src/devnet/door.ts";
 import { deliverNotices } from "../../src/notices/door.ts";
 
 if (process.env.CAPXUL_DISPOSABLE !== "true" || process.env.CAPXUL_WORLD === "main") throw new Error("disposable fixture required");
@@ -10,5 +11,5 @@ try {
     const response = await fetch(url, { method: "POST", body: JSON.stringify(message) });
     if (!response.ok) throw new Error("protocol fixture refused");
     return await response.json() as { id: string };
-  } });
+  } }, worldNow);
 } finally { await db.close(); }
