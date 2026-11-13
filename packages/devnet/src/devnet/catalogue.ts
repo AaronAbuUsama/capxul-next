@@ -130,6 +130,13 @@ export function worldCatalogue(query: Admin, secrets: readonly string[]) {
     if (!row) throw new Error("INVALID_INPUT: no such world");
     return row as CatalogueCut;
   };
+  /** The world row and its current-epoch head in one statement, so a concurrent restore cannot split them. */
+  const view = async (world: string): Promise<{ world: WorldRow; cut: CatalogueCut }> => {
+    assertWorld(world);
+    const [row] = await query(`SELECT jsonb_build_object('world',to_jsonb(w),'cut',${cutSql("w")}) FROM app.worlds w ${headSql} WHERE w.world_id=${text(world)}`);
+    if (!row) throw new Error("INVALID_INPUT: no such world");
+    return row as { world: WorldRow; cut: CatalogueCut };
+  };
   const history = async (world: string, filter: Pick<RecordFilter, "from" | "to"> = {}): Promise<CatalogueHistory> => {
     const [row] = await query(`SELECT jsonb_build_object('lineage',jsonb_build_object('parentWorld',w.parent_world,'parentSnapshot',w.parent_snapshot,'parentSeq',w.parent_seq),
       'cut',${cutSql("w")},'records',coalesce((SELECT jsonb_agg(to_jsonb(e) ORDER BY epoch,seq) FROM app.command_records e WHERE ${where(world, { ...filter, includeAbandoned: true })}),'[]'::jsonb),
@@ -144,6 +151,7 @@ export function worldCatalogue(query: Admin, secrets: readonly string[]) {
       return atomic(world.world_id, `INSERT INTO app.worlds SELECT * FROM ${rows("worlds", world)};`, { ...command, kind: "born" }, { from: "NULL", to: "creating", transition: "create" });
     },
     show,
+    view,
     cut,
     history,
     append: (world: string, command: Command) => atomic(world, "", command),
