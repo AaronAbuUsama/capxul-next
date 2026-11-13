@@ -1,0 +1,99 @@
+{
+  "kind": "scenario",
+  "name": "world.snapshot.save claim 2",
+  "proves": {
+    "operation": "world.snapshot.save",
+    "claim": 2
+  },
+  "given": "with-snapshot",
+  "stage": "run-3b4ccc-11",
+  "owner": "runner",
+  "startedAt": "2026-11-13T21:12:52.846Z",
+  "outcome": "failed",
+  "core": "local-Core rehearsal: Core ran in workerd on the runner's machine, next to a stand-in bench, against the world's database, chain, index and bundler on Cloudflare and Neon. Not the proof that the scenarios pass with Core on Cloudflare (roadmap step 1.6).",
+  "failure": "the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"doc.create of a Supplier was refused: {\\\"_tag\\\":\\\"SiteRefused\\\",\\\"org\\\":\\\"org_we3jk5jvbkpk\\\",\\\"target\\\":\\\"Supplier\\\",\\\"reason\\\":\\\"validation\\\",\\\"message\\\":\\\"('Supplier', 'Brightside Cleaning Ltd', IntegrityError(1062, \\\\\\\"Duplicate entry 'Brightside Cleaning Ltd' for key 'PRIMARY'\\\\\\\"))\\\"}\"}",
+  "ended": null,
+  "readiness": null,
+  "calls": [],
+  "making": [
+    {
+      "operation": "doc.create",
+      "traceId": "ceeb5948a8a41a40b4e31d266a1879a0",
+      "at": "http://127.0.0.1:32827",
+      "outcome": "refusal",
+      "refusal": "SiteRefused",
+      "failure": "{\"_tag\":\"SiteRefused\",\"org\":\"org_we3jk5jvbkpk\",\"target\":\"Supplier\",\"reason\":\"validation\",\"message\":\"('Supplier', 'Brightside Cleaning Ltd', IntegrityError(1062, \\\"Duplicate entry 'Brightside Cleaning Ltd' for key 'PRIMARY'\\\"))\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 887.175,
+        "serverMs": 773,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "doc.create",
+          "startMs": 1,
+          "ms": 686,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "doc.create",
+          "startMs": 687,
+          "ms": 3,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "doc.create",
+          "startMs": 690,
+          "ms": 43,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one doc.create span, 773 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    }
+  ],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    }
+  },
+  "ms": {
+    "create": 889,
+    "run": null,
+    "checks": null,
+    "destroy": 0
+  }
+}

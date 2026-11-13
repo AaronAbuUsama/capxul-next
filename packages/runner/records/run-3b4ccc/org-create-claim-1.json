@@ -1,0 +1,58 @@
+{
+  "kind": "scenario",
+  "name": "org.create claim 1",
+  "proves": {
+    "operation": "org.create",
+    "claim": 1
+  },
+  "given": "fresh",
+  "stage": "run-3b4ccc-18",
+  "owner": "runner",
+  "startedAt": "2026-11-13T21:16:38.027Z",
+  "outcome": "failed",
+  "core": "local-Core rehearsal: Core ran in workerd on the runner's machine, next to a stand-in bench, against the world's database, chain, index and bundler on Cloudflare and Neon. Not the proof that the scenarios pass with Core on Cloudflare (roadmap step 1.6).",
+  "failure": "the run did not finish: InterruptError: All fibers interrupted without error\n  [cause]: InterruptCause: The fiber was interrupted by:\n}\nthe accounts still hold some of its worlds",
+  "ended": null,
+  "readiness": null,
+  "calls": [],
+  "making": [],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": [
+        "capxulworld-door-w-s-b482ad-ga4lreb4mo5yfjlw",
+        "capxulworld-anvil-w-s-b482ad-5qqupwrfqc527j3a",
+        "capxulworld-door-w-s-b482ad-ga4lreb4mo5yfjlw",
+        "capxulworld-door-w-s-b482ad-ga4lreb4mo5yfjlw",
+        "capxulworld-door-w-s-b482ad-ga4lreb4mo5yfjlw",
+        "capxulworld-chainstate-w-s-b482ad-njx7iyu3krh2acnp",
+        "capxulworld-world-db-w-s-b482ad-so4zcaqwdg2ou7aq",
+        "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-s-b482ad"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": [
+        "capxulworld-door-w-s-b482ad-ga4lreb4mo5yfjlw",
+        "capxulworld-anvil-w-s-b482ad-5qqupwrfqc527j3a",
+        "capxulworld-door-w-s-b482ad-ga4lreb4mo5yfjlw",
+        "capxulworld-door-w-s-b482ad-ga4lreb4mo5yfjlw",
+        "capxulworld-door-w-s-b482ad-ga4lreb4mo5yfjlw",
+        "capxulworld-chainstate-w-s-b482ad-njx7iyu3krh2acnp",
+        "capxulworld-world-db-w-s-b482ad-so4zcaqwdg2ou7aq",
+        "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-s-b482ad"
+      ]
+    }
+  },
+  "ms": {
+    "create": null,
+    "run": null,
+    "checks": null,
+    "destroy": 70
+  }
+}

@@ -60,7 +60,9 @@ export const save = Effect.fn("platform.world.snapshot.save")(function* (payload
     if (Option.isSome(found)) yield* dropBranch(found.value.branch_id);
     const suffix = yield* Random.nextIntBetween(0, 0xffffff);
     const branch = yield* branchOf(parent, `snap-${stage}-${payload.snapshot}-${suffix.toString(16)}`);
-    yield* saveChain(handle, payload.snapshot);
+    // A branch the platform keeps no row of would be left behind, and Neon would refuse the world's own delete for
+    // it ("cannot delete branch that has children", seen once in a rehearsal when the chain's save failed here).
+    yield* saveChain(handle, payload.snapshot).pipe(Effect.onError(() => Effect.ignore(dropBranch(branch))));
     const savedAt = instantOf(hostMs);
     yield* keepSnapshot({
       stage,
