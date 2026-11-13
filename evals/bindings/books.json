@@ -1,0 +1,165 @@
+{
+  "area": "books",
+  "script": "packages/evals/src/modules/books/run.sh",
+  "worlds": [
+    "slice-zero"
+  ],
+  "secrets": [],
+  "bindings": [
+    {
+      "eval": "prc:books.record-money-fact/atomic",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.record-atomic"
+      ],
+      "why": "The same complete receipt's selected real settlement already has its committed fact. Reversal and re-recording on the invoker's Sql are invisible to another connection and both disappear on caller rollback; a committed replay is inert. Original payment and GL are not changed."
+    },
+    {
+      "eval": "prc:books.reverse-money-fact/atomic",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.reverse-atomic"
+      ],
+      "why": "The real selected settlement's reversal and next generation use the same caller transaction, remain invisible before commit and disappear with rollback along with their reserved feed numbers; independent persisted snapshots match."
+    },
+    {
+      "eval": "tbl:book-annotations/schema",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.book_annotations-schema"
+      ],
+      "why": "PostgreSQL introspection on the live selected world equals independently declared exact fields, nullability, keys, indexes, checks and forced row policy."
+    },
+    {
+      "eval": "tbl:book-facts/schema",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.book_facts-schema"
+      ],
+      "why": "The actual world migration has exactly the blueprint money-evidence columns and indexes; no accounting or chart columns are admitted."
+    },
+    {
+      "eval": "tbl:book-feeds/schema",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.book_feeds-schema"
+      ],
+      "why": "The actual feed schema has only its organization, counter and timestamps with the declared key and constraints."
+    },
+    {
+      "eval": "tbl:book-annotations/tenancy",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.book_annotations-tenancy"
+      ],
+      "why": "A second real company's restricted connection cannot read, update or insert the first's persisted annotation; the original row is unchanged."
+    },
+    {
+      "eval": "tbl:book-facts/tenancy",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.book_facts-tenancy"
+      ],
+      "why": "A second real tenant cannot read or insert the first's actual fact. Its append-only permissions independently prohibit updates and deletes."
+    },
+    {
+      "eval": "tbl:book-feeds/tenancy",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.book_feeds-tenancy"
+      ],
+      "why": "A second real tenant reads none of the first's existing counter, updates zero rows and cannot insert into its scope; before and after match."
+    },
+    {
+      "eval": "tbl:book-annotations/writers",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.book_annotations-writers",
+        "BOOKS.assign",
+        "BOOKS.queue",
+        "BOOKS.recategorize",
+        "BOOKS.requeue"
+      ],
+      "why": "Runtime SQL writes stay inside the owning concept and actual public authorized saves produce the persisted replacement rows and exact source events."
+    },
+    {
+      "eval": "tbl:book-facts/writers",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.book_facts-writers",
+        "BOOKS.record-atomic",
+        "BOOKS.reverse-atomic"
+      ],
+      "why": "Only concept-owned runtime SQL appends facts through the declared same-Sql procedures/save; actual restricted PostgreSQL denies updates and deletes, and both procedures roll back atomically."
+    },
+    {
+      "eval": "tbl:book-feeds/writers",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.book_feeds-writers",
+        "BOOKS.record-atomic",
+        "BOOKS.reverse-atomic"
+      ],
+      "why": "Feed writes remain concept-owned and its counter's before/after snapshots roll back with the declared fact writers on real selected money."
+    },
+    {
+      "eval": "trn:book-annotation.assign",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.assign"
+      ],
+      "why": "A real public personal save first decides its own row; independent PostgreSQL reads verify state, editor and exactly one common-outbox assign event with exact blueprint props, world time and correlated trace."
+    },
+    {
+      "eval": "trn:book-annotation.queue",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.queue"
+      ],
+      "why": "A first public memo save persists waiting and exactly one queue source event; it creates no organization fact or copied site data."
+    },
+    {
+      "eval": "trn:book-annotation.recategorize",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.recategorize"
+      ],
+      "why": "A later real public account replacement persists decided and emits one exact recategorize transition from the prior committed state."
+    },
+    {
+      "eval": "trn:book-annotation.requeue",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.requeue"
+      ],
+      "why": "A public replacement into the fixed undecided personal code persists waiting and one exact requeue event; suggestion/memo are absent from event props."
+    },
+    {
+      "eval": "rpc:books.annotations.save/budget",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.rpc-budget"
+      ],
+      "why": "Twenty warmed actual public saves on separate chain-proven organization money call the real person's native Account resolver. Observed round-trip p95, a conservative bound on server time, is at most the declared 4000ms vendor budget."
+    },
+    {
+      "eval": "rpc:books.annotations.save/spans",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.rpc-budget",
+        "BOOKS.rpc-spans"
+      ],
+      "why": "Authoritative shared PostgreSQL span reads for each actual native public call retain the RPC span and real parented provider child, under this exact receipt/world/trace; missing sink or substituted records cannot score."
+    }
+  ],
+  "near": [
+    {
+      "eval": "rpc:books.annotations.save/errors",
+      "checks": [
+        "BOOKS.selected-stack",
+        "BOOKS.rpc-errors"
+      ],
+      "missing": "The ordinary-Seat refusal for an Organization memo-only save needs the fixed Books-hat authority (Organizations decision organizations.native-hat-binding-authority, still open). Until it exists, save.ts fails closed with FEATURE_NOT_AVAILABLE rather than the declared ROLE_PERMISSION_DENIED, so this check cannot establish the whole errors claim. The other five refusals are exercised by the same check."
+    }
+  ]
+}

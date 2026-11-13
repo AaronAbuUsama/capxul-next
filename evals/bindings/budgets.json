@@ -1,0 +1,36 @@
+{
+  "area": "budgets",
+  "script": "packages/evals/src/modules/budgets/run.sh",
+  "worlds": [
+    "slice-zero"
+  ],
+  "secrets": [],
+  "bindings": [
+    {
+      "eval": "tbl:budgets/schema",
+      "checks": [
+        "BUDGETS.selected-stack",
+        "BUDGETS.schema"
+      ],
+      "why": "Independent PostgreSQL schema introspection matches exactly the Capxul-only metadata fields, key and three indexes, enums, nullability and forced tenant policy. Amounts, commitments, spend, closed state and wearers remain chain-owned."
+    }
+  ],
+  "near": [
+    {
+      "eval": "tbl:budgets/tenancy",
+      "checks": [
+        "BUDGETS.selected-stack",
+        "BUDGETS.tenancy"
+      ],
+      "missing": "No slice-zero runtime writer persists budget metadata yet: budget preparation (budgets.changes.follow through the Board proposal, Approvals carrier end and the Sponsorship SafeOp builder) is not composed. A tenancy probe on an empty table or seeded fixture rows proves nothing."
+    },
+    {
+      "eval": "tbl:budgets/writers",
+      "checks": [
+        "BUDGETS.selected-stack",
+        "BUDGETS.writers"
+      ],
+      "missing": "The declared writers (budgets.departments.create, allowances, invitations grants, budgets.changes.follow) have no composed runtime implementation in this wave yet. Source confinement alone is vacuous; the check also requires a persisted row from a real public preparation."
+    }
+  ]
+}
