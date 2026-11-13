@@ -602,7 +602,7 @@ export const decision_board_officer_hat_unbound = defineDecision({
   question:
     "Organizations admits the finalized InstallerMoney deployment with its officer hats in install order and no names " +
     "(organizations.admitted-deployment); which hat is Books, Invoicing or People stays unbound until Aaron answers " +
-    "organizations.native-hat-binding-authority. What does `org member grant` or `revoke` do for a permission whose hat is unbound?",
+    "the pending question of who binds native officer hats (open with Aaron, not yet a record). What does `org member grant` or `revoke` do for a permission whose hat is unbound?",
   options: [
     { label: "wrong-state", text: "Refuse WRONG_STATE before any write: the Organization cannot carry that permission yet." },
     { label: "infer", text: "Take the hat from its position or its details text." },
@@ -613,7 +613,7 @@ export const decision_board_officer_hat_unbound = defineDecision({
     "and board already refuses inferred native names (no app.hats or details fallback). WRONG_STATE is the declared code " +
     "for an Organization not yet able to do what is asked, as for a missing deployment, so no refusal is added to the " +
     "frozen list. The refusal ends when the binding names the hat.",
-  source: by("organizations.admitted-deployment (PR96); organizations.native-hat-binding-authority; packages/contracts/src/interfaces/IInstaller.sol:50"),
+  source: by("organizations.admitted-deployment (PR96); Aaron's pending native officer-hat binding question; packages/contracts/src/interfaces/IInstaller.sol:50"),
   affects: [rpc_board_officers_grant, rpc_board_officers_revoke, error_WRONG_STATE],
 });
 
