@@ -1,0 +1,45 @@
+
+== 4. swap the host: the only code that names the machine (11:27:51Z)
+./src/host.ts:2:// context, so pointing the platform at another machine is this one setting: PLATFORM_DOCKER_HOST, a Docker endpoint
+./src/host.ts:21:  const endpoint = yield* Config.String("PLATFORM_DOCKER_HOST").pipe(Config.withDefault(DEFAULT_ENDPOINT));
+./run.sh:16:# The platform's host. Unset: this machine's engine. Another machine: PLATFORM_DOCKER_HOST=ssh://deploy@<host>.
+./run.sh:17:export PLATFORM_DOCKER_HOST="${PLATFORM_DOCKER_HOST:-unix:///var/run/docker.sock}"
+
+== 4. plan a new stage pr-r3 on another machine (ssh://deploy@192.0.2.10): the same resources, all through its context (11:27:51Z)
+[11:27:52.399] INFO: Plan · pr-r3
+[11:27:57.426] INFO: Plan ready (5.0s)
+[11:27:57.428] INFO: Plan: 14 to create
+[11:27:57.428] INFO: [BenchImage] create
+[11:27:57.428] INFO: [DbRootPassword] create
+[11:27:57.429] INFO: [DbVolume] create
+[11:27:57.429] INFO: [Door] create
+[11:27:57.429] INFO: [DoorImage] create
+[11:27:57.429] INFO: [DoorRecord] create
+[11:27:57.429] INFO: [Host] create
+[11:27:57.429] INFO: [MariaDB] create
+[11:27:57.429] INFO: [Network] create
+[11:27:57.429] INFO: [Redis] create
+[11:27:57.430] INFO: [Scheduler] create
+[11:27:57.430] INFO: [SitesVolume] create
+[11:27:57.430] INFO: [Web] create
+[11:27:57.430] INFO: [Worker] create
+-- plan pr-r3 on another host: exit 0 in 6.4 s
+
+== 4. plan the live stage pr-r2 with the other machine's endpoint (11:27:57Z)
+[11:28:01.084] INFO: Plan · pr-r2
+[11:28:05.417] INFO: Plan ready (4.3s)
+[11:28:05.419] INFO: Plan: 12 to update
+[11:28:05.419] INFO: [BenchImage] update
+[11:28:05.419] INFO: [DbVolume] update
+[11:28:05.419] INFO: [Door] update
+[11:28:05.419] INFO: [DoorImage] update
+[11:28:05.419] INFO: [Host] update
+[11:28:05.419] INFO: [MariaDB] update
+[11:28:05.419] INFO: [Network] update
+[11:28:05.420] INFO: [Redis] update
+[11:28:05.420] INFO: [Scheduler] update
+[11:28:05.420] INFO: [SitesVolume] update
+[11:28:05.420] INFO: [Web] update
+[11:28:05.420] INFO: [Worker] update
+-- plan pr-r2 with another endpoint: exit 0 in 8.0 s
+(step 4 deployed nothing: both were plans)

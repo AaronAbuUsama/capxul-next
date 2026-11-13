@@ -1,0 +1,38 @@
+
+== 2. create world acme (stack CapxulWorldRehearsal, stage pr-acme): its site's DNS name, borrowing the platform (11:25:12Z)
+[11:25:18.975] INFO: Plan ready (5.4s)
+[11:25:18.976] INFO: Plan: 1 to create
+[11:25:18.977] INFO: [Site-r1] create
+[11:25:19.255] INFO: [Site-r1] creating
+[11:25:20.536] INFO: [Site-r1] created (1.3s)
+[11:25:20.708] INFO: Done: 1 succeeded (1.7s)
+-- world deploy: exit 0 in 8.5 s
+
+== 2. mint the world's site token (quota 1, expires 2026-11-13T14:24:49Z) and a second world's (11:25:20Z)
+minted: world=acme quota=1 expires=1794579889 print=4a95cd37 file=/home/user/wt/platform/spikes/platform/../../var/platform/tokens/acme.token
+minted: world=globex quota=1 expires=1794579889 print=a5ed6b3b file=/home/user/wt/platform/spikes/platform/../../var/platform/tokens/globex.token
+minted: world=acme quota=5 expires=1794569029 print=339bdd1f file=/home/user/wt/platform/spikes/platform/../../var/platform/tokens/expired.token
+
+== 2. the door refuses before any work (11:25:23Z)
+no token:            {"refused": "token-missing", "detail": ""}
+quota raised by hand: {"refused": "token-signature-invalid", "detail": ""}
+expired token:       {"refused": "token-expired", "detail": "expired at 1794569029"}
+bad label:           {"refused": "site-label-invalid", "detail": "1 to 12 of a-z and 0-9"}
+
+== 2. create the site acme-r1.worlds.abuusama.dev with world acme's token (11:25:23Z)
+{"site": "acme-r1.worlds.abuusama.dev", "world": "acme", "ms": 78287, "steps": [{"step": "new-site", "ms": 17714}, {"step": "install erpnext", "ms": 38486}, {"step": "install capxul", "ms": 2917}, {"step": "setup wizard", "ms": 12202}, {"step": "migrate", "ms": 5585}, {"step": "enable scheduler", "ms": 783}, {"step": "join world", "ms": 599}]}
+-- site creation: exit 0 in 78.3 s
+second site, quota 1: {"refused": "site-quota-reached", "detail": "world acme holds 1 of 1: ['acme-r1.worlds.abuusama.dev']"}
+world acme sees:    {"world": "acme", "quota": 1, "expires": 1794579889, "sites": ["acme-r1.worlds.abuusama.dev"]}
+world globex sees:   {"world": "globex", "quota": 1, "expires": 1794579889, "sites": []}
+
+== 2. set world acme's clock (frozen at 2027-03-31 10:00 UTC) and read it from the site (11:26:41Z)
+{"world": "acme", "via": "acme-r1.worlds.abuusama.dev", "ms": 612, "result": "CAPXUL_RESULT:{\"acme\": {\"offset_ms\": 0, \"frozen_at_ms\": 1806487200000, \"rate\": 1.0, \"host_anchor_ms\": 1794569202344}}"}
+host time: 2026-11-13T11:26:42Z
+web, Host acme-r1.worlds.abuusama.dev (plain HTTP to the bench's web process on its host, not through a tunnel):
+{"message":{"world":"acme","offset_ms":11917997252,"host_utc":"2026-11-13T11:26:42.746727+00:00","world_local":"2027-03-31 11:00:00","nowdate":"2027-03-31","tz":"Europe/London"}}
+web, Host acme-r1.worlds.abuusama.dev, Frappe's ping: {"message":"pong"}
+
+== 2. the site's DNS name as the public resolver answers it (11:26:42Z)
+TXT ['"cx-platform world acme: site r1 on platform pr-r2; no tunnel (PLATFORM_EDGE=none)"']
+A [] status 0
