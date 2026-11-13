@@ -23,6 +23,8 @@ import { BUNDLER_KEYS, ENTRY_POINT } from "./Keys.ts";
 const READY_WITHIN = "240 seconds";
 /** Cloudflare's own stop of an idle container, put far enough out that the world's idle stop always comes first. */
 const ALTO_INACTIVITY_MS = 3600 * 1000;
+/** Where the chain's address alto is started with is kept. */
+const RPC_URL_KEY = "rpcUrl";
 /** How many starts and stops the bundler remembers. */
 const REMEMBERED = 20;
 
@@ -99,9 +101,15 @@ export default class Bundler extends Cloudflare.DurableObject<Bundler>()(
       // provided to this Durable Object, try again later"), from the start or from the call after it, and a start
       // made before its first instance has the image can be lost. So while alto is awaited, it is started again
       // whenever it is seen not running, and a refusal is "not yet", not a failure.
-      const begin = (rpcUrl: string) =>
+      const begin = (offered: string) =>
         Effect.gen(function* () {
           if ((yield* running) && (yield* answersEntryPoint)) return;
+          // The chain's address alto was first started with is kept and used again: a later call may come over a
+          // service binding, whose host is not the door's public address. It holds the door's token, so it is kept
+          // apart from the record, which `status` gives out.
+          const kept = yield* state.storage.get<string>(RPC_URL_KEY);
+          const rpcUrl = kept ?? offered;
+          if (kept === undefined) yield* state.storage.put(RPC_URL_KEY, rpcUrl);
           const began = yield* Clock.currentTimeMillis;
           const startCalls = yield* Ref.make(0);
           const attempt = Effect.gen(function* () {
@@ -133,7 +141,10 @@ export default class Bundler extends Cloudflare.DurableObject<Bundler>()(
         }).pipe(lock.withPermits(1));
 
       return {
-        /** One bundler JSON-RPC body in, alto's answer out. Starts alto, against this chain address, when it is stopped. */
+        /**
+         * One bundler JSON-RPC body in, alto's answer out. Starts alto when it is stopped, against the chain address
+         * of its first start, or this one if it never started.
+         */
         rpc: (body: string, rpcUrl: string) => begin(rpcUrl).pipe(Effect.andThen(forward(body))),
         /** Stops alto. What it held in memory is gone; everything it needs again is on the chain. */
         stop: () =>

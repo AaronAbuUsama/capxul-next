@@ -1,7 +1,7 @@
 # @capxul/world
 
-One command creates and destroys a private world: its database, its chain, its index and its Core
-([roadmap](../../docs/roadmap.md) step 1.3). A world is one stage of the Alchemy stack `CapxulWorld`; nothing of it
+One command creates and destroys a private world: its database, its chain, its index, its bundler and its Core
+([roadmap](../../docs/roadmap.md) steps 1.3 and 1.11). A world is one stage of the Alchemy stack `CapxulWorld`; nothing of it
 lives on the machine that made it. Built on `alchemy` 2.0.0-beta.85 and Effect 4.1.2, run with Bun.
 
 | Part | What it is |
@@ -9,7 +9,9 @@ lives on the machine that made it. Built on `alchemy` 2.0.0-beta.85 and Effect 4
 | Database | Its own copy-on-write branch of the platform's Neon project, with a Hyperdrive configuration in front of it for Core. App data and the index's `ponder` schema live in it together. |
 | Chain | Anvil 1.9.0 with `packages/contracts/state/core.json`, started with `--no-request-size-limit`, as a Cloudflare Container owned by a Durable Object. Its state is saved to an R2 bucket every 20 s while it is used and when it stops; it stops after 10 idle minutes and wakes on the next call. |
 | Index | The real Ponder app of `packages/indexer` (its ABIs, schema and handlers, unchanged), as a Cloudflare Container, writing to the world's branch. |
-| Door | A Worker in front of the chain and the index. Every path starts with the world's token. |
+| Bundler | Pimlico's alto 0.0.21, unpatched, as a Cloudflare Container owned by a Durable Object, serving the seeded EntryPoint v0.7 against the world's chain. It starts on its first call, stops with the chain (before the chain is saved) and starts again on the next call. Its executor and utility keys are Anvil's public test accounts 9 and 10 (`src/bundler/Keys.ts`), funded from the chain's faucet when the world is created. |
+| Test paymaster | The contracts package's `MockPaymaster`, which sponsors every UserOperation from its deposit at the EntryPoint. Put on the chain when the world is created, through the seed's CREATE2 deployer, so it is at `0xE2dE380E3e8281e2cc458675102c3FC2277fC5A8` in every world, with 1 ETH deposited. |
+| Door | A Worker in front of the chain, the index and the bundler. Every path starts with the world's token. |
 | Core | A Worker. Until `packages/core` lands, a stand-in with Core's door shape: one endpoint, `GET /health`. |
 | Test USDC | The contracts package's `MockERC20`, put on the chain when the world is created. Its open `mint` is the faucet. |
 
@@ -44,7 +46,7 @@ In-process, a scenario runner imports the package's door (`@capxul/world`):
 
 ```ts
 const { record, used } = yield* withWorld({ name: "run-1", owner: "ci", lifetime: Duration.hours(1) }, (world) =>
-  world.sql("select 1"),          // world.coreUrl, world.rpcUrl (a secret), world.sql, world.funded
+  world.sql("select 1"),          // world.coreUrl, world.rpcUrl and world.bundlerUrl (secrets), world.sql, world.funded
 );
 ```
 
@@ -57,12 +59,27 @@ the stand-in's migrations. Swapping in `packages/core` is that file alone: impor
 `StandInCore` and point `CORE_MIGRATIONS` at its migrations. A world is ready once Core answers 200 on
 `CORE_HEALTH` (`src/core/health.ts`). A caller can also provide its own `Core` for one run.
 
+### How Core reaches the bundler
+
+The bundler is reached exactly as the chain is: through the world's door, under the world's token. The chain is at
+`<door>/<token>/rpc` and the bundler beside it at `<door>/<token>/bundler` (`BUNDLER_PATH`), speaking ERC-4337
+JSON-RPC (`eth_sendUserOperation`, `eth_getUserOperationReceipt`, `eth_estimateUserOperationGas`,
+`pimlico_getUserOperationGasPrice` and the rest). The world's handle carries it as `world.bundlerUrl`, a `Redacted`
+like `world.rpcUrl`, with `world.entryPoint` and `world.paymaster` beside it; the command line prints all three
+(`show`, `create`), the token hidden unless `--reveal`. Whatever binds the chain's address into the Core slot binds
+`bundlerUrl` the same way, and Core needs nothing else: the EntryPoint (`ENTRY_POINT`) and the test paymaster
+(`TEST_PAYMASTER`) are the same in every world and exported by the package's door, with `bundlerCall`, one JSON-RPC
+call to a world's bundler. A UserOperation sponsored by the test paymaster names it in `paymaster` with
+`paymasterData` `0x`; the paymaster checks nothing. A call to the bundler wakes a stopped chain and starts alto if it
+is stopped (about 8 s, `records/spike-bundler`).
+
 ### Images
 
-`capxulworld-anvil` and `capxulworld-ponder` are shared by every world and belong to the platform. Alchemy tags each
+`capxulworld-anvil`, `capxulworld-ponder` and `capxulworld-alto` are shared by every world and belong to the platform. Alchemy tags each
 build with a hash of its inputs and reuses a tag the registry already lists, so a deploy needs Docker only when an
 image's inputs have changed. The index's image copies `ponder/node_modules`: after a change to `ponder/package.json`,
-run `pnpm install --ignore-workspace` in `ponder/`.
+run `pnpm install --ignore-workspace` in `ponder/`. The bundler's image copies `images/alto/node_modules` the same
+way: run `pnpm install --ignore-workspace` in `images/alto/` before a deploy whose bundler image must be built.
 
 In an agent's container the Docker daemon has no route out, so such a deploy builds the image and then fails at the
 push. `images/publish.sh <repository:tag>...`, with the tags the failed deploy's log names, pushes them through the
@@ -100,6 +117,7 @@ records (`p-*.json`) are `withWorld`'s own, with every step's duration and decla
 | `keep` | A failed run kept for 3 minutes: parked with chain and index stopped, kept by a sweep before the keep ends, destroyed by a sweep after. | `keep.proof.json`, `p-keep.json` |
 | `race` | Two creates of one name at once: one world, one `WorldExists`, one world's resources in the accounts. | `race.proof.json` |
 | `limits` | 8 days is `LifetimeTooLong`, an owner's sixth world `WorldQuotaReached`, a bad name `InvalidWorldName`; nothing is made. | `limits.proof.json` |
+| `bundler` | A world made by `world create`, run as the pnpm command, with its bundler and test paymaster: a Safe owned by one of Anvil's public test keys sends one UserOperation, a 25 test USDC transfer signed through the Safe4337Module and sponsored by the paymaster, to the world's bundler. It lands as one transaction in its own block, sent by the bundler's executor to the EntryPoint, with one UserOperationEvent for it; the chain reads back the Safe's and the recipient's balances, the paymaster's deposit and the Safe's nonce; the index writes the transfer. Then `world destroy`, and the accounts hold what they held before. | `bundler.proof.json` |
 | `sweep` | The sweeper, run as the command line with an empty home directory, keeps three worlds before an expiry; after it, destroys the expired one and keeps the live one and the one with no recorded expiry. | `sweep.proof.json` |
 
 ## Timings
@@ -147,7 +165,18 @@ publishes it.
 - The index polls through the door, so a busy world makes about one Worker request a second for it. What an idle or a
   busy world costs was not measured.
 - Who the cast is and how a mint is booked is not here: `spec.mint` is only the hook.
+- The bundler: a signed paymaster (a verifying paymaster with a key and a validity window) and ERC-7677's `pm_*`
+  methods; alto's safe mode (it runs with `ALTO_SAFE_MODE=false`: no ERC-7562 tracing, which anvil's tracer cannot
+  give, and no stake checks); a UserOperation in alto's mempool when the world stops, which is lost, because alto
+  keeps its mempool in memory; what alto's polling costs (about one `/quiet-rpc` Worker request a second while it
+  runs). A paymaster with a validity window would also meet alto's wall clock against the seeded chain's, which is
+  weeks behind.
+- The index records a UserOperationEvent only for a Safe claimed through Companies House (`known_safes`), so the
+  bundler proof's Safe, made directly through the factory, is seen in the index by its transfer, not in
+  `ponder.user_operations`.
 
-`src/stack` is the stack and the only code that drives Alchemy, `src/database`, `src/chain`, `src/index`, `src/door`
-and `src/core` are the world's parts, `src/lifecycle` is the rules, `src/failures.ts` the package's own failures,
-`src/cli` and `src/main.ts` the command line, `src/proofs` the proofs, `ponder/` and `images/` the two images.
+`src/stack` is the stack and the only code that drives Alchemy, `src/database`, `src/chain`, `src/index`,
+`src/bundler`, `src/door` and `src/core` are the world's parts, `src/lifecycle` is the rules, `src/failures.ts` the
+package's own failures, `src/cli` and `src/main.ts` the command line, `src/proofs` the proofs, `ponder/` and
+`images/` the three images. `records/spike-bundler/` is the record of `spikes/bundler`, the spike that proved the
+bundler before it moved here, with that spike's README.

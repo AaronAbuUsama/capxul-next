@@ -12,7 +12,7 @@ import { bundlerStatus, servesEntryPoint } from "../bundler/client.ts";
 import { BUNDLER_ACCOUNTS, ENTRY_POINT, TEST_PAYMASTER } from "../bundler/Keys.ts";
 import { word } from "../chain/faucet.ts";
 import { destroy, list } from "../lifecycle/operations.ts";
-import { open, rpc } from "../lifecycle/parts.ts";
+import { open, rpc, stop } from "../lifecycle/parts.ts";
 import { decodeJsonText } from "../lifecycle/record.ts";
 import type { World } from "../lifecycle/spec.ts";
 import { check, conclude, inventoryReport, runCommandLine, stackListing, tailOf } from "./support.ts";
@@ -77,6 +77,11 @@ const inWorld = (world: World) =>
     const [{ n: userOperationRows }] = yield* world
       .sql("select count(*)::int as n from ponder.user_operations where tx_hash = $1", [lower(tx)])
       .pipe(Effect.flatMap(Schema.decodeUnknownEffect(Count)));
+    // The world stops (the chain saved, the index and the bundler stopped); the next bundler call wakes it.
+    yield* stop(world);
+    const stopped = yield* bundlerStatus(world);
+    const again = yield* timed(sendUserOperation(world, safe.value.safe));
+    const woken = yield* bundlerStatus(world);
     const effect = {
       safeTestUsdc: String(sent.after.safe - sent.before.safe),
       recipientTestUsdc: String(sent.after.recipient - sent.before.recipient),
@@ -131,6 +136,15 @@ const inWorld = (world: World) =>
             same(indexed.value.to, RECIPIENT) &&
             indexed.value.amount === AMOUNT.toString(),
         ),
+        check("stopping the world's chain stopped the bundler", !stopped.running && stopped.record.stops.length === 1),
+        check(
+          "after the stop, a second UserOperation woke the chain and the bundler, and landed",
+          again.value.receipt.success &&
+            again.value.after.nonce === sent.after.nonce + 1n &&
+            again.value.after.safe - again.value.before.safe === -AMOUNT &&
+            woken.running &&
+            woken.record.starts.length === 2,
+        ),
       ],
       observed: {
         bundler: { servesEntryPoints: served, alto },
@@ -152,7 +166,13 @@ const inWorld = (world: World) =>
           // this Safe was made directly, so its operation is seen through its transfer.
           userOperationRows,
         },
+        afterAStop: {
+          bundlerStopped: stopped.record.stops,
+          secondUserOperation: { hash: again.value.userOpHash, bundlerReceipt: again.value.receipt },
+          altoStarts: woken.record.starts,
+        },
         ms: {
+          secondUserOperationWakingTheWorld: again.ms,
           makeSafeAndFundIt: safe.ms,
           sendUserOperationAccepted: sent.acceptedMs,
           sendUserOperationToReceipt: sent.receiptMs,
