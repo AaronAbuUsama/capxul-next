@@ -52,12 +52,6 @@
    "why": "delivery_stuck alert age in real elapsed time"
   },
   {
-   "file": "packages/backend/src/platform/outbox.sql",
-   "match": "acked_at timestamptz not null default now()",
-   "label": "real-on-purpose",
-   "why": "when a consumer acknowledged; delivery measure, not business time"
-  },
-  {
    "file": "packages/backend/src/plugs/collector.ts",
    "match": "collected_at=now()",
    "label": "real-on-purpose",
