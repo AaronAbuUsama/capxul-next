@@ -152,7 +152,12 @@ export const sweeps = Effect.scoped(
     const secondRun = yield* runCommandLine(["sweep"], { home });
     const second = yield* decodeSweep(secondRun);
     const between = yield* stackListing;
-    const inSharedState = Arr.map(yield* list, (world) => `${world.world}: ${world.state}`);
+    // The shared state may also hold another builder's worlds; this proof judges its own three.
+    const ours = ["w-p-old", "w-p-live", "w-p-undated"];
+    const inSharedState = Arr.map(
+      Arr.filter(yield* list, (world) => Arr.contains(ours, world.world)),
+      (world) => `${world.world}: ${world.state}`,
+    );
     yield* cleanUp(["p-live", "p-undated"]);
     const inventory = inventoryReport(before, yield* stackListing, ["w-p-old", "w-p-live", "w-p-undated"]);
     return yield* conclude(

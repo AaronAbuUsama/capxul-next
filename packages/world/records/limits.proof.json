@@ -1,7 +1,7 @@
 {
   "proof": "a lifetime over the limit, a sixth live world of one owner and a name the contract refuses are each refused before anything is created",
   "outcome": "passed",
-  "at": "2026-11-13T12:33:00.536Z",
+  "at": "2026-11-13T13:35:59.162Z",
   "checks": [
     {
       "check": "8 days is refused with LifetimeTooLong",
@@ -54,6 +54,7 @@
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
         "imageRepositories": [
+          "capxulworld-alto",
           "capxulworld-anvil",
           "capxulworld-ponder"
         ]
@@ -69,6 +70,7 @@
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
         "imageRepositories": [
+          "capxulworld-alto",
           "capxulworld-anvil",
           "capxulworld-ponder"
         ]

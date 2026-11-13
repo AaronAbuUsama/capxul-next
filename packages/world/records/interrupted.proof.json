@@ -1,7 +1,7 @@
 {
   "proof": "a run interrupted by SIGINT during its use writes its record and destroys its world before the process exits",
   "outcome": "passed",
-  "at": "2026-11-13T12:30:26.064Z",
+  "at": "2026-11-13T13:27:51.637Z",
   "checks": [
     {
       "check": "the process was interrupted during the use and exited non-zero",
@@ -39,42 +39,43 @@
   "observations": {
     "exitCode": 130,
     "logTail": [
-      "[12:30:03.341] INFO: world w-p-int: the index is ready",
-      "[12:30:03.780] INFO: world w-p-int: Core answers",
-      "[12:30:03.781] INFO: the use has started and will never end: interrupt this process now",
-      "[12:30:03.796] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).",
+      "[13:27:34.386] INFO: world w-p-int: Core answers",
+      "[13:27:34.387] INFO: the use has started and will never end: interrupt this process now",
+      "[13:27:34.414] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).",
       "i Refreshing Cloudflare State Store credentials",
       "+ Refreshing Cloudflare State Store credentials",
-      "[12:30:12.178] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-p-int-sryisq7gvfa5jpsw",
-      "[12:30:12.200] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-p-int-j64eyose77xk25em",
-      "[12:30:12.202] INFO: [Ponder] Cloudflare Container delete: deleting capxulworld-ponder-w-p-int-phczm54ocihigcix",
-      "[12:30:12.207] INFO: [Core] Cloudflare Worker delete: deleting capxulworld-core-w-p-int-rkuew2mryhwgfjfu",
-      "[12:30:14.322] INFO: [world] Neon: using environment variables (NEON_API_KEY).",
-      "[12:30:21.286] INFO: world w-p-int: destroyed (8 resources) and its name released"
+      "[13:27:39.061] INFO: [Ponder] Cloudflare Container delete: deleting capxulworld-ponder-w-p-int-mbbvqstlrih6zn6w",
+      "[13:27:39.065] INFO: [Core] Cloudflare Worker delete: deleting capxulworld-core-w-p-int-7hhxyzfnrgy5knzb",
+      "[13:27:39.068] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-p-int-m6zywc43rt6uag6p",
+      "[13:27:39.078] INFO: [Alto] Cloudflare Container delete: deleting capxulworld-alto-w-p-int-eizyqj4eyhsujumn",
+      "[13:27:39.087] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-p-int-kvddkwjvjb3fevtm",
+      "[13:27:40.746] INFO: [world] Neon: using environment variables (NEON_API_KEY).",
+      "[13:27:47.717] INFO: world w-p-int: destroyed (9 resources) and its name released"
     ],
     "record": {
       "world": "w-p-int",
       "owner": "proof",
       "forkedFrom": "nothing",
-      "expiresAt": "2026-11-13T13:08:27.678Z",
+      "expiresAt": "2026-11-13T14:05:53.541Z",
       "outcome": "interrupted",
       "failure": "the run was interrupted",
       "worldAfterwards": "destroyed",
       "keptUntil": null,
       "ms": {
-        "claim": 676,
-        "deploy": 42586,
-        "migrate": 925,
-        "chain": 2236,
-        "fund": 313,
-        "index": 48624,
-        "core": 438,
-        "use": 2,
+        "claim": 698,
+        "deploy": 69648,
+        "migrate": 658,
+        "chain": 2618,
+        "fund": 378,
+        "bundler": 19864,
+        "index": 26270,
+        "core": 310,
+        "use": 5,
         "park": null,
-        "destroy": 17230,
-        "release": 270,
-        "create": 96102,
-        "total": 113607
+        "destroy": 13045,
+        "release": 275,
+        "create": 100844,
+        "total": 114175
       },
       "timeouts": {
         "claim": 45000,
@@ -82,6 +83,7 @@
         "migrate": 45000,
         "chain": 180000,
         "fund": 60000,
+        "bundler": 300000,
         "index": 180000,
         "core": 60000,
         "use": 600000,
@@ -92,31 +94,61 @@
     },
     "inventory": {
       "before": {
-        "workers": [],
-        "containerApplications": [],
-        "durableObjectNamespaces": [],
-        "r2Buckets": [],
-        "hyperdriveConfigurations": [],
+        "workers": [
+          "capxulworld-core-w-c1-64cheulmne2gbzxw",
+          "capxulworld-door-w-c1-tm6tn3u7tjlo5mdc"
+        ],
+        "containerApplications": [
+          "capxulworld-ponder-w-c1-cvqj5bt547s26gyl",
+          "capxulworld-anvil-w-c1-auwerbww7fylegc2"
+        ],
+        "durableObjectNamespaces": [
+          "capxulworld-door-w-c1-tm6tn3u7tjlo5mdc",
+          "capxulworld-door-w-c1-tm6tn3u7tjlo5mdc"
+        ],
+        "r2Buckets": [
+          "capxulworld-chainstate-w-c1-abzx3dt2yhmgd44o"
+        ],
+        "hyperdriveConfigurations": [
+          "capxulworld-world-db-w-c1-cvmt2gyrnxlujvgm"
+        ],
         "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-c1",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
         "imageRepositories": [
+          "capxulworld-alto",
           "capxulworld-anvil",
           "capxulworld-ponder"
         ]
       },
       "after": {
-        "workers": [],
-        "containerApplications": [],
-        "durableObjectNamespaces": [],
-        "r2Buckets": [],
-        "hyperdriveConfigurations": [],
+        "workers": [
+          "capxulworld-core-w-c1-64cheulmne2gbzxw",
+          "capxulworld-door-w-c1-tm6tn3u7tjlo5mdc"
+        ],
+        "containerApplications": [
+          "capxulworld-ponder-w-c1-cvqj5bt547s26gyl",
+          "capxulworld-anvil-w-c1-auwerbww7fylegc2"
+        ],
+        "durableObjectNamespaces": [
+          "capxulworld-door-w-c1-tm6tn3u7tjlo5mdc",
+          "capxulworld-door-w-c1-tm6tn3u7tjlo5mdc"
+        ],
+        "r2Buckets": [
+          "capxulworld-chainstate-w-c1-abzx3dt2yhmgd44o"
+        ],
+        "hyperdriveConfigurations": [
+          "capxulworld-world-db-w-c1-cvmt2gyrnxlujvgm"
+        ],
         "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-c1",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
         "imageRepositories": [
+          "capxulworld-alto",
           "capxulworld-anvil",
           "capxulworld-ponder"
         ]

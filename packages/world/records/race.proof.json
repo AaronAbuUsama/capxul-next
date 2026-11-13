@@ -1,7 +1,7 @@
 {
   "proof": "of two creates of one name at once, one creates the world and the other is refused before it makes anything",
-  "outcome": "passed",
-  "at": "2026-11-13T12:32:45.916Z",
+  "outcome": "failed",
+  "at": "2026-11-13T13:35:43.410Z",
   "checks": [
     {
       "check": "exactly one create succeeded",
@@ -29,46 +29,71 @@
     },
     {
       "check": "the accounts hold what they held before",
-      "held": true
+      "held": false
     }
   ],
   "observations": {
     "results": [
       "created",
-      "WorldExists: {\"world\":\"p-race\",\"owner\":\"racer-a\",\"expiresAt\":\"2026-11-13T13:10:36.063Z\"}"
+      "WorldExists: {\"world\":\"p-race\",\"owner\":\"racer-a\",\"expiresAt\":\"2026-11-13T14:13:33.358Z\"}"
     ],
     "whatTheAccountsHeld": [
-      "capxulworld-core-w-p-race-qiyuwoh5oq4l7hfn",
-      "capxulworld-door-w-p-race-jjyvzzy5ekjwaacm",
-      "capxulworld-ponder-w-p-race-u5xjqupn5u4jn3kg",
-      "capxulworld-anvil-w-p-race-5zu32d5dbjps5zwq",
-      "capxulworld-door-w-p-race-jjyvzzy5ekjwaacm",
-      "capxulworld-door-w-p-race-jjyvzzy5ekjwaacm",
-      "capxulworld-chainstate-w-p-race-xadg34abxb5ssm3w",
-      "capxulworld-world-db-w-p-race-aidknqvhnob7tzny",
+      "capxulworld-core-w-p-race-3ptqiuowwswwyj56",
+      "capxulworld-door-w-p-race-lxlqc2xgg66n3nh5",
+      "capxulworld-alto-w-p-race-wy4r4opwonxop2nv",
+      "capxulworld-ponder-w-p-race-a6ep3vzk6skl3mz5",
+      "capxulworld-anvil-w-p-race-zj73e7eqvzyz3ctt",
+      "capxulworld-door-w-p-race-lxlqc2xgg66n3nh5",
+      "capxulworld-door-w-p-race-lxlqc2xgg66n3nh5",
+      "capxulworld-door-w-p-race-lxlqc2xgg66n3nh5",
+      "capxulworld-chainstate-w-p-race-mcqqzlhsbsptlsie",
+      "capxulworld-world-db-w-p-race-2moit2wtxsxfw57o",
       "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-p-race"
     ],
     "inSharedState": [
       {
         "world": "w-p-race",
         "owner": "racer-a",
-        "expiresAt": "2026-11-13T13:10:36.063Z",
+        "expiresAt": "2026-11-13T14:13:33.358Z",
         "status": "up",
         "state": "live"
       }
     ],
     "inventory": {
       "before": {
-        "workers": [],
-        "containerApplications": [],
-        "durableObjectNamespaces": [],
-        "r2Buckets": [],
-        "hyperdriveConfigurations": [],
+        "workers": [
+          "capxulworld-core-w-p-site-briqxo235hlkbcb3",
+          "capxulworld-door-w-p-site-v53vdiyehi5e7l6b",
+          "capxulworld-door-w-p-site2-ufakpdrcj2kautja"
+        ],
+        "containerApplications": [
+          "capxulworld-ponder-w-p-site2-xakz34m3yu4pv2a4",
+          "capxulworld-anvil-w-p-site2-fya74cildnr5unxp",
+          "capxulworld-ponder-w-p-site-p6ta7ncspyrxkcd4",
+          "capxulworld-anvil-w-p-site-3irasnt4f5eawltu"
+        ],
+        "durableObjectNamespaces": [
+          "capxulworld-door-w-p-site-v53vdiyehi5e7l6b",
+          "capxulworld-door-w-p-site-v53vdiyehi5e7l6b",
+          "capxulworld-door-w-p-site2-ufakpdrcj2kautja",
+          "capxulworld-door-w-p-site2-ufakpdrcj2kautja"
+        ],
+        "r2Buckets": [
+          "capxulworld-chainstate-w-p-site-ls3i4uvuz2xx24kr",
+          "capxulworld-chainstate-w-p-site2-a4rvqv7xwazhjdfv"
+        ],
+        "hyperdriveConfigurations": [
+          "capxulworld-world-db-w-p-site2-t7hqtmwjmgakevnh",
+          "capxulworld-world-db-w-p-site-wcynuvztqjqn6gv3"
+        ],
         "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-p-site2",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-p-site",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
         "imageRepositories": [
+          "capxulworld-alto",
           "capxulworld-anvil",
           "capxulworld-ponder"
         ]
@@ -84,12 +109,13 @@
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
         "imageRepositories": [
+          "capxulworld-alto",
           "capxulworld-anvil",
           "capxulworld-ponder"
         ]
       },
       "leftOfTheseWorlds": [],
-      "sameAsBefore": true
+      "sameAsBefore": false
     }
   }
 }

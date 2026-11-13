@@ -66,8 +66,11 @@ The bundler is reached exactly as the chain is: through the world's door, under 
 JSON-RPC (`eth_sendUserOperation`, `eth_getUserOperationReceipt`, `eth_estimateUserOperationGas`,
 `pimlico_getUserOperationGasPrice` and the rest). The world's handle carries it as `world.bundlerUrl`, a `Redacted`
 like `world.rpcUrl`, with `world.entryPoint` and `world.paymaster` beside it; the command line prints all three
-(`show`, `create`), the token hidden unless `--reveal`. Whatever binds the chain's address into the Core slot binds
-`bundlerUrl` the same way, and Core needs nothing else: the EntryPoint (`ENTRY_POINT`) and the test paymaster
+(`show`, `create`), the token hidden unless `--reveal`. A Core that reaches its chain through the world's door, by a
+service binding to the door Worker and the door's token (`/<token>/rpc`), reaches the bundler over the same binding
+with the same token at `/<token>/bundler`: no new binding or secret. Once alto has started, a later start uses the
+chain address of its first start (the create's, through the door's public address), so a call that arrives over a
+service binding starts it correctly. Core needs nothing else: the EntryPoint (`ENTRY_POINT`) and the test paymaster
 (`TEST_PAYMASTER`) are the same in every world and exported by the package's door, with `bundlerCall`, one JSON-RPC
 call to a world's bundler. A UserOperation sponsored by the test paymaster names it in `paymaster` with
 `paymasterData` `0x`; the paymaster checks nothing. A call to the bundler wakes a stopped chain and starts alto if it
