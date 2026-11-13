@@ -1405,6 +1405,40 @@ export const decision_organizations_admitted_deployment = defineDecision({
   affects: [table_org_deployments, workflow_organizations_setups_set_up, concept_board],
 });
 
+export const decision_organizations_setup_send_attempts = defineDecision({
+  id: "organizations.setup-send-attempts",
+  title: "Setup sends are keyed per attempt; completion waits for the landed install",
+  question:
+    "The service signer answers the same hash for a key it has seen, so one fixed key per send cannot both survive a " +
+    "crash (send once) and retry after a revert (send again). And the install's facts read false while the signed " +
+    "install is still unmined. How does the setup key its sends, and when does it judge the install?",
+  options: [
+    {
+      label: "attempts-and-landing",
+      text:
+        "Count attempts on the setup (mint_attempt, deploy_attempt) and key each send `org-setup:<orgId>:mint:<n>`; a " +
+        "crash resends attempt n and gets its hash, only the transaction that records a revert moves to n+1. Record the " +
+        "install transaction and block from approvals' landed ending, and judge the install's facts only at finality " +
+        "anchored to that block. Provider errors go back to the process's retries; the last one stalls it.",
+    },
+    {
+      label: "fixed-keys",
+      text: "Keep one key per send and judge the install whenever the process runs.",
+    },
+  ],
+  chosen: "attempts-and-landing",
+  why:
+    "A fixed key makes a reverted send's retry return the reverted hash forever, and a fresh key per run sends twice " +
+    "after a crash, minting new hats. Counting attempts in the row the revert is recorded in gives both. Judging the " +
+    "install before it landed reads an unmined install as reverted, stalls the setup and lets a retry open a second " +
+    "batch while the first can still land. The workflow's own retries (max 5, exponential) cover provider outages, so a " +
+    "first PROVIDER_ERROR is not yet a stall.",
+  source:
+    "Amp Organizations lane, 13 November 2026, from the integrator's independent review of PR122; " +
+    "packages/backend/src/shared/service-signer.ts (stored hash per key); approvals TerminalEvent (transaction_hash, block_number)",
+  affects: [table_org_setups, workflow_organizations_setups_set_up],
+});
+
 // ── the command surface (surface.tree, surface.head-group; Aaron, 9 November 2026) ──────────────────────────────
 
 const SURFACE_PASS = "Claude, surface pass, 9 November 2026 (question 48)";

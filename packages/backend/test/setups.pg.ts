@@ -68,7 +68,7 @@ test("the target tables have exactly the blueprint fields, and a legacy table re
     "founder_party_id", "founder_safe", "seat_limit", "seat_limit_raised_by", "seat_limit_raised_at", "abbr", "default_currency", "time_zone",
     "fiscal_year_start", "created_at", "updated_at"]);
   assert.deepEqual(await columns("org_setups"), ["org_id", "founder_principal_id", "intent_hash", "with_fde", "status", "steps", "mint_tx_hash",
-    "deploy_tx_hash", "install_approval_id", "issue", "fde_signer", "fde_safe", "fde_party_id", "checked_at", "ready_at", "created_at", "updated_at"]);
+    "mint_attempt", "deploy_tx_hash", "deploy_attempt", "install_approval_id", "install_tx_hash", "install_block", "issue", "fde_signer", "fde_safe", "fde_party_id", "checked_at", "ready_at", "created_at", "updated_at"]);
   const legacy = new pg.Client({ connectionString: url });
   await legacy.connect();
   try {

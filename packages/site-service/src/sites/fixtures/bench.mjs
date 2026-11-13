@@ -1,5 +1,5 @@
 // Process-level bench fixture: the service still executes argv and persists a site between calls.
-import { existsSync, mkdirSync, readFileSync, watch, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, watch, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const [root, ...args] = process.argv.slice(2);
@@ -7,6 +7,8 @@ const site = args[1];
 const directory = join(root, site);
 const path = join(directory, "site.json");
 const load = () => JSON.parse(readFileSync(path, "utf8"));
+// Every invocation in order, so a test can pin what runs before what.
+appendFileSync(join(root, "commands.jsonl"), JSON.stringify(args) + "\n");
 const save = (value) => writeFileSync(path, JSON.stringify(value));
 if (args[0] === "new-site") {
   if (existsSync(path)) process.exit(1);
@@ -35,8 +37,6 @@ if (args[0] === "new-site") {
     const data = load(); const input = JSON.parse(args[5]);
     data.settings = { org_slug: input.slug, safe_address: input.safe_address };
     data.company = input.company_name; data.core_url = input.core_url; save(data);
-  } else if (method === "capxul.clock.join_world") {
-    const data = load(); data.world = JSON.parse(args[5]).world; save(data);
   } else if (method === "frappe.db.get_single_value") {
     // Match native bench execute's quote-stripped scalar output (and no output for None).
     const value = load().settings[JSON.parse(args[5])[1]];
