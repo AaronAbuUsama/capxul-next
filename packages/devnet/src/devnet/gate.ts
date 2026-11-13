@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile, stat, writeFile } from "node:fs/promises";
 import { userInfo } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
-import { parseRunReceipt, parseStatus, type EvalStatus, type RunEnvironment } from "../../../blueprint-engine/src/index.ts";
+import { parseRunReceipt, parseStatus, pointerValue, type EvalStatus, type RunEnvironment } from "../../../blueprint-engine/src/index.ts";
 import { sitesEnvironment } from "./fixture.ts";
 import { command } from "./processes.ts";
 import { runtimeEnv } from "./service.ts";
@@ -53,7 +53,7 @@ export async function verifyRun(root: string, summary: any, required: string[], 
       assert((await stat(join(directory, capture.path))).size > 0, "screen evidence missing/empty");
       assert((await stat(join(directory, file))).size > 0, "screen source evidence missing/empty");
       if (pointer !== undefined) {
-        const value = pointer.split("/").slice(1).map(decodeURIComponent).reduce<any>((at, key) => at?.[key], JSON.parse(await readFile(join(directory, file), "utf8")));
+        const value = pointerValue(JSON.parse(await readFile(join(directory, file), "utf8")), pointer);
         assert(value !== undefined && value !== null, `screen source ${capture.source} names no value`);
       }
     }
