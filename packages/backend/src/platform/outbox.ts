@@ -55,18 +55,36 @@ export async function consume(sql: Sql, consumer: string, eventId: string, effec
   return true;
 }
 
-/** Composition calls this for explicit consumers; ACKs, not a cursor, prevent loss of late-committing sources. */
+/** The leading `CODE:` of a failure, or its class name; never the message, which may carry event data. */
+const failureCode = (error: unknown) => (error instanceof Error ? /^([A-Z][A-Z_]{1,63}):/.exec(error.message)?.[1] ?? error.name : "Error").slice(0, 64);
+
+/**
+ * Composition calls this for explicit consumers; ACKs, not a cursor, prevent loss of late-committing sources. Each
+ * event's effect and ACK run in their own savepoint: a failing event rolls back alone, is recorded, and is retried after
+ * fresher events, so it never holds back the rest (runtime.outbox-poison-event).
+ */
 export async function relay(db: Database, consumer: string, names: readonly string[], effect: Handler, limit = 100): Promise<number> {
   if (!consumer || !Number.isSafeInteger(limit) || limit < 1 || limit > 1000) throw new Error("INVALID_INPUT: invalid relay batch");
   return db.transaction("", async (sql) => {
-    const rows = (await sql.query(`select id from app.transition_outbox o
-      where event->>'name'=any($2::text[]) and not exists
+    const rows = (await sql.query(`select o.id, f.event_id is not null as failed from app.transition_outbox o
+      left join app.transition_failures f on f.consumer=$1 and f.event_id=o.id
+      where o.event->>'name'=any($2::text[]) and not exists
         (select 1 from app.transition_acks a where a.consumer=$1 and a.event_id=o.id)
-      order by seq limit $3`, [consumer, names, limit])).rows;
+      order by (f.event_id is not null), o.seq limit $3`, [consumer, names, limit])).rows;
     let delivered = 0;
     for (const row of rows) {
       const lock = (await sql.query("select pg_try_advisory_xact_lock(hashtextextended($1, 38119)) as held", [lockKey(consumer, row.id)])).rows[0];
-      if (lock?.held && await consume(sql, consumer, row.id, effect)) delivered++;
+      if (!lock?.held) continue;
+      await sql.query("savepoint transition_event");
+      try {
+        if (await consume(sql, consumer, row.id, effect)) delivered++;
+        if (row.failed) await sql.query("delete from app.transition_failures where consumer=$1 and event_id=$2", [consumer, row.id]);
+        await sql.query("release savepoint transition_event");
+      } catch (error) {
+        await sql.query("rollback to savepoint transition_event");
+        await sql.query(`insert into app.transition_failures (consumer,event_id,attempts,last_error) values ($1,$2,1,$3)
+          on conflict (consumer,event_id) do update set attempts=app.transition_failures.attempts+1, last_error=excluded.last_error`, [consumer, row.id, failureCode(error)]);
+      }
     }
     return delivered;
   }, true);

@@ -159,6 +159,24 @@ export const decision_runtime_transition_outbox = defineDecision({
   affects: [f.component_backend],
 });
 
+export const decision_runtime_outbox_poison_event = defineDecision({
+  id: "runtime.outbox-poison-event",
+  title: "One failing transition never blocks a consumer's later events",
+  question: "What does a relay batch do when one event's consumer effect fails?",
+  options: [
+    { label: "per-event", text: "Each event's effect and ACK run in their own savepoint; a failure rolls back only that event, is recorded with its code and attempt count, and is retried after fresher events." },
+    { label: "batch", text: "Roll back the whole batch, so the same failing event is retried first on every tick." },
+  ],
+  chosen: "per-event",
+  why:
+    "ACKs, not a cursor, carry delivery (runtime.transition-outbox), so a consumer has no ordering to keep across events. " +
+    "Rolling back the whole batch let one poison event (a missing payment row, say) hold every later event for that consumer on every tick. " +
+    "A savepoint keeps one event's effect and ACK atomic exactly as before; the failure record keeps only the error's leading code, never its message or event data. " +
+    "Failed events sort after fresh ones, so even a batch of poison events cannot starve the rest. The record reads no clock (time.no-direct-reads).",
+  source: "Activity's relay finding and the integrator's ruling, 13 November 2026; runtime.transition-outbox",
+  affects: [f.component_backend],
+});
+
 export const decision_integrations_surface_gap_audit = defineDecision({
   id: "integrations.surface-gap-audit",
   title: "Remove outside calls with no surviving Core caller",
