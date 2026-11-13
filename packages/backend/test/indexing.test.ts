@@ -92,7 +92,7 @@ test("real Ponder projections retain initial execution nonce, provenance and exa
       assert.equal((await sql.query(`select count(*)::int as n from ponder.${table} where created_log_id='' or last_log_id='' or updated_block<=0`)).rows[0].n, 0);
     }
     // Isolate each real Safe against this transaction's temporary directory, not copies in people/organizations.
-    await sql.query("delete from app.party_events; delete from app.parties");
+    await sql.query("delete from app.parties");
     await sql.query(`insert into app.parties(party_id,kind,state,safe_address,owner_kind,owner_id,created_at,updated_at)
       values ('index-company','organization','active',$1,'organization','same-id',0,0),
       ('index-founder','person','active',$2,'person','same-id',0,0)`, [safe, founder]);
@@ -225,7 +225,7 @@ test("real same-Safe nested module starts and ends retain full receipt order wit
     assert(rows.every((row) => JSON.stringify(row.safes) === JSON.stringify([safe])));
     await sql.query("reset role");
     await sql.query("begin");
-    await sql.query("delete from app.party_events; delete from app.parties");
+    await sql.query("delete from app.parties");
     await sql.query(`insert into app.parties(party_id,kind,state,safe_address,owner_kind,owner_id,created_at,updated_at)
       values ('module-founder','person','active',$1,'person','module-person',0,0)`, [fixture.founderSafe.toLowerCase()]);
     await sql.query("set local role capxul_core");
