@@ -303,9 +303,9 @@ export const machine_approval = defineMachine({
       emits: E,
     },
     displace: {
-      from: ["pending", "signed", "sending", "sent"],
+      from: ["sponsoring", "pending", "signed", "sending", "sent"],
       to: "displaced",
-      about: "The UserOperationEvent at its nonce names another hash; `displaced_by` keeps it.",
+      about: "The final indexed UserOperationEvent at its persisted nonce names another hash; `displaced_by` keeps it. A replacement may already inherit that nonce while sponsoring.",
       emits: E,
     },
     expire: {

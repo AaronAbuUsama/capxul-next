@@ -19,7 +19,7 @@ export interface ServiceSigner {
 }
 export class ServiceSignerError extends Error {
   readonly code: "PROVIDER_ERROR" | "TRANSACTION_FAILED" | "INVALID_INPUT" | "WRONG_STATE";
-  readonly hash?: Hex;
+  readonly hash?: Hex | undefined;
   constructor(code: ServiceSignerError["code"], hash?: Hex) {
     super(`Service signer refused: ${code}`); this.name = "ServiceSignerError"; this.code = code; this.hash = hash;
   }
