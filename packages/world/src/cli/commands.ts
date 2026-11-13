@@ -12,7 +12,7 @@ import * as Str from "effect/String";
 import * as Argument from "effect/cli/Argument";
 import * as Command from "effect/cli/Command";
 import * as Flag from "effect/cli/Flag";
-import { InvalidDuration, InvalidMint } from "../failures.ts";
+import { InvalidCompany, InvalidDuration, InvalidMint } from "../failures.ts";
 import { inventory } from "../lifecycle/account.ts";
 import { create, destroy, list } from "../lifecycle/operations.ts";
 import { open } from "../lifecycle/parts.ts";
@@ -69,6 +69,16 @@ export const mintsOf = (given: string) =>
       : Effect.succeed({ to, amount: BigInt(amount) });
   });
 
+/** Companies as people write them: `label=Name`, comma separated; the label is 1 to 12 of a-z and 0-9. */
+export const companiesOf = (given: string) =>
+  Effect.forEach(pipe(Str.split(given, ","), Arr.map(Str.trim), Arr.filter(Str.isNonEmpty)), (part) => {
+    const found = /^([a-z0-9]{1,12})=(.{1,140})$/.exec(part);
+    const [label, companyName] = [found?.[1], found?.[2]];
+    return label === undefined || companyName === undefined
+      ? Effect.fail(InvalidCompany.make({ given: part, message: `"${part}" is not label=Name, e.g. acme=Acme Ltd` }))
+      : Effect.succeed({ label, name: Str.trim(companyName) });
+  });
+
 /** A world's addresses as they may be printed: the token is shown only when asked for. */
 const addresses = (world: World, reveal: boolean) => ({
   world: world.name,
@@ -78,6 +88,7 @@ const addresses = (world: World, reveal: boolean) => ({
   coreUrl: world.coreUrl,
   testUsdc: world.testUsdc,
   funded: world.funded,
+  sites: world.sites,
   rpcUrl: reveal
     ? Redacted.value(world.rpcUrl)
     : world.rpcUrl.pipe(Redacted.value, Str.replace(/\/[0-9a-f]{32}\//, "/<token: show --reveal>/")),
@@ -106,11 +117,18 @@ const createCommand = Command.make(
         "Test USDC to mint from the faucet: address=amount, comma separated, amounts in millionths of a USDC",
       ),
     ),
+    company: Flag.String("company").pipe(
+      Flag.optional,
+      Flag.withDescription(
+        "Companies whose Frappe sites the world gets on its bench (WORLD_BENCH): label=Name, comma separated",
+      ),
+    ),
     reveal,
   },
   (input) =>
     Effect.gen(function* () {
       const made = yield* create({
+        companies: yield* companiesOf(Option.getOrElse(input.company, () => "")),
         name: input.name,
         owner: input.owner,
         lifetime: yield* durationOf(input.lifetime),
@@ -119,7 +137,7 @@ const createCommand = Command.make(
       });
       yield* report({ ...addresses(made.world, input.reveal), ms: made.ms });
     }),
-).pipe(Command.withDescription("Create a private world: database, chain, index and Core"));
+).pipe(Command.withDescription("Create a private world: database, chain, index, Core and its companies' sites"));
 
 const destroyCommand = Command.make("destroy", { name }, (input) => Effect.flatMap(destroy(input.name), report)).pipe(
   Command.withDescription("Destroy a world and everything it created"),

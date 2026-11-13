@@ -1,6 +1,7 @@
 // Runs: for each one a fresh stage, the calls, the generic checks, a run record, and the stage's destruction. Nothing
 // here knows any operation or any scenario by name.
 import { operations, type OperationName } from "@capxul/blueprint";
+import { SharedState } from "@capxul/world";
 import { Capxul, type ExpectationFailed, type Failure, type Scenario } from "@capxul/scenarios";
 import * as Sdk from "@capxul/sdk";
 import * as Arr from "effect/Array";
@@ -12,7 +13,9 @@ import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
+import type * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
+import * as Result from "effect/Result";
 import * as Str from "effect/String";
 import type * as HttpClient from "effect/http/HttpClient";
 import { checkCall, failuresOf, type CheckedCall } from "./checks/checks.ts";
@@ -23,6 +26,7 @@ import { writeRecord, type RunRecord } from "./record.ts";
 import type { Settings } from "./settings.ts";
 import { telemetryOf } from "./world/database.ts";
 import { isEmpty } from "./world/leftovers.ts";
+import { opened, OtherWorlds, startedNow, worldRecord } from "./world/existing.ts";
 import { runInStage, type Lifecycle, type Stage, type StageSpec } from "./world/stage.ts";
 
 /** What a run is: its kind and name, the claim it proves, and the calls it makes through a stage's Core. */
@@ -64,12 +68,7 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
     };
     const [runTook, run] = yield* plan.calls(target, log).pipe(Effect.exit, Effect.timed);
     const calls = yield* Ref.get(log);
-    const [checksTook, kept] = yield* Effect.timed(
-      telemetryOf(
-        stage.database,
-        Arr.map(calls, (call) => call.traceId),
-      ),
-    );
+    const [checksTook, kept] = yield* Effect.timed(keptFor(stage.database, calls));
     return {
       run,
       calls: Arr.map(calls, (call) => checkCall(call, kept)),
@@ -80,6 +79,45 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
       RunnerFailure.make({ step: "checks", message: `what Core kept could not be read: ${error.message}` }),
     ),
   );
+
+/**
+ * What Core kept for every call: the stage's own database for calls through its own door, and, for a call made `at`
+ * another world's door, that world's database, when the shared state knows the world (world/existing.ts).
+ */
+const keptFor = (database: Redacted.Redacted, calls: ReadonlyArray<Call>) =>
+  Effect.gen(function* () {
+    const own = yield* telemetryOf(
+      database,
+      Arr.map(
+        Arr.filter(calls, (call) => call.at === null),
+        (call) => call.traceId,
+      ),
+    );
+    const doors = Arr.dedupe(
+      Arr.filterMap(calls, (call) => (call.at === null ? Result.failVoid : Result.succeed(call.at))),
+    );
+    if (Arr.isReadonlyArrayEmpty(doors)) return own;
+    const others = yield* OtherWorlds;
+    const elsewhere = yield* Effect.forEach(doors, (door) =>
+      Effect.flatMap(others.databaseAt(door), (found) =>
+        Option.match(found, {
+          onNone: () => Effect.succeed({ spans: [], events: [] }),
+          onSome: (theirs) =>
+            telemetryOf(
+              theirs,
+              Arr.map(
+                Arr.filter(calls, (call) => call.at === door),
+                (call) => call.traceId,
+              ),
+            ),
+        }),
+      ),
+    );
+    return {
+      spans: Arr.flatten([own.spans, ...Arr.map(elsewhere, (kept) => kept.spans)]),
+      events: Arr.flatten([own.events, ...Arr.map(elsewhere, (kept) => kept.events)]),
+    };
+  });
 
 /** Everything that went wrong, most fundamental first. Empty when the run passed. */
 const failuresIn = (lifecycle: Lifecycle<Used, RunnerFailure>): ReadonlyArray<string> => {
@@ -157,6 +195,62 @@ export const runPlan = (plan: Plan, settings: Settings) =>
     );
     return recordOf(plan, startedAt, lifecycle);
   }).pipe(Effect.withSpan("runner.run", { attributes: { run: plan.name } }));
+
+/**
+ * Runs one plan in a world that `world create` made (`--world=<name>`), and returns its run record, which is also on
+ * disk by then. The world is not the runner's: it is neither created nor destroyed here.
+ */
+export const runInWorld = (plan: Plan, settings: Settings, name: string) =>
+  Effect.gen(function* () {
+    const startedAt = yield* startedNow;
+    const [openTook, found] = yield* Effect.timed(opened(name, settings));
+    const base = {
+      kind: plan.kind,
+      name: plan.name,
+      proves: plan.proves,
+      given: plan.given,
+      stage: found.ok?.world.stage ?? name,
+      owner: found.ok?.world.owner ?? settings.owner,
+      startedAt,
+      readiness: found.ok?.stage.readiness ?? null,
+    };
+    if (found.ok === null) {
+      const record = worldRecord(
+        { ...base, ended: null, calls: [], ms: { create: null, run: null, checks: null, destroy: null } },
+        [found.failure ?? "the world could not be opened"],
+      );
+      return yield* Effect.as(Effect.orDie(writeRecord(settings.records, record)), record);
+    }
+    const { stage, settings: inWorld } = found.ok;
+    const ran = yield* Effect.exit(Effect.timeout(use(plan, inWorld)(stage), settings.useTimeout));
+    const used = Exit.isSuccess(ran) ? ran.value : undefined;
+    const failures = [
+      ...(Exit.isFailure(ran) ? [`the run did not finish: ${describe(ran.cause)}`] : []),
+      ...(used !== undefined && Exit.isFailure(used.run) ? [`the run failed: ${describe(used.run.cause)}`] : []),
+      ...(used === undefined ? [] : failuresOf(used.calls)),
+    ];
+    const record = worldRecord(
+      {
+        ...base,
+        ended: used === undefined ? null : endedOf(used.run),
+        calls: used?.calls ?? [],
+        ms: {
+          create: Math.round(Duration.toMillis(openTook)),
+          run: used?.ms.run ?? null,
+          checks: used?.ms.checks ?? null,
+          destroy: null,
+        },
+      },
+      failures,
+    );
+    return yield* Effect.as(Effect.orDie(writeRecord(settings.records, record)), record);
+  }).pipe(
+    // A run in a world reads the shared state of packages/world, opened for this run only: the world's own facts, and
+    // the database of any other world a call is made `at` (world/existing.ts).
+    // oxlint-disable-next-line effecttsgo/strict-effect-provide -- a run in a world is its own program, handed the shared state it alone needs
+    Effect.provide(OtherWorlds.fromSharedState.pipe(Layer.provideMerge(SharedState.layer))),
+    Effect.withSpan("runner.run.world", { attributes: { run: plan.name, world: name } }),
+  );
 
 /**
  * The door: every blueprint operation called once, as the world's owner, with its first declared example. It passes

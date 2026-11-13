@@ -437,6 +437,9 @@ importers:
       '@capxul/sdk':
         specifier: workspace:*
         version: link:../sdk
+      '@capxul/world':
+        specifier: workspace:*
+        version: link:../world
       '@effect/platform-bun':
         specifier: 'catalog:'
         version: 4.1.2(effect@4.1.2)
@@ -524,6 +527,12 @@ importers:
       '@capxul/blueprint':
         specifier: workspace:*
         version: link:../blueprint
+      '@capxul/core':
+        specifier: workspace:*
+        version: link:../core
+      '@capxul/platform':
+        specifier: workspace:*
+        version: link:../platform
       '@effect/platform-bun':
         specifier: 'catalog:'
         version: 4.1.2(effect@4.1.2)

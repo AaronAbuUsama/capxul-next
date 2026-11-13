@@ -1,6 +1,7 @@
-// Entry: `bun src/main.ts door` or `bun src/main.ts scenarios [--one-stage] [--expect=pass|not-implemented]
+// Entry: `bun src/main.ts door [--world=<name>]` or `bun src/main.ts scenarios [--one-stage] [--expect=pass|not-implemented]
 // [name...]`, through ../run.sh, which sets the environment. The door runs in its own fresh stage; the scenarios run
-// as scenario-runs.ts says, one at a time. Exits 1 when the door failed, or when a scenario did not end as the run
+// as scenario-runs.ts says, one at a time. `door --world=<name>` runs the door in a world `world create` made
+// (packages/world), which it neither creates nor destroys. Exits 1 when the door failed, or when a scenario did not end as the run
 // expected or a stage was left. This is the only file of the runner that touches the process: its arguments, its exit
 // code and the Bun runtime.
 import * as BunFileSystem from "@effect/platform-bun/BunFileSystem";
@@ -11,17 +12,21 @@ import * as Alchemist from "alchemy/Alchemist";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Option from "effect/Option";
 import * as Str from "effect/String";
 import * as FetchHttpClient from "effect/http/FetchHttpClient";
 import { RunnerFailure } from "./failure.ts";
-import { door, runPlan, scenarioPlan, type Plan } from "./run.ts";
+import { door, runInWorld, runPlan, scenarioPlan, type Plan } from "./run.ts";
+import { OtherWorlds } from "./world/existing.ts";
 import { runScenarios } from "./scenario-runs.ts";
 import { Settings } from "./settings.ts";
 import { ranAsExpected, type Expectation, type Mode } from "./summary.ts";
 
-const USAGE = "usage: door | scenarios [--one-stage] [--expect=pass|not-implemented] [name...]";
+const USAGE = "usage: door [--world=<name>] | scenarios [--one-stage] [--expect=pass|not-implemented] [name...]";
 const [command, ...rest] = process.argv.slice(2);
-const flags = Arr.filter(rest, Str.startsWith("--"));
+const WORLD_FLAG = "--world=";
+const world = Arr.findFirst(rest, Str.startsWith(WORLD_FLAG)).pipe(Option.map(Str.slice(WORLD_FLAG.length)));
+const flags = Arr.filter(rest, (each) => Str.startsWith("--")(each) && !Str.startsWith(WORLD_FLAG)(each));
 const names = Arr.filter(rest, (each) => !Str.startsWith("--")(each));
 
 const usage = (message: string) => Effect.fail(RunnerFailure.make({ step: "arguments", message }));
@@ -61,7 +66,9 @@ const plans = (settings: Settings): Effect.Effect<ReadonlyArray<Plan>, RunnerFai
 
 const theDoor = (settings: Settings) =>
   Effect.gen(function* () {
-    const record = yield* runPlan(door, settings);
+    const record = Option.isSome(world)
+      ? yield* runInWorld(door, settings, world.value)
+      : yield* runPlan(door, settings);
     yield* Effect.log(
       `${record.outcome}: ${record.name} (stage ${record.stage} ${record.afterwards.stage}; create ${record.ms.create} ms, run ${record.ms.run} ms, checks ${record.ms.checks} ms, destroy ${record.ms.destroy} ms) -> ${settings.records}/${record.stage}/`,
     );
@@ -90,10 +97,13 @@ const theScenarios = (settings: Settings, chosen: ReadonlyArray<Plan>) =>
 const program = Effect.gen(function* () {
   const settings = yield* Settings;
   const chosen = yield* plans(settings);
+  if (Option.isSome(world) && command !== "door") return yield* usage(`--world is for the door only; ${USAGE}`);
   yield* command === "door" ? theDoor(settings) : theScenarios(settings, chosen);
 });
 
 program.pipe(
-  Effect.provide(Layer.mergeAll(Alchemist.layer(), BunFileSystem.layer, BunPath.layer, FetchHttpClient.layer)),
+  Effect.provide(
+    Layer.mergeAll(OtherWorlds.none, Alchemist.layer(), BunFileSystem.layer, BunPath.layer, FetchHttpClient.layer),
+  ),
   BunRuntime.runMain,
 );

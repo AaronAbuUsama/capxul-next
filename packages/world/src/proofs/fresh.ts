@@ -79,7 +79,7 @@ const useFirst = (world: World) =>
     ]);
     const head = yield* rpcHex(world, "eth_blockNumber");
     const forked = yield* withWorld(
-      { name: "p-fork", owner: "proof", lifetime, from: world.name },
+      { name: "p-fork", owner: "proof", lifetime, from: world.name, migrations: NOTES },
       useFork(world, head, paid.tx),
     );
     const fork = Option.getOrUndefined(forked.used);
@@ -120,10 +120,13 @@ const useFirst = (world: World) =>
     };
   });
 
+/** This proof's own table, `app.notes` (migrations/): the rows it writes in one world and reads in its fork. */
+const NOTES = `${import.meta.dirname}/../../migrations`;
+
 export const fresh = Effect.gen(function* () {
   const before = yield* stackListing;
   const first = yield* withWorld(
-    { name: "p-fresh", owner: "proof", lifetime, mint: [{ to: FUNDED, amount: OPENING }] },
+    { name: "p-fresh", owner: "proof", lifetime, mint: [{ to: FUNDED, amount: OPENING }], migrations: NOTES },
     useFirst,
   );
   const after = yield* stackListing;
