@@ -59,13 +59,22 @@ export function checkFollowers(manifest: Manifest, followers: readonly string[] 
   const missing = followerNames(followers).filter((f) => !(manifest.followers ?? []).includes(f));
   if (missing.length) throw new Error(`WRONG_STATE: stateful follower ${missing.join(", ")} joined now is missing from snapshot ${manifest.id}`);
 }
-/** A replace that crashed between its two renames leaves the old snapshot only as `.<id>-replaced-*`. Call under the host lock. */
+/** Exactly `.<id>-replaced-<uuid>`: a prefix match would also take hyphenated names' asides and temps (`.x-replaced-1-…`). */
+const asidesOf = async (root: string, id: string) => {
+  const exact = new RegExp(`^\\.${id}-replaced-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`);
+  return (await readdir(root).catch(() => [] as string[])).filter((entry) => exact.test(entry));
+};
+/** A replace that crashed between its two renames leaves the old snapshot only as `.<id>-replaced-<uuid>`. Call under the host lock. */
 async function recoverReplaced(root: string, id: string): Promise<void> {
   const final = join(root, id);
   if (await stat(join(final, "manifest.json")).then(() => true, () => false)) return;
-  const aside = (await readdir(root).catch(() => [] as string[])).filter((entry) => entry.startsWith(`.${id}-replaced-`));
-  if (aside.length > 1) throw new Error(`WRONG_STATE: snapshot ${id} has several interrupted replacements (${aside.join(", ")}); inspect before saving or restoring`);
-  if (aside.length === 1) { await rm(final, { recursive: true, force: true }); await rename(join(root, aside[0]!), final); }
+  const aside = await asidesOf(root, id);
+  if (aside.length > 1) throw new Error(`WRONG_STATE: snapshot ${id} has several interrupted replacements (${aside.join(", ")}); inspect before saving`);
+  if (aside.length === 1) {
+    const kept = await readFile(join(root, aside[0]!, "manifest.json"), "utf8").then((text) => JSON.parse(text) as Manifest).catch(() => undefined);
+    if (kept?.id !== id) throw new Error(`WRONG_STATE: ${aside[0]} does not hold snapshot ${id}; inspect before saving`);
+    await rm(final, { recursive: true, force: true }); await rename(join(root, aside[0]!), final);
+  }
 }
 const savedNames = async (root: string) => {
   const entries = await readdir(root).catch((error) => { if (error.code === "ENOENT") return []; throw error; });
@@ -117,6 +126,7 @@ export async function saveSnapshot(options: Options, world: World, id: string, s
       // Snapshot names are host-wide: one world never replaces (and drops the template of) another world's snapshot.
       const old = await readFile(join(final, "manifest.json"), "utf8").then((text) => JSON.parse(text) as Manifest).catch(() => undefined);
       if (!old || typeof old.world !== "string" || typeof old.database?.name !== "string") throw new Error(`WRONG_STATE: snapshot ${id} has an unreadable manifest; it is not replaced`);
+      if (old.id !== id) throw new Error(`WRONG_STATE: snapshot ${id}'s manifest names snapshot ${old.id}; it is not replaced`);
       if (old.world !== world.id) throw new Error(`WRONG_STATE: snapshot ${id} belongs to world ${old.world}; only that world may replace it`);
     }
     if (!await options.runtime.running(world)) throw new Error("source world must be running to establish a snapshot cut");
@@ -148,6 +158,8 @@ export async function saveSnapshot(options: Options, world: World, id: string, s
         // previous snapshot keeps its manifest naming its template for operator cleanup.
         try {
           const old = JSON.parse(await readFile(join(replaced, "manifest.json"), "utf8")) as Manifest;
+          // Drop only the exact fenced template the manifest recorded, never a database that merely shares its name.
+          await checkTemplate(options.admin, old.database);
           await dropDatabase(options.admin, old.database.name);
           await rm(replaced, { recursive: true });
         } catch { /* retained under .<id>-replaced-* */ }
@@ -185,8 +197,8 @@ export async function readSnapshot(options: Options, id: string): Promise<Manife
   const directory = join(options.root, id);
   const text = /^[a-z0-9][a-z0-9_-]{0,62}$/.test(id) ? await readFile(join(directory, "manifest.json"), "utf8").catch((error) => { if (error.code === "ENOENT") return undefined; throw error; }) : undefined;
   if (text === undefined) {
-    const aside = (await readdir(options.root).catch(() => [] as string[])).filter((entry) => entry.startsWith(`.${id}-replaced-`));
-    if (aside.length) throw new Error(`WRONG_STATE: snapshot ${id} was interrupted while being replaced (${aside.join(", ")}); a save or restore under the host lock recovers it`);
+    const aside = await asidesOf(options.root, id);
+    if (aside.length) throw new Error(`WRONG_STATE: snapshot ${id} was interrupted while being replaced (${aside.join(", ")}); the next save of ${id} recovers it`);
     const saved = await savedNames(options.root);
     throw new Error(`INVALID_INPUT: no snapshot named ${JSON.stringify(id)}; saved here: ${saved.length ? saved.join(", ") : "none"}`);
   }

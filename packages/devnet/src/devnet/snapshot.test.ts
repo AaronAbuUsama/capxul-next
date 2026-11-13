@@ -134,10 +134,16 @@ test("whole database cut restores independently, fences failures and retains aba
     await rm(join(options.root, "junk"), { recursive: true });
     assert.equal(quiesces, before + 1, "only the accepted replace touched a world");
     // A crash between the replace's two renames: reads name it; the next locked save recovers the previous snapshot.
-    await rename(join(options.root, "paid"), join(options.root, ".paid-replaced-crash"));
-    await assert.rejects(readSnapshot(options, "paid"), /WRONG_STATE: snapshot paid was interrupted while being replaced/);
+    const crashed = `.paid-replaced-${randomUUID()}`;
+    await rename(join(options.root, "paid"), join(options.root, crashed));
+    // Hyphenated neighbours (another snapshot's aside and a crashed save's temp) must not be taken for paid's aside.
+    const decoys = [`.paid-replaced-1-replaced-${randomUUID()}`, `.paid-replaced-1-${randomUUID()}`];
+    for (const decoy of decoys) { await mkdir(join(options.root, decoy)); await writeFile(join(options.root, decoy, "manifest.json"), JSON.stringify({ id: "paid-replaced-1" })); }
+    await assert.rejects(readSnapshot(options, "paid"), (error: Error) => error.message === `WRONG_STATE: snapshot paid was interrupted while being replaced (${crashed}); the next save of paid recovers it`);
     await assert.rejects(saveSnapshot(options, source, "paid"), /WRONG_STATE: a snapshot named paid exists/);
     assert.equal((await readSnapshot(options, "paid")).database.name, replaced.database.name);
+    for (const decoy of decoys) assert.equal(JSON.parse(await readFile(join(options.root, decoy, "manifest.json"), "utf8")).id, "paid-replaced-1", "a neighbour's aside is untouched");
+    for (const decoy of decoys) await rm(join(options.root, decoy), { recursive: true });
     sourceRunning = false;
     await assert.rejects(saveSnapshot(options, source, "stopped"), /source world must be running/);
     assert.equal(await runtime.running(source), false, "refused save must not activate a stopped world");
