@@ -1,0 +1,150 @@
+{
+  "area": "system",
+  "script": "packages/evals/src/modules/system/run.sh",
+  "worlds": [
+    "slice-zero"
+  ],
+  "secrets": [],
+  "bindings": [
+    {
+      "eval": "sys:generated",
+      "checks": [
+        "SYSTEM.generated"
+      ],
+      "why": "At the receipt's commit, packages/generate regenerates every packages/<package>/src/generated/ from the records with no diff and the generated code compiles; until the generator exists the check fails with that reason (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/access",
+      "checks": [
+        "SYSTEM.imports.access"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/access/ and every import in it that reaches another concept's folder names a concept in concept:access's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/accounts",
+      "checks": [
+        "SYSTEM.imports.accounts"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/accounts/ and every import in it that reaches another concept's folder names a concept in concept:accounts's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/activity",
+      "checks": [
+        "SYSTEM.imports.activity"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/activity/ and every import in it that reaches another concept's folder names a concept in concept:activity's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/agents",
+      "checks": [
+        "SYSTEM.imports.agents"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/agents/ and every import in it that reaches another concept's folder names a concept in concept:agents's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/approvals",
+      "checks": [
+        "SYSTEM.imports.approvals"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/approvals/ and every import in it that reaches another concept's folder names a concept in concept:approvals's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/board",
+      "checks": [
+        "SYSTEM.imports.board"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/board/ and every import in it that reaches another concept's folder names a concept in concept:board's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/books",
+      "checks": [
+        "SYSTEM.imports.books"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/books/ and every import in it that reaches another concept's folder names a concept in concept:books's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/budgets",
+      "checks": [
+        "SYSTEM.imports.budgets"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/budgets/ and every import in it that reaches another concept's folder names a concept in concept:budgets's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/devnet",
+      "checks": [
+        "SYSTEM.imports.devnet"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/devnet/ and every import in it that reaches another concept's folder names a concept in concept:devnet's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/documents",
+      "checks": [
+        "SYSTEM.imports.documents"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/documents/ and every import in it that reaches another concept's folder names a concept in concept:documents's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/indexing",
+      "checks": [
+        "SYSTEM.imports.indexing"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/indexing/ and every import in it that reaches another concept's folder names a concept in concept:indexing's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/media",
+      "checks": [
+        "SYSTEM.imports.media"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/media/ and every import in it that reaches another concept's folder names a concept in concept:media's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/notices",
+      "checks": [
+        "SYSTEM.imports.notices"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/notices/ and every import in it that reaches another concept's folder names a concept in concept:notices's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/organizations",
+      "checks": [
+        "SYSTEM.imports.organizations"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/organizations/ and every import in it that reaches another concept's folder names a concept in concept:organizations's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/parties",
+      "checks": [
+        "SYSTEM.imports.parties"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/parties/ and every import in it that reaches another concept's folder names a concept in concept:parties's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/payments",
+      "checks": [
+        "SYSTEM.imports.payments"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/payments/ and every import in it that reaches another concept's folder names a concept in concept:payments's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/plugs",
+      "checks": [
+        "SYSTEM.imports.plugs"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/plugs/ and every import in it that reaches another concept's folder names a concept in concept:plugs's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/requests",
+      "checks": [
+        "SYSTEM.imports.requests"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/requests/ and every import in it that reaches another concept's folder names a concept in concept:requests's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    },
+    {
+      "eval": "sys:imports/sites",
+      "checks": [
+        "SYSTEM.imports.sites"
+      ],
+      "why": "At the receipt's commit, TypeScript exists under packages/*/src/sites/ and every import in it that reaches another concept's folder names a concept in concept:sites's dependsOn and lands on that concept's door.ts; no such code is a failure (system.eval-system-checks)."
+    }
+  ]
+}
