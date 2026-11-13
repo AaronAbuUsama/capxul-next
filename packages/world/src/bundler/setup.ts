@@ -71,10 +71,12 @@ const fundAccounts = <E, R>(call: Call<E, R>) =>
     Effect.gen(function* () {
       const held = yield* weiOf(call, account);
       if (held >= BUNDLER_FUNDS) return { account, wei: held.toString(), funded: false };
-      yield* call("anvil_setBalance", [account, `0x${BUNDLER_FUNDS.toString(16)}`]).pipe(
-        Effect.mapError((error) => setupFailed(`anvil_setBalance: ${describeFailure(error)}`)),
-      );
-      return { account, wei: (yield* weiOf(call, account)).toString(), funded: true };
+      // anvil answers null to anvil_setBalance, which a world's chain call takes for no answer, so what it did is
+      // judged by the balance read back.
+      yield* Effect.ignore(call("anvil_setBalance", [account, `0x${BUNDLER_FUNDS.toString(16)}`]));
+      const now = yield* weiOf(call, account);
+      if (now < BUNDLER_FUNDS) return yield* setupFailed(`anvil_setBalance left ${account} with ${now} wei`);
+      return { account, wei: now.toString(), funded: true };
     }),
   );
 
