@@ -3,8 +3,15 @@
 // Core's server spans share one trace id, which the SDK sends in `traceparent`. The log keeps what was sent, what
 // came back, the caller's time and how the call ended. During a stage's warm-up, and only then, a call Cloudflare's
 // edge answered is sent again (world/warmup.ts).
-import { Errors, isRefusal, operations, type OperationName } from "@capxul/blueprint";
-import { PLATFORM_PATH, WORLD_PATH } from "@capxul/core";
+import {
+  CHAIN_PATH,
+  Errors,
+  isRefusal,
+  operations,
+  PLATFORM_PATH,
+  WORLD_PATH,
+  type OperationName,
+} from "@capxul/blueprint";
 import { Capxul, type CallOptions, type CapxulClient } from "@capxul/scenarios";
 import * as Sdk from "@capxul/sdk";
 import * as Cause from "effect/Cause";
@@ -26,15 +33,18 @@ import { resendingWhileWarm } from "./world/warmup.ts";
 
 /**
  * How a call ended, as the caller saw it: `success`; `refusal`, a typed refusal the operation or sign-in declares;
- * `defect`, the server died in the call or answered something undeclared; `unanswered`, no answer came back.
+ * `rejected`, its payload was not of its schema, so the caller's client never sent it (`PayloadRejected`); `defect`,
+ * the server died in the call or answered something undeclared; `unanswered`, no answer came back.
  */
-export const CallOutcome = Schema.Literals(["success", "refusal", "defect", "unanswered"]);
+export const CallOutcome = Schema.Literals(["success", "refusal", "rejected", "defect", "unanswered"]);
 export type CallOutcome = typeof CallOutcome.Type;
 
 /** One call, as the caller saw it. */
 export interface Call {
   readonly operation: OperationName;
   readonly traceId: string;
+  /** Another world's door the call went to (`CallOptions.at`); null for the stage's own. */
+  readonly at: string | null;
   readonly outcome: CallOutcome;
   /** The refusal's tag, for a refused call. */
   readonly refusal: string | null;
@@ -49,6 +59,7 @@ export interface Call {
 }
 
 const isNotSignedIn = Schema.is(Errors.NotSignedIn);
+const isPayloadRejected = Schema.is(Errors.PayloadRejected);
 /** No answer came back: the transport failed, or the answer was not the Rpc protocol. The SDK dies with it. */
 const isUnanswered = Schema.is(RpcClientError);
 const tagOf = (error: unknown): string | null =>
@@ -57,6 +68,8 @@ const tagOf = (error: unknown): string | null =>
 const classify = (operation: OperationName, exit: Exit.Exit<unknown, unknown>) => {
   if (Exit.isSuccess(exit)) return { outcome: "success", refusal: null } as const;
   const error = Cause.findErrorOption(exit.cause);
+  if (Option.isSome(error) && isPayloadRejected(error.value))
+    return { outcome: "rejected", refusal: "PayloadRejected" } as const;
   if (Option.isSome(error))
     return isRefusal(operations[operation], error.value) || isNotSignedIn(error.value)
       ? ({ outcome: "refusal", refusal: tagOf(error.value) } as const)
@@ -76,6 +89,8 @@ export interface Target {
   readonly url: string;
   readonly doorToken: Redacted.Redacted;
   readonly platformToken: Redacted.Redacted;
+  /** The second operator's platform token, when the run has one. */
+  readonly secondPlatformToken: Redacted.Redacted | null;
   readonly warmUntil: number;
   readonly every: Duration.Duration;
 }
@@ -90,6 +105,7 @@ const recording = (client: CapxulClient, log: Ref.Ref<ReadonlyArray<Call>>, rese
       const call: Call = {
         operation: name,
         traceId: span.traceId,
+        at: options?.at ?? null,
         ...classify(name, exit),
         payload,
         success: Exit.isSuccess(exit) ? Option.some(exit.value) : Option.none(),
@@ -101,14 +117,24 @@ const recording = (client: CapxulClient, log: Ref.Ref<ReadonlyArray<Call>>, rese
       return yield* exit;
     }).pipe(Effect.withSpan(`runner.call ${name}`, { root: true }));
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- one function per operation, built by name from the blueprint's own list, each the recorded call of the operation it is keyed by; the compiler cannot follow the mapping
-  return Rec.map(operations, (_operation, name) => each(name)) as unknown as CapxulClient;
+  const calls = Rec.map(operations, (_operation, name) => each(name)) as unknown as Omit<CapxulClient, "chain">;
+  // Chain reads are not operations: no span of Core's, no event, nothing for the generic checks. They pass through.
+  return { ...calls, chain: client.chain };
 };
 
-/** The stage's two doors, reached through an HTTP client that resends what the edge answered during the warm-up. */
+/**
+ * The stage's two doors, its chain and whatever else a call reaches (another operator, another world's door),
+ * through an HTTP client that resends what the edge answered during the warm-up.
+ */
 const doors = (target: Target, resent: Ref.Ref<number>) =>
-  Layer.merge(
+  Layer.mergeAll(
     Sdk.platformDoor({ url: `${target.url}${PLATFORM_PATH}`, token: target.platformToken }),
     Sdk.worldDoor({ url: `${target.url}${WORLD_PATH}`, token: target.doorToken }),
+    Sdk.reach({
+      platform: `${target.url}${PLATFORM_PATH}`,
+      chain: { url: `${target.url}${CHAIN_PATH}`, token: target.doorToken },
+      operators: { first: target.platformToken, second: target.secondPlatformToken },
+    }),
   ).pipe(
     Layer.provide(
       Layer.effect(

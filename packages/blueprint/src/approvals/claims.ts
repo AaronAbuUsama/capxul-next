@@ -14,7 +14,7 @@ export const sign: ClaimsOf = {
     claim(
       "A signed held payment is sent once, from the signer's Safe, and its Payment Entry posts once.",
       w.paymentHeld,
-      "approval.sign as sam with his key's signature of the digest answers Sent for the payment with one transaction. Through the door's chain RPC that transaction holds one UserOperationEvent from sam's Safe and one PaymentSent carrying the payment's id; Brightside's address gained 125.50 USDC and the company Safe lost 125.50. report.run's General Ledger then shows the Payment Entry once and the invoice has nothing outstanding.",
+      "approval.sign as sam with his key's signature of the held approval's digest (the `held` fact) answers Sent for the payment with one transaction. Through the door's chain RPC (chain.transaction) that transaction holds one UserOperationEvent from sam's Safe and one PaymentSent carrying the payment's `paymentId` and `documentHash` from the Held answer; by chain.balance Brightside's address gained 125.50 USDC and the company Safe lost 125.50. report.run's General Ledger then shows the Payment Entry once and the invoice has nothing outstanding.",
       {
         origin: rewritten(
           "payment.send/c-c9400dfaeba081e7",
@@ -27,13 +27,13 @@ export const sign: ClaimsOf = {
     claim(
       "A replay of the same signature answers with the same hash and sends nothing more.",
       w.paymentHeld,
-      "approval.sign with the same signature twice answers Sent, then AlreadySent with the same transaction and no event. Through the door's chain RPC there is one PaymentSent for the payment.",
+      "approval.sign with the same signature twice answers Sent, then AlreadySent with the same transaction and no event. Through the door's chain RPC (chain.logs of PaymentSent from the world's Payments) there is one PaymentSent with the payment's `paymentId`.",
       { origin: kept("payment.send/c-59edd1848ac75c56") },
     ),
     claim(
       "A signature that does not recover the signer, an unknown approval and another person's approval are each refused, and nothing is sent.",
       w.paymentHeld,
-      "approval.sign as sam with olga's key's signature is refused with SignatureInvalid naming both addresses; of an id nobody issued, with ApprovalNotFound; as olga of sam's approval, with NotYourApproval. No PaymentSent appears through the door's chain RPC and record.export shows no new entry.",
+      "approval.sign as sam with olga's key's signature is refused with SignatureInvalid naming both addresses; of an id nobody issued, with ApprovalNotFound; as olga of sam's approval, with NotYourApproval. No PaymentSent appears through the door's chain RPC (chain.logs) and record.export shows no new entry.",
       {
         refusals: [SignatureInvalid, ApprovalNotFound, NotYourApproval],
         origin: rewritten(
@@ -46,7 +46,7 @@ export const sign: ClaimsOf = {
     claim(
       "An expired approval is refused, naming when it expired, and nothing is sent.",
       w.paymentHeld,
-      "The operator warps the clock past the approval's expiry; approval.sign as sam is then refused with ApprovalExpired naming the expiry, and no PaymentSent appears.",
+      "The operator warps the clock past the held approval's expiry (the `held` fact); approval.sign as sam is then refused with ApprovalExpired naming the expiry, and no PaymentSent appears (chain.logs).",
       {
         refusals: [ApprovalExpired],
         origin: rewritten(
@@ -59,7 +59,7 @@ export const sign: ClaimsOf = {
     claim(
       "A signature short of the threshold is kept, and nothing is sent until the last one needed.",
       w.founded,
-      "After org.member.grant, approval.sign by dana answers Collected with 1 of 2 and the hat is not worn; approval.sign by eli answers Sent.",
+      "After org.member.grant, approval.sign by dana answers Collected with 1 of 2; approval.sign by eli answers Sent, and the hat its transaction minted to sam's Safe (chain.transaction) was not worn by it at the block before (chain.wears at that block) and is worn after.",
     ),
   ],
   dropped: [

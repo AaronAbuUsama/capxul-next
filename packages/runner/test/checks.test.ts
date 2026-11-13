@@ -14,6 +14,7 @@ const TRACE = Str.repeat(32)("a");
 const call = (over: Partial<Call> = {}): Call => ({
   operation: "record.export",
   traceId: TRACE,
+  at: null,
   outcome: "refusal",
   refusal: "NotImplemented",
   payload: { from: null, to: null },
@@ -105,4 +106,15 @@ test("a successful call must record exactly its declared events, carrying what i
   });
   const own = span({ name: "world.create", outcome: "success" });
   assert.equal(passed(checkCall(success, { spans: [own], events: [] }))[2], "events false");
+});
+
+test("a call its client rejected passes only when Core kept no span of it", () => {
+  const rejected = call({ operation: "org.create", outcome: "rejected", refusal: "PayloadRejected" });
+  assert.deepEqual(passed(checkCall(rejected, { spans: [], events: [] })), [
+    "span true",
+    "outcome true",
+    "events true",
+  ]);
+  const reached = checkCall(rejected, { spans: [span({ name: "org.create" })], events: [] });
+  assert.deepEqual(passed(reached).slice(0, 2), ["span false", "outcome false"]);
 });

@@ -24,6 +24,12 @@ export const Settings = Config.all({
    */
   doorToken: Config.Redacted("CAPXUL_DOOR_TOKEN"),
   platformToken: Config.Redacted("CAPXUL_PLATFORM_TOKEN"),
+  /**
+   * The second operator the starting world `nothing` promises: its name and its platform token. run.sh makes the
+   * token; until the platform knows it, the second operator's calls are refused with NotSignedIn.
+   */
+  secondOwner: Config.String("WORLD_SECOND_OWNER").pipe(Config.withDefault("runner-2")),
+  secondPlatformToken: Config.option(Config.Redacted("CAPXUL_SECOND_PLATFORM_TOKEN")),
   /** The accounts the inventory after a destroy reads. */
   cloudflareAccount: Config.String("CLOUDFLARE_ACCOUNT_ID"),
   neonOrg: Config.String("NEON_ORG_ID"),

@@ -1,7 +1,7 @@
 // Core's two doors on one Worker: the platform group at `/platform` and the world group at `/world`, each an HTTP
 // POST of Effect Rpc in JSON, as the SDK's transport calls them (a trailing slash is the same door). Any other path answers 404 with JSON, so an answer
 // that is not JSON is never Core's: it is Cloudflare's edge, still routing a new address.
-import { PlatformRpcs, WorldRpcs } from "@capxul/blueprint";
+import { PLATFORM_PATH, PlatformRpcs, WORLD_PATH, WorldRpcs } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Str from "effect/String";
@@ -9,8 +9,8 @@ import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import * as RpcServer from "effect/rpc/RpcServer";
 
-export const PLATFORM_PATH = "/platform";
-export const WORLD_PATH = "/world";
+// The blueprint declares the doors' paths, once (packages/blueprint/src/telemetry.ts), so Core and the SDK agree.
+export { PLATFORM_PATH, WORLD_PATH };
 
 // A defect in one call answers that call only; it does not end the caller's whole client.
 const options = { disableFatalDefects: true } as const;

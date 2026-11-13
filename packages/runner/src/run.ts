@@ -9,6 +9,7 @@ import * as Random from "effect/Random";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
+import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
 import * as Ref from "effect/Ref";
@@ -17,6 +18,7 @@ import type * as HttpClient from "effect/http/HttpClient";
 import { checkCall, failuresOf, type CheckedCall } from "./checks/checks.ts";
 import { capxulFor, type Call, type Target } from "./client.ts";
 import { describe, endedOf, RunnerFailure } from "./failure.ts";
+import { givenFor, type Handing } from "./given.ts";
 import { writeRecord, type RunRecord } from "./record.ts";
 import type { Settings } from "./settings.ts";
 import { telemetryOf } from "./world/database.ts";
@@ -56,6 +58,7 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
       url: stage.url,
       doorToken: settings.doorToken,
       platformToken: settings.platformToken,
+      secondPlatformToken: Option.getOrNull(settings.secondPlatformToken),
       warmUntil: stage.warmUntil,
       every: settings.probeEvery,
     };
@@ -194,12 +197,24 @@ export const door: Plan = {
     ),
 };
 
-/** A registered scenario as a run: its `Capxul` is the stage's Core, through the recording client. */
-export const scenarioPlan = (scenario: Scenario): Plan => ({
-  kind: "scenario",
-  name: scenario.name,
-  proves: scenario.proves,
-  given: scenario.given.name,
-  // oxlint-disable-next-line effecttsgo/strict-effect-provide -- each scenario is its own program, handed its own stage's client
-  calls: (target, log) => Effect.provide(scenario.run, capxulFor(target, log)),
-});
+/**
+ * A registered scenario as a run: its `Capxul` is the stage's Core, through the recording client, and its `Given` the
+ * facts the runner has of its starting world (given.ts).
+ */
+export const scenarioPlan =
+  (settings: Settings, handing: Handing) =>
+  (scenario: Scenario): Plan => ({
+    kind: "scenario",
+    name: scenario.name,
+    proves: scenario.proves,
+    given: scenario.given.name,
+    calls: (target, log) =>
+      // oxlint-disable-next-line effecttsgo/strict-effect-provide -- each scenario is its own program, handed its own stage's client and facts
+      Effect.provide(
+        scenario.run,
+        Layer.merge(
+          capxulFor(target, log),
+          givenFor(scenario.given, { first: settings.owner, second: settings.secondOwner }, handing),
+        ),
+      ),
+  });

@@ -1,70 +1,154 @@
 # Gaps the scenarios found in the claims
 
 The thin line's scenarios (`packages/scenarios`, step 1.5) were written from this blueprint by an agent that never saw
-the implementation. These are the claims they could not check in full, grouped by cause. Each scenario checks
-everything the operations allow; what is listed here is unchecked until the blueprint or the scenarios' client
-changes. Close a gap by changing the blueprint (or the client in `packages/scenarios/src/client.ts`), then have the
-scenario author, never a builder, update the scenarios it names.
+the implementation. These are the claims they could not check in full, grouped by cause, and how each was closed.
+Every cause is now closed by a change to the blueprint and the scenarios' client (decisions.md, entries 34 to 46).
+The scenarios themselves are unchanged: the scenario author, never a builder, now updates them, by the brief at the
+end of this page.
 
-## 1. Nothing reads the chain
+## 1. Nothing reads the chain: closed (decisions 34, 35)
 
-Claims say "through the door's chain RPC", but `Capxul` offers no chain read.
+Claims said "through the door's chain RPC", but `Capxul` offered no chain read.
 
-- Unchecked chain parts: world.create 2 and 5; org.create 1 and 3; org.member.grant 1, 5 and 7; approval.sign 1 to
-  4; report.run 1; world.clock.warp 1; world.snapshot.save 1; world.snapshot.restore 1 and 2.
-- Stand-ins used meanwhile: a worn hat is read as a later `AlreadyHeld` refusal; a payment is read from the General
-  Ledger and Accounts Payable; report.run 1's Safe balance is compared with the 874.50 the starting world implies.
-- org.member.grant 5 (`mintHat`, `changeHatMaxSupply`) is almost entirely unchecked.
+- Closed by `capxul.chain`, the chain reads declared in `src/chain/reads.ts` (`head`, `balance`, `safe`, `hat`,
+  `wears`, `companySafeFor`, `transaction`, `logs`) over the world door's read-only chain JSON-RPC (`CHAIN_PATH`),
+  decoding the logs of `src/chain/logs.ts`. The addresses they take are in `WorldView.contracts`.
+- Supporting changes: `Held.payment.paymentId` (the id `PaymentSent` carries); a company Safe's `company` is the org
+  id; a new world mines a block at its start; officer hats are known by their details (`OFFICER_HAT_DETAILS`).
+- The claims that read the chain now name the read they use: world.create 2 and 5; org.create 1 and 3;
+  org.member.grant 1, 5 and 7; approval.sign 1 to 5; report.run 1; world.clock.warp 1; world.snapshot.save 1;
+  world.snapshot.restore 1 and 2.
 
-## 2. The client reaches one world only
+## 2. The client reaches one world only: closed (decision 36)
 
-A scenario cannot call into a world it has just created or restored.
+- Closed by `CallOptions.at`: a world operation or a chain read with `{ at: view.door }` goes to that world's door,
+  signed in with the operator's credential; with `as`, as one of its people.
+- world.create 1 and 5, world.snapshot.restore 1 to 3 and record.export 1 now say which calls go `at` which door.
 
-- world.create 1 reads `world.show`'s record head instead of `record.export`.
-- world.create 5 cannot check that each person can call the new world's door.
-- world.snapshot.restore 1 and 2 cannot call into the restored world or read its record, ledgers, balances or hats.
-- record.export 1 cannot compare the new world's entries with the first world's.
+## 3. One operator only: closed (decision 37)
 
-## 3. One operator only
+- Closed by `CallOptions.operator: "second"`, and by the operators' names in `nothing`'s facts (`operators`).
+- world.create 4, world.snapshot.save 3 and world.snapshot.restore 3 now name the operators they check.
 
-- world.snapshot.save 3: the `NotWorldOwner` part is unchecked.
-- world.snapshot.restore 3: only "the restorer owns the restored world" is checked.
-- The scenario cannot learn its own operator's name, so world.create 4 and 6 check that the owner is the same in
-  every answer, not that it is the caller.
+## 4. Starting worlds hand the scenario nothing: closed (decision 38)
 
-## 4. Starting worlds hand the scenario nothing from the steps that made them
+- Closed by each starting world's `facts` (claims.md lists what each adds), read with `given(startingWorlds.x)`.
+  Every step that answers something a claim needs names its fact: `world` (the call that made the world),
+  `founded`, `setupCollected`, `setupSent`, `grant`, `grantCollected`, `grantSent`, `supplier`, `invoice`,
+  `invoicePosted`, `payment`, `held`, `paidSent`, `m3`, `draft`, `restored`, and `calls` (every call made in making
+  the world, with its trace).
+- approval.sign 1 and 4, doc.create 4, doc.submit 1 and 4, record.export 2 and world.show 3 now name the facts they
+  read.
 
-- `payment-held` exposes neither the held approval's digest nor its expiry, so approval.sign 1 to 4 create a second
-  held Payment Entry against the same invoice and sign that one. doc.create 4 creates its own Payment Entry to get a
-  hash.
-- doc.submit 1 cannot check Brightside's address; doc.submit 4 cannot check the company Safe's address.
-- record.export 2 cannot see the starting world's trace ids. It checks every entry's shape and the steps' events in
-  order, then its own calls exactly.
-- world.show 3 compares with the world's `world_created` entry, because it never saw `world.create`'s answer.
+## 5. Ambiguities: closed
 
-## 5. Ambiguities
+- **Starting worlds and templates** (decision 39). Decision 27 holds for `fresh` to `paid`; `quota-full`,
+  `with-snapshot` and `restored` are made by their steps (`StartingWorld.made`). world.show 2 now starts from
+  `nothing` and makes its own world; `fresh` no longer promises its record's length; world.show 3 compares with the
+  `world` fact.
+- **The site's vocabulary** (decision 40): `src/documents/site.ts` (`Site`), which `support/books.ts` re-exports.
+  report.run fills `company` and the period; a doctype's name runs its list, so the Supplier list is the Supplier
+  doctype.
+- **`office-holder`'s wait** (decision 41) waits on report.run, which makes nothing.
+- **Signing and subject ids** (decision 42): `CAST_KEYS` in `src/values.ts`; `Subject` is typed by kind.
+- **A payload the schema rejects** (decision 43) fails with `PayloadRejected` and is never sent.
+- **world.clock.warp 1** (decision 44) names the Capxul app's daily job, `Site.DAILY_JOB`.
+- **world.create 2** (decision 45) starts halfway between the seed's last block and host time: no condition.
 
-- **Starting worlds and templates.** Decision 27 restores every starting world from a template snapshot. That
-  contradicts `fresh` having "parent null, record one entry long" (world.show 2), and the record head counting from
-  one (record.export 1, world.show 1). The scenarios check the claims as written, so they fail if starting worlds are
-  restored from templates.
-- **The site's vocabulary is not here.** `packages/scenarios/src/support/books.ts` holds it meanwhile:
-  - document field names, which are ERPNext's own;
-  - the Supplier's payment address field `capxul_wallet_address` (from frappe-app);
-  - the Safe account, as the account whose name starts "Capxul Safe";
-  - the report names Supplier Addresses And Contacts, Scheduled Job Log and Salary Register;
-  - the filters, since ERPNext's General Ledger and Trial Balance need a company and dates;
-  - the field names in report rows.
-- **`office-holder`'s wait step** creates a document of a type no claim names. If it is a Supplier, doc.create 1
-  ("the Supplier list shows only Brightside") fails.
-- **Signing:** assumed to be raw ECDSA over the digest with no message prefix, by Anvil's accounts 0 to 9. The
-  subject ids (change id, payment request id) are taken from the declarations' examples, not from their text.
-- **A payload the schema rejects** surfaces in a way no claim defines (org.create 6). The scenario only requires the
-  call to fail without a declared refusal.
-- **world.clock.warp 1** names no job. The scenario requires that some job in the Scheduled Job Log gained exactly 7
-  runs.
-- **world.create 2** needs the seeded chain's last block to be more than a day before the host's time.
+## 6. Untestable: closed (decision 46)
 
-## 6. Untestable
+`SnapshotIncompatible` is removed; an incompatible restore is a fault.
 
-`SnapshotIncompatible` has no claim (decision 19).
+## The scenario author's brief
+
+What each scenario must now change to check its claim in full. Read claims.md for the claim as it now stands.
+Everything below is available to scenarios through `@capxul/blueprint` and `../client.ts`/`../scenario.ts`:
+`capxul.chain.<read>(payload, { at?, operator? })`, `CallOptions.at` and `CallOptions.operator`, `given(world)`,
+`Site`, `CAST_KEYS`, `OFFICER_HAT_DETAILS`, `WorldView.contracts`.
+
+General, for every scenario that reads facts or the chain:
+
+- Read the starting world's facts with `yield* given(startingWorlds.<world>)` instead of reading them back from the
+  record (support/documents.ts's `paymentDocuments`, support/world.ts's `northwind`, where facts now say it).
+- A run against empty handlers hands each starting world's example facts and an empty chain (every balance 0, no
+  logs); make an operation call before any expectation that could fail on them, so the scenario still fails on
+  `NotImplemented`. Then `pnpm --filter @capxul/scenarios record`.
+- support/signing.ts should take its mnemonic and account count from `CAST_KEYS`; support/world.ts and
+  support/documents.ts may give way to facts.
+
+By scenario:
+
+- **world.create 1**: call `record.export` `at: made.door` and check its one `world_created` entry at seq 1 and what
+  it carries; drop the world.show stand-in for the record.
+- **world.create 2**: ask for a start halfway between `ClockBeforeSeed.earliest` and host time (no day, no
+  condition); read `capxul.chain.head({}, { at: made.door })` and check its timestamp is the start.
+- **world.create 4**: check the owner equals `given(startingWorlds.nothing).operators.first`; add the create by
+  `{ operator: "second" }` owned by `operators.second`.
+- **world.create 5**: for each person call `record.export` `at: made.door` `as` them and expect `NotWorldOwner`;
+  read each Safe's `chain.balance` of `made.contracts.usdc` `at: made.door` and expect `10000`.
+- **world.create 3, 6**: none.
+- **world.show 1**: optionally read the facts' `restored` and `world`; the claim is unchanged.
+- **world.show 2**: now from `nothing`: create a world, then `world.show` of it answers parent null; keep the
+  WorldNotFound half.
+- **world.show 3**: compare world.show with the `world` fact (owner, grade, expiry, door, chain id, contracts,
+  cast) instead of the record's `world_created`.
+- **world.snapshot.save 1**: also read every personal Safe's and the company Safe's (`founded.safe`) `chain.balance`
+  before and after the save.
+- **world.snapshot.save 2**: none.
+- **world.snapshot.save 3**: add the save by `{ operator: "second" }`, refused `NotWorldOwner` naming
+  `operators.first`, and no new entry.
+- **world.snapshot.restore 1**: make the doc.create and a held payment's approval.sign in the new world too, with
+  `{ at: made.door }`; check each world's record and General Ledger hold only their own; check the company Safe's
+  `chain.balance` at each door moves only in its own world.
+- **world.snapshot.restore 2**: `record.export` at both doors: the new world's entries up to the position equal the
+  first world's, entry for entry; General Ledger and Trial Balance `at` the new door equal the first world's at the
+  save; balances and sam's Books hat (`chain.wears`, the hat from `grantSent`'s transaction) read the same at both.
+- **world.snapshot.restore 3**: restore `m3` with `{ operator: "second" }`, owned by `operators.second`, and
+  `record.export` `at` its door with `{ operator: "second" }` answers; restoring `draft` as the second operator is
+  refused `NotWorldOwner` naming `operators.first`.
+- **world.snapshot.restore 4, 5**: none.
+- **org.create 1**: `chain.logs` of `CompanySafeMinted` from `contracts.companySafeMinter`: one, naming the Safe,
+  dana's Safe and the org id; `chain.companySafeFor` with `contracts.companySafeMinter`, `contracts.companiesHouse`,
+  `contracts.companyNamespace`, the org id and dana's Safe equals the Safe.
+- **org.create 3**: `chain.safe` of the company Safe: owners dana's and eli's Safes, threshold 2; `chain.balance`
+  1000 for it and 9000 for dana's Safe; the setup subject is `{ kind: "org_setup", id: org }`.
+- **org.create 6**: the long bio must fail with `PayloadRejected` naming `org.create` (replace the
+  "no declared refusal" check).
+- **org.create 2, 4, 5, 7**: none.
+- **org.member.grant 1**: from eli's Sent, `chain.transaction`: a `TransferSingle` from the zero address to sam's
+  Safe; `chain.hat` of that id has details `OFFICER_HAT_DETAILS["manage-books"]`; `chain.wears` is true. Keep the
+  NoSiteUser wait.
+- **org.member.grant 5**: in that transaction's logs from `contracts.hats`, the mint `TransferSingle`, preceded by a
+  `HatMaxSupplyChanged` to supply + 1 exactly when `chain.hat` at `block - 1` had supply equal to max supply.
+- **org.member.grant 7**: the hat minted for manage-people has details `People` and sam's Safe wears it.
+- **org.member.grant 2, 3, 4, 6**: none.
+- **doc.create 1**: the Supplier list is now `Site.REPORTS.supplierList`, the Supplier doctype's list; rows carry
+  the Supplier's fields (`supplier_name`).
+- **doc.create 4**: compare `given(...).payment.hash` with the Held answer's `documentHash` for the starting world's
+  own Payment Entry; drop the second Payment Entry.
+- **doc.create 2, 3**: none.
+- **doc.submit 1**: check `payeeAddress` equals the `supplier` fact's `capxul_wallet_address`
+  (`Site.SUPPLIER_FIELDS.paymentAddress`) and that `paymentId` is present.
+- **doc.submit 4**: check the refusal's `safe` equals `given(...).founded.safe`.
+- **doc.submit 2, 3**: none.
+- **approval.sign 1**: sign the starting world's own `held.approval` (drop `hold.ts`'s second Payment Entry);
+  `chain.transaction` of the Sent: one `UserOperationEvent` from sam's Safe, one `PaymentSent` with `paymentId` and
+  `documentHash` from `held`; `chain.balance` of `contracts.usdc`: Brightside's address (`Site.PAYEE_ADDRESS`, or the
+  `supplier` fact) up 125.5 and the company Safe down 125.5.
+- **approval.sign 2**: sign `held.approval`; `chain.logs` of `PaymentSent` from `contracts.payments` holds one with
+  its `paymentId`.
+- **approval.sign 3**: sign `held.approval`; `chain.logs` holds no `PaymentSent` for its `paymentId`.
+- **approval.sign 4**: warp past `held.approval.expiresAt`; no `PaymentSent` in `chain.logs`.
+- **approval.sign 5**: from eli's Sent, the hat minted to sam's Safe was not worn at `block - 1` (`chain.wears` with
+  `block`) and is worn after; drop the NoSiteUser stand-in.
+- **report.run 1**: compare the ledger with `chain.balance` of `contracts.usdc` for `founded.safe`, not with 874.50.
+- **report.run 2, 3**: none.
+- **world.clock.warp 1**: filter the Scheduled Job Log with `{ [Site.FILTERS.scheduledJobLog.job]:
+  Site.DAILY_JOB.jobType }` and expect exactly 7 more runs; `chain.head` timestamp at or after the new clock.
+- **world.clock.warp 2**: none.
+- **record.export 1**: `record.export` `at` the first world's door (`world.show` of the lineage's world gives it):
+  entries 1 to the position equal, entry for entry.
+- **record.export 2**: for each successful call of the `calls` fact, the record holds exactly
+  `operations[call.operation].expected(...)` of its decoded payload and answer under `call.trace`, in order; a
+  refused call and a report.run hold none.
+- **record.export 3, 4**: none.

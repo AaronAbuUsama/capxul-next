@@ -11,15 +11,18 @@ import it; it imports neither.
 |---|---|
 | `src/door.ts` | The one door: `operations` (the twelve, by name), the two Rpc groups, `servedBy`, and `allClaims`, which scenarios name the claim they prove by. |
 | `src/operation.ts` | The format: `declare`, `declareOutcomes`, `outcome`, `Budget`, and what the runner reads. |
-| `src/errors.ts` | Every refusal, declared once, with its command-line exit code, `NotImplemented` included (every operation declares it; decisions.md, entry 33). |
+| `src/errors.ts` | Every refusal, declared once, with its command-line exit code, `NotImplemented` included (every operation declares it; decisions.md, entry 33), and `PayloadRejected`, which the caller's own client makes (entry 43). |
 | `src/values.ts` | The shared values: names, ids, instants, money, approvals, the view of a world. |
-| `src/telemetry.ts` | The trace, credential and person headers, `Telemetry`, and the two sign-in middlewares. |
-| `src/starting-worlds.ts` | Every starting world the claims begin from, and how each is made. |
+| `src/telemetry.ts` | The trace, credential and person headers, the doors' paths (`PLATFORM_PATH`, `WORLD_PATH`, `CHAIN_PATH`) and the chain's read-only methods, `CallOptions` (`as`, `operator`, `at`), `Telemetry`, and the two sign-in middlewares. |
+| `src/chain/` | The chain reads a caller makes through a world's door (`reads.ts`) and the logs they decode (`logs.ts`), with the contracts' Solidity signatures: `Chain` at the door. |
+| `src/documents/site.ts` | The site's vocabulary: doctypes, field names, reports, filters, row fields, the Safe account, the daily job, the starting worlds' documents: `Site` at the door. |
+| `src/starting-worlds.ts` | Every starting world the claims begin from, how each is made and how a scenario gets it (`made`). |
+| `src/starting/facts.ts` | The facts each starting world hands a scenario, and one example of each. |
 | `src/<concept>/operations.ts` | A concept's operations and events: `world`, `organizations`, `documents`, `approvals`, `reports`, `record`. |
 | `src/<concept>/claims.ts` | Its acceptance claims. `src/claims/` renders them into claims.md. |
 | `claims.md` | Every operation's claims, refusals, events and budget, and the starting worlds. Rendered; do not edit. |
 | `decisions.md` | Every design call, and the questions for Aaron. |
-| `gaps.md` | The claims the scenarios could not check in full, by cause. Each is closed by a blueprint change, then the scenario author updates the scenarios. |
+| `gaps.md` | The claims the scenarios could not check in full, by cause, each closed by a decision, and the scenario author's brief for updating the scenarios. |
 | `order.md` | The order to build the twelve in, and the starting worlds each needs. |
 
 ## The operations

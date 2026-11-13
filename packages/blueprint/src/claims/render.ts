@@ -98,6 +98,16 @@ const summary = (): string => {
   );
 };
 
+/** The names of a facts schema's fields. */
+const fieldsOf = (facts: unknown): ReadonlyArray<string> =>
+  (typeof facts === "object" || typeof facts === "function") &&
+  facts !== null &&
+  "fields" in facts &&
+  typeof facts.fields === "object" &&
+  facts.fields !== null
+    ? Rec.keys({ ...facts.fields })
+    : [];
+
 const worlds = (): string =>
   pipe(
     Rec.values(startingWorlds),
@@ -105,9 +115,16 @@ const worlds = (): string =>
       const from = world.from === null ? "" : ` Made from ${code(world.from.name)}.`;
       const steps = Arr.map(
         world.steps,
-        (step) => `${step.operation === "wait" ? "wait" : code(step.operation)} as ${step.as}: ${step.does}`,
+        (step) =>
+          `${step.operation === "wait" ? "wait" : code(step.operation)} as ${step.as}: ${step.does}` +
+          (step.fact === null ? "" : ` (fact ${code(step.fact)})`),
       );
-      return `- ${code(world.name)}.${from} ${world.holds}${steps.length > 0 ? ` Steps: ${Arr.join(steps, "; ")}.` : ""}`;
+      const added = Arr.filter(fieldsOf(world.facts), (field) => !fieldsOf(world.from?.facts).includes(field));
+      return (
+        `- ${code(world.name)}.${from} ${world.holds}${steps.length > 0 ? ` Steps: ${Arr.join(steps, "; ")}.` : ""}` +
+        ` A scenario gets it ${world.made === "from its template" ? "restored from its template" : "made by its steps"}.` +
+        (added.length > 0 ? ` Facts it adds: ${Arr.join(Arr.map(added, code), ", ")}.` : "")
+      );
     }),
     Arr.join("\n"),
   );
@@ -122,7 +139,7 @@ export const renderClaims = (): string =>
       "",
       "## Starting worlds",
       "",
-      "Declared in `src/starting-worlds.ts`. Each is made through the door from the one before it.",
+      "Declared in `src/starting-worlds.ts`. Each is made through the door from the one before it, then either saved as a template that each scenario gets a restore of, or made by its steps for each scenario. A scenario reads the facts of its world, and of every world it is made from, with `given` (decisions.md, 38).",
       "",
       worlds(),
       "",
