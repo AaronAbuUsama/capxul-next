@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import pg from "pg";
 import { Effect } from "effect";
 import { Database, record, type Sql } from "../../../backend/src/platform/door.ts";
-import { migrateSites, rewriteSites, SitesStore } from "./store.ts";
+import { migrateSites, readSiteHosts, rewriteSites, SitesStore } from "./store.ts";
 import { settleSite, type SiteObservation } from "./lifecycle.ts";
 
 test("Postgres sites survive retries, enforce RLS and retain atomic transition/call records", { skip: process.env.CAPXUL_SITES_PG_TEST !== "1" }, async (t) => {
@@ -41,6 +41,11 @@ test("Postgres sites survive retries, enforce RLS and retain atomic transition/c
   assert.equal(featureRows.length, 11);
   assert.deepEqual(featureRows.filter((r) => r.wanted).map((r) => r.feature), ["accounts", "crm", "people", "projects"]);
   await store.begin(start); assert.deepEqual(await store.site(org), creating);
+  // Hosts come from the Sites store under the caller's scope; another company's row stays invisible, worker included.
+  for (const worker of [false, true]) {
+    assert.deepEqual(await db.transaction(org, (sql) => readSiteHosts(sql), worker), { [org]: start.host });
+    assert.deepEqual(await db.transaction(other, (sql) => readSiteHosts(sql, [org, other]), worker), {});
+  }
   const observed: SiteObservation = { company: "Site test", version: "1", map_version: "hash",
     apps: ["frappe", "erpnext", "hrms", "crm", "frappe_whatsapp", "capxul"],
     features: { accounts: "on", people: "on", projects: "on", crm: "on", payroll: "off", whatsapp: "off",
