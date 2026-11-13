@@ -12,7 +12,7 @@ export type SafeState = { safe_address: Address; owners: Address[]; threshold: n
 export type BoardFacts = {
   deployment(sql: Sql, org: string, chainId: number): Promise<Deployment | null>;
   safe(sql: Sql, chainId: number, address: Address): Promise<SafeState | null>;
-  wearers(sql: Sql, chainId: number, hat: string, owners: Address[]): Promise<Address[]>;
+  wearers(sql: Sql, chainId: number, safe: Address, hat: string, owners: Address[]): Promise<Address[]>;
   approvals(sql: Sql, chainId: number, safe: Address, hash: `0x${string}`, owners: Address[]): Promise<Address[]>;
   /** `hat` is always one of the Organization's admitted deployment hats. `blockNumber` pins any live Hats read to the
    * mutation's one RPC block. */

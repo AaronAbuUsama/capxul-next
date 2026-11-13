@@ -39,7 +39,7 @@ export async function directors(sql: Sql, org: string, context: BoardContext) {
   const safe = await context.facts.safe(sql, context.chainId, d.safe_address);
   if (!safe) throw new Error("WRONG_STATE: company Safe is not indexed");
   // Compare Safes in one case: indexed and provider addresses may arrive checksummed.
-  const owners = lower(safe.owners), valid = lower(await context.facts.wearers(sql, context.chainId, d.director_hat, owners));
+  const owners = lower(safe.owners), valid = lower(await context.facts.wearers(sql, context.chainId, d.safe_address, d.director_hat, owners));
   return { deployment: d, safe: { ...safe, owners }, valid, lapsed: owners.filter((s) => !valid.includes(s)),
     executionThreshold: integer(safe.threshold), blockNumber: undefined as bigint | undefined };
 }

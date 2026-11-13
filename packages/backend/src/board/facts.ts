@@ -11,9 +11,10 @@ export type BoardReaders = {
     safe_address: string; gate_address: string; director_hat: string } | null>;
   readSafeOwnersAt(sql: Sql, input: { chainId: number; safe: string; atBlock?: string; finality: number }): Promise<{
     safe_address: string; deployed: boolean; owners: string[]; threshold: number; nonce: string } | null>;
-  readHatAt(sql: Sql, input: { chainId: number; hatId: string; atBlock?: string; finality: number }): Promise<{
-    company_safe: string; supply: string; max_supply: string } | null>;
-  readHatWearersAt(sql: Sql, input: { chainId: number; hatId: string; atBlock?: string; finality: number }): Promise<{ wearer: string; wearing: boolean }[]>;
+  readHatAt(sql: Sql, input: { chainId: number; hatId: string; companySafe: string; atBlock?: string; finality: number }): Promise<{
+    supply: string; max_supply: string } | null>;
+  readHatWearersAt(sql: Sql, input: { chainId: number; hatId: string; companySafe: string; atBlock?: string; finality: number }): Promise<{
+    wearer: string; wearing: boolean }[]>;
   readSafeApprovals(sql: Sql, input: { chainId: number; safe: string; safeTxHash: string; atBlock?: string; finality: number }): Promise<{ owner: string }[]>;
   readSafeExecution(sql: Sql, input: { chainId: number; safe: string; nonce: string; finality: number }): Promise<(Log & {
     safe_tx_hash: string; success: boolean; msg_sender: string; threshold: number }) | null>;
@@ -50,9 +51,9 @@ export function boardFacts(r: BoardReaders, hats: LiveHats): BoardFacts {
       const s = await r.readSafeOwnersAt(sql, { chainId, safe: address, finality: 0 });
       return s && { safe_address: low(s.safe_address), owners: s.owners.map(low), threshold: integer(s.threshold), nonce: integer(s.nonce), deployed: s.deployed };
     },
-    wearers: async (sql, chainId, hat, owners) => {
+    wearers: async (sql, chainId, safe, hat, owners) => {
       let indexed;
-      try { indexed = await r.readHatWearersAt(sql, { chainId, hatId: hat, finality: 0 }); } catch (error) {
+      try { indexed = await r.readHatWearersAt(sql, { chainId, hatId: hat, companySafe: safe, finality: 0 }); } catch (error) {
         if (!moduleRuled(error)) throw error;
         const worn = await live(Promise.all(owners.map((o) => hats.client.readContract({ address: hats.hats, abi: hatsAbi,
           functionName: "isWearerOfHat", args: [o, BigInt(hat)] }))));
@@ -69,13 +70,13 @@ export function boardFacts(r: BoardReaders, hats: LiveHats): BoardFacts {
       let h;
       // BoardFacts.hat's invariant: the id is one of this Organization's admitted deployment hats, so the live read is the
       // company's own hat although Hats' viewHat names no company.
-      try { h = await r.readHatAt(sql, { chainId, hatId: hat, finality: 0 }); } catch (error) {
+      try { h = await r.readHatAt(sql, { chainId, hatId: hat, companySafe: safe, finality: 0 }); } catch (error) {
         if (!moduleRuled(error)) throw error;
         const [, maxSupply, supply] = await live(hats.client.readContract({ address: hats.hats, abi: hatsAbi, functionName: "viewHat",
           args: [BigInt(hat)], blockNumber }));
         return { supply: BigInt(supply), max_supply: BigInt(maxSupply) };
       }
-      return h && low(h.company_safe) === low(safe) ? { supply: BigInt(h.supply), max_supply: BigInt(h.max_supply) } : null;
+      return h && { supply: BigInt(h.supply), max_supply: BigInt(h.max_supply) };
     },
     hasOffice: async (sql, chainId, safe, wearer, blockNumber) => {
       const offices = (await r.readWearerHatsAt(sql, { chainId, wearer, companySafe: safe, finality: 0 })).filter((h) => h.details.startsWith("office:"));
