@@ -465,7 +465,6 @@
         "int:bundler.sponsor/PROVIDER_RESPONSE_INVALID/c-353fb31e0f6cc38c",
         "int:bundler.sponsor/ROLE_PERMISSION_DENIED/c-7e03da09a1c379dc",
         "int:bundler.sponsor/TRANSACTION_FAILED/c-3aa5f3b8128448cf",
-        "int:bundler.sponsor/WRONG_STATE/c-412134189385189d",
         "int:bundler.sponsor/WRONG_STATE/c-90e4e654d343751f",
         "int:bundler/conformance"
       ],

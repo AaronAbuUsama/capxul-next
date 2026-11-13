@@ -76,12 +76,20 @@ test("sponsor uses the canonical world clock for its start and completion expiry
   const result = await approvalSponsor({ ...config, now: frozenNow })(input);
   assert.ok("user_operation" in result);
   assert.equal(result.valid_after.toISOString(), "2026-11-12T12:01:01.000Z");
+  // Expiry is never a refusal: less than one whole second of window (validUntil 12:05:00) answers expired.
+  const halfSecondLeft = new Date("2026-11-12T12:04:59.500Z"), wholeSecondLeft = new Date("2026-11-12T12:04:59.000Z");
   let reads = 0;
-  const expired = await approvalSponsor({ ...config, now: () => ++reads === 1 ? frozenNow() : request.deadline })(input);
-  assert.deepEqual(expired, { code: "WRONG_STATE", reason: "Approval expired during sponsorship" });
-  // The same deadline already reached before sponsorship is the same state; a window empty by its own dates is input.
-  assert.deepEqual(await approvalSponsor({ ...config, now: () => request.deadline })(input), { code: "WRONG_STATE", reason: "Approval expired before sponsorship" });
+  assert.deepEqual(await approvalSponsor({ ...config, now: () => ++reads === 1 ? frozenNow() : halfSecondLeft })(input), { expired: true }, "during sponsorship");
+  reads = 0;
+  assert.ok("user_operation" in await approvalSponsor({ ...config, now: () => ++reads === 1 ? frozenNow() : wholeSecondLeft })(input), "a whole second left completes");
+  let calls = 0;
+  const counted = { ...config, gateway: { request: (m: string, p: readonly unknown[]) => { calls++; return config.gateway.request(m, p); } } };
+  assert.deepEqual(await approvalSponsor({ ...counted, now: () => halfSecondLeft })(input), { expired: true }, "before sponsorship");
+  assert.equal(calls, 0, "an expired approval is never sent to the gateway");
+  // A window empty by its own dates is input, not expiry.
   assert.deepEqual(await approvalSponsor({ ...config, now: frozenNow })({ ...request, send_after: request.deadline }), { code: "INVALID_INPUT", reason: "Approval window is empty" });
+  // A canonical clock at or before the epoch cannot start a window, and is refused before any chain read.
+  assert.deepEqual(await approvalSponsor({ ...config, now: () => new Date(0) })(input), { code: "INVALID_INPUT", reason: "Approval window is empty" });
 });
 
 test("sponsor refuses absent/claim-owned accounts, wrong modules/hashes, consumed or foreign nonce lanes", async () => {

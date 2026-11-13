@@ -9,6 +9,9 @@ export type SponsorshipRequest = {
   deadline: Date; send_after: Date | null;
 };
 export type SponsorRefusal = { code: string; reason: string };
+/** Not a refusal: the canonical clock left less than one whole second of window. The carrier lets the approval lapse,
+ * whose nonce guard decides how it ends (approvals.verified-sponsorship). */
+export type SponsorExpired = { expired: true };
 export type VerifiedSponsorship = {
   nonce: string; signer_address: string; user_operation: SafeUserOperation; digest: string; user_op_hash: string;
   valid_after: Date; valid_until: Date;
@@ -38,7 +41,7 @@ function sponsorData(v: unknown, paymaster: Address) {
 }
 
 /** ERC-7677 sponsorship only: never signs an owner operation or sends one. */
-export function approvalSponsor(config: SponsorConfig): (a: SponsorshipRequest) => Promise<VerifiedSponsorship | SponsorRefusal> {
+export function approvalSponsor(config: SponsorConfig): (a: SponsorshipRequest) => Promise<VerifiedSponsorship | SponsorRefusal | SponsorExpired> {
   const { client, gateway, module, entryPoint, multiSend, paymaster, claimOwner } = config;
   return async a => {
     try {
@@ -46,10 +49,12 @@ export function approvalSponsor(config: SponsorConfig): (a: SponsorshipRequest) 
       if (![now, a.deadline.getTime(), a.send_after?.getTime() ?? now].every(Number.isFinite)) throw new SponsorError("INVALID_INPUT", "Approval dates are invalid");
       const after = BigInt(Math.ceil(Math.max(now, a.send_after?.getTime() ?? now) / 1000));
       const until = BigInt(Math.floor(a.deadline.getTime() / 1000));
-      // Dates that cannot form a window are input; a deadline the canonical clock has reached is the approval's state.
+      // Dates that cannot form a window are input. Less than one whole second of window left on the canonical clock,
+      // before or during sponsorship, is expiry: never a refusal, and nothing is sponsored.
       const start = a.send_after === null ? 1n : BigInt(Math.ceil(a.send_after.getTime() / 1000));
-      if (start <= 0n || until <= start || until >= 1n << 48n) throw new SponsorError("INVALID_INPUT", "Approval window is empty");
-      if (until <= after) throw new SponsorError("WRONG_STATE", "Approval expired before sponsorship");
+      if (after <= 0n || start <= 0n || until <= start || until >= 1n << 48n) throw new SponsorError("INVALID_INPUT", "Approval window is empty");
+      const lapsed = (ms: number) => until <= BigInt(Math.ceil(ms / 1000));
+      if (lapsed(now)) return { expired: true };
       const sender = address(a.sender), key = uint(a.nonce_key, 192);
       if (key === 0n) throw new SponsorError("INVALID_INPUT", "Approval nonce key must be nonzero");
       if (await client.getChainId() !== a.chain_id) throw invalid();
@@ -108,7 +113,7 @@ export function approvalSponsor(config: SponsorConfig): (a: SponsorshipRequest) 
       if ((validation & ((1n << 160n) - 1n)) !== 0n || ((validation >> 160n) & mask) !== until || ((validation >> 208n) & mask) !== after) throw invalid();
       const completedAt = config.now().getTime();
       if (!Number.isFinite(completedAt)) throw invalid();
-      if (until * 1000n <= BigInt(completedAt)) throw new SponsorError("WRONG_STATE", "Approval expired during sponsorship");
+      if (lapsed(completedAt)) return { expired: true };
       return { nonce: op.nonce, signer_address: address(owners[0]!), user_operation: op, digest, user_op_hash: userOpHash,
         valid_after: new Date(Number(after) * 1000), valid_until: new Date(Number(until) * 1000) };
     } catch (error) {

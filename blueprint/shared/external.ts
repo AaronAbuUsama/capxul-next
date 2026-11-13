@@ -121,7 +121,10 @@ export const integration_bundler = defineIntegration({
   service: "Bundler",
   calls: {
     sponsor: {
-      about: "pm_getPaymasterStubData, eth_estimateUserOperationGas, then pm_getPaymasterData with the window: one sponsored, signable operation.",
+      about:
+        "pm_getPaymasterStubData, eth_estimateUserOperationGas, then pm_getPaymasterData with the window: one sponsored, signable " +
+        "operation. When the canonical clock leaves less than one whole second of window it answers expired, not a failure: the " +
+        "approval lapses (approvals.verified-sponsorship).",
       timeoutMs: 4_000,
       retries: { max: 1, backoff: "exponential" },
       p95Ms: 1_200,
@@ -141,7 +144,6 @@ export const integration_bundler = defineIntegration({
         },
         { when: "The simulation reverts for any other reason: the chain would refuse the operation as it stands", error: error_TRANSACTION_FAILED },
         { when: "The paymaster answer has no paymaster data, or its validated window is not exactly the one requested (zero, open, narrowed or widened)", error: error_PROVIDER_RESPONSE_INVALID },
-        { when: "The canonical world clock has reached the approval's deadline, before or during sponsorship: the approval has expired", error: error_WRONG_STATE },
         {
           when: "The gateway's reply is not JSON (truncated or proxied), it answers throttled or banned (ERC-7769 -32504), or a chain read fails with a node's internal error, missing header or gas cap: an outage, retried",
           error: error_PROVIDER_ERROR,
