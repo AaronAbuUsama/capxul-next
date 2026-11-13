@@ -168,10 +168,10 @@ const checks: Record<string, Check> = {
     await refused("TRANSACTION_FAILED", () => provider.send({ operation: before.operation, entryPoint: entryPoint07Address, expectedHash: before.expectedHash }));
     assert.equal(count(g!.forwarded, "eth_sendUserOperation"), 1, "the refusal came from the real bundler");
     const answer = g!.answers.at(-1)?.body?.error ?? {}, reason = String(answer.message ?? "");
-    // Safe4337Module answers a signature no owner made with SIG_VALIDATION_FAILED, not a revert, and Alto 0.0.21's v0.7
-    // validator refuses that as -32507 "Invalid UserOp signature". A revert (AA23, an unsupported selector say), a
-    // paymaster refusal (AA3x) or a nonce (AA25) would say nothing about the signature, and fail this check.
-    assert(answer.code === -32507 || /Invalid UserOp signature/.test(reason),
+    // Safe4337Module answers a signature no owner made with SIG_VALIDATION_FAILED, not a revert, and real Alto 0.0.21
+    // refuses that with -32507 and "AA24 signature error" (seen in run-20261113084622283-fa6991c6). A revert (AA23, an
+    // unsupported selector say), a paymaster refusal (AA3x) or a nonce (AA25) says nothing about the signature and fails.
+    assert(answer.code === -32507 && /\bAA24 signature error\b/.test(reason),
       `the real bundler refused the signature: code ${String(answer.code)}, ${reason.slice(0, 120)}`);
     const after = await unsignedOperation(w);
     assert.equal(after.operation.nonce, before.operation.nonce, "nothing reached the chain");

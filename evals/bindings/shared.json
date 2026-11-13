@@ -96,7 +96,7 @@
       "checks": [
         "BUNDLER.send-rejected"
       ],
-      "why": "The world's real Alto validates an operation from the selected payment's own sender (the paying hat wearer's Safe) that no owner signed. It rejects it in account validation, on its signature: the operation carries a well-formed executeUserOp and the world's sponsor accepts it, so the module returns SIG_VALIDATION_FAILED and Alto answers -32507 \"Invalid UserOp signature\" (a revert, a paymaster or a nonce refusal fails the check), with its own reason recorded, and the caller sees TRANSACTION_FAILED. The EntryPoint nonce is unchanged and the bundler holds nothing for the operation."
+      "why": "The world's real Alto validates an operation from the selected payment's own sender (the paying hat wearer's Safe) that no owner signed. It rejects it in account validation, on its signature: the operation carries a well-formed executeUserOp and the world's sponsor accepts it, so the module returns SIG_VALIDATION_FAILED and Alto answers -32507 with \"AA24 signature error\" (a revert, a paymaster or a nonce refusal fails the check), with its own reason recorded, and the caller sees TRANSACTION_FAILED. The EntryPoint nonce is unchanged and the bundler holds nothing for the operation."
     }
   ],
   "near": []
