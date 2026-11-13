@@ -1,6 +1,7 @@
 // RealTime: the host's clock. Decision time.no-direct-reads allows it "only in an integration layer's envelope code",
 // and measuring real elapsed time stays allowed everywhere; this file is the one place either is read. It is never a
-// business instant: a world's own time is its authority clock, which a devnet can stop, warp and run fast.
+// business instant: a world's own time is its authority clock, which a devnet can stop, warp and run fast. The one
+// exception is a world with no authority clock (staging, production), whose own time is the host's (signals.world-rows).
 import { performance } from "node:perf_hooks";
 
 /** The host's wall clock in epoch milliseconds, for a vendor envelope's instant; never stored in a row or compared with a product time. */

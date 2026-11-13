@@ -21,6 +21,9 @@ test("wide rows, rpc spans and the two operator alerts, in the world's own time"
     grant usage on schema app to capxul_core,capxul_worker;
     create table app.world (world_id text primary key, clock jsonb not null);
     grant select on app.world to capxul_core,capxul_worker`);
+  // The roles sign in with the admin URL's password, so the test also runs on a password-auth (scram) server.
+  const password = decodeURIComponent(new URL(url).password);
+  if (password) for (const role of ["capxul_core", "capxul_worker"]) await admin.query(`alter role ${role} password '${password.replace(/'/g, "''")}'`);
   await migrateSpans(admin); await migrateSignals(admin);
   const T0 = 1_800_000_000_000;
   const setClock = (nowMs: number) => admin.query("insert into app.world values ('world-a',$1::jsonb) on conflict (world_id) do update set clock=excluded.clock",
@@ -37,17 +40,23 @@ test("wide rows, rpc spans and the two operator alerts, in the world's own time"
     if (!res.headersSent) { res.writeHead(500, { "content-type": "application/json" }); res.end(JSON.stringify({ error: "INTERNAL_ERROR" })); }
   })).catch(() => res.destroy()));
   async function route(req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse) {
-    const path = new URL(req.url!, "http://x").pathname;
-    seen[path] = String(req.headers["x-capxul-trace"]);
     const send = (status: number, body: unknown) => { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(body)); };
+    const target = URL.parse(req.url!, "http://x");
+    if (!target) return send(400, { error: "INVALID_INPUT: request target is not a URL" });
+    const path = target.pathname;
+    seen[path] = String(req.headers["x-capxul-trace"]);
+    // Like Core's door: /ready, a bad signature, an aborted body and an unsigned call never pass it.
+    if (path === "/ready") return send(503, { ready: false });
+    if (path === "/admin/org") return send(401, { error: "bad signature" });
+    if (path === "/unsigned/fail") return send(500, { error: "INTERNAL_ERROR" });
+    if (path === "/books/aborted") { for await (const _ of req) { /* the caller aborts mid-body */ } return send(500, { error: "INTERNAL_ERROR" }); }
+    signals.admit(req);
     if (path === "/books/annotations/save") {
       await db.transaction("", async (sql) => sql.query("select pg_sleep(0.02)"), true);
       return send(200, await childSpan("chain.readContract", async () => ({ ok: true })));
     }
     if (path === "/books/annotations/refuse") return send(400, { error: `INVALID_INPUT: ${secret}` });
     if (path === "/books/annotations/list") return broken ? send(500, { error: `permission denied for table records ${secret}` }) : send(200, {});
-    if (path === "/ready") return send(503, { ready: false });
-    if (path === "/admin/org") return send(401, { error: "bad signature" });
     if (path === "/escape") throw new Error(`escaped ${secret}`);
     send(404, { error: "NOT_FOUND: unknown route" });
   }
@@ -151,11 +160,19 @@ test("wide rows, rpc spans and the two operator alerts, in the world's own time"
       assert.deepEqual((await rows("process_queue_age")).map((r) => r.attributes), [{ workflow: "payments.lifecycle.payment", due_runs: 1, value: 5 * 60_000 + 1 }]);
     });
 
-    await t.test("anonymous answers and probes write nothing; a bad request line or an escaped error never crashes", async () => {
+    await t.test("only admitted requests write rows and spans; a bad request line or an escaped error never crashes", async () => {
       const before = (await rows("operation_row")).length;
+      const spansBefore = Number((await admin.query("select count(*) from app.completed_spans")).rows[0].count);
       const raw = (path: string) => fetch(base + path, { method: "POST", body: "{}" }).then((r) => r.status);
       for (let i = 0; i < 20; i++) assert.equal(await raw("/admin/org"), 401);
       assert.equal(await raw("/ready"), 503);
+      for (let i = 0; i < 5; i++) assert.equal(await raw("/unsigned/fail"), 500);
+      // Aborted uploads to a real rpc's path: the caller hangs up mid-body, before any door.
+      for (let i = 0; i < 5; i++) await new Promise<void>((done) => {
+        const socket = connect((server.address() as { port: number }).port, "127.0.0.1", () => {
+          socket.write("POST /books/aborted HTTP/1.1\r\nHost: x\r\nContent-Length: 100\r\n\r\n{\"a\":"); setTimeout(() => { socket.destroy(); done(); }, 30);
+        });
+      });
       // A request line that is no URL: Node hands it to the handler, which must answer, not crash Core.
       const answered = await new Promise<string>((done) => {
         const socket = connect((server.address() as { port: number }).port, "127.0.0.1", () => socket.write("POST //[ HTTP/1.1\r\nHost: x\r\nContent-Length: 2\r\n\r\n{}"));
@@ -165,8 +182,28 @@ test("wide rows, rpc spans and the two operator alerts, in the world's own time"
       assert.equal(await call("/escape"), 500);
       await new Promise((r) => setTimeout(r, 100));
       const after = await rows("operation_row");
-      assert.deepEqual(after.slice(before).map((r) => [r.attributes.rpc, r.attributes.outcome]), [["root", "failed"], ["escape", "failed"]]);
+      assert.deepEqual(after.slice(before).map((r) => [r.attributes.rpc, r.attributes.outcome]), [["escape", "failed"]],
+        "of all these, only the admitted /escape wrote a row");
+      const spans = (await admin.query("select event->>'name' as name from app.completed_spans")).rows.slice(spansBefore).map((r) => r.name);
+      assert.deepEqual(spans, ["rpc.escape"], "and only its span; a 401, a probe, a bad request line, an aborted body or an unsigned call writes none");
+      assert.equal(((await alert("rpc_failing")) as { rpcs: { rpc: string }[] }).rpcs.some((r) => ["unsigned.fail", "books.aborted", "admin.org", "root"].includes(r.rpc)), false,
+        "anonymous failures cannot fire rpc_failing");
       assert(!JSON.stringify(after).includes("private@"));
+    });
+
+    await t.test("a malformed stopped clock refuses; one queue source that fails reports its process stuck, and the route answers", async () => {
+      await admin.query(`update app.world set clock='{"clockMode":"stopped","rate":1}'::jsonb`);
+      await assert.rejects(signalNow(db.worker), /INVALID_CLOCK/, "never a silent fall back to host time");
+      await setClock(T0);
+      const solo = createSignals(db, { world: "world-a", paused: () => false });
+      solo.addQueue({ workflow: "plugs.events.deliver", read: async () => { throw new Error(`PROVIDER_ERROR: ${secret}`); } });
+      solo.addQueue({ workflow: "payments.lifecycle.payment", read: async () => ({ oldestDue: null, dueRuns: 0 }) });
+      const stuck = (await solo.operatorAlerts()).alerts.find((a) => a.id === "process_stuck") as { active: boolean; processes: unknown[] };
+      assert.equal(stuck.active, true);
+      assert.deepEqual(stuck.processes, [{ workflow: "plugs.events.deliver", failures: 0, oldest_due_ms: 0, queue_error: "PROVIDER_ERROR" }]);
+      const sampled = (await rows("process_queue_age")).length;
+      await solo.sampleQueues();
+      assert.deepEqual((await rows("process_queue_age")).slice(sampled).map((r) => r.attributes.workflow), ["payments.lifecycle.payment"], "an unreadable source writes no sample");
     });
 
     await t.test("a world without a stopped clock stamps host time; rows leave by their own window", async () => {

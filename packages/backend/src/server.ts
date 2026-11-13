@@ -30,7 +30,9 @@ function json(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" });
   res.end(JSON.stringify(body));
 }
-export function createCore(config: Config, provision?: (req: IncomingMessage, res: ServerResponse) => Promise<boolean>) {
+/** A raw route handler (Sites' provisioning). It calls `admit` once it has authenticated its caller (signals.world-rows). */
+type RawRoute = (req: IncomingMessage, res: ServerResponse, admit: () => void) => Promise<boolean>;
+export function createCore(config: Config, provision?: RawRoute) {
   if (!Number.isSafeInteger(config.finality) || config.finality < 0) throw new Error("FINALITY_DEPTH must be a nonnegative integer");
   const db = new Database(config.database, config.workerDatabase);
   let paused = config.startPaused, closing = false, activeRequests = 0, activeDeliveries = 0;
@@ -50,7 +52,8 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
     return { ok: !paused && index.ready, paused, storage: "postgres", indexer: "ponder", databaseSchemaVersion: "1", world: config.world, ...index };
   }
   async function route(req: IncomingMessage, res: ServerResponse) {
-    const url = new URL(req.url ?? "/", "http://core");
+    const url = URL.parse(req.url ?? "/", "http://core");
+    if (!url) return json(res, 400, { error: "INVALID_INPUT: request target is not a URL" });
     if (req.method === "GET" && url.pathname === "/health") {
       await db.tenant.query("select 1");
       return json(res, 200, { ok: true, storage: "postgres", indexer: "ponder", standIn: false });
@@ -59,7 +62,7 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
     if (provision && url.pathname === "/org/site/provision") {
       if (paused) return json(res, 503, { error: "SNAPSHOT_PAUSED" });
       activeRequests++;
-      try { if (await provision(req, res)) return; }
+      try { if (await provision(req, res, () => signals.admit(req))) return; }
       finally { activeRequests--; notifyDrain(); }
     }
     if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
@@ -69,7 +72,9 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
     const expected = Buffer.from(signature(raw, config.secret));
     const actual = Buffer.from(String(req.headers["x-capxul-signature"] ?? ""));
     if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return json(res, 401, { error: "bad signature" });
-    const b = JSON.parse(raw || "{}");
+    signals.admit(req);
+    let b: any;
+    try { b = JSON.parse(raw || "{}"); } catch { return json(res, 400, { error: "INVALID_INPUT: body is not JSON" }); }
     const trace = String(req.headers["x-capxul-trace"] ?? "");
     const org = String(b.org ?? b.slug ?? "");
     if (url.pathname === "/admin/snapshot/pause") {
@@ -108,7 +113,8 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
   const server = createServer((req, res) => {
     // The row a request writes after its answer is part of the request, so a snapshot pause drains it too; the pause and
     // resume calls themselves are not counted, or the pause would wait for itself.
-    const counted = !String(req.url ?? "").startsWith("/admin/snapshot/");
+    // Judged on the parsed path, as route matches it: /./admin/snapshot/pause or an absolute form must not count itself.
+    const counted = !(URL.parse(req.url ?? "/", "http://core")?.pathname ?? "/").startsWith("/admin/snapshot/");
     if (counted) activeRequests++;
     void signals.request(req, res, () => Effect.runPromise(Effect.tryPromise(() => route(req, res))).catch((error) => {
       const message = String(error.cause?.message ?? error.message);
@@ -148,7 +154,13 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
       if (identity?.world_id !== config.world) throw new Error("WORLD_IDENTITY: restored database identity must match CAPXUL_WORLD before startup");
       await new Promise<void>((done, reject) => { server.once("error", reject); server.listen(config.port, config.host, done); });
       loop();
-      sampler = setInterval(() => void signals.sampleQueues().catch((error) => console.error(`Core queue sample: ${error.message}`)), 60_000);
+      // A sample writes rows, so a snapshot pause drains it like a delivery tick.
+      sampler = setInterval(() => {
+        if (paused || closing) return;
+        activeDeliveries++;
+        void signals.sampleQueues().catch((error) => console.error(`Core queue sample: ${error.message}`))
+          .finally(() => { activeDeliveries--; notifyDrain(); });
+      }, 60_000);
       return server.address();
     },
     async stop() {

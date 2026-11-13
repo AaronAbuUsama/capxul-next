@@ -15,6 +15,9 @@ test("retained real Effect spans: parentage, completed errors, isolation, privac
   await admin.query(`create role capxul_core login nosuperuser nobypassrls;
     create role capxul_worker login nosuperuser nobypassrls; create schema app;
     grant usage on schema app to capxul_core,capxul_worker`);
+  // The roles sign in with the admin URL's password, so the test also runs on a password-auth (scram) server.
+  const password = decodeURIComponent(new URL(url).password);
+  if (password) for (const role of ["capxul_core", "capxul_worker"]) await admin.query(`alter role ${role} password '${password.replace(/'/g, "''")}'`);
   await migrateSpans(admin);
   const worker = new pg.Pool({ connectionString: roleUrl("capxul_worker") });
   const tenant = new pg.Pool({ connectionString: roleUrl("capxul_core") });
