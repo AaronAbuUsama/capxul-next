@@ -728,7 +728,9 @@ packages/lint/
 
 `packages/generate` gets its first target at T0, and B1 adds the rest:
 `packages/lint/src/generated/facts.ts`. It is written by the shared writer that every generated
-file goes through. The writer's header line is:
+file goes through. Decision `tooling.facts-derivation` updates the rules below for the records as they
+are now (concepts from the records, not the ids; reserved area names; prefix span constants), and
+`tooling.generated-targets` records which B1 targets are built and which remain. The writer's header line is:
 
 ```ts
 // Generated from blueprint by packages/generate. Do not edit. sha256:<hex of everything after this line>

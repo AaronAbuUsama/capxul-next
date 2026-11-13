@@ -11,8 +11,8 @@ export const withHeader = (body: string): string => {
   return `${HEADER} sha256:${createHash("sha256").update(text).digest("hex")}\n${text}`;
 };
 
-/** Every generated folder is the generator's: packages/<package>/src/generated/. */
-export const isGenerated = (path: string): boolean => /^packages\/[^/]+\/src\/generated\//.test(path);
+/** Every generated folder is the generator's: any src/generated/, at any depth in the repository. */
+export const isGenerated = (path: string): boolean => /(^|\/)src\/generated\//.test(path);
 
 export interface Difference {
   readonly path: string;

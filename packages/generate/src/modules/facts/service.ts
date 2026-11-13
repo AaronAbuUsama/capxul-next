@@ -34,6 +34,16 @@ export const spanConstants = (names: readonly string[]): Map<string, string> => 
   return out;
 };
 
+/** Areas whose file would be the one concept-shape keeps for procedures (door.ts) or workflows (processes.ts), each
+ * mapped to the file tooling.facts-derivation records for it. */
+const RESERVED_AREAS: Readonly<Record<string, string>> = { "sites.door": "door-rpcs.ts" };
+export const areaFile = (concept: string, area: string): string => {
+  if (area !== "door" && area !== "processes") return `${area}.ts`;
+  const file = RESERVED_AREAS[`${concept}.${area}`];
+  if (!file) throw new Error(`${concept}'s rpcs have an area named ${area}, which would be its ${area}.ts; record the file it maps to in tooling.facts-derivation`);
+  return file;
+};
+
 const SDK_STEP_KINDS = new Set(["sign", "build", "encrypt"]);
 
 /** Every name of the P6 span tree the records give, and each rpc's and flow's declared spans. */
@@ -72,7 +82,7 @@ export const factsOf = ({ records, conceptOf }: FactsInput) => {
     const mine = (kind: string) => of(kind).filter((r) => conceptField(r) === c.id);
     const procedures = mine("procedure"), workflows = mine("workflow");
     // An rpc's area is every segment between its first and its last; a two-part id names no area.
-    const areas = mine("rpc").map((r) => r.id.split(".").slice(1, -1).join(".")).filter(Boolean).map((a) => `${a}.ts`);
+    const areas = sorted(mine("rpc").map((r) => r.id.split(".").slice(1, -1).join(".")).filter(Boolean)).map((a) => areaFile(c.id, a));
     const flows = of("flow").filter((r) => conceptOf.get(`flow:${r.id}`) === c.id);
     concepts[c.id] = {
       dependsOn: sorted(list(c["dependsOn"]).map(idOf).filter((x): x is string => !!x)),

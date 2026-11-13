@@ -537,45 +537,41 @@ export const decision_tooling_generated_header = defineDecision({
 
 export const decision_tooling_facts_derivation = defineDecision({
   id: "tooling.facts-derivation",
-  title: "packages/generate starts with facts.ts, derived from the records as they are",
+  title: "The generated facts read concepts and areas from the records, not the ids",
   question:
-    "sys:generated is in slice zero's gate (portal.slice-zero-measured-gate), and tooling.plugin names one target, " +
-    "packages/lint/src/generated/facts.ts. Its rules in docs/design/tooling.md were derived from the book of 8 November, " +
-    "where every rpc id was <concept>.<area>.<name>. Today four sites rpcs have two-part ids and twelve payroll rpcs " +
-    "belong to payments. What does packages/generate write now, and how do the rules read those records?",
+    "docs/design/tooling.md section 3 derived the lint facts from the book of 8 November, where every rpc id was " +
+    "<concept>.<area>.<name>. Today four sites rpcs have two-part ids, twelve payroll rpcs and one workflow belong to " +
+    "payments, and six sites.door.* rpcs have an area named door, the file concept-shape keeps for procedures. How do " +
+    "packages/generate's derivations read those records?",
   options: [
     {
-      label: "facts-first",
+      label: "records-not-ids",
       text:
-        "packages/generate ships its shared writer (tooling.generated-header) and the one designed target, facts.ts, in a " +
-        "packages/lint that holds only that file until T0 adds the rules. pnpm generate owns every packages/<package>/src/" +
-        "generated/: it writes each target and deletes any other file there; pnpm generate:check renders in memory and " +
-        "names each file that differs, is missing or no target writes, and runs in pnpm test. The rules read the records, " +
-        "not the ids: an rpc's, procedure's or workflow's concept is its concept field; a flow's is the concept whose " +
-        "blueprint/<concept>/ modules export it (payments/agreements included); an rpc's area is every segment between " +
-        "the first and the last, so a two-part id adds no area file; every list is sorted by code unit. spans is the P6 " +
-        "tree over the records: each rpc's and flow's spans, rpc.<id>, sdk.<flow id> (not its sdk method path), sdk.step.<name> for sign, build and " +
-        "encrypt steps, wait.person, wait.chain, db.tx, call.<integration>.<call>, workflow.<id>, workflow.step.<name> " +
-        "and cli.<command> with the command's words joined by dots (a span name has no spaces). A name's constant is " +
-        "Spans followed by each segment in camelCase, and a name that is also another's prefix is its node's _ " +
-        "(cli.bank.accounts, the list beside bank accounts add, is Spans.cli.bank.accounts._); two names with one " +
-        "constant fail the generation. The other B1 targets " +
-        "are already designed (tooling.lane-gate; docs/design/tooling.md section 7): tooling.generated-targets places the " +
-        "ones built now (Spans, the error classes, Config) and lists those that remain (workflow skeletons, handler types, " +
-        "transition tables, migrations, RequestTime and StepTime, Schema.Finite).",
+        "An rpc's, procedure's or workflow's concept is its concept field; a flow's is the concept whose blueprint/<concept>/ " +
+        "modules (or a folder in it with its own index.ts, such as payments/agreements) export it. An rpc's area is every " +
+        "segment between the first and the last, so a two-part id adds no area file. An area named door or processes " +
+        "would collide with the file for the concept's procedures or workflows, so it maps to a file recorded here or the " +
+        "generation fails: sites' door area (sites.door.types, schema, list, get, create, update) is door-rpcs.ts. Spans are " +
+        "the P6 tree over the records: each rpc's and flow's declared spans, rpc.<id>, sdk.<flow id> (the id its declared " +
+        "spans use, not its sdk method path), sdk.step.<name> for sign, build and encrypt steps, wait.person, wait.chain, " +
+        "db.tx, call.<integration>.<call>, workflow.<id>, workflow.step.<name>, and cli.<command> with the command's words " +
+        "joined by dots. A name's constant is Spans followed by each segment in camelCase, and a name that is also " +
+        "another's prefix is its node's _ (cli.bank.accounts, beside bank accounts add, is Spans.cli.bank.accounts._); two " +
+        "names with one constant fail the generation. Every list is sorted by code unit.",
     },
-    { label: "wait-for-b1", text: "Leave packages/generate unbuilt until B1 builds all its targets; sys:generated fails in slice zero until then." },
+    { label: "ids", text: "Read the concept and the area from the id's segments, as the 8 November derivation did." },
   ],
-  chosen: "facts-first",
+  chosen: "records-not-ids",
   why:
-    "The gate requires sys:generated now, and facts.ts is T0's target, the first the book places (B1 adds the rest), so it is the honest first " +
-    "target: a real file, hashed, regenerated and compiled, that fails the claim on a hand edit or an unregenerated " +
-    "record change. Owning the whole folder makes 'regenerating into a clean tree changes nothing' cover stray files " +
-    "too. Reading concepts from the records rather than the id keeps payroll's rpcs in payments, where cut.agreements-" +
-    "in-payments put them; a two-part id names no area, and inventing one would design a file the book never asked for.",
+    "Reading the id would move payroll's rpcs out of payments, where cut.agreements-in-payments put them, and a two-part " +
+    "id names no area, so inventing one would design a file the book never asked for. An area that silently became door.ts " +
+    "would let rpcs pass concept-shape as the concept's procedures. This decides only how the facts are derived: " +
+    "packages/generate writes the targets that exist (tooling.generated-targets) and sys:generated checks only those. The " +
+    "book designs more (tooling.lane-gate; tooling.md section 7; the generated RpcGroup and client and the generated " +
+    "migrations of foundation.ts), and whether sys:generated waits for them is the owner's ruling, still pending.",
   source:
-    "Amp, Wave Zero generator lane, 13 November 2026; evidence: docs/design/tooling.md section 3; the book at 9c55eaa8 " +
-    "(sites.open, retry, show and provision have two-part ids; twelve payroll.* rpcs and one workflow are payments')",
+    "Amp, Wave Zero generator lane, 13 November 2026, after the independent review of PR 173; evidence: docs/design/" +
+    "tooling.md section 3; the target book (sites.door.*, payroll.*, sites.open)",
   affects: [f.system_capxul, decision_tooling_generated_header, decision_tooling_plugin],
 });
 
@@ -602,8 +598,8 @@ export const decision_tooling_generated_targets = defineDecision({
         "SDK's error classes (the SDK does not depend on effect); the workflow skeletons at " +
         "packages/backend/src/generated/workflows/<concept>.ts, whose steps provide StepTime and whose timer waits " +
         "call Timers.until, both owed by packages/runtime/src/time/, which exports neither yet, and whose Workflow.make " +
-        "needs a payload schema no record gives; handler types, transition tables, migrations, RequestTime and " +
-        "Schema.Finite, which every lane's code must adopt.",
+        "needs a payload schema no record gives; handler types, transition tables, migrations, the RpcGroup and the " +
+        "SDK's RPC client (foundation.ts), RequestTime and Schema.Finite, which every lane's code must adopt.",
     },
     { label: "all-or-nothing", text: "Build no B1 target until all of them can land together." },
   ],
@@ -612,10 +608,10 @@ export const decision_tooling_generated_targets = defineDecision({
     "These three are fully derived from records that exist (51 errors, 5 environments, the P6 tree), and no code " +
     "has to change to receive them, so writing them now adds real files that sys:generated regenerates and " +
     "compiles without touching a lane. The rest need another lane's code first, or a design the records do not " +
-    "yet carry; whether sys:generated waits for them is a question about the claim's meaning, put to Aaron by the " +
+    "yet carry; whether sys:generated waits for them is a question about the claim's meaning, put to the owner by the " +
     "integrator.",
   source:
-    "Amp, Wave Zero generator lane, 13 November 2026, on the integrator's instruction while Aaron rules on " +
+    "Amp, Wave Zero generator lane, 13 November 2026, on the integrator's instruction while the owner rules on " +
     "sys:generated's scope (options A/B/C); evidence: tooling.lane-gate; docs/design/tooling.md section 7",
   affects: [f.system_capxul, f.component_backend, f.component_core_sdk, f.component_cli, decision_tooling_generated_header],
 });

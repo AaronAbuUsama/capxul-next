@@ -80,3 +80,11 @@ test("errors are one class per record, named from the code; a config entry and a
   assert.match(configs.get("config/shared-world.ts")!, /SharedWorldConfig = Config\.all\(\{\n {2}DATABASE_URL: Config\.Redacted\("DATABASE_URL"\),\n {2}SITE_URL: Config\.NonEmptyString\("SITE_URL"\),\n\}\);/);
   assert.throws(() => renderConfigs([r("environment", "x", { config: ["K"], secrets: ["K"] })]), /lists K as both config and secret/);
 });
+
+test("an area named door or processes maps only to a recorded file", () => {
+  const sites = r("concept", "sites"), books = r("concept", "books");
+  const facts = factsOf({ records: [sites, r("rpc", "sites.door.list", { concept: sites, spans: [] })], conceptOf: new Map() });
+  assert.deepEqual(facts.concepts.sites?.backend, ["door-rpcs.ts"]);
+  assert.throws(() => factsOf({ records: [books, r("rpc", "books.processes.list", { concept: books, spans: [] })], conceptOf: new Map() }),
+    /books's rpcs have an area named processes/);
+});

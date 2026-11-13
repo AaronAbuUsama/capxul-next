@@ -1,4 +1,4 @@
-// Generated from blueprint by packages/generate. Do not edit. sha256:64d6e363fd366a78a20096e8fcecf5a1a141600450587e7b29b79f788e184b41
+// Generated from blueprint by packages/generate. Do not edit. sha256:2c7ca70154cbdb270c95d877d1fbff10e3f5362340da2ae10b0b17831a6f2ac3
 export const facts = {
   concepts: {
     access: {
@@ -151,7 +151,7 @@ export const facts = {
     sites: {
       dependsOn: ["access", "indexing", "organizations", "plugs"],
       door: [],
-      backend: ["door.ts", "features.ts", "processes.ts"],
+      backend: ["door-rpcs.ts", "features.ts", "processes.ts"],
       sdk: [],
       lines: undefined,
     },

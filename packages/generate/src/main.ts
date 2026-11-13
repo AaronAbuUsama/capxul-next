@@ -1,8 +1,8 @@
 // node --experimental-strip-types packages/generate/src/main.ts [--check]
 //   (pnpm generate; pnpm generate:check, which pnpm test runs)
 //
-// Writes every target from the records into packages/<package>/src/generated/, and deletes any other file there, so
-// the folders hold exactly what the records generate (tooling.facts-derivation). With --check it writes nothing: it
+// Writes every target from the records into packages/<package>/src/generated/, and deletes any other file under any
+// src/generated/ in the repository, so those folders hold exactly what the records generate (tooling.generated-targets). With --check it writes nothing: it
 // renders in memory, compares with the files on disk and names each one that differs, is missing or no target writes,
 // then compiles every package a target is in (sys:generated). It reads the checkout it lives in, so running a
 // commit's own copy in a clean checkout of that commit checks that commit.
@@ -21,7 +21,7 @@ const check = process.argv.includes("--check");
 /** Every file under a src/generated/ folder on disk, tracked or not, so a stray file is seen before it is committed. */
 const onDisk = (): string[] => {
   const git = (...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8", maxBuffer: 1 << 26 }).split("\0").filter(Boolean);
-  const files = existsSync(join(root, ".git")) ? [...git("ls-files", "-z", "packages"), ...git("ls-files", "-z", "--others", "--exclude-standard", "packages")] : [];
+  const files = existsSync(join(root, ".git")) ? [...git("ls-files", "-z"), ...git("ls-files", "-z", "--others", "--exclude-standard")] : [];
   return [...new Set(files)].filter((p) => isGenerated(p) && existsSync(join(root, p))).sort();
 };
 

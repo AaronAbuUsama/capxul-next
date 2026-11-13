@@ -4,7 +4,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { buildBlueprint } from "../../blueprint-engine/src/index.ts";
+import { buildBlueprint } from "@capxul/blueprint-engine";
 import { renderConfigs, renderErrors, renderSpans } from "./modules/b1/service.ts";
 import { renderFacts } from "./modules/facts/service.ts";
 import { withHeader } from "./modules/writer/service.ts";
