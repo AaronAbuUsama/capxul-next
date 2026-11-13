@@ -1,0 +1,8 @@
+[10:54:48.563] INFO: [ChainState] created (3.7s)
+[10:55:35.367] INFO: [Anvil] created (50.5s)
+[10:55:35.368] INFO: [Door] created — Enabling workers.dev subdomain... (46.6s)
+[10:55:35.368] INFO: [Alto] created (50.5s)
+[10:55:35.369] INFO: Done: 4 succeeded (50.6s)
+  world: 'bd-w3',
+  url: 'https://capxulspikebundler-door-bd-w3-t4ohsazfyb7syqec.thedao.workers.dev'
+deploy took 52.5 s

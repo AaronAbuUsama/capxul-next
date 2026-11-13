@@ -1,0 +1,16 @@
+[10:52:49.737] INFO: 
+[10:52:49.745] INFO: [Door] deleting
+[10:52:49.745] INFO: [Anvil] deleting
+[10:52:49.745] INFO: [Alto] deleting
+[10:52:49.746] INFO: [Door] Cloudflare Worker delete: deleting capxulspikebundler-door-bd-w1-nrwenxjotnjxlwpe
+[10:52:49.749] INFO: [Door] Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+[10:52:49.754] INFO: [Anvil] Cloudflare Container delete: deleting capxulspikebundler-anvil-bd-w1-rg6cgadkblp6ym2t
+[10:52:49.756] INFO: [Alto] Cloudflare Container delete: deleting capxulspikebundler-alto-bd-w1-53ryqujtfg32nh7s
+[10:52:50.514] INFO: [Door] deleted (769ms)
+[10:52:50.514] INFO: [ChainState] deleting
+[10:52:51.145] INFO: [Alto] deleted (1.4s)
+[10:52:51.383] INFO: [Anvil] deleted (1.6s)
+[10:52:54.411] INFO: [ChainState] deleted (3.9s)
+[10:52:54.415] INFO: 
+[10:52:54.415] INFO: Done: 4 succeeded (4.7s)
+destroy took 5.7 s
