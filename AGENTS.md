@@ -2,6 +2,20 @@
 
 `CLAUDE.md` is a link to this file. Every agent (Amp, Claude, Codex) reads the same rules.
 
+## This branch is `master`: the rebuild line (read this first)
+
+`master` is a separate line of work from `main` and `integration/build`. It was cut from `main` at `f12a831` on
+13 November 2026, at Aaron's request, to rethink the blueprint and the build pipeline without
+disturbing the product work in flight on those two branches.
+
+- Rebuild work goes by pull request into `master`. Where the rules below say `integration/build`, read `master`.
+- Never merge `master` into `main` or `integration/build`, and never open a pull request from this line into them,
+  unless Aaron asks for it in writing.
+- Work that belongs to the in-flight product line stays on `main` and `integration/build`. Do not base it on `master`.
+- `main` is merged into `master` only on purpose, by whoever leads this line, never as a routine catch-up.
+
+If your task was written for `main` or `integration/build` and you are on this branch, stop and switch branches.
+
 This repository holds the Capxul rebuild: a typed **blueprint** (`blueprint/`, built by `packages/blueprint-engine`) and
 the product code it describes. Capxul is hosted, re-skinned Frappe with Capxul Core's on-chain authority, budgets,
 payments and banking built in ([GROUNDING.md](GROUNDING.md)).
