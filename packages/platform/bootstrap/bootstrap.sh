@@ -71,8 +71,21 @@ GEN="$(var CAPXUL_KEY_GENERATION)"; GEN="${GEN:-1}"
 OIDC="$(aws iam list-open-id-connect-providers --query 'OpenIDConnectProviderList[].Arn' --output text | tr '\t' '\n' | grep token.actions.githubusercontent.com || true)"
 SUB="$(gh api "repos/$BOOTSTRAP_REPO/actions/oidc/customization/sub" 2>/dev/null || echo '{}')"
 SUB_OK="$(printf '%s' "$SUB" | py 'import json,sys; d=json.load(sys.stdin); print("yes" if d.get("use_default") is False and d.get("include_claim_keys") == ["repo","context","base_ref"] else "no")')"
+# With GitHub's immutable subjects on (always, for a repository made or renamed after 15 July 2026), the subject's
+# repository part carries the ids, `owner@id/name@id`, whatever the template; the CI role must trust that exact form.
+IMMUTABLE="$(printf '%s' "$SUB" | py 'import json,sys; print("yes" if json.load(sys.stdin).get("use_immutable_subject") is True else "no")')"
+if [ "$IMMUTABLE" = yes ]; then
+  BOOTSTRAP_SUBJECT_REPO="$(gh api "repos/$BOOTSTRAP_REPO" --jq '"\(.owner.login)@\(.owner.id)/\(.name)@\(.id)"')"
+  PREFIX="$(printf '%s' "$SUB" | py 'import json,sys; print(json.load(sys.stdin).get("sub_claim_prefix") or "")')"
+  [ -z "$PREFIX" ] || [ "$PREFIX" = "repo:$BOOTSTRAP_SUBJECT_REPO" ] \
+    || die "GitHub's subject prefix $PREFIX is not repo:$BOOTSTRAP_SUBJECT_REPO; the CI role would not match it"
+  SUB_BODY='{"use_default":false,"use_immutable_subject":true,"include_claim_keys":["repo","context","base_ref"]}'
+else
+  BOOTSTRAP_SUBJECT_REPO="$BOOTSTRAP_REPO"
+  SUB_BODY='{"use_default":false,"include_claim_keys":["repo","context","base_ref"]}'
+fi
 
-export BOOTSTRAP_REPO AWS_REGION AWS_ACCOUNT_ID CLOUDFLARE_ACCOUNT_ID PLATFORM_ZONE_ID PLATFORM_ZONE_NAME PLATFORM_DOMAIN \
+export BOOTSTRAP_REPO BOOTSTRAP_SUBJECT_REPO AWS_REGION AWS_ACCOUNT_ID CLOUDFLARE_ACCOUNT_ID PLATFORM_ZONE_ID PLATFORM_ZONE_NAME PLATFORM_DOMAIN \
   NEON_ORG_ID NEON_WORLDS_PROJECT_ID PLATFORM_AMI_ID CAPXUL_KEY_GENERATION="$GEN" CI=true
 eval "$(aws configure export-credentials --format env)"   # this session's AWS keys, for Alchemy; never printed
 GITHUB_TOKEN="$(gh auth token)"; export GITHUB_TOKEN
@@ -96,6 +109,7 @@ info "  - IAM OIDC provider token.actions.githubusercontent.com, audience sts.am
 info "  - IAM role capxul-ci-platform: taken on only by $BOOTSTRAP_REPO on master and pull requests into master;"
 info "    may run the bench host (EC2, its disk, network and security group in $AWS_REGION; IAM names capxul-bench-*;"
 info "    SSM sessions and commands on machines named capxul-bench-*). Policy: packages/platform/bootstrap/src/aws-policy.ts"
+info "    It trusts OIDC subjects starting repo:$BOOTSTRAP_SUBJECT_REPO:"
 info "GitHub $BOOTSTRAP_REPO:"
 [ "$SUB_OK" = yes ] && info "  - OIDC subject template already repo, context, base_ref" \
   || info "  - OIDC subject template set to repo, context, base_ref (now: $SUB), so a token says which branch a PR goes into"
@@ -111,8 +125,7 @@ confirm "Create or update all of the above?"
 
 bold "5. GitHub's OIDC subject template"
 if [ "$SUB_OK" = yes ]; then info "already set"; else
-  printf '{"use_default":false,"include_claim_keys":["repo","context","base_ref"]}' \
-    | gh api -X PUT "repos/$BOOTSTRAP_REPO/actions/oidc/customization/sub" --input - >/dev/null
+  printf '%s' "$SUB_BODY" | gh api -X PUT "repos/$BOOTSTRAP_REPO/actions/oidc/customization/sub" --input - >/dev/null
   info "set"
 fi
 

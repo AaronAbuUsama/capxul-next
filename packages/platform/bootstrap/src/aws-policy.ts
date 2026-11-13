@@ -4,8 +4,11 @@
 // Trust: GitHub Actions' OIDC tokens for this repository only, from a workflow on `master` or a pull request into
 // `master`, and nothing else. GitHub's default subject for a pull request does not name the branch it goes into, so
 // bootstrap.sh sets this repository's subject template to `repo`, `context` and `base_ref`, and the subjects read
-//   repo:<owner>/<name>:ref:refs/heads/master:base_ref:          a push to master, or a run started on master
-//   repo:<owner>/<name>:pull_request:base_ref:master             a pull request into master
+//   repo:<repo>:ref:refs/heads/master:base_ref:          a push to master, or a run started on master
+//   repo:<repo>:pull_request:base_ref:master             a pull request into master
+// where <repo> is `<owner>/<name>`, or `<owner>@<owner id>/<name>@<repo id>` once GitHub's immutable subjects are on
+// (always, for a repository made or renamed after 15 July 2026; no template removes the ids). bootstrap.sh reads which
+// from GitHub and passes it as BOOTSTRAP_SUBJECT_REPO.
 // A job that names a GitHub environment has another context, so it cannot take the role on.
 //
 // Permissions: what host.run.ts (src/aws.ts) and bin/forward.sh need, and no more:
@@ -29,8 +32,8 @@ export const SSM_CORE_POLICY = "arn:aws:iam::aws:policy/AmazonSSMManagedInstance
 export const BENCH_IAM_PREFIX = "capxul-bench-";
 
 /**
- * The OIDC subjects that may take the role on, each compared exactly. The first is the push subject of GitHub's default
- * template too, so a push to master is trusted whether or not the custom template has been set; a pull request is
+ * The OIDC subjects that may take the role on, for `repo` the repository part of the subject (above), each compared
+ * exactly. The first is the push subject of GitHub's default template too, so a push to master is trusted whether or not the custom template has been set; a pull request is
  * trusted only once it has, since the default subject (`repo:<repo>:pull_request`) does not say where it goes.
  */
 export const subjects = (repo: string): Array<string> => [
