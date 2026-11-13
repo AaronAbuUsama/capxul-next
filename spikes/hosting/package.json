@@ -1,0 +1,19 @@
+{
+  "name": "capxul-hosting-spike",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "plan": "alchemy plan --stage spike",
+    "deploy": "alchemy deploy --stage spike --yes",
+    "destroy": "alchemy destroy --stage spike --yes"
+  },
+  "dependencies": {
+    "@alchemy.run/cloudflare": "2.0.0-beta.85",
+    "@alchemy.run/neon": "2.0.0-beta.85",
+    "@effect/platform-bun": "4.1.2",
+    "@effect/platform-node": "4.1.2",
+    "alchemy": "2.0.0-beta.85",
+    "effect": "4.1.2"
+  }
+}
