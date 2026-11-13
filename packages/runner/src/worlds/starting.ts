@@ -12,7 +12,7 @@ import * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
 import type * as HttpClient from "effect/http/HttpClient";
 import { capxulFor, type Call, type Target } from "../client.ts";
-import { RunnerFailure } from "../failure.ts";
+import { describe, RunnerFailure } from "../failure.ts";
 import { freshName } from "../run.ts";
 import type { Settings } from "../settings.ts";
 import { encodeAnswer, madeCallOf, makers, SCENARIO_MINUTES, waitsOn, type Facts, type Making } from "./makers.ts";
@@ -46,6 +46,9 @@ const stepsOf = (world: StartingWorld) =>
  */
 export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (settings: Settings, platformUrl: string) {
   const templates = yield* Ref.make(new Map<string, Making>());
+  // A template whose making failed is not made again: its steps may have run half-way in the template world, so a
+  // second try would meet what the first left there. Every later scenario of it fails with the first failure.
+  const unmade = yield* Ref.make(new Map<string, RunnerFailure>());
   const templateWorlds = yield* Ref.make<ReadonlyArray<string>>([]);
   const made = yield* Ref.make<ReadonlyArray<MakingCall>>([]);
   const target: Target = {
@@ -88,6 +91,12 @@ export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (se
     Effect.gen(function* () {
       const cached = (yield* Ref.get(templates)).get(world.name);
       if (cached !== undefined) return cached;
+      const failed = (yield* Ref.get(unmade)).get(world.name);
+      if (failed !== undefined)
+        return yield* RunnerFailure.make({
+          step: failed.step,
+          message: `${world.name}'s template was not made earlier in this run: ${failed.message}`,
+        });
       const from =
         world.from === null || world.from === startingWorlds.nothing ? nothing : yield* templateOf(world.from);
       const steps = yield* stepsOf(world);
@@ -111,7 +120,14 @@ export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (se
       );
       yield* Ref.update(templates, (all) => new Map([...all, [world.name, saved]]));
       return saved;
-    });
+    }).pipe(
+      Effect.tapCause((cause) =>
+        Ref.update(
+          unmade,
+          (all) => new Map([...all, [world.name, RunnerFailure.make({ step: "template", message: describe(cause) })]]),
+        ),
+      ),
+    );
 
   /** The starting world of one scenario, made for it: restored from its template, or made by its steps. */
   const forScenario = (world: StartingWorld): Effect.Effect<Making, RunnerFailure, HttpClient.HttpClient> =>
