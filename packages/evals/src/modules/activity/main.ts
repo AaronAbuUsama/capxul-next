@@ -5,8 +5,11 @@ import { join, resolve } from "node:path";
 import { parseRunReceipt } from "@capxul/blueprint-engine";
 import { Database } from "../../../../backend/src/devnet/door.ts";
 import { fixtureFrom } from "../acceptance/fixture.ts";
+import { constraints, crossOwner, schema, tenancy, writerAcl } from "./tables.ts";
+import { idempotent, idempotentChecks } from "./workflows.ts";
 
-const checks = ["ACTIVITY.selected-stack", "ACTIVITY.schema", "ACTIVITY.tenancy", "ACTIVITY.writer-acl"];
+const checks = ["ACTIVITY.selected-stack", "ACTIVITY.schema", "ACTIVITY.constraints", "ACTIVITY.tenancy", "ACTIVITY.cross-owner",
+  "ACTIVITY.writer-acl", ...idempotentChecks.map(([, name]) => name)];
 if (process.argv.includes("--list")) {
   for (const name of checks) console.log(`${name}\tcheck`);
 } else {
@@ -60,70 +63,13 @@ if (process.argv.includes("--list")) {
     });
     assert(selected && db);
     const database = db;
-    await emit("ACTIVITY.schema", async () => {
-      const columns = (await database.worker.query(`select column_name,data_type,is_nullable from information_schema.columns
-        where table_schema='app' and table_name='activity_changes' order by ordinal_position`)).rows;
-      assert.deepEqual(columns, [
-        ["owner_id", "text", "NO"], ["owner_kind", "text", "NO"], ["seq", "bigint", "NO"],
-        ["row_kind", "text", "NO"], ["row_id", "text", "NO"], ["change", "text", "NO"],
-        ["transition", "text", "NO"], ["from", "text", "YES"], ["to", "text", "NO"],
-        ["event_id", "text", "NO"], ["changed_at", "double precision", "NO"],
-      ].map(([column_name, data_type, is_nullable]) => ({ column_name, data_type, is_nullable })));
-      const indexes = (await database.worker.query(`select i.indisprimary as primary,i.indisunique as unique,
-        array(select a.attname::text from unnest(i.indkey) with ordinality k(attnum,n)
-          join pg_attribute a on a.attrelid=i.indrelid and a.attnum=k.attnum order by k.n) as fields
-        from pg_index i where i.indrelid='app.activity_changes'::regclass order by i.indisprimary desc,i.indisunique`)).rows;
-      assert.deepEqual(indexes, [
-        { primary: true, unique: true, fields: ["owner_id", "owner_kind", "seq"] },
-        { primary: false, unique: false, fields: ["owner_id", "owner_kind", "row_kind", "row_id", "seq"] },
-        { primary: false, unique: true, fields: ["owner_id", "owner_kind", "event_id"] },
-      ]);
-      writeFileSync(join(dir, "schema.json"), JSON.stringify({ columns, indexes }) + "\n");
-    });
-    await emit("ACTIVITY.tenancy", async () => {
-      const rls = (await database.worker.query("select relrowsecurity,relforcerowsecurity from pg_class where oid='app.activity_changes'::regclass")).rows[0];
-      assert.deepEqual(rls, { relrowsecurity: true, relforcerowsecurity: true });
-      const observer = await database.worker.connect();
-      try {
-        // Compare roles at one actual MVCC cut, even if the background relay appends during inspection.
-        await observer.query("begin isolation level repeatable read read only");
-        const snapshot = (await observer.query("select pg_export_snapshot() as snapshot")).rows[0].snapshot as string;
-        assert(/^[0-9A-F-]+$/.test(snapshot));
-        const all = (await observer.query("select * from app.activity_changes order by owner_kind,owner_id,seq")).rows;
-        const feeds = [...new Map(all.map((r) => [JSON.stringify([r.owner_kind, r.owner_id]), r])).values()];
-        assert(feeds.length >= 2 && feeds.some((r) => r.owner_kind === "person") && feeds.some((r) => r.owner_kind === "organization"));
-        const evidence = [];
-        for (const feed of feeds) {
-          const client = await database.tenant.connect();
-          try {
-            await client.query("begin isolation level repeatable read read only");
-            await client.query(`set transaction snapshot '${snapshot}'`);
-            await client.query("select set_config('app.owner_kind',$1,true),set_config('app.owner_id',$2,true)", [feed.owner_kind, feed.owner_id]);
-            const actual = (await client.query("select * from app.activity_changes order by owner_kind,owner_id,seq")).rows;
-            assert.deepEqual(actual, all.filter((r) => r.owner_kind === feed.owner_kind && r.owner_id === feed.owner_id));
-            await client.query("commit");
-            assert.equal((await client.query("select * from app.activity_changes")).rowCount, 0);
-            evidence.push({ owner_kind: feed.owner_kind, owner_id: feed.owner_id, rows: actual.length });
-          } finally { await client.query("rollback"); client.release(); }
-        }
-        writeFileSync(join(dir, "tenancy.json"), JSON.stringify(evidence) + "\n");
-      } finally { await observer.query("rollback"); observer.release(); }
-    });
-    await emit("ACTIVITY.writer-acl", async () => {
-      const privileges = (await database.worker.query(`select r as role,
-        has_table_privilege(r,'app.activity_changes','SELECT') as read,
-        has_table_privilege(r,'app.activity_changes','INSERT') as insert,
-        has_table_privilege(r,'app.activity_changes','UPDATE') as update,
-        has_table_privilege(r,'app.activity_changes','DELETE') as delete,
-        has_table_privilege(r,'app.activity_changes','TRUNCATE') as truncate
-        from unnest(array['capxul_core','capxul_worker','capxul_ponder']) r order by r`)).rows;
-      assert.deepEqual(privileges, [
-        { role: "capxul_core", read: true, insert: false, update: false, delete: false, truncate: false },
-        { role: "capxul_ponder", read: false, insert: false, update: false, delete: false, truncate: false },
-        { role: "capxul_worker", read: true, insert: true, update: false, delete: false, truncate: false },
-      ]);
-      writeFileSync(join(dir, "writer-acl.json"), JSON.stringify(privileges) + "\n");
-    });
+    await emit("ACTIVITY.schema", () => schema(database, dir));
+    await emit("ACTIVITY.constraints", () => constraints(database, dir, receipt.id));
+    let feeds: Awaited<ReturnType<typeof tenancy>> | undefined;
+    await emit("ACTIVITY.tenancy", async () => { feeds = await tenancy(database, dir); });
+    await emit("ACTIVITY.cross-owner", async () => { assert(feeds); await crossOwner(database, dir, feeds); });
+    await emit("ACTIVITY.writer-acl", () => writerAcl(database, dir));
+    for (const [transition, name] of idempotentChecks) await emit(name, () => idempotent(database, dir, transition));
   } catch { failed = true; }
   finally { await db?.close(); }
   for (const name of checks.filter((name) => !seen.has(name))) await emit(name, async () => { throw new Error("prerequisite failed"); });
