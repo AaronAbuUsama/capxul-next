@@ -4,21 +4,12 @@ import { record, type Database, type Sql } from "../platform/db.ts";
 import { createFrappeSite } from "./site.ts";
 import { settleRoleDelivery } from "./roles.ts";
 export { RequestCollector } from "./collector.ts";
+export { enqueue } from "./events.ts";
 export { FrappeSite, FrappeSiteError, createFrappeSite, frappeSiteLayer } from "./site.ts";
 export type { AccountInput, DoorInput, ReportInput, SiteInput } from "./site.ts";
 export { migrateRoleProjections, recordRoleGrant, transitionRoleGrant, readRoles } from "./roles.ts";
 export type { RoleOccurrence, RoleGrant, GrantInput, GrantChange } from "./roles.ts";
 
-export async function enqueue(sql: Sql, org: string, key: string, kind: string, data: unknown, trace: string, at?: number) {
-  await sql.query("select pg_advisory_xact_lock(hashtextextended($1,0))", [org]);
-  const old = await sql.query("select seq from app.site_events where org_id=$1 and event_key=$2", [org, key]);
-  if (old.rowCount) return old.rows[0]!.seq;
-  const row = (await sql.query("update app.organizations set next_seq=next_seq+1 where org_id=$1 returning next_seq-1 as seq", [org])).rows[0];
-  if (!row) throw new Error("NOT_FOUND: cannot enqueue for unknown company");
-  await sql.query("insert into app.site_events (org_id,seq,event_key,kind,data,trace) values ($1,$2,$3,$4,$5,$6)", [org, row.seq, key, kind, data, trace]);
-  await record(sql, org, "site_event_queued", trace, { seq: row.seq, event_key: key, kind }, at);
-  return row.seq;
-}
 export async function status(sql: Sql, org: string) {
   const row = (await sql.query("select released,next_seq-1 as last_seq,last_ack from app.organizations where org_id=$1", [org])).rows[0];
   if (!row) throw new Error("NOT_FOUND: unknown company");
@@ -47,6 +38,17 @@ export async function retryParked(sql: Sql, org: string, key: string, frappe: st
   const at = event.kind === "hat_granted" ? await settleRoleDelivery(sql, org, key, ack) : undefined;
   await record(sql, org, "site_event_repaired", event.trace, { event_key: key, seq: event.seq }, at);
   return status(sql, org);
+}
+
+/** After a delivery transaction rolled back on a settlement refusal: back off in a separate transaction so one site cannot spin or block others. */
+export async function deferDelivery(db: Database, org: string, error: unknown) {
+  const message = String((error as Error)?.message ?? error).slice(0, 400);
+  await db.transaction(org, async (sql) => {
+    await sql.query("select pg_advisory_xact_lock(hashtextextended($1,0))", [org]);
+    await sql.query(`update app.site_events set attempts=attempts+1,last_attempt_at=now(),last_error=$2 where org_id=$1 and seq=
+      (select min(seq) from app.site_events where org_id=$1 and state='pending')`, [org, message]);
+    await sql.query("update app.organizations set failures=failures+1,retry_at=now() + least(8, power(2,least(failures,3))) * interval '1 second' where org_id=$1", [org]);
+  }, true);
 }
 
 export async function deliver(db: Database, org: string, frappe: string, secret: string) {

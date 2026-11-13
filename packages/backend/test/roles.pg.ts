@@ -7,7 +7,7 @@ import test from "node:test";
 import pg from "pg";
 import { Database } from "../src/platform/db.ts";
 import { migrateOutbox } from "../src/platform/outbox.ts";
-import { deliver, enqueue, resend, retryParked, signature, migrateRoleProjections, recordRoleGrant, transitionRoleGrant, readRoles, type GrantInput, type RoleOccurrence } from "../src/plugs/door.ts";
+import { deferDelivery, deliver, enqueue, resend, retryParked, signature, migrateRoleProjections, recordRoleGrant, transitionRoleGrant, readRoles, type GrantInput, type RoleOccurrence } from "../src/plugs/door.ts";
 
 const url = process.env.PLUGS_ROLES_ADMIN_URL;
 if (!url || new URL(url).pathname !== "/plugs_roles_test" || !["127.0.0.1", "localhost"].includes(new URL(url).hostname)) {
@@ -54,6 +54,7 @@ test("role projections retain caller atomicity, exact occurrences, shared roles 
       assert.equal(born[0]!.created_at, 946684800123);
       await assert.rejects(write((sql) => recordRoleGrant(sql, { ...input, person_id: "forged-person" }, context("birth-731"))), /IDEMPOTENCY_CONFLICT/);
       await assert.rejects(write((sql) => recordRoleGrant(sql, input, context("birth-731", 9))), /IDEMPOTENCY_CONFLICT/);
+      await assert.rejects(write((sql) => recordRoleGrant(sql, input, context("birth-731-again"))), /IDEMPOTENCY_CONFLICT/, "a new occurrence id cannot add a second birth");
       const e = (await admin.query("select event from app.transition_outbox")).rows[0].event;
       assert.deepEqual(e, { id: JSON.stringify(["plugs.role-grant", "org-a", "birth-731"]), name: "role_grant_transitioned", machine: "role-grant",
         entity_id: "grant-731", owner_kind: "organization", owner_id: "org-a", actor: null, trace_id: "tr_role731", at: 946684800123,
@@ -68,7 +69,7 @@ test("role projections retain caller atomicity, exact occurrences, shared roles 
         email: "changed@example.test", chain_log_index: 4 }, context("birth-832", 29)));
       await change("grant-832", { transition: "apply", map_version: "shipped-map-7" }, "apply-b", 31);
       assert.deepEqual((await write((sql) => readRoles(sql, "org-a", input.person_id))).roles, ["Accounts User", "Projects User", "Shared", "Task User"]);
-      const nativeIdentity = (await admin.query("select data->>'person_email' as email from app.site_events where event_key='birth-832'")).rows[0];
+      const nativeIdentity = (await admin.query("select data->>'person_email' as email from app.site_events where event_key='role:birth-832'")).rows[0];
       assert.equal(nativeIdentity.email, "first@example.test", "email changes retain the hat-created native user identity");
       await change(input.grant_id, { transition: "revoke" }, "revoke-a", 41);
       const before = await counts();
@@ -85,7 +86,7 @@ test("role projections retain caller atomicity, exact occurrences, shared roles 
       await write((sql) => recordRoleGrant(sql, { ...input, grant_id: "grant-1044", department: "", chain_log_index: 6 }, context("birth-1044", 61)));
       await change("grant-1044", { transition: "apply", map_version: "shipped-map-7" }, "apply-d", 63);
       await change("grant-933", { transition: "retire" }, "retire-c", 65);
-      assert.equal((await admin.query("select 1 from app.site_events where event_key='retire-c'")).rowCount, 0, "retiring an old occurrence cannot remove the newer same-hat native grant");
+      assert.equal((await admin.query("select 1 from app.site_events where event_key='role:retire-c'")).rowCount, 0, "retiring an old occurrence cannot remove the newer same-hat native grant");
       assert.deepEqual((await write((sql) => readRoles(sql, "org-a", input.person_id))).roles, ["Accounts User", "Shared"]);
       await assert.rejects(change("grant-933", { transition: "apply", map_version: "shipped-map-7" }, "late-c", 67), /WRONG_STATE/);
       await change("grant-1044", { transition: "revoke" }, "revoke-d", 69);
@@ -117,7 +118,7 @@ test("role projections retain caller atomicity, exact occurrences, shared roles 
       assert.deepEqual(await counts(), before);
       assert.deepEqual((await admin.query("select event from app.transition_outbox where id=$1", [history.id])).rows[0].event, history);
       await change(old.grant_id, { transition: "revoke" }, "revoke-e", 79);
-      assert.equal((await admin.query("select 1 from app.site_events where event_key='revoke-e'")).rowCount, 0);
+      assert.equal((await admin.query("select 1 from app.site_events where event_key='role:revoke-e'")).rowCount, 0);
       assert.deepEqual((await write((sql) => readRoles(sql, "org-a", input.person_id))).roles, ["Accounts User", "Shared"]);
       await change(newer.grant_id, { transition: "revoke" }, "revoke-f", 81);
       assert.deepEqual((await write((sql) => readRoles(sql, "org-a", input.person_id))).roles, []);
@@ -221,7 +222,7 @@ test("role projections retain caller atomicity, exact occurrences, shared roles 
         assert.deepEqual((await admin.query("select event from app.transition_outbox where id=$1", [applied.id])).rows[0].event, applied);
 
         await setup("ack-conflict");
-        const id = JSON.stringify(["plugs.role-grant", "ack-conflict", JSON.stringify(["native-ack", "ack-conflict", "apply"])]);
+        const id = JSON.stringify(["plugs.role-grant", "ack-conflict", JSON.stringify(["native-ack", "role:ack-conflict", "apply"])]);
         await admin.query("insert into app.transition_outbox(id,event) values ($1,$2)", [id, { ...applied, id, owner_id: "ack-conflict", entity_id: "conflicting-source" }]);
         const conflictBefore = await state("ack-conflict");
         await assert.rejects(deliver(db, "ack-conflict", origin, secret), /IDEMPOTENCY_CONFLICT/);
@@ -230,7 +231,7 @@ test("role projections retain caller atomicity, exact occurrences, shared roles 
         await setup("ack-repair"); parked = true; await deliver(db, "ack-repair", origin, secret); parked = false;
         const failed = await state("ack-repair"); assert.equal(failed.state, "parked"); assert.equal(failed.status, "failed");
         assert.equal((await admin.query("select failure from app.role_grants where org_id='ack-repair'")).rows[0].failure, "native role missing");
-        const repair = () => db.transaction("ack-repair", (sql) => retryParked(sql, "ack-repair", "ack-repair", origin, secret), true);
+        const repair = () => db.transaction("ack-repair", (sql) => retryParked(sql, "ack-repair", "role:ack-repair", origin, secret), true);
         await admin.query("update app.world set clock='{}'"); await assert.rejects(repair(), /INVALID_CLOCK/);
         assert.deepEqual(await state("ack-repair"), failed);
         await admin.query("update app.world set clock=$1", [{ nowMs: at + 77, clockMode: "stopped", rate: 1 }]);
@@ -245,7 +246,7 @@ test("role projections retain caller atomicity, exact occurrences, shared roles 
         const historical = await state("repair-history");
         const grant = (await admin.query("select * from app.role_grants where org_id='repair-history'")).rows;
         const saved = (await admin.query("select event from app.transition_outbox where event->>'owner_id'='repair-history' order by id")).rows;
-        const repairHistory = () => db.transaction("repair-history", sql => retryParked(sql, "repair-history", "repair-history", origin, secret), true);
+        const repairHistory = () => db.transaction("repair-history", sql => retryParked(sql, "repair-history", "role:repair-history", origin, secret), true);
         for (const clock of [null, {}, { nowMs: at, clockMode: "running", rate: 1 }]) {
           await admin.query("delete from app.world");
           if (clock) await admin.query("insert into app.world(world_id,clock) values ('roles-test',$1)", [clock]);
@@ -268,6 +269,39 @@ test("role projections retain caller atomicity, exact occurrences, shared roles 
         await admin.query("update app.world set clock=$1", [{ nowMs: at + 100, clockMode: "stopped", rate: 1 }]);
         await setup("ack-unavailable"); unavailable = true; await deliver(db, "ack-unavailable", origin, secret);
         const retry = await state("ack-unavailable"); assert.equal(retry.state, "pending"); assert.equal(retry.status, "pending"); assert.equal(retry.failures, 1);
+
+        // A settlement refusal rolls the delivery back; the separate backoff then holds this site without spinning.
+        unavailable = false; await setup("ack-deferred"); wrongMap = true;
+        const error = await deliver(db, "ack-deferred", origin, secret).then(() => null, (e) => e);
+        assert.match(String(error?.message), /PROVIDER_RESPONSE_INVALID/);
+        await deferDelivery(db, "ack-deferred", error);
+        const deferred = await state("ack-deferred");
+        assert.equal(deferred.state, "pending"); assert.equal(deferred.failures, 1); assert.equal(deferred.attempts, 1);
+        assert.match((await admin.query("select last_error from app.site_events where org_id='ack-deferred'")).rows[0].last_error, /PROVIDER_RESPONSE_INVALID/);
+        await deliver(db, "ack-deferred", origin, secret);
+        assert.deepEqual(await state("ack-deferred"), deferred, "a deferred site is not offered again before its retry time");
+        wrongMap = false;
+
+        // The real migrate path composes neither outbox nor role tables yet: legacy and role-keyed hat ACKs still settle.
+        await admin.query("create database plugs_migrate_test");
+        const migrated = (role: string, password = "test-only") => { const u = new URL(url); u.username = role; u.password = password; u.pathname = "/plugs_migrate_test"; return u.href; };
+        const run = spawn(process.execPath, ["--experimental-strip-types", "--no-warnings", new URL("../src/migrate.ts", import.meta.url).pathname], {
+          env: { ...process.env, PG_ADMIN_URL: migrated(new URL(url).username, new URL(url).password), DATABASE_URL: migrated("capxul_core"),
+            WORKER_DATABASE_URL: migrated("capxul_worker"), PONDER_DATABASE_URL: migrated("capxul_ponder"), CAPXUL_WORLD: "migrate-test" }, stdio: "ignore" });
+        assert.equal((await once(run, "exit"))[0], 0, "migrate.ts must succeed on a fresh database");
+        const fresh = new pg.Client({ connectionString: migrated(new URL(url).username, new URL(url).password) }); await fresh.connect();
+        const real = new Database(migrated("capxul_core"), migrated("capxul_worker"));
+        try {
+          await fresh.query("update app.world set clock=$1", [{ nowMs: at, clockMode: "stopped", rate: 1 }]);
+          await fresh.query("insert into app.organizations(org_id,name,safe,site,admin_email,token,released) values ('real','R','safe-r','r.test','r@test','asset',true)");
+          await real.transaction("real", async (sql) => {
+            await enqueue(sql, "real", "84532:0xlegacy:1:hat_granted", "hat_granted", {}, "tr_legacy");
+            await enqueue(sql, "real", "role:projected-elsewhere", "hat_granted", {}, "tr_role");
+          }, true);
+          await deliver(real, "real", origin, secret); await deliver(real, "real", origin, secret);
+          assert.deepEqual((await fresh.query("select state from app.site_events where org_id='real' order by seq")).rows, [{ state: "applied" }, { state: "applied" }]);
+          assert.equal((await fresh.query("select last_ack::int from app.organizations where org_id='real'")).rows[0].last_ack, 2);
+        } finally { await real.close(); await fresh.end(); }
       } finally { receiver.closeAllConnections(); await new Promise<void>((done) => receiver.close(() => done())); }
     });
   } finally { await db.close(); await admin.end(); }

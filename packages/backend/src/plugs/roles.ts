@@ -4,7 +4,10 @@ import type { Sql } from "../platform/db.ts";
 import { emit, readEvent, type TransitionEvent } from "../platform/outbox.ts";
 import { worldNow } from "../devnet/door.ts";
 import type { SiteAck } from "./site-contracts.ts";
-import { enqueue } from "./door.ts";
+import { enqueue } from "./events.ts";
+
+// Role deliveries have their own key space, so a chain-log or payment key never shadows a grant's native event.
+const key = (occurrence: string) => `role:${occurrence}`;
 
 export type RoleOccurrence = { id: string; at: number; trace_id: string; actor: string | null };
 export type RoleGrant = {
@@ -56,6 +59,10 @@ export async function recordRoleGrant(sql: Sql, input: GrantInput, occurrence: R
     const { status: _status, failure: _failure, created_at: _created, updated_at: _updated, ...identity } = old;
     identity.department = identity.department || null;
     if (!isDeepStrictEqual(identity, source)) throw new Error("IDEMPOTENCY_CONFLICT: role occurrence changed");
+    // A replay must name the stored birth occurrence; a new occurrence id would append a second birth.
+    const birth = (await sql.query(`select id from app.transition_outbox where event->>'machine'='role-grant' and event->>'owner_id'=$1
+      and event->>'entity_id'=$2 and event->'props'->>'transition'='record'`, [old.org_id, old.grant_id])).rows;
+    if (birth.length !== 1 || birth[0].id !== born.id) throw new Error("IDEMPOTENCY_CONFLICT: role occurrence changed");
     await emit(sql, event(old, occurrence, null, "pending", "record")); return old;
   }
   const user = (await sql.query("select * from app.site_users where org_id=$1 and person_id=$2 for update", [source.org_id, source.person_id])).rows[0];
@@ -69,7 +76,7 @@ export async function recordRoleGrant(sql: Sql, input: GrantInput, occurrence: R
     (org_id,grant_id,person_id,address,hat,department,roles,map_version,chain_tx_hash,chain_log_index,status,failure,created_at,updated_at)
     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending',null,$11,$11)`,
   [row.org_id, row.grant_id, row.person_id, row.address, row.hat, row.department, row.roles, row.map_version, row.chain_tx_hash, row.chain_log_index, occurrence.at]);
-  await enqueue(sql, row.org_id, occurrence.id, "hat_granted", {
+  await enqueue(sql, row.org_id, key(occurrence.id), "hat_granted", {
     hat: row.hat, person_email: user?.frappe_user ?? email, person_name: name, address: row.address,
     department: row.department, tx_hash: row.chain_tx_hash,
   }, occurrence.trace_id, occurrence.at);
@@ -100,7 +107,7 @@ export async function transitionRoleGrant(sql: Sql, org: string, grantId: string
     const retained = await sql.query(`select 1 from app.role_grants where org_id=$1 and person_id=$2 and hat=$3
       and nullif(department,'') is not distinct from nullif($4::text,'') and status<>'revoked'`, [org, row.person_id, row.hat, row.department]);
     // Native grants are keyed by person/hat/department, not the historical source log.
-    if (!retained.rowCount) await enqueue(sql, org, occurrence.id, "hat_revoked", {
+    if (!retained.rowCount) await enqueue(sql, org, key(occurrence.id), "hat_revoked", {
       hat: row.hat, person_email: user.frappe_user, person_name: user.name, address: row.address, department: row.department,
     }, occurrence.trace_id, occurrence.at);
     await sql.query(`update app.site_users set status=case when exists
@@ -112,8 +119,10 @@ export async function transitionRoleGrant(sql: Sql, org: string, grantId: string
 }
 
 /** Same delivery/repair transaction. Only our durable record occurrence can identify a projected grant. */
-export async function settleRoleDelivery(sql: Sql, org: string, key: string, ack: SiteAck): Promise<number | undefined> {
-  const born = await readEvent(sql, JSON.stringify(["plugs.role-grant", org, key]));
+export async function settleRoleDelivery(sql: Sql, org: string, eventKey: string, ack: SiteAck): Promise<number | undefined> {
+  // Legacy hat events (no role: key) have no Core grant projection, and a stack without the composed outbox has none either.
+  if (!eventKey.startsWith("role:") || !(await sql.query("select to_regclass('app.transition_outbox') is not null as ok")).rows[0].ok) return;
+  const born = await readEvent(sql, JSON.stringify(["plugs.role-grant", org, eventKey.slice(5)]));
   if (!born) return; // Legacy hat events have no Core grant projection.
   if (born.name !== "role_grant_transitioned" || born.owner_kind !== "organization" || born.owner_id !== org ||
       born.props.transition !== "record") throw new Error("INVALID_INPUT: role delivery source occurrence");
@@ -125,7 +134,7 @@ export async function settleRoleDelivery(sql: Sql, org: string, key: string, ack
   const change: GrantChange = ack.parked ? { transition: "fail", failure: ack.error }
     : { transition: "apply", map_version: ack.map_version ?? "" };
   await transitionRoleGrant(sql, org, row.grant_id, change, {
-    id: JSON.stringify(["native-ack", key, change.transition]), at, trace_id: born.trace_id, actor: null,
+    id: JSON.stringify(["native-ack", eventKey, change.transition]), at, trace_id: born.trace_id, actor: null,
   });
   return at;
 }
