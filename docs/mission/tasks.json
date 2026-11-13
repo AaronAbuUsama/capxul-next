@@ -930,9 +930,11 @@
       "parent": "lane:integrations",
       "priority": "normal",
       "evals": [
+        "int:service-signer.send/INVALID_INPUT/c-309855ee4b790420",
         "int:service-signer.send/PROVIDER_ERROR/c-39d7c0c200a686b5",
         "int:service-signer.send/TRANSACTION_FAILED/c-e9c5dfcd33dbeedc",
         "int:service-signer.waitForReceipt/PROVIDER_ERROR/c-5dac7f59ca5b1486",
+        "int:service-signer.waitForReceipt/TRANSACTION_FAILED/c-396a5af2733db88a",
         "int:service-signer.waitForReceipt/TRANSACTION_FAILED/c-483443507d118cb1",
         "int:service-signer/conformance"
       ],

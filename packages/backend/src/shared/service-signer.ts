@@ -51,7 +51,8 @@ export function storedSend(sql: Sql, key: SignerKey, requestKey: string): Promis
     [key.account.address.toLowerCase(), key.chain.id, requestKey]).then((r) => r.rows[0]);
 }
 export async function saveReceipt(key: SignerKey, requestKey: string, receipt: unknown): Promise<void> {
-  await key.worker.query("update app.service_signer_sends set receipt=$4 where account=$1 and chain_id=$2 and request_key=$3",
+  // The first receipt kept is the receipt: a racing lookup and wait never overwrite each other's.
+  await key.worker.query("update app.service_signer_sends set receipt=$4 where account=$1 and chain_id=$2 and request_key=$3 and receipt is null",
     [key.account.address.toLowerCase(), key.chain.id, requestKey, receipt]);
 }
 
@@ -165,15 +166,14 @@ export function claimServiceSigner(config: ClaimSignerConfig): ServiceSigner {
         const stored = await row(worker, input.key);
         if (!stored || stored.hash.toLowerCase() !== input.hash.toLowerCase()) throw new ServiceSignerError("INVALID_INPUT");
         if (stored.receipt) return stored.receipt;
-        const deadline = Date.now() + 60_000;
-        while (Date.now() < deadline) {
+        while (!signal.aborted) {
           let receipt;
           try {
             if (await publicClient.getChainId() !== chain.id) throw new ServiceSignerError("PROVIDER_ERROR");
             receipt = await publicClient.getTransactionReceipt({ hash: stored.hash });
           }
           catch (error) {
-            if (!(error instanceof TransactionReceiptNotFoundError) && Date.now() >= deadline) throw error;
+            if (!(error instanceof TransactionReceiptNotFoundError) && signal.aborted) throw error;
           }
           if (!receipt) await rebroadcastIfDropped(publicClient as PublicClient, stored, account.address).catch(() => {});
           if (receipt) {
@@ -185,9 +185,9 @@ export function claimServiceSigner(config: ClaimSignerConfig): ServiceSigner {
                   if (decoded.args.safe.toLowerCase() === stored.safe?.toLowerCase() && decoded.args.signer.toLowerCase() === stored.signer?.toLowerCase()) safe = decoded.args.safe;
                 } catch { /* An unrelated Companies House log is not a claim. */ }
               }
-              if (!safe) throw new ServiceSignerError("TRANSACTION_FAILED", stored.hash);
             }
-            let errorCode: ClaimReceipt["errorCode"] = receipt.status === "success" ? null : "TRANSACTION_FAILED";
+            // A mined success without the claim event is a failed claim; it is kept like any receipt, so the lane is free.
+            let errorCode: ClaimReceipt["errorCode"] = receipt.status === "success" && safe ? null : "TRANSACTION_FAILED";
             if (receipt.status === "reverted") {
               // Optional exact-transaction trace only. Never replay eth_call at block-end and invent a refusal.
               try {
@@ -201,9 +201,9 @@ export function claimServiceSigner(config: ClaimSignerConfig): ServiceSigner {
             const result: ClaimReceipt = { hash: stored.hash, chainId: chain.id, blockNumber: receipt.blockNumber.toString(), blockHash: receipt.blockHash,
               status: receipt.status, safe, errorCode };
             await saveReceipt(config, input.key, result);
-            return result;
+            return (await row(worker, input.key))?.receipt ?? result;
           }
-          await new Promise((resolve) => setTimeout(resolve, Math.min(1_000, Math.max(0, deadline - Date.now()))));
+          await new Promise((resolve) => setTimeout(resolve, 1_000));
         }
         throw new ServiceSignerError("PROVIDER_ERROR", stored.hash);
       } catch (error) {

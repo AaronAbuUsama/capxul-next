@@ -96,18 +96,18 @@ export function budgetsExecutor(config: BudgetsExecutorConfig): BudgetsExecutor 
       }
     },
     async waitForReceipt({ key: requestKey, hash }) {
-      const signal = AbortSignal.timeout(60_000), deadline = Date.now() + 60_000;
+      const signal = AbortSignal.timeout(60_000);
       const stored = await recorded(requestKey).catch((error) => { throw error instanceof ServiceSignerError ? error : new ServiceSignerError("PROVIDER_ERROR", hash); });
       if (!stored || stored.hash.toLowerCase() !== hash.toLowerCase()) throw new ServiceSignerError("INVALID_INPUT");
       if (stored.receipt) return settled(stored.receipt);
       // Polls once a second; a failed poll does not end the wait (old R7).
-      while (Date.now() < deadline) {
+      while (!signal.aborted) {
         try {
           const receipt = await decode(stored, signal);
           // Recorded before any refusal, so the key's lane is free whatever the outcome.
           if (receipt) { await saveReceipt(key, requestKey, receipt); return settled(receipt); }
         } catch (error) { if (error instanceof ServiceSignerError && error.code === "TRANSACTION_FAILED") throw error; }
-        await new Promise((r) => setTimeout(r, Math.min(1_000, Math.max(0, deadline - Date.now()))));
+        await new Promise((r) => setTimeout(r, 1_000));
       }
       throw new ServiceSignerError("PROVIDER_ERROR", stored.hash);
     },
