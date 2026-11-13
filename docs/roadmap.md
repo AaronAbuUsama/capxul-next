@@ -62,9 +62,9 @@ unblock it.
 | 0.7 | 0 | One operation goes from an Effect contract, to a scenario that fails on an empty handler, to a pass | 0.2 | In progress | | | | |
 | 0.8 | 0 | Two worlds at different clocks share one Frappe bench |  | Done |  |  | 2026-11-13T09:05Z | `spikes/bench-clocks`, `observed.txt`: three sites of two worlds on one bench read their own world's time in bench commands, web requests, worker jobs and the scheduler. Four gaps to close in step 1.4: the web process must load the app at start, plain Python processes read host time, a running clock is an hour out across daylight saving, and Frappe caches a site's config for 60 s |
 | 0.9 | 0 | A scenario run from a template world is timed end to end | 0.6, 0.7 | Not started | | | | |
-| 1.1 | 1 | The thin line's operations are declared in the contract and the server compiles with empty handlers | 0.7 | Not started | 0/12 | | | |
+| 1.1 | 1 | The thin line's operations are declared in the contract and the server compiles with empty handlers | 0.7 | In progress | 0/12 |  |  |  |
 | 1.2 | 1 | The scenario runner checks declared events, spans and speed on every run and stores the timings | 0.7 | Not started | | | | |
-| 1.3 | 1 | One command creates and destroys a private world: chain, index, Core and database | 0.4, 0.5, 0.6 | Not started | | | | |
+| 1.3 | 1 | One command creates and destroys a private world: chain, index, Core and database | 0.4, 0.5, 0.6 | In progress |  |  |  |  |
 | 1.4 | 1 | A company's Frappe site in a private world is reached through the door | 0.8, 1.3 | Not started | | | | |
 | 1.5 | 1 | The thin line's scenarios are written by a separate agent and fail on empty handlers | 1.1, 1.2 | Not started | 0/12 | | | |
 | 1.6 | 1 | The thin line's scenarios pass in a fresh private world | 1.3, 1.4, 1.5 | Not started | 0/12 | | | |
