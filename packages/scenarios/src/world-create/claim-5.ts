@@ -1,14 +1,13 @@
 // world.create, claim 5: a world is born with its cast: each person can call through the door and signs with a
-// known test key, and everyone but pat holds a claimed personal Safe with 10,000 USDC. Not checked: a call through
-// the new world's door by each person (the client is made for one world's door, and `nothing` has none) and each
-// Safe's balance through the door's chain RPC (Capxul offers no chain read).
+// known test key, and everyone but pat holds a claimed personal Safe with 10,000 USDC.
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Order from "effect/Order";
 import * as Str from "effect/String";
 import { Capxul } from "../client.ts";
 import { expect, scenario } from "../scenario.ts";
-import { same } from "../support/expect.ts";
+import { refusal, same, sameAmount } from "../support/expect.ts";
+import { usdc } from "../support/chain.ts";
 import { isTestAddress } from "../support/signing.ts";
 import { castMember, freshName } from "../support/world.ts";
 
@@ -38,8 +37,19 @@ export const worldCreate5 = scenario(
         yield* isTestAddress(member.signer),
         `${person}'s signer ${member.signer} is no well-known test key`,
       );
+      const refused = yield* refusal(
+        `record.export at the new world's door as ${person}`,
+        "NotWorldOwner",
+        capxul["record.export"]({ from: null, to: null }, { at: made.door, as: person }),
+      );
+      yield* same(
+        `the NotWorldOwner ${person} got`,
+        { world: refused.world, owner: refused.owner },
+        { world, owner: made.owner },
+      );
       if (person === "pat") yield* same("pat's Safe", member.safe, null);
-      else yield* expect(member.safe !== null, `${person} has no personal Safe`);
+      else if (member.safe === null) yield* expect(false, `${person} has no personal Safe`);
+      else yield* sameAmount(`${person}'s Safe's USDC`, yield* usdc(made, member.safe, { at: made.door }), 10_000);
     }
   }),
 );

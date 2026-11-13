@@ -1,7 +1,8 @@
-// How a person of the cast signs: with their own key, never in a browser (decisions.md, 23). The cast's keys are
-// the chain's well-known test accounts (decisions.md, 25): the public test mnemonic every Anvil chain starts with.
-// A scenario finds the key whose address is the one an approval names, signs its digest and hands the signature to
-// approval.sign. The digest is signed as it is, with no message prefix: an approval asks its signer to sign `digest`.
+// How a person of the cast signs: with their own key, never in a browser (decisions.md, 23 and 42). The cast's keys
+// are the blueprint's `CAST_KEYS`: among the first accounts of the public test mnemonic. A scenario finds the key
+// whose address is the one an approval names, signs its digest as it is (no prefix) and hands the signature to
+// approval.sign.
+import { Values } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -11,15 +12,11 @@ import { Capxul } from "../client.ts";
 import { present } from "./expect.ts";
 import type { Approval } from "./world.ts";
 
-/** The public test mnemonic of Anvil and Hardhat. Its accounts hold no value anywhere but a test chain. */
-const TEST_MNEMONIC = "test test test test test test test test test test test junk";
-
-/** How many of the mnemonic's accounts a cast may draw its keys from: Anvil's default. */
-const TEST_ACCOUNTS = 10;
-
 /** The well-known test accounts, derived when first needed. */
 export const testAccounts = Effect.sync(() =>
-  Arr.map(Arr.range(0, TEST_ACCOUNTS - 1), (addressIndex) => mnemonicToAccount(TEST_MNEMONIC, { addressIndex })),
+  Arr.map(Arr.range(0, Values.CAST_KEYS.accounts - 1), (addressIndex) =>
+    mnemonicToAccount(Values.CAST_KEYS.mnemonic, { addressIndex }),
+  ),
 );
 
 const lower = Str.toLowerCase;
@@ -40,10 +37,16 @@ export const signWith = (address: string, digest: string) =>
     return yield* Effect.promise(() => account.sign({ hash: digest as `0x${string}` }));
   });
 
-/** The signer of `approval` signs it with their own key, and approval.sign takes the signature as them. */
-export const approve = (approval: Approval) =>
+/**
+ * The signer of `approval` signs it with their own key, and approval.sign takes the signature as them, at the client's
+ * own world's door or `at` another.
+ */
+export const approve = (approval: Approval, at?: string) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
     const signature = yield* signWith(approval.signerAddress, approval.digest);
-    return yield* capxul["approval.sign"]({ approval: approval.id, signature }, { as: approval.signer });
+    return yield* capxul["approval.sign"](
+      { approval: approval.id, signature },
+      at === undefined ? { as: approval.signer } : { as: approval.signer, at },
+    );
   });

@@ -1,18 +1,21 @@
 // doc.create, claim 4: the answer carries the document's hash, and a payment held for the document names the same
-// hash. The starting world's Payment Entry was created before the scenario began, so its doc.create answer is not
-// the scenario's to read; the scenario creates a second Payment Entry against the same invoice and holds that.
+// hash: the hash doc.create answered for the Payment Entry is the `payment` fact's.
+import { Site, startingWorlds } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
-import { scenario } from "../scenario.ts";
-import { same } from "../support/expect.ts";
-import { holdPayment } from "../support/books.ts";
-import { paymentDocuments } from "../support/documents.ts";
+import { given, scenario } from "../scenario.ts";
+import { answers, same } from "../support/expect.ts";
+import { submit } from "../support/site.ts";
 
 export const docCreate4 = scenario(
   { operation: "doc.create", claim: 4 },
   Effect.gen(function* () {
-    const { org, supplier, invoice } = yield* paymentDocuments;
-    const { created, held } = yield* holdPayment(org, { supplier, invoice, amount: 125.5 }, "sam");
-    yield* same("the held payment's document hash", held.payment.documentHash, created.hash);
-    yield* same("the held document", held.name, created.name);
+    const facts = yield* given(startingWorlds.paymentDrafted);
+    const held = yield* answers(
+      `doc.submit of ${facts.payment.name}`,
+      "Held",
+      submit(facts.founded.org, Site.DOCTYPES.paymentEntry, facts.payment.name, { as: "sam" }),
+    );
+    yield* same("the held document", held.name, facts.payment.name);
+    yield* same("the held payment's document hash", held.payment.documentHash, facts.payment.hash);
   }),
 );

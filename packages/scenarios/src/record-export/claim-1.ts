@@ -1,14 +1,13 @@
-// record.export, claim 1: an export carries the lineage and every entry once. Checked: the lineage, the positions 1
-// to the head in order, each entry a declared event carrying exactly its fields, and the restore's world_created
-// last, naming the lineage. Not checked: that entries 1 to the snapshot's position are the first world's own, entry
-// for entry: the client is made for one world's door and cannot export the first world's record.
+// record.export, claim 1: an export carries the lineage and every entry once: the first world's entries up to the
+// snapshot's position, entry for entry as record.export at the first world's door answers them, then the restore's
+// world_created.
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import { expect, scenario } from "../scenario.ts";
 import { present, same } from "../support/expect.ts";
-import { carriesExactly, inOrder } from "../support/record.ts";
-import { fieldOf, record, textOf, view } from "../support/world.ts";
+import { inOrder } from "../support/record.ts";
+import { fieldOf, record, recordOf, textOf, view } from "../support/world.ts";
 
 export const recordExport1 = scenario(
   { operation: "record.export", claim: 1 },
@@ -20,17 +19,17 @@ export const recordExport1 = scenario(
     yield* inOrder(exported.entries, 1);
     yield* same("the number of entries", exported.entries.length, exported.head);
     yield* same("the head", exported.head, lineage.recordSeq + 1);
-    yield* Effect.forEach(exported.entries, carriesExactly, { discard: true });
-    const first = yield* present("the first entry", Option.getOrNull(Arr.head(exported.entries)));
-    yield* same("the first entry's event", first.event, "world_created");
+
+    const first = yield* view(lineage.world);
+    const source = yield* recordOf({ at: first.door });
+    yield* same(
+      `the entries up to ${lineage.recordSeq}, against the first world's`,
+      Arr.take(exported.entries, lineage.recordSeq),
+      Arr.take(source.entries, lineage.recordSeq),
+    );
     const last = yield* present("the last entry", Option.getOrNull(Arr.last(exported.entries)));
     yield* same("the last entry's event", last.event, "world_created");
     yield* same("the world the last entry names", textOf(last.carried, "world"), exported.world);
     yield* same("the parent the last entry names", fieldOf(last.carried, "parent"), lineage);
-    const source = yield* view(lineage.world);
-    yield* expect(
-      source.recordHead >= lineage.recordSeq,
-      `the first world's record head ${source.recordHead} is before the lineage's position ${lineage.recordSeq}`,
-    );
   }),
 );

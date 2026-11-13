@@ -1,17 +1,19 @@
 // world.snapshot.restore, claim 5: a snapshot that does not exist, or a new world's name that is taken, is refused
 // and nothing is made.
+import { startingWorlds } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
 import { Capxul } from "../client.ts";
-import { scenario } from "../scenario.ts";
+import { given, scenario } from "../scenario.ts";
 import { refusal, same, sameInstant } from "../support/expect.ts";
-import { freshName, noWorld, thisView, view } from "../support/world.ts";
+import { freshName, noWorld, view } from "../support/world.ts";
 import { lifetimeWithin } from "./restore.ts";
 
 export const worldSnapshotRestore5 = scenario(
   { operation: "world.snapshot.restore", claim: 5 },
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    const world = yield* thisView;
+    const facts = yield* given(startingWorlds.withSnapshot);
+    const world = yield* view(facts.world.world);
     const lifetimeMinutes = yield* lifetimeWithin(world);
     const as = yield* freshName("rs5");
     const missing = yield* refusal(

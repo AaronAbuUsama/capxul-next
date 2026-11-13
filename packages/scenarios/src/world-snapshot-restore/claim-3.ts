@@ -1,18 +1,39 @@
 // world.snapshot.restore, claim 3: anyone on the platform may restore a template snapshot; only the owner may
-// restore any other. Checked: a restore of the template `m3` is owned by the operator who restored it. Not checked,
-// and the heart of the claim: the second operator restoring `m3`, and being refused `draft` with NotWorldOwner. A
-// call through Capxul acts as the scenario's operator or a person of the world, never as another operator.
+// restore any other.
+import { startingWorlds } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
-import { scenario } from "../scenario.ts";
-import { same } from "../support/expect.ts";
-import { thisView } from "../support/world.ts";
-import { restoreInto } from "./restore.ts";
+import { Capxul } from "../client.ts";
+import { given, scenario } from "../scenario.ts";
+import { refusal, same } from "../support/expect.ts";
+import { freshName, noWorld, view } from "../support/world.ts";
+import { lifetimeWithin, restoreInto } from "./restore.ts";
 
 export const worldSnapshotRestore3 = scenario(
   { operation: "world.snapshot.restore", claim: 3 },
   Effect.gen(function* () {
-    const world = yield* thisView;
-    const { made } = yield* restoreInto(world, "m3", "rs3");
-    yield* same("the owner of the world restored from m3", made.owner, world.owner);
+    const capxul = yield* Capxul;
+    const facts = yield* given(startingWorlds.withSnapshot);
+    const first = yield* view(facts.world.world);
+    const { as, made } = yield* restoreInto(first, "m3", "rs3", "second");
+    yield* same("the owner of the world the second operator restored", made.owner, facts.operators.second);
+    const exported = yield* capxul["record.export"]({ from: null, to: null }, { at: made.door, operator: "second" });
+    yield* same("record.export at its door as the second operator", exported.world, as);
+
+    const draft = yield* freshName("rs3");
+    const lifetimeMinutes = yield* lifetimeWithin(first);
+    const refused = yield* refusal(
+      "the second operator restoring draft",
+      "NotWorldOwner",
+      capxul["world.snapshot.restore"](
+        { world: first.world, snapshot: "draft", as: draft, lifetimeMinutes },
+        { operator: "second" },
+      ),
+    );
+    yield* same(
+      "NotWorldOwner",
+      { world: refused.world, owner: refused.owner },
+      { world: first.world, owner: facts.operators.first },
+    );
+    yield* noWorld(draft);
   }),
 );

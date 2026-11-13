@@ -1,21 +1,27 @@
-// world.snapshot.save, claim 1: a snapshot saves everything that makes the world and leaves it untouched. Checked:
-// the answer, the one new entry, and world.show and the General Ledger read the same before and after. Not checked:
-// the Safes' balances, which only the door's chain RPC shows.
+// world.snapshot.save, claim 1: a snapshot saves everything that makes the world and leaves it untouched.
+import { startingWorlds } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import { Capxul } from "../client.ts";
-import { scenario } from "../scenario.ts";
+import { given, scenario } from "../scenario.ts";
 import { same } from "../support/expect.ts";
-import { ledger } from "../support/books.ts";
-import { entriesAfter, head, northwind, view } from "../support/world.ts";
+import { usdc } from "../support/chain.ts";
+import { ledger } from "../support/site.ts";
+import { entriesAfter, head, view } from "../support/world.ts";
 
 export const worldSnapshotSave1 = scenario(
   { operation: "world.snapshot.save", claim: 1 },
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    const { world, org } = yield* northwind;
+    const facts = yield* given(startingWorlds.paid);
+    const world = yield* view(facts.world.world);
+    const org = facts.founded.org;
     const position = yield* head;
-    const books = yield* ledger(org, {}, "sam");
+    const books = yield* ledger(org, {}, { as: "sam" });
+    const safes = [facts.founded.safe, ...Arr.flatMap(world.cast, (each) => (each.safe === null ? [] : [each.safe]))];
+    const balances = Effect.forEach(safes, (safe) => usdc(world, safe));
+    const before = yield* balances;
+
     const saved = yield* capxul["world.snapshot.save"]({
       world: world.world,
       snapshot: "probe",
@@ -49,6 +55,7 @@ export const worldSnapshotSave1 = scenario(
       world,
     );
     yield* same("world.show's record head after the save", after.recordHead, position + 1);
-    yield* same("the General Ledger after the save", yield* ledger(org, {}, "sam"), books);
+    yield* same("the General Ledger after the save", yield* ledger(org, {}, { as: "sam" }), books);
+    yield* same("the Safes' USDC after the save (the company Safe's first)", yield* balances, before);
   }),
 );
