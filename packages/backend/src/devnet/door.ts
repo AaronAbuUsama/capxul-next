@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import pg from "pg";
+import { rewriteSites } from "@capxul/site-service";
 import type { Database, Sql } from "../platform/db.ts";
 export { Database } from "../platform/db.ts";
 
@@ -45,6 +47,20 @@ export async function rewriteRestoredWorld(db: Database, input: {
     }
     await sql.query("insert into app.world_record (kind,data) values ('restored',$1)", [input]);
   }, true);
+}
+/** sites.restore-identity, on the restored world's migration-authority connection while it is paused: every saved site
+ * moves to its target host and to the world's own bench. A saved site without a target host fails before any row changes. */
+export async function rewriteRestoredSites(adminUrl: string, input: { worldId: string; sites: Record<string, string> }) {
+  const admin = new pg.Client({ connectionString: adminUrl });
+  await admin.connect();
+  try {
+    await admin.query("BEGIN");
+    const saved = new Set((await admin.query("select org_id from app.sites")).rows.map((row) => row.org_id as string));
+    await rewriteSites(admin, { world: input.worldId, bench: input.worldId,
+      sites: Object.fromEntries(Object.entries(input.sites).filter(([org]) => saved.has(org))) });
+    await admin.query("COMMIT");
+  } catch (error) { await admin.query("ROLLBACK").catch(() => {}); throw error; }
+  finally { await admin.end(); }
 }
 export async function exportAbandonedBranch(db: Database) {
   return db.transaction("", async (sql) => ({

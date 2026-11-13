@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { Database, readSnapshotCut, rewriteRestoredWorld, updateWorldClock } from "@capxul/backend/devnet";
+import { Database, readSnapshotCut, rewriteRestoredSites, rewriteRestoredWorld, updateWorldClock } from "@capxul/backend/devnet";
 import { canaryBundlerKeys, prepareBundler, suppliedAlto } from "../modules/bundler/service.ts";
 import { composeBench } from "./bench.ts";
 import { migrateCatalogue, psqlAdmin, readSnapshot, restoreSnapshot, saveSnapshot, worldCatalogue,
@@ -46,6 +46,8 @@ export async function composeWorld(configFile: string) {
     store: {
       updateClock: (world, clock) => store(c, world, (db) => updateWorldClock(db, clock)),
       async rewrite(world, input) {
+        // Site rows first, on the admin connection the decision names: a missing host mapping refuses before the world changes.
+        await rewriteRestoredSites(databaseUrl(c.database.admin, world), input);
         await store(c, world, (db) => rewriteRestoredWorld(db, { ...input, coreUrl: loopback(c.ports.publicCore) }));
         await writeFile(join(world.stateDir, "clock.json"), JSON.stringify(input.clock), { mode: 0o600 });
         c.world = world;

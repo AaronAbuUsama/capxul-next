@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import pg from "pg";
+import { migrateSites } from "@capxul/site-service";
 import { migrateAccess } from "./access/door.ts";
 import { migrateAccounts } from "./accounts/door.ts";
 import { migrateActivity } from "./activity/door.ts";
@@ -58,6 +59,8 @@ try {
   // Access emits sign-in events through the outbox; Accounts references principals; later concepts read both.
   await migrateApprovals(db); await migrateOutbox(db); await migrateAccess(db); await migrateAccounts(db);
   await migratePayments(db); await migrateActivity(db);
+  // Sites' rows, features and document-call receipts reference organizations, so they follow every organizations schema.
+  await migrateSites(db);
   // The world's one durable Mail sink (Access sign-in and Notices) is created here, once, with the world; never on up or restore.
   if (process.env.CAPXUL_MAIL_SINK === "devnet") {
     const { migrateMailSink } = await import("../../devnet/src/devnet/door.ts");

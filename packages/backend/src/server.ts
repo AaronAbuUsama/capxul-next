@@ -30,6 +30,10 @@ export type BearerRoute = {
   render: (error: unknown) => { status: number; body: unknown };
 };
 
+/** A public route that reads and answers its own request, mounted before Core reads any body, inside pause and drain.
+ * `handle` returns false to pass the request on. */
+export type RawRoute = { path: string; handle: (req: IncomingMessage, res: ServerResponse) => Promise<boolean> };
+
 /** One organization's turn of the worker. It never throws: one failing organization must not stall those sorted after it. */
 export async function serveOrganization(db: Database, config: Pick<Config, "chainId" | "finality" | "frappe" | "secret">, org: string, indexed: boolean) {
   try {
@@ -45,11 +49,11 @@ function json(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" });
   res.end(JSON.stringify(body));
 }
-export function createCore(config: Config, provision?: (req: IncomingMessage, res: ServerResponse) => Promise<boolean>,
+export function createCore(config: Config, mounts: (db: Database) => readonly RawRoute[] = () => [],
   routes: (db: Database) => readonly BearerRoute[] = () => []) {
   if (!Number.isSafeInteger(config.finality) || config.finality < 0) throw new Error("FINALITY_DEPTH must be a nonnegative integer");
   const db = new Database(config.database, config.workerDatabase);
-  const bearerRoutes = routes(db);
+  const rawRoutes = mounts(db), bearerRoutes = routes(db);
   let paused = config.startPaused, closing = false, activeRequests = 0, activeDeliveries = 0;
   let activeLoop: Promise<void> = Promise.resolve(), timer: ReturnType<typeof setTimeout> | undefined;
   let pauseWork: Promise<Awaited<ReturnType<typeof readSnapshotCut>>> | undefined;
@@ -69,10 +73,11 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
       return json(res, 200, { ok: true, storage: "postgres", indexer: "ponder", standIn: false });
     }
     if (req.method === "GET" && url.pathname === "/ready") { const r = await ready(); return json(res, r.ok ? 200 : 503, r); }
-    if (provision && url.pathname === "/org/site/provision") {
+    const rawRoute = rawRoutes.find((r) => r.path === url.pathname);
+    if (rawRoute) {
       if (paused) return json(res, 503, { error: "SNAPSHOT_PAUSED" });
       activeRequests++;
-      try { if (await provision(req, res)) return; }
+      try { if (await rawRoute.handle(req, res)) return; }
       finally { activeRequests--; notifyDrain(); }
     }
     const bearerRoute = req.method === "POST" ? bearerRoutes.find((r) => r.paths?.includes(url.pathname) || r.prefixes?.some((p) => url.pathname.startsWith(p))) : undefined;

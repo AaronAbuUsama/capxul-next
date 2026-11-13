@@ -4,7 +4,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { Effect } from "effect";
 import { isAddress } from "viem";
 import { DOCUMENT_PATH, validDocument, validHeldDocument, validReport, type DocumentInput } from "@capxul/sdk";
-import { json, readBody, ServiceError } from "./http.ts";
+import { json, logCause, readBody, ServiceError } from "./http.ts";
 import type { SitesStore } from "./store.ts";
 
 type Row = Record<string, unknown>;
@@ -109,6 +109,7 @@ export function createDocumentHandler(options: DocumentOptions) {
         outcome: validHeldDocument(data) ? "held" : "ok", refusal: null, trace });
       json(res, 200, data);
     } catch (error) {
+      logCause("document", trace, error);
       const failure = error instanceof ServiceError ? error : error instanceof SyntaxError
         ? refused("INVALID_INPUT", "Invalid JSON") : refused("PROVIDER_ERROR", "Document service is unavailable; retry the same call id");
       if (input && personId) {
