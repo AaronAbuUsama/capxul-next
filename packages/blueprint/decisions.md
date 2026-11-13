@@ -5,7 +5,7 @@ why. The old blueprint's records (`docs/thin-line/operations.md` on the branch `
 as a list of behaviours to consider, not as canon. Its names, flags, shapes and refusal codes were not kept for their
 own sake.
 
-Questions only Aaron can answer are at the end, under "For Aaron". The contract compiles with the recommended
+Questions only Aaron can answer are at the end, with his answers. The contract compiled with the recommended
 option of each, marked provisional.
 
 ## Rules set by Aaron (13 November 2026, through the lead)
@@ -120,7 +120,7 @@ rate 1: the old `rate` is dropped, since nothing in the thin line needs it and s
 clock already drifts across daylight saving. A warp is by a number of seconds or to an instant, forward only.
 
 **21. Export.** Chosen: `record.export` answers the entries; the command line writes files. It is the owner's, takes
-an optional range, and is refused on a real world (For Aaron, question 4).
+an optional range, and is refused on a real world (Aaron's answers, 4).
 
 ## Signing, payments and the starting state
 
@@ -141,10 +141,10 @@ once, so the answer can be final. On a public chain (phase 4) confirmation becom
 
 **25. The cast.** The old journey assumed sign-in, a member and a second Director that no step made. Chosen: every
 private and shared world is born with a cast: dana, eli, sam and olga with claimed personal Safes holding 10,000 test
-USDC, and pat with none. Their keys are the chain's well-known test accounts. A real world has no cast.
+USDC, and pat with none. Their keys are the chain's well-known test accounts. The test USDC comes from the token's open mint function, the world's faucet (Aaron's answers, 3). A real world has no cast.
 
-**26. Founding with a board.** Chosen, provisionally: `org.create` takes the founding Directors, the threshold, the
-founding members and the founder's opening capital (For Aaron, questions 1 and 3). With the cast and
+**26. Founding with a board.** Chosen, and agreed by Aaron on 13 November 2026: `org.create` takes the founding Directors, the threshold, the
+founding members and the founder's opening capital (Aaron's answers, 1 and 3). With the cast and
 `approval.sign`, every starting world is then made by the twelve operations alone.
 
 **27. The starting worlds.** Chosen: ten, declared in `src/starting-worlds.ts` and listed in claims.md: `nothing`,
@@ -177,32 +177,17 @@ the larger number until a run measures it). The others are in claims.md, each wi
 their runs are measured warm. `approval.sign` also leaves out confirmation on a public chain, which does not arise
 until phase 4. No budget leaves out a person signing, because no operation waits for one.
 
-## For Aaron
+## Answered by Aaron, 13 November 2026
 
-**Question 1. Can a company be founded with more than one Director and with members?** The thin line needs a second
-Director and a member, and no step of it seats them.
+**1. Founding a company in one step.** Yes: `org.create` takes the founding Directors, the approval threshold and the
+founding members.
 
-- A. `org.create` takes the founding Directors, the threshold and the founding members. *(Recommended. Provisional
-  in this contract.)* Every starting world is then made by the twelve operations.
-- B. Add operations that seat a Director and add a member, making the thin line fourteen operations.
-- C. Starting worlds write Directors and members straight into the database and the chain, bypassing the door.
+**2. What a private world may cost.** Agreed: at most 7 days and 5 live worlds per owner (`WORLD_LIMITS`).
 
-**Question 2. What may a private world cost?** Each live world holds a Neon branch, containers and a site.
+**3. How a company's Safe gets its first money.** The test tokens have open mint functions, which act as faucets. In
+test worlds, the founder's personal Safe is funded from the faucet when the world's cast is made; the founder's
+opening capital moves from that Safe to the company Safe when the setup is signed, and is booked as the founder's
+capital, so the books agree with the chain. How it is done is ours to choose; the books coming out right is the rule.
 
-- A. At most 24 hours and 3 live worlds per owner.
-- B. At most 7 days and 5 live worlds per owner. *(Recommended. Provisional: `WORLD_LIMITS`.)* Long enough to keep a
-  template world for a week of runs.
-- C. At most 30 days and 10 live worlds per owner.
-
-**Question 3. How does a new company's Safe get its first money?**
-
-- A. The founder's opening capital, moved from the founder's Safe when the setup is signed. *(Recommended.
-  Provisional.)* It is booked as the founder's capital.
-- B. A separate payment after founding, which brings `payment.send` back into the thin line.
-- C. In test worlds the company Safe receives test USDC at founding; real worlds decide later.
-
-**Question 4. May a real world's record be exported?** It holds every company's history in that world.
-
-- A. Not until a rule for the companies' consent exists. *(Recommended. Provisional: `ExportNotAllowed`.)*
-- B. Yes, when every company in the world has consented.
-- C. Yes, by the platform's owner only.
+**4. Exporting a real world's record.** Not asked yet: it matters only for real worlds (phase 4). Until then
+`record.export` refuses on a real world (`ExportNotAllowed`).

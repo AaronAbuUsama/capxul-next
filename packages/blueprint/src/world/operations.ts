@@ -11,7 +11,7 @@ import { declare } from "../operation.ts";
 import { Clock, ClockMode, Grade, Instant, OperatorName, Parent, Seq, SnapshotName, WorldName, WorldView } from "../values.ts";
 import { exampleWorld } from "./example.ts";
 
-/** The platform's limits on worlds. Provisional: decisions.md, "For Aaron", question 2. */
+/** The platform's limits on worlds. Agreed by Aaron on 13 November 2026: decisions.md, "Answered by Aaron", 2. */
 export const WORLD_LIMITS = { lifetimeMinutes: 7 * 24 * 60, liveWorldsPerOwner: 5 } as const;
 
 const Lifetime = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: WORLD_LIMITS.lifetimeMinutes }));
