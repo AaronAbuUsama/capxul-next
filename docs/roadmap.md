@@ -22,7 +22,7 @@ change, and the change is written here with its date.
 | The old thin line is not canon | Agreed 13 November 2026: the old thin line and blueprint records are a list of behaviours to consider. Each operation is designed again. Payloads and results are fully typed: nothing carries JSON text in a string to be parsed later. |
 | Spend cap | Agreed 13 November 2026: at most $10 a day across Cloudflare and Neon. A world is destroyed after its run, so normal use stays far below it. |
 | Hono | Accepted 13 November 2026 as a non-Effect dependency while Ponder is used, because Ponder's API file requires it. Looked at again when Ponder is. |
-| Test addresses | Agreed 13 November 2026: until `capxul.com` is moved to Cloudflare, rehearsals put test addresses on `abuusama.dev`, using only names that start with `cx-`, removed after each rehearsal. `capxul.com` is the domain for real worlds; moving its DNS is Aaron's step. |
+| Test addresses | Agreed 13 November 2026: rehearsals put test addresses under `worlds.abuusama.dev` and are checked over HTTP, because a certificate for a second level needs a paid Cloudflare add-on; every record made is removed after. Real worlds use `capxul.com` once its DNS moves to Cloudflare (Aaron's step), with each site one level under the domain (`<company>-<world>.capxul.com`), so Cloudflare's free certificate covers it. |
 | Convergence | The threads on `main` continue until phase 1 passes here. Then `master` becomes the trunk and they move over journey by journey. |
 
 ## World lifecycle rules, enforced by code
