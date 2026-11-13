@@ -18,6 +18,7 @@ import {
   OrgNotFound,
   PersonNotFound,
   SetupUnfinished,
+  NotImplemented,
 } from "../errors.ts";
 import { declare, declareOutcomes, outcome } from "../operation.ts";
 import {
@@ -137,6 +138,7 @@ const createRpc = Rpc.make("org.create", {
     SetupUnfinished,
     PersonNotFound,
     InsufficientBalance,
+    NotImplemented,
   ]),
 });
 
@@ -226,7 +228,15 @@ export const memberGrant = declare({
       /** One approval per Director. The change is applied once `threshold` of them are signed and it executes. */
       approvals: Schema.Array(Approval),
     }),
-    error: Schema.Union([OrgNotFound, NotADirector, NotAMember, AlreadyHeld, ChangeWaiting, MemberHasNoSafe]),
+    error: Schema.Union([
+      OrgNotFound,
+      NotADirector,
+      NotAMember,
+      AlreadyHeld,
+      ChangeWaiting,
+      MemberHasNoSafe,
+      NotImplemented,
+    ]),
   }),
   emits: [
     {

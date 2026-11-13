@@ -1,7 +1,7 @@
 // The concept "reports": a company's reports, run on its site as the caller's own site user. Reads only.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { NoSiteUser, OrgNotFound, SiteRefused, SiteUnavailable } from "../errors.ts";
+import { NoSiteUser, OrgNotFound, SiteRefused, SiteUnavailable, NotImplemented } from "../errors.ts";
 import { declare } from "../operation.ts";
 import { Fields, OrgId } from "../values.ts";
 
@@ -19,7 +19,7 @@ export const run = declare({
       /** One row per line, keyed by the columns' `field`. */
       rows: Schema.Array(Fields),
     }),
-    error: Schema.Union([OrgNotFound, NoSiteUser, SiteRefused, SiteUnavailable]),
+    error: Schema.Union([OrgNotFound, NoSiteUser, SiteRefused, SiteUnavailable, NotImplemented]),
   }),
   emits: [],
   budget: {

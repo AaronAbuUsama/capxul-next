@@ -42,9 +42,10 @@ export interface Emitted<R extends Rpc.AnyWithProps, E extends EventClass, S = S
 export type Wait = "waking a parked world" | "a person signing" | "chain confirmation on a public chain";
 
 /**
- * The one speed budget of an operation, declared here and nowhere else. It bounds the p95 of the server's own span
- * for the call (from the request decoded to the answer encoded) over warm runs, less the waits it names. Internal
- * steps have no budget: they are spans, reported as a breakdown of this time.
+ * The one speed budget of an operation, declared here and nowhere else. It is the target for the p95 of the server's
+ * own span for the call (from the request decoded to the answer encoded) over warm runs, less the waits it names.
+ * Internal steps have no budget: they are spans, reported as a breakdown of this time. A budget is recorded next to
+ * every measured time and is not enforced: nothing fails on speed until it is set from measured runs.
  */
 export interface Budget {
   readonly ms: number;
