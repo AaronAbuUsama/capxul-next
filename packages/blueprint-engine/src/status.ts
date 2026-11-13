@@ -25,6 +25,22 @@ export type RunEnvironment = typeof RunEnvironment.Type;
 const RelativePath = Nonempty.pipe(Schema.check(Schema.isPattern(/^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))(?!.*[:\\]).+$/)));
 export const ScreenEvidence = Schema.Struct({ screen: Nonempty, path: RelativePath, source: Nonempty, assertion: Nonempty });
 export type ScreenEvidence = typeof ScreenEvidence.Type;
+/** The value a screen source names: `file#pointer`, the pointer per RFC 6901 ("" or "/a/b", with ~1 for "/" and ~0 for "~"),
+ * following only own properties. `undefined` when the pointer is malformed or names nothing. */
+export const pointerValue = (doc: unknown, pointer: string): unknown => {
+  if (pointer !== "" && !pointer.startsWith("/")) return undefined;
+  let at = doc;
+  for (const token of pointer === "" ? [] : pointer.slice(1).split("/").map((t) => t.replaceAll("~1", "/").replaceAll("~0", "~"))) {
+    // An array is entered only by a canonical index, so its own length property is never a value.
+    if (at === null || typeof at !== "object" || (Array.isArray(at) && !/^(0|[1-9]\d*)$/.test(token)) || !Object.hasOwn(at, token)) return undefined;
+    at = (at as Record<string, unknown>)[token];
+  }
+  return at;
+};
+
+/** A screen capture is a PNG or JPEG by its magic bytes, so a JSON source or a manifest cannot stand in for one. */
+export const isScreenImage = (bytes: Uint8Array): boolean =>
+  [[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], [0xff, 0xd8, 0xff]].some((magic) => magic.every((byte, i) => bytes[i] === byte));
 
 /** Written before execution, finalized after it. Missing or running receipts cannot establish completion. */
 export const RunReceipt = Schema.Struct({

@@ -96,3 +96,20 @@ test("wave one admits thirteen concepts but queues a fourteen-concept journey wi
     assert.ok(held.every((s) => s.wave === (count === 13 ? 1 : 2)));
   }
 });
+
+test("slice zero's gate takes its records' claims at every level, their invariants, concepts, system and environments", async () => {
+  const { loadTarget } = await import("../scripts/target.ts");
+  const target = await loadTarget();
+  assert.ok(target.ok);
+  const real = target.blueprint, gate = new Set(sliceZeroRequired(real));
+  // Each rule, with a neighbour it must leave out (portal.slice-zero-measured-gate).
+  for (const [id, wanted] of [
+    ["log:operation_row/redacted", true], ["ins:thin_line_funnel/answers", true],
+    ["inv:time.one-now", true], ["inv:books.feed-gap-free", true], ["inv:payments.escrow-two-ways-out", true],
+    ["sys:imports/payments", true], ["sys:imports/banking", false], ["sys:generated", true],
+    ["env:devnet/smoke", true], ["env:worlds/boot", true], ["env:staging/boot", false], ["env:shared-world/smoke", false],
+  ] as const) assert.equal(gate.has(id), wanted, id);
+  // Nothing the gate required before widening leaves it: every L1, screen and alert claim on a foundation record.
+  const reach = new Set(slicesOf(real, { conceptOf: new Map() }).slices[0]!.records);
+  for (const e of real.evals.filter((e) => reach.has(e.subject) && (e.level === "L1" || /^(scr|alr):/.test(e.id)))) assert.ok(gate.has(e.id), e.id);
+});

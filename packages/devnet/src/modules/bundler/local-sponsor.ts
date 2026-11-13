@@ -110,8 +110,24 @@ function packed(op: Operation, paymaster: Address, paymasterData: Hex) {
   };
 }
 
+function loopback(url: string): void {
+  const u = new URL(url);
+  if (u.protocol !== "http:" || u.hostname !== "127.0.0.1" || u.username || u.password) throw new Error("local sponsor requires an unauthenticated loopback chain RPC");
+}
+
+/** Test-only admission from configuration alone, checked by the handler as well as the server. The live chain id,
+ * paymaster EntryPoint and listed signer are read from the chain only when startLocalSponsor starts the server. */
+function admit(config: LocalSponsorConfig): void {
+  if (config.admission !== "test-only") throw new Error("the local sponsor requires explicit test-only admission");
+  loopback(config.chain.rpcUrl);
+  if (config.chain.chainId !== CHAIN_ID) throw new Error("local sponsor requires disposable chain 84532");
+  if (!config.senders.length || !config.senders.every(isAddress)) throw new Error("local sponsor needs its admitted Safes");
+  if (!Number.isSafeInteger(config.maxWindowSeconds) || config.maxWindowSeconds <= 0) throw new Error("local sponsor needs a positive maximum window");
+}
+
 /** JSON-RPC methods of the sponsor, without HTTP. Exported for the transport-free unit tests. */
 export function localSponsorHandler(config: LocalSponsorConfig): (method: string, params: unknown) => Promise<unknown> {
+  admit(config);
   const signer = privateKeyToAccount(config.signerKey);
   return async (method, params) => {
     if (!Array.isArray(params)) throw badParams();
@@ -140,11 +156,6 @@ export function localSponsorHandler(config: LocalSponsorConfig): (method: string
     const hash = await config.chain.client.readContract({ address: config.paymaster, abi: singletonPaymaster07Abi, functionName: "getHash", args: [0, packed(op, config.paymaster, data)] });
     return { paymaster: config.paymaster, paymasterData: concat([data, await signer.signMessage({ message: { raw: hash } })]) };
   };
-}
-
-function loopback(url: string): void {
-  const u = new URL(url);
-  if (u.protocol !== "http:" || u.hostname !== "127.0.0.1" || u.username || u.password) throw new Error("local sponsor requires an unauthenticated loopback chain RPC");
 }
 
 /** Deploys pinned SingletonPaymaster07 with the disposable signer as owner, manager and only signer. Disposable chains only. */
@@ -176,18 +187,14 @@ async function serve(req: IncomingMessage, res: ServerResponse, handle: (method:
 
 /** Starts the in-process loopback sponsor after checking the deployed paymaster lists its disposable signer. */
 export async function startLocalSponsor(config: LocalSponsorConfig): Promise<LocalSponsor> {
-  if (config.admission !== "test-only") throw new Error("the local sponsor requires explicit test-only admission");
-  loopback(config.chain.rpcUrl);
-  if (config.chain.chainId !== CHAIN_ID || await config.chain.client.getChainId() !== CHAIN_ID) throw new Error("local sponsor requires disposable chain 84532");
-  if (!config.senders.length || !config.senders.every(isAddress)) throw new Error("local sponsor needs its admitted Safes");
-  if (!Number.isSafeInteger(config.maxWindowSeconds) || config.maxWindowSeconds <= 0) throw new Error("local sponsor needs a positive maximum window");
+  const handle = localSponsorHandler(config);
+  if (await config.chain.client.getChainId() !== CHAIN_ID) throw new Error("local sponsor requires disposable chain 84532");
   const signer = privateKeyToAccount(config.signerKey).address;
   const code = await config.chain.client.getCode({ address: config.paymaster });
   if (!code || code === "0x") throw new Error("paymaster is not deployed");
   const read = { address: config.paymaster, abi: singletonPaymaster07Abi } as const;
   if (!same(await config.chain.client.readContract({ ...read, functionName: "entryPoint" }), config.entryPoint)) throw new Error("paymaster uses another EntryPoint");
   if (!await config.chain.client.readContract({ ...read, functionName: "signers", args: [signer] })) throw new Error("paymaster does not list the disposable signer");
-  const handle = localSponsorHandler(config);
   const server = createServer((req, res) => { void serve(req, res, handle); });
   await new Promise<void>((resolve, reject) => { server.once("error", reject); server.listen(config.port ?? 0, "127.0.0.1", resolve); });
   const { port } = server.address() as { port: number };

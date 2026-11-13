@@ -72,11 +72,14 @@ const approval = (state: string, signed: boolean) => ({
   network: { chainId: CHAIN_ID, name: "Capxul devnet", explorerUrl: "http://localhost:3000/explorer" },
   sender: ADDRESS.northwind,
   calls: [{ to: ADDRESS.brightside, value: "0", data: `0xa9059cbb${"00".repeat(36)}` }],
+  nonceKey: "1",
+  deadline: t("2026-02-11T09:00:00Z"),
+  replacement: null,
   signer: { address: ADDRESS.marcus },
   operation: {
     userOperation: {
       sender: ADDRESS.northwind,
-      nonce: "7",
+      nonce: "18446744073709551623",
       callData: `0x34fcd5be${"ab".repeat(32)}`,
       callGasLimit: "120000",
       verificationGasLimit: "150000",
