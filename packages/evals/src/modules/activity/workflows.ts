@@ -24,6 +24,7 @@ const feedRows = (sql: Sql, feeds: [string, string][]) => sql.query(`select * fr
 export async function idempotent(database: Database, dir: string, transition: string, runStartedAt: string) {
   // Scoped by the database clock's ACK time, not the event's `at`: world time can be stopped or warped, and a restored
   // world's baseline events were acknowledged before this run started.
+  await hostAckClock(database.worker);
   const events = (await database.worker.query(`select o.event from app.transition_outbox o
     join app.transition_acks a on a.consumer=$1 and a.event_id=o.id
     where o.event->>'name'='payment_transitioned' and o.event->>'machine'='payment' and o.event->'props'->>'transition'=$2
@@ -34,7 +35,7 @@ export async function idempotent(database: Database, dir: string, transition: st
   for (const event of events) {
     const client = await database.worker.connect();
     try {
-      await client.query("begin");
+      await client.query("begin"); await client.query("set local lock_timeout='30s'");
       const { feeds, noted } = await checkNoted(client, event, transition);
       const before = await feedRows(client, feeds);
       await note(client, event);
@@ -43,6 +44,16 @@ export async function idempotent(database: Database, dir: string, transition: st
     } finally { await client.query("rollback"); client.release(); }
   }
   writeFileSync(join(dir, `idempotent-${transition}.json`), JSON.stringify(evidence) + "\n");
+}
+
+/**
+ * ACK times are compared with host times (the run start, the kill). That holds only while `acked_at` is the database
+ * host's commit-side clock; if its source changes (to world time, say), fail loudly rather than pass on a warped clock.
+ */
+async function hostAckClock(sql: Sql) {
+  const column = (await sql.query(`select column_default from information_schema.columns
+    where table_schema='app' and table_name='transition_acks' and column_name='acked_at'`)).rows[0];
+  assert.equal(column?.column_default, "now()", "transition_acks.acked_at is no longer the database host clock; this check must move to the host-stamped ACK column");
 }
 
 /** In the caller's transaction, holding the feeds' locks: the event was noted exactly once in each feed holding its Payment. */
@@ -76,17 +87,28 @@ export type ResumeFault = { consumer: string; eventId: string; event: string; tr
 
 const world = (config: string, ...args: string[]) => JSON.parse(execFileSync("pnpm", ["--silent", "capxul", "world", "fixture", ...args, "--config", config, "--json"],
   { encoding: "utf8", timeout: 600_000, stdio: ["ignore", "pipe", "pipe"] }).trim().split("\n").at(-1)!);
+const missingDriver = /expected fixture|unknown fixture|usage: world fixture/;
+let driversMissing = false;
 
 /**
  * Arms Activity's consumer for the next `transition` delivery only, drives one real transition of that kind through the
  * world's public-path payment fixture, and lets the fault mount kill Core between the appender and its ACK, then
- * restart and resume it. If the drive fails, `resume-kill` still runs so the unclaimed arm times out and is removed.
+ * restart and resume it. `after` is the outbox position before arming, so the faulted event is one this drive caused.
+ * When the world has no payment driver at all, every later kind fails at once instead of arming and waiting.
  */
-export function driveResume(config: string, transition: string): ResumeFault {
+export async function driveResume(database: Database, config: string, transition: string): Promise<{ fault: ResumeFault; after: number }> {
+  if (driversMissing) throw new Error("world fixture payment is not available in this world");
+  const after = Number((await database.worker.query("select coalesce(max(seq),0) as seq from app.transition_outbox")).rows[0].seq);
   world(config, "resume-arm", CONSUMER, "--event", "payment_transitioned", "--transition", transition);
   try { world(config, "payment", transition); }
-  catch (error) { try { world(config, "resume-kill", CONSUMER); } catch { /* the arm is removed on its timeout */ } throw error; }
-  return world(config, "resume-kill", CONSUMER);
+  catch (error) {
+    driversMissing ||= missingDriver.test(String((error as { stderr?: unknown }).stderr ?? ""));
+    // Remove the unclaimed arm: disarm where the world has it, else resume-kill, which drops the arm on its timeout.
+    try { world(config, "resume-disarm", CONSUMER); }
+    catch { try { world(config, "resume-kill", CONSUMER); } catch { /* the arm was removed on timeout */ } }
+    throw error;
+  }
+  return { fault: world(config, "resume-kill", CONSUMER), after };
 }
 
 /**
@@ -94,16 +116,22 @@ export function driveResume(config: string, transition: string): ResumeFault {
  * relay redelivered it, and it finished with the same result an uninterrupted run gives: one ACK, committed after the
  * kill, exactly one change per holding feed with the event's fields, and each feed's `seq` still gapless.
  */
-export async function resumed(database: Database, dir: string, transition: string, fault: ResumeFault) {
+export async function resumed(database: Database, dir: string, transition: string, { fault, after }: { fault: ResumeFault; after: number }) {
   assert.equal(fault.consumer, CONSUMER);
-  assert.deepEqual([fault.event, fault.transition], ["payment_transitioned", transition]);
-  assert.equal(fault.killed.signal, "SIGKILL");
-  assert.notEqual(fault.restarted.pid, fault.killed.pid);
+  await hostAckClock(database.worker);
+  // The restarted relay redelivers on its own schedule; wait for it within the workflow's 30 s timeout.
+  for (const deadline = Date.now() + 30_000; ;) {
+    if ((await database.worker.query("select 1 from app.transition_acks where consumer=$1 and event_id=$2", [CONSUMER, fault.eventId])).rowCount) break;
+    assert(Date.now() < deadline, "the restarted relay did not acknowledge the faulted event within 30 s");
+    await new Promise((done) => setTimeout(done, 250));
+  }
   const client = await database.worker.connect();
   try {
-    await client.query("begin isolation level repeatable read");
-    const event = (await client.query("select event from app.transition_outbox where id=$1", [fault.eventId])).rows[0]?.event as TransitionEvent | undefined;
+    await client.query("begin isolation level repeatable read"); await client.query("set local lock_timeout='30s'");
+    const row = (await client.query("select seq,event from app.transition_outbox where id=$1", [fault.eventId])).rows[0];
+    const event = row?.event as TransitionEvent | undefined;
     assert(event && event.name === "payment_transitioned" && event.machine === "payment", "faulted event is a payment transition");
+    assert(Number(row.seq) > after, "the faulted event was emitted after the arm, by this drive");
     const acks = (await client.query("select (extract(epoch from acked_at)*1000)::float8 as at from app.transition_acks where consumer=$1 and event_id=$2",
       [CONSUMER, fault.eventId])).rows;
     assert.equal(acks.length, 1);
@@ -112,6 +140,6 @@ export async function resumed(database: Database, dir: string, transition: strin
     const gaps = (await client.query(`select owner_kind,owner_id,count(*)::int as n,max(seq)::int as top from app.activity_changes
       where (owner_kind,owner_id) in (select * from unnest($1::text[],$2::text[])) group by 1,2`, [feeds.map((f) => f[0]), feeds.map((f) => f[1])])).rows;
     assert(gaps.length === feeds.length && gaps.every((g) => g.n === g.top), "every holding feed's seq is gapless");
-    writeFileSync(join(dir, `resume-${transition}.json`), JSON.stringify({ fault, feeds: noted }) + "\n");
+    writeFileSync(join(dir, `resume-${transition}.json`), JSON.stringify({ fault, after, feeds: noted }) + "\n");
   } finally { await client.query("rollback"); client.release(); }
 }

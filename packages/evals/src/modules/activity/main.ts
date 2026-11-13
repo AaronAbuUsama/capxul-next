@@ -70,7 +70,7 @@ if (process.argv.includes("--list")) {
     await emit("ACTIVITY.cross-owner", async () => { assert(feeds); await crossOwner(database, dir, feeds); });
     await emit("ACTIVITY.writer-acl", () => writerAcl(database, dir));
     // Resume first: each drives one more real in-run transition that the idempotency samples then include.
-    for (const [transition, name] of resumeChecks) await emit(name, () => resumed(database, dir, transition, driveResume(configPath, transition)));
+    for (const [transition, name] of resumeChecks) await emit(name, async () => resumed(database, dir, transition, await driveResume(database, configPath, transition)));
     for (const [transition, name] of idempotentChecks) await emit(name, () => idempotent(database, dir, transition, receipt.at));
   } catch { failed = true; }
   finally { await db?.close(); }
