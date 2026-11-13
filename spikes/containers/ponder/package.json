@@ -1,0 +1,8 @@
+{
+  "name": "capxul-containers-spike-ponder",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "start": "ponder start --schema ponder --port 42069 --hostname 0.0.0.0" },
+  "dependencies": { "hono": "4.10.4", "ponder": "0.18.6", "viem": "2.55.18" }
+}
