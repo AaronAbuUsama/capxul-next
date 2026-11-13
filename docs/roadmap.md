@@ -59,7 +59,7 @@ unblock it.
 | 0.4 | 0 | Alchemy state is shared, so any container can see and destroy any world | 0.1 | In progress | | | | |
 | 0.5 | 0 | Expired worlds are deleted without anyone remembering to, Cloudflare resources included | 0.4 | In progress | | | | |
 | 0.6 | 0 | A world's chain and index run as Cloudflare Containers against its Neon branch and stop when idle | 0.2 | In progress | | | | |
-| 0.7 | 0 | One operation goes from an Effect contract, to a scenario that fails on an empty handler, to a pass | 0.2 | Not started | | | | |
+| 0.7 | 0 | One operation goes from an Effect contract, to a scenario that fails on an empty handler, to a pass | 0.2 | In progress | | | | |
 | 0.8 | 0 | Two worlds at different clocks share one Frappe bench | | Not started | | | | |
 | 0.9 | 0 | A scenario run from a template world is timed end to end | 0.6, 0.7 | Not started | | | | |
 | 1.1 | 1 | The thin line's operations are declared in the contract and the server compiles with empty handlers | 0.7 | Not started | 0/12 | | | |
