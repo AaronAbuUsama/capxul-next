@@ -50,11 +50,11 @@ export const WorldBranch = Effect.gen(function* () {
   return yield* Neon.Branch(BRANCH_ID, { project, name: stage, expiresAt, ...parent });
 });
 
-/**
- * Cloudflare's pooled way in to the world's branch. A Core Worker binds this; it never sees the connection string.
- * Its query cache is off: a handler reads what it has just written.
- */
+/** Cloudflare's pooled way in to the world's branch. A Core Worker binds this; it never sees the connection string. */
 export const WorldDatabase = Effect.gen(function* () {
   const branch = yield* WorldBranch;
+  // Its query cache is off, as Core's own stage's is (packages/core, src/stack/database.ts): a read just after a write
+  // must see it. With the cache on, approval.sign read a subject's approvals as they were before the last signature
+  // (the chain journey in w-cops3).
   return yield* Cloudflare.Hyperdrive.Connection(HYPERDRIVE_ID, { origin: branch.origin, caching: { disabled: true } });
 });

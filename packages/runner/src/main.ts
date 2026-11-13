@@ -19,6 +19,7 @@ import * as Str from "effect/String";
 import * as FetchHttpClient from "effect/http/FetchHttpClient";
 import { RunnerFailure } from "./failure.ts";
 import { runInWorld } from "./in-world.ts";
+import { chainJourney } from "./chain-journey.ts";
 import { door, runPlan, scenarioPlan, type Plan } from "./run.ts";
 import { OtherWorlds } from "./world/existing.ts";
 import { platformFor } from "./worlds/platform.ts";
@@ -29,7 +30,7 @@ import { Settings } from "./settings.ts";
 import { ranAsExpected, type Expectation, type Mode } from "./summary.ts";
 
 const USAGE =
-  "usage: door [--world=<name>] | scenarios [--one-stage] [--expect=pass|not-implemented] [name...] | starting-worlds";
+  "usage: door [--world=<name>] | chain --world=<name> | scenarios [--one-stage] [--expect=pass|not-implemented] [name...] | starting-worlds";
 const [command, ...rest] = process.argv.slice(2);
 const WORLD_FLAG = "--world=";
 const world = Arr.findFirst(rest, Str.startsWith(WORLD_FLAG)).pipe(Option.map(Str.slice(WORLD_FLAG.length)));
@@ -62,6 +63,8 @@ const plans = (settings: Settings): Effect.Effect<ReadonlyArray<Plan>, RunnerFai
   if (command === "door") return flags.length === 0 && names.length === 0 ? Effect.succeed([door]) : usage(USAGE);
   if (command === "starting-worlds")
     return flags.length === 0 && names.length === 0 ? Effect.succeed([]) : usage(USAGE);
+  if (command === "chain")
+    return flags.length === 0 && names.length === 0 ? Effect.succeed([chainJourney]) : usage(USAGE);
   if (command !== "scenarios") return usage(USAGE);
   const chosen = names.length === 0 ? scenarios : Arr.filter(scenarios, (each) => Arr.contains(names, each.name));
   if (chosen.length < names.length)
@@ -73,11 +76,11 @@ const plans = (settings: Settings): Effect.Effect<ReadonlyArray<Plan>, RunnerFai
   );
 };
 
-const theDoor = (settings: Settings) =>
+const theDoor = (settings: Settings, plan: Plan = door) =>
   Effect.gen(function* () {
     const record = Option.isSome(world)
-      ? yield* runInWorld(door, settings, world.value)
-      : yield* runPlan(door, settings);
+      ? yield* runInWorld(plan, settings, world.value)
+      : yield* runPlan(plan, settings);
     yield* Effect.log(
       `${record.outcome}: ${record.name} (stage ${record.stage} ${record.afterwards.stage}; create ${record.ms.create} ms, run ${record.ms.run} ms, checks ${record.ms.checks} ms, destroy ${record.ms.destroy} ms) -> ${settings.records}/${record.stage}/`,
     );
@@ -139,9 +142,14 @@ const theStartingWorlds = (settings: Settings) =>
 const program = Effect.gen(function* () {
   const settings = yield* Settings;
   const chosen = yield* plans(settings);
-  if (Option.isSome(world) && command !== "door") return yield* usage(`--world is for the door only; ${USAGE}`);
+  if (Option.isSome(world) && (command === "scenarios" || command === "starting-worlds"))
+    return yield* usage(`--world is for the door and the chain journey only; ${USAGE}`);
+  if (command === "chain" && Option.isNone(world))
+    return yield* usage(`chain needs --world=<name>: a stage has no chain; ${USAGE}`);
   if (command === "starting-worlds") return yield* theStartingWorlds(settings);
-  return yield* command === "door" ? theDoor(settings) : theScenarios(settings, chosen);
+  return yield* command === "scenarios"
+    ? theScenarios(settings, chosen)
+    : theDoor(settings, command === "chain" ? chainJourney : door);
 });
 
 // Bun's fetch gives up on any answer after five minutes; a world.create can take longer when Cloudflare is slow, and every

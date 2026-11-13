@@ -110,19 +110,10 @@ def run_wizard(company_name, currency, country):
     return setup_complete(args)
 
 
-def configure_site(slug, company_name, safe_address, admin_email, core_url, secret, currency="USD", country="United Kingdom"):
-    frappe.set_user("Administrator")
-    print("wizard:", run_wizard(company_name, currency, country))
-    ensure_defaults()
-    if not frappe.db.exists("Company", company_name):  # a site made from the company template: its one Company is the template's; it takes the new name
-        old = frappe.db.get_value("Company", {})
-        if old:
-            frappe.rename_doc("Company", old, company_name, force=True)
-            frappe.db.commit()
-    company = frappe.db.get_value("Company", {"company_name": company_name}) or frappe.db.get_value("Company", {})
+def ensure_safe_account(company, safe_address, currency="USD"):
+    """A bank, a ledger account that stands for the Safe, and the Bank Account that ties them together. Answers the
+    account's name and the Bank Account's. Idempotent."""
     abbr = frappe.db.get_value("Company", company, "abbr")
-
-    # a bank, a ledger account that stands for the Safe, and the Bank Account that ties them together
     if not frappe.db.exists("Bank", "Capxul Safe"):
         frappe.get_doc({"doctype": "Bank", "bank_name": "Capxul Safe"}).insert()
     acct_name = f"Capxul Safe (USDC) - {abbr}"
@@ -137,6 +128,20 @@ def configure_site(slug, company_name, safe_address, admin_email, core_url, secr
         frappe.get_doc({"doctype": "Bank Account", "account_name": f"Safe {safe_address[:10]}", "bank": "Capxul Safe", "account": acct_name,
                         "company": company, "is_company_account": 1, "is_default": 1, "integration_id": safe_address}).insert()
     ba = frappe.db.get_value("Bank Account", {"integration_id": safe_address})
+    return acct_name, ba
+
+
+def configure_site(slug, company_name, safe_address, admin_email, core_url, secret, currency="USD", country="United Kingdom"):
+    frappe.set_user("Administrator")
+    print("wizard:", run_wizard(company_name, currency, country))
+    ensure_defaults()
+    if not frappe.db.exists("Company", company_name):  # a site made from the company template: its one Company is the template's; it takes the new name
+        old = frappe.db.get_value("Company", {})
+        if old:
+            frappe.rename_doc("Company", old, company_name, force=True)
+            frappe.db.commit()
+    company = frappe.db.get_value("Company", {"company_name": company_name}) or frappe.db.get_value("Company", {})
+    acct_name, ba = ensure_safe_account(company, safe_address, currency)
 
     s = frappe.get_doc("Capxul Settings")
     # core_url remains an accepted argument for old provisioners; the site never uses it.

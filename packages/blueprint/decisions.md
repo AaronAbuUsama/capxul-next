@@ -292,7 +292,36 @@ their cast email; the world's owner, an operator, has none, so its call is `NoSi
 the company's is the site's to say (its Capxul Settings `org_slug` is the org id), so Core asks the world's ready sites
 in turn.
 
-**48. Where the platform group runs (step 1.6).** A world takes about 95 s of Alchemy deploys, with the Cloudflare
+**48. How the chain operations reach the chain.** Built with org.create, org.member.grant and approval.sign (13
+November 2026). Every subject lands as one UserOperation through the world's bundler, sponsored by its test
+paymaster. A company's setup and a held payment are UserOperations of the signer's own Safe (the founder's; the
+member's, whose Books hat pays through `Budgets.spend`), prepared when the approval is opened, so their digest is
+the Safe4337Module's operation hash. An officer change is a company Safe transaction its Directors approve with
+their own Safes (EIP-1271: each Director's digest is their Safe's `SafeMessage` hash of the transaction's hash), and
+a relayer Safe of Core's service key carries it as its UserOperation; the relayer's signature authorises nothing in
+the company. Why: an approval's digest is known before anyone signs (entry 23), and a transaction several Directors
+approve cannot be any one signer's own UserOperation, whose signature would have to cover the others'. Each prepared
+operation has a nonce key of its own, so two approvals of one Safe never wait on each other.
+
+**49. What a setup needs, and what the board is on the chain.** The setup is sent once its threshold of Directors
+have signed and the founder is among them, because it spends from the founder's Safe. One UserOperation moves the
+founder's capital to the company Safe and runs the Installer's install batch, which makes every founding Director's
+Safe a signer at the threshold (the Signer Gate as module and guard) and opens one top budget whose hat is Books, the
+budget a held payment spends. Each officer hat (Books, Invoices, People) starts with one seat; a grant to a full hat
+adds one first (org.member.grant 5). A founding Director with no claimed Safe cannot wear the Director hat, so they
+are refused as the founder would be, with `FounderNotReady` naming them; org.member.grant of a company whose setup
+has not landed is `OrgNotFound`: it has no board on the chain to propose to.
+
+**50. Expiry and what a company's site is told.** An approval expires 24 hours of world time after it is opened, by
+the world's clock; the chain's own validity window is left open, since the bundler would read it against its host's
+clock. What a landing means for the company's site (its company and Safe, the bench's clock, each Director's and
+member's hat, the founder's capital, a payment's posting) is queued with the landing and handed to the site in order
+once the site is ready (packages/frappe-app `capxul/core_company.py`); the world sees the site `ready` only when it has
+taken everything queued and the setup has landed. Nothing runs in the background of a Worker, so a site is moved on
+when a landing finds it ready, and whenever the world's companies are read (Core's `companiesOf`, which world.show
+lists).
+
+**51. Where the platform group runs (step 1.6).** A world takes about 95 s of Alchemy deploys, with the Cloudflare
 and Neon keys and, when an image changes, Docker: no Worker can host that, so a world's Core cannot serve
 `world.create`. Options: (a) Core's platform door forwards to a platform service; (b) a hosted platform service in the
 cloud (a Cloudflare Container running `packages/world`, or a process on the AWS bench host) holding the keys; (c) the

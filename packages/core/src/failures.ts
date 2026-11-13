@@ -14,3 +14,14 @@ export class SiteDoorFailed extends Schema.TaggedError<SiteDoorFailed, { readonl
     message: Schema.String,
   },
 ) {}
+
+/**
+ * Core's own failure in reaching a world's chain or bundler: a fault, which a handler lets travel as a defect. The
+ * chain's address holds the world's token and is never put in a message.
+ */
+export class ChainFailed extends Schema.TaggedError<ChainFailed, { readonly brand: unique symbol }>()("ChainFailed", {
+  /** `rpc`: the chain; `bundler`: the world's bundler; `answer`: an answer of the wrong shape. */
+  reach: Schema.Literals(["rpc", "bundler", "answer"]),
+  method: Schema.String,
+  message: Schema.String,
+}) {}

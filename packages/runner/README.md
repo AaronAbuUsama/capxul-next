@@ -10,6 +10,7 @@ reads the blueprint (`@capxul/blueprint`), deploys Core (`@capxul/core`) and run
 ```bash
 ./run.sh door                 # every blueprint operation called once through a fresh Core stage
 ./run.sh door --world=<name>  # the same, through the Core of a world `world create` made (packages/world)
+./run.sh chain --world=<name> # the chain operations' journey (src/chain-journey.ts) through a world's Core
 ./run.sh scenarios [name...]  # the registered scenarios (or those named), each in fresh private worlds (below)
 ./run.sh starting-worlds      # make every starting world the runner can make, timed, then destroy them all
 ./run.sh scenarios --expect=not-implemented              # each in a fresh stage; must fail on NotImplemented
@@ -72,7 +73,7 @@ has its telemetry read from the database of the world whose Core answers at that
 
 `./run.sh scenarios` expecting `pass` (the default) runs every scenario in private worlds of `packages/world`
 (`src/worlds/`). This process serves the platform group itself, on its loopback (`platform.ts`, blueprint
-decisions.md 48), signed in by the run's two operators (`WORLD_OWNER`, `WORLD_SECOND_OWNER` and their tokens), and
+decisions.md 51), signed in by the run's two operators (`WORLD_OWNER`, `WORLD_SECOND_OWNER` and their tokens), and
 the scenarios' client calls it there; a world's own operations go to its Core on Cloudflare.
 
 For each scenario the runner makes its starting world (`starting.ts`, `makers.ts`, decisions 27 and 39) and hands it
@@ -153,6 +154,7 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | `records/core-205613/` | `./run.sh scenarios`: the one example failed on `NotImplemented`, as a scenario must against the empty handlers. `failed`, by design. |
 | `records/core-189d55/` | `./run.sh scenarios --one-stage --expect=not-implemented` on 13 November 2026, step 1.5's proof: all 54 registered scenarios (the 53 claims and the example) in one fresh stage, each failing on the `NotImplemented` Core's empty handlers answered, every call passing every check. `summary.json` is `passed`; each scenario's record (`failed`, by design) is a line of `scenarios.jsonl`; `leftovers.txt` shows the accounts empty afterwards. |
 | `records/leftovers.txt` | The two accounts read after every stage of that session: nothing of `CapxulCore` is left, and Alchemy keeps no state. |
+| `records/w-cops4/` | `./run.sh chain --world=cops4` on 13 November 2026, in a world made with `world create` (its cast made by hand, as world.create does not yet): the real Core on Cloudflare founded northwind (org.create, 3.0 s on the server), dana's signature was kept and eli's sent the setup as one sponsored UserOperation through the world's bundler (3.5 s), a grant of manage-books to sam was proposed and sent the same way through the relayer (3.4 s), the chain read back through the world's door each time, and every call passed the span, outcome and events checks. `passed`. `inventory-after.json` is `world inventory` after `world destroy cops4`: nothing of the world left. |
 | `records/w-c1/` | `./run.sh door --world=c1` on 13 November 2026 (roadmap step 1.4's first part): all twelve operations answered `NotImplemented` through the SDK at the real Core in a world made by `world create`, every check passed, the spans read from the world's own branch. `passed`. |
 | `records/core-c109b1/` | `./run.sh door` on 13 November 2026, with `doc.create`, `doc.submit`, `report.run`, `world.clock.warp` and `record.export` built (roadmap step 1.6, site-ops): the three site operations refused `OrgNotFound` (a stage has no bench), the warp and the export succeeded with their events checked, the other seven answered `NotImplemented`. `passed`; the stage destroyed and nothing left. |
 | `records/run-f2d91c/` | `./run.sh scenarios --expect=pass` of those five operations' 17 scenarios and the record.export example, a stage each, on 13 November 2026. The example passed; 15 scenarios died at `given` (the runner makes no starting world before step 1.12); record.export 1 and 4 ran in a bare stage and failed on its one-entry record, as they must without `restored` and `paid`. `failed`, as a run of some claims is; all 18 stages destroyed with nothing left. |

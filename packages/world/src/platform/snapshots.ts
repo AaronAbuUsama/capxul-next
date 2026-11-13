@@ -1,4 +1,4 @@
-// world.snapshot.save and world.snapshot.restore, as the platform serves them (decisions.md, 17 to 19, 46 and 48).
+// world.snapshot.save and world.snapshot.restore, as the platform serves them (decisions.md, 17 to 19, 46 and 51).
 // A snapshot is a branch of the world's database, the chain's whole state saved under the snapshot's name in the
 // world's own bucket, and the platform's row of it; it belongs to its world and goes with it. A restore always makes
 // a new world: its database forks the snapshot's branch, its chain adopts the saved state, and its record continues

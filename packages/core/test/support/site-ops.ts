@@ -14,6 +14,7 @@ import * as Str from "effect/String";
 import * as RpcTest from "effect/rpc/RpcTest";
 import type * as Scope from "effect/Scope";
 import { CoreIdentity, CoreRpcs, Served, SpanSink } from "../../src/door.ts";
+import { absent } from "./built.ts";
 import { millisOf, siteOpsInMemory, type InMemory, type TestSite } from "../../src/site-ops/door.ts";
 
 type Refusal = InstanceType<(typeof Errors.refusals)[Errors.RefusalTag]>;
@@ -57,7 +58,7 @@ export const world = (options: InMemory) =>
     });
     const sink = Layer.succeed(SpanSink, SpanSink.of({ keep: () => Effect.void }));
     const context = yield* Layer.build(
-      Served.pipe(Layer.provideMerge(ops), Layer.provide(Layer.merge(identity, sink))),
+      Served.pipe(Layer.provideMerge(ops), Layer.provide(Layer.mergeAll(identity, sink, absent))),
     );
     const client = yield* RpcTest.makeClient(CoreRpcs, { flatten: true }).pipe(Effect.provideContext(context));
     let n = 0;

@@ -22,6 +22,7 @@ import { chainRead } from "./chain.ts";
 import { serveDoors } from "./doors.ts";
 import { ENV, identityOf } from "./env.ts";
 import { HEALTH_PATH, PROBE_PATH, probeSite } from "./probe.ts";
+import { ChainOps } from "./organizations/handlers.ts";
 import { Served } from "./server.ts";
 import { siteOpsLive } from "./site-ops/door.ts";
 import { SiteDoor } from "./site/SiteDoor.ts";
@@ -76,7 +77,10 @@ export default class Core extends Cloudflare.Worker<Core>()(
           siteOpsLive(env).pipe(Layer.provide(SiteDoor.fromEnv(env).pipe(Layer.provide(FetchHttpClient.layer)))),
         ),
         Layer.provide(SqlSpanSink),
-        Layer.provide(SQL.PostgresLayer({ url: connectionString(env) })),
+        Layer.provide(ChainOps.layer(env)),
+        // Hyperdrive pools connections by transaction, so a statement prepared on one connection may run on another:
+        // statements go unnamed (the first world run of approval.sign, w-cops2, failed on a named one).
+        Layer.provide(SQL.PostgresLayer({ url: connectionString(env), prepare: false })),
         Layer.provide(Layer.succeed(CoreIdentity, identity)),
       );
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: each request gets its own database pool

@@ -16,7 +16,8 @@
     "@capxul/world": "workspace:*",
     "@effect/platform-bun": "catalog:",
     "alchemy": "catalog:",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "viem": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",

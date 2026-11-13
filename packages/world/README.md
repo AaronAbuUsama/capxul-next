@@ -58,7 +58,7 @@ Provide `SharedState.layer` over `Alchemist.layer()`. `spec.migrations` names Co
 ### The platform (roadmap steps 1.6 and 1.12)
 
 `src/platform` serves the blueprint's platform group with Effect's Rpc server at `PLATFORM_PATH`, on the loopback of
-the machine that holds the Cloudflare and Neon keys (blueprint decisions.md, 48): in the runner's own process
+the machine that holds the Cloudflare and Neon keys (blueprint decisions.md, 51): in the runner's own process
 (`packages/runner`, `src/worlds/platform.ts`), or by `./run.sh platform serve [--port 8790]`. Its sign-in and its
 spans are Core's middlewares; the first operator is `WORLD_OWNER` with `CAPXUL_PLATFORM_TOKEN`, the second
 `WORLD_SECOND_OWNER` with `CAPXUL_SECOND_PLATFORM_TOKEN`.
@@ -262,7 +262,7 @@ and had its receipt 9.5 s after it was begun.
 - A company's site is not in a snapshot yet: the site door has no backup and restore, and Core cannot reach a bench
   from Cloudflare (step 1.4). Saving or restoring a world with companies is a fault until then.
 - The platform answers only on the machine that serves it. A caller elsewhere (a shared world's people) needs it hosted,
-  which is a question for Aaron (blueprint decisions.md, 48).
+  which is a question for Aaron (blueprint decisions.md, 51).
 - The index polls through the door, so a busy world makes about one Worker request a second for it. What an idle or a
   busy world costs was not measured.
 - Who the cast is and how a mint is booked is not here: `spec.mint` is only the hook.
