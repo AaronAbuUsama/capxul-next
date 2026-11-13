@@ -1,4 +1,5 @@
 import { ProvisioningError } from "./door.ts";
+import { checkTraceparent, traceHeaders } from "../shared/trace.ts";
 
 export const DOCUMENT_PATH = "/org/site/document";
 
@@ -26,8 +27,9 @@ export function validReport(v: unknown): v is Report {
 }
 
 /** Every call obtains the current opaque Access session; no wallet key or impersonated email is accepted. */
-export function createDocumentClient(options: { coreUrl: string; bearer(): string | Promise<string> }) {
+export function createDocumentClient(options: { coreUrl: string; bearer(): string | Promise<string>; traceparent?: string | undefined }) {
   const origin = new URL(options.coreUrl).origin;
+  const traceparent = checkTraceparent(options.traceparent, () => new ProvisioningError("INVALID_INPUT", "Invalid traceparent"));
   const send = async (input: DocumentInput): Promise<unknown> => {
     if (!/^[a-z][a-z0-9-]{1,30}$/.test(input.orgId)) throw new ProvisioningError("INVALID_INPUT", "Invalid company slug");
     const bearer = await options.bearer();
@@ -36,7 +38,7 @@ export function createDocumentClient(options: { coreUrl: string; bearer(): strin
     let response: Response;
     try {
       response = await fetch(`${origin}${DOCUMENT_PATH}`, { method: "POST", body: raw,
-        headers: { "content-type": "application/json", authorization: `Bearer ${bearer}` }, signal: AbortSignal.timeout(120_000) });
+        headers: { "content-type": "application/json", authorization: `Bearer ${bearer}`, ...traceHeaders(traceparent) }, signal: AbortSignal.timeout(120_000) });
     } catch { throw new ProvisioningError("PROVIDER_ERROR", "Document service is unreachable; retain the same call id when retrying"); }
     const result: unknown = await response.json().catch(() => null);
     if (!response.ok) {

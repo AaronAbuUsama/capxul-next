@@ -1,4 +1,5 @@
 import type { Address, Hex, LocalAccount } from "viem";
+import { checkTraceparent, traceHeaders } from "../shared/trace.ts";
 
 export * from "./documents.ts";
 
@@ -14,8 +15,9 @@ export class ProvisioningError extends Error {
 }
 
 /** Public caller door. Only the caller's signer is needed; service credentials never enter the SDK. */
-export function createSitesClient(options: { coreUrl: string; account: Pick<LocalAccount, "address" | "signMessage"> }) {
+export function createSitesClient(options: { coreUrl: string; account: Pick<LocalAccount, "address" | "signMessage">; traceparent?: string | undefined }) {
   const origin = new URL(options.coreUrl).origin;
+  const traceparent = checkTraceparent(options.traceparent, () => new ProvisioningError("INVALID_INPUT", "Invalid traceparent"));
   return {
     async provision(input: { org: string }): Promise<ProvisionedSite> {
       if (!/^[a-z][a-z0-9-]{1,30}$/.test(input.org)) throw new ProvisioningError("INVALID_INPUT", "Invalid company slug");
@@ -24,7 +26,7 @@ export function createSitesClient(options: { coreUrl: string; account: Pick<Loca
       let response: Response;
       try {
         response = await fetch(`${origin}${PROVISION_PATH}`, {
-          method: "POST", body: raw, headers: { "content-type": "application/json", "x-capxul-signature": signature },
+          method: "POST", body: raw, headers: { "content-type": "application/json", "x-capxul-signature": signature, ...traceHeaders(traceparent) },
           signal: AbortSignal.timeout(30 * 60_000),
         });
       } catch { throw new ProvisioningError("PROVIDER_ERROR", "Core is unreachable; retry the same company to resume provisioning"); }

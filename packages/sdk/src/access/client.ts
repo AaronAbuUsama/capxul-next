@@ -1,3 +1,5 @@
+import { checkTraceparent, traceHeaders } from "../shared/trace.ts";
+
 export type AccessSignIn = { token: string; personId: string; safe: string; expiresAt: string };
 export type PersonSignIn = AccessSignIn & { email: string };
 export type AgentSignIn = AccessSignIn & { signer: string; owner: string };
@@ -31,15 +33,16 @@ const codes = new Set(["INVALID_INPUT", "OTP_EXPIRED", "NOT_AUTHENTICATED", "RAT
  * The host owns private token persistence. Call sign-in again after restore; never
  * turn a surviving cookie or a cached actor label into a session.
  */
-export function createAccessClient(options: { coreUrl: string }) {
+export function createAccessClient(options: { coreUrl: string; traceparent?: string | undefined }) {
   let url: URL;
   try { url = new URL(options.coreUrl); } catch { throw new AccessClientError("INVALID_INPUT"); }
+  const traceparent = checkTraceparent(options.traceparent, () => new AccessClientError("INVALID_INPUT"));
   if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) throw new AccessClientError("INVALID_INPUT");
   const request = async (path: string, input: object, bearer?: string) => {
     let response: Response;
     try {
       response = await fetch(`${url.origin}/access/${path}`, { method: "POST", redirect: "error", credentials: "omit", cache: "no-store",
-        headers: { "content-type": "application/json", ...(bearer === undefined ? {} : { authorization: `Bearer ${bearer}` }) },
+        headers: { "content-type": "application/json", ...traceHeaders(traceparent), ...(bearer === undefined ? {} : { authorization: `Bearer ${bearer}` }) },
         body: JSON.stringify(input), signal: AbortSignal.timeout(30_000) });
     } catch { throw new AccessClientError("PROVIDER_ERROR"); }
     let result: Record<string, unknown>;

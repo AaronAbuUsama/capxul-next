@@ -17,7 +17,7 @@ const record = (raw: string): Record<string, unknown> => {
   return value as Record<string, unknown>;
 };
 
-export async function runDocuments(args: string[]): Promise<void> {
+export async function runDocuments(args: string[], traceparent?: string): Promise<void> {
   const command = args.slice(0, 2).join(" ");
   if (!["doc create", "doc get", "doc submit", "report run"].includes(command)) return refuse(usage);
   if (args.includes("--help")) { console.log(usage); return; }
@@ -49,7 +49,7 @@ export async function runDocuments(args: string[]): Promise<void> {
   const dataFlag = command === "doc create" ? "--data" : "--filters";
   if (flags.has(dataFlag) && Object.keys(fields).length) return refuse(`Use ${dataFlag} or ${repeated}, not both`);
   if (!process.env.CAPXUL_CORE_URL) return refuse("CAPXUL_CORE_URL is required");
-  const client = createDocumentClient({ coreUrl: process.env.CAPXUL_CORE_URL, bearer: () => process.env.CAPXUL_ACCESS_TOKEN ?? "" });
+  const client = createDocumentClient({ coreUrl: process.env.CAPXUL_CORE_URL, bearer: () => process.env.CAPXUL_ACCESS_TOKEN ?? "", traceparent });
   const callId = flags.get("--call-id") ?? randomUUID();
   let result: unknown;
   try {

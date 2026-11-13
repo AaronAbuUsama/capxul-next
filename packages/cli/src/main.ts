@@ -1,17 +1,20 @@
 #!/usr/bin/env -S node --experimental-strip-types --no-warnings
-import { createSitesClient, ProvisioningError } from "@capxul/sdk";
+import { createSitesClient, isTraceparent, newTraceparent, ProvisioningError } from "@capxul/sdk";
 import { privateKeyToAccount } from "viem/accounts";
 import type { Hex } from "viem";
 import { runDocuments } from "./documents.ts";
 
 const args = process.argv.slice(2);
 try {
+  // One trace per command, which every request it makes carries; a harness may name it with CAPXUL_TRACEPARENT.
+  const traceparent = process.env.CAPXUL_TRACEPARENT ?? newTraceparent();
+  if (!isTraceparent(traceparent)) throw new ProvisioningError("CLI_USAGE", "CAPXUL_TRACEPARENT must be a W3C traceparent");
   if (args[0] === "world" || args[0] === "record") {
     // The supervisor owns world and catalogue adapters, not site provisioning.
     const { runDevnet } = await import(new URL("./devnet.ts", import.meta.url).href);
     process.exitCode = await runDevnet(args);
   } else if (args[0] === "doc" || args[0] === "report") {
-    await runDocuments(args);
+    await runDocuments(args, traceparent);
   } else {
     const usage = "capxul org site provision --org <slug> --confirm [--json]";
     const rest = args.slice(3);
@@ -25,7 +28,7 @@ try {
     const key = process.env.CAPXUL_PRIVATE_KEY;
     if (!/^0x[\da-fA-F]{64}$/.test(key ?? "")) throw new ProvisioningError("NOT_AUTHENTICATED", "CAPXUL_PRIVATE_KEY must contain the caller's local signing key");
     if (!process.env.CAPXUL_CORE_URL) throw new ProvisioningError("CLI_USAGE", "CAPXUL_CORE_URL is required");
-    const sites = createSitesClient({ coreUrl: process.env.CAPXUL_CORE_URL, account: privateKeyToAccount(key as Hex) });
+    const sites = createSitesClient({ coreUrl: process.env.CAPXUL_CORE_URL, account: privateKeyToAccount(key as Hex), traceparent });
     const result = await sites.provision({ org });
     console.log(args.includes("--json") ? JSON.stringify(result) : `${result.org}: ${result.site} provisioned; Core delivery released`);
   }
