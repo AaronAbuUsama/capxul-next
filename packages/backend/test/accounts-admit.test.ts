@@ -30,7 +30,10 @@ test("operator wave admits atomically, reports already/invalid and moves the ref
   assert.deepEqual(events.map((e) => [e.name, e.props.transition, e.props.via]).sort(), [
     ["referral_transitioned", "admit", "link"], ["waitlist_entry_transitioned", "admit", "operator"], ["waitlist_entry_transitioned", "admit_unlisted", "operator"]].sort());
   assert.equal((await db.worker.query("select stage from app.referrals where referee_email=$1", [waiting])).rows[0].stage, "admitted");
-  assert.deepEqual(await db.transaction("", (sql) => admitWave(sql, { emails: [waiting], by: "again" }, randomUUID(), now + 2), true),
+  // A repeat changes nothing and emits nothing; the label counts code points, so 64 emoji (128 UTF-16 units) is valid.
+  const again = randomUUID();
+  assert.deepEqual(await db.transaction("", (sql) => admitWave(sql, { emails: [waiting], by: "😀".repeat(64) }, again, now + 2), true),
     { admitted: [], already: [waiting], invalid: [] });
+  assert.equal((await db.worker.query("select 1 from app.transition_outbox where event->>'trace_id'=$1", [again])).rowCount, 0);
   assert.equal((await db.transaction("", (sql) => readAdmission(sql, waiting), true))!.admitted_by, `operator:${"o".repeat(58)}-aaron`);
 });

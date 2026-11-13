@@ -36,11 +36,11 @@ export const decision_accounts_operator_label = defineDecision({
   title: "The operator's label is trimmed, nonblank and at most 64 characters",
   question: "`accounts.admission.admit` records `operator:<by>` in every admission it makes. What may `by` be?",
   options: [
-    { label: "bounded", text: "Trimmed; empty or longer than 64 characters is INVALID_INPUT (`by`) and nothing changes." },
+    { label: "bounded", text: "Trimmed; empty or longer than 64 characters (Unicode code points, not UTF-16 units) is INVALID_INPUT (`by`) and nothing changes." },
     { label: "any", text: "Any string, stored as given." },
   ],
   chosen: "bounded",
   why: "`admitted_by` is permanent provenance that operators and notices read: a blank label names no one, and an unbounded one lets one call write arbitrary text into every admission of its wave. 64 characters is room for an operator's name or handle. The refusal uses the rpc's declared INVALID_INPUT, like more than 200 emails, so no new error is designed.",
-  source: "Access/accounts slice-zero implementation, 13 November 2026; integrator review of PR103; accounts.operator-surface",
+  source: "Access/accounts slice-zero implementation, 13 November 2026; integrator review of PR103; accounts.operator-tools",
   affects: [rpc_accounts_admission_admit],
 });

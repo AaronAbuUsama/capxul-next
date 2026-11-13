@@ -50,7 +50,8 @@ export const rpc_accounts_admission_admit = defineRpc({
   title: "An operator admits a wave of mailboxes",
   about:
     "The operator's waitlist tool, run with the deployment's operator key (no person session; anything else is " +
-    "NOT_AUTHENTICATED). More than 200 emails is INVALID_INPUT (`emails`). In one transaction, each email that is one is " +
+    "NOT_AUTHENTICATED). More than 200 emails is INVALID_INPUT (`emails`); a `by` that is blank, or longer than 64 " +
+    "characters (Unicode code points) after trimming, is INVALID_INPUT (`by`). In one transaction, each email that is one is " +
     "admitted `operator:<by>`: a waiting entry moves (`admit`), a mailbox with no entry is born admitted " +
     "(`admit_unlisted`), and the referral that brought it, if any, moves to `admitted`. An email admitted already is " +
     "reported in `already` and changes nothing; one that is not an email in `invalid`. The welcome email follows from " +

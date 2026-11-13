@@ -26,7 +26,7 @@ export const decision_access_actor_sign_in = defineDecision({
     { label: "harness-only", text: "Keep the composition inside the eval harness, out of the SDK." },
   ],
   chosen: "public-helpers",
-  why: "They add no rpc, field, error or authority: each call opens a fresh session through the booked doors and checks `current` agrees, so a session that merely survived a restore is never reused. The code is taken from the one message new since the call, by its id, because a stopped world clock gives several messages one `sentAt`; more than one new message is PROVIDER_RESPONSE_INVALID rather than a guess. A runtime, a CLI and the harness share one tested path instead of each re-deriving it. They do not prove Seat, hat or agent bootstrap authority, which belong to their concepts.",
+  why: "They add no rpc, field, error or authority: each call opens a fresh session through the booked doors and checks `current` agrees, so a session that merely survived a restore is never reused. The code is taken from the one message new since the call, by its id, because a stopped world clock gives several messages one `sentAt`; more than one new message is PROVIDER_RESPONSE_INVALID rather than a guess, and no new message within the caller's attempts is PROVIDER_ERROR. A runtime, a CLI and the harness share one tested path instead of each re-deriving it. They do not prove Seat, hat or agent bootstrap authority, which belong to their concepts.",
   source: "Access/accounts slice-zero implementation, 13 November 2026; integrator review of PR103; access.own-sign-in",
   affects: [rpc_access_sign_in_send_code, rpc_access_sign_in_verify_code, rpc_access_sign_in_challenge, rpc_access_sign_in_with_key, rpc_access_sessions_current],
 });
