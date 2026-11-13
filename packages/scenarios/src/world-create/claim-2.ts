@@ -1,6 +1,8 @@
 // world.create, claim 2: a fresh world can begin before host time, though not before its seeded chain's last
 // block, and an existing world's time cannot be reset. The seeded chain's last block is learnt from the refusal
 // that names it, ClockBeforeSeed's `earliest`; the world starts halfway between it and host time (decisions.md, 45).
+// A chain's block timestamps are whole seconds, so the start asked for is the halfway instant rounded down to its
+// second: then the world's clock and its chain head's timestamp must both be that start exactly.
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import { Capxul } from "../client.ts";
@@ -9,6 +11,7 @@ import { hostNow, millis, refusal, same, sameInstant } from "../support/expect.t
 import { freshName, noWorld, view } from "../support/world.ts";
 
 const LONG_AGO = "2000-01-01T00:00:00Z";
+const SECOND = 1000;
 
 export const worldCreate2 = scenario(
   { operation: "world.create", claim: 2 },
@@ -24,7 +27,7 @@ export const worldCreate2 = scenario(
     yield* noWorld(world);
 
     const now = yield* hostNow;
-    const halfway = Math.floor((millis(early.earliest) + millis(now)) / 2);
+    const halfway = Math.floor((millis(early.earliest) + millis(now)) / 2 / SECOND) * SECOND;
     const start = DateTime.formatIso(DateTime.makeUnsafe(halfway));
     yield* expect(millis(start) < millis(now), `halfway to host time (${start}) is not before host time (${now})`);
     const made = yield* ask(start);
