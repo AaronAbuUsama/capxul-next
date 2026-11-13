@@ -5,16 +5,20 @@ import type { Hex } from "viem";
 import { runDocuments } from "./documents.ts";
 
 const args = process.argv.slice(2);
+// One trace per command that calls Core, carried by every request it makes (components.cli-traceparent). A harness may
+// name it with CAPXUL_TRACEPARENT; empty means unset, and it is checked only when the command is about to send.
+const commandTrace = (): string => {
+  const named = process.env.CAPXUL_TRACEPARENT || undefined;
+  if (named !== undefined && !isTraceparent(named)) throw new ProvisioningError("CLI_USAGE", "CAPXUL_TRACEPARENT must be a W3C traceparent");
+  return named ?? newTraceparent();
+};
 try {
-  // One trace per command, which every request it makes carries; a harness may name it with CAPXUL_TRACEPARENT.
-  const traceparent = process.env.CAPXUL_TRACEPARENT ?? newTraceparent();
-  if (!isTraceparent(traceparent)) throw new ProvisioningError("CLI_USAGE", "CAPXUL_TRACEPARENT must be a W3C traceparent");
   if (args[0] === "world" || args[0] === "record") {
     // The supervisor owns world and catalogue adapters, not site provisioning.
     const { runDevnet } = await import(new URL("./devnet.ts", import.meta.url).href);
     process.exitCode = await runDevnet(args);
   } else if (args[0] === "doc" || args[0] === "report") {
-    await runDocuments(args, traceparent);
+    await runDocuments(args, commandTrace);
   } else {
     const usage = "capxul org site provision --org <slug> --confirm [--json]";
     const rest = args.slice(3);
@@ -28,7 +32,7 @@ try {
     const key = process.env.CAPXUL_PRIVATE_KEY;
     if (!/^0x[\da-fA-F]{64}$/.test(key ?? "")) throw new ProvisioningError("NOT_AUTHENTICATED", "CAPXUL_PRIVATE_KEY must contain the caller's local signing key");
     if (!process.env.CAPXUL_CORE_URL) throw new ProvisioningError("CLI_USAGE", "CAPXUL_CORE_URL is required");
-    const sites = createSitesClient({ coreUrl: process.env.CAPXUL_CORE_URL, account: privateKeyToAccount(key as Hex), traceparent });
+    const sites = createSitesClient({ coreUrl: process.env.CAPXUL_CORE_URL, account: privateKeyToAccount(key as Hex), traceparent: commandTrace() });
     const result = await sites.provision({ org });
     console.log(args.includes("--json") ? JSON.stringify(result) : `${result.org}: ${result.site} provisioned; Core delivery released`);
   }

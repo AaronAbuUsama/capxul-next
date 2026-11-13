@@ -1,6 +1,6 @@
 // CLI delivery and the skeleton's smaller findings: judgments beside components.cli.
 import { defineDecision } from "../../packages/blueprint-engine/src/index.ts";
-import { component_cli, component_devnet, component_site_service } from "./foundation.ts";
+import { component_backend, component_cli, component_core_sdk, component_devnet, component_site_service } from "./foundation.ts";
 
 const source = "m1-g5-findings, 11 November 2026; spikes/skeleton/FINDINGS.md, Smaller findings; docs/mission/findings.md, swarmD retro item 8; docs/mission/research-2026-11-11.md, What exit g5 still lacks";
 
@@ -79,4 +79,28 @@ export const decision_components_cli_explicit_endpoints = defineDecision({
     "and observe calls only at the supplied test chain/Core, with zero requests at the stored endpoints.",
   source,
   affects: [component_cli, component_devnet],
+});
+
+export const decision_components_cli_traceparent = defineDecision({
+  id: "components.cli-traceparent",
+  title: "One W3C trace from a CLI command through the SDK to Core",
+  question: "How does a CLI command's trace reach Core, and what is refused when a caller names a bad one?",
+  options: [
+    { label: "traceparent", text: "The SDK's access, sites and document clients take an optional traceparent option and send it as the W3C traceparent header on every request; the CLI makes one per command, or takes CAPXUL_TRACEPARENT from a harness." },
+    { label: "server-only", text: "Send no trace from the caller; Core mints one per request, so a command's calls and a harness's run cannot be joined." },
+  ],
+  chosen: "traceparent",
+  why:
+    "spn:<operation> claims need the caller's spans and Core's rpc span in one trace, and the eval harness's cli() gives every call a fresh traceparent " +
+    "(docs/spec/30-capxul-evals.md). Shape: a traceparent is W3C version 00, '00-<trace-id>-<parent-id>-<flags>', with a 32 lowercase hex trace id and a " +
+    "16 lowercase hex parent id, neither all zeros; its trace id is the one trace format every component keeps. " +
+    "SDK: createAccessClient, createSitesClient and createDocumentClient take traceparent?: string; without it no header is sent; " +
+    "a malformed value is refused INVALID_INPUT when the client is made, before any request. newTraceparent, isTraceparent and traceIdOf are exported. " +
+    "CLI: each command that calls Core (org site provision, doc, report) uses one traceparent for all its requests: CAPXUL_TRACEPARENT when set and " +
+    "non-empty, otherwise a new one. An empty CAPXUL_TRACEPARENT is unset. A malformed non-empty value is refused CLI_USAGE (exit 2), only on a path " +
+    "about to send, so world, record and --help never read it. " +
+    "Check: with a stub Core, each client sends exactly the given header, none without one, and refuses each malformed form (all-zero ids, uppercase, " +
+    "version 01) with INVALID_INPUT and zero requests; the CLI with CAPXUL_TRACEPARENT= behaves as unset and with a malformed value exits 2 only on a sending path.",
+  source: "Integrator review of PR130, 13 November 2026; docs/spec/30-capxul-evals.md cli(); docs/mission/findings.md, the traceparent finding",
+  affects: [component_cli, component_core_sdk, component_backend],
 });
