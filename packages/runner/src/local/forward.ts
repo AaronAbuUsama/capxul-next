@@ -46,9 +46,9 @@ export const chainForwarder: Effect.Effect<ChainForwarder, RunnerFailure, Scope.
       // A connection through the session's proxy is now and then reset before it carries the request (seen once in
       // a rehearsal: ECONNRESET on the door's /rpc); it is sent again on a fresh connection. An answer, any status,
       // is never sent again.
-      const response = yield* http.execute(sent).pipe(
-        Effect.retry({ times: 2, schedule: Schedule.spaced(Duration.millis(250)) }),
-      );
+      const response = yield* http
+        .execute(sent)
+        .pipe(Effect.retry({ times: 2, schedule: Schedule.spaced(Duration.millis(250)) }));
       return HttpServerResponse.fromClientResponse(response);
     }).pipe(
       Effect.catchCause((cause) =>

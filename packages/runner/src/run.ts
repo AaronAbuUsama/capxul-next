@@ -95,9 +95,7 @@ export const keptFor = (database: Option.Option<Redacted.Redacted>, calls: Reado
       Arr.filter(calls, (call) => call.at === null && !byPlatform(call)),
       (call) => call.traceId,
     );
-    const own = Option.isSome(database)
-      ? yield* telemetryOf(database.value, ownCalls)
-      : { spans: [], events: [] };
+    const own = Option.isSome(database) ? yield* telemetryOf(database.value, ownCalls) : { spans: [], events: [] };
     const served = Option.isNone(platform)
       ? { spans: [], events: [] }
       : yield* platform.value.kept(Arr.map(Arr.filter(calls, byPlatform), (call) => call.traceId));

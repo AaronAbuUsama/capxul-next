@@ -5,6 +5,7 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { CORE_ENV } from "@capxul/core";
 import * as Redacted from "effect/Redacted";
+import * as Str from "effect/String";
 import { configOf } from "../src/local/workerd.ts";
 import { LOCAL_CORE_LABEL } from "../src/local/host.ts";
 import { passedOr } from "../src/record.ts";
@@ -25,23 +26,25 @@ const config = configOf(
   "bundle",
 );
 
+const has = (part: string) => Str.includes(part)(config);
+
 test("Core's modules are embedded relative to the configuration, the entry first", () => {
   assert.match(config, /\(name = "worker\.js", esModule = embed "bundle\/worker\.js"\),\n\s+\(name = "Stream-abc\.js"/);
-  assert.ok(!config.includes("/tmp/run/bundle"));
+  assert.ok(!has("/tmp/run/bundle"));
 });
 
 test("the world's facts and secrets are bound as text under the names a deploy uses", () => {
-  assert.ok(config.includes(`(name = "${CORE_ENV.world}", text = "town")`));
-  assert.ok(config.includes(`(name = "${CORE_ENV.doorToken}", text = "door-token")`));
+  assert.ok(has(`(name = "${CORE_ENV.world}", text = "town")`));
+  assert.ok(has(`(name = "${CORE_ENV.doorToken}", text = "door-token")`));
 });
 
 test("the database is a Hyperdrive binding to its bridge, and the chain a service of the forwarder", () => {
-  assert.ok(config.includes(`(name = "database", external = (address = "127.0.0.1:42000", tcp = ()))`));
-  assert.ok(config.includes(`(name = "chain", external = (address = "127.0.0.1:43000", http = ()))`));
-  assert.ok(config.includes(`(name = "${CORE_ENV.chain}", service = "chain")`));
-  assert.ok(config.includes(`hyperdrive = (designator = "database", database = "neondb", user = "owner"`));
-  assert.ok(config.includes('password = "p\\"a\\\\ss"'), "a quote and a backslash are escaped");
-  assert.ok(config.includes(`address = "127.0.0.1:41000"`));
+  assert.ok(has(`(name = "database", external = (address = "127.0.0.1:42000", tcp = ()))`));
+  assert.ok(has(`(name = "chain", external = (address = "127.0.0.1:43000", http = ()))`));
+  assert.ok(has(`(name = "${CORE_ENV.chain}", service = "chain")`));
+  assert.ok(has(`hyperdrive = (designator = "database", database = "neondb", user = "owner"`));
+  assert.ok(has('password = "p\\"a\\\\ss"'), "a quote and a backslash are escaped");
+  assert.ok(has(`address = "127.0.0.1:41000"`));
 });
 
 test("a run with a local Core is at best rehearsed, never passed", () => {

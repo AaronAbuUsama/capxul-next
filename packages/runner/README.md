@@ -197,6 +197,8 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | `src/given.ts` | `Given`: the facts of a scenario's starting world. `nothing`'s are the run's operators; for any other world, the declared example facts in a run that expects `not-implemented`, and a defect otherwise, until the runner makes starting worlds (step 1.12). |
 | `src/checks/checks.ts`, `src/checks/events.ts` | The generic checks, the timings and the steps. A builder never changes these. |
 | `src/world/` | The stage's life, its database, the warm-up and the inventory: the runner's plumbing. |
+| `src/worlds/` | A run in private worlds: the platform this process serves, the starting worlds (`starting.ts`), their makers (`makers.ts`; those with a company in `company.ts`), how a fact is encoded (`encode.ts`), the run and its timing. |
+| `src/local/` | `--core=local`: Core's bundle, its workerd, its database bridge, its chain forwarder and the host that runs one per world (above). |
 | `src/scenario-runs.ts` | A scenarios run in either mode, ending in its summary. |
 | `src/summary.ts` | The summary: what each scenario was expected to do, the claims a run must cover, the stages it must leave. |
 | `src/record.ts`, `src/failure.ts` | The run record, the JSON writers, and how a run ended and a failure is worded. |
