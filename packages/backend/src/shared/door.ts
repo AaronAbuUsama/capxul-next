@@ -5,4 +5,4 @@ export type { ClaimSend, ClaimReceipt, ClaimSignerConfig, ServiceSigner } from "
 export { IndexerError, readIndexerHead, readPersonalSafeClaim } from "./indexer.ts";
 export type { IndexerProgress, IndexedClaim, ClaimLookup } from "./indexer.ts";
 export { bundler, bundlerProvider, httpTransport, ProviderError } from "./bundler.ts";
-export type { BundlerHeld, BundlerSend, RpcTransport, RpcUserOperation, SignedUserOperation } from "./bundler.ts";
+export type { Bundler, BundlerHeld, BundlerSend, Lookup, ProviderCode, RpcTransport, RpcUserOperation, SignedUserOperation, UserOpReceipt } from "./bundler.ts";

@@ -23,7 +23,11 @@ test("send accepts only its independently expected hash and maps validation fail
     await assert.rejects(provider.send(input), code("PROVIDER_RESPONSE_INVALID"));
     assert.equal(calls, 1);
   }
-  const provider = bundlerProvider({ async request() { throw { code: -32507, message: "secret validation details" }; } });
+  // A refusal is believed once a lookup finds the operation not held.
+  const provider = bundlerProvider({ async request(method) {
+    if (method === "eth_sendUserOperation") throw { code: -32507, message: "secret validation details" };
+    return null;
+  } });
   await assert.rejects(provider.send(input), code("TRANSACTION_FAILED"));
   assert.equal(await bundlerProvider({ async request() { return expected; } }).send(input), expected);
 });

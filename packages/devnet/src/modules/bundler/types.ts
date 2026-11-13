@@ -11,4 +11,4 @@ export type PrepareBundler = {
   paymaster?: Hex;
 };
 
-export type { Bundler, Lookup, ProviderCode, RpcTransport, RpcUserOperation, UserOpReceipt } from "../../../../backend/src/shared/bundler.ts";
+export type { Bundler, Lookup, ProviderCode, RpcTransport, RpcUserOperation, UserOpReceipt } from "@capxul/backend/shared";
