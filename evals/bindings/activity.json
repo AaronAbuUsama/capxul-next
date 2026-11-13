@@ -121,6 +121,94 @@
         "ACTIVITY.note-payment-cancel.idempotent"
       ],
       "missing": "Samples up to 20 real, acknowledged transitions of this kind from the run's outbox. Each must be noted exactly once in each feed holding its Payment, with the event's transition/from/to/time and first-arrival change; redelivery through the ACK, and through the by-owner-event key alone, must leave the feeds unchanged (rolled back). Activate only from one complete fresh selected-stack run where Core emitted this transition and composition relayed it."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-open/resume",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-open.resume"
+      ],
+      "missing": "Arms Runtime's fault mount for the next Activity delivery of this transition only, drives one real transition of this kind with `world fixture payment`, and lets `resume-kill` SIGKILL Core between the appender and its ACK, restart it and resume it. The check then requires exactly one ACK committed after the kill, exactly one change per holding feed with the event's fields and first-arrival change, and each feed's seq gapless. Activate only from one complete fresh selected-stack run with #102's mount, Runtime's `world fixture payment <transition>` drivers (over Core's public payment calls, after the payments rpc mount and reconcile tick) and #92's relay composed."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-schedule/resume",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-schedule.resume"
+      ],
+      "missing": "Arms Runtime's fault mount for the next Activity delivery of this transition only, drives one real transition of this kind with `world fixture payment`, and lets `resume-kill` SIGKILL Core between the appender and its ACK, restart it and resume it. The check then requires exactly one ACK committed after the kill, exactly one change per holding feed with the event's fields and first-arrival change, and each feed's seq gapless. Activate only from one complete fresh selected-stack run with #102's mount, Runtime's `world fixture payment <transition>` drivers (over Core's public payment calls, after the payments rpc mount and reconcile tick) and #92's relay composed."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-come-due/resume",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-come-due.resume"
+      ],
+      "missing": "Arms Runtime's fault mount for the next Activity delivery of this transition only, drives one real transition of this kind with `world fixture payment`, and lets `resume-kill` SIGKILL Core between the appender and its ACK, restart it and resume it. The check then requires exactly one ACK committed after the kill, exactly one change per holding feed with the event's fields and first-arrival change, and each feed's seq gapless. Activate only from one complete fresh selected-stack run with #102's mount, Runtime's `world fixture payment <transition>` drivers (over Core's public payment calls, after the payments rpc mount and reconcile tick) and #92's relay composed."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-escrow/resume",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-escrow.resume"
+      ],
+      "missing": "Arms Runtime's fault mount for the next Activity delivery of this transition only, drives one real transition of this kind with `world fixture payment`, and lets `resume-kill` SIGKILL Core between the appender and its ACK, restart it and resume it. The check then requires exactly one ACK committed after the kill, exactly one change per holding feed with the event's fields and first-arrival change, and each feed's seq gapless. Activate only from one complete fresh selected-stack run with #102's mount, Runtime's `world fixture payment <transition>` drivers (over Core's public payment calls, after the payments rpc mount and reconcile tick) and #92's relay composed. Claim escrow is not built yet (integrator: Core builds it in Wave Zero)."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-submit/resume",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-submit.resume"
+      ],
+      "missing": "Arms Runtime's fault mount for the next Activity delivery of this transition only, drives one real transition of this kind with `world fixture payment`, and lets `resume-kill` SIGKILL Core between the appender and its ACK, restart it and resume it. The check then requires exactly one ACK committed after the kill, exactly one change per holding feed with the event's fields and first-arrival change, and each feed's seq gapless. Activate only from one complete fresh selected-stack run with #102's mount, Runtime's `world fixture payment <transition>` drivers (over Core's public payment calls, after the payments rpc mount and reconcile tick) and #92's relay composed."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-settle/resume",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-settle.resume"
+      ],
+      "missing": "Arms Runtime's fault mount for the next Activity delivery of this transition only, drives one real transition of this kind with `world fixture payment`, and lets `resume-kill` SIGKILL Core between the appender and its ACK, restart it and resume it. The check then requires exactly one ACK committed after the kill, exactly one change per holding feed with the event's fields and first-arrival change, and each feed's seq gapless. Activate only from one complete fresh selected-stack run with #102's mount, Runtime's `world fixture payment <transition>` drivers (over Core's public payment calls, after the payments rpc mount and reconcile tick) and #92's relay composed."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-mismatch/resume",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-mismatch.resume"
+      ],
+      "missing": "Arms Runtime's fault mount for the next Activity delivery of this transition only, drives one real transition of this kind with `world fixture payment`, and lets `resume-kill` SIGKILL Core between the appender and its ACK, restart it and resume it. The check then requires exactly one ACK committed after the kill, exactly one change per holding feed with the event's fields and first-arrival change, and each feed's seq gapless. Activate only from one complete fresh selected-stack run with #102's mount, Runtime's `world fixture payment <transition>` drivers (over Core's public payment calls, after the payments rpc mount and reconcile tick) and #92's relay composed. Needs Runtime's mismatch fixture."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-unsettle/resume",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-unsettle.resume"
+      ],
+      "missing": "Arms Runtime's fault mount for the next Activity delivery of this transition only, drives one real transition of this kind with `world fixture payment`, and lets `resume-kill` SIGKILL Core between the appender and its ACK, restart it and resume it. The check then requires exactly one ACK committed after the kill, exactly one change per holding feed with the event's fields and first-arrival change, and each feed's seq gapless. Activate only from one complete fresh selected-stack run with #102's mount, Runtime's `world fixture payment <transition>` drivers (over Core's public payment calls, after the payments rpc mount and reconcile tick) and #92's relay composed. Needs Runtime's reorg fixture."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-lapse/resume",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-lapse.resume"
+      ],
+      "missing": "Arms Runtime's fault mount for the next Activity delivery of this transition only, drives one real transition of this kind with `world fixture payment`, and lets `resume-kill` SIGKILL Core between the appender and its ACK, restart it and resume it. The check then requires exactly one ACK committed after the kill, exactly one change per holding feed with the event's fields and first-arrival change, and each feed's seq gapless. Activate only from one complete fresh selected-stack run with #102's mount, Runtime's `world fixture payment <transition>` drivers (over Core's public payment calls, after the payments rpc mount and reconcile tick) and #92's relay composed."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-retry/resume",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-retry.resume"
+      ],
+      "missing": "Arms Runtime's fault mount for the next Activity delivery of this transition only, drives one real transition of this kind with `world fixture payment`, and lets `resume-kill` SIGKILL Core between the appender and its ACK, restart it and resume it. The check then requires exactly one ACK committed after the kill, exactly one change per holding feed with the event's fields and first-arrival change, and each feed's seq gapless. Activate only from one complete fresh selected-stack run with #102's mount, Runtime's `world fixture payment <transition>` drivers (over Core's public payment calls, after the payments rpc mount and reconcile tick) and #92's relay composed."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-cancel/resume",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-cancel.resume"
+      ],
+      "missing": "Arms Runtime's fault mount for the next Activity delivery of this transition only, drives one real transition of this kind with `world fixture payment`, and lets `resume-kill` SIGKILL Core between the appender and its ACK, restart it and resume it. The check then requires exactly one ACK committed after the kill, exactly one change per holding feed with the event's fields and first-arrival change, and each feed's seq gapless. Activate only from one complete fresh selected-stack run with #102's mount, Runtime's `world fixture payment <transition>` drivers (over Core's public payment calls, after the payments rpc mount and reconcile tick) and #92's relay composed."
     }
   ]
 }

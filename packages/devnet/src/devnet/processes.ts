@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
+import { pinChain, readWorldClock } from "./clock.ts";
 import type { Processes } from "./runtime.ts";
 import { httpReady, loopback, signedCore, stateFile, until, type Component, type Config, type Host } from "./supervisor.ts";
 
@@ -57,6 +58,9 @@ export function supervised(c: Config, configFile: string): Host & Processes {
             return Number((await r.json() as any).result) === c.chainId;
           } catch { return false; }
         });
+        // devnet.one-world-clock (2): from the first block after a start, the chain is dated at the world's now. Creation pins once the clock exists.
+        const clock = await readWorldClock(c).catch((error) => { if (error.code === "ENOENT") return undefined; throw error; });
+        if (clock) await pinChain(c, clock);
       } else if (component === "core") {
         await until("paused Core /health", () => httpReady(`${loopback(c.ports.core)}/health`));
         const cut = await signedCore(c, "/admin/snapshot/pause");

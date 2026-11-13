@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { gateway } from "./gateway.ts";
@@ -12,6 +13,10 @@ export function runtimeEnv(c: Config, component: Component): NodeJS.ProcessEnv {
     PONDER_DATABASE_URL: databaseUrl(c.database.ponder, c.world), RPC_URL: loopback(c.ports.anvil),
     DEPLOYMENT_FILE: join(c.world.stateDir, "deployment.json"), ENTRY_POINT_ADDRESS: "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
   });
+  // The patched finality search stays above the seeded genesis: a frozen chain dates every block alike (devnet.one-world-clock).
+  // Before the chain is deployed there is no file and no Ponder to start: ponder.config.ts refuses without DEPLOYMENT_FILE.
+  const deployment = join(c.world.stateDir, "deployment.json");
+  if (component === "ponder" && existsSync(deployment)) env.PONDER_FIRST_BLOCK = String(JSON.parse(readFileSync(deployment, "utf8")).deployedBlock);
   if (component === "core") Object.assign(env, {
     DATABASE_URL: databaseUrl(c.database.tenant, c.world), WORKER_DATABASE_URL: databaseUrl(c.database.worker, c.world),
     CAPXUL_SECRET: c.secret, CAPXUL_WORLD: c.world.id, RPC_URL: loopback(c.ports.anvil), CHAIN_ID: String(c.chainId), FINALITY_DEPTH: String(c.finality),

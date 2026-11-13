@@ -1,0 +1,25 @@
+diff --git a/dist/esm/utils/finality.js b/dist/esm/utils/finality.js
+index 3f0b5907b758763464c4bd3f768d127c9722d5aa..35f9cf3bc617406fa5c128bb44b138e8b8944629 100644
+--- a/dist/esm/utils/finality.js
++++ b/dist/esm/utils/finality.js
+@@ -19,7 +19,10 @@ export async function getFinalizedBlock({ chain, rpc, latestBlock, lowerBound, }
+         hexToNumber(lowerBound.timestamp) > targetTimestamp) {
+         return lowerBound;
+     }
+-    let low = lowerBound ? hexToNumber(lowerBound.number) + 1 : 0;
++    // capxul devnet.one-world-clock: a seeded chain has no blocks below its first, and a frozen chain dates every block alike,
++    // so the search must not bisect below the indexer's first block (PONDER_FIRST_BLOCK); unset, this is upstream's 0.
++    const firstBlock = Number(process.env.PONDER_FIRST_BLOCK ?? 0);
++    let low = lowerBound ? hexToNumber(lowerBound.number) + 1 : firstBlock;
+     let high = hexToNumber(latestBlock.number);
+     let finalizedBlock = lowerBound;
+     const blockTimeSeconds = chain.viemChain?.blockTime === undefined || chain.viemChain.blockTime <= 0
+@@ -42,7 +45,7 @@ export async function getFinalizedBlock({ chain, rpc, latestBlock, lowerBound, }
+         blockNumber = Math.floor((low + high) / 2);
+     }
+     if (finalizedBlock === undefined) {
+-        return eth_getBlockByNumber(rpc, ["0x0", false], {
++        return eth_getBlockByNumber(rpc, [numberToHex(firstBlock), false], {
+             retryNullBlockRequest: true,
+         });
+     }

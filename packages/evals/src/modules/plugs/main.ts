@@ -106,7 +106,7 @@ if (process.argv.includes("--list")) {
           assert.equal(row.id, null); refused++;
         } else {
           assert.equal(row.answer.approval_id, row.id); assert.equal(row.answer.requested_by, request.requested_by);
-          assert.equal(row.trace, trace_id); assert(/^tr_[0-9a-z]{8,40}$/.test(String(trace_id)));
+          assert.equal(row.trace, trace_id); assert(/^[0-9a-f]{32}$/.test(String(trace_id)));
           const approval = new URL(row.answer.approval_url); assert.equal(approval.origin, new URL(f.coreUrl).origin);
           assert.equal(approval.pathname, `/approve/${row.id}`); accepted++;
         }
