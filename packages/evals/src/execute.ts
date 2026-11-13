@@ -68,7 +68,7 @@ export const executeRun = async (root: string, blueprint: Blueprint, bindings: B
   const finish = (rows: readonly Row[], recorded: boolean): number => {
     const count = (v: string) => rows.filter((r) => r.verdict === v).length;
     const counts = { pass: count("pass"), fail: count("fail"), not_run: count("not_run") };
-    // A screen's shows claim passes only with its source-equality capture retained in this run (system.eval-screen-captures).
+    // A run asking for a screen's shows claim succeeds only with that screen's source-equality capture in this run; verdicts are unchanged (system.eval-screen-captures).
     const uncaptured = uncapturedScreens(blueprint, asked, receipt.screens);
     const passed = recorded && receipt.state === "complete" && asked.length > 0 && counts.pass === asked.length && uncaptured.length === 0;
     const exitCode = passed ? 0 : 1;
