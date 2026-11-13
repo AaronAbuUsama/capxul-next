@@ -41,6 +41,8 @@ export interface Stage {
   readonly name: string;
   /** Where the stage's Core answers. */
   readonly url: string;
+  /** Where the platform group answers, when another process serves it; left out, the stage's own Core. */
+  readonly platformUrl?: string;
   readonly database: Redacted.Redacted;
   readonly readiness: Readiness;
   /** Epoch milliseconds: until then, a call Cloudflare's edge answered is sent again. */

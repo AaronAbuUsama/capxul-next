@@ -9,6 +9,7 @@ import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
+import { SEED_HEAD } from "../chain/contracts.ts";
 import { ensureToken, mintAll, TEST_USDC } from "../chain/faucet.ts";
 import { CORE_MIGRATIONS } from "../core/Core.ts";
 import { migrate } from "../database/sql.ts";
@@ -16,6 +17,7 @@ import { LifetimeTooLong, SiteFailed } from "../failures.ts";
 import { BenchStage, grant, makeSites, removeSites } from "../site/Bench.ts";
 import { deployStage, destroyStage, forgetStage, recordOutput, recordedOutput } from "../stack/engine.ts";
 import { PLATFORM, stageOf } from "../stack/names.ts";
+import { dropSnapshots } from "../platform/branches.ts";
 import { liftBranchExpiry } from "./account.ts";
 import { claim, registry, release } from "./claim.ts";
 import { expiryOf, lifetimeAllowed } from "./expiry.ts";
@@ -119,8 +121,16 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
     const output = yield* watch.step(
       "deploy",
       Effect.gen(function* () {
-        if (Option.isSome(plan.forkedFrom)) yield* makeForkable(plan.forkedFrom.value, plan.stage);
-        const settings = { owner: plan.owner, expiresAt: plan.expiresAt, forkedFrom: plan.forkedFrom, bench };
+        if (Option.isSome(plan.forkedFrom) && spec.snapshot === undefined)
+          yield* makeForkable(plan.forkedFrom.value, plan.stage);
+        const settings = {
+          owner: plan.owner,
+          expiresAt: plan.expiresAt,
+          forkedFrom: plan.forkedFrom,
+          bench,
+          parentBranch: Option.map(Option.fromUndefinedOr(spec.snapshot), (snapshot) => snapshot.branch),
+          operatorToken: Option.fromUndefinedOr(spec.operatorToken),
+        };
         return yield* deployStage(plan.stage, Option.some(settings)).pipe(
           Effect.flatMap(Schema.decodeUnknownEffect(WorldOutput)),
         );
@@ -134,12 +144,14 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
     yield* watch.step(
       "chain",
       Effect.gen(function* () {
-        if (Option.isSome(parent)) yield* adoptChain(world, parent.value);
+        if (Option.isSome(parent)) yield* adoptChain(world, parent.value, spec.snapshot?.name);
         return yield* chainAnswers(world);
       }),
     );
     yield* Effect.logInfo(`world ${plan.stage}: the chain answers`);
     const call = (method: string, params: ReadonlyArray<unknown>) => rpc(world, method, params);
+    // Everything that makes a world from nothing is sent just after the seed, before the world's own start.
+    if (spec.atSeed === true && Option.isNone(parent)) yield* call("evm_setTime", [SEED_HEAD.timestamp + 1]);
     const funded = yield* watch.step("fund", Effect.andThen(ensureToken(call), mintAll(call, spec.mint ?? [])));
     yield* Effect.logInfo(`world ${plan.stage}: test USDC at ${TEST_USDC}, minted to ${funded.length} addresses`);
     yield* watch.step("index", indexReady(world));
@@ -171,9 +183,13 @@ export const takeDown = (stage: string, watch: Stopwatch, holder: Option.Option<
     // its name are kept, so the sweeper, which reads them, removes the sites at the next sweep.
     const bench = benchOf(yield* recordedOutput(stage));
     const unsited = yield* Effect.exit(watch.step("unsite", removeSites(stage, bench)));
+    // A world's snapshots are branches of its own branch, which Neon will not delete while they exist.
     const removed = yield* watch.step(
       "destroy",
-      destroyStage(stage).pipe(Effect.tap(() => (Exit.isSuccess(unsited) ? forgetStage(stage) : Effect.void))),
+      dropSnapshots(stage).pipe(
+        Effect.andThen(destroyStage(stage)),
+        Effect.tap(() => (Exit.isSuccess(unsited) ? forgetStage(stage) : Effect.void)),
+      ),
     );
     if (Exit.isFailure(unsited)) return yield* Effect.failCause(unsited.cause);
     yield* watch.step(

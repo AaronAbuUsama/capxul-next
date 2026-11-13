@@ -8,6 +8,7 @@
 //   save:  while calls arrive the state is also saved every SAVE_EVERY, so a container that goes away without
 //          being stopped (a crash, the platform replacing it) costs at most that much of the chain
 //   fork:  a world made from another is handed that world's state before its first start (adopt)
+//   snap:  a snapshot saves the state now under its own name (saveAs), and a world restored from it adopts that
 //
 // The chain carries the world's index with it: the index is stopped before the chain is saved and started again
 // after the chain wakes. The index's own polling is "quiet": it neither wakes the chain nor keeps it awake, or a
@@ -226,6 +227,26 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
             Effect.andThen(touch),
             Effect.andThen(save),
             Effect.map(({ dump }) => dump),
+          ),
+        /** Saves the chain's whole state now under a snapshot's name, kept until the world goes (src/platform). */
+        saveAs: (snapshot: string) =>
+          wake.pipe(
+            Effect.andThen(touch),
+            Effect.andThen(save),
+            Effect.tap(({ dump }) =>
+              saved.put(`snapshots/${snapshot}.hex`, dump).pipe(Effect.mapError(failed("snapshot"))),
+            ),
+            Effect.map(({ head, dump }) => ({ head, bytes: dump.length })),
+          ),
+        /** The chain state a snapshot saved, for a world restored from it. Never starts the chain. */
+        snapshot: (snapshot: string) =>
+          saved.get(`snapshots/${snapshot}.hex`).pipe(
+            Effect.mapError(failed("snapshot")),
+            Effect.flatMap((object) =>
+              Predicate.isNull(object)
+                ? Effect.fail(ChainFailed.make({ step: "snapshot", message: `no chain state saved as ${snapshot}` }))
+                : object.text().pipe(Effect.mapError(failed("snapshot"))),
+            ),
           ),
         /** Takes another world's state as this chain's first state. Refused once the chain has ever started. */
         adopt: (dump: string) =>

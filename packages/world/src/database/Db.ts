@@ -35,21 +35,26 @@ export const Registry = Effect.gen(function* () {
 });
 
 /**
- * The world's branch. It forks another world's branch when the world is made from one, and Neon deletes it by
- * itself the moment the world expires.
+ * The world's branch. It forks another world's branch when the world is made from one, or a snapshot's when it is
+ * restored from one, and Neon deletes it by itself the moment the world expires.
  */
 export const WorldBranch = Effect.gen(function* () {
   const { stage } = yield* Alchemy.Stack;
   const project = yield* WorldsProject;
-  const { expiresAt, forkedFrom } = yield* worldSettings;
-  const parent = Option.isSome(forkedFrom)
-    ? { parentBranch: yield* Neon.Branch.ref(BRANCH_ID, { stage: forkedFrom.value }) }
-    : {};
+  const { expiresAt, forkedFrom, parentBranch } = yield* worldSettings;
+  const parent = Option.isSome(parentBranch)
+    ? { parentBranch: { branchId: parentBranch.value } }
+    : Option.isSome(forkedFrom)
+      ? { parentBranch: yield* Neon.Branch.ref(BRANCH_ID, { stage: forkedFrom.value }) }
+      : {};
   return yield* Neon.Branch(BRANCH_ID, { project, name: stage, expiresAt, ...parent });
 });
 
-/** Cloudflare's pooled way in to the world's branch. A Core Worker binds this; it never sees the connection string. */
+/**
+ * Cloudflare's pooled way in to the world's branch. A Core Worker binds this; it never sees the connection string.
+ * Its query cache is off: a handler reads what it has just written.
+ */
 export const WorldDatabase = Effect.gen(function* () {
   const branch = yield* WorldBranch;
-  return yield* Cloudflare.Hyperdrive.Connection(HYPERDRIVE_ID, { origin: branch.origin });
+  return yield* Cloudflare.Hyperdrive.Connection(HYPERDRIVE_ID, { origin: branch.origin, caching: { disabled: true } });
 });

@@ -1,6 +1,6 @@
 // Runs: for each one a fresh stage, the calls, the generic checks, a run record, and the stage's destruction. Nothing
 // here knows any operation or any scenario by name.
-import { operations, type OperationName } from "@capxul/blueprint";
+import { operations, PLATFORM_PATH, servedBy, type OperationName } from "@capxul/blueprint";
 import { Capxul, type ExpectationFailed, type Failure, type Scenario } from "@capxul/scenarios";
 import * as Sdk from "@capxul/sdk";
 import * as Arr from "effect/Array";
@@ -26,6 +26,7 @@ import type { Settings } from "./settings.ts";
 import { telemetryOf } from "./world/database.ts";
 import { isEmpty } from "./world/leftovers.ts";
 import { OtherWorlds } from "./world/existing.ts";
+import { PlatformKept } from "./worlds/kept.ts";
 import { runInStage, type Lifecycle, type Stage, type StageSpec } from "./world/stage.ts";
 
 /** What a run is: its kind and name, the claim it proves, and the calls it makes through a stage's Core. */
@@ -59,6 +60,7 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
     const log = yield* Ref.make<ReadonlyArray<Call>>([]);
     const target: Target = {
       url: stage.url,
+      platformUrl: stage.platformUrl ?? `${stage.url}${PLATFORM_PATH}`,
       doorToken: settings.doorToken,
       platformToken: settings.platformToken,
       secondPlatformToken: Option.getOrNull(settings.secondPlatformToken),
@@ -85,17 +87,24 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
  */
 const keptFor = (database: Redacted.Redacted, calls: ReadonlyArray<Call>) =>
   Effect.gen(function* () {
+    // Where the platform group is served by this process (worlds/platform.ts), its calls are kept by it.
+    const platform = yield* Effect.serviceOption(PlatformKept);
+    const byPlatform = (call: Call) => Option.isSome(platform) && servedBy(call.operation) === "platform";
     const own = yield* telemetryOf(
       database,
       Arr.map(
-        Arr.filter(calls, (call) => call.at === null),
+        Arr.filter(calls, (call) => call.at === null && !byPlatform(call)),
         (call) => call.traceId,
       ),
     );
+    const served = Option.isNone(platform)
+      ? { spans: [], events: [] }
+      : yield* platform.value.kept(Arr.map(Arr.filter(calls, byPlatform), (call) => call.traceId));
     const doors = Arr.dedupe(
       Arr.filterMap(calls, (call) => (call.at === null ? Result.failVoid : Result.succeed(call.at))),
     );
-    if (Arr.isReadonlyArrayEmpty(doors)) return own;
+    if (Arr.isReadonlyArrayEmpty(doors))
+      return { spans: [...own.spans, ...served.spans], events: [...own.events, ...served.events] };
     const others = yield* OtherWorlds;
     const elsewhere = yield* Effect.forEach(doors, (door) =>
       Effect.flatMap(others.databaseAt(door), (found) =>
@@ -113,8 +122,8 @@ const keptFor = (database: Redacted.Redacted, calls: ReadonlyArray<Call>) =>
       ),
     );
     return {
-      spans: Arr.flatten([own.spans, ...Arr.map(elsewhere, (kept) => kept.spans)]),
-      events: Arr.flatten([own.events, ...Arr.map(elsewhere, (kept) => kept.events)]),
+      spans: Arr.flatten([own.spans, served.spans, ...Arr.map(elsewhere, (kept) => kept.spans)]),
+      events: Arr.flatten([own.events, served.events, ...Arr.map(elsewhere, (kept) => kept.events)]),
     };
   });
 

@@ -15,6 +15,12 @@ export const Inventory = Schema.Struct({
   hyperdrives: Schema.Array(Schema.String),
   /** Neon projects whose name holds the stage's name. */
   neonProjects: Schema.Array(Schema.String),
+  /**
+   * For a run in private worlds: every resource of the worlds it made, in either account, by name (packages/world's
+   * inventory): Workers, container applications, Durable Object namespaces, R2 buckets, Hyperdrive configurations
+   * and Neon branches, snapshots' included.
+   */
+  worlds: Schema.String.pipe(Schema.Array, Schema.optional),
 });
 export type Inventory = typeof Inventory.Type;
 
@@ -61,4 +67,7 @@ export const inventory = Effect.fn("world.inventory")(function* (stage: string, 
 
 /** True when nothing of the stage is left. */
 export const isEmpty = (found: Inventory): boolean =>
-  found.workers.length === 0 && found.hyperdrives.length === 0 && found.neonProjects.length === 0;
+  found.workers.length === 0 &&
+  found.hyperdrives.length === 0 &&
+  found.neonProjects.length === 0 &&
+  (found.worlds ?? []).length === 0;

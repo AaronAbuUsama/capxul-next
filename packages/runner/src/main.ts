@@ -7,6 +7,8 @@
 import * as BunFileSystem from "@effect/platform-bun/BunFileSystem";
 import * as BunPath from "@effect/platform-bun/BunPath";
 import * as BunRuntime from "@effect/platform-bun/BunRuntime";
+import * as BunServices from "@effect/platform-bun/BunServices";
+import { SharedState } from "@capxul/world";
 import { scenarios } from "@capxul/scenarios";
 import * as Alchemist from "alchemy/Alchemist";
 import * as Arr from "effect/Array";
@@ -19,11 +21,15 @@ import { RunnerFailure } from "./failure.ts";
 import { runInWorld } from "./in-world.ts";
 import { door, runPlan, scenarioPlan, type Plan } from "./run.ts";
 import { OtherWorlds } from "./world/existing.ts";
+import { platformFor } from "./worlds/platform.ts";
+import { runInWorlds } from "./worlds/run.ts";
+import { timeStartingWorlds } from "./worlds/timing.ts";
 import { runScenarios } from "./scenario-runs.ts";
 import { Settings } from "./settings.ts";
 import { ranAsExpected, type Expectation, type Mode } from "./summary.ts";
 
-const USAGE = "usage: door [--world=<name>] | scenarios [--one-stage] [--expect=pass|not-implemented] [name...]";
+const USAGE =
+  "usage: door [--world=<name>] | scenarios [--one-stage] [--expect=pass|not-implemented] [name...] | starting-worlds";
 const [command, ...rest] = process.argv.slice(2);
 const WORLD_FLAG = "--world=";
 const world = Arr.findFirst(rest, Str.startsWith(WORLD_FLAG)).pipe(Option.map(Str.slice(WORLD_FLAG.length)));
@@ -54,6 +60,8 @@ const options = (): Effect.Effect<{ readonly mode: Mode; readonly expect: Expect
  */
 const plans = (settings: Settings): Effect.Effect<ReadonlyArray<Plan>, RunnerFailure> => {
   if (command === "door") return flags.length === 0 && names.length === 0 ? Effect.succeed([door]) : usage(USAGE);
+  if (command === "starting-worlds")
+    return flags.length === 0 && names.length === 0 ? Effect.succeed([]) : usage(USAGE);
   if (command !== "scenarios") return usage(USAGE);
   const chosen = names.length === 0 ? scenarios : Arr.filter(scenarios, (each) => Arr.contains(names, each.name));
   if (chosen.length < names.length)
@@ -76,11 +84,33 @@ const theDoor = (settings: Settings) =>
     if (record.outcome === "failed") process.exitCode = 1;
   });
 
+/** The scenarios to run, by the names given; all of them when none is. */
+const chosenScenarios =
+  names.length === 0 ? scenarios : Arr.filter(scenarios, (each) => Arr.contains(names, each.name));
+
+/**
+ * A run in private worlds needs the platform, served by this process (worlds/platform.ts), and the shared state of
+ * packages/world, through which it finds every world, and the databases of the worlds a call is made `at`.
+ */
+const inWorlds = <A, E, R>(settings: Settings, run: Effect.Effect<A, E, R>) =>
+  run.pipe(
+    Effect.provide(
+      Layer.mergeAll(platformFor(settings), OtherWorlds.fromSharedState).pipe(
+        Layer.provideMerge(SharedState.layer),
+        Layer.provideMerge(BunServices.layer),
+      ),
+    ),
+  );
+
 const theScenarios = (settings: Settings, chosen: ReadonlyArray<Plan>) =>
   Effect.gen(function* () {
     const { mode, expect } = yield* options();
-    yield* Effect.log(`${chosen.length} scenario${chosen.length === 1 ? "" : "s"}, ${mode}, expecting ${expect}`);
-    const summary = yield* runScenarios(chosen, settings, mode, expect);
+    const inPrivateWorlds = expect === "pass";
+    const shown = inPrivateWorlds ? "a world each" : mode;
+    yield* Effect.log(`${chosen.length} scenario${chosen.length === 1 ? "" : "s"}, ${shown}, expecting ${expect}`);
+    const summary = inPrivateWorlds
+      ? yield* inWorlds(settings, runInWorlds(chosenScenarios, settings))
+      : yield* runScenarios(chosen, settings, mode, expect);
     for (const line of summary.scenarios)
       yield* Effect.log(
         `${line.asExpected ? "as expected" : "NOT as expected"}: ${line.name}${line.why === null ? "" : ` (${line.why})`}`,
@@ -95,10 +125,22 @@ const theScenarios = (settings: Settings, chosen: ReadonlyArray<Plan>) =>
     if (!ranAsExpected(summary)) process.exitCode = 1;
   });
 
+const theStartingWorlds = (settings: Settings) =>
+  Effect.gen(function* () {
+    const record = yield* inWorlds(settings, timeStartingWorlds(settings));
+    for (const line of record.worlds)
+      yield* Effect.log(
+        `${line.name} (${line.made}): ${line.outcome} in ${line.ms} ms${line.why === null ? "" : `: ${line.why}`}`,
+      );
+    yield* Effect.log(`${record.outcome}: -> ${settings.records}/${record.run}/starting-worlds.json`);
+    if (record.outcome === "failed") process.exitCode = 1;
+  });
+
 const program = Effect.gen(function* () {
   const settings = yield* Settings;
   const chosen = yield* plans(settings);
   if (Option.isSome(world) && command !== "door") return yield* usage(`--world is for the door only; ${USAGE}`);
+  if (command === "starting-worlds") return yield* theStartingWorlds(settings);
   return yield* command === "door" ? theDoor(settings) : theScenarios(settings, chosen);
 });
 

@@ -21,8 +21,11 @@ import { Readiness } from "./world/warmup.ts";
 export const Expectation = Schema.Literals(["pass", "not-implemented"]);
 export type Expectation = typeof Expectation.Type;
 
-/** `a stage each`: every scenario in a fresh stage of its own. `one stage`: all of them in one fresh stage. */
-export const Mode = Schema.Literals(["a stage each", "one stage"]);
+/**
+ * `a stage each`: every scenario in a fresh stage of its own. `one stage`: all of them in one fresh stage. `a world
+ * each`: every scenario in fresh private worlds, its starting world made for it (worlds/run.ts).
+ */
+export const Mode = Schema.Literals(["a stage each", "one stage", "a world each"]);
 export type Mode = typeof Mode.Type;
 
 const NOT_IMPLEMENTED: Errors.NotImplemented["_tag"] = "NotImplemented";
@@ -93,7 +96,7 @@ export const Summary = Schema.Struct({
 export type Summary = typeof Summary.Type;
 
 const WHAT: { readonly [E in Expectation]: string } = {
-  pass: "The registered scenarios run through the runner against a deployed Core. Passed when every claim the blueprint declares has its scenario in the run, every scenario's run record passed, and every stage was destroyed with nothing of it left in the accounts.",
+  pass: "The registered scenarios run through the runner, each in fresh private worlds made by the platform this process serves, its starting world made for it. Passed when every claim the blueprint declares has its scenario in the run, every scenario's run record passed, and every world it made was destroyed with nothing of it left in the accounts.",
   "not-implemented":
     "The registered scenarios run through the runner against Core's deployed empty handlers. Passed when every claim the blueprint declares has its scenario in the run, every scenario failed on the NotImplemented it was answered (never passed, never died), every call was answered NotImplemented and passed every generic check, and every stage was destroyed with nothing of it left in the accounts.",
 };
@@ -158,7 +161,7 @@ const stagesOf = (records: ReadonlyArray<RunRecord>): ReadonlyArray<StageLine> =
 const leftWords = (after: Inventory | null): string =>
   after === null
     ? "the accounts were not read"
-    : `left ${Arr.join([...after.workers, ...after.hyperdrives, ...after.neonProjects], ", ")}`;
+    : `left ${Arr.join([...after.workers, ...after.hyperdrives, ...after.neonProjects, ...(after.worlds ?? [])], ", ")}`;
 
 const isGone = (stage: StageLine): boolean =>
   stage.afterwards === "destroyed" && stage.after !== null && isEmpty(stage.after);

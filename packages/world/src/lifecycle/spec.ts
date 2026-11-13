@@ -1,5 +1,6 @@
 // What a caller says about the world it wants, what it is handed back, and the declared settings every world lives
 // by: the limits on private worlds and the timeout of every step.
+import { World } from "@capxul/blueprint";
 import * as Config from "effect/Config";
 import * as Duration from "effect/Duration";
 import type * as Redacted from "effect/Redacted";
@@ -18,6 +19,18 @@ export interface WorldSpec {
   readonly lifetime: Duration.Duration;
   /** Make the world from another: its database is a copy-on-write fork of that world's, and its chain starts from that world's state. */
   readonly from?: string;
+  /**
+   * Make the world from a snapshot of `from` (src/platform): its database forks the snapshot's branch, and its chain
+   * starts from the chain state the snapshot saved, by its name.
+   */
+  readonly snapshot?: { readonly branch: string; readonly name: string };
+  /**
+   * Send everything that makes the world with the chain's clock just after the seed's last block, so the world's
+   * own start can be any time after that (src/platform/cast.ts). For a world made from nothing.
+   */
+  readonly atSeed?: boolean;
+  /** The token of the operator who owns the world, which its Core accepts as the owner's (decisions.md, 36). */
+  readonly operatorToken?: Redacted.Redacted;
   /**
    * Keep a world whose run did not pass, stopped, for this long, so it can be looked into. Never applies to a
    * passing run. At most `Limits.maxKeep`, and never past the world's own expiry: the sweeper deletes it then.
@@ -63,7 +76,10 @@ export interface World {
   readonly sites: ReadonlyArray<SiteState>;
   /** The world's door token, which Core's world door and its chain reads accept: a secret. */
   readonly doorToken: Redacted.Redacted;
-  /** The owner operator's token: Core's platform door, and the world's door as its owner (decisions.md, 36). */
+  /**
+   * The token the world minted for its owner operator: Core's platform door, and the world's door as its owner
+   * (decisions.md, 36). A world the platform made binds its owner's own token instead, and this one is unused.
+   */
   readonly operatorToken: Redacted.Redacted;
   /** The chain's JSON-RPC address. It carries the world's token, so it is a secret. */
   readonly rpcUrl: Redacted.Redacted;
@@ -77,11 +93,14 @@ export interface World {
 
 /**
  * The limits on private worlds (Aaron, 13 November 2026): a world may live at most 7 days, and an owner may have at
- * most 5 live worlds. A failed world may be kept for at most a day. Each is a declared setting.
+ * most 5 live worlds, as the blueprint declares them (`WORLD_LIMITS`). A failed world may be kept for at most a day.
+ * Each is a declared setting.
  */
 export const Limits = Config.all({
-  maxLifetime: Config.Duration("WORLD_MAX_LIFETIME").pipe(Config.withDefault(Duration.days(7))),
-  maxPerOwner: Config.Int("WORLD_MAX_PER_OWNER").pipe(Config.withDefault(5)),
+  maxLifetime: Config.Duration("WORLD_MAX_LIFETIME").pipe(
+    Config.withDefault(Duration.minutes(World.WORLD_LIMITS.lifetimeMinutes)),
+  ),
+  maxPerOwner: Config.Int("WORLD_MAX_PER_OWNER").pipe(Config.withDefault(World.WORLD_LIMITS.liveWorldsPerOwner)),
   maxKeep: Config.Duration("WORLD_MAX_KEEP").pipe(Config.withDefault(Duration.days(1))),
   /** The most company sites a world may hold on a shared bench: its site token's quota. */
   maxSites: Config.Int("WORLD_MAX_SITES").pipe(Config.withDefault(3)),

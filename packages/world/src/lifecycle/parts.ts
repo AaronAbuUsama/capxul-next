@@ -155,10 +155,17 @@ export const chainAnswers = (world: Door) => patient(rpcHex(world, "eth_chainId"
 
 const Adopted = Schema.Struct({ adopted: Schema.Boolean, bytes: Schema.Finite });
 
-/** Hands the new world the chain state of the world it is made from, before its own chain first starts. */
-export const adoptChain = (child: Door, parent: Door) =>
+/**
+ * Hands the new world the chain state of the world it is made from, before its own chain first starts: the parent's
+ * state now, or the state its snapshot of that name saved.
+ */
+export const adoptChain = (child: Door, parent: Door, snapshot?: string) =>
   Effect.gen(function* () {
-    const dump = yield* doorText(parent, "fork", HttpClientRequest.get("/chain/dump"));
+    const dump = yield* doorText(
+      parent,
+      "fork",
+      HttpClientRequest.get(snapshot === undefined ? "/chain/dump" : `/chain/snapshot/${snapshot}`),
+    );
     const adopted = yield* doorCall(
       child,
       "fork",
@@ -212,6 +219,12 @@ export const coreAnswers = (world: Pick<World, "coreUrl">) =>
       return yield* HttpClientResponse.schemaBodyJson(CoreHealth)(response);
     }).pipe(Effect.scoped),
   );
+
+const Saved = Schema.Struct({ head: Schema.String, bytes: Schema.Finite });
+
+/** Saves the chain's whole state as it is now under a snapshot's name, beside the chain's own saved state. */
+export const saveChain = (world: Door, snapshot: string) =>
+  doorCall(world, "chain", HttpClientRequest.post(`/chain/snapshot/${snapshot}`), Saved);
 
 /** Saves the chain and stops both containers, so a kept world costs nothing while it waits for its expiry. */
 export const stop = (world: Door) =>

@@ -16,6 +16,16 @@ export interface WorldSettings {
   readonly forkedFrom: Option.Option<string>;
   /** The shared bench the world's company sites are on, and its site token there (src/site/Bench.ts); none for a world with no bench. */
   readonly bench: Option.Option<BenchGrant>;
+  /**
+   * The branch a world restored from a snapshot forks: the snapshot's own (src/platform/branches.ts). It takes the
+   * place of `forkedFrom`'s branch.
+   */
+  readonly parentBranch: Option.Option<string>;
+  /**
+   * The token of the operator who owns the world, which its Core accepts as the owner's at both doors (decisions.md,
+   * 36). Left out, the world mints one of its own (`operator-token`).
+   */
+  readonly operatorToken: Option.Option<Redacted.Redacted>;
 }
 
 /** What a world is given on a bench when it is created: where its site door is, and its token there. */
@@ -30,7 +40,14 @@ export const WorldSettings = Context.Reference<Option.Option<WorldSettings>>("ca
   defaultValue: () => Option.none(),
 });
 
-const blank: WorldSettings = { owner: "", expiresAt: "", forkedFrom: Option.none(), bench: Option.none() };
+const blank: WorldSettings = {
+  owner: "",
+  expiresAt: "",
+  forkedFrom: Option.none(),
+  bench: Option.none(),
+  parentBranch: Option.none(),
+  operatorToken: Option.none(),
+};
 
 /**
  * The world's settings as the stack sees them. Inside a running Worker the stack's files are evaluated again, only

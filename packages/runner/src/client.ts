@@ -3,15 +3,7 @@
 // Core's server spans share one trace id, which the SDK sends in `traceparent`. The log keeps what was sent, what
 // came back, the caller's time and how the call ended. During a stage's warm-up, and only then, a call Cloudflare's
 // edge answered is sent again (world/warmup.ts).
-import {
-  CHAIN_PATH,
-  Errors,
-  isRefusal,
-  operations,
-  PLATFORM_PATH,
-  WORLD_PATH,
-  type OperationName,
-} from "@capxul/blueprint";
+import { CHAIN_PATH, Errors, isRefusal, operations, WORLD_PATH, type OperationName } from "@capxul/blueprint";
 import { Capxul, type CallOptions, type CapxulClient } from "@capxul/scenarios";
 import * as Sdk from "@capxul/sdk";
 import * as Cause from "effect/Cause";
@@ -48,9 +40,14 @@ export interface Call {
   readonly outcome: CallOutcome;
   /** The refusal's tag, for a refused call. */
   readonly refusal: string | null;
+  /** The person the call acted as (`CallOptions.as`), and the operator whose credential signed it. */
+  readonly as?: string | null;
+  readonly operator?: "first" | "second";
   readonly payload: unknown;
   /** What came back, for a call that succeeded. The `events` check computes what each event must carry from it. */
   readonly success: Option.Option<unknown>;
+  /** The refusal itself, for a refused call: a starting world's maker hands it on as the call's answer. */
+  readonly error?: Option.Option<unknown>;
   /** The caller's time for the call, network included: from the call to its answer decoded. */
   readonly callerMs: number;
   /** Sends repeated during the call because the stage's address was not routed yet. */
@@ -86,7 +83,10 @@ const failureOf = (exit: Exit.Exit<unknown, unknown>): string | null =>
 
 /** What the client needs of a stage: where its Core answers, the doors' tokens, and when its warm-up ends. */
 export interface Target {
+  /** Where the world's Core answers: its world group, its chain and, for a stage, its platform group. */
   readonly url: string;
+  /** Where the platform group answers: a stage's own Core, or the platform this process serves (worlds/platform.ts). */
+  readonly platformUrl: string;
   readonly doorToken: Redacted.Redacted;
   readonly platformToken: Redacted.Redacted;
   /** The second operator's platform token, when the run has one. */
@@ -107,8 +107,11 @@ const recording = (client: CapxulClient, log: Ref.Ref<ReadonlyArray<Call>>, rese
         traceId: span.traceId,
         at: options?.at ?? null,
         ...classify(name, exit),
+        as: options?.as ?? null,
+        operator: options?.operator ?? "first",
         payload,
         success: Exit.isSuccess(exit) ? Option.some(exit.value) : Option.none(),
+        error: Exit.isSuccess(exit) ? Option.none() : Cause.findErrorOption(exit.cause),
         callerMs: Duration.toMillis(took),
         resent: (yield* Ref.get(resent)) - before,
         failure: failureOf(exit),
@@ -128,10 +131,10 @@ const recording = (client: CapxulClient, log: Ref.Ref<ReadonlyArray<Call>>, rese
  */
 const doors = (target: Target, resent: Ref.Ref<number>) =>
   Layer.mergeAll(
-    Sdk.platformDoor({ url: `${target.url}${PLATFORM_PATH}`, token: target.platformToken }),
+    Sdk.platformDoor({ url: target.platformUrl, token: target.platformToken }),
     Sdk.worldDoor({ url: `${target.url}${WORLD_PATH}`, token: target.doorToken }),
     Sdk.reach({
-      platform: `${target.url}${PLATFORM_PATH}`,
+      platform: target.platformUrl,
       chain: { url: `${target.url}${CHAIN_PATH}`, token: target.doorToken },
       operators: { first: target.platformToken, second: target.secondPlatformToken },
     }),

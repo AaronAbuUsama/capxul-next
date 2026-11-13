@@ -20,7 +20,7 @@ export const RunRecord = Schema.Struct({
   name: Schema.String,
   /** The claim the scenario proves; null for the door and for an example. */
   proves: Schema.NullOr(Schema.Struct({ operation: Schema.String, claim: Schema.Finite })),
-  /** The starting world the scenario declares. Until step 1.12 every run starts from a fresh, empty stage. */
+  /** The starting world the scenario declares: made for it in a run in private worlds, an empty stage otherwise. */
   given: Schema.NullOr(Schema.String),
   /** The stage of `CapxulCore` the run used: also the name of the world its Core served. */
   stage: Schema.String,
@@ -37,6 +37,12 @@ export const RunRecord = Schema.Struct({
   readiness: Schema.NullOr(Readiness),
   /** Every call the run made, in order, with its timings, its steps and what the generic checks found. */
   calls: Schema.Array(CheckedCall),
+  /**
+   * For a run in private worlds: every call made in making the scenario's starting world for it (a restore of its
+   * template, or its steps), checked as the scenario's own are. The template's own making is in the run's
+   * starting-worlds record.
+   */
+  making: CheckedCall.pipe(Schema.Array, Schema.optional),
   afterwards: Schema.Struct({
     /** `left to its owner`: a world made by `world create`, which the runner neither made nor destroys. */
     stage: Schema.Literals(["destroying", "destroyed", "destroy failed", "left to its owner"]),
