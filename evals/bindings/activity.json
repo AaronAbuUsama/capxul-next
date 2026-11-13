@@ -1,24 +1,126 @@
 {
   "area": "activity",
   "script": "packages/evals/src/modules/activity/run.sh",
-  "worlds": ["slice-zero"],
+  "worlds": [
+    "slice-zero"
+  ],
   "secrets": [],
   "bindings": [],
   "near": [
     {
       "eval": "tbl:activity-changes/schema",
-      "checks": ["ACTIVITY.selected-stack", "ACTIVITY.schema"],
-      "missing": "Live restricted-role introspection checks exact fields/types/nullability/key/indexes. Constraint rejection cases and migration through the actual selected-world creation path must also be proved before activating this binding."
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.schema",
+        "ACTIVITY.constraints"
+      ],
+      "missing": "Live restricted-role introspection checks exact fields/types/nullability/key/indexes and admin (not runtime) ownership; constraints refuses every CHECK, NOT NULL, primary-key and owner-event duplicate in rolled-back attempts. Still needs one complete fresh selected-stack run whose world creation actually ran migrateActivity (composition does not migrate Activity yet)."
     },
     {
       "eval": "tbl:activity-changes/tenancy",
-      "checks": ["ACTIVITY.selected-stack", "ACTIVITY.tenancy", "ACTIVITY.writer-acl"],
-      "missing": "Exact visible-row equality and transaction-local owner reset cover existing person/organization feeds. Authenticated/revoked admitted sessions and forbidden cross-owner mutation attempts through the actual selected stack still need execution; this is not a full tenancy proof."
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.tenancy",
+        "ACTIVITY.cross-owner",
+        "ACTIVITY.writer-acl"
+      ],
+      "missing": "The checks cover the whole claim: each owner's scoped read equals exactly its rows at one MVCC cut and resets with its transaction, and Core's own ownerTransaction on the tenant role is refused every insert/update/delete/truncate on another owner's rows and its own. Still needs one complete fresh selected-stack run that passes them, with person and organization feeds present. No session read is required (decision activity.tenancy-evidence)."
     },
     {
       "eval": "tbl:activity-changes/writers",
-      "checks": ["ACTIVITY.selected-stack", "ACTIVITY.writer-acl"],
-      "missing": "Only the worker may append and no runtime role may mutate/delete rows. All eleven actual payment-transition workflows and movement record, plus unauthorized-operation controls, still need execution through the committed source outbox. No synthetic event or direct component appender call proves this claim."
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.writer-acl"
+      ],
+      "missing": "Only the worker may append, and no runtime role may change or remove a row, by grant and by actual attempt. Still needs all eleven real payment transitions and Movement record through the committed outbox in one run. Core has no source emitter for schedule, come_due, escrow or movement record, and composition does not relay Activity yet."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-open/idempotent",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-open.idempotent"
+      ],
+      "missing": "Samples up to 20 real, acknowledged transitions of this kind from the run's outbox. Each must be noted exactly once in each feed holding its Payment, with the event's transition/from/to/time and first-arrival change; redelivery through the ACK, and through the by-owner-event key alone, must leave the feeds unchanged (rolled back). Activate only from one complete fresh selected-stack run where Core emitted this transition and composition relayed it."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-schedule/idempotent",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-schedule.idempotent"
+      ],
+      "missing": "Samples up to 20 real, acknowledged transitions of this kind from the run's outbox. Each must be noted exactly once in each feed holding its Payment, with the event's transition/from/to/time and first-arrival change; redelivery through the ACK, and through the by-owner-event key alone, must leave the feeds unchanged (rolled back). Activate only from one complete fresh selected-stack run where Core emitted this transition and composition relayed it. Core has no source emitter for this transition yet."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-come-due/idempotent",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-come-due.idempotent"
+      ],
+      "missing": "Samples up to 20 real, acknowledged transitions of this kind from the run's outbox. Each must be noted exactly once in each feed holding its Payment, with the event's transition/from/to/time and first-arrival change; redelivery through the ACK, and through the by-owner-event key alone, must leave the feeds unchanged (rolled back). Activate only from one complete fresh selected-stack run where Core emitted this transition and composition relayed it. Core has no source emitter for this transition yet."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-escrow/idempotent",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-escrow.idempotent"
+      ],
+      "missing": "Samples up to 20 real, acknowledged transitions of this kind from the run's outbox. Each must be noted exactly once in each feed holding its Payment, with the event's transition/from/to/time and first-arrival change; redelivery through the ACK, and through the by-owner-event key alone, must leave the feeds unchanged (rolled back). Activate only from one complete fresh selected-stack run where Core emitted this transition and composition relayed it. Core has no source emitter for this transition yet."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-submit/idempotent",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-submit.idempotent"
+      ],
+      "missing": "Samples up to 20 real, acknowledged transitions of this kind from the run's outbox. Each must be noted exactly once in each feed holding its Payment, with the event's transition/from/to/time and first-arrival change; redelivery through the ACK, and through the by-owner-event key alone, must leave the feeds unchanged (rolled back). Activate only from one complete fresh selected-stack run where Core emitted this transition and composition relayed it."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-settle/idempotent",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-settle.idempotent"
+      ],
+      "missing": "Samples up to 20 real, acknowledged transitions of this kind from the run's outbox. Each must be noted exactly once in each feed holding its Payment, with the event's transition/from/to/time and first-arrival change; redelivery through the ACK, and through the by-owner-event key alone, must leave the feeds unchanged (rolled back). Activate only from one complete fresh selected-stack run where Core emitted this transition and composition relayed it."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-mismatch/idempotent",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-mismatch.idempotent"
+      ],
+      "missing": "Samples up to 20 real, acknowledged transitions of this kind from the run's outbox. Each must be noted exactly once in each feed holding its Payment, with the event's transition/from/to/time and first-arrival change; redelivery through the ACK, and through the by-owner-event key alone, must leave the feeds unchanged (rolled back). Activate only from one complete fresh selected-stack run where Core emitted this transition and composition relayed it."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-unsettle/idempotent",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-unsettle.idempotent"
+      ],
+      "missing": "Samples up to 20 real, acknowledged transitions of this kind from the run's outbox. Each must be noted exactly once in each feed holding its Payment, with the event's transition/from/to/time and first-arrival change; redelivery through the ACK, and through the by-owner-event key alone, must leave the feeds unchanged (rolled back). Activate only from one complete fresh selected-stack run where Core emitted this transition and composition relayed it."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-lapse/idempotent",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-lapse.idempotent"
+      ],
+      "missing": "Samples up to 20 real, acknowledged transitions of this kind from the run's outbox. Each must be noted exactly once in each feed holding its Payment, with the event's transition/from/to/time and first-arrival change; redelivery through the ACK, and through the by-owner-event key alone, must leave the feeds unchanged (rolled back). Activate only from one complete fresh selected-stack run where Core emitted this transition and composition relayed it."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-retry/idempotent",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-retry.idempotent"
+      ],
+      "missing": "Samples up to 20 real, acknowledged transitions of this kind from the run's outbox. Each must be noted exactly once in each feed holding its Payment, with the event's transition/from/to/time and first-arrival change; redelivery through the ACK, and through the by-owner-event key alone, must leave the feeds unchanged (rolled back). Activate only from one complete fresh selected-stack run where Core emitted this transition and composition relayed it."
+    },
+    {
+      "eval": "wfl:activity.changes.note-payment-cancel/idempotent",
+      "checks": [
+        "ACTIVITY.selected-stack",
+        "ACTIVITY.note-payment-cancel.idempotent"
+      ],
+      "missing": "Samples up to 20 real, acknowledged transitions of this kind from the run's outbox. Each must be noted exactly once in each feed holding its Payment, with the event's transition/from/to/time and first-arrival change; redelivery through the ACK, and through the by-owner-event key alone, must leave the feeds unchanged (rolled back). Activate only from one complete fresh selected-stack run where Core emitted this transition and composition relayed it."
     }
   ]
 }
