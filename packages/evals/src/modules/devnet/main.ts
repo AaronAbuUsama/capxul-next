@@ -8,14 +8,14 @@ import { psqlAdmin } from "../../../../devnet/src/devnet/door.ts";
 import { fixtureFrom } from "../acceptance/fixture.ts";
 import { assertSchema, observeSchema, type Table } from "./schema.ts";
 
-const checks = { "DEVNET.worlds-schema": "worlds", "DEVNET.snapshots-schema": "world_snapshots", "DEVNET.records-schema": "command_records" } as const;
+const checks = { "DEVNET.worlds-schema": "worlds", "DEVNET.snapshots-schema": "world_snapshots", "DEVNET.records-schema": "command_records", "DEVNET.record-export": "record-export" } as const;
 if (process.argv.includes("--list")) {
   console.log("DEVNET.selected-stack\tguard");
   for (const name of Object.keys(checks)) console.log(`${name}\tcheck`);
 } else {
   const onlyIndex = process.argv.indexOf("--only");
   const only = onlyIndex < 0 ? [] : (process.argv[onlyIndex + 1] ?? "").split(",");
-  const selected = Object.entries(checks).filter(([name]) => !only.length || only.some((prefix) => name.startsWith(prefix))) as [string, Table][];
+  const selected = Object.entries(checks).filter(([name]) => !only.length || only.some((prefix) => name.startsWith(prefix))) as [string, Table | "record-export"][];
   const emit = (name: string, ok: boolean, ms: number, detail: string) => console.log(`@check\t${name}\t${ok ? "pass" : "fail"}\t${ms}\t${detail}`);
   let failed = false;
   try {
@@ -53,12 +53,32 @@ if (process.argv.includes("--list")) {
     for (const [name, table] of selected) {
       const start = Date.now();
       try {
+        if (table === "record-export") {
+          // Independent restricted SQL observations, not a catalogue helper or Core's financial record.
+          const [source] = await query(`SELECT jsonb_build_object('lineage',jsonb_build_object('parentWorld',parent_world,'parentSnapshot',parent_snapshot,'parentSeq',parent_seq),
+            'records',(SELECT jsonb_agg(to_jsonb(r) ORDER BY epoch,seq) FROM app.command_records r WHERE r.world_id=w.world_id))
+            FROM app.worlds w WHERE world_id='${config.world.id.replaceAll("'", "''")}'`);
+          assert(source && Array.isArray(source.records) && source.records.length > 0, "selected world's catalogue is not populated");
+          const output = join(dir, "record-export.jsonl");
+          const exported = await promisify(execFile)(process.execPath, [join(config.root, "packages/cli/src/main.ts"), "record", "export",
+            "--config", configPath, "--world", config.world.id, "--out", output, "--json"], { timeout: 60000, maxBuffer: 1024 * 1024 });
+          const result = JSON.parse(exported.stdout), data = await readFile(output, "utf8");
+          assert.equal((await stat(output)).mode & 0o077, 0);
+          assert(data.endsWith("\n"), "export is not newline terminated");
+          const lines = data.trimEnd().split("\n").map((line) => JSON.parse(line));
+          assert.deepEqual(lines[0], source.lineage);
+          assert.deepEqual(lines.slice(1), source.records, "export lost, duplicated, reordered or rewrote catalogue entries");
+          assert.deepEqual(result, { lines: source.records.length + 1, bytes: Buffer.byteLength(data), lineage: source.lineage });
+          await writeFile(join(dir, "record-export-source.json"), JSON.stringify(source, null, 2) + "\n");
+          emit(name, true, Date.now() - start, "public CLI export returns exact line/byte counts and lineage for the same-run selected world's actual catalogue");
+          continue;
+        }
         const schema = await observeSchema(query, table);
         await writeFile(join(dir, `${table}-schema.json`), JSON.stringify(schema, null, 2) + "\n");
         assertSchema(table, schema);
         emit(name, true, Date.now() - start, "live restricted-store fields/types/nullability/key/indexes/enums equal the declared catalogue");
       } catch {
-        failed = true; emit(name, false, Date.now() - start, "live catalogue schema is missing or differs; see same-run devnet schema observation");
+        failed = true; emit(name, false, Date.now() - start, "live catalogue observation or public export is missing or differs; see same-run devnet evidence");
       }
     }
   } catch {
