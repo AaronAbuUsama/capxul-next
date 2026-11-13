@@ -69,7 +69,10 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | Folder | What it holds |
 |---|---|
 | `records/spike/` | The pipeline spike's three green runs, the Proof of roadmap step 0.7. |
-| `records/core-*/` | One stage each: its door or scenario record, written by `./run.sh`. |
+| `records/core-5104bd/` | `./run.sh door` on 13 November 2026: all twelve operations answered `NotImplemented` through the SDK at Core's two doors, every check passed, each call with its caller and server time and budget, the stage destroyed and nothing left. `passed`. |
+| `records/core-205613/` | `./run.sh scenarios`: the one example failed on `NotImplemented`, as a scenario must against the empty handlers. `failed`, by design. |
+| `records/leftovers.txt` | The two accounts read after every stage of that session: nothing of `CapxulCore` is left, and Alchemy keeps no state. |
+| `records/core-*/` | Further runs: one stage each, its door or scenario record, written by `./run.sh`. |
 
 ## Files
 
