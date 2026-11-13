@@ -39,6 +39,7 @@ test("runtime children receive only their restricted world credentials, never op
     assert.equal(core.CORE_START_PAUSED, "true");
     assert.equal(core.SITE_SERVICE_TOKEN, c.siteToken);
     assert.equal(ponder.PONDER_DATABASE_URL, databaseUrl(c.database.ponder, c.world));
+    assert.equal(ponder.PONDER_FIRST_BLOCK, undefined, "no deployment yet: Ponder's finality search starts at genesis");
     for (const env of [core, ponder, anvil]) {
       assert.equal(env.PG_ADMIN_URL, undefined); assert.equal(env.CAPXUL_PRIVATE_KEY, undefined);
     }
@@ -49,6 +50,15 @@ test("runtime children receive only their restricted world credentials, never op
     assert.equal(caller.CAPXUL_CORE_URL, loopback(c.ports.publicCore));
     assert.equal(caller.CAPXUL_SITES_ACTORS, join(c.controlDir, "sites-actors.json"));
   } finally { delete process.env.PG_ADMIN_URL; delete process.env.CAPXUL_PRIVATE_KEY; }
+});
+
+test("a world with a deployment bounds Ponder's finality search at the deployed block", async () => {
+  const root = await mkdtemp(join(tmpdir(), "world-ponder-env-")), c = config(root);
+  try {
+    await writeFile(join(root, "deployment.json"), JSON.stringify({ deployedBlock: 4217 }));
+    assert.equal(runtimeEnv(c, "ponder").PONDER_FIRST_BLOCK, "4217");
+    assert.equal(runtimeEnv(c, "core").PONDER_FIRST_BLOCK, undefined);
+  } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test("gate retains host supervision context without operator credentials and preserves a failed verdict", async () => {

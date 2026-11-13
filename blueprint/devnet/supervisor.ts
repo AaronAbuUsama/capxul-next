@@ -87,7 +87,7 @@ export const decision_devnet_frappe_clock_subsystems = defineDecision({
       "Supersedes point (5) of devnet.site-follows-world. Sessions are on the world's now: last_updated, the Sessions expiry threshold and the " +
       "session_end comparison read it, so one session is judged on one clock: a one-day world clock warp keeps it and a warp past its lifetime ends it " +
       "cleanly (devnet.time-is-right test 6, bound to world clock warp). A snapshot restore still invalidates every session by design " +
-      "(devnet.world-evidence quiesce-template-bundle). The clock read fails closed: a missing or unreadable world entry raises instead of returning " +
+      "(devnet.snapshot-consistent-cut). The clock read fails closed: a missing or unreadable world entry raises instead of returning " +
       "the host's time. Every bench Python process installs the clock at interpreter start (a world-clock .pth in the bench venv), because Frappe " +
       "validates the session in init_request before any app is imported: a fresh web worker otherwise judges a world-stamped session on the host and " +
       "deletes it. Each site's capxul.clock.now reports whether its workers booted with the clock, and world inspect refuses one that did not. Redis TTLs, locks, caches, rate limits and the job queue's enqueue and timeout stamps are real on purpose: infrastructure " +
