@@ -1,10 +1,9 @@
 // The parts of the product a site switches on and off (sites.features-reachability), as the site app has them
 // (packages/frappe-app/capxul/features.py, CATALOG). `pnpm frappe:check-blueprint` fails the merge on any difference.
-// Where the app still differs from the decision, the record says what the app does and `owes` names the change.
+// HRMS keeps the split features' DocTypes in HR, so explicit DocTypes close them without closing staff, leave and expenses.
 
 import { defineFeature } from "../../packages/blueprint-engine/src/index.ts";
 import { concept_sites } from "../shared/foundation.ts";
-import { decision_sites_features_reachability as reach } from "./decisions.ts";
 
 const concept = concept_sites;
 
@@ -15,13 +14,28 @@ export const feature_accounts = defineFeature({
 export const feature_people = defineFeature({
   id: "people", title: "People", about: "Staff records, leave and expenses: Frappe HR's people modules.", concept,
   label: "People (HR)", default: "on",
-  modules: ["HR", "Tax and Benefits", "Performance", "Expenses", "Leaves", "Shift and Attendance", "Recruitment", "Tenure", "HR Setup"],
-  owes: [{ decision: reach, change: "Split attendance (Shift and Attendance), recruitment (Recruitment) and reviews (Performance) into parts of their own, off by default." }],
+  modules: ["HR", "Tax and Benefits", "Expenses", "Leaves", "Tenure", "HR Setup"],
 });
 export const feature_payroll = defineFeature({
   id: "payroll", title: "Payroll", about: "Payroll runs: Frappe HR's Payroll module and its API.", concept,
-  label: "Payroll", default: "on", modules: ["Payroll"], prefixes: ["hrms.payroll."],
-  owes: [{ decision: reach, change: "Off by default until the first jurisdiction and its payroll support are chosen (aaron.jurisdiction-open); the end-to-end check B5 expects it on today." }],
+  label: "Payroll", default: "off", modules: ["Payroll"], prefixes: ["hrms.payroll."],
+});
+export const feature_attendance = defineFeature({
+  id: "attendance", title: "Attendance", about: "Shift assignments, check-ins and attendance; shared staff and project timesheets stay reachable.", concept,
+  label: "Attendance", default: "off", modules: ["Shift and Attendance"],
+  doctypes: ["Attendance", "Attendance Request", "Employee Checkin", "Employee Attendance Tool", "Shift Assignment", "Shift Assignment Tool", "Shift Request", "Shift Type", "Shift Location", "Shift Schedule", "Shift Schedule Assignment", "Overtime Type", "Overtime Slip", "Overtime Details"],
+  paths: ["/hr/roster"],
+});
+export const feature_recruitment = defineFeature({
+  id: "recruitment", title: "Recruitment", about: "Job openings, applicants, interviews and offers; shared Employee and Skill records stay reachable.", concept,
+  label: "Recruitment", default: "off", modules: ["Recruitment"],
+  doctypes: ["Job Opening", "Job Opening Template", "Job Applicant", "Job Applicant Source", "Job Requisition", "Job Offer", "Job Offer Term", "Job Offer Term Template", "Offer Term", "Interview", "Interview Round", "Interview Type", "Interview Detail", "Interviewer", "Interview Feedback", "Employee Referral", "Staffing Plan", "Staffing Plan Detail", "Appointment Letter", "Appointment Letter Template", "Appointment Letter Content"],
+  paths: ["/jobs"],
+});
+export const feature_reviews = defineFeature({
+  id: "reviews", title: "Reviews", about: "Goals, appraisals and employee performance feedback.", concept,
+  label: "Reviews", default: "off", modules: ["Performance"],
+  doctypes: ["Goal", "Appraisal", "Appraisal Cycle", "Appraisal Template", "Appraisal KRA", "Appraisal Goal", "Appraisal Template Goal", "Appraisee", "KRA", "Employee Performance Feedback", "Employee Feedback Criteria", "Employee Feedback Rating"],
 });
 export const feature_projects = defineFeature({
   id: "projects", title: "Projects", about: "Projects and their tasks.", concept,

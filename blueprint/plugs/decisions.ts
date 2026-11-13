@@ -397,4 +397,26 @@ export const decision_plugs_answer_origin = dec({
   affects: [f.component_frappe_app, integration_frappe_site, d.table_payment_requests, d.table_site_request_cursors, pr.workflow_plugs_payments_collect],
 });
 
+export const decision_plugs_typed_site_transport = dec({
+  id: "plugs.typed-site-transport",
+  title: "One typed, signed site transport for workflows and product calls",
+  question: "How do the collector, event delivery and public document door agree on site failures and successful acknowledgements?",
+  options: [{ label: "typed-provider", text: "The backend FrappeSite Effect service owns a configured transport origin and secret, signs exact request bytes and short-lived user assertions, refuses redirects, bounds timeouts/retries and validates response schemas and request/tenant/cursor identities. Network failures, 401 and 5xx map to PROVIDER_ERROR; invalid successful answers map to PROVIDER_RESPONSE_INVALID. Product run/report responses carry explicit ok/data or ok/error envelopes. A native FeatureNotAvailable PermissionError subclass distinguishes disabled features without matching translated text. Native permission and missing-document failures retain the declared public error vocabulary. A missing readSite method is WRONG_STATE. HTTP 409 event cursor conflicts retain the site's expected sequence for durable replay; they never acknowledge money. The existing checked-out SQL connection and complete saved collector answer remain authoritative." }],
+  chosen: "typed-provider",
+  why: "The durable workflow's narrow fetch calls do not implement the declared FrappeSite error contract. Sharing one schema-checked provider prevents public handlers and workflows from interpreting the same failed site call differently, while keeping all requests inbound to the site and all transaction ownership in the existing invoker.",
+  evidence: "Slice-zero plugs binding audit and product-door/provider ownership agreement, 12 November 2026; packages/backend/src/plugs/collector.ts and door.ts",
+  affects: [f.component_backend, f.component_frappe_app, integration_frappe_site, pr.workflow_plugs_payments_collect, pr.workflow_plugs_events_deliver],
+});
+
+export const decision_plugs_native_feature_defaults = dec({
+  id: "plugs.native-feature-defaults",
+  title: "Native feature readiness reports the eleven declared switches",
+  question: "How does native feature setup satisfy Sites' recorded defaults without hiding existing choices?",
+  options: [{ label: "seed-and-observe", text: "New native sites seed accounts, people, projects and crm on; payroll, whatsapp, attendance, recruitment, reviews, stock and manufacturing off. Migration adds missing switches and refreshes caches and user module blocks, preserving existing choices rather than resetting them during configure or restore. On pinned HRMS the split attendance, recruitment and performance DocTypes still live in HR, so feature records name those DocTypes explicitly; their document APIs close without closing Employee, leave, expenses or shared project timesheets. readSite returns the actual native rows, never substituted defaults." }],
+  chosen: "seed-and-observe",
+  why: "PR57's real readiness comparison exposed the native eight-feature/payroll-on catalog. Module names alone cannot close the split features on this HRMS release. Recording explicit DocTypes makes the blueprint comparison cover the native guard as well as the default list; discovery types/schema and disabled-DocType guards use this same explicit ownership before falling back to module ownership. A shared native module cannot be blocked wholesale while it contains an enabled feature's explicitly owned DocTypes: those DocTypes remain reachable and the disabled feature's other DocTypes are still refused individually. Existing enabled payroll cannot safely be guessed to be an old default rather than an intentional choice; readiness must report that drift honestly.",
+  evidence: "PR57 mirror finding4549544850; native boundary.localhost read_site and HRMS DocType/module observation, 12 November 2026",
+  affects: [f.component_frappe_app, integration_frappe_site],
+});
+
 void ops; 
