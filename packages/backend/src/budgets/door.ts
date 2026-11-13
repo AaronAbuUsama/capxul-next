@@ -16,3 +16,6 @@ export async function currentWearers(sql: Sql, input: { orgId: string; chainId: 
 }
 
 export { proposeChange, settleChange, type Carry, type CarrierEnd, type ChangeBirth, type PlannedBudget, type Terms } from "./changes.ts";
+export { createDepartment, type DepartmentServices, type Carried, type CarrierInput, type People } from "./departments.ts";
+export { listDepartments } from "./list.ts";
+export { departmentsHandler } from "./routes.ts";

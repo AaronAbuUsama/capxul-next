@@ -265,6 +265,28 @@ export const decision_budgets_role_conflict = defineDecision({
   ],
 });
 
+export const decision_budgets_role_conflict_unnamed_officers = defineDecision({
+  id: "budgets.role-conflict-unnamed-officers",
+  title: "Until the People hat is named, any officer hat wearer is ROLE_CONFLICT",
+  question:
+    "The admitted deployment (organizations.admitted-deployment) lists the officer hats in install order and does not say " +
+    "which one is People until organizations.native-hat-binding-authority is answered. How does a department create apply " +
+    "budgets.role-conflict-people-hat meanwhile?",
+  options: [
+    { label: "any-officer", text: "Refuse a holder who wears any of the Organization's officer hats with ROLE_CONFLICT; once the People hat is named, refuse only its wearers." },
+    { label: "refuse-holders", text: "Refuse every create that names a holder with FEATURE_NOT_AVAILABLE until the People hat is named." },
+    { label: "skip", text: "Skip the check until the People hat is named." },
+  ],
+  chosen: "any-officer",
+  why:
+    "Fail closed without blocking the thin line. Every People hat wearer is refused as the rule requires, because the People " +
+    "hat is one of the officer hats. The cost is that a Books or Invoicing officer is also refused for a while, which can be " +
+    "undone by naming the hats, and no office is ever granted against the rule. Refusing all holders would stop the " +
+    "slice-zero paying department, whose office holder wears no officer hat. Skipping the check would loosen a guard (P10 rung 3).",
+  source: by("organizations.admitted-deployment (PR96 e810ccc: officer_hats in install order, named hats null); Organizations lane, 13 November 2026"),
+  affects: [error_ROLE_CONFLICT, rpc_budgets_departments_create, rpc_budgets_offices_add_holder],
+});
+
 export const decision_budgets_no_door = defineDecision({
   id: "budgets.no-door",
   title: "Budgets has no procedures; payments' spend check is a read",
