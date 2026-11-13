@@ -6,7 +6,7 @@ ledger row has no timeline and is the one thing the money trail must reach.
 Where Frappe does not: child table rows (they belong to the parent's stamp); documents written straight to the database (db_set, raw SQL,
 which fire no hooks); the wizard and installs; the data a web page's own JavaScript writes. Log doctypes are skipped on purpose.
 Where the id comes from: the `X-Capxul-Trace` request header (Core), or the `trace_id` argument of a bench command (clock.advance,
-features.switch); `ensure()` starts one when neither sent it. Its form is a W3C trace id, 32 lowercase hex characters, never all zeros
+features.switch). A desk Submit's payment request, which carries neither, starts one with `ensure()`. Its form is a W3C trace id, 32 lowercase hex characters, never all zeros
 (plugs.trace-format); a value in any other form is ignored.
 """
 import re

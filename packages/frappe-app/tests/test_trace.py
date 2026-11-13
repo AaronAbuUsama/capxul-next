@@ -43,7 +43,7 @@ class TraceFormat(unittest.TestCase):
                 features.switch("crm", True, trace_id=t)
 
         for adopt in (clock._stamp, switch):
-            for value, kept in (("4bf92f3577b34da6a3ce929d0e0e4736", True), ("tr_0123456789abcdefghij", False), ("0" * 32, False)):
+            for value, kept in (("4bf92f3577b34da6a3ce929d0e0e4736", True), ("tr_0123456789abcdefghij", False), ("0" * 32, False), (None, False)):
                 with self.subTest(adopt=adopt, value=value):
                     frappe.flags.capxul_trace = None
                     adopt(value)
