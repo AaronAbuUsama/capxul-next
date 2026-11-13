@@ -21,21 +21,21 @@ function text(input: Record<string, unknown>, key: string): string {
  * A returned 4xx still commits (a wrong OTP has spent a try). Never throw that result inside the transaction.
  */
 export async function routeAccess(sql: Sql, path: string, input: Record<string, unknown>, bearer: string,
-  services: AccessServices, now: number): Promise<{ status: number; body: unknown } | null> {
+  services: AccessServices, now: number, trace = ""): Promise<{ status: number; body: unknown } | null> {
   switch (path) {
     case "/access/sign-in/send-code":
       return { status: 200, body: await sendCode(sql, { email: text(input, "email") }, services.mail, now) };
     case "/access/sign-in/verify-code": {
-      const result = await verifyCode(sql, { email: text(input, "email"), code: text(input, "code"), client: text(input, "client") }, services.personalSafe, now);
+      const result = await verifyCode(sql, { email: text(input, "email"), code: text(input, "code"), client: text(input, "client") }, services.personalSafe, now, trace);
       return result.ok ? { status: 200, body: result.value } : { status: result.error === "RATE_LIMITED" ? 429 : 400, body: { error: result.error, ...(result.triesLeft === undefined ? {} : { triesLeft: result.triesLeft }) } };
     }
     case "/access/sign-in/challenge":
       return { status: 200, body: challenge(services.agent.secret, services.agent.domain, text(input, "safe") as Address, now) };
     case "/access/sign-in/with-key":
-      return { status: 200, body: await withKey(sql, { safe: text(input, "safe"), challenge: text(input, "challenge"), signature: text(input, "signature") as Hex, client: text(input, "client") }, services.agent, now) };
+      return { status: 200, body: await withKey(sql, { safe: text(input, "safe"), challenge: text(input, "challenge"), signature: text(input, "signature") as Hex, client: text(input, "client") }, services.agent, now, trace) };
     case "/access/sessions/current":
       return { status: 200, body: await currentSession(sql, bearer, { rpc: services.agent.rpc, companiesHouse: services.personalSafe.companiesHouse }, now) };
-    case "/access/sessions/revoke": return { status: 200, body: await revoke(sql, bearer, now) };
+    case "/access/sessions/revoke": return { status: 200, body: await revoke(sql, bearer, now, trace) };
     default: return null;
   }
 }

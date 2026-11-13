@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import type { Address } from "viem";
 import type { Sql } from "../platform/db.ts";
 import type { Mail } from "../shared/door.ts";
-import { accessError, routeAccess, type AccessServices } from "./routes.ts";
+import { accessError, accessPaths, routeAccess, type AccessServices } from "./routes.ts";
 
 const address = (value: unknown): value is Address => typeof value === "string" && /^0x[0-9a-fA-F]{40}$/.test(value);
 
@@ -20,8 +20,9 @@ export function accessRoutes(input: { mail: Mail; secret: string; coreUrl: strin
       domain: new URL(input.coreUrl).host, rpc: input.rpc, agentOwner: deployment.agentOwner },
   };
   return [{
-    prefixes: ["/access/"], system: true,
-    route: (sql: Sql, path: string, body: Record<string, unknown>, bearer: string, now: number) => routeAccess(sql, path, body, bearer, services, now),
+    paths: accessPaths, system: true,
+    route: (sql: Sql, path: string, body: Record<string, unknown>, bearer: string, now: number, trace: string) =>
+      routeAccess(sql, path, body, bearer, services, now, trace),
     render: accessError,
   }];
 }

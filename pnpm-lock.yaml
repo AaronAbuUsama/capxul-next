@@ -374,6 +374,12 @@ importers:
       '@capxul/sdk':
         specifier: workspace:*
         version: link:../sdk
+      effect:
+        specifier: 'catalog:'
+        version: 4.1.2
+      pg:
+        specifier: 8.16.3
+        version: 8.16.3
       viem:
         specifier: 'catalog:'
         version: 2.55.18(typescript@5.9.3)(zod@3.25.76)
@@ -381,6 +387,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.1
+      '@types/pg':
+        specifier: 8.15.5
+        version: 8.15.5
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

@@ -27,19 +27,20 @@ export async function sendCode(sql: Sql, input: { email: string }, mail: Mail, n
 }
 
 async function openSession(sql: Sql, personId: string, safe: string, method: "code" | "key", client: string,
-  now: number, nonce: string | null): Promise<SignIn> {
+  now: number, nonce: string | null, trace = ""): Promise<SignIn> {
   const token = randomBytes(32).toString("base64url"), id = randomUUID();
   const expiresAt = new Date(now + (method === "code" ? 30 : 1) * 86_400_000);
   await sql.query(`insert into app.sessions(person_id,session_id,token_hash,method,status,challenge_nonce,client,created_at,expires_at)
     values($1,$2,$3,$4,'active',$5,$6,$7,$8)`, [personId, id, digest(token), method, nonce, client, new Date(now), expiresAt]);
   await emit(sql, { id: randomUUID(), name: "session_transitioned", machine: "session", entity_id: id,
-    owner_kind: "person", owner_id: personId, actor: personId, trace_id: id, at: now,
+    owner_kind: "person", owner_id: personId, actor: personId, trace_id: trace || id, at: now,
     props: { from: null, to: "active", transition: "open", session_id: id, person_id: personId, method } });
   return { token, personId, safe, expiresAt: expiresAt.toISOString() };
 }
 
 /** A wrong-code result must commit its spent try; the HTTP adapter renders the error AFTER the transaction. */
-export async function verifyCode(sql: Sql, input: { email: string; code: string; client: string }, config: AccessConfig, now: number):
+/** `trace` is the request's trace when Core has one; the session id stands in otherwise. */
+export async function verifyCode(sql: Sql, input: { email: string; code: string; client: string }, config: AccessConfig, now: number, trace = ""):
 Promise<{ ok: true; value: SignIn & { email: string } } | { ok: false; error: string; triesLeft?: number }> {
   const email = normalizeEmail(input.email);
   if (!/^\d{6}$/.test(input.code)) return { ok: false, error: "INVALID_INPUT" };
@@ -57,7 +58,7 @@ Promise<{ ok: true; value: SignIn & { email: string } } | { ok: false; error: st
     values($1,'person',$2,$3,null,$4) on conflict(email) do nothing`, [randomUUID(), email, safe, new Date(now)]);
   const p = (await sql.query("select person_id,safe_address from app.principals where email=$1", [email])).rows[0];
   await sql.query("delete from app.sign_in_codes where email=$1", [email]);
-  return { ok: true, value: { ...await openSession(sql, p.person_id, p.safe_address, "code", input.client, now, null), email } };
+  return { ok: true, value: { ...await openSession(sql, p.person_id, p.safe_address, "code", input.client, now, null, trace), email } };
 }
 
 export function challenge(secret: string, domain: string, safe: Address, now: number) {
@@ -66,7 +67,7 @@ export function challenge(secret: string, domain: string, safe: Address, now: nu
   return { challenge: `${body}.${createHmac("sha256", secret).update(body).digest("base64url")}`, expiresAt: new Date(now + 300_000).toISOString() };
 }
 export async function withKey(sql: Sql, input: { safe: string; challenge: string; signature: Hex; client: string },
-  config: { secret: string; domain: string; rpc: string; agentOwner: Address }, now: number): Promise<SignIn & { signer: string; owner: string }> {
+  config: { secret: string; domain: string; rpc: string; agentOwner: Address }, now: number, trace = ""): Promise<SignIn & { signer: string; owner: string }> {
   if (!/^0x[0-9a-fA-F]{40}$/.test(input.safe)) throw new Error("INVALID_INPUT: safe");
   const reject = () => { throw new Error("NOT_AUTHENTICATED: invalid or spent agent proof"); };
   const [body, mac, extra] = input.challenge.split(".");
@@ -94,7 +95,7 @@ export async function withKey(sql: Sql, input: { safe: string; challenge: string
   await sql.query(`insert into app.principals(person_id,kind,email,safe_address,signer_address,created_at)
     values($1,'agent',null,$2,$3,$4) on conflict(person_id) do update set signer_address=excluded.signer_address`,
   [personId, proof.safe, signer.toLowerCase(), new Date(now)]);
-  return { ...await openSession(sql, personId, proof.safe, "key", input.client, now, proof.nonce), signer: signer.toLowerCase(), owner: agent[0].toLowerCase() };
+  return { ...await openSession(sql, personId, proof.safe, "key", input.client, now, proof.nonce, trace), signer: signer.toLowerCase(), owner: agent[0].toLowerCase() };
 }
 
 export async function currentSession(sql: Sql, bearer: string, config: { rpc: string; companiesHouse: Address }, now: number) {
@@ -117,12 +118,12 @@ export async function currentSession(sql: Sql, bearer: string, config: { rpc: st
     expiresAt: session.expires_at.toISOString() as string, setupState };
 }
 
-export async function revoke(sql: Sql, bearer: string, now: number) {
+export async function revoke(sql: Sql, bearer: string, now: number, trace = "") {
   const actor = await authenticate(sql, bearer, now);
   const row = (await sql.query(`update app.sessions set status='revoked',ended_at=$2
     where token_hash=$1 and status='active' returning session_id,method`, [digest(bearer), new Date(now)])).rows[0];
   if (row) await emit(sql, { id: randomUUID(), name: "session_transitioned", machine: "session", entity_id: row.session_id,
-    owner_kind: "person", owner_id: actor.personId, actor: actor.personId, trace_id: row.session_id, at: now,
+    owner_kind: "person", owner_id: actor.personId, actor: actor.personId, trace_id: trace || row.session_id, at: now,
     props: { from: "active", to: "revoked", transition: "revoke", session_id: row.session_id, person_id: actor.personId, method: row.method } });
   if (!row) throw new Error("NOT_AUTHENTICATED: session ended");
   return { sessionId: row.session_id as string, endedAt: new Date(now).toISOString() };
