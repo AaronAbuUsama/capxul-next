@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import pg from "pg";
-import { worldNow } from "../devnet/door.ts";
-import { migrateOutbox, readEvent } from "../platform/outbox.ts";
-import { routeDocuments } from "../documents/door.ts";
-import { mediaRuntime, migrateMedia, routeMedia, tickMedia, upload } from "./door.ts";
+import { worldNow } from "../src/devnet/door.ts";
+import { migrateOutbox, readEvent } from "../src/platform/outbox.ts";
+import { routeDocuments } from "../src/documents/door.ts";
+import { mediaRuntime, migrateMedia, routeMedia, tickMedia, upload } from "../src/media/door.ts";
 
 test("native media hooks use canonical clock and real transactional outbox; authenticated routes fail closed", {
   skip: !process.env.CAPXUL_STORAGE_PROOF_DATABASE,
