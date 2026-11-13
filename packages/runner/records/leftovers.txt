@@ -1,0 +1,15 @@
+# What the stack CapxulCore left in the two accounts after every run of this session (stages core-ef5f58,
+# core-fffd3b, core-c294fa, core-751048, core-ff8a06, core-1ee8e1, core-205613, core-5104bd), read from their APIs on
+# 2026-11-13T12:28:40Z. The account and organization ids are left out. Expected: none of each.
+
+## Cloudflare Worker scripts whose name holds 'capxulcore'
+none
+
+## Cloudflare Hyperdrive configurations whose name holds 'capxulcore'
+none
+
+## Neon projects whose name holds 'capxulcore'
+none
+
+## Alchemy's state on this machine for CapxulCore (packages/runner/.alchemy, never committed)
+0 files

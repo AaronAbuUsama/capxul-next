@@ -1,0 +1,78 @@
+{
+  "kind": "scenario",
+  "name": "example: record.export answers a fresh world with its first entry",
+  "proves": null,
+  "given": "fresh",
+  "stage": "core-205613",
+  "owner": "runner",
+  "startedAt": "2026-11-13T12:26:56.684Z",
+  "outcome": "failed",
+  "failure": "the run failed: {\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}",
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 11199
+  },
+  "calls": [
+    {
+      "operation": "record.export",
+      "traceId": "9dd67b3b2b1c7243e8e4b4ed9ceb9306",
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 921.847,
+        "serverMs": 0,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    }
+  ],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [
+        "capxulcore-core-core-205613-iyao6rt5uoybflil"
+      ],
+      "hyperdrives": [
+        "capxulcore-core-hyperdrive-core-205613-alk53kwlyjp4r42i"
+      ],
+      "neonProjects": [
+        "CapxulCore-core-db-core-205613-nm7545oyp7yxbocw"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": []
+    }
+  },
+  "ms": {
+    "create": 29058,
+    "run": 932,
+    "checks": 223,
+    "destroy": 2549
+  }
+}
