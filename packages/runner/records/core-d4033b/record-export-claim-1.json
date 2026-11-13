@@ -1,0 +1,109 @@
+{
+  "kind": "scenario",
+  "name": "record.export claim 1",
+  "proves": {
+    "operation": "record.export",
+    "claim": 1
+  },
+  "given": "restored",
+  "stage": "core-d4033b",
+  "owner": "runner",
+  "startedAt": "2026-11-13T14:26:58.911Z",
+  "outcome": "failed",
+  "failure": "the run failed: {\"_tag\":\"ExpectationFailed\",\"message\":\"the restored world's lineage is missing\"}",
+  "ended": {
+    "as": "failed",
+    "tag": "ExpectationFailed",
+    "detail": "{\"_tag\":\"ExpectationFailed\",\"message\":\"the restored world's lineage is missing\"}"
+  },
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 11721
+  },
+  "calls": [
+    {
+      "operation": "record.export",
+      "traceId": "c3ebbf1c16378fdaf98763ebe6779873",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1208.904,
+        "serverMs": 989,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 775,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 775,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 882,
+          "ms": 107,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 989 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    }
+  ],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [
+        "capxulcore-core-core-d4033b-w5uyzcuuttodo7xs"
+      ],
+      "hyperdrives": [
+        "capxulcore-core-hyperdrive-core-d4033b-q2mv6jz2mz3hvysf"
+      ],
+      "neonProjects": [
+        "CapxulCore-core-db-core-d4033b-nufukdfgm3jv6czt"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": []
+    }
+  },
+  "ms": {
+    "create": 30650,
+    "run": 1213,
+    "checks": 220,
+    "destroy": 3137
+  }
+}

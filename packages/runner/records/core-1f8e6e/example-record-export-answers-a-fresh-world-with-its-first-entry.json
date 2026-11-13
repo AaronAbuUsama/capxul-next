@@ -1,0 +1,106 @@
+{
+  "kind": "scenario",
+  "name": "example: record.export answers a fresh world with its first entry",
+  "proves": null,
+  "given": "fresh",
+  "stage": "core-1f8e6e",
+  "owner": "runner",
+  "startedAt": "2026-11-13T14:29:14.596Z",
+  "outcome": "passed",
+  "failure": null,
+  "ended": {
+    "as": "succeeded",
+    "tag": null,
+    "detail": null
+  },
+  "readiness": {
+    "probes": 31,
+    "relapses": 1,
+    "ms": 17590
+  },
+  "calls": [
+    {
+      "operation": "record.export",
+      "traceId": "df9d8a94f7e04498dd6ba1169f60c79b",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 530.91,
+        "serverMs": 344,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 151,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 151,
+          "ms": 95,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 246,
+          "ms": 98,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 344 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    }
+  ],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [
+        "capxulcore-core-core-1f8e6e-b45gshzcppr47tc3"
+      ],
+      "hyperdrives": [
+        "capxulcore-core-hyperdrive-core-1f8e6e-rq5ctiz4kqljmje6"
+      ],
+      "neonProjects": [
+        "CapxulCore-core-db-core-1f8e6e-xowo7dlmuqxqwxlc"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": []
+    }
+  },
+  "ms": {
+    "create": 45015,
+    "run": 533,
+    "checks": 218,
+    "destroy": 5361
+  }
+}

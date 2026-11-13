@@ -1,0 +1,167 @@
+{
+  "kind": "scenario",
+  "name": "record.export claim 4",
+  "proves": {
+    "operation": "record.export",
+    "claim": 4
+  },
+  "given": "paid",
+  "stage": "core-80be5e",
+  "owner": "runner",
+  "startedAt": "2026-11-13T14:28:40.484Z",
+  "outcome": "failed",
+  "failure": "the run failed: {\"_tag\":\"ExpectationFailed\",\"message\":\"the positions from 2 to 3 is []; it must be [2,3]\"}",
+  "ended": {
+    "as": "failed",
+    "tag": "ExpectationFailed",
+    "detail": "{\"_tag\":\"ExpectationFailed\",\"message\":\"the positions from 2 to 3 is []; it must be [2,3]\"}"
+  },
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 11408
+  },
+  "calls": [
+    {
+      "operation": "record.export",
+      "traceId": "1e9385701c0f86fcc30bd34e225909d5",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1011.119,
+        "serverMs": 825,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 638,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 638,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 731,
+          "ms": 94,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 825 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "933b63cb5cafd2e19bbf8ccf8d5b2a7f",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 490.105,
+        "serverMs": 330,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 144,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 144,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 237,
+          "ms": 93,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 330 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    }
+  ],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [
+        "capxulcore-core-core-80be5e-o3fb3mocmqnthqeh"
+      ],
+      "hyperdrives": [
+        "capxulcore-core-hyperdrive-core-80be5e-rji5uznmwenbstdo"
+      ],
+      "neonProjects": [
+        "CapxulCore-core-db-core-80be5e-uyokvsz2rlmj3tje"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": []
+    }
+  },
+  "ms": {
+    "create": 28860,
+    "run": 1507,
+    "checks": 224,
+    "destroy": 2561
+  }
+}

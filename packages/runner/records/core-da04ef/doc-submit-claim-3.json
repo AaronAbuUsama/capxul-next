@@ -1,0 +1,50 @@
+{
+  "kind": "scenario",
+  "name": "doc.submit claim 3",
+  "proves": {
+    "operation": "doc.submit",
+    "claim": 3
+  },
+  "given": "payment-held",
+  "stage": "core-da04ef",
+  "owner": "runner",
+  "startedAt": "2026-11-13T14:22:11.267Z",
+  "outcome": "failed",
+  "failure": "the run failed: Error: the runner has no facts of the starting world payment-held: it makes no starting world before roadmap step 1.12",
+  "ended": {
+    "as": "died",
+    "tag": null,
+    "detail": "Error: the runner has no facts of the starting world payment-held: it makes no starting world before roadmap step 1.12"
+  },
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 11312
+  },
+  "calls": [],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [
+        "capxulcore-core-core-da04ef-pmr3jqe44cx6evnu"
+      ],
+      "hyperdrives": [
+        "capxulcore-core-hyperdrive-core-da04ef-elkr6yvtc37d6nrw"
+      ],
+      "neonProjects": [
+        "CapxulCore-core-db-core-da04ef-zv4t3s32vxuuswbe"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": []
+    }
+  },
+  "ms": {
+    "create": 29849,
+    "run": 2,
+    "checks": 0,
+    "destroy": 3203
+  }
+}
