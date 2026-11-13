@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile, stat, writeFile } from "node:fs/promises";
 import { userInfo } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
-import { parseRunReceipt, parseStatus, type EvalStatus, type RunEnvironment } from "../../../blueprint-engine/src/index.ts";
+import { parseRunReceipt, parseStatus, pointerValue, type EvalStatus, type RunEnvironment } from "../../../blueprint-engine/src/index.ts";
 import { sitesEnvironment } from "./fixture.ts";
 import { command } from "./processes.ts";
 import { runtimeEnv } from "./service.ts";
@@ -42,13 +42,20 @@ export async function verifyRun(root: string, summary: any, required: string[], 
   assert((await stat(join(directory, raw.prepare.log))).size > 0, "preparation log missing/empty");
   const preparation = JSON.parse(await readFile(join(directory, "preparation.json"), "utf8"));
   assert.deepEqual(preparation.run, { id: receipt.id, at: receipt.at, commit: receipt.commit }, "preparation belongs to another run");
-  for (const screen of ["supplier-invoice", "payment-entry", "general-ledger", "trial-balance"]) {
-    const captures = receipt.screens.filter((entry) => entry.screen === screen && entry.assertion === "source-equality");
+  // Every requested screen shows claim (scr:<screen>/shows) needs its own same-run capture, as slice evidence does.
+  for (const screen of new Set(required.flatMap((id) => /^scr:([^/]+)\/shows$/.exec(id)?.[1] ?? []))) {
+    const captures = receipt.screens.filter((entry) => entry.screen.replace(/^screen:/, "") === screen && entry.assertion === "source-equality");
     assert(captures.length, `same-run ${screen} source-equality evidence missing`);
     for (const capture of captures) {
-      assert(!isAbsolute(capture.source) && resolve(directory, capture.source).startsWith(`${directory}/`) && !/[:\\]/.test(capture.source), "screen source must belong to this run");
+      // A source names a run file, optionally with a JSON pointer to the value the screen must equal.
+      const [file = "", pointer] = capture.source.split("#");
+      assert(file && !isAbsolute(file) && resolve(directory, file).startsWith(`${directory}/`) && !/[:\\]/.test(capture.source), "screen source must belong to this run");
       assert((await stat(join(directory, capture.path))).size > 0, "screen evidence missing/empty");
-      assert((await stat(join(directory, capture.source))).size > 0, "screen source evidence missing/empty");
+      assert((await stat(join(directory, file))).size > 0, "screen source evidence missing/empty");
+      if (pointer !== undefined) {
+        const value = pointerValue(JSON.parse(await readFile(join(directory, file), "utf8")), pointer);
+        assert(value !== undefined && value !== null, `screen source ${capture.source} names no value`);
+      }
     }
   }
   return true;
