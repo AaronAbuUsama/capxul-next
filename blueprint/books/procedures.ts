@@ -60,7 +60,7 @@ const MoneySide = Schema.Struct({
   org_id: S,
   kind: Schema.Literals(["payment_settled", "payment_received", "deposit_received", "payment_sent_outside", "payout_returned"]),
   direction: Schema.Literals(["in", "out"]),
-  /** The chain occurrence: `payment:<v4 payment id>`, or `transfer:<chain id>:<tx hash>:<log index>`. */
+  /** The chain occurrence: `payment:<v4 payment id>`, or `transfer:<log id>`, the Transfer's `<chain id>:<tx hash>:<ordinal in its receipt>` (payments.movement-occurrence). */
   money_key: S,
   reference: Reference,
   source: Schema.Struct({ kind: SourceKind, id: S }),

@@ -263,8 +263,8 @@ export const workflow_payments_movements_record = defineWorkflow({
     "amount between the same addresses (a direct send, a budget's payout through Roles, an escrow's payout), or a claim " +
     "escrow's funding or refund of one of that side's Payments, a refund paying the escrow's sender (the company Safe " +
     "for a budget's or the Board's) (K17). For each remaining side whose Safe a Capxul tenant " +
-    "owns, it records a Movement (`record`), that side's book fact (`books.record-money-fact`, key `transfer:<chain " +
-    "id>:<tx hash>:<log index>`) and the Transfer's Memo (`documents.store`: basis movement, reference the same key, " +
+    "owns, it records a Movement (`record`), that side's book fact (`books.record-money-fact`, key `transfer:<log id>`, the " +
+    "receipt-ordinal log id) and the Transfer's Memo (`documents.store`: basis movement, reference the bare log id, " +
     "issued at the block time, the Capxul sides as participants, so a replayed Transfer stores nothing new) in one " +
     "transaction, so an Organization's direct transfer to a person is outside money for both (old M1). Twice the " +
     "finality depth later it reads the facts again: a Transfer no longer there is `remove`d with its book fact reversed " +

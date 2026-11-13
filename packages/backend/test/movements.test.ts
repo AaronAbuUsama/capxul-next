@@ -119,7 +119,7 @@ test("movements book each side's outside money, set aside a side's own Payment, 
     assert.deepEqual(await facts(key(p)), [], "a Payment's own Transfer is never the payer's outside money");
     assert.deepEqual(memos.map((m) => m.participants.map((x) => [x.safe, x.role])), [[[orgSafe, "payee"]], [[orgSafe, "payer"], [personSafe, "payee"]], [[orgSafe, "payer"], [personSafe, "payee"]]],
       "every Capxul side is a participant, including a payer its own Payment explains");
-    assert.equal(memos[1]!.content.reference, key(t));
+    assert.equal(memos[1]!.content.reference, t.log_id, "a Movement Memo's reference is the bare log id, not books' money key");
 
     assert.deepEqual(await follow(t, 0, at + 1), { recorded: 0, restored: 0, removed: 0 }, "a replayed occurrence writes nothing");
     assert.equal((await events(t.tx_hash)).length, 2);

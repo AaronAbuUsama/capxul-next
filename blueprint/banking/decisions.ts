@@ -304,7 +304,7 @@ export const decision_banking_deposit_credit = defineDecision({
   why:
     "A credit waits on the chain, so it is a process with its own wait, not a sweep (P3). Reading at the finality " +
     "depth means a reorg cannot undo a credit, so banking never reverses a deposit's fact. The book fact's key is " +
-    "`transfer:<chain>:<tx>:<log>`, the key payments' Movement of the same Transfer uses, so books keeps one live fact " +
+    "`transfer:<chain>:<tx>:<receipt ordinal>`, the key payments' Movement of the same Transfer uses, so books keeps one live fact " +
     "whoever writes first (books.money-key). A person's deposit has no book fact: books are an Organization's.",
   source: "packages/backend/src/banking/deposits/README.md; blueprint/books/procedures.ts:37; blueprint/payments/data.ts (movements)",
   affects: [workflow_banking_deposits_credit, d.machine_bank_deposit],

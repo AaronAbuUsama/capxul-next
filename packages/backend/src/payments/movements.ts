@@ -163,7 +163,7 @@ export async function followTransfer(sql: Sql, input: { chainId: number; finalit
     if (done.recorded) await context.storeMemo(sql, { owner_kind: held[0]!.owner.kind, owner_id: held[0]!.owner.id,
       subject: { kind: "movement", id: ref }, chain_id: input.chainId, issued_at: Number(here.block_time),
       participants: all.map((s) => ({ party_id: s.party_id, safe: s.safe, role: s.side === "out" ? "payer" : "payee" })),
-      content: { kind: "memo", basis: "movement", reference: `transfer:${ref}`, note: "",
+      content: { kind: "memo", basis: "movement", reference: ref, note: "",
         amount: { token_address: here.token, decimals: input.token.decimals, amount_raw: String(here.amount) },
         source: here.from_address, destination: here.to_address } });
     if (books.length) await recordMoneyFact(sql, { sides: books }, context);

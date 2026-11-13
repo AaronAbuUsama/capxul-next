@@ -206,7 +206,7 @@ export const decision_payments_movements_outside_money = defineDecision({
     "suppressing it is K17. Judging each side on its own Payments fixes old M1, where a person's Deposit row made an " +
     "Organization's direct transfer look explained. Deposit Payments were Payments born for inbound Transfers with no " +
     "command, the same fact as the Movement; dropping them leaves one record per money fact. The book key is books' " +
-    "`transfer:<chain>:<tx>:<log>`, which banking's deposits use too, so books keeps one live fact whoever writes first. " +
+    "`transfer:<chain>:<tx>:<receipt ordinal>`, which banking's deposits use too, so books keeps one live fact whoever writes first. " +
     "The old `observed` and `finalized` states had no reader (old S10). Implementation, 13 November 2026: each indexed " +
     "Transfer occurrence (chain, receipt-ordinal log id, block hash) touching a Party Safe gets one worker-only process " +
     "row, committed with its Movements, book facts, Memo and events, so a replay or a re-included occurrence is its own " +

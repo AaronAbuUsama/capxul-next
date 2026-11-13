@@ -121,7 +121,7 @@ export const decision_books_money_key = defineDecision({
     {
       label: "chain-key",
       text:
-        "`money_key` is the chain occurrence: `payment:<v4 payment id>` (consumed once on chain) or `transfer:<chain>:<tx>:<log>`; " +
+        "`money_key` is the chain occurrence: `payment:<v4 payment id>` (consumed once on chain) or `transfer:<chain>:<tx>:<receipt ordinal>`; " +
         "with the Organization and a generation it is unique. Same key, same content: no-op. A Payment, deposit or payout " +
         "side supersedes a standing Movement fact (reversal plus next generation); a Movement side never supersedes theirs.",
     },
