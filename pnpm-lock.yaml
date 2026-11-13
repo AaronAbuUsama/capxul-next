@@ -178,7 +178,7 @@ catalogs:
       version: 2.55.18
 
 patchedDependencies:
-  '@pimlico/alto@0.0.21': eabbaa85879d7653de5f16140e5c83544e0ffdfd680c75f0f70c71ba7c4b3dd4
+  '@pimlico/alto@0.0.21': 3b38a4dbe158fa3113e0f4310ca37ce57cc14e75270474d56da01d5b0eac219a
 
 importers:
 
@@ -271,7 +271,7 @@ importers:
         version: link:../sdk
       '@pimlico/alto':
         specifier: 0.0.21
-        version: 0.0.21(patch_hash=eabbaa85879d7653de5f16140e5c83544e0ffdfd680c75f0f70c71ba7c4b3dd4)(typescript@5.9.3)
+        version: 0.0.21(patch_hash=3b38a4dbe158fa3113e0f4310ca37ce57cc14e75270474d56da01d5b0eac219a)(typescript@5.9.3)
       viem:
         specifier: 'catalog:'
         version: 2.55.18(typescript@5.9.3)(zod@3.25.76)
@@ -3061,7 +3061,7 @@ snapshots:
 
   '@oxc-project/types@0.156.0': {}
 
-  '@pimlico/alto@0.0.21(patch_hash=eabbaa85879d7653de5f16140e5c83544e0ffdfd680c75f0f70c71ba7c4b3dd4)(typescript@5.9.3)':
+  '@pimlico/alto@0.0.21(patch_hash=3b38a4dbe158fa3113e0f4310ca37ce57cc14e75270474d56da01d5b0eac219a)(typescript@5.9.3)':
     dependencies:
       '@fastify/cors': 8.4.2
       '@fastify/websocket': 10.0.1
