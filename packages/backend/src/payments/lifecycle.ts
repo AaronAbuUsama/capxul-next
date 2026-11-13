@@ -4,7 +4,7 @@ import { emit } from "../platform/outbox.ts";
 import type { TerminalEvent } from "../approvals/door.ts";
 import { recordMoneyFact, reverseMoneyFact, type MoneySide } from "../books/door.ts";
 import { lookupBySafe } from "../parties/door.ts";
-import type { Owner, Payment, PaymentStatus, PaymentTransitionProps } from "./types.ts";
+import { unmappedPayrollSources, type Owner, type Payment, type PaymentStatus, type PaymentTransitionProps } from "./types.ts";
 import { wakePayment } from "./work.ts";
 
 export interface PaymentContext { at: number; traceId: string }
@@ -14,7 +14,7 @@ export interface PaymentFact {
   payment_id: string; sender: string; recipient: string; token: string; amount: string; kind: number; document_hash: string;
 }
 async function bookSides(sql: Sql, payment: Payment, fact: PaymentFact): Promise<MoneySide[]> {
-  if (payment.source && ["salary-slip", "payroll-remittance", "expense-claim", "employee-advance"].includes(String(payment.source.kind)))
+  if (payment.source && unmappedPayrollSources.includes(String(payment.source.kind)))
     throw new Error("WRONG_STATE: payroll Books provenance mapping is not available");
   const payee = await lookupBySafe(sql, payment.payee_safe);
   const payer = await lookupBySafe(sql, payment.payer_safe);

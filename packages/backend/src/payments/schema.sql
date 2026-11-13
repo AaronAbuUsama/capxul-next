@@ -72,6 +72,8 @@ grant select on app.payment_commands,app.payments,app.movements to capxul_core;
 grant select,insert,update on app.payment_commands,app.payments,app.movements to capxul_worker;
 
 -- Scheduling metadata only. The Payment and its indexed/carrier facts remain the business authority.
+-- Remember whether this migration creates the table, so the one-time upgrade backfill below never repeats.
+create temporary table payment_processes_fresh on commit drop as select to_regclass('app.payment_processes') is null as fresh;
 create table if not exists app.payment_processes (
   owner_kind text not null, owner_id text not null, payment_id text not null,
   chain_id integer not null, trace_id text not null, wake_at double precision, await_block numeric,
@@ -86,7 +88,10 @@ drop policy if exists worker on app.payment_processes;
 create policy worker on app.payment_processes to capxul_worker using (true) with check (true);
 revoke all on app.payment_processes from public,capxul_core;
 grant select,insert,update,delete on app.payment_processes to capxul_worker;
--- Explicit upgrade only, not startup or restore. Original business times are retained.
+-- One-time upgrade when the table is created, never on a later migration, startup or restore.
+-- A later run would re-wake Payments whose process already ended. Original business times are retained.
 insert into app.payment_processes(owner_kind,owner_id,payment_id,chain_id,trace_id,wake_at)
-  select owner_kind,owner_id,id,chain_id,'',updated_at from app.payments where status<>'cancelled'
+  select owner_kind,owner_id,id,chain_id,'',updated_at from app.payments
+  where status<>'cancelled' and (select fresh from payment_processes_fresh)
   on conflict do nothing;
+drop table payment_processes_fresh;

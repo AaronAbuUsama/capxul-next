@@ -1,6 +1,8 @@
 export type Owner = { kind: "person" | "organization"; id: string };
 export type PaymentStatus = "prepared" | "scheduled" | "due" | "escrowed" | "submitted" | "needs_retry" | "settled" | "mismatched" | "cancelled";
 export type PaymentRoute = "personal" | "budget" | "board" | "claim_escrow" | "chain";
+/** Payroll provenance Books cannot map yet. Refused at prepare, so no such Payment ever moves money. */
+export const unmappedPayrollSources = ["salary-slip", "payroll-remittance", "expense-claim", "employee-advance"];
 export type PaymentOutcome = "declined" | "refused" | "rejected" | "expired" | "displaced" | "reverted" | "window_closed" | "voided" | "budget_cancelled" | "refunded" | "withdrawn";
 
 export interface Payment {
