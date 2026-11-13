@@ -52,7 +52,7 @@ export async function consume(sql: Sql, consumer: string, eventId: string, effec
   const event = await readEvent(sql, eventId);
   if (!event) throw new Error("NOT_FOUND: committed transition required");
   await effect(sql, event);
-  await resumeFault(consumer, eventId);
+  await resumeFault(consumer, event);
   await sql.query("insert into app.transition_acks (consumer,event_id) values ($1,$2)", [consumer, eventId]);
   return true;
 }

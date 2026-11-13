@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { rename, writeFile } from "node:fs/promises";
+import { readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Database, Sql } from "../platform/db.ts";
 export { Database } from "../platform/db.ts";
@@ -27,12 +27,17 @@ export const resumeFaultStem = (consumer: string) => `resume-${createHash("sha25
  * Inert unless the world supervisor gave this Core a private CAPXUL_FAULT_DIR. An armed consumer claims its
  * one-shot arm by rename, reports where it stopped, then holds the uncommitted effect until the supervisor's SIGKILL.
  */
-export async function resumeFault(consumer: string, eventId: string): Promise<void> {
+export async function resumeFault(consumer: string, event: { id: string; name: string; props: Record<string, unknown> }): Promise<void> {
   const directory = process.env.CAPXUL_FAULT_DIR;
   if (!directory) return;
   const stem = join(directory, resumeFaultStem(consumer));
+  let arm: { event?: string; transition?: string };
+  try { arm = JSON.parse(await readFile(`${stem}.armed`, "utf8")); } catch (error: any) { if (error.code === "ENOENT") return; throw error; }
+  // An arm may name the event and its transition; any other delivery of this consumer passes untouched.
+  if ((arm.event && arm.event !== event.name) || (arm.transition && arm.transition !== event.props.transition)) return;
   try { await rename(`${stem}.armed`, `${stem}.claimed`); } catch (error: any) { if (error.code === "ENOENT") return; throw error; }
-  await writeFile(`${stem}.tmp`, JSON.stringify({ consumer, eventId, pid: process.pid, at: Date.now() }), { mode: 0o600 });
+  await writeFile(`${stem}.tmp`, JSON.stringify({ consumer, eventId: event.id, event: event.name, transition: event.props.transition ?? null,
+    pid: process.pid, at: Date.now() }), { mode: 0o600 });
   await rename(`${stem}.tmp`, `${stem}.reached`);
   await new Promise<never>(() => { setInterval(() => {}, 60_000); });
 }

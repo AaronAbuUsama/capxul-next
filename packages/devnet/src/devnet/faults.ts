@@ -15,14 +15,15 @@ const procStat = async (pid: number) => { const s = await readFile(`/proc/${pid}
  * and resumes it through the same signed path as `world up`. The ACK and the effect die together; the restarted relay
  * must redeliver. Evidence is returned and kept under the private fault directory; nothing here judges the claim.
  */
-export async function resumeFault(c: Config, host: Pick<Host, "start">, action: string, consumer: string, timeout = 120_000) {
+export async function resumeFault(c: Config, host: Pick<Host, "start">, action: string, consumer: string, timeout = 120_000,
+  match: { event?: string; transition?: string } = {}) {
   const directory = join(c.controlDir, "faults"), stem = join(directory, resumeFaultStem(consumer));
   const exists = (suffix: string) => access(`${stem}.${suffix}`).then(() => true, () => false);
   if (action === "resume-arm") {
     await mkdir(directory, { recursive: true, mode: 0o700 });
     for (const suffix of ["armed", "claimed", "reached"]) if (await exists(suffix)) throw new Error("this consumer already has an armed or unresolved resume fault");
-    await writeFile(`${stem}.armed`, JSON.stringify({ consumer, armedAt: Date.now() }), { flag: "wx", mode: 0o600 });
-    return { consumer, state: "armed" };
+    await writeFile(`${stem}.armed`, JSON.stringify({ consumer, ...match, armedAt: Date.now() }), { flag: "wx", mode: 0o600 });
+    return { consumer, ...match, state: "armed" };
   }
   try { await until("consumer reached its resume fault point", () => exists("reached"), timeout); }
   catch (error) { await rm(`${stem}.armed`, { force: true }); throw error; }
@@ -42,7 +43,7 @@ export async function resumeFault(c: Config, host: Pick<Host, "start">, action: 
   await signedCore(c, "/admin/snapshot/resume");
   await until("Core /ready after resume fault", () => httpReady(`${loopback(c.ports.core)}/ready`), timeout);
   const after = JSON.parse(await readFile(stateFile(c, "core"), "utf8"));
-  const result = { consumer, eventId: reached.eventId, reachedAt: reached.at, killed: { pid: reached.pid, signal: "SIGKILL", at: killedAt },
+  const result = { consumer, eventId: reached.eventId, event: reached.event, transition: reached.transition, reachedAt: reached.at, killed: { pid: reached.pid, signal: "SIGKILL", at: killedAt },
     restarted: { pid: after.pid, birth: after.birth, codeVersion: after.codeVersion, readyAt: Date.now() } };
   await writeFile(`${stem}-${killedAt}.done.json`, JSON.stringify(result), { flag: "wx", mode: 0o600 });
   await rm(`${stem}.reached`); await rm(`${stem}.claimed`);
@@ -50,10 +51,10 @@ export async function resumeFault(c: Config, host: Pick<Host, "start">, action: 
 }
 
 /** These commands are private, reversible fixtures for the selected disposable world only. */
-export async function fixtureOperation(stack: Awaited<ReturnType<typeof composeWorld>>, action: string, id: string) {
+export async function fixtureOperation(stack: Awaited<ReturnType<typeof composeWorld>>, action: string, id: string, match: { event?: string; transition?: string } = {}) {
   const { c, host } = stack;
   if (c.world.kind !== "local" || c.world.id === "main") throw new Error("fault commands require a disposable local world");
-  if (action === "resume-arm" || action === "resume-kill") return resumeFault(c, host, action, id);
+  if (action === "resume-arm" || action === "resume-kill") return resumeFault(c, host, action, id, 120_000, match);
   const f = await readFixture(c);
   if (action === "load") {
     await stack.read(id);

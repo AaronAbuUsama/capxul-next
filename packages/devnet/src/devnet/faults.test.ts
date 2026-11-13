@@ -24,10 +24,10 @@ test("a resume fault kills Core holding an effect without its ACK, then supervis
   await mkdir(c.controlDir, { recursive: true });
   // This test process plays Core's supervised wrapper; its child runs the real outbox consume with a recording SQL stub.
   await writeFile(join(c.controlDir, "core.json"), JSON.stringify({ pid: process.pid, birth: await birth(process.pid), codeVersion: c.codeVersion, state: "running" }));
-  const consumer = (name: string) => {
+  const consumer = (name: string, transition = "settle") => {
     const script = `import { consume } from ${JSON.stringify(resolve(import.meta.dirname, "../../../backend/src/platform/outbox.ts"))};
       const sql = { query: async (text) => { if (text.includes("transition_acks (consumer")) console.log("ack");
-        return text.includes("select event from") ? { rows: [{ event: { id: "evt-1" } }], rowCount: 1 } : { rows: [], rowCount: 0 }; } };
+        return text.includes("select event from") ? { rows: [{ event: { id: "evt-1", name: "payment_transitioned", props: { transition: ${JSON.stringify(transition)} } } }], rowCount: 1 } : { rows: [], rowCount: 0 }; } };
       await consume(sql, ${JSON.stringify(name)}, "evt-1", async () => console.log("effect"));`;
     const child = spawn(process.execPath, ["--experimental-strip-types", "--no-warnings", "--input-type=module", "-e", script],
       { env: { ...process.env, CAPXUL_FAULT_DIR: join(c.controlDir, "faults") }, stdio: ["ignore", "pipe", "inherit"] });
@@ -35,11 +35,15 @@ test("a resume fault kills Core holding an effect without its ACK, then supervis
     return { child, output: () => out, exit: new Promise<string | null>((done) => child.once("exit", (_code, signal) => done(signal))) };
   };
   try {
-    assert.deepEqual(await resumeFault(c, { start: async () => {} }, "resume-arm", "activity.feed"), { consumer: "activity.feed", state: "armed" });
+    const match = { event: "payment_transitioned", transition: "settle" };
+    assert.deepEqual(await resumeFault(c, { start: async () => {} }, "resume-arm", "activity.feed", 10_000, match), { consumer: "activity.feed", ...match, state: "armed" });
     await assert.rejects(resumeFault(c, { start: async () => {} }, "resume-arm", "activity.feed"), /already has an armed/);
     const other = consumer("notices.mail");
     assert.equal(await other.exit, null);
     assert.equal(other.output(), "effect\nack\n", "an unarmed consumer is untouched");
+    const earlier = consumer("activity.feed", "submit");
+    assert.equal(await earlier.exit, null);
+    assert.equal(earlier.output(), "effect\nack\n", "a delivery of another transition does not take the arm");
     const victim = consumer("activity.feed"), sleeper = spawn("sleep", ["30"]);
     const started: string[] = [];
     // Stand-in for supervision: once the victim dies, a new wrapper writes its running receipt.
@@ -48,7 +52,7 @@ test("a resume fault kills Core holding an effect without its ACK, then supervis
     const result = await resumeFault(c, { start: async (component) => { started.push(component); } }, "resume-kill", "activity.feed", 10_000) as any;
     assert.equal(await victim.exit, "SIGKILL");
     assert.equal(victim.output(), "effect\n", "the effect ran but its ACK never did");
-    assert.equal(result.eventId, "evt-1"); assert.equal(result.killed.pid, victim.child.pid); assert.equal(result.restarted.pid, sleeper.pid);
+    assert.equal(result.eventId, "evt-1"); assert.equal(result.transition, "settle"); assert.equal(result.killed.pid, victim.child.pid); assert.equal(result.restarted.pid, sleeper.pid);
     assert.deepEqual(started, ["core"]); assert.equal(resumed.length, 1);
     sleeper.kill();
     // One-shot: the arm is spent, so the redelivered effect now acknowledges normally and the consumer can be armed again.

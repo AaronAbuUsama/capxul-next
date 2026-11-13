@@ -59,9 +59,16 @@ export async function runDevnet(args: string[]): Promise<number> {
       await clone.host.benchUp();
       await clone.restore(rest[1]!);
       console.log(JSON.stringify({ snapshot: manifest.id, world: clone.c.world.id, epoch: clone.c.world.epoch })); return 0;
-    } else if (commandName === "fixture" && rest.length === 2) {
+    } else if (commandName === "fixture" && (rest.length === 2 || rest[0] === "resume-arm" && rest.length <= 6)) {
+      // Only resume-arm takes flags: --event <name> and --transition <kind> narrow which delivery takes the arm.
+      const match: { event?: string; transition?: string } = {};
+      for (let i = 2; i < rest.length; i += 2) {
+        const flag = rest[i], value = rest[i + 1];
+        if (!value || (flag !== "--event" && flag !== "--transition") || match[flag.slice(2) as "event" | "transition"]) throw new Error("usage: world fixture resume-arm <consumer> [--event NAME] [--transition KIND]");
+        match[flag.slice(2) as "event" | "transition"] = value;
+      }
       const { fixtureOperation } = await import("./faults.ts");
-      const evidence = await fixtureOperation(stack, rest[0]!, rest[1]!);
+      const evidence = await fixtureOperation(stack, rest[0]!, rest[1]!, match);
       console.log(JSON.stringify(evidence ?? { fixture: rest[0], target: rest[1], state: "complete" })); return 0;
     } else if (commandName === "prepare" && rest.length === 1) {
       const { prepareSlice } = await import("./preparation.ts");
