@@ -74,8 +74,9 @@ export async function submitted(sql: Sql, org: string, id: string, hash: string,
 export async function settleSitePayment(sql: Sql, input: { org: string; document_hash: string; recipient: string; amount_raw: string; tx_hash: string; trace?: string }) {
   await sql.query("select pg_advisory_xact_lock(hashtextextended($1,0))", [input.org]);
   const row = (await sql.query(`select * from app.site_payment_approvals
-    where org_id=$1 and request->>'document_hash'=$2 order by created_at limit 1 for update`, [input.org, input.document_hash])).rows[0];
-  if (!row || row.request.to_address !== input.recipient || parseUnits(row.request.amount, 6) !== BigInt(input.amount_raw)) return { matched: false as const };
+    where org_id=$1 and request->>'document_hash'=$2 order by created_at limit 1 for update`, [input.org, input.document_hash.toLowerCase()])).rows[0];
+  // prepare stores both hex values lowercase; an indexed fact's checksummed case must not break the match.
+  if (!row || row.request.to_address !== input.recipient.toLowerCase() || parseUnits(row.request.amount, 6) !== BigInt(input.amount_raw)) return { matched: false as const };
   await sql.query("update app.site_payment_approvals set status='settled',tx_hash=$3 where org_id=$1 and id=$2", [input.org, row.id, input.tx_hash]);
   return { matched: true as const, approval_id: row.id as string, trace: input.trace || row.trace as string, status: "settled" as const };
 }

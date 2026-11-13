@@ -35,6 +35,20 @@ export const decision_approvals_unsponsored_replacement = defineDecision({
   affects: [t.displace, workflow_approvals_lifecycle_carry],
 });
 
+export const decision_approvals_carrier_isolation = defineDecision({
+  id: "approvals.carrier-isolation",
+  title: "One approval's failing step backs off alone",
+  question: "What happens to a carrier batch when one approval's step throws (an indexed reader, a provider, its opener's callback or SQL)?",
+  options: [
+    { label: "isolate", text: "Roll back that step, move only its wake 30 seconds later in its own transaction unless a wake committed since the batch read it, and carry on with the rest of the batch." },
+    { label: "abort", text: "Let the error end the batch; the approval keeps its wake and is tried first again next time." },
+  ],
+  chosen: "isolate",
+  why: "Due approvals are taken in wake order, so an approval that fails every time would head every later batch and stop every other signer's approval with it. Rolling the step back keeps the opener callback, transition and carrier deletion atomic; the conditional back-off never overwrites a chain or signer wake that arrived meanwhile, so a lost wake cannot follow. Bounded sponsorship retries and send lookups keep their own rules inside the step.",
+  source: "approvals.lifecycle.carry; PR55 integrator review P1 (carrier.ts carry), 13 November 2026",
+  affects: [workflow_approvals_lifecycle_carry],
+});
+
 export const decision_approvals_signing_intent = defineDecision({
   id: "approvals.signing-intent",
   title: "Expose immutable intent independently of the sponsored operation",

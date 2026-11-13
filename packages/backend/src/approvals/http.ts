@@ -76,7 +76,7 @@ export function createSigningHandler(options: SigningTransport) {
             scope.kind !== "person" || scope.owner !== principal.personId) throw new Error("NOT_AUTHENTICATED: principal scope required");
         const ctx: SigningContext = { person_id: principal.personId, sender: principal.safeAddress, site_url: options.site_url,
           now: new Date(now), network: options.network, requireFeature: options.requireFeature, terminal: options.terminal };
-        const row = await read(sql, ctx.person_id, input.approvalId);
+        const row = await read(sql, ctx.person_id, input.approvalId, false);
         if (row.gate) await options.requireFeature(sql, row.gate, { personId: ctx.person_id, ...(row.org_id ? { orgId: row.org_id } : {}) });
         if (stop.signal.aborted) throw new Error("CANCELLED");
         if (method === "get") return signingGet(sql, ctx, input);

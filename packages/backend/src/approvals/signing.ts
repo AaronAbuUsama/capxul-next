@@ -35,7 +35,7 @@ function authenticated(ctx: ApprovalContext) {
 }
 export async function signingGet(sql: Sql, ctx: SigningContext, b: { approvalId: string }) {
   authenticated(ctx);
-  return view(sql, await read(sql, ctx.person_id, b.approvalId), ctx);
+  return view(sql, await read(sql, ctx.person_id, b.approvalId, false), ctx);
 }
 export async function signingReview(sql: Sql, ctx: SigningContext, b: { approvalId: string }) {
   authenticated(ctx);

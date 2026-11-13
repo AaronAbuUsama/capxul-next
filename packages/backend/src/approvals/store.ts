@@ -16,8 +16,9 @@ export const targets: Record<keyof typeof sources, ApprovalState> = {
   claim_send: "sending", accept: "sent", bounce: "signed", land: "landed", revert: "reverted", displace: "displaced", expire: "expired",
 };
 
-export async function read(sql: Sql, person: string, id: string): Promise<Approval> {
-  const row = (await sql.query("select * from app.approvals where person_id=$1 and approval_id=$2 for update", [person, id])).rows[0];
+/** Writers lock the row; a view (polled by the signing stream) reads without blocking them. */
+export async function read(sql: Sql, person: string, id: string, lock = true): Promise<Approval> {
+  const row = (await sql.query(`select * from app.approvals where person_id=$1 and approval_id=$2${lock ? " for update" : ""}`, [person, id])).rows[0];
   if (!row) throw new Error("INVALID_INPUT: approvalId");
   return row;
 }
@@ -69,10 +70,13 @@ export async function open(sql: Sql, ctx: ApprovalContext, b: Open, trace = ""):
   return output(row, true);
 }
 
-type Mutable = Pick<Approval, "nonce" | "signer_address" | "user_operation" | "digest" | "user_op_hash" | "valid_after" | "valid_until" | "signature" | "send_error" | "refusal" | "transaction_hash" | "block_number" | "displaced_by" | "signed_at" | "sent_at" | "ended_at">;
+const mutable = ["nonce", "signer_address", "user_operation", "digest", "user_op_hash", "valid_after", "valid_until", "signature",
+  "send_error", "refusal", "transaction_hash", "block_number", "displaced_by", "signed_at", "sent_at", "ended_at"] as const;
+type Mutable = Pick<Approval, (typeof mutable)[number]>;
 export async function move(sql: Sql, row: Approval, transition: keyof typeof sources, patch: Partial<Mutable>, now: Date, trace: string, terminal?: Terminal): Promise<Approval> {
   if (!(sources[transition] as readonly string[]).includes(row.state)) throw new Error(`WRONG_STATE: ${row.state}`);
-  const fields = Object.keys(patch) as (keyof Mutable)[];
+  // Column names come only from this list: a patch may be an outside answer (a sponsorship) with keys of its own.
+  const fields = mutable.filter((f) => Object.hasOwn(patch, f));
   const values = fields.map((f) => patch[f]);
   const result = await sql.query(`update app.approvals set state=$3,updated_at=$4${fields.map((f, i) => `,${f}=$${i + 5}`).join("")}
     where person_id=$1 and approval_id=$2 returning *`, [row.person_id, row.approval_id, targets[transition], now, ...values]);
@@ -82,7 +86,8 @@ export async function move(sql: Sql, row: Approval, transition: keyof typeof sou
     await terminal(sql, { approval_id: next.approval_id, person_id: next.person_id, org_id: next.org_id, opener: next.opener,
       subject_kind: next.subject_kind, subject_id: next.subject_id, outcome: next.state as Parameters<Terminal>[1]["outcome"],
       chain_id: next.chain_id, sender: next.sender, nonce: next.nonce, user_op_hash: next.user_op_hash,
-      transaction_hash: next.transaction_hash, block_number: next.block_number, observedAt: now.toISOString() });
+      transaction_hash: next.transaction_hash, block_number: next.block_number, observedAt: now.toISOString(),
+      refusal: next.state === "refused" ? next.refusal : null });
     // The opener effect and queue removal commit together; the carrier must not call it again.
     await sql.query("delete from app.approval_carriers where approval_id=$1", [next.approval_id]);
   }

@@ -97,8 +97,10 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
         now: async () => clock,
         sponsor: async (row) => {
           nonce = ((BigInt(row.nonce_key) << 64n) + 731n).toString();
-          return { nonce, signer_address: account.address.toLowerCase(), digest, user_op_hash: opHash, valid_after: null, valid_until: new Date(terms.deadline),
-            user_operation: { sender, nonce, callData: "0x1234", callGasLimit: "80000", verificationGasLimit: "90000", preVerificationGas: "40000", maxFeePerGas: "2", maxPriorityFeePerGas: "1", paymaster: recipient, paymasterVerificationGasLimit: "10000", paymasterPostOpGasLimit: "10000", paymasterData: "0x" } };
+          // A gateway answer may carry keys of its own; none may become a column name.
+          return Object.assign({ nonce, signer_address: account.address.toLowerCase(), digest, user_op_hash: opHash, valid_after: null, valid_until: new Date(terms.deadline),
+            user_operation: { sender, nonce, callData: "0x1234", callGasLimit: "80000", verificationGasLimit: "90000", preVerificationGas: "40000", maxFeePerGas: "2", maxPriorityFeePerGas: "1", paymaster: recipient, paymasterVerificationGasLimit: "10000", paymasterPostOpGasLimit: "10000", paymasterData: "0x" } },
+          { "state='landed',ended_at": "now()" });
         },
         send: async () => { sends++; held = true; throw new Error("lost gateway answer"); }, lookup: async () => ({ held }),
         nonce: async () => nonce, needsAndGate: async () => true,
@@ -147,10 +149,13 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
       assert.deepEqual((await admin.query("select wake_at from app.approval_carriers where approval_id=$1", [next.approval_id])).rows[0].wake_at, clock,
         "a committed chain wake must not be replaced by the later window timer");
       services.terminal = async () => { throw new Error("opener effect failed"); };
-      await assert.rejects(carry(db, services), /opener effect failed/);
+      await carry(db, services);
       assert.equal((await tenant((sql) => signingGet(sql, signing, { approvalId: next.approval_id }))).state, "sent");
+      assert.deepEqual((await admin.query("select wake_at from app.approval_carriers where approval_id=$1", [next.approval_id])).rows[0].wake_at,
+        new Date(clock.getTime() + 30_000), "a failed callback rolls back and backs off only its own approval");
+      clock = new Date(clock.getTime() + 30_000);
       services.terminal = async (sql, event) => {
-        assert.equal(event.outcome, "landed"); assert.equal(event.observedAt, clock.toISOString());
+        assert.equal(event.outcome, "landed"); assert.equal(event.observedAt, clock.toISOString()); assert.equal(event.refusal, null);
         assert.equal((await sql.query("select state from app.approvals where approval_id=$1", [event.approval_id])).rows[0].state, "landed");
         terminal++;
       };
@@ -162,9 +167,12 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
       assert.equal(later.opened, true); assert.notEqual(later.approval_id, next.approval_id);
       assert.deepEqual(await tenant((sql) => open(sql, { ...ctx, now: clock }, { ...terms, subject_id: "payment-2" })), { ...later, opened: false });
       services.sponsor = async () => { throw new Error("sponsor unavailable"); };
-      services.terminal = async (_sql, event) => { assert.equal(event.outcome, "refused"); terminal++; };
+      services.terminal = async (_sql, event) => {
+        assert.equal(event.outcome, "refused"); assert.equal(event.refusal?.code, "PROVIDER_ERROR"); terminal++;
+      };
+      const base = clock.getTime();
       for (const elapsed of [0, 2000, 6000]) {
-        clock = new Date(now.getTime() + 1000 + elapsed);
+        clock = new Date(base + elapsed);
         await carry(db, services);
       }
       assert.equal((await tenant((sql) => signingGet(sql, signing, { approvalId: later.approval_id }))).state, "refused");
@@ -212,16 +220,21 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
       const fact = { chain_id: terms.chain_id, sender, nonce, user_op_hash: hash, success: true, transaction_hash: transaction, block_number: 73 };
       await admin.query("insert into app.test_approval_facts values ($1,$3),($2,$3)", [original.approval_id, replacement.approval_id, fact]);
       await db.transaction("", (sql) => wakeChain(sql, { chain_id: terms.chain_id, sender, nonce }, clock), true);
-      const immediateWake = (await admin.query("select wake_at from app.approval_carriers where approval_id=$1", [replacement.approval_id])).rows[0].wake_at;
+      const carrierOf = async (id: string) => (await admin.query("select wake_at from app.approval_carriers where approval_id=$1", [id])).rows[0];
+      const stateOf = async (id: string) => (await admin.query("select state from app.approvals where approval_id=$1", [id])).rows[0].state;
+      assert.deepEqual((await carrierOf(replacement.approval_id)).wake_at, clock, "chain wake reaches an unsponsored replacement with a persisted nonce");
+      // The failing replacement heads the batch; the original holding the same nonce is due behind it.
+      await admin.query("update app.approval_carriers set wake_at=wake_at-interval '1 second' where approval_id=$1", [replacement.approval_id]);
       clock = new Date(clock.getTime() + 1000);
-      await assert.rejects(carry(db, services), /late replacement opener failed/);
-      assert.equal((await admin.query("select state from app.approvals where approval_id=$1", [replacement.approval_id])).rows[0].state, "sponsoring");
-      assert.equal((await admin.query("select count(*)::int as n from app.approval_carriers where approval_id=$1", [replacement.approval_id])).rows[0].n, 1);
+      await carry(db, services);
+      assert.equal(await stateOf(replacement.approval_id), "sponsoring");
+      assert.deepEqual((await carrierOf(replacement.approval_id)).wake_at, new Date(clock.getTime() + 30_000), "only the failing approval backs off");
+      assert.equal(await stateOf(original.approval_id), "landed", "a failing opener callback must not stop the rest of the batch");
       failCallback = false;
+      clock = new Date(clock.getTime() + 30_000);
       await carry(db, services); await carry(db, services);
       const ended = (await admin.query("select state,displaced_by,ended_at from app.approvals where approval_id=$1", [replacement.approval_id])).rows[0];
       assert.equal(ended.state, "displaced"); assert.equal(ended.displaced_by, hash); assert.deepEqual(ended.ended_at, clock);
-      assert.deepEqual(immediateWake, new Date(clock.getTime() - 1000), "chain wake reaches an unsponsored replacement with a persisted nonce");
       assert.equal(callbacks, 1); assert.equal(outsideCalls, 0);
       assert.equal((await admin.query("select count(*)::int as n from app.approval_carriers where approval_id=$1", [replacement.approval_id])).rows[0].n, 0);
     });
