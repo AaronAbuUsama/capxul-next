@@ -83,8 +83,12 @@ contract RefundAuthority_Escrow_Unit_Concrete_Test is Escrow_Test {
         assertTrue(escrow.canRefund(users.jordan), "control: the honest answer admits");
 
         // it should refuse the caller (revert, 31 bytes, 64 bytes, a word of 2)
-        AuthorityMock.Answer[4] memory answers =
-            [AuthorityMock.Answer.Revert, AuthorityMock.Answer.Short, AuthorityMock.Answer.Long, AuthorityMock.Answer.Word];
+        AuthorityMock.Answer[4] memory answers = [
+            AuthorityMock.Answer.Revert,
+            AuthorityMock.Answer.Short,
+            AuthorityMock.Answer.Long,
+            AuthorityMock.Answer.Word
+        ];
         for (uint256 i; i < answers.length; ++i) {
             authority.setAnswer(answers[i], 2);
             assertFalse(escrow.canRefund(users.jordan), "canRefund fails closed");

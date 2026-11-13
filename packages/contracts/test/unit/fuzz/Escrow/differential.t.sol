@@ -50,7 +50,8 @@ contract Differential_Escrow_Unit_Fuzz_Test is Escrow_Test {
     {
         condition = uint8(bound(condition, 0, 1));
         funding = bound(funding, 0, 3 * AMOUNT);
-        address payee = condition == OWNER_COLLECTS ? address(claimedOwnerSel ? claimedOwner : unclaimedOwner) : users.bob;
+        address payee =
+            condition == OWNER_COLLECTS ? address(claimedOwnerSel ? claimedOwner : unclaimedOwner) : users.bob;
         IEscrow.Terms memory terms = _terms(payee, condition);
         CapxulEscrow.Terms memory betaTerms = CapxulEscrow.Terms({
             ownerSafe: terms.sender,
@@ -101,7 +102,8 @@ contract Differential_Escrow_Unit_Fuzz_Test is Escrow_Test {
         external
     {
         vm.assume(jobNonce != bytes32(0) && documentHash != bytes32(0));
-        IEscrow.Terms memory terms = _terms(claim ? address(claimedOwner) : users.bob, claim ? OWNER_COLLECTS : AMOUNT_REACHED);
+        IEscrow.Terms memory terms =
+            _terms(claim ? address(claimedOwner) : users.bob, claim ? OWNER_COLLECTS : AMOUNT_REACHED);
         terms.amount = bound(amount, 1, 1e36);
         terms.kind = kind;
         terms.jobNonce = jobNonce;

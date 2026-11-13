@@ -108,8 +108,7 @@ contract Escrow is IEscrow {
             return IERC20(token).balanceOf(address(this)) >= amount;
         }
         if (bootstrapOwner == address(0)) return true;
-        (bool ok, uint256 word) =
-            _readWord(owner, abi.encodeWithSignature("isOwner(address)", bootstrapOwner));
+        (bool ok, uint256 word) = _readWord(owner, abi.encodeWithSignature("isOwner(address)", bootstrapOwner));
         // Only an exact `false` counts as "no longer an owner"; any other answer fails closed (D11).
         return ok && word == 0;
     }
@@ -240,15 +239,7 @@ contract Escrow is IEscrow {
         });
     }
 
-    function _item(
-        bytes32 id,
-        Terms memory t,
-        address escrow
-    )
-        private
-        pure
-        returns (IPayments.PaymentItem memory)
-    {
+    function _item(bytes32 id, Terms memory t, address escrow) private pure returns (IPayments.PaymentItem memory) {
         return IPayments.PaymentItem({
             paymentId: id,
             recipient: t.owner,

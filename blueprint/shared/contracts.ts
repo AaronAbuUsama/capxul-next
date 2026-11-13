@@ -126,6 +126,41 @@ export const decision_contracts_general_escrow_built = defineDecision({
   affects: [x.contract_escrow, x.contract_escrow_factory, decision_aaron_escrow_general, ...rulings],
 });
 
+export const decision_contracts_escrow_invoice_unpayable = defineDecision({
+  id: "contracts.escrow-invoice-unpayable",
+  title: "A funded invoice escrow whose owner cannot be paid stays stuck, as in v4",
+  question:
+    "G11 makes a funded amount-reached escrow (an invoice) refuse every `refund`. If the token will not pay its owner (the " +
+    "owner is blacklisted by the token, or the token takes a fee on transfer, which Payments refuses as inexact), `payout` " +
+    "reverts too, so the money can leave by neither way. Does the general escrow add a way out?",
+  options: [
+    {
+      label: "accept-as-v4",
+      text:
+        "No way out is added; v4's escrow has the same case. It needs a token that refuses the owner or moves an inexact " +
+        "amount, and Capxul pays in USDC to Safes it derives. An owner-collects escrow is not affected: its sender, or a caller " +
+        "its authority admits, may refund while it is open. The same rule bounds an invoice's authority: it may refund only " +
+        "while the invoice is short, so a department's escrow is taken back by its hat (payments.escrow-department-now) only " +
+        "when it is an owner-collects escrow; the terms builders never give an invoice Budgets as its authority.",
+    },
+    {
+      label: "sender-escape",
+      text:
+        "Let the sender or authority refund a funded invoice once `payout` has failed, which needs the escrow to remember a " +
+        "failure, or a time, which time.one-clock forbids.",
+    },
+  ],
+  chosen: "accept-as-v4",
+  why:
+    "G11 is the invoice's promise to its owner: once it holds the amount, nobody can take it back. An escape hatch would " +
+    "break that promise for every invoice to cover a token behaviour Capxul does not use, and on-chain the escrow cannot " +
+    "tell a blacklisted owner from a payout nobody has called yet. Checked on the built escrow: with the owner blacklisted, " +
+    "or a fee-on-transfer token, a funded invoice refuses both `payout` and `refund`; an owner-collects escrow with a " +
+    "blacklisted owner refuses `collect` and its sender's refund succeeds.",
+  source: "The E1 lane's review of the general escrow, 13 November 2026 (integrator's independent review of #145)",
+  affects: [x.contract_escrow, decision_aaron_escrow_general],
+});
+
 export const decision_contracts_devnet_addresses = defineDecision({
   id: "contracts.devnet-addresses",
   title: "Devnet addresses come from the deployment file, not from records",

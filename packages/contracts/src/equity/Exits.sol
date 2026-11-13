@@ -548,7 +548,8 @@ contract Exits is IExits {
     }
 
     /// @dev A claim escrow's terms: sent by Exits (F5) to the payee, the sale's token and terms, kind 8, owner-collects
-    /// once Companies House no longer owns the payee, and the surplus to the payee. `round` counts redirects, so a redirected claim always gets a fresh escrow.
+    /// once Companies House no longer owns the payee, and the surplus to the payee. `round` counts redirects, so a
+    /// redirected claim always gets a fresh escrow.
     function _terms(
         uint256 saleId,
         uint256 index,

@@ -146,7 +146,6 @@ abstract contract EscrowHandlerBase is CommonBase, StdUtils {
         uint256 others; // everyone else the handler knows, every other escrow and owner included
     }
 
-
     function _snap(IEscrow escrow) internal view returns (Snap memory s) {
         address owner_ = escrow.owner();
         s.escrow = token.balanceOf(address(escrow));

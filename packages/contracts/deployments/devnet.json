@@ -49,13 +49,13 @@
       "runtimeCodeHash": "0x23afefb916b6ce93996369beca1f8f5d32d5ae30a84f59e82818d4e6a9377c8b"
     },
     "EscrowFactory": {
-      "address": "0x98a35a9159534A9e284CED4DC3A999A387835d98",
+      "address": "0xfe847f1da5d5C4317c6eB5382dd2C706EDE2397F",
       "salt": "0x4cb7c28cdae7f72c84701e027b60af828e1475f403f69785da092def8bfde41a",
       "constructorArguments": {
         "payments_": "0x468241C0CFaB01eD410D8f9A281Ace9b8D4E30e3",
         "bootstrapOwner_": "0x38d9772b87a52Ed4615E2c804414f0cDD4854F2F"
       },
-      "runtimeCodeHash": "0x52488aeab4d866b128740fe3f689146c74a77417fd1710ffdb5cd36362363e42"
+      "runtimeCodeHash": "0x4bd49e5d3b13d3cb93d163101d7326316011df7a9bd3cc63589f95b14f3dbec9"
     },
     "Vesting": {
       "address": "0x562Dbef6ca003C3a959fB76B59f3B23B18D70B0e",
@@ -88,10 +88,10 @@
       "runtimeCodeHash": "0xbe052bddca2c3fe653d139930bb4f7da660b5f2e7d3ac83c92473f37928589a1"
     },
     "Exits": {
-      "address": "0x6b7a24B53c92B7479A2E6CA2EBe789ea0936865d",
+      "address": "0x9A290EEe7C8502aC25515D250BA9D809838Fd7f8",
       "salt": "0xb5b7611cd6ef2848385647d6b845c969ee75858e10809cd37a4d16cf029b0c26",
       "constructorArguments": {},
-      "runtimeCodeHash": "0x0b53de0e1d4e3909a5fe27fbfcea78c4276bf0f44ec103ac9969df99eab70bc4"
+      "runtimeCodeHash": "0x005e723fc37d4e52d3b293fbc0dc4e1052b570f2d00a3826a49f31dad99315ee"
     },
     "Governor": {
       "address": "0xa7625713085f4241a4847881C0c6Dd894f844c67",
@@ -100,7 +100,7 @@
       "runtimeCodeHash": "0x9fce2b721eeec58b35686fb3b32053d3844902c37723cae94707f6c42a365e3f"
     },
     "Installer": {
-      "address": "0x100c65b77C15b1c302dFEB425f19706ff3F3f43D",
+      "address": "0x094540D086d823fE379352Bb33CD9856aA9A30A5",
       "salt": "0x20ef009ba20a858ce49c8681ec2f84235c0db515e2d69c0cce93e6811c0a7903",
       "constructorArguments": {
         "config": {
@@ -121,12 +121,12 @@
           "governorImplementation": "0xa7625713085f4241a4847881C0c6Dd894f844c67",
           "optionsImplementation": "0x7660822DD9b108Ef3Dac5073870A7A6CA6A138C8",
           "roundsImplementation": "0xbb9F5D0EA3E1dcD12aE72a8d11a754fd512f5a9C",
-          "exitsImplementation": "0x6b7a24B53c92B7479A2E6CA2EBe789ea0936865d",
-          "escrowFactory": "0x98a35a9159534A9e284CED4DC3A999A387835d98",
+          "exitsImplementation": "0x9A290EEe7C8502aC25515D250BA9D809838Fd7f8",
+          "escrowFactory": "0xfe847f1da5d5C4317c6eB5382dd2C706EDE2397F",
           "multisendUnwrapper": "0xB4Cd4bb764C089f20DA18700CE8bc5e49F369efD"
         }
       },
-      "runtimeCodeHash": "0x3006ae1b77ddb392c1f6f79984e98c45156e7b15bd02e12976ae12187264bbc3"
+      "runtimeCodeHash": "0xf8b72d3cd34c2f99faae827573d8bdb61101e72120d7c2ce4a19b001efa770f4"
     },
     "AgentOwner": {
       "address": "0x64C7f0f1a9Ae6a89744B4E0929D15929629df144",
