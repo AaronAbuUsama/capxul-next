@@ -149,7 +149,10 @@ test("a budget's dated Payment on its day: refused before the chain's day, execu
     // A stale answer for the spent attempt changes nothing.
     assert.equal((await w.answer(owner, second.execute!, refused, later))?.status, "submitted");
 
-    // The execute is reorged out and dropped: the Payment stays submitted, and its pay-day timer sends attempt 1 an hour later.
+    // The execute is reorged out and dropped after Ponder indexed it: the Payment stays submitted, and its pay-day timer
+    // sends attempt 1 an hour later.
+    await until(async () => (await w.sql.query("select 1 from app.chain_payments where payment_id=$1 and tx_hash=$2",
+      [payment!.chain_payment_id.toLowerCase(), paid.receipt.hash.toLowerCase()])).rows[0], "the first execute's PaymentSent");
     await w.control.revert({ id: checkpoint }); await w.control.mine({ blocks: 3 });
     await until(async () => {
       const progress = (await w.sql.query("select indexed_block,ready from app.indexer_progress where chain_id=$1", [w.chain.chainId])).rows[0];
