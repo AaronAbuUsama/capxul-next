@@ -1,11 +1,13 @@
 // A step of a world's life: run under its declared timeout, with its duration written down whether it ended well,
 // failed or timed out (roadmap rule 6).
+import * as Clock from "effect/Clock";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
-import * as Exit from "effect/Exit";
+import * as Rec from "effect/Record";
 import * as Ref from "effect/Ref";
-import type { StepName } from "./record.ts";
-import { StepTimedOut, type Timeouts } from "./spec.ts";
+import { StepTimedOut } from "../failures.ts";
+import type { StepName } from "../stack/names.ts";
+import type { Timeouts } from "./spec.ts";
 
 export type Durations = Readonly<Partial<Record<StepName, number>>>;
 
@@ -16,45 +18,34 @@ export interface Stopwatch {
   readonly durations: Effect.Effect<Durations>;
 }
 
-export const makeStopwatch = (timeouts: Timeouts) =>
-  Effect.gen(function* () {
-    const taken = yield* Ref.make<Durations>({});
-    const step: Stopwatch["step"] = (name, effect) =>
-      effect.pipe(
+export const makeStopwatch = Effect.fn("world.stopwatch")(function* (timeouts: Timeouts) {
+  const taken = yield* Ref.make<Durations>({});
+  // The duration is written however the step ends: done, failed, timed out or interrupted.
+  const step: Stopwatch["step"] = (name, effect) =>
+    Effect.gen(function* () {
+      const began = yield* Clock.currentTimeMillis;
+      const note = Effect.flatMap(Clock.currentTimeMillis, (now) =>
+        Ref.update(taken, (was) => ({ ...was, [name]: now - began })),
+      );
+      const afterMs = Duration.toMillis(timeouts[name]);
+      return yield* effect.pipe(
         Effect.timeoutOrElse({
           duration: timeouts[name],
-          orElse: () => {
-            const afterMs = Duration.toMillis(timeouts[name]);
-            return Effect.fail(
-              new StepTimedOut({
+          orElse: () =>
+            Effect.fail(
+              StepTimedOut.make({
                 step: name,
                 afterMs,
                 message: `the ${name} step did not finish within its declared ${afterMs} ms`,
               }),
-            );
-          },
+            ),
         }),
-        Effect.exit,
-        Effect.timed,
-        Effect.tap(([took]) => Ref.update(taken, (was) => ({ ...was, [name]: Math.round(Duration.toMillis(took)) }))),
-        Effect.flatMap(([, exit]) =>
-          Exit.isSuccess(exit) ? Effect.succeed(exit.value) : Effect.failCause(exit.cause),
-        ),
-        Effect.withSpan(`world.${name}`),
+        Effect.ensuring(note),
       );
-    return { step, durations: Ref.get(taken) } satisfies Stopwatch;
-  });
-
-export const timeoutsInMillis = (timeouts: Timeouts) => ({
-  claim: Duration.toMillis(timeouts.claim),
-  deploy: Duration.toMillis(timeouts.deploy),
-  migrate: Duration.toMillis(timeouts.migrate),
-  chain: Duration.toMillis(timeouts.chain),
-  fund: Duration.toMillis(timeouts.fund),
-  index: Duration.toMillis(timeouts.index),
-  core: Duration.toMillis(timeouts.core),
-  use: Duration.toMillis(timeouts.use),
-  park: Duration.toMillis(timeouts.park),
-  destroy: Duration.toMillis(timeouts.destroy),
-  release: Duration.toMillis(timeouts.release),
+    }).pipe(Effect.withSpan(`world.${name}`));
+  return { step, durations: Ref.get(taken) } satisfies Stopwatch;
 });
+
+/** Every step's declared timeout, in milliseconds, as a record holds them. */
+export const timeoutsInMillis = (timeouts: Timeouts): Readonly<Record<StepName, number>> =>
+  Rec.map(timeouts, Duration.toMillis);

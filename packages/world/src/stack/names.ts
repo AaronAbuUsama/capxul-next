@@ -1,4 +1,5 @@
-// The names every part of the package agrees on. Nothing here touches the outside world.
+// The names every part of the package agrees on. Nothing here touches the outside world, and nothing here imports
+// another package: the Workers' bundles include this file.
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 
@@ -10,9 +11,6 @@ export const PLATFORM = "platform";
 
 /** Every world's stage name starts with this, so a world can never be mistaken for the platform. */
 export const WORLD_PREFIX = "w-";
-
-/** A world's name as people give it: short, lower case, so that every resource name made from it is valid. */
-export const WorldName = Schema.String.check(Schema.isPattern(/^[a-z][a-z0-9-]{0,13}[a-z0-9]$/));
 
 /** Whether a stage of the stack is a world. */
 export const isWorldStage = (stage: string): boolean => Str.startsWith(WORLD_PREFIX)(stage);

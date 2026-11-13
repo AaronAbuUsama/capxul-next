@@ -2,7 +2,9 @@ import * as assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
-import { noDurations, render, RunRecord, STEPS } from "../src/lifecycle/record.ts";
+import * as Rec from "effect/Record";
+import { fromJsonText, noDurations, renderRecord, RunRecord } from "../src/lifecycle/record.ts";
+import { STEPS } from "../src/stack/names.ts";
 
 const timeouts = {
   claim: 1,
@@ -25,24 +27,26 @@ const record: RunRecord = {
   outcome: "passed",
   failure: null,
   worldAfterwards: "destroyed",
+  keptUntil: null,
   ms: { ...noDurations, claim: 800, deploy: 41000, use: 12, destroy: 13000, create: 83000, total: 97000 },
   timeouts,
 };
+const render = (value: RunRecord) => Effect.runSync(renderRecord(value));
 const decode = (value: unknown) => Effect.runSyncExit(Schema.decodeUnknownEffect(RunRecord)(value));
 
 describe("RunRecord", () => {
   test("a record survives being written and read back", () => {
-    const read = Effect.runSync(Schema.decodeUnknownEffect(RunRecord)(JSON.parse(render(record))));
+    const read = Effect.runSync(Schema.decodeUnknownEffect(RunRecord)(fromJsonText(render(record))));
     assert.deepStrictEqual(read, record);
   });
   test("every step has a duration field and a declared timeout", () => {
     for (const step of STEPS) {
-      assert.ok(Object.keys(record.ms).includes(step));
-      assert.ok(Object.keys(record.timeouts).includes(step));
+      assert.ok(Rec.has(record.ms, step));
+      assert.ok(Rec.has(record.timeouts, step));
     }
   });
   test("a step that did not run is null, not missing", () => {
-    assert.strictEqual(JSON.parse(render(record)).ms.park, null);
+    assert.match(render(record), /"park": null/);
     const { park: _park, ...withoutPark } = record.ms;
     assert.strictEqual(decode({ ...record, ms: withoutPark })._tag, "Failure");
   });
@@ -61,7 +65,8 @@ describe("RunRecord", () => {
       ...record,
       outcome: "timed out" as const,
       failure: "StepTimedOut: the use step did not finish",
-      worldAfterwards: "kept until expiry" as const,
+      worldAfterwards: "kept" as const,
+      keptUntil: "2026-11-13T11:00:00.000Z",
     };
     assert.strictEqual(decode(failed)._tag, "Success");
   });

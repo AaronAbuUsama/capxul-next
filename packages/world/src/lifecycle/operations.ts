@@ -1,4 +1,5 @@
 // What the command line does with one world outside a run: create it and leave it up, destroy it, list what exists.
+import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -7,7 +8,7 @@ import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
 import { recordedStages } from "../stack/engine.ts";
 import { isWorldStage } from "../stack/names.ts";
-import { classify } from "./expiry.ts";
+import { classify, type Finding } from "./expiry.ts";
 import { Timeouts, type WorldSpec } from "./spec.ts";
 import { makeStopwatch } from "./steps.ts";
 import { bringUp, mustExist, planOf, takeDown } from "./world.ts";
@@ -23,22 +24,20 @@ export const create = (spec: WorldSpec) =>
     const held = yield* Ref.make(Option.none<string>());
     const began = yield* Clock.currentTimeMillis;
     const [up, cleaned] = yield* Effect.uninterruptibleMask((restore) =>
-      Effect.flatMap(Effect.exit(restore(bringUp(spec, plan, watch, held))), (up) =>
+      Effect.flatMap(Effect.exit(restore(bringUp(spec, plan, watch, held))), (brought) =>
         Effect.gen(function* () {
           const holder = yield* Ref.get(held);
-          if (Exit.isSuccess(up) || Option.isNone(holder)) return [up, true] as const;
-          return [up, Exit.isSuccess(yield* Effect.exit(takeDown(plan.stage, watch, holder)))] as const;
+          if (Exit.isSuccess(brought) || Option.isNone(holder)) return [brought, true] as const;
+          return [brought, Exit.isSuccess(yield* Effect.exit(takeDown(plan.stage, watch, holder)))] as const;
         }),
       ),
     );
     if (Exit.isFailure(up)) {
       const nothingMade = Option.isNone(yield* Ref.get(held));
-      const after = nothingMade
-        ? "nothing of it was made"
-        : cleaned
-          ? "what the create had made is destroyed"
-          : "the cleanup failed; sweep removes it at its expiry";
-      yield* Effect.logError(`world ${plan.stage}: not created; ${after}`);
+      const cleanup = cleaned
+        ? "what the create had made is destroyed"
+        : "the cleanup failed; sweep removes it at its expiry";
+      yield* Effect.logError(`world ${plan.stage}: not created; ${nothingMade ? "nothing of it was made" : cleanup}`);
       return yield* Effect.failCause(up.cause);
     }
     return { world: up.value, ms: { ...(yield* watch.durations), create: (yield* Clock.currentTimeMillis) - began } };
@@ -53,17 +52,37 @@ export const destroy = (name: string) =>
     return { world: stage, resourcesDestroyed, ms: yield* watch.durations };
   }).pipe(Effect.withSpan("world.destroy", { attributes: { world: name } }));
 
+/** One world as a listing shows it. */
+export interface Listed {
+  readonly world: string;
+  readonly owner: string | null;
+  readonly expiresAt: string | null;
+  readonly status: string | null;
+  readonly state: Finding["kind"];
+}
+
+const listed = (world: string, finding: Finding): Listed => {
+  switch (finding.kind) {
+    case "unreadable":
+      return { world, owner: null, expiresAt: null, status: null, state: finding.kind };
+    case "no-expiry":
+      return { world, owner: finding.owner, expiresAt: null, status: null, state: finding.kind };
+    default:
+      return {
+        world,
+        owner: finding.owner,
+        expiresAt: finding.expiresAt,
+        status: finding.status ?? "up",
+        state: finding.kind,
+      };
+  }
+};
+
 /** Every world the shared state holds, with its owner, its expiry and whether that has passed. */
 export const list = Effect.gen(function* () {
   const now = yield* DateTime.now;
-  const stages = (yield* recordedStages).filter(({ stage }) => isWorldStage(stage));
+  const stages = Arr.filter(yield* recordedStages, ({ stage }) => isWorldStage(stage));
   return yield* Effect.forEach(stages, ({ stage, output }) =>
-    Effect.map(classify(now, output), (finding) => ({
-      world: stage,
-      owner: "owner" in finding ? finding.owner : null,
-      expiresAt: "expiresAt" in finding ? finding.expiresAt : null,
-      status: "status" in finding ? (finding.status ?? "up") : null,
-      state: finding.kind,
-    })),
+    Effect.map(classify(now, output), (finding) => listed(stage, finding)),
   );
 }).pipe(Effect.withSpan("world.list"));

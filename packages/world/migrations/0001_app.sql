@@ -1,4 +1,4 @@
--- The app schema of the placeholder Core: enough to show that a world's database is migrated when it is created and
+-- The app schema of the stand-in Core (src/core): enough to show that a world's database is migrated when it is created and
 -- that its rows travel to a world forked from it. The real Core brings its own migrations directory.
 create schema app;
 create table app.notes (

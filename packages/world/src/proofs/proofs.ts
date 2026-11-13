@@ -1,31 +1,36 @@
-// The package's proofs, by name. Each one creates real worlds, checks what it sees, writes what it saw to
-// records/<name>.proof.json beside the run records, and leaves nothing behind when it passes.
+// The package's proofs, by name. Each one creates real worlds, checks what it sees, and writes its record, with its
+// outcome and every check, to records/<name>.proof.json; each leaves the accounts as it found them.
+import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
-import { fails, interrupted, interruptedCheck, keeps, timesOut } from "./failures.ts";
+import * as Rec from "effect/Record";
+import { ProofFailed } from "../failures.ts";
+import { commands } from "./commands.ts";
+import { fails, interrupted, interruptedRun, keeps, timesOut } from "./endings.ts";
 import { fresh } from "./fresh.ts";
-import { ProofFailed } from "./checks.ts";
-import { limits } from "./limits.ts";
-import { race, sweepCheck, sweepSetup } from "./shared.ts";
+import { limits, race, sweeps } from "./shared.ts";
 
 export const PROOFS = {
+  commands,
   fresh,
   fails,
   timeout: timesOut,
   interrupted,
-  "interrupted-check": interruptedCheck,
   keep: keeps,
   race,
   limits,
-  "sweep-setup": sweepSetup,
-  "sweep-check": sweepCheck,
-} as const;
+  sweep: sweeps,
+  // Not a proof by itself: the run that `interrupted` starts as its own process and interrupts.
+  "interrupted-run": interruptedRun,
+};
+export type ProofName = keyof typeof PROOFS;
 
-const isProof = (name: string): name is keyof typeof PROOFS => name in PROOFS;
+const isProof = (name: string): name is ProofName => Arr.contains(Rec.keys(PROOFS), name);
+
+/** The names of the proofs, as the command line lists them. */
+export const proofNames = Arr.join(Rec.keys(PROOFS), ", ");
 
 /** Runs one proof by name. */
 export const prove = (name: string) =>
   isProof(name)
     ? PROOFS[name]
-    : Effect.fail(
-        new ProofFailed({ message: `no proof called ${name}; there are: ${Object.keys(PROOFS).join(", ")}` }),
-      );
+    : Effect.fail(ProofFailed.make({ message: `no proof called ${name}; there are: ${proofNames}` }));

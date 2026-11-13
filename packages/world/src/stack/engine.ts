@@ -12,14 +12,11 @@ import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import * as Schedule from "effect/Schedule";
 import * as Str from "effect/String";
-import PlaceholderCore from "../core/Placeholder.ts";
+import { Core, defaultCore } from "../core/Core.ts";
 import { StateUnreadable } from "../failures.ts";
 import { STACK } from "./names.ts";
 import { WorldSettings } from "./settings.ts";
-import { type CoreSlot, worldStack } from "./stack.ts";
-
-/** What fills a world's Core slot. The placeholder unless the caller provides its own Core. */
-export const Core = Context.Reference<CoreSlot>("capxul/world/Core", { defaultValue: () => PlaceholderCore });
+import { worldStack } from "./stack.ts";
 
 /** The stack file, for opening the state store without running the stack's program. */
 const ENTRYPOINT = `${import.meta.dirname}/../../alchemy.run.ts`;
@@ -39,7 +36,7 @@ export const deployStage = Effect.fn("world.engine.deploy")(function* (
 
 /** Destroys one stage from its state alone: the stack's program is not run, so it needs none of the stage's settings. */
 export const destroyStage = Effect.fn("world.engine.destroy")(function* (stage: string) {
-  const stack = worldStack(PlaceholderCore);
+  const stack = worldStack(defaultCore);
   const plan = yield* Alchemist.plan({ stack, operation: "destroy", stage });
   yield* Alchemist.apply(plan);
   return plan.summary.delete;

@@ -1,140 +1,150 @@
-// Proof: a world made from nothing answers on every part, a second world made from it starts with its rows and its
-// chain, and destroying both leaves nothing of theirs in either account.
+// Proof: a world made from nothing answers on every part (chain, index, Core and database), a second world made
+// from it starts with its rows and its chain, and destroying both leaves the accounts as they were.
+import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
-import * as Duration from "effect/Duration";
+import * as Schema from "effect/Schema";
 import * as HttpClient from "effect/http/HttpClient";
-import { inventory } from "../lifecycle/account.ts";
-import { rpc } from "../lifecycle/parts.ts";
-import { describe, withWorld } from "../lifecycle/run.ts";
-import type { World } from "../lifecycle/spec.ts";
+import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import { balanceOf } from "../chain/faucet.ts";
-import { FUNDED, insist, mintIsIndexed, observed, OPENING, PAID, ProofFailed, transferIsIndexed } from "./checks.ts";
+import { CORE_HEALTH } from "../core/health.ts";
+import { ProofFailed } from "../failures.ts";
+import { describe } from "../lifecycle/describe.ts";
+import { rpc, rpcHex } from "../lifecycle/parts.ts";
+import { withWorld } from "../lifecycle/run.ts";
+import type { World } from "../lifecycle/spec.ts";
+import { FUNDED, mintIsIndexed, ONE_USDC, OPENING, PAID, transferIsIndexed } from "./checks.ts";
+import { check, conclude, inventoryReport, stackListing } from "./support.ts";
 
-const ofThisStack = (listing: Effect.Success<typeof inventory>) => ({
-  workers: listing.workers.ofThisStack,
-  containerApplications: listing.containerApplications.ofThisStack,
-  durableObjectNamespaces: listing.durableObjectNamespaces.ofThisStack,
-  r2Buckets: listing.r2Buckets.ofThisStack,
-  hyperdriveConfigurations: listing.hyperdriveConfigurations.ofThisStack,
-  neonBranches: listing.neonBranches.names,
-  imageRepositories: listing.imageRepositories.ofThisStack,
-});
+const lifetime = Duration.minutes(40);
+const Count = Schema.Tuple([Schema.Struct({ n: Schema.Int })]);
+const Notes = Schema.Array(Schema.Struct({ world: Schema.String, note: Schema.String }));
+const CoreHealth = Schema.Struct({ core: Schema.String, world: Schema.String });
 
-const worldsIn = (listing: ReturnType<typeof ofThisStack>, stage: string) =>
-  Object.values(listing)
-    .flat()
-    .filter((name) => name.includes(stage));
+const holdsOf = (world: World, account: string) => balanceOf((method, params) => rpc(world, method, params), account);
+const countOf = (world: World, statement: string, params: ReadonlyArray<unknown> = []) =>
+  world.sql(statement, params).pipe(
+    Effect.flatMap(Schema.decodeUnknownEffect(Count)),
+    Effect.map(([row]) => row.n),
+  );
 
-/** What the forked world sees, checked against what the first world wrote. */
+/** What the forked world sees, set against what the first world wrote. */
 const useFork = (parent: World, parentHead: string, tx: string) => (fork: World) =>
   Effect.gen(function* () {
-    const notes = yield* fork.sql("select world, note from app.notes order by id");
-    const transfers = yield* fork.sql("select count(*)::int as n from ponder.transfers where tx_hash = $1", [tx]);
-    const inherited = (yield* balanceOf((method, params) => rpc(fork, method, params), FUNDED)).toString();
-    yield* insist(
-      inherited === (OPENING - 1_000_000n).toString(),
-      `the fork's chain does not hold the first world's balances: ${inherited}`,
-    );
-    const head = String(yield* rpc(fork, "eth_blockNumber"));
-    yield* insist(
-      JSON.stringify(notes).includes("written in the first world"),
-      "the fork does not hold the first world's row",
-    );
-    yield* insist(JSON.stringify(transfers) === '[{"n":1}]', "the fork does not hold the first world's indexed event");
-    yield* insist(BigInt(head) >= BigInt(parentHead), "the fork's chain is behind the first world's");
+    const notes = yield* fork
+      .sql("select world, note from app.notes order by id")
+      .pipe(Effect.flatMap(Schema.decodeUnknownEffect(Notes)));
+    const transfers = yield* countOf(fork, "select count(*)::int as n from ponder.transfers where tx_hash = $1", [tx]);
+    const inherited = yield* holdsOf(fork, FUNDED);
+    const head = yield* rpcHex(fork, "eth_blockNumber");
     yield* fork.sql("insert into app.notes (world, note) values ($1, $2)", [fork.stage, "written in the fork"]);
-    const again = yield* transferIsIndexed(fork);
-    const parentNotes = yield* parent.sql("select count(*)::int as n from app.notes");
-    yield* insist(JSON.stringify(parentNotes) === '[{"n":1}]', "the first world saw the fork's row");
-    const whileBothExisted = ofThisStack(yield* inventory);
+    const own = yield* transferIsIndexed(fork);
+    const parentNotes = yield* countOf(parent, "select count(*)::int as n from app.notes");
     return {
       startedWithNotes: notes,
       startedWithIndexedTransfers: transfers,
-      startedWithFundedBalance: inherited,
+      startedWithFundedBalance: inherited.toString(),
       chainHead: head,
-      ownIndexedTransfer: again,
+      ownIndexedTransfer: own,
       firstWorldNotesAfterForkWrote: parentNotes,
-      whileBothExisted,
+      checks: [
+        check(
+          "the fork starts with the first world's row",
+          notes.length === 1 && notes[0]?.note === "written in the first world",
+        ),
+        check("the fork starts with the first world's indexed payment", transfers === 1),
+        check("the fork's chain holds the first world's balances", inherited === OPENING - ONE_USDC),
+        check("the fork's chain is not behind the first world's", BigInt(head) >= BigInt(parentHead)),
+        check("the first world does not see the fork's row", parentNotes === 1),
+      ],
     };
   });
 
 const useFirst = (world: World) =>
   Effect.gen(function* () {
-    const chainId = String(yield* rpc(world, "eth_chainId"));
-    const seedHead = String(yield* rpc(world, "eth_blockNumber"));
-    yield* insist(chainId === "0x14a34", `the chain id is ${chainId}`);
-    const funded = world.funded;
-    yield* insist(
-      funded.length === 1 && funded[0]?.holds === OPENING.toString(),
-      `the faucet's mint is not held: ${JSON.stringify(funded)}`,
-    );
+    const chainId = yield* rpcHex(world, "eth_chainId");
+    const seedHead = yield* rpcHex(world, "eth_blockNumber");
     const mintEvent = yield* mintIsIndexed(world);
-    yield* insist(mintEvent.amount === OPENING.toString(), `the index holds a mint of ${mintEvent.amount}`);
     const progress = yield* world.sql("select indexed_block::text from ponder.indexer_progress");
-    const indexed = yield* transferIsIndexed(world);
-    const holds = {
-      funded: (yield* balanceOf((method, params) => rpc(world, method, params), FUNDED)).toString(),
-      paid: (yield* balanceOf((method, params) => rpc(world, method, params), PAID)).toString(),
-    };
-    yield* insist(
-      holds.funded === (OPENING - 1_000_000n).toString() && holds.paid === "1000000",
-      `after the payment the two hold ${JSON.stringify(holds)}`,
-    );
-    const core = yield* HttpClient.get(world.coreUrl).pipe(
-      Effect.flatMap((response) => response.text),
+    const paid = yield* transferIsIndexed(world);
+    const holds = { funded: yield* holdsOf(world, FUNDED), paid: yield* holdsOf(world, PAID) };
+    const core = yield* HttpClient.get(`${world.coreUrl}${CORE_HEALTH}`).pipe(
+      Effect.flatMap(HttpClientResponse.schemaBodyJson(CoreHealth)),
       Effect.scoped,
     );
-    yield* insist(core.includes(world.stage), `Core answered ${core}`);
     yield* world.sql("insert into app.notes (world, note) values ($1, $2)", [
       world.stage,
       "written in the first world",
     ]);
-    const head = String(yield* rpc(world, "eth_blockNumber"));
+    const head = yield* rpcHex(world, "eth_blockNumber");
     const forked = yield* withWorld(
-      { name: "p-fork", owner: "proof", lifetime: Duration.minutes(40), from: world.name },
-      useFork(world, head, indexed.tx),
+      { name: "p-fork", owner: "proof", lifetime, from: world.name },
+      useFork(world, head, paid.tx),
     );
     const fork = Option.getOrUndefined(forked.used);
-    if (fork === undefined || Exit.isFailure(fork)) {
-      return yield* new ProofFailed({
-        message: `the forked world's run did not pass: ${fork === undefined ? "not used" : describe(fork.cause)}`,
+    if (fork === undefined || Exit.isFailure(fork))
+      return yield* ProofFailed.make({
+        message: `the forked world's run did not pass: ${fork === undefined ? "never used" : describe(fork.cause)}`,
       });
-    }
+    const funded = world.funded;
     return {
-      chain: { chainId, seedHead, headAfterTransfer: head },
-      faucet: {
-        testUsdc: world.testUsdc,
-        mintedAtCreation: funded,
-        mintEventInTheIndex: mintEvent,
-        balancesAfterOnePayment: holds,
+      observed: {
+        chain: { chainId, seedHead, headAfterPayment: head },
+        faucet: { testUsdc: world.testUsdc, mintedAtCreation: funded, mintEventInTheIndex: mintEvent },
+        index: { progress, paymentEventInTheIndex: paid },
+        balancesAfterOnePayment: { funded: holds.funded.toString(), paid: holds.paid.toString() },
+        core,
+        fork: { ...fork.value, checks: undefined },
+        forkRecord: forked.record,
       },
-      index: { progress, paymentEventInTheIndex: indexed },
-      core,
-      fork: fork.value,
-      forkRecord: forked.record,
+      checks: [
+        check("the chain is the seeded chain (id 84532)", chainId === "0x14a34"),
+        check(
+          "the faucet minted 250 test USDC at creation",
+          funded.length === 1 && funded[0]?.holds === OPENING.toString(),
+        ),
+        check("the index wrote the faucet's mint to the world's database", mintEvent.amount === OPENING.toString()),
+        check(
+          "a payment through the world's RPC address moved 1 USDC",
+          holds.funded === OPENING - ONE_USDC && holds.paid === ONE_USDC,
+        ),
+        check("the index wrote the payment to the world's database", paid.row.amount === ONE_USDC.toString()),
+        check("Core answers its health check for this world", core.world === world.stage),
+        ...fork.value.checks,
+        check(
+          "the forked world's run passed and its world was destroyed",
+          forked.record.worldAfterwards === "destroyed",
+        ),
+      ],
     };
   });
 
 export const fresh = Effect.gen(function* () {
-  const before = ofThisStack(yield* inventory);
+  const before = yield* stackListing;
   const first = yield* withWorld(
-    { name: "p-fresh", owner: "proof", lifetime: Duration.minutes(40), mint: [{ to: FUNDED, amount: OPENING }] },
+    { name: "p-fresh", owner: "proof", lifetime, mint: [{ to: FUNDED, amount: OPENING }] },
     useFirst,
   );
-  const after = ofThisStack(yield* inventory);
+  const after = yield* stackListing;
   const used = Option.getOrUndefined(first.used);
-  const left = [...worldsIn(after, "w-p-fresh"), ...worldsIn(after, "w-p-fork")];
-  yield* observed("fresh", {
-    proof: "a world from nothing, a world forked from it, and both destroyed",
-    passed: used !== undefined && Exit.isSuccess(used) && left.length === 0,
-    observations: used !== undefined && Exit.isSuccess(used) ? used.value : null,
-    failure: used !== undefined && Exit.isFailure(used) ? describe(used.cause) : null,
-    record: first.record,
-    listing: { before, after, leftOfTheseWorlds: left },
-  });
-  yield* insist(used !== undefined && Exit.isSuccess(used), "the first world's run did not pass");
-  yield* insist(left.length === 0, `the destroys left ${left.join(", ")}`);
-  return { passed: true, create: first.record.ms.create, destroy: first.record.ms.destroy, leftOfTheseWorlds: left };
+  const passed = used !== undefined && Exit.isSuccess(used);
+  const inventory = inventoryReport(before, after, ["w-p-fresh", "w-p-fork"]);
+  return yield* conclude(
+    "fresh",
+    "a world made from nothing answers on every part, a world forked from it starts with its rows and chain, and both are destroyed",
+    [
+      check("the first world's run passed", passed),
+      ...(passed ? used.value.checks : []),
+      check("the first world was destroyed", first.record.worldAfterwards === "destroyed"),
+      check("nothing of either world is left in the accounts", inventory.leftOfTheseWorlds.length === 0),
+      check("the accounts hold what they held before", inventory.sameAsBefore),
+    ],
+    {
+      failure: used !== undefined && Exit.isFailure(used) ? describe(used.cause) : null,
+      observed: passed ? used.value.observed : null,
+      record: first.record,
+      inventory,
+    },
+  );
 });

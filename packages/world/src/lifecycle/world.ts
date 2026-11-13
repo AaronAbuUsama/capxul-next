@@ -1,5 +1,7 @@
-// Bringing one world up and taking it down, step by step. Both are used by the lifecycle (run.ts), by the command
-// line and by the sweeper.
+// Bringing one world up, taking it down and parking it, step by step. Used by the lifecycle (run.ts), by the
+// command line and by the sweeper.
+import { Errors } from "@capxul/blueprint";
+import * as Arr from "effect/Array";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -7,18 +9,18 @@ import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import { ensureToken, mintAll, TEST_USDC } from "../chain/faucet.ts";
+import { CORE_MIGRATIONS } from "../core/Core.ts";
 import { migrate } from "../database/sql.ts";
+import { LifetimeTooLong } from "../failures.ts";
 import { deployStage, destroyStage, forgetStage, recordOutput, recordedOutput } from "../stack/engine.ts";
-import { InvalidWorldName, nameOf, PLATFORM, stageOf, WorldName } from "../stack/names.ts";
+import { PLATFORM, stageOf } from "../stack/names.ts";
 import { liftBranchExpiry } from "./account.ts";
 import { claim, registry, release } from "./claim.ts";
 import { expiryOf, lifetimeAllowed } from "./expiry.ts";
-import { adoptChain, chainAnswers, coreAnswers, handle, indexReady, open, rpc, WorldOutput } from "./parts.ts";
-import { LifetimeTooLong, Limits, type World, WorldNotFound, type WorldSpec } from "./spec.ts";
+import { adoptChain, chainAnswers, coreAnswers, handle, indexReady, open, rpc, stop, WorldOutput } from "./parts.ts";
+import { Limits, type World, type WorldSpec } from "./spec.ts";
 import type { Stopwatch } from "./steps.ts";
-
-/** The migrations of the placeholder Core, applied when the caller names no directory of its own. */
-export const DEFAULT_MIGRATIONS = `${import.meta.dirname}/../../migrations`;
+import { checkName, checkOwner } from "./validate.ts";
 
 /** What is known about a world before anything of it exists. */
 export interface Plan {
@@ -28,32 +30,25 @@ export interface Plan {
   readonly forkedFrom: Option.Option<string>;
 }
 
-/** Checks the name and decides the expiry. Nothing is created. */
+/** Checks the name, the owner and the lifetime, and decides the expiry. Nothing is created. */
 export const planOf = Effect.fn("world.plan")(function* (spec: WorldSpec) {
-  yield* Schema.decodeUnknownEffect(WorldName)(nameOf(spec.name)).pipe(
-    Effect.mapError(
-      () =>
-        new InvalidWorldName({
-          name: spec.name,
-          message: "a world's name is 2 to 15 lower case letters, digits or dashes, starting with a letter",
-        }),
-    ),
-  );
+  const name = yield* checkName(spec.name);
+  const owner = yield* checkOwner(spec.owner);
+  const from = yield* Effect.transposeOption(Option.map(Option.fromUndefinedOr(spec.from), checkName));
   const { maxLifetime } = yield* Limits;
   if (!lifetimeAllowed(spec.lifetime, maxLifetime)) {
-    const [askedMs, mostMs] = [Duration.toMillis(spec.lifetime), Duration.toMillis(maxLifetime)];
-    return yield* new LifetimeTooLong({
-      world: stageOf(spec.name),
-      askedMs,
-      mostMs,
+    return yield* LifetimeTooLong.make({
+      world: name,
+      askedMs: Duration.toMillis(spec.lifetime),
+      mostMs: Duration.toMillis(maxLifetime),
       message: `a world may live at most ${Duration.format(maxLifetime)}; ${Duration.format(spec.lifetime)} was asked for`,
     });
   }
   return {
-    stage: stageOf(spec.name),
-    owner: spec.owner,
+    stage: stageOf(name),
+    owner,
     expiresAt: expiryOf(yield* DateTime.now, spec.lifetime),
-    forkedFrom: Option.map(Option.fromNullishOr(spec.from), stageOf),
+    forkedFrom: Option.map(from, stageOf),
   } satisfies Plan;
 });
 
@@ -72,17 +67,12 @@ const Platform = Schema.Struct({ projectId: Schema.String });
  * taken off, and the parent's record in the shared state says so. The parent still expires: the sweeper reads its
  * recorded expiry, not Neon's.
  */
-const makeForkable = (parent: string, child: string) =>
-  Effect.gen(function* () {
-    const { projectId } = yield* Schema.decodeUnknownEffect(Platform)(yield* recordedOutput(PLATFORM));
-    const output = yield* recordedOutput(parent);
-    const { branch } = yield* Schema.decodeUnknownEffect(WorldOutput)(output);
-    yield* liftBranchExpiry(projectId, branch);
-    yield* recordOutput(parent, {
-      ...(typeof output === "object" && output !== null ? output : {}),
-      neonExpiry: `lifted so that ${child} could be made from it`,
-    });
-  });
+const makeForkable = Effect.fn("world.makeForkable")(function* (parent: string, child: string) {
+  const { projectId } = yield* Schema.decodeUnknownEffect(Platform)(yield* recordedOutput(PLATFORM));
+  const output = yield* Schema.decodeUnknownEffect(WorldOutput)(yield* recordedOutput(parent));
+  yield* liftBranchExpiry(projectId, output.branch);
+  yield* recordOutput(parent, { ...output, neonExpiry: `lifted so that ${child} could be made from it` });
+});
 
 /**
  * Brings the world up. The name is claimed first, and `held` is set the moment the claim holds, so whoever runs
@@ -91,7 +81,7 @@ const makeForkable = (parent: string, child: string) =>
  */
 export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref.Ref<Option.Option<string>>) =>
   Effect.gen(function* () {
-    const parent = Option.isSome(plan.forkedFrom) ? Option.some(yield* open(plan.forkedFrom.value)) : Option.none();
+    const parent = yield* Effect.transposeOption(Option.map(plan.forkedFrom, open));
     yield* watch.step(
       "claim",
       Effect.gen(function* () {
@@ -117,8 +107,9 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
     );
     const world = yield* handle(output);
     yield* Effect.logInfo(`world ${plan.stage}: deployed`);
-    const applied = yield* watch.step("migrate", migrate(world.database, spec.migrations ?? DEFAULT_MIGRATIONS));
-    yield* Effect.logInfo(`world ${plan.stage}: migrations applied (${applied.join(", ") || "none new"})`);
+    const applied = yield* watch.step("migrate", migrate(world.database, spec.migrations ?? CORE_MIGRATIONS));
+    const migrated = Arr.isReadonlyArrayEmpty(applied) ? "none new" : Arr.join(applied, ", ");
+    yield* Effect.logInfo(`world ${plan.stage}: migrations applied (${migrated})`);
     yield* watch.step(
       "chain",
       Effect.gen(function* () {
@@ -146,26 +137,37 @@ export const takeDown = (stage: string, watch: Stopwatch, holder: Option.Option<
     const removed = yield* watch.step("destroy", destroyStage(stage).pipe(Effect.tap(() => forgetStage(stage))));
     yield* watch.step(
       "release",
-      registry.pipe(Effect.flatMap((names) => release(names, stage, Option.getOrUndefined(holder)))),
+      Effect.flatMap(registry, (names) => release(names, stage, holder)),
     );
     yield* Effect.logInfo(`world ${stage}: destroyed (${removed} resources) and its name released`);
     return removed;
   });
 
-/** Fails unless the shared state holds something for the world. */
+/** Fails with the contract's WorldNotFound unless the shared state holds something for the world. */
 export const mustExist = Effect.fn("world.mustExist")(function* (name: string) {
-  const stage = stageOf(name);
-  const output = yield* recordedOutput(stage);
-  if (output === undefined)
-    return yield* new WorldNotFound({
-      world: stage,
-      message: `the shared state holds no world called ${nameOf(stage)}`,
-    });
+  const checked = yield* checkName(name);
+  const stage = stageOf(checked);
+  if ((yield* recordedOutput(stage)) === undefined) return yield* Errors.WorldNotFound.make({ world: checked });
   return stage;
 });
 
-/** Marks a kept world in the shared state, so a listing says why it is still there. */
-export const markParked = (output: unknown) =>
-  Schema.decodeUnknownEffect(WorldOutput)(output).pipe(
-    Effect.flatMap((world) => recordOutput(world.world, { ...world, status: "parked" })),
+/** The moment a kept world is deleted: `keepFor` from now, at most the declared limit, never past its own expiry. */
+export const keptUntil = (
+  now: DateTime.Utc,
+  expiresAt: string,
+  keepFor: Duration.Duration,
+  maxKeep: Duration.Duration,
+) =>
+  DateTime.formatIso(
+    DateTime.min(DateTime.addDuration(now, Duration.min(keepFor, maxKeep)), DateTime.makeUnsafe(expiresAt)),
   );
+
+/**
+ * Parks a world that is kept after a failure: its chain is saved and both containers are stopped, so it costs
+ * nothing while it waits, and its recorded expiry becomes the end of its keep, so the sweeper deletes it then.
+ */
+export const park = Effect.fn("world.park")(function* (stage: string, until: string) {
+  const output = yield* Schema.decodeUnknownEffect(WorldOutput)(yield* recordedOutput(stage));
+  yield* Effect.flatMap(open(stage), stop);
+  yield* recordOutput(stage, { ...output, status: "parked", expiresAt: until, expiryBeforeParking: output.expiresAt });
+});

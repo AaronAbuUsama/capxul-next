@@ -1,26 +1,28 @@
-// What a caller says about the world it wants, what it is handed back, and the declared timeout of every step.
+// What a caller says about the world it wants, what it is handed back, and the declared settings every world lives
+// by: the limits on private worlds and the timeout of every step.
 import * as Config from "effect/Config";
 import * as Duration from "effect/Duration";
-import type * as Effect from "effect/Effect";
 import type * as Redacted from "effect/Redacted";
-import * as Schema from "effect/Schema";
-import type { Mint } from "../chain/faucet.ts";
-import type { DatabaseRefused } from "../database/sql.ts";
-import type { HttpClientError } from "effect/http/HttpClientError";
-import type * as HttpClient from "effect/http/HttpClient";
-import { StepName } from "./record.ts";
+import * as Str from "effect/String";
+import type { Funded, Mint } from "../chain/faucet.ts";
+import type { query } from "../database/sql.ts";
+import type { StepName } from "../stack/names.ts";
 
 export interface WorldSpec {
-  /** The world's name: lower case letters, digits and dashes, at most 15 characters. */
+  /** The world's name: lower case letters, digits and dashes, 2 to 15 characters (the blueprint's WorldName). */
   readonly name: string;
+  /** Who the world belongs to (the blueprint's OperatorName). */
   readonly owner: string;
   /** How long the world may exist. Past this, Neon deletes its branch by itself and the sweeper deletes the rest. */
   readonly lifetime: Duration.Duration;
   /** Make the world from another: its database is a copy-on-write fork of that world's, and its chain starts from that world's state. */
   readonly from?: string;
-  /** Leave a world whose run did not pass in place, stopped, until its expiry, so it can be looked into. Never applies to a passing run. */
-  readonly keepOnFailure?: boolean;
-  /** The directory of `.sql` files applied to the world's database when it is created. Defaults to the placeholder Core's. */
+  /**
+   * Keep a world whose run did not pass, stopped, for this long, so it can be looked into. Never applies to a
+   * passing run. At most `Limits.maxKeep`, and never past the world's own expiry: the sweeper deletes it then.
+   */
+  readonly keepOnFailure?: Duration.Duration;
+  /** The directory of `.sql` files applied to the world's database when it is created. Defaults to Core's. */
   readonly migrations?: string;
   /** Test USDC to mint from the faucet when the world is created: who is funded is the caller's decision (the cast). */
   readonly mint?: ReadonlyArray<Mint>;
@@ -43,70 +45,29 @@ export interface World {
   readonly coreUrl: string;
   /** The world's test USDC, and what the faucet minted when the world was created. */
   readonly testUsdc: string;
-  readonly funded: ReadonlyArray<{
-    readonly to: string;
-    readonly minted: string;
-    readonly holds: string;
-    readonly tx: string;
-  }>;
+  readonly funded: ReadonlyArray<Funded>;
   /** The chain's JSON-RPC address. It carries the world's token, so it is a secret. */
-  readonly rpcUrl: Redacted.Redacted<string>;
+  readonly rpcUrl: Redacted.Redacted;
   /** The door's address with the world's token: the chain's and the index's controls live under it. */
-  readonly door: Redacted.Redacted<string>;
+  readonly door: Redacted.Redacted;
   /** The database's connection string, for a driver. Prefer `sql`. */
-  readonly database: Redacted.Redacted<string>;
+  readonly database: Redacted.Redacted;
   /** One statement on the world's database, over HTTPS. */
-  readonly sql: (
-    statement: string,
-    params?: ReadonlyArray<unknown>,
-  ) => Effect.Effect<
-    ReadonlyArray<unknown>,
-    DatabaseRefused | HttpClientError | Schema.SchemaError,
-    HttpClient.HttpClient
-  >;
+  readonly sql: (statement: string, params?: ReadonlyArray<unknown>) => ReturnType<typeof query>;
 }
-
-export class StepTimedOut extends Schema.TaggedError<StepTimedOut>()("StepTimedOut", {
-  step: StepName,
-  afterMs: Schema.Number,
-  message: Schema.String,
-}) {}
-
-export class WorldNotReady extends Schema.TaggedError<WorldNotReady>()("WorldNotReady", {
-  part: Schema.Literals(["chain", "index", "core", "fork"]),
-  message: Schema.String,
-}) {}
-
-export class WorldNotFound extends Schema.TaggedError<WorldNotFound>()("WorldNotFound", {
-  world: Schema.String,
-  message: Schema.String,
-}) {}
-
-export class LifetimeTooLong extends Schema.TaggedError<LifetimeTooLong>()("LifetimeTooLong", {
-  world: Schema.String,
-  askedMs: Schema.Number,
-  mostMs: Schema.Number,
-  message: Schema.String,
-}) {}
-
-export class TooManyWorlds extends Schema.TaggedError<TooManyWorlds>()("TooManyWorlds", {
-  owner: Schema.String,
-  live: Schema.Number,
-  most: Schema.Number,
-  message: Schema.String,
-}) {}
 
 /**
  * The limits on private worlds (Aaron, 13 November 2026): a world may live at most 7 days, and an owner may have at
- * most 5 live worlds. Both are declared settings.
+ * most 5 live worlds. A failed world may be kept for at most a day. Each is a declared setting.
  */
 export const Limits = Config.all({
   maxLifetime: Config.Duration("WORLD_MAX_LIFETIME").pipe(Config.withDefault(Duration.days(7))),
   maxPerOwner: Config.Int("WORLD_MAX_PER_OWNER").pipe(Config.withDefault(5)),
+  maxKeep: Config.Duration("WORLD_MAX_KEEP").pipe(Config.withDefault(Duration.days(1))),
 });
 
-const limit = (step: string, fallback: Duration.Duration) =>
-  Config.Duration(`WORLD_TIMEOUT_${step.toUpperCase()}`).pipe(Config.withDefault(fallback));
+const limit = (step: StepName, fallback: Duration.Duration) =>
+  Config.Duration(`WORLD_TIMEOUT_${Str.toUpperCase(step)}`).pipe(Config.withDefault(fallback));
 
 /** The declared timeout of every step. Each can be set in the environment, as WORLD_TIMEOUT_<STEP>. */
 export const Timeouts = Config.all({

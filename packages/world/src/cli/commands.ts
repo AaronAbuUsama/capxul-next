@@ -1,32 +1,30 @@
 // The world command line: one small set of commands over the package's Effect API. Results are reported through the
 // `Report` service as data; the entry file decides how they are printed. No command ever reports a connection
 // string, and the chain's address is reported without the world's token unless `--reveal` asks for it.
+import * as Arr from "effect/Array";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
+import { pipe } from "effect/Function";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
-import * as Schema from "effect/Schema";
+import * as Str from "effect/String";
 import * as Argument from "effect/cli/Argument";
 import * as Command from "effect/cli/Command";
 import * as Flag from "effect/cli/Flag";
+import { InvalidDuration, InvalidMint } from "../failures.ts";
 import { inventory } from "../lifecycle/account.ts";
 import { create, destroy, list } from "../lifecycle/operations.ts";
 import { open } from "../lifecycle/parts.ts";
 import { platformDown, platformUp } from "../lifecycle/platform.ts";
 import type { World } from "../lifecycle/spec.ts";
-import { sweep, SweepIncomplete } from "../lifecycle/sweep.ts";
-import { prove, PROOFS } from "../proofs/proofs.ts";
+import { requireComplete, sweep } from "../lifecycle/sweep.ts";
+import { proofNames, prove } from "../proofs/proofs.ts";
 
 /** Where a command's result goes. */
 export class Report extends Context.Service<Report, { readonly print: (value: unknown) => Effect.Effect<void> }>()(
-  "capxul/world/Report",
+  "@capxul/world/cli/commands/Report",
 ) {}
-
-export class InvalidLifetime extends Schema.TaggedError<InvalidLifetime>()("InvalidLifetime", {
-  given: Schema.String,
-  message: Schema.String,
-}) {}
 
 const report = (value: unknown) =>
   Effect.gen(function* () {
@@ -34,38 +32,42 @@ const report = (value: unknown) =>
     yield* out.print(value);
   });
 
-const lifetimeOf = (given: string) =>
-  Option.match(Duration.fromInput(given as Duration.Input), {
-    onNone: () =>
-      Effect.fail(
-        new InvalidLifetime({
+const UNITS: Readonly<Record<string, (amount: number) => Duration.Duration>> = {
+  second: Duration.seconds,
+  minute: Duration.minutes,
+  hour: Duration.hours,
+  day: Duration.days,
+};
+
+/** A lifetime as people write it: "90 seconds", "30 minutes", "2 hours", "1 day". */
+export const durationOf = (given: string) => {
+  const found = /^(\d+)\s*(second|minute|hour|day)s?$/.exec(Str.trim(given));
+  const amount = Number(found?.[1]);
+  const unit = found?.[2] === undefined ? undefined : UNITS[found[2]];
+  return unit === undefined || !Number.isSafeInteger(amount)
+    ? Effect.fail(
+        InvalidDuration.make({
           given,
           message: `"${given}" is not a duration; write it like "2 hours" or "30 minutes"`,
         }),
-      ),
-    onSome: Effect.succeed,
+      )
+    : Effect.succeed(unit(amount));
+};
+
+/** Mints as people write them: `0xADDRESS=AMOUNT`, comma separated, amounts in millionths of a USDC. */
+export const mintsOf = (given: string) =>
+  Effect.forEach(pipe(Str.split(given, ","), Arr.map(Str.trim), Arr.filter(Str.isNonEmpty)), (part) => {
+    const found = /^(0x[0-9a-fA-F]{40})=([0-9]+)$/.exec(part);
+    const [to, amount] = [found?.[1], found?.[2]];
+    return to === undefined || amount === undefined
+      ? Effect.fail(
+          InvalidMint.make({
+            given: part,
+            message: `"${part}" is not address=amount, e.g. 0x7099...79C8=250000000 for 250 USDC`,
+          }),
+        )
+      : Effect.succeed({ to, amount: BigInt(amount) });
   });
-
-export class InvalidMint extends Schema.TaggedError<InvalidMint>()("InvalidMint", {
-  given: Schema.String,
-  message: Schema.String,
-}) {}
-
-const mintsOf = (given: string) =>
-  Effect.forEach(
-    given.split(",").filter((part) => part.trim() !== ""),
-    (part) => {
-      const [to, amount] = part.trim().split("=");
-      return to !== undefined && /^0x[0-9a-fA-F]{40}$/.test(to) && amount !== undefined && /^[0-9]+$/.test(amount)
-        ? Effect.succeed({ to, amount: BigInt(amount) })
-        : Effect.fail(
-            new InvalidMint({
-              given: part,
-              message: `"${part}" is not address=amount, e.g. 0x7099...79C8=250000000 for 250 USDC`,
-            }),
-          );
-    },
-  );
 
 /** A world's addresses as they may be printed: the token is shown only when asked for. */
 const addresses = (world: World, reveal: boolean) => ({
@@ -78,7 +80,7 @@ const addresses = (world: World, reveal: boolean) => ({
   funded: world.funded,
   rpcUrl: reveal
     ? Redacted.value(world.rpcUrl)
-    : Redacted.value(world.rpcUrl).replace(/\/[0-9a-f]{32}\//, "/<token: show --reveal>/"),
+    : world.rpcUrl.pipe(Redacted.value, Str.replace(/\/[0-9a-f]{32}\//, "/<token: show --reveal>/")),
   database: "reached with `sql <world> <statement>`, or in-process through the world's handle; never printed",
 });
 
@@ -108,14 +110,12 @@ const createCommand = Command.make(
   },
   (input) =>
     Effect.gen(function* () {
-      const lifetime = yield* lifetimeOf(input.lifetime);
-      const mint = yield* mintsOf(Option.getOrElse(input.mint, () => ""));
       const made = yield* create({
         name: input.name,
         owner: input.owner,
-        lifetime,
-        mint,
-        ...(Option.isSome(input.from) ? { from: input.from.value } : {}),
+        lifetime: yield* durationOf(input.lifetime),
+        mint: yield* mintsOf(Option.getOrElse(input.mint, () => "")),
+        ...Option.match(input.from, { onNone: () => ({}), onSome: (from) => ({ from }) }),
       });
       yield* report({ ...addresses(made.world, input.reveal), ms: made.ms });
     }),
@@ -141,10 +141,11 @@ const sqlCommand = Command.make("sql", { name, statement: Argument.String("state
 ).pipe(Command.withDescription("Run one SQL statement on a world's database"));
 
 const sweepCommand = Command.make("sweep", { dryRun: Flag.Boolean("dry-run").pipe(Flag.withDefault(false)) }, (input) =>
-  sweep({ dryRun: input.dryRun }).pipe(
-    Effect.tapError((failure) => (failure instanceof SweepIncomplete ? report(failure.report) : Effect.void)),
-    Effect.flatMap(report),
-  ),
+  Effect.gen(function* () {
+    const swept = yield* sweep({ dryRun: input.dryRun });
+    yield* report(swept);
+    yield* requireComplete(swept);
+  }),
 ).pipe(Command.withDescription("Destroy every expired world and remove what destroys leave behind"));
 
 const inventoryCommand = Command.make("inventory", {}, () => Effect.flatMap(inventory, report)).pipe(
@@ -161,7 +162,7 @@ const platformCommand = Command.make("platform").pipe(
 
 const proveCommand = Command.make(
   "prove",
-  { proof: Argument.String("case").pipe(Argument.withDescription(`One of: ${Object.keys(PROOFS).join(", ")}`)) },
+  { proof: Argument.String("case").pipe(Argument.withDescription(`One of: ${proofNames}`)) },
   (input) => Effect.flatMap(prove(input.proof), report),
 ).pipe(Command.withDescription("Run one of the package's proofs and write its record"));
 

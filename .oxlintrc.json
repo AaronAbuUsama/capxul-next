@@ -38,8 +38,7 @@
       },
       // Places where JSON text is the format of the outside world, each with its reason.
       "jsonEdges": {
-        "packages/world/src/lifecycle/record.ts": "a run record and a proof's observations are JSON files, written to be read by people and by scoring",
-        "packages/world/src/chain/Chain.ts": "anvil's saved state travels as the text of a JSON-RPC answer, which the chain reads only for its result"
+        "packages/world/src/lifecycle/record.ts": "run records and proof records are JSON files, written to be read by people and by scoring, and read back by the proofs; the command line prints its results as the same JSON text"
       }
     }
   },

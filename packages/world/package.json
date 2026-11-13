@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": "./src/door.ts",
   "scripts": {
     "world": "./run.sh",
     "types": "effect-tsgo tsc -p .",

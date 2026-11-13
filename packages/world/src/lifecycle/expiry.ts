@@ -1,9 +1,12 @@
 // The pure decisions about a world's life: when it expires, and what its record in the shared state says about it
 // at a given moment. Nothing here touches the outside world; the unit tests cover it.
+import * as Arr from "effect/Array";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
+import { pipe } from "effect/Function";
 import * as Schema from "effect/Schema";
+import * as Str from "effect/String";
 
 /** What a world writes to the shared state about itself. Other outputs are ignored. */
 export const Recorded = Schema.Struct({
@@ -32,11 +35,15 @@ export const expiryOf = (now: DateTime.Utc, lifetime: Duration.Duration): string
 export const lifetimeAllowed = (lifetime: Duration.Duration, most: Duration.Duration): boolean =>
   Duration.isGreaterThan(lifetime, Duration.zero) && Duration.isLessThanOrEqualTo(lifetime, most);
 
+/** A stage's outputs are whatever its deploy recorded: nothing about their type is known before they are read. */
+const decodeRecorded: (output: unknown) => Effect.Effect<typeof Recorded.Type, Schema.SchemaError> =
+  Schema.decodeUnknownEffect(Recorded);
+
 /** Decides what a stage's recorded outputs say about it at `now`. A stage with no outputs at all recorded no expiry. */
 export const classify = (now: DateTime.Utc, output: unknown): Effect.Effect<Finding> =>
-  Schema.decodeUnknownEffect(Recorded)(output ?? {}).pipe(
+  decodeRecorded(output ?? {}).pipe(
     Effect.match({
-      onFailure: (error): Finding => ({ kind: "unreadable", detail: String(error.message).slice(0, 300) }),
+      onFailure: (error): Finding => ({ kind: "unreadable", detail: Str.slice(0, 300)(error.message) }),
       onSuccess: (recorded): Finding => {
         const owner = recorded.owner ?? null;
         if (recorded.expiresAt === undefined) return { kind: "no-expiry", owner };
@@ -66,10 +73,16 @@ export const decide = (
   finding: Finding,
   dryRun: boolean,
 ): "destroy" | Exclude<Verdict, "destroyed" | "destroy failed"> => {
-  if (finding.kind === "unreadable") return "kept: expiry unreadable";
-  if (finding.kind === "no-expiry") return "kept: no expiry recorded";
-  if (finding.kind === "live") return "kept: not expired";
-  return dryRun ? "expired, would be destroyed" : "destroy";
+  switch (finding.kind) {
+    case "unreadable":
+      return "kept: expiry unreadable";
+    case "no-expiry":
+      return "kept: no expiry recorded";
+    case "live":
+      return "kept: not expired";
+    default:
+      return dryRun ? "expired, would be destroyed" : "destroy";
+  }
 };
 
 /**
@@ -81,8 +94,8 @@ export const leftoverRepositories = (
   stages: ReadonlyArray<string>,
   names: { readonly prefix: string; readonly shared: ReadonlyArray<string>; readonly platform: string },
 ): ReadonlyArray<string> =>
-  repositories.filter((repository) => {
-    if (!repository.startsWith(names.prefix)) return false;
-    if (names.shared.includes(repository)) return !stages.includes(names.platform);
-    return !stages.some((stage) => repository.startsWith(`${names.prefix}${stage}-`));
+  Arr.filter(repositories, (repository) => {
+    if (!Str.startsWith(names.prefix)(repository)) return false;
+    if (Arr.contains(names.shared, repository)) return !Arr.contains(stages, names.platform);
+    return !Arr.some(stages, (stage) => pipe(repository, Str.startsWith(`${names.prefix}${stage}-`)));
   });

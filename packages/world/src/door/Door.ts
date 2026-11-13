@@ -12,20 +12,36 @@
 //   GET  /index/status
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Alchemy from "alchemy";
+import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
+import { pipe } from "effect/Function";
+import * as Predicate from "effect/Predicate";
+import * as Redacted from "effect/Redacted";
+import * as Str from "effect/String";
 import { HttpServerRequest } from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
-import * as Redacted from "effect/Redacted";
 import Chain, { WORLD } from "../chain/Chain.ts";
 import Indexer from "../index/Indexer.ts";
+import { describeFailure } from "../lifecycle/describe.ts";
 
 /** The logical id of the world's token, as the state store keys it. */
 export const DOOR_TOKEN_ID = "door-token";
 
-const json = (body: unknown, status = 200) =>
-  HttpServerResponse.text(JSON.stringify(body), { status, contentType: "application/json" });
+const DEFAULT_IDLE_SECONDS = 600;
 
-const text = (value: unknown): string => (Redacted.isRedacted(value) ? String(Redacted.value(value)) : String(value));
+const json = (body: unknown, status = 200) => HttpServerResponse.jsonUnsafe(body, { status });
+const rpcAnswer = (body: string) => HttpServerResponse.text(body, { contentType: "application/json" });
+
+/** The token as the Worker's environment holds it: a secret binding, which may arrive wrapped or as plain text. */
+const tokenOf = (value: unknown): string | undefined => {
+  const inner = Redacted.isRedacted(value) ? Redacted.value(value) : value;
+  return Predicate.isString(inner) ? inner : undefined;
+};
+
+const idleSecondsOf = (given: string | null): number => {
+  const seconds = given === null ? Number.NaN : Number(given);
+  return Number.isInteger(seconds) && seconds > 0 ? seconds : DEFAULT_IDLE_SECONDS;
+};
 
 export default class Door extends Cloudflare.Worker<Door>()(
   "Door",
@@ -43,37 +59,47 @@ export default class Door extends Cloudflare.Worker<Door>()(
         const request = yield* HttpServerRequest;
         const env = yield* Cloudflare.WorkerEnvironment;
         const url = new URL(request.url, "http://door");
-        const [, given, ...rest] = url.pathname.split("/");
-        if (given === undefined || given === "" || given !== text(env["DOOR_TOKEN"]))
-          return json({ error: "not found" }, 404);
+        const [, given = "", ...rest] = Str.split(url.pathname, "/");
+        const token = tokenOf(env["DOOR_TOKEN"]);
+        if (token === undefined || Str.isEmpty(given) || given !== token) return json({ error: "not found" }, 404);
         const chain = chains.getByName(WORLD);
         const indexer = indexers.getByName(WORLD);
-        const route = `${request.method} /${rest.join("/")}`;
-        if (route === "POST /rpc") {
-          return HttpServerResponse.text(yield* chain.rpc(yield* request.text), { contentType: "application/json" });
+        const route = `${request.method} /${Arr.join(rest, "/")}`;
+        switch (route) {
+          case "POST /rpc":
+            return rpcAnswer(yield* chain.rpc(yield* request.text));
+          case "POST /quiet-rpc":
+            return rpcAnswer(yield* chain.quietRpc(yield* request.text));
+          case "GET /chain/status":
+            return json(yield* chain.status());
+          case "POST /chain/stop":
+            return json(yield* chain.stop());
+          case "POST /chain/idle":
+            yield* chain.setIdle(idleSecondsOf(url.searchParams.get("seconds")));
+            return json(yield* chain.status());
+          case "GET /chain/dump":
+            return HttpServerResponse.text(yield* chain.dump());
+          case "POST /chain/adopt":
+            return json(yield* chain.adopt(yield* request.text));
+          case "POST /index/start":
+            return json(
+              yield* indexer.start(`https://${pipe(request.headers["host"] ?? "", Str.trim)}/${given}/quiet-rpc`),
+            );
+          case "POST /index/stop":
+            return json(yield* indexer.stop());
+          case "GET /index/status":
+            return json(yield* indexer.status());
+          default:
+            return json({ error: "no such route", route }, 404);
         }
-        if (route === "POST /quiet-rpc") {
-          return HttpServerResponse.text(yield* chain.quietRpc(yield* request.text), {
-            contentType: "application/json",
-          });
-        }
-        if (route === "GET /chain/status") return json(yield* chain.status());
-        if (route === "POST /chain/stop") return json(yield* chain.stop());
-        if (route === "POST /chain/idle") {
-          yield* chain.setIdle(Number(url.searchParams.get("seconds") ?? "600"));
-          return json(yield* chain.status());
-        }
-        if (route === "GET /chain/dump") return HttpServerResponse.text(yield* chain.dump());
-        if (route === "POST /chain/adopt") return json(yield* chain.adopt(yield* request.text));
-        if (route === "POST /index/start") {
-          return json(yield* indexer.start(`https://${request.headers["host"]}/${given}/quiet-rpc`));
-        }
-        if (route === "POST /index/stop") return json(yield* indexer.stop());
-        if (route === "GET /index/status") return json(yield* indexer.status());
-        return json({ error: "no such route", route }, 404);
       }).pipe(
         Effect.catch((error) =>
-          Effect.succeed(json({ error }, "step" in error && error.step === "asleep" ? 503 : 502)),
+          Effect.succeed(
+            json(
+              { error: describeFailure(error) },
+              Predicate.hasProperty(error, "step") && error.step === "asleep" ? 503 : 502,
+            ),
+          ),
         ),
       ),
     };

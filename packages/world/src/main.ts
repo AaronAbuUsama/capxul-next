@@ -11,6 +11,7 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Command from "effect/cli/Command";
 import { Report, world } from "./cli/commands.ts";
+import { asJsonText } from "./lifecycle/record.ts";
 import { SharedState } from "./stack/engine.ts";
 
 const ToStandardError = Layer.succeed(Console.Console, {
@@ -19,18 +20,26 @@ const ToStandardError = Layer.succeed(Console.Console, {
   info: console.error,
 });
 
-const Alchemy = Layer.mergeAll(Alchemist.layer(), Interaction.layerNonInteractive({ stdout: process.stderr })).pipe(
+const ReportToStandardOutput = Layer.succeed(Report, {
+  print: (value) => Effect.sync(() => void process.stdout.write(asJsonText(value))),
+});
+
+// Alchemy's own services, then the shared state store, which needs them, over Bun's platform services.
+const Alchemy = Layer.mergeAll(Alchemist.layer(), Interaction.layerNonInteractive({ stdout: process.stderr }));
+const Services = SharedState.layer.pipe(
+  Layer.provideMerge(Alchemy),
+  Layer.provideMerge(ReportToStandardOutput),
+  Layer.provideMerge(BunServices.layer),
   Layer.provideMerge(ToStandardError),
 );
 
-const ReportLive = Layer.succeed(Report, {
-  print: (value) => Effect.sync(() => void process.stdout.write(`${JSON.stringify(value, null, 2)}\n`)),
-});
-
 Command.run(world, { version: "0.0.0" }).pipe(
-  Effect.provide(Layer.mergeAll(SharedState.layer, BunServices.layer, ReportLive).pipe(Layer.provideMerge(Alchemy))),
+  // This is the entry point: the one place every layer is provided.
+  // oxlint-disable-next-line effecttsgo/strict-effect-provide
+  Effect.provide(Services),
   // A failure, also one from opening the shared state, is reported on standard error and the process exits non-zero.
   Effect.tapCause((cause) => Effect.logError(cause)),
+  // oxlint-disable-next-line effecttsgo/strict-effect-provide
   Effect.provide(ToStandardError),
   BunRuntime.runMain({ disableErrorReporting: true }),
 );

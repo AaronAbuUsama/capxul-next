@@ -5,10 +5,16 @@
 //
 // test-usdc.hex is MockERC20's creation code, compiled from packages/contracts/test/mocks/MockERC20.sol with
 // solc 0.8.28 and the contracts package's settings (optimizer on, 200 runs, cancun, OpenZeppelin 5.6.1 from lib/).
+import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
+import { pipe } from "effect/Function";
+import * as Predicate from "effect/Predicate";
 import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
+import * as Str from "effect/String";
+import { FaucetFailed } from "../failures.ts";
+import { describeFailure } from "../lifecycle/describe.ts";
 
 /** anvil's first unlocked account. It sends the faucet's transactions; it holds no USDC and is given none. */
 export const FAUCET_OPERATOR = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
@@ -26,25 +32,32 @@ export interface Mint {
   readonly amount: bigint;
 }
 
-export class FaucetFailed extends Schema.TaggedError<FaucetFailed>()("FaucetFailed", {
-  step: Schema.Literals(["deploy", "mint", "read"]),
-  message: Schema.String,
-}) {}
+/** What the faucet minted to one address when the world was created. */
+export interface Funded {
+  readonly to: string;
+  readonly minted: string;
+  readonly holds: string;
+  readonly tx: string;
+}
 
 /** One JSON-RPC call to the world's chain. */
 export type Call<E, R> = (method: string, params: ReadonlyArray<unknown>) => Effect.Effect<unknown, E, R>;
 
-const word = (hex: string) => hex.replace(/^0x/, "").toLowerCase().padStart(64, "0");
-const uint = (value: bigint | number) => word(BigInt(value).toString(16));
-const text = (value: string) => {
-  const bytes = Array.from(new TextEncoder().encode(value), (byte) => byte.toString(16).padStart(2, "0")).join("");
-  return uint(value.length) + bytes.padEnd(Math.ceil(bytes.length / 64) * 64, "0");
+/** A hex string as one 32-byte ABI word. */
+export const word = (hex: string): string => pipe(hex, Str.replace(/^0x/, ""), Str.toLowerCase, Str.padStart(64, "0"));
+const uint = (value: bigint): string => word(value.toString(16));
+const byteHex = (byte: number): string => pipe(byte.toString(16), Str.padStart(2, "0"));
+
+/** A string as ABI-encoded dynamic bytes: its length, then its bytes padded to whole words. */
+const text = (value: string): string => {
+  const bytes = Arr.join(Arr.map(Arr.fromIterable(new TextEncoder().encode(value)), byteHex), "");
+  return uint(BigInt(Str.length(value))) + Str.padEnd(Math.ceil(Str.length(bytes) / 64) * 64, "0")(bytes);
 };
 
 /** The constructor arguments `(string name, string symbol, uint8 decimals)`, ABI-encoded. */
 export const constructorArguments = (name: string, symbol: string, decimals: number): string => {
   const first = text(name);
-  return uint(96) + uint(96 + first.length / 2) + uint(decimals) + first + text(symbol);
+  return uint(96n) + uint(BigInt(96 + Str.length(first) / 2)) + uint(BigInt(decimals)) + first + text(symbol);
 };
 
 /** The calldata of `mint(address to, uint256 amount)`. */
@@ -54,18 +67,29 @@ export const mintCall = (mint: Mint): string => `0x40c10f19${word(mint.to)}${uin
 export const balanceOfCall = (account: string): string => `0x70a08231${word(account)}`;
 
 const Receipt = Schema.Struct({ status: Schema.String, contractAddress: Schema.NullOr(Schema.String) });
+const Hex = Schema.String.check(Schema.isPattern(/^0x[0-9a-fA-F]*$/));
+const decodeHex = Schema.decodeUnknownEffect(Hex);
 
-const receiptOf = <E, R>(call: Call<E, R>, step: FaucetFailed["step"], hash: unknown) =>
+const receiptOf = <E, R>(call: Call<E, R>, step: FaucetFailed["step"], hash: string) =>
   call("eth_getTransactionReceipt", [hash]).pipe(
     Effect.flatMap(Schema.decodeUnknownEffect(Receipt)),
     Effect.retry(Schedule.max([Schedule.spaced("500 millis"), Schedule.recurs(20)])),
-    Effect.mapError((error) => new FaucetFailed({ step, message: `no receipt: ${String(error).slice(0, 160)}` })),
-    Effect.flatMap((receipt) =>
-      receipt.status === "0x1"
-        ? Effect.succeed(receipt)
-        : Effect.fail(new FaucetFailed({ step, message: `the transaction reverted (status ${receipt.status})` })),
+    Effect.mapError((error) => FaucetFailed.make({ step, message: `no receipt: ${describeFailure(error)}` })),
+    Effect.filterOrFail(
+      (receipt) => receipt.status === "0x1",
+      (receipt) => FaucetFailed.make({ step, message: `the transaction reverted (status ${receipt.status})` }),
     ),
   );
+
+/** Sends one transaction from the faucet's operator and gives back its hash. */
+const send = <E, R>(call: Call<E, R>, step: FaucetFailed["step"], transaction: Record<string, string>) =>
+  call("eth_sendTransaction", [{ from: FAUCET_OPERATOR, ...transaction }]).pipe(
+    Effect.flatMap(decodeHex),
+    Effect.mapError((error) => FaucetFailed.make({ step, message: describeFailure(error) })),
+  );
+
+const sameAddress = (a: string | null, b: string): boolean =>
+  Predicate.isNotNull(a) && Str.toLowerCase(a) === Str.toLowerCase(b);
 
 /** Puts the token on the chain unless it is already there, as it is in a world made from another. */
 export const ensureToken = <E, R>(call: Call<E, R>) =>
@@ -73,14 +97,14 @@ export const ensureToken = <E, R>(call: Call<E, R>) =>
     if ((yield* call("eth_getCode", [TEST_USDC, "latest"])) !== "0x")
       return { deployed: false as const, address: TEST_USDC };
     const fs = yield* FileSystem.FileSystem;
-    const code = (yield* fs.readFileString(`${import.meta.dirname}/test-usdc.hex`)).trim();
+    const code = Str.trim(yield* fs.readFileString(`${import.meta.dirname}/test-usdc.hex`));
     const data = `0x${code}${constructorArguments("World test USD", "USDC", 6)}`;
-    const hash = yield* call("eth_sendTransaction", [{ from: FAUCET_OPERATOR, data, gas: "0x2dc6c0" }]);
+    const hash = yield* send(call, "deploy", { data, gas: "0x2dc6c0" });
     const { contractAddress } = yield* receiptOf(call, "deploy", hash);
-    if (contractAddress?.toLowerCase() !== TEST_USDC.toLowerCase()) {
-      return yield* new FaucetFailed({
+    if (!sameAddress(contractAddress, TEST_USDC)) {
+      return yield* FaucetFailed.make({
         step: "deploy",
-        message: `the token landed at ${contractAddress}, not at ${TEST_USDC}: the operator had already sent a transaction`,
+        message: `the token landed at ${contractAddress ?? "no address"}, not at ${TEST_USDC}: the operator had already sent a transaction`,
       });
     }
     return { deployed: true as const, address: TEST_USDC };
@@ -89,22 +113,20 @@ export const ensureToken = <E, R>(call: Call<E, R>) =>
 /** What an address holds, in the token's smallest unit. */
 export const balanceOf = <E, R>(call: Call<E, R>, account: string) =>
   call("eth_call", [{ to: TEST_USDC, data: balanceOfCall(account) }, "latest"]).pipe(
-    Effect.map((answer) => BigInt(String(answer))),
+    Effect.flatMap(decodeHex),
+    Effect.mapBoth({
+      onFailure: (error) => FaucetFailed.make({ step: "read", message: describeFailure(error) }),
+      onSuccess: (answer) => BigInt(answer),
+    }),
   );
 
 /** Mints to each address through the token's open `mint`, one transaction each, and says what each then holds. */
 export const mintAll = <E, R>(call: Call<E, R>, mints: ReadonlyArray<Mint>) =>
   Effect.forEach(mints, (mint) =>
     Effect.gen(function* () {
-      const tx = yield* call("eth_sendTransaction", [
-        { from: FAUCET_OPERATOR, to: TEST_USDC, data: mintCall(mint), gas: "0x30d40" },
-      ]);
+      const tx = yield* send(call, "mint", { to: TEST_USDC, data: mintCall(mint), gas: "0x30d40" });
       yield* receiptOf(call, "mint", tx);
-      return {
-        to: mint.to,
-        minted: mint.amount.toString(),
-        tx: String(tx),
-        holds: (yield* balanceOf(call, mint.to)).toString(),
-      };
+      const holds = yield* balanceOf(call, mint.to);
+      return { to: mint.to, minted: mint.amount.toString(), tx, holds: holds.toString() } satisfies Funded;
     }),
   );
