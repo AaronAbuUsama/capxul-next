@@ -1,0 +1,26 @@
+# The platform stack as CI deploys it on AWS (PLATFORM_HOST=aws, PLATFORM_EDGE=tunnel), planned from a Claude cloud
+# container on 13 November 2026 against the shared state: nothing exists yet, so everything is to create. A plan only
+# reads; no Docker engine is reached (the forward to the bench host is not open) and nothing is made.
+# $ PLATFORM_HOST=aws PLATFORM_EDGE=tunnel bin/run.sh plan --stage staging
+[12:21:48.766] INFO: Plan · staging
+[12:21:54.016] INFO: Plan ready (5.3s)
+[12:21:54.018] INFO: Plan: 18 to create, 1 to adopted
+[12:21:54.018] INFO: [BenchImage] create
+[12:21:54.018] INFO: [Connector] create
+[12:21:54.018] INFO: [DbRootPassword] create
+[12:21:54.018] INFO: [DbVolume] create
+[12:21:54.019] INFO: [Door] create
+[12:21:54.019] INFO: [DoorImage] create
+[12:21:54.020] INFO: [DoorKey-g1] create
+[12:21:54.020] INFO: [DoorRecord] create
+[12:21:54.020] INFO: [Host] adopted
+[12:21:54.020] INFO: [Ingress] create
+[12:21:54.021] INFO: [MariaDB] create
+[12:21:54.021] INFO: [Network] create
+[12:21:54.021] INFO: [Redis] create
+[12:21:54.022] INFO: [Scheduler] create
+[12:21:54.022] INFO: [SitesRecord] create
+[12:21:54.022] INFO: [SitesVolume] create
+[12:21:54.022] INFO: [Tunnel] create
+[12:21:54.022] INFO: [Web] create
+[12:21:54.022] INFO: [Worker] create

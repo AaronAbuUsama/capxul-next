@@ -1,0 +1,29 @@
+# The tools every cloud job needs: pnpm and Node for the workspace, Bun for Alchemy's command line (alchemy and the
+# entry files run on Bun), and, with `aws: true`, the AWS command line's Session Manager plugin for bin/forward.sh.
+name: platform-setup
+description: Install the workspace, Bun and (optionally) Session Manager's plugin
+inputs:
+  aws:
+    description: Install Session Manager's plugin for the SSM port forward to the bench host
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: pnpm
+    - run: pnpm install --frozen-lockfile
+      shell: bash
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: 1.4.4
+    - if: inputs.aws == 'true'
+      name: Install Session Manager's plugin
+      shell: bash
+      run: |
+        curl -fsSLo "$RUNNER_TEMP/session-manager-plugin.deb" \
+          https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb
+        sudo dpkg -i "$RUNNER_TEMP/session-manager-plugin.deb"
+        session-manager-plugin --version

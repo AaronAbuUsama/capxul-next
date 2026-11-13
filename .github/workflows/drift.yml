@@ -1,0 +1,69 @@
+# The platform's drift check (roadmap step 2.5) on the shared platform, stage `staging`: Alchemy's scan of the bench
+# host and the platform, plus `docker diff` of every container for code replaced by hand
+# (packages/platform/src/drift.ts). A drifted platform fails the job (exit 2); the run record is uploaded either way.
+#
+# Every 6 hours, and on demand. GitHub starts scheduled workflows only from the repository's default branch, which is
+# `main` while `master` is the rebuild line, so the schedule below takes effect once this file is on the default branch
+# (packages/platform/bootstrap/BOOTSTRAP.md, "The schedule"). A missing secret or variable fails the job, by name.
+name: drift
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: platform-staging
+  cancel-in-progress: false
+env:
+  PLATFORM_STAGE: staging
+  PLATFORM_HOST: aws
+  PLATFORM_EDGE: tunnel
+  AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  PLATFORM_ZONE_ID: ${{ vars.PLATFORM_ZONE_ID }}
+  PLATFORM_ZONE_NAME: ${{ vars.PLATFORM_ZONE_NAME }}
+  PLATFORM_DOMAIN: ${{ vars.PLATFORM_DOMAIN }}
+  PLATFORM_AMI_ID: ${{ vars.PLATFORM_AMI_ID }}
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: packages/platform
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # A scheduled run starts on the default branch; the platform's code is master's.
+          ref: master
+      - name: Require the cloud secrets and variables
+        run: >-
+          bin/require.sh AWS_ROLE_ARN AWS_REGION CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN PLATFORM_ZONE_ID
+          PLATFORM_ZONE_NAME PLATFORM_DOMAIN PLATFORM_AMI_ID
+      - uses: ./.github/actions/platform-setup
+        with:
+          aws: "true"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: capxul-drift-${{ github.run_id }}
+      - name: Open the way to the host's Docker engine
+        run: bin/forward.sh open "$PLATFORM_STAGE"
+      - name: Drift check (0 clean, 2 drifted, 1 the check failed)
+        run: |
+          mkdir -p "$RUNNER_TEMP/records"
+          bin/run.sh bun src/run-drift.ts "$PLATFORM_STAGE" "$RUNNER_TEMP/records/drift-$PLATFORM_STAGE.json"
+      - name: Close the way to the host
+        if: always()
+        run: bin/forward.sh close
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: drift-${{ github.run_id }}
+          path: ${{ runner.temp }}/records/
+          if-no-files-found: error

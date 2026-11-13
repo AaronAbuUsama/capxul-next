@@ -1,0 +1,81 @@
+# Deploys the shared platform, stage `staging`, on the bench host in AWS (roadmap step 2.2), then checks it for drift
+# (step 2.5): first the machine (packages/platform/host.run.ts), then, through an SSM port forward to the machine's
+# Docker engine, the bench, the site door, the tunnel and its connector, and the DNS names (alchemy.run.ts).
+#
+# Runs on demand, and on a push to master that touches packages/platform. It signs in to AWS through GitHub's OIDC
+# as the CI role (no AWS key exists anywhere) and uses the scoped Cloudflare token; both are made by
+# packages/platform/bootstrap. A missing secret or variable fails the job, by name. Never on a pull request.
+name: platform
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: deploy (host, then platform, then a drift check) or plan (no change)
+        type: choice
+        options: [deploy, plan]
+        default: deploy
+  push:
+    branches: [master]
+    paths: ["packages/platform/**", ".github/workflows/platform.yml", ".github/actions/platform-setup/**"]
+permissions:
+  contents: read
+  id-token: write
+# One change to staging at a time; the drift check takes the same lock.
+concurrency:
+  group: platform-staging
+  cancel-in-progress: false
+env:
+  PLATFORM_STAGE: staging
+  PLATFORM_HOST: aws
+  PLATFORM_EDGE: tunnel
+  AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  PLATFORM_ZONE_ID: ${{ vars.PLATFORM_ZONE_ID }}
+  PLATFORM_ZONE_NAME: ${{ vars.PLATFORM_ZONE_NAME }}
+  PLATFORM_DOMAIN: ${{ vars.PLATFORM_DOMAIN }}
+  PLATFORM_AMI_ID: ${{ vars.PLATFORM_AMI_ID }}
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: packages/platform
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require the cloud secrets and variables
+        run: >-
+          bin/require.sh AWS_ROLE_ARN AWS_REGION CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN PLATFORM_ZONE_ID
+          PLATFORM_ZONE_NAME PLATFORM_DOMAIN PLATFORM_AMI_ID
+      - uses: ./.github/actions/platform-setup
+        with:
+          aws: "true"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: capxul-platform-${{ github.run_id }}
+      - name: The bench host (CapxulBenchHost)
+        run: bin/run.sh ${{ inputs.action == 'plan' && 'plan' || 'deploy --yes' }} -c host.run.ts --stage "$PLATFORM_STAGE"
+      - name: Open the way to the host's Docker engine
+        if: inputs.action != 'plan'
+        run: bin/forward.sh open "$PLATFORM_STAGE"
+      - name: The platform (CapxulPlatform)
+        if: inputs.action != 'plan'
+        run: bin/run.sh deploy --stage "$PLATFORM_STAGE" --yes
+      - name: Drift check (0 clean, 2 drifted)
+        if: inputs.action != 'plan'
+        run: |
+          mkdir -p "$RUNNER_TEMP/records"
+          bin/run.sh bun src/run-drift.ts "$PLATFORM_STAGE" "$RUNNER_TEMP/records/drift-$PLATFORM_STAGE.json"
+      - name: Close the way to the host
+        if: always()
+        run: bin/forward.sh close
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: platform-${{ github.run_id }}
+          path: ${{ runner.temp }}/records/
+          if-no-files-found: ignore
