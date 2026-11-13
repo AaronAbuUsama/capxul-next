@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        // The command line is Effect's CLI module over the SDK's Rpc client, run by Effect's Node platform:
+        // effect/cli, effect/rpc, effect/http, FileSystem, Stdio and @effect/platform-node, which Effect 4 marks unstable with no stable
+        // replacement. The catalog's exact pins are the guard, as in packages/blueprint.
+        "allowedUnstableApis": [
+          "effect/cli",
+          "effect/rpc",
+          "effect/http",
+          "effect/FileSystem",
+          "effect/Stdio",
+          "@effect/platform-node"
+        ]
+      }
+    ]
+  },
+  "include": ["src", "test"]
+}

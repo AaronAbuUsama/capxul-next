@@ -15,6 +15,7 @@ import {
   WorldExists,
   WorldNotFound,
   WorldQuotaReached,
+  NotImplemented,
 } from "../errors.ts";
 import { declare } from "../operation.ts";
 import {
@@ -85,7 +86,7 @@ export const create = declare({
       }),
     },
     success: WorldView,
-    error: Schema.Union([WorldExists, GradeNotOffered, WorldQuotaReached, ClockBeforeSeed]),
+    error: Schema.Union([WorldExists, GradeNotOffered, WorldQuotaReached, ClockBeforeSeed, NotImplemented]),
   }),
   emits: [{ event: WorldCreated, carries: ({ success }) => created(success) }],
   budget: {
@@ -104,7 +105,11 @@ export const create = declare({
 });
 
 export const show = declare({
-  rpc: Rpc.make("world.show", { payload: { world: WorldName }, success: WorldView, error: WorldNotFound }),
+  rpc: Rpc.make("world.show", {
+    payload: { world: WorldName },
+    success: WorldView,
+    error: Schema.Union([WorldNotFound, NotImplemented]),
+  }),
   emits: [],
   budget: {
     ms: 2_000,
@@ -141,7 +146,7 @@ export const snapshotSave = declare({
       template: Schema.Boolean,
     },
     success: Snapshot,
-    error: Schema.Union([WorldNotFound, NotWorldOwner, SnapshotExists]),
+    error: Schema.Union([WorldNotFound, NotWorldOwner, SnapshotExists, NotImplemented]),
   }),
   emits: [
     {
@@ -190,6 +195,7 @@ export const snapshotRestore = declare({
       ExpiryBeyondSource,
       WorldQuotaReached,
       SnapshotIncompatible,
+      NotImplemented,
     ]),
   }),
   emits: [{ event: WorldCreated, carries: ({ success }) => created(success) }],
@@ -226,7 +232,7 @@ export const clockWarp = declare({
       clock: Clock,
       /** Company sites that followed the clock. */ sites: Schema.Int,
     }),
-    error: Schema.Union([NotWorldOwner, ClockBackwards]),
+    error: Schema.Union([NotWorldOwner, ClockBackwards, NotImplemented]),
   }),
   emits: [{ event: ClockWarped, carries: ({ success }) => ({ from: success.from, to: success.clock.now }) }],
   budget: {

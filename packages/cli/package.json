@@ -1,0 +1,26 @@
+{
+  "name": "@capxul/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/door.ts",
+  "bin": {
+    "capxul": "./src/bin.ts"
+  },
+  "scripts": {
+    "capxul": "node --experimental-strip-types --no-warnings src/bin.ts",
+    "types": "effect-tsgo tsc -p .",
+    "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@capxul/blueprint": "workspace:*",
+    "@capxul/sdk": "workspace:*",
+    "@effect/platform-node": "catalog:",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@effect/tsgo": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

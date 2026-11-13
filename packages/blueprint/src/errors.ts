@@ -43,10 +43,12 @@ import {
   ApprovalClosed,
   TransactionReverted,
 } from "./errors/approvals.ts";
+import { NotImplemented } from "./errors/server.ts";
 
 export * from "./errors/worlds.ts";
 export * from "./errors/companies.ts";
 export * from "./errors/approvals.ts";
+export * from "./errors/server.ts";
 
 /** Every refusal, by its tag. The tests read this to prove no tag is declared twice. */
 export const refusals = {
@@ -85,13 +87,14 @@ export const refusals = {
   ApprovalExpired,
   ApprovalClosed,
   TransactionReverted,
+  NotImplemented,
 } as const;
 
 export type RefusalTag = keyof typeof refusals;
 
 /**
  * The command line's exit code for each refusal: 2 the request cannot be done as asked, 3 not signed in, 4 not
- * allowed, 5 something outside failed, 6 a limit or a switch. Declared here so the CLI never invents one.
+ * allowed, 5 something outside failed, 6 a limit or a switch (`NotImplemented` is one: the operation is not switched on yet). Declared here so the CLI never invents one.
  */
 export const exitCode: { readonly [Tag in RefusalTag]: 2 | 3 | 4 | 5 | 6 } = {
   NotSignedIn: 3,
@@ -129,4 +132,5 @@ export const exitCode: { readonly [Tag in RefusalTag]: 2 | 3 | 4 | 5 | 6 } = {
   ApprovalExpired: 2,
   ApprovalClosed: 2,
   TransactionReverted: 5,
+  NotImplemented: 6,
 };

@@ -3,7 +3,7 @@
 // the snapshot, then its own `world_created`. Exporting reads it through the world's door; the caller writes files.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { ExportNotAllowed, NotWorldOwner } from "../errors.ts";
+import { ExportNotAllowed, NotWorldOwner, NotImplemented } from "../errors.ts";
 import { declare } from "../operation.ts";
 import { Instant, Json, Parent, Seq, WorldName } from "../values.ts";
 
@@ -35,7 +35,7 @@ export const exportRecord = declare({
       head: Seq,
       entries: Schema.Array(Entry),
     }),
-    error: Schema.Union([NotWorldOwner, ExportNotAllowed]),
+    error: Schema.Union([NotWorldOwner, ExportNotAllowed, NotImplemented]),
   }),
   emits: [],
   budget: {

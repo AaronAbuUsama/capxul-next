@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        // The SDK is an Effect Rpc client over HTTP: effect/rpc and effect/http, which Effect 4 marks unstable with no
+        // stable replacement; the tests serve a door with @effect/platform-node, marked the same. The catalog's exact pins
+        // of both are the guard, as in packages/blueprint.
+        "allowedUnstableApis": ["effect/rpc", "effect/http", "@effect/platform-node"]
+      }
+    ]
+  },
+  "include": ["src", "test"]
+}

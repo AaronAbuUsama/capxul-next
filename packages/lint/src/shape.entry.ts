@@ -1,25 +1,20 @@
-// Entry: `pnpm shape`. Lists the files git tracks or would track, reads the two entry lists in .oxlintrc.json, checks
-// both against packages/lint/src/shape.ts and exits 1 on any problem. Reading the disk, printing and the exit code
-// live here; the rules are in shape.ts.
+// Entry: `pnpm shape`. Lists the files git tracks (`git ls-files`: its index, so a new file counts once it is added),
+// reads the two entry lists in .oxlintrc.json, checks both against packages/lint/src/shape.ts and exits 1 on any
+// problem. Nothing walks the disk, so `node_modules`, ignored records and untracked scratch files never count.
+// Running git, reading files, printing and the exit code live here; the rules are in shape.ts.
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import * as Arr from "effect/Array";
-import { pipe } from "effect/Function";
 import * as Rec from "effect/Record";
 import * as Str from "effect/String";
-import { type EntryLists, shapeProblems } from "./shape.ts";
+import { type EntryLists, shapeProblems, trackedFiles } from "./shape.ts";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 const read = (file: string): string => readFileSync(`${root}/${file}`, "utf8");
 
-const listed = execFileSync("git", ["-C", root, "ls-files", "-z", "--cached", "--others", "--exclude-standard"], {
-  encoding: "utf8",
-});
-const files = pipe(
-  Arr.dedupe(Str.split(listed, "\0")),
-  Arr.filter((file) => file !== "" && existsSync(`${root}/${file}`)),
-);
+const listed = execFileSync("git", ["-C", root, "ls-files", "-z"], { encoding: "utf8" });
+const files = trackedFiles(listed, (file) => existsSync(`${root}/${file}`));
 const lines = (file: string): number => Str.split(read(file), "\n").length - 1;
 
 /** .oxlintrc.json is JSON with whole-line `//` comments. */

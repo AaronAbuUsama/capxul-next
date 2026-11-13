@@ -18,7 +18,9 @@ later. A document's fields, a report's filters and rows, and a record entry's `c
 and nowhere else: no class defaults, no budgets on internal steps. Each budget says what it measures (the p95 of the
 server's own span for the call, over warm runs), which waits it leaves out, whether it is provisional, and its
 basis. Internal steps are spans, reported as a breakdown of the operation's time. Every budget here is provisional;
-the first green run's measurement replaces the number and the basis in the declaration.
+the first green run's measurement replaces the number and the basis in the declaration. A budget is recorded, not
+enforced: the runner stores it next to every call's measured time, and nothing fails on speed until a budget is set
+from measured runs (AGENTS.md, "Measure first").
 
 **3. One name and one place for every other fact.** Every refusal is declared in `src/errors.ts`; every event in
 its concept's `operations.ts`; every starting world in `src/starting-worlds.ts`; every claim in its concept's
@@ -176,6 +178,15 @@ the larger number until a run measures it). The others are in claims.md, each wi
 **32. What a budget leaves out.** Operations served through a world's door leave out waking a parked world, because
 their runs are measured warm. `approval.sign` also leaves out confirmation on a public chain, which does not arise
 until phase 4. No budget leaves out a person signing, because no operation waits for one.
+
+**33. An operation with no implementation.** Core serves every operation from step 1.1, but its handlers are empty
+until each is built. Options: an empty handler dies with a defect (the pipeline spike's way); every operation declares
+a refusal for it; or one middleware refuses for every operation. Chosen: `NotImplemented`, declared once in
+`errors.ts` with exit code 6 and added to every operation's refusals; an empty handler fails with it and names the
+operation. Why: the caller gets a typed answer it can recognise, the runner's checks see a declared refusal rather than
+a fault, and a scenario run against an empty handler fails on its own expectation, which is what step 1.5 requires.
+A middleware cannot do it, because a handler may only fail with its own operation's refusals. An operation keeps
+the refusal after it is built; a built handler never returns it.
 
 ## Answered by Aaron, 13 November 2026
 

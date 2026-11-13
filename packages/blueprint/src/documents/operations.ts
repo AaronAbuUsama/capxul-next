@@ -3,7 +3,15 @@
 import * as Str from "effect/String";
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { InsufficientBalance, NoSiteUser, NotADraft, OrgNotFound, SiteRefused, SiteUnavailable } from "../errors.ts";
+import {
+  InsufficientBalance,
+  NoSiteUser,
+  NotADraft,
+  OrgNotFound,
+  SiteRefused,
+  SiteUnavailable,
+  NotImplemented,
+} from "../errors.ts";
 import { declare, declareOutcomes, outcome } from "../operation.ts";
 import { Address, Approval, ApprovalId, Fields, Hash, Money, OrgId, PaymentRequestId } from "../values.ts";
 import { exampleAddress as address } from "../world/example.ts";
@@ -51,7 +59,7 @@ export const create = declare({
       /** The keccak-256 hash of the document as the site stored it. A payment of this document carries it. */
       hash: Hash,
     }),
-    error: Schema.Union([OrgNotFound, NoSiteUser, SiteRefused, SiteUnavailable]),
+    error: Schema.Union([OrgNotFound, NoSiteUser, SiteRefused, SiteUnavailable, NotImplemented]),
   }),
   emits: [
     {
@@ -107,7 +115,15 @@ export class Held extends Schema.TaggedClass<Held, { readonly brand: unique symb
 const submitRpc = Rpc.make("doc.submit", {
   payload: { org: OrgId, doctype: Doctype, name: Schema.String },
   success: Schema.Union([Posted, Held]),
-  error: Schema.Union([OrgNotFound, NoSiteUser, SiteRefused, SiteUnavailable, NotADraft, InsufficientBalance]),
+  error: Schema.Union([
+    OrgNotFound,
+    NoSiteUser,
+    SiteRefused,
+    SiteUnavailable,
+    NotADraft,
+    InsufficientBalance,
+    NotImplemented,
+  ]),
 });
 
 export const submit = declareOutcomes({
