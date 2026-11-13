@@ -38,9 +38,8 @@ export async function readNotices(sql: Sql, options: { to?: string; template?: s
 
 const transitioned: Emit = async (sql, props, at, id, trace) => {
   await emit(sql, { id: `notice:${id}`, name: "notice_transitioned", machine: "notice", entity_id: props.notice_id,
-    // notices.event-owner: the recipient person's scope first, never the payer Organization's for a payee's notice.
-    owner_kind: props.person_id ? "person" : props.org_id ? "organization" : null,
-    owner_id: props.person_id ?? props.org_id, actor: null, trace_id: trace, at, props });
+    // notices.event-owner: the recipient person, or no owner. Never the Organization, even for an outside mailbox.
+    owner_kind: props.person_id ? "person" : null, owner_id: props.person_id ?? null, actor: null, trace_id: trace, at, props });
 };
 
 export async function deliverNotices(db: Database, mail: Mail) {
@@ -60,7 +59,10 @@ export function noticesWorker(db: Database, mail: Mail, sources: Omit<Sources,"p
     // A failed delivery row is rethrown only after the workflows it does not block have advanced.
     let failure: unknown;
     const delivered = await deliverNotices(db, mail).catch((error: unknown) => { failure = error; return 0; });
-    const finished = await finishDue(db, worldNow);
+    const finished = await finishDue(db, worldNow).catch((error: unknown) => {
+      // Neither failure may hide the other.
+      throw failure === undefined ? error : new AggregateError([failure, error], "Notices delivery and completion both failed");
+    });
     if (failure !== undefined) throw failure;
     return scheduled + prepared + delivered + finished;
   };

@@ -132,7 +132,7 @@ export const decision_notices_event_owner = defineDecision({
   title: "A notice's transition belongs to its recipient, not to the payer's Organization",
   question: "Whose outbox scope carries `notice_transitioned` when a notice is about one owner's money but goes to another person?",
   options: [
-    { label: "recipient-person", text: "Owner is the recipient person when `person_id` is known; otherwise the Organization the notice is for; otherwise no owner (an outside mailbox)." },
+    { label: "recipient-person", text: "Owner is the recipient person when `person_id` is known; otherwise no owner: a mailbox Capxul cannot attribute to a person (an outside payee or payer, a pre-sign-in grantee) belongs to no Organization's scope, and the Organization stays a fact in `org_id`." },
     { label: "subject-organization", text: "Owner is the subject's Organization whenever there is one, so a payee's or outside payer's notice lands in the payer company's scope." },
   ],
   chosen: "recipient-person",

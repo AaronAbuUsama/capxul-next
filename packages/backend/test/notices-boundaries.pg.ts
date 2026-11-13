@@ -69,14 +69,17 @@ test("preparation holds no dispatch boundary across source reads, and a stop com
     "the plan resolved before the stop is discarded, never checkpointed");
 });
 
-test("a notice's transition is in its recipient person's scope, not the payer Organization's", async () => {
-  await updateWorldClock(db, { nowMs: instant, rate: 1, clockMode: "stopped" } as never);
-  const payee = { ...intent(randomUUID()), person_id: `person-${randomUUID()}`, org_id: "payer-company" };
-  const outside = { ...intent(randomUUID()), person_id: null, org_id: "payer-company" };
+test("a notice's transition is in its recipient person's scope, and an outside mailbox's is in no Organization's", async () => {
+  const previous = (await db.worker.query("select clock from app.world")).rows[0].clock;
+  await updateWorldClock(db, { nowMs: instant, rate: 1, clockMode: "stopped" });
+  try {
+    const payee = { ...intent(randomUUID()), person_id: `person-${randomUUID()}`, org_id: "payer-company" };
+    const outside = { ...intent(randomUUID()), person_id: null, org_id: "payer-company" };
     for (const i of [payee, outside]) await db.transaction("", (sql) => planDelivery(sql, i, instant), true);
-  await deliverNotices(db, { async send() { return { id: randomUUID() }; } });
-  const owner = async (i: Intent) => (await db.worker.query(`select event->>'owner_kind' as kind,event->>'owner_id' as id from app.transition_outbox
-    where event->>'name'='notice_transitioned' and event->'props'->>'notice_id'=$1`, [i.notice_id])).rows;
-  assert.deepEqual(await owner(payee), [{ kind: "person", id: payee.person_id }]);
-  assert.deepEqual(await owner(outside), [{ kind: "organization", id: "payer-company" }]);
+    await deliverNotices(db, { async send() { return { id: randomUUID() }; } });
+    const owner = async (i: Intent) => (await db.worker.query(`select event->>'owner_kind' as kind,event->>'owner_id' as id from app.transition_outbox
+      where event->>'name'='notice_transitioned' and event->'props'->>'notice_id'=$1`, [i.notice_id])).rows;
+    assert.deepEqual(await owner(payee), [{ kind: "person", id: payee.person_id }]);
+    assert.deepEqual(await owner(outside), [{ kind: null, id: null }]);
+  } finally { await db.worker.query("update app.world set clock=$1", [previous]); }
 });

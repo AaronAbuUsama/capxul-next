@@ -62,8 +62,7 @@ export async function prepareDue(db: Database, now: WorldNow, resolve: Resolve) 
       const event = job.event as TransitionEvent;
       const deadline = event.at + (job.workflow === reminders ? 31 * day : 300_000);
       if (at >= deadline) {
-        await sql.query(`update app.notice_workflows set failed_at=$4,last_error='preparation deadline exceeded' where ${unchanged}`, [key.workflow,key.event_id,job.failures,at]);
-        return 1;
+        return (await sql.query(`update app.notice_workflows set failed_at=$4,last_error='preparation deadline exceeded' where ${unchanged}`, [key.workflow,key.event_id,job.failures,at])).rowCount ? 1 : 0;
       }
       // Source-owned doors require the committed owner's canonical context on this same worker session.
       await sql.query(`select set_config('app.org_id',$1,true),set_config('app.owner_kind',$2,true),set_config('app.owner_id',$3,true)`,
