@@ -9,9 +9,23 @@ import { deferDelivery, deliver, RequestCollector, resend, retryParked, signatur
 import { settings } from "./platform/config.ts";
 import { Database } from "./platform/db.ts";
 import { alerts, indexerState } from "./platform/diagnostics.ts";
-import { createSignals } from "./shared/door.ts";
+import { createSignals, type Signals } from "./shared/door.ts";
 
 type Config = ReturnType<typeof settings>;
+
+/** One organization's turn of the worker. It never throws: one failing organization must not stall those sorted after it. */
+export async function serveOrganization(db: Database, config: Pick<Config, "chainId" | "finality" | "frappe" | "secret">, org: string, indexed: boolean,
+  run: Signals["processRun"] = async (_unit, work) => { await work(); }) {
+  try {
+    if (indexed) await run({ workflow: "plugs.payments.settle", concept: "plugs", trigger: "chain-event", key: org, org },
+      () => db.transaction(org, (sql) => consume(sql, org, config.chainId, config.finality), true));
+  } catch (error) { console.error(`Core consume ${org}: ${(error as Error).message}`); }
+  try { await run({ workflow: "plugs.events.deliver", concept: "plugs", trigger: "transition", key: org, org }, () => deliver(db, org, config.frappe, config.secret)); }
+  catch (error) {
+    console.error(`Core delivery ${org}: ${(error as Error).message}`);
+    await deferDelivery(db, org, error).catch((e) => console.error(`Core delivery backoff ${org}: ${e.message}`));
+  }
+}
 function json(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" });
   res.end(JSON.stringify(body));
@@ -107,19 +121,7 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
         const { org_id } = company;
         if (paused || closing) break;
         if (company.released) collector.connect(company);
-        // One organization's failure must not stall the organizations sorted after it.
-        try {
-          if (index.ready) await signals.processRun({ workflow: "plugs.payments.settle", concept: "plugs", trigger: "chain-event", key: org_id, org: org_id },
-            () => db.transaction(org_id, (sql) => consume(sql, org_id, config.chainId, config.finality), true));
-        } catch (error) { console.error(`Core consume ${org_id}: ${(error as Error).message}`); }
-        try {
-          await signals.processRun({ workflow: "plugs.events.deliver", concept: "plugs", trigger: "transition", key: org_id, org: org_id },
-            () => deliver(db, org_id, config.frappe, config.secret));
-        }
-        catch (error) {
-          console.error(`Core delivery ${org_id}: ${(error as Error).message}`);
-          await deferDelivery(db, org_id, error).catch((e) => console.error(`Core delivery backoff ${org_id}: ${e.message}`));
-        }
+        await serveOrganization(db, config, org_id, index.ready, signals.processRun);
       }
     } finally { activeDeliveries--; notifyDrain(); }
   }
