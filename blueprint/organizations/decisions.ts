@@ -1443,6 +1443,44 @@ export const decision_organizations_setup_send_attempts = defineDecision({
   affects: [table_org_setups, workflow_organizations_setups_set_up],
 });
 
+export const decision_organizations_setup_runner = defineDecision({
+  id: "organizations.setup-runner",
+  title: "The setup's runner: tier-key sends, final receipts, and the install's top budget",
+  question:
+    "The setup process needs a runner with the workflow's retries, Companies House's tier key for the mint and deployMoney, " +
+    "a receipt that waits for finality, and an install batch. What does each send, read and build?",
+  options: [
+    {
+      label: "tier-signer-and-runner",
+      text:
+        "A tier signer beside the claim signer, on its table and lock: signed bytes recorded before broadcast, one send in " +
+        "flight per key, the mint through the tier's company role, deployMoney with the founder as the one Director (1 of 1), " +
+        "the officers composition gives in Books, Invoicing, People order, and a salt from the company Safe. Its receipt is " +
+        "null until the block is final; a dropped send is broadcast again as the same bytes while its nonce is free, and is " +
+        "lost once another transaction used it. buildMoney's batch is for the world's USDC with a monthly top budget of 0 " +
+        "and ceiling 0, then the officer hats minted to the founder's Safe, then the FDE. The install is judged by reads pinned " +
+        "to its block. The runner retries a thrown run with exponential backoff and passes lastTry on the last; a busy key is " +
+        "a wait, not a try; each setup's work carries the trace of its last transition.",
+    },
+    {
+      label: "first-receipt",
+      text: "Reuse the claim signer's waitForReceipt and send each run afresh, judging the install from indexed rows only.",
+    },
+  ],
+  chosen: "tier-signer-and-runner",
+  why:
+    "The claim signer can sign only claims, and its waitForReceipt returns the first receipt it sees, which a reorg can " +
+    "undo. Re-broadcasting the same bytes cannot send twice, since they carry one nonce. A top amount of 0 gives the Board " +
+    "a top budget that pays nothing until it sets one (the blueprint's install), and the monthly period is only that " +
+    "budget's starting period. The officers' Hat details are composition's input, not a binding: officer hats stay " +
+    "numeric (organizations.admitted-deployment) until the open question to Aaron on native hat binding is answered. " +
+    "Reads at the landed block judge exactly what the install did, whatever came after it.",
+  source:
+    "Amp Organizations lane, 13 November 2026, for the Organizations cut-over, with Runtime; packages/devnet company " +
+    "service createCompany (the mint through the tier's company role); proved on the seeded v4 chain (state/core.json)",
+  affects: [workflow_organizations_setups_set_up, table_org_setups],
+});
+
 export const decision_organizations_cutover_migrate_order = defineDecision({
   id: "organizations.cutover-migrate-order",
   title: "Core's schema splits around Organizations: base first, per-org tables after",

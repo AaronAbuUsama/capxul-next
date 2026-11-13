@@ -83,6 +83,23 @@ in `src/organizations/install-approval.ts`. A landed install whose final facts d
 FDE host, buildMoney and Approvals are all injected; `test/setup-process.pg.ts` proves the process on real PG with
 scripted stand-ins, not chain proof.
 
+`src/organizations/runner.ts` is its runner (organizations.setup-runner). `setupRunner(db, services, {now, elapsed?, retries?,
+backoffMs?, log?})` gives `tick()`, which advances every processing setup (step after step while it moves), and `start(ms)`,
+which ticks until its stop function is called; where it runs is composition's. Each setup's work carries the trace of the
+last `org_setup_transitioned` (begin, or the `org retry` call). A thrown run waits `backoffMs·2^(n-1)` real ms; the
+`retries`-th (default 5) passes `lastTry`. The tier key busy with another send (WRONG_STATE) is a wait, not a failed try.
+`setupServicesFromEnv(db, {open, fdeHost, installWindowMs})` builds the rest from Core's env: `RPC_URL`, `CHAIN_ID`,
+`FINALITY_DEPTH`, `COMPANIES_HOUSE_TIER_KEY` (the tier member's key, a secret), `COMPANIES_HOUSE_TIER` (such as `devnet`;
+the company role key is `capxul.company.<tier>`), `COMPANY_SAFE_NAMESPACE` (the same company namespace begin derives the
+Safe with), `ORG_SETUP_OFFICERS` (JSON, three `{details, maxSupply}` in Books, Invoicing, People order), and
+`DEPLOYMENT_FILE` with `companiesHouse`, `companiesHouseRoles`, `companySafeMinter`, `installer`, `hats`, `agentOwner` and
+`usdc`. Sends go through `tierServiceSigner` (`src/shared/tier-signer.ts`): the claim signer's table and lock, signed bytes
+recorded before broadcast, one send in flight per key, a receipt only at finality, a dropped send re-broadcast as the same
+bytes while its nonce is free and `lost` once another transaction used it. The chain facts are indexing's finalized
+`app.chain_logs` (CompanySafeMinted; MoneyDeployed by its log id through `readMoneyDeployment`) and, for the install,
+reads pinned to its block (Gate as module and guard, the founder's Safe wearing the Director and officer hats, the FDE
+Safe's AgentOwner owner).
+
 Component control: `SETUPS_TEST_ADMIN_URL=…/setups_test node --experimental-strip-types --no-warnings --test packages/backend/test/setups.pg.ts`, on a dedicated loopback Postgres 17 database. It uses the real Accounts `eligibility`; its image and Board services are stand-ins, not Media or indexing proof, and nothing in it writes a scoreboard verdict. No test glob or CI job runs it (CI has no Postgres): run it by hand, like the other `*.pg.ts` controls here. `SETUP_PROCESS_TEST_ADMIN_URL=…/setup_process_test node --experimental-strip-types --no-warnings --test packages/backend/test/setup-process.pg.ts` is the process's control, run the same way.
 
 `src/organizations/door.ts` exports `migrate` (Seats, `app.current_member`, `app.caller_safes`), `requireSeat`, `readSeatBySafe` and `callerSafes`. One rule admits a Seat everywhere (`requireSeat`, the Seat RLS, `callerSafes`): an active Seat whose Party is not released, in an Organization whose own Party (`organizations.party_id`) is not released. Component control: `CAPXUL_DISPOSABLE=true ORGANIZATIONS_TEST_ADMIN_URL=…/organizations_<name> node --experimental-strip-types --no-warnings --test packages/backend/test/organizations.test.ts`; `test/organizations-fixture.ts` creates the restricted roles and applies the outbox, Access, Accounts, Parties and Organizations migrations in that order (no legacy Core schema: the target table replaces it).
