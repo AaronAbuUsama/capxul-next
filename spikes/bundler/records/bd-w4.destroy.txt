@@ -1,0 +1,6 @@
+[10:59:12.765] INFO: [Door] deleted (727ms)
+[10:59:13.600] INFO: [Alto] deleted (1.6s)
+[10:59:13.601] INFO: [Anvil] deleted (1.6s)
+[10:59:14.608] INFO: [ChainState] deleted (1.8s)
+[10:59:14.611] INFO: Done: 4 succeeded (2.6s)
+destroy took 3.8 s

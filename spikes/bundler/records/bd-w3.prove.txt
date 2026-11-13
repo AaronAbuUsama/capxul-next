@@ -1,0 +1,33 @@
+== world bd-w3 at https://capxulspikebundler-door-bd-w3-t4ohsazfyb7syqec.thedao.workers.dev
+wrong token: HTTP 404
+waiting for the chain's first container instance
+  after 1.95 s
+eth_chainId     {"jsonrpc":"2.0","id":1,"result":"0x14a34"}
+eth_blockNumber {"jsonrpc":"2.0","id":1,"result":"0x2dacb0b"}   (the seed core.json ends at 47893259 = 0x2dacb0b)
+== 2. the test paymaster, a test token and a Safe go on the chain; the faucet funds them
+setup took 3.01 s
+{"world":{"paymaster":"0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6","token":"0x610178da211fef7d417bc0e6fed39f05609ad788","safe":"0xBc8a92868325E901a8b3783533B4E7F1022AfFF1","owner":"0x07766d25891bf72006132c9bD443429784559bf3"},"check":{"safeOwners":["0x07766d25891bf72006132c9bD443429784559bf3"],"module4337Enabled":true,"paymasterEntryPoint":"0x0000000071727De22E5E9d8BAf0edAc6f37da032","paymasterDepositWei":"1000000000000000000","safeTokenBalance":"1000000000","executorWei":"10000000000000000000"}}
+
+== 1. alto in a Cloudflare Container answers through the door, pointed at this world's chain
+eth_supportedEntryPoints {"error":{"step":"start","_tag":"BundlerFailed","message":"There is no container instance that can be provided to this Durable Object, try again later"}}   (bundler cold start, by the caller: 1.58 s)
+eth_chainId (bundler)    {"error":{"step":"start","_tag":"BundlerFailed","message":"There is no container instance that can be provided to this Durable Object, try again later"}}
+bundler: running=False starts=[]
+== 3. one UserOperation from the Safe, sponsored by the paymaster, sent through the bundler
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+    d=json.load(sys.stdin); r=d['receipt']; e=d['effect']
+  File "/usr/local/lib/python3.13/json/__init__.py", line 298, in load
+    return loads(fp.read(),
+        cls=cls, object_hook=object_hook,
+        parse_float=parse_float, parse_int=parse_int,
+        parse_constant=parse_constant, object_pairs_hook=object_pairs_hook, **kw)
+  File "/usr/local/lib/python3.13/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/usr/local/lib/python3.13/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 1 column 4 (char 3)

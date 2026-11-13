@@ -21,14 +21,51 @@ def table(text, heading):
     return rows[2:]  # drop the header and the rule
 
 
+def exists(path):
+    return subprocess.run(["git", "-C", ROOT, "cat-file", "-e", f"{REF}:{path}"], capture_output=True).returncode == 0
+
+
+def record_passed(path):
+    """A JSON run record passes when its outcome is passed; a record with no outcome field counts by existing."""
+    try:
+        body = json.loads(git("show", f"{REF}:{path}"))
+    except json.JSONDecodeError:
+        return False
+    outcome = body.get("outcome") if isinstance(body, dict) else None
+    return outcome is None or outcome == "passed"
+
+
+def proven(proof):
+    """Why a step's proof holds on REF, or None when it does not (docs/roadmap.md, "Steps to the goal")."""
+    parts = [p.strip().strip("`") for p in proof.split(";") if p.strip()]
+    if not parts:
+        return None
+    workflow = git("show", f"{REF}:.github/workflows/check.yml") if exists(".github/workflows/check.yml") else ""
+    for part in parts:
+        if part.startswith("check:"):
+            if part[len("check:"):].strip() not in workflow:
+                return None
+        elif not exists(part):
+            return None
+        else:
+            listed = git("ls-tree", "-r", "--name-only", REF, part).split()
+            records = [f for f in listed if f.endswith(".json")]
+            if any(not record_passed(f) for f in records):
+                return None
+    return "; ".join(parts)
+
+
 roadmap = git("show", f"{REF}:docs/roadmap.md")
 steps = []
-for step, milestone, what, needs, state, count, waits, done_on, evidence in table(roadmap, "## Steps to the goal"):
-    done, of = (int(n) for n in count.split("/")) if count else ((1, 1) if state == "Done" else (0, 1))
-    if state == "Done":
-        done = of
+for step, milestone, what, needs, marked, count, waits, done_on, evidence, proof in table(roadmap, "## Steps to the goal"):
+    holds = proven(proof)
+    # Done comes only from a committed proof. A row marked Done without one is shown as Claimed.
+    state = "Done" if holds else "Claimed" if marked == "Done" else marked
+    done, of = (int(n) for n in count.split("/")) if count else (0, 1)
+    done = of if state == "Done" else (done if state != "Claimed" else 0)
     steps.append({"id": step, "milestone": milestone, "name": what, "needs": [n.strip() for n in needs.split(",") if n.strip()],
-                  "state": state, "done": done, "of": of, "waits": waits, "at": done_on, "evidence": re.sub(r"`", "", evidence)})
+                  "state": state, "done": done, "of": of, "waits": waits, "at": done_on if state == "Done" else "",
+                  "evidence": re.sub(r"`", "", evidence), "proof": holds or (proof.replace("`", "") if proof else "none committed")})
 
 # The critical path: the chain of unfinished steps, each needing the one before, with the most work left in it.
 left = {s["id"]: s for s in steps if s["state"] != "Done"}
@@ -54,11 +91,11 @@ for number, delivers, done_when, _state in table(roadmap, "## Phases"):
     items.append({"kind": "milestone", "id": number, "name": number, "detail": done_when, "state": state, "done": done, "of": of,
                   "pct": round(100 * done / of), "path": "", "waits": "", "at": "", "needs": ""})
 for s in steps:
-    items.append({"kind": "step", "id": s["id"], "name": f"{s['id']} {s['name']}", "detail": s["evidence"], "state": s["state"],
+    items.append({"kind": "step", "id": s["id"], "name": f"{s['id']} {s['name']}", "detail": s["evidence"], "proof": s["proof"], "state": s["state"],
                   "done": s["done"], "of": s["of"], "pct": round(100 * s["done"] / s["of"]),
                   "path": path.index(s["id"]) + 1 if s["id"] in path else "", "waits": s["waits"], "at": s["at"], "needs": ", ".join(s["needs"])})
 # Risks: every step of milestone 0, then the risks the roadmap lists for later phases.
-RISK_STATE = {"Done": "Proven", "Killed": "Killed", "In progress": "Being tested"}
+RISK_STATE = {"Done": "Proven", "Killed": "Killed", "In progress": "Being tested", "Claimed": "Claimed, no record"}
 for s in steps:
     if s["milestone"] == "0":
         items.append({"kind": "risk", "id": s["id"], "name": s["name"], "detail": s["evidence"], "state": RISK_STATE.get(s["state"], "Open"),

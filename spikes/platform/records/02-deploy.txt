@@ -1,0 +1,61 @@
+
+== 1. deploy the platform pr-r2 (stack CapxulPlatformRehearsal) on unix:///var/run/docker.sock (11:24:50Z)
+[11:24:56.587] INFO: Plan ready (5.2s)
+[11:24:56.589] INFO: Plan: 14 to create
+[11:24:56.589] INFO: [BenchImage] create
+[11:24:56.589] INFO: [DbRootPassword] create
+[11:24:56.589] INFO: [DbVolume] create
+[11:24:56.589] INFO: [Door] create
+[11:24:56.589] INFO: [DoorImage] create
+[11:24:56.589] INFO: [DoorRecord] create
+[11:24:56.590] INFO: [Host] create
+[11:24:56.590] INFO: [MariaDB] create
+[11:24:56.590] INFO: [Network] create
+[11:24:56.590] INFO: [Redis] create
+[11:24:56.590] INFO: [Scheduler] create
+[11:24:56.590] INFO: [SitesVolume] create
+[11:24:56.590] INFO: [Web] create
+[11:24:56.590] INFO: [Worker] create
+[11:24:56.772] INFO: [Host] creating
+[11:24:56.821] INFO: [DbRootPassword] creating
+[11:24:56.912] INFO: [DbRootPassword] created (91ms)
+[11:24:56.952] INFO: [Network] creating
+[11:24:56.952] INFO: [BenchImage] creating
+[11:24:56.952] INFO: [SitesVolume] creating
+[11:24:56.952] INFO: [DbVolume] creating
+[11:24:56.952] INFO: [Host] created (181ms)
+[11:24:57.100] INFO: [DoorRecord] creating
+[11:24:57.260] INFO: [SitesVolume] created (308ms)
+[11:24:57.264] INFO: [DbVolume] created (312ms)
+[11:24:57.294] INFO: [MariaDB] creating
+[11:24:57.294] INFO: [Redis] creating
+[11:24:57.294] INFO: [Network] created (342ms)
+[11:24:57.524] INFO: [Web] creating
+[11:24:57.524] INFO: [DoorImage] creating
+[11:24:57.524] INFO: [Scheduler] creating
+[11:24:57.524] INFO: [Worker] creating
+[11:24:57.525] INFO: [BenchImage] created (573ms)
+[11:24:57.845] INFO: [Redis] created (551ms)
+[11:24:57.893] INFO: [MariaDB] created (599ms)
+[11:24:58.130] INFO: [Worker] created (606ms)
+[11:24:58.151] INFO: [Web] created (627ms)
+[11:24:58.200] INFO: [DoorRecord] created (1.1s)
+[11:24:58.220] INFO: [Scheduler] created (696ms)
+[11:24:58.229] INFO: [Door] creating
+[11:24:58.229] INFO: [DoorImage] created (705ms)
+[11:24:58.752] INFO: [Door] created (523ms)
+[11:24:58.918] INFO: Done: 14 succeeded (2.3s)
+-- deploy: exit 0 in 8.7 s
+containers: cx-platform-pr-r2-door=running cx-platform-pr-r2-mariadb=running cx-platform-pr-r2-redis=running cx-platform-pr-r2-scheduler=running cx-platform-pr-r2-web=running cx-platform-pr-r2-worker=running 
+volumes: cx-platform-pr-r2-db cx-platform-pr-r2-sites 
+networks: 1  images: 2  context: 1
+
+== 1. wait until the door answers (it writes the bench's config first) (11:24:59Z)
+{"ok": true}-- door ready: exit 0 in 3.1 s
+
+
+== 1. deploy again with no change (11:25:02Z)
+[11:25:11.664] INFO: Plan ready (5.5s)
+[11:25:11.665] INFO: Plan: no changes
+[11:25:11.875] INFO: Done: 0 succeeded (208ms)
+-- deploy, no change: exit 0 in 9.8 s
