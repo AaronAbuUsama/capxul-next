@@ -137,9 +137,6 @@ export async function provisionFixture(c: Config, file: string, slug: string): P
   const result = JSON.parse(await command(["pnpm", "--silent", "capxul", "org", "site", "provision", "--org", slug, "--confirm", "--json"], c.root, caller));
   assert.equal(result.site, f.site); assert.equal(result.safe.toLowerCase(), f.company.companySafe.toLowerCase()); assert.equal(result.state, "provisioned");
   await verifySite(c, f);
-  const clock = JSON.parse(await readFile(join(c.world.stateDir, "clock.json"), "utf8"));
-  assert.equal(clock.clockMode, "stopped");
-  await bench(c, f.site, "capxul.clock.write_world", [], { world: c.world.id, offset_ms: 0, frozen_at_ms: clock.nowMs, rate: clock.rate });
   // An indexed mint, not a current balance, identifies the one fixture funding even after money is spent.
   const abi = parseAbi(["function mint(address,uint256)", "event Transfer(address indexed from,address indexed to,uint256 value)"]);
   const funding = await p.chain.client.getContractEvents({ address: f.company.token, abi, eventName: "Transfer", args: { from: zeroAddress, to: f.company.companySafe }, fromBlock: 0n });

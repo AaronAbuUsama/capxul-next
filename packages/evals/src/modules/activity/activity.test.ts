@@ -12,8 +12,8 @@ test("activity catalogue needs no fixture and execution cannot pass without a ru
   const names = list.stdout.trim().split("\n").map((line) => {
     const [name = "", kind] = line.split("\t"); assert.equal(kind, "check"); return name;
   });
-  assert.equal(names.length, 17);
-  assert.equal(names.filter((name) => /^ACTIVITY\.note-payment-[a-z-]+\.idempotent$/.test(name)).length, 11);
+  assert.equal(names.length, 28);
+  for (const kind of ["idempotent", "resume"]) assert.equal(names.filter((name) => new RegExp(`^ACTIVITY\\.note-payment-[a-z-]+\\.${kind}$`).test(name)).length, 11);
   const result = spawnSync("bash", [script, "missing-world", "--only", "ACTIVITY"], { env, encoding: "utf8" });
   assert.equal(result.status, 1);
   const lines = result.stdout.trim().split("\n").map((line) => line.split("\t"));

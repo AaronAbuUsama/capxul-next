@@ -140,7 +140,12 @@ export const integration_bundler = defineIntegration({
           error: error_ROLE_PERMISSION_DENIED,
         },
         { when: "The simulation reverts for any other reason: the chain would refuse the operation as it stands", error: error_TRANSACTION_FAILED },
-        { when: "The paymaster answer has no paymaster data, or a window that is zero or already past", error: error_PROVIDER_RESPONSE_INVALID },
+        { when: "The paymaster answer has no paymaster data, or its validated window is not exactly the one requested (zero, open, narrowed or widened)", error: error_PROVIDER_RESPONSE_INVALID },
+        { when: "The canonical world clock has reached the approval's deadline, before or during sponsorship: the approval has expired", error: error_WRONG_STATE },
+        {
+          when: "The gateway's reply is not JSON (truncated or proxied), it answers throttled or banned (ERC-7769 -32504), or a chain read fails with a node's internal error, missing header or gas cap: an outage, retried",
+          error: error_PROVIDER_ERROR,
+        },
       ],
     },
     send: {

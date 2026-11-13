@@ -55,8 +55,8 @@ const READS = [table_documents, table_principals, table_parties, table_org_membe
 const WHO =
   "A signed-in person or agent who takes part in the document now: the Safe of their own Party is one of its " +
   "participants, or they hold an active Seat in an Organization whose company Safe is. Current Seats decide an " +
-  "Organization's reads, never who stored the document. A payslip's Organization side is read only by a member whose " +
-  "own Safe wears its People hat now, or a Director; its employee reads it as their own (documents.payslip-readers). " +
+  "Organization's reads, never who stored the document. Salary documents are read through Frappe HR's permissioned door, " +
+  "not through a new Core payroll or HR reader (documents.payslip-readers). " +
   "Anyone else, and a caller with no Party of their own, is answered as if the pair named nothing.";
 
 // ── get ─────────────────────────────────────────────────────────────────────────────────────
@@ -145,4 +145,3 @@ export const rpc_documents_reading_verify = defineRpc({
 });
 
 // ── render ──────────────────────────────────────────────────────────────────────────────────
-
