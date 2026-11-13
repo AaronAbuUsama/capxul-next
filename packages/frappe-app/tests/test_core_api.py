@@ -178,6 +178,30 @@ class CoreApi(unittest.TestCase):
         DB.find("Supplier", "Brightside")[0]["capxul_wallet_address"] = ""
         self.assertEqual(self.core(core_api.submit, "org_northwind1", SAM, "Payment Entry", "ACC-PAY-1")["reason"], "validation")
 
+    def test_a_report_is_refused_when_missing_and_a_doctype_runs_its_list(self):
+        self.assertEqual(self.core(core_api.report, "org_northwind1", SAM, "Ledger of Everything", {})["reason"], "not_found")
+        listed = []
+        with patch.object(core_api, "_list", lambda doctype, filters: listed.append((frappe.session.user, doctype, filters)) or {"rows": []}):
+            self.core(core_api.report, "org_northwind1", SAM, "Supplier", {"supplier_name": "B"})
+        self.assertEqual(listed, [(SAM, "Supplier", {"supplier_name": "B"})])
+
+    def test_a_reports_required_filters_are_filled_when_left_out(self):
+        erpnext = type(sys)("erpnext.accounts.utils")
+        erpnext.get_fiscal_year = lambda date, company=None: ("2026", "2026-01-01", "2026-12-31")
+        DB.insert(Doc({"doctype": "Company", "name": "Northwind Ltd", "creation": "2026-11-13 09:00:00"}))
+        DB.singles["default_company"] = "Northwind Ltd"
+        with patch.dict(sys.modules, {"erpnext": type(sys)("erpnext"), "erpnext.accounts": type(sys)("erpnext.accounts"),
+                                      "erpnext.accounts.utils": erpnext}), \
+                patch.object(frappe.utils, "nowdate", lambda: "2026-11-20", create=True), \
+                patch.object(frappe.db, "sql", lambda q, args=None: [(None,)]):
+            ledger = core_api._filled("General Ledger", {"account": "Capxul Safe (USDC) - N"})
+            trial = core_api._filled("Trial Balance", {})
+            payable = core_api._filled("Accounts Payable", {})
+        self.assertEqual(ledger, {"company": "Northwind Ltd", "account": ["Capxul Safe (USDC) - N"], "to_date": "2026-11-20",
+                                  "from_date": "2026-01-01", "group_by": "Group by Voucher (Consolidated)"})
+        self.assertEqual((trial["fiscal_year"], trial["from_date"], trial["to_date"]), ("2026", "2026-01-01", "2026-11-20"))
+        self.assertEqual(payable, {"company": "Northwind Ltd", "report_date": "2026-11-20"})
+
     def test_a_warp_counts_what_fell_due_from_the_worlds_time_and_writes_the_clock_once(self):
         calls = []
         sql = []

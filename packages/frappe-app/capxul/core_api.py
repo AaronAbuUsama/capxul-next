@@ -208,15 +208,18 @@ def _plain(value):
     return json.loads(frappe.as_json(value))
 
 
+NOT_COLUMNS = {"Section Break", "Column Break", "Tab Break", "Table", "Table MultiSelect", "HTML", "Button", "Heading", "Fold"}
+
+
 def _list(doctype, filters):
-    """A doctype's name runs its list (Frappe's report view): one row per document the person may read."""
+    """A doctype's name runs its list (Frappe's report view): one row per document the person may read, every stored
+    field of it. A virtual field is not stored, so it is not a column."""
     frappe.has_permission(doctype, "read", throw=True)
     meta = frappe.get_meta(doctype)
     columns = [{"field": "name", "label": "Name", "type": "Data"}] + [
         {"field": df.fieldname, "label": df.label or df.fieldname, "type": df.fieldtype}
-        for df in meta.fields if df.fieldtype not in ("Section Break", "Column Break", "Tab Break", "Table", "HTML", "Button")]
-    rows = frappe.get_list(doctype, filters=filters, fields=[c["field"] for c in columns], order_by="creation asc",
-                           limit_page_length=0)
+        for df in meta.fields if df.fieldtype not in NOT_COLUMNS and not df.get("is_virtual")]
+    rows = frappe.get_list(doctype, filters=filters, fields=["*"], order_by="creation asc", limit_page_length=0)
     return {"report": doctype, "columns": columns, "rows": _plain(rows)}
 
 
