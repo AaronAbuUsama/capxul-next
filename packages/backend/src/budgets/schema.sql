@@ -21,3 +21,29 @@ create policy tenant on app.budgets to capxul_core,capxul_worker
   with check (org_id=current_setting('app.org_id',true));
 grant select,insert,update on app.budgets to capxul_core,capxul_worker;
 revoke delete,truncate on app.budgets from capxul_core,capxul_worker;
+
+-- One change Capxul proposed, born with the Board proposal or approval that carries it (blueprint budget-changes).
+create table if not exists app.budget_changes (
+  org_id text not null, change_id text not null, request_key text not null,
+  kind text not null check (kind in ('create','set_amount','close','reopen','add_holder','remove_holder','set_ceiling','freeze_ceiling','unfreeze_ceiling')),
+  budget_ref text, ceiling_token text, admin_hat_id text,
+  signer text not null check (signer in ('board','office')),
+  proposal_id text, approval_id text not null, proposer_principal_id text not null,
+  terms jsonb not null check (jsonb_typeof(terms)='object'),
+  state text not null check (state in ('proposed','applied','abandoned')),
+  outcome text check (outcome in ('rejected','replaced','failed','declined','expired')),
+  created_at double precision not null, settled_at double precision,
+  primary key (org_id,change_id)
+);
+create unique index if not exists budget_changes_by_org_request on app.budget_changes (org_id,request_key);
+create index if not exists budget_changes_by_org_budget_state on app.budget_changes (org_id,budget_ref,state);
+create index if not exists budget_changes_by_org_ceiling_state on app.budget_changes (org_id,ceiling_token,state,settled_at);
+create index if not exists budget_changes_by_org_admin_hat_state on app.budget_changes (org_id,admin_hat_id,state);
+alter table app.budget_changes enable row level security;
+alter table app.budget_changes force row level security;
+drop policy if exists tenant on app.budget_changes;
+create policy tenant on app.budget_changes to capxul_core,capxul_worker
+  using (org_id=current_setting('app.org_id',true))
+  with check (org_id=current_setting('app.org_id',true));
+grant select,insert,update on app.budget_changes to capxul_core,capxul_worker;
+revoke delete,truncate on app.budget_changes from capxul_core,capxul_worker;
