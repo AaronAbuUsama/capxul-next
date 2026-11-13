@@ -40,7 +40,7 @@ export function transaction(calls: Call[], multiSendAddress: Address) {
   if (calls.length === 1) return { to: calls[0]!.to.toLowerCase() as Address, value: calls[0]!.value, data: calls[0]!.data.toLowerCase() as Hex, operation: "call" as const };
   return { to: multiSendAddress.toLowerCase() as Address, value: "0", operation: "delegatecall" as const,
     data: encodeFunctionData({ abi: multiSend, functionName: "multiSend", args: [concat(calls.map((c) => encodePacked(
-      ["uint8", "address", "uint256", "uint256", "bytes"], [0, c.to, BigInt(c.value), BigInt((c.data.length - 2) / 2), c.data],
+      ["uint8", "address", "uint256", "uint256", "bytes"], [0, c.to, BigInt(c.value), BigInt((c.data.length - 2) / 2), c.data.toLowerCase() as Hex],
     )))] }) };
 }
 
