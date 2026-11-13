@@ -47,7 +47,7 @@ export const mediaSessions: SessionCheck[] = [
       const served = await post(world, "/media/files/get", { file_id: mine }, actors.outsider);
       assert.deepEqual(served, { status: 200, body: null });
       const unsigned = await post(world, "/media/files/upload", { purpose: "document", content_type: "application/pdf", bytesBase64: pdf("anonymous").toString("base64") }, null);
-      assert.notEqual(unsigned.status, 200);
+      assert.deepEqual(unsigned, { status: 401, body: { error: "NOT_AUTHENTICATED" } });
       evidence(world, "tenancy.json", { files: { person: mine, outsider: theirs }, seen, unsignedUploadStatus: unsigned.status });
     },
   },

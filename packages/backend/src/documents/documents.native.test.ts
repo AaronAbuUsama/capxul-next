@@ -22,12 +22,11 @@ test("native store shares subject rollback, replays immutably and refuses missin
     }
     await migrateDocuments(sql);
     await sql.query("set local role capxul_core; select set_config('app.owner_kind','person',true),set_config('app.owner_id','native-owner',true)");
-    // Owner labels are not authentication: Access's person_id is what admits the owner's own rows.
+    // Owner labels are not authentication: Access's person_id is what admits a Core store and the owner's own rows.
     await sql.query("savepoint unauthenticated");
-    await store(sql, { owner_kind: "person", owner_id: "native-owner", subject: { kind: "payment", id: "native-labels" }, chain_id: 84532,
+    await assert.rejects(store(sql, { owner_kind: "person", owner_id: "native-owner", subject: { kind: "payment", id: "native-labels" }, chain_id: 84532,
       issued_at: 1700000000123, participants: [{ safe: "0x1111111111111111111111111111111111111111", party_id: null, role: "payer" }],
-      content: { kind: "receipt", media_type: "application/json", bytes: Buffer.from("{}"), filename: null } }, async () => 1700000000123);
-    assert.equal((await sql.query("select count(*)::int as n from app.documents")).rows[0].n, 0);
+      content: { kind: "receipt", media_type: "application/json", bytes: Buffer.from("{}"), filename: null } }, async () => 1700000000123), /FORBIDDEN: document owner/);
     await sql.query("rollback to savepoint unauthenticated");
     await sql.query("select set_config('app.person_id','native-owner',true)");
     const input: StoreInput = {

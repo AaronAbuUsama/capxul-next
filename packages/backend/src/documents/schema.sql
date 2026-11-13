@@ -50,6 +50,14 @@ begin
     or d.owner_id is distinct from nullif(current_setting('app.owner_id',true),'') then
     raise exception 'FORBIDDEN: document owner';
   end if;
+  -- Owner labels alone are not authority. The invoker (definer rights change current_user, not the role setting)
+  -- must be the system worker, whose workflows carry their owner, or the authenticated owner: Access's person,
+  -- or a current Seat of the owning Organization.
+  if coalesce(nullif(current_setting('role'),'none'),session_user) is distinct from 'capxul_worker'
+    and ((d.owner_kind='person' and d.owner_id=nullif(current_setting('app.person_id',true),''))
+      or (d.owner_kind='organization' and app.current_member(d.owner_id))) is not true then
+    raise exception 'FORBIDDEN: document owner';
+  end if;
   if d.kind='payslip' or d.subject_kind='salary-slip' then raise exception 'INVALID_INPUT: salary documents belong to Frappe HR'; end if;
   if d.participant_safes is distinct from array(select p->>'safe' from jsonb_array_elements(d.participants) p) then
     raise exception 'INVALID_INPUT: document participants';
@@ -66,6 +74,8 @@ begin
   insert into app.documents select d.*;
   return jsonb_build_object('document_id',d.document_id,'document_hash',d.document_hash,'content_hash',d.content_hash,'replayed',false);
 end $$;
+-- The store checks a Core caller's Seat with Organizations' function, as its own owner.
+grant execute on function app.current_member(text) to capxul_documents_writer;
 alter function app.documents_store(jsonb,bytea) owner to capxul_documents_writer;
 revoke all on function app.documents_store(jsonb,bytea) from public;
 grant execute on function app.documents_store(jsonb,bytea) to capxul_core,capxul_worker;

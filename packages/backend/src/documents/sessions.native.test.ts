@@ -73,6 +73,11 @@ test("native sessions: tenants and admissions on documents, files and agents fol
       await labelled("organization", org.id);
       return store(sql, { ...doc("company", [org.safe]), owner_kind: "organization", owner_id: org.id }, async () => now);
     });
+    // A Core store needs the owner's authority, not labels: a session without the Seat is refused.
+    await assert.rejects(as(cy.token, async () => {
+      await labelled("organization", org.id);
+      return store(sql, { ...doc("forged", [org.safe]), owner_kind: "organization", owner_id: org.id }, async () => now);
+    }), /FORBIDDEN: document owner/);
     const docs = () => ids("select subject_id from app.documents");
     assert.deepEqual(await as(ann.token, docs), ["own", "shared"]);
     assert.deepEqual(await as(bob.token, docs), ["company", "shared"], "Seat holder reads the company tenant; participant reads the shared row");
