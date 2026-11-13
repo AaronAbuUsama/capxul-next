@@ -3,12 +3,12 @@
 // business instant: a world's own time is its authority clock, which a devnet can stop, warp and run fast.
 import { performance } from "node:perf_hooks";
 
-/** The host's wall clock in epoch milliseconds, for envelope stamps (when a row was written or acknowledged on this host). */
+/** The host's wall clock in epoch milliseconds, for a vendor envelope's instant; never stored in a row or compared with a product time. */
 export function realNowMs(): number {
   return Date.now();
 }
 
-/** The same instant as an ISO string, for an observation's envelope (observedAt). */
+/** The same instant as an ISO string, for an envelope that carries ISO time. */
 export function realNowIso(): string {
   return new Date(realNowMs()).toISOString();
 }
