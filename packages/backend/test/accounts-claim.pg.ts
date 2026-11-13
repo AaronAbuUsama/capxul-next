@@ -128,6 +128,8 @@ test("setup advances claiming→collecting only on the indexed, final, still-sol
     assert.deepEqual(check!.body, { setupState: "ready", setupUrl: null, next: null, safe: login.safe, claimed: true, collected: 0 });
     // Tenant isolation of the claimed row.
     await db.transaction("", async (sql) => {
+      await authenticate(sql, login.token, now + 12);
+      assert.equal((await personalSafe(sql, login.personId))!.status, "collecting", "positive control: the owner's own session reads it");
       await authenticate(sql, other.token, now + 12);
       assert.equal(await personalSafe(sql, login.personId), null);
     });
