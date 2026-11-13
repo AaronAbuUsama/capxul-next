@@ -36,6 +36,8 @@ export const PACKAGES: Readonly<Record<string, string>> = {
   core: "the Capxul server: a Cloudflare Worker that serves every blueprint operation",
   runner: "the scenario runner: runs scenarios against a world, checks every call and writes run records",
   scenarios: "the acceptance scenarios, each proving one blueprint claim through the door",
+  sdk: "the typed client of every blueprint operation, derived from the blueprint, through which callers reach Core",
+  cli: "the one Capxul command line: every blueprint operation a command, called through the SDK",
 };
 
 /** The only file allowed under docs/. */

@@ -1,0 +1,22 @@
+{
+  "name": "@capxul/sdk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/door.ts",
+  "scripts": {
+    "types": "effect-tsgo tsc -p .",
+    "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@capxul/blueprint": "workspace:*",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@capxul/scenarios": "workspace:*",
+    "@effect/platform-node": "catalog:",
+    "@effect/tsgo": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}
