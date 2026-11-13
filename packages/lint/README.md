@@ -5,7 +5,8 @@ The repository's own checks, and the formatter's settings. The ladder that runs 
 - `src/shape.ts` is the shape of the repository: what may sit at the top level, which packages may exist (each with
   a reason), that only `docs/roadmap.md` lives under `docs/`, that every package and spike has a `README.md`, that no
   source file under `packages/` is over 300 lines, and that the two lists of entry files in `.oxlintrc.json` agree.
-  `pnpm shape` runs it through `src/shape.entry.ts`.
+  `pnpm shape` runs it through `src/shape.entry.ts` on the files git tracks (`git ls-files`), so nothing untracked or
+  ignored, such as `node_modules` or a local run's records, ever counts.
 - `src/plugin.ts` is the `capxul` oxlint plugin; its rules are in `src/rules/`. `.oxlintrc.json` loads it.
 - `oxfmt.json` is oxfmt's configuration: 120 columns, the rest oxfmt's defaults. It lives here because the top level
   is closed.

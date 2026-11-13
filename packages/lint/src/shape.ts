@@ -33,6 +33,9 @@ export const PACKAGES: Readonly<Record<string, string>> = {
   indexer: "the Ponder app that indexes the chain into the world's database",
   "status-feed": "the data files behind the status dashboard",
   lint: "the ladder's own rules and this shape check",
+  core: "the Capxul server: a Cloudflare Worker that serves every blueprint operation",
+  runner: "the scenario runner: runs scenarios against a world, checks every call and writes run records",
+  scenarios: "the acceptance scenarios, each proving one blueprint claim through the door",
 };
 
 /** The only file allowed under docs/. */
@@ -53,8 +56,18 @@ export interface EntryLists {
   readonly override: ReadonlyArray<string>;
 }
 
+/**
+ * The files of `git ls-files -z` (NUL-separated paths relative to the root), less those deleted from the working tree
+ * and not yet from the index. Only what git tracks is listed: nothing is found by walking the disk.
+ */
+export const trackedFiles = (listing: string, exists: (file: string) => boolean): Array<string> =>
+  pipe(
+    Arr.dedupe(Str.split(listing, "\0")),
+    Arr.filter((file) => file !== "" && exists(file)),
+  );
+
 export interface ShapeInput {
-  /** Every file git tracks or would track, relative to the root, with forward slashes. */
+  /** Every file git tracks, relative to the root, with forward slashes. */
   readonly files: ReadonlyArray<string>;
   /** The number of lines of each file that is a source file. */
   readonly lines: (file: string) => number;

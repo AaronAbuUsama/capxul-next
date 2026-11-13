@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import * as Str from "effect/String";
-import { shapeProblems } from "../src/shape.ts";
+import { shapeProblems, trackedFiles } from "../src/shape.ts";
 
 const clean = [
   "AGENTS.md",
@@ -80,4 +80,12 @@ test("the two lists of entry files must name the same paths", () => {
     '.oxlintrc.json: "a.entry.ts" has a reason in settings.capxul.entries but is not in the entry override',
     '.oxlintrc.json: "c.entry.ts" is in the entry override but has no reason in settings.capxul.entries',
   ]);
+});
+
+test("the files are git's list, less what was deleted from the working tree", () => {
+  const listing = "AGENTS.md\0packages/lint/src/shape.ts\0packages/lint/gone.ts\0";
+  assert.deepEqual(
+    trackedFiles(listing, (file) => file !== "packages/lint/gone.ts"),
+    ["AGENTS.md", "packages/lint/src/shape.ts"],
+  );
 });

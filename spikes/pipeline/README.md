@@ -14,7 +14,7 @@ Built on `spikes/hosting` (Alchemy 2.0.0-beta.85 on Effect 4.1.2, deployed from 
 | `core/` | The server: a Cloudflare Worker that serves the contract and reaches the world's Neon branch through Hyperdrive. |
 | `runner/` | The generic scenario runner: a fresh world per scenario, the generic checks, a run record, and the world's destruction. |
 | `scenarios/` | The five acceptance scenarios, one per claim, and the record of each failing against the empty handlers (`red-records/`). |
-| `green-records/` | The records of three full runs in a row, all passed. |
+| `../../packages/runner/records/spike/` | The records of three full runs in a row, all passed (moved there from `green-records/` when the runner became a package). |
 | `alchemy.run.ts` | The stack `CapxulSpikePipeline`. Stage `platform` owns the Neon project; every other stage is one world. |
 
 ## Run it
@@ -42,10 +42,10 @@ committed), so only the checkout that created a stage can destroy it. Never run 
 |---|---|
 | Does the server refuse to compile without a handler for a declared operation? | Yes. `tsc` fails with `Property '"record.export"' is missing` (`core/README.md`). |
 | Can a Worker written in Effect serve the Rpc group and reach the world's Neon branch? | Yes, through Hyperdrive and Effect SQL. One statement is one round trip, median 87 ms. |
-| Do the five scenarios pass against the implementation, run after run? | Yes: three runs in a row, each exit 0, fifteen fresh worlds, every one destroyed (`green-records/`). |
+| Do the five scenarios pass against the implementation, run after run? | Yes: three runs in a row, each exit 0, fifteen fresh worlds, every one destroyed (`packages/runner/records/spike/`). |
 | Is a declared event written in the same transaction as the write it reports? | Yes. A temporary handler (not committed) emitted inside `sql.withTransaction`: the commit left one `app.events` row, a typed refusal inside the transaction left none. |
 | Are a call's server spans kept under the trace id the caller sent? | Yes. The operation's span and every span beneath it are in `app.spans` under the `traceparent` trace id. |
-| Does the runner create a world, run a scenario, check it generically, record it and destroy the world? | Yes: every record in `green-records/` is one such run, about 45 s in all. |
+| Does the runner create a world, run a scenario, check it generically, record it and destroy the world? | Yes: every record in `packages/runner/records/spike/` is one such run, about 45 s in all. |
 | Does a scenario for a real claim fail against the empty handlers? | Yes. A temporary scenario for claim 4 (not committed) failed with `NotImplemented: not implemented: record.export`, and the command exited 1. |
 | Does the runner check what an event carries, against what Core really stored? | Yes. A temporary handler (not committed) emitted `record_appended` with the call's key and seq for one append, an empty key for a second and seq 0 for a third. The first passed the `events` check; the others failed it, and the record names the field: `record.append's record_appended differs in key (recorded "", declared "wrong-key")`. A refused append with no event passed. |
 | Is the world destroyed when the run goes wrong? | Yes, in three cases that happened: a create that timed out after the Worker was deployed, a create that failed outright, and a run interrupted with SIGINT 14 s into the create. Each left a record and no resource. |
@@ -53,7 +53,7 @@ committed), so only the checkout that created a stage can destroy it. Never run 
 ## Hardening (13 November 2026)
 
 With all five scenarios passing, four problems were left in the runner and the world. Each is fixed or measured
-here; `green-records/` holds the three full runs in a row that prove it.
+here; `packages/runner/records/spike/` holds the three full runs in a row that prove it.
 
 ### 1. A world was called ready too early
 

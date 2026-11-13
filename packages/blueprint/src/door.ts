@@ -79,4 +79,6 @@ export {
 export * as Errors from "./errors.ts";
 export * as Values from "./values.ts";
 export { startingWorlds, type StartingWorld } from "./starting-worlds.ts";
+export { allClaims } from "./claims/all.ts";
+export type { Claim, ClaimsOf } from "./claims/claim.ts";
 export { Approvals, Documents, Organizations, Record, Reports, World };
