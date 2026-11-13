@@ -70,6 +70,9 @@ test("registration, activation and release preserve caller atomicity, idempotenc
   assert.equal(Number(row!.created_at), now); assert.equal(Number(row!.updated_at), now);
   assert.equal(await eventCount(), before + 1);
   await assert.rejects(db.transaction("", (sql) => register(sql, { ...input, handle: `${handle}-different` }, now, trace), true), /INVALID_INPUT/);
+  for (const untraced of ["", undefined as unknown as string])
+    await assert.rejects(db.transaction("", (sql) => register(sql, { ...input, handle: `${handle}-untraced`, safe_address: address(stamp + 9) }, now, untraced), true), /INVALID_INPUT: trace_id/);
+  assert.equal((await db.worker.query("select count(*) from app.parties where handle=$1", [`${handle}-untraced`])).rows[0].count, "0");
   await assert.rejects(db.transaction("", async (sql) => { await activate(sql, row!.party_id, advanced, trace); throw new Error("abort-activate"); }, true), /abort-activate/);
   assert.equal((await lookup(db.worker, row!.party_id))!.state, "pending");
   assert.equal(Number((await lookup(db.worker, row!.party_id))!.updated_at), now);
@@ -166,4 +169,5 @@ test("global reads do not grant tenant writers; transition history is append-onl
   await assert.rejects(db.worker.query("delete from app.transition_outbox where event->>'name'='party_transitioned'"), /permission denied/);
   await assert.rejects(db.worker.query("update app.transition_outbox set event=event where event->>'name'='party_transitioned'"), /permission denied/);
   assert((await db.transaction("unrelated-org", (sql) => sql.query("select party_id from app.parties"))).rowCount! > 0);
+  assert.equal((await db.worker.query("select to_regclass('app.party_events') as t")).rows[0].t, null, "the retired event table is dropped");
 });
