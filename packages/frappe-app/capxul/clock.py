@@ -51,20 +51,39 @@ def read_clocks():
     return _cache["data"]
 
 
+class WorldClockUnavailable(RuntimeError):
+    """A site that belongs to a world never falls back to the host's time (devnet.frappe-clock-subsystems)."""
+
+
+def _in_world():
+    try:
+        return bool(frappe.local.conf.get("capxul_world"))
+    except (AttributeError, RuntimeError):
+        return False
+
+
 def offset_ms() -> int:
+    in_world = _in_world()
     try:
         o = frappe.local.conf.get(OVERRIDE)
         if o is not None:
             return int(o)
-        c = read_clocks().get(world_of_site()) or 0
+        entry = read_clocks().get(world_of_site())
+        if entry is None and in_world:
+            raise WorldClockUnavailable(f"world {world_of_site()} has no clock entry")
+        c = entry or 0
         if isinstance(c, dict):
             host = datetime.now(timezone.utc).timestamp() * 1000
             if c.get("frozen_at_ms") is not None:
                 return int(c["frozen_at_ms"] - host)
             return int(c["offset_ms"] + (host - c["host_anchor_ms"]) * (c["rate"] - 1))
         return int(c)
-    except Exception:  # no site initialised yet (import time, bench commands without a site)
-        return 0
+    except WorldClockUnavailable:
+        raise
+    except Exception:
+        if in_world:
+            raise WorldClockUnavailable("the world clock file could not be read")
+        return 0  # no world: import time, bench commands without a site, or a real (non-world) deployment
 
 
 def install():
@@ -80,6 +99,8 @@ def install():
         return
 
     def now_datetime():
+        if not _sessions_rebound:
+            _rebind_sessions()  # lazily: frappe.sessions cannot be imported while the app itself is importing
         try:
             conf = frappe.local.conf
         except (AttributeError, RuntimeError):  # commands may read time before frappe.init()
@@ -101,6 +122,34 @@ def install():
         if d is not None and d.get("now_datetime") is orig:
             d["now_datetime"] = now_datetime
     _installed = True
+
+
+_sessions_rebound = False
+
+
+def _rebind_sessions():
+    """Frappe judges a session's lifetime by the patched now but its session_end by the host; one session, one clock (rebound)."""
+    try:
+        import frappe.sessions as sessions
+    except ImportError:
+        return
+    from zoneinfo import ZoneInfo
+
+    base = sessions.datetime
+
+    class WorldDatetime(base):
+        @classmethod
+        def now(cls, tz=None):
+            world = frappe.utils.now_datetime()
+            if tz is None:
+                return world
+            return world.replace(tzinfo=ZoneInfo(frappe.utils.get_system_timezone())).astimezone(tz)
+
+    global _sessions_rebound
+    if not getattr(base, "_capxul", False):
+        WorldDatetime._capxul = True
+        sessions.datetime = WorldDatetime
+    _sessions_rebound = True
 
 
 # ---- what the CLI calls (bench execute) ------------------------------------------------------------------------------------

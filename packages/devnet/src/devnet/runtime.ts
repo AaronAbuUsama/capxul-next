@@ -66,6 +66,8 @@ export function localRuntime(options: {
       await store.rewrite(world, { worldId: world.id, epoch: world.epoch, clock,
         lineage: { snapshot: manifest.id, parentWorld: manifest.world, recordSeq: manifest.cut.recordSeq, recordHead: manifest.cut.recordHead },
         sites: Object.fromEntries(world.sites.map((s) => [s.company, s.name])) });
+      // The bench-wide entry moves even for a world with no sites; each site then rejoins the world offline.
+      await bench.clock(world.id, clock);
       for (const site of world.sites) await bench.rewrite(site, world.id, manifest.cut);
     },
     async resume(world) {
