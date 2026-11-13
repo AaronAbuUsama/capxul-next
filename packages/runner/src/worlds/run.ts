@@ -53,6 +53,19 @@ export const destroyAll = (stages: ReadonlyArray<string>) =>
     ),
   ).pipe(Effect.map(Arr.every((gone) => gone)));
 
+/**
+ * Destroys what is left of the worlds the platform tried to make but never handed over: a create that failed after
+ * its claim takes its world down itself, and when that take-down fails too the world is left. Only a world one of the
+ * run's operators owns is touched; one already gone is no failure.
+ */
+export const destroyStrays = (stages: ReadonlyArray<string>, owners: ReadonlyArray<string>) =>
+  Effect.forEach(stages, (stage) =>
+    World.open(stage).pipe(
+      Effect.flatMap((world) => (Arr.contains(owners, world.owner) ? destroyAll([stage]) : Effect.succeed(true))),
+      Effect.orElseSucceed(() => true),
+    ),
+  ).pipe(Effect.map(Arr.every((gone) => gone)));
+
 /** The checked calls of `calls`, read from where each was kept. */
 const checked = (calls: ReadonlyArray<Call>) =>
   Effect.gen(function* () {
@@ -114,7 +127,14 @@ const runOne = (scenario: Scenario, settings: Settings, starting: StartingWorlds
       );
       const looked = Arr.dedupe([...mine, ...Arr.drop(yield* platform.tried, triedBefore)]);
       const leftBefore = yield* leftOf(looked);
-      const [destroyTook, destroyed] = yield* Effect.timed(destroyAll(mine));
+      const strays = Arr.filter(looked, (stage) => !Arr.contains(mine, stage) && !Arr.contains(templates, stage));
+      const [destroyTook, destroyed] = yield* Effect.timed(
+        Effect.zipWith(
+          destroyAll(mine),
+          destroyStrays(strays, [settings.owner, settings.secondOwner]),
+          (a, b) => a && b,
+        ),
+      );
       const leftAfter = yield* leftOf(looked);
       const got = Exit.isSuccess(done) ? done.value : undefined;
       const used = got?.used;
