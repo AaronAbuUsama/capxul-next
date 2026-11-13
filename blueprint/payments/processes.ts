@@ -119,7 +119,10 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
       name: "pay-day",
       for: "timer",
       timeoutMs: 3_600_000,
-      about: "A budget's dated payment on its day, then hourly while `Budgets.execute` reverts, until it pays or is cancelled.",
+      about:
+        "A budget's dated payment on its day, hourly while `Budgets.execute` reverts until it pays or is cancelled, a " +
+        "minute later while unmined or the executor lane is busy; its own timer, kept after `submit` so an execute " +
+        "reorged out is sent again (NotPending while it stands).",
     },
     {
       name: "confirm",
@@ -150,9 +153,9 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     {
       name: "execute",
       about:
-        "A budget's dated payment on its day: `Budgets.execute(scheduledId)` sent once with the executor key, its receipt " +
-        "awaited, then `submit`; for a claim escrow, then at once `EscrowFactory.deploy` with the escrow relayer key if " +
-        "the address has no code, sent once and looked up by hash.",
+        "On its day `Budgets.execute(scheduledId)` with the executor key, keyed `budget-execute:<chain>:<scheduledId>:<attempt>`; " +
+        "`submit` on ScheduledPaid with its id; a mined revert or paid execute takes the next attempt. A claim escrow's " +
+        "then gets `EscrowFactory.deploy` (relayer key) if it has no code.",
     },
     {
       name: "settle",

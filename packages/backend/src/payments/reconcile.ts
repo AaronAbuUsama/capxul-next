@@ -22,7 +22,7 @@ export async function reconcilePayment(sql: Sql, owner: Owner, id: string, input
   const key = [owner.kind, owner.id, id];
   if (!payment) return { payment: null, blocked: null, execute: null };
   if (payment.chain_id !== input.chainId) throw new Error("INVALID_INPUT: payment chain differs");
-  const process = (await sql.query(`select wake_at,execute_attempt from app.payment_processes
+  const process = (await sql.query(`select wake_at,execute_attempt,execute_after from app.payment_processes
     where owner_kind=$1 and owner_id=$2 and payment_id=$3 for update`, key)).rows[0];
   if (!process || process.wake_at === null || process.wake_at > context.at) return { payment, blocked: null, execute: null };
   const progress = (await sql.query("select indexed_block,ready from app.indexer_progress where chain_id=$1", [input.chainId])).rows[0];
@@ -82,12 +82,15 @@ export async function reconcilePayment(sql: Sql, owner: Owner, id: string, input
     awaitBlock = confirmed > head ? confirmed.toString() : null;
   } else if (["cancelled", "needs_retry"].includes(payment.status)) {
     blocked = null; wakeAt = null; awaitBlock = null;
-  } else if (payment.status === "due" && payment.route === "budget" && payment.pay_at !== null) {
-    if (context.at < payment.pay_at) wakeAt = payment.pay_at;
-    // Sent outside this transaction with the executor key; until its answer is recorded, it is looked up again shortly.
+  } else if (["due", "submitted"].includes(payment.status) && payment.route === "budget" && payment.pay_at !== null && payment.scheduled_id) {
+    // The pay-day timer is its own (`execute_after`): an indexer wake follows PaymentSent or ScheduleCancelled at once but
+    // never sends early. A submitted one keeps it, so an execute reorged out and dropped is sent again (NotPending while it stands).
+    const after = Math.max(payment.pay_at, process.execute_after ?? 0);
+    if (context.at < after) wakeAt = after;
     else {
-      execute = { owner, payment_id: id, chain_id: payment.chain_id, scheduled_id: payment.scheduled_id!, attempt: process.execute_attempt,
-        key: executionKey(payment.chain_id, payment.scheduled_id!, process.execute_attempt) };
+      execute = { owner, payment_id: id, chain_id: payment.chain_id, scheduled_id: payment.scheduled_id, attempt: process.execute_attempt,
+        key: executionKey(payment.chain_id, payment.scheduled_id, process.execute_attempt) };
+      // Sent outside this transaction; until its answer is recorded (recordExecution), it is asked again shortly.
       wakeAt = context.at + EXECUTE_LOOKUP_MS;
     }
   }

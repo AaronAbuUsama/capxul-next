@@ -427,7 +427,8 @@ export const machine_payment = defineMachine({
     submit: {
       from: ["prepared", "scheduled", "due"],
       to: "submitted",
-      about: "Its approval was sent, its Board proposal executed, or `Budgets.execute` was sent on its day.",
+      about:
+        "Its approval was sent, its Board proposal executed, or `Budgets.execute` on its day was mined with its ScheduledPaid.",
       emits: sends,
     },
     settle: {
