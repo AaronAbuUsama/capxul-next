@@ -1,9 +1,10 @@
 // The generic checks. They hold for every call of every operation, so no scenario writes them: they compare what
 // the caller saw with what Core kept under the call's trace id, and with what the contract declares.
 import * as Schema from "effect/Schema";
-import { eventNamesOf, operations } from "../contract/door.ts";
+import { operations } from "../contract/door.ts";
 import { CallOutcome, type Call } from "./client.ts";
 import type { EventRow, SpanRow } from "./database.ts";
+import { checkEvents } from "./events.ts";
 
 export const Check = Schema.Struct({
   check: Schema.Literals(["span", "outcome", "events", "budget"]),
@@ -33,17 +34,13 @@ export type CheckedCall = typeof CheckedCall.Type;
 /** What the operation's server span must say for each outcome the caller can see. */
 const spanOutcomeFor = { success: "success", refusal: "failure", defect: "defect", unanswered: "none" } as const;
 
-const sorted = (names: ReadonlyArray<string>) => [...names].sort().join(", ") || "none";
-
 /** Applies every generic check to one call, given all that Core kept. Pure. */
 export const checkCall = (call: Call, kept: { readonly spans: ReadonlyArray<SpanRow>; readonly events: ReadonlyArray<EventRow> }): CheckedCall => {
   const operation = operations[call.operation];
   const spans = kept.spans.filter((span) => span.trace_id === call.traceId && span.name === call.operation);
   const span = spans.length === 1 ? spans[0] : undefined;
   const events = kept.events.filter((event) => event.trace_id === call.traceId);
-  const seen = events.map((event) => event.event);
-  const expected = call.outcome === "success" ? eventNamesOf(operation) : [];
-  const misfiled = events.filter((event) => event.operation !== call.operation).length;
+  const emitted = checkEvents(call, events);
   const checks: ReadonlyArray<Check> = [
     {
       check: "span",
@@ -59,9 +56,9 @@ export const checkCall = (call: Call, kept: { readonly spans: ReadonlyArray<Span
     },
     {
       check: "events",
-      passed: sorted(seen) === sorted(expected) && misfiled === 0,
+      passed: emitted.passed,
       gating: true,
-      detail: `recorded: ${sorted(seen)}; declared for a ${call.outcome}: ${sorted(expected)}${misfiled > 0 ? `; ${misfiled} filed under another operation` : ""}`,
+      detail: emitted.detail,
     },
     {
       check: "budget",
@@ -78,7 +75,7 @@ export const checkCall = (call: Call, kept: { readonly spans: ReadonlyArray<Span
     serverMs: span?.duration_ms ?? null,
     budgetMs: operation.budgetMs,
     failure: call.failure,
-    events: seen,
+    events: events.map((event) => event.event),
     checks,
   };
 };

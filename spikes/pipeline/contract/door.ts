@@ -17,5 +17,5 @@ export type OperationName = keyof typeof operations;
 export class CoreRpcs extends RpcGroup.make(Record.append.rpc, Record.exportAll.rpc).middleware(Telemetry) {}
 
 export { CurrentCall, Telemetry, TRACE_HEADER } from "./telemetry.ts";
-export { declare, eventNamesOf, isRefusal, type EventClass, type EventOf, type Operation } from "./operation.ts";
+export { declare, eventNamesOf, isRefusal, type EventClass, type EventOf, type Expected, type Operation } from "./operation.ts";
 export * as Record from "./record.ts";

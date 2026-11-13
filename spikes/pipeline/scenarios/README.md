@@ -16,13 +16,15 @@ and the agent that implements the operations may not edit them.
 
 ## What claim 5 does not prove
 
-Claim 5 says each successful append emits exactly one `record_appended` event **carrying its key and seq**. An event
-cannot be seen through the door, so the claim rests on the runner's generic `events` check (`../runner/checks.ts`).
-That check compares the **names** of the events recorded under a call's trace id, and the operation each is filed
-under, with what the contract declares. It never reads an event's payload. So "exactly one for a success" and
-"none for a refusal" are proven, and "carrying its key and seq" is not: an append that emitted
-`record_appended { key: "", seq: 0 }` would pass. Closing this needs a change to the runner (compare each event's
-payload with the call's payload and answer), not to a scenario.
+Nothing any more: this gap is closed by the runner's payload check. Claim 5 says each successful append emits
+exactly one `record_appended` event **carrying its key and seq**. An event cannot be seen through the door, so the
+claim rests on the runner's generic `events` check (`../runner/events.ts`). That check used to compare only the
+**names** of the events recorded under a call's trace id, so an append that emitted
+`record_appended { key: "", seq: 0 }` would have passed. The contract now declares what the event carries as a
+function of the call (`{ key: payload.key, seq: success.seq }`, in `../contract/record.ts`), and for every
+successful call the runner requires the recorded payload to be exactly that, computed from what the scenario sent
+and what Core answered. So "exactly one for a success", "none for a refusal" and "carrying its key and seq" are
+all proven by the calls this scenario makes, and no scenario had to change.
 
 The rules for whoever writes them:
 

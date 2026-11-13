@@ -10,7 +10,8 @@ The generic scenario runner. It knows no operation and no scenario by name: it r
    world has an owner and an expiry, and each step has a declared timeout.
 2. **Runs the scenario** (`run.ts`, `client.ts`). The scenario is an Effect that gets two services: `Core`, a typed
    client derived from the contract's Rpc group, and `TraceIds`. Every call goes out under its own trace id in the
-   `traceparent` header, and the runner keeps a log of every call: operation, trace id, outcome, milliseconds.
+   `traceparent` header, and the runner keeps a log of every call: operation, trace id, outcome, milliseconds, the
+   payload that was sent and, for a success, what came back.
 3. **Applies the generic checks** (`checks.ts`) to every call in that log, reading what Core kept in `app.spans`
    and `app.events` under the call's trace id (`database.ts`):
 
@@ -18,8 +19,12 @@ The generic scenario runner. It knows no operation and no scenario by name: it r
    |---|---|---|
    | `span` | exactly one server span named after the operation exists under the call's trace id, with its duration | yes |
    | `outcome` | that span ended the way the caller saw the call end (success, typed refusal, defect) | yes |
-   | `events` | the events recorded for the call are exactly the ones the contract declares for a success, each once, and none for a refusal or a defect | yes |
+   | `events` | a successful call recorded exactly the events the contract declares, each once, and each one's stored payload equals what the declaration computes from that call's payload and result (and decodes with the event's schema); a refused or failed call recorded none | yes |
    | `budget` | the span's duration is within the operation's declared budget | no: it is measured and recorded |
+
+   When an event does not carry what is declared, the check's detail in the run record names the operation, the
+   event and each differing field, for example
+   `record.append's record_appended differs in key (recorded "", declared "account/operating")`.
 
 4. **Writes the run record** (`record.ts`) to `records/<scenario name as a slug>.json`, outside the world: scenario,
    outcome, failure text, every call with its outcome, timings, events seen and check results, and how long the
@@ -65,6 +70,7 @@ Each has a default and can be set in the environment (`run.ts`).
 | `world.ts` | The world's life as one unit (adapted from `spikes/hosting`). |
 | `client.ts` | The recording client and the trace id source. |
 | `checks.ts`, `checks.test.ts` | The generic checks and their tests. |
+| `events.ts` | The `events` check: which events a call recorded and what each carries, against the declaration. |
 | `database.ts` | Neon's HTTPS SQL endpoint: migrations in, spans and events out. |
 | `record.ts`, `failure.ts` | The run record and how a failure is worded in it. |
 | `scenario.ts` | What a scenario is: `scenario`, `expect`, `Core`, `TraceIds`. |

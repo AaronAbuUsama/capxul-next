@@ -9,7 +9,7 @@ Built on `spikes/hosting` (Alchemy 2.0.0-beta.85 on Effect 4.1.2, deployed from 
 
 | Directory | What it is |
 |---|---|
-| `contract/` | Pure declarations: two operations of the world's record, their refusal, their event, their budgets, and the five acceptance claims. |
+| `contract/` | Pure declarations: two operations of the world's record, their refusal, their event and what it carries, their budgets, and the five acceptance claims. |
 | `core/` | The server: a Cloudflare Worker that serves the contract and reaches the world's Neon branch. Its handlers are empty: every operation dies as "not implemented". |
 | `runner/` | The generic scenario runner: a fresh world per scenario, the generic checks, a run record, and the world's destruction. |
 | `scenarios/` | Empty. Written by a separate agent; each must fail against the empty handlers first. |
@@ -21,9 +21,14 @@ Built on `spikes/hosting` (Alchemy 2.0.0-beta.85 on Effect 4.1.2, deployed from 
 pnpm install --ignore-workspace
 ./run.sh scenarios     # every scenario in scenarios/, each in its own fresh world; exits 1 if any failed
 ./run.sh smoke         # the runner's own smoke scenario
-pnpm typecheck         # tsc: fails when an operation has no handler
+node_modules/.bin/tsc -p .   # typecheck: fails when an operation has no handler
 bun test runner        # the generic checks
 ```
+
+Typecheck with `node_modules/.bin/tsc -p .`. A `pnpm <script>` here used to start an install first, under the
+repository's pnpm, which refused the lockfile on its release-age policy and left `node_modules` empty;
+`pnpm-workspace.yaml` in this directory now turns that install off (`verifyDepsBeforeRun: false`), so
+`pnpm typecheck` is safe too. If `node_modules` is ever empty, run the install line again.
 
 The first run creates the `platform` stage (a Neon project, 8 s). **Destroy it when you finish**:
 `./run.sh alchemy destroy --stage platform --yes`. Alchemy's state is on this machine's disk (`.alchemy/`, not
@@ -39,6 +44,7 @@ committed), so only the checkout that created a stage can destroy it. Never run 
 | Are a call's server spans kept under the trace id the caller sent? | Yes. The operation's span and every span beneath it are in `app.spans` under the `traceparent` trace id. |
 | Does the runner create a world, run a scenario, check it generically, record it and destroy the world? | Yes: the smoke run below, 30 s in all. |
 | Does a scenario for a real claim fail against the empty handlers? | Yes. A temporary scenario for claim 4 (not committed) failed with `NotImplemented: not implemented: record.export`, and the command exited 1. |
+| Does the runner check what an event carries, against what Core really stored? | Yes. A temporary handler (not committed) emitted `record_appended` with the call's key and seq for one append, an empty key for a second and seq 0 for a third. The first passed the `events` check; the others failed it, and the record names the field: `record.append's record_appended differs in key (recorded "", declared "wrong-key")`. A refused append with no event passed. |
 | Is the world destroyed when the run goes wrong? | Yes, in three cases that happened: a create that timed out after the Worker was deployed, a create that failed outright, and a run interrupted with SIGINT 14 s into the create. Each left a record and no resource. |
 
 ### The smoke run

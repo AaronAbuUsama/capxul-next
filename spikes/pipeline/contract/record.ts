@@ -29,7 +29,7 @@ export const append = declare({
     success: Schema.Struct({ seq: Schema.Int }),
     error: DuplicateEntry,
   }),
-  emits: [RecordAppended],
+  emits: [{ event: RecordAppended, carries: ({ payload, success }) => ({ key: payload.key, seq: success.seq }) }],
   budgetMs: 500,
 });
 

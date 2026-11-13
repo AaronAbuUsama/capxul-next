@@ -1,6 +1,6 @@
 // The client a scenario is handed. It is derived from the contract's Rpc group, sends every call under its own
-// trace id in the contract's trace header, and keeps a log of every call so the generic checks can find what the
-// server kept about each one.
+// trace id in the contract's trace header, and keeps a log of every call (with what was sent and what came back) so
+// the generic checks can find what the server kept about each one and compare it.
 import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
 import * as Duration from "effect/Duration";
@@ -31,6 +31,10 @@ export interface Call {
   readonly operation: OperationName;
   readonly traceId: string;
   readonly outcome: CallOutcome;
+  /** What the caller sent. */
+  readonly payload: unknown;
+  /** What came back, when the call succeeded. The generic `events` check computes what each event must carry from both. */
+  readonly success: Option.Option<unknown>;
   /** How long the call took from the caller's side, network included. */
   readonly ms: number;
   readonly failure: string | null;
@@ -77,6 +81,8 @@ export const coreOf = (url: string, log: Ref.Ref<ReadonlyArray<Call>>): Layer.La
               operation,
               traceId,
               outcome: outcomeOf(operation, exit),
+              payload,
+              success: Exit.isSuccess(exit) ? Option.some(exit.value) : Option.none(),
               ms: Math.round(Duration.toMillis(took)),
               failure: Exit.isFailure(exit) ? describe(exit.cause) : null,
             },
