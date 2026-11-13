@@ -56,7 +56,7 @@ test("fresh native creation persists the supplied sponsor across up and snapshot
     assert.equal(await cli("stop"), 0);
     assert.equal(await cli("up"), 0);
     assert.deepEqual(await balances(), before, "up must not redeploy or top up accounts");
-    const snapshot = `sponsor_${id}`;
+    const snapshot = `sponsor-${id}`;
     assert.equal(await cli("snapshot", "save", snapshot), 0);
     await (await composeWorld(file)).inspect();
     assert.equal(await cli("snapshot", "read", snapshot), 0);
