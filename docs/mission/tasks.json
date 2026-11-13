@@ -2586,6 +2586,7 @@
       ],
       "goal": "The server endpoint approvals.signing.get (Read one of your approvals, live) answers as its record says: its declared errors only, its spans and its budget. Other lanes reach it: operation:payment.send, operation:agent.create, operation:agent.freeze, operation:agent.key.rotate.",
       "needs": [
+        "door:access",
         "door:approvals",
         "milestone:m2"
       ],
@@ -2663,6 +2664,7 @@
       ],
       "goal": "The server endpoint approvals.signing.decline (Say no to an approval before signing it) answers as its record says: its declared errors only, its spans and its budget. No operation steps it; a durable process or another surface does.",
       "needs": [
+        "door:access",
         "door:approvals",
         "milestone:m2",
         "workflow:approvals.lifecycle.carry"
@@ -2702,6 +2704,7 @@
       ],
       "goal": "The Core SDK flow client.approvals.sign (Sign an approval on the approval page) runs its steps as its record says, within its budget and with its spans; no operation implements it, so its surfaces call it.",
       "needs": [
+        "door:access",
         "door:approvals",
         "integration:openfort",
         "milestone:m2",

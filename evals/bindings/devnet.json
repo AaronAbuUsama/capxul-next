@@ -10,6 +10,16 @@
       "why": "Only inside a running exact-build selected-stack receipt, invokes the real public record export CLI on the private fixture's world. Independently reads the populated native catalogue through capxul_core, compares lineage and every ordered epoch/sequence row with the private JSONL file, and checks exact public line/byte counts and owner-only permissions. Missing schema, absent rows, wrong world/build or unavailable live stack fail. Does not claim clone acceptance, grants, spans, budgets or complete command capture."
     },
     {
+      "eval": "ret:world.show",
+      "checks": ["DEVNET.world-show"],
+      "why": "Only inside a running exact-build selected-stack receipt, invokes the real public world show CLI on the selected world. Independently reads that world's app.worlds row and current-epoch record head through capxul_core and the complete app.organizations inventory through capxul_worker, then requires exactly the declared WorldView fields, enums and values, with each stored site projected to the configured publicBench route or null. Missing catalogue rows, missing companies or an unavailable live stack fail. Does not claim clone lineage acceptance, site readiness, grants, spans or budgets."
+    },
+    {
+      "eval": "ref:world.show/INVALID_INPUT/c-26457b4b4af8c810",
+      "checks": ["DEVNET.world-show-unknown"],
+      "why": "Within the same running selected-stack receipt, asks the real public world show CLI for a world name that does not exist. Requires exit code 2, empty stdout and exactly {error:{code:INVALID_INPUT,message}}, and compares the selected world's catalogue rows and record count before and after to prove nothing changed."
+    },
+    {
       "eval": "tbl:worlds/schema",
       "checks": ["DEVNET.worlds-schema"],
       "why": "Within a running selected-stack receipt, verifies the private fixture and public live world inspection, then reads this world's actual app.worlds schema through capxul_core. Compares every field's SQL type and nullability, primary-key order, named index fields/uniqueness and validated enums with independent blueprint expectations. Missing runtime/schema evidence fails."
