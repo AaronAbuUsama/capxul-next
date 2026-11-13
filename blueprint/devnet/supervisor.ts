@@ -31,7 +31,7 @@ export const decision_devnet_selected_world_now = defineDecision({
 
 export const decision_devnet_resume_fault_mount = defineDecision({
   id: "devnet.resume-fault-mount",
-  title: "Workflow resume claims kill the real Core between a consumer's effect and its ACK",
+  title: "Resume claims kill real Core between a consumer effect and its ACK",
   question: "How does a selected-stack run kill a workflow mid-run for wfl:*/resume without faking the crash or the recovery?",
   options: [
     { label: "supervised-kill-before-ack", text: "The supervisor gives Core in a disposable local world, never main, a private fault directory. The private nested command world fixture resume-arm <consumer> arms that consumer's next delivery once. The shared outbox consume calls the backend devnet door's fault point after the consumer's effect and before its ACK, in the same transaction. Armed, Core claims the arm by rename, writes where it stopped (consumer, event, pid, time) and holds the uncommitted effect. world fixture resume-kill <consumer> waits for that report, checks the holder is the world's supervised Core child, SIGKILLs it, waits for supervision to restart the wrapper (Core starts paused), then pauses and resumes it through the same signed path as world up and waits for readiness. It returns and keeps the kill and restart evidence. Effect and ACK die together, so the restarted relay must redeliver. The command does not judge the claim; the concept binding checks that the workflow finished with the same result and exactly one ACK." },
