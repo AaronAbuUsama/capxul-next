@@ -1,0 +1,179 @@
+{
+  "area": "organizations-tables",
+  "script": "packages/evals/src/modules/organizations/run.sh",
+  "worlds": [
+    "slice-zero"
+  ],
+  "secrets": [],
+  "bindings": [],
+  "near": [
+    {
+      "eval": "tbl:organizations/schema",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.organizations.schema"
+      ],
+      "missing": "Live catalogue reads compare the table's columns (names, order, nullability), primary key and indexes with the blueprint record itself, and refuse a runtime-role owner. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:organizations/writers",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.organizations.writers"
+      ],
+      "missing": "Grants and actual attempts show Core may only read, only the worker (which runs the procedures and workflows listing the table in writes) inserts and updates, and nothing deletes or truncates. It does not trace which worker operation wrote each row. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:organizations/tenancy",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.organizations.tenancy"
+      ],
+      "missing": "Row security is forced, and at one MVCC cut a member of each of two Organizations reads every row of its own Organization and none of the other's, and is refused every write to either. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-setups/schema",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-setups.schema"
+      ],
+      "missing": "Live catalogue reads compare the table's columns (names, order, nullability), primary key and indexes with the blueprint record itself, and refuse a runtime-role owner. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-setups/writers",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-setups.writers"
+      ],
+      "missing": "Grants and actual attempts show Core may only read, only the worker (which runs the procedures and workflows listing the table in writes) inserts and updates, and nothing deletes or truncates. It does not trace which worker operation wrote each row. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-setups/tenancy",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-setups.tenancy"
+      ],
+      "missing": "Row security is forced, and at one MVCC cut a member of each of two Organizations reads every row of its own Organization and none of the other's, and is refused every write to either. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-deployments/schema",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-deployments.schema"
+      ],
+      "missing": "Live catalogue reads compare the table's columns (names, order, nullability), primary key and indexes with the blueprint record itself, and refuse a runtime-role owner. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-deployments/writers",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-deployments.writers"
+      ],
+      "missing": "Grants and actual attempts show Core may only read, only the worker (which runs the procedures and workflows listing the table in writes) inserts and updates, and nothing deletes or truncates. It does not trace which worker operation wrote each row. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-deployments/tenancy",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-deployments.tenancy"
+      ],
+      "missing": "Row security is forced, and at one MVCC cut a member of each of two Organizations reads every row of its own Organization and none of the other's, and is refused every write to either. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-members/schema",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-members.schema"
+      ],
+      "missing": "Live catalogue reads compare the table's columns (names, order, nullability), primary key and indexes with the blueprint record itself, and refuse a runtime-role owner. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-members/writers",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-members.writers"
+      ],
+      "missing": "Grants and actual attempts show Core may only read, only the worker (which runs the procedures and workflows listing the table in writes) inserts and updates, and nothing deletes or truncates. It does not trace which worker operation wrote each row. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-members/tenancy",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-members.tenancy"
+      ],
+      "missing": "Row security is forced, and at one MVCC cut a member of each of two Organizations reads every row of its own Organization and none of the other's, and is refused every write to either. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-seat-purchases/schema",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-seat-purchases.schema"
+      ],
+      "missing": "Live catalogue reads compare the table's columns (names, order, nullability), primary key and indexes with the blueprint record itself, and refuse a runtime-role owner. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-seat-purchases/writers",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-seat-purchases.writers"
+      ],
+      "missing": "Grants and actual attempts show Core may only read, only the worker (which runs the procedures and workflows listing the table in writes) inserts and updates, and nothing deletes or truncates. It does not trace which worker operation wrote each row. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-seat-purchases/tenancy",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-seat-purchases.tenancy"
+      ],
+      "missing": "Row security is forced, and at one MVCC cut a member of each of two Organizations reads every row of its own Organization and none of the other's, and is refused every write to either. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-apps/schema",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-apps.schema"
+      ],
+      "missing": "Live catalogue reads compare the table's columns (names, order, nullability), primary key and indexes with the blueprint record itself, and refuse a runtime-role owner. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-apps/writers",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-apps.writers"
+      ],
+      "missing": "Grants and actual attempts show Core may only read, only the worker (which runs the procedures and workflows listing the table in writes) inserts and updates, and nothing deletes or truncates. It does not trace which worker operation wrote each row. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-apps/tenancy",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-apps.tenancy"
+      ],
+      "missing": "Row security is forced, and at one MVCC cut a member of each of two Organizations reads every row of its own Organization and none of the other's, and is refused every write to either. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-fdes/schema",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-fdes.schema"
+      ],
+      "missing": "Live catalogue reads compare the table's columns (names, order, nullability), primary key and indexes with the blueprint record itself, and refuse a runtime-role owner. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-fdes/writers",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-fdes.writers"
+      ],
+      "missing": "Grants and actual attempts show Core may only read, only the worker (which runs the procedures and workflows listing the table in writes) inserts and updates, and nothing deletes or truncates. It does not trace which worker operation wrote each row. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:org-fdes/tenancy",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "ORGANIZATIONS.org-fdes.tenancy"
+      ],
+      "missing": "Row security is forced, and at one MVCC cut a member of each of two Organizations reads every row of its own Organization and none of the other's, and is refused every write to either. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    }
+  ]
+}

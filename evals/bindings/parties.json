@@ -1,0 +1,27 @@
+{
+  "area": "parties",
+  "script": "packages/evals/src/modules/organizations/run.sh",
+  "worlds": [
+    "slice-zero"
+  ],
+  "secrets": [],
+  "bindings": [],
+  "near": [
+    {
+      "eval": "tbl:parties/schema",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "PARTIES.parties.schema"
+      ],
+      "missing": "Live catalogue reads compare the table's columns (names, order, nullability), primary key and indexes with the blueprint record itself, and refuse a runtime-role owner. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    },
+    {
+      "eval": "tbl:parties/writers",
+      "checks": [
+        "ORGANIZATIONS.selected-stack",
+        "PARTIES.parties.writers"
+      ],
+      "missing": "Grants and actual attempts show Core may only read, only the worker (which runs the procedures and workflows listing the table in writes) inserts and updates, and nothing deletes or truncates. It does not trace which worker operation wrote each row. Still needs one complete fresh selected-stack run that passes them, on a world whose creation founded its companies through organizations.setups.begin and the setup's process on the target tables (the Organizations cut-over), not /admin/org."
+    }
+  ]
+}
