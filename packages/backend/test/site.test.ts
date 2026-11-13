@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import test from "node:test";
 import { Effect, Result } from "effect";
@@ -150,6 +151,27 @@ test("redirects cannot forward signed service credentials to another endpoint", 
   const target = await receiver(t, (_req, res) => { reached = true; reply(res, {}); });
   const { site } = await receiver(t, (_req, res) => { res.writeHead(307, { location: target.baseUrl }); res.end(); });
   await fails(site.applyEvent(event), "PROVIDER_ERROR"); assert.equal(reached, false);
+});
+
+test("native release map is signed, hash-admitted and refuses unavailable or invented roles", async (t) => {
+  const source = new URL("../../frappe-app/capxul/setup.py", import.meta.url);
+  const hats = JSON.parse(execFileSync("python3", ["-c", `import ast,json,sys
+t=ast.parse(open(sys.argv[1]).read())
+print(json.dumps(ast.literal_eval(next(n.value for n in t.body if isinstance(n,ast.Assign) and any(isinstance(v,ast.Name) and v.id=='DEFAULT_HAT_ROLES' for v in n.targets)))))`, source.pathname], { encoding: "utf8" }));
+  const admitted = { map_version: "sha256:8187889ed3db0e6b878dd8e8db524030d61f61e2d716c16f53e28c2768e5b348", hats,
+    available_roles: [...new Set<string>(Object.values(hats as Record<string, string[]>).flat())] };
+  let value: unknown = admitted;
+  const { site } = await receiver(t, (req, res, body) => {
+    assert.equal(req.url, "/api/method/capxul.service.read_hat_map"); assert.deepEqual(body, { org: scope.orgId });
+    assert.equal(req.headers["x-capxul-assertion"], undefined); reply(res, value);
+  });
+  assert.deepEqual(await Effect.runPromise(site.readHatMap(scope)), admitted);
+  for (const bad of [
+    { ...admitted, map_version: "sha256:unknown-release" },
+    { ...admitted, hats: { ...hats, sales: ["System Manager"] } },
+    { ...admitted, hats: { ...hats, invented: ["Accounts User"] } },
+    { ...admitted, available_roles: admitted.available_roles.filter((r) => r !== "Expense Approver") },
+  ]) { value = bad; await fails(site.readHatMap(scope), "PROVIDER_RESPONSE_INVALID"); }
 });
 
 test("the response body, not just headers, has a bounded timeout", { timeout: 20000 }, async (t) => {

@@ -433,4 +433,37 @@ export const decision_plugs_native_feature_defaults = dec({
   affects: [f.component_frappe_app, integration_frappe_site],
 });
 
+export const decision_plugs_role_projections = dec({
+  id: "plugs.role-projections",
+  title: "Persist role authority and its exact transitions in the source transaction",
+  question: "How do a finalized hat occurrence and the site's acknowledgement survive a Core restart?",
+  options: [{ label: "transactional-projections", text: "Tenant-keyed site-users and role-grants live in Postgres, readable in exact organization owner scope and writable only by the trusted worker. The source transaction records the grant and user, enqueues native delivery and appends the exact role_grant_transitioned event together. It receives canonical person identity and finalized occurrence identity from authoritative composition, never invents a person from email or an address. A matching native map-version acknowledgement applies the grant; a failed acknowledgement records failure. A finalized revoke retires a pending grant or revokes an applied/failed grant, queues removal and preserves roles supplied by other applied grants. Caller-supplied world milliseconds date rows and events; there is no host-time business fallback." }],
+  chosen: "transactional-projections",
+  why: "The legacy organization directory and native grant rows do not establish Core's declared projections or exact events. A caller-owned transaction closes the state/event/delivery crash window without copying ERPNext documents or sending a provider request inside the common outbox ACK. Native hats treat null and empty departments as the same unscoped identity: new rows use null and retention compares that equivalence, without rewriting committed transition history. This storage boundary does not manufacture the still-pending authoritative person/finalized-fact export or claim the workflow is mounted.",
+  evidence: "Slice-zero plugs continuation; landed common outbox and canonical clock contracts, 12 November 2026",
+  affects: [d.table_site_users, d.table_role_grants, d.machine_role_grant, pr.workflow_plugs_roles_project],
+});
+
+export const decision_plugs_role_delivery = dec({
+  id: "plugs.role-delivery",
+  title: "Settle native role acknowledgements with the authoritative clock",
+  question: "Where does a native role acknowledgement become durable Core authority?",
+  options: [{ label: "atomic-ack", text: "Existing delivery and parked repair settle the site's ACK, grant transition and exact outbox emission on the same caller Sql. worldNow reads that transaction's stored stopped clock; missing, malformed or running clocks refuse without a host/block-time fallback. Historical projected grants still validate that clock and date each new ACK at stored world-ms without changing the original grant or outbox event. Legacy events with no projection retain their existing behavior. Only provider transport failures enter delivery retry handling; settlement failures propagate and roll back. A successful matching native map applies a pending/failed grant, parked failure fails a pending grant, and historical applied/revoked replay cannot resurrect authority. Native readHatMap observes release DEFAULT_HAT_ROLES, its canonical hash and actual installed Role availability. The backend admits only its known release hash and refuses altered maps or unavailable roles. The map contains no numeric chain-hat admission, departments, jobs, scope or person names; those remain separate authoritative composition prerequisites." }],
+  chosen: "atomic-ack",
+  why: "Catching a clock or transition failure after ACK writes can commit delivery without its authority event. A read-only native map observation closes the release/availability gap without accepting editable hat registration as chain admission or inventing department/name metadata.",
+  evidence: "Integrator's same-Sql worldNow and migration agreement, landed wave458a747; native setup.DEFAULT_HAT_ROLES and hats.map_version, 12 November 2026",
+  affects: [integration_frappe_site, d.machine_role_grant, pr.workflow_plugs_events_deliver],
+});
+
+export const decision_plugs_selected_observations = dec({
+  id: "plugs.selected-observations",
+  title: "Selected Plugs checks do not inherit skeleton acceptance",
+  question: "What can the selected Plugs runner establish before the authority and public lifecycle composition is complete?",
+  options: [{ label: "same-run-observations", text: "Require a running selected Postgres/Ponder/ERPNext/v4 receipt for the current source, private configuration and matching live world/epoch/site. Read the native release map, actual site readiness and committed saved answers against the native request outbox. These are near-only observations, not grants, public commands, replay/crash controls or lifecycle acceptance. Remove the legacy main-world JSON skeleton replay binding instead of reusing its evidence. No selected claim passes until its complete public scenario executes in that fresh run." }],
+  chosen: "same-run-observations",
+  why: "The old Plugs binding launches a main-world skeleton and cannot prove the selected backend. Release-map availability does not authorize a numeric hat or bootstrap a native user; a consistent saved answer alone does not prove lost-ACK replay. Keeping those limits explicit prevents component history or synthetic fixture grants from silently satisfying selected evals.",
+  evidence: "Wave0 integrator source/selected-run ownership agreement, 12 November 2026; evals/bindings/plugs.json legacy skeleton binding",
+  affects: [integration_frappe_site, pr.workflow_plugs_payments_collect, pr.workflow_plugs_events_deliver],
+});
+
 void ops; 

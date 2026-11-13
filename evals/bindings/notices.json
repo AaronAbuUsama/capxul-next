@@ -1,0 +1,24 @@
+{
+  "area": "notices",
+  "script": "packages/evals/src/modules/notices/run.sh",
+  "worlds": ["slice-zero"],
+  "secrets": [],
+  "bindings": [],
+  "near": [
+    {
+      "eval": "tbl:notices/schema",
+      "checks": ["NOTICES.selected-stack", "NOTICES.schema"],
+      "missing": "Live restricted-role introspection checks exact fields/types/nullability/key/indexes. Constraint rejection and migration through actual selected-world creation still need execution; native component migration is not acceptance."
+    },
+    {
+      "eval": "tbl:notices/tenancy",
+      "checks": ["NOTICES.selected-stack", "NOTICES.mailbox-reads", "NOTICES.writer-acl"],
+      "missing": "Same-cut mailbox row equality and transaction-local email reset cover at least two real recipients. Authenticated/revoked sessions, forbidden cross-mailbox mutation and older-template filtering through the actual devnet command remain unproved."
+    },
+    {
+      "eval": "tbl:notices/writers",
+      "checks": ["NOTICES.selected-stack", "NOTICES.writer-acl"],
+      "missing": "Only guarded worker outcomes may mutate deliveries, and only named worker queries inspect across mailboxes. All declared source-driven workflows, retry transitions and unauthorized-operation controls must still execute through the real canonical outbox; direct component fixtures do not prove this claim."
+    }
+  ]
+}
