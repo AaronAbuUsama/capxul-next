@@ -17,7 +17,7 @@ const { authenticate, sendCode, verifyCode } = await import(new URL("../../../..
   verifyCode(sql: unknown, input: { email: string; code: string; client: string }, config: unknown, now: number):
     Promise<{ ok: true; value: { personId: string; token: string; safe: string } } | { ok: false }>;
 };
-type Entry = { prefixes: string[]; bodyLimit?: number; route(sql: unknown, path: string, input: Record<string, unknown>, bearer: string, now: number): Promise<{ status: number; body: unknown } | null>;
+type Entry = { paths: string[]; bodyLimit?: number; route(sql: unknown, path: string, input: Record<string, unknown>, bearer: string, now: number): Promise<{ status: number; body: unknown } | null>;
   render(error: unknown): { status: number; body: unknown } };
 const { mediaRoutes } = await import(new URL("../../../../backend/src/media/mount.ts", import.meta.url).href) as { mediaRoutes(): Entry[] };
 
@@ -44,7 +44,7 @@ test("native media runner proves files tenancy and kept-image admission through 
     if (request.method === "GET") return response.end(JSON.stringify({ world: prior.world_id, storage: "postgres", indexer: "ponder" }));
     const chunks: Buffer[] = []; for await (const chunk of request) chunks.push(chunk);
     const bearer = String(request.headers.authorization ?? "").replace(/^Bearer /, "");
-    const entry = entries.find((e) => e.prefixes.some((p) => request.url!.startsWith(p)));
+    const entry = entries.find((e) => e.paths.includes(request.url!));
     if (chunks.reduce((n, c) => n + c.length, 0) > (entry?.bodyLimit ?? 1_048_576)) { response.statusCode = 413; return response.end("{}"); }
     try {
       const out = await db.transaction("", async (sql) => entry!.route(sql, request.url!, JSON.parse(Buffer.concat(chunks).toString()), bearer, await worldNow(sql)));
