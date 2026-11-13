@@ -1,0 +1,1951 @@
+{
+  "kind": "door",
+  "name": "the chain operations through a world: a company founded and set up, an officer granted",
+  "proves": null,
+  "given": null,
+  "stage": "w-cops4",
+  "owner": "chain-ops",
+  "startedAt": "2026-11-13T15:56:31.908Z",
+  "outcome": "passed",
+  "failure": null,
+  "ended": {
+    "as": "succeeded",
+    "tag": null,
+    "detail": null
+  },
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 11654
+  },
+  "calls": [
+    {
+      "operation": "org.create",
+      "traceId": "bb057819df02d4ea131dd32f8bc91aed",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 3239.728,
+        "serverMs": 3018,
+        "budgetMs": 8000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 0,
+          "ms": 161,
+          "outcome": "success"
+        },
+        {
+          "name": "org.create.check",
+          "parent": "org.create.found",
+          "startMs": 0,
+          "ms": 803,
+          "outcome": "success"
+        },
+        {
+          "name": "org.create.found",
+          "parent": "org.create",
+          "startMs": 0,
+          "ms": 3018,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.byHandle",
+          "startMs": 161,
+          "ms": 108,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.byHandle",
+          "parent": "org.create.check",
+          "startMs": 161,
+          "ms": 108,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 269,
+          "ms": 109,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 378,
+          "ms": 108,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 486,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.unfinished",
+          "startMs": 593,
+          "ms": 109,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.unfinished",
+          "parent": "org.create.check",
+          "startMs": 593,
+          "ms": 109,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 702,
+          "ms": 101,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "org.create.check",
+          "startMs": 702,
+          "ms": 101,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_getTransactionCount",
+          "startMs": 803,
+          "ms": 46,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_getTransactionCount",
+          "parent": "chain.send",
+          "startMs": 803,
+          "ms": 46,
+          "outcome": "success"
+        },
+        {
+          "name": "chain.send",
+          "parent": "org.create.deploy",
+          "startMs": 803,
+          "ms": 175,
+          "outcome": "success"
+        },
+        {
+          "name": "org.create.deploy",
+          "parent": "org.create.found",
+          "startMs": 803,
+          "ms": 389,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_getBlockByNumber",
+          "startMs": 849,
+          "ms": 42,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_getBlockByNumber",
+          "parent": "chain.send",
+          "startMs": 849,
+          "ms": 42,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_sendRawTransaction",
+          "startMs": 891,
+          "ms": 43,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_sendRawTransaction",
+          "parent": "chain.send",
+          "startMs": 891,
+          "ms": 43,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_getTransactionReceipt",
+          "startMs": 934,
+          "ms": 44,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_getTransactionReceipt",
+          "parent": "chain.send",
+          "startMs": 934,
+          "ms": 44,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 978,
+          "ms": 44,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "org.create.deploy",
+          "startMs": 978,
+          "ms": 44,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_getTransactionCount",
+          "startMs": 1022,
+          "ms": 43,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_getTransactionCount",
+          "parent": "chain.send",
+          "startMs": 1022,
+          "ms": 43,
+          "outcome": "success"
+        },
+        {
+          "name": "chain.send",
+          "parent": "org.create.deploy",
+          "startMs": 1022,
+          "ms": 170,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_getBlockByNumber",
+          "startMs": 1065,
+          "ms": 43,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_getBlockByNumber",
+          "parent": "chain.send",
+          "startMs": 1065,
+          "ms": 43,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_sendRawTransaction",
+          "startMs": 1108,
+          "ms": 43,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_sendRawTransaction",
+          "parent": "chain.send",
+          "startMs": 1108,
+          "ms": 43,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_getTransactionReceipt",
+          "startMs": 1151,
+          "ms": 41,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_getTransactionReceipt",
+          "parent": "chain.send",
+          "startMs": 1151,
+          "ms": 41,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 1192,
+          "ms": 51,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "org.create.found",
+          "startMs": 1192,
+          "ms": 52,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 1244,
+          "ms": 49,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "userop.prepare",
+          "startMs": 1244,
+          "ms": 49,
+          "outcome": "success"
+        },
+        {
+          "name": "userop.prepare",
+          "parent": "org.create.found",
+          "startMs": 1244,
+          "ms": 673,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "bundler pimlico_getUserOperationGasPrice",
+          "startMs": 1293,
+          "ms": 569,
+          "outcome": "success"
+        },
+        {
+          "name": "bundler pimlico_getUserOperationGasPrice",
+          "parent": "userop.prepare",
+          "startMs": 1293,
+          "ms": 569,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 1862,
+          "ms": 55,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "userop.prepare",
+          "startMs": 1862,
+          "ms": 55,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.found",
+          "startMs": 1917,
+          "ms": 113,
+          "outcome": "success"
+        },
+        {
+          "name": "BEGIN postgres",
+          "parent": "sql.transaction",
+          "startMs": 2030,
+          "ms": 109,
+          "outcome": "success"
+        },
+        {
+          "name": "sql.transaction",
+          "parent": "org.create.found",
+          "startMs": 2030,
+          "ms": 988,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.insert",
+          "startMs": 2139,
+          "ms": 110,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.insert",
+          "parent": "sql.transaction",
+          "startMs": 2139,
+          "ms": 219,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.insert",
+          "startMs": 2249,
+          "ms": 109,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.open",
+          "startMs": 2358,
+          "ms": 118,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.open",
+          "parent": "sql.transaction",
+          "startMs": 2358,
+          "ms": 335,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.open",
+          "startMs": 2476,
+          "ms": 109,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.open",
+          "startMs": 2585,
+          "ms": 108,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "sql.transaction",
+          "startMs": 2693,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "sql.transaction",
+          "startMs": 2800,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "COMMIT postgres",
+          "parent": "sql.transaction",
+          "startMs": 2907,
+          "ms": 111,
+          "outcome": "success"
+        },
+        {
+          "name": "site.start",
+          "parent": "org.create.found",
+          "startMs": 3018,
+          "ms": 0,
+          "outcome": "success"
+        }
+      ],
+      "events": [
+        "org_founded"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one org.create span, 3018 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: org_founded {\"org\":\"org_srjog69y7up6\",\"safe\":\"0x514fE2F53fed5bd320fd589172990c67c814CFBB\",\"handle\":\"northwind\",\"founder\":\"dana\",\"approvals\":[\"apr_8cqtz8oqvrpy\",\"apr_bzui1s3q682j\"]}; declared for a success: org_founded {\"org\":\"org_srjog69y7up6\",\"handle\":\"northwind\",\"safe\":\"0x514fE2F53fed5bd320fd589172990c67c814CFBB\",\"founder\":\"dana\",\"approvals\":[\"apr_8cqtz8oqvrpy\",\"apr_bzui1s3q682j\"]}"
+        }
+      ]
+    },
+    {
+      "operation": "approval.sign",
+      "traceId": "aac6bf0e5e75f56adbdccf0cb597b9df",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1136.12,
+        "serverMs": 960,
+        "budgetMs": 4000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "approvals.find",
+          "startMs": 0,
+          "ms": 161,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.find",
+          "parent": "approval.sign.sign",
+          "startMs": 0,
+          "ms": 268,
+          "outcome": "success"
+        },
+        {
+          "name": "approval.sign.sign",
+          "parent": "approval.sign",
+          "startMs": 0,
+          "ms": 960,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.subject",
+          "startMs": 161,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.subject",
+          "parent": "approvals.find",
+          "startMs": 161,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approval.sign.sign",
+          "startMs": 268,
+          "ms": 101,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.of",
+          "startMs": 369,
+          "ms": 98,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.of",
+          "parent": "approval.sign.sign",
+          "startMs": 369,
+          "ms": 98,
+          "outcome": "success"
+        },
+        {
+          "name": "BEGIN postgres",
+          "parent": "sql.transaction",
+          "startMs": 467,
+          "ms": 99,
+          "outcome": "success"
+        },
+        {
+          "name": "sql.transaction",
+          "parent": "approval.sign.sign",
+          "startMs": 467,
+          "ms": 493,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.keep",
+          "startMs": 566,
+          "ms": 100,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.keep",
+          "parent": "sql.transaction",
+          "startMs": 566,
+          "ms": 100,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "sql.transaction",
+          "startMs": 666,
+          "ms": 98,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "sql.transaction",
+          "startMs": 764,
+          "ms": 98,
+          "outcome": "success"
+        },
+        {
+          "name": "COMMIT postgres",
+          "parent": "sql.transaction",
+          "startMs": 862,
+          "ms": 98,
+          "outcome": "success"
+        }
+      ],
+      "events": [
+        "approval_signed"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one approval.sign span, 960 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: approval_signed {\"signer\":\"dana\",\"approval\":\"apr_8cqtz8oqvrpy\"}; declared for a success: approval_signed {\"approval\":\"apr_8cqtz8oqvrpy\",\"signer\":\"dana\"}"
+        }
+      ]
+    },
+    {
+      "operation": "approval.sign",
+      "traceId": "45792cf9379f96d97835f858b6b7e83f",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 3688.375,
+        "serverMs": 3510,
+        "budgetMs": 4000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "approvals.find",
+          "startMs": 0,
+          "ms": 116,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.find",
+          "parent": "approval.sign.sign",
+          "startMs": 0,
+          "ms": 218,
+          "outcome": "success"
+        },
+        {
+          "name": "approval.sign.sign",
+          "parent": "approval.sign",
+          "startMs": 0,
+          "ms": 3510,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.subject",
+          "startMs": 116,
+          "ms": 102,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.subject",
+          "parent": "approvals.find",
+          "startMs": 116,
+          "ms": 102,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approval.sign.sign",
+          "startMs": 218,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.of",
+          "startMs": 311,
+          "ms": 92,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.of",
+          "parent": "approval.sign.sign",
+          "startMs": 311,
+          "ms": 92,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.subject",
+          "startMs": 403,
+          "ms": 99,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.subject",
+          "parent": "approval.sign.funds",
+          "startMs": 403,
+          "ms": 99,
+          "outcome": "success"
+        },
+        {
+          "name": "approval.sign.funds",
+          "parent": "approval.sign.sign",
+          "startMs": 403,
+          "ms": 143,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 502,
+          "ms": 44,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "approval.sign.funds",
+          "startMs": 502,
+          "ms": 44,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "bundler eth_sendUserOperation",
+          "startMs": 546,
+          "ms": 303,
+          "outcome": "success"
+        },
+        {
+          "name": "bundler eth_sendUserOperation",
+          "parent": "userop.send",
+          "startMs": 546,
+          "ms": 303,
+          "outcome": "success"
+        },
+        {
+          "name": "userop.send",
+          "parent": "approval.sign.sign",
+          "startMs": 546,
+          "ms": 909,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "bundler eth_getUserOperationReceipt",
+          "startMs": 849,
+          "ms": 212,
+          "outcome": "success"
+        },
+        {
+          "name": "bundler eth_getUserOperationReceipt",
+          "parent": "userop.send",
+          "startMs": 849,
+          "ms": 212,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "bundler eth_getUserOperationReceipt",
+          "startMs": 1261,
+          "ms": 193,
+          "outcome": "success"
+        },
+        {
+          "name": "bundler eth_getUserOperationReceipt",
+          "parent": "userop.send",
+          "startMs": 1261,
+          "ms": 194,
+          "outcome": "success"
+        },
+        {
+          "name": "BEGIN postgres",
+          "parent": "sql.transaction",
+          "startMs": 1455,
+          "ms": 92,
+          "outcome": "success"
+        },
+        {
+          "name": "sql.transaction",
+          "parent": "approval.sign.sign",
+          "startMs": 1455,
+          "ms": 1868,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.keep",
+          "startMs": 1547,
+          "ms": 94,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.keep",
+          "parent": "sql.transaction",
+          "startMs": 1547,
+          "ms": 94,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.sent",
+          "startMs": 1641,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.sent",
+          "parent": "sql.transaction",
+          "startMs": 1641,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.byOrg",
+          "startMs": 1734,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.byOrg",
+          "parent": "approval.sign.landed",
+          "startMs": 1734,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "approval.sign.landed",
+          "parent": "sql.transaction",
+          "startMs": 1734,
+          "ms": 1212,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.ready",
+          "startMs": 1827,
+          "ms": 94,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.ready",
+          "parent": "approval.sign.landed",
+          "startMs": 1827,
+          "ms": 94,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approval.sign.landed",
+          "startMs": 1921,
+          "ms": 95,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "site.queue",
+          "startMs": 2016,
+          "ms": 94,
+          "outcome": "success"
+        },
+        {
+          "name": "site.queue",
+          "parent": "approval.sign.landed",
+          "startMs": 2016,
+          "ms": 94,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "site.queue",
+          "startMs": 2110,
+          "ms": 95,
+          "outcome": "success"
+        },
+        {
+          "name": "site.queue",
+          "parent": "approval.sign.landed",
+          "startMs": 2110,
+          "ms": 95,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approval.sign.person",
+          "startMs": 2205,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "approval.sign.person",
+          "parent": "approval.sign.landed",
+          "startMs": 2205,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "site.queue",
+          "startMs": 2298,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "site.queue",
+          "parent": "approval.sign.landed",
+          "startMs": 2298,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approval.sign.person",
+          "startMs": 2391,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "approval.sign.person",
+          "parent": "approval.sign.landed",
+          "startMs": 2391,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "site.queue",
+          "startMs": 2484,
+          "ms": 92,
+          "outcome": "success"
+        },
+        {
+          "name": "site.queue",
+          "parent": "approval.sign.landed",
+          "startMs": 2484,
+          "ms": 92,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approval.sign.person",
+          "startMs": 2576,
+          "ms": 92,
+          "outcome": "success"
+        },
+        {
+          "name": "approval.sign.person",
+          "parent": "approval.sign.landed",
+          "startMs": 2576,
+          "ms": 92,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approval.sign.landed",
+          "startMs": 2668,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approval.sign.landed",
+          "startMs": 2761,
+          "ms": 92,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "site.queue",
+          "startMs": 2853,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "site.queue",
+          "parent": "approval.sign.landed",
+          "startMs": 2853,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "sql.transaction",
+          "startMs": 2946,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "sql.transaction",
+          "startMs": 3039,
+          "ms": 95,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "sql.transaction",
+          "startMs": 3134,
+          "ms": 96,
+          "outcome": "success"
+        },
+        {
+          "name": "COMMIT postgres",
+          "parent": "sql.transaction",
+          "startMs": 3230,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.byOrg",
+          "startMs": 3323,
+          "ms": 94,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.byOrg",
+          "parent": "site.reconcile",
+          "startMs": 3323,
+          "ms": 94,
+          "outcome": "success"
+        },
+        {
+          "name": "site.reconcile",
+          "parent": "approval.sign.sign",
+          "startMs": 3323,
+          "ms": 187,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "site.reconcile",
+          "startMs": 3417,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "site.start",
+          "parent": "site.reconcile",
+          "startMs": 3510,
+          "ms": 0,
+          "outcome": "success"
+        }
+      ],
+      "events": [
+        "approval_signed",
+        "approval_landed"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one approval.sign span, 3510 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: approval_landed {\"subject\":{\"id\":\"org_srjog69y7up6\",\"kind\":\"org_setup\"},\"approval\":\"apr_bzui1s3q682j\",\"transaction\":\"0x8cd2920c0c1c7db780e20340f1329a68d72584d47ede4a3691fa3cc9856113ca\"}, approval_signed {\"signer\":\"eli\",\"approval\":\"apr_bzui1s3q682j\"}; declared for a success: approval_landed {\"approval\":\"apr_bzui1s3q682j\",\"transaction\":\"0x8cd2920c0c1c7db780e20340f1329a68d72584d47ede4a3691fa3cc9856113ca\",\"subject\":{\"kind\":\"org_setup\",\"id\":\"org_srjog69y7up6\"}}, approval_signed {\"approval\":\"apr_bzui1s3q682j\",\"signer\":\"eli\"}"
+        }
+      ]
+    },
+    {
+      "operation": "org.member.grant",
+      "traceId": "8cc3821fb89443bd19e375c839903af5",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1911.108,
+        "serverMs": 1713,
+        "budgetMs": 4000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "organizations.byOrg",
+          "startMs": 0,
+          "ms": 141,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.byOrg",
+          "parent": "org.member.grant.propose",
+          "startMs": 0,
+          "ms": 141,
+          "outcome": "success"
+        },
+        {
+          "name": "org.member.grant.propose",
+          "parent": "org.member.grant",
+          "startMs": 0,
+          "ms": 1713,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.member.grant.propose",
+          "startMs": 141,
+          "ms": 95,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 236,
+          "ms": 37,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "org.member.grant.propose",
+          "startMs": 236,
+          "ms": 37,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.waiting",
+          "startMs": 273,
+          "ms": 94,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.waiting",
+          "parent": "org.member.grant.propose",
+          "startMs": 273,
+          "ms": 94,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 367,
+          "ms": 41,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "org.member.grant.propose",
+          "startMs": 367,
+          "ms": 41,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.nonce",
+          "startMs": 408,
+          "ms": 95,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.nonce",
+          "parent": "org.member.grant.propose",
+          "startMs": 408,
+          "ms": 95,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 503,
+          "ms": 42,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "org.member.grant.hat",
+          "startMs": 503,
+          "ms": 42,
+          "outcome": "success"
+        },
+        {
+          "name": "org.member.grant.hat",
+          "parent": "org.member.grant.propose",
+          "startMs": 503,
+          "ms": 42,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.member.grant.propose",
+          "startMs": 545,
+          "ms": 100,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.member.grant.propose",
+          "startMs": 645,
+          "ms": 95,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.member.grant.propose",
+          "startMs": 740,
+          "ms": 98,
+          "outcome": "success"
+        },
+        {
+          "name": "BEGIN postgres",
+          "parent": "sql.transaction",
+          "startMs": 838,
+          "ms": 96,
+          "outcome": "success"
+        },
+        {
+          "name": "sql.transaction",
+          "parent": "org.member.grant.propose",
+          "startMs": 838,
+          "ms": 875,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.change",
+          "startMs": 934,
+          "ms": 96,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.change",
+          "parent": "sql.transaction",
+          "startMs": 934,
+          "ms": 96,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.open",
+          "startMs": 1030,
+          "ms": 94,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.open",
+          "parent": "sql.transaction",
+          "startMs": 1030,
+          "ms": 288,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.open",
+          "startMs": 1124,
+          "ms": 99,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.open",
+          "startMs": 1223,
+          "ms": 95,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "sql.transaction",
+          "startMs": 1318,
+          "ms": 103,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "sql.transaction",
+          "startMs": 1421,
+          "ms": 100,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "sql.transaction",
+          "startMs": 1521,
+          "ms": 96,
+          "outcome": "success"
+        },
+        {
+          "name": "COMMIT postgres",
+          "parent": "sql.transaction",
+          "startMs": 1617,
+          "ms": 96,
+          "outcome": "success"
+        }
+      ],
+      "events": [
+        "officer_change_proposed",
+        "proposal_opened"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one org.member.grant span, 1713 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: officer_change_proposed {\"org\":\"org_srjog69y7up6\",\"change\":\"chg_uyp4vgehixdw\",\"proposal\":\"prp_9bnvk5o5pigm\",\"permission\":\"manage-books\"}, proposal_opened {\"org\":\"org_srjog69y7up6\",\"nonce\":2,\"proposal\":\"prp_9bnvk5o5pigm\",\"approvals\":[\"apr_3wztgmy5md73\",\"apr_j8zqk163a2im\"],\"threshold\":2}; declared for a success: officer_change_proposed {\"change\":\"chg_uyp4vgehixdw\",\"org\":\"org_srjog69y7up6\",\"permission\":\"manage-books\",\"proposal\":\"prp_9bnvk5o5pigm\"}, proposal_opened {\"proposal\":\"prp_9bnvk5o5pigm\",\"org\":\"org_srjog69y7up6\",\"nonce\":2,\"threshold\":2,\"approvals\":[\"apr_3wztgmy5md73\",\"apr_j8zqk163a2im\"]}"
+        }
+      ]
+    },
+    {
+      "operation": "approval.sign",
+      "traceId": "c977d5bc2d6dab94af038569b989f26f",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1134.048,
+        "serverMs": 951,
+        "budgetMs": 4000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "approvals.find",
+          "startMs": 0,
+          "ms": 113,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.find",
+          "parent": "approval.sign.sign",
+          "startMs": 0,
+          "ms": 218,
+          "outcome": "success"
+        },
+        {
+          "name": "approval.sign.sign",
+          "parent": "approval.sign",
+          "startMs": 0,
+          "ms": 951,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.subject",
+          "startMs": 113,
+          "ms": 105,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.subject",
+          "parent": "approvals.find",
+          "startMs": 113,
+          "ms": 105,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approval.sign.sign",
+          "startMs": 218,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.of",
+          "startMs": 325,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.of",
+          "parent": "approval.sign.sign",
+          "startMs": 325,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "BEGIN postgres",
+          "parent": "sql.transaction",
+          "startMs": 432,
+          "ms": 106,
+          "outcome": "success"
+        },
+        {
+          "name": "sql.transaction",
+          "parent": "approval.sign.sign",
+          "startMs": 432,
+          "ms": 519,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.keep",
+          "startMs": 538,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.keep",
+          "parent": "sql.transaction",
+          "startMs": 538,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "sql.transaction",
+          "startMs": 642,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "sql.transaction",
+          "startMs": 746,
+          "ms": 102,
+          "outcome": "success"
+        },
+        {
+          "name": "COMMIT postgres",
+          "parent": "sql.transaction",
+          "startMs": 848,
+          "ms": 103,
+          "outcome": "success"
+        }
+      ],
+      "events": [
+        "approval_signed"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one approval.sign span, 951 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: approval_signed {\"signer\":\"dana\",\"approval\":\"apr_3wztgmy5md73\"}; declared for a success: approval_signed {\"approval\":\"apr_3wztgmy5md73\",\"signer\":\"dana\"}"
+        }
+      ]
+    },
+    {
+      "operation": "approval.sign",
+      "traceId": "64e7c418bd6e53c163b2416d893f6482",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 3620.867,
+        "serverMs": 3356,
+        "budgetMs": 4000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "approvals.find",
+          "startMs": 0,
+          "ms": 175,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.find",
+          "parent": "approval.sign.sign",
+          "startMs": 0,
+          "ms": 280,
+          "outcome": "success"
+        },
+        {
+          "name": "approval.sign.sign",
+          "parent": "approval.sign",
+          "startMs": 0,
+          "ms": 3356,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.subject",
+          "startMs": 175,
+          "ms": 105,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.subject",
+          "parent": "approvals.find",
+          "startMs": 175,
+          "ms": 105,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approval.sign.sign",
+          "startMs": 280,
+          "ms": 106,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.of",
+          "startMs": 386,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.of",
+          "parent": "approval.sign.sign",
+          "startMs": 386,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.subject",
+          "startMs": 490,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.subject",
+          "parent": "approval.sign.funds",
+          "startMs": 490,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "approval.sign.funds",
+          "parent": "approval.sign.sign",
+          "startMs": 490,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_getCode",
+          "startMs": 597,
+          "ms": 39,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_getCode",
+          "parent": "userop.relay",
+          "startMs": 597,
+          "ms": 39,
+          "outcome": "success"
+        },
+        {
+          "name": "userop.relay",
+          "parent": "approval.sign.sign",
+          "startMs": 597,
+          "ms": 1299,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_getTransactionCount",
+          "startMs": 636,
+          "ms": 41,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_getTransactionCount",
+          "parent": "chain.send",
+          "startMs": 636,
+          "ms": 41,
+          "outcome": "success"
+        },
+        {
+          "name": "chain.send",
+          "parent": "userop.relay",
+          "startMs": 636,
+          "ms": 230,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_getBlockByNumber",
+          "startMs": 677,
+          "ms": 43,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_getBlockByNumber",
+          "parent": "chain.send",
+          "startMs": 677,
+          "ms": 43,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_sendRawTransaction",
+          "startMs": 720,
+          "ms": 101,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_sendRawTransaction",
+          "parent": "chain.send",
+          "startMs": 720,
+          "ms": 101,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_getTransactionReceipt",
+          "startMs": 821,
+          "ms": 45,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_getTransactionReceipt",
+          "parent": "chain.send",
+          "startMs": 821,
+          "ms": 45,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_getCode",
+          "startMs": 866,
+          "ms": 60,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_getCode",
+          "parent": "userop.relay",
+          "startMs": 866,
+          "ms": 60,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 926,
+          "ms": 50,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "userop.prepare",
+          "startMs": 926,
+          "ms": 50,
+          "outcome": "success"
+        },
+        {
+          "name": "userop.prepare",
+          "parent": "userop.relay",
+          "startMs": 926,
+          "ms": 263,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "bundler pimlico_getUserOperationGasPrice",
+          "startMs": 976,
+          "ms": 161,
+          "outcome": "success"
+        },
+        {
+          "name": "bundler pimlico_getUserOperationGasPrice",
+          "parent": "userop.prepare",
+          "startMs": 976,
+          "ms": 161,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 1137,
+          "ms": 52,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "userop.prepare",
+          "startMs": 1137,
+          "ms": 52,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "bundler eth_sendUserOperation",
+          "startMs": 1189,
+          "ms": 169,
+          "outcome": "success"
+        },
+        {
+          "name": "bundler eth_sendUserOperation",
+          "parent": "userop.send",
+          "startMs": 1189,
+          "ms": 169,
+          "outcome": "success"
+        },
+        {
+          "name": "userop.send",
+          "parent": "userop.relay",
+          "startMs": 1189,
+          "ms": 707,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "bundler eth_getUserOperationReceipt",
+          "startMs": 1358,
+          "ms": 147,
+          "outcome": "success"
+        },
+        {
+          "name": "bundler eth_getUserOperationReceipt",
+          "parent": "userop.send",
+          "startMs": 1358,
+          "ms": 147,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "bundler eth_getUserOperationReceipt",
+          "startMs": 1705,
+          "ms": 190,
+          "outcome": "success"
+        },
+        {
+          "name": "bundler eth_getUserOperationReceipt",
+          "parent": "userop.send",
+          "startMs": 1705,
+          "ms": 191,
+          "outcome": "success"
+        },
+        {
+          "name": "BEGIN postgres",
+          "parent": "sql.transaction",
+          "startMs": 1896,
+          "ms": 106,
+          "outcome": "success"
+        },
+        {
+          "name": "sql.transaction",
+          "parent": "approval.sign.sign",
+          "startMs": 1896,
+          "ms": 1147,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.keep",
+          "startMs": 2002,
+          "ms": 105,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.keep",
+          "parent": "sql.transaction",
+          "startMs": 2002,
+          "ms": 105,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.sent",
+          "startMs": 2107,
+          "ms": 103,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.sent",
+          "parent": "sql.transaction",
+          "startMs": 2107,
+          "ms": 103,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.changeOf",
+          "startMs": 2210,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.changeOf",
+          "parent": "approval.sign.landed",
+          "startMs": 2210,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "approval.sign.landed",
+          "parent": "sql.transaction",
+          "startMs": 2210,
+          "ms": 418,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.executed",
+          "startMs": 2314,
+          "ms": 106,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.executed",
+          "parent": "approval.sign.landed",
+          "startMs": 2314,
+          "ms": 106,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approval.sign.person",
+          "startMs": 2420,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "approval.sign.person",
+          "parent": "approval.sign.landed",
+          "startMs": 2420,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "site.queue",
+          "startMs": 2524,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "site.queue",
+          "parent": "approval.sign.landed",
+          "startMs": 2524,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "sql.transaction",
+          "startMs": 2628,
+          "ms": 103,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "sql.transaction",
+          "startMs": 2731,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "sql.transaction",
+          "startMs": 2835,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "COMMIT postgres",
+          "parent": "sql.transaction",
+          "startMs": 2939,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.changeOf",
+          "startMs": 3043,
+          "ms": 105,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.changeOf",
+          "parent": "approval.sign.sign",
+          "startMs": 3043,
+          "ms": 105,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.byOrg",
+          "startMs": 3148,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.byOrg",
+          "parent": "site.reconcile",
+          "startMs": 3148,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "site.reconcile",
+          "parent": "approval.sign.sign",
+          "startMs": 3148,
+          "ms": 208,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "site.reconcile",
+          "startMs": 3252,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "site.start",
+          "parent": "site.reconcile",
+          "startMs": 3356,
+          "ms": 0,
+          "outcome": "success"
+        }
+      ],
+      "events": [
+        "approval_signed",
+        "approval_landed"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one approval.sign span, 3356 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: approval_landed {\"subject\":{\"id\":\"chg_uyp4vgehixdw\",\"kind\":\"officer_change\"},\"approval\":\"apr_j8zqk163a2im\",\"transaction\":\"0x77c0784ada36478fa18a72d9440438912c5786e47cc095d52249fb0862847aa2\"}, approval_signed {\"signer\":\"eli\",\"approval\":\"apr_j8zqk163a2im\"}; declared for a success: approval_landed {\"approval\":\"apr_j8zqk163a2im\",\"transaction\":\"0x77c0784ada36478fa18a72d9440438912c5786e47cc095d52249fb0862847aa2\",\"subject\":{\"kind\":\"officer_change\",\"id\":\"chg_uyp4vgehixdw\"}}, approval_signed {\"approval\":\"apr_j8zqk163a2im\",\"signer\":\"eli\"}"
+        }
+      ]
+    }
+  ],
+  "afterwards": {
+    "stage": "left to its owner",
+    "before": null,
+    "after": null
+  },
+  "ms": {
+    "create": 12583,
+    "run": 15518,
+    "checks": 872,
+    "destroy": null
+  }
+}
