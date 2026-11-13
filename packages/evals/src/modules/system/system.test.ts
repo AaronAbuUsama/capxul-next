@@ -15,6 +15,50 @@ const pkg = {
   "packages/backend/package.json": JSON.stringify({ name: "@capxul/backend", exports: { "./plugs": "./src/plugs/door.ts", "./organizations": "./src/organizations/door.ts" } }),
   "packages/site-service/package.json": JSON.stringify({ name: "@capxul/site-service", exports: { ".": "./src/sites/door.ts" } }),
 };
+const doors = Object.fromEntries(["backend/src/access", "backend/src/plugs", "backend/src/organizations", "site-service/src/sites"]
+  .map((d) => [`packages/${d}/door.ts`, ""]));
+
+test("an @capxul import is judged by the file Node loads, and one that loads nothing or is computed is a violation", () => {
+  const file = "packages/backend/src/payments/door.ts";
+  // @capxul/x exports ./access with the given target; access is a payments dependency, sign-in.ts is not its door.
+  const x = (exports: unknown) => ({ "packages/x/package.json": JSON.stringify({ name: "@capxul/x", exports: { "./access": exports } }),
+    "packages/x/src/access/door.ts": "", "packages/x/src/access/sign-in.ts": "" });
+  const [door, inner] = ["./src/access/door.ts", "./src/access/sign-in.ts"];
+  for (const [label, source, files, why] of [
+    ["an unexported subpath", 'import "@capxul/backend/nope";', {}, /does not resolve through @capxul\/backend's exports/],
+    ["an unknown package", 'import "@capxul/nosuch/x";', {}, /no package @capxul\/nosuch/],
+    ["a folder path the map does not export", 'import "@capxul/backend/src/plugs/door.ts";', {}, /does not resolve/],
+    ["only types and require conditions, loaded by import", 'import "@capxul/x/access";', x({ types: "./a.d.ts", require: door }), /does not resolve/],
+    ["only a development condition", 'import "@capxul/x/access";', x({ development: door }), /does not resolve/],
+    ["an array with no usable target", 'import "@capxul/x/access";', x([{ types: "./a.d.ts" }]), /does not resolve/],
+    ["an export to a file not at the commit", 'import "@capxul/x/access";', { ...x(door), "packages/x/src/access/door.ts": undefined }, /does not resolve/],
+    ["default before import: Node takes default", 'import "@capxul/x/access";', x({ default: inner, import: door }), /not through access's door/],
+    ["import of a require-only door", 'import "@capxul/x/access";', x({ import: inner, require: door }), /not through access's door/],
+    ["import() with a substitution", "const m = await import(`../${name}/door.ts`);", {}, /cannot be judged statically/],
+    ["import() of a variable", "const m = await import(name);", {}, /cannot be judged statically/],
+    ["require() of a variable", "const m = require(name);", {}, /cannot be judged statically/],
+    ["import.meta.resolve of a variable", "const u = import.meta.resolve(name);", {}, /cannot be judged statically/],
+  ] as const) {
+    const all: Record<string, string | undefined> = { ...pkg, ...doors, [file]: source, ...files };
+    const j = judgeImports(b, "payments", tree(Object.fromEntries(Object.entries(all).filter(([, v]) => v !== undefined)) as Record<string, string>));
+    assert.equal(j.pass, false, `${label}: ${j.detail}`);
+    assert.match(j.violations[0]?.why ?? "", why, `${label}: ${j.detail}`);
+  }
+  for (const [label, source, exports] of [
+    ["import before default: Node takes import", 'import "@capxul/x/access";', { import: door, default: inner }],
+    ["require() takes the require condition", 'const a = require("@capxul/x/access");', { import: inner, require: door }],
+    ["an array falls back to its first usable target", 'import "@capxul/x/access";', ["not-relative", door]],
+    ["a plain string export", 'import "@capxul/x/access";', door],
+  ] as const) {
+    const j = judgeImports(b, "payments", tree({ ...pkg, ...doors, ...x(exports), [file]: source }));
+    assert.equal(j.pass, true, `${label}: ${j.detail}`);
+  }
+  // A pattern export resolves its star, and the longest matching prefix wins.
+  const star = (source: string) => judgeImports(b, "payments", tree({ ...pkg, ...doors, ...x(door), [file]: source,
+    "packages/x/package.json": JSON.stringify({ name: "@capxul/x", exports: { "./*": "./src/*/sign-in.ts", "./c/*": "./src/*/door.ts" } }) }));
+  assert.equal(star('import "@capxul/x/c/access";').pass, true, star('import "@capxul/x/c/access";').detail);
+  assert.match(star('import "@capxul/x/access";').detail, /not through access's door/);
+});
 
 test("checks are named from the gate's sys claims", () => {
   const named = systemChecks(b, sliceZeroRequired(b));
@@ -47,8 +91,10 @@ test("a concept imports another only through the door of a concept it depends on
     ["a module URL", 'const u = new URL("../plugs/door.ts", import.meta.url);', false],
     ["a commented-out import", '// import { e } from "../plugs/door.ts";\n/* import "../plugs/door.ts"; */', true],
     ["a string that looks like one", "const s = 'import { e } from \"../plugs/door.ts\"';", true],
+    ["a concept folder named without a slash", 'import * as p from "../plugs";', false],
+    ["import.meta.resolve", 'const u = import.meta.resolve("../plugs/door.ts");', false],
   ] as const) {
-    const j = judgeImports(b, "payments", tree({ ...pkg, [file]: source, "packages/backend/src/access/door.ts": "", "packages/backend/src/plugs/door.ts": "" }));
+    const j = judgeImports(b, "payments", tree({ ...pkg, [file]: source, ...doors }));
     assert.equal(j.pass, pass, `${label}: ${j.detail}`);
   }
   // JavaScript in a concept folder counts too.

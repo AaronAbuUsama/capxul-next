@@ -28,7 +28,7 @@ const SOURCE = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
 
 /** The concept folder a repository path lies in: packages/<package>/src/<concept>/…, else null. */
 export const conceptOf = (path: string, concepts: ReadonlySet<string>): { pkg: string; concept: string } | null => {
-  const m = /^packages\/([^/]+)\/src\/([^/]+)\//.exec(path);
+  const m = /^packages\/([^/]+)\/src\/([^/]+)(?:\/|$)/.exec(path);
   return m && concepts.has(m[2]!) ? { pkg: m[1]!, concept: m[2]! } : null;
 };
 
@@ -48,10 +48,26 @@ export const judgeImports = (b: Pick<Blueprint, "records">, concept: string, tre
   const files = tree.files.filter((f) => SOURCE.test(f) && conceptOf(f, concepts)?.concept === concept);
   if (!files.length) return { pass: false, detail: `no TypeScript or JavaScript under packages/*/src/${concept}/, so its imports cannot be checked`, files, violations: [] };
   const violations: Violation[] = [];
+  const present = new Set(tree.files);
   for (const file of files) {
-    for (const { specifier, line } of specifiersOf(file, tree.read(file))) {
-      // Relative paths resolve against the file; @capxul/<package> imports through that package's exports map.
-      const target = specifier.startsWith(".") ? posix.normalize(posix.join(posix.dirname(file), specifier)) : resolvePackage(specifier, packages);
+    for (const { specifier, line, kind } of specifiersOf(file, tree.read(file))) {
+      if (specifier === null) {
+        violations.push({ file, line, specifier: `${kind === "require" ? "require" : "import"}(<computed>)`, reaches: "unknown", why: "its argument is not a literal, so it cannot be judged statically" });
+        continue;
+      }
+      // Relative paths resolve against the file; @capxul/<package> imports through that package's exports map, and one
+      // that loads no file at the commit is itself a violation. Other bare specifiers are outside the repository.
+      let target: string | null = null;
+      if (specifier.startsWith(".")) target = posix.normalize(posix.join(posix.dirname(file), specifier));
+      else if (specifier.startsWith("@capxul/")) {
+        target = resolvePackage(specifier, packages, kind);
+        if (!target || !present.has(target)) {
+          const name = /^@capxul\/[^/]+/.exec(specifier)?.[0] ?? specifier;
+          violations.push({ file, line, specifier, reaches: target ?? "nothing", why: packages.has(name)
+            ? `does not resolve through ${name}'s exports to a file at this commit` : `no package ${name} exists at this commit` });
+          continue;
+        }
+      }
       const other = target ? conceptOf(target, concepts) : null;
       if (!other || other.concept === concept) continue;
       const reaches = `${other.concept} (${target})`;
