@@ -59,7 +59,7 @@ export const workflow_books_assets_scan_added = defineWorkflow({
   emits: [],
   calls: [integration_chain_rpc.c.getBlock, integration_chain_rpc.c.getLogs],
   chain: [],
-  idempotency: "A fact's key is the Organization and the Transfer (chain, hash, log index): a window read twice books nothing twice.",
+  idempotency: "A fact's key is the Organization and the Transfer's receipt-ordinal log id (payments.movement-occurrence): a window read twice books nothing twice.",
   timeoutMs: 55_000,
   retries: { max: 2, backoff: "exponential" },
   budget: budget("background"),
