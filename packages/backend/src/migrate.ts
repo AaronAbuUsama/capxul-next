@@ -1,6 +1,14 @@
 import { readFileSync } from "node:fs";
 import pg from "pg";
+import { migrateActivity } from "./activity/door.ts";
+import { migrateApprovals } from "./approvals/migrate.ts";
+import { migrate as migrateBooks } from "./books/door.ts";
+import { migrate as migrateBudgets } from "./budgets/door.ts";
+import { migratePayments } from "./payments/door.ts";
 import { required } from "./platform/config.ts";
+import { migrateOutbox } from "./platform/outbox.ts";
+import { migrateRequests } from "./requests/migrate.ts";
+import { migrateServiceSigner } from "./shared/door.ts";
 
 const admin = new URL(required("PG_ADMIN_URL"));
 const connections = ["DATABASE_URL", "WORKER_DATABASE_URL", "PONDER_DATABASE_URL"].map((name) => new URL(required(name)));
@@ -24,12 +32,15 @@ try {
   }
   await db.query(readFileSync(new URL("./schema.sql", import.meta.url), "utf8"));
   await db.query(readFileSync(new URL("./parties/schema.sql", import.meta.url), "utf8"));
+  // Before the org policies: it renames the legacy org-scoped app.approvals (site payments) to site_payment_approvals
+  // and creates the person-scoped app.approvals with its own policy, which the org loop below must never touch.
+  await migrateApprovals(db);
   await db.query("create schema if not exists ponder authorization capxul_ponder");
   // Ponder creates its versioned ponder_sync schema itself; it cannot alter/write the admin-owned app schema.
   await db.query((await db.query("select format('grant create on database %I to capxul_ponder',current_database()) as sql")).rows[0].sql);
   await db.query("grant usage on schema app to capxul_core, capxul_worker");
   await db.query("grant select on app.schema_version to capxul_core, capxul_worker");
-  const tables = ["organizations", "people", "hats", "approvals", "site_events", "consumed_facts", "site_request_answers", "transaction_traces", "records"];
+  const tables = ["organizations", "people", "hats", "site_payment_approvals", "site_events", "consumed_facts", "site_request_answers", "transaction_traces", "records"];
   for (const table of tables) {
     await db.query(`alter table app.${table} enable row level security; alter table app.${table} force row level security`);
     await db.query(`drop policy if exists tenant on app.${table}`);
@@ -48,6 +59,11 @@ try {
   await db.query("grant usage on schema ponder to capxul_worker");
   await db.query("alter default privileges for role capxul_ponder in schema ponder grant select on tables to capxul_worker");
   await db.query("grant select on all tables in schema ponder to capxul_worker");
+  // The accepted fresh-create order; migrateApprovals already ran before the org-policy loop. bind-indexer runs after Ponder.
+  await migrateOutbox(db); await migrateServiceSigner(db);
+  await migratePayments(db); await migrateRequests(db); await migrateBooks(db); await migrateBudgets(db);
+  await migrateActivity(db);
+  // Later concepts append here, in the same transaction (Notices: migrateNotices).
   await db.query("COMMIT");
   console.log("Core schema v1 migrated; separate non-superuser tenant, worker and Ponder roles");
 } catch (error) { await db.query("ROLLBACK"); throw error; }

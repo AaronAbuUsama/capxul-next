@@ -16,15 +16,8 @@ create unique index if not exists "parties-by-safe" on app.parties(safe_address)
 create unique index if not exists "parties-by-mailbox" on app.parties(mailbox_digest);
 create index if not exists "parties-by-owner" on app.parties(owner_kind,owner_id,kind);
 
--- Infrastructure outbox, not another directory: no mailbox, handle, display name or Safe.
-create table if not exists app.party_events (
-  id bigint generated always as identity primary key,
-  party_id text not null references app.parties,
-  kind text not null default 'party_transitioned' check (kind='party_transitioned'),
-  data jsonb not null,
-  at bigint not null
-);
-revoke all on app.parties, app.party_events from public, capxul_core, capxul_worker;
-grant select on app.parties, app.party_events to capxul_core, capxul_worker;
+-- party_transitioned goes to the canonical app.transition_outbox (platform/outbox.sql, migrated first).
+drop table if exists app.party_events;
+revoke all on app.parties from public, capxul_core, capxul_worker;
+grant select on app.parties to capxul_core, capxul_worker;
 grant insert,update on app.parties to capxul_worker;
-grant insert on app.party_events to capxul_worker;

@@ -40,6 +40,26 @@ const ERP = "erpnext/accounts/doctype";
 
 // ── money facts ─────────────────────────────────────────────────────────────────────────────
 
+export const decision_books_captured_valuation = defineDecision({
+  id: "books.captured-valuation",
+  title: "Money procedures store captured block valuation, never invent a peg",
+  question: "After removing the price-table dependency, where does a same-transaction money fact get its USD evidence?",
+  options: [
+    {
+      label: "captured-evidence",
+      text: "The invoker may supply captured block-time USD value, rate and source for a priced asset. Without evidence all three are null. The procedure makes no external call, never assumes USDC is one dollar and never revalues a replay or reversal.",
+    },
+    {
+      label: "provider-in-transaction",
+      text: "Call a price provider while holding settlement locks, making chain settlement depend on external availability.",
+    },
+  ],
+  chosen: "captured-evidence",
+  why: "The declared procedure has no external calls, errors or price-table dependency. Captured evidence preserves atomic settlement without recreating accounting or silently inventing valuation; the existing fact schema already admits missing USD evidence.",
+  source: "Slice-zero books reconciliation, 12 November 2026; books.chart-owner; blueprint/shared/cut-moves.ts removed table_book_prices; blueprint/books/facts.ts permits no USD yet",
+  affects: [procedure_books_record_money_fact, procedure_books_reverse_money_fact, table_book_facts],
+});
+
 export const decision_books_facts_without_chart = defineDecision({
   id: "books.facts-without-chart",
   title: "The books are an ERPNext Company's accounting from the first money",
@@ -208,6 +228,34 @@ export const decision_books_added_token_opening = defineDecision({
 
 // ── rows and annotations ────────────────────────────────────────────────────────────────────
 
+export const decision_books_annotation_feature = defineDecision({
+  id: "books.annotation-feature",
+  title: "Organization annotation uses the fail-closed books money feature",
+  question: "Which trusted feature catalogue entry gates an Organization's retained annotation RPC?",
+  options: [
+    { label: "books-organization-money", text: "Gate Organization annotation on books, target organization, money true. Use access' authoritative feature reader and world time; missing, disabled, unsupported or stale money-feature state refuses FEATURE_NOT_AVAILABLE. Personal categories do not require an Organization feature or site." },
+    { label: "no-feature", text: "Rely only on Seat and native site roles, ignoring the retained FEATURE_NOT_AVAILABLE refusal." },
+  ],
+  chosen: "books-organization-money",
+  why: "The retained RPC promises a feature refusal. The archived catalogue names books, and the action can change posting intent. A deployment-owned catalogue, never request input, prevents unknown or stale state becoming default-on authority.",
+  source: "Access owner source review, 12 November 2026; docs/as-is/archive/access/features.ts:60; books.annotations.save; access.requireFeature",
+  affects: [rpc_books_annotations_save],
+});
+
+export const decision_books_personal_codes = defineDecision({
+  id: "books.personal-codes",
+  title: "The fixed personal categories are not an Organization chart replica",
+  question: "Which codes does the retained personal annotation contract accept without consulting ERPNext?",
+  options: [
+    { label: "fixed-personal", text: "Keep personal codes 4000 Salary, 4100 Freelance income, 4900 Other income, 6000 Rent and housing, 6100 Food and groceries, 6200 Transport, 6300 Utilities and phone, 6400 Health, 6500 Shopping, 6600 Travel, 6800 Family and gifts, 1900 Transfers between my accounts, 4999 Uncategorized income and 6999 Uncategorized expense. Store personal_<code>, not a company Account; no company chart, site call or fact is created." },
+    { label: "site-personal", text: "Require a person's own ERPNext site and resolve a mutable native chart there." },
+  ],
+  chosen: "fixed-personal",
+  why: "The retained RPC explicitly promises a fixed personal chart and no site call. Naming its codes makes validation testable without bringing back the removed Organization chart. These are behavioral reference data, not copied accounting implementation.",
+  source: "Xelmar-tech/infrastructure packages/protocol/src/books/model.ts PERSONAL_CHART, read 12 November 2026; books.annotate-known-rows; books.chart-owner",
+  affects: [rpc_books_annotations_save, table_book_annotations],
+});
+
 export const decision_books_annotations_one_table = defineDecision({
   id: "books.annotations-one-table",
   title: "A row's account, suggestion and memo are one annotation row",
@@ -293,6 +341,20 @@ export const decision_books_births_are_transitions = defineDecision({
   why: "The schema accepts an empty `from`, the build's state checks pass, and no phantom state is stored or listed. The event's `from` is null for a birth. Review, 11 November 2026: Confirmed books.births-are-transitions; original choice retained.",
   source: by("packages/blueprint-engine/src/records/data.ts (TransitionSpec.from); docs/as-is/archive/books/data.ts (births said only in prose)"),
   affects: [machine_book_annotation, machine_book_asset],
+});
+
+export const decision_books_every_side_births = defineDecision({
+  id: "books.every-side-births",
+  title: "Every recorded money side births its annotation, waiting when nothing was said",
+  question: "A recorded money side with no `against` (a payment sent with no account, an outside deposit). Is its annotation row born?",
+  options: [
+    { label: "always-birth", text: "Yes: the procedure births the row `waiting` (`queue`, no account) when the side says nothing, and with the side's `against` otherwise." },
+    { label: "only-with-against", text: "No: a row is born only when the side carries an `against`; otherwise the first save births it." },
+  ],
+  chosen: "always-birth",
+  why: "The review queue is the rows waiting for an account, and the machine's initial state is `waiting`. Without a born row, unclassified money would sit in the facts but never in review, and payment.send would send book_annotation_transitioned only sometimes, while its eval claims it always does. The birth is still once per row: a replay, a re-recorded generation or an existing annotation writes nothing more. Raised by the Core payments lane on 13 November 2026 while binding evt:payment.send/book_annotation_transitioned.",
+  source: by("blueprint/books/data.ts (machine_book_annotation initial waiting; the review index); the Core payments lane, 13 November 2026"),
+  affects: [procedure_books_record_money_fact, machine_book_annotation, table_book_annotations, event_book_annotation_transitioned],
 });
 
 // ── authorization, assets, prices ───────────────────────────────────────────────────────────
@@ -987,4 +1049,3 @@ export const decision_books_annotate_site_chart = defineDecision({
 });
 
 // ── the world pass's build (9 November 2026): payroll's HR money (payroll.hr-money) ─────────
-

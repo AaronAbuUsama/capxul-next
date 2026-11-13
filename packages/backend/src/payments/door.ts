@@ -1,6 +1,28 @@
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits } from "viem";
+import { readFileSync } from "node:fs";
 import { record, type Sql } from "../platform/db.ts";
 import { enqueue } from "../plugs/door.ts";
+import { settleSitePayment } from "../approvals/door.ts";
+import type { Owner, Payment } from "./types.ts";
+export type { Owner, Payment, PaymentTransitionProps } from "./types.ts";
+export { followPayment, approvalTerminal, type PaymentContext, type PaymentFact } from "./lifecycle.ts";
+export { prepareCommand, type PrepareCommand, type PrepareContext, type PreparedCommand, type PreparedItem } from "./prepare.ts";
+export { listPaymentWork, wakePaymentChain, onApprovalTransition, type PaymentWork } from "./work.ts";
+export { reconcilePayment, type ReconcileContext, type ReconciledPayment } from "./reconcile.ts";
+
+/** Called by the admin migrator inside its existing transaction, never during resume. */
+export async function migratePayments(sql: Sql) {
+  await sql.query(readFileSync(new URL("./schema.sql", import.meta.url), "utf8"));
+}
+
+/** An owner-qualified identity is required even for a worker following an outbox event. */
+export async function readPayment(sql: Sql, owner: Owner, paymentId: string): Promise<Payment | null> {
+  return (await sql.query<Payment>("select * from app.payments where owner_kind=$1 and owner_id=$2 and id=$3", [owner.kind, owner.id, paymentId])).rows[0] ?? null;
+}
+
+export async function readCommandPayments(sql: Sql, owner: Owner, commandId: string): Promise<Payment[]> {
+  return (await sql.query<Payment>("select * from app.payments where owner_kind=$1 and owner_id=$2 and command_id=$3 order by created_at,id", [owner.kind, owner.id, commandId])).rows;
+}
 
 const amount = (v: string) => formatUnits(BigInt(v), 6);
 export async function consume(sql: Sql, org: string, chain: number, finality: number) {
@@ -17,7 +39,7 @@ export async function consume(sql: Sql, org: string, chain: number, finality: nu
       from app.chain_payments p where p.chain_id=$2 and p.sender=$3 and p.token=$4 and p.block_number<=$5
     union all
     select t.log_id,t.block_number,t.log_index,t.tx_hash,t.block_time,'transfer_in',to_jsonb(t) || jsonb_build_object('amount',t.amount::text)
-      from app.transfers t where t.chain_id=$2 and t.to=$3 and t.token=$4 and t.block_number<=$5
+      from app.transfers t where t.chain_id=$2 and t.to_address=$3 and t.token=$4 and t.block_number<=$5
     union all
     select l.log_id,l.block_number,l.log_index,l.tx_hash,l.block_time,'hat',to_jsonb(l)
       from app.chain_logs l join app.hats h on h.org_id=$1 and h.hat_id=l.args->>'id'
@@ -31,12 +53,10 @@ export async function consume(sql: Sql, org: string, chain: number, finality: nu
     let trace = traceRow?.trace ?? "";
     const time = new Date(Number(row.block_time)).toISOString();
     if (row.kind === "payment_sent") {
-      const approval = (await sql.query("select * from app.approvals where org_id=$1 and request->>'document_hash'=$2 order by created_at limit 1 for update", [org, f.document_hash])).rows[0];
-      if (approval && approval.request.to_address === f.recipient && parseUnits(approval.request.amount, 6) === BigInt(f.amount)) {
-        // A kill before external submission is reported must not lose the originating command's trace.
-        trace ||= approval.trace;
-        await sql.query("update app.approvals set status='settled',tx_hash=$3 where org_id=$1 and id=$2", [org, approval.id, f.tx_hash]);
-      }
+      const approval = await settleSitePayment(sql, { org, document_hash: f.document_hash, recipient: f.recipient,
+        amount_raw: f.amount, tx_hash: f.tx_hash, trace });
+      // A kill before external submission is reported must not lose the originating command's trace.
+      if (approval.matched) trace = approval.trace;
       await enqueue(sql, org, row.log_id, "payment_sent", {
         payment_id: f.payment_id, document_hash: f.document_hash, from_safe: f.sender, to: f.recipient,
         amount: amount(f.amount), asset: "USDC", tx_hash: f.tx_hash, block_time: time,
@@ -46,7 +66,7 @@ export async function consume(sql: Sql, org: string, chain: number, finality: nu
       const founder = (await sql.query("select * from app.people where org_id=$1 and email=$2", [org, company.admin_email])).rows[0];
       const capital = first && founder;
       await enqueue(sql, org, row.log_id, capital ? "founder_capital" : "deposit_received", {
-        to: f.to, from: f.from, amount: amount(f.amount), asset: "USDC", tx_hash: f.tx_hash, block_time: time,
+        to: f.to_address, from: f.from_address, amount: amount(f.amount), asset: "USDC", tx_hash: f.tx_hash, block_time: time,
         ...(capital ? { founder_email: founder.email, founder_name: founder.name } : {}),
       }, trace);
     } else {

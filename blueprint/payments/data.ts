@@ -64,8 +64,10 @@ export const Outcome = Schema.Literals([
 ]);
 
 /**
- * What another concept's money is, kept on the Payment it births so its book fact names it (payments.payroll-door):
- * a payroll run's salary slip, or a payroll deduction's remittance, with the run and the Employee it pays. A seat
+ * What another concept's money is, kept on the Payment for provenance and reads (payments.payroll-door):
+ * a payroll run's salary slip, or a payroll deduction's remittance, with the run and the Employee it pays.
+ * Books names the Payment as its settlement source; payroll supplies Employee, Payroll Entry and Payroll Payable
+ * posting details through `against`, not by casting this source kind into Books' source kind. A seat
  * purchase (`org seats buy`, payments.seat-purchase) is a source too: its id is its command's, `quantity` its seats
  * and `buyer_party_id` the person who bought them, which the settlement passes to organizations' door. So is a
  * hosting payment for the Organization's FDE (`org fde pay`, payments.fde-hosting-purchase): `quantity` its months.
@@ -152,8 +154,8 @@ export const table_payments = defineTable({
     "tenant is filled when the payee collects. Every claim escrow keeps `escrow_address`, its general escrow's " +
     "counterfactual address, and `funding_payment_id`, the id of the PaymentSent that pays that address (from the payer's " +
     "Safe, or the company Safe directly or through Budgets), which settles nothing; one a budget funds keeps `budget_id` too, the budget " +
-    "whose current hat-wearers may take it back (payments.claim-escrow-routes). `against`, `source` " +
-    "and `fee_raw` go to books with its settlement (payments.money-sides). `settled_at` is the settling block's time, and " +
+    "whose current hat-wearers may take it back (payments.claim-escrow-routes). Books gets `against`, `fee_raw` and " +
+    "source=Payment; Payment.source keeps origin (payments.payroll-door). `settled_at` is block time, and " +
     "the settled transaction, log and block are the holder's to read: a payroll run copies them onto its slips " +
     "(payments.payroll-door). Status changes only through machine `payment`.",
   concept: concept_payments,

@@ -141,12 +141,12 @@ test("real v4/Ponder payment survives Core death, lost site ACK and replay witho
     assert.equal((await fetch(`${coreUrl}/ready`)).status, 503);
     await post("/admin/snapshot/resume", {}); await post("/admin/snapshot/resume", {});
     // App RLS, view scope and pool-local tenant state are tested with the real restricted login.
-    assert.equal((await db.tenant.query("select count(*)::int as n from app.approvals")).rows[0].n, 0);
+    assert.equal((await db.tenant.query("select count(*)::int as n from app.site_payment_approvals")).rows[0].n, 0);
     assert.equal((await db.transaction(fixture.slug, (sql) => sql.query("select count(*)::int as n from app.chain_payments"))).rows[0].n, 1);
     assert.equal((await db.transaction("other-company", (sql) => sql.query("select count(*)::int as n from app.chain_payments"))).rows[0].n, 0);
     await assert.rejects(db.tenant.query("select * from ponder.chain_payments"), /permission denied/);
     await assert.rejects(db.worker.query("update app.records set trace='changed'"), /permission denied/);
-    assert.equal((await db.worker.query("select count(*)::int as n from app.approvals where org_id=$1", [fixture.slug])).rows[0].n, 1);
+    assert.equal((await db.worker.query("select count(*)::int as n from app.site_payment_approvals where org_id=$1", [fixture.slug])).rows[0].n, 1);
     const records = await post("/admin/record", { org: fixture.slug });
     const queued = records.filter((r: any) => r.kind === "site_event_queued");
     assert.equal(queued.length, effects.size);

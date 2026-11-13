@@ -37,7 +37,7 @@ export async function rewriteRestoredWorld(db: Database, input: {
     await sql.query("update app.world set world_id=$1,epoch=$2,clock=$3,lineage=$4", [input.worldId, input.epoch, input.clock, input.lineage]);
     for (const [org, site] of Object.entries(input.sites)) {
       await sql.query("update app.organizations set site=$2 where org_id=$1", [org, site]);
-      await sql.query("update app.approvals set request=jsonb_set(request,'{site}',to_jsonb($2::text)) where org_id=$1", [org, site]);
+      await sql.query("update app.site_payment_approvals set request=jsonb_set(request,'{site}',to_jsonb($2::text)) where org_id=$1", [org, site]);
       await sql.query("update app.site_request_answers set request=jsonb_set(request,'{site}',to_jsonb($2::text)) where org_id=$1", [org, site]);
       if (origin) await sql.query(`update app.site_request_answers set answer=jsonb_set(answer,'{approval_url}',
         to_jsonb(regexp_replace(answer->>'approval_url','^https?://[^/?#]+',$2,'i')))
