@@ -10,5 +10,5 @@ var/
 packages/indexer/.ponder
 
 # packages/frappe-app: Python's generated files
-packages/frappe-app/**/__pycache__/
+**/__pycache__/
 packages/frappe-app/*.egg-info/
