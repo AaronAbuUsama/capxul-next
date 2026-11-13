@@ -13,7 +13,7 @@ import it; it imports neither.
 | `src/operation.ts` | The format: `declare`, `declareOutcomes`, `outcome`, `Budget`, and what the runner reads. |
 | `src/errors.ts` | Every refusal, declared once, with its command-line exit code, `NotImplemented` included (every operation declares it; decisions.md, entry 33). |
 | `src/values.ts` | The shared values: names, ids, instants, money, approvals, the view of a world. |
-| `src/telemetry.ts` | The trace header, `Telemetry`, and the two sign-in middlewares. |
+| `src/telemetry.ts` | The trace, credential and person headers, `Telemetry`, and the two sign-in middlewares. |
 | `src/starting-worlds.ts` | Every starting world the claims begin from, and how each is made. |
 | `src/<concept>/operations.ts` | A concept's operations and events: `world`, `organizations`, `documents`, `approvals`, `reports`, `record`. |
 | `src/<concept>/claims.ts` | Its acceptance claims. `src/claims/` renders them into claims.md. |

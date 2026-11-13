@@ -29,6 +29,13 @@ export class Telemetry extends RpcMiddleware.Service<Telemetry, { provides: Curr
 ) {}
 
 /**
+ * The header that carries a call's credential, as `Bearer <token>`: the world's door token for a call through a
+ * world's door, or the operator's token for a call to the platform. The sign-in middlewares read it. The SDK sends
+ * it on every call; nothing logs it.
+ */
+export const CREDENTIAL_HEADER = "authorization";
+
+/**
  * The header naming the person a call acts as, inside one world. In private and shared worlds it is honoured only
  * with the world's door token, and only for a person of the world's cast. Without it, a call with the door token acts
  * as the world's owner. Real worlds use real sign-in, which is not designed yet (roadmap phase 4).
