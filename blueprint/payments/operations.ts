@@ -187,6 +187,14 @@ export const operation_payment_send = defineOperation({
     { error: error_PAYROLL_BUDGET_EXCEEDED, given: W.budgets, when: "More than the budget has left this period, or over the token's Roles payout ceiling." },
     { error: error_WRONG_STATE, given: W.budgets, when: "The budget or one above it is closed." },
     { error: error_SUPERSEDED, given: W.funded, when: "The sponsorship expired or the claim could not be observed, so the payment must be retried." },
+    {
+      key: "expired-in-sponsorship",
+      error: error_SUPERSEDED,
+      given: W.funded,
+      when:
+        "The world clock reaches the approval's deadline before or during its sponsorship: nothing is sponsored, signed or sent, " +
+        "the approval ends expired, not refused, and the payment must be retried (approvals.verified-sponsorship).",
+    },
     { error: error_NOT_AUTHENTICATED, given: W.signedOut, when: "You are not signed in." },
   ],
   examples: examples_payment_send,

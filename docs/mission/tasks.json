@@ -9593,6 +9593,7 @@
         "ref:payment.send/PAYROLL_BUDGET_EXCEEDED/c-b2293729bbfe4bd0",
         "ref:payment.send/ROLE_PERMISSION_DENIED/c-6e0809ddf693a4c0",
         "ref:payment.send/SUPERSEDED/c-bec1ca640dde4253",
+        "ref:payment.send/SUPERSEDED/expired-in-sponsorship",
         "ref:payment.send/WRONG_STATE/c-b81b334f2ae5fa85",
         "ret:payment.send",
         "rpc:payments.commands.prepare/budget",
@@ -9617,7 +9618,7 @@
         "pilot",
         "pilot-closure"
       ],
-      "goal": "`capxul payment send` does what operation payment.send promises: its 9 acceptance claims and 9 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Pays someone by email, `@handle` or 0x address. The CLI prepares the payment and opens the approval page, which is the only confirmation. With `--org`, it pays from a spending allowance you hold in that Organization. With `--org --as-directors`, it pays from the Organization account itself as a Director proposal.",
+      "goal": "`capxul payment send` does what operation payment.send promises: its 9 acceptance claims and 10 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Pays someone by email, `@handle` or 0x address. The CLI prepares the payment and opens the approval page, which is the only confirmation. With `--org`, it pays from a spending allowance you hold in that Organization. With `--org --as-directors`, it pays from the Organization account itself as a Director proposal.",
       "needs": [
         "door:approvals",
         "door:board",
