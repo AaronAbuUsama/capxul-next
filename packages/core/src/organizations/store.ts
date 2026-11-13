@@ -178,7 +178,9 @@ export const nextNonce = Effect.fn("organizations.nonce")(function* (org: string
 
 export const changeOf = Effect.fn("organizations.changeOf")(function* (change: string) {
   const sql = yield* PgClient.PgClient;
-  const rows = yield* sql<Change & { readonly state: string }>`select * from app.officer_changes where change = ${change}`;
+  const rows = yield* sql<
+    Change & { readonly state: string }
+  >`select * from app.officer_changes where change = ${change}`;
   return Arr.head(rows);
 });
 

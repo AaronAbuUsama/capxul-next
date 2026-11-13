@@ -17,12 +17,15 @@ export const emitDeclared = Effect.fn("record.emit")(function* (
 ) {
   const call = yield* CurrentCall;
   const sql = yield* PgClient.PgClient;
-  const declared = operations[operation].expected({ payload, success });
-  if (Option.isNone(declared)) return yield* Effect.die(`${operation} answered what its declaration cannot read`);
+  const expected = operations[operation].expected({ payload, success });
+  if (Option.isNone(expected)) return yield* Effect.die(`${operation} answered what its declaration cannot read`);
+  const declared = expected.value;
   const at = yield* Clock.currentTimeMillis;
-  const rows = yield* Effect.forEach(declared.value, (each) =>
+  const rows = yield* Effect.forEach(declared, (each) =>
     Effect.map(
-      Schema.encodeUnknownEffect(Schema.toCodecJson(Schema.Struct(Struct.omit(each.event.fields, ["_tag"]))))(each.carried),
+      Schema.encodeUnknownEffect(Schema.toCodecJson(Schema.Struct(Struct.omit(each.event.fields, ["_tag"]))))(
+        each.carried,
+      ),
       (carried) => ({
         trace_id: call.traceId,
         operation,
@@ -32,5 +35,8 @@ export const emitDeclared = Effect.fn("record.emit")(function* (
       }),
     ),
   ).pipe(Effect.orDie);
-  yield* Effect.forEach(rows, (row) => sql`insert into app.events ${sql.insert(row)}`, { discard: true }).pipe(Effect.orDie);
+  yield* Effect.forEach(rows, (row) => sql`insert into app.events ${sql.insert(row)}`, { discard: true }).pipe(
+    Effect.orDie,
+  );
+  return yield* Effect.void;
 });

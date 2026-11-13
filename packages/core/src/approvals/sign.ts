@@ -7,8 +7,9 @@ import * as Arr from "effect/Array";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
+import * as Str from "effect/String";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { type Hex, recoverAddress, zeroAddress } from "viem";
+import { recoverAddress, zeroAddress } from "viem";
 import { head } from "../chain/calls.ts";
 import { contractSignatures, relay } from "../chain/safe.ts";
 import { send } from "../chain/userop.ts";
@@ -17,11 +18,9 @@ import { emitDeclared } from "../record/emit.ts";
 import { reconcile } from "../organizations/site.ts";
 import { checkFunds, landed, orgOf } from "./landed.ts";
 import { approvalsOf, find, keep, markSent, type ApprovalRow } from "./store.ts";
+import { hex, sameAddress } from "../chain/hex.ts";
 
 type Signing = typeof Ops.sign.rpc.payloadSchema.Type;
-
-const hex = (text: string): Hex => (text.startsWith("0x") ? (text as Hex) : "0x");
-const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 /** The address a signature of `digest` recovers, or the zero address when it recovers none. */
 const recovered = (digest: string, signature: string) =>
@@ -44,11 +43,20 @@ export const approvalSign = Effect.fn("approval.sign.sign")(function* (signing: 
   if (!who.person || who.name !== approval.signer)
     return yield* Errors.NotYourApproval.make({ approval: approval.approval, signer: approval.signer });
   const from = yield* recovered(approval.digest, signing.signature);
-  if (!same(from, approval.signer_address))
-    return yield* Errors.SignatureInvalid.make({ approval: approval.approval, expected: approval.signer_address, recovered: from });
+  if (!sameAddress(from, approval.signer_address))
+    return yield* Errors.SignatureInvalid.make({
+      approval: approval.approval,
+      expected: approval.signer_address,
+      recovered: from,
+    });
   const subject = held.subject;
   if (held.state === "sent" && held.tx !== null && held.block !== null)
-    return Ops.AlreadySent.make({ approval: approval.approval, subject, transaction: held.tx, block: Number(held.block) });
+    return Ops.AlreadySent.make({
+      approval: approval.approval,
+      subject,
+      transaction: held.tx,
+      block: Number(held.block),
+    });
   const now = yield* head;
   const expiry = DateTime.toEpochMillis(DateTime.makeUnsafe(approval.expires_at));
   if (now.timestampMs >= expiry)
@@ -79,20 +87,30 @@ export const approvalSign = Effect.fn("approval.sign.sign")(function* (signing: 
   const owner = Arr.findFirst(rows, (row) => row.signer === held.needs && row.signature !== null);
   const receipt =
     held.landing.via === "operation"
-      ? yield* send(held.landing.operation, hex(Option.getOrElse(Option.flatMapNullishOr(owner, (row) => row.signature), () => signing.signature)))
+      ? yield* send(
+          held.landing.operation,
+          hex(
+            Option.getOrElse(
+              Option.flatMapNullishOr(owner, (row) => row.signature),
+              () => signing.signature,
+            ),
+          ),
+        )
       : yield* relay(
           { ...held.landing.tx, data: hex(held.landing.tx.data), nonce: BigInt(held.landing.tx.nonce) },
           contractSignatures(
             Arr.take(
               Arr.flatMap(rows, (row) =>
-                row.signer_safe === null || row.signature === null ? [] : [{ owner: row.signer_safe, signature: hex(row.signature) }],
+                row.signer_safe === null || row.signature === null
+                  ? []
+                  : [{ owner: row.signer_safe, signature: hex(row.signature) }],
               ),
               held.threshold,
             ),
           ),
           `${subject.kind}:${subject.id}`,
         );
-  const transaction = receipt.receipt.transactionHash.toLowerCase();
+  const transaction = Str.toLowerCase(receipt.receipt.transactionHash);
   if (!receipt.success)
     return yield* Errors.TransactionReverted.make({
       approval: approval.approval,
@@ -100,7 +118,13 @@ export const approvalSign = Effect.fn("approval.sign.sign")(function* (signing: 
       reason: receipt.reason ?? "the UserOperation's call reverted",
     });
   const block = BigInt(receipt.receipt.blockNumber);
-  const answer = Ops.Sent.make({ approval: approval.approval, signer: approval.signer, subject, transaction, block: Number(block) });
+  const answer = Ops.Sent.make({
+    approval: approval.approval,
+    signer: approval.signer,
+    subject,
+    transaction,
+    block: Number(block),
+  });
   yield* sql.withTransaction(
     Effect.gen(function* () {
       yield* keep(approval.approval, signing.signature);

@@ -11,9 +11,10 @@ import * as Schema from "effect/Schema";
 import { concat, encodeFunctionData, type Hex, keccak256, pad, stringToHex, toHex } from "viem";
 import { ENTRY_POINT, SAFE_4337_MODULE } from "./abi.ts";
 import { hexOf, readContract } from "./calls.ts";
-import { ChainFailed } from "./failures.ts";
+import { ChainFailed } from "../failures.ts";
 import { SEEDED } from "./seeded.ts";
 import { WorldChain } from "./WorldChain.ts";
+import { hex } from "./hex.ts";
 
 const Uint = Schema.String.check(Schema.isPattern(/^\d+$/));
 const HexText = Schema.String.check(Schema.isPattern(/^0x[0-9a-fA-F]*$/));
@@ -36,8 +37,8 @@ export const Prepared = Schema.Struct({
 export type Prepared = typeof Prepared.Type;
 
 const VALIDITY: Hex = pad("0x", { size: 12 });
-const two128 = (high: bigint, low: bigint): Hex => concat([pad(toHex(high), { size: 16 }), pad(toHex(low), { size: 16 })]);
-const hex = (text: string): Hex => (text.startsWith("0x") ? (text as Hex) : "0x");
+const two128 = (high: bigint, low: bigint): Hex =>
+  concat([pad(toHex(high), { size: 16 }), pad(toHex(low), { size: 16 })]);
 
 /** A nonce key of 192 bits, from a name that is the operation's own (an approval's subject). */
 export const nonceKeyOf = (name: string): bigint => BigInt(keccak256(stringToHex(name))) >> 64n;
@@ -50,7 +51,7 @@ const GasPrice = Schema.Struct({
 const packed = (op: Omit<Prepared, "digest">, signature: Hex) => ({
   sender: hex(op.sender),
   nonce: BigInt(op.nonce),
-  initCode: "0x" as Hex,
+  initCode: hex("0x"),
   callData: hex(op.callData),
   accountGasLimits: two128(BigInt(op.verificationGasLimit), BigInt(op.callGasLimit)),
   preVerificationGas: BigInt(op.preVerificationGas),
@@ -118,11 +119,13 @@ export const prepare = Effect.fn("userop.prepare")(function* (input: {
 
 const Landed = Schema.Struct({
   success: Schema.Boolean,
-  reason: Schema.optional(Schema.NullOr(Schema.String)),
+  reason: Schema.String.pipe(Schema.NullOr, Schema.optional),
   receipt: Schema.Struct({
     transactionHash: Schema.String,
     blockNumber: Schema.String,
-    logs: Schema.Array(Schema.Struct({ address: Schema.String, topics: Schema.Array(Schema.String), data: Schema.String })),
+    logs: Schema.Array(
+      Schema.Struct({ address: Schema.String, topics: Schema.Array(Schema.String), data: Schema.String }),
+    ),
   }),
 });
 export type Landed = typeof Landed.Type;
@@ -158,7 +161,11 @@ export const send = Effect.fn("userop.send")(function* (op: Prepared, ownerSigna
       duration: LANDS_WITHIN,
       orElse: () =>
         Effect.fail(
-          ChainFailed.make({ reach: "bundler", method: "eth_getUserOperationReceipt", message: `${userOpHash} not in a block within ${LANDS_WITHIN}` }),
+          ChainFailed.make({
+            reach: "bundler",
+            method: "eth_getUserOperationReceipt",
+            message: `${userOpHash} not in a block within ${LANDS_WITHIN}`,
+          }),
         ),
     }),
     Effect.flatMap(Schema.decodeUnknownEffect(Landed)),

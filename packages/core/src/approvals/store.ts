@@ -59,7 +59,10 @@ export const open = Effect.fn("approvals.open")(function* (opening: Opening) {
     threshold: opening.threshold,
     needs: opening.needs,
     landing: sql.json(landing),
-    spends: opening.spends === null ? null : sql.json({ safe: opening.spends.safe, amount: opening.spends.amount.toString() }),
+    spends:
+      opening.spends === null
+        ? null
+        : sql.json({ safe: opening.spends.safe, amount: opening.spends.amount.toString() }),
     about: opening.about === null ? null : sql.json(opening.about),
     state: "open",
   })}`;

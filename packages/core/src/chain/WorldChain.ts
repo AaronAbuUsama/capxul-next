@@ -18,7 +18,7 @@ import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import { ENV, secretOf } from "../env.ts";
-import { ChainFailed } from "./failures.ts";
+import { ChainFailed } from "../failures.ts";
 
 export { ChainFailed };
 
@@ -52,10 +52,7 @@ export class WorldChain extends Context.Service<
     const binding = env[ENV.chain];
     const token = secretOf(env, ENV.chainToken);
     if (!isFetcher(binding) || Option.isNone(token))
-      return Layer.succeed(
-        WorldChain,
-        WorldChain.of({ rpc: unbound("rpc"), bundler: unbound("bundler") }),
-      );
+      return Layer.succeed(WorldChain, WorldChain.of({ rpc: unbound("rpc"), bundler: unbound("bundler") }));
     const base = `https://chain/${Redacted.value(token.value)}`;
     const through: typeof globalThis.fetch = (input, init) => binding.fetch(new Request(input, init));
     return WorldChain.at({ rpc: Redacted.make(`${base}/rpc`), bundler: Redacted.make(`${base}/bundler`) }).pipe(
@@ -87,13 +84,19 @@ const jsonRpc =
   (http: HttpClient.HttpClient, url: Redacted.Redacted, reach: "rpc" | "bundler"): JsonRpc =>
   (method, params = []) =>
     Effect.gen(function* () {
-      const request = HttpClientRequest.post(Redacted.value(url)).pipe(
+      const request = url.pipe(
+        Redacted.value,
+        HttpClientRequest.post,
         HttpClientRequest.bodyJsonUnsafe({ jsonrpc: "2.0", id: 1, method, params }),
       );
       const response = yield* http.execute(request);
       if (response.status !== 200) {
         const text = yield* response.text;
-        return yield* ChainFailed.make({ reach, method, message: `HTTP ${response.status}: ${Str.slice(0, 200)(text)}` });
+        return yield* ChainFailed.make({
+          reach,
+          method,
+          message: `HTTP ${response.status}: ${Str.slice(0, 200)(text)}`,
+        });
       }
       const answer = yield* HttpClientResponse.schemaBodyJson(Answer)(response);
       if (answer.error !== undefined)

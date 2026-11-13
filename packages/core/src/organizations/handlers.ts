@@ -30,7 +30,11 @@ export const approvalSignHandler = (payload: typeof Approvals.sign.rpc.payloadSc
 /** What the three handlers need beside the database, from the Worker's environment. */
 export const ChainOps = {
   layer: (env: Record<string, unknown>) =>
-    Layer.mergeAll(WorldChain.fromEnv(env), Cast.fromDatabase, SiteDoor.fromEnv(env).pipe(Layer.provide(FetchHttpClient.layer))),
+    Layer.mergeAll(
+      WorldChain.fromEnv(env),
+      Cast.fromDatabase,
+      SiteDoor.fromEnv(env).pipe(Layer.provide(FetchHttpClient.layer)),
+    ),
   /** A Core with no chain, no cast and no bench, for a test in memory that never calls these three. */
   absent: Layer.mergeAll(
     WorldChain.fromEnv({}),

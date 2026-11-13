@@ -45,7 +45,11 @@ export const startSite = Effect.fn("site.start")(function* (org: string, handle:
 });
 
 /** Queues what the site must be told, inside the transaction of the change that causes it. */
-export const deliver = Effect.fn("site.queue")(function* (org: string, kind: DeliveryKind, body: Record<string, unknown>) {
+export const deliver = Effect.fn("site.queue")(function* (
+  org: string,
+  kind: DeliveryKind,
+  body: Record<string, unknown>,
+) {
   const sql = yield* PgClient.PgClient;
   yield* sql`insert into app.site_deliveries ${sql.insert({ org, kind, body: sql.json({ ...body, org }) })}`;
 });
@@ -65,17 +69,24 @@ export const reconcile = Effect.fn("site.reconcile")(function* (org: string) {
   const sql = yield* PgClient.PgClient;
   const door = yield* SiteDoor;
   const found = yield* Store.byOrg(org);
-  if (Option.isNone(found)) return;
+  if (Option.isNone(found)) return yield* Effect.void;
   const organization = found.value;
   if (organization.site === null) {
     const name = yield* sql<{ readonly name: string }>`select name from app.companies where org = ${org}`;
-    return yield* startSite(org, organization.handle, Option.getOrElse(Option.map(Arr.head(name), (row) => row.name), () => organization.handle));
+    return yield* startSite(
+      org,
+      organization.handle,
+      Option.getOrElse(
+        Option.map(Arr.head(name), (row) => row.name),
+        () => organization.handle,
+      ),
+    );
   }
   const site = organization.site;
   const state = yield* door.site(site).pipe(Effect.option);
-  if (Option.isNone(state)) return;
+  if (Option.isNone(state)) return yield* Effect.void;
   if (state.value.state === "failed") return yield* sql.withTransaction(Store.setSite(org, site, "stopped"));
-  if (state.value.state !== "ready") return;
+  if (state.value.state !== "ready") return yield* Effect.void;
   const pending = yield* sql<Pending>`
     select id, kind, body from app.site_deliveries where org = ${org} and not delivered order by id`;
   const delivered = yield* deliverInOrder(site, pending);
@@ -83,6 +94,7 @@ export const reconcile = Effect.fn("site.reconcile")(function* (org: string) {
   yield* sql.withTransaction(
     Store.setSite(org, site, left === 0 && organization.setup === "ready" ? "ready" : "creating"),
   );
+  return yield* Effect.void;
 });
 
 /** Hands the site each delivery in order and answers how many it took; the first it does not take stops the rest. */
@@ -92,7 +104,9 @@ const deliverInOrder = (site: string, pending: ReadonlyArray<Pending>) =>
     const sql = yield* PgClient.PgClient;
     let taken = 0;
     for (const each of pending) {
-      const answer = yield* door.call(site, { method: "POST", path: METHOD[each.kind], body: each.body }).pipe(Effect.option);
+      const answer = yield* door
+        .call(site, { method: "POST", path: METHOD[each.kind], body: each.body })
+        .pipe(Effect.option);
       if (Option.isNone(answer) || answer.value.status !== 200) {
         yield* Effect.logWarning(`the site ${site} did not take ${each.kind} ${each.id}`);
         return taken;
@@ -116,13 +130,10 @@ export const companiesOf = Effect.fn("site.companies")(function* () {
     readonly site_state: "creating" | "ready" | "stopped";
     readonly site_url: string | null;
   }>`select org, handle, name, site_state, site_url from app.companies order by position`;
-  return Arr.map(
-    rows,
-    (row): typeof Values.Company.Type => ({
-      org: row.org,
-      handle: row.handle,
-      name: row.name,
-      site: { state: row.site_state, url: row.site_url },
-    }),
-  );
+  return Arr.map(rows, (row): typeof Values.Company.Type => ({
+    org: row.org,
+    handle: row.handle,
+    name: row.name,
+    site: { state: row.site_state, url: row.site_url },
+  }));
 });

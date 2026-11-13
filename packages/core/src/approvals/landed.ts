@@ -6,8 +6,9 @@ import { Errors } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
+import * as Str from "effect/String";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { decodeEventLog, formatUnits, type Hex } from "viem";
+import { decodeEventLog, formatUnits } from "viem";
 import { Cast } from "../cast/Cast.ts";
 import { BUDGETS } from "../chain/abi.ts";
 import { head, usdcOf } from "../chain/calls.ts";
@@ -18,14 +19,14 @@ import { topicsOf } from "../organizations/found.ts";
 import { deliver, SITE_HATS } from "../organizations/site.ts";
 import * as Store from "../organizations/store.ts";
 import { subjectOf, type Subject } from "./store.ts";
+import { hex, sameAddress } from "../chain/hex.ts";
 
-const hex = (text: string): Hex => (text.startsWith("0x") ? (text as Hex) : "0x");
-const title = (person: string) => `${person.charAt(0).toUpperCase()}${person.slice(1)}`;
+const title = (person: string) => Str.capitalize(person);
 
 /** Refuses a send whose spend is more than its Safe holds now. */
 export const checkFunds = Effect.fn("approval.sign.funds")(function* (subject: Subject) {
   const held = yield* subjectOf(subject.kind, subject.id);
-  if (held.spends === null) return;
+  if (held.spends === null) return yield* Effect.void;
   const balance = yield* usdcOf(held.spends.safe);
   const amount = BigInt(held.spends.amount);
   if (amount > balance)
@@ -35,12 +36,13 @@ export const checkFunds = Effect.fn("approval.sign.funds")(function* (subject: S
       balance: formatUnits(balance, USDC_DECIMALS),
       amount: formatUnits(amount, USDC_DECIMALS),
     });
+  return yield* Effect.void;
 });
 
 /** The top budget the setup's transaction created for the company Safe, from its BudgetCreated log. */
 const budgetOf = (landed: Landed, safe: string) => {
   const created = Arr.flatMap(landed.receipt.logs, (log) => {
-    if (log.address.toLowerCase() !== SEEDED.budgets.toLowerCase()) return [];
+    if (!sameAddress(log.address, SEEDED.budgets)) return [];
     const decoded = Option.liftThrowable(() =>
       decodeEventLog({ abi: BUDGETS, eventName: "BudgetCreated", topics: topicsOf(log.topics), data: hex(log.data) }),
     )();
@@ -48,7 +50,7 @@ const budgetOf = (landed: Landed, safe: string) => {
   });
   return Option.getOrNull(
     Option.map(
-      Arr.findFirst(created, (event) => event.args.safe.toLowerCase() === safe.toLowerCase() && event.args.parent === 0n),
+      Arr.findFirst(created, (event) => sameAddress(event.args.safe, safe) && event.args.parent === 0n),
       (event) => event.args.id.toString(),
     ),
   );
@@ -65,7 +67,7 @@ export const landed = Effect.fn("approval.sign.landed")(function* (subject: Subj
   if (subject.kind === "payment") {
     // The site posts the Payment Entry it holds for this hash, as the chain paid it (capxul/payments.py).
     const held = yield* subjectOf(subject.kind, subject.id);
-    if (held.org === null || held.about === null) return;
+    if (held.org === null || held.about === null) return yield* Effect.void;
     const now = yield* head;
     return yield* deliver(held.org, "paid", {
       document_hash: held.about["documentHash"] ?? "",
@@ -77,14 +79,15 @@ export const landed = Effect.fn("approval.sign.landed")(function* (subject: Subj
   }
   if (subject.kind === "org_setup") {
     const organization = yield* Store.byOrg(subject.id);
-    if (Option.isNone(organization)) return;
+    if (Option.isNone(organization)) return yield* Effect.void;
     const org = organization.value;
     yield* Store.markReady(org.org, budgetOf(landing, org.safe));
     const [company] = yield* sql<{ readonly name: string }>`select name from app.companies where org = ${org.org}`;
     yield* deliver(org.org, "configure", { company_name: company?.name ?? org.handle, safe_address: org.safe });
     for (const name of org.directors) {
       const member = yield* personOf(name);
-      if (member !== null) yield* deliver(org.org, "grant", { email: member.email, name: title(name), hat: SITE_HATS.director });
+      if (member !== null)
+        yield* deliver(org.org, "grant", { email: member.email, name: title(name), hat: SITE_HATS.director });
     }
     const founder = yield* personOf(org.founder);
     const capital = yield* sql<{ readonly spends: { readonly amount: string } | null }>`
@@ -101,10 +104,10 @@ export const landed = Effect.fn("approval.sign.landed")(function* (subject: Subj
         to: org.safe,
       });
     }
-    return;
+    return yield* Effect.void;
   }
   const change = yield* Store.changeOf(subject.id);
-  if (Option.isNone(change)) return;
+  if (Option.isNone(change)) return yield* Effect.void;
   yield* Store.markExecuted(subject.id);
   const member = yield* personOf(change.value.member);
   if (member !== null)
@@ -113,6 +116,7 @@ export const landed = Effect.fn("approval.sign.landed")(function* (subject: Subj
       name: title(member.person),
       hat: SITE_HATS[change.value.permission],
     });
+  return yield* Effect.void;
 });
 
 /** The company a landed subject belongs to, whose site may now be moved on. */
@@ -122,4 +126,3 @@ export const orgOf = (subject: Subject) =>
     if (subject.kind === "officer_change") return Option.map(yield* Store.changeOf(subject.id), (change) => change.org);
     return Option.flatMapNullishOr(Option.some(yield* subjectOf(subject.kind, subject.id)), (held) => held.org);
   });
-

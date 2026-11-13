@@ -13,9 +13,19 @@ import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Equal from "effect/Equal";
 import * as Option from "effect/Option";
+import * as Struct from "effect/Struct";
 import * as Schema from "effect/Schema";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { decodeEventLog, encodeFunctionData, formatUnits, type Hex, keccak256, parseUnits, stringToHex, padHex } from "viem";
+import {
+  decodeEventLog,
+  encodeFunctionData,
+  formatUnits,
+  type Hex,
+  keccak256,
+  parseUnits,
+  stringToHex,
+  padHex,
+} from "viem";
 import { open } from "../approvals/store.ts";
 import { Cast, type CastMember } from "../cast/Cast.ts";
 import { ERC20, INSTALLER, MINTER, ROLES } from "../chain/abi.ts";
@@ -28,13 +38,16 @@ import { callerPerson, instant } from "./caller.ts";
 import { newId } from "./ids.ts";
 import { startSite } from "./site.ts";
 import * as Store from "./store.ts";
+import { hex, sameAddress } from "../chain/hex.ts";
 
 type Founding = typeof Ops.create.rpc.payloadSchema.Type;
 
 const PERMISSIONS = Values.Permission.literals;
-const hex = (text: string): Hex => (text.startsWith("0x") ? (text as Hex) : "0x");
 /** A log's topics as viem decodes them: the event's selector first. */
-export const topicsOf = (topics: ReadonlyArray<string>): [Hex, ...Array<Hex>] => [hex(topics[0] ?? "0x"), ...Arr.map(Arr.drop(topics, 1), hex)];
+export const topicsOf = (topics: ReadonlyArray<string>): [Hex, ...Array<Hex>] => [
+  hex(topics[0] ?? "0x"),
+  ...Arr.map(Arr.drop(topics, 1), hex),
+];
 const roleKey = (name: string) => padHex(stringToHex(name), { dir: "right", size: 32 });
 /** The top budget's amount and the payout role's ceiling: 1,000,000 USDC a month. */
 const TOP_BUDGET = 1_000_000n * 10n ** BigInt(USDC_DECIMALS);
@@ -51,7 +64,9 @@ const person = (name: string) =>
 
 /** A founding Director needs a claimed Safe to wear the Director hat, as the founder does (decisions.md, 47). */
 const withSafe = (member: CastMember) =>
-  member.safe === null ? Effect.fail(Errors.FounderNotReady.make({ person: member.person })) : Effect.succeed(member.safe);
+  member.safe === null
+    ? Effect.fail(Errors.FounderNotReady.make({ person: member.person }))
+    : Effect.succeed(member.safe);
 
 /** The checks, in the order the claims read them; nothing is written before they all hold. */
 const check = Effect.fn("org.create.check")(function* (founding: Founding) {
@@ -87,8 +102,17 @@ const check = Effect.fn("org.create.check")(function* (founding: Founding) {
 });
 
 /** Mints the company Safe and deploys its authority: two transactions of the service key. */
-const deploy = Effect.fn("org.create.deploy")(function* (org: string, founderSafe: string, coDirectors: ReadonlyArray<string>, threshold: number) {
-  const mint = encodeFunctionData({ abi: MINTER, functionName: "mint", args: [TIER.companyNamespace, org, hex(founderSafe)] });
+const deploy = Effect.fn("org.create.deploy")(function* (
+  org: string,
+  founderSafe: string,
+  coDirectors: ReadonlyArray<string>,
+  threshold: number,
+) {
+  const mint = encodeFunctionData({
+    abi: MINTER,
+    functionName: "mint",
+    args: [TIER.companyNamespace, org, hex(founderSafe)],
+  });
   yield* sendAsService(
     SEEDED.companiesHouseRoles,
     encodeFunctionData({
@@ -111,9 +135,12 @@ const deploy = Effect.fn("org.create.deploy")(function* (org: string, founderSaf
     officers: Arr.map(PERMISSIONS, (permission) => ({ details: Values.OFFICER_HAT_DETAILS[permission], maxSupply: 1 })),
     salt: keccak256(stringToHex(org)),
   };
-  const deployed = yield* sendAsService(SEEDED.installer, encodeFunctionData({ abi: INSTALLER, functionName: "deployMoney", args: [plan] }));
+  const deployed = yield* sendAsService(
+    SEEDED.installer,
+    encodeFunctionData({ abi: INSTALLER, functionName: "deployMoney", args: [plan] }),
+  );
   const log = yield* Effect.fromOption(
-    Arr.findFirst(deployed.logs, (each) => each.address.toLowerCase() === SEEDED.installer.toLowerCase()),
+    Arr.findFirst(deployed.logs, (each) => sameAddress(each.address, SEEDED.installer)),
   ).pipe(Effect.orDie);
   const made = yield* Effect.try(() =>
     decodeEventLog({ abi: INSTALLER, eventName: "MoneyDeployed", topics: topicsOf(log.topics), data: hex(log.data) }),
@@ -147,12 +174,20 @@ export const orgCreate = Effect.fn("org.create.found")(function* (founding: Foun
   const installTx = { safe, to: SEEDED.multiSendCallOnly, data: multiSend(install), operation: 1 as const, nonce: 0n };
   const capitalCall =
     checked.capital > 0n
-      ? [{ to: SEEDED.usdc, data: encodeFunctionData({ abi: ERC20, functionName: "transfer", args: [safe, checked.capital] }) }]
+      ? [
+          {
+            to: SEEDED.usdc,
+            data: encodeFunctionData({ abi: ERC20, functionName: "transfer", args: [safe, checked.capital] }),
+          },
+        ]
       : [];
   const operation = yield* prepare({
     sender: checked.founderSafe,
     to: SEEDED.multiSendCallOnly,
-    data: multiSend([...capitalCall, { to: safe, data: execTransaction(installTx, approvedBySender(checked.founderSafe)) }]),
+    data: multiSend([
+      ...capitalCall,
+      { to: safe, data: execTransaction(installTx, approvedBySender(checked.founderSafe)) },
+    ]),
     operation: 1,
     nonceKey: nonceKeyOf(`org_setup:${org}`),
     callGas: 6_000_000n,
@@ -180,7 +215,7 @@ export const orgCreate = Effect.fn("org.create.found")(function* (founding: Foun
     board: { directors: checked.directors, threshold: founding.threshold },
     members: founding.members,
     capital: founding.capital,
-    approvals: Arr.map(approvals, ({ signerSafe: _, ...approval }) => approval),
+    approvals: Arr.map(approvals, (each) => Struct.omit(each, ["signerSafe"])),
   });
   const foundedMs = yield* Clock.currentTimeMillis;
   yield* sql.withTransaction(

@@ -3,6 +3,7 @@
 import * as Effect from "effect/Effect";
 import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
+import * as Str from "effect/String";
 import {
   type Abi,
   type ContractFunctionArgs,
@@ -16,7 +17,8 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { ERC20 } from "./abi.ts";
-import { ChainFailed } from "./failures.ts";
+import { hex } from "./hex.ts";
+import { ChainFailed } from "../failures.ts";
 import { CHAIN_ID, SEEDED, SERVICE_KEY } from "./seeded.ts";
 import { WorldChain } from "./WorldChain.ts";
 
@@ -44,11 +46,23 @@ export const readContract = <
   Effect.gen(function* () {
     const chain = yield* WorldChain;
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- viem's encoder types its parameters by the ABI's own generics, which a generic wrapper cannot restate.
-    const data = encodeFunctionData({ abi: read.abi, functionName: read.functionName, args: read.args } as EncodeFunctionDataParameters);
-    const answer = yield* hexOf("eth_call", yield* chain.rpc("eth_call", [{ to: read.address, data }, tagOf(read.block ?? null)]));
+    const data = encodeFunctionData({
+      abi: read.abi,
+      functionName: read.functionName,
+      args: read.args,
+    } as EncodeFunctionDataParameters);
+    const answer = yield* hexOf(
+      "eth_call",
+      yield* chain.rpc("eth_call", [{ to: read.address, data }, tagOf(read.block ?? null)]),
+    );
     return yield* Effect.try({
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- as above: the decoded value is the function's return type by the ABI.
-      try: () => decodeFunctionResult({ abi: read.abi, functionName: read.functionName, data: answer } as never) as ContractFunctionReturnType<A, "pure" | "view", N, Args>,
+      try: () =>
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- as above: the decoded value is the function's return type by the ABI.
+        decodeFunctionResult({
+          abi: read.abi,
+          functionName: read.functionName,
+          data: answer,
+        } as never) as ContractFunctionReturnType<A, "pure" | "view", N, Args>,
       catch: (cause) => answerFailed("eth_call", `${read.functionName}: ${String(cause)}`),
     });
   });
@@ -60,14 +74,16 @@ export const head = Effect.gen(function* () {
   const chain = yield* WorldChain;
   const block = yield* chain.rpc("eth_getBlockByNumber", ["latest", false]).pipe(
     Effect.flatMap(Schema.decodeUnknownEffect(Block)),
-    Effect.mapError((error) => (Schema.is(ChainFailed)(error) ? error : answerFailed("eth_getBlockByNumber", error.message))),
+    Effect.mapError((error) =>
+      Schema.is(ChainFailed)(error) ? error : answerFailed("eth_getBlockByNumber", error.message),
+    ),
   );
   return { number: BigInt(block.number), timestampMs: Number(BigInt(block.timestamp)) * 1000 };
 });
 
 /** What `holder` holds of the world's test USDC, in its smallest unit. */
 export const usdcOf = (holder: string) =>
-  readContract({ address: SEEDED.usdc, abi: ERC20, functionName: "balanceOf", args: [holder as Hex] });
+  readContract({ address: SEEDED.usdc, abi: ERC20, functionName: "balanceOf", args: [hex(holder)] });
 
 const Log = Schema.Struct({
   address: Schema.String,
@@ -104,31 +120,35 @@ export const SERVICE_ADDRESS = service.address;
  * reverts is a fault: Core only sends what it has checked would succeed.
  */
 export const sendAsService = Effect.fn("chain.send")(function* (to: string, data: Hex, gas: bigint = 8_000_000n) {
-    const chain = yield* WorldChain;
-    const nonce = yield* hexOf("eth_getTransactionCount", yield* chain.rpc("eth_getTransactionCount", [service.address, "pending"]));
-    // The latest block's base fee twice over and a gwei: enough to be mined at once, and never compounding as
-    // eth_gasPrice, which follows the last transactions' own prices, would.
-    const latest = yield* chain.rpc("eth_getBlockByNumber", ["latest", false]).pipe(
-      Effect.flatMap(Schema.decodeUnknownEffect(Schema.Struct({ baseFeePerGas: Schema.String }))),
-      Effect.mapError((error) => (Schema.is(ChainFailed)(error) ? error : answerFailed("eth_getBlockByNumber", error.message))),
-    );
-    const signed = yield* Effect.tryPromise({
-      try: () =>
-        service.signTransaction({
-          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- an address the caller read from the seed or the chain; viem names that shape a template type.
-          to: to as Hex,
-          data,
-          gas,
-          gasPrice: BigInt(latest.baseFeePerGas) * 2n + 1_000_000_000n,
-          nonce: Number(BigInt(nonce)),
-          chainId: CHAIN_ID,
-          type: "legacy",
-        }),
-      catch: (cause) => answerFailed("eth_sendRawTransaction", `signing: ${String(cause)}`),
-    });
-    const hash = yield* hexOf("eth_sendRawTransaction", yield* chain.rpc("eth_sendRawTransaction", [signed]));
-    const receipt = yield* receiptOf(hash);
-    if (receipt.status !== "0x1")
-      return yield* answerFailed("eth_sendRawTransaction", `${hash} to ${to} reverted (${data.slice(0, 10)})`);
-    return receipt;
+  const chain = yield* WorldChain;
+  const nonce = yield* hexOf(
+    "eth_getTransactionCount",
+    yield* chain.rpc("eth_getTransactionCount", [service.address, "pending"]),
+  );
+  // The latest block's base fee twice over and a gwei: enough to be mined at once, and never compounding as
+  // eth_gasPrice, which follows the last transactions' own prices, would.
+  const latest = yield* chain.rpc("eth_getBlockByNumber", ["latest", false]).pipe(
+    Effect.flatMap(Schema.decodeUnknownEffect(Schema.Struct({ baseFeePerGas: Schema.String }))),
+    Effect.mapError((error) =>
+      Schema.is(ChainFailed)(error) ? error : answerFailed("eth_getBlockByNumber", error.message),
+    ),
+  );
+  const signed = yield* Effect.tryPromise({
+    try: () =>
+      service.signTransaction({
+        to: hex(to),
+        data,
+        gas,
+        gasPrice: BigInt(latest.baseFeePerGas) * 2n + 1_000_000_000n,
+        nonce: Number(BigInt(nonce)),
+        chainId: CHAIN_ID,
+        type: "legacy",
+      }),
+    catch: (cause) => answerFailed("eth_sendRawTransaction", `signing: ${String(cause)}`),
+  });
+  const hash = yield* hexOf("eth_sendRawTransaction", yield* chain.rpc("eth_sendRawTransaction", [signed]));
+  const receipt = yield* receiptOf(hash);
+  if (receipt.status !== "0x1")
+    return yield* answerFailed("eth_sendRawTransaction", `${hash} to ${to} reverted (${Str.slice(0, 10)(data)})`);
+  return receipt;
 });

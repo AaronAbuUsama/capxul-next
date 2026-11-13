@@ -25,7 +25,12 @@ export class Cast extends Context.Service<
       const sql = yield* SqlClient.SqlClient;
       return Cast.of({
         find: (person) =>
-          sql<{ readonly person: string; readonly email: string; readonly signer: string; readonly safe: string | null }>`
+          sql<{
+            readonly person: string;
+            readonly email: string;
+            readonly signer: string;
+            readonly safe: string | null;
+          }>`
             select person, email, signer, safe from app.cast where person = ${person}`.pipe(
             Effect.map((rows) => Arr.head(rows)),
             Effect.orDie,

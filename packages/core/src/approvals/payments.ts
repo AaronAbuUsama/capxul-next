@@ -6,7 +6,15 @@
 import { Errors, type Values } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { decodeFunctionResult, encodeFunctionData, formatUnits, type Hex, keccak256, parseAbi, parseUnits, stringToHex } from "viem";
+import {
+  decodeFunctionResult,
+  encodeFunctionData,
+  formatUnits,
+  keccak256,
+  parseAbi,
+  parseUnits,
+  stringToHex,
+} from "viem";
 import { Cast } from "../cast/Cast.ts";
 import { head, hexOf, usdcOf } from "../chain/calls.ts";
 import { APPROVAL_LIFETIME_MS, SEEDED, USDC_DECIMALS } from "../chain/seeded.ts";
@@ -16,14 +24,13 @@ import { instant } from "../organizations/caller.ts";
 import { newId } from "../organizations/ids.ts";
 import * as Store from "../organizations/store.ts";
 import { open } from "./store.ts";
+import { hex } from "../chain/hex.ts";
 
 const SPEND = parseAbi([
   "function spend(uint256 id, address recipient, uint128 amount, uint16 kind, bytes32 documentHash, bytes32 jobNonce) returns (bytes32)",
 ]);
 /** Payments' kind of a payment to a supplier (Budgets refuses any above its prepared kinds). */
 const SUPPLIER_PAYMENT = 1;
-
-const hex = (text: string): Hex => (text.startsWith("0x") ? (text as Hex) : "0x");
 
 /** A payment from a company's Safe, as doc.submit read it from the site, waiting for an approval. */
 export interface PaymentToHold {
@@ -61,17 +68,28 @@ export const openPayment = Effect.fn("payment.open")(function* (payment: Payment
       amount: payment.amount.amount,
     });
   const organization = yield* Effect.flatMap(Store.byOrg(payment.org), Effect.fromOption).pipe(Effect.orDie);
-  if (organization.budget === null) return yield* Effect.die(`${payment.org}'s setup has not landed: it has no budget to pay from`);
+  if (organization.budget === null)
+    return yield* Effect.die(`${payment.org}'s setup has not landed: it has no budget to pay from`);
   const member = yield* Effect.flatMap(cast.find(payment.person), Effect.fromOption).pipe(Effect.orDie);
   if (member.safe === null) return yield* Effect.die(`${payment.person} has no Safe to pay from`);
   const request = yield* newId("req");
   const spend = encodeFunctionData({
     abi: SPEND,
     functionName: "spend",
-    args: [BigInt(organization.budget), hex(payment.payeeAddress), amount, SUPPLIER_PAYMENT, hex(payment.documentHash), keccak256(stringToHex(request))],
+    args: [
+      BigInt(organization.budget),
+      hex(payment.payeeAddress),
+      amount,
+      SUPPLIER_PAYMENT,
+      hex(payment.documentHash),
+      keccak256(stringToHex(request)),
+    ],
   });
   // What `spend` answers as the member's Safe now is the payment's id: Payments derives it from the call alone.
-  const simulated = yield* hexOf("eth_call", yield* chain.rpc("eth_call", [{ from: member.safe, to: SEEDED.budgets, data: spend }, "latest"]));
+  const simulated = yield* hexOf(
+    "eth_call",
+    yield* chain.rpc("eth_call", [{ from: member.safe, to: SEEDED.budgets, data: spend }, "latest"]),
+  );
   const paymentId = decodeFunctionResult({ abi: SPEND, functionName: "spend", data: simulated });
   const operation = yield* prepare({
     sender: member.safe,
@@ -103,4 +121,3 @@ export const openPayment = Effect.fn("payment.open")(function* (payment: Payment
   );
   return { request, paymentId, approval } satisfies OpenedPayment;
 });
-

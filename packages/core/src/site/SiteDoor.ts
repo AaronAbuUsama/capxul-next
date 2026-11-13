@@ -43,6 +43,13 @@ const WorldSites = Schema.Struct({
 const DoorSite = Schema.Struct({ site: Schema.String, state: Schema.String });
 export type DoorSite = typeof DoorSite.Type;
 
+const decodeSite = (answer: SiteAnswer) =>
+  Schema.decodeUnknownEffect(DoorSite)(answer.body).pipe(
+    Effect.mapError((error) =>
+      SiteDoorFailed.make({ reason: "refused", status: answer.status, code: null, message: error.message }),
+    ),
+  );
+
 const Refusal = Schema.Struct({ refused: Schema.String, detail: Schema.optional(Schema.String) });
 
 export class SiteDoor extends Context.Service<
@@ -113,18 +120,20 @@ export class SiteDoor extends Context.Service<
               });
             return { status: response.status, body } satisfies SiteAnswer;
           }).pipe(Effect.scoped);
-        const decodeSite = (answer: SiteAnswer) =>
-          Schema.decodeUnknownEffect(DoorSite)(answer.body).pipe(
-            Effect.mapError((error) =>
-              SiteDoorFailed.make({ reason: "refused", status: answer.status, code: null, message: error.message }),
-            ),
-          );
         return SiteDoor.of({
           make: (label, company) =>
             Effect.gen(function* () {
               if (Option.isNone(key) || Option.isNone(secret)) return yield* unset;
-              const body = { label, company, api_key: Redacted.value(key.value), api_secret: Redacted.value(secret.value) };
-              return yield* Effect.flatMap(send(HttpClientRequest.bodyJsonUnsafe(HttpClientRequest.post("/sites"), body)), decodeSite);
+              const body = {
+                label,
+                company,
+                api_key: Redacted.value(key.value),
+                api_secret: Redacted.value(secret.value),
+              };
+              return yield* Effect.flatMap(
+                send(HttpClientRequest.bodyJsonUnsafe(HttpClientRequest.post("/sites"), body)),
+                decodeSite,
+              );
             }),
           site: (site) => Effect.flatMap(send(HttpClientRequest.get(`/sites/${site}`)), decodeSite),
           sites: send(HttpClientRequest.get("/world")).pipe(

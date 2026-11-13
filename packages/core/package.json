@@ -7,7 +7,7 @@
   "scripts": {
     "types": "effect-tsgo tsc -p .",
     "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts",
-    "chain:test": "node --experimental-strip-types --no-warnings --test test/chain/*.test.ts"
+    "chain:test": "node --experimental-strip-types --no-warnings --test --test-concurrency=1 test/chain/*.test.ts"
   },
   "dependencies": {
     "@alchemy.run/cloudflare": "catalog:",

@@ -22,10 +22,11 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 import { SAFE, SAFE_MODULE_SETUP, SAFE_PROXY_FACTORY, MULTI_SEND } from "./abi.ts";
 import { hexOf, sendAsService } from "./calls.ts";
-import { ChainFailed } from "./failures.ts";
+import { ChainFailed } from "../failures.ts";
 import { CHAIN_ID, RELAYER_SALT, SEEDED, SERVICE_KEY } from "./seeded.ts";
 import { nonceKeyOf, prepare, send } from "./userop.ts";
 import { WorldChain } from "./WorldChain.ts";
+import { hex } from "./hex.ts";
 
 /** One call of a batch: to, value and data. */
 export interface Call {
@@ -33,8 +34,6 @@ export interface Call {
   readonly value?: bigint;
   readonly data: Hex;
 }
-
-const hex = (text: string): Hex => (text.startsWith("0x") ? (text as Hex) : "0x");
 
 /** MultiSendCallOnly's `multiSend` of `calls`, each a plain call: run by DELEGATECALL from the Safe that sends it. */
 export const multiSend = (calls: ReadonlyArray<Call>): Hex =>
@@ -108,14 +107,18 @@ export const safeMessageDigest = (owner: string, hash: Hex): Hex =>
   });
 
 /** The approval of a Safe whose owner is the transaction's sender: Safe's "approved by msg.sender" (v = 1). */
-export const approvedBySender = (owner: string): Hex => concat([pad(hex(owner), { size: 32 }), pad("0x", { size: 32 }), "0x01"]);
+export const approvedBySender = (owner: string): Hex =>
+  concat([pad(hex(owner), { size: 32 }), pad("0x", { size: 32 }), "0x01"]);
 
 /**
  * The signatures of contract owners (v = 0), in the order Safe requires (ascending owner): each owner's static part
  * points at its signature, which follows all the static parts.
  */
 export const contractSignatures = (signed: ReadonlyArray<{ readonly owner: string; readonly signature: Hex }>): Hex => {
-  const sorted = Arr.sort(signed, Order.mapInput(Order.BigInt, (each: { readonly owner: string }) => BigInt(each.owner)));
+  const sorted = Arr.sort(
+    signed,
+    Order.mapInput(Order.BigInt, (each: { readonly owner: string }) => BigInt(each.owner)),
+  );
   const statics: Array<Hex> = [];
   const dynamics: Array<Hex> = [];
   let offset = 65n * BigInt(sorted.length);
@@ -173,11 +176,16 @@ export const RELAYER = getContractAddress({
 const ensureRelayer = Effect.gen(function* () {
   const chain = yield* WorldChain;
   const code = yield* hexOf("eth_getCode", yield* chain.rpc("eth_getCode", [RELAYER, "latest"]));
-  if (code !== "0x") return;
+  if (code !== "0x") return yield* Effect.void;
   yield* sendAsService(SEEDED.safeProxyFactory, createRelayer, 1_000_000n);
   const made = yield* hexOf("eth_getCode", yield* chain.rpc("eth_getCode", [RELAYER, "latest"]));
   if (made === "0x")
-    return yield* ChainFailed.make({ reach: "answer", method: "eth_getCode", message: `the relayer is not at ${RELAYER}` });
+    return yield* ChainFailed.make({
+      reach: "answer",
+      method: "eth_getCode",
+      message: `the relayer is not at ${RELAYER}`,
+    });
+  return yield* Effect.void;
 });
 
 /**
@@ -196,7 +204,8 @@ export const relay = Effect.fn("userop.relay")(function* (tx: SafeTransaction, s
   });
   const signature = yield* Effect.tryPromise({
     try: () => relayerKey.sign({ hash: hex(op.digest) }),
-    catch: (cause) => ChainFailed.make({ reach: "answer", method: "eth_sendUserOperation", message: `signing: ${String(cause)}` }),
+    catch: (cause) =>
+      ChainFailed.make({ reach: "answer", method: "eth_sendUserOperation", message: `signing: ${String(cause)}` }),
   });
   return yield* send(op, signature);
 });
