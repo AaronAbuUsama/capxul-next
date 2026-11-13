@@ -41,6 +41,14 @@ export async function readEvent(sql: Sql, id: string): Promise<TransitionEvent |
   return (await sql.query("select event from app.transition_outbox where id=$1", [id])).rows[0]?.event ?? null;
 }
 
+/** Readiness on the caller's Sql: lock-busy and beyond-batch envelopes still count. */
+export async function hasPending(sql: Sql, consumer: string, names: readonly string[]): Promise<boolean> {
+  if (!consumer) throw new Error("INVALID_INPUT: consumer identity required");
+  return (await sql.query(`select exists(select 1 from app.transition_outbox o
+    where event->>'name'=any($2::text[]) and not exists
+      (select 1 from app.transition_acks a where a.consumer=$1 and a.event_id=o.id)) as pending`, [consumer,names])).rows[0].pending;
+}
+
 const lockKey = (consumer: string, id: string) => JSON.stringify([consumer, id]);
 
 /** SQL effects only: caller transaction must include the handler and its ACK. Network work is scheduled, not sent. */
