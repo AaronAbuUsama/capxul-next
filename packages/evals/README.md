@@ -27,7 +27,9 @@ files under its own `<module>/`; paths are normalized, and a path listed twice,
 a symlinked run subdirectory or `--screens` beside in-run manifests fails the run (`system.eval-screen-manifests`). Paths in every in-run manifest must be
 existing run-relative files. Every manifest, capture and source file must be a non-empty regular file, not a link, written during this run
 (mtime at or after the receipt's `at`); `source` is a run-relative file with an optional RFC 6901 `#/json/pointer` (`~1`
-for `/`, `~0` for `~`, own keys only) that must name a non-null value. An otherwise passing screen `/shows` claim with no such capture is recorded `fail` with that reason
+for `/`, `~0` for `~`, own keys and canonical array indexes only) that must name a non-null value. A capture's and a source's
+real path (links resolved at every level) must lie inside the run, and a capture must be a PNG or JPEG by magic bytes, never
+its own source or a manifest. An otherwise passing screen `/shows` claim with no such capture is recorded `fail` with that reason
 (`system.eval-screen-captures`). `--screens <manifest>` imports an external manifest and its captures instead. For screen value
 equality use `assertion:"source-equality"` and keep the source readback in the run too. The engine exports `parseRunReceipt`.
 
