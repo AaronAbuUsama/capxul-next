@@ -92,6 +92,17 @@ export const Subject = Schema.Union([
   Schema.Struct({ kind: Schema.Literal("payment"), id: PaymentRequestId }),
 ]);
 
+/**
+ * How a person of the cast signs (decisions.md, 42). Their keys are among the first `accounts` of the public test
+ * mnemonic every Anvil chain starts with, each known by its address (`CastMember.signer`, `Approval.signerAddress`).
+ * An approval's `digest` is signed as it is: raw secp256k1 over the 32 bytes, no message prefix, `v` 27 or 28.
+ */
+export const CAST_KEYS = {
+  mnemonic: "test test test test test test test test test test test junk",
+  accounts: 10,
+  scheme: "secp256k1 over the digest, no prefix",
+} as const;
+
 /** A person of a world's cast, made with the world. Their key is the chain's well-known test key for `signer`. */
 export const CastMember = Schema.Struct({
   person: PersonId,

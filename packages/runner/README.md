@@ -35,7 +35,7 @@ deploy and the SDK sends; they are never printed or recorded.
 
    | Check | Passes when |
    |---|---|
-   | `span` | exactly one server span named after the operation exists under the call's trace id |
+   | `span` | exactly one server span named after the operation exists under the call's trace id; none for a call its client rejected (`PayloadRejected`), which was never sent |
    | `outcome` | that span ended the way the caller saw the call end (success, refusal, defect) |
    | `events` | a successful call recorded exactly the events its outcome declares, each once, each carrying what the declaration computes from the call; any other call recorded none |
 
@@ -87,6 +87,7 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 |---|---|---|
 | `WORLD_OWNER` | `runner` | Who the stages belong to; Core reads it at deploy as the world's owner. |
 | `CAPXUL_DOOR_TOKEN`, `CAPXUL_PLATFORM_TOKEN` | fresh from `run.sh` | The tokens the stage's two doors accept. |
+| `WORLD_SECOND_OWNER`, `CAPXUL_SECOND_PLATFORM_TOKEN` | `runner-2`, fresh from `run.sh` | The second operator the starting world `nothing` promises (blueprint decisions.md, 37). Until the platform accepts the token, its calls are refused `NotSignedIn`. |
 | `WORLD_CREATE_TIMEOUT` | `4 minutes` | Deploy, migrations and the wait for Core's answers. |
 | `WORLD_USE_TIMEOUT` | `3 minutes` | The calls and the checks. |
 | `WORLD_DESTROY_TIMEOUT` | `4 minutes` | The destroy. |
@@ -112,7 +113,8 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 |---|---|
 | `src/main.ts` | The entry: arguments, the runs, the exit code. The only file that touches the process. |
 | `src/run.ts` | A run as a plan: the door, a scenario, and one stage from create to record. |
-| `src/client.ts` | `Capxul` for one stage: the SDK's client at its two doors, every call recorded. |
+| `src/client.ts` | `Capxul` for one stage: the SDK's client at its two doors, its chain and whatever a call reaches (the second operator, another world's door), every call recorded, a call its client rejected as `rejected`. |
+| `src/given.ts` | `Given`: the facts of a scenario's starting world. `nothing`'s are the run's operators; for any other world, the declared example facts in a run that expects `not-implemented`, and a defect otherwise, until the runner makes starting worlds (step 1.12). |
 | `src/checks/checks.ts`, `src/checks/events.ts` | The generic checks, the timings and the steps. A builder never changes these. |
 | `src/world/` | The stage's life, its database, the warm-up and the inventory: the runner's plumbing. |
 | `src/scenario-runs.ts` | A scenarios run in either mode, ending in its summary. |
