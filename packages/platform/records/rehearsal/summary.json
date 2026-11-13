@@ -1,0 +1,68 @@
+{
+  "stage": "pr-p2",
+  "host": "standin",
+  "edge": "none",
+  "outcome": "passed",
+  "steps": [
+    {
+      "step": "deploy",
+      "exit": 0,
+      "want": 0,
+      "seconds": 9.2
+    },
+    {
+      "step": "door ready",
+      "exit": 0,
+      "want": 0,
+      "seconds": 3.1
+    },
+    {
+      "step": "deploy, no change",
+      "exit": 0,
+      "want": 0,
+      "seconds": 11.1
+    },
+    {
+      "step": "site creation",
+      "exit": 0,
+      "want": 0,
+      "seconds": 100.8
+    },
+    {
+      "step": "drift check, clean",
+      "exit": 0,
+      "want": 0,
+      "seconds": 16.1
+    },
+    {
+      "step": "alchemy drift, after hand changes",
+      "exit": 0,
+      "want": 0,
+      "seconds": 7.4
+    },
+    {
+      "step": "drift check, after hand changes",
+      "exit": 2,
+      "want": 2,
+      "seconds": 17.6
+    },
+    {
+      "step": "alchemy drift --repair",
+      "exit": 0,
+      "want": 0,
+      "seconds": 8.6
+    },
+    {
+      "step": "drift check, after repair",
+      "exit": 0,
+      "want": 0,
+      "seconds": 23.1
+    },
+    {
+      "step": "destroy",
+      "exit": 0,
+      "want": 0,
+      "seconds": 19.9
+    }
+  ]
+}

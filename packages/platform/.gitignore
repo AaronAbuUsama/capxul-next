@@ -1,0 +1,2 @@
+# Alchemy's local working files (its state is in the shared Cloudflare store, not here).
+.alchemy/

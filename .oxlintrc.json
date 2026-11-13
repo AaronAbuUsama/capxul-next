@@ -32,6 +32,9 @@
         "packages/lint/src/shape.entry.ts": "the shape check's command line: reads git's file list and the disk, prints, sets the exit code",
         "packages/blueprint/src/claims/render.entry.ts": "writes claims.md: the one place the claims render touches the disk",
         "packages/cli/src/bin.ts": "the capxul process: runs the command line on the process's arguments and sets its exit code",
+        "packages/platform/src/run-drift.ts": "the drift check's command line: reads its arguments, prints and writes the report as JSON, sets the exit code",
+        "packages/platform/src/run-inventory.ts": "lists what the shared state holds for the platform's stacks from the command line: reads its argument, prints",
+        "packages/platform/src/run-mint.ts": "mints a world's site token from the command line: reads its arguments, writes the token file, prints its print",
         "packages/*/test/**/*.test.ts": "a test file is run by the test runner as its own program"
       },
       // Places where JSON text is the format of the outside world, each with its reason.
@@ -207,6 +210,9 @@
         "packages/lint/src/shape.entry.ts",
         "packages/blueprint/src/claims/render.entry.ts",
         "packages/cli/src/bin.ts",
+        "packages/platform/src/run-drift.ts",
+        "packages/platform/src/run-inventory.ts",
+        "packages/platform/src/run-mint.ts",
         "packages/*/test/**/*.test.ts"
       ],
       "rules": {
@@ -250,7 +256,11 @@
       // Rpc's, HttpClient's and the CLI module's types. Effect 4 marks them unstable with no stable replacement; each
       // package's tsconfig.json allows them for the same reason, and the catalog's exact pin of effect is the guard.
       // A scenario's client (packages/scenarios) is typed by the blueprint's Rpc declarations, for the same reason.
-      "files": ["packages/sdk/**", "packages/cli/**", "packages/scenarios/**"],
+      // Every export of the platform package that opens the state store or deploys shows Alchemy's and Effect's
+      // platform services in its type (HttpClient, FileSystem, Path, ChildProcessSpawner and the rest), and the site
+      // token shows Effect's WebCrypto services: a deploy and a mint need them, and Effect 4 marks them unstable with no
+      // stable replacement. packages/platform/tsconfig.json allows the same modules for the same reason.
+      "files": ["packages/sdk/**", "packages/cli/**", "packages/scenarios/**", "packages/platform/**"],
       "rules": {
         "effecttsgo/api-stability-leak": "off"
       }

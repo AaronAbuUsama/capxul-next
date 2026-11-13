@@ -1,0 +1,61 @@
+
+== 5. destroy the platform (12:23:42Z)
+[12:23:48.994] INFO: Plan ready (5.2s)
+[12:23:48.997] INFO: Plan: 15 to delete
+[12:23:48.997] INFO: [BenchImage] delete
+[12:23:48.997] INFO: [DbRootPassword] delete
+[12:23:48.997] INFO: [DbVolume] delete
+[12:23:48.997] INFO: [Door] delete
+[12:23:48.998] INFO: [DoorImage] delete
+[12:23:48.998] INFO: [DoorKey-g1] delete
+[12:23:48.998] INFO: [DoorRecord] delete
+[12:23:48.998] INFO: [Host] delete
+[12:23:48.998] INFO: [MariaDB] delete
+[12:23:48.998] INFO: [Network] delete
+[12:23:48.998] INFO: [Redis] delete
+[12:23:48.998] INFO: [Scheduler] delete
+[12:23:48.999] INFO: [SitesVolume] delete
+[12:23:48.999] INFO: [Web] delete
+[12:23:48.999] INFO: [Worker] delete
+[12:23:50.323] INFO: [Door] deleting
+[12:23:50.324] INFO: [Web] deleting
+[12:23:50.324] INFO: [Worker] deleting
+[12:23:50.324] INFO: [Scheduler] deleting
+[12:23:50.324] INFO: [MariaDB] deleting
+[12:23:50.324] INFO: [DoorRecord] deleting
+[12:23:50.324] INFO: [Redis] deleting
+[12:23:51.084] INFO: [DoorRecord] deleted (760ms)
+[12:23:51.135] INFO: [Redis] deleted (811ms)
+[12:23:51.317] INFO: [MariaDB] deleted (993ms)
+[12:23:51.317] INFO: [DbVolume] deleting
+[12:23:51.654] INFO: [Worker] deleted (1.3s)
+[12:23:51.891] INFO: [Web] deleted (1.6s)
+[12:23:51.992] INFO: [DbVolume] deleted (675ms)
+[12:24:01.209] INFO: [Door] deleted (10.9s)
+[12:24:01.209] INFO: [DoorImage] deleting
+[12:24:01.209] INFO: [DbRootPassword] deleting
+[12:24:01.209] INFO: [DoorKey-g1] deleting
+[12:24:01.277] INFO: [Scheduler] deleted (11.0s)
+[12:24:01.277] INFO: [Network] deleting
+[12:24:01.277] INFO: [SitesVolume] deleting
+[12:24:01.386] INFO: [DoorKey-g1] deleted (177ms)
+[12:24:01.414] INFO: [DbRootPassword] deleted (205ms)
+[12:24:01.425] INFO: [DoorImage] deleted (216ms)
+[12:24:01.429] INFO: [BenchImage] deleting
+[12:24:01.648] INFO: [BenchImage] deleted (223ms)
+[12:24:01.651] INFO: [Network] deleted (374ms)
+[12:24:01.691] INFO: [SitesVolume] deleted (414ms)
+[12:24:01.691] INFO: [Host] deleting
+[12:24:01.891] INFO: [Host] deleted (200ms)
+[12:24:02.130] INFO: Done: 15 succeeded (13.1s)
+-- destroy: exit 0 (want 0) in 19.9 s
+removed the Docker context cx-platform-pr-p2 (bin/run.sh makes it; it is not in the state)
+
+== 5. what is left (12:24:02Z)
+containers: 
+volumes: 
+networks: 0  images: 0  context: 0
+the shared state: [12:24:04.166] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN). i Refreshing Cloudflare State Store credentials + Refreshing Cloudflare State Store credentials CapxulPlatform/pr-p2: none CapxulBenchHost/pr-p2: none 
+zone abuusama.dev: 66 records; under worlds.abuusama.dev: 0 []
+zone abuusama.dev: the other 66 records print 00b6780dc2951888
+outcome: passed
