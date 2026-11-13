@@ -189,13 +189,6 @@
    "why": "command records keep the real time beside the world time, by design"
   },
   {
-   "file": "packages/devnet/src/devnet/catalogue.ts",
-   "match": "updated_at=${Date.now()}",
-   "label": "owed",
-   "why": "app.worlds.updated_at should carry the world's now, as created_at does",
-   "owner": "Recovery"
-  },
-  {
    "file": "packages/devnet/src/devnet/composition.ts",
    "match": "observedAt: new Date().toISOString()",
    "label": "real-on-purpose",
