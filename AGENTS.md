@@ -16,6 +16,8 @@ disturbing the product work in flight on those two branches.
 
 If your task was written for `main` or `integration/build` and you are on this branch, stop and switch branches.
 
+The plan this line follows is [docs/roadmap.md](docs/roadmap.md).
+
 This repository holds the Capxul rebuild: a typed **blueprint** (`blueprint/`, built by `packages/blueprint-engine`) and
 the product code it describes. Capxul is hosted, re-skinned Frappe with Capxul Core's on-chain authority, budgets,
 payments and banking built in ([GROUNDING.md](GROUNDING.md)).
