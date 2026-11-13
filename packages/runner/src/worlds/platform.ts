@@ -16,10 +16,17 @@ import type { Settings } from "../settings.ts";
 import { EventRow, SpanRow } from "../world/database.ts";
 import { PlatformKept } from "./kept.ts";
 
-/** Where the platform answers, and every world it has made in this run, oldest first. */
+/**
+ * Where the platform answers, every world it has made in this run, oldest first, and every world it tried to make,
+ * refused and failed ones included, whose names the accounts are read for afterwards.
+ */
 export class Platform extends Context.Service<
   Platform,
-  { readonly url: string; readonly made: Effect.Effect<ReadonlyArray<string>> }
+  {
+    readonly url: string;
+    readonly made: Effect.Effect<ReadonlyArray<string>>;
+    readonly tried: Effect.Effect<ReadonlyArray<string>>;
+  }
 >()("@capxul/runner/worlds/platform") {}
 
 const Kept = Schema.Struct({ spans: Schema.Array(SpanRow), events: Schema.Array(EventRow) });
@@ -37,6 +44,7 @@ export const platformFor = (settings: Settings) =>
     Effect.gen(function* () {
       const url = yield* World.platformUrl;
       const made = yield* World.Made;
+      const tried = yield* World.Tried;
       const services = yield* Effect.context<World.SharedState | HttpClient.HttpClient>();
       const kept = (traceIds: ReadonlyArray<string>) =>
         World.keptByPlatform(traceIds).pipe(
@@ -50,11 +58,13 @@ export const platformFor = (settings: Settings) =>
           ),
         );
       yield* Effect.logInfo(`the platform answers at ${url}`);
-      return Context.make(Platform, { url, made: Ref.get(made) }).pipe(Context.add(PlatformKept, { kept }));
+      return Context.make(Platform, { url, made: Ref.get(made), tried: Ref.get(tried) }).pipe(
+        Context.add(PlatformKept, { kept }),
+      );
     }),
   ).pipe(
     Layer.provideMerge(World.servePlatform),
     Layer.provideMerge(BunHttpServer.layer({ port: 0, hostname: "127.0.0.1" })),
-    Layer.provideMerge(World.Made.layer),
+    Layer.provideMerge(Layer.merge(World.Made.layer, World.Tried.layer)),
     Layer.provide(operators(settings)),
   );

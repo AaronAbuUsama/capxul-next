@@ -16,7 +16,7 @@ import { describeFailure } from "../lifecycle/describe.ts";
 import { destroy } from "../lifecycle/operations.ts";
 import { open, rpc } from "../lifecycle/parts.ts";
 import { CAST_FUNDS } from "../platform/cast.ts";
-import { create, Made, show } from "../platform/create.ts";
+import { create, Made, show, Tried } from "../platform/create.ts";
 import { Operators } from "../platform/operators.ts";
 import { restore, save } from "../platform/snapshots.ts";
 import { check, conclude, inventoryReport, stackListing } from "./support.ts";
@@ -213,5 +213,5 @@ export const snapshot = proof.pipe(
   ),
   // A proof is its own program, as each of this package's proofs is, handed the platform's services it alone needs.
   // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the proof's own operators and its record of what it made
-  Effect.provide(Layer.merge(Made.layer, operators)),
+  Effect.provide(Layer.mergeAll(Made.layer, Tried.layer, operators)),
 );

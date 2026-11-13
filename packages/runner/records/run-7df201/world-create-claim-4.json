@@ -1,0 +1,39 @@
+{
+  "kind": "scenario",
+  "name": "world.create claim 4",
+  "proves": {
+    "operation": "world.create",
+    "claim": 4
+  },
+  "given": "nothing",
+  "stage": "run-7df201-4",
+  "owner": "pops",
+  "startedAt": "2026-11-13T14:43:41.979Z",
+  "outcome": "failed",
+  "failure": "the run did not finish: {\"_tag\":\"TimeoutError\",\"~effect/Cause/TimeoutError\":\"~effect/Cause/TimeoutError\",\"message\":\"Operation timed out after '3m'\"}",
+  "ended": null,
+  "readiness": null,
+  "calls": [],
+  "making": [],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    }
+  },
+  "ms": {
+    "create": 0,
+    "run": null,
+    "checks": null,
+    "destroy": 0
+  }
+}

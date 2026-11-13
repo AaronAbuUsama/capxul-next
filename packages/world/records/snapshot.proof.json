@@ -1,0 +1,365 @@
+{
+  "proof": "the platform's four operations make, save and restore whole worlds",
+  "outcome": "passed",
+  "at": "2026-11-13T14:44:12.378Z",
+  "checks": [
+    {
+      "check": "the new world runs, frozen, with no parent and its birth as its record",
+      "held": true
+    },
+    {
+      "check": "its cast is dana, eli, sam, pat and olga, pat with no Safe",
+      "held": true
+    },
+    {
+      "check": "every claimed Safe holds 10,000 test USDC",
+      "held": true
+    },
+    {
+      "check": "the save holds the record up to its birth",
+      "held": true
+    },
+    {
+      "check": "saving the same name again is refused with SnapshotExists",
+      "held": true
+    },
+    {
+      "check": "a save by another operator is refused with NotWorldOwner",
+      "held": true
+    },
+    {
+      "check": "a restore of a snapshot that does not exist is refused with SnapshotNotFound",
+      "held": true
+    },
+    {
+      "check": "a restore that outlives its source is refused with ExpiryBeyondSource",
+      "held": true
+    },
+    {
+      "check": "another operator may not restore a snapshot that is not a template",
+      "held": true
+    },
+    {
+      "check": "a restore as a name that is taken is refused with WorldExists",
+      "held": true
+    },
+    {
+      "check": "the restored world names its parent and its record continues the snapshot's",
+      "held": true
+    },
+    {
+      "check": "the restored world's record is the first world's birth, then its own",
+      "held": true
+    },
+    {
+      "check": "the first world's record holds its birth and its save",
+      "held": true
+    },
+    {
+      "check": "the restored world's chain holds what was saved, not what the first world did after",
+      "held": true
+    },
+    {
+      "check": "the restored world has the snapshot's clock and cast",
+      "held": true
+    },
+    {
+      "check": "the first world is still its own: no parent, and its record head moved only with its save",
+      "held": true
+    },
+    {
+      "check": "nothing of either world is left in the accounts, snapshot branches included",
+      "held": true
+    }
+  ],
+  "observations": {
+    "made": {
+      "world": "p-snap",
+      "owner": "proof-snap",
+      "grade": "private",
+      "state": "running",
+      "expiresAt": "2026-11-13T15:19:19.931Z",
+      "door": "https://capxulworld-core-w-p-snap-7ezmtwl6ue53nyhm.thedao.workers.dev",
+      "chainId": 84532,
+      "contracts": {
+        "usdc": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+        "hats": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+        "payments": "0x468241C0CFaB01eD410D8f9A281Ace9b8D4E30e3",
+        "entryPoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+        "companySafeMinter": "0x27e3faE904527BcA73C39683D2a1239020915c71",
+        "companiesHouse": "0x38d9772b87a52Ed4615E2c804414f0cDD4854F2F",
+        "companyNamespace": "capxul:devnet:company:v1"
+      },
+      "clock": {
+        "mode": "frozen",
+        "now": "2026-11-13T14:39:19.928Z"
+      },
+      "recordHead": 1,
+      "parent": null,
+      "cast": [
+        {
+          "person": "dana",
+          "email": "dana@cast.test",
+          "signer": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+          "safe": "0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c"
+        },
+        {
+          "person": "eli",
+          "email": "eli@cast.test",
+          "signer": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
+          "safe": "0x90c388a1d9bf2218204d6a5de9654b3260369be8"
+        },
+        {
+          "person": "sam",
+          "email": "sam@cast.test",
+          "signer": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
+          "safe": "0xf6aeafa0dab7b6d9fc54537ceb1550ce956a11cc"
+        },
+        {
+          "person": "pat",
+          "email": "pat@cast.test",
+          "signer": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+          "safe": null
+        },
+        {
+          "person": "olga",
+          "email": "olga@cast.test",
+          "signer": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+          "safe": "0x532a1193802e3bbab0597f713c61639f7285f2bb"
+        }
+      ],
+      "companies": []
+    },
+    "startBlock": {
+      "hash": "0xca86a828d3a2222323dd93425d12e864915c0f7dae95dcc6004871413796ec88",
+      "parentHash": "0x4dfcf93cbed1ecc37d44757d2ec43b99ebaf1b48dfee098fdfb2894004ffbfcb",
+      "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+      "miner": "0x4200000000000000000000000000000000000011",
+      "stateRoot": "0xffba325902ff50e61a2430a0dbe4271dcb0edddf2c289551758a738f1722b2fc",
+      "transactionsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+      "receiptsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+      "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "difficulty": "0x0",
+      "number": "0x2dacb15",
+      "gasLimit": "0x1c9c380",
+      "gasUsed": "0x0",
+      "timestamp": "0x6af72117",
+      "extraData": "0x",
+      "mixHash": "0x41283cd29e18f7527c0734f111957afbce725c50104f39c500d6ed2288a64262",
+      "nonce": "0x0000000000000000",
+      "baseFeePerGas": "0x4a030e",
+      "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+      "blobGasUsed": "0x0",
+      "excessBlobGas": "0x0",
+      "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "requestsHash": "0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "totalDifficulty": "0x0",
+      "size": "0x26b",
+      "uncles": [],
+      "transactions": [],
+      "withdrawals": []
+    },
+    "saved": {
+      "world": "p-snap",
+      "snapshot": "s1",
+      "recordSeq": 1,
+      "clock": {
+        "mode": "frozen",
+        "now": "2026-11-13T14:39:19.928Z"
+      },
+      "template": false,
+      "savedAt": "2026-11-13T14:41:16.018Z",
+      "companies": 0,
+      "migrations": "0003_world.sql"
+    },
+    "refusals": {
+      "again": "SnapshotExists",
+      "notOwner": "NotWorldOwner",
+      "missing": "SnapshotNotFound",
+      "outlives": "ExpiryBeyondSource",
+      "notTemplate": "NotWorldOwner",
+      "taken": "WorldExists"
+    },
+    "restored": {
+      "world": "p-snap2",
+      "owner": "proof-snap",
+      "grade": "private",
+      "state": "running",
+      "expiresAt": "2026-11-13T15:01:39.804Z",
+      "door": "https://capxulworld-core-w-p-snap2-lcqv7l3mkeufszvz.thedao.workers.dev",
+      "chainId": 84532,
+      "contracts": {
+        "usdc": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+        "hats": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+        "payments": "0x468241C0CFaB01eD410D8f9A281Ace9b8D4E30e3",
+        "entryPoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+        "companySafeMinter": "0x27e3faE904527BcA73C39683D2a1239020915c71",
+        "companiesHouse": "0x38d9772b87a52Ed4615E2c804414f0cDD4854F2F",
+        "companyNamespace": "capxul:devnet:company:v1"
+      },
+      "clock": {
+        "mode": "frozen",
+        "now": "2026-11-13T14:39:19.928Z"
+      },
+      "recordHead": 2,
+      "parent": {
+        "world": "p-snap",
+        "snapshot": "s1",
+        "recordSeq": 1
+      },
+      "cast": [
+        {
+          "person": "dana",
+          "email": "dana@cast.test",
+          "signer": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+          "safe": "0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c"
+        },
+        {
+          "person": "eli",
+          "email": "eli@cast.test",
+          "signer": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
+          "safe": "0x90c388a1d9bf2218204d6a5de9654b3260369be8"
+        },
+        {
+          "person": "sam",
+          "email": "sam@cast.test",
+          "signer": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
+          "safe": "0xf6aeafa0dab7b6d9fc54537ceb1550ce956a11cc"
+        },
+        {
+          "person": "pat",
+          "email": "pat@cast.test",
+          "signer": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+          "safe": null
+        },
+        {
+          "person": "olga",
+          "email": "olga@cast.test",
+          "signer": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+          "safe": "0x532a1193802e3bbab0597f713c61639f7285f2bb"
+        }
+      ],
+      "companies": []
+    },
+    "entries": {
+      "first": [
+        {
+          "event": "world_created",
+          "payload": {
+            "grade": "private",
+            "owner": "proof-snap",
+            "world": "p-snap",
+            "parent": null,
+            "expiresAt": "2026-11-13T15:19:19.931Z"
+          }
+        },
+        {
+          "event": "snapshot_saved",
+          "payload": {
+            "world": "p-snap",
+            "snapshot": "s1",
+            "template": false,
+            "recordSeq": 1
+          }
+        }
+      ],
+      "second": [
+        {
+          "event": "world_created",
+          "payload": {
+            "grade": "private",
+            "owner": "proof-snap",
+            "world": "p-snap",
+            "parent": null,
+            "expiresAt": "2026-11-13T15:19:19.931Z"
+          }
+        },
+        {
+          "event": "world_created",
+          "payload": {
+            "grade": "private",
+            "owner": "proof-snap",
+            "world": "p-snap2",
+            "parent": {
+              "world": "p-snap",
+              "snapshot": "s1",
+              "recordSeq": 1
+            },
+            "expiresAt": "2026-11-13T15:01:39.804Z"
+          }
+        }
+      ]
+    },
+    "danaSafe": {
+      "first": "10005000000",
+      "second": "10000000000"
+    },
+    "inventory": {
+      "before": {
+        "workers": [
+          "capxulworld-core-w-p-fresh-rgzloebf33efe2rq",
+          "capxulworld-door-w-p-fresh-px5fl4du2gtfa2yg"
+        ],
+        "containerApplications": [
+          "capxulworld-alto-w-p-fresh-gouwwfqilijdapxy",
+          "capxulworld-ponder-w-p-fresh-3mvahsfnzqn3rjmm",
+          "capxulworld-anvil-w-p-fresh-ijej6stmo442ywhj"
+        ],
+        "durableObjectNamespaces": [
+          "capxulworld-door-w-p-fresh-px5fl4du2gtfa2yg",
+          "capxulworld-door-w-p-fresh-px5fl4du2gtfa2yg",
+          "capxulworld-door-w-p-fresh-px5fl4du2gtfa2yg"
+        ],
+        "r2Buckets": [
+          "capxulworld-chainstate-w-p-fork-dzlgmtnn5dlqn3qt",
+          "capxulworld-chainstate-w-p-fresh-nfmulc76swqgfsxg"
+        ],
+        "hyperdriveConfigurations": [
+          "capxulworld-world-db-w-p-fresh-ohm6v5agsmyk7nvl"
+        ],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-p-fresh",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-alto",
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "after": {
+        "workers": [
+          "capxulworld-door-w-wc4-m8yq098n-bh5pocdhe5dimdbk"
+        ],
+        "containerApplications": [
+          "capxulworld-anvil-w-wc4-m8yq098n-axt6tsc25e7z5g23"
+        ],
+        "durableObjectNamespaces": [
+          "capxulworld-door-w-wc4-m8yq098n-bh5pocdhe5dimdbk",
+          "capxulworld-door-w-wc4-m8yq098n-bh5pocdhe5dimdbk"
+        ],
+        "r2Buckets": [
+          "capxulworld-chainstate-w-p-cli-myunuf6w5t3yhwdw",
+          "capxulworld-chainstate-w-wc4-m8yq098n-ygldz3av2adloa2p"
+        ],
+        "hyperdriveConfigurations": [
+          "capxulworld-world-db-w-wc4-m8yq098n-zij5i6ncjsdnmtxb"
+        ],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-wc4-m8yq098n",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-p-cli",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-alto",
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "leftOfTheseWorlds": [],
+      "sameAsBefore": false
+    }
+  }
+}

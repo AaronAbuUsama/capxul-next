@@ -91,7 +91,7 @@ const work = (scenario: Scenario, settings: Settings, starting: StartingWorlds, 
     };
     const plan = scenarioPlan(settings, { made: making.value.facts })(scenario);
     const inWorld = { ...settings, doorToken: world?.doorToken ?? Redacted.make("none") };
-    const used = yield* Effect.exit(Effect.timeout(use(plan, inWorld)(stage), settings.useTimeout));
+    const used = yield* Effect.exit(Effect.timeout(use(plan, inWorld)(stage), settings.worldUseTimeout));
     return { makeMs: millis(makeTook), making, madeChecked, readiness, stage: stage.name, used };
   });
 
@@ -105,15 +105,17 @@ const runOne = (scenario: Scenario, settings: Settings, starting: StartingWorlds
       const platform = yield* Platform;
       const startedAt = yield* now;
       const before = yield* platform.made;
+      const triedBefore = (yield* platform.tried).length;
       const done = yield* Effect.exit(restore(work(scenario, settings, starting, `${run}-${index + 1}`)));
       const templates = yield* starting.templateWorlds;
       const mine = Arr.filter(
         Arr.drop(yield* platform.made, before.length),
         (stage) => !Arr.contains(templates, stage),
       );
-      const leftBefore = yield* leftOf(mine);
+      const looked = Arr.dedupe([...mine, ...Arr.drop(yield* platform.tried, triedBefore)]);
+      const leftBefore = yield* leftOf(looked);
       const [destroyTook, destroyed] = yield* Effect.timed(destroyAll(mine));
-      const leftAfter = yield* leftOf(mine);
+      const leftAfter = yield* leftOf(looked);
       const got = Exit.isSuccess(done) ? done.value : undefined;
       const used = got?.used;
       const value = used !== undefined && Exit.isSuccess(used) ? used.value : undefined;

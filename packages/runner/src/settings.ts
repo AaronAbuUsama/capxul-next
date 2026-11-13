@@ -9,6 +9,11 @@ export const Settings = Config.all({
   createTimeout: Config.Duration("WORLD_CREATE_TIMEOUT").pipe(Config.withDefault(Duration.minutes(4))),
   /** The run itself and the generic checks together. */
   useTimeout: Config.Duration("WORLD_USE_TIMEOUT").pipe(Config.withDefault(Duration.minutes(3))),
+  /**
+   * The same for a scenario in private worlds, whose own calls may make worlds (each about two minutes) and whose
+   * checks read several worlds' databases.
+   */
+  worldUseTimeout: Config.Duration("WORLD_SCENARIO_TIMEOUT").pipe(Config.withDefault(Duration.minutes(20))),
   destroyTimeout: Config.Duration("WORLD_DESTROY_TIMEOUT").pipe(Config.withDefault(Duration.minutes(4))),
   /** A stage is ready after this many answers in a row from its Core (warmup.ts). */
   readyAnswers: Config.Int("WORLD_READY_ANSWERS").pipe(Config.withDefault(20)),

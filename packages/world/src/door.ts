@@ -20,7 +20,7 @@ export { STACK } from "./stack/names.ts";
 export type { CoreSlot } from "./stack/stack.ts";
 export { CONTRACTS, SEED_HEAD } from "./chain/contracts.ts";
 export { CAST, CAST_FUNDS } from "./platform/cast.ts";
-export { EARLIEST_MS, Made } from "./platform/create.ts";
+export { EARLIEST_MS, Made, Tried } from "./platform/create.ts";
 export { Operators } from "./platform/operators.ts";
 export { keptByPlatform, PlatformHandlers, platformUrl, servePlatform } from "./platform/server.ts";
 export { namesOfWorlds, ofThisStackOnly } from "./lifecycle/account.ts";

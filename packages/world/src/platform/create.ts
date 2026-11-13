@@ -37,6 +37,20 @@ export class Made extends Context.Service<Made, Ref.Ref<ReadonlyArray<string>>>(
   static readonly layer = Layer.effect(Made, Ref.make<ReadonlyArray<string>>([]));
 }
 
+/**
+ * Every world the platform tried to make in this process, by stage, the refused and the failed included: what a
+ * caller reads the accounts for afterwards. A create that fails after its claim takes down what it made itself.
+ */
+export class Tried extends Context.Service<Tried, Ref.Ref<ReadonlyArray<string>>>()(
+  "@capxul/world/platform/create/Tried",
+) {
+  static readonly layer = Layer.effect(Tried, Ref.make<ReadonlyArray<string>>([]));
+}
+
+/** Notes that a world of this name is about to be made. */
+export const tried = (world: string) =>
+  Effect.flatMap(Effect.service(Tried), (all) => Ref.update(all, (was) => [...was, stageOf(world)]));
+
 /** The earliest a world may start: the seed's last block, and room for the blocks that make the world. */
 export const EARLIEST_MS = (SEED_HEAD.timestamp + SETUP_ROOM_SECONDS) * 1000;
 
@@ -83,6 +97,7 @@ export const create = Effect.fn("platform.world.create")(function* (payload: Cre
       asked: payload.clock.startAt ?? instantOf(startMs),
       earliest: instantOf(EARLIEST_MS),
     });
+  yield* tried(payload.world);
   const made = yield* createWorld({
     name: payload.world,
     owner: operator,

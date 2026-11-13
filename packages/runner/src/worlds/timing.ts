@@ -98,7 +98,7 @@ export const timeStartingWorlds = (settings: Settings) =>
     );
     const templates = yield* starting.templateWorlds;
     const [destroyTook] = yield* Effect.timed(destroyAll(templates));
-    const after = yield* leftOf([...(yield* platform.made)]);
+    const after = yield* leftOf(Arr.dedupe([...(yield* platform.made), ...(yield* platform.tried)]));
     const failures = [
       ...Arr.flatMap(lines, (line) => (line.outcome === "failed" ? [`${line.name}: ${line.why ?? ""}`] : [])),
       ...failuresOf(Arr.flatMap(lines, (line) => line.calls)),

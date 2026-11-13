@@ -3,7 +3,7 @@
 import * as BunHttpServer from "@effect/platform-bun/BunHttpServer";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import { Made } from "./create.ts";
+import { Made, Tried } from "./create.ts";
 import { Operators } from "./operators.ts";
 import { platformUrl, servePlatform } from "./server.ts";
 
@@ -15,6 +15,6 @@ export const servePlatformOn = (port: number) =>
   announced.pipe(
     Layer.provideMerge(servePlatform),
     Layer.provideMerge(BunHttpServer.layer({ port, hostname: "127.0.0.1" })),
-    Layer.provide(Layer.merge(Made.layer, Operators.fromConfig)),
+    Layer.provide(Layer.mergeAll(Made.layer, Tried.layer, Operators.fromConfig)),
     Layer.launch,
   );

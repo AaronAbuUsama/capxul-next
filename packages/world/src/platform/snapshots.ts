@@ -16,7 +16,7 @@ import * as Random from "effect/Random";
 import { create as createWorld } from "../lifecycle/operations.ts";
 import { saveChain } from "../lifecycle/parts.ts";
 import { branchOf, dropBranch, forkable } from "./branches.ts";
-import { existing, isTaken, keptOrDestroyed } from "./create.ts";
+import { existing, isTaken, keptOrDestroyed, tried } from "./create.ts";
 import { instantOf, readFacts, writeRestored } from "./facts.ts";
 import { tokenOf } from "./operators.ts";
 import { refusalsOnly } from "./refusals.ts";
@@ -108,6 +108,7 @@ export const restore = Effect.fn("platform.world.snapshot.restore")(function* (p
       onSome: Effect.succeed,
     }),
   );
+  yield* tried(payload.as);
   const made = yield* createWorld({
     name: payload.as,
     owner: operator,
