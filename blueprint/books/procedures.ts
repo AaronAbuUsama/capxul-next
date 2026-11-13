@@ -72,6 +72,8 @@ const MoneySide = Schema.Struct({
   fee_raw: opt(S),
   /** Whether the asset is one of Capxul's priced assets; an added token never is. */
   priced: Schema.Boolean,
+  /** Independently captured valuation at this block; absence is unvalued, never a synthetic peg. */
+  usd: opt(Schema.Struct({ value: S, rate: S, source: S })),
   counterparty: NullOr(S),
   /** The counterparty's Party in the directory, when it has one: the voucher's party. */
   party_id: NullOr(S),
@@ -94,7 +96,9 @@ export const procedure_books_record_money_fact = defineProcedure({
     "outside money always have their book fact, written in the same transaction (K10). For each Organization side the " +
     "invoker passes, one fact under its `money_key` with the Organization's next feed number, taken under its book-feeds " +
     "row lock (the row born if the books have not begun), with the USD value at the rate in force at the block for a " +
-    "priced asset (unpriced otherwise). A key with a standing fact of the same kind and amount writes nothing (a replay, " +
+    "priced asset when the invoker supplies captured `usd` evidence (unvalued otherwise). The procedure makes no price " +
+    "provider call and never assumes a stablecoin peg; its first captured value is immutable (books.captured-valuation). " +
+    "A key with a standing fact of the same kind and amount writes nothing (a replay, " +
     "a second writer). A side from a Payment, deposit or payout whose key holds a standing Movement fact reverses it and " +
     "records itself as the next generation; a Movement side never replaces one of theirs (books.money-key). The " +
     "`against` choice becomes the row's annotation only if nobody annotated the row yet, kept as given in the site's " +
