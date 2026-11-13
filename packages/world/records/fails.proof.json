@@ -1,40 +1,101 @@
 {
-  "proof": "a use that fails",
-  "use": "the use did not pass",
-  "record": {
-    "world": "w-p-fails",
-    "owner": "proof",
-    "forkedFrom": "nothing",
-    "expiresAt": "2026-11-13T10:35:58.477Z",
-    "outcome": "failed",
-    "failure": "DatabaseRefused: relation \"app.no_such_table\" does not exist",
-    "worldAfterwards": "destroyed",
-    "ms": {
-      "claim": 656,
-      "deploy": 48555,
-      "migrate": 766,
-      "chain": 2013,
-      "index": 37642,
-      "core": 355,
-      "use": 112,
-      "park": null,
-      "destroy": 11700,
-      "release": 242,
-      "create": 90246,
-      "total": 102304
+  "proof": "a run whose use fails is recorded as failed and its world is destroyed",
+  "outcome": "passed",
+  "at": "2026-11-13T12:26:11.713Z",
+  "checks": [
+    {
+      "check": "the run is recorded as failed, with why",
+      "held": true
     },
-    "timeouts": {
-      "claim": 45000,
-      "deploy": 240000,
-      "migrate": 45000,
-      "chain": 180000,
-      "index": 180000,
-      "core": 60000,
-      "use": 600000,
-      "park": 60000,
-      "destroy": 240000,
-      "release": 45000
+    {
+      "check": "the record has every step's duration up to the destroy",
+      "held": true
+    },
+    {
+      "check": "the world was destroyed",
+      "held": true
+    },
+    {
+      "check": "nothing of the world is left in the accounts",
+      "held": true
+    },
+    {
+      "check": "the accounts hold what they held before",
+      "held": true
     }
-  },
-  "leftOfThisWorld": []
+  ],
+  "observations": {
+    "record": {
+      "world": "w-p-fails",
+      "owner": "proof",
+      "forkedFrom": "nothing",
+      "expiresAt": "2026-11-13T13:04:24.609Z",
+      "outcome": "failed",
+      "failure": "DatabaseRefused: relation \"app.no_such_table\" does not exist",
+      "worldAfterwards": "destroyed",
+      "keptUntil": null,
+      "ms": {
+        "claim": 932,
+        "deploy": 45405,
+        "migrate": 753,
+        "chain": 2762,
+        "fund": 297,
+        "index": 37491,
+        "core": 280,
+        "use": 111,
+        "park": null,
+        "destroy": 13907,
+        "release": 244,
+        "create": 88181,
+        "total": 102448
+      },
+      "timeouts": {
+        "claim": 45000,
+        "deploy": 240000,
+        "migrate": 45000,
+        "chain": 180000,
+        "fund": 60000,
+        "index": 180000,
+        "core": 60000,
+        "use": 600000,
+        "park": 60000,
+        "destroy": 240000,
+        "release": 45000
+      }
+    },
+    "inventory": {
+      "before": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "after": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "leftOfTheseWorlds": [],
+      "sameAsBefore": true
+    }
+  }
 }

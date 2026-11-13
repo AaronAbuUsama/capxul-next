@@ -1,40 +1,105 @@
 {
-  "proof": "a use that outlasts its declared 5 s",
-  "use": "the use did not pass",
-  "record": {
-    "world": "w-p-slow",
-    "owner": "proof",
-    "forkedFrom": "nothing",
-    "expiresAt": "2026-11-13T10:39:25.799Z",
-    "outcome": "timed out",
-    "failure": "StepTimedOut: the use step did not finish within its declared 5000 ms",
-    "worldAfterwards": "destroyed",
-    "ms": {
-      "claim": 663,
-      "deploy": 45137,
-      "migrate": 811,
-      "chain": 2071,
-      "index": 39762,
-      "core": 536,
-      "use": 5006,
-      "park": null,
-      "destroy": 25269,
-      "release": 261,
-      "create": 89274,
-      "total": 119815
+  "proof": "a use that outlasts its declared 5 s timeout is stopped at 5 s, recorded as timed out, and its world is destroyed",
+  "outcome": "passed",
+  "at": "2026-11-13T12:28:14.952Z",
+  "checks": [
+    {
+      "check": "the run is recorded as timed out",
+      "held": true
     },
-    "timeouts": {
-      "claim": 45000,
-      "deploy": 240000,
-      "migrate": 45000,
-      "chain": 180000,
-      "index": 180000,
-      "core": 60000,
-      "use": 5000,
-      "park": 60000,
-      "destroy": 240000,
-      "release": 45000
+    {
+      "check": "the use was stopped at its declared timeout",
+      "held": true
+    },
+    {
+      "check": "the record has every step's duration up to the destroy",
+      "held": true
+    },
+    {
+      "check": "the world was destroyed",
+      "held": true
+    },
+    {
+      "check": "nothing of the world is left in the accounts",
+      "held": true
+    },
+    {
+      "check": "the accounts hold what they held before",
+      "held": true
     }
-  },
-  "leftOfThisWorld": []
+  ],
+  "observations": {
+    "record": {
+      "world": "w-p-slow",
+      "owner": "proof",
+      "forkedFrom": "nothing",
+      "expiresAt": "2026-11-13T13:06:21.189Z",
+      "outcome": "timed out",
+      "failure": "StepTimedOut: the use step did not finish within its declared 5000 ms",
+      "worldAfterwards": "destroyed",
+      "keptUntil": null,
+      "ms": {
+        "claim": 819,
+        "deploy": 46923,
+        "migrate": 718,
+        "chain": 1997,
+        "fund": 297,
+        "index": 39227,
+        "core": 267,
+        "use": 5006,
+        "park": null,
+        "destroy": 13481,
+        "release": 253,
+        "create": 90521,
+        "total": 109266
+      },
+      "timeouts": {
+        "claim": 45000,
+        "deploy": 240000,
+        "migrate": 45000,
+        "chain": 180000,
+        "fund": 60000,
+        "index": 180000,
+        "core": 60000,
+        "use": 5000,
+        "park": 60000,
+        "destroy": 240000,
+        "release": 45000
+      }
+    },
+    "inventory": {
+      "before": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "after": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "leftOfTheseWorlds": [],
+      "sameAsBefore": true
+    }
+  }
 }
