@@ -94,3 +94,15 @@ export const decision_system_standing_gaps = defineDecision({
   source: "Builder, m1-engine-rules, 10 November 2026; m1 gap task decisions",
   affects: [f.system_capxul],
 });
+
+export const decision_system_eval_screen_manifests = defineDecision({
+  id: "system.eval-screen-manifests", title: "Each eval module lists its own screen captures",
+  question: "How do two modules in one run both report screen captures when the run has one screens.json?",
+  options: [
+    { label: "per-module", text: "The runner collects <run>/screens.json and every <run>/<module>/screens.json one directory down, in that order (modules sorted by name), into the receipt's screens. Every in-run manifest lists run-relative paths and sources, so a module writes only its own manifest and captures under its own directory. A path listed twice, a missing capture or an invalid entry fails the run's evidence collection, which makes the run incomplete. --screens still imports one external manifest relative to its own file." },
+    { label: "shared-file", text: "Every module reads, merges and rewrites <run>/screens.json. Correct only while scripts run strictly one after another, and a module that writes the whole file silently drops another module's captures." },
+  ],
+  chosen: "per-module", why: "Acceptance already writes the whole run-level file, and Sites now captures the hat-grants and payment-requests screens in the same run. Separate manifests cannot overwrite each other and keep each capture attributable to its module, with no ordering assumption.",
+  source: "Sites lane request for scr:hat-grants/shows and scr:payment-requests/shows, 13 November 2026; packages/evals/src/execute.ts screen collection",
+  affects: [f.system_capxul],
+});

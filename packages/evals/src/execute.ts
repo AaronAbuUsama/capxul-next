@@ -1,7 +1,7 @@
 // Run I/O: save intent before children; distinguish completed assertions from incomplete script plans.
 import { randomUUID } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { mergeResults, parseRunReceipt, uncapturedScreens, type Blueprint, type RunEnvironment, type RunReceipt } from "@capxul/blueprint-engine";
 import type { Bindings } from "./modules/bindings/service.ts";
@@ -112,20 +112,25 @@ export const executeRun = async (root: string, blueprint: Blueprint, bindings: B
       receipt = { ...receipt, scripts: receipt.scripts.map((s) => s.script === plan.script ? { ...s, exitCode: result.exitCode, signal: result.signal, completed } : s) };
       atomicJson(join(dir, "receipt.json"), receipt);
     }
-    const manifest = options.screens ? resolve(root, options.screens) : join(dir, "screens.json");
-    if (options.screens || existsSync(manifest)) {
-      const file = manifest;
-      const screens: unknown = JSON.parse(readFileSync(file, "utf8"));
-      const validated = parseRunReceipt({ ...receipt, screens });
-      if (!validated.ok) throw new Error(validated.errors.join("\n"));
+    // In-run manifests: <run>/screens.json and one <module>/screens.json per module directory, every path run-relative,
+    // so modules never overwrite each other's captures. --screens imports one external manifest relative to its own file.
+    const manifests = options.screens ? [{ file: resolve(root, options.screens), base: dirname(resolve(root, options.screens)) }]
+      : [join(dir, "screens.json"), ...readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => join(dir, d.name, "screens.json")).sort()]
+        .filter((file) => existsSync(file)).map((file) => ({ file, base: dir }));
+    const screens: RunReceipt["screens"][number][] = [];
+    for (const { file, base } of manifests) {
+      const validated = parseRunReceipt({ ...receipt, screens: JSON.parse(readFileSync(file, "utf8")) as unknown });
+      if (!validated.ok) throw new Error(`${file}: ${validated.errors.join("\n")}`);
       for (const screen of validated.value.screens) {
+        if (screens.some((s) => s.path === screen.path)) throw new Error(`screen evidence listed twice: ${screen.path}`);
         const target = join(dir, screen.path);
-        const source = resolve(dirname(file), screen.path);
+        const source = resolve(base, screen.path);
         if (!existsSync(source)) throw new Error(`screen evidence missing: ${screen.path}`);
         if (source !== target) { mkdirSync(dirname(target), { recursive: true }); copyFileSync(source, target); }
+        screens.push(screen);
       }
-      receipt = { ...receipt, screens: validated.value.screens };
     }
+    receipt = { ...receipt, screens };
   } catch (error) {
     aborted = true;
     receipt = { ...receipt, scripts: receipt.scripts.map((s) => ({ ...s, completed: false })) };

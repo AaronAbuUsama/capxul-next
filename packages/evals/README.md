@@ -20,7 +20,9 @@ Each attempt saves `receipt.json` before execution and a same-run `status.json` 
 their assertion verdicts even in a finalized incomplete attempt; only a complete receipt can satisfy slice acceptance.
 Supply `--environment <json>` for non-skeleton runs; its world must match `--world`. The JSON skeleton is always
 `{stack:"skeleton-json",storage:"json",indexer:"inline"}`, never selected-stack evidence. Children receive
-`CAPXUL_EVAL_RUN_DIR`; a child may write `screens.json` there as an array of `{screen,path,source,assertion}`. Paths must be
+`CAPXUL_EVAL_RUN_DIR`; a child may write `screens.json` there, or its own `<module>/screens.json` one directory down, as an
+array of `{screen,path,source,assertion}`. The runner collects all of them, so modules never overwrite each other's
+captures; a path listed twice fails the run (`system.eval-screen-manifests`). Paths in every in-run manifest must be
 existing run-relative files. `--screens <manifest>` imports an external manifest and its captures instead. For screen value
 equality use `assertion:"source-equality"` and keep the source readback in the run too. The engine exports `parseRunReceipt`.
 
