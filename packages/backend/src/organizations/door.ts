@@ -1,6 +1,21 @@
 import { readFileSync } from "node:fs";
 import { record, type Sql } from "../platform/db.ts";
 
+export type WorldCompany = { orgId: string; name: string; site: string | null };
+
+/** Explicit privileged provisioning after the foundation schema; never run during a read. */
+export async function migrateWorldCompanies(sql: Sql): Promise<void> {
+  await sql.query(readFileSync(new URL("./world-companies.sql", import.meta.url), "utf8"));
+}
+
+/** World-scoped service inventory, not tenant admission. Caller authorizes and selects the world. */
+export async function readWorldCompanies(sql: Sql): Promise<WorldCompany[]> {
+  const role = (await sql.query<{ role: string }>("select current_user as role")).rows[0]!.role;
+  if (role !== "capxul_worker") throw new Error("FORBIDDEN: world company inventory requires capxul_worker");
+  // Existing worker RLS admits the whole DB. site is stored metadata, not a proven public URL.
+  return (await sql.query<WorldCompany>('select org_id as "orgId",name,site from app.organizations order by org_id')).rows;
+}
+
 /** Explicit privileged world provisioning, after Access and Parties; never a route or restore hook. */
 export async function migrate(sql: Sql): Promise<void> {
   await sql.query(readFileSync(new URL("./schema.sql", import.meta.url), "utf8"));
@@ -21,13 +36,15 @@ export async function readSeatBySafe(sql: Sql, orgId: string, wearerSafe: string
     [orgId, wearerSafe.toLowerCase()])).rows[0] ?? null;
 }
 
-/** Actor is mapped from Access.authenticate, not request fields; owner scope is not authentication. */
+/** Actor is mapped from Access.authenticate, not request fields; owner scope is not authentication. Released Parties or
+ * Organizations admit no Seat (app.current_member, the same rule as callerSafes and the Seat RLS). */
 export async function requireSeat(sql: Sql, orgId: string, actor: Actor): Promise<Seat> {
   const row: Seat | undefined = (await sql.query(`select m.* from app.org_members m join app.principals p
     on p.person_id=nullif(current_setting('app.person_id',true),'')
     where m.org_id=$1 and m.status='active' and p.person_id=$2 and p.safe_address=$3
     and (($4='human' and p.kind='person' and m.kind='human' and m.principal_id=p.person_id)
-      or ($4='agent' and p.kind='agent' and m.kind='agent' and m.safe_address=p.safe_address))`,
+      or ($4='agent' and p.kind='agent' and m.kind='agent' and m.safe_address=p.safe_address))
+    and app.current_member(m.org_id)`,
   [orgId, actor.principalId, actor.safe.toLowerCase(), actor.kind])).rows[0];
   if (!row) throw new Error("ROLE_PERMISSION_DENIED: current Seat required");
   return row;

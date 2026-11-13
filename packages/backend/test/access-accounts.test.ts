@@ -5,7 +5,7 @@ import { test } from "node:test";
 import { createPublicClient, createWalletClient, encodeFunctionData, http, pad, parseAbi, type Address, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { db, now, run, config, catalogue, signIn, publicAccess } from "./access-fixture.ts";
-import { createAccessClient } from "../../sdk/src/access/door.ts";
+import { createAccessClient, signInByKey } from "../../sdk/src/access/door.ts";
 import { accessError, authenticate, digest, feature, readPrincipal, readPrincipalByEmail, requireFeature, revoke, routeAccess,
   sendCode, syncFlags, verifyCode, type Principal, type SignIn } from "../src/access/door.ts";
 import { admit, eligibility, personalSafe, readAdmission, readAdmissionForEvent, routeAccounts } from "../src/accounts/door.ts";
@@ -244,6 +244,16 @@ test("agent challenge proves actual v4 AgentOwner and sole Safe signer, refusing
   await execute(encodeFunctionData({ abi, functionName: "freeze", args: [safe] }));
   await assert.rejects(call("/access/sign-in/with-key", frozenProof), /NOT_AUTHENTICATED/);
   await execute(encodeFunctionData({ abi, functionName: "unfreeze", args: [safe] }));
+  // Actor preparation's public path: the SDK helper signs in over HTTP and reads the session back; a second call is a new session.
+  const actorServer = await publicAccess(services, () => now + 1);
+  try {
+    const http = createAccessClient({ coreUrl: actorServer.url }), sign = (message: string) => signer.signMessage({ message });
+    const first = await signInByKey(http, { safe, client: "actor-prep", signMessage: sign });
+    assert.deepEqual([first.session.kind, first.session.safe, first.signIn.signer], ["agent", safe.toLowerCase(), signer.address.toLowerCase()]);
+    const again = await signInByKey(http, { safe, client: "actor-prep-restored", signMessage: sign });
+    assert.notEqual(again.signIn.token, first.signIn.token); assert.equal(again.session.personId, first.session.personId);
+    await assert.rejects(signInByKey(http, { safe, client: "outsider", signMessage: (message) => outsider.signMessage({ message }) }), /NOT_AUTHENTICATED/);
+  } finally { await actorServer.close(); }
   assert.equal(((await call("/access/sign-in/with-key", frozenProof))!.body as SignIn).personId, result.personId);
   const server = await publicAccess(services, () => now);
   try {

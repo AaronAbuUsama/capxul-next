@@ -1,0 +1,11 @@
+{
+  "area": "agents",
+  "script": "packages/evals/src/modules/agents/run.sh",
+  "worlds": ["slice-zero"],
+  "bindings": [
+    { "eval": "tbl:agents/schema", "checks": ["AGENTS.schema"], "why": "In the receipt's real selected world, inspect exact ordered Postgres column names/types/nullability, primary key, all secondary index keys/uniqueness and forced RLS, using the restricted Core role. The runner never migrates or seeds." }
+  ],
+  "near": [
+    { "eval": "tbl:agents/writers", "checks": ["AGENTS.closed-table-writes"], "missing": "Denial of direct runtime DML is checked. Ordinary self-run creation/carrier settlement and their authorized positive writer paths are not implemented/proved here. Hosted FDE is parked, not a substitute writer." }
+  ]
+}
