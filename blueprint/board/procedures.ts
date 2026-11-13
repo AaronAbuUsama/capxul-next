@@ -18,7 +18,7 @@ import {
 import { table_feature_flags, table_principals } from "../access/data.ts";
 import { table_org_deployments, table_org_members, table_organizations } from "../organizations/data.ts";
 import { table_hat_wearers, table_safe_approvals, table_safe_owners } from "../indexing/data.ts";
-import { Call, Summary } from "../approvals/data.ts";
+import { Call, Summary, table_approvals } from "../approvals/data.ts";
 import { procedure_approvals_open } from "../approvals/procedures.ts";
 import { ProposalKind, ProposalOpener, machine_proposal, table_board_proposals, table_proposal_approvals } from "./data.ts";
 
@@ -92,6 +92,8 @@ export const procedure_board_propose = defineProcedure({
     table_safe_approvals,
     table_hat_wearers,
     table_board_proposals,
+    table_proposal_approvals,
+    table_approvals,
   ],
   writes: [table_board_proposals, table_proposal_approvals],
   drives: [machine_proposal.t.propose],
