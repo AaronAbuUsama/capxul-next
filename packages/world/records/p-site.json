@@ -1,0 +1,42 @@
+{
+  "world": "w-p-site",
+  "owner": "proof",
+  "forkedFrom": "nothing",
+  "expiresAt": "2026-11-13T14:36:40.831Z",
+  "outcome": "passed",
+  "failure": null,
+  "worldAfterwards": "destroyed",
+  "keptUntil": null,
+  "ms": {
+    "claim": 1026,
+    "deploy": 44068,
+    "migrate": 727,
+    "chain": 2192,
+    "fund": 440,
+    "index": 48112,
+    "core": 614,
+    "site": 93468,
+    "use": 123698,
+    "park": null,
+    "unsite": 1792,
+    "destroy": 24104,
+    "release": 287,
+    "create": 191098,
+    "total": 341048
+  },
+  "timeouts": {
+    "claim": 45000,
+    "deploy": 240000,
+    "migrate": 45000,
+    "chain": 180000,
+    "fund": 60000,
+    "index": 180000,
+    "core": 60000,
+    "site": 480000,
+    "use": 600000,
+    "park": 60000,
+    "unsite": 180000,
+    "destroy": 240000,
+    "release": 45000
+  }
+}

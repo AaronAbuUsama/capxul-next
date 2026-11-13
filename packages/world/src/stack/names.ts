@@ -37,8 +37,10 @@ export const STEPS = [
   "bundler",
   "index",
   "core",
+  "site",
   "use",
   "park",
+  "unsite",
   "destroy",
   "release",
 ] as const;

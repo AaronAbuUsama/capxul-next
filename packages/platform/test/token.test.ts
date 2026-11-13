@@ -13,7 +13,7 @@ import { cryptoLayer, fingerprint, mint } from "../src/token.ts";
 const KEY = Redacted.make(Str.repeat(32)("a1"));
 const run = <A, E>(effect: Effect.Effect<A, E, Layer.Success<typeof cryptoLayer>>) =>
   Effect.runPromiseExit(Effect.provide(effect, cryptoLayer));
-const TOKEN = /^v1\.([a-z][a-z0-9]{1,15})\.([0-9]{1,3})\.([0-9]{10})\.([0-9a-f]{64})$/; // door.py's pattern
+const TOKEN = /^v1\.([a-z][a-z0-9-]{0,13}[a-z0-9])\.([0-9]{1,3})\.([0-9]{10})\.([0-9a-f]{64})$/; // door.py's pattern
 
 test("a minted token has the door's shape and its HMAC", async () => {
   const exit = await run(mint(KEY, { world: "acme", quota: 2, expires: 1_806_487_200 }));
@@ -25,12 +25,20 @@ test("a minted token has the door's shape and its HMAC", async () => {
   assert.equal(token, `${body}.${sig}`);
 });
 
+test("a world's name may hold dashes, as the blueprint's WorldName allows", async () => {
+  const exit = await run(mint(KEY, { world: "site-a", quota: 0, expires: 1_806_487_200 }));
+  assert.ok(Exit.isSuccess(exit));
+  assert.match(Redacted.value(exit.value), TOKEN);
+});
+
 test("claims the door would refuse are refused before signing", async () => {
   for (const claims of [
     { world: "Acme", quota: 1, expires: 1_806_487_200 },
     { world: "acme", quota: 1000, expires: 1_806_487_200 },
     { world: "acme", quota: 1, expires: 12 },
     { world: "a", quota: 1, expires: 1_806_487_200 },
+    { world: "acme-", quota: 1, expires: 1_806_487_200 },
+    { world: "a-very-long-world", quota: 1, expires: 1_806_487_200 },
   ]) {
     assert.ok(Exit.isFailure(await run(mint(KEY, claims))), JSON.stringify(claims));
   }

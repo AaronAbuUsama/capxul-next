@@ -1,25 +1,40 @@
 // org.member.grant, claim 5: the proposal mints the officer hat to the member's Safe, and takes one more seat first
-// when every seat is worn. Checked: the proposal executes in one transaction once both Directors sign, and the
-// operations then say sam's Safe wears the hat (AlreadyHeld). Not checked: that the transaction is
-// Hats.mintHat(hat, sam's Safe), preceded by changeHatMaxSupply when every seat is worn, which only the door's
-// chain RPC shows, and Capxul does not offer it.
+// when every seat is worn. The executed transaction's logs from the world's Hats are exactly the mint's
+// TransferSingle, preceded by a HatMaxSupplyChanged to supply + 1 when, at the block before, every seat was worn.
+import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
+import { Capxul } from "../client.ts";
 import { scenario } from "../scenario.ts";
-import { refusal, same } from "../support/expect.ts";
-import { grant, grantSigned } from "../support/grants.ts";
+import { same } from "../support/expect.ts";
+import { isAddress, logsOf } from "../support/chain.ts";
+import { grantSigned } from "../support/grants.ts";
+import { mintedToSam } from "../support/hats.ts";
 import { northwind } from "../support/world.ts";
 
 export const orgMemberGrant5 = scenario(
   { operation: "org.member.grant", claim: 5 },
   Effect.gen(function* () {
-    const { org } = yield* northwind;
+    const capxul = yield* Capxul;
+    const { world, org } = yield* northwind;
     const { sent } = yield* grantSigned(org, "sam", "manage-books");
-    yield* same("the executed subject's kind", sent.subject.kind, "officer_change");
-    const held = yield* refusal(
-      "a second grant of manage-books to sam",
-      "AlreadyHeld",
-      grant(org, "sam", "manage-books"),
+    const minted = yield* mintedToSam(world, sent.transaction);
+    const before = yield* capxul.chain.hat({
+      hats: world.contracts.hats,
+      hat: minted.hat,
+      block: minted.sent.block - 1,
+    });
+    const full = before.supply >= before.maxSupply;
+    const fromHats = Arr.filter(minted.sent.logs, (log) => isAddress(log.address, world.contracts.hats));
+    yield* same(
+      `the Hats logs of the grant's transaction (every seat worn before it: ${full})`,
+      Arr.map(fromHats, (log) => log._tag),
+      full ? ["HatMaxSupplyChanged", "TransferSingle"] : ["TransferSingle"],
     );
-    yield* same("AlreadyHeld's person", held.person, "sam");
+    for (const change of logsOf(fromHats, "HatMaxSupplyChanged"))
+      yield* same(
+        "the seat taken first",
+        { hat: change.hatId, newMaxSupply: change.newMaxSupply },
+        { hat: minted.hat, newMaxSupply: before.supply + 1 },
+      );
   }),
 );

@@ -13,7 +13,6 @@ import {
   ClockBackwards,
   SnapshotExists,
   SnapshotNotFound,
-  SnapshotIncompatible,
   ExpiryBeyondSource,
   ExportNotAllowed,
 } from "./errors/worlds.ts";
@@ -44,13 +43,18 @@ import {
   TransactionReverted,
 } from "./errors/approvals.ts";
 import { NotImplemented } from "./errors/server.ts";
+import { PayloadRejected } from "./errors/caller.ts";
 
 export * from "./errors/worlds.ts";
 export * from "./errors/companies.ts";
 export * from "./errors/approvals.ts";
 export * from "./errors/server.ts";
+export * from "./errors/caller.ts";
 
-/** Every refusal, by its tag. The tests read this to prove no tag is declared twice. */
+/**
+ * Every refusal, by its tag. The tests read this to prove no tag is declared twice. All but `PayloadRejected` are a
+ * door's; that one is the caller's own client's, made from the operation's schema before anything is sent.
+ */
 export const refusals = {
   NotSignedIn,
   NotWorldOwner,
@@ -62,7 +66,6 @@ export const refusals = {
   ClockBackwards,
   SnapshotExists,
   SnapshotNotFound,
-  SnapshotIncompatible,
   ExpiryBeyondSource,
   ExportNotAllowed,
   PersonNotFound,
@@ -88,6 +91,7 @@ export const refusals = {
   ApprovalClosed,
   TransactionReverted,
   NotImplemented,
+  PayloadRejected,
 } as const;
 
 export type RefusalTag = keyof typeof refusals;
@@ -107,7 +111,6 @@ export const exitCode: { readonly [Tag in RefusalTag]: 2 | 3 | 4 | 5 | 6 } = {
   ClockBackwards: 2,
   SnapshotExists: 2,
   SnapshotNotFound: 2,
-  SnapshotIncompatible: 2,
   ExpiryBeyondSource: 2,
   ExportNotAllowed: 4,
   PersonNotFound: 2,
@@ -133,4 +136,5 @@ export const exitCode: { readonly [Tag in RefusalTag]: 2 | 3 | 4 | 5 | 6 } = {
   ApprovalClosed: 2,
   TransactionReverted: 5,
   NotImplemented: 6,
+  PayloadRejected: 2,
 };

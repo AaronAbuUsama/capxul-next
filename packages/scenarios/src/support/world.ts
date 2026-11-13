@@ -1,14 +1,14 @@
-// Reading the world a scenario runs in, through the operations alone: its name and view, its record, its cast and
-// its company. A starting world hands a scenario nothing but the door, so everything it needs is read back here.
-import { World, type Record as RecordOps, type Values } from "@capxul/blueprint";
+// Reading a world through the operations: its view, its record, its cast and its company. What the steps that made a
+// starting world answered is not read back here: a scenario takes it from the world's facts (`given`).
+import { startingWorlds, World, type Record as RecordOps, type Values } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Random from "effect/Random";
 import type * as Schema from "effect/Schema";
 import * as Str from "effect/String";
-import { Capxul } from "../client.ts";
-import { expect } from "../scenario.ts";
+import { Capxul, type CallOptions } from "../client.ts";
+import { expect, given } from "../scenario.ts";
 import { present, refusal, same, show } from "./expect.ts";
 
 export type View = typeof Values.WorldView.Type;
@@ -19,29 +19,38 @@ export type Json = typeof Values.Json.Type;
 /** The platform's limits, as the blueprint declares them. */
 export const LIMITS = World.WORLD_LIMITS;
 
-/** The whole record of the world the client's door serves, read as its owner. */
-export const record = Effect.gen(function* () {
-  const capxul = yield* Capxul;
-  return yield* capxul["record.export"]({ from: null, to: null });
-});
+/** Where a world operation goes and as whom: the client's own world unless `at` names another door. */
+export type Who = CallOptions;
 
-/** The record's entries after position `after`, read as the owner. */
-export const entriesAfter = (after: number) =>
+/** The whole record of a world, read as its owner: the client's own, or `at` another door. */
+export const recordOf = (who: Who = {}) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    const answer = yield* capxul["record.export"]({ from: after + 1, to: null });
+    return yield* capxul["record.export"]({ from: null, to: null }, who);
+  });
+
+/** The whole record of the world the client's door serves. */
+export const record = recordOf();
+
+/** The record's entries after position `after`, read as the owner. */
+export const entriesAfter = (after: number, who: Who = {}) =>
+  Effect.gen(function* () {
+    const capxul = yield* Capxul;
+    const answer = yield* capxul["record.export"]({ from: after + 1, to: null }, who);
     return answer.entries;
   });
 
-/** The record's head now. */
-export const head = Effect.map(record, (answer) => answer.head);
+/** A record's head now. */
+export const headOf = (who: Who = {}) => Effect.map(recordOf(who), (answer) => answer.head);
+
+/** The head of the client's own world's record. */
+export const head = headOf();
 
 /** The record gained no entry since `before`: what every refusal and every read must leave behind. */
-export const unchangedRecord = (what: string, before: number) =>
-  Effect.flatMap(head, (now) => expect(now === before, `after ${what} the record's head is ${now}; it was ${before}`));
-
-/** The name of the world the client's door serves, as its record names it. */
-export const thisWorld = Effect.map(record, (answer) => answer.world);
+export const unchangedRecord = (what: string, before: number, who: Who = {}) =>
+  Effect.flatMap(headOf(who), (now) =>
+    expect(now === before, `after ${what} the record's head is ${now}; it was ${before}`),
+  );
 
 /** world.show of a world. */
 export const view = (world: string) =>
@@ -50,8 +59,17 @@ export const view = (world: string) =>
     return yield* capxul["world.show"]({ world });
   });
 
-/** world.show of the world the client's door serves. */
-export const thisView = Effect.flatMap(thisWorld, view);
+/**
+ * world.show of the world the scenario runs in, named by its `world` fact: for every starting world from `fresh` to
+ * `with-snapshot`. In `restored` the `world` fact is the first world, not the scenario's.
+ */
+export const thisView = Effect.flatMap(given(startingWorlds.fresh), (facts) => view(facts.world.world));
+
+/** Northwind's org id and the world it was founded in, from the facts of any starting world from `founded` on. */
+export const northwind = Effect.map(given(startingWorlds.founded), (facts) => ({
+  world: facts.world,
+  org: facts.founded.org,
+}));
 
 /** A person of the world's cast, by name. */
 export const castMember = (world: View, person: string) =>
@@ -69,13 +87,6 @@ export const company = (world: View, handle: string) =>
     `${handle} in ${world.world}'s companies (${show(Arr.map(world.companies, (each) => each.handle))})`,
     Arr.findFirst(world.companies, (each) => each.handle === handle).pipe(Option.getOrNull),
   );
-
-/** Northwind's org id, read from world.show of the client's world. */
-export const northwind = Effect.gen(function* () {
-  const world = yield* thisView;
-  const found = yield* company(world, NORTHWIND);
-  return { world, org: found.org };
-});
 
 const ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
 
@@ -112,32 +123,6 @@ export const textOf = (value: Json | undefined, key: string): string => {
 /** The entries naming `event`. */
 export const entriesOf = (entries: ReadonlyArray<Entry>, event: string) =>
   Arr.filter(entries, (entry) => entry.event === event);
-
-/** The name of the last document of `doctype` the record says was created. */
-export const lastCreated = (entries: ReadonlyArray<Entry>, doctype: string) =>
-  present(
-    `a doc_created entry for a ${doctype} in the record`,
-    Arr.last(
-      Arr.filter(entriesOf(entries, "doc_created"), (entry) => textOf(entry.carried, "doctype") === doctype),
-    ).pipe(
-      Option.map((found) => textOf(found.carried, "name")),
-      Option.getOrNull,
-    ),
-  );
-
-/** The snapshot_saved entry of a snapshot, which carries the record position the snapshot holds. */
-export const savedSnapshot = (entries: ReadonlyArray<Entry>, snapshot: string) =>
-  Effect.gen(function* () {
-    const saved = yield* present(
-      `a snapshot_saved entry for ${snapshot} in the record`,
-      Arr.last(
-        Arr.filter(entriesOf(entries, "snapshot_saved"), (e) => textOf(e.carried, "snapshot") === snapshot),
-      ).pipe(Option.getOrNull),
-    );
-    const position = fieldOf(saved.carried, "recordSeq");
-    yield* expect(typeof position === "number", `${snapshot}'s snapshot_saved carries no recordSeq: ${show(saved)}`);
-    return typeof position === "number" ? position : 0;
-  });
 
 /** world.show of a name must be refused with WorldNotFound: nothing was made under it. */
 export const noWorld = (world: string) =>

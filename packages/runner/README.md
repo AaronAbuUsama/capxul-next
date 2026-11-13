@@ -9,6 +9,7 @@ reads the blueprint (`@capxul/blueprint`), deploys Core (`@capxul/core`) and run
 
 ```bash
 ./run.sh door                 # every blueprint operation called once through a fresh Core stage
+./run.sh door --world=<name>  # the same, through the Core of a world `world create` made (packages/world)
 ./run.sh scenarios [name...]  # the registered scenarios (or those named), each in its own fresh stage
 ./run.sh scenarios --expect=not-implemented              # each must fail on the empty handlers' NotImplemented
 ./run.sh scenarios --one-stage --expect=not-implemented  # the same, all in one fresh stage
@@ -35,7 +36,7 @@ deploy and the SDK sends; they are never printed or recorded.
 
    | Check | Passes when |
    |---|---|
-   | `span` | exactly one server span named after the operation exists under the call's trace id |
+   | `span` | exactly one server span named after the operation exists under the call's trace id; none for a call its client rejected (`PayloadRejected`), which was never sent |
    | `outcome` | that span ended the way the caller saw the call end (success, refusal, defect) |
    | `events` | a successful call recorded exactly the events its outcome declares, each once, each carrying what the declaration computes from the call; any other call recorded none |
 
@@ -52,6 +53,17 @@ A run's `outcome` is `passed` when its own expectations held (for the door, ever
 or a declared refusal), every check passed on every call, the stage was destroyed and the accounts hold nothing of it.
 Its `ended` says how the run's own program ended before any check: `succeeded`, `failed` with a typed failure's tag
 (a refusal, a scenario's `ExpectationFailed`), or `died`.
+
+## A run in a world
+
+`door --world=<name>` runs the door plan through the Core in a world's Core slot (`src/in-world.ts`,
+`src/world/existing.ts`): the world is opened from `packages/world`'s shared state, its Core is waited for as a stage's
+is, the calls carry the world's door token and its owner's operator token (read from the world's state, never
+printed), and the spans are read from the world's own database. The runner neither creates nor destroys the world, so
+its record's `afterwards.stage` is `left to its owner`. A call made `at` another world's door (blueprint decisions 36)
+has its telemetry read from the database of the world whose Core answers at that door, when the shared state holds it
+(`OtherWorlds`); a stage run has no other worlds, so such a call still finds nothing to check against there.
+`records/w-c1/door.json` is the first such run (`passed`), in a world made with `world create` and destroyed after.
 
 ## A scenarios run and its summary
 
@@ -87,6 +99,7 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 |---|---|---|
 | `WORLD_OWNER` | `runner` | Who the stages belong to; Core reads it at deploy as the world's owner. |
 | `CAPXUL_DOOR_TOKEN`, `CAPXUL_PLATFORM_TOKEN` | fresh from `run.sh` | The tokens the stage's two doors accept. |
+| `WORLD_SECOND_OWNER`, `CAPXUL_SECOND_PLATFORM_TOKEN` | `runner-2`, fresh from `run.sh` | The second operator the starting world `nothing` promises (blueprint decisions.md, 37). Until the platform accepts the token, its calls are refused `NotSignedIn`. |
 | `WORLD_CREATE_TIMEOUT` | `4 minutes` | Deploy, migrations and the wait for Core's answers. |
 | `WORLD_USE_TIMEOUT` | `3 minutes` | The calls and the checks. |
 | `WORLD_DESTROY_TIMEOUT` | `4 minutes` | The destroy. |
@@ -104,6 +117,7 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | `records/core-205613/` | `./run.sh scenarios`: the one example failed on `NotImplemented`, as a scenario must against the empty handlers. `failed`, by design. |
 | `records/core-189d55/` | `./run.sh scenarios --one-stage --expect=not-implemented` on 13 November 2026, step 1.5's proof: all 54 registered scenarios (the 53 claims and the example) in one fresh stage, each failing on the `NotImplemented` Core's empty handlers answered, every call passing every check. `summary.json` is `passed`; each scenario's record (`failed`, by design) is a line of `scenarios.jsonl`; `leftovers.txt` shows the accounts empty afterwards. |
 | `records/leftovers.txt` | The two accounts read after every stage of that session: nothing of `CapxulCore` is left, and Alchemy keeps no state. |
+| `records/w-c1/` | `./run.sh door --world=c1` on 13 November 2026 (roadmap step 1.4's first part): all twelve operations answered `NotImplemented` through the SDK at the real Core in a world made by `world create`, every check passed, the spans read from the world's own branch. `passed`. |
 | `records/core-*/` | Further runs: one stage each, its door or scenario record, written by `./run.sh`. |
 
 ## Files
@@ -112,7 +126,9 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 |---|---|
 | `src/main.ts` | The entry: arguments, the runs, the exit code. The only file that touches the process. |
 | `src/run.ts` | A run as a plan: the door, a scenario, and one stage from create to record. |
-| `src/client.ts` | `Capxul` for one stage: the SDK's client at its two doors, every call recorded. |
+| `src/in-world.ts`, `src/world/existing.ts` | A run in a world `world create` made, and the other worlds a call may be made `at`. |
+| `src/client.ts` | `Capxul` for one stage: the SDK's client at its two doors, its chain and whatever a call reaches (the second operator, another world's door), every call recorded, a call its client rejected as `rejected`. |
+| `src/given.ts` | `Given`: the facts of a scenario's starting world. `nothing`'s are the run's operators; for any other world, the declared example facts in a run that expects `not-implemented`, and a defect otherwise, until the runner makes starting worlds (step 1.12). |
 | `src/checks/checks.ts`, `src/checks/events.ts` | The generic checks, the timings and the steps. A builder never changes these. |
 | `src/world/` | The stage's life, its database, the warm-up and the inventory: the runner's plumbing. |
 | `src/scenario-runs.ts` | A scenarios run in either mode, ending in its summary. |

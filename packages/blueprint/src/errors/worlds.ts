@@ -86,16 +86,6 @@ export class SnapshotNotFound extends Schema.TaggedError<SnapshotNotFound, { rea
   },
 ) {}
 
-/** The snapshot's database was migrated by code whose migrations are not a prefix of the running code's. */
-export class SnapshotIncompatible extends Schema.TaggedError<SnapshotIncompatible, { readonly brand: unique symbol }>()(
-  "SnapshotIncompatible",
-  {
-    snapshot: SnapshotName,
-    saved: Schema.String,
-    running: Schema.String,
-  },
-) {}
-
 /** A world made from a snapshot cannot outlive the world the snapshot belongs to. */
 export class ExpiryBeyondSource extends Schema.TaggedError<ExpiryBeyondSource, { readonly brand: unique symbol }>()(
   "ExpiryBeyondSource",

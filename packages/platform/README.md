@@ -35,17 +35,34 @@ the 60 GiB data disk and 8 GiB root disk on gp3 (about $6), a public IPv4 addres
 the tunnel and the DNS records cost nothing. List prices as known on 13 November 2026, not read from AWS from here.
 A rehearsal on a stand-in host costs nothing but a DNS record that lives for its run.
 
-## Per-world site tokens
+## Per-world site tokens and the site door
 
-`door/door.py` is the only process that creates sites. A world's token, minted when the world is created
-(`src/token.ts`; `mint` and `doorKey` are exported through `src/door.ts` for `packages/world`), is
+`door/door.py` (the HTTP door and its checks) and `door/sites.py` (its bench half: the registry, making and removing a
+site) are the only process that makes, uses or removes sites. A world's token, minted when the world is created
+(`src/token.ts`; `mint`, `doorKey` and, for a caller that holds the state store open, `doorKeyIn` and
+`platformOutputsIn` are exported through `src/door.ts` for `packages/world`), is
 
 `v1.<world>.<quota>.<expires>.<HMAC-SHA256 under the platform's door key over the rest>`
 
-The door checks the signature (a world cannot widen its own claims), the expiry, the site's name
-(`<world>-<label>.<domain>` only) and the quota, before any work; the site joins the token's world. The door key is an
-`Alchemy.Random` of the platform stage (`DoorKey-g<n>`), read from the shared state by whoever holds the Cloudflare key
-(`src/state.ts`), never an output. A new `PLATFORM_DOOR_KEY_GENERATION` replaces it and so revokes every token.
+where `<world>` is the blueprint's `WorldName`. The door checks the signature (a world cannot widen its own claims),
+the expiry, the site's name (`<label>-<world>.<domain>`, the roadmap's `<company>-<world>`; a label has no dash, so the
+name says whose site it is), that a site asked about is the token's world's (`site-not-in-world` otherwise), and for
+a new site the quota, before any work. The door key is an `Alchemy.Random` of the platform stage (`DoorKey-g<n>`), read
+from the shared state by whoever holds the Cloudflare key (`src/state.ts`), never an output. A new
+`PLATFORM_DOOR_KEY_GENERATION` replaces it and so revokes every token. The token travels in `X-Capxul-Site-Token`.
+
+| Call | What |
+|---|---|
+| `POST /sites {label, company, api_key, api_secret}` | Answers 202 and makes the site in the background (one at a time; about 93 s): new site, ERPNext, capxul, the wizard with the company, migrate, the scheduler, joining the token's world (its clock), and an API user of the site's own, `capxul-core@service.invalid`, with the key and secret the world sent and the roles `Accounts User`, `Purchase User`, `Sales User`. Never the bench's Administrator. |
+| `GET /sites/<site>`, `GET /world` | A site's state (`creating`, `ready`, `failed`) with each step's time; the world's sites. |
+| `ANY /sites/<site>/api/...` | One call to the site's own REST API, carried to web with the site's Host, as the user `Authorization: token <key>:<secret>` names. Cookies are dropped and any other credential refused; a site not ready answers `site-creating` or `site-failed`. |
+| `DELETE /sites/<site>`, `DELETE /world` | Removes a site (`bench drop-site`, its archive deleted; if that fails, its database and user dropped directly), or every site of the world. A token of quota 0 may do it, so the sweeper can for an expired world. |
+
+The platform records `doorUrl`, where a world reaches the door: `http://<stage>-door.<domain>` through the tunnel, or,
+with `PLATFORM_EDGE=none`, the host's loopback port (only the host itself reaches it).
+
+A world's site was made, read, refused to a second world and removed through this door by `packages/world`'s `site`
+proof (`packages/world/records/site.proof.json`) on the stand-in stage `pr-site`, which was then destroyed.
 
 ## The drift check
 

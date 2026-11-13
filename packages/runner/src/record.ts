@@ -38,7 +38,8 @@ export const RunRecord = Schema.Struct({
   /** Every call the run made, in order, with its timings, its steps and what the generic checks found. */
   calls: Schema.Array(CheckedCall),
   afterwards: Schema.Struct({
-    stage: Schema.Literals(["destroying", "destroyed", "destroy failed"]),
+    /** `left to its owner`: a world made by `world create`, which the runner neither made nor destroys. */
+    stage: Schema.Literals(["destroying", "destroyed", "destroy failed", "left to its owner"]),
     /** What Cloudflare and Neon held of the stage just before its destroy: the search finds it. */
     before: Schema.NullOr(Inventory),
     /** What they held just after it: empty when nothing is left. */

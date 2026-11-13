@@ -297,6 +297,15 @@
       }
     },
     {
+      // Core's own failure in reaching a company site through the site door (unset, unreachable, refused): a fault of
+      // the infrastructure that the handlers will map to the blueprint's refusals (NoSiteUser, SiteRefused,
+      // SiteUnavailable), not a refusal of the contract. This one file is where Core's failures are declared.
+      "files": ["packages/core/src/failures.ts"],
+      "rules": {
+        "capxul/blueprint-owns-names": "off"
+      }
+    },
+    {
       // node:test's test() and describe() return a promise that the runner itself awaits.
       "files": ["packages/*/test/**"],
       "rules": {

@@ -10,7 +10,7 @@ export const run: ClaimsOf = {
     claim(
       "A report runs as the caller and the books agree with the chain.",
       w.paid,
-      "report.run as sam of the General Ledger filtered to the Capxul Safe account answers lines whose balance equals the company Safe's USDC balance read through the door's chain RPC at the world's now; the Trial Balance agrees, and the paid invoice has nothing outstanding.",
+      "report.run as sam of the General Ledger filtered to the Capxul Safe account answers lines whose balance equals the company Safe's USDC balance read through the door's chain RPC at the latest block (chain.balance of `contracts.usdc` for the `founded` fact's Safe); the Trial Balance agrees, and the paid invoice has nothing outstanding in Accounts Payable.",
       { origin: kept("report.run/c-6c39c42c744b8c91"), thinLine: true },
     ),
     claim(

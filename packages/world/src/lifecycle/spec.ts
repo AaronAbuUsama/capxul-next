@@ -7,6 +7,7 @@ import * as Str from "effect/String";
 import type { Funded, Mint } from "../chain/faucet.ts";
 import type { query } from "../database/sql.ts";
 import type { StepName } from "../stack/names.ts";
+import type { SiteState } from "../site/Bench.ts";
 
 export interface WorldSpec {
   /** The world's name: lower case letters, digits and dashes, 2 to 15 characters (the blueprint's WorldName). */
@@ -26,12 +27,24 @@ export interface WorldSpec {
   readonly migrations?: string;
   /** Test USDC to mint from the faucet when the world is created: who is funded is the caller's decision (the cast). */
   readonly mint?: ReadonlyArray<Mint>;
+  /**
+   * The companies whose Frappe sites the world gets on its bench when it is created (`WORLD_BENCH`), each at
+   * `<label>-<world>.<domain>`. Left out, none: a site takes about 100 s, and a world with no bench has none.
+   */
+  readonly companies?: ReadonlyArray<Company>;
   /** The most the use step may take, in place of the declared default. */
   readonly useTimeout?: Duration.Duration;
   /** Where the run's record is written, outside the world. Defaults to the package's records directory. */
   readonly records?: string;
   /** The record's file name, without `.json`. Defaults to the world's name. */
   readonly recordAs?: string;
+}
+
+/** A company of the world, and so a site on its bench: its label in the site's address, and its name. */
+export interface Company {
+  /** 1 to 12 of a-z and 0-9. */
+  readonly label: string;
+  readonly name: string;
 }
 
 /** A world that answers. Everything a run needs to use it; nothing in it prints a secret. */
@@ -46,6 +59,12 @@ export interface World {
   /** The world's test USDC, and what the faucet minted when the world was created. */
   readonly testUsdc: string;
   readonly funded: ReadonlyArray<Funded>;
+  /** The world's company sites, as the bench's site door holds them; empty for a world with no bench. */
+  readonly sites: ReadonlyArray<SiteState>;
+  /** The world's door token, which Core's world door and its chain reads accept: a secret. */
+  readonly doorToken: Redacted.Redacted;
+  /** The owner operator's token: Core's platform door, and the world's door as its owner (decisions.md, 36). */
+  readonly operatorToken: Redacted.Redacted;
   /** The chain's JSON-RPC address. It carries the world's token, so it is a secret. */
   readonly rpcUrl: Redacted.Redacted;
   /**
@@ -72,6 +91,8 @@ export const Limits = Config.all({
   maxLifetime: Config.Duration("WORLD_MAX_LIFETIME").pipe(Config.withDefault(Duration.days(7))),
   maxPerOwner: Config.Int("WORLD_MAX_PER_OWNER").pipe(Config.withDefault(5)),
   maxKeep: Config.Duration("WORLD_MAX_KEEP").pipe(Config.withDefault(Duration.days(1))),
+  /** The most company sites a world may hold on a shared bench: its site token's quota. */
+  maxSites: Config.Int("WORLD_MAX_SITES").pipe(Config.withDefault(3)),
 });
 
 const limit = (step: StepName, fallback: Duration.Duration) =>
@@ -89,8 +110,10 @@ export const Timeouts = Config.all({
   bundler: limit("bundler", Duration.minutes(5)),
   index: limit("index", Duration.minutes(3)),
   core: limit("core", Duration.minutes(1)),
+  site: limit("site", Duration.minutes(8)),
   use: limit("use", Duration.minutes(10)),
   park: limit("park", Duration.minutes(1)),
+  unsite: limit("unsite", Duration.minutes(3)),
   destroy: limit("destroy", Duration.minutes(4)),
   release: limit("release", Duration.seconds(45)),
 });

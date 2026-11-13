@@ -119,11 +119,11 @@
       },
       "given": "restored",
       "calls": [
-        "record.export"
+        "world.show"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "world.show answered NotImplemented"
     },
     {
       "name": "world.show claim 2",
@@ -132,13 +132,13 @@
         "claim": 2,
         "says": "A world made from nothing names no parent, and a name with no world is refused."
       },
-      "given": "fresh",
+      "given": "nothing",
       "calls": [
-        "record.export"
+        "world.create"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "world.create answered NotImplemented"
     },
     {
       "name": "world.show claim 3",
@@ -149,11 +149,11 @@
       },
       "given": "founded",
       "calls": [
-        "record.export"
+        "world.show"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "world.show answered NotImplemented"
     },
     {
       "name": "world.snapshot.save claim 1",
@@ -164,11 +164,11 @@
       },
       "given": "paid",
       "calls": [
-        "record.export"
+        "world.show"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "world.show answered NotImplemented"
     },
     {
       "name": "world.snapshot.save claim 2",
@@ -209,11 +209,11 @@
       },
       "given": "with-snapshot",
       "calls": [
-        "record.export"
+        "world.show"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "world.show answered NotImplemented"
     },
     {
       "name": "world.snapshot.restore claim 2",
@@ -224,11 +224,11 @@
       },
       "given": "with-snapshot",
       "calls": [
-        "record.export"
+        "world.show"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "world.show answered NotImplemented"
     },
     {
       "name": "world.snapshot.restore claim 3",
@@ -239,11 +239,11 @@
       },
       "given": "with-snapshot",
       "calls": [
-        "record.export"
+        "world.show"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "world.show answered NotImplemented"
     },
     {
       "name": "world.snapshot.restore claim 4",
@@ -254,11 +254,11 @@
       },
       "given": "with-snapshot",
       "calls": [
-        "record.export"
+        "world.show"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "world.show answered NotImplemented"
     },
     {
       "name": "world.snapshot.restore claim 5",
@@ -269,11 +269,11 @@
       },
       "given": "with-snapshot",
       "calls": [
-        "record.export"
+        "world.show"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "world.show answered NotImplemented"
     },
     {
       "name": "org.create claim 1",
@@ -284,11 +284,11 @@
       },
       "given": "fresh",
       "calls": [
-        "record.export"
+        "org.create"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "org.create answered NotImplemented"
     },
     {
       "name": "org.create claim 2",
@@ -299,11 +299,11 @@
       },
       "given": "fresh",
       "calls": [
-        "record.export"
+        "world.show"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "world.show answered NotImplemented"
     },
     {
       "name": "org.create claim 3",
@@ -374,11 +374,11 @@
       },
       "given": "fresh",
       "calls": [
-        "record.export"
+        "world.show"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "world.show answered NotImplemented"
     },
     {
       "name": "org.member.grant claim 1",
@@ -389,11 +389,11 @@
       },
       "given": "founded",
       "calls": [
-        "record.export"
+        "doc.create"
       ],
       "outcome": "failed",
-      "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "failedWith": "ExpectationFailed",
+      "detail": "doc.create as sam before the grant was refused with NotImplemented; it must be refused with NoSiteUser"
     },
     {
       "name": "org.member.grant claim 2",
@@ -419,11 +419,11 @@
       },
       "given": "founded",
       "calls": [
-        "record.export"
+        "org.member.grant"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "org.member.grant answered NotImplemented"
     },
     {
       "name": "org.member.grant claim 4",
@@ -449,11 +449,11 @@
       },
       "given": "founded",
       "calls": [
-        "record.export"
+        "org.member.grant"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "org.member.grant answered NotImplemented"
     },
     {
       "name": "org.member.grant claim 6",
@@ -479,11 +479,11 @@
       },
       "given": "founded",
       "calls": [
-        "record.export"
+        "org.member.grant"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "org.member.grant answered NotImplemented"
     },
     {
       "name": "doc.create claim 1",
@@ -494,11 +494,11 @@
       },
       "given": "office-holder",
       "calls": [
-        "record.export"
+        "doc.create"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "doc.create answered NotImplemented"
     },
     {
       "name": "doc.create claim 2",
@@ -539,11 +539,11 @@
       },
       "given": "payment-drafted",
       "calls": [
-        "record.export"
+        "doc.submit"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "doc.submit answered NotImplemented"
     },
     {
       "name": "doc.submit claim 1",
@@ -554,11 +554,11 @@
       },
       "given": "payment-drafted",
       "calls": [
-        "record.export"
+        "doc.submit"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "doc.submit answered NotImplemented"
     },
     {
       "name": "doc.submit claim 2",
@@ -569,11 +569,11 @@
       },
       "given": "office-holder",
       "calls": [
-        "record.export"
+        "doc.create"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "doc.create answered NotImplemented"
     },
     {
       "name": "doc.submit claim 3",
@@ -599,11 +599,11 @@
       },
       "given": "office-holder",
       "calls": [
-        "record.export"
+        "doc.create"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "doc.create answered NotImplemented"
     },
     {
       "name": "approval.sign claim 1",
@@ -659,11 +659,11 @@
       },
       "given": "payment-held",
       "calls": [
-        "record.export"
+        "world.clock.warp"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "world.clock.warp answered NotImplemented"
     },
     {
       "name": "approval.sign claim 5",
@@ -674,11 +674,11 @@
       },
       "given": "founded",
       "calls": [
-        "record.export"
+        "org.member.grant"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "org.member.grant answered NotImplemented"
     },
     {
       "name": "report.run claim 1",
@@ -689,11 +689,11 @@
       },
       "given": "paid",
       "calls": [
-        "record.export"
+        "report.run"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "report.run answered NotImplemented"
     },
     {
       "name": "report.run claim 2",
@@ -704,11 +704,11 @@
       },
       "given": "paid",
       "calls": [
-        "record.export"
+        "report.run"
       ],
       "outcome": "failed",
-      "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "failedWith": "ExpectationFailed",
+      "detail": "report.run of Salary Register as sam was refused with NotImplemented; it must be refused with SiteRefused"
     },
     {
       "name": "report.run claim 3",
@@ -734,11 +734,11 @@
       },
       "given": "founded",
       "calls": [
-        "record.export"
+        "world.show"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "world.show answered NotImplemented"
     },
     {
       "name": "world.clock.warp claim 2",
@@ -749,11 +749,11 @@
       },
       "given": "founded",
       "calls": [
-        "record.export"
+        "world.show"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "world.show answered NotImplemented"
     },
     {
       "name": "record.export claim 1",
@@ -794,11 +794,11 @@
       },
       "given": "fresh",
       "calls": [
-        "record.export"
+        "world.show"
       ],
       "outcome": "failed",
       "failedWith": "NotImplemented",
-      "detail": "record.export answered NotImplemented"
+      "detail": "world.show answered NotImplemented"
     },
     {
       "name": "record.export claim 4",
