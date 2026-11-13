@@ -1,2 +1,0 @@
-# Settings for this package alone. The root workspace excludes it; install with `pnpm install --ignore-workspace`.
-verifyDepsBeforeRun: false

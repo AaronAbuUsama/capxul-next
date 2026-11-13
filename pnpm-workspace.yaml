@@ -1,8 +1,6 @@
 # pnpm workspaces (decision tooling.package-manager: Aaron, 8 November 2026: pnpm, not npm).
 packages:
   - packages/*
-  # Installed on its own with --ignore-workspace, pinned to effect 4.1.2 like the spikes (packages/blueprint/README.md).
-  - "!packages/blueprint"
 
 # One version of each shared dependency; manifests refer to it as "catalog:".
 catalog:
@@ -10,6 +8,13 @@ catalog:
   typescript: 5.9.3
   "@types/node": 22.19.1
   viem: 2.55.18
+  # The ladder's tools, each published at least two weeks before 13 November 2026. @effect/tsgo 0.63.0 supports
+  # oxlint 1.88 to 1.90 and oxlint-tsgolint 7.0.2004 and 7.0.2005 (its README), so these move together.
+  oxlint: 1.90.0
+  oxlint-tsgolint: 7.0.2005
+  oxfmt: 0.75.0
+  "@oxlint/plugins": 1.90.0
+  "@effect/tsgo": 0.63.0
 
 # Supply chain: a version must be at least 3 days old, and no dependency runs an install script
 # unless it is listed here.

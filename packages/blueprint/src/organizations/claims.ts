@@ -1,8 +1,17 @@
 // The acceptance claims of the organizations operations. Rendered into claims.md.
 import { claim, dropped, kept, rewritten, type ClaimsOf } from "../claims/claim.ts";
 import {
-  AlreadyHeld, ChangeWaiting, FounderNotReady, FoundingChanged, HandleTaken, InsufficientBalance, MemberHasNoSafe, NotADirector,
-  NotAMember, PersonNotFound, SetupUnfinished,
+  AlreadyHeld,
+  ChangeWaiting,
+  FounderNotReady,
+  FoundingChanged,
+  HandleTaken,
+  InsufficientBalance,
+  MemberHasNoSafe,
+  NotADirector,
+  NotAMember,
+  PersonNotFound,
+  SetupUnfinished,
 } from "../errors.ts";
 import { startingWorlds as w } from "../starting-worlds.ts";
 import * as Organizations from "./operations.ts";
@@ -48,7 +57,7 @@ export const create: ClaimsOf = {
         origin: rewritten(
           "org.create/c-313abdcaa41f9df9",
           "It needs the founder's deployed, claimed account before the first write.",
-          "What the founder needs is a claimed personal Safe; \"account\" named an old accounts concept.",
+          'What the founder needs is a claimed personal Safe; "account" named an old accounts concept.',
         ),
       },
     ),
@@ -97,7 +106,7 @@ export const memberGrant: ClaimsOf = {
         origin: rewritten(
           "org.member.grant/c-ed5a48c2e1b12719",
           "A caller who is not a Director, an email that is not a current Seat, and a grant of what the Seat holds are each refused.",
-          "A member is named as a person of the world, not by email, and \"Seat\" is not a word of this contract.",
+          'A member is named as a person of the world, not by email, and "Seat" is not a word of this contract.',
         ),
       },
     ),
@@ -127,7 +136,7 @@ export const memberGrant: ClaimsOf = {
         origin: rewritten(
           "org.member.grant/c-3254ec4a40c86a97",
           "The proposal mints the officer hat to the Seat's Safe, and takes one more seat first when every seat is worn.",
-          "\"Seat\" is not a word of this contract.",
+          '"Seat" is not a word of this contract.',
         ),
       },
     ),
@@ -140,7 +149,7 @@ export const memberGrant: ClaimsOf = {
         origin: rewritten(
           "org.member.grant/c-7db203df47b9ca84",
           "A Seat whose Safe already wears the hat, and a Seat with no personal Safe, are each refused before anything is proposed.",
-          "\"Seat\" is not a word of this contract.",
+          '"Seat" is not a word of this contract.',
         ),
       },
     ),

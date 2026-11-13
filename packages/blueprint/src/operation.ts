@@ -6,7 +6,9 @@
 // decisions.md explains: an operation may have several kinds of success, each with its own events (`outcomes`);
 // the budget says what it measures and whether a measurement is behind it (`budget`); and every declaration
 // carries examples, which the tests run through `carries`.
+import * as Arr from "effect/Array";
 import * as Option from "effect/Option";
+import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import type * as Rpc from "effect/rpc/Rpc";
 
@@ -53,7 +55,8 @@ export interface Budget {
   readonly basis: string;
 }
 
-type OutcomeTag<R extends Rpc.AnyWithProps> = SuccessOf<R> extends { readonly _tag: infer T extends string } ? T : never;
+type OutcomeTag<R extends Rpc.AnyWithProps> =
+  SuccessOf<R> extends { readonly _tag: infer T extends string } ? T : never;
 type OutcomeOf<R extends Rpc.AnyWithProps, T> = Extract<SuccessOf<R>, { readonly _tag: T }>;
 
 /** An operation with one kind of success: the spike's form. */
@@ -78,13 +81,20 @@ export const outcome = <
   R extends Rpc.AnyWithProps,
   const T extends OutcomeTag<R>,
   const Events extends ReadonlyArray<EventClass>,
->(_rpc: R, tag: T, emits: { readonly [I in keyof Events]: Emitted<R, Events[I], OutcomeOf<R, T>> }): Outcome<T, Events[number]> => ({
+>(
+  _rpc: R,
+  tag: T,
+  emits: { readonly [I in keyof Events]: Emitted<R, Events[I], OutcomeOf<R, T>> },
+): Outcome<T, Events[number]> => ({
   tag,
-  emits: emits as never,
+  emits: emits,
 });
 
 /** An operation whose success is a union of tagged outcomes: every outcome is declared, each with its own events. */
-export interface Several<R extends Rpc.AnyWithProps, Outs extends { readonly [T in OutcomeTag<R>]: Outcome<T, EventClass> }> {
+export interface Several<
+  R extends Rpc.AnyWithProps,
+  Outs extends { readonly [T in OutcomeTag<R>]: Outcome<T, EventClass> },
+> {
   readonly rpc: R;
   readonly outcomes: Outs;
   readonly budget: Budget;
@@ -122,29 +132,42 @@ export interface Operation<R extends Rpc.AnyWithProps = Rpc.AnyWithProps, Ev ext
 /** An instance of any event the operation declares. Core's `emit` accepts nothing else for that operation. */
 export type EventOf<O extends Operation> = InstanceType<O["emits"][number]>;
 
+/** The `_tag` of a tagged success, or null for a success that has none. */
+const tagOf = (success: unknown): string | null =>
+  typeof success === "object" && success !== null && "_tag" in success && typeof success._tag === "string"
+    ? success._tag
+    : null;
+
 const build = <R extends Rpc.AnyWithProps>(
   rpc: R,
-  outcomes: ReadonlyArray<{ readonly tag: string | null; readonly emits: ReadonlyArray<Emitted<R, EventClass, never>> }>,
+  outcomes: ReadonlyArray<{
+    readonly tag: string | null;
+    readonly emits: ReadonlyArray<Emitted<R, EventClass, never>>;
+  }>,
   budget: Budget,
   examples: ReadonlyArray<Unchecked>,
 ): Operation<R> => {
   const isPayload = Schema.is(rpc.payloadSchema);
   const isSuccess = Schema.is(rpc.successSchema);
-  const tagOf = (success: unknown): string | null =>
-    typeof success === "object" && success !== null && "_tag" in success && typeof success._tag === "string" ? success._tag : null;
   return {
     rpc,
-    emits: [...new Set(outcomes.flatMap((outcome) => outcome.emits.map((emitted) => emitted.event)))],
-    outcomes: outcomes.map((outcome) => ({ tag: outcome.tag, emits: outcome.emits.map((emitted) => emitted.event) })),
+    emits: Arr.dedupe(Arr.flatMap(outcomes, (each) => Arr.map(each.emits, (emitted) => emitted.event))),
+    outcomes: Arr.map(outcomes, (each) => ({ tag: each.tag, emits: Arr.map(each.emits, (emitted) => emitted.event) })),
     budget,
     budgetMs: budget.ms,
     examples,
     expected: ({ payload, success }) => {
       if (!isPayload(payload) || !isSuccess(success)) return Option.none();
       const tag = outcomes.length === 1 && outcomes[0]?.tag === null ? null : tagOf(success);
-      const outcome = outcomes.find((candidate) => candidate.tag === tag);
-      if (outcome === undefined) return Option.none();
-      return Option.some(outcome.emits.map((emitted) => ({ event: emitted.event, carried: emitted.carries({ payload, success: success as never }) })));
+      return Option.map(
+        Arr.findFirst(outcomes, (candidate) => candidate.tag === tag),
+        (matched) =>
+          Arr.map(matched.emits, (emitted) => ({
+            event: emitted.event,
+            // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- each `carries` is typed by its own outcome's success; it is called only after the success's tag matched that outcome, which the compiler cannot follow.
+            carried: emitted.carries({ payload, success: success as never }),
+          })),
+      );
     },
   };
 };
@@ -153,27 +176,45 @@ const build = <R extends Rpc.AnyWithProps>(
 export const declare = <R extends Rpc.AnyWithProps, const Events extends ReadonlyArray<EventClass>>(
   declaration: Single<R, Events>,
 ): Operation<R, Events[number]> =>
-  build(declaration.rpc, [{ tag: null, emits: declaration.emits as never }], declaration.budget, declaration.examples) as never;
+  build(declaration.rpc, [{ tag: null, emits: declaration.emits }], declaration.budget, declaration.examples);
 
 /** Declares an operation whose success is one of several tagged outcomes, each with its own events. */
 export const declareOutcomes = <
   R extends Rpc.AnyWithProps,
   const Outs extends { readonly [T in OutcomeTag<R>]: Outcome<T, EventClass> },
->(declaration: Several<R, Outs>): Operation<R, Outs[keyof Outs]["emits"][number]["event"]> =>
+>(
+  declaration: Several<R, Outs>,
+): Operation<R, Outs[keyof Outs]["emits"][number]["event"]> =>
   build(
     declaration.rpc,
-    Object.values<Outcome<string, EventClass>>(declaration.outcomes).map((each) => ({ tag: each.tag, emits: each.emits as never })),
+    Arr.map(Rec.values<string, Outcome<string, EventClass>>(declaration.outcomes), (each) => ({
+      tag: each.tag,
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- an outcome's events read only that outcome's success; `build` matches the tag before it calls them, which the compiler cannot follow.
+      emits: each.emits as never,
+    })),
     declaration.budget,
     declaration.examples,
-  ) as never;
+  );
 
 /** The names of the events the operation declares. */
-export const eventNamesOf = (operation: Operation): ReadonlyArray<string> => operation.emits.map((event) => event.identifier);
+export const eventNamesOf = (operation: Operation): ReadonlyArray<string> =>
+  Arr.map(operation.emits, (event) => event.identifier);
+
+const isEventClass = (value: unknown): value is EventClass =>
+  typeof value === "function" && "identifier" in value && typeof value.identifier === "string" && "fields" in value;
 
 /** The refusals the operation's Rpc declares, as classes. */
 export const refusalsOf = (operation: Operation): ReadonlyArray<EventClass> => {
-  const schema = operation.rpc.errorSchema as unknown as { readonly members?: ReadonlyArray<EventClass> } & EventClass;
-  return schema.members ?? ("identifier" in schema ? [schema] : []);
+  const schema: unknown = operation.rpc.errorSchema;
+  // A union of refusals is a schema with `members`; like a single refusal's class, it is a function.
+  if (
+    (typeof schema === "function" || typeof schema === "object") &&
+    schema !== null &&
+    "members" in schema &&
+    Arr.isArray(schema.members)
+  )
+    return Arr.filter(schema.members, isEventClass);
+  return isEventClass(schema) ? [schema] : [];
 };
 
 /** True when `error` is one of the typed refusals the operation's Rpc declares. */

@@ -22,7 +22,9 @@ export const exportRecord: ClaimsOf = {
       "Only the world's owner may export the record.",
       w.fresh,
       "record.export as dana is refused with NotWorldOwner.",
-      { refusals: [NotWorldOwner] },
+      {
+        refusals: [NotWorldOwner],
+      },
     ),
     claim(
       "A range answers only the entries from and to the positions asked, and a range past the head answers none.",

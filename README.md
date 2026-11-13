@@ -11,7 +11,9 @@ Where it stands: the dashboard at https://claude.ai/artifact/6vhMzxXsWZptFjKREJn
 
 ```bash
 pnpm install
-pnpm check        # every rung; AGENTS.md lists them one by one
+pnpm format       # rewrite the code into shape
+pnpm check        # shape, format, lint, types and tests; AGENTS.md lists the rungs one by one
+spikes/pipeline/run.sh scenarios   # the proof: every scenario in a fresh world (needs Cloudflare and Neon keys)
 ```
 
 ## Where things are

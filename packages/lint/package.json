@@ -5,11 +5,17 @@
   "type": "module",
   "scripts": {
     "shape": "node --experimental-strip-types --no-warnings src/shape.entry.ts",
-    "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts",
-    "check": "tsc -p ."
+    "types": "effect-tsgo tsc -p .",
+    "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts"
   },
   "devDependencies": {
+    "@effect/tsgo": "catalog:",
+    "@oxlint/plugins": "catalog:",
     "@types/node": "catalog:",
+    "oxlint": "catalog:",
     "typescript": "catalog:"
+  },
+  "dependencies": {
+    "effect": "catalog:"
   }
 }

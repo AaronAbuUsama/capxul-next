@@ -23,7 +23,9 @@ export const run: ClaimsOf = {
       "A caller with no user on the company's site is refused.",
       w.paid,
       "report.run as pat is refused with NoSiteUser.",
-      { refusals: [NoSiteUser] },
+      {
+        refusals: [NoSiteUser],
+      },
     ),
   ],
   dropped: [],

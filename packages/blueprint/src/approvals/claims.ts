@@ -5,7 +5,8 @@ import { ApprovalExpired, ApprovalNotFound, NotYourApproval, SignatureInvalid } 
 import { startingWorlds as w } from "../starting-worlds.ts";
 import * as Approvals from "./operations.ts";
 
-const notHere = "It is about preparing a new payment with payment.send, which is not in the thin line; it stays with payment.send's journey.";
+const notHere =
+  "It is about preparing a new payment with payment.send, which is not in the thin line; it stays with payment.send's journey.";
 
 export const sign: ClaimsOf = {
   operation: Approvals.sign,
@@ -67,7 +68,11 @@ export const sign: ClaimsOf = {
       "An Organization payment uses the one spending allowance you hold for the asset, and with several asks which and takes `--from`.",
       notHere,
     ),
-    dropped("payment.send/c-fd8fc63a3750fb85", "A mistyped address, and a recipient that is nothing, are refused naming it.", notHere),
+    dropped(
+      "payment.send/c-fd8fc63a3750fb85",
+      "A mistyped address, and a recipient that is nothing, are refused naming it.",
+      notHere,
+    ),
     dropped(
       "payment.send/c-dd1de9fc08186cfb",
       "A payment from a spending allowance is one `Budgets.spend` from the wearer's Safe; before anyone signs, the route must name that allowance's own active budget, and a route to another budget, a pending allowance or an unreadable list is closed unsent.",

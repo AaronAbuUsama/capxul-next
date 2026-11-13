@@ -3,15 +3,22 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "pnpm shape && pnpm types && pnpm test",
+    "check": "pnpm shape && pnpm format:check && pnpm lint && pnpm types && pnpm test",
     "shape": "pnpm --filter @capxul/lint shape",
-    "types": "pnpm --filter @capxul/lint check && pnpm --filter @capxul/indexer check",
-    "test": "pnpm --filter @capxul/lint test && pnpm frappe:test",
+    "format": "oxfmt -c packages/lint/oxfmt.json 'packages/**/*.{ts,tsx,mts,js,mjs}' '!packages/indexer/**' '!packages/contracts/**'",
+    "format:check": "oxfmt -c packages/lint/oxfmt.json --check 'packages/**/*.{ts,tsx,mts,js,mjs}' '!packages/indexer/**' '!packages/contracts/**'",
+    "lint": "effect-tsgo oxlint",
+    "types": "pnpm -r --if-present run types",
+    "test": "pnpm -r --filter '!@capxul/contracts' --if-present run test && pnpm frappe:test",
     "frappe:test": "python3 -m unittest discover -s packages/frappe-app/tests"
   },
   "devDependencies": {
     "typescript": "catalog:",
-    "@types/node": "catalog:"
+    "@types/node": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "oxfmt": "catalog:",
+    "@effect/tsgo": "catalog:"
   },
   "packageManager": "pnpm@12.18.0"
 }

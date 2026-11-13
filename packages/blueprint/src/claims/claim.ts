@@ -40,7 +40,11 @@ export const claim = (
   says: string,
   given: StartingWorld,
   observes: string,
-  options: { readonly refusals?: ReadonlyArray<EventClass>; readonly origin?: Origin; readonly thinLine?: boolean } = {},
+  options: {
+    readonly refusals?: ReadonlyArray<EventClass>;
+    readonly origin?: Origin;
+    readonly thinLine?: boolean;
+  } = {},
 ): Claim => ({
   says,
   given,
@@ -54,6 +58,11 @@ export const claim = (
 export const kept = (id: string): Origin => ({ id: `acc:${id}`, kept: "word for word" });
 
 /** An old claim kept in substance and rewritten. */
-export const rewritten = (id: string, was: string, why: string): Origin => ({ id: `acc:${id}`, kept: "rewritten", was, why });
+export const rewritten = (id: string, was: string, why: string): Origin => ({
+  id: `acc:${id}`,
+  kept: "rewritten",
+  was,
+  why,
+});
 
 export const dropped = (id: string, was: string, why: string): Dropped => ({ id: `acc:${id}`, was, why });

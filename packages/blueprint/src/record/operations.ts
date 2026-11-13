@@ -42,7 +42,8 @@ export const exportRecord = declare({
     ms: 1_500,
     excludes: ["waking a parked world"],
     provisional: true,
-    basis: "one indexed read of the world's database; the pipeline spike's record.export read every entry within its 500 ms budget",
+    basis:
+      "one indexed read of the world's database; the pipeline spike's record.export read every entry within its 500 ms budget",
   },
   examples: [
     {
@@ -53,7 +54,10 @@ export const exportRecord = declare({
         head: 1,
         entries: [
           {
-            seq: 1, event: "world_created", at: "2026-11-13T09:00:00Z", trace: "4bf92f3577b34da6a3ce929d0e0e4736",
+            seq: 1,
+            event: "world_created",
+            at: "2026-11-13T09:00:00Z",
+            trace: "4bf92f3577b34da6a3ce929d0e0e4736",
             carried: { world: "town", owner: "ci", grade: "private", expiresAt: "2026-11-13T11:00:00Z", parent: null },
           },
         ],

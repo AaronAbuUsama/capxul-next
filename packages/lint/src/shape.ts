@@ -1,5 +1,9 @@
 // The repository's shape, as data, and the check that compares a list of files with it.
 // The entry file (shape.entry.ts) reads the files; everything here is pure, so the test can feed it any tree.
+import * as Arr from "effect/Array";
+import { pipe } from "effect/Function";
+import * as Order from "effect/Order";
+import * as Str from "effect/String";
 
 /** What may sit at the top level, each with the reason it is there. */
 export const TOP_LEVEL: Readonly<Record<string, string>> = {
@@ -32,61 +36,94 @@ export const PACKAGES: Readonly<Record<string, string>> = {
 };
 
 /** The only file allowed under docs/. */
-export const DOCS = ["docs/roadmap.md"];
+export const DOCS: ReadonlyArray<string> = ["docs/roadmap.md"];
 
 /** Longest source file allowed, in lines. The lint rule max-lines says the same for TypeScript. */
 export const MAX_LINES = 300;
 
 /** Files whose length is checked. Vendored code is not ours to split. */
 export const SOURCE = /\.(ts|tsx|mts|js|mjs|cjs|py|sh)$/;
-export const VENDORED = ["packages/contracts/lib/"];
+export const VENDORED: ReadonlyArray<string> = ["packages/contracts/lib/"];
+
+/** The two lists of entry files in .oxlintrc.json, which must name the same paths. */
+export interface EntryLists {
+  /** The keys of settings.capxul.entries, which gives each entry its reason. */
+  readonly reasons: ReadonlyArray<string>;
+  /** The files of the override that lets entry files touch the process. */
+  readonly override: ReadonlyArray<string>;
+}
 
 export interface ShapeInput {
   /** Every file git tracks or would track, relative to the root, with forward slashes. */
   readonly files: ReadonlyArray<string>;
   /** The number of lines of each file that is a source file. */
   readonly lines: (file: string) => number;
+  readonly entries: EntryLists;
 }
 
-const unique = (items: ReadonlyArray<string>): Array<string> => [...new Set(items)].sort();
+const unique = (items: ReadonlyArray<string>): Array<string> => Arr.sort(Arr.dedupe(items), Order.String);
+const head = (file: string, parts: number): string => Arr.join(Arr.take(Str.split(file, "/"), parts), "/");
+const depth = (file: string): number => Str.split(file, "/").length;
+const under = (root: string) => Str.startsWith(`${root}/`);
 
 const topLevel = (files: ReadonlyArray<string>): Array<string> =>
-  unique(files.map((file) => file.split("/")[0] ?? file))
-    .filter((entry) => !(entry in TOP_LEVEL))
-    .map((entry) => `top level: "${entry}" is not in the list in packages/lint/src/shape.ts`);
+  pipe(
+    unique(Arr.map(files, (file) => head(file, 1))),
+    Arr.filter((entry) => !(entry in TOP_LEVEL)),
+    Arr.map((entry) => `top level: "${entry}" is not in the list in packages/lint/src/shape.ts`),
+  );
 
 const docs = (files: ReadonlyArray<string>): Array<string> =>
-  files
-    .filter((file) => file.startsWith("docs/") && !DOCS.includes(file))
-    .map((file) => `docs: "${file}" is not allowed; only ${DOCS.join(", ")} lives under docs/`);
+  pipe(
+    Arr.filter(files, (file) => under("docs")(file) && !Arr.contains(DOCS, file)),
+    Arr.map((file) => `docs: "${file}" is not allowed; only ${Arr.join(DOCS, ", ")} lives under docs/`),
+  );
 
 const folders = (files: ReadonlyArray<string>, root: string): Array<string> =>
-  unique(files.filter((file) => file.startsWith(`${root}/`)).map((file) => file.split("/").slice(0, 2).join("/")));
+  unique(
+    Arr.map(
+      Arr.filter(files, (file) => under(root)(file) && depth(file) > 2),
+      (file) => head(file, 2),
+    ),
+  );
 
 const looseFiles = (files: ReadonlyArray<string>, root: string): Array<string> =>
-  files
-    .filter((file) => file.startsWith(`${root}/`) && file.split("/").length === 2)
-    .map((file) => `${root}: "${file}" is a loose file; ${root}/ holds only folders`);
+  pipe(
+    Arr.filter(files, (file) => under(root)(file) && depth(file) === 2),
+    Arr.map((file) => `${root}: "${file}" is a loose file; ${root}/ holds only folders`),
+  );
 
 const withoutReadme = (files: ReadonlyArray<string>, root: string): Array<string> =>
-  folders(files, root)
-    .filter((folder) => folder.split("/").length === 2 && files.some((file) => file.startsWith(`${folder}/`)))
-    .filter((folder) => !files.includes(`${folder}/README.md`))
-    .map((folder) => `${folder}: has no README.md`);
+  pipe(
+    Arr.filter(folders(files, root), (folder) => !Arr.contains(files, `${folder}/README.md`)),
+    Arr.map((folder) => `${folder}: has no README.md`),
+  );
 
 const unknownPackages = (files: ReadonlyArray<string>): Array<string> =>
-  folders(files, "packages")
-    .filter((folder) => files.some((file) => file.startsWith(`${folder}/`)))
-    .map((folder) => folder.slice("packages/".length))
-    .filter((name) => !(name in PACKAGES))
-    .map((name) => `packages: "${name}" is not in the allowlist in packages/lint/src/shape.ts`);
+  pipe(
+    Arr.map(folders(files, "packages"), (folder) => Str.slice("packages/".length)(folder)),
+    Arr.filter((name) => !(name in PACKAGES)),
+    Arr.map((name) => `packages: "${name}" is not in the allowlist in packages/lint/src/shape.ts`),
+  );
 
 const tooLong = (input: ShapeInput): Array<string> =>
-  input.files
-    .filter((file) => file.startsWith("packages/") && SOURCE.test(file))
-    .filter((file) => !VENDORED.some((prefix) => file.startsWith(prefix)))
-    .filter((file) => input.lines(file) > MAX_LINES)
-    .map((file) => `size: "${file}" has ${input.lines(file)} lines; the limit is ${MAX_LINES}`);
+  pipe(
+    Arr.filter(input.files, (file) => under("packages")(file) && SOURCE.test(file)),
+    Arr.filter((file) => !Arr.some(VENDORED, (prefix) => Str.startsWith(prefix)(file))),
+    Arr.filter((file) => input.lines(file) > MAX_LINES),
+    Arr.map((file) => `size: "${file}" has ${input.lines(file)} lines; the limit is ${MAX_LINES}`),
+  );
+
+const entryLists = ({ reasons, override }: EntryLists): Array<string> => [
+  ...Arr.map(
+    Arr.difference(reasons, override),
+    (path) => `.oxlintrc.json: "${path}" has a reason in settings.capxul.entries but is not in the entry override`,
+  ),
+  ...Arr.map(
+    Arr.difference(override, reasons),
+    (path) => `.oxlintrc.json: "${path}" is in the entry override but has no reason in settings.capxul.entries`,
+  ),
+];
 
 /** Every way the tree differs from the shape, one line each. Empty when the tree is in shape. */
 export const shapeProblems = (input: ShapeInput): Array<string> => [
@@ -98,4 +135,5 @@ export const shapeProblems = (input: ShapeInput): Array<string> => [
   ...withoutReadme(input.files, "packages"),
   ...withoutReadme(input.files, "spikes"),
   ...tooLong(input),
+  ...entryLists(input.entries),
 ];
