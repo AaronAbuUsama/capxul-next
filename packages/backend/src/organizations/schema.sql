@@ -142,6 +142,14 @@ language sql stable security definer set search_path=pg_catalog,app as $$
 $$;
 revoke all on function app.caller_safes() from public;
 grant execute on function app.caller_safes() to capxul_core,capxul_worker;
+-- `create or replace` keeps an existing function's owner, so the check above covers only who runs this migration.
+-- Check the owners the functions actually run as.
+do $$ begin
+  if exists (select 1 from pg_proc p join pg_roles r on r.oid=p.proowner
+    where p.oid in ('app.current_member(text)'::regprocedure, 'app.caller_safes()'::regprocedure) and not (r.rolsuper or r.rolbypassrls)) then
+    raise exception 'PROVISIONING_ROLE: app.current_member and app.caller_safes must be owned by a superuser or BYPASSRLS role';
+  end if;
+end $$;
 
 alter table app.org_members enable row level security;
 alter table app.org_members force row level security;
