@@ -43,7 +43,8 @@ test("native catalogue preserves command history, atomic mutations and restricte
     assert.deepEqual(JSON.parse(started.changes as string).events, [{ event: "world_transitioned", trace_id: command.trace, from: "creating", to: "running", transition: "start", world_id: "town1", kind: "simulated", epoch: 1 }]);
     await assert.rejects(store.transition("town1", "start", command), "replaying an invalid transition must not append");
     assert.equal((await store.records("town1")).length, 2);
-    assert.equal((await store.show("town1")).state, "running");
+    const afterStart = await store.show("town1");
+    assert.deepEqual([afterStart.state, afterStart.updated_at], ["running", now], "updated_at is the transition's world time, not the host clock");
     await assert.rejects(store.create(world, command));
     await assert.rejects(store.append("absent", command));
     assert.equal((await store.records("town1")).length, 2);

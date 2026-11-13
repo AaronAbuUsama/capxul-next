@@ -160,9 +160,11 @@ export function worldCatalogue(query: Admin, secrets: readonly string[]) {
         start: [["creating"], "running"], stop: [["running"], "stopped"], resume: [["stopped", "parked"], "running"],
         restore: [["running"], "restoring"], restored: [["restoring"], "running"], park: [["running"], "parked"], close: [["stopped", "parked"], "closed"],
       }[transition] as [string[], string];
+      // updated_at is world time, like created_at: the transition's own world instant, never the host clock.
+      if (!Number.isSafeInteger(command.worldTime)) throw new Error("INVALID_INPUT: a world transition needs its world time");
       const guard = `DO $state$ BEGIN IF NOT EXISTS (SELECT FROM app.worlds WHERE world_id=${text(world)} AND state IN (${from.map(text).join(",")})) THEN RAISE EXCEPTION 'WRONG_STATE: invalid world transition'; END IF; END $state$;`;
       return atomic(world, `${requireWorld(world)} ${guard}`, command, { from: "w.state", to, transition },
-        `UPDATE app.worlds SET state=${text(to)},updated_at=${Date.now()} WHERE world_id=${text(world)};`);
+        `UPDATE app.worlds SET state=${text(to)},updated_at=${command.worldTime} WHERE world_id=${text(world)};`);
     },
     async save(snapshot: SnapshotRow, command: Command) {
       return atomic(snapshot.world_id, `INSERT INTO app.world_snapshots SELECT * FROM ${rows("world_snapshots", snapshot)};`, command);
