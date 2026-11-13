@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import pg from "pg";
+import { migrateNotices } from "./notices/door.ts";
 import { required } from "./platform/config.ts";
 
 const admin = new URL(required("PG_ADMIN_URL"));
@@ -48,6 +49,8 @@ try {
   await db.query("grant usage on schema ponder to capxul_worker");
   await db.query("alter default privileges for role capxul_ponder in schema ponder grant select on tables to capxul_worker");
   await db.query("grant select on all tables in schema ponder to capxul_worker");
+  // Notices reads source rows only at run time; its schema needs the outbox, so it follows the concept migrators.
+  await migrateNotices(db);
   await db.query("COMMIT");
   console.log("Core schema v1 migrated; separate non-superuser tenant, worker and Ponder roles");
 } catch (error) { await db.query("ROLLBACK"); throw error; }

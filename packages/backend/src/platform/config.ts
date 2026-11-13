@@ -11,6 +11,7 @@ export function settings() {
     ponder: process.env.PONDER_URL ?? "http://127.0.0.1:42069", rpc: required("RPC_URL"), chainId: Number(process.env.CHAIN_ID ?? 84532),
     socket: process.env.FRAPPE_SOCKET_URL ?? "http://127.0.0.1:9000",
     startPaused: process.env.CORE_START_PAUSED === "true",
-    finality: Number(required("FINALITY_DEPTH")), world: process.env.CAPXUL_WORLD ?? "main",
+    finality: Number(required("FINALITY_DEPTH")),
+    ...(process.env.CAPXUL_MAIL_SINK === "devnet" ? { mailSink: "devnet" as const } : {}), world: process.env.CAPXUL_WORLD ?? "main",
   };
 }

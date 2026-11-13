@@ -1,8 +1,12 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { timingSafeEqual } from "node:crypto";
 import { Effect } from "effect";
+import { createPublicClient, http, type PublicClient } from "viem";
+import { devnetMail } from "../../devnet/src/devnet/door.ts";
 import { get, prepare, submitted } from "./approvals/door.ts";
-import { readSnapshotCut } from "./devnet/door.ts";
+import { readSnapshotCut, worldNow } from "./devnet/door.ts";
+import { sourceDoors } from "./notices/adapters.ts";
+import { noticesWorker } from "./notices/door.ts";
 import { info, register, release } from "./organizations/door.ts";
 import { consume } from "./payments/door.ts";
 import { deliver, RequestCollector, resend, retryParked, signature, status } from "./plugs/door.ts";
@@ -24,6 +28,17 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
   const collector = new RequestCollector(db, { ...config, running: () => !paused && !closing });
   const drained: (() => void)[] = [];
   function notifyDrain() { if (!activeRequests && !activeDeliveries) for (const done of drained.splice(0)) done(); }
+  // Only a fresh local world has the durable devnet sink; anywhere else Notices delivery stays off rather than guessing a provider.
+  const notices = config.mailSink === "devnet" ? noticesWorker(db, devnetMail(async (text) => {
+    const client = await db.worker.connect();
+    try {
+      const results = await client.query(text) as unknown as { rows: { jsonb_build_object: Record<string, unknown> }[] } | { rows: { jsonb_build_object: Record<string, unknown> }[] }[];
+      return (Array.isArray(results) ? results : [results]).flatMap((r) => r.rows.map((row) => row.jsonb_build_object));
+    } finally { client.release(); }
+  }, () => worldNow(db.worker)), sourceDoors(createPublicClient({ transport: http(config.rpc) }) as PublicClient), {
+    quickstart: `${config.url}/start`, chat: `${config.url}/chat`, support: `${config.url}/support`, signup: `${config.url}/signup`,
+    approval: (id) => `${config.url}/approve/${id}`, explorer: (address) => `${config.url}/address/${address}`,
+  }) : undefined;
   const waitForDrain = () => activeRequests || activeDeliveries ? new Promise<void>((done) => drained.push(done)) : Promise.resolve();
   async function ready() {
     if (!(await db.tenant.query("select version from app.schema_version where version=1")).rowCount) throw new Error("SCHEMA_VERSION: Core schema v1 required");
@@ -96,6 +111,8 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
     if (paused || closing) return;
     activeDeliveries++;
     try {
+      // Notices drains its whole tick inside the delivery count, so a snapshot pause waits for any provider attempt.
+      if (notices) await notices().catch((error) => console.error(`Notices worker: ${error.message}`));
       const index = await indexerState(db, config.ponder, config.chainId, config.rpc, true);
       const orgs = (await db.worker.query("select org_id,site,released from app.organizations order by org_id")).rows;
       for (const company of orgs) {
