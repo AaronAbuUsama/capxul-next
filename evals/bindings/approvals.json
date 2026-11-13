@@ -1,0 +1,24 @@
+{
+  "area": "approvals",
+  "script": "packages/evals/src/modules/approvals/run.sh",
+  "worlds": ["main"],
+  "secrets": [],
+  "bindings": [],
+  "near": [
+    {
+      "eval": "prc:approvals.open/atomic",
+      "checks": ["APPROVALS.component-pg"],
+      "missing": "Real PG caller rollback and committed row/event/wake controls pass with injected carrier services. Not the selected public Core/Ponder/ERPNext/v4 world or payment/proposal birth in the required receipt-first run."
+    },
+    {
+      "eval": "prc:approvals.withdraw/atomic",
+      "checks": ["APPROVALS.component-pg"],
+      "missing": "Real PG same-Sql unsigned withdrawal and rollback controls only. Opener intent cancellation through authenticated public composition and required selected-stack run remain unproved."
+    },
+    {
+      "eval": "wfl:approvals.lifecycle.carry/idempotent",
+      "checks": ["APPROVALS.component-pg"],
+      "missing": "Injected gateway loss/lookup checks show one send and one committed terminal callback. Real unsigned sponsorship/window adapter, Alto ingress, indexed finality and public signing in the one selected-stack run are not established."
+    }
+  ]
+}
