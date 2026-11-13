@@ -1,52 +1,89 @@
 // The starting worlds the thin line's scenarios begin from, each declared here once and named by its claims by
-// import. Every one is made through the door, by the thin line's own operations, from the one before it, and saved
-// as a template snapshot in a kept template world (decisions.md, "Starting worlds"). A scenario restores the one it
-// needs into a fresh private world.
+// import. Every one is made through the door, by the thin line's own operations, from the one before it. Most are
+// then saved as a template snapshot in a kept template world, and a scenario gets one restored into a fresh private
+// world; the rest are made by their steps for each scenario (decisions.md, 27 and 39). Either way the scenario is
+// handed the world's facts, which it reads with `given` (decisions.md, 38).
+import type * as Schema from "effect/Schema";
 import type { OperationName } from "./door.ts";
+import { BRIGHTSIDE, INVOICE_AMOUNT, REPORTS } from "./documents/site.ts";
+import { examples, facts } from "./starting/facts.ts";
 
 /** One step of making a starting world: an operation through the door, as someone, or a wait for background work. */
 export interface Step {
   readonly operation: OperationName | "wait";
-  /** "operator" (the world's owner), "other operator", or a person of the cast. */
+  /** "operator" (the first operator, the world's owner), "second operator", or a person of the cast. */
   readonly as: string;
   readonly does: string;
+  /** The fact the step's last answer becomes, by its name in the world's facts; null when it becomes none. */
+  readonly fact: string | null;
 }
 
-export interface StartingWorld {
+export interface StartingWorld<Facts extends Schema.Codec<unknown, unknown> = Schema.Codec<unknown, unknown>> {
   readonly name: string;
   /** The starting world this one is made from; null for one made from nothing. */
   readonly from: StartingWorld | null;
   /** What it holds beyond `from`. */
   readonly holds: string;
   readonly steps: ReadonlyArray<Step>;
+  /**
+   * How a scenario gets it. `from its template`: the world was made once per change to the code and saved as a
+   * template snapshot, and each scenario gets a restore of it, which names the template world as its parent.
+   * `by its steps`: the steps run for each scenario, from a world of `from` got as that world is got.
+   */
+  readonly made: "from its template" | "by its steps";
+  /** Every fact a scenario from this world is handed: its ancestors' and its own steps'. */
+  readonly facts: Facts;
+  /** One example of the facts, which the tests and the run against empty handlers hand to a scenario. */
+  readonly example: unknown;
 }
 
-const step = (operation: Step["operation"], as: string, does: string): Step => ({ operation, as, does });
+const step = (operation: Step["operation"], as: string, does: string, fact: string | null = null): Step => ({
+  operation,
+  as,
+  does,
+  fact,
+});
 
-const nothing: StartingWorld = {
+const nothing: StartingWorld<typeof facts.nothing> = {
   name: "nothing",
   from: null,
   holds:
-    "The platform is deployed. No world has the name the scenario uses. The scenario's operator owns fewer live worlds than the limit, and a second operator exists.",
+    "The platform is deployed. No world has the name the scenario uses. The scenario's operator owns fewer live worlds than the limit, and a second operator exists. The facts name both operators.",
   steps: [],
+  made: "by its steps",
+  facts: facts.nothing,
+  example: examples.nothing,
 };
 
-const quotaFull: StartingWorld = {
+const quotaFull: StartingWorld<typeof facts.quotaFull> = {
   name: "quota-full",
   from: nothing,
   holds: "The scenario's operator owns as many live private worlds as one owner may have.",
-  steps: [step("world.create", "operator", "creates private worlds until the limit is reached")],
+  steps: [step("world.create", "operator", "creates private worlds until the limit is reached", "filled")],
+  made: "by its steps",
+  facts: facts.quotaFull,
+  example: examples.quotaFull,
 };
 
-const fresh: StartingWorld = {
+const fresh: StartingWorld<typeof facts.fresh> = {
   name: "fresh",
   from: nothing,
   holds:
-    "A private world owned by the scenario's operator, its clock frozen, its record one entry long. Its cast: dana, eli, sam and olga, each with a claimed personal Safe holding 10,000 USDC, and pat, who has not finished signing up and has no Safe. No company.",
-  steps: [step("world.create", "operator", "creates a private world with a frozen clock and a lifetime of 60 minutes")],
+    "A private world owned by the scenario's operator, its clock frozen. Its cast: dana, eli, sam and olga, each with a claimed personal Safe holding 10,000 USDC, and pat, who has not finished signing up and has no Safe. No company.",
+  steps: [
+    step(
+      "world.create",
+      "operator",
+      "creates a private world with a frozen clock and a lifetime of 60 minutes",
+      "world",
+    ),
+  ],
+  made: "from its template",
+  facts: facts.fresh,
+  example: examples.fresh,
 };
 
-const founded: StartingWorld = {
+const founded: StartingWorld<typeof facts.founded> = {
   name: "founded",
   from: fresh,
   holds:
@@ -56,72 +93,116 @@ const founded: StartingWorld = {
       "org.create",
       "dana",
       "founds northwind with eli as a Director, threshold 2, members sam and pat, and 1,000 USDC of capital",
+      "founded",
     ),
-    step("approval.sign", "dana", "signs her setup approval"),
-    step("approval.sign", "eli", "signs his setup approval, which sends the setup"),
+    step("approval.sign", "dana", "signs her setup approval", "setupCollected"),
+    step("approval.sign", "eli", "signs his setup approval, which sends the setup", "setupSent"),
     step("wait", "operator", "until world.show lists northwind's site as ready"),
   ],
+  made: "from its template",
+  facts: facts.founded,
+  example: examples.founded,
 };
 
-const officeHolder: StartingWorld = {
+const officeHolder: StartingWorld<typeof facts.officeHolder> = {
   name: "office-holder",
   from: founded,
-  holds: "sam holds Manage books: his Safe wears the Books hat and he has a user on Northwind's site.",
+  holds:
+    "sam holds Manage books: his Safe wears the Books hat and he has a user on Northwind's site. The site holds no document yet.",
   steps: [
-    step("org.member.grant", "dana", "grants sam manage-books"),
-    step("approval.sign", "dana", "signs the proposal"),
-    step("approval.sign", "eli", "signs the proposal, which executes it"),
-    step("wait", "sam", "until doc.create stops refusing with NoSiteUser"),
+    step("org.member.grant", "dana", "grants sam manage-books", "grant"),
+    step("approval.sign", "dana", "signs the proposal", "grantCollected"),
+    step("approval.sign", "eli", "signs the proposal, which executes it", "grantSent"),
+    step(
+      "wait",
+      "sam",
+      `until report.run of the ${REPORTS.generalLedger} stops refusing with NoSiteUser; a report makes nothing`,
+    ),
   ],
+  made: "from its template",
+  facts: facts.officeHolder,
+  example: examples.officeHolder,
 };
 
-const paymentDrafted: StartingWorld = {
+const paymentDrafted: StartingWorld<typeof facts.paymentDrafted> = {
   name: "payment-drafted",
   from: officeHolder,
-  holds:
-    "The supplier Brightside Cleaning Ltd with a payment address; a submitted Purchase Invoice of 125.50 USDC from it; and a draft Payment Entry paying that invoice from the Capxul Safe account.",
+  holds: `The supplier ${BRIGHTSIDE} with a payment address; a submitted Purchase Invoice of ${INVOICE_AMOUNT.toFixed(2)} USDC from it; and a draft Payment Entry paying that invoice from the Capxul Safe account. Their fields are the vocabulary's (src/documents/site.ts).`,
   steps: [
-    step("doc.create", "sam", "creates the Supplier with its payment address"),
-    step("doc.create", "sam", "creates the Purchase Invoice of 125.50 USDC"),
-    step("doc.submit", "sam", "submits the Purchase Invoice, which posts"),
-    step("doc.create", "sam", "creates the Payment Entry from the Capxul Safe account against the invoice"),
+    step("doc.create", "sam", "creates the Supplier with supplierFields(BRIGHTSIDE)", "supplier"),
+    step(
+      "doc.create",
+      "sam",
+      `creates the Purchase Invoice with invoiceFields of ${INVOICE_AMOUNT.toFixed(2)} USDC from the Supplier`,
+      "invoice",
+    ),
+    step("doc.submit", "sam", "submits the Purchase Invoice, which posts", "invoicePosted"),
+    step(
+      "doc.create",
+      "sam",
+      "creates the Payment Entry with paymentFields from the Capxul Safe account against the invoice",
+      "payment",
+    ),
   ],
+  made: "from its template",
+  facts: facts.paymentDrafted,
+  example: examples.paymentDrafted,
 };
 
-const paymentHeld: StartingWorld = {
+const paymentHeld: StartingWorld<typeof facts.paymentHeld> = {
   name: "payment-held",
   from: paymentDrafted,
   holds: "The Payment Entry is submitted and held for sam's signature; nothing is posted for it yet.",
-  steps: [step("doc.submit", "sam", "submits the Payment Entry, which is held")],
+  steps: [step("doc.submit", "sam", "submits the Payment Entry, which is held", "held")],
+  made: "from its template",
+  facts: facts.paymentHeld,
+  example: examples.paymentHeld,
 };
 
-const paid: StartingWorld = {
+const paid: StartingWorld<typeof facts.paid> = {
   name: "paid",
   from: paymentHeld,
   holds:
     "sam signed: Brightside was paid 125.50 USDC from the company Safe, the Payment Entry posted and the invoice has nothing outstanding.",
   steps: [
-    step("approval.sign", "sam", "signs the held payment, which sends it"),
+    step("approval.sign", "sam", "signs the held payment, which sends it", "paidSent"),
     step("wait", "sam", "until report.run's General Ledger shows the Payment Entry"),
   ],
+  made: "from its template",
+  facts: facts.paid,
+  example: examples.paid,
 };
 
-const withSnapshot: StartingWorld = {
+const withSnapshot: StartingWorld<typeof facts.withSnapshot> = {
   name: "with-snapshot",
   from: paid,
-  holds: "Two snapshots of the world: `m3`, saved as a template, and `draft`, which is not.",
+  holds:
+    "Two snapshots of the world: `m3`, saved as a template, and `draft`, which is not. A snapshot belongs to the world it was saved in, so this world is made by its steps.",
   steps: [
-    step("world.snapshot.save", "operator", "saves m3 as a template"),
-    step("world.snapshot.save", "operator", "saves draft"),
+    step("world.snapshot.save", "operator", "saves m3 as a template", "m3"),
+    step("world.snapshot.save", "operator", "saves draft", "draft"),
   ],
+  made: "by its steps",
+  facts: facts.withSnapshot,
+  example: examples.withSnapshot,
 };
 
-const restored: StartingWorld = {
+const restored: StartingWorld<typeof facts.restored> = {
   name: "restored",
   from: withSnapshot,
   holds:
-    "A second private world, made from `m3` by the same operator, which names the first world, `m3` and its record position as its parent.",
-  steps: [step("world.snapshot.restore", "operator", "restores m3 into a new world with a lifetime of 60 minutes")],
+    "A second private world, made from `m3` by the same operator, which names the first world, `m3` and its record position as its parent. The scenario runs in the second world.",
+  steps: [
+    step(
+      "world.snapshot.restore",
+      "operator",
+      "restores m3 into a new world with a lifetime of 60 minutes",
+      "restored",
+    ),
+  ],
+  made: "by its steps",
+  facts: facts.restored,
+  example: examples.restored,
 };
 
 /** Every starting world, by the name its claims and order.md use. */
@@ -137,3 +218,7 @@ export const startingWorlds = {
   withSnapshot,
   restored,
 } as const;
+
+/** True when `world` is `ancestor` or is made from it, so a scenario of `world` holds `ancestor`'s facts. */
+export const holdsFactsOf = (world: StartingWorld, ancestor: StartingWorld): boolean =>
+  world === ancestor || (world.from !== null && holdsFactsOf(world.from, ancestor));

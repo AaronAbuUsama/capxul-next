@@ -22,7 +22,7 @@ export const create: ClaimsOf = {
     claim(
       "The Organization's Safe is Companies House's company Safe for this founder.",
       w.fresh,
-      "org.create as dana answers a Safe. Through the door's chain RPC, CompanySafeMinted names that Safe with dana's personal Safe as founderSafe, and the minter's companySafeAddressFor(dana's Safe) is the same address.",
+      "org.create as dana answers a Safe. Through the door's chain RPC, chain.logs holds one CompanySafeMinted from the world's minter (`contracts.companySafeMinter`) naming that Safe, dana's personal Safe as founderSafe and the org id as company, and chain.companySafeFor of the world's Companies House owner and namespace (`contracts`), the org id and dana's Safe is the same address.",
       { origin: kept("org.create/c-37a24168b5b82483"), thinLine: true },
     ),
     claim(
@@ -40,7 +40,7 @@ export const create: ClaimsOf = {
     claim(
       "Once enough founding Directors have signed, the setup completes: the board and the capital are on the chain and the company's site becomes ready.",
       w.fresh,
-      "After org.create, approval.sign by dana answers Collected and by eli answers Sent for the org setup. Through the door's chain RPC the company Safe's owners are dana's and eli's Safes with threshold 2 and it holds 1,000 USDC; world.show then lists the company's site as ready.",
+      "After org.create, approval.sign by dana answers Collected and by eli answers Sent for the org setup, whose subject is the org id. Through the door's chain RPC the company Safe's owners are dana's and eli's Safes with threshold 2 (chain.safe) and it holds 1,000 USDC (chain.balance), and dana's Safe holds 9,000; world.show then lists the company's site as ready.",
     ),
     claim(
       "The same intent resumes the same Organization; a changed intent or another founder refuses.",
@@ -64,7 +64,7 @@ export const create: ClaimsOf = {
     claim(
       "Bio and size are stored trimmed, and an over-long bio is refused.",
       w.fresh,
-      "org.create with a bio and a size padded with spaces answers them trimmed. A bio of 281 characters is rejected by the payload's schema and no company is made.",
+      "org.create with a bio and a size padded with spaces answers them trimmed. A bio of 281 characters is rejected by the payload's schema before it is sent: the call fails with PayloadRejected naming org.create, no company is made and the record gains no entry.",
       { origin: kept("org.create/c-38c97cf2c6a5056c") },
     ),
     claim(
@@ -94,7 +94,7 @@ export const memberGrant: ClaimsOf = {
     claim(
       "A grant is a Director proposal, applied once it executes.",
       w.founded,
-      "org.member.grant as dana of manage-books to sam answers the change proposed and one approval each for dana and eli. approval.sign by dana answers Collected, 1 of 2; by eli, Sent for the officer change. Through the door's chain RPC sam's Safe then wears the Books hat, and doc.create as sam stops refusing with NoSiteUser once his user reaches the site.",
+      "org.member.grant as dana of manage-books to sam answers the change proposed and one approval each for dana and eli. approval.sign by dana answers Collected, 1 of 2; by eli, Sent for the officer change. Through the door's chain RPC (chain.transaction of what eli's signature sent) a hat is minted to sam's Safe, chain.hat gives its details as Books, and chain.wears says sam's Safe wears it; doc.create as sam stops refusing with NoSiteUser once his user reaches the site.",
       { origin: kept("org.member.grant/c-6412f20281167621"), thinLine: true },
     ),
     claim(
@@ -131,7 +131,7 @@ export const memberGrant: ClaimsOf = {
     claim(
       "The proposal mints the officer hat to the member's Safe, and takes one more seat first when every seat is worn.",
       w.founded,
-      "Through the door's chain RPC, the executed transaction is Hats.mintHat(hat, sam's Safe), preceded by changeHatMaxSupply(hat, supply + 1) when every seat of the hat is worn.",
+      "Through the door's chain RPC, the logs of the executed transaction (chain.transaction) from the world's Hats (`contracts.hats`) are a TransferSingle of the hat from the zero address to sam's Safe, which is what Hats.mintHat emits, preceded by a HatMaxSupplyChanged of the hat to its supply + 1 exactly when every seat of the hat was worn at the block before (chain.hat at that block).",
       {
         origin: rewritten(
           "org.member.grant/c-3254ec4a40c86a97",
@@ -156,7 +156,7 @@ export const memberGrant: ClaimsOf = {
     claim(
       "Manage people is the People hat.",
       w.founded,
-      "After a grant of manage-people to sam is signed by dana and eli, sam's Safe wears the deployment's People hat, read through the door's chain RPC.",
+      "After a grant of manage-people to sam is signed by dana and eli, sam's Safe wears (chain.wears) the hat the transaction minted to it, and chain.hat gives that hat's details as People (OFFICER_HAT_DETAILS).",
       { origin: kept("org.member.grant/c-640d6eb596538a6f") },
     ),
   ],
