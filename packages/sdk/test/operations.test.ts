@@ -40,7 +40,7 @@ test("the client has one function per blueprint operation, keyed by its name", (
 });
 
 // The scenarios' `Capxul` is the SDK's client: this line does not compile unless the shapes are the same.
-const fitsCapxul: Layer.Layer<Capxul, never, Sdk.PlatformDoor | Sdk.WorldDoor | Sdk.ReachDoors> = Sdk.layer(Capxul);
+const fitsCapxul: Layer.Layer<Capxul, never, Sdk.PlatformDoor | Sdk.WorldDoor> = Sdk.layer(Capxul);
 
 test("the SDK supplies the scenarios' Capxul", () => {
   assert.ok(fitsCapxul);

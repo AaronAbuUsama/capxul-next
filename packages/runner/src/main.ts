@@ -42,7 +42,11 @@ const options = (): Effect.Effect<{ readonly mode: Mode; readonly expect: Expect
   return Effect.succeed({ mode, expect });
 };
 
-const plans = (): Effect.Effect<ReadonlyArray<Plan>, RunnerFailure> => {
+/**
+ * The plans the command asks for. A scenarios run that expects Core's empty handlers hands each scenario its
+ * starting world's example facts; one that expects to pass hands only facts the runner made (given.ts).
+ */
+const plans = (settings: Settings): Effect.Effect<ReadonlyArray<Plan>, RunnerFailure> => {
   if (command === "door") return flags.length === 0 && names.length === 0 ? Effect.succeed([door]) : usage(USAGE);
   if (command !== "scenarios") return usage(USAGE);
   const chosen = names.length === 0 ? scenarios : Arr.filter(scenarios, (each) => Arr.contains(names, each.name));
@@ -50,7 +54,9 @@ const plans = (): Effect.Effect<ReadonlyArray<Plan>, RunnerFailure> => {
     return Effect.fail(
       RunnerFailure.make({ step: "arguments", message: `no scenario is named one of: ${Arr.join(names, "; ")}` }),
     );
-  return Effect.succeed(Arr.map(chosen, scenarioPlan));
+  return Effect.map(options(), ({ expect }) =>
+    Arr.map(chosen, scenarioPlan(settings, expect === "not-implemented" ? "examples" : "made only")),
+  );
 };
 
 const theDoor = (settings: Settings) =>
@@ -83,7 +89,7 @@ const theScenarios = (settings: Settings, chosen: ReadonlyArray<Plan>) =>
 
 const program = Effect.gen(function* () {
   const settings = yield* Settings;
-  const chosen = yield* plans();
+  const chosen = yield* plans(settings);
   yield* command === "door" ? theDoor(settings) : theScenarios(settings, chosen);
 });
 

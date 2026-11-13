@@ -193,7 +193,7 @@ export const snapshotRestore = declare({
       WorldExists,
       ExpiryBeyondSource,
       WorldQuotaReached,
-          NotImplemented,
+      NotImplemented,
     ]),
   }),
   emits: [{ event: WorldCreated, carries: ({ success }) => created(success) }],

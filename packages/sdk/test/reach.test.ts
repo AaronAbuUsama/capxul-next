@@ -6,11 +6,14 @@ import { createServer } from "node:http";
 import { test } from "node:test";
 import { Chain, Errors } from "@capxul/blueprint";
 import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer";
+import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Predicate from "effect/Predicate";
 import * as Redacted from "effect/Redacted";
 import * as Rec from "effect/Record";
 import * as Ref from "effect/Ref";
+import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import * as FetchHttpClient from "effect/http/FetchHttpClient";
 import type * as HttpServer from "effect/http/HttpServer";
@@ -27,15 +30,18 @@ import {
 import * as Sdk from "../src/door.ts";
 
 const TOKEN = "door-token-1";
-const SAFE = "0x00000000000000000000000000000000000000aa";
-const DANA = "0x00000000000000000000000000000000000000d1";
-const ELI = "0x00000000000000000000000000000000000000e1";
-const PAID = "0x00000000000000000000000000000000000000b1";
-const USDC = "0x0000000000000000000000000000000000000065";
-const PAYMENTS = "0x0000000000000000000000000000000000000067";
-const TX = `0x${Str.repeat(32)("77")}`;
-const PAYMENT_ID = `0x${Str.repeat(32)("9a")}`;
-const DOCUMENT = `0x${Str.repeat(32)("ef")}`;
+const isHex = (value: unknown): value is Hex => typeof value === "string" && /^0x[0-9a-f]*$/.test(value);
+const hex = (value: string): Hex => (isHex(value) ? value : "0x");
+
+const SAFE = hex("0x00000000000000000000000000000000000000aa");
+const DANA = hex("0x00000000000000000000000000000000000000d1");
+const ELI = hex("0x00000000000000000000000000000000000000e1");
+const PAID = hex("0x00000000000000000000000000000000000000b1");
+const USDC = hex("0x0000000000000000000000000000000000000065");
+const PAYMENTS = hex("0x0000000000000000000000000000000000000067");
+const TX = hex(`0x${Str.repeat(32)("77")}`);
+const PAYMENT_ID = hex(`0x${Str.repeat(32)("9a")}`);
+const DOCUMENT = hex(`0x${Str.repeat(32)("ef")}`);
 
 const functions: Abi = parseAbi(Rec.values(Chain.FUNCTION_SIGNATURES));
 const events: Abi = parseAbi(Rec.values(Chain.LOG_SIGNATURES));
@@ -56,14 +62,9 @@ const paymentSent = {
   topics: encodeEventTopics({
     abi: events,
     eventName: "PaymentSent",
-    args: { paymentId: PAYMENT_ID as Hex, sender: SAFE as Hex, recipient: PAID as Hex },
+    args: { paymentId: PAYMENT_ID, sender: SAFE, recipient: PAID },
   }),
-  data: encodeAbiParameters(parseAbiParameters("address, uint256, uint16, bytes32"), [
-    USDC as Hex,
-    125_500_000n,
-    1,
-    DOCUMENT as Hex,
-  ]),
+  data: encodeAbiParameters(parseAbiParameters("address, uint256, uint16, bytes32"), [USDC, 125_500_000n, 1, DOCUMENT]),
   blockNumber: "0x2a",
   transactionHash: TX,
   logIndex: "0x0",
@@ -83,9 +84,10 @@ const chain = (method: string, params: ReadonlyArray<unknown>): unknown => {
       logs: [paymentSent, unknownLog],
     };
   if (method === "eth_getLogs") return [paymentSent];
-  const [request] = params as ReadonlyArray<{ readonly data: Hex }>;
-  const { functionName } = decodeFunctionData({ abi: functions, data: request?.data ?? "0x" });
-  return encodeFunctionResult({ abi: functions, functionName, result: results[functionName] as never });
+  const [request] = params;
+  const data = Predicate.hasProperty(request, "data") && isHex(request.data) ? request.data : "0x";
+  const { functionName } = decodeFunctionData({ abi: functions, data });
+  return encodeFunctionResult({ abi: functions, functionName, result: results[functionName] });
 };
 
 const served = Sdk.TestDoor.serve({ token: TOKEN, answer: "examples", chain }).pipe(
@@ -141,7 +143,7 @@ test("a payload its schema rejects is refused with PayloadRejected and never sen
       return [error, yield* Ref.get(yield* Sdk.TestDoor.Calls)] as const;
     }),
   );
-  assert.ok(refused instanceof Errors.PayloadRejected, `refused with ${String(refused)}`);
+  assert.ok(Schema.is(Errors.PayloadRejected)(refused), `refused with ${String(refused)}`);
   assert.equal(refused.operation, "org.create");
   assert.deepEqual(seen, [], "the door saw the call");
 });
@@ -181,7 +183,7 @@ test("every chain read answers its declared type from the door's chain JSON-RPC"
   assert.equal(Str.toLowerCase(sent.recipient), PAID);
   assert.equal(other?._tag, "Other");
   assert.deepEqual(
-    read.logs.map((log) => log._tag),
+    Arr.map(read.logs, (log) => log._tag),
     ["PaymentSent"],
   );
 });

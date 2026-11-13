@@ -6,6 +6,7 @@ import * as Arr from "effect/Array";
 import type * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import type * as Tracer from "effect/Tracer";
@@ -33,10 +34,14 @@ export const spanName = (name: OperationName): string => name;
 /** The door a call goes through: the one the client was made with, or the one its options name. */
 const doorFor = (name: OperationName, own: Door, reach: Reach | null, options?: CallOptions): Door => {
   const operator = options?.operator ?? "first";
-  if (reach === null) return own;
-  if (servedBy(name) === "platform") return operator === "first" ? own : reach.platform(operator);
-  return options?.at === undefined ? own : reach.world(options.at, operator);
+  const platform = servedBy(name) === "platform";
+  if (platform ? operator === "first" : options?.at === undefined) return own;
+  if (reach === null) return unreached;
+  return platform ? reach.platform(operator) : reach.world(options?.at ?? "", operator);
 };
+
+/** The door of a call that asks for a door the client cannot reach: it has no credential for it. */
+const unreached: Door = { send: () => Effect.fail(Errors.NotSignedIn.make({ reason: "no_credential" })) };
 
 /** The payload, checked against its operation's schema before anything is sent (decisions.md, 43). */
 const checked = (name: OperationName, payload: unknown): Effect.Effect<void, Errors.PayloadRejected> =>
@@ -82,13 +87,18 @@ export const worldClient: Effect.Effect<Client<WorldName>, never, WorldDoor> = E
 
 /**
  * Every operation of the blueprint, the platform's and the world's, and the chain reads. A call may ask for another
- * operator or another world's door (`CallOptions`), which `ReachDoors` reaches.
+ * operator or another world's door (`CallOptions`), and a read for a chain, which `ReachDoors` reaches when it is
+ * provided (`reach`); without it such a call is refused `NotSignedIn` (`no_credential`) and a read dies.
  */
-export const make: Effect.Effect<Full, never, PlatformDoor | WorldDoor | ReachDoors> = Effect.gen(function* () {
-  const reach = yield* ReachDoors;
+export const make: Effect.Effect<Full, never, PlatformDoor | WorldDoor> = Effect.gen(function* () {
+  const reach = Option.getOrNull(yield* Effect.serviceOption(ReachDoors));
   const platform = clientOf(platformNames, yield* PlatformDoor, reach);
   const world = clientOf(worldNames, yield* WorldDoor, reach);
-  const chain = readerOf((options) => reach.chain(options?.at ?? null, options?.operator ?? "first"));
+  const chain = readerOf((options) =>
+    reach === null
+      ? (method) => Effect.die(`no chain to read ${method} from: the client was made without ReachDoors`)
+      : reach.chain(options?.at ?? null, options?.operator ?? "first"),
+  );
   return { ...platform, ...world, chain };
 });
 
@@ -96,9 +106,7 @@ export const make: Effect.Effect<Full, never, PlatformDoor | WorldDoor | ReachDo
  * The client as the service `tag`, such as the scenarios' `Capxul`: any service whose shape is `Full`. The SDK
  * does not import the scenarios; the runner hands it their tag.
  */
-export const layer = <Id>(
-  tag: Context.Key<Id, Full>,
-): Layer.Layer<Id, never, PlatformDoor | WorldDoor | ReachDoors> =>
+export const layer = <Id>(tag: Context.Key<Id, Full>): Layer.Layer<Id, never, PlatformDoor | WorldDoor> =>
   Layer.effect(tag, make);
 
 /** Every operation the client calls, in the order the blueprint's groups list them. */

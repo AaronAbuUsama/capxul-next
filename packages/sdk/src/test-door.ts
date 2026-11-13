@@ -135,10 +135,7 @@ export const routes = (options: Options): Layer.Layer<never, never, HttpRouter.H
     Layer.provide(WorldRpcs.toLayer(handlersOf(worldNames, options.answer) as never)),
     Layer.provide(worldSignIn(options.token)),
   );
-  const groups = Layer.merge(platform, world).pipe(
-    Layer.provide(telemetry),
-    Layer.provide(RpcSerialization.layerJson),
-  );
+  const groups = Layer.merge(platform, world).pipe(Layer.provide(telemetry), Layer.provide(RpcSerialization.layerJson));
   const answerChain = options.chain;
   return answerChain === undefined ? groups : Layer.merge(groups, chainRoute(options.token, answerChain));
 };

@@ -37,6 +37,11 @@ const plain = (value: unknown): unknown => {
 
 const hex = (n: number): string => `0x${n.toString(16)}`;
 const blockTag = (block: number | null): string => (block === null ? "latest" : hex(block));
+/** Hex text, as JSON-RPC carries addresses, hashes, data and quantities. */
+const HexText = Schema.declare(
+  (value: unknown): value is Hex => typeof value === "string" && /^0x[0-9a-fA-F]*$/.test(value),
+);
+
 const decode = <S extends Schema.Codec<unknown, unknown>>(schema: S, value: unknown): Effect.Effect<S["Type"]> =>
   Effect.orDie(Schema.decodeUnknownEffect(schema)(value));
 const attempt = <A>(what: string, run: () => A): Effect.Effect<A> =>
@@ -51,10 +56,13 @@ const call = (
   block: number | null,
 ) =>
   Effect.gen(function* () {
-    const data = yield* attempt(`encoding ${name}`, () => encodeFunctionData({ abi: functions, functionName: name, args }));
-    const answer = yield* decode(Schema.String, yield* rpc("eth_call", [{ to, data }, blockTag(block)]));
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the JSON-RPC answer was decoded as a string above; viem names a hex string with a template type.
-    const result = yield* attempt(`decoding ${name}`, () => decodeFunctionResult({ abi: functions, functionName: name, data: answer as Hex }));
+    const data = yield* attempt(`encoding ${name}`, () =>
+      encodeFunctionData({ abi: functions, functionName: name, args }),
+    );
+    const answer = yield* decode(HexText, yield* rpc("eth_call", [{ to, data }, blockTag(block)]));
+    const result = yield* attempt(`decoding ${name}`, () =>
+      decodeFunctionResult({ abi: functions, functionName: name, data: answer }),
+    );
     return plain(result);
   });
 
@@ -68,8 +76,8 @@ const amountOf = (units: string, decimals: number): string => {
 
 const RawLog = Schema.Struct({
   address: Schema.String,
-  topics: Schema.Array(Schema.String),
-  data: Schema.String,
+  topics: Schema.Array(HexText),
+  data: HexText,
   blockNumber: Schema.String,
   transactionHash: Schema.String,
   logIndex: Schema.String,
@@ -85,15 +93,15 @@ const logOf = (raw: typeof RawLog.Type): Effect.Effect<Chain.Log> => {
     block: number(raw.blockNumber),
     index: number(raw.logIndex),
   };
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the log's fields were decoded as strings; viem names hex strings with a template type.
-  const topics = raw.topics as unknown as [Hex, ...Array<Hex>];
-  const decoded = Effect.option(
-    Effect.try(() => decodeEventLog({ abi: logs, data: raw.data as Hex, topics, strict: true })),
-  );
+  const topics: [Hex, ...Array<Hex>] | [] = Arr.isReadonlyArrayNonEmpty(raw.topics) ? [...raw.topics] : [];
+  const decoded = Effect.option(Effect.try(() => decodeEventLog({ abi: logs, data: raw.data, topics, strict: true })));
   return Effect.flatMap(decoded, (event) =>
     Option.match(event, {
       onNone: () => decode(Chain.Log, { _tag: "Other", ...found, topic: Option.getOrNull(Arr.head(raw.topics)) }),
-      onSome: ({ eventName, args }) => decode(Chain.Log, { ...(plain(args) as object), ...found, _tag: eventName }),
+      onSome: ({ eventName, args }) => {
+        const fields = plain(args);
+        return decode(Chain.Log, { ...(Predicate.isObject(fields) ? fields : {}), ...found, _tag: eventName });
+      },
     }),
   );
 };
@@ -111,11 +119,13 @@ const RawReceipt = Schema.Struct({
 const instantOf = (seconds: number): string => DateTime.formatIso(DateTime.makeUnsafe(seconds * 1000));
 const at = <A>(items: ReadonlyArray<A>, index: number): A | undefined => items[index];
 
+/** A read's answer, decoded with the read's own schema. */
+const answer = <Name extends Chain.ReadName>(name: Name, value: unknown): Effect.Effect<Chain.ReadAnswer<Name>> =>
+  decode(Chain.reads[name].answer, value);
+
 /** The reads over one chain's `rpc`. */
-const readsOver = (rpc: JsonRpc) => {
-  const answer = <Name extends Chain.ReadName>(name: Name, value: unknown) =>
-    decode(Chain.reads[name].answer, value) as Effect.Effect<Chain.ReadAnswer<Name>>;
-  return {
+const readsOver = (rpc: JsonRpc) =>
+  ({
     head: () =>
       Effect.gen(function* () {
         const block = yield* decode(RawBlock, yield* rpc("eth_getBlockByNumber", ["latest", false]));
@@ -129,7 +139,10 @@ const readsOver = (rpc: JsonRpc) => {
       Effect.gen(function* () {
         const units = yield* decode(Schema.String, yield* call(rpc, token, "balanceOf", [holder], block));
         // viem decodes a uint8 as a number and a uint256 as a big integer, which `plain` makes text.
-        const decimals = yield* decode(Schema.Union([Schema.Number, Schema.String]), yield* call(rpc, token, "decimals", [], block));
+        const decimals = yield* decode(
+          Schema.Union([Schema.Finite, Schema.String]),
+          yield* call(rpc, token, "decimals", [], block),
+        );
         return yield* answer("balance", amountOf(units, Number(decimals)));
       }),
     safe: ({ safe, block }) =>
@@ -141,7 +154,10 @@ const readsOver = (rpc: JsonRpc) => {
       }),
     hat: ({ hats, hat, block }) =>
       Effect.gen(function* () {
-        const viewed = yield* decode(Schema.Array(Schema.Unknown), yield* call(rpc, hats, "viewHat", [BigInt(hat)], block));
+        const viewed = yield* decode(
+          Schema.Array(Schema.Unknown),
+          yield* call(rpc, hats, "viewHat", [BigInt(hat)], block),
+        );
         return yield* answer("hat", {
           details: at(viewed, 0),
           maxSupply: at(viewed, 1),
@@ -180,10 +196,9 @@ const readsOver = (rpc: JsonRpc) => {
         const raw = yield* decode(Schema.Array(RawLog), yield* rpc("eth_getLogs", [filter]));
         return yield* answer("logs", yield* Effect.forEach(raw, logOf));
       }),
-  } satisfies {
+  }) satisfies {
     readonly [Name in Chain.ReadName]: (payload: Chain.ReadPayload<Name>) => Effect.Effect<Chain.ReadAnswer<Name>>;
   };
-};
 
 /**
  * The chain reads, each over the chain JSON-RPC its options name (`rpcFor`): the client's own world's, or another
@@ -193,8 +208,7 @@ export const readerOf = (rpcFor: (options?: Chain.ReadOptions) => JsonRpc): Chai
   const span = { kind: "client" } as const;
   return {
     head: (_payload, options) => Effect.withSpan(readsOver(rpcFor(options)).head(), "chain.head", span),
-    balance: (payload, options) =>
-      Effect.withSpan(readsOver(rpcFor(options)).balance(payload), "chain.balance", span),
+    balance: (payload, options) => Effect.withSpan(readsOver(rpcFor(options)).balance(payload), "chain.balance", span),
     safe: (payload, options) => Effect.withSpan(readsOver(rpcFor(options)).safe(payload), "chain.safe", span),
     hat: (payload, options) => Effect.withSpan(readsOver(rpcFor(options)).hat(payload), "chain.hat", span),
     wears: (payload, options) => Effect.withSpan(readsOver(rpcFor(options)).wears(payload), "chain.wears", span),

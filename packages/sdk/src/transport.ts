@@ -147,7 +147,10 @@ const doorAt = <Rpcs extends Rpc.Any>(
   send: (name, payload, headers) =>
     target === null
       ? Effect.fail(Errors.NotSignedIn.make({ reason: "no_credential" }))
-      : Effect.scoped(Effect.flatMap(doorOf(group), (door) => door.send(name, payload, headers))).pipe(
+      : doorOf(group).pipe(
+          Effect.flatMap((door) => door.send(name, payload, headers)),
+          Effect.scoped,
+          // oxlint-disable-next-line effecttsgo/strict-effect-provide -- one Rpc client per call to a door named only at run time; its protocol layer is built for the call and closed with it.
           Effect.provide(protocol(target)),
           Effect.provideService(HttpClient.HttpClient, http),
         ),
@@ -179,23 +182,22 @@ const jsonRpcAt =
 const under = (door: string, path: string) => `${Str.replace(/\/+$/, "")(door)}${path}`;
 
 /** Reaches the doors `spec` names, and any world's door by its address. */
-export const reach = (spec: ReachSpec): Layer.Layer<ReachDoors, never, HttpClient.HttpClient> =>
-  Layer.effect(
+export const reach = (spec: ReachSpec): Layer.Layer<ReachDoors, never, HttpClient.HttpClient> => {
+  const at = (url: string, operator: Operator): Target | null => {
+    const credential = operator === "first" ? spec.operators.first : spec.operators.second;
+    return credential === null ? null : { url, token: credential };
+  };
+  return Layer.effect(
     ReachDoors,
-    Effect.map(Effect.service(HttpClient.HttpClient), (http) => {
-      const token = (operator: Operator) => (operator === "first" ? spec.operators.first : spec.operators.second);
-      const at = (url: string, operator: Operator): Target | null => {
-        const credential = token(operator);
-        return credential === null ? null : { url, token: credential };
-      };
-      return ReachDoors.of({
+    Effect.map(Effect.service(HttpClient.HttpClient), (http) =>
+      ReachDoors.of({
         platform: (operator) => doorAt(PlatformRpcs, at(spec.platform, operator), http),
         world: (door, operator) => doorAt(WorldRpcs, at(under(door, WORLD_PATH), operator), http),
-        chain: (door, operator) =>
-          jsonRpcAt(door === null ? spec.chain : at(under(door, CHAIN_PATH), operator), http),
-      });
-    }),
+        chain: (door, operator) => jsonRpcAt(door === null ? spec.chain : at(under(door, CHAIN_PATH), operator), http),
+      }),
+    ),
   );
+};
 
 /**
  * What reaches other doors, from Config: `CAPXUL_PLATFORM_URL` and `CAPXUL_PLATFORM_TOKEN` (the first operator),

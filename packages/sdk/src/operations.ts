@@ -25,10 +25,7 @@ export type Success<Name extends OperationName> = Rpc.Success<RpcOf<Name>>;
  * What a call of the operation fails with: one of its declared refusals, `NotSignedIn` from sign-in, or
  * `PayloadRejected` when its payload is not of its schema and so was never sent.
  */
-export type Refusal<Name extends OperationName> =
-  | Rpc.Error<RpcOf<Name>>
-  | Errors.NotSignedIn
-  | Errors.PayloadRejected;
+export type Refusal<Name extends OperationName> = Rpc.Error<RpcOf<Name>> | Errors.NotSignedIn | Errors.PayloadRejected;
 
 /** How one call is made: the blueprint's `CallOptions` (as a person, as an operator, at another world's door). */
 export type { CallOptions };
