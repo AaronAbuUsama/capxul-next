@@ -191,6 +191,18 @@ def rewrite(site, world, now_ms, frozen, rate, site_url=None, core_url=""):
     write_json(path, {**json.loads(path.read_text()), "maintenance_mode": 1, "pause_scheduler": 1})
 
 
+def clock(world, now_ms, frozen, rate):
+    """The world clock door's bench follower: one bench-wide entry, written before any site of the world exists (devnet.one-world-clock)."""
+    frappe.init(site="", sites_path=str(SITES))
+    try:
+        from capxul import clock as world_clock
+
+        # The offset anchors a running clock to the host; a frozen clock is judged by frozen_at_ms alone.
+        world_clock.write_world(world=world, offset_ms=int(now_ms - time.time() * 1000), frozen_at_ms=now_ms if frozen else None, rate=rate)
+    finally:
+        frappe.destroy()
+
+
 def release():
     if not GUARD.exists():
         return
@@ -232,6 +244,11 @@ elif command == "restore":
     restore(args[0], args[1], args[2] == "in-place")
 elif command == "rewrite":
     rewrite(args[0], args[1], int(args[2]), args[3] == "frozen", float(args[4]), *args[5:])
+elif command == "clocks":
+    path = SITES / "capxul-world-clocks.json"
+    print("CAPXUL_CLOCKS:" + (path.read_text().strip() if path.exists() else "{}"))
+elif command == "clock":
+    clock(args[0], int(args[1]), args[2] == "frozen", float(args[3]))
 elif command == "release":
     release()
 elif command == "hold":

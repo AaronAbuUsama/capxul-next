@@ -1,8 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { createHmac, randomUUID } from "node:crypto";
+import { createHmac } from "node:crypto";
 import { createPublicClient, http, isAddress, recoverMessageAddress, type Address, type Hex } from "viem";
 import { PROVISION_PATH, provisioningMessage } from "@capxul/sdk";
-import { failure, json, logCause, readBody, ServiceError } from "./http.ts";
+import { failure, json, logCause, readBody, requestTrace, ServiceError } from "./http.ts";
 import { settleSite, type ProvisioningLifecycle } from "./lifecycle.ts";
 
 export type ProvisioningOptions = {
@@ -25,7 +25,7 @@ export function createProvisioningHandler(options: ProvisioningOptions): (req: I
   };
   return async (req, res) => {
     if (req.url !== PROVISION_PATH) return false;
-    const trace = randomUUID();
+    const trace = requestTrace(req);
     let creating: string | undefined;
     try {
       if (req.method !== "POST") throw new ServiceError(405, "INVALID_INPUT", "POST required");
