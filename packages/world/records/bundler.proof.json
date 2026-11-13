@@ -1,0 +1,377 @@
+{
+  "proof": "`world create` makes a world with a bundler and a test paymaster; one UserOperation signed by a test key and sponsored by the paymaster lands on its chain as one transaction, the index sees it, and `world destroy` removes all of it",
+  "outcome": "passed",
+  "at": "2026-11-13T15:00:44.863Z",
+  "checks": [
+    {
+      "check": "the create command succeeded",
+      "held": true
+    },
+    {
+      "check": "the world's handle names the EntryPoint and the test paymaster",
+      "held": true
+    },
+    {
+      "check": "the create recorded the bundler step's duration",
+      "held": true
+    },
+    {
+      "check": "the bundler serves the seeded EntryPoint",
+      "held": true
+    },
+    {
+      "check": "alto is running in its container",
+      "held": true
+    },
+    {
+      "check": "the hash the bundler gave is the UserOperation's own hash",
+      "held": true
+    },
+    {
+      "check": "the bundler's receipt says it succeeded, from the Safe, sponsored by the test paymaster",
+      "held": true
+    },
+    {
+      "check": "on the chain, its transaction succeeded",
+      "held": true
+    },
+    {
+      "check": "it was sent by the bundler's executor to the EntryPoint",
+      "held": true
+    },
+    {
+      "check": "its block holds that one transaction",
+      "held": true
+    },
+    {
+      "check": "the transaction holds one UserOperationEvent, for this operation, from the Safe, paid by the paymaster",
+      "held": true
+    },
+    {
+      "check": "the chain moved 25 test USDC from the Safe to the recipient",
+      "held": true
+    },
+    {
+      "check": "the paymaster paid the gas from its deposit, and the Safe paid nothing",
+      "held": true
+    },
+    {
+      "check": "the Safe's EntryPoint nonce moved by one",
+      "held": true
+    },
+    {
+      "check": "the index wrote the transfer to the world's database",
+      "held": true
+    },
+    {
+      "check": "stopping the world's chain stopped the bundler",
+      "held": true
+    },
+    {
+      "check": "after the stop, a second UserOperation woke the chain and the bundler, and landed",
+      "held": true
+    },
+    {
+      "check": "the destroy command succeeded",
+      "held": true
+    },
+    {
+      "check": "the shared state holds nothing of the world",
+      "held": true
+    },
+    {
+      "check": "nothing of the world is left in the accounts",
+      "held": true
+    },
+    {
+      "check": "the accounts hold what they held before",
+      "held": true
+    }
+  ],
+  "observations": {
+    "commands": {
+      "create": "pnpm --filter @capxul/world world create p-bundler --owner proof --lifetime 30 minutes",
+      "destroy": "pnpm --filter @capxul/world world destroy p-bundler"
+    },
+    "createMs": {
+      "claim": 948,
+      "deploy": 60967,
+      "migrate": 696,
+      "chain": 2462,
+      "fund": 444,
+      "bundler": 13398,
+      "index": 26600,
+      "core": 550,
+      "create": 93281
+    },
+    "bundlerBeyondIndexMs": 0,
+    "destroyMs": {
+      "unsite": 0,
+      "destroy": 19492,
+      "release": 570
+    },
+    "resourcesDestroyed": 12,
+    "bundler": {
+      "servesEntryPoints": [
+        "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+      ],
+      "alto": {
+        "running": true,
+        "record": {
+          "starts": [
+            {
+              "at": "2026-11-13T14:59:12.582Z",
+              "readyMs": 11180,
+              "startCalls": 2
+            }
+          ],
+          "stops": []
+        }
+      }
+    },
+    "safe": {
+      "safe": "0x121dbb2135f72714845024ee59a8cdfe640ac52b",
+      "owner": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+      "createdIn": "0x53e3856d892860e38d66b1fe3d30496bf636606ba31893a1dacd06c7257d3e6c",
+      "funded": {
+        "to": "0x121dbb2135f72714845024ee59a8cdfe640ac52b",
+        "minted": "1000000000",
+        "tx": "0x11ccfd9f474d84e4f595db920f62d3c9f3f31ae2444267c41ace5ad6e14a63ab",
+        "holds": "1000000000"
+      }
+    },
+    "userOperation": {
+      "hash": "0xd4134e1256ed8a644b56a693a9b917c97ad9dea670ba894086fa354fefc7e590",
+      "signedDigest": "0x7d8fd7f9170331d8769097b741cc41df6cd9e728158bbdef7ef12f5c85fa2803",
+      "bundlerReceipt": {
+        "success": true,
+        "sender": "0x121dbB2135f72714845024EE59a8CdFE640Ac52b",
+        "paymaster": "0xE2dE380E3e8281e2cc458675102c3FC2277fC5A8",
+        "actualGasCost": "0xc27ddab8ae00",
+        "actualGasUsed": "0x33f40",
+        "receipt": {
+          "transactionHash": "0x6b0b3556780f21cdb7e9a2e864ee00495cd70c7f5ea0fc438d210fc4d9da3e62",
+          "blockNumber": "0x2dacb15"
+        }
+      },
+      "chainReceipt": {
+        "status": "0x1",
+        "from": "0xa0ee7a142d267c1f36714e4a8f75612f20a79720",
+        "to": "0x0000000071727de22e5e9d8baf0edac6f37da032",
+        "blockNumber": "0x2dacb15",
+        "transactionHash": "0x6b0b3556780f21cdb7e9a2e864ee00495cd70c7f5ea0fc438d210fc4d9da3e62",
+        "logs": [
+          {
+            "address": "0x0000000071727de22e5e9d8baf0edac6f37da032",
+            "topic0": "0xbb47ee3e183a558b1a2ff0874b079f3fc5478b7454eacf2bfc5af2ff5878f972"
+          },
+          {
+            "address": "0x121dbb2135f72714845024ee59a8cdfe640ac52b",
+            "topic0": "0xb648d3644f584ed1c2232d53c46d87e693586486ad0d1175f8656013110b714e"
+          },
+          {
+            "address": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+            "topic0": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+          },
+          {
+            "address": "0x121dbb2135f72714845024ee59a8cdfe640ac52b",
+            "topic0": "0x6895c13664aa4f67288b25d7a21d7aaa34916e355fb9b6fae0a139a9085becb8"
+          },
+          {
+            "address": "0x0000000071727de22e5e9d8baf0edac6f37da032",
+            "topic0": "0x49628fd1471006c1482da88028e9ce4dbb080b815c9b0344d39e5a8e6ec1419f"
+          }
+        ]
+      },
+      "blockTransactions": [
+        "0x6b0b3556780f21cdb7e9a2e864ee00495cd70c7f5ea0fc438d210fc4d9da3e62"
+      ],
+      "effectOnTheChain": {
+        "safeTestUsdc": "-25000000",
+        "recipientTestUsdc": "25000000",
+        "safeEthWei": "0",
+        "paymasterDepositWei": "-213845796236800",
+        "safeNonce": "0 -> 1"
+      }
+    },
+    "index": {
+      "transfer": {
+        "from": "0x121dbb2135f72714845024ee59a8cdfe640ac52b",
+        "to": "0x000000000000000000000000000000000000beef",
+        "amount": "25000000"
+      },
+      "userOperationRows": 0
+    },
+    "afterAStop": {
+      "bundlerStopped": [
+        {
+          "at": "2026-11-13T14:59:52.777Z",
+          "ms": 387
+        }
+      ],
+      "secondUserOperation": {
+        "hash": "0xef30b1c0f34cc70de4f02087711dc1c71f64a2018310515b4f0f47faa90786bb",
+        "bundlerReceipt": {
+          "success": true,
+          "sender": "0x121dbB2135f72714845024EE59a8CdFE640Ac52b",
+          "paymaster": "0xE2dE380E3e8281e2cc458675102c3FC2277fC5A8",
+          "actualGasCost": "0xa4cb36fbc25e",
+          "actualGasUsed": "0x2c056",
+          "receipt": {
+            "transactionHash": "0x7209448e4cf181cf050bd3d386618073400b64363faba4298a35dee3682c6216",
+            "blockNumber": "0x2dacb16"
+          }
+        }
+      },
+      "altoStarts": [
+        {
+          "at": "2026-11-13T14:59:12.582Z",
+          "readyMs": 11180,
+          "startCalls": 2
+        },
+        {
+          "at": "2026-11-13T14:59:58.346Z",
+          "readyMs": 5832,
+          "startCalls": 1
+        }
+      ]
+    },
+    "ms": {
+      "secondUserOperationWakingTheWorld": 9498,
+      "makeSafeAndFundIt": 789,
+      "sendUserOperationAccepted": 202,
+      "sendUserOperationToReceipt": 1042,
+      "receiptToIndexed": 9105
+    },
+    "worldResourcesWhileUp": {
+      "containerApplications": [
+        "capxulworld-alto-w-p-bundler-u7jvgjcekmdy447a",
+        "capxulworld-ponder-w-p-bundler-mpwoznzske3hsk3u",
+        "capxulworld-anvil-w-p-bundler-agopj3j7smmdasmt"
+      ],
+      "durableObjectNamespaces": [
+        "capxulworld-door-w-p-bundler-cwhn2jzyjx2tjzu7",
+        "capxulworld-door-w-p-bundler-cwhn2jzyjx2tjzu7",
+        "capxulworld-door-w-p-bundler-cwhn2jzyjx2tjzu7"
+      ]
+    },
+    "createLogTail": [
+      "[14:58:46.242] INFO: [Core] Cloudflare Worker put: durable object reconciliation {\"oldDoClassNameByLogicalId\":{},\"currentDoClassNameByLogicalId\":{},\"deletedClasses\":[],\"renamedClasses\":[],\"transferredClasses\":[],\"newSqliteClasses\":[]}",
+      "[14:58:51.004] INFO: [Ponder] Cloudflare Container reconcile: recreating capxulworld-ponder-w-p-bundler-mpwoznzske3hsk3u to attach durable object binding",
+      "[14:58:53.216] INFO: [Ponder] Cloudflare Container create: creating application capxulworld-ponder-w-p-bundler-mpwoznzske3hsk3u",
+      "[14:59:01.270] INFO: [Alto] Cloudflare Container reconcile: recreating capxulworld-alto-w-p-bundler-u7jvgjcekmdy447a to attach durable object binding",
+      "[14:59:03.703] INFO: [Alto] Cloudflare Container create: creating application capxulworld-alto-w-p-bundler-u7jvgjcekmdy447a",
+      "[14:59:06.934] INFO: world w-p-bundler: deployed",
+      "[14:59:07.630] INFO: world w-p-bundler: migrations applied (0001_telemetry.sql)",
+      "[14:59:10.092] INFO: world w-p-bundler: the chain answers",
+      "[14:59:10.536] INFO: world w-p-bundler: test USDC at 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6, minted to 0 addresses",
+      "[14:59:37.137] INFO: world w-p-bundler: the index is ready",
+      "[14:59:37.137] INFO: world w-p-bundler: the bundler serves 0x0000000071727De22E5E9d8BAf0edAc6f37da032, paymaster 0xE2dE380E3e8281e2cc458675102c3FC2277fC5A8",
+      "[14:59:37.687] INFO: world w-p-bundler: Core answers"
+    ],
+    "destroyLogTail": [
+      "i Refreshing Cloudflare State Store credentials",
+      "+ Refreshing Cloudflare State Store credentials",
+      "[15:00:19.976] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).",
+      "i Refreshing Cloudflare State Store credentials",
+      "+ Refreshing Cloudflare State Store credentials",
+      "[15:00:27.682] INFO: [Ponder] Cloudflare Container delete: deleting capxulworld-ponder-w-p-bundler-mpwoznzske3hsk3u",
+      "[15:00:27.687] INFO: [Alto] Cloudflare Container delete: deleting capxulworld-alto-w-p-bundler-u7jvgjcekmdy447a",
+      "[15:00:27.727] INFO: [Core] Cloudflare Worker delete: deleting capxulworld-core-w-p-bundler-7wox6xyico6p7ddi",
+      "[15:00:27.761] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-p-bundler-agopj3j7smmdasmt",
+      "[15:00:30.549] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-p-bundler-cwhn2jzyjx2tjzu7",
+      "[15:00:32.544] INFO: [world] Neon: using environment variables (NEON_API_KEY).",
+      "[15:00:40.024] INFO: world w-p-bundler: destroyed (12 resources) and its name released"
+    ],
+    "inventory": {
+      "before": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-alto",
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "after": {
+        "workers": [
+          "capxulworld-core-w-qf-37b7aa-rgkbxwtklq5etefd",
+          "capxulworld-core-w-qf-66f5ac-rgfh4p4lz7uvwpof",
+          "capxulworld-core-w-qf-d2c117-m7jiw4pu67mhom3t",
+          "capxulworld-door-w-qf-2c95c9-5xyjo5g5o7pghi3f",
+          "capxulworld-door-w-qf-37b7aa-73qeb63fshrelelq",
+          "capxulworld-door-w-qf-66f5ac-4ipublhxlyt4pqvc",
+          "capxulworld-door-w-qf-720a78-e442uvi3kbnvgnyj",
+          "capxulworld-door-w-qf-d2c117-tzvbu7qjf3aoagql"
+        ],
+        "containerApplications": [
+          "capxulworld-anvil-w-qf-720a78-beg2b5ykqexv4ncs",
+          "capxulworld-anvil-w-qf-2c95c9-u3zvtwyizva6h277",
+          "capxulworld-ponder-w-qf-66f5ac-c5acjqrk357bz7ti",
+          "capxulworld-ponder-w-qf-37b7aa-rdsoz6lbvelqxwca",
+          "capxulworld-ponder-w-qf-d2c117-dobrvoc4zrjtsr4y",
+          "capxulworld-anvil-w-qf-37b7aa-hasr26sixa3v5xho",
+          "capxulworld-anvil-w-qf-d2c117-hbzhhwbbwsnoyn7q",
+          "capxulworld-anvil-w-qf-66f5ac-z73l4bkwyyd57e5c"
+        ],
+        "durableObjectNamespaces": [
+          "capxulworld-door-w-qf-66f5ac-4ipublhxlyt4pqvc",
+          "capxulworld-door-w-qf-66f5ac-4ipublhxlyt4pqvc",
+          "capxulworld-door-w-qf-d2c117-tzvbu7qjf3aoagql",
+          "capxulworld-door-w-qf-d2c117-tzvbu7qjf3aoagql",
+          "capxulworld-door-w-qf-37b7aa-73qeb63fshrelelq",
+          "capxulworld-door-w-qf-37b7aa-73qeb63fshrelelq",
+          "capxulworld-door-w-qf-720a78-e442uvi3kbnvgnyj",
+          "capxulworld-door-w-qf-720a78-e442uvi3kbnvgnyj",
+          "capxulworld-door-w-qf-2c95c9-5xyjo5g5o7pghi3f",
+          "capxulworld-door-w-qf-2c95c9-5xyjo5g5o7pghi3f"
+        ],
+        "r2Buckets": [
+          "capxulworld-chainstate-w-qf-2c95c9-veithgcu5rycx6px",
+          "capxulworld-chainstate-w-qf-37b7aa-uumfgispviqr6vfu",
+          "capxulworld-chainstate-w-qf-66f5ac-735dwbxrndehocil",
+          "capxulworld-chainstate-w-qf-720a78-x7ik3ctprq5mkluc",
+          "capxulworld-chainstate-w-qf-d2c117-bschtrunxcm4xqxe"
+        ],
+        "hyperdriveConfigurations": [
+          "capxulworld-world-db-w-qf-2c95c9-un43xaoqigzv2u3j",
+          "capxulworld-world-db-w-qf-37b7aa-lbvbtyxudf2exkgm",
+          "capxulworld-world-db-w-qf-66f5ac-yg22jcibyyu2i54o",
+          "capxulworld-world-db-w-qf-720a78-zob2ogyq22n3jm7m",
+          "capxulworld-world-db-w-qf-d2c117-5leopmfojibat6e3"
+        ],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-qf-2c95c9",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-qf-720a78",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-qf-37b7aa",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-qf-d2c117",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-qf-66f5ac",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-alto",
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "leftOfTheseWorlds": [],
+      "sameAsBefore": true,
+      "sameAsBeforeAccountWide": false,
+      "otherWorlds": [
+        "w-qf-37b7aa",
+        "w-qf-66f5ac",
+        "w-qf-d2c117",
+        "w-qf-2c95c9",
+        "w-qf-720a78"
+      ]
+    }
+  }
+}

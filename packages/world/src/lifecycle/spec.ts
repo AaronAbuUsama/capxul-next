@@ -67,6 +67,14 @@ export interface World {
   readonly operatorToken: Redacted.Redacted;
   /** The chain's JSON-RPC address. It carries the world's token, so it is a secret. */
   readonly rpcUrl: Redacted.Redacted;
+  /**
+   * The bundler's JSON-RPC address (ERC-4337: eth_sendUserOperation and the rest), beside the chain's under the same
+   * door and token, so it is a secret too. A call to it wakes the chain and starts the bundler if either is stopped.
+   */
+  readonly bundlerUrl: Redacted.Redacted;
+  /** The EntryPoint the bundler serves, and the test paymaster that sponsors every UserOperation sent to it. */
+  readonly entryPoint: string;
+  readonly paymaster: string;
   /** The door's address with the world's token: the chain's and the index's controls live under it. */
   readonly door: Redacted.Redacted;
   /** The database's connection string, for a driver. Prefer `sql`. */
@@ -97,6 +105,9 @@ export const Timeouts = Config.all({
   migrate: limit("migrate", Duration.seconds(45)),
   chain: limit("chain", Duration.minutes(3)),
   fund: limit("fund", Duration.minutes(1)),
+  // A new container application refuses starts for a while (records/spike-bundler): alto has 4 minutes inside its
+  // Durable Object, and the paymaster's setup comes before.
+  bundler: limit("bundler", Duration.minutes(5)),
   index: limit("index", Duration.minutes(3)),
   core: limit("core", Duration.minutes(1)),
   site: limit("site", Duration.minutes(8)),

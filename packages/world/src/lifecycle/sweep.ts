@@ -13,7 +13,7 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { SweepIncomplete } from "../failures.ts";
 import { recordedStages } from "../stack/engine.ts";
-import { CHAIN_IMAGE, IMAGE_PREFIX, INDEX_IMAGE, isWorldStage, PLATFORM } from "../stack/names.ts";
+import { BUNDLER_IMAGE, CHAIN_IMAGE, IMAGE_PREFIX, INDEX_IMAGE, isWorldStage, PLATFORM } from "../stack/names.ts";
 import { imageRepositories, removeImageRepositories } from "./account.ts";
 import { claims, registry, release } from "./claim.ts";
 import { describe } from "./describe.ts";
@@ -101,7 +101,7 @@ export const removeLeftoverImages = (stages: ReadonlyArray<string>, dryRun: bool
     const { ofThisStack } = yield* imageRepositories;
     const leftovers = leftoverRepositories(ofThisStack, stages, {
       prefix: IMAGE_PREFIX,
-      shared: [CHAIN_IMAGE, INDEX_IMAGE],
+      shared: [CHAIN_IMAGE, INDEX_IMAGE, BUNDLER_IMAGE],
       platform: PLATFORM,
     });
     if (dryRun) return { removed: leftovers, left: Arr.empty<string>() };
