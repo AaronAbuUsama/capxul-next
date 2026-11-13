@@ -1,0 +1,46 @@
+== 1. anvil in a Cloudflare Container answers JSON-RPC through its Worker and Durable Object
+wrong token: HTTP 404
+waiting for the first container instance
+  after 2.00 s
+eth_chainId     {"jsonrpc":"2.0","id":1,"result":"0x14a34"}
+eth_blockNumber {"jsonrpc":"2.0","id":1,"result":"0x2dacb0b"}   (the seed core.json ends at 47893259 = 0x2dacb0b)
+== 2. the chain's state survives a stop
+mined a block with tx 0x74cd69b1606c4862cf82f3fb44c3b53edea6c56da0bdf48dba5b885ce6ac03d7
+before stop: block 47893260 hash 0xe4987cc05c238062ac76aa72081c15994881b47017d78cd75ba0f668520c2288
+stop: {"stopped":true,"at":"2026-11-13T08:18:37.356Z","why":"asked","head":"0x2dacb0c","savedBytes":2450320,"ms":824}   (1.45 s)
+stopped: running=False
+after start: block 47893260 hash 0xe4987cc05c238062ac76aa72081c15994881b47017d78cd75ba0f668520c2288   (first call after the stop: 1.30 s)
+SAME BLOCK AND HASH AFTER THE STOP
+== 2b. a container that goes away without being stopped costs at most the last 20 s of the chain
+mined a block with tx 0x28398256074999fea51bc0e54772f69922caa2be4c27540e2746875ae64eaa56
+head: block 47893261 hash 0x52a069c268a5abb94d31fefcd2efdb9f5d036d5046dbd6ac38426de46e2d99f1
+waiting for the periodic save to reach that block
+  after 16.55 s
+mined one more with tx 0x13d8e929ed6e09ed3a37e479f01e971e261473bf943877a0cf22b6b3f5af6990, then killed the container without saving: block 47893262 hash 0xccf11559d565ba42952fd2ab39f525616fa74cb27047e231578b608124360d9b
+running=False
+after start: block 47893261 hash 0x52a069c268a5abb94d31fefcd2efdb9f5d036d5046dbd6ac38426de46e2d99f1
+start recorded as: {'at': '2026-11-13T08:18:58.238Z', 'from': 'saved state', 'afterUnsavedStop': True, 'ms': 1009}
+BACK AT THE LAST SAVED BLOCK; THE ONE MINED AFTER IT IS LOST
+== 3. Ponder in a Cloudflare Container indexes the chain into the world's Neon branch
+start: {"started":true,"at":"2026-11-13T08:18:59.968Z"}
+waiting for Ponder's /ready
+  after 9.84 s
+ponder says: {"world":{"id":84532,"block":{"number":47893261,"timestamp":1791554822}}}
+neon says:   408 ms SELECT [{'pings': '2', 'head': '47893261'}]
+another event: tx 0x13d8e929ed6e09ed3a37e479f01e971e261473bf943877a0cf22b6b3f5af6990
+neon says:   422 ms SELECT [{'pings': '3', 'head': '47893262'}]
+== the world stops when it is idle (30 s here), although the indexer never stops polling
+last call through /rpc made; waiting for the chain to stop by itself
+  after 33.66 s
+chain:   running=False last stop {'at': '2026-11-13T08:19:54.245Z', 'why': 'idle', 'head': '0x2dacb0e', 'savedBytes': 2452444, 'ms': 1706}
+indexer: running=False stops [{'at': '2026-11-13T08:19:54.045Z', 'ms': 180}]
+wake: eth_blockNumber 0x2dacb0e (1.63 s)
+one more event: tx 0x0163e26bea1f1f3c23bea572884093a5879bc8bfee79b1f6e7eb2d0c7c3b3d8c
+waiting for Ponder's /ready
+  after 14.77 s
+neon says:   426 ms SELECT [{'pings': '4', 'head': '47893263'}]   (rows from before the stop are still there)
+== 4. timings the world recorded about itself (ms)
+chain starts: [('seed', False, 764), ('saved state', False, 932), ('saved state', True, 1009), ('saved state', False, 1077)]
+chain stops:  [('asked', 824, 2450320), ('idle', 1706, 2452444)]
+indexer starts (first seen healthy, ready; polled every 2 s): [(7362, 9837), (12847, 15277)]
+lite ponder after 60s: running True ready 200 starts [(7362, 9837), (12847, 15277), (8139, 14722)]
