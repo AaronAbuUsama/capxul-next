@@ -36,7 +36,7 @@ test("accounts.admission.admit refuses unsigned, wrongly signed and session-only
     socket: "http://127.0.0.1:1", startPaused: false, finality: 0, world: "operator-admit" }, undefined,
   () => [...accessRoutes({ mail, secret, coreUrl: "http://127.0.0.1", rpc: "http://127.0.0.1:1", deploymentFile, namespace: "capxul:devnet:email:v1" }),
     // Test-only large-body route: counts how often the dispatch lets a caller reach it.
-    { prefixes: ["/test/large/"], bodyLimit: 32_000_512, async route(_sql, _path, input) { reached++; return { status: 200, body: { bytes: String(input.blob ?? "").length } }; },
+    { paths: ["/test/large/upload"], bodyLimit: 32_000_512, async route(_sql, _path, input) { reached++; return { status: 200, body: { bytes: String(input.blob ?? "").length } }; },
       render: () => ({ status: 500, body: { error: "INTERNAL_ERROR" } }) }]);
   const address = await core.start();
   const base = `http://127.0.0.1:${(address as { port: number }).port}`;
@@ -61,10 +61,27 @@ test("accounts.admission.admit refuses unsigned, wrongly signed and session-only
     assert.equal((await admin.query("select 1 from app.transition_outbox where event->>'name'='waitlist_entry_transitioned'")).rowCount, 0);
     // Above the default body limit, a missing or malformed bearer is refused before Core buffers the body.
     const big = JSON.stringify({ blob: "x".repeat(2 * 1_048_576) });
-    const large = [await post("/test/large/upload", big), await post("/test/large/upload", big, { authorization: "Bearer not-a-session-token" })];
-    assert.deepEqual(large.map((r) => r.status), [401, 401]); assert.equal(reached, 0);
+    // Refused before the body is read: Core may answer while the client still sends, which fetch reports as a reset.
+    const early = (headers: Record<string, string> = {}, path = "/test/large/upload") =>
+      post(path, big, headers).then((r) => r.status, () => "reset");
+    for (const headers of [{}, { authorization: "Bearer not-a-session-token" }, { authorization: `Bearer ${"A".repeat(43)}` }])
+      assert([401, "reset"].includes(await early(headers)));
+    assert.equal(reached, 0, "no unauthenticated large body reaches the route");
     const shaped = await post("/test/large/upload", big, { authorization: `Bearer ${session.token}` });
     assert.equal(shaped.status, 200); assert.deepEqual(await shaped.json(), { bytes: 2 * 1_048_576 }); assert.equal(reached, 1);
+    // Exact path matching: a neighbour of the large route does not inherit its body limit.
+    // Core may answer 413 before the client finishes sending, which fetch reports as a reset; neither buffers the body.
+    const neighbour = await early({ authorization: `Bearer ${session.token}` }, "/test/large/uploadX");
+    assert([413, "reset"].includes(neighbour), String(neighbour)); assert.equal(reached, 1);
+    // A revoked session is refused before the body too.
+    const second = `operator-admit-r-${randomBytes(3).toString("hex")}@example.test`;
+    await post("/access/sign-in/send-code", JSON.stringify({ email: second }));
+    const trace = randomBytes(16).toString("hex");
+    const other = await (await post("/access/sign-in/verify-code", JSON.stringify({ email: second, code, client: "operator-admit" }), { "x-capxul-trace": trace })).json() as { token: string };
+    // The request's trace reaches the session event the routed sign-in emits.
+    assert.equal((await admin.query("select 1 from app.transition_outbox where event->>'name'='session_transitioned' and event->>'trace_id'=$1", [trace])).rowCount, 1);
+    assert.equal((await post("/access/sessions/revoke", "{}", { authorization: `Bearer ${other.token}` })).status, 200);
+    assert([401, "reset"].includes(await early({ authorization: `Bearer ${other.token}` }))); assert.equal(reached, 1);
     const signed = await post("/admin/accounts/admit", raw, { "x-capxul-signature": signature(raw, secret) });
     assert.equal(signed.status, 200);
     assert.deepEqual(await signed.json(), { admitted: [target], already: [], invalid: [] });
