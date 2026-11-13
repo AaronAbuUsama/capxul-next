@@ -141,6 +141,7 @@ test("indexed settlement compares exact terms and commits source event and SQL b
   } finally {
     await worker.query("rollback"); await admin.query("rollback");
     await admin.query("delete from app.transition_outbox where event->>'owner_id'=$1", [owner.id]);
+    await admin.query("delete from app.payment_processes where owner_id=$1 and payment_id=$2", [owner.id, id]);
     await admin.query("delete from app.payments where owner_id=$1 and id=$2", [owner.id, id]);
     await admin.query("delete from app.book_annotations where owner_kind='organization' and owner_id=any($1)", [[owner.id, payeeOrg]]);
     await admin.query("delete from app.book_facts where org_id=any($1)", [[owner.id, payeeOrg]]);
