@@ -104,10 +104,14 @@ export async function prepareCommand(sql: Sql, input: PrepareCommand, context: P
         and b.chain_id=p.chain_id and b.company_safe=p.company_safe where p.depth<8
     ) select exists(select 1 from path where closed) as closed,
       exists(select 1 from path p where p.company_safe=$5 or exists (
-      select 1 from app.hat_wearers h where h.chain_id=p.chain_id and h.company_safe=p.company_safe
-        and h.hat_id=p.hat_id and h.wearer=$5 and h.wearing and h.standing)) as authorized`,
+      select 1 from app.hat_wearers h join app.chain_hats c on c.chain_id=h.chain_id and c.hat_id=h.hat_id and not c.live
+        where h.chain_id=p.chain_id and h.company_safe=p.company_safe
+        and h.hat_id=p.hat_id and h.wearer=$5 and h.wearing and h.standing)) as authorized,
+      exists(select 1 from path p join app.chain_hats c on c.chain_id=p.chain_id and c.hat_id=p.hat_id and c.live) as ruled`,
     [b.budget_id, b.chain_id, b.payer_safe, b.items[0]!.token_address, context.approval.sender.toLowerCase()])).rows[0];
     if (budget?.closed) throw new Error("WRONG_STATE: budget path is closed");
+    // A module-ruled budget hat is not current in the projection (indexing.hats-indexed): refuse rather than judge from it.
+    if (!budget?.authorized && budget?.ruled) throw new Error("HISTORICAL_UNAVAILABLE: a budget hat on this path is ruled by a module; read Hats live");
     if (!budget?.authorized) throw new Error("FORBIDDEN: current budget authority required");
   }
   for (const item of b.items) {

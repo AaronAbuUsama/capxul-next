@@ -20,11 +20,11 @@ const evented = (hatId: string, live: boolean) => {
 };
 
 /** The current hat row only if it has not changed after atBlock (default: the finalized cutoff). */
-export async function readHatAt(sql: Sql, input: { chainId: number; hatId: string; atBlock?: string; finality: number }): Promise<HatFact | null> {
-  const key = hatKey(input.hatId);
-  await companyScope(sql);
+export async function readHatAt(sql: Sql, input: { chainId: number; hatId: string; companySafe: string; atBlock?: string; finality: number }): Promise<HatFact | null> {
+  const key = hatKey(input.hatId), company = address(input.companySafe, "company Safe");
+  await companyScope(sql, company);
   const at = atOrCutoff(await indexedCutoff(sql, input.chainId, input.finality), input.atBlock);
-  const row = (await sql.query("select * from app.chain_hats where chain_id=$1 and hat_id=$2", [input.chainId, key])).rows[0];
+  const row = (await sql.query("select * from app.chain_hats where chain_id=$1 and hat_id=$2 and company_safe=$3", [input.chainId, key, company])).rows[0];
   if (!row) return null;
   unchanged("chain-hats", row.updated_block, at);
   evented(row.hat_id, row.live);
@@ -34,13 +34,15 @@ export async function readHatAt(sql: Sql, input: { chainId: number; hatId: strin
 }
 
 /** Every wearer row of the hat, only if none changed after atBlock: a later change could hide an earlier wearer. */
-export async function readHatWearersAt(sql: Sql, input: { chainId: number; hatId: string; atBlock?: string; finality: number }): Promise<HatWearerFact[]> {
-  const key = hatKey(input.hatId);
-  await companyScope(sql);
+export async function readHatWearersAt(sql: Sql, input: { chainId: number; hatId: string; companySafe: string; atBlock?: string; finality: number }): Promise<HatWearerFact[]> {
+  const key = hatKey(input.hatId), company = address(input.companySafe, "company Safe");
+  await companyScope(sql, company);
   const at = atOrCutoff(await indexedCutoff(sql, input.chainId, input.finality), input.atBlock);
-  const hat = (await sql.query("select live from app.chain_hats where chain_id=$1 and hat_id=$2", [input.chainId, key])).rows[0];
-  if (hat) evented(key, hat.live);
-  const rows = (await sql.query("select * from app.hat_wearers where chain_id=$1 and hat_id=$2 order by wearer", [input.chainId, key])).rows;
+  const hat = (await sql.query("select live from app.chain_hats where chain_id=$1 and hat_id=$2 and company_safe=$3", [input.chainId, key, company])).rows[0];
+  if (!hat) return [];
+  evented(key, hat.live);
+  const rows = (await sql.query("select * from app.hat_wearers where chain_id=$1 and hat_id=$2 and company_safe=$3 order by wearer",
+    [input.chainId, key, company])).rows;
   for (const row of rows) unchanged("hat-wearers", row.updated_block, at);
   return rows.map((r) => ({ wearer: r.wearer, holds: r.holds, standing: r.standing, wearing: r.wearing,
     since_block: String(r.since_block), updated_block: String(r.updated_block) }));
@@ -52,7 +54,7 @@ export async function readHatWearersAt(sql: Sql, input: { chainId: number; hatId
  */
 export async function readWearerHatsAt(sql: Sql, input: { chainId: number; wearer: string; companySafe: string; atBlock?: string; finality: number }): Promise<WearerHatFact[]> {
   const wearer = address(input.wearer, "wearer"), company = address(input.companySafe, "company Safe");
-  await companyScope(sql);
+  await companyScope(sql, company);
   const at = atOrCutoff(await indexedCutoff(sql, input.chainId, input.finality), input.atBlock);
   const rows = (await sql.query(`select w.hat_id,h.details,w.wearing,w.updated_block,h.updated_block as hat_block,h.live
     from app.hat_wearers w join app.chain_hats h on h.chain_id=w.chain_id and h.hat_id=w.hat_id

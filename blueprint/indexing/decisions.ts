@@ -440,7 +440,10 @@ export const decision_indexing_hats_indexed = defineDecision({
     "Director still read as wearing. Each Hats event on a hat now probes its eligibility and toggle with Hats' own " +
     "getWearerStatus/getHatStatus calls; a hat whose module answers is `live` in chain-hats, and every indexed hat reader " +
     "refuses it with HISTORICAL_UNAVAILABLE instead of answering from events, except that a wearer's list of hats keeps it " +
-    "with its wearing unknown, so the caller reads only that hat live.",
+    "with its wearing unknown, so the caller reads only that hat live. Only a revert, no data or undecodable data reads as " +
+    "no module; an RPC failure rethrows so Ponder retries. Budgets' current wearers and a budget payment's authority refuse " +
+    "a module-ruled hat too. The company hat readers name the company Safe and admit only the worker or the session of " +
+    "the Organization whose non-released Party is that Safe: any other session would read row-filtered rows as complete.",
   source: by("packages/contracts/v4/src/authority/InstallerMoney.sol:130; packages/contracts/v4/src/interfaces/IInstaller.sol:291; packages/backend/src/permissions/tables/permissions.ts:57"),
   affects: [table_chain_hats, table_hat_wearers, contract_hats, decision_concepts_permissions, decision_responsibilities_keepers],
 });

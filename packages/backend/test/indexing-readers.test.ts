@@ -44,11 +44,11 @@ test("finalized Safe and hat readers return exact log facts and refuse a newer p
     await assert.rejects(readSafeOwnersAt(sql, { chainId, safe, atBlock: (updated - 1n).toString(), finality: 0 }), /HISTORICAL_UNAVAILABLE: safe-owners/);
     assert.equal(await readSafeOwnersAt(sql, { chainId, safe: testKey("stranger").address, finality: 0 }), null);
 
-    const hat = await readHatAt(sql, { chainId, hatId: fixture.hat, finality: 0 });
+    const hat = await readHatAt(sql, { chainId, hatId: fixture.hat, companySafe: safe, finality: 0 });
     assert.deepEqual([hat?.hat_id, hat?.company_safe, hat?.max_supply], [BigInt(fixture.hat).toString(), safe, "2"]);
-    await assert.rejects(readHatAt(sql, { chainId, hatId: fixture.hat, atBlock: (BigInt(hat!.updated_block) - 1n).toString(), finality: 0 }),
+    await assert.rejects(readHatAt(sql, { chainId, hatId: fixture.hat, companySafe: safe, atBlock: (BigInt(hat!.updated_block) - 1n).toString(), finality: 0 }),
       /HISTORICAL_UNAVAILABLE: chain-hats/);
-    const wearers = await readHatWearersAt(sql, { chainId, hatId: fixture.hat, finality: 0 });
+    const wearers = await readHatWearersAt(sql, { chainId, hatId: fixture.hat, companySafe: safe, finality: 0 });
     assert.equal(wearers.find((w) => w.wearer === second)?.wearing, true);
     const worn = await readWearerHatsAt(sql, { chainId, wearer: second, companySafe: safe, finality: 0 });
     assert.deepEqual(worn.map((w) => [w.hat_id, w.details, w.wearing]), [[BigInt(fixture.hat).toString(), hat!.details, true],
@@ -64,8 +64,10 @@ test("finalized Safe and hat readers return exact log facts and refuse a newer p
     assert.equal((await sql.query("select live from app.chain_hats where company_safe=$1 and details=$2", [safe, hat!.details])).rows[0].live, false,
       "a hat whose eligibility and toggle are the company Safe stays evented");
     const ruledId = BigInt(ruled.hat_id).toString();
-    await assert.rejects(readHatAt(sql, { chainId, hatId: ruledId, finality: 0 }), /HISTORICAL_UNAVAILABLE: hat .* module/);
-    await assert.rejects(readHatWearersAt(sql, { chainId, hatId: ruledId, finality: 0 }), /HISTORICAL_UNAVAILABLE: hat .* module/);
+    assert.equal(await readHatAt(sql, { chainId, hatId: fixture.hat, companySafe: founder, finality: 0 }), null, "a hat is read only under its own company");
+    assert.deepEqual(await readHatWearersAt(sql, { chainId, hatId: fixture.hat, companySafe: founder, finality: 0 }), []);
+    await assert.rejects(readHatAt(sql, { chainId, hatId: ruledId, companySafe: safe, finality: 0 }), /HISTORICAL_UNAVAILABLE: hat .* module/);
+    await assert.rejects(readHatWearersAt(sql, { chainId, hatId: ruledId, companySafe: safe, finality: 0 }), /HISTORICAL_UNAVAILABLE: hat .* module/);
 
     // A person's or unscoped tenant session would see row-filtered projections as complete lists: refused.
     const tenant = new pg.Client({ connectionString: process.env.DATABASE_URL! });
@@ -74,9 +76,28 @@ test("finalized Safe and hat readers return exact log facts and refuse a newer p
       await assert.rejects(readWearerHatsAt(tenant, { chainId, wearer: second, companySafe: safe, finality: 0 }), /FORBIDDEN/);
       await tenant.query("begin");
       await tenant.query("select set_config('app.owner_kind','person',true),set_config('app.owner_id','someone',true)");
-      await assert.rejects(readHatWearersAt(tenant, { chainId, hatId: fixture.hat, finality: 0 }), /FORBIDDEN/);
-      await assert.rejects(readHatAt(tenant, { chainId, hatId: fixture.hat, finality: 0 }), /FORBIDDEN/);
+      await assert.rejects(readHatWearersAt(tenant, { chainId, hatId: fixture.hat, companySafe: safe, finality: 0 }), /FORBIDDEN/);
+      await assert.rejects(readHatAt(tenant, { chainId, hatId: fixture.hat, companySafe: safe, finality: 0 }), /FORBIDDEN/);
       await tenant.query("rollback");
+
+      // The company's own Organization session is admitted and sees what the worker sees; another Organization, or this
+      // one asking about a Safe it does not own, is refused instead of answered from row-filtered projections.
+      const owner = (await sql.query("select owner_id from app.parties where safe_address=$1 and owner_kind='organization' and state<>'released'", [safe])).rows[0];
+      assert(owner, "the seeded company Safe is an Organization's Party");
+      const as = async (org: string, read: () => Promise<unknown>) => {
+        await tenant.query("begin");
+        try {
+          await tenant.query("select set_config('app.owner_kind','organization',true),set_config('app.owner_id',$1,true)", [org]);
+          return await read();
+        } finally { await tenant.query("rollback"); }
+      };
+      assert.deepEqual(await as(owner.owner_id, () => readHatAt(tenant, { chainId, hatId: fixture.hat, companySafe: safe, finality: 0 })), hat);
+      assert.deepEqual(await as(owner.owner_id, () => readHatWearersAt(tenant, { chainId, hatId: fixture.hat, companySafe: safe, finality: 0 })), wearers);
+      for (const [org, company] of [[`${owner.owner_id}-other`, safe], [owner.owner_id, founder]] as const) {
+        await assert.rejects(as(org, () => readHatAt(tenant, { chainId, hatId: fixture.hat, companySafe: company, finality: 0 })), /FORBIDDEN/);
+        await assert.rejects(as(org, () => readHatWearersAt(tenant, { chainId, hatId: fixture.hat, companySafe: company, finality: 0 })), /FORBIDDEN/);
+        await assert.rejects(as(org, () => readWearerHatsAt(tenant, { chainId, wearer: second, companySafe: company, finality: 0 })), /FORBIDDEN/);
+      }
     } finally { await tenant.end(); }
 
     const grant = (await sql.query(`select tx_hash,log_id from app.chain_logs where contract='hats' and event='TransferSingle'

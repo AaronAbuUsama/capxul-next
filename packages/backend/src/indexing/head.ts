@@ -20,12 +20,16 @@ export async function indexedCutoff(sql: Sql, chainId: number, finality: number)
   return BigInt(progress.indexed_block) - BigInt(finality);
 }
 /**
- * The worker, or an Organization session, which sees its own company's rows. A person's or unscoped session would read
- * row-level-filtered projections as if they were complete, so it is refused rather than answered with a partial list.
+ * The worker, or the session of the Organization whose non-released Party is this company Safe. Any other session would
+ * read row-level-filtered projections (another company's rows hidden) as if they were complete, so it is refused rather
+ * than answered with a partial list.
  */
-export async function companyScope(sql: Sql): Promise<void> {
+export async function companyScope(sql: Sql, companySafe: string): Promise<void> {
   const s = (await sql.query("select current_user as role,current_setting('app.owner_kind',true) as kind,current_setting('app.owner_id',true) as id")).rows[0];
-  if (s.role !== "capxul_worker" && (s.kind !== "organization" || !s.id)) throw new Error("FORBIDDEN: company hat reads need the worker or the company's session");
+  if (s.role === "capxul_worker") return;
+  const own = s.kind === "organization" && s.id && (await sql.query(`select 1 from app.parties where owner_kind='organization' and owner_id=$1
+    and safe_address=$2 and state<>'released'`, [s.id, companySafe])).rowCount;
+  if (!own) throw new Error("FORBIDDEN: company hat reads need the worker or the session of the Organization that owns that Safe");
 }
 /** An explicit block never reaches past the finalized cutoff. */
 export const atOrCutoff = (cutoff: bigint, atBlock?: string) => {

@@ -4,6 +4,7 @@ import { eq } from "ponder";
 import { decodeEventLog, zeroAddress } from "viem";
 import { HATS, HATS_MODULE, INSTALLER } from "../abis.ts";
 import { decoded, hatHex, identity, lower } from "./logs.ts";
+import { answers } from "./probe.ts";
 
 async function treeOf(event: any, context: any, id: bigint) {
   const root = (id >> 224n).toString();
@@ -39,9 +40,10 @@ for (const item of HATS.filter((x) => x.type === "event")) {
       }
     }
     // As Hats does: an eligibility or toggle that answers its call rules wearers and status itself, with no Hats event.
-    const answers = (address: string, functionName: string, args: unknown[]) => context.client.readContract({ address, abi: HATS_MODULE,
-      functionName, args, retryEmptyResponse: false }).then(() => true, () => false);
-    const live = await answers(eligibility, "getWearerStatus", [zeroAddress, id]) || await answers(toggle, "getHatStatus", [id]);
+    // Only a revert, no data or undecodable data means "not a module"; an RPC failure rethrows so Ponder retries (probe.ts).
+    const module = (address: string, functionName: string, args: unknown[]) => answers(() => context.client.readContract({ address,
+      abi: HATS_MODULE, functionName, args, retryEmptyResponse: false }));
+    const live = await module(eligibility, "getWearerStatus", [zeroAddress, id]) || await module(toggle, "getHatStatus", [id]);
     const state = { chain_id: context.chain.id, company_safe: tree.company_safe, tree: tree.tree, admin_hat_id: parent, level,
       details, max_supply: BigInt(maxSupply), supply: BigInt(supply), eligibility: lower(eligibility), toggle: lower(toggle), active, mutable,
       created_log_id: old?.created_log_id ?? base.log_id, last_log_id: base.log_id, updated_block: event.block.number, live };
