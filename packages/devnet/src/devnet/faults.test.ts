@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
+import { resumeFaultStem } from "@capxul/backend/devnet";
 import { resumeFault } from "./faults.ts";
+import { until } from "./supervisor.ts";
 import type { Config } from "./supervisor.ts";
 
 const config = (directory: string, core: number): Config => ({ version: 1, root: directory, controlDir: join(directory, "control"), snapshots: join(directory, "snapshots"),
@@ -59,5 +61,17 @@ test("a resume fault kills Core holding an effect without its ACK, then supervis
     const redelivery = consumer("activity.feed");
     assert.equal(await redelivery.exit, null); assert.equal(redelivery.output(), "effect\nack\n");
     assert.deepEqual(await resumeFault(c, { start: async () => {} }, "resume-arm", "activity.feed"), { consumer: "activity.feed", state: "armed" });
+    // A drive that failed after arming withdraws the unclaimed arm; the next delivery then acknowledges normally.
+    const disarm = () => resumeFault(c, { start: async () => {} }, "resume-disarm", "activity.feed");
+    assert.deepEqual(await disarm(), { consumer: "activity.feed", state: "disarmed" });
+    assert.deepEqual(await disarm(), { consumer: "activity.feed", state: "none" });
+    const after = consumer("activity.feed");
+    assert.equal(await after.exit, null); assert.equal(after.output(), "effect\nack\n", "a disarmed consumer is untouched");
+    // A claimed arm holds a delivery uncommitted: only resume-kill may end it.
+    await resumeFault(c, { start: async () => {} }, "resume-arm", "activity.feed");
+    const held = consumer("activity.feed");
+    await until("delivery claimed the arm", () => access(join(c.controlDir, "faults", `${resumeFaultStem("activity.feed")}.reached`)).then(() => true, () => false), 10_000);
+    await assert.rejects(disarm(), /claimed this arm; run resume-kill/);
+    held.child.kill("SIGKILL"); await held.exit;
   } finally { core.close(); await rm(directory, { recursive: true, force: true }); }
 });

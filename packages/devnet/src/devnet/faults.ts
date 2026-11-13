@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { resumeFaultStem } from "@capxul/backend/devnet";
 import { bench, delivered, preparePayment, readFixture, settledPayment, submitPayment } from "./fixture.ts";
@@ -13,7 +13,9 @@ const procStat = async (pid: number) => { const s = await readFile(`/proc/${pid}
  * `wfl:*\/resume` fault mount. `resume-arm` arms one consumer's next effect; `resume-kill` waits until Core reports it
  * holds that effect uncommitted and unacknowledged, SIGKILLs the Core process, then lets supervision restart it paused
  * and resumes it through the same signed path as `world up`. The ACK and the effect die together; the restarted relay
- * must redeliver. Evidence is returned and kept under the private fault directory; nothing here judges the claim.
+ * must redeliver. `resume-disarm` withdraws an arm no delivery has claimed, for a drive that failed after arming; a claimed
+ * arm is refused, because only resume-kill can end it. Evidence is returned and kept under the private fault directory;
+ * nothing here judges the claim.
  */
 export async function resumeFault(c: Config, host: Pick<Host, "start">, action: string, consumer: string, timeout = 120_000,
   match: { event?: string; transition?: string } = {}) {
@@ -24,6 +26,17 @@ export async function resumeFault(c: Config, host: Pick<Host, "start">, action: 
     for (const suffix of ["armed", "claimed", "reached"]) if (await exists(suffix)) throw new Error("this consumer already has an armed or unresolved resume fault");
     await writeFile(`${stem}.armed`, JSON.stringify({ consumer, ...match, armedAt: Date.now() }), { flag: "wx", mode: 0o600 });
     return { consumer, ...match, state: "armed" };
+  }
+  if (action === "resume-disarm") {
+    // The same atomic rename Core uses to claim: exactly one of the two takes the arm.
+    try { await rename(`${stem}.armed`, `${stem}.disarming`); }
+    catch (error: any) {
+      if (error.code !== "ENOENT") throw error;
+      if (await exists("claimed") || await exists("reached")) throw new Error("a delivery claimed this arm; run resume-kill to finish the fault");
+      return { consumer, state: "none" };
+    }
+    await rm(`${stem}.disarming`);
+    return { consumer, state: "disarmed" };
   }
   try { await until("consumer reached its resume fault point", () => exists("reached"), timeout); }
   catch (error) { await rm(`${stem}.armed`, { force: true }); throw error; }
@@ -54,7 +67,7 @@ export async function resumeFault(c: Config, host: Pick<Host, "start">, action: 
 export async function fixtureOperation(stack: Awaited<ReturnType<typeof composeWorld>>, action: string, id: string, match: { event?: string; transition?: string } = {}) {
   const { c, host } = stack;
   if (c.world.kind !== "local" || c.world.id === "main") throw new Error("fault commands require a disposable local world");
-  if (action === "resume-arm" || action === "resume-kill") return resumeFault(c, host, action, id, 120_000, match);
+  if (action === "resume-arm" || action === "resume-kill" || action === "resume-disarm") return resumeFault(c, host, action, id, 120_000, match);
   const f = await readFixture(c);
   if (action === "load") {
     await stack.read(id);
