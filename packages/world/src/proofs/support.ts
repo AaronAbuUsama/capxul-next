@@ -58,14 +58,23 @@ export const worldResources = (listing: StackListing) => Rec.remove(listing, "im
 export const worldStageOf = (name: string): string | undefined =>
   /\/(w-[a-z0-9-]+)$/.exec(name)?.[1] ?? /-(w-[a-z0-9-]+?)-[a-z0-9]{16}$/.exec(name)?.[1];
 
-/** Every resource of the kinds a world creates, without those of worlds other than `stages`. */
-const withoutOtherWorlds = (listing: StackListing, stages: ReadonlyArray<string>): StackListing =>
-  Rec.map(listing, (names) =>
-    Arr.filter(names, (name) => {
-      const stage = worldStageOf(name);
-      return stage === undefined || Arr.contains(stages, stage);
-    }),
+/**
+ * Whether a name belongs to one of `others`: it carries that world's stage, as its own part (`-w-a-`, `/w-a`, `-w-a`
+ * at the end), wherever it is: a world's snapshot branch, for one, is named `snap-<stage>-...`.
+ */
+const ofAny = (name: string, others: ReadonlyArray<string>): boolean =>
+  Arr.some(
+    others,
+    (stage) =>
+      Str.includes(`-${stage}-`)(name) ||
+      Str.includes(`/${stage}-`)(name) ||
+      Str.endsWith(`/${stage}`)(name) ||
+      Str.endsWith(`-${stage}`)(name),
   );
+
+/** Every resource, without those of `others`, the worlds a proof did not make. */
+const withoutOtherWorlds = (listing: StackListing, others: ReadonlyArray<string>): StackListing =>
+  Rec.map(listing, (names) => Arr.filter(names, (name) => !ofAny(name, others)));
 
 /** The world stages a listing's resources carry. */
 const worldsIn = (listing: StackListing): ReadonlyArray<string> =>
@@ -87,7 +96,8 @@ export const sameResources = (before: StackListing, after: StackListing): boolea
 /**
  * The inventory before and after, and what is left of the named worlds: the evidence that a destroy removed all.
  * The two accounts are shared: another builder's worlds may be made or destroyed while a proof runs. So
- * `sameAsBefore` compares everything but the resources of other worlds (a name that carries another world's stage);
+ * `sameAsBefore` compares everything but the resources of other worlds (a name that carries another world's stage,
+ * a stage seen in either listing);
  * the platform's resources, anything with no world in its name, and the named worlds' own are all compared.
  * `sameAsBeforeAccountWide` is the comparison of everything, and `otherWorlds` names the worlds it set aside.
  */
@@ -100,7 +110,7 @@ export const inventoryReport = (before: StackListing, after: StackListing, stage
     before,
     after,
     leftOfTheseWorlds: namesOfWorlds(after, stages),
-    sameAsBefore: sameResources(withoutOtherWorlds(before, stages), withoutOtherWorlds(after, stages)),
+    sameAsBefore: sameResources(withoutOtherWorlds(before, others), withoutOtherWorlds(after, others)),
     sameAsBeforeAccountWide: sameResources(before, after),
     otherWorlds: others,
   };

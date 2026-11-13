@@ -28,6 +28,14 @@ describe("the inventory a proof compares", () => {
     assert.strictEqual(report.sameAsBeforeAccountWide, false);
     assert.deepStrictEqual(report.otherWorlds, ["w-c1"]);
   });
+  test("another world's snapshot branch is set aside with that world", () => {
+    const other = {
+      ...empty,
+      workers: ["capxulworld-door-w-p-snap-vnydgpojbvc4yfla"],
+      neonBranches: [...empty.neonBranches, "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/snap-w-p-snap-s1-6d896d"],
+    };
+    assert.strictEqual(inventoryReport(empty, other, ["w-p-cli"]).sameAsBefore, true);
+  });
   test("what is left of the proof's own world, or of no world, still counts", () => {
     const own = { ...empty, r2Buckets: ["capxulworld-chainstate-w-p-cli-ls3i4uvuz2xx24kr"] };
     assert.strictEqual(inventoryReport(empty, own, ["w-p-cli"]).sameAsBefore, false);
