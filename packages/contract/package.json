@@ -1,0 +1,18 @@
+{
+  "name": "@capxul/contract",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc -p .",
+    "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts",
+    "claims": "node --experimental-strip-types --no-warnings src/claims/render.entry.ts"
+  },
+  "dependencies": {
+    "effect": "4.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.1",
+    "typescript": "5.9.3"
+  }
+}
