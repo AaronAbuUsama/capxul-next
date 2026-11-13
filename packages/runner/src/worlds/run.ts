@@ -125,9 +125,13 @@ const runOne = (scenario: Scenario, settings: Settings, starting: StartingWorlds
         Arr.drop(yield* platform.made, before.length),
         (stage) => !Arr.contains(templates, stage),
       );
-      const looked = Arr.dedupe([...mine, ...Arr.drop(yield* platform.tried, triedBefore)]);
+      // The template worlds live on until the run ends; everything else the platform made or tried is this scenario's.
+      const looked = Arr.filter(
+        Arr.dedupe([...mine, ...Arr.drop(yield* platform.tried, triedBefore)]),
+        (stage) => !Arr.contains(templates, stage),
+      );
       const leftBefore = yield* leftOf(looked);
-      const strays = Arr.filter(looked, (stage) => !Arr.contains(mine, stage) && !Arr.contains(templates, stage));
+      const strays = Arr.filter(looked, (stage) => !Arr.contains(mine, stage));
       const [destroyTook, destroyed] = yield* Effect.timed(
         Effect.zipWith(
           destroyAll(mine),
