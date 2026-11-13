@@ -125,7 +125,7 @@ export async function createProposal(sql: Sql, context: BoardContext, input: Pro
       url: `${context.siteUrl.replace(/\/$/, "")}/approve/${a.approval_id}`, step: a.step, opened: false };
   }
   const tx = transaction(input.calls, context.multiSend);
-  const calls = input.calls.map(({ to, value, data }) => ({ to, value, data }));
+  const calls = input.calls.map(({ to, value, data }) => ({ to: to.toLowerCase() as Address, value, data }));
   if (calls.some((call) => call.to.toLowerCase() === state.safe.safe_address.toLowerCase())) throw new Error("INVALID_INPUT: proposal cannot call the company Safe");
   let nonce = integer(state.safe.nonce);
   if (input.rejects) {

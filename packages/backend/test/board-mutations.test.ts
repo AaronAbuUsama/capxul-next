@@ -8,6 +8,7 @@ import pg from "pg";
 import { decodeFunctionData, parseAbi, type Address, type PublicClient } from "viem";
 import { migrate, propose, readOfficerChange, readProposal, routeBoard, type BoardContext, type BoardDoors, type BoardFacts, type BoardWorld, type Propose } from "../src/board/door.ts";
 import { migrateOutbox, readEvent } from "../src/platform/outbox.ts";
+import { THIRD_PARTY } from "../../devnet/src/modules/protocol/service.ts";
 
 // Actual published peer source is supplied explicitly for an isolated composition. Never a selected-world verdict.
 // Only chain/deployment facts and RPC below are fixtures; no fake bearer, Seat, feature guard or Approval.open.
@@ -55,7 +56,7 @@ test("Board public adapter composes real auth/Seat/approval doors atomically", {
     },
   } as unknown as PublicClient;
   const world: BoardWorld = { chainId: 84532, siteUrl: "https://board.test", worldNow: async () => now,
-    multiSend: address(20), hats: address(21), payments: address(22), client, catalogue, doors, facts };
+    multiSend: THIRD_PARTY.multiSendCallOnly, hats: THIRD_PARTY.hats, payments: address(22), client, catalogue, doors, facts };
   const context: BoardContext = { ...world, now, principalId: "director", safe: director, kind: "human" };
   const input = (subject: string): Propose => ({ org_id: org, opener: "budgets", subject_kind: "budget-change", subject_id: subject,
     kind: "transaction", rejects: null, calls: [{ to: address(25), value: "7", data: "0x1234" }], note: "private intent", payment: null,
@@ -135,6 +136,8 @@ test("Board public adapter composes real auth/Seat/approval doors atomically", {
       assert.equal(change.principal_id, null); assert.equal(change.member_safe, agent); assert.equal(change.email, null);
       const p = (await readProposal(db, org, change.proposal_id))!;
       assert.equal(p.nonce, 7); assert.equal(p.calls.length, 2);
+      assert(p.calls.every((c) => c.to === THIRD_PARTY.hats.toLowerCase()));
+      assert.equal(p.to, THIRD_PARTY.multiSendCallOnly.toLowerCase());
       const abi = parseAbi(["function changeHatMaxSupply(uint256 hat,uint32 maxSupply)", "function mintHat(uint256 hat,address wearer)"]);
       assert.deepEqual(decodeFunctionData({ abi, data: p.calls[0]!.data }).args, [4n, 2]);
       const minted = decodeFunctionData({ abi, data: p.calls[1]!.data }).args!;
@@ -156,6 +159,7 @@ test("Board public adapter composes real auth/Seat/approval doors atomically", {
       assert.equal(change.change, "revoke"); assert.equal(change.member_safe, agent);
       const p = (await readProposal(db, org, change.proposal_id))!;
       assert.equal(p.calls.length, 1);
+      assert.equal(p.to, THIRD_PARTY.hats.toLowerCase()); assert.equal(p.calls[0]!.to, p.to);
       const decoded = decodeFunctionData({ abi: parseAbi([
         "function setHatWearerStatus(uint256 hat,address wearer,bool eligible,bool standing) returns (bool)",
       ]), data: p.calls[0]!.data });
@@ -194,6 +198,10 @@ test("Board public adapter composes real auth/Seat/approval doors atomically", {
     await control("procedure refuses empty/company-Safe calls and never stores an opener's extra operation", async () => {
       await auth(); await assert.rejects(propose(db, context, { ...input("empty"), calls: [] }), /INVALID_INPUT/); await empty();
       await assert.rejects(propose(db, context, { ...input("self"), calls: [{ to: safe, value: "0", data: "0x" }] }), /INVALID_INPUT/); await empty();
+      const badChecksum = THIRD_PARTY.hats.replace("A", "a").replace("b", "B");
+      for (const to of [THIRD_PARTY.hats.slice(0, -1), `0xg${"0".repeat(39)}`, badChecksum]) {
+        await assert.rejects(propose(db, context, { ...input("invalid"), calls: [{ to: to as Address, value: "0", data: "0x" }] }), /INVALID_INPUT/); await empty();
+      }
       const extra = { ...input("call-only").calls[0]!, operation: "delegatecall" };
       const p = await propose(db, context, { ...input("call-only"), calls: [extra] });
       const stored = (await readProposal(db, org, p.proposal_id))!;
