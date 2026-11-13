@@ -67,7 +67,8 @@ for entry in filter(None, (e.strip() for e in merges.split("\x1e"))):
 
 # Work done so far, hour by hour: the units of every step finished by the end of each of the last 48 hours.
 def when(text):
-    return datetime.datetime.fromisoformat(text.replace("Z", "+00:00"))
+    stamp = datetime.datetime.fromisoformat(text.replace("Z", "+00:00"))
+    return stamp if stamp.tzinfo else stamp.replace(tzinfo=datetime.timezone.utc)
 
 
 total = sum(s["of"] for s in steps)
