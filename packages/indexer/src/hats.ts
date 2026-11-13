@@ -2,7 +2,7 @@ import { ponder } from "ponder:registry";
 import { chainHats, chainLogs, hatTrees, hatWearers, knownSafes } from "ponder:schema";
 import { eq } from "ponder";
 import { decodeEventLog, zeroAddress } from "viem";
-import { HATS, INSTALLER } from "../abis.ts";
+import { HATS, HATS_MODULE, INSTALLER } from "../abis.ts";
 import { decoded, hatHex, identity, lower } from "./logs.ts";
 
 async function treeOf(event: any, context: any, id: bigint) {
@@ -38,9 +38,13 @@ for (const item of HATS.filter((x) => x.type === "event")) {
         parent = hatHex(id >> BigInt(shift + 16) << BigInt(shift + 16));
       }
     }
+    // As Hats does: an eligibility or toggle that answers its call rules wearers and status itself, with no Hats event.
+    const answers = (address: string, functionName: string, args: unknown[]) => context.client.readContract({ address, abi: HATS_MODULE,
+      functionName, args }).then(() => true, () => false);
+    const live = await answers(eligibility, "getWearerStatus", [zeroAddress, id]) || await answers(toggle, "getHatStatus", [id]);
     const state = { chain_id: context.chain.id, company_safe: tree.company_safe, tree: tree.tree, admin_hat_id: parent, level,
       details, max_supply: BigInt(maxSupply), supply: BigInt(supply), eligibility: lower(eligibility), toggle: lower(toggle), active, mutable,
-      created_log_id: old?.created_log_id ?? base.log_id, last_log_id: base.log_id, updated_block: event.block.number };
+      created_log_id: old?.created_log_id ?? base.log_id, last_log_id: base.log_id, updated_block: event.block.number, live };
     await context.db.insert(chainHats).values({ hat_id: key, ...state }).onConflictDoUpdate(state);
 
     const wearers = (await context.db.sql.select().from(hatWearers).where(eq(hatWearers.hat_id, key))).map((w: any) => w.wearer);

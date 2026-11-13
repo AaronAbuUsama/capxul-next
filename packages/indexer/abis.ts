@@ -30,6 +30,11 @@ export const HATS = parseAbi([
   "function isInGoodStanding(address wearer,uint256 hatId) view returns (bool)",
   "function isWearerOfHat(address wearer,uint256 hatId) view returns (bool)",
 ]);
+/** The calls Hats makes on a hat's eligibility and toggle: an address that answers them is a module (live). */
+export const HATS_MODULE = parseAbi([
+  "function getWearerStatus(address wearer,uint256 hatId) view returns (bool eligible,bool standing)",
+  "function getHatStatus(uint256 hatId) view returns (bool)",
+]);
 export const SAFE = parseAbi([
   "event SafeSetup(address indexed initiator,address[] owners,uint256 threshold,address initializer,address fallbackHandler)",
   "event AddedOwner(address indexed owner)", "event RemovedOwner(address indexed owner)",

@@ -1,7 +1,8 @@
 import type { Sql } from "../platform/db.ts";
 import { address, atOrCutoff, indexedCutoff, logFact, type LogFact, uint } from "./head.ts";
 
-export interface SafeExecutionFact extends LogFact { safe: string; safe_tx_hash: string; nonce: string; success: boolean }
+/** `msg_sender` and `threshold` are SafeL2's additionalInfo: the caller (an owner signing with v=1 emits no ApproveHash) and the threshold checked. */
+export interface SafeExecutionFact extends LogFact { safe: string; safe_tx_hash: string; nonce: string; success: boolean; msg_sender: string; threshold: number }
 export interface SafeApprovalFact extends LogFact { safe: string; safe_tx_hash: string; owner: string }
 export interface SafeOwnersFact {
   safe_address: string; chain_id: number; kind: string; deployed: boolean; owners: string[]; threshold: number; nonce: string;
@@ -15,7 +16,8 @@ export async function readSafeExecution(sql: Sql, input: { chainId: number; safe
   const cutoff = await indexedCutoff(sql, input.chainId, input.finality);
   const row = (await sql.query(`select * from app.safe_executions where chain_id=$1 and safe_address=$2 and safe_nonce=$3
     and block_number<=$4`, [input.chainId, safe, nonce.toString(), cutoff.toString()])).rows[0];
-  return row ? { ...logFact(row), safe, safe_tx_hash: row.safe_tx_hash, nonce: String(row.safe_nonce), success: row.success } : null;
+  return row ? { ...logFact(row), safe, safe_tx_hash: row.safe_tx_hash, nonce: String(row.safe_nonce), success: row.success,
+    msg_sender: row.msg_sender, threshold: Number(row.threshold) } : null;
 }
 
 /** Every finalized ApproveHash of that Safe transaction at or before atBlock, in chain order. */

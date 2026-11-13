@@ -436,7 +436,10 @@ export const table_safe_executions = defineTable({
     "One row per `Safe.ExecutionSuccess` or `ExecutionFailure` of a Capxul Safe: the transaction's hash (`safe_tx_hash`), " +
     "whether it succeeded, and the Safe nonce it used (`safe_nonce`, the Safe's nonce before the execution). A Board " +
     "proposal executed, or another transaction at its nonce displaced it; an invitation's grants were minted. A Safe nonce " +
-    "is used once, so a hash and a nonce each have at most one row.",
+    "is used once, so a hash and a nonce each have at most one row. SafeL2's SafeMultiSigTransaction in the same " +
+    "transaction gives the execution's `msg_sender` (an owner executing signs with v=1 as the caller, which emits no " +
+    "ApproveHash) and the `threshold` the Safe checked it against; a Safe execution without that log is kept untyped in " +
+    "chain-logs instead.",
   was: [`${PONDER}:75`, "apps/indexer/src/abis.ts:12"],
   concept: concept_indexing,
   tenancy: "chain",
@@ -448,6 +451,8 @@ export const table_safe_executions = defineTable({
     safe_tx_hash: S,
     safe_nonce: Int,
     success: B,
+    msg_sender: S,
+    threshold: Int,
   }),
   key: ["log_id"],
   indexes: [
@@ -552,7 +557,10 @@ export const table_chain_hats = defineTable({
     "One row per hat in a company's Board tree or Shareholders tree (HatCreated, attributed to the company by its top hat " +
     "in chain-deployments): its admin hat (null for a top hat), level, details, max supply, current supply (wearers " +
     "now), eligibility, toggle and whether it is active, kept current by Hats' max supply, eligibility, toggle and " +
-    "status change events. Budgets plans a new office or allowance hat's id from its admin's children here, with " +
+    "status change events. `live` when its eligibility or toggle answers Hats itself (a module, such as the Elections " +
+    "clone on an elected Director hat, probed with Hats' own getWearerStatus/getHatStatus calls at each of its events): " +
+    "its wearers and status then change with no event, so readers of this index refuse that hat (HISTORICAL_UNAVAILABLE) " +
+    "and its callers read `isWearerOfHat` live (indexing.hats-indexed). Budgets plans a new office or allowance hat's id from its admin's children here, with " +
     "Ponder at the chain head (Hats ids are positional, so the next child is the count of children so far); board names " +
     "the officer and Director hats from it. Hats of other trees are not indexed.",
   was: ["packages/protocol/src/evm/company-hats.ts:11"],
@@ -574,6 +582,7 @@ export const table_chain_hats = defineTable({
     toggle: S,
     active: B,
     mutable: B,
+    live: B,
     ...SET_BY,
   }),
   key: ["hat_id"],

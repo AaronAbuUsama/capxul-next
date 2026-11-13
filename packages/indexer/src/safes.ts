@@ -32,20 +32,22 @@ export async function refreshSafe(event: any, context: any, safe: `0x${string}`,
   await context.db.insert(safeOwners).values({ safe_address: safe, ...state }).onConflictDoUpdate(state);
 }
 
-// SafeL2 supplies the pre-execution nonce. Match the stack, including nested executions of one Safe.
-async function executionNonce(event: any, context: any): Promise<bigint | null> {
+interface Execution { nonce: bigint; msg_sender: string; threshold: number }
+// SafeL2 supplies the pre-execution nonce, the caller and the threshold checked. Match the stack, including nested executions of one Safe.
+async function execution(event: any, context: any): Promise<Execution | null> {
   const receipt = await context.client.getTransactionReceipt({ hash: event.transaction.hash });
-  const stack: bigint[] = [];
+  const stack: Execution[] = [];
   for (const log of receipt.logs) {
     if (lower(log.address) !== lower(event.log.address)) continue;
     let e;
     try { e = decodeEventLog({ abi: SAFE, topics: log.topics, data: log.data }); } catch { continue; }
     if (e.eventName === "SafeMultiSigTransaction") {
-      stack.push(decodeAbiParameters([{ type: "uint256" }, { type: "address" }, { type: "uint256" }], e.args.additionalInfo)[0]);
+      const [nonce, sender, threshold] = decodeAbiParameters([{ type: "uint256" }, { type: "address" }, { type: "uint256" }], e.args.additionalInfo);
+      stack.push({ nonce, msg_sender: lower(sender), threshold: Number(threshold) });
     } else if (e.eventName === "ExecutionSuccess" || e.eventName === "ExecutionFailure") {
-      const nonce = stack.pop();
+      const executed = stack.pop();
       // A Safe without SafeL2 logs must not halt every tenant's projections; its execution is kept untyped.
-      if (log.logIndex === event.log.logIndex) return nonce ?? null;
+      if (log.logIndex === event.log.logIndex) return executed ?? null;
     }
   }
   throw new Error("Safe execution missing from its receipt");
@@ -57,12 +59,12 @@ for (const [source, kind] of [["CompanySafe", "company"], ["PersonSafe", "person
       const safe = lower(event.log.address);
       // Factory provenance admits even setup/execution logs before the birth event in that receipt.
       const base = await identity(event, context), a = event.args;
-      let nonce: bigint | null = null;
+      let executed: Execution | null = null;
       if (item.name === "ApproveHash") {
         await context.db.insert(safeApprovals).values({ ...base, safe_address: safe, safe_tx_hash: lower(a.approvedHash), owner: lower(a.owner) });
-      } else if ((item.name === "ExecutionSuccess" || item.name === "ExecutionFailure") && (nonce = await executionNonce(event, context)) !== null) {
+      } else if ((item.name === "ExecutionSuccess" || item.name === "ExecutionFailure") && (executed = await execution(event, context)) !== null) {
         await context.db.insert(safeExecutions).values({ ...base, safe_address: safe, safe_tx_hash: lower(a.txHash),
-          safe_nonce: nonce, success: item.name === "ExecutionSuccess" });
+          safe_nonce: executed.nonce, success: item.name === "ExecutionSuccess", msg_sender: executed.msg_sender, threshold: executed.threshold });
       } else {
         await context.db.insert(chainLogs).values({ ...base, contract: "safe", contract_address: safe, event: item.name, safes: [safe], args: decoded(a) });
       }

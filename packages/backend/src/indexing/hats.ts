@@ -1,5 +1,5 @@
 import type { Sql } from "../platform/db.ts";
-import { address, atOrCutoff, hatKey, indexedCutoff } from "./head.ts";
+import { address, atOrCutoff, companyScope, hatKey, indexedCutoff } from "./head.ts";
 
 export interface HatFact {
   hat_id: string; company_safe: string; tree: string; admin_hat_id: string | null; level: number; details: string;
@@ -13,14 +13,20 @@ const decimal = (key: string | null) => key === null ? null : BigInt(key).toStri
 const unchanged = (table: string, updated: unknown, at: bigint) => {
   if (BigInt(String(updated)) > at) throw new Error(`HISTORICAL_UNAVAILABLE: ${table} changed after block ${at}`);
 };
+/** A module eligibility or toggle (an Elections clone) moves wearers and status with no Hats event: read isWearerOfHat live. */
+const evented = (hatId: string, live: boolean) => {
+  if (live) throw new Error(`HISTORICAL_UNAVAILABLE: hat ${BigInt(hatId)} is ruled by a module; read Hats live`);
+};
 
 /** The current hat row only if it has not changed after atBlock (default: the finalized cutoff). */
 export async function readHatAt(sql: Sql, input: { chainId: number; hatId: string; atBlock?: string; finality: number }): Promise<HatFact | null> {
   const key = hatKey(input.hatId);
+  await companyScope(sql);
   const at = atOrCutoff(await indexedCutoff(sql, input.chainId, input.finality), input.atBlock);
   const row = (await sql.query("select * from app.chain_hats where chain_id=$1 and hat_id=$2", [input.chainId, key])).rows[0];
   if (!row) return null;
   unchanged("chain-hats", row.updated_block, at);
+  evented(row.hat_id, row.live);
   return { hat_id: decimal(row.hat_id)!, company_safe: row.company_safe, tree: row.tree, admin_hat_id: decimal(row.admin_hat_id),
     level: row.level, details: row.details, max_supply: String(row.max_supply), supply: String(row.supply), eligibility: row.eligibility,
     toggle: row.toggle, active: row.active, mutable: row.mutable, updated_block: String(row.updated_block) };
@@ -29,7 +35,10 @@ export async function readHatAt(sql: Sql, input: { chainId: number; hatId: strin
 /** Every wearer row of the hat, only if none changed after atBlock: a later change could hide an earlier wearer. */
 export async function readHatWearersAt(sql: Sql, input: { chainId: number; hatId: string; atBlock?: string; finality: number }): Promise<HatWearerFact[]> {
   const key = hatKey(input.hatId);
+  await companyScope(sql);
   const at = atOrCutoff(await indexedCutoff(sql, input.chainId, input.finality), input.atBlock);
+  const hat = (await sql.query("select live from app.chain_hats where chain_id=$1 and hat_id=$2", [input.chainId, key])).rows[0];
+  if (hat) evented(key, hat.live);
   const rows = (await sql.query("select * from app.hat_wearers where chain_id=$1 and hat_id=$2 order by wearer", [input.chainId, key])).rows;
   for (const row of rows) unchanged("hat-wearers", row.updated_block, at);
   return rows.map((r) => ({ wearer: r.wearer, holds: r.holds, standing: r.standing, wearing: r.wearing,
@@ -39,11 +48,12 @@ export async function readHatWearersAt(sql: Sql, input: { chainId: number; hatId
 /** One wearer's hats in one company with their details, only if neither the wearer row nor its hat changed after atBlock. */
 export async function readWearerHatsAt(sql: Sql, input: { chainId: number; wearer: string; companySafe: string; atBlock?: string; finality: number }): Promise<WearerHatFact[]> {
   const wearer = address(input.wearer, "wearer"), company = address(input.companySafe, "company Safe");
+  await companyScope(sql);
   const at = atOrCutoff(await indexedCutoff(sql, input.chainId, input.finality), input.atBlock);
-  const rows = (await sql.query(`select w.hat_id,h.details,w.wearing,w.updated_block,h.updated_block as hat_block
+  const rows = (await sql.query(`select w.hat_id,h.details,w.wearing,w.updated_block,h.updated_block as hat_block,h.live
     from app.hat_wearers w join app.chain_hats h on h.chain_id=w.chain_id and h.hat_id=w.hat_id
     where w.chain_id=$1 and w.wearer=$2 and w.company_safe=$3 order by w.hat_id`, [input.chainId, wearer, company])).rows;
-  for (const row of rows) { unchanged("hat-wearers", row.updated_block, at); unchanged("chain-hats", row.hat_block, at); }
+  for (const row of rows) { unchanged("hat-wearers", row.updated_block, at); unchanged("chain-hats", row.hat_block, at); evented(row.hat_id, row.live); }
   return rows.map((r) => ({ hat_id: decimal(r.hat_id)!, details: r.details, wearing: r.wearing, updated_block: String(r.updated_block) }));
 }
 

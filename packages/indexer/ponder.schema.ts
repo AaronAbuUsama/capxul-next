@@ -70,6 +70,7 @@ export const safeApprovals = onchainTable("safe_approvals", (t) => ({
 }));
 export const safeExecutions = onchainTable("safe_executions", (t) => ({
   ...log(t), safe_address: t.hex().notNull(), safe_tx_hash: t.hex().notNull(), safe_nonce: t.bigint().notNull(), success: t.boolean().notNull(),
+  msg_sender: t.hex().notNull(), threshold: t.integer().notNull(),
 }), (t) => ({
   safeTx: uniqueIndex("safe-executions-by-safe-tx").on(t.safe_address, t.safe_tx_hash),
   nonce: uniqueIndex("safe-executions-by-safe-nonce").on(t.safe_address, t.safe_nonce),
@@ -79,7 +80,7 @@ export const chainHats = onchainTable("chain_hats", (t) => ({
   hat_id: t.text().primaryKey(), chain_id: t.integer().notNull(), company_safe: t.hex().notNull(), tree: t.text().notNull(),
   admin_hat_id: t.text(), level: t.integer().notNull(), details: t.text().notNull(), max_supply: t.bigint().notNull(),
   supply: t.bigint().notNull(), eligibility: t.hex().notNull(), toggle: t.hex().notNull(), active: t.boolean().notNull(), mutable: t.boolean().notNull(),
-  ...provenance(t),
+  ...provenance(t), live: t.boolean().notNull(),
 }), (t) => ({
   admin: index("chain-hats-by-admin").on(t.admin_hat_id, t.hat_id),
   company: index("chain-hats-by-company").on(t.company_safe, t.tree, t.level),

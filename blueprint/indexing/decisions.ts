@@ -436,7 +436,10 @@ export const decision_indexing_hats_indexed = defineDecision({
     "copied table drifts, which is why old permissions kept receipts and old indexing a reconcile. The install gives " +
     "every hat an address for eligibility and toggle, so Hats' events are the whole story until a company attaches " +
     "elections (low priority): the Elections module rules a Director out at a term's end with no event, so that hat's " +
-    "readers read Hats live.",
+    "readers read Hats live. Review, 13 November 2026: nothing marked which hat that is, so a recalled or term-ended " +
+    "Director still read as wearing. Each Hats event on a hat now probes its eligibility and toggle with Hats' own " +
+    "getWearerStatus/getHatStatus calls; a hat whose module answers is `live` in chain-hats, and every indexed hat reader " +
+    "refuses it with HISTORICAL_UNAVAILABLE instead of answering from events.",
   source: by("packages/contracts/v4/src/authority/InstallerMoney.sol:130; packages/contracts/v4/src/interfaces/IInstaller.sol:291; packages/backend/src/permissions/tables/permissions.ts:57"),
   affects: [table_chain_hats, table_hat_wearers, contract_hats, decision_concepts_permissions, decision_responsibilities_keepers],
 });

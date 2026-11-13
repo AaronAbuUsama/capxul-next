@@ -24,6 +24,8 @@ test("finalized Safe and hat readers return exact log facts and refuse a newer p
     const execution = await readSafeExecution(sql, { chainId, safe: fixture.safe, nonce: String(approved.safe_nonce), finality: 0 });
     assert.deepEqual([execution?.log_id, execution?.safe_tx_hash, execution?.nonce, execution?.success, execution?.block_number],
       [approved.log_id, approved.safe_tx_hash, String(approved.safe_nonce), approved.success, String(approved.block_number)]);
+    // The devnet relayer executes with approved-hash signatures; the founder's Safe was the only owner, threshold 1.
+    assert.deepEqual([execution?.msg_sender, execution?.threshold], [testKey("deployer").address.toLowerCase(), 1]);
     assert.equal(await readSafeExecution(sql, { chainId, safe, nonce: String(approved.safe_nonce), finality: beyond }), null);
     assert.equal(await readSafeExecution(sql, { chainId, safe, nonce: "999999", finality: 0 }), null);
     await assert.rejects(readSafeExecution(sql, { chainId, safe, nonce: (1n << 256n).toString(), finality: 0 }), /INVALID_INPUT/);
@@ -53,6 +55,27 @@ test("finalized Safe and hat readers return exact log facts and refuse a newer p
     assert.deepEqual(await readWearerHatsAt(sql, { chainId, wearer: second, companySafe: founder, finality: 0 }), [], "another company's hats stay out");
     await assert.rejects(readWearerHatsAt(sql, { chainId, wearer: second, companySafe: safe, atBlock: (BigInt(worn[0]!.updated_block) - 1n).toString(), finality: 0 }),
       /HISTORICAL_UNAVAILABLE/);
+
+    // A module-ruled hat changes wearers and status with no Hats event: every indexed hat reader refuses it.
+    const ruled = (await sql.query("select hat_id,live from app.chain_hats where company_safe=$1 and details=$2", [safe, fixture.moduleHatDetails])).rows[0];
+    assert.equal(ruled?.live, true, "Ponder marks the hat whose eligibility answers Hats");
+    assert.equal((await sql.query("select live from app.chain_hats where company_safe=$1 and details=$2", [safe, hat!.details])).rows[0].live, false,
+      "a hat whose eligibility and toggle are the company Safe stays evented");
+    const ruledId = BigInt(ruled.hat_id).toString();
+    await assert.rejects(readHatAt(sql, { chainId, hatId: ruledId, finality: 0 }), /HISTORICAL_UNAVAILABLE: hat .* module/);
+    await assert.rejects(readHatWearersAt(sql, { chainId, hatId: ruledId, finality: 0 }), /HISTORICAL_UNAVAILABLE: hat .* module/);
+
+    // A person's or unscoped tenant session would see row-filtered projections as complete lists: refused.
+    const tenant = new pg.Client({ connectionString: process.env.DATABASE_URL! });
+    await tenant.connect();
+    try {
+      await assert.rejects(readWearerHatsAt(tenant, { chainId, wearer: second, companySafe: safe, finality: 0 }), /FORBIDDEN/);
+      await tenant.query("begin");
+      await tenant.query("select set_config('app.owner_kind','person',true),set_config('app.owner_id','someone',true)");
+      await assert.rejects(readHatWearersAt(tenant, { chainId, hatId: fixture.hat, finality: 0 }), /FORBIDDEN/);
+      await assert.rejects(readHatAt(tenant, { chainId, hatId: fixture.hat, finality: 0 }), /FORBIDDEN/);
+      await tenant.query("rollback");
+    } finally { await tenant.end(); }
 
     const grant = (await sql.query(`select tx_hash,log_id from app.chain_logs where contract='hats' and event='TransferSingle'
       and args->>'to'=$1 and args->>'id'=$2 order by block_number limit 1`, [second, BigInt(fixture.hat).toString()])).rows[0];
