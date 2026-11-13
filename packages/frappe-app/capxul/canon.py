@@ -6,13 +6,19 @@ CANON v1 (written down in FINDINGS.md too):
   * `references` is sorted by (doctype, name) and holds only what the payment settles;
   * nothing that changes during the signing flow is in it: not `reference_no`, `reference_date`,
     `docstatus`, `modified`, nor the Capxul status fields.
-  * hash = "0x" + sha256(canonical bytes).hexdigest()
+  * hash = "0x" + keccak-256(canonical bytes), as Ethereum hashes (capxul.keccak): the hash doc.create answers and the
+    chain's PaymentSent carries (packages/blueprint decisions.md, 28). It was sha256 before the rebuild's thin line.
+
+Any other document's hash (`stored_hash`) is keccak-256 of the document as the site stored it: its fields as Frappe
+answers them, keys sorted, without what changes on every save (`modified`, `modified_by`) or the leading-underscore
+bookkeeping fields, in the same JSON form.
 """
-import hashlib
 import json
 
 import frappe
 from frappe.utils import flt, getdate
+
+from capxul.keccak import hex_hash
 
 CANON_VERSION = 1
 
@@ -54,4 +60,25 @@ def canonical(doc, asset):
 
 
 def document_hash(doc, asset="USDC"):
-    return "0x" + hashlib.sha256(canonical(doc, asset).encode("utf-8")).hexdigest()
+    return hex_hash(canonical(doc, asset).encode("utf-8"))
+
+
+VOLATILE = {"modified", "modified_by"}
+
+
+def stored_fields(doc):
+    """The document as the site stored it, as JSON values: what doc.create answers as `fields`."""
+    def clean(row):
+        return {k: v for k, v in row.items() if k not in VOLATILE and not k.startswith("_")}
+
+    plain = json.loads(frappe.as_json(doc.as_dict(no_default_fields=False)))
+    return {k: ([clean(r) for r in v] if isinstance(v, list) else v) for k, v in clean(plain).items()}
+
+
+def stored_hash(doc, asset="USDC"):
+    """A Payment Entry's hash is its canonical body's (above), so a payment and its document name one hash; any other
+    document's is its stored fields'."""
+    if doc.doctype == "Payment Entry":
+        return document_hash(doc, asset)
+    body = {"canon": CANON_VERSION, "doctype": doc.doctype, "name": doc.name, "fields": stored_fields(doc)}
+    return hex_hash(json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8"))
