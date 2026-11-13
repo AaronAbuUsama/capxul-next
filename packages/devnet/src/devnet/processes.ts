@@ -95,9 +95,6 @@ export function supervised(c: Config, configFile: string): Host & Processes {
         .map(([key, value]) => `${key}=${JSON.stringify(value)}`).join("\n"), { mode: 0o600 });
       await command(["docker", "compose", "--env-file", hostEnv, "-f", resolve(import.meta.dirname, "host.yaml"), "-p", "capxul-world-host", "up", "-d", "--wait"], c.root);
       await compose(["up", "-d", "--wait", "--wait-timeout", "300"]);
-      for (const [key, value] of [["webserver_host", "http://backend"], ["webserver_port", "8000"]]) {
-        await compose(["run", "--rm", "-T", "--no-deps", "site-admin", "bench", "set-config", "-g", key!, value!]);
-      }
     },
     async benchStop() { await compose(["stop", "--timeout", "120", "frontend", "backend", "websocket", "scheduler", "queue-short", "queue-long"]); },
   };

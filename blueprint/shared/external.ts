@@ -1410,6 +1410,7 @@ export const contract_safe = defineContract({
     },
     getOwners: { signature: "getOwners() view returns (address[])", about: "A Safe's owners: an agent's sign-in proof, a Board's signers." },
     getThreshold: { signature: "getThreshold() view returns (uint256)", about: "How many approvals a Board proposal needs." },
+    nonce: { signature: "nonce() view returns (uint256)", about: "The Safe transaction nonce, read with owners and threshold at the same pinned block when planning a Board proposal." },
   },
   events: {
     ApproveHash: { signature: "ApproveHash(bytes32 indexed approvedHash, address indexed owner)", about: "A Director approved a proposal." },
@@ -1551,6 +1552,7 @@ export const contract_hats_signer_gate = defineContract({
     claimSignerFor: { signature: "claimSignerFor(uint256 hatId, address signer)", about: "Seats a Director the founder added." },
     removeSigner: { signature: "removeSigner(address signer)", about: "Removes a signer whose hat lapsed." },
     setThresholdConfig: { signature: "setThresholdConfig(ThresholdConfig thresholdConfig)", about: "Sets the Board's threshold." },
+    thresholdConfig: { signature: "thresholdConfig() view returns ((uint8 thresholdType, uint120 min, uint120 target) config)", about: "Reads the Gate's configured threshold rule; Board combines it with live owners and signer validity for lapsed-owner cleanup." },
     isValidSigner: { signature: "isValidSigner(address account) view returns (bool valid)", about: "Whether a Director still wears the hat." },
   },
   events: {},

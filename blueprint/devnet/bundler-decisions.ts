@@ -14,3 +14,14 @@ export const decision_devnet_canary_alto = defineDecision({
   source: "thin-line.bundler; integration:bundler; packages/contracts/test/mocks/MockPaymaster.sol; supplied-process runtime contract, 12 November 2026; Xelmar-tech/infrastructure integration/factory 0d2be303ed3df643aa6ad08434149fff8cea72e4 AA setup inspected as reference only",
   affects: [component_bundler_paymaster, component_devnet, environment_devnet],
 });
+
+export const decision_devnet_create_sponsor = defineDecision({
+  id: "devnet.create-sponsor",
+  title: "Fresh local worlds persist their native sponsor before opening ingress",
+  question: "Where does the selected supervisor install the supplied canary bundler without redeploying on recovery?",
+  options: [{ label: "fresh-create-only", text: "New local configurations reserve eleven distinct loopback ports, including a private Alto port separate from its fenced public ingress. Fresh creation alone prepares dedicated executor/utility funding and the MockPaymaster EntryPoint deposit after Anvil starts. Persist the sponsor address in deployment.json and the supplied absolute foreground executable, private URL and isolated environment in the mode-0600 world config before starting the bundler. Save copies the native Anvil state and deployment unchanged; up and restore never call preparation or send funding/deployment transactions. A clone reconstructs its process slot from the saved sponsor and dedicated canary keys with its own ports, not the source URL. Existing worlds without a supplied slot remain inspectable/stoppable but cannot claim supplier preparation." }],
+  chosen: "fresh-create-only",
+  why: "The supplied Alto component is now reviewed, but the supervisor's old fresh-create path left its slot absent. Installing the real local mock is required to exercise supplier ingress; it does not establish signed sponsorship conformance or a full same-run acceptance. Native chain recovery, rather than deployment replay, must preserve the sponsor's address, deposit and account nonces.",
+  source: "devnet.canary-alto; integrator fresh-create wiring assignment, 12 November 2026",
+  affects: [component_bundler_paymaster, component_devnet, environment_devnet],
+});

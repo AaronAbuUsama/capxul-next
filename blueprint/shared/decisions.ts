@@ -14,6 +14,79 @@ import * as x from "./external.ts";
 const CLAUDE = "Claude, target architecture, 7 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 
+export const decision_contracts_safe_nonce_read = defineDecision({
+  id: "contracts.safe-nonce-read",
+  title: "Declare the existing Safe transaction nonce getter",
+  question: "Which nonce does Board read alongside the Safe's owners and threshold?",
+  options: [
+    { label: "safe-getter", text: "Declare Safe 1.5.0's nonce() uint256 getter for the same pinned-block read." },
+    { label: "derived", text: "Infer a Safe nonce from other transaction counts or indexed events." },
+  ],
+  chosen: "safe-getter",
+  why:
+    "Safe 1.5.0 declares uint256 public override nonce; the existing installer and fork test interfaces already expose its view getter. " +
+    "Board's live planning needs that Safe transaction nonce, not an account nonce or ERC-4337 nonce. " +
+    "This fills the external contract record only: no new provider, policy, historical snapshot or execution proof is introduced.",
+  source: "safe-global/safe-smart-account v1.5.0 contracts/Safe.sol:64; packages/contracts/test/utils/Installer/ExternalViews.sol:42; packages/contracts/test/fork/Interfaces.sol:51, 12 November 2026",
+  affects: [x.contract_safe, f.concept_board],
+});
+
+export const decision_contracts_gate_threshold_read = defineDecision({
+  id: "contracts.gate-threshold-read",
+  title: "Read the Gate's actual threshold configuration for Board cleanup",
+  question: "Which existing contract read exposes the rule needed to evaluate a lapsed-owner removal?",
+  options: [
+    { label: "gate-config", text: "Expose the verified Gate thresholdConfig tuple and combine it with live owners and signer validity." },
+    { label: "safe-threshold", text: "Infer the configured rule from the Safe's current threshold alone." },
+  ],
+  chosen: "gate-config",
+  why:
+    "The verified Hats Signer Gate v2 implementation returns one tuple with uint8 thresholdType and uint120 min/target. " +
+    "InstallerMoney already reads this getter and computes the configured required signatures against the owner count, capped by that count. " +
+    "Safe.getThreshold alone cannot distinguish absolute and proportional configuration after an owner lapses. " +
+    "This adds contract-reading parity only; it neither changes the contract nor establishes a historical owner snapshot or Board cleanup proof.",
+  source: "Base Sepolia verified HatsSignerGate 0x148057884AC910Bdd93693F230C5c35a8c47CA3b thresholdConfig ABI/source; packages/contracts/src/authority/InstallerMoney.sol:16,305-313, 12 November 2026",
+  affects: [x.contract_hats_signer_gate, f.concept_board],
+});
+
+export const decision_integrations_indexed_claim = defineDecision({
+  id: "integrations.indexed-claim",
+  title: "Claim admission requires a real indexed occurrence and current sole signer",
+  question: "What proves personal-Safe setup or adoption when it need not send a new transaction?",
+  options: [
+    { label: "indexed-occurrence", text: "Read the owner-scoped indexed claim, current sole-owner projection and real Ponder progress in one SQL snapshot, with deployment finality." },
+    { label: "ownership-only", text: "Trust current chain ownership or an injected claimed boolean without the claim occurrence." },
+  ],
+  chosen: "indexed-occurrence",
+  why:
+    "Adoption may use a prior CapxulSafeClaimed rather than a new receipt. Ownership alone does not prove that event or its transaction/block identity. " +
+    "The same-Sql provider reads app views, not raw Ponder, and returns the actual occurrence only after readiness, cutoff/finality and current sole-signer checks. " +
+    "A missing or lagging occurrence returns pending; unavailable or malformed provider state refuses safely. No separate read may combine a pre-reindex claim with a post-reindex checkpoint. " +
+    "This current-ownership admission is not a historical owner/approval snapshot for Board settlement.",
+  source: "indexer; accounts setup/adoption provider contract; Core projection PR59, 12 November 2026",
+  affects: [x.integration_indexer, f.concept_accounts],
+});
+
+export const decision_integrations_claim_signer = defineDecision({
+  id: "integrations.claim-signer",
+  title: "The personal-Safe service signer exposes only its configured claim role",
+  question: "How does account setup recover a lost broadcast answer without signing a second transaction?",
+  options: [
+    { label: "durable-claim", text: "Accept a stable setup person/attempt key and claim arguments only; commit signed bytes and hash before a single broadcast attempt, then recover that hash." },
+    { label: "wallet", text: "Give account setup an unrestricted wallet and let each retry prepare a transaction." },
+  ],
+  chosen: "durable-claim",
+  why:
+    "Service keys belong to the backend and on-chain Roles confines the claim key to its configured claimer, namespace and delegatecall. " +
+    "The provider never accepts arbitrary targets, data, role or value. A worker-only durable lane serializes the account and keeps signed bytes before broadcast. " +
+    "An attempted send, even with an unknown answer or a crash before ingress, is never broadcast again automatically; retries return its existing hash. " +
+    "The lane stays busy until a canonical receipt is observed, not just until an RPC answers. A successful receipt must include the expected claim event from Companies House. " +
+    "Known claim reverts map to the account vocabulary; unavailable historical revert data remains TRANSACTION_FAILED, never an invented contract refusal. " +
+    "No configured service credential or verified on-chain role means no live provider proof; a generic funded wallet cannot substitute for that role.",
+  source: "responsibilities.service-lanes; components.service-keys; service-signer; Access claim boundary, 12 November 2026",
+  affects: [x.integration_service_signer, f.concept_accounts, x.contract_companies_house_claimer],
+});
+
 export const decision_runtime_record_business_instant = defineDecision({
   id: "runtime.record-business-instant",
   title: "Record a supplied business instant in the source transaction",

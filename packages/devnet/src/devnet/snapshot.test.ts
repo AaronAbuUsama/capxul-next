@@ -5,7 +5,34 @@ import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { composeBench, psqlAdmin, readSnapshot, restoreSnapshot, saveSnapshot, type Options, type Runtime, type World } from "./door.ts";
+import { composeBench, localRuntime, psqlAdmin, readSnapshot, restoreSnapshot, saveSnapshot, type Options, type Runtime, type World } from "./door.ts";
+
+test("snapshot save retains the fence failure alongside refusal to resume an unowned pause", async () => {
+  const root = await mkdtemp(join(tmpdir(), "capxul-snapshot-errors-"));
+  const original = new Error("Service world-fixture-ingress is not running.");
+  const unexpected = async (): Promise<never> => { throw new Error("unexpected recovery phase after fence rejection"); };
+  const bench = composeBench([]);
+  const runtime = localRuntime({ bench,
+    processes: { running: async () => true, fence: async () => { throw original; }, start: unexpected, stop: unexpected },
+    store: { updateClock: unexpected, rewrite: unexpected }, core: () => { throw new Error("unexpected Core request"); }, clock: unexpected });
+  const world: World = { id: "fixture", kind: "local", database: "unused", stateDir: join(root, "state"), sites: [], epoch: 1 };
+  const options: Options = { root, codeVersion: "fixture", admin: unexpected, runtime };
+  try {
+    await assert.rejects(saveSnapshot(options, world, "rejected"), (error: unknown) => {
+      assert(error instanceof AggregateError);
+      assert.equal(error.cause, original);
+      assert.equal(error.errors[0], original);
+      assert.equal(error.errors.length, 2);
+      assert.match(error.errors[1].message, /no owned bench pause to resume/);
+      return true;
+    });
+    assert.equal(bench.ownsPause(), false);
+    assert.deepEqual(await readdir(root), [], "failed save removes unpublished files and releases its host lock");
+    await assert.rejects(saveSnapshot({ ...options, runtime: { ...runtime, resume: async () => {} } }, world, "single"), (error: unknown) => error === original);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 const maintenance = process.env.WORLD_SNAPSHOT_PG;
 test("whole database cut restores independently, fences failures and retains abandoned state", { skip: !maintenance }, async () => {
