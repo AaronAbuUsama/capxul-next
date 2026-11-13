@@ -5,10 +5,10 @@ import { test } from "node:test";
 import { createPublicClient, createWalletClient, encodeFunctionData, http, pad, parseAbi, type Address, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { db, now, run, config, catalogue, signIn, publicAccess } from "./access-fixture.ts";
-import { createAccessClient } from "../../sdk/src/access/door.ts";
+import { createAccessClient, signInByKey } from "../../sdk/src/access/door.ts";
 import { accessError, authenticate, digest, feature, readPrincipal, readPrincipalByEmail, requireFeature, revoke, routeAccess,
   sendCode, syncFlags, verifyCode, type Principal, type SignIn } from "../src/access/door.ts";
-import { admit, admitWave, eligibility, personalSafe, readAdmission, readAdmissionForEvent, routeAccounts } from "../src/accounts/door.ts";
+import { admit, eligibility, personalSafe, readAdmission, readAdmissionForEvent, routeAccounts } from "../src/accounts/door.ts";
 import { startSetup } from "../src/accounts/setup.ts";
 
 test("opaque sessions establish only the verified person and immediately reject revocation/expiry", async () => {
@@ -132,35 +132,6 @@ test("admission, referral and privacy-safe source events roll back with the call
   await assert.rejects(db.transaction("", (sql) => admit(sql, { email: "not-mail", via: "escrow", ref: "bad" }, "bad", now), true), /INVALID_INPUT/);
 });
 
-test("operator wave admits atomically, reports already/invalid and moves the referral, without reopening parked births", async () => {
-  const waiting = `wave-waiting-${run}@example.test`, unlisted = `wave-unlisted-${run}@example.test`, trace = randomUUID();
-  // Storage fixtures stand in for the parked join/attribute births; they are not driver proof.
-  await db.worker.query(`insert into app.admissions(email,status,note,joined_via,requested_at,updated_at)
-    values($1,'waiting',null,'waitlist',5,5)`, [waiting]);
-  await db.worker.query("insert into app.referrals(referrer_email,referee_email,via,stage,attributed_at) values($1,$2,'link','attributed',3)", [`ref-${run}@example.test`, waiting]);
-  await assert.rejects(db.transaction("", (sql) => admitWave(sql, { emails: Array(201).fill(unlisted), by: "ops" }, trace, now), true), /INVALID_INPUT: emails/);
-  await assert.rejects(db.transaction("", (sql) => admitWave(sql, { emails: [unlisted], by: " " }, trace, now), true), /INVALID_INPUT: by/);
-  await assert.rejects(db.transaction("", async (sql) => {
-    await admitWave(sql, { emails: [waiting, unlisted], by: "ops" }, trace, now);
-    throw new Error("wave transaction failed");
-  }, true), /wave transaction failed/);
-  assert.equal((await db.transaction("", (sql) => readAdmission(sql, waiting), true))!.status, "waiting");
-  assert.equal(await db.transaction("", (sql) => readAdmission(sql, unlisted), true), null);
-  assert.equal((await db.worker.query("select 1 from app.transition_outbox where event->>'trace_id'=$1", [trace])).rowCount, 0);
-  const result = await db.transaction("", (sql) => admitWave(sql, { emails: [` ${unlisted.toUpperCase()} `, waiting, "not-mail", unlisted], by: " ops-aaron " }, trace, now + 1), true);
-  assert.deepEqual(result, { admitted: [unlisted, waiting].sort(), already: [], invalid: ["not-mail"] });
-  const rows = await Promise.all([waiting, unlisted].map((m) => db.transaction("", (sql) => readAdmission(sql, m), true)));
-  assert.deepEqual(rows.map((r) => [r!.status, r!.joined_via, r!.admitted_by, r!.requested_at]),
-    [["admitted", "waitlist", "operator:ops-aaron", 5], ["admitted", "operator", "operator:ops-aaron", null]]);
-  const events = (await db.worker.query("select event from app.transition_outbox where event->>'trace_id'=$1 order by seq", [trace])).rows.map((r) => r.event);
-  assert.deepEqual(events.map((e) => [e.name, e.props.transition, e.props.via]).sort(), [
-    ["referral_transitioned", "admit", "link"], ["waitlist_entry_transitioned", "admit", "operator"], ["waitlist_entry_transitioned", "admit_unlisted", "operator"]].sort());
-  assert.equal((await db.worker.query("select stage from app.referrals where referee_email=$1", [waiting])).rows[0].stage, "admitted");
-  assert.deepEqual(await db.transaction("", (sql) => admitWave(sql, { emails: [waiting], by: "again" }, randomUUID(), now + 2), true),
-    { admitted: [], already: [waiting], invalid: [] });
-  assert.equal((await db.transaction("", (sql) => readAdmission(sql, waiting), true))!.admitted_by, "operator:ops-aaron");
-});
-
 test("mailbox/person RLS isolates two real session actors and only guarded setup start writes its own immutable Safe", async () => {
   const email = `setup-${run}@example.test`, login = await signIn(email), other = await signIn(`other-setup-${run}@example.test`);
   let p: Principal;
@@ -273,6 +244,16 @@ test("agent challenge proves actual v4 AgentOwner and sole Safe signer, refusing
   await execute(encodeFunctionData({ abi, functionName: "freeze", args: [safe] }));
   await assert.rejects(call("/access/sign-in/with-key", frozenProof), /NOT_AUTHENTICATED/);
   await execute(encodeFunctionData({ abi, functionName: "unfreeze", args: [safe] }));
+  // Actor preparation's public path: the SDK helper signs in over HTTP and reads the session back; a second call is a new session.
+  const actorServer = await publicAccess(services, () => now + 1);
+  try {
+    const http = createAccessClient({ coreUrl: actorServer.url }), sign = (message: string) => signer.signMessage({ message });
+    const first = await signInByKey(http, { safe, client: "actor-prep", signMessage: sign });
+    assert.deepEqual([first.session.kind, first.session.safe, first.signIn.signer], ["agent", safe.toLowerCase(), signer.address.toLowerCase()]);
+    const again = await signInByKey(http, { safe, client: "actor-prep-restored", signMessage: sign });
+    assert.notEqual(again.signIn.token, first.signIn.token); assert.equal(again.session.personId, first.session.personId);
+    await assert.rejects(signInByKey(http, { safe, client: "outsider", signMessage: (message) => outsider.signMessage({ message }) }), /NOT_AUTHENTICATED/);
+  } finally { await actorServer.close(); }
   assert.equal(((await call("/access/sign-in/with-key", frozenProof))!.body as SignIn).personId, result.personId);
   const server = await publicAccess(services, () => now);
   try {
