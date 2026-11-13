@@ -9,8 +9,9 @@
     "format:check": "oxfmt -c packages/lint/oxfmt.json --check 'packages/**/*.{ts,tsx,mts,js,mjs}' '!packages/indexer/**' '!packages/contracts/**'",
     "lint": "effect-tsgo oxlint",
     "types": "pnpm -r --if-present run types",
-    "test": "pnpm -r --filter '!@capxul/contracts' --if-present run test && pnpm frappe:test",
-    "frappe:test": "python3 -m unittest discover -s packages/frappe-app/tests"
+    "test": "pnpm -r --filter '!@capxul/contracts' --if-present run test && pnpm frappe:test && pnpm status:test",
+    "frappe:test": "python3 -m unittest discover -s packages/frappe-app/tests",
+    "status:test": "python3 -m unittest discover -s packages/status-feed/tests"
   },
   "devDependencies": {
     "typescript": "catalog:",
