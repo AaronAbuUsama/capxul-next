@@ -87,10 +87,11 @@ export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (se
     Effect.gen(function* () {
       const cached = (yield* Ref.get(templates)).get(world.name);
       if (cached !== undefined) return cached;
-      const from = world.from === null ? nothing : yield* templateOf(world.from);
+      const from =
+        world.from === null || world.from === startingWorlds.nothing ? nothing : yield* templateOf(world.from);
       const steps = yield* stepsOf(world);
       const after = yield* run(world, steps, from);
-      if (world.from === null && after.own !== null)
+      if ((world.from === null || world.from === startingWorlds.nothing) && after.own !== null)
         yield* Ref.update(templateWorlds, (all) => [...all, after.own?.world ?? ""]);
       const saved = yield* run(
         world,
