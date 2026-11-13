@@ -6,3 +6,5 @@ export { IndexerError, readIndexerHead, readPersonalSafeClaim } from "./indexer.
 export type { IndexerProgress, IndexedClaim, ClaimLookup } from "./indexer.ts";
 export { budgetsExecutor } from "./budgets-executor.ts";
 export type { BudgetsExecutor, BudgetsExecutorConfig, ExecuteReceipt } from "./budgets-executor.ts";
+export { ChainRpcError, chainRpc } from "./chain-rpc.ts";
+export type { ChainBlock, ChainLog, ChainNode, ChainRpc } from "./chain-rpc.ts";
