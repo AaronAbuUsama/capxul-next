@@ -1,0 +1,23 @@
+== 1. anvil in a Cloudflare Container answers JSON-RPC through its Worker and Durable Object
+wrong token: HTTP 404
+waiting for the first container instance
+  after 1.89 s
+eth_chainId     {"jsonrpc":"2.0","id":1,"result":"0x14a34"}
+eth_blockNumber {"jsonrpc":"2.0","id":1,"result":"0x2dacb0b"}   (the seed core.json ends at 47893259 = 0x2dacb0b)
+== 2. the chain's state survives a stop
+mined a block with tx 0x74cd69b1606c4862cf82f3fb44c3b53edea6c56da0bdf48dba5b885ce6ac03d7
+before stop: block 47893260 hash 0xe4987cc05c238062ac76aa72081c15994881b47017d78cd75ba0f668520c2288
+stop: {"stopped":true,"at":"2026-11-13T08:07:29.314Z","why":"asked","head":"0x2dacb0c","savedBytes":2450304,"ms":877}   (1.17 s)
+stopped: running=False
+after start: block 47893260 hash 0xe4987cc05c238062ac76aa72081c15994881b47017d78cd75ba0f668520c2288   (first call after the stop: 1.39 s)
+SAME BLOCK AND HASH AFTER THE STOP
+== 3. Ponder in a Cloudflare Container indexes the chain into the world's Neon branch
+start: {"started":true,"at":"2026-11-13T08:07:32.615Z"}
+waiting for Ponder's /ready
+  gave up after 180 s
+# Note written by hand after this run. The run stopped here because Ponder was started 13 s after its container
+# application was created and that start was lost: /indexer/status said running=false. The same status call showed
+# the chain's container gone too, with no stop on record (started 08:07:30, not running by 08:10:50). prove.sh now
+# retries the start, and the chain now saves every 20 s and records a start that follows an unsaved stop.
+# The 600 s idle stop of this world later fired at 08:21:24, 600 s after its last /rpc call at 08:11:23, across a
+# redeploy of its Worker at 08:17:27.
