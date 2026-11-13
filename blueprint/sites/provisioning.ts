@@ -43,3 +43,16 @@ export const decision_sites_provisioning_boundary = defineDecision({
   source: BY("slice-zero site provisioning brief, 12 November 2026; spikes/skeleton/core/src/cli.ts orgCreate"),
   affects: [concept_sites, rpc_sites_provision, operation_org_site_provision, integration_site_service],
 });
+
+export const decision_sites_provisioning_long_wait = defineDecision({
+  id: "sites.provisioning-long-wait", title: "Provisioning waits up to 30 minutes for the site, not Node fetch's 300 s",
+  question: "How long do Core's call to the site service and the caller's call to Core wait for one site creation?",
+  options: [
+    { label: "thirty-minutes", text: "Both calls hold the request open for the whole creation, bounded by one 30-minute budget and an idle limit of the same length, so a slow bench finishes rather than leaving a half-reported creation. Node callers use a request that has no 300 s header limit (`longFetch` in `@capxul/sdk/node`). A failure Core's caller sees only as PROVIDER_ERROR is logged in Core with the request's trace and the cause's code, never its message." },
+    { label: "five-minutes", text: "Keep 300 s. A creation that takes longer fails PROVIDER_ERROR while the site service goes on to finish it, and the caller must repeat the same company to see the result." },
+    { label: "answer-early-and-poll", text: "Answer /sites/create at once with a creation state the caller polls. No request is held open, but it adds a durable job state and a poll protocol to the service and the SDK." },
+  ], chosen: "thirty-minutes",
+  why: "Node's fetch (undici 7.30.1) has a default headersTimeout of 300 s, which ends a request before its 30-minute AbortSignal. Measured on 13 November 2026: creation took 4 min 08 s on a healthy orb and 5 min 20 s on a loaded one; two runs failed at 301 s, once at Core's call to the site service and once at the CLI's call to Core, while the site service finished the site 19 s later. A repeat recovers, but every full acceptance attempt on a loaded orb failed here. Holding the request open is the smallest change that matches the existing 30-minute budget; polling stays open for when creation moves off the request path. The call's p95 (200 s) is unchanged here, although measured creations exceed it.",
+  source: BY("Runtime lane reports on worlds w2clock and w3clock, 13 November 2026; packages/sdk/src/shared/long-fetch.ts"),
+  affects: [concept_sites, rpc_sites_provision, operation_org_site_provision, integration_site_service],
+});

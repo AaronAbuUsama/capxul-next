@@ -1,4 +1,5 @@
 import type { Address, Hex, LocalAccount } from "viem";
+import type { TextFetch } from "../shared/long-fetch.ts";
 
 export * from "./documents.ts";
 
@@ -16,7 +17,7 @@ export class ProvisioningError extends Error {
 /** Public caller door. Only the caller's signer is needed; service credentials never enter the SDK. */
 export function createSitesClient(options: { coreUrl: string; account: Pick<LocalAccount, "address" | "signMessage">;
   /** Provisioning waits for the whole site creation. In Node pass `longFetch` from `@capxul/sdk/node`: built-in fetch gives up after 300 s. */
-  fetch?: typeof fetch }) {
+  fetch?: TextFetch }) {
   const origin = new URL(options.coreUrl).origin, send = options.fetch ?? fetch;
   return {
     async provision(input: { org: string }): Promise<ProvisionedSite> {
@@ -31,8 +32,9 @@ export function createSitesClient(options: { coreUrl: string; account: Pick<Loca
         });
       } catch (error) {
         // Name the transport cause (e.g. UND_ERR_HEADERS_TIMEOUT, ECONNREFUSED, TimeoutError) without echoing its message.
-        const cause = (error as { cause?: { code?: unknown } })?.cause?.code ?? (error as { code?: unknown; name?: unknown })?.code ?? (error as Error)?.name;
-        throw new ProvisioningError("PROVIDER_ERROR", `Core is unreachable (${String(cause ?? "unknown")}); retry the same company to resume provisioning`);
+        const e = error as { name?: unknown; code?: unknown; cause?: { code?: unknown } } | null;
+        const cause = [e?.cause?.code, e?.code, e?.name].find((value) => typeof value === "string") ?? "unknown";
+        throw new ProvisioningError("PROVIDER_ERROR", `Core is unreachable (${cause}); retry the same company to resume provisioning`);
       }
       const result = await response.json().catch(() => null);
       if (!response.ok) throw new ProvisioningError(result?.error?.code ?? "PROVIDER_ERROR", result?.error?.message ?? "Provisioning failed");

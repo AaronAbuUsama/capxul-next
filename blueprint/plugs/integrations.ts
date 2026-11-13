@@ -142,8 +142,8 @@ export const integration_site_service = defineIntegration({
   service: "SiteService",
   calls: {
     createSite: {
-      about: "Create the Organization's site on its world's bench: apps, Company, the Safe's bank account, names, privacy settings, the hat-role map. Answers the hostname.",
-      timeoutMs: 300_000,
+      about: "Create the Organization's site on its world's bench: apps, Company, the Safe's bank account, names, privacy settings, the hat-role map. Answers the hostname. Held open for the whole creation (sites.provisioning-long-wait).",
+      timeoutMs: 1_800_000,
       retries: { max: 1, backoff: "fixed" },
       p95Ms: 200_000,
       failures: [
