@@ -44,11 +44,19 @@ def reproject_grants():
                     forget_masks(email)
 
 
+def _forget(email):
+    """Delete exactly this user's masked-field cache entries. Frappe's get_keys appends `*`, so a glob alone would also
+    clear a@x.com and a@x.co.uk for a@x.co; keep only keys that end with this user."""
+    pattern = "masked_fields::*::" + re.sub(r"([\\*?\[\]])", r"\\\1", email)
+    suffix = "::" + email
+    keys = [k for k in frappe.cache.get_keys(pattern) if (k.decode() if isinstance(k, bytes) else k).endswith(suffix)]
+    frappe.cache.delete_value(keys, make_keys=False)
+
+
 def forget_masks(email):
     """Frappe caches a user's masked fields per role (masked_fields::<doctype>::<parent>::<user>) and never clears them when
     roles change, so desk and REST would keep the old masking. Drop the user's entries once the role change commits."""
-    pattern = "masked_fields::*::" + re.sub(r"([\\*?\[\]])", r"\\\1", email)
-    frappe.db.after_commit.add(lambda: frappe.cache.delete_keys(pattern))
+    frappe.db.after_commit.add(lambda: _forget(email))
 
 
 def ensure_department(name):
