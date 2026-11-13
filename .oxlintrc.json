@@ -31,10 +31,14 @@
       "entries": {
         "packages/lint/src/shape.entry.ts": "the shape check's command line: reads git's file list and the disk, prints, sets the exit code",
         "packages/blueprint/src/claims/render.entry.ts": "writes claims.md: the one place the claims render touches the disk",
+        "packages/cli/src/bin.ts": "the capxul process: runs the command line on the process's arguments and sets its exit code",
         "packages/*/test/**/*.test.ts": "a test file is run by the test runner as its own program"
       },
       // Places where JSON text is the format of the outside world, each with its reason.
-      "jsonEdges": {}
+      "jsonEdges": {
+        "packages/cli/src/input.ts": "the command line's input: a flag's JSON value and the --input file, decoded at once with the payload's schema",
+        "packages/cli/src/output.ts": "the command line's output: one line of JSON per answer, encoded with the operation's own schemas"
+      }
     }
   },
   "rules": {
@@ -202,6 +206,7 @@
       "files": [
         "packages/lint/src/shape.entry.ts",
         "packages/blueprint/src/claims/render.entry.ts",
+        "packages/cli/src/bin.ts",
         "packages/*/test/**/*.test.ts"
       ],
       "rules": {
@@ -226,7 +231,9 @@
         "effecttsgo/new-promise": "off",
         "effecttsgo/crypto-random-uuid": "off",
         "effecttsgo/crypto-random-uuid-in-effect": "off",
-        "effecttsgo/prefer-schema-over-json": "off"
+        "effecttsgo/prefer-schema-over-json": "off",
+        // An entry file is the entry point where layers are provided.
+        "effecttsgo/strict-effect-provide": "off"
       }
     },
     {
@@ -234,6 +241,15 @@
       // Rpc's types. Effect 4 marks Rpc unstable with no stable replacement; packages/blueprint/tsconfig.json allows
       // effect/rpc for the same reason, and the catalog's exact pin of effect is the guard.
       "files": ["packages/blueprint/**"],
+      "rules": {
+        "effecttsgo/api-stability-leak": "off"
+      }
+    },
+    {
+      // The SDK is an Effect Rpc client over HTTP and the CLI Effect's command line over it, so their exports show
+      // Rpc's, HttpClient's and the CLI module's types. Effect 4 marks them unstable with no stable replacement; each
+      // package's tsconfig.json allows them for the same reason, and the catalog's exact pin of effect is the guard.
+      "files": ["packages/sdk/**", "packages/cli/**"],
       "rules": {
         "effecttsgo/api-stability-leak": "off"
       }

@@ -15,6 +15,9 @@ catalog:
   oxfmt: 0.75.0
   "@oxlint/plugins": 1.90.0
   "@effect/tsgo": 0.63.0
+  # The CLI's process (stdin, stdout, exit code) and the SDK's tests' HTTP server: Effect's own Node platform, at
+  # effect's version.
+  "@effect/platform-node": 4.1.2
 
 # Supply chain: a version must be at least 3 days old, and no dependency runs an install script
 # unless it is listed here.
