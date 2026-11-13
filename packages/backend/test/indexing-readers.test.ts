@@ -71,7 +71,9 @@ test("finalized Safe and hat readers return exact log facts and refuse a newer p
 
     // A person's or unscoped tenant session would see row-filtered projections as complete lists: refused.
     const tenant = new pg.Client({ connectionString: process.env.DATABASE_URL! });
-    await tenant.connect();
+    const adminUrl = new URL(process.env.PG_ADMIN_URL!); adminUrl.pathname = new URL(process.env.DATABASE_URL!).pathname;
+    const admin = new pg.Client({ connectionString: adminUrl.href });
+    await tenant.connect(); await admin.connect();
     try {
       await assert.rejects(readWearerHatsAt(tenant, { chainId, wearer: second, companySafe: safe, finality: 0 }), /FORBIDDEN/);
       await tenant.query("begin");
@@ -82,6 +84,9 @@ test("finalized Safe and hat readers return exact log facts and refuse a newer p
 
       // The company's own Organization session is admitted and sees what the worker sees; another Organization, or this
       // one asking about a Safe it does not own, is refused instead of answered from row-filtered projections.
+      // Earlier controls in this run clear the directory, so the company Safe's Organization Party is registered here.
+      await admin.query(`insert into app.parties (party_id,kind,state,handle,safe_address,owner_kind,owner_id,created_at,updated_at)
+        values ('readers-company','organization','active','readers-company',$1,'organization','readers-org',0,0) on conflict do nothing`, [safe]);
       const owner = (await sql.query("select owner_id from app.parties where safe_address=$1 and owner_kind='organization' and state<>'released'", [safe])).rows[0];
       assert(owner, "the seeded company Safe is an Organization's Party");
       const as = async (org: string, read: () => Promise<unknown>) => {
@@ -98,7 +103,7 @@ test("finalized Safe and hat readers return exact log facts and refuse a newer p
         await assert.rejects(as(org, () => readHatWearersAt(tenant, { chainId, hatId: fixture.hat, companySafe: company, finality: 0 })), /FORBIDDEN/);
         await assert.rejects(as(org, () => readWearerHatsAt(tenant, { chainId, wearer: second, companySafe: company, finality: 0 })), /FORBIDDEN/);
       }
-    } finally { await tenant.end(); }
+    } finally { await tenant.end(); await admin.query("delete from app.parties where party_id='readers-company'"); await admin.end(); }
 
     const grant = (await sql.query(`select tx_hash,log_id from app.chain_logs where contract='hats' and event='TransferSingle'
       and args->>'to'=$1 and args->>'id'=$2 order by block_number limit 1`, [second, BigInt(fixture.hat).toString()])).rows[0];
