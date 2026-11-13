@@ -1,4 +1,3 @@
-import { worldNow } from "../devnet/door.ts";
 import type { Sql } from "../platform/db.ts";
 import { consume, emit, type TransitionEvent } from "../platform/outbox.ts";
 import type { Request, RequestState } from "./types.ts";
@@ -11,9 +10,9 @@ export type ReadPayment = (sql: Sql, owner: { kind: "person" | "organization"; i
 /** Read the final indexed balance at the request's ending block, not a cached/current balance. Null means not indexed yet. */
 export type ReadEscrowAtEnd = (sql: Sql, request: Request) => Promise<string | null>;
 
-/** Composition passes a committed outbox identity and payments.readPayment; source+effect ACK commit together, the ACK at
- * the world's now read on this transaction (as the notices relay reads it). */
-export async function followPayment(sql: Sql, eventId: string, readPayment: ReadPayment, readEscrowAtEnd?: ReadEscrowAtEnd): Promise<boolean> {
+/** Composition passes a committed outbox identity, devnet's worldNow (requests does not import devnet) and
+ * payments.readPayment; source+effect ACK commit together, the ACK at the world's now read on this transaction. */
+export async function followPayment(sql: Sql, eventId: string, worldNow: (sql: Sql) => Promise<number>, readPayment: ReadPayment, readEscrowAtEnd?: ReadEscrowAtEnd): Promise<boolean> {
   return consume(sql, "requests.lifecycle.payment-followers", eventId, (sameSql, event) => onPaymentTransition(sameSql, event, readPayment, readEscrowAtEnd), await worldNow(sql));
 }
 
