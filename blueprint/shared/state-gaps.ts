@@ -82,3 +82,15 @@ export const decision_system_standing_gaps = defineDecision({
   source: "Builder, m1-engine-rules, 10 November 2026; m1 gap task decisions",
   affects: [f.system_capxul],
 });
+
+export const decision_system_eval_event_checks = defineDecision({
+  id: "system.eval-event-checks", title: "Event claims check this run's outbox against operations the run logged",
+  question: "How does a runner prove evt:<operation>/<event> (it sends the event, valid against its schema, carrying trace_id) on the selected stack?",
+  options: [
+    { label: "logged-invocations", text: "Whatever invokes a public operation during a run, preparation or a concept module, appends one JSON line {operation, trace_id, ok} per call to its own <run>/<module>/operations.jsonl, trace_id being the trace the caller sent. Only regular non-empty files written during this run count. One blueprint-driven module, packages/evals/src/modules/events, names a check EVENTS.<operation>.<event> per evt eval, reads app.transition_outbox as the restricted worker role for the logged traces, and passes a check only when at least one successful logged invocation of that operation sent that event under its own trace, and every such envelope is well formed and its props decode exactly (no excess keys) against the event record, per the engine's eventPropsErrors. A missing log, invocation or event is an explicit failure with its reason, never silence. Evidence keeps the invocations, the matching envelopes and the result." },
+    { label: "latest-rows", text: "Accept any outbox row with the event's name. A row from a fixture, an older world or another operation would then prove a claim about this operation in this run." },
+  ],
+  chosen: "logged-invocations", why: "The claim is about this operation's call, so the evidence must tie a row to a call made in this run; the trace the caller sent is the one identity both sides already carry. A shared checker keeps sixteen evt claims across seven lanes to one rule, and lanes only log their calls.",
+  source: "Wave Zero integrator gate audit (T-01a1cfb4), 13 November 2026; packages/backend/src/platform/outbox.ts TransitionEvent; packages/blueprint-engine/src/evals.ts evt claims",
+  affects: [f.system_capxul],
+});

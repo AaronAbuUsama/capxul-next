@@ -192,3 +192,12 @@ export const freshStatus = (b: Pick<Blueprint, "evals">, doc: StatusDocument | n
   const stale = new Set(staleEvals(b, doc));
   return { version: 1, evals: Object.fromEntries(Object.entries(doc.evals).filter(([id]) => !stale.has(id))) };
 };
+
+/** Why an event's props do not match its blueprint record exactly (no excess keys); empty when they do. */
+export const eventPropsErrors = (b: Pick<Blueprint, "records">, name: string, props: unknown): string[] => {
+  const schema = (b.records.get(`event:${name}`) as { props?: Schema.Top } | undefined)?.props;
+  if (!schema) return [`the blueprint declares no event ${name}`];
+  const r = Schema.decodeUnknownResult(schema as never)(props, { errors: "all", onExcessProperty: "error" }) as
+    { _tag: "Success" } | { _tag: "Failure"; failure: { message: string } };
+  return r._tag === "Success" ? [] : [r.failure.message.replace(/\s+/g, " ")];
+};

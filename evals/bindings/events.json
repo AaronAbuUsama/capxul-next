@@ -1,0 +1,123 @@
+{
+  "area": "events",
+  "script": "packages/evals/src/modules/events/run.sh",
+  "worlds": [
+    "slice-zero"
+  ],
+  "secrets": [],
+  "bindings": [
+    {
+      "eval": "evt:doc.submit/approval_transitioned",
+      "checks": [
+        "EVENTS.doc.submit.approval_transitioned"
+      ],
+      "why": "In this run, a successful doc.submit call logged in <run>/<module>/operations.jsonl sent approval_transitioned to app.transition_outbox under that call's own trace_id, read as the restricted worker; every such envelope is well formed and its props decode exactly against the event record (system.eval-event-checks)."
+    },
+    {
+      "eval": "evt:doc.submit/payment_request_transitioned",
+      "checks": [
+        "EVENTS.doc.submit.payment_request_transitioned"
+      ],
+      "why": "In this run, a successful doc.submit call logged in <run>/<module>/operations.jsonl sent payment_request_transitioned to app.transition_outbox under that call's own trace_id, read as the restricted worker; every such envelope is well formed and its props decode exactly against the event record (system.eval-event-checks)."
+    },
+    {
+      "eval": "evt:doc.submit/payment_transitioned",
+      "checks": [
+        "EVENTS.doc.submit.payment_transitioned"
+      ],
+      "why": "In this run, a successful doc.submit call logged in <run>/<module>/operations.jsonl sent payment_transitioned to app.transition_outbox under that call's own trace_id, read as the restricted worker; every such envelope is well formed and its props decode exactly against the event record (system.eval-event-checks)."
+    },
+    {
+      "eval": "evt:org.create/org_app_transitioned",
+      "checks": [
+        "EVENTS.org.create.org_app_transitioned"
+      ],
+      "why": "In this run, a successful org.create call logged in <run>/<module>/operations.jsonl sent org_app_transitioned to app.transition_outbox under that call's own trace_id, read as the restricted worker; every such envelope is well formed and its props decode exactly against the event record (system.eval-event-checks)."
+    },
+    {
+      "eval": "evt:org.create/org_setup_transitioned",
+      "checks": [
+        "EVENTS.org.create.org_setup_transitioned"
+      ],
+      "why": "In this run, a successful org.create call logged in <run>/<module>/operations.jsonl sent org_setup_transitioned to app.transition_outbox under that call's own trace_id, read as the restricted worker; every such envelope is well formed and its props decode exactly against the event record (system.eval-event-checks)."
+    },
+    {
+      "eval": "evt:org.create/party_transitioned",
+      "checks": [
+        "EVENTS.org.create.party_transitioned"
+      ],
+      "why": "In this run, a successful org.create call logged in <run>/<module>/operations.jsonl sent party_transitioned to app.transition_outbox under that call's own trace_id, read as the restricted worker; every such envelope is well formed and its props decode exactly against the event record (system.eval-event-checks)."
+    },
+    {
+      "eval": "evt:org.member.grant/approval_transitioned",
+      "checks": [
+        "EVENTS.org.member.grant.approval_transitioned"
+      ],
+      "why": "In this run, a successful org.member.grant call logged in <run>/<module>/operations.jsonl sent approval_transitioned to app.transition_outbox under that call's own trace_id, read as the restricted worker; every such envelope is well formed and its props decode exactly against the event record (system.eval-event-checks)."
+    },
+    {
+      "eval": "evt:org.member.grant/officer_change_transitioned",
+      "checks": [
+        "EVENTS.org.member.grant.officer_change_transitioned"
+      ],
+      "why": "In this run, a successful org.member.grant call logged in <run>/<module>/operations.jsonl sent officer_change_transitioned to app.transition_outbox under that call's own trace_id, read as the restricted worker; every such envelope is well formed and its props decode exactly against the event record (system.eval-event-checks)."
+    },
+    {
+      "eval": "evt:org.member.grant/proposal_transitioned",
+      "checks": [
+        "EVENTS.org.member.grant.proposal_transitioned"
+      ],
+      "why": "In this run, a successful org.member.grant call logged in <run>/<module>/operations.jsonl sent proposal_transitioned to app.transition_outbox under that call's own trace_id, read as the restricted worker; every such envelope is well formed and its props decode exactly against the event record (system.eval-event-checks)."
+    },
+    {
+      "eval": "evt:payment.send/approval_transitioned",
+      "checks": [
+        "EVENTS.payment.send.approval_transitioned"
+      ],
+      "why": "In this run, a successful payment.send call logged in <run>/<module>/operations.jsonl sent approval_transitioned to app.transition_outbox under that call's own trace_id, read as the restricted worker; every such envelope is well formed and its props decode exactly against the event record (system.eval-event-checks)."
+    },
+    {
+      "eval": "evt:payment.send/book_annotation_transitioned",
+      "checks": [
+        "EVENTS.payment.send.book_annotation_transitioned"
+      ],
+      "why": "In this run, a successful payment.send call logged in <run>/<module>/operations.jsonl sent book_annotation_transitioned to app.transition_outbox under that call's own trace_id, read as the restricted worker; every such envelope is well formed and its props decode exactly against the event record (system.eval-event-checks)."
+    },
+    {
+      "eval": "evt:payment.send/party_transitioned",
+      "checks": [
+        "EVENTS.payment.send.party_transitioned"
+      ],
+      "why": "In this run, a successful payment.send call logged in <run>/<module>/operations.jsonl sent party_transitioned to app.transition_outbox under that call's own trace_id, read as the restricted worker; every such envelope is well formed and its props decode exactly against the event record (system.eval-event-checks)."
+    },
+    {
+      "eval": "evt:payment.send/payment_transitioned",
+      "checks": [
+        "EVENTS.payment.send.payment_transitioned"
+      ],
+      "why": "In this run, a successful payment.send call logged in <run>/<module>/operations.jsonl sent payment_transitioned to app.transition_outbox under that call's own trace_id, read as the restricted worker; every such envelope is well formed and its props decode exactly against the event record (system.eval-event-checks)."
+    },
+    {
+      "eval": "evt:payment.send/proposal_transitioned",
+      "checks": [
+        "EVENTS.payment.send.proposal_transitioned"
+      ],
+      "why": "In this run, a successful payment.send call logged in <run>/<module>/operations.jsonl sent proposal_transitioned to app.transition_outbox under that call's own trace_id, read as the restricted worker; every such envelope is well formed and its props decode exactly against the event record (system.eval-event-checks)."
+    },
+    {
+      "eval": "evt:world.create/world_transitioned",
+      "checks": [
+        "EVENTS.world.create.world_transitioned"
+      ],
+      "why": "In this run, a successful world.create call logged in <run>/<module>/operations.jsonl sent world_transitioned to app.transition_outbox under that call's own trace_id, read as the restricted worker; every such envelope is well formed and its props decode exactly against the event record (system.eval-event-checks)."
+    },
+    {
+      "eval": "evt:world.snapshot.restore/world_transitioned",
+      "checks": [
+        "EVENTS.world.snapshot.restore.world_transitioned"
+      ],
+      "why": "In this run, a successful world.snapshot.restore call logged in <run>/<module>/operations.jsonl sent world_transitioned to app.transition_outbox under that call's own trace_id, read as the restricted worker; every such envelope is well formed and its props decode exactly against the event record (system.eval-event-checks)."
+    }
+  ],
+  "near": []
+}
