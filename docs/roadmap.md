@@ -56,8 +56,8 @@ unblock it.
 | 0.1 | 0 | Alchemy deploys from an agent's container with no key inside it | | Done | | | 2026-11-13T06:55Z | `spikes/hosting`, PR 142 |
 | 0.2 | 0 | A world's one database is a Neon branch: created, isolated, forked from another world | | Done | | | 2026-11-13T06:59Z | `spikes/hosting`, PR 142 |
 | 0.3 | 0 | A world is created, used and destroyed as one unit, with an owner, an expiry and timed steps | 0.2 | Done | | | 2026-11-13T07:23Z | `spikes/hosting`, PR 142 |
-| 0.4 | 0 | Alchemy state is shared, so any container can see and destroy any world | 0.1 | In progress | | | | |
-| 0.5 | 0 | Expired worlds are deleted without anyone remembering to, Cloudflare resources included | 0.4 | In progress | | | | |
+| 0.4 | 0 | Alchemy state is shared, so any container can see and destroy any world | 0.1 | Done |  |  | 2026-11-13T07:47Z | `spikes/state`: deployed from one copy, planned and destroyed from a fresh one. No lock: two deploys of one stage at once leave an orphan |
+| 0.5 | 0 | Expired worlds are deleted without anyone remembering to, Cloudflare resources included | 0.4 | Done |  |  | 2026-11-13T07:49Z | `spikes/state`: the sweeper destroyed an expired stage and kept the others. Nothing schedules it yet |
 | 0.6 | 0 | A world's chain and index run as Cloudflare Containers against its Neon branch and stop when idle | 0.2 | In progress | | | | |
 | 0.7 | 0 | One operation goes from an Effect contract, to a scenario that fails on an empty handler, to a pass | 0.2 | In progress | | | | |
 | 0.8 | 0 | Two worlds at different clocks share one Frappe bench | | In progress | | | | |
@@ -68,7 +68,7 @@ unblock it.
 | 1.4 | 1 | A company's Frappe site in a private world is reached through the door | 0.8, 1.3 | Not started | | | | |
 | 1.5 | 1 | The thin line's scenarios are written by a separate agent and fail on empty handlers | 1.1, 1.2 | Not started | 0/12 | | | |
 | 1.6 | 1 | The thin line's scenarios pass in a fresh private world | 1.3, 1.4, 1.5 | Not started | 0/12 | | | |
-| 1.7 | 1 | CI fails when the two Effect counts rise | | In progress | | | | |
+| 1.7 | 1 | CI fails when the two Effect counts rise |  | Done |  |  | 2026-11-13T07:58Z | `packages/effect-counts`, PR 160: the CI gate ran the check and passed; a rising count exits 1 |
 | 1.8 | 1 | CI on `master` creates a world, runs the thin line and destroys the world | 1.6 | Not started | | Aaron: Cloudflare and Neon keys as CI secrets | | |
 | 2.1 | 2 | A host for the Frappe bench and a domain on Cloudflare exist | | Not started | | Aaron: a host account and a domain | | |
 | 2.2 | 2 | The platform (bench, tunnel, shared state) is deployed by Alchemy | 2.1, 0.4 | Not started | | | | |
