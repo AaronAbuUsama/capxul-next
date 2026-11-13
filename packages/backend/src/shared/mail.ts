@@ -1,5 +1,7 @@
 export interface MailMessage {
   to: string;
+  /** Retained by the devnet sink for template-filtered reads; not sent as an external provider field. */
+  template?: string;
   subject: string;
   html?: string;
   text?: string;
