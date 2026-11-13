@@ -4,7 +4,8 @@ import { record, type Sql } from "../platform/db.ts";
 export { begin, get, readAdmittedDeployment, readSetupFounder, resume, view, type AdmittedDeployment, FUNDAMENTAL_APPS, HEAD_APPS, SEATS_AT_BIRTH,
   type BeginInput, type Board, type SetupIssue, type SetupServices, type SetupStatus, type SetupView } from "./setups.ts";
 export { addBoughtSeats, returnBoughtSeats, type BoughtSeats } from "./procedures.ts";
-export { advance, onApprovalEnded, onApprovalTransitioned, type Advanced, type MoneyDeploymentFact, type SetupProcessServices } from "./process.ts";
+export { advance, type Advanced, type MoneyDeploymentFact, type SetupProcessServices } from "./process.ts";
+export { onApprovalEnded, onApprovalTransitioned } from "./install-approval.ts";
 
 export type WorldCompany = { orgId: string; name: string; site: string | null };
 

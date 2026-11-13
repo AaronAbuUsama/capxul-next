@@ -17,8 +17,9 @@ export type SetupProcessServices = {
   mint(input: { key: string; handle: string; founderSafe: string }): Promise<{ hash: string }>;
   /** service-signer.send with the tier key: Installer.deployMoney (founder the one Director, 1 of 1, three officers). */
   deployMoney(input: { key: string; safe: string; founderSafe: string }): Promise<{ hash: string }>;
-  /** The receipt's status once it is final at `finality` blocks, or null until then. */
-  receipt(input: { hash: string; finality: number }): Promise<"success" | "reverted" | null>;
+  /** The receipt's status once final at `finality` blocks, or null until then; `lost` when the signer no longer knows the
+   * hash and the key's nonce is used by another transaction. Not the signer's waitForReceipt, which takes the first receipt. */
+  receipt(input: { hash: string; finality: number }): Promise<"success" | "reverted" | "lost" | null>;
   facts: {
     /** CompanySafeMinted of the transaction at finality, or null until then. */
     safeMinted(sql: Sql, q: { chainId: number; txHash: string; finality: number }): Promise<{ safe: string; owner: string } | null>;
@@ -42,31 +43,33 @@ export type SetupProcessServices = {
   /** How long the founder has to sign the install approval. */
   installWindowMs: number;
 };
-type Reason = "provider_unavailable" | "mint_reverted" | "safe_owner_mismatch" | "deploy_reverted" | "install_refused" |
-  "approval_expired" | "approval_declined" | "approval_displaced" | "install_reverted" | "provider_answer_invalid";
+export type Reason = "provider_unavailable" | "mint_reverted" | "safe_owner_mismatch" | "deploy_reverted" | "install_refused" |
+  "approval_expired" | "approval_declined" | "approval_displaced" | "install_reverted" | "send_lost" | "install_mismatch" |
+  "provider_answer_invalid";
 export type Advanced = { status: SetupStatus; step: string; moved: boolean };
-type SetupRow = {
+export type SetupRow = {
   org_id: string; founder_principal_id: string; with_fde: boolean; status: SetupStatus; steps: string[];
   mint_tx_hash: string | null; mint_attempt: number; deploy_tx_hash: string | null; deploy_attempt: number;
   install_approval_id: string | null; install_tx_hash: string | null; install_block: string | null;
   fde_signer: string | null; fde_safe: string | null; fde_party_id: string | null;
   party_id: string; name: string; safe_address: string; founder_safe: string; founder_party_id: string; chain_id: string; handle: string;
 };
-const TRANSIENT = new Set(["PROVIDER_ERROR", "INDEXER_NOT_READY"]);
+const TRANSIENT = new Set(["PROVIDER_ERROR", "INDEXER_NOT_READY"]), PROVIDER = new Set([...TRANSIENT, "PROVIDER_RESPONSE_INVALID"]);
+export const FORGET_INSTALL = ",install_approval_id=null,install_tx_hash=null,install_block=null";
 
-async function setupRow(sql: Sql, orgId: string): Promise<SetupRow | undefined> {
+export async function setupRow(sql: Sql, orgId: string): Promise<SetupRow | undefined> {
   return (await sql.query<SetupRow>(`select s.*,o.party_id,o.name,o.safe_address,o.founder_safe,o.founder_party_id,o.chain_id,p.handle
     from app.org_setups s join app.organizations o using(org_id) join app.parties p on p.party_id=o.party_id
     where s.org_id=$1 for update of s`, [orgId])).rows[0];
 }
-async function transitioned(sql: Sql, row: { org_id: string; founder_principal_id: string }, from: SetupStatus, to: SetupStatus,
+export async function transitioned(sql: Sql, row: { org_id: string; founder_principal_id: string }, from: SetupStatus, to: SetupStatus,
   transition: string, issue: Reason | null, now: number, trace: string) {
   await emit(sql, { id: await transitionId(sql, `org-setup:${row.org_id}:${transition}`), name: "org_setup_transitioned", machine: "org-setup",
     entity_id: row.org_id, owner_kind: "organization", owner_id: row.org_id, actor: null, trace_id: trace, at: now,
     props: { from, to, transition, org_id: row.org_id, person_id: row.founder_principal_id, issue_reason: issue } });
 }
 /** needs_attention with a reason and code; `forget` (fixed SQL) drops what `org retry` must redo. */
-async function stall(sql: Sql, row: SetupRow, reason: Reason, code: string, now: number, trace: string, forget = "") {
+export async function stall(sql: Sql, row: SetupRow, reason: Reason, code: string, now: number, trace: string, forget = "") {
   await sql.query(`update app.org_setups set status='needs_attention',issue=$2,checked_at=$3,updated_at=$3${forget} where org_id=$1`,
     [row.org_id, { reason, code, at: now }, now]);
   await transitioned(sql, row, row.status, "needs_attention", "stall", reason, now, trace);
@@ -126,7 +129,9 @@ export async function advance(db: Database, orgId: string, s: SetupProcessServic
     });
   };
   const onProvider = (step: string, error: unknown) => {
-    const code = /^(PROVIDER_RESPONSE_INVALID|PROVIDER_ERROR|INDEXER_NOT_READY)\b/.exec(String((error as Error)?.message))?.[1];
+    // ServiceSignerError carries its code on `code` ("Service signer refused: …"); other providers name it first in the message.
+    const named = (error as { code?: unknown })?.code;
+    const code = typeof named === "string" && PROVIDER.has(named) ? named : /^(PROVIDER_RESPONSE_INVALID|PROVIDER_ERROR|INDEXER_NOT_READY)\b/.exec(String((error as Error)?.message))?.[1];
     if (!code || (TRANSIENT.has(code) && !opts.lastTry)) throw error;
     return tx(async (sql, row): Promise<Advanced> => {
     if (row.status !== "processing") return { status: row.status, step, moved: false };
@@ -135,10 +140,11 @@ export async function advance(db: Database, orgId: string, s: SetupProcessServic
     return { status: (await setupRow(sql, orgId))!.status, step, moved: true };
     });
   };
-  // Only a final reverted receipt moves the send to its next attempt, in the transaction that records the revert.
-  const reverted = (step: string, send: "mint" | "deploy", hash: string, reason: Reason) => tx(async (sql, row): Promise<Advanced> => {
+  // Only a final reverted receipt or a lost send moves the send to its next attempt, in the transaction that records it.
+  const nextAttempt = (step: string, send: "mint" | "deploy", hash: string, status: "reverted" | "lost") => tx(async (sql, row): Promise<Advanced> => {
     if (row.status !== "processing" || row[`${send}_tx_hash`] !== hash) return { status: row.status, step, moved: false };
-    await stall(sql, row, reason, "TRANSACTION_FAILED", now, trace, `,${send}_tx_hash=null,${send}_attempt=${send}_attempt+1`);
+    const [reason, code]: [Reason, string] = status === "lost" ? ["send_lost", "PROVIDER_ERROR"] : [`${send}_reverted`, "TRANSACTION_FAILED"];
+    await stall(sql, row, reason, code, now, trace, `,${send}_tx_hash=null,${send}_attempt=${send}_attempt+1`);
     return { status: "needs_attention", step, moved: true };
   });
   const receipt = async (hash: string) => s.receipt({ hash, finality: s.finality });
@@ -149,7 +155,7 @@ export async function advance(db: Database, orgId: string, s: SetupProcessServic
   if (!steps.includes("safe_minted")) try {
     const hash = snapshot.mint_tx_hash!, status = await receipt(hash);
     if (status === null) return done("confirm-mint");
-    if (status === "reverted") return reverted("confirm-mint", "mint", hash, "mint_reverted");
+    if (status !== "success") return nextAttempt("confirm-mint", "mint", hash, status);
     return await tx(async (sql, row): Promise<Advanced> => {
     const waiting = { status: row.status, step: "confirm-mint", moved: false };
     if (row.status !== "processing" || row.mint_tx_hash !== hash || row.steps.includes("safe_minted")) return waiting;
@@ -197,7 +203,7 @@ export async function advance(db: Database, orgId: string, s: SetupProcessServic
       else {
         const status = await receipt(q.txHash);
         if (status === null) return done("confirm-deploy");
-        if (status === "reverted") return reverted("confirm-deploy", "deploy", q.txHash, "deploy_reverted");
+        if (status !== "success") return nextAttempt("confirm-deploy", "deploy", q.txHash, status);
         fact = await db.transaction(orgId, (sql) => s.facts.moneyDeployed(sql, q), true);
         if (!fact) return done("confirm-deploy");
         if (!sameDeployment(fact, snapshot)) return onProvider("confirm-deploy", invalid("MoneyDeployed names another Safe, founder or chain"));
@@ -210,7 +216,11 @@ export async function advance(db: Database, orgId: string, s: SetupProcessServic
       if (!row.steps.includes("money_deployed")) {
         // Re-read at commit: the batch is only for the occurrence it was built from.
         const d = await s.facts.moneyDeployed(sql, q);
-        if (!d || d.log_id !== fact!.log_id || !sameDeployment(d, row)) return { status: row.status, step: "confirm-deploy", moved: false };
+        if (!d || d.log_id !== fact!.log_id) return { status: row.status, step: "confirm-deploy", moved: false };
+        if (!sameDeployment(d, row)) {
+          await fail(sql, row, "provider_answer_invalid", "PROVIDER_RESPONSE_INVALID", now, trace);
+          return { status: "failed", step: "confirm-deploy", moved: true };
+        }
         await sql.query(`insert into app.org_deployments(org_id,safe_address,board_top_hat,shareholders_top_hat,director_hat,officer_hats,
           roles_address,gate_address,chain_id,log_id,deploy_tx_hash,block_number,created_at) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
         [orgId, row.safe_address, d.board_top_hat, d.shareholders_top_hat, d.director_hat, d.officer_hats, d.roles.toLowerCase(),
@@ -239,8 +249,9 @@ export async function advance(db: Database, orgId: string, s: SetupProcessServic
         directorHat: d.director_hat, officerHats: d.officer_hats, fdeSafe: row.fde_safe });
       if (ok === null) return waiting;
       if (ok === false) {
-        await stall(sql, row, "install_reverted", "TRANSACTION_FAILED", now, trace, FORGET_INSTALL);
-        return { status: "needs_attention", step: "complete", moved: true };
+        // Its batch ran on the Safe: a retry would run a second one, so this is definitive.
+        await fail(sql, row, "install_mismatch", "WRONG_STATE", now, trace);
+        return { status: "failed", step: "complete", moved: true };
       }
       await sql.query(`update app.org_setups set status='ready',steps=array_append(steps,'installed'),issue=null,ready_at=$2,checked_at=$2,
         updated_at=$2 where org_id=$1`, [orgId, now]);
@@ -259,42 +270,4 @@ async function admitted(sql: Sql, orgId: string): Promise<MoneyDeploymentFact> {
   const r = (await sql.query(`select d.*,o.founder_safe from app.org_deployments d join app.organizations o using(org_id) where org_id=$1`, [orgId])).rows[0];
   return { ...r, chain_id: Number(r.chain_id), block_number: String(r.block_number), tx_hash: r.deploy_tx_hash, safe: r.safe_address,
     roles: r.roles_address, gate: r.gate_address };
-}
-
-const FORGET_INSTALL = ",install_approval_id=null,install_tx_hash=null,install_block=null";
-const ENDINGS: Record<string, [Reason, string]> = {
-  declined: ["approval_declined", "CANCELLED"], expired: ["approval_expired", "WRONG_STATE"], displaced: ["approval_displaced", "WRONG_STATE"],
-  reverted: ["install_reverted", "TRANSACTION_FAILED"], refused: ["install_refused", "PROVIDER_ERROR"],
-};
-async function installSetup(sql: Sql, e: { opener: string; subject_kind: string; subject_id: string; approval_id: string }) {
-  if (e.opener !== "organizations" || e.subject_kind !== "setup") return null;
-  const row = await setupRow(sql, e.subject_id);
-  return row && row.install_approval_id === e.approval_id ? row : null;
-}
-/** approval_transitioned consumer: the founder signed and approvals sent it, so the setup is processing again. */
-export async function onApprovalTransitioned(sql: Sql, event: { props: any; at: number; trace_id: string }) {
-  const row = await installSetup(sql, event.props);
-  if (!row || event.props.to !== "signed" || row.status !== "awaiting_authorization") return;
-  await sql.query("update app.org_setups set status='processing',checked_at=$2,updated_at=$2 where org_id=$1", [row.org_id, event.at]);
-  await transitioned(sql, row, "awaiting_authorization", "processing", "authorize", null, event.at, event.trace_id);
-}
-/** Approvals' terminal callback for the install approval (organizations.approval-endings). Landed records the install's
- * transaction and block, which completion judges at finality (authorizing first if `signed` was not seen); every other
- * ending stalls the setup and forgets the approval, so `org retry` opens a new one. */
-export async function onApprovalEnded(sql: Sql, e: { opener: string; subject_kind: string; subject_id: string; approval_id: string;
-  outcome: string; refusal: { code: string } | null; transaction_hash: string | null; block_number: number | null;
-  observedAt: string; trace_id: string }) {
-  const row = await installSetup(sql, e), at = Date.parse(e.observedAt);
-  if (!row || !["processing", "awaiting_authorization"].includes(row.status)) return;
-  if (e.outcome === "landed") {
-    if (!/^0x[0-9a-fA-F]{64}$/.test(e.transaction_hash ?? "") || !Number.isSafeInteger(e.block_number)) throw new Error("INVALID_INPUT: landed install needs its transaction");
-    await sql.query("update app.org_setups set status='processing',install_tx_hash=$2,install_block=$3,checked_at=$4,updated_at=$4 where org_id=$1",
-      [row.org_id, e.transaction_hash!.toLowerCase(), e.block_number, at]);
-    if (row.status === "awaiting_authorization") await transitioned(sql, row, "awaiting_authorization", "processing", "authorize", null, at, e.trace_id);
-    return;
-  }
-  const ending = ENDINGS[e.outcome];
-  if (!ending) return;
-  const code = e.outcome === "refused" ? e.refusal?.code ?? ending[1] : ending[1];
-  await stall(sql, row, ending[0], code, at, e.trace_id, FORGET_INSTALL);
 }

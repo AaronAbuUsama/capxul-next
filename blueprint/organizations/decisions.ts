@@ -1417,9 +1417,11 @@ export const decision_organizations_setup_send_attempts = defineDecision({
       label: "attempts-and-landing",
       text:
         "Count attempts on the setup (mint_attempt, deploy_attempt) and key each send `org-setup:<orgId>:mint:<n>`; a " +
-        "crash resends attempt n and gets its hash, only the transaction that records a revert moves to n+1. Record the " +
+        "crash resends attempt n and gets its hash, and only the transaction that records a final revert, or a lost send (the " +
+        "signer no longer knows the hash and the key's nonce is used by another transaction), moves to n+1. Record the " +
         "install transaction and block from approvals' landed ending, and judge the install's facts only at finality " +
-        "anchored to that block. Provider errors go back to the process's retries; the last one stalls it.",
+        "anchored to that block; final facts that differ fail the setup (install_mismatch), since its batch ran. Provider " +
+        "errors, matched by their code, go back to the process's retries; the last one stalls it.",
     },
     {
       label: "fixed-keys",
@@ -1431,8 +1433,10 @@ export const decision_organizations_setup_send_attempts = defineDecision({
     "A fixed key makes a reverted send's retry return the reverted hash forever, and a fresh key per run sends twice " +
     "after a crash, minting new hats. Counting attempts in the row the revert is recorded in gives both. Judging the " +
     "install before it landed reads an unmined install as reverted, stalls the setup and lets a retry open a second " +
-    "batch while the first can still land. The workflow's own retries (max 5, exponential) cover provider outages, so a " +
-    "first PROVIDER_ERROR is not yet a stall.",
+    "batch while the first can still land; once it landed and is final, a retry would run a second batch on a Safe the " +
+    "first already changed, so a mismatch is definitive. A lost broadcast never gets a receipt, so without send_lost the " +
+    "setup would wait forever. The workflow's own retries (max 5, exponential) cover provider outages, so a first " +
+    "PROVIDER_ERROR is not yet a stall.",
   source:
     "Amp Organizations lane, 13 November 2026, from the integrator's independent review of PR122; " +
     "packages/backend/src/shared/service-signer.ts (stored hash per key); approvals TerminalEvent (transaction_hash, block_number)",

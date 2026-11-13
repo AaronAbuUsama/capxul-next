@@ -23,7 +23,7 @@ const founder = { id: "person_founder", email: "founder@process.test", safe: hex
 /** One scripted chain: sends, receipts, facts and outside answers, each overridable per test. */
 function world() {
   const w = {
-    sent: [] as string[], hashes: new Map<string, string>(), opened: [] as any[], landedAt: [] as any[], receipts: new Map<string, "success" | "reverted" | null>(),
+    sent: [] as string[], hashes: new Map<string, string>(), opened: [] as any[], landedAt: [] as any[], receipts: new Map<string, "success" | "reverted" | "lost" | null>(),
     minted: new Map<string, { safe: string; owner: string }>(), deployed: new Map<string, MoneyDeploymentFact>(),
     installed: null as boolean | null, fail: {} as Record<string, string>, seq: 0,
   };
@@ -247,4 +247,47 @@ test("a MoneyDeployed for another founder or chain is an invalid answer, never a
   assert.deepEqual(await step(orgId, services), { status: "failed", step: "confirm-deploy", moved: true });
   assert.deepEqual([(await setup(orgId)).issue.reason, w.opened.length, (await admin.query("select count(*) from app.org_deployments where org_id=$1", [orgId])).rows[0].count],
     ["provider_answer_invalid", 0, "0"]);
+});
+
+test("a lost send moves to its next attempt; a signer error is matched by its code; a final install mismatch fails", async () => {
+  const { w, services, fact } = world(), orgId = await created(false);
+  await step(orgId, services);
+  const lost = (await setup(orgId)).mint_tx_hash;
+  w.receipts.set(lost, "lost");
+  assert.deepEqual(await step(orgId, services), { status: "needs_attention", step: "confirm-mint", moved: true });
+  assert.deepEqual([(await setup(orgId)).issue.reason, (await setup(orgId)).mint_tx_hash, (await setup(orgId)).mint_attempt], ["send_lost", null, 2]);
+  await asFounder((sql) => resume(sql, { orgId }, setupServices, t0 + 5, "trace-retry"));
+  await step(orgId, services);
+  const row = await setup(orgId);
+  assert.deepEqual(w.sent, [`org-setup:${orgId}:mint:1`, `org-setup:${orgId}:mint:2`]);
+  w.minted.set(row.mint_tx_hash, { safe: row.safe_address, owner: founder.safe });
+  await step(orgId, services);
+  // shared/service-signer.ts's ServiceSignerError: the code is on `code`, the message does not start with it.
+  const signerDown = { ...services, async deployMoney() { throw Object.assign(new Error("Service signer refused: PROVIDER_ERROR"), { code: "PROVIDER_ERROR" }); } };
+  await assert.rejects(step(orgId, signerDown), /Service signer refused/, "retried by the workflow first");
+  assert.deepEqual(await advance(db, orgId, signerDown, t0 + 6, trace, { lastTry: true }), { status: "needs_attention", step: "deploy", moved: true });
+  assert.deepEqual((await setup(orgId)).issue, { reason: "provider_unavailable", code: "PROVIDER_ERROR", at: t0 + 6 });
+  await asFounder((sql) => resume(sql, { orgId }, setupServices, t0 + 7, "trace-retry"));
+  await step(orgId, services);
+  w.deployed.set((await setup(orgId)).deploy_tx_hash, fact(row.safe_address, "84532:0xa:1"));
+  await step(orgId, services);
+  await db.transaction(orgId, (sql) => onApprovalEnded(sql, { opener: "organizations", subject_kind: "setup", subject_id: orgId, approval_id: "apr_1",
+    outcome: "landed", refusal: null, transaction_hash: hex(0x1a58, 64), block_number: 4600, observedAt: new Date(t0 + 8).toISOString(), trace_id: trace }), true);
+  w.installed = false;
+  assert.deepEqual(await step(orgId, services, t0 + 9), { status: "failed", step: "complete", moved: true }, "its batch ran: no second one");
+  assert.deepEqual([(await setup(orgId)).issue.reason, await state(row.party_id), w.opened.length], ["install_mismatch", "active", 1]);
+  await assert.rejects(asFounder((sql) => resume(sql, { orgId }, setupServices, t0 + 10, "trace-retry")), /^Error: WRONG_STATE/);
+});
+
+test("a MoneyDeployed that changes to another founder by commit fails like the first check", async () => {
+  const { w, services, fact } = world(), orgId = await created(false);
+  await step(orgId, services);
+  const row = await setup(orgId);
+  w.minted.set(row.mint_tx_hash, { safe: row.safe_address, owner: founder.safe });
+  await step(orgId, services); await step(orgId, services);
+  const good = fact(row.safe_address, "84532:0xb:1");
+  let reads = 0;
+  const changing = { ...services, facts: { ...services.facts, async moneyDeployed() { return ++reads === 1 ? good : { ...good, founder_safe: hex(0xbad) }; } } };
+  assert.deepEqual(await step(orgId, changing), { status: "failed", step: "confirm-deploy", moved: true });
+  assert.deepEqual([(await setup(orgId)).issue.reason, w.opened.length, reads], ["provider_answer_invalid", 0, 2]);
 });

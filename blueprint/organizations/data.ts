@@ -44,6 +44,8 @@ export const SetupIssue = Schema.Struct({
     "approval_declined",
     "approval_displaced",
     "install_reverted",
+    "send_lost",
+    "install_mismatch",
     "provider_answer_invalid",
   ]),
   /** The error code the step ended with (PROVIDER_ERROR, TRANSACTION_FAILED, CANCELLED…). */
@@ -249,7 +251,15 @@ export const table_org_deployments = defineTable({
     created_at: N,
   }),
   key: ["org_id"],
-  indexes: [],
+  indexes: [
+    {
+      name: "by_occurrence",
+      fields: ["chain_id", "log_id"],
+      unique: true,
+      crossTenant: true,
+      for: "One MoneyDeployed occurrence is admitted by one Organization only (organizations.admitted-deployment).",
+    },
+  ],
   retention: KEPT,
 });
 
@@ -818,7 +828,9 @@ export const machine_org_setup = defineMachine({
     stall: {
       from: ["processing", "awaiting_authorization"],
       to: "needs_attention",
-      about: "A step stopped: its provider retries ran out, a service send reverted, or the install approval was refused, declined, displaced, expired or reverted.",
+      about:
+        "A step stopped: its provider retries ran out, a service send reverted or was lost, or the install approval was " +
+        "refused, declined, displaced, expired or reverted.",
       emits: [event_org_setup_transitioned],
     },
     resume: {
@@ -830,7 +842,10 @@ export const machine_org_setup = defineMachine({
     fail: {
       from: ["processing", "needs_attention"],
       to: "failed",
-      about: "CompanySafeMinted names an owner other than the founder's Safe (the Party is released), or a step's answer is PROVIDER_RESPONSE_INVALID.",
+      about:
+        "CompanySafeMinted names an owner other than the founder's Safe (the Party is released), the landed install's final " +
+        "facts differ from the deployment (install_mismatch: its batch ran, so no second one is opened), or a step's answer " +
+        "is PROVIDER_RESPONSE_INVALID.",
       emits: [event_org_setup_transitioned],
     },
   },
