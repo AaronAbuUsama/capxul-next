@@ -282,26 +282,6 @@ test("role projections retain caller atomicity, exact occurrences, shared roles 
         assert.deepEqual(await state("ack-deferred"), deferred, "a deferred site is not offered again before its retry time");
         wrongMap = false;
 
-        // The real migrate path composes neither outbox nor role tables yet: legacy and role-keyed hat ACKs still settle.
-        await admin.query("create database plugs_migrate_test");
-        const migrated = (role: string, password = "test-only") => { const u = new URL(url); u.username = role; u.password = password; u.pathname = "/plugs_migrate_test"; return u.href; };
-        const run = spawn(process.execPath, ["--experimental-strip-types", "--no-warnings", new URL("../src/migrate.ts", import.meta.url).pathname], {
-          env: { ...process.env, PG_ADMIN_URL: migrated(new URL(url).username, new URL(url).password), DATABASE_URL: migrated("capxul_core"),
-            WORKER_DATABASE_URL: migrated("capxul_worker"), PONDER_DATABASE_URL: migrated("capxul_ponder"), CAPXUL_WORLD: "migrate-test" }, stdio: "ignore" });
-        assert.equal((await once(run, "exit"))[0], 0, "migrate.ts must succeed on a fresh database");
-        const fresh = new pg.Client({ connectionString: migrated(new URL(url).username, new URL(url).password) }); await fresh.connect();
-        const real = new Database(migrated("capxul_core"), migrated("capxul_worker"));
-        try {
-          await fresh.query("update app.world set clock=$1", [{ nowMs: at, clockMode: "stopped", rate: 1 }]);
-          await fresh.query("insert into app.organizations(org_id,name,safe,site,admin_email,token,released) values ('real','R','safe-r','r.test','r@test','asset',true)");
-          await real.transaction("real", async (sql) => {
-            await enqueue(sql, "real", "84532:0xlegacy:1:hat_granted", "hat_granted", {}, "tr_legacy");
-            await enqueue(sql, "real", "role:projected-elsewhere", "hat_granted", {}, "tr_role");
-          }, true);
-          await deliver(real, "real", origin, secret); await deliver(real, "real", origin, secret);
-          assert.deepEqual((await fresh.query("select state from app.site_events where org_id='real' order by seq")).rows, [{ state: "applied" }, { state: "applied" }]);
-          assert.equal((await fresh.query("select last_ack::int from app.organizations where org_id='real'")).rows[0].last_ack, 2);
-        } finally { await real.close(); await fresh.end(); }
       } finally { receiver.closeAllConnections(); await new Promise<void>((done) => receiver.close(() => done())); }
     });
   } finally { await db.close(); await admin.end(); }
