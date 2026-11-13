@@ -1,5 +1,8 @@
 # Capxul Next
 
+> **This branch is `master`, the rebuild line.** It is separate from `main` and `integration/build`; the rule is at the
+> top of [AGENTS.md](AGENTS.md).
+
 The rebuild of Capxul Core: the on-chain authority and money layer that plugs into a hosted Frappe as its sign-in,
 its signer and its bank feed. Why: [GROUNDING.md](GROUNDING.md). The product is designed as a typed **blueprint** before
 it is coded (`blueprint/`; older documents call it "the book"); a **portal** is generated from it; a **plan** says what is being done; a **scoreboard** says what
