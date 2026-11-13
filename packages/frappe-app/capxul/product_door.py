@@ -54,8 +54,20 @@ def _fields(doctype, values):
     return result
 
 
-def _document(doc):
+def _snapshot(doc):
+    # Private immutable mutation evidence; never return this without current read filtering.
     return {"doctype": doc.doctype, "name": doc.name, "docstatus": doc.docstatus, "fields": doc.as_dict()}
+
+
+def _document(doc):
+    doc.check_permission("read")
+    # Frappe 16 caches each user's masked fields (meta.get_masked_fields) and never clears them when roles
+    # change, so a revoked hat would keep its unmasked view. Drop this user's entries and recompute.
+    user = frappe.session.user
+    frappe.cache.delete_value([f"masked_fields::{doc.doctype}::::{user}"] + [
+        f"masked_fields::{df.options}::{doc.doctype}::{user}" for df in doc.meta.get_table_fields()])
+    doc.apply_fieldlevel_read_permissions()
+    return _snapshot(doc)
 
 
 def _envelope(action):
@@ -123,10 +135,11 @@ def run(org, verb, doctype, name=None, fields=None, call_id=None):
             doc = frappe.get_doc(doctype, result["name"] if verb == "create" else name)
             doc.check_permission("read")
             doc.check_permission("create" if verb == "create" else "submit")
-            return result
+            # Retain the historical values/status, not historical permission to disclose them.
+            return result if result.get("safe") else _document(frappe.get_doc(result["fields"]))
         if verb == "create":
             doc = frappe.get_doc({**values, "doctype": doctype, "docstatus": 0}).insert()
-            result = _document(doc)
+            result = _snapshot(doc)
         else:
             doc = frappe.get_doc(doctype, name)
             doc.check_permission("submit")
@@ -135,9 +148,9 @@ def run(org, verb, doctype, name=None, fields=None, call_id=None):
             held = payments.request_payment(name) if doctype == "Payment Entry" else {"safe": False}
             # A later call id can find a site request already answered. Core still reads its committed
             # collector answer; the document transport never turns a site status or URL into authority.
-            result = {"safe": True, "status": "Requesting", "approval_url": None, "request": held["request"]} if held["safe"] else _document(doc.submit())
+            result = {"safe": True, "status": "Requesting", "approval_url": None, "request": held["request"]} if held["safe"] else _snapshot(doc.submit())
         frappe.db.set_value("Capxul Door Call", key, "response_json", frappe.as_json(result), update_modified=False)
-        return result
+        return result if result.get("safe") else _document(doc)
     return _envelope(action)
 
 

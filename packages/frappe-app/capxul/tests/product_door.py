@@ -130,3 +130,111 @@ def run():
     passed.append("saved document response cannot bypass current permissions after revocation")
     frappe.db.commit()
     return {"passed": passed, "supplier": supplier["name"], "invoice": invoice["name"], "payment": payment["name"]}
+
+
+def field_permissions():
+    """Real native field/receipt regression on a disposable site, not selected-world evidence."""
+    prefix = "Door Fields " + uuid.uuid4().hex[:10]
+    parent, child = prefix, prefix + " Row"
+    user = prefix.replace(" ", "-").lower() + "@example.invalid"
+    org = frappe.db.get_single_value("Capxul Settings", "org_slug")
+    call_ids = [prefix + suffix for suffix in ("-create", "-submit", "-limited-create", "-limited-submit")]
+    keys = [hashlib.sha256(call_id.encode()).hexdigest() for call_id in call_ids]
+    checks = {}
+
+    def call(verb, **kwargs):
+        frappe.local.response = frappe._dict()
+        answer = product_door.run(org, verb, parent, **kwargs)
+        assert answer["ok"], answer
+        return answer["data"]
+
+    def filtered(result, visible):
+        fields = result["fields"]
+        row = fields["rows"][0]
+        return (fields["visible"] == visible and fields.get("restricted") is None
+                and not fields.get("restricted_rows")
+                and fields["masked"] == fields["masked_number"] == "XXXXXXXX"
+                and row["visible"] == "child-visible" and row.get("restricted") is None
+                and row["masked"] == row["masked_number"] == "XXXXXXXX")
+
+    try:
+        frappe.set_user("Administrator")
+        # Test-only metadata supplies native permlevels/masking; no permission method is mocked.
+        common = [
+            {"fieldname": "visible", "label": "Visible", "fieldtype": "Data"},
+            {"fieldname": "restricted", "label": "Restricted", "fieldtype": "Data", "permlevel": 1,
+             "default": "restricted-default"},
+            {"fieldname": "masked", "label": "Masked", "fieldtype": "Data", "mask": 1},
+            {"fieldname": "masked_number", "label": "Masked Number", "fieldtype": "Currency", "mask": 1},
+        ]
+        frappe.get_doc({"doctype": "DocType", "name": child, "module": "Capxul", "custom": 1,
+                        "istable": 1, "fields": common}).insert()
+        frappe.get_doc({"doctype": "DocType", "name": parent, "module": "Capxul", "custom": 1,
+                        "is_submittable": 1, "fields": common + [
+                            {"fieldname": "rows", "label": "Rows", "fieldtype": "Table", "options": child},
+                            {"fieldname": "restricted_rows", "label": "Restricted Rows", "fieldtype": "Table",
+                             "options": child, "permlevel": 1},
+                        ], "permissions": [
+                            {"role": "Sales User", "permlevel": 0, "read": 1, "write": 1, "create": 1, "submit": 1},
+                            {"role": "Accounts Manager", "permlevel": 0, "read": 1, "write": 1,
+                             "create": 1, "submit": 1, "mask": 1},
+                            {"role": "Accounts Manager", "permlevel": 1, "read": 1, "write": 1, "mask": 1},
+                        ]}).insert()
+        for hat in ("admin", "sales"):
+            hats.apply_hat_granted({"hat": hat, "person_email": user, "person_name": "Field Probe"})
+        frappe.db.commit()
+        frappe.set_user(user)
+        row = {"visible": "child-visible", "restricted": "child-secret", "masked": "child-mask", "masked_number": 73.25}
+        fields = {"visible": "before", "restricted": "parent-secret", "masked": "parent-mask",
+                  "masked_number": 19.75, "rows": [row], "restricted_rows": [row]}
+        created = call("create", fields=fields, call_id=call_ids[0])
+        posted = call("submit", name=created["name"], call_id=call_ids[1])
+        checks["authorized parent/child fields and masks remain readable"] = (
+            created["fields"]["restricted"] == posted["fields"]["restricted"] == "parent-secret"
+            and posted["fields"]["masked"] == "parent-mask" and posted["fields"]["masked_number"] == 19.75
+            and posted["fields"]["rows"][0]["restricted"] == "child-secret"
+            and posted["fields"]["restricted_rows"][0]["masked_number"] == 73.25)
+        frappe.db.commit()  # Replay must survive an actual committed lost response.
+        receipts = frappe.db.get_all("Capxul Door Call", filters={"name": ["in", keys[:2]]},
+                                     fields=["name", "response_json"], order_by="name")
+        frappe.set_user("Administrator")
+        # Change live state independently: replay must retain historical values, not refetch them.
+        frappe.db.set_value(parent, created["name"], "visible", "after")
+        hats.apply_hat_revoked({"hat": "admin", "person_email": user})
+        frappe.db.commit()
+        frappe.set_user(user)
+        fresh = call("get", name=created["name"])
+        create_replay = call("create", fields=fields, call_id=call_ids[0])
+        submit_replay = call("submit", name=created["name"], call_id=call_ids[1])
+        checks["get filters parent, child, whole-table and numeric masked values after revocation"] = filtered(fresh, "after")
+        checks["create replay filters historical values with current permissions"] = filtered(create_replay, "before")
+        checks["submit replay filters historical values with current permissions"] = filtered(submit_replay, "before")
+        checks["replays preserve original draft/submitted status"] = create_replay["docstatus"] == 0 and submit_replay["docstatus"] == 1
+        checks["replays neither rewrite private receipts nor repeat effects"] = (
+            receipts == frappe.db.get_all("Capxul Door Call", filters={"name": ["in", keys[:2]]},
+                                          fields=["name", "response_json"], order_by="name")
+            and frappe.db.count(parent) == 1 and frappe.db.get_value(parent, created["name"], "visible") == "after")
+        limited_fields = {"visible": "limited", "masked": "limited-mask", "masked_number": 12.5,
+                          "rows": [{"visible": "child-visible", "masked": "child-mask", "masked_number": 24.75}]}
+        limited = call("create", fields=limited_fields, call_id=call_ids[2])
+        checks["fresh create filters restricted defaults and masks"] = filtered(limited, "limited")
+        checks["fresh submit filters restricted defaults and masks"] = filtered(
+            call("submit", name=limited["name"], call_id=call_ids[3]), "limited")
+        assert all(checks.values()), {"failed": [name for name, passed in checks.items() if not passed]}
+        return {"passed": list(checks)}
+    finally:
+        frappe.db.rollback()
+        frappe.set_user("Administrator")
+        for doctype in (parent, child):
+            if frappe.db.exists("DocType", doctype):
+                frappe.db.delete(doctype)
+        frappe.db.delete("Capxul Door Call", {"name": ["in", keys]})
+        for hat in ("admin", "sales"):
+            hats.apply_hat_revoked({"hat": hat, "person_email": user})
+        if frappe.db.exists("User", user):
+            frappe.delete_doc("User", user, force=True, ignore_permissions=True)
+        for doctype in (parent, child):
+            if frappe.db.exists("DocType", doctype):
+                frappe.delete_doc("DocType", doctype, force=True)
+                frappe.db.sql_ddl(f"DROP TABLE IF EXISTS `tab{doctype}`")
+        frappe.db.commit()
