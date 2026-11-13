@@ -3,7 +3,7 @@
 import { formatUnits } from "viem";
 import { record, type Sql } from "../platform/db.ts";
 import { settleSitePayment } from "../approvals/door.ts";
-import { enqueue } from "./door.ts";
+import { enqueue } from "./events.ts";
 
 const amount = (v: string) => formatUnits(BigInt(v), 6);
 export async function consume(sql: Sql, org: string, chain: number, finality: number) {

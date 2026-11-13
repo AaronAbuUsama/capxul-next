@@ -34,6 +34,11 @@ export const SiteInfo = Schema.Struct({
   features: Schema.Record(Schema.String, Schema.Literals(["on", "off"])), map_version: Text,
   sign_in: Schema.Struct({ mode: Schema.Literal("assertion"), configured: Schema.Boolean, oauth: Schema.Boolean }),
 });
+// Release admission, not a copy of editable native rows or numeric chain-hat metadata.
+export const HatMap = Schema.Struct({
+  map_version: Schema.Literal("sha256:8187889ed3db0e6b878dd8e8db524030d61f61e2d716c16f53e28c2768e5b348"),
+  hats: Schema.Record(Text, Schema.Array(Text)), available_roles: Schema.Array(Text),
+});
 export const ViewLink = Schema.Struct({ url: Text, expiresAt: Positive, readOnly: Schema.Literal(true) });
 export const Report = Schema.Struct({ columns: Schema.Array(Row), rows: Schema.Array(Row) });
 export const SafeRequest = Schema.Struct({ safe: Schema.Literal(true), status: Schema.Literal("Requesting"),

@@ -1,0 +1,20 @@
+{
+ "doctype": "DocType",
+ "name": "Capxul Door Call",
+ "module": "Capxul",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": ["person", "request_hash", "response_json"],
+ "fields": [
+  {"fieldname": "person", "fieldtype": "Link", "label": "Person", "options": "User", "reqd": 1, "read_only": 1},
+  {"fieldname": "request_hash", "fieldtype": "Data", "label": "Request Hash", "reqd": 1, "read_only": 1},
+  {"fieldname": "response_json", "fieldtype": "Code", "label": "Response", "options": "JSON", "read_only": 1}
+ ],
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "creation": "2026-11-12 00:00:00.000000",
+ "modified": "2026-11-12 00:00:00.000000",
+ "owner": "Administrator",
+ "modified_by": "Administrator"
+}

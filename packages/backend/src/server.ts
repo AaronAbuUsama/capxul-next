@@ -4,12 +4,24 @@ import { Effect } from "effect";
 import { get, prepare, submitted } from "./approvals/door.ts";
 import { readSnapshotCut } from "./devnet/door.ts";
 import { info, register, release } from "./organizations/door.ts";
-import { consume, deliver, RequestCollector, resend, retryParked, signature, status } from "./plugs/door.ts";
+import { consume, deferDelivery, deliver, RequestCollector, resend, retryParked, signature, status } from "./plugs/door.ts";
 import { settings } from "./platform/config.ts";
 import { Database } from "./platform/db.ts";
 import { alerts, indexerState } from "./platform/diagnostics.ts";
 
 type Config = ReturnType<typeof settings>;
+
+/** One organization's turn of the worker. It never throws: one failing organization must not stall those sorted after it. */
+export async function serveOrganization(db: Database, config: Pick<Config, "chainId" | "finality" | "frappe" | "secret">, org: string, indexed: boolean) {
+  try {
+    if (indexed) await db.transaction(org, (sql) => consume(sql, org, config.chainId, config.finality), true);
+  } catch (error) { console.error(`Core consume ${org}: ${(error as Error).message}`); }
+  try { await deliver(db, org, config.frappe, config.secret); }
+  catch (error) {
+    console.error(`Core delivery ${org}: ${(error as Error).message}`);
+    await deferDelivery(db, org, error).catch((e) => console.error(`Core delivery backoff ${org}: ${e.message}`));
+  }
+}
 function json(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" });
   res.end(JSON.stringify(body));
@@ -101,8 +113,7 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
         const { org_id } = company;
         if (paused || closing) break;
         if (company.released) collector.connect(company);
-        if (index.ready) await db.transaction(org_id, (sql) => consume(sql, org_id, config.chainId, config.finality), true);
-        await deliver(db, org_id, config.frappe, config.secret);
+        await serveOrganization(db, config, org_id, index.ready);
       }
     } finally { activeDeliveries--; notifyDrain(); }
   }

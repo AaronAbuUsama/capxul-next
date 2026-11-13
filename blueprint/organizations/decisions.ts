@@ -93,6 +93,20 @@ import { concept_agents, concept_devnet, concept_payments } from "../shared/foun
 const CLAUDE = "Claude, organizations design, 8 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 
+export const decision_organizations_authenticated_seats = defineDecision({
+  id: "organizations.authenticated-seats",
+  title: "Seat admission checks the authenticated principal, never the owner label",
+  question: "How do restricted-role consumers admit a current Seat and its readable Safes without manufacturing membership from tenant scope?",
+  options: [
+    { label: "authenticated", text: "requireSeat rechecks the actor against app.person_id and access principals on the caller's Sql. Humans match principal id; agents match their own authoritative Safe, even with a null Seat principal. app.caller_safes() returns the non-released own Party Safe and active Seat organization Party Safes; without an own Party it returns empty. Owner labels and app.org_id are routing scope, never actor identity. Tenant roles only read Seats; restricted workers own writes after route authorization." },
+    { label: "scope", text: "Trust supplied owner or organization settings to manufacture an actor or membership." },
+  ],
+  chosen: "authenticated",
+  why: "Access.authenticate alone establishes the actor from an opaque active session. Same-transaction checks stop a supplied actor, Safe or owner label from impersonating another Seat. Fixed-search-path security-definer SQL reads the source-owned directory under forced RLS without recursively reading its own policy. Its execute grant is limited to Core and worker; no Safe authority or Hats cache is duplicated. A company Safe is admitted only through its current Seat and non-released Party, not old transport people rows. Separately, delivery workers read committed membership with readSeatBySafe(Sql, orgId, wearerSafe): the exact Organization and lowercased wearer Safe must match an active Seat, else null. This plain same-Sql reader neither creates an actor nor relaxes tenant RLS or requireSeat; the existing worker role can read without a request session. Access readPrincipalBySafe supplies identity, while Parties lookup(Sql, seat.party_id).display_name supplies the nullable canonical name. Missing identity or name is not invented or recovered from legacy people. This tranche creates only org-members and admission functions; full onboarding schemas and public procedures remain separate, unproved work.",
+  source: "aaron.postgres-and-ponder; organizations.fde-seat; Access Principal/session contract; PR50 ownerTransaction; integrator migration composition lease; agreed Plugs worker membership/read contract, 12 November 2026",
+  affects: [table_org_members, table_organizations, concept_parties],
+});
+
 const ALL_OPERATIONS = [
   operation_org_create, operation_org_list, operation_org_me, operation_org_retry, operation_org_show, operation_org_wait,
   operation_use_org, operation_org_member_list, operation_org_member_get, operation_invite_list, operation_invite_decline,
@@ -1327,4 +1341,18 @@ export const decision_organizations_fde_guests = defineDecision({
 
 const SURFACE_PASS = "Claude, surface pass, 9 November 2026 (question 48)";
 const surfaceBy = (evidence: string) => `${SURFACE_PASS}; evidence: ${evidence}`;
+
+export const decision_organizations_world_company_reader = defineDecision({
+  id: "organizations.world-company-reader",
+  title: "World inventory reads actual companies, including those without sites",
+  question: "How does world.show enumerate companies without mistaking a tenant list or the site's routing configuration for the world's inventory?",
+  options: [
+    { label: "worker-reader", text: "Organizations exposes readWorldCompanies on the selected world's existing worker Sql: orgId, name and nullable verbatim site metadata, ordered by orgId, including released companies. Refuse other roles instead of returning a tenant-filtered partial list." },
+    { label: "site-inventory", text: "Enumerate configured sites and infer company identity and names from their routing entries." },
+  ],
+  chosen: "worker-reader",
+  why: "devnet.worlds.create admits core worlds with companies but no sites; WorldView still requires their identities and names. The Organizations table is the inventory, not the site's configuration or financial record heads. The existing capxul_worker RLS policy already admits world-scoped reads; the door checks that actual database role and neither changes RLS nor invents actor or tenant settings. Its caller must authorize the public world read and select the correct world's connection. Site metadata is nullable in the runtime adapter so a core-only company needs no placeholder; existing registration still requires a real site. The reader does not manufacture a URL: Runtime owns the separate public routing projection. It does not read private company configuration, migrate on read, mutate rows or emit events.",
+  source: "blueprint/devnet/world-rpcs.ts (WorldView, devnet.worlds.create); packages/backend/src/migrate.ts (restricted worker RLS policy); Wave0 Recovery world.show source contract, 12 November 2026",
+  affects: [concept_organizations, table_organizations],
+});
 
