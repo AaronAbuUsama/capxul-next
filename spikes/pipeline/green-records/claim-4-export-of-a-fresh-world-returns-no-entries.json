@@ -1,0 +1,89 @@
+{
+  "scenario": "claim 4: export of a fresh world returns no entries",
+  "world": "pl-claim-4-ex-45bef7",
+  "owner": "pipeline",
+  "expiresAt": "2026-11-13T09:50:10.537Z",
+  "outcome": "passed",
+  "failure": null,
+  "calls": [
+    {
+      "operation": "record.export",
+      "traceId": "0a14f33cdb5f1c179cb6962c5c14ca8b",
+      "outcome": "success",
+      "ms": 948,
+      "serverMs": 789,
+      "budgetMs": 500,
+      "failure": null,
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.export span, 789 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "budget",
+          "passed": false,
+          "gating": false,
+          "detail": "789 ms against a budget of 500 ms"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "99a39613625638933db1c1ff2fd6439f",
+      "outcome": "success",
+      "ms": 998,
+      "serverMs": 834,
+      "budgetMs": 500,
+      "failure": null,
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.export span, 834 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "budget",
+          "passed": false,
+          "gating": false,
+          "detail": "834 ms against a budget of 500 ms"
+        }
+      ]
+    }
+  ],
+  "worldAfterwards": "destroyed",
+  "ms": {
+    "create": 18121,
+    "scenario": 1948,
+    "checks": 219,
+    "destroy": 8474
+  }
+}

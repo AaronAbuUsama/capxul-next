@@ -1,0 +1,207 @@
+{
+  "scenario": "claim 1: the first append in a fresh world returns seq 1 and each later append returns the previous seq plus one",
+  "world": "pl-claim-1-th-407bd8",
+  "owner": "pipeline",
+  "expiresAt": "2026-11-13T09:48:18.233Z",
+  "outcome": "passed",
+  "failure": null,
+  "calls": [
+    {
+      "operation": "record.append",
+      "traceId": "3c569df38483fd0eb0aeb1cdf742506b",
+      "outcome": "success",
+      "ms": 1294,
+      "serverMs": 1112,
+      "budgetMs": 500,
+      "failure": null,
+      "events": [
+        "record_appended"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 1112 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: record_appended {\"key\":\"payment/2026-11-0007\",\"seq\":1}; declared for a success: record_appended {\"key\":\"payment/2026-11-0007\",\"seq\":1}"
+        },
+        {
+          "check": "budget",
+          "passed": false,
+          "gating": false,
+          "detail": "1112 ms against a budget of 500 ms"
+        }
+      ]
+    },
+    {
+      "operation": "record.append",
+      "traceId": "27c2429aee21396506bfec1237234678",
+      "outcome": "success",
+      "ms": 1279,
+      "serverMs": 1099,
+      "budgetMs": 500,
+      "failure": null,
+      "events": [
+        "record_appended"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 1099 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: record_appended {\"key\":\"budget/marketing\",\"seq\":2}; declared for a success: record_appended {\"key\":\"budget/marketing\",\"seq\":2}"
+        },
+        {
+          "check": "budget",
+          "passed": false,
+          "gating": false,
+          "detail": "1099 ms against a budget of 500 ms"
+        }
+      ]
+    },
+    {
+      "operation": "record.append",
+      "traceId": "5592656f7ae41584ee08299e335e68d7",
+      "outcome": "success",
+      "ms": 1197,
+      "serverMs": 1036,
+      "budgetMs": 500,
+      "failure": null,
+      "events": [
+        "record_appended"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 1036 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: record_appended {\"key\":\"approval/2026-11-0007/1\",\"seq\":3}; declared for a success: record_appended {\"key\":\"approval/2026-11-0007/1\",\"seq\":3}"
+        },
+        {
+          "check": "budget",
+          "passed": false,
+          "gating": false,
+          "detail": "1036 ms against a budget of 500 ms"
+        }
+      ]
+    },
+    {
+      "operation": "record.append",
+      "traceId": "583c5660c0141dd8391c1a15eec98b20",
+      "outcome": "success",
+      "ms": 572,
+      "serverMs": 403,
+      "budgetMs": 500,
+      "failure": null,
+      "events": [
+        "record_appended"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 403 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: record_appended {\"key\":\"approval/2026-11-0007/2\",\"seq\":4}; declared for a success: record_appended {\"key\":\"approval/2026-11-0007/2\",\"seq\":4}"
+        },
+        {
+          "check": "budget",
+          "passed": true,
+          "gating": false,
+          "detail": "403 ms against a budget of 500 ms"
+        }
+      ]
+    },
+    {
+      "operation": "record.append",
+      "traceId": "728ba71e13ccd7a187db6295f16c7013",
+      "outcome": "success",
+      "ms": 550,
+      "serverMs": 396,
+      "budgetMs": 500,
+      "failure": null,
+      "events": [
+        "record_appended"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 396 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: record_appended {\"key\":\"Budget/Marketing\",\"seq\":5}; declared for a success: record_appended {\"key\":\"Budget/Marketing\",\"seq\":5}"
+        },
+        {
+          "check": "budget",
+          "passed": true,
+          "gating": false,
+          "detail": "396 ms against a budget of 500 ms"
+        }
+      ]
+    }
+  ],
+  "worldAfterwards": "destroyed",
+  "ms": {
+    "create": 20165,
+    "scenario": 4898,
+    "checks": 239,
+    "destroy": 8319
+  }
+}
