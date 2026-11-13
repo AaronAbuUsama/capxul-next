@@ -259,14 +259,18 @@ export const workflow_payments_movements_record = defineWorkflow({
   title: "Record outside money from a Transfer no Payment explains",
   about:
     "Triggered by each indexed ERC-20 Transfer that touches a Capxul Safe. It reads every fact of the transaction and " +
-    "sets aside a Transfer that a Payment explains for that side: the one beside a PaymentSent moving the same token and " +
-    "amount between the same addresses (a direct send, a budget's payout through Roles, an escrow's payout), or a claim " +
+    "sets aside a Transfer that a Payment explains for that side: the one a PaymentSent carries, where in receipt order " +
+    "each PaymentSent takes the latest earlier untaken Transfer moving the same token and amount between the same " +
+    "addresses, so one PaymentSent explains at most one Transfer (a direct send, a budget's payout through Roles, an " +
+    "escrow's payout), and only for the side whose owner that Payment is (payer for out, payee for in), or a claim " +
     "escrow's funding or refund of one of that side's Payments, a refund paying the escrow's sender (the company Safe " +
     "for a budget's or the Board's) (K17). For each remaining side whose Safe a Capxul tenant " +
     "owns, it records a Movement (`record`), that side's book fact (`books.record-money-fact`, key `transfer:<log id>`, the " +
     "receipt-ordinal log id) and the Transfer's Memo (`documents.store`: basis movement, reference the bare log id, " +
     "issued at the block time, the Capxul sides as participants, so a replayed Transfer stores nothing new) in one " +
-    "transaction, so an Organization's direct transfer to a person is outside money for both (old M1). Twice the " +
+    "transaction, so an Organization's direct transfer to a person is outside money for both (old M1). A Transfer " +
+    "between two Safes of one owner records both Movements but no book fact. The Memo's owner is the first side held, " +
+    "the payer's when both are (payments.movement-occurrence). Twice the " +
     "finality depth later it reads the facts again: a Transfer no longer there is `remove`d with its book fact reversed " +
     "(the Memo, immutable, stays); one the chain brought back is `restore`d and booked again.",
   concept: concept_payments,
