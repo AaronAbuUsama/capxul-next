@@ -1,6 +1,8 @@
+// The legacy site follow: indexed facts of a company, in chain order, onto its site's ordered delivery outbox. It is
+// Plugs' "books from the chain" (concept plugs), so it lives here; Plugs depends on Payments, never the reverse.
 import { formatUnits, parseUnits } from "viem";
 import { record, type Sql } from "../platform/db.ts";
-import { enqueue } from "../plugs/door.ts";
+import { enqueue } from "./events.ts";
 
 const amount = (v: string) => formatUnits(BigInt(v), 6);
 export async function consume(sql: Sql, org: string, chain: number, finality: number) {
