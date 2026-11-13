@@ -21,6 +21,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc -p packages/blueprint-engine && pnpm exec tsc -p blueprint
+      - run: pnpm --filter @capxul/evals check
       - run: pnpm blueprint
       - run: pnpm frappe:check-blueprint
       - run: pnpm contracts:check-blueprint

@@ -738,6 +738,20 @@ export const decision_tooling_ci = defineDecision({
   affects: [f.system_capxul],
 });
 
+export const decision_tooling_ci_evals_typecheck = defineDecision({
+  id: "tooling.ci-evals-typecheck",
+  title: "CI type-checks the eval harness and the product code it imports",
+  question: "Should the CI gate type-check packages/evals, which compiles the backend and SDK code its modules import?",
+  options: [
+    { label: "add-step", text: "Add one step to the blueprint workflow, after the blueprint typecheck: pnpm --filter @capxul/evals check (tsc -p packages/evals). Every other tooling.ci step stays as it is." },
+    { label: "local-only", text: "Leave it to each lane's local gates. A change outside packages/evals can then turn this typecheck red without any check noticing." },
+  ],
+  chosen: "add-step",
+  why: "PR55 landed packages/backend/src/approvals/http.ts:77 with an optional property set to undefined, which fails packages/evals' exactOptionalPropertyTypes typecheck. CI stayed green because no step compiled packages/evals, and the eval modules that run in an acceptance attempt import that code. One added step widens the gate and removes none.",
+  source: "Wave Zero integrator request after #147's re-review, 13 November 2026; extends tooling.ci",
+  affects: [f.system_capxul],
+});
+
 export const decision_tooling_secrets = defineDecision({
   id: "tooling.secrets",
   title: "gitleaks 8.30.1, installed through the Go module proxy",
