@@ -211,9 +211,14 @@ comparison of everything (`sameAsBeforeAccountWide`) and names the worlds it set
 | `patience` | Four worlds made one after another (`p-pat-1` to `p-pat-4`), each with its index step's duration and every try of each container start. Cloudflare refused the index's first start 0 to 6 times (tries spread over up to 25 s) and its restart after a chain stop in 5 of 8 cases; each was tried again until Ponder answered. In each world the chain was stopped right after the create, twice, and called at once: every call was answered (wake 0.9 to 1.7 s, one try each; none refused), and the index came back by itself 11 to 23 s later. All four destroyed, nothing left. | `patience.proof.json`, `p-pat-1.json` to `p-pat-4.json` |
 | `site` | Run with `WORLD_BENCH=pr-site`, a stand-in bench of `packages/platform` in this container (`PLATFORM_HOST=standin`, `PLATFORM_EDGE=none`). A world made with one company gets `acme-p-site.worlds.abuusama.dev`, ready in 93.5 s (new-site 21.3, ERPNext 42.8, capxul 3.0, wizard 16.5, migrate 5.8, scheduler 0.7, join the world 0.6, the API user 1.4). Through the door, on the site's own API user: the company's record (`Acme Ltd`), its Supplier list, `get_logged_user` answering `capxul-core@service.invalid` (never Administrator), and the site's clock reading world `p-site`. A second world, `p-site2`, made inside the first's run: its token is refused for the first world's site (`403 site-not-in-world`) and it sees no site. Both destroyed: the site removed in 1.8 s with its world, the door holding no site of either, the bench's folders, the door's registry and MariaDB's databases as before, and nothing of either world in either account. Core's probe at both worlds' doors answered the site door's typed failure `unreachable` (Cloudflare's own 403 for a loopback address): **Core reaching the site is recorded, not proven** (below). | `site.proof.json`, `p-site.json`, `p-site2.json`, `site-after.txt` (the bench's platform destroyed after, the zone at 66 records before and after) |
 
+Every proof above but `site` was run again after the patient starts (Containers, above) and passed; their records are
+those runs'. `site` was not: it needs the stand-in bench of `packages/platform` in the agent's container, which this
+change does not touch.
+
 ## Timings
 
-From the records above, all made on 13 November 2026 with the images already published, every world with its
+From the records as they were at `20833298` (the proofs' records were made again since, on the patient starts of
+Containers above; the index step's own numbers are below), all made on 13 November 2026 with the images already published, every world with its
 bundler: eight creates one at a time (`bundler`, `commands`, `fresh` and its fork on the line with the real Core and
 the site step; `fails`, `timeout`, `interrupted` and `keep` just before it, with the stand-in Core), three at once in
 one process (`sweep`, stand-in Core), and seven destroys. "Before" is the same table from the ten creates recorded
@@ -313,6 +318,12 @@ slower than the median. The bundler's and the chain's timeouts are unchanged.
   accepted call, so its refusals failed `POST /index/start` outside its Durable Object and were seen only as a step that
   took longer; in `run-e710b3`, `world.create 5`, all 59 of those calls failed for the step's 180 s and nothing said
   why. A start now holds only once the container answers, and each refusal is in the record.
+- **Two runs of the snapshot proof failed before one passed**, after the change, both in the create of its first
+  world. In one, the index step ran out of its 5 minutes; its account was not kept then (a timed-out index step now
+  carries the index's own record in its failure, `src/index/account.ts`, since that record is destroyed with the
+  world). In the other, the bundler's setup read back 0 wei after `anvil_setBalance` 17 s after the chain first
+  answered, as if the chain had restarted from its seed: its container gone before its first save (every 20 s). Each
+  create removed what it had made; the third run passed.
 - **Ponder's start was mostly round trips to Neon.** Ponder ran wherever Cloudflare placed it, an ocean from the
   world's branch in aws-eu-west-2: 17 to 21 s of its 22 to 24 s to ready went to 73 to 87 database calls (Ponder's own
   `ponder_database_method_duration`, read from its `/metrics` into the index's record: `create_trigger` 6 s for 14,
