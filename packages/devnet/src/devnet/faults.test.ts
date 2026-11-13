@@ -72,6 +72,11 @@ test("a resume fault kills Core holding an effect without its ACK, then supervis
     const held = consumer("activity.feed");
     await until("delivery claimed the arm", () => access(join(c.controlDir, "faults", `${resumeFaultStem("activity.feed")}.reached`)).then(() => true, () => false), 10_000);
     await assert.rejects(disarm(), /claimed this arm; run resume-kill/);
+    // Its holder dies outside the fault (a crash): the fault is cleared and reported, not left for a manual rm.
     held.child.kill("SIGKILL"); await held.exit;
+    const lost = await disarm() as any;
+    assert.equal(lost.state, "abandoned"); assert.equal(lost.eventId, "evt-1");
+    assert.deepEqual(await disarm(), { consumer: "activity.feed", state: "none" });
+    assert.deepEqual(await resumeFault(c, { start: async () => {} }, "resume-arm", "activity.feed"), { consumer: "activity.feed", state: "armed" }, "the consumer can be armed again");
   } finally { core.close(); await rm(directory, { recursive: true, force: true }); }
 });

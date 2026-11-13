@@ -14,13 +14,22 @@ const procStat = async (pid: number) => { const s = await readFile(`/proc/${pid}
  * holds that effect uncommitted and unacknowledged, SIGKILLs the Core process, then lets supervision restart it paused
  * and resumes it through the same signed path as `world up`. The ACK and the effect die together; the restarted relay
  * must redeliver. `resume-disarm` withdraws an arm no delivery has claimed, for a drive that failed after arming; a claimed
- * arm is refused, because only resume-kill can end it. Evidence is returned and kept under the private fault directory;
+ * arm is refused, because only resume-kill can end it. A fault whose holding Core already died is cleared by either command and
+ * reported as `abandoned`, with the event it held. Evidence is returned and kept under the private fault directory;
  * nothing here judges the claim.
  */
 export async function resumeFault(c: Config, host: Pick<Host, "start">, action: string, consumer: string, timeout = 120_000,
   match: { event?: string; transition?: string } = {}) {
   const directory = join(c.controlDir, "faults"), stem = join(directory, resumeFaultStem(consumer));
   const exists = (suffix: string) => access(`${stem}.${suffix}`).then(() => true, () => false);
+  // A fault whose holder already died (a crash, a manual restart) can never be killed: clear it and say so, never leave it for a manual rm.
+  const abandoned = async () => {
+    if (!await exists("reached")) return undefined;
+    const reached = JSON.parse(await readFile(`${stem}.reached`, "utf8"));
+    if (await access(`/proc/${reached.pid}`).then(() => true, () => false)) return undefined;
+    await rm(`${stem}.reached`, { force: true }); await rm(`${stem}.claimed`, { force: true });
+    return { consumer, eventId: reached.eventId, event: reached.event, transition: reached.transition, state: "abandoned" as const };
+  };
   if (action === "resume-arm") {
     await mkdir(directory, { recursive: true, mode: 0o700 });
     for (const suffix of ["armed", "claimed", "reached"]) if (await exists(suffix)) throw new Error("this consumer already has an armed or unresolved resume fault");
@@ -32,6 +41,8 @@ export async function resumeFault(c: Config, host: Pick<Host, "start">, action: 
     try { await rename(`${stem}.armed`, `${stem}.disarming`); }
     catch (error: any) {
       if (error.code !== "ENOENT") throw error;
+      const lost = await abandoned();
+      if (lost) return lost;
       if (await exists("claimed") || await exists("reached")) throw new Error("a delivery claimed this arm; run resume-kill to finish the fault");
       return { consumer, state: "none" };
     }
@@ -40,6 +51,8 @@ export async function resumeFault(c: Config, host: Pick<Host, "start">, action: 
   }
   try { await until("consumer reached its resume fault point", () => exists("reached"), timeout); }
   catch (error) { await rm(`${stem}.armed`, { force: true }); throw error; }
+  const lost = await abandoned();
+  if (lost) return lost;
   const reached = JSON.parse(await readFile(`${stem}.reached`, "utf8"));
   const before = JSON.parse(await readFile(stateFile(c, "core"), "utf8"));
   if (reached.consumer !== consumer || before.state !== "running" || Number((await procStat(reached.pid))[1]) !== before.pid) {
