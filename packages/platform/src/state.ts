@@ -17,6 +17,8 @@ export const PlatformOutputs = Schema.Struct({
   domain: Schema.String,
   edge: Schema.String,
   doorHost: Schema.String,
+  /** Where a world reaches the site door: through the tunnel, the relay, or (no edge) on the host only. */
+  doorUrl: Schema.String,
   doorKeyId: Schema.String,
   containers: Schema.Array(Schema.String),
 });

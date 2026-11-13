@@ -13,6 +13,7 @@
     "@alchemy.run/docker": "catalog:",
     "@alchemy.run/github": "catalog:",
     "@alchemy.run/neon": "catalog:",
+    "@capxul/blueprint": "workspace:*",
     "@effect/platform-bun": "catalog:",
     "@effect/platform-node": "catalog:",
     "alchemy": "catalog:",

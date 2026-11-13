@@ -14,6 +14,9 @@
 // tunnel (its egress policy refuses any Cloudflare request that returns a credential, records/spike/01), so a
 // rehearsal there exercises the bench, the door and one DNS record. Only one stage per domain can hold the wildcard:
 // that is the shared platform's, `staging`.
+//
+// `doorUrl` is where a world reaches the door: through the tunnel, or, with no edge, only on the host itself (its
+// loopback port), so with PLATFORM_EDGE=none nothing on Cloudflare, a world's Core included, can reach it.
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Docker from "@alchemy.run/docker";
 import * as Output from "alchemy/Output";
@@ -30,6 +33,7 @@ export const Edge = (
   context: Docker.Context,
   network: Docker.Network,
   services: { readonly web: string; readonly door: string },
+  bench: { readonly doorLocalPort: number },
 ) =>
   Effect.gen(function* () {
     const n = yield* names;
@@ -43,7 +47,8 @@ export const Edge = (
         content: `"cx-platform ${n.stage}: site door; no tunnel (PLATFORM_EDGE=none)"`,
         comment: RECORD_COMMENT,
       });
-      return { mode, zoneId, records: [doorRecord], tunnelId: undefined, connector: undefined };
+      const doorUrl = `http://127.0.0.1:${bench.doorLocalPort}`;
+      return { mode, zoneId, records: [doorRecord], tunnelId: undefined, connector: undefined, doorUrl };
     }
 
     const tunnel = yield* Cloudflare.Tunnel.Tunnel("Tunnel", { name: n.prefix });
@@ -76,5 +81,12 @@ export const Edge = (
       restart: "unless-stopped",
       start: true,
     });
-    return { mode, zoneId, records: [doorRecord, sitesRecord], tunnelId: tunnel.tunnelId, connector };
+    return {
+      mode,
+      zoneId,
+      records: [doorRecord, sitesRecord],
+      tunnelId: tunnel.tunnelId,
+      connector,
+      doorUrl: `http://${n.doorHost}`,
+    };
   });
