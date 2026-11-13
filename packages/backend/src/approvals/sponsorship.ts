@@ -46,7 +46,10 @@ export function approvalSponsor(config: SponsorConfig): (a: SponsorshipRequest) 
       if (![now, a.deadline.getTime(), a.send_after?.getTime() ?? now].every(Number.isFinite)) throw new SponsorError("INVALID_INPUT", "Approval dates are invalid");
       const after = BigInt(Math.ceil(Math.max(now, a.send_after?.getTime() ?? now) / 1000));
       const until = BigInt(Math.floor(a.deadline.getTime() / 1000));
-      if (after <= 0n || until <= after || until >= 1n << 48n) throw new SponsorError("INVALID_INPUT", "Approval window has expired or is empty");
+      // Dates that cannot form a window are input; a deadline the canonical clock has reached is the approval's state.
+      const start = a.send_after === null ? 1n : BigInt(Math.ceil(a.send_after.getTime() / 1000));
+      if (start <= 0n || until <= start || until >= 1n << 48n) throw new SponsorError("INVALID_INPUT", "Approval window is empty");
+      if (until <= after) throw new SponsorError("WRONG_STATE", "Approval expired before sponsorship");
       const sender = address(a.sender), key = uint(a.nonce_key, 192);
       if (key === 0n) throw new SponsorError("INVALID_INPUT", "Approval nonce key must be nonzero");
       if (await client.getChainId() !== a.chain_id) throw invalid();

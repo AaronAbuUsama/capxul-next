@@ -24,11 +24,18 @@ const codes: Record<string, string> = {
   NotAuthorised: denied, NoMembership: denied, ThresholdTooLow: denied, InsufficientValidSignatures: denied, StillWearsSignerHat: denied,
   CannotChangeModules: denied, CannotCallSafe: denied, NoReentryAllowed: denied,
 };
-// viem's revert errors, matched by name because a caller's client may come from another viem copy than this module's.
-const revertNames = new Set(["ContractFunctionRevertedError", "ContractFunctionZeroDataError", "ExecutionRevertedError", "RawContractError"]);
+// A revert without data is final only when the node said so: viem's ExecutionRevertedError (code 3 / "execution
+// reverted") or an empty return. Matched by name because a caller's client may come from another viem copy. Not
+// ContractFunctionRevertedError or RawContractError: viem also wraps a node's internal error (-32603) in those.
+// A node's gas cap ("gas required exceeds allowance") is also an ExecutionRevertedError, but it is the node's limit.
+const revertNames = new Set(["ExecutionRevertedError", "ContractFunctionZeroDataError"]);
 function reverted(error: unknown): boolean {
-  for (let e = error, depth = 0; object(e) && depth < 10; e = e.cause, depth++) if (typeof e.name === "string" && revertNames.has(e.name)) return true;
-  return false;
+  let found = false;
+  for (let e = error, depth = 0; object(e) && depth < 10; e = e.cause, depth++) {
+    if ([e.details, e.message].some(m => typeof m === "string" && /gas required exceeds allowance/i.test(m))) return false;
+    if (typeof e.name === "string" && revertNames.has(e.name)) found = true;
+  }
+  return found;
 }
 const refused = (code: string) => ({ code, reason: "The chain refused sponsorship of this operation" });
 

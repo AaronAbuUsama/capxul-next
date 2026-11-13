@@ -79,6 +79,9 @@ test("sponsor uses the canonical world clock for its start and completion expiry
   let reads = 0;
   const expired = await approvalSponsor({ ...config, now: () => ++reads === 1 ? frozenNow() : request.deadline })(input);
   assert.deepEqual(expired, { code: "WRONG_STATE", reason: "Approval expired during sponsorship" });
+  // The same deadline already reached before sponsorship is the same state; a window empty by its own dates is input.
+  assert.deepEqual(await approvalSponsor({ ...config, now: () => request.deadline })(input), { code: "WRONG_STATE", reason: "Approval expired before sponsorship" });
+  assert.deepEqual(await approvalSponsor({ ...config, now: frozenNow })({ ...request, send_after: request.deadline }), { code: "INVALID_INPUT", reason: "Approval window is empty" });
 });
 
 test("sponsor refuses absent/claim-owned accounts, wrong modules/hashes, consumed or foreign nonce lanes", async () => {
@@ -158,6 +161,10 @@ test("chain reverts from viem reads are final refusals; only an outage is retrie
     ["Error(string)", () => { throw { code: 3, message: "execution reverted", data: notEntryPoint }; }, "TRANSACTION_FAILED"],
     ["Roles NoMembership", () => { throw { code: 3, message: "execution reverted", data: encodeErrorResult({ abi: errorAbi, errorName: "NoMembership" }) }; }, "ROLE_PERMISSION_DENIED"],
     ["node outage", () => { throw new Error("socket hang up"); }, null],
+    // viem wraps these node failures in ContractFunctionRevertedError too; they are outages, not reverts.
+    ["node internal error -32603", () => { throw { code: -32603, message: "Internal error" }; }, null],
+    ["node header not found", () => { throw { code: -32000, message: "header not found" }; }, null],
+    ["node gas cap", () => { throw { code: -32000, message: "gas required exceeds allowance (30000000)" }; }, null],
   ];
   for (const [name, answer, code] of cases) {
     const chain = createPublicClient({ transport: custom({ async request({ method }) { if (method === "eth_call") return answer(); throw new Error(`unexpected ${method}`); } }, { retryCount: 0 }), cacheTime: 0 });

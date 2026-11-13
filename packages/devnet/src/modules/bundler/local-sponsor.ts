@@ -115,7 +115,8 @@ function loopback(url: string): void {
   if (u.protocol !== "http:" || u.hostname !== "127.0.0.1" || u.username || u.password) throw new Error("local sponsor requires an unauthenticated loopback chain RPC");
 }
 
-/** Test-only admission, checked wherever the sponsor's signing can be reached, not only by its HTTP server. */
+/** Test-only admission from configuration alone, checked by the handler as well as the server. The live chain id,
+ * paymaster EntryPoint and listed signer are read from the chain only when startLocalSponsor starts the server. */
 function admit(config: LocalSponsorConfig): void {
   if (config.admission !== "test-only") throw new Error("the local sponsor requires explicit test-only admission");
   loopback(config.chain.rpcUrl);
