@@ -1,0 +1,73 @@
+# One bench, shared by every site of every world: one MariaDB, one Redis, one web process (gunicorn, 2 workers of 4
+# threads), one background worker and one scheduler. No port is published: the checks call the web process from inside.
+name: bench-clocks
+
+x-bench: &bench
+  image: bench-clocks:spike
+  pull_policy: never
+  working_dir: /home/frappe/frappe-bench
+  environment:
+    PYTHONPATH: /probe          # the spike's probe module (probe/clockprobe.py); it never imports capxul
+    PYTHONDONTWRITEBYTECODE: "1"
+  volumes:
+    - sites:/home/frappe/frappe-bench/sites
+    - ../../packages/frappe-app:/home/frappe/frappe-bench/apps/capxul:ro
+    - ./probe:/probe:ro
+  depends_on:
+    configurator: { condition: service_completed_successfully }
+
+services:
+  mariadb:
+    image: public.ecr.aws/docker/library/mariadb:11.8   # the official image from Amazon's mirror: Docker Hub answered 429 here
+    command: [--character-set-server=utf8mb4, --collation-server=utf8mb4_unicode_ci, --skip-character-set-client-handshake]
+    environment:
+      MARIADB_ROOT_PASSWORD: "123"   # throwaway local fixture; the container is deleted at the end of the run
+    volumes: [db:/var/lib/mysql]
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 3s
+      retries: 60
+  redis:
+    image: public.ecr.aws/docker/library/redis:7.4-alpine
+    healthcheck: { test: [CMD, redis-cli, ping], interval: 3s, retries: 30 }
+  configurator:
+    <<: *bench
+    depends_on:
+      mariadb: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        bench set-config -g db_host mariadb
+        bench set-config -g redis_cache redis://redis:6379/0
+        bench set-config -g redis_queue redis://redis:6379/1
+        bench set-config -g redis_socketio redis://redis:6379/2
+        bench set-config -gp developer_mode 0
+        bench set-config -gp scheduler_tick_interval "${SCHEDULER_TICK:-15}"
+  web:
+    <<: *bench
+    command:
+      - /home/frappe/frappe-bench/env/bin/gunicorn
+      - --chdir=/home/frappe/frappe-bench/sites
+      - --bind=0.0.0.0:8000
+      - --workers=2
+      - --threads=4
+      - --worker-class=gthread
+      - --worker-tmp-dir=/dev/shm
+      - --timeout=120
+      - --preload
+      - --access-logfile=-
+      - --access-logformat=ACCESS pid=%(p)s host=%({host}i)s %(m)s %(U)s %(s)s   # which worker process served which site
+      - ${WEB_APP:-frappe.app:application}   # run.sh sets WEB_APP=webentry:application to try the fix (probe/webentry.py)
+  worker:
+    <<: *bench
+    command: [bench, worker, --queue, "short,default,long"]
+  scheduler:
+    <<: *bench
+    command: [bench, schedule]
+
+volumes:
+  sites:
+  db:
