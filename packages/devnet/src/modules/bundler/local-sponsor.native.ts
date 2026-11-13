@@ -106,7 +106,13 @@ try {
   const calls = [{ to: recipientA, value: "19", data: "0x" }, { to: recipientB, value: "23", data: "0x" }];
   const request = (key: bigint, sendAfter: Date | null, deadlineSeconds = 600, sender: Address = safe): SponsorshipRequest => ({
     chain_id: 84532, sender, calls, nonce_key: key.toString(), nonce: null, send_after: sendAfter, deadline: new Date(now().getTime() + deadlineSeconds * 1000) });
-  const provider = bundlerProvider(httpTransport(alto.url));
+  // Records whether a send was answered Alto's "Already known" (the transport's flag, never the provider's text).
+  const sendAnswers: string[] = [];
+  const recorded = httpTransport(alto.url);
+  const provider = bundlerProvider({ async request(method, params) {
+    try { const result = await recorded.request(method, params); if (method === "eth_sendUserOperation") sendAnswers.push("hash"); return result; }
+    catch (error) { if (method === "eth_sendUserOperation") sendAnswers.push((error as { alreadyKnown?: boolean }).alreadyKnown ? "already-known" : "rejected"); throw error; }
+  } });
   const signed = async (v: VerifiedSponsorship, paymasterData = v.user_operation.paymasterData): Promise<{ operation: RpcUserOperation; expectedHash: Hex }> => {
     const after = BigInt(v.valid_after.getTime() / 1000), until = BigInt(v.valid_until.getTime() / 1000), op = { ...v.user_operation, paymasterData };
     const digest = paymasterData === v.user_operation.paymasterData ? v.digest as Hex : safeOpDigest(op, { chainId: 84532, module: SAFE_4337_MODULE, entryPoint: ENTRY_POINT_07_ADDRESS, validAfter: after, validUntil: until });
@@ -134,6 +140,10 @@ try {
   await until(now1.valid_after); // Alto refuses validAfter beyond its wall clock
   const op1 = await signed(now1);
   assert.equal(await provider.send({ ...op1, entryPoint: ENTRY_POINT_07_ADDRESS }), now1.user_op_hash);
+  // The same signed operation again before Alto bundles it (a carrier restart, a second instance): Alto answers -32602
+  // "Already known" from its mempool, which no lookup can see yet, and the door returns the signed hash, not a refusal.
+  assert.equal(await provider.send({ ...op1, entryPoint: ENTRY_POINT_07_ADDRESS }), now1.user_op_hash);
+  assert.deepEqual(sendAnswers, ["hash", "already-known"], "the second send was answered Already known, before bundling");
   const receipt1 = await mined(now1.user_op_hash as Hex);
   assert.equal(receipt1.success, true);
   const tx1 = await chain.client.getTransactionReceipt({ hash: receipt1.receipt.transactionHash });
@@ -143,7 +153,8 @@ try {
   assert.equal(tx1.from.toLowerCase(), chain.walletFor(keys.executorKey).account.address.toLowerCase(), "Alto's executor carried it, not a direct handleOps");
   const after1 = await balances();
   assert.deepEqual([after1[0]! - before[0]!, after1[1]! - before[1]!, before[2]! - after1[2]!], [19n, 23n, 42n], "exact ordered transfers; the Safe paid no gas");
-  log(`PASS signed window ${now1.valid_after.toISOString()}..${now1.valid_until.toISOString()} sponsored over real HTTP, sent once via Alto and mined: userOp ${now1.user_op_hash} tx ${receipt1.receipt.transactionHash}`);
+  assert.equal(parseEventLogs({ abi: ENTRY_POINT, logs: tx1.logs, eventName: "UserOperationEvent" }).length, 1, "the duplicate send bundled nothing twice");
+  log(`PASS signed window ${now1.valid_after.toISOString()}..${now1.valid_until.toISOString()} sponsored over real HTTP, sent via Alto, sent again before bundling (Already known: the signed hash), mined once: userOp ${now1.user_op_hash} tx ${receipt1.receipt.transactionHash}`);
 
   // 2. Dated approval: Alto refuses it before its start, then accepts the same signed operation once world time reaches it.
   const dated = await sponsor(request((1n << 191n) + 518n, new Date(now().getTime() + 10_000)));

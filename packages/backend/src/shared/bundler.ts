@@ -25,11 +25,13 @@ export class ProviderError extends Error {
 }
 class RpcRejection extends Error {
   readonly rpcCode: number;
-  constructor(rpcCode: number) { super("bundler rejected RPC request"); this.rpcCode = rpcCode; }
+  /** Alto's "Already known": the identical operation is in its mempool. A flag only; the provider's text is never kept. */
+  readonly alreadyKnown: boolean;
+  constructor(rpcCode: number, alreadyKnown = false) { super("bundler rejected RPC request"); this.rpcCode = rpcCode; this.alreadyKnown = alreadyKnown; }
 }
 /** ERC-4337 rejections (-32500 to -32599) and invalid params (-32602), except throttling and stake (-32504, -32505), which
- * say nothing about the operation. A refusal is believed only after a lookup finds the operation not held: Alto answers
- * -32602 "Already known" for an identical operation already in its mempool (integrations.bundler-door). */
+ * say nothing about the operation. A refusal is believed only after a lookup finds the operation not held, and Alto's
+ * -32602 "Already known" is no refusal at all: its mempool, which lookups cannot see, holds the operation (integrations.bundler-door). */
 const refusalCode = (code: number) => code === -32602 || (code <= -32500 && code >= -32599 && code !== -32504 && code !== -32505);
 const invalid = () => new ProviderError("PROVIDER_RESPONSE_INVALID", "bundler returned an invalid response");
 const unavailable = () => new ProviderError("PROVIDER_ERROR", "bundler did not answer; use the operation hash for recovery");
@@ -60,7 +62,7 @@ export function httpTransport(url: string): RpcTransport {
     if (!object(body) || body.jsonrpc !== "2.0" || body.id !== 1) throw invalid();
     if (body.error !== undefined) {
       if (!object(body.error) || !Number.isInteger(body.error.code)) throw invalid();
-      throw new RpcRejection(body.error.code as number);
+      throw new RpcRejection(body.error.code as number, body.error.code === -32602 && body.error.message === "Already known");
     }
     if (!("result" in body)) throw invalid();
     return body.result;
@@ -103,6 +105,8 @@ export function bundlerProvider(transport: RpcTransport): Bundler {
       try { answer = await transport.request("eth_sendUserOperation", [op, entryPoint]); }
       catch (error) {
         if (error instanceof ProviderError && error.code === "PROVIDER_RESPONSE_INVALID") throw error;
+        // Alto holds the identical operation in its mempool, where eth_getUserOperationByHash cannot see it before bundling.
+        if (error instanceof RpcRejection && error.alreadyKnown) return expectedHash;
         // Held wins over any answer: a refusal of an operation the bundler already holds is not a refusal.
         const found = await lookup(expectedHash);
         if (found.operation || found.receipt) return expectedHash;

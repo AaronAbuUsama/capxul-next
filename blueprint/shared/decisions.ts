@@ -3199,7 +3199,8 @@ export const decision_integrations_bundler_door = defineDecision({
   why:
     "A validation refusal is a definite answer the carrier acts on (back to signed, sent again in the window), while a lost answer may mean the operation is held, so the carrier looks it up and never sends again. " +
     "Refusals are the ERC-4337 codes -32500 to -32599 and invalid params -32602, except throttling and stake (-32504, -32505), which say nothing about the operation and are lost answers like every other error. " +
-    "Every refusal is believed only after a lookup by the signed hash finds the operation not held, because Alto answers -32602 'Already known' for an identical operation already in its mempool; a held operation is the signed hash, whatever the answer was. " +
+    "Alto 0.0.21 answers -32602 with exactly the message 'Already known' when an identical operation (by hash) is in its outstanding or processing mempool, and its eth_getUserOperationByHash and receipt search only on-chain logs, so a lookup cannot see that operation until it is bundled: " +
+    "that one answer is the signed hash, recognised by the exact message (kept as a flag, never the text). Every other refusal is believed only after a lookup by the signed hash finds the operation not held; a held operation is the signed hash, whatever the answer was. " +
     "This differs from the devnet's earlier rule only for -32504 and -32505 (now looked up, not refused) and -32602 (now a refusal unless held); the sponsorship gateway's classification (approvals sponsorship) is a separate call and keeps its own rule. " +
     "The hash the bundler answers must equal the signed one, or the door refuses the answer. Held means the bundler returns the operation or its receipt; a receipt is never settlement, which comes only from Core's final indexed fact. " +
     "The provider is product code in the backend's Shared module, and the devnet uses the same one.",

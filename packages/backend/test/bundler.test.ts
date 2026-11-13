@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createServer } from "node:http";
 import { test } from "node:test";
 import { bundler, type RpcTransport, type SignedUserOperation } from "../src/shared/door.ts";
 
@@ -58,4 +59,28 @@ test("lookup: held by the operation or its receipt; an outage after the retries 
   await assert.rejects(bundler({ gatewayUrl: "x", entryPoint }, { async request() { reads++; throw new Error("secret outage"); } }).lookup(signed), code("PROVIDER_ERROR"));
   assert.equal(reads, 6, "two reads, each tried three times");
   await assert.rejects(door({ userOperation: { sender: "0x1" } }, null).lookup(signed), code("PROVIDER_RESPONSE_INVALID"));
+});
+
+test("send over HTTP: Alto's exact -32602 'Already known' is the signed hash although no lookup can see it; any other -32602 is refused", async () => {
+  // Real Alto 0.0.21 before bundling: the duplicate is in its mempool, and both reads search only on-chain logs.
+  let sends = 0, reads = 0, message = "";
+  const server = createServer(async (req, res) => {
+    let raw = ""; for await (const chunk of req) raw += chunk;
+    const { method } = JSON.parse(raw);
+    res.writeHead(200, { "content-type": "application/json" });
+    if (method === "eth_sendUserOperation") { sends++; res.end(JSON.stringify({ jsonrpc: "2.0", id: 1, error: { code: -32602, message } })); }
+    else { reads++; res.end(JSON.stringify({ jsonrpc: "2.0", id: 1, result: null })); }
+  });
+  await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+  const door = bundler({ gatewayUrl: `http://127.0.0.1:${(server.address() as { port: number }).port}`, entryPoint });
+  try {
+    message = "Already known";
+    assert.deepEqual(await door.send(op, { expectedHash: signed }), { hash: signed.toLowerCase() });
+    assert.deepEqual([sends, reads], [1, 0], "sent once; nothing to look up");
+    for (const other of ["already known", "Already known.", "AA25 invalid account nonce", "secret Already known"]) {
+      message = other; sends = reads = 0;
+      assert.deepEqual(await door.send(op, { expectedHash: signed }), { refused: { code: "TRANSACTION_FAILED", reason: "the bundler refused the operation in validation" } }, other);
+      assert.deepEqual([sends, reads], [1, 2], "refused only after a lookup finds it not held");
+    }
+  } finally { server.close(); }
 });
