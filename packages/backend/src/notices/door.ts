@@ -39,7 +39,7 @@ export async function readNotices(sql: Sql, options: { to?: string; template?: s
 const transitioned: Emit = async (sql, props, at, id, trace) => {
   await emit(sql, { id: `notice:${id}`, name: "notice_transitioned", machine: "notice", entity_id: props.notice_id,
     // notices.event-owner: the recipient person, or no owner. Never the Organization, even for an outside mailbox.
-    owner_kind: props.person_id ? "person" : null, owner_id: props.person_id ?? null, actor: null, trace_id: trace, at, props });
+    owner_kind: props.person_id ? "person" : null, owner_id: props.person_id || null, actor: null, trace_id: trace, at, props });
 };
 
 export async function deliverNotices(db: Database, mail: Mail) {

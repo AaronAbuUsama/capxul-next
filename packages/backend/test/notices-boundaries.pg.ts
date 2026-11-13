@@ -83,3 +83,21 @@ test("a notice's transition is in its recipient person's scope, and an outside m
     assert.deepEqual(await owner(outside), [{ kind: null, id: null }]);
   } finally { await db.worker.query("update app.world set clock=$1", [previous]); }
 });
+
+test("an empty person_id is no owner, so an accepted send records once and never replays", async () => {
+  const previous = (await db.worker.query("select clock from app.world")).rows[0].clock;
+  await updateWorldClock(db, { nowMs: instant, rate: 1, clockMode: "stopped" });
+  try {
+    const blank = { ...intent(randomUUID()), person_id: "", org_id: "payer-company" };
+    await db.transaction("", (sql) => planDelivery(sql, blank, instant), true);
+    let calls = 0;
+    const mail = { async send() { calls++; return { id: "blank-owner" }; } };
+    await deliverNotices(db, mail);
+    await deliverNotices(db, mail);
+    assert.equal(calls, 1, "a recorded outcome is not replayed");
+    assert.equal((await read(blank)).status, "sent");
+    const rows = (await db.worker.query(`select event->>'owner_kind' as kind,event->>'owner_id' as id from app.transition_outbox
+      where event->>'name'='notice_transitioned' and event->'props'->>'notice_id'=$1`, [blank.notice_id])).rows;
+    assert.deepEqual(rows, [{ kind: null, id: null }]);
+  } finally { await db.worker.query("update app.world set clock=$1", [previous]); }
+});
