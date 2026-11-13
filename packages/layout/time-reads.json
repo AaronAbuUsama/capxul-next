@@ -112,21 +112,21 @@
    "why": "signed envelope freshness check"
   },
   {
-   "file": "packages/backend/src/schema.sql",
+   "file": "packages/backend/src/schema-per-org.sql",
    "match": "trace text not null, tx_hash text, created_at timestamptz not null default now()",
    "label": "owed",
    "why": "approvals.created_at is business time; writers must pass worldNow",
    "owner": "Approvals"
   },
   {
-   "file": "packages/backend/src/schema.sql",
+   "file": "packages/backend/src/schema-per-org.sql",
    "match": "created_at timestamptz not null default now(), map_version text",
    "label": "owed",
    "why": "site_events.created_at is when the event happened in the world; writers must pass worldNow",
    "owner": "Frappe/Plugs"
   },
   {
-   "file": "packages/backend/src/schema.sql",
+   "file": "packages/backend/src/schema-per-org.sql",
    "match": "at timestamptz not null default now(), primary key (org_id, id)",
    "label": "owed",
    "why": "records.at is business time; see platform/db.ts record()",
@@ -332,6 +332,18 @@
    "match": "while (Date.now() < deadline)",
    "label": "real-on-purpose",
    "why": "the same polling budget's loop"
+  },
+  {
+   "file": "packages/backend/src/organizations/runner.ts",
+   "match": "now(): number | Promise<number>;",
+   "label": "world",
+   "why": "the option's declaration: composition passes Core's worldNow"
+  },
+  {
+   "file": "packages/backend/src/organizations/runner.ts",
+   "match": "const elapsed = o.elapsed ?? (() => performance.now())",
+   "label": "real-on-purpose",
+   "why": "retry backoff is real elapsed time (time.real-elapsed)"
   }
  ]
 }
