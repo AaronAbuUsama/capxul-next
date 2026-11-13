@@ -36,6 +36,11 @@ test("an unlabelled host clock read fails in TypeScript, JavaScript, SQL and Pyt
     ["packages/frappe-app/capxul/b.py", "day = datetime.today()"],
     ["packages/frappe-app/capxul/b.py", "frappe.db.sql(\"update t set modified=NOW() where name=%s\", name)"],
     ["packages/frappe-app/capxul/b.py", "frappe.db.sql(\"select 1 where d <= CURDATE()\")"],
+    ["packages/frappe-app/capxul/b.py", "values (%s,NOW(6),NOW(6),%s)"],
+    ["packages/backend/src/b.sql", "update t set at = now ( 3 );"],
+    ["packages/backend/src/b.ts", "const at = new Date;"],
+    ["packages/backend/src/b.ts", "const stamp = Date();"],
+    ["packages/backend/src/b.ts", "const origin = performance.timeOrigin;"],
   ] as const) {
     const found = problems([{ path, text: line }]);
     assert.equal(found.length, 1, `${path}: ${line}`);
@@ -86,4 +91,20 @@ test("the committed list is well formed and reports its owed work", () => {
   assert.deepEqual(found, []);
   for (const read of committed.reads) if (read.label === "owed") assert.ok(read.owner, read.line);
   assert.ok(owed.some((o) => "id" in o && o.id.startsWith("devnet.site-follows-world")), "unbuilt clock work in decisions is listed as owed");
+});
+
+test("every host clock read time.no-direct-reads names is found, and the list is the decision's own", () => {
+  const decision = readFileSync(new URL("../../../../../blueprint/shared/time.ts", import.meta.url), "utf8");
+  for (const [token, line] of [
+    ["Date.now()", "const at = Date.now();"], ["new Date() without an argument", "const at = new Date();"],
+    ["performance.now()", "const t = performance.now();"], ["process.hrtime", "const t = process.hrtime.bigint();"],
+    ["Clock.currentTimeMillis", "const t = yield* Clock.currentTimeMillis;"], ["currentTimeNanos", "const t = yield* Clock.currentTimeNanos;"],
+    ["DateTime.now", "const t = yield* DateTime.now;"], ["nowAsDate", "const t = yield* DateTime.nowAsDate;"], ["nowUnsafe", "const t = DateTime.nowUnsafe();"],
+    ["Postgres now()", "select now();"], ["current_timestamp", "select current_timestamp;"],
+    ["clock_timestamp()", "select clock_timestamp();"], ["transaction_timestamp()", "select transaction_timestamp();"],
+  ] as const) {
+    assert.ok(decision.includes(token), `time.no-direct-reads no longer names ${token}; update this list from the decision`);
+    assert.equal(hostReads("packages/backend/src/b.ts", line).length, 1, `${token}: ${line}`);
+  }
+  assert.deepEqual(hostReads("packages/backend/src/b.ts", "const at = new Date(input.at);"), [], "a date from a value is not a clock read");
 });

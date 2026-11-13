@@ -13,10 +13,12 @@ export type Allowlist = { include: string[]; exclude: Record<string, string>; mo
 export type Problem = { at: string; why: string };
 
 const LABELS: readonly Label[] = ["rebound", "real-on-purpose", "world", "owed"];
-const JS = [/\bDate\.now\(/, /\bnew Date\(\s*\)/, /\bperformance\.now\(/];
+// time.no-direct-reads' list (blueprint/shared/time.ts lint-zero), plus Date() as a call and `new Date` without parentheses, which read now too.
+const JS = [/\bDate\.now\(/, /\bnew Date\(\s*\)/, /\bnew Date\b(?!\s*\()/, /(?<![\w.$])(?<!new\s+)Date\s*\(/, /\bperformance\.(now\(|timeOrigin\b)/,
+  /\bprocess\.hrtime\b/, /\bcurrentTime(Millis|Nanos)\b/, /\bDateTime\.now\b/, /\bnowAsDate\b/, /\bnowUnsafe\b/];
 const PY = [/\bdatetime\.(now|utcnow|today)\(/, /\bdate\.today\(/, /\btime\.(time|time_ns)\(/];
-// SQL's clock, in Postgres and MariaDB spellings. `now()` counts unless it is a method or member (`x.now()`); `<now()` counts.
-const SQL = [/(?<![\w.$])now\(\s*\)/i, /\b(current_timestamp|current_date|current_time|localtimestamp|localtime)\b/i,
+// SQL's clock, in Postgres and MariaDB spellings. `now()` and `NOW(6)` count unless a method or member (`x.now()`); `<now()` counts.
+const SQL = [/(?<![\w.$])now\s*\(\s*\d*\s*\)/i, /\b(current_timestamp|current_date|current_time|localtimestamp|localtime)\b/i,
   /\b(clock_timestamp|transaction_timestamp|statement_timestamp|timeofday|sysdate|utc_timestamp|utc_date|curdate|curtime)\s*\(/i];
 const CODE = /\.(ts|tsx|mts|cts|js|mjs|cjs|py|sql)$/;
 

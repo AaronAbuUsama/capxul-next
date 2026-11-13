@@ -32,7 +32,7 @@
     "tasks": "node --experimental-strip-types packages/plan/src/tasks.ts",
     "tasks:check": "node --experimental-strip-types packages/plan/src/tasks.ts --check",
     "layout": "node --experimental-strip-types --no-warnings packages/layout/src/main.ts",
-    "layout:test": "node --experimental-strip-types --no-warnings --test packages/layout/src/modules/layout/layout.test.ts",
+    "layout:test": "pnpm --filter @capxul/layout test",
     "portal:serve": "node --experimental-strip-types --no-warnings packages/portal/src/main.ts serve",
     "evals": "node --experimental-strip-types --no-warnings packages/evals/src/main.ts",
     "evals:check": "node --experimental-strip-types --no-warnings packages/evals/src/main.ts check",

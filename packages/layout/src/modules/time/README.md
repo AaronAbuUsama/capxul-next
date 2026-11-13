@@ -3,11 +3,15 @@
 The static half of `inv:time.no-direct-reads` (decisions `time.no-direct-reads` and `devnet.one-world-clock`).
 `pnpm layout` scans the product code for host clock reads: every package's `src/` plus the paths in `include` of
 `packages/layout/time-reads.json`, minus the tooling named in `exclude` (each with its reason), in TypeScript, JavaScript,
-SQL and Python. It looks for `Date.now()`, `new Date()`, `performance.now()`, `datetime.now/today/utcnow()`,
-`time.time()`, and SQL's clock in every file kind (`now()`, `current_date`, `transaction_timestamp()`, `curdate()`, ...),
-including `default now()` columns.
+SQL and Python. It looks for every read `time.no-direct-reads` names (`Date.now()`, `new Date()`, `performance.now()`,
+`process.hrtime`, `currentTimeMillis`/`currentTimeNanos`, `DateTime.now`, `nowAsDate`, `nowUnsafe`), plus `new Date` without
+parentheses, `Date()` as a call and `performance.timeOrigin`; Python's `datetime.now/today/utcnow()` and `time.time()`; and SQL's
+clock in every file kind (`now()`, `NOW(6)`, `current_timestamp`, `clock_timestamp()`, `transaction_timestamp()`, `curdate()`, ...),
+including `default now()` columns. Its test loops over every token the decision names.
 
-`packages/runtime/src/time/` is the one clock module (RealTime and, next, the world's now): reads inside it are the door and take no label.
+Known gap: the scan reads one line at a time, so a read split across lines (`Date\n  .now()`) is not found. Review catches it.
+
+`packages/runtime/src/time/` is the one clock module (the host's real time and, next, the world's now): reads inside it are the door and take no label.
 Every other read must be labelled by an entry naming its whole trimmed line (and `hits` when the same line occurs more than
 once), so a new read can never hide behind an old entry's text, and every entry must still label its reads:
 

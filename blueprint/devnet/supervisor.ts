@@ -50,8 +50,9 @@ export const decision_devnet_one_world_clock = defineDecision({
       "(4) Core. Business time is worldNow(sql); real time only for time.real-elapsed's measures and protections, each labelled. " +
       "(5) Frappe follows the same clock, subsystem by subsystem, as devnet.frappe-clock-subsystems rules. " +
       "(6) Checks. world inspect reads every follower (authority, database, chain head and next block, the bench entry and each site's capxul.clock.now, the " +
-      "bundler's patched reads) and refuses on any disagreement. The time.no-direct-reads scan covers packages/*/src and *.sql with a committed allowlist " +
-      "labelling each host read rebound, real-on-purpose or world. Each check has a negative control that makes it fail: no bench install at create, an " +
+      "bundler's patched reads) and refuses on any disagreement. The time.no-direct-reads scan covers every package's src and the named extra paths, minus " +
+      "named tooling, in TypeScript, JavaScript, SQL and Python, with a committed allowlist labelling each host read's whole line rebound, " +
+      "real-on-purpose, world or owed (with its owner). Each check has a negative control that makes it fail: no bench install at create, an " +
       "unpinned Anvil, a reverted Alto patch, an unlabelled host read." },
     { label: "start-at-wall-time", text: "Start every world's clock and chain at the host's time and leave followers reading the host. Any frozen clock, warp or restore to an old cut separates them again." },
     { label: "alto-date-preload", text: "Replace Date.now inside the Alto process with the world clock through a preload. It also freezes Alto's own timeouts and polling, which are real on purpose." },
@@ -87,7 +88,7 @@ export const decision_devnet_frappe_clock_subsystems = defineDecision({
       "Supersedes point (5) of devnet.site-follows-world. Sessions are on the world's now: last_updated, the Sessions expiry threshold and the " +
       "session_end comparison read it, so one session is judged on one clock: a one-day world clock warp keeps it and a warp past its lifetime ends it " +
       "cleanly (devnet.time-is-right test 6, bound to world clock warp). A snapshot restore still invalidates every session by design " +
-      "(devnet.snapshot-consistent-cut). The clock read fails closed: a missing or unreadable world entry raises instead of returning " +
+      "(devnet.snapshot-consistent-cut, option quiesce-template-bundle). The clock read fails closed: a missing or unreadable world entry raises instead of returning " +
       "the host's time. Every bench Python process installs the clock at interpreter start (a world-clock .pth in the bench venv), because Frappe " +
       "validates the session in init_request before any app is imported: a fresh web worker otherwise judges a world-stamped session on the host and " +
       "deletes it. Each site's capxul.clock.now reports whether its workers booted with the clock, and world inspect refuses one that did not. Redis TTLs, locks, caches, rate limits and the job queue's enqueue and timeout stamps are real on purpose: infrastructure " +

@@ -11,7 +11,8 @@
   "packages/portal/": "builds the book from the blueprint",
   "packages/plan/": "the coordinator's plan tooling",
   "packages/evals/": "the eval harness: it times runs and stamps receipts in real time on purpose (time.real-elapsed)",
-  "packages/contracts/": "Solidity reads block.timestamp, which is chain time; its scripts are deploy tooling"
+  "packages/contracts/": "Solidity reads block.timestamp, which is chain time; its scripts are deploy tooling",
+  "packages/devnet/world-cost/": "a Ponder cost-measurement app and its harness, outside the workspace with its own lockfile; it never runs in a world"
  },
  "module": "packages/runtime/src/time/",
  "reads": [
@@ -296,54 +297,6 @@
    "why": "anchors a running world clock to the host"
   },
   {
-   "file": "packages/frappe-app/capxul/door.py",
-   "line": "and p.get(\"aud\") == \"payment-request-listener\" and time.time() < float(p.get(\"exp\", 0)) <= time.time() + 60)",
-   "label": "real-on-purpose",
-   "why": "signed envelope freshness check"
-  },
-  {
-   "file": "packages/frappe-app/capxul/door.py",
-   "line": "if not ok or p.get(\"s\") != frappe.local.site or float(p.get(\"exp\", 0)) < time.time():",
-   "label": "real-on-purpose",
-   "why": "signed envelope freshness check"
-  },
-  {
-   "file": "packages/sdk/src/sites/door.ts",
-   "line": "const raw = JSON.stringify({ org: input.org, caller: options.account.address, expiresAt: Date.now() + 60_000 });",
-   "label": "real-on-purpose",
-   "why": "signed request envelope expiry"
-  },
-  {
-   "file": "packages/site-service/src/sites/provisioning.ts",
-   "line": "if (!input || !isAddress(input.caller ?? \"\") || !Number.isSafeInteger(input.expiresAt) || input.expiresAt <= Date.now() || input.expiresAt > Date.now() + 60_000 || typeof signature !== \"string\") {",
-   "label": "real-on-purpose",
-   "why": "signed request envelope freshness check"
-  },
-  {
-   "file": "packages/site-service/src/sites/documents.ts",
-   "line": "const deadline = Date.now() + 30_000;",
-   "label": "real-on-purpose",
-   "why": "a 30 s polling budget for the bench, an operational timeout"
-  },
-  {
-   "file": "packages/site-service/src/sites/documents.ts",
-   "line": "} while (Date.now() < deadline);",
-   "label": "real-on-purpose",
-   "why": "the same polling budget's loop"
-  },
-  {
-   "file": "packages/site-service/src/sites/lifecycle.ts",
-   "line": "const deadline = Date.now() + 30_000;",
-   "label": "real-on-purpose",
-   "why": "a 30 s polling budget for the bench, an operational timeout"
-  },
-  {
-   "file": "packages/site-service/src/sites/lifecycle.ts",
-   "line": "} while (Date.now() < deadline);",
-   "label": "real-on-purpose",
-   "why": "the same polling budget's loop"
-  },
-  {
    "file": "packages/frappe-app/capxul/clock.py",
    "line": "How Frappe reads time: `frappe.utils.data.now_datetime()` is the root. `nowdate()`, `today()`, `nowtime()` and `now()` (which stamps",
    "label": "rebound",
@@ -360,6 +313,61 @@
    "line": "return now()",
    "label": "rebound",
    "why": "capxul.clock's own world now: the whitelisted clock endpoint and its docstring, not a host read"
+  },
+  {
+   "file": "packages/frappe-app/capxul/door.py",
+   "line": "and p.get(\"aud\") == \"payment-request-listener\" and time.time() < float(p.get(\"exp\", 0)) <= time.time() + 60)",
+   "label": "real-on-purpose",
+   "why": "signed envelope freshness check"
+  },
+  {
+   "file": "packages/frappe-app/capxul/door.py",
+   "line": "if not ok or p.get(\"s\") != frappe.local.site or float(p.get(\"exp\", 0)) < time.time():",
+   "label": "real-on-purpose",
+   "why": "signed envelope freshness check"
+  },
+  {
+   "file": "packages/frappe-app/capxul/product_door.py",
+   "line": "values (%s,NOW(6),NOW(6),%s,%s,0,0,%s,%s,'') on duplicate key update name=name\"\"\",",
+   "label": "owed",
+   "why": "the door-call receipt's creation and modified are SQL NOW(6) on the host; pass frappe.utils.now_datetime(), which the world clock rebinds, as parameters",
+   "owner": "Sites"
+  },
+  {
+   "file": "packages/sdk/src/sites/door.ts",
+   "line": "const raw = JSON.stringify({ org: input.org, caller: options.account.address, expiresAt: Date.now() + 60_000 });",
+   "label": "real-on-purpose",
+   "why": "signed request envelope expiry"
+  },
+  {
+   "file": "packages/site-service/src/sites/documents.ts",
+   "line": "const deadline = Date.now() + 30_000;",
+   "label": "real-on-purpose",
+   "why": "a 30 s polling budget for the bench, an operational timeout"
+  },
+  {
+   "file": "packages/site-service/src/sites/documents.ts",
+   "line": "} while (Date.now() < deadline);",
+   "label": "real-on-purpose",
+   "why": "the same polling budget's loop"
+  },
+  {
+   "file": "packages/site-service/src/sites/lifecycle.ts",
+   "line": "const deadline = Date.now() + 30_000;",
+   "label": "real-on-purpose",
+   "why": "a 30 s polling budget for the bench, an operational timeout"
+  },
+  {
+   "file": "packages/site-service/src/sites/lifecycle.ts",
+   "line": "} while (Date.now() < deadline);",
+   "label": "real-on-purpose",
+   "why": "the same polling budget's loop"
+  },
+  {
+   "file": "packages/site-service/src/sites/provisioning.ts",
+   "line": "if (!input || !isAddress(input.caller ?? \"\") || !Number.isSafeInteger(input.expiresAt) || input.expiresAt <= Date.now() || input.expiresAt > Date.now() + 60_000 || typeof signature !== \"string\") {",
+   "label": "real-on-purpose",
+   "why": "signed request envelope freshness check"
   }
  ],
  "work": [
