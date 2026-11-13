@@ -6,7 +6,7 @@ root=$(git rev-parse --show-toplevel)
 start=$EPOCHREALTIME
 result=pass
 node --experimental-strip-types --no-warnings --test --test-concurrency=1 \
-  "$root/packages/backend/test/approvals.pg.ts" "$root/packages/backend/test/site-answer.pg.ts" || result=fail
+  "$root/packages/backend/test/migrate.pg.ts" "$root/packages/backend/test/approvals.pg.ts" "$root/packages/backend/test/site-answer.pg.ts" || result=fail
 elapsed=$(awk -v start="$start" -v end="$EPOCHREALTIME" 'BEGIN {printf "%.0f", (end-start)*1000}')
 printf '@check\t%s\t%s\t%s\tReal PG component controls only; no selected-stack acceptance\n' "$name" "$result" "$elapsed"
 [[ $result == pass ]]

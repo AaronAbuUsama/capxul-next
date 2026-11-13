@@ -79,7 +79,7 @@ test("explicit restore rebases only mapped answer origins without changing appro
         values ($1,$1,$2,$3,'payer@core.test',$4,7,11)`, [slug, `0x${String(run + i).padStart(40, "0")}`, `${slug}.core.test`, fixture.token]);
       await database.worker.query("insert into app.site_request_answers (org_id,request_id,request,answer) values ($1,'restore-answer',$2,$3)", [slug, request, { ...answer, org: slug }]);
     }
-    await database.worker.query(`insert into app.approvals (org_id,id,request_id,request,status,trace,tx_hash)
+    await database.worker.query(`insert into app.site_payment_approvals (org_id,id,request_id,request,status,trace,tx_hash)
       values ($1,'original','restore-answer',$2,'settled','restore-trace','0xsettled')`, [org, request]);
     await database.worker.query("insert into app.site_request_answers (org_id,request_id,request,answer) values ($1,'refused',$2,$3)", [org, request, { error: { code: "FORBIDDEN" }, approval_url: "" }]);
     const input = { worldId: `cloned-${run}`, epoch: 2, clock: { nowMs: 1000, clockMode: "stopped", rate: 1 },
@@ -99,7 +99,7 @@ test("explicit restore rebases only mapped answer origins without changing appro
     });
     assert.deepEqual(rows.find((r) => r.org_id === other), { org_id: other, request_id: "restore-answer", request, answer: { ...answer, org: other } });
     assert.deepEqual(rows.find((r) => r.request_id === "refused")!.answer, { error: { code: "FORBIDDEN" }, approval_url: "" });
-    const approval = (await database.worker.query("select id,status,trace,tx_hash,request from app.approvals where org_id=$1", [org])).rows[0];
+    const approval = (await database.worker.query("select id,status,trace,tx_hash,request from app.site_payment_approvals where org_id=$1", [org])).rows[0];
     assert.deepEqual(approval, { id: "original", status: "settled", trace: "restore-trace", tx_hash: "0xsettled", request: { ...request, site: "restored.core.test" } });
     assert.deepEqual((await database.worker.query("select request_cursor,last_ack from app.organizations where org_id=$1", [org])).rows[0], { request_cursor: "7", last_ack: "11" });
     assert.deepEqual((await exportAbandonedBranch(database)).records, before.records);

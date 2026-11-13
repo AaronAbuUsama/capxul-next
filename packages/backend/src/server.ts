@@ -1,10 +1,12 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { timingSafeEqual } from "node:crypto";
 import { Effect } from "effect";
-import { get, prepare, submitted } from "./approvals/door.ts";
-import { readSnapshotCut } from "./devnet/door.ts";
+import { carry, get, prepare, submitted, type CarrierServices } from "./approvals/door.ts";
+import { readSnapshotCut, worldNow } from "./devnet/door.ts";
+import { readChainFact } from "./indexing/door.ts";
 import { info, register, release } from "./organizations/door.ts";
-import { consume } from "./payments/door.ts";
+import { approvalTerminal, consume, readPayment } from "./payments/door.ts";
+import { onPaymentTransition } from "./requests/door.ts";
 import { deliver, RequestCollector, resend, retryParked, signature, status } from "./plugs/door.ts";
 import { note } from "./activity/door.ts";
 import { settings } from "./platform/config.ts";
@@ -13,13 +15,26 @@ import { relay } from "./platform/outbox.ts";
 import { alerts, indexerState } from "./platform/diagnostics.ts";
 
 type Config = ReturnType<typeof settings>;
+/** The approval carrier's chain-facing half: sponsorship, the bundler's send and lookup, the Safe nonce, needs and gate. */
+export type CarrierChain = Pick<CarrierServices, "sponsor" | "send" | "lookup" | "nonce" | "needsAndGate">;
 function json(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" });
   res.end(JSON.stringify(body));
 }
-export function createCore(config: Config, provision?: (req: IncomingMessage, res: ServerResponse) => Promise<boolean>) {
+export function createCore(config: Config, provision?: (req: IncomingMessage, res: ServerResponse) => Promise<boolean>, chain?: CarrierChain) {
   if (!Number.isSafeInteger(config.finality) || config.finality < 0) throw new Error("FINALITY_DEPTH must be a nonnegative integer");
   const db = new Database(config.database, config.workerDatabase);
+  // Composed here: the world's authority clock, Core's final indexed fact at the approval's nonce, and each opener's
+  // follower, which runs inside the terminal transition's transaction. Without a chain half the carrier does not run.
+  const carrier: CarrierServices | undefined = chain && {
+    ...chain,
+    now: async () => new Date(await worldNow(db.worker)),
+    fact: (sql, approval) => readChainFact(sql, { chainId: approval.chain_id, sender: approval.sender, nonce: approval.nonce!, finality: config.finality }),
+    terminal: async (sql, event) => {
+      await approvalTerminal(sql, event, { at: Date.parse(event.observedAt), traceId: event.trace_id });
+      // Other openers' followers append here (Budgets: budgets.changes.follow).
+    },
+  };
   let paused = config.startPaused, closing = false, activeRequests = 0, activeDeliveries = 0;
   let activeLoop: Promise<void> = Promise.resolve(), timer: ReturnType<typeof setTimeout> | undefined;
   let pauseWork: Promise<Awaited<ReturnType<typeof readSnapshotCut>>> | undefined;
@@ -101,6 +116,12 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
       // Activity's change log follows committed transitions; its failure must not stall per-organization work, nor theirs it.
       await relay(db, "activity.changes", ["payment_transitioned", "movement_transitioned"], note)
         .catch((error) => console.error(`Activity relay: ${error.message}`));
+      // Requests follow committed payment transitions. No escrow ending anchor is composed yet, so a request
+      // that needs one is held unacknowledged (WRONG_STATE verification_unavailable) rather than guessed.
+      await relay(db, "requests.lifecycle.payment-followers", ["payment_transitioned"], (sql, event) => onPaymentTransition(sql, event, readPayment))
+        .catch((error) => console.error(`Requests relay: ${error.message}`));
+      if (carrier) await carry(db, carrier).catch((error) => console.error(`Approval carrier: ${error.message}`));
+      // Later relays append here (Notices: noticesWorker).
       const index = await indexerState(db, config.ponder, config.chainId, config.rpc, true);
       const orgs = (await db.worker.query("select org_id,site,released from app.organizations order by org_id")).rows;
       for (const company of orgs) {
