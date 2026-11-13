@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { setTimeout } from "node:timers/promises";
 import test from "node:test";
 import pg from "pg";
-import { createTestClient, http, keccak256, stringToHex, type Abi } from "viem";
+import { createTestClient, http, keccak256, stringToHex, type Abi, publicActions } from "viem";
 import { connect } from "../../devnet/src/modules/chain/service.ts";
 import { pay } from "../../devnet/src/modules/company/service.ts";
 import { testKey } from "../../devnet/src/modules/test-keys/service.ts";
@@ -110,11 +110,15 @@ test("indexed settlement compares exact terms and commits source event and SQL b
     await worker.query("commit");
     await control.revert({ id: checkpoint });
     await control.mine({ blocks: 3 });
+    // Wait for Ponder to index the replacement chain itself: its head block and hash, not only the fact's disappearance,
+    // which can commit before the rollback lowers indexed_block (then follow would still see the fact as unfinalized).
+    const head = await control.extend(publicActions).getBlock();
     let removed = false;
     for (let attempt = 0; attempt < 200; attempt++) {
       const progress = (await worker.query("select * from app.indexer_progress where chain_id=$1", [chain.chainId])).rows[0];
       const source = (await worker.query("select 1 from app.chain_payments where payment_id=$1", [paid.paymentId.toLowerCase()])).rowCount;
-      if (!source && progress?.ready && BigInt(progress.indexed_block) >= BigInt(fact.block_number)) { removed = true; break; }
+      if (!source && progress?.ready && BigInt(progress.indexed_block) === head.number && progress.indexed_block_hash === head.hash &&
+          head.number >= BigInt(fact.block_number)) { removed = true; break; }
       await setTimeout(100);
     }
     assert(removed, "actual chain revert must remove the fact through Ponder rollback before following it");
