@@ -681,10 +681,11 @@ export const environment_devnet = defineEnvironment({
     "(one to sixty world seconds a real second, decision devnet.clock-rate), which the chain, the backend, Ponder, the " +
     "stand-ins and a connected head all follow, and nothing it sends leaves the machine (time.world-channels). It runs the " +
     "same stack as staging (aaron.postgres-and-ponder): the backend on Postgres, with Capxul's data in the `app` schema and " +
-    "Ponder's index in the `ponder` schema of the same database. Each world runs in its own box from the one world image " +
-    "(aaron.alchemy-provisioning), with its own Postgres holding its one database; its Ponder stops when the world parks. There is no bundler except in the one canary world " +
+    "Ponder's index in the `ponder` schema of the same database. A world runs straight on the machine under the supervisor, " +
+    "or, when configured, in its own box from the one world image (aaron.alchemy-provisioning, aaron.sandbox-optional), " +
+    "with its own Postgres holding its one database; its Ponder stops when the world parks. There is no bundler except in the one canary world " +
     "that keeps the real bundler (thin-line.bundler). Worlds are the supervisor's named snapshots of the chain and the " +
-    "world's database together (a snapshot copies the database from a template inside the box), with the clock; the box itself is an Alchemy stage at the docker placement. Devnet-only rpcs (the devnet concept) answer only here and in a shared world. Fakes: the mock paymaster, " +
+    "world's database together (a snapshot copies the database from a template inside the box), with the clock; a box, when used, is an Alchemy stage at the docker placement. Devnet-only rpcs (the devnet concept) answer only here and in a shared world. Fakes: the mock paymaster, " +
     "the mail sink, the stand-in WhatsApp, the stand-in head and FDE host, scripted prices and gates, Bridge's sandbox or " +
     "a local stand-in.",
   runs: [
@@ -697,7 +698,7 @@ export const environment_devnet = defineEnvironment({
     { component: component_react_sdk, on: "A local browser app, for the approval page and browser-mode evals." },
     { component: component_cli, on: "On the same machine after `capxul use env devnet`, with the devnet's fixed test identities." },
     { component: component_mcp_server, on: "A local MCP server on loopback, for assistant evals." },
-    { component: component_provisioner, on: "On the developer's machine or cloud container: deploys the world as an Alchemy stage at the docker placement, one box from the world image (aaron.alchemy-provisioning)." },
+    { component: component_provisioner, on: "Optional (aaron.sandbox-optional): on the developer's machine or cloud container, deploys a world as an Alchemy stage at the docker placement, one box from the world image, when the world is configured to run in a box." },
     {
       component: component_devnet,
       on: "The supervisor: its time authority, capxul.devnet/1 on loopback with an owner-only handoff file beside its owner-only socket; `capxul-devnet up [--rate <n>]`, `reset`, `down`.",

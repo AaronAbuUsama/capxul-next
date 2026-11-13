@@ -10,7 +10,7 @@ import Alchemy, so a breaking Alchemy release changes this package only. Alchemy
 | `src/provisioner/stage.ts` | A world id's stage (`world-<id>`) and box name (`capxul-world-<id>`); refuses ids the supervisor would refuse (1 to 12 letters and digits) |
 | `src/provisioner/docker-box.ts` | The docker placement: one container that runs its own Docker daemon, plus a volume for that daemon's disk |
 | `src/provisioner/alchemy.ts` | The only call into Alchemy's programmatic API: plan, then apply, for one stage; state under `var/provisioner` |
-| `src/main.ts` | The command line: `provisioner deploy|park|resume|destroy <world>` |
+| `src/main.ts` | The command line: `provisioner deploy|park|resume|destroy <world> [--placement none|docker|e2b]` |
 | `box/Containerfile` | The world box image: Ubuntu 24.04 with its own Docker daemon, Node, pnpm, git and psql 17 |
 | `box/box-start.sh` | The box's entrypoint: trusts an extra CA, runs `dockerd`, stops worlds on park and starts them on resume |
 | `box/run-world.sh` | Inside the box: `run-world prepare`, `create`, `slice-zero`, `up`, `stop`, `inspect` through today's supervisor |
@@ -33,6 +33,11 @@ taken inside the box.
 
 ## Placements
 
+A box is optional (`aaron.sandbox-optional`). A world's placement comes from `--placement` or `CAPXUL_WORLD_PLACEMENT`;
+with nothing set it is `none`: the world runs straight on the machine under the devnet supervisor, as it always has, and
+the provisioner has nothing to do. Every check passes without a box, a sandbox or an E2B key.
+
+
 - `docker` (built): a laptop or a cloud container. Each box has its own network, so the Docker inside it owns its own
   firewall rules and two boxes never share ports. (Sharing the host's network broke the sites: the box's Docker and the
   host's wrote rules into the same firewall, and containers on one world's network could not reach each other.) In a
@@ -51,5 +56,5 @@ pnpm --filter @capxul/provisioner test                                   # unit 
 CAPXUL_PROVISIONER_DOCKER=1 pnpm --filter @capxul/provisioner test       # also the whole life of a box, needs Docker
 ```
 
-Environment for `src/main.ts`: `CAPXUL_WORLD_BOX_IMAGE` (default `capxul-world-box:dev`, built by `bin/build-box.sh`), `CAPXUL_PROVISIONER_STATE` (default
+Environment for `src/main.ts`: `CAPXUL_WORLD_PLACEMENT` (`none`, `docker` or `e2b`; default `none`), `CAPXUL_WORLD_BOX_IMAGE` (default `capxul-world-box:dev`, built by `bin/build-box.sh`), `CAPXUL_PROVISIONER_STATE` (default
 `var/provisioner`), `CAPXUL_BOX_TRUST_CA` and `CAPXUL_BOX_PROXY` (the proxy as the box sees it).

@@ -1202,3 +1202,27 @@ export const decision_aaron_shared_bench_for_shared_worlds = defineDecision({
   source: "Aaron, 12 November 2026, in the project thread \"Rethink infrastructure around Alchemy\" (19:16 UTC)",
   affects: [f.component_provisioner, f.component_site_service, f.environment_shared_world, cloud.component_sites_host, cloud.environment_worlds],
 });
+
+export const decision_aaron_sandbox_optional = defineDecision({
+  id: "aaron.sandbox-optional",
+  title: "A box or sandbox is something a world can use, never something it needs",
+  question:
+    "aaron.alchemy-provisioning made every world an Alchemy stage in a box. Must every world run in a box or sandbox, or " +
+    "is that a choice the configuration makes?",
+  options: [
+    {
+      label: "optional",
+      text:
+        "The configuration picks where a world runs: straight on the machine under the supervisor (as before), in a " +
+        "docker box, or in an E2B sandbox. With nothing configured the world runs on the machine, and every check and " +
+        "eval passes without a box, a sandbox or an E2B key.",
+    },
+    { label: "mandatory", text: "Every world runs in a box or sandbox; the supervisor never runs a world on the machine directly." },
+  ],
+  chosen: "optional",
+  why:
+    "Aaron, project chat, 13 November 2026 04:39 UTC: \"Have the config so it _can_ sandbox not mandatory\". The provisioner " +
+    "is a layer above the supervisor, not a replacement for it, so nothing else depends on a box existing.",
+  source: "Aaron, 13 November 2026, in the project chat (04:39 UTC)",
+  affects: [f.component_provisioner, f.component_devnet, f.environment_devnet, cloud.environment_worlds],
+});

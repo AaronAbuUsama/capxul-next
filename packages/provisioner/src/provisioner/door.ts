@@ -5,7 +5,17 @@ import { applyStage, type Applied } from "./alchemy.ts";
 import { dockerBoxStack, type DockerBoxSpec } from "./docker-box.ts";
 import { worldStage, type Placement, type Want } from "./stage.ts";
 
-export { InvalidWorld, worldStage, boxName, type Placement, type Want, type WorldStage } from "./stage.ts";
+export {
+  InvalidPlacement,
+  InvalidWorld,
+  boxName,
+  placementFrom,
+  worldStage,
+  type ConfiguredPlacement,
+  type Placement,
+  type Want,
+  type WorldStage,
+} from "./stage.ts";
 
 export interface BoxOutput {
   readonly world: string;

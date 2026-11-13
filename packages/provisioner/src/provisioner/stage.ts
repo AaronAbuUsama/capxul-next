@@ -3,6 +3,24 @@
 /** Where a world's box runs. `machine` (a long-lived host with a real disk) is not built yet. */
 export type Placement = "docker" | "e2b";
 
+/**
+ * A world's configured placement. A box is optional (aaron.sandbox-optional): `none`, or nothing configured, means the
+ * world runs straight on the machine under the devnet supervisor and there is nothing to provision.
+ */
+export type ConfiguredPlacement = Placement | "none";
+
+export class InvalidPlacement extends Error {
+  readonly code = "INVALID_PLACEMENT";
+}
+
+/** Read a configured placement; unset or empty is `none`. */
+export const placementFrom = (value: string | undefined): ConfiguredPlacement => {
+  const v = (value ?? "").trim();
+  if (v === "" || v === "none") return "none";
+  if (v === "docker" || v === "e2b") return v;
+  throw new InvalidPlacement(`placement must be none, docker or e2b, not ${JSON.stringify(v)}`);
+};
+
 /** What a deploy asks of the box: running, or parked (stopped, disk kept). */
 export type Want = "running" | "parked";
 
