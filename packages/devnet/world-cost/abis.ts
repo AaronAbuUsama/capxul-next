@@ -56,6 +56,6 @@ export const FACTORY = {
   companySafe: parseAbi(["event CompanySafeMinted(address indexed safe, address indexed founderSafe, string company, bool deployed)"])[0],
   personSafe: parseAbi(["event CapxulSafeClaimed(address indexed safe, address indexed signer, bool deployed)"])[0],
   agentSafe: parseAbi(["event AgentCreated(address indexed safe, address indexed owner, address indexed signer)"])[0],
-  escrow: parseAbi(["event EscrowDeployed(address indexed escrow, address indexed ownerSafe, address indexed payeeSafe, bytes32 paymentId, bytes32 salt)"])[0],
+  escrow: parseAbi(["event EscrowDeployed(address indexed escrow, address indexed owner, address indexed sender, bytes32 paymentId, bytes32 salt, address authority, uint256 authorityKey)"])[0],
   equity: (V4.Installer as readonly { type: string; name?: string }[]).find((x) => x.name === "EquityDeployed") as never,
 };
