@@ -4,3 +4,5 @@ export { ServiceSignerError, claimServiceSigner, migrateServiceSigner } from "./
 export type { ClaimSend, ClaimReceipt, ClaimSignerConfig, ServiceSigner } from "./service-signer.ts";
 export { IndexerError, readIndexerHead, readPersonalSafeClaim } from "./indexer.ts";
 export type { IndexerProgress, IndexedClaim, ClaimLookup } from "./indexer.ts";
+export { ChainRpcError, chainRpc } from "./chain-rpc.ts";
+export type { ChainBlock, ChainLog, ChainNode, ChainRpc } from "./chain-rpc.ts";
