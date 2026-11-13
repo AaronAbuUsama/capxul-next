@@ -23,6 +23,7 @@ change, and the change is written here with its date.
 | Spend cap | Agreed 13 November 2026: at most $10 a day across Cloudflare and Neon. A world is destroyed after its run, so normal use stays far below it. |
 | Hono | Accepted 13 November 2026 as a non-Effect dependency while Ponder is used, because Ponder's API file requires it. Looked at again when Ponder is. |
 | Test addresses | Agreed 13 November 2026: rehearsals put test addresses under `worlds.abuusama.dev` and are checked over HTTP, because a certificate for a second level needs a paid Cloudflare add-on; every record made is removed after. Real worlds use `capxul.com` once its DNS moves to Cloudflare (Aaron's step), with each site one level under the domain (`<company>-<world>.capxul.com`), so Cloudflare's free certificate covers it. |
+| The Amp wave | Agreed 13 November 2026: no more work goes onto `integration/wave-0`. Its open pull requests stay open as the reference for porting; each is closed, with a link to the master pull request and run record that replaced it, once master supersedes it: the world machinery and the thin line's operations at the end of phase 1, every other journey as phase 3 ports it. |
 | Convergence | The threads on `main` continue until phase 1 passes here. Then `master` becomes the trunk and they move over journey by journey. |
 
 ## World lifecycle rules, enforced by code
