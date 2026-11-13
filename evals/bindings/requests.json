@@ -1,0 +1,24 @@
+{
+  "area": "requests",
+  "script": "packages/evals/src/modules/requests/run.sh",
+  "worlds": ["main"],
+  "secrets": [],
+  "bindings": [],
+  "near": [
+    {
+      "eval": "tbl:requests/admits/c-e1da93482f1b1f7c",
+      "checks": ["REQUESTS.component-pg"],
+      "missing": "Restricted PG owner/payer/stranger RLS controls use explicitly seeded trusted session context. Full authenticated active/revoked principal and party-directory resolution in the selected world is not established."
+    },
+    {
+      "eval": "wfl:requests.lifecycle.follow-settled/idempotent",
+      "checks": ["REQUESTS.component-pg"],
+      "missing": "Common outbox consume/effect/ACK rollback and committed duplicate replay pass on real PG with an injected payment source reader. No actual Ponder/v4 settlement, real payment source door, ERPNext or required same-run receipt."
+    },
+    {
+      "eval": "trn:request.settle",
+      "checks": ["REQUESTS.component-pg"],
+      "missing": "Component follower guards cover current payment and funded/short/late escrow end balances. A real final indexed settlement and authoritative ending-block escrow read through composed workflow remain unproved."
+    }
+  ]
+}

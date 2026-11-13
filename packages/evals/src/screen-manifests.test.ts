@@ -26,7 +26,7 @@ test("each module lists only its own captures; duplicates, symlinked modules and
     const script = (sites: string, extra = "") => [
       "printf '@check\\tM1.done\\tpass\\t1\\tok\\n'",
       'mkdir -p "$CAPXUL_EVAL_RUN_DIR/acceptance" "$CAPXUL_EVAL_RUN_DIR/sites"',
-      'printf png > "$CAPXUL_EVAL_RUN_DIR/acceptance/invoice.png"; printf png > "$CAPXUL_EVAL_RUN_DIR/sites/grants.png"',
+      `printf '\\377\\330\\377' > "$CAPXUL_EVAL_RUN_DIR/acceptance/invoice.png"; printf '\\211PNG\\r\\n\\032\\n' > "$CAPXUL_EVAL_RUN_DIR/sites/grants.png"`,
       `printf '{"x":1}' > "$CAPXUL_EVAL_RUN_DIR/sites/sources.json"`,
       `printf '{"x":1}' > "$CAPXUL_EVAL_RUN_DIR/acceptance/sources.json"`,
       `printf '%s' '[${entry("supplier-invoice", "acceptance/invoice.png", "acceptance/sources.json#/x")}]' > "$CAPXUL_EVAL_RUN_DIR/screens.json"`,

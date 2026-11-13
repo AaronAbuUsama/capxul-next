@@ -39,6 +39,10 @@ export const ApprovalView = Schema.Struct({
   network: Schema.Struct({ chainId: Schema.Int, name: S, explorerUrl: S }),
   sender: Address,
   calls: Schema.Array(Call),
+  /** Immutable opener intent, independent of the operation under verification. */
+  nonceKey: S,
+  deadline: Instant,
+  replacement: NullOr(Schema.Struct({ approvalId: S, nonce: S })),
   /** The Safe's owner key that must sign; null until sponsored. */
   signer: NullOr(Schema.Struct({ address: Address })),
   /** The sponsored operation; `digest` (the SafeOp hash) is the one thing the key signs. Null until sponsored. */
@@ -62,7 +66,8 @@ const ApprovalId = Schema.Struct({ approvalId: S });
 const SIGNER =
   "The approval's signer: the principal whose own Safe sends it, signed in as themselves (a person, or an agent with its " +
   "own key; `dev approve` signs in as the person it plays). Anyone else's approval, or an id that names nothing, is " +
-  "INVALID_INPUT `approvalId`.";
+  "INVALID_INPUT `approvalId`. The public transport reauthenticates and evaluates any approval gate on every call " +
+  "and live frame; a disabled gate is FEATURE_NOT_AVAILABLE, without exposing another signer's row.";
 
 export const rpc_approvals_signing_get = defineRpc({
   id: "approvals.signing.get",
@@ -80,8 +85,8 @@ export const rpc_approvals_signing_get = defineRpc({
   who: SIGNER,
   input: ApprovalId,
   output: ApprovalView,
-  errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT],
-  reads: [table_approvals],
+  errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT, error_FEATURE_NOT_AVAILABLE],
+  reads: [table_approvals, table_feature_flags],
   writes: [],
   drives: [],
   invokes: [],
@@ -105,8 +110,8 @@ export const rpc_approvals_signing_review = defineRpc({
   who: SIGNER,
   input: ApprovalId,
   output: ApprovalView,
-  errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT],
-  reads: [table_approvals],
+  errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT, error_FEATURE_NOT_AVAILABLE],
+  reads: [table_approvals, table_feature_flags],
   writes: [table_approvals],
   drives: [],
   invokes: [],
@@ -167,8 +172,8 @@ export const rpc_approvals_signing_decline = defineRpc({
   who: SIGNER,
   input: ApprovalId,
   output: ApprovalView,
-  errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT, error_WRONG_STATE],
-  reads: [table_approvals],
+  errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT, error_WRONG_STATE, error_FEATURE_NOT_AVAILABLE],
+  reads: [table_approvals, table_feature_flags],
   writes: [table_approvals],
   drives: [machine_approval.t.decline],
   invokes: [],

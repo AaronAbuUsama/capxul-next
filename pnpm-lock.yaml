@@ -360,6 +360,15 @@ importers:
         specifier: 'catalog:'
         version: 5.9.3
 
+  packages/runtime:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.1
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+
   packages/sdk:
     dependencies:
       viem:
