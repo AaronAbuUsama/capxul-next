@@ -49,7 +49,7 @@ export async function readSources(f: Fixture): Promise<Sources> {
     resource("Purchase Invoice", f.invoice), resource("Supplier", f.supplier), resource("Payment Entry", f.paymentEntry),
     list("Capxul Payment Request", [["payment_entry", "=", f.paymentEntry]], ["name", "status", "tx_hash", "approval_url"]),
     list("GL Entry", [["company", "=", f.company], ["is_cancelled", "=", 0]], ["name", "account", "debit", "credit", "voucher_no", "capxul_trace", "posting_date"]),
-    frappe(f, "/api/method/frappe.desk.query_report.run", { report_name: "Trial Balance", filters: JSON.stringify({ company: f.company, fiscal_year: "2026", from_date: "2026-01-01", to_date: "2026-12-31" }), ignore_prepared_report: "1" }),
+    frappe(f, "/api/method/frappe.desk.query_report.run", { report_name: "Trial Balance", filters: JSON.stringify({ company: f.company, fiscal_year: "2026", from_date: "2026-01-01", to_date: "2026-12-31", show_net_values: 1 }), ignore_prepared_report: "1" }),
     rpc(f, "eth_call", [{ to: f.token, data: `0x70a08231${f.safe.slice(2).padStart(64, "0")}` }, block]),
     rpc<Doc | null>(f, "eth_getTransactionReceipt", [f.txHash]),
   ]);
