@@ -1,0 +1,1452 @@
+{
+  "kind": "scenarios",
+  "run": "core-189d55",
+  "what": "The registered scenarios run through the runner against Core's deployed empty handlers. Passed when every claim the blueprint declares has its scenario in the run, every scenario failed on the NotImplemented it was answered (never passed, never died), every call was answered NotImplemented and passed every generic check, and every stage was destroyed with nothing of it left in the accounts.",
+  "mode": "one stage",
+  "expect": "not-implemented",
+  "owner": "runner",
+  "startedAt": "2026-11-13T12:45:48.703Z",
+  "outcome": "passed",
+  "failure": null,
+  "count": {
+    "scenarios": 54,
+    "claims": 53,
+    "declaredClaims": 53,
+    "asExpected": 54
+  },
+  "byOperation": {
+    "world.create": 6,
+    "world.show": 3,
+    "world.snapshot.save": 3,
+    "world.snapshot.restore": 5,
+    "org.create": 7,
+    "org.member.grant": 7,
+    "doc.create": 4,
+    "doc.submit": 4,
+    "approval.sign": 5,
+    "report.run": 3,
+    "world.clock.warp": 2,
+    "record.export": 4
+  },
+  "scenarios": [
+    {
+      "name": "world.create claim 1",
+      "proves": {
+        "operation": "world.create",
+        "claim": 1
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:1",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"world.create\"}"
+      },
+      "calls": [
+        {
+          "operation": "world.create",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 221.652,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.create claim 2",
+      "proves": {
+        "operation": "world.create",
+        "claim": 2
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:2",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "ExpectationFailed",
+        "detail": "{\"_tag\":\"ExpectationFailed\",\"message\":\"world.create starting in 2000 was refused with NotImplemented; it must be refused with ClockBeforeSeed\"}"
+      },
+      "calls": [
+        {
+          "operation": "world.create",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 137.528,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.create claim 3",
+      "proves": {
+        "operation": "world.create",
+        "claim": 3
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:3",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "ExpectationFailed",
+        "detail": "{\"_tag\":\"ExpectationFailed\",\"message\":\"world.create of a real world was refused with NotImplemented; it must be refused with GradeNotOffered\"}"
+      },
+      "calls": [
+        {
+          "operation": "world.create",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 193.289,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.create claim 4",
+      "proves": {
+        "operation": "world.create",
+        "claim": 4
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:4",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"world.create\"}"
+      },
+      "calls": [
+        {
+          "operation": "world.create",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 177.807,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.create claim 5",
+      "proves": {
+        "operation": "world.create",
+        "claim": 5
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:5",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"world.create\"}"
+      },
+      "calls": [
+        {
+          "operation": "world.create",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 177.354,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.create claim 6",
+      "proves": {
+        "operation": "world.create",
+        "claim": 6
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:6",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "ExpectationFailed",
+        "detail": "{\"_tag\":\"ExpectationFailed\",\"message\":\"world.create by an owner at the limit was refused with NotImplemented; it must be refused with WorldQuotaReached\"}"
+      },
+      "calls": [
+        {
+          "operation": "world.create",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 188.716,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.show claim 1",
+      "proves": {
+        "operation": "world.show",
+        "claim": 1
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:7",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 140.48,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.show claim 2",
+      "proves": {
+        "operation": "world.show",
+        "claim": 2
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:8",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 135.632,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.show claim 3",
+      "proves": {
+        "operation": "world.show",
+        "claim": 3
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:9",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 143.264,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.snapshot.save claim 1",
+      "proves": {
+        "operation": "world.snapshot.save",
+        "claim": 1
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:10",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 144.888,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.snapshot.save claim 2",
+      "proves": {
+        "operation": "world.snapshot.save",
+        "claim": 2
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:11",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 142.781,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.snapshot.save claim 3",
+      "proves": {
+        "operation": "world.snapshot.save",
+        "claim": 3
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:12",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 144.051,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.snapshot.restore claim 1",
+      "proves": {
+        "operation": "world.snapshot.restore",
+        "claim": 1
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:13",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 155.577,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.snapshot.restore claim 2",
+      "proves": {
+        "operation": "world.snapshot.restore",
+        "claim": 2
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:14",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 141.46,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.snapshot.restore claim 3",
+      "proves": {
+        "operation": "world.snapshot.restore",
+        "claim": 3
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:15",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 133.776,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.snapshot.restore claim 4",
+      "proves": {
+        "operation": "world.snapshot.restore",
+        "claim": 4
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:16",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 135.465,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.snapshot.restore claim 5",
+      "proves": {
+        "operation": "world.snapshot.restore",
+        "claim": 5
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:17",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 134.656,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "org.create claim 1",
+      "proves": {
+        "operation": "org.create",
+        "claim": 1
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:18",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 134.897,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "org.create claim 2",
+      "proves": {
+        "operation": "org.create",
+        "claim": 2
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:19",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 137.316,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "org.create claim 3",
+      "proves": {
+        "operation": "org.create",
+        "claim": 3
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:20",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"org.create\"}"
+      },
+      "calls": [
+        {
+          "operation": "org.create",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 142.786,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "org.create claim 4",
+      "proves": {
+        "operation": "org.create",
+        "claim": 4
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:21",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"org.create\"}"
+      },
+      "calls": [
+        {
+          "operation": "org.create",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 135.939,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "org.create claim 5",
+      "proves": {
+        "operation": "org.create",
+        "claim": 5
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:22",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 136.556,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "org.create claim 6",
+      "proves": {
+        "operation": "org.create",
+        "claim": 6
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:23",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 135.938,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "org.create claim 7",
+      "proves": {
+        "operation": "org.create",
+        "claim": 7
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:24",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 139.425,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "org.member.grant claim 1",
+      "proves": {
+        "operation": "org.member.grant",
+        "claim": 1
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:25",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 134.56,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "org.member.grant claim 2",
+      "proves": {
+        "operation": "org.member.grant",
+        "claim": 2
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:26",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 143.889,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "org.member.grant claim 3",
+      "proves": {
+        "operation": "org.member.grant",
+        "claim": 3
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:27",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 137.649,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "org.member.grant claim 4",
+      "proves": {
+        "operation": "org.member.grant",
+        "claim": 4
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:28",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 176.381,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "org.member.grant claim 5",
+      "proves": {
+        "operation": "org.member.grant",
+        "claim": 5
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:29",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 140.172,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "org.member.grant claim 6",
+      "proves": {
+        "operation": "org.member.grant",
+        "claim": 6
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:30",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 138.067,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "org.member.grant claim 7",
+      "proves": {
+        "operation": "org.member.grant",
+        "claim": 7
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:31",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 142.702,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "doc.create claim 1",
+      "proves": {
+        "operation": "doc.create",
+        "claim": 1
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:32",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 134.241,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "doc.create claim 2",
+      "proves": {
+        "operation": "doc.create",
+        "claim": 2
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:33",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 134.336,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "doc.create claim 3",
+      "proves": {
+        "operation": "doc.create",
+        "claim": 3
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:34",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 138.698,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "doc.create claim 4",
+      "proves": {
+        "operation": "doc.create",
+        "claim": 4
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:35",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 134.329,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "doc.submit claim 1",
+      "proves": {
+        "operation": "doc.submit",
+        "claim": 1
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:36",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 141.731,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "doc.submit claim 2",
+      "proves": {
+        "operation": "doc.submit",
+        "claim": 2
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:37",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 135.68,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "doc.submit claim 3",
+      "proves": {
+        "operation": "doc.submit",
+        "claim": 3
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:38",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 133.756,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "doc.submit claim 4",
+      "proves": {
+        "operation": "doc.submit",
+        "claim": 4
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:39",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 131.128,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "approval.sign claim 1",
+      "proves": {
+        "operation": "approval.sign",
+        "claim": 1
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:40",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 134.384,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "approval.sign claim 2",
+      "proves": {
+        "operation": "approval.sign",
+        "claim": 2
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:41",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 137.997,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "approval.sign claim 3",
+      "proves": {
+        "operation": "approval.sign",
+        "claim": 3
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:42",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 136.856,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "approval.sign claim 4",
+      "proves": {
+        "operation": "approval.sign",
+        "claim": 4
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:43",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 133.542,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "approval.sign claim 5",
+      "proves": {
+        "operation": "approval.sign",
+        "claim": 5
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:44",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 133.815,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "report.run claim 1",
+      "proves": {
+        "operation": "report.run",
+        "claim": 1
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:45",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 131.399,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "report.run claim 2",
+      "proves": {
+        "operation": "report.run",
+        "claim": 2
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:46",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 144.671,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "report.run claim 3",
+      "proves": {
+        "operation": "report.run",
+        "claim": 3
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:47",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 133.015,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.clock.warp claim 1",
+      "proves": {
+        "operation": "world.clock.warp",
+        "claim": 1
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:48",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 141.499,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.clock.warp claim 2",
+      "proves": {
+        "operation": "world.clock.warp",
+        "claim": 2
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:49",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 133.677,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "record.export claim 1",
+      "proves": {
+        "operation": "record.export",
+        "claim": 1
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:50",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 132.703,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "record.export claim 2",
+      "proves": {
+        "operation": "record.export",
+        "claim": 2
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:51",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 140.5,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "record.export claim 3",
+      "proves": {
+        "operation": "record.export",
+        "claim": 3
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:52",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 142.344,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "record.export claim 4",
+      "proves": {
+        "operation": "record.export",
+        "claim": 4
+      },
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:53",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 133.886,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "example: record.export answers a fresh world with its first entry",
+      "proves": null,
+      "stage": "core-189d55",
+      "record": "core-189d55/scenarios.jsonl:54",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 132.965,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    }
+  ],
+  "stages": [
+    {
+      "name": "core-189d55",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 11252
+      },
+      "createMs": 29813,
+      "destroyMs": 3069,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    }
+  ]
+}
