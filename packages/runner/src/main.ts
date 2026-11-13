@@ -144,9 +144,22 @@ const program = Effect.gen(function* () {
   return yield* command === "door" ? theDoor(settings) : theScenarios(settings, chosen);
 });
 
+// Bun's fetch gives up on any answer after five minutes; a world.create can take longer when Cloudflare is slow, and every
+// call already runs under a declared timeout of the runner's, so fetch itself waits as long as it is asked to.
+const bunInit: globalThis.RequestInit & { readonly timeout: boolean } = { timeout: false };
+const noFetchTimeout = Layer.succeed(FetchHttpClient.RequestInit, bunInit);
+
 program.pipe(
   Effect.provide(
-    Layer.mergeAll(OtherWorlds.none, Alchemist.layer(), BunFileSystem.layer, BunPath.layer, FetchHttpClient.layer),
+    Layer.mergeAll(
+      OtherWorlds.none,
+      Alchemist.layer(),
+      BunFileSystem.layer,
+      BunPath.layer,
+      FetchHttpClient.layer,
+      // Read by every fetch from the calling fiber's context, so it is provided to the whole program.
+      noFetchTimeout,
+    ),
   ),
   BunRuntime.runMain,
 );
