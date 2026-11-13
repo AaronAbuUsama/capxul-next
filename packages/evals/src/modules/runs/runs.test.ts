@@ -124,6 +124,39 @@ test("receipts refuse false completion, incomplete passes, stale contracts and r
   assert.deepEqual(late.value, newer, "an older run cannot restore its pass after a newer attempt");
 });
 
+test("partial reports require their own completed plan, exact contracts and same-run identities", () => {
+  const blueprint = { evals: ["acc:one", "acc:two"].map((id) => ({ id, level: "L1" as const, subject: "x", claim: id, observes: `observe ${id}`, decider: "machine" as const })) };
+  const receipt: RunReceipt = {
+    version: 1, id: info.run, state: "incomplete", commit: info.commit, at: info.at, finishedAt: "2026-11-10T12:01:00Z",
+    environment: { world: "slice-zero", storage: "postgres", indexer: "ponder", stack: "postgres-ponder-erpnext-v4", components: {} },
+    requested: blueprint.evals.map((e) => e.id), evals: blueprint.evals.map(({ id, claim, observes }) => ({ id, claim, observes })),
+    scripts: [{ script: "one.sh", evals: ["acc:one"], completed: true, exitCode: 0, signal: null },
+      { script: "two.sh", evals: ["acc:two"], completed: false, exitCode: null, signal: null }],
+    prepare: { argv: ["prepare"], exitCode: 0, signal: null, log: "prepare.log" }, screens: [],
+  };
+  const run = { commit: info.commit, at: info.at, run: info.run, receipt, results: [{ id: "acc:one", verdict: "pass" as const }, { id: "acc:two", verdict: "not_run" as const }] };
+  const { finishedAt, ...unfinished } = receipt;
+  assert.equal(mergeResults(blueprint, null, run).ok, true);
+  for (const changed of [
+    { ...receipt, state: "running" as const },
+    unfinished,
+    { ...receipt, finishedAt: "2026-11-09T12:01:00Z" },
+    { ...receipt, state: "complete" as const },
+    { ...receipt, id: "other-run" }, { ...receipt, at: "2026-11-10T11:00:00Z" }, { ...receipt, commit: "other-commit" },
+    { ...receipt, evals: receipt.evals.map((e) => ({ ...e, observes: "changed" })) },
+    ...[null, 7].map((exitCode) => ({ ...receipt, prepare: { ...receipt.prepare!, exitCode } })),
+    ...[null, 1, 7].map((exitCode) => ({ ...receipt, scripts: receipt.scripts.map((s) => s.script === "one.sh" ? { ...s, exitCode } : s) })),
+    { ...receipt, scripts: receipt.scripts.map((s) => s.script === "one.sh" ? { ...s, signal: "SIGTERM" } : s) },
+    { ...receipt, scripts: receipt.scripts.map((s) => ({ ...s, completed: false })) },
+    { ...receipt, scripts: receipt.scripts.map((s) => ({ ...s, evals: ["acc:one"] })) },
+    { ...receipt, scripts: receipt.scripts.map((s) => ({ ...s, evals: ["acc:unknown"] })) },
+  ]) assert.equal(mergeResults(blueprint, null, { ...run, receipt: changed }).ok, false, JSON.stringify(changed));
+  assert.equal(mergeResults(blueprint, null, { ...run, results: run.results.map((r) => ({ ...r, verdict: "pass" })) }).ok, false, "one completed script cannot credit another");
+  const failed = { ...receipt, state: "complete" as const, scripts: receipt.scripts.map((s) => ({ ...s, completed: true, exitCode: s.script === "two.sh" ? 1 : 0 })) };
+  assert.equal(mergeResults(blueprint, null, { ...run, receipt: failed, results: [{ id: "acc:one", verdict: "pass" }, { id: "acc:two", verdict: "fail" }] }).ok, true);
+  assert.equal(mergeResults(blueprint, null, { ...run, receipt: failed }).ok, false, "completed plans cannot contain missing verdicts");
+});
+
 test("the evidence names the checks and their details; a secret is redacted and a long text is cut in the middle", () => {
   const row = scored(out(line("B1.a", "pass", 7, "key sekret-value-123 shown")), ["acc:one"]).rows[0];
   assert.ok(row);

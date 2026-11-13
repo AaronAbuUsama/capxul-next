@@ -1410,6 +1410,7 @@ export const contract_safe = defineContract({
     },
     getOwners: { signature: "getOwners() view returns (address[])", about: "A Safe's owners: an agent's sign-in proof, a Board's signers." },
     getThreshold: { signature: "getThreshold() view returns (uint256)", about: "How many approvals a Board proposal needs." },
+    nonce: { signature: "nonce() view returns (uint256)", about: "The Safe transaction nonce, read with owners and threshold at the same pinned block when planning a Board proposal." },
   },
   events: {
     ApproveHash: { signature: "ApproveHash(bytes32 indexed approvedHash, address indexed owner)", about: "A Director approved a proposal." },

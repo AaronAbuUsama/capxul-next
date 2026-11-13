@@ -18,9 +18,13 @@ The rules of truth are in `internal/checks.ts` and nowhere else:
 | some bound check did not run and none failed | `not_run`; listed as unfinished, never an old pass |
 | not asked for | untouched |
 
-`src/execute.ts` records intent before any child runs. Passing verdicts are published only when every child exits zero, every
-bound requested check ran, and no check line is malformed. Otherwise the receipt is incomplete, all passes are demoted to
-`not_run`, and the runner exits non-zero. Requests, exits and same-run claim/observes snapshots survive even zero-output runs.
+`src/execute.ts` records intent before any child runs, including each script's assigned `evals` and `completed:false`.
+A plan completes when every bound requested check was reported without malformed lines or signals, with exit 0 or exit 1
+and an explicit failed eval. Completed plans retain their verdicts even if another plan is skipped or interrupted. Other
+exits, missing checks and malformed output demote that plan's passes to `not_run`; explicit failures and raw evidence
+survive. Unexpected harness/evidence errors suppress passes. Whole-run completion requires every request bound and every
+plan completed; success requires every requested eval pass. Slice acceptance still requires one fresh complete selected-stack
+run, never partial reports unioned together. Requests, exits and same-run claim/observes survive even zero-output runs.
 
 `redact` replaces secret values so evidence can be committed; `cap` cuts a long text in the middle. `types.ts` is the module,
 `service.ts` its door. Nothing here reads a file, the clock or the process.
