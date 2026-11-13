@@ -9,7 +9,7 @@ import { prepareDue, schedule } from "../src/notices/workflows.ts";
 import type { Sql } from "../src/platform/db.ts";
 import type { TransitionEvent } from "../src/platform/outbox.ts";
 import { deliverNotices } from "../src/notices/door.ts";
-import { updateWorldClock } from "../src/devnet/door.ts";
+import { updateWorldClock, worldNow } from "../src/devnet/door.ts";
 
 if (process.env.CAPXUL_DISPOSABLE !== "true" || !process.env.CAPXUL_WORLD || process.env.CAPXUL_WORLD === "main")
   throw new Error("notices tests require an explicitly disposable migrated Postgres world");
@@ -76,7 +76,7 @@ test("a notice's transition is in its recipient person's scope, and an outside m
     const payee = { ...intent(randomUUID()), person_id: `person-${randomUUID()}`, org_id: "payer-company" };
     const outside = { ...intent(randomUUID()), person_id: null, org_id: "payer-company" };
     for (const i of [payee, outside]) await db.transaction("", (sql) => planDelivery(sql, i, instant), true);
-    await deliverNotices(db, { async send() { return { id: randomUUID() }; } });
+    await deliverNotices(db, { async send() { return { id: randomUUID() }; } }, worldNow);
     const owner = async (i: Intent) => (await db.worker.query(`select event->>'owner_kind' as kind,event->>'owner_id' as id from app.transition_outbox
       where event->>'name'='notice_transitioned' and event->'props'->>'notice_id'=$1`, [i.notice_id])).rows;
     assert.deepEqual(await owner(payee), [{ kind: "person", id: payee.person_id }]);

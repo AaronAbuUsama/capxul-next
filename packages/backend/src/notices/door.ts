@@ -1,10 +1,9 @@
 import { readFileSync } from "node:fs";
 import type { Database, Sql } from "../platform/db.ts";
-import { worldNow } from "../devnet/door.ts";
 import { lookupBySafe } from "../parties/door.ts";
 import { emit, relay } from "../platform/outbox.ts";
 import type { Mail } from "../shared/door.ts";
-import { deliverDue, type Emit } from "./delivery.ts";
+import { deliverDue, type Emit, type WorldNow } from "./delivery.ts";
 import { createResolver, type Links } from "./resolve.ts";
 import type { Sources } from "./sources.ts";
 import { finishDue, prepareDue, schedule, sourceNames } from "./workflows.ts";
@@ -42,12 +41,13 @@ const transitioned: Emit = async (sql, props, at, id, trace) => {
     owner_kind: props.person_id ? "person" : null, owner_id: props.person_id || null, actor: null, trace_id: trace, at, props });
 };
 
-export async function deliverNotices(db: Database, mail: Mail) {
-  return deliverDue(db, mail, worldNow, transitioned);
+/** `now` is devnet's canonical worldNow, injected by composition (notices.worker-authority); never a host clock. */
+export async function deliverNotices(db: Database, mail: Mail, now: WorldNow) {
+  return deliverDue(db, mail, now, transitioned);
 }
 
 /** Runtime integration, not a public notice procedure. The Core drain awaits this whole tick. */
-export function noticesWorker(db: Database, mail: Mail, sources: Omit<Sources,"partyName">, links: Links) {
+export function noticesWorker(db: Database, mail: Mail, sources: Omit<Sources,"partyName">, links: Links, now: WorldNow) {
   const resolve = createResolver({ ...sources, partyName: async (sql, owner) => {
     const safe = owner.kind === "organization" ? (await sources.organization(sql,owner.id)).safe
       : (await sources.principal(sql,owner.id))?.safeAddress;
@@ -55,11 +55,11 @@ export function noticesWorker(db: Database, mail: Mail, sources: Omit<Sources,"p
   } }, links);
   return async () => {
     const scheduled = await relay(db, "notices", sourceNames, schedule);
-    const prepared = await prepareDue(db, worldNow, resolve);
+    const prepared = await prepareDue(db, now, resolve);
     // A failed delivery row is rethrown only after the workflows it does not block have advanced.
     let failure: unknown;
-    const delivered = await deliverNotices(db, mail).catch((error: unknown) => { failure = error; return 0; });
-    const finished = await finishDue(db, worldNow).catch((error: unknown) => {
+    const delivered = await deliverNotices(db, mail, now).catch((error: unknown) => { failure = error; return 0; });
+    const finished = await finishDue(db, now).catch((error: unknown) => {
       // Neither failure may hide the other.
       throw failure === undefined ? error : new AggregateError([failure, error], "Notices delivery and completion both failed");
     });
