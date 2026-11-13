@@ -7,7 +7,7 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { db, now, run, config, catalogue, signIn, publicAccess } from "./access-fixture.ts";
 import { createAccessClient, signInByKey } from "../../sdk/src/access/door.ts";
 import { accessError, authenticate, digest, feature, readPrincipal, readPrincipalByEmail, requireFeature, revoke, routeAccess,
-  sendCode, syncFlags, verifyCode, type Principal, type SignIn } from "../src/access/door.ts";
+  gatedNeeds, gates, sendCode, syncFlags, verifyCode, type Principal, type SignIn } from "../src/access/door.ts";
 import { admit, eligibility, personalSafe, readAdmission, readAdmissionForEvent, routeAccounts } from "../src/accounts/door.ts";
 import { startSetup } from "../src/accounts/setup.ts";
 
@@ -98,6 +98,24 @@ test("flags use target IDs and strict rollout, fail closed on unsupported rules 
     assert(!await feature(sql, "beta-access", actor, catalogue, now + 1), "a removed provider flag must be deleted");
   });
   await assert.rejects(db.transaction("", (sql) => sql.query("update app.feature_flags set active=true")), /permission denied/);
+});
+
+test("the carrier reads an approval's gate through Core's catalogue, then its needs without the gate", async () => {
+  type A = { gate: string | null; person_id: string; org_id: string | null };
+  const org = `org-${run}`, seen: (string | null)[] = [], at = (ms: number) => async () => new Date(now + ms);
+  const on = (key: string) => ({ key, active: true, target: "organization" as const, rules: [{ ids: [org], rollout: 100 }], unsupported: null, checked_at: new Date(now) });
+  await db.transaction("", (sql) => syncFlags(sql, [on("owner-safe-proposals"), on("books")], gates, now), true);
+  const check = (clock: () => Promise<Date>, needs = true) => gatedNeeds(db, clock, async (a: A) => { seen.push(a.gate); return needs; });
+  const approval = (gate: string | null, org_id: string | null = org): A => ({ gate, person_id: `person-${run}`, org_id });
+  assert.equal(await check(at(1))(approval("owner-safe-proposals")), true);
+  assert.equal(await check(at(1))(approval("owner-safe-proposals", "another-org")), false);
+  assert.equal(await check(at(1))(approval("owner-safe-proposals", null)), false, "an Organization gate needs the approval's Organization");
+  assert.equal(await check(at(600_001))(approval("owner-safe-proposals")), false, "a money gate closes on a stale sync");
+  assert.equal(await check(at(600_001))(approval("books")), true, "books is no money gate: it keeps its synced value");
+  for (const key of ["payment-departments", "__proto__", "toString"]) assert.equal(await check(at(1))(approval(key)), false, key);
+  assert.equal(await check(at(1), false)(approval("owner-safe-proposals")), false);
+  assert.equal(await check(at(1))(approval(null, null)), true);
+  assert.deepEqual(seen, [null, null, null, null], "needs run only once the gate is open, and never see the gate");
 });
 
 test("admission, referral and privacy-safe source events roll back with the caller and serialize retries", async () => {

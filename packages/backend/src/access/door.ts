@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import type { Sql } from "../platform/db.ts";
+import type { Database, Sql } from "../platform/db.ts";
 
 /** World creation only, after base roles/schema and the common outbox; never on up or restore. */
 export async function migrateAccess(sql: Sql): Promise<void> {
@@ -78,6 +78,34 @@ export async function feature(sql: Sql, key: string, actor: { personId: string; 
 export async function requireFeature(sql: Sql, key: string, actor: { personId: string; orgId?: string },
   catalogue: GateCatalogue, now: number): Promise<void> {
   if (!await feature(sql, key, actor, catalogue, now)) throw new Error("FEATURE_NOT_AVAILABLE: feature is off");
+}
+
+/** Core's deployment catalogue (access.gate-catalogue): the only gates Core reads, with their targets and money class. */
+export const gates: GateCatalogue = {
+  "beta-access": { target: "person", money: false },
+  "owner-safe-proposals": { target: "organization", money: true },
+  "payment-agreements": { target: "organization", money: true },
+  equity: { target: "organization", money: true },
+  books: { target: "organization", money: false },
+  "payslip-preview": { target: "organization", money: false },
+};
+
+/**
+ * The approval carrier's held-send check: the approval's gate, read through `gates` for its signer and Organization at
+ * world time in its own read, then `needs` without the gate. A key the catalogue does not name stays closed.
+ */
+export function gatedNeeds<A extends { gate: string | null; person_id: string; org_id: string | null }>(
+  db: Database, now: () => Promise<Date>, needs: (approval: A) => Promise<boolean>) {
+  return async (approval: A): Promise<boolean> => {
+    const key = approval.gate;
+    if (key !== null) {
+      if (!Object.hasOwn(gates, key)) return false;
+      const at = (await now()).getTime();
+      const actor = { personId: approval.person_id, ...(approval.org_id ? { orgId: approval.org_id } : {}) };
+      if (!await db.transaction("", (sql) => feature(sql, key, actor, gates, at), true)) return false;
+    }
+    return needs({ ...approval, gate: null });
+  };
 }
 
 /** The workflow fetches first; failed provider reads must never call this transaction-local writer. */

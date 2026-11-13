@@ -43,7 +43,7 @@ export function carrierChain(config: ChainConfig) {
     nonce: async (a) => (await client.readContract({ address: ENTRY_POINT_07_ADDRESS, abi: entryPointAbi, functionName: "getNonce",
       args: [a.sender as Address, BigInt(a.nonce_key)] })).toString(),
     needsAndGate: async (a) => {
-      // Access's gate catalogue is not composed into Core, so a gated operation fails closed: it waits and lapses.
+      // Core reads the gate through Access' catalogue before this (access.gate-catalogue); asked about one here, fail closed.
       if (a.gate) return false;
       for (const need of a.needs) {
         const balance = await client.readContract({ address: need.token as Address, abi: erc20Abi, functionName: "balanceOf", args: [need.holder as Address] });

@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { timingSafeEqual } from "node:crypto";
 import { Effect } from "effect";
+import { gatedNeeds } from "./access/door.ts";
 import { carry, get, prepare, submitted, type CarrierServices } from "./approvals/door.ts";
 import { readSnapshotCut, worldNow } from "./devnet/door.ts";
 import { readChainFact } from "./indexing/door.ts";
@@ -43,8 +44,11 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
   // Composed here: the world's authority clock, Core's final indexed fact at the approval's nonce, and each opener's
   // follower, which runs inside the terminal transition's transaction. Without a chain half the carrier does not run.
   const now = async () => new Date(await worldNow(db.worker));
-  const carrier: CarrierServices | undefined = chain && {
-    ...chain(now),
+  const half = chain?.(now);
+  const carrier: CarrierServices | undefined = half && {
+    ...half,
+    // Access' catalogue reads an approval's gate (access.gate-catalogue); only then does the chain half check its needs.
+    needsAndGate: gatedNeeds(db, now, half.needsAndGate),
     now,
     fact: (sql, approval) => readChainFact(sql, { chainId: approval.chain_id, sender: approval.sender, nonce: approval.nonce!, finality: config.finality }),
     terminal: async (sql, event) => {
