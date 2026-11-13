@@ -209,6 +209,11 @@ test("slice acceptance requires the full fresh same-run contract and every sourc
     await assert.rejects(verifyRun(root, summary, required, environment, started), /belong to this run/);
     receipt.screens[0]!.source = "source.json#/supplier-invoice/missing"; await save();
     await assert.rejects(verifyRun(root, summary, required, environment, started), /names no value/);
+    // RFC 6901: a pointer starts with "/" and follows only own keys.
+    for (const pointer of ["supplier-invoice", "/constructor"]) {
+      receipt.screens[0]!.source = `source.json#${pointer}`; await save();
+      await assert.rejects(verifyRun(root, summary, required, environment, started), /names no value/);
+    }
     receipt.screens[0]!.source = "source.json#/supplier-invoice/value"; await save();
     await writeFile(join(directory, "source.json"), "");
     await assert.rejects(verifyRun(root, summary, required, environment, started), /source evidence/);

@@ -42,7 +42,7 @@ test("completed assertions differ from crashes and missing output; every attempt
       [`${failed}\nexit 7`, false, ["not_run", "fail"], 7, null],
       [output("B2.done", "fail"), false, ["not_run", "fail"], 0, null],
       [`${both}\nprintf '[{"screen":"payment","path":"missing.png","source":"doctype:Payment Entry","assertion":"source-equality"}]' > "$CAPXUL_EVAL_RUN_DIR/screens.json"`, false, ["not_run", "not_run"], 0, null],
-      [`${both}\nprintf image > "$CAPXUL_EVAL_RUN_DIR/screen.png"\nprintf '{"payment":1}' > "$CAPXUL_EVAL_RUN_DIR/sources.json"\nprintf '[{"screen":"payment","path":"screen.png","source":"sources.json#/payment","assertion":"source-equality"}]' > "$CAPXUL_EVAL_RUN_DIR/screens.json"`, true, ["pass", "pass"], 0, null],
+      [`${both}\nmkdir -p "$CAPXUL_EVAL_RUN_DIR/acceptance"\nprintf image > "$CAPXUL_EVAL_RUN_DIR/acceptance/screen.png"\nprintf '{"payment":1}' > "$CAPXUL_EVAL_RUN_DIR/acceptance/sources.json"\nprintf '[{"screen":"payment","path":"acceptance/screen.png","source":"acceptance/sources.json#/payment","assertion":"source-equality"}]' > "$CAPXUL_EVAL_RUN_DIR/screens.json"`, true, ["pass", "pass"], 0, null],
     ] as const;
     for (const [script, complete, verdicts, exit, signal] of cases) {
       writeFileSync(join(root, "status/status.json"), JSON.stringify({ version: 1, evals: Object.fromEntries(ids.map((id) => [id, { verdict: "pass", commit: "old", at: "2026-01-01T00:00:00Z" }])) }));

@@ -1,9 +1,9 @@
 // Run I/O: save intent before children; distinguish completed assertions from incomplete script plans.
 import { randomUUID } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, posix, resolve } from "node:path";
-import { mergeResults, parseRunReceipt, uncapturedScreens, type Blueprint, type RunEnvironment, type RunReceipt } from "@capxul/blueprint-engine";
+import { mergeResults, parseRunReceipt, pointerValue, uncapturedScreens, type Blueprint, type RunEnvironment, type RunReceipt } from "@capxul/blueprint-engine";
 import type { Bindings } from "./modules/bindings/service.ts";
 import { cap, evidenceText, fileNameOf, foldChecks, parseCheckLines, redact, resultsFile, scoreEvals, type CheckLine, type Row, type RunInfo } from "./modules/runs/service.ts";
 
@@ -118,14 +118,16 @@ export const executeRun = async (root: string, blueprint: Blueprint, bindings: B
     const entries = readdirSync(dir, { withFileTypes: true });
     const linked = entries.filter((d) => d.isSymbolicLink() && statSync(join(dir, d.name)).isDirectory()).map((d) => d.name);
     if (linked.length) throw new Error(`run directory entries must not be symlinked directories: ${linked.join(", ")}`);
-    const inRun = [{ file: join(dir, "screens.json"), base: dir, owner: "" },
+    // The run-level manifest is acceptance's (system.eval-screen-manifests), so it too lists only acceptance/ files.
+    const inRun = [{ file: join(dir, "screens.json"), base: dir, owner: "acceptance/" },
       ...entries.filter((d) => d.isDirectory()).map((d) => d.name).sort().map((name) => ({ file: join(dir, name, "screens.json"), base: dir, owner: `${name}/` }))]
       .filter(({ file }) => existsSync(file));
     if (options.screens && inRun.length) throw new Error(`--screens cannot be combined with in-run manifests: ${inRun.map(({ file }) => file).join(", ")}`);
     const manifests = options.screens ? [{ file: resolve(root, options.screens), base: dirname(resolve(root, options.screens)), owner: "" }] : inRun;
-    // Every manifest, capture and source file must be non-empty and written during this run (statSync follows links), and
+    // Every manifest, capture and source file must be a non-empty regular file (not a link) written during this run, and
     // a source's JSON pointer must name a value, so an older run's evidence cannot count (system.eval-screen-captures).
     const fresh = (file: string, what: string): void => {
+      if (existsSync(file) && lstatSync(file).isSymbolicLink()) throw new Error(`${what} must be a file, not a link: ${file}`);
       const stat = existsSync(file) ? statSync(file) : null;
       if (!stat?.isFile() || stat.size === 0 || stat.mtimeMs < Date.parse(receipt.at)) throw new Error(`${what} is missing, empty or older than this run: ${file}`);
     };
@@ -149,7 +151,7 @@ export const executeRun = async (root: string, blueprint: Blueprint, bindings: B
         fresh(resolve(base, screen.path), "screen capture");
         fresh(resolve(base, source), "screen source");
         if (pointer !== undefined) {
-          const value = pointer.split("/").slice(1).map(decodeURIComponent).reduce<unknown>((at, key) => (at as Record<string, unknown> | null | undefined)?.[key], JSON.parse(readFileSync(resolve(base, source), "utf8")));
+          const value = pointerValue(JSON.parse(readFileSync(resolve(base, source), "utf8")), pointer);
           if (value === undefined || value === null) throw new Error(`screen source names no value: ${screen.source}`);
         }
         bring(base, screen.path);

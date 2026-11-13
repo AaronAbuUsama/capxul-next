@@ -28,7 +28,8 @@ test("each module lists only its own captures; duplicates, symlinked modules and
       'mkdir -p "$CAPXUL_EVAL_RUN_DIR/acceptance" "$CAPXUL_EVAL_RUN_DIR/sites"',
       'printf png > "$CAPXUL_EVAL_RUN_DIR/acceptance/invoice.png"; printf png > "$CAPXUL_EVAL_RUN_DIR/sites/grants.png"',
       `printf '{"x":1}' > "$CAPXUL_EVAL_RUN_DIR/sites/sources.json"`,
-      `printf '%s' '[${entry("supplier-invoice", "acceptance/invoice.png")}]' > "$CAPXUL_EVAL_RUN_DIR/screens.json"`,
+      `printf '{"x":1}' > "$CAPXUL_EVAL_RUN_DIR/acceptance/sources.json"`,
+      `printf '%s' '[${entry("supplier-invoice", "acceptance/invoice.png", "acceptance/sources.json#/x")}]' > "$CAPXUL_EVAL_RUN_DIR/screens.json"`,
       `printf '%s' '[${sites}]' > "$CAPXUL_EVAL_RUN_DIR/sites/screens.json"`,
       extra,
     ].join("\n");

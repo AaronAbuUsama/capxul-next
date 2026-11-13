@@ -25,11 +25,12 @@ test("a shows claim passes only with a fresh, non-empty, source-resolved capture
     assert.ok(loaded.ok);
     const checks = [
       "printf '@check\\tS1.done\\tpass\\t1\\tok\\n@check\\tS2.done\\tpass\\t1\\tok\\n'",
-      'printf image > "$CAPXUL_EVAL_RUN_DIR/shot.png"',
-      `printf '{"invoice":{"supplier":"Acme"}}' > "$CAPXUL_EVAL_RUN_DIR/sources.json"`,
+      'mkdir -p "$CAPXUL_EVAL_RUN_DIR/acceptance" "$CAPXUL_EVAL_RUN_DIR/sites"',
+      'printf image > "$CAPXUL_EVAL_RUN_DIR/acceptance/shot.png"; printf image > "$CAPXUL_EVAL_RUN_DIR/sites/shot.png"',
+      `printf '{"invoice":{"supplier":"Acme"},"a/b~c":1}' > "$CAPXUL_EVAL_RUN_DIR/acceptance/sources.json"`,
     ].join("\n");
-    const manifest = (screen: string, assertion = "source-equality", source = "sources.json#/invoice/supplier") =>
-      `\nprintf '[{"screen":"${screen}","path":"shot.png","source":"${source}","assertion":"${assertion}"}]' > "$CAPXUL_EVAL_RUN_DIR/screens.json"`;
+    const manifest = (screen: string, assertion = "source-equality", source = "acceptance/sources.json#/invoice/supplier", path = "acceptance/shot.png") =>
+      `\nprintf '[{"screen":"${screen}","path":"${path}","source":"${source}","assertion":"${assertion}"}]' > "$CAPXUL_EVAL_RUN_DIR/screens.json"`;
     // An earlier run's manifest and capture, offered through --screens: real files, but older than this run.
     const old = join(root, "old");
     mkdirSync(old);
@@ -45,8 +46,13 @@ test("a shows claim passes only with a fresh, non-empty, source-resolved capture
       [checks + manifest("supplier-invoice", "visual"), undefined, "complete", 1, [shows]],
       [checks + manifest("supplier-invoice"), undefined, "complete", 2, []],
       [checks + manifest("screen:supplier-invoice"), undefined, "complete", 2, []],
-      [checks + manifest("supplier-invoice") + '\n: > "$CAPXUL_EVAL_RUN_DIR/shot.png"', undefined, "incomplete", 0, [shows]],
-      [checks + manifest("supplier-invoice", "source-equality", "sources.json#/invoice/missing"), undefined, "incomplete", 0, [shows]],
+      [checks + manifest("supplier-invoice", "source-equality", "acceptance/sources.json#/a~1b~0c"), undefined, "complete", 2, []],
+      [checks + manifest("supplier-invoice") + '\n: > "$CAPXUL_EVAL_RUN_DIR/acceptance/shot.png"', undefined, "incomplete", 0, [shows]],
+      [checks + manifest("supplier-invoice") + '\nmv "$CAPXUL_EVAL_RUN_DIR/acceptance/shot.png" "$CAPXUL_EVAL_RUN_DIR/real.png"; ln -s ../real.png "$CAPXUL_EVAL_RUN_DIR/acceptance/shot.png"', undefined, "incomplete", 0, [shows]],
+      [checks + manifest("supplier-invoice", "source-equality", "acceptance/sources.json#/invoice/missing"), undefined, "incomplete", 0, [shows]],
+      [checks + manifest("supplier-invoice", "source-equality", "acceptance/sources.json#invoice"), undefined, "incomplete", 0, [shows]],
+      [checks + manifest("supplier-invoice", "source-equality", "acceptance/sources.json#/constructor"), undefined, "incomplete", 0, [shows]],
+      [checks + manifest("supplier-invoice", "source-equality", "acceptance/sources.json#/invoice/supplier", "sites/shot.png"), undefined, "incomplete", 0, [shows]],
       [checks + manifest("supplier-invoice", "source-equality", "doctype:Purchase Invoice"), undefined, "incomplete", 0, [shows]],
       [checks, "old/screens.json", "incomplete", 0, [shows]],
     ] as const) {
