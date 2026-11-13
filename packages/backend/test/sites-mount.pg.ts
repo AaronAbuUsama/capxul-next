@@ -50,6 +50,9 @@ test("Core's mounted document door authenticates, requires a Seat, reaches the s
     await admin.query(`insert into app.parties(party_id,kind,state,handle,display_name,safe_address,owner_kind,owner_id,created_at,updated_at)
       values($1,'person','active',$1,$1,$2,'person',$1,$3,$3)`, [person, safe(3 + i), now]);
   }
+  // A Seat admits only in a live Organization with its own live Party (app.current_member).
+  await admin.query(`insert into app.parties(party_id,kind,state,handle,display_name,safe_address,owner_kind,owner_id,created_at,updated_at)
+    values('org-acme','organization','active','acme','Acme',$1,'organization',$2,$3,$3)`, [safe(1), org, now]);
   await admin.query(`insert into app.org_members(org_id,member_id,party_id,principal_id,kind,safe_address,seat_use,status,joined_at,updated_at)
     values($1,'director','director','director','human',$2,'seat','active',$3,$3)`, [org, safe(3), now]);
   await admin.query(`insert into app.sites(org_id,site_id,world_id,slug,host,state,bench,app_version,map_version,created_at,ready_at,updated_at)
