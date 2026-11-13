@@ -81,6 +81,11 @@ export const sliceConcept = (b: Blueprint, owners: ReadonlyMap<string, string>, 
     (r?.concept as { id?: string } | undefined)?.id ?? "shared");
 };
 
+/** Requested screen `shows` claims with no source-equality capture for their screen in this receipt. */
+export const uncapturedScreens = (b: Pick<Blueprint, "evals">, ids: readonly string[], screens: RunReceipt["screens"]): string[] =>
+  b.evals.filter((e) => ids.includes(e.id) && e.subject.startsWith("screen:") && e.id.endsWith("/shows") &&
+    !screens.some((s) => `screen:${s.screen.replace(/^screen:/, "")}` === e.subject && s.path && s.source && s.assertion === "source-equality")).map((e) => e.id);
+
 /** No union of passes: all requested claims must pass, fresh, in the same complete selected-stack run. */
 export const sliceEvidence = (b: Blueprint, ids: readonly string[], runs: readonly SliceRun[]): SliceEvidence => {
   const candidates = runs.filter((r) => r.environment.storage === "postgres" && r.environment.indexer === "ponder" &&
@@ -91,8 +96,7 @@ export const sliceEvidence = (b: Blueprint, ids: readonly string[], runs: readon
     latest.requested.includes(id) && s.run === latest.id && s.commit === latest.commit)) }) : null;
   const passing = ids.filter((id) => status?.evals[id]?.verdict === "pass").length;
   const failed = ids.some((id) => status?.evals[id]?.verdict === "fail");
-  const screens = b.evals.filter((e) => ids.includes(e.id) && e.subject.startsWith("screen:") && e.id.endsWith("/shows"));
-  const captured = screens.every((e) => latest?.screens.some((s) => `screen:${s.screen.replace(/^screen:/, "")}` === e.subject && s.path && s.source && s.assertion === "source-equality"));
+  const captured = uncapturedScreens(b, ids, latest?.screens ?? []).length === 0;
   return {
     state: !latest || ids.length === 0 ? "unproved" : latest.state !== "complete" ? latest.state : failed ? "failing" : passing === ids.length && captured ? "proved" : "partial",
     passing, required: ids.length, run: latest?.id ?? null,
