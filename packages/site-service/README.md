@@ -27,7 +27,7 @@ Required environment:
 - `BENCH_DB_ROOT_PASSWORD`, `CAPXUL_ADMIN_PASSWORD`: bench-only credentials.
 - `BENCH_COMMAND_JSON`: fixed deployment-owned argv prefix invoking bench. For the pinned orb image, the bootstrap owner supplies `["/home/user/.local/bin/docker","compose","-f","/home/user/workspace/repo/packages/devnet/orb/compose.yaml","-p","capxul-skeleton","exec","-T","--user","frappe","bench","bench"]`. This prefix is configuration, not a shell command.
 
-The image must already contain Frappe, ERPNext, HRMS, CRM, WhatsApp and Capxul. Creation installs those apps without downloading anything, configures Company/Safe/privacy/features, joins the world's saved clock, clears caches, and checks the site's company/Safe readback. It never accepts an arbitrary hostname or executable from a caller.
+The image must already contain Frappe, ERPNext, HRMS, CRM, WhatsApp and Capxul. Creation joins the world's clock right after the site exists, before any app installs or setup stamps a date (`capxul_world` in the site config), then installs those apps without downloading anything, configures Company/Safe/privacy/features, clears caches, and checks the site's company/Safe readback. It never accepts an arbitrary hostname or executable from a caller.
 
 ## Checks and delivery scope
 
