@@ -82,7 +82,7 @@
       "checks": [
         "BUNDLER.send-unanswered"
       ],
-      "why": "A UserOperation from the company Safe gets no answer to eth_sendUserOperation within 5 s. The provider sends it exactly once, never again, looks it up on the real Alto, finds nothing held and refuses PROVIDER_ERROR."
+      "why": "A UserOperation from the selected payment's own sender (the paying hat wearer's Safe) gets no answer to eth_sendUserOperation within 5 s. The provider sends it exactly once, never again, looks it up on the real Alto, finds nothing held and refuses PROVIDER_ERROR."
     },
     {
       "eval": "int:bundler.send/PROVIDER_RESPONSE_INVALID/c-36bc80f685cee9fa",
@@ -96,7 +96,7 @@
       "checks": [
         "BUNDLER.send-rejected"
       ],
-      "why": "The world's real Alto validates two operations from the company Safe: one signed by no owner, and one reusing a nonce the selected payment spent. It rejects both, so the caller sees TRANSACTION_FAILED. The EntryPoint nonce is unchanged and neither operation is held."
+      "why": "The world's real Alto validates two operations from the selected payment's own sender: one signed by no owner, and one reusing a nonce the selected payment spent. It rejects both, so the caller sees TRANSACTION_FAILED. The EntryPoint nonce is unchanged and neither operation is held."
     }
   ],
   "near": []

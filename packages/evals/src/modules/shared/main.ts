@@ -72,14 +72,25 @@ const readLogs = async (rpc: ReturnType<typeof chainRpc>, w: World) => {
   return logs;
 };
 
-/** A UserOperation from the selected company Safe that no owner signed. The real bundler must refuse it in validation. */
+/** The selected payment's own UserOperation, from its mined EntryPoint event: exactly one, successful, in that transaction. */
+async function paymentOperation(w: World): Promise<{ hash: Hex; sender: Address }> {
+  const { receipt } = await paymentWindow(w);
+  const events = receipt.logs.filter((l) => l.address.toLowerCase() === entryPoint07Address.toLowerCase()).flatMap((l) => {
+    try { return [decodeEventLog({ abi: [USER_OPERATION], data: l.data, topics: l.topics })]; } catch { return []; }
+  });
+  assert(events.length === 1 && events[0]!.args.success, "the selected payment was carried by exactly one successful UserOperation");
+  return { hash: events[0]!.args.userOpHash, sender: events[0]!.args.sender };
+}
+
+/** An operation from the payment's own sender (the paying hat wearer's Safe) that no owner signed; the real bundler must refuse it. */
 async function unsignedOperation(w: World, nonceOffset = 0n): Promise<{ operation: RpcUserOperation; expectedHash: Hex }> {
+  const { sender } = await paymentOperation(w);
   const client = createPublicClient({ transport: http(w.rpc, { retryCount: 0 }) });
-  const nonce = await client.readContract({ address: entryPoint07Address, abi: parseAbi(["function getNonce(address,uint192) view returns (uint256)"]), functionName: "getNonce", args: [w.fixture.safe as Address, 0n] });
+  const nonce = await client.readContract({ address: entryPoint07Address, abi: parseAbi(["function getNonce(address,uint192) view returns (uint256)"]), functionName: "getNonce", args: [sender, 0n] });
   assert(nonce + nonceOffset >= 0n, "a used nonce needs an earlier operation");
   const fees = await client.estimateFeesPerGas();
   assert(w.paymaster, "the selected world has no saved sponsor");
-  const base = { sender: w.fixture.safe as Address, nonce: nonce + nonceOffset, callData: "0x" as Hex, callGasLimit: 100_000n, verificationGasLimit: 600_000n,
+  const base = { sender, nonce: nonce + nonceOffset, callData: "0x" as Hex, callGasLimit: 100_000n, verificationGasLimit: 600_000n,
     preVerificationGas: 100_000n, maxFeePerGas: fees.maxFeePerGas * 2n, maxPriorityFeePerGas: fees.maxPriorityFeePerGas * 2n,
     paymaster: w.paymaster, paymasterVerificationGasLimit: 100_000n, paymasterPostOpGasLimit: 50_000n, paymasterData: "0x" as Hex };
   const validity = pad("0x", { size: 12 });
@@ -91,15 +102,6 @@ async function unsignedOperation(w: World, nonceOffset = 0n): Promise<{ operatio
     verificationGasLimit: q(base.verificationGasLimit), preVerificationGas: q(base.preVerificationGas), maxFeePerGas: q(base.maxFeePerGas),
     maxPriorityFeePerGas: q(base.maxPriorityFeePerGas), paymaster: base.paymaster, paymasterVerificationGasLimit: q(base.paymasterVerificationGasLimit),
     paymasterPostOpGasLimit: q(base.paymasterPostOpGasLimit), paymasterData: "0x" } };
-}
-/** The selected payment's own UserOperation hash, from its mined EntryPoint event. */
-async function paymentOperation(w: World): Promise<Hex> {
-  const { receipt } = await paymentWindow(w);
-  const event = receipt.logs.filter((l) => l.address.toLowerCase() === entryPoint07Address.toLowerCase()).map((l) => {
-    try { return decodeEventLog({ abi: [USER_OPERATION], data: l.data, topics: l.topics }); } catch { return null; }
-  }).find((e) => e && e.args.sender.toLowerCase() === w.fixture.safe.toLowerCase());
-  assert(event, "the selected payment was carried by a UserOperation from the company Safe");
-  return event.args.userOpHash;
 }
 const bundlerUrl = (w: World) => { assert(w.bundler, "the selected world has no supplied bundler"); return w.bundler; };
 
@@ -121,7 +123,7 @@ const checks: Record<string, Check> = {
   "CHAIN.logs-outside-window": unusable("getLogs", "eth_getLogs", (u) => ({ ...u, result: u.result.map((l: any) => ({ ...l, blockNumber: toHex(BigInt(l.blockNumber) + 1n) })) }), readLogs, true),
   "CHAIN.logs-undecodable": unusable("getLogs", "eth_getLogs", (u) => ({ ...u, result: u.result.map((l: any) => ({ ...l, topics: l.topics.slice(0, 1) })) }), readLogs, true),
   "BUNDLER.lookup-unavailable": async (w, note) => gates([bundlerUrl(w)], async ([g]) => {
-    const hash = await paymentOperation(w);
+    const { hash } = await paymentOperation(w);
     const found = await bundlerProvider(httpTransport(g!.url)).lookup(hash);
     assert(found.receipt?.success && found.receipt.receipt.transactionHash.toLowerCase() === w.fixture.txHash.toLowerCase(), "the real bundler finds the selected payment");
     for (const mode of OUTAGES) {
@@ -132,7 +134,7 @@ const checks: Record<string, Check> = {
     note("lookup", { control: hash, outages: OUTAGES.map((m) => m.kind) });
   }),
   "BUNDLER.lookup-unusable": async (w, note) => gates([bundlerUrl(w)], async ([g]) => {
-    const hash = await paymentOperation(w);
+    const { hash } = await paymentOperation(w);
     g!.set({ eth_getUserOperationReceipt: { kind: "rewrite", body: (_r, u) => ({ ...u, result: { ...u.result, userOpHash: toHex(1n, { size: 32 }) } }) } });
     await refused("PROVIDER_RESPONSE_INVALID", () => bundlerProvider(httpTransport(g!.url)).lookup(hash));
     g!.set({ eth_getUserOperationByHash: { kind: "rewrite", body: (_r, u) => ({ ...u, result: { ...u.result, userOperation: { sender: 5 } } }) } });
