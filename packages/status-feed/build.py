@@ -57,6 +57,15 @@ for s in steps:
     items.append({"kind": "step", "id": s["id"], "name": f"{s['id']} {s['name']}", "detail": s["evidence"], "state": s["state"],
                   "done": s["done"], "of": s["of"], "pct": round(100 * s["done"] / s["of"]),
                   "path": path.index(s["id"]) + 1 if s["id"] in path else "", "waits": s["waits"], "at": s["at"], "needs": ", ".join(s["needs"])})
+# Risks: every step of milestone 0, then the risks the roadmap lists for later phases.
+RISK_STATE = {"Done": "Proven", "Killed": "Killed", "In progress": "Being tested"}
+for s in steps:
+    if s["milestone"] == "0":
+        items.append({"kind": "risk", "id": s["id"], "name": s["name"], "detail": s["evidence"], "state": RISK_STATE.get(s["state"], "Open"),
+                      "done": s["done"], "of": s["of"], "pct": round(100 * s["done"] / s["of"]), "path": "", "waits": "", "at": s["at"], "needs": ""})
+for risk, state in table(roadmap, "## Risks, proven or killed"):
+    items.append({"kind": "risk", "id": "", "name": risk, "detail": "a later phase", "state": state, "done": 0, "of": 1, "pct": 0,
+                  "path": "", "waits": "", "at": "", "needs": ""})
 merges = git("log", "--merges", "--first-parent", "--format=%cI%x09%s%x09%b%x1e", f"{BRANCH_POINT}..{REF}")
 for entry in filter(None, (e.strip() for e in merges.split("\x1e"))):
     at, subject, body = (entry.split("\t", 2) + ["", ""])[:3]

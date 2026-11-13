@@ -76,6 +76,13 @@ unblock it.
 | 2.4 | 2 | The thin line's scenarios pass on the shared world after a deploy | 2.3 | Not started | 0/12 | | | |
 | 2.5 | 2 | The drift check runs on a schedule and is clean | 2.2 | Not started | | | | |
 
-## Risks for later phases
+## Risks, proven or killed
 
-Not needed to finish phases 0 to 2, so not counted above: real sign-in and signing for people, and Bridge banking.
+Every step of milestone 0 is a risk: it is Proven when its step is Done, and Killed when a run shows it cannot work
+(the step's State is then `Killed` and the decision that replaces it is recorded above). These risks belong to later
+phases and are not counted in the progress to milestone 2:
+
+| Risk | State |
+|---|---|
+| Real sign-in and signing for people | Open |
+| Bridge banking | Open |
