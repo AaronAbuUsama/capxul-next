@@ -2,7 +2,10 @@
 // frames (they name this machine's paths and say nothing about the world).
 import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
+import * as Formatter from "effect/Formatter";
 import { pipe } from "effect/Function";
+import * as Option from "effect/Option";
+import * as Predicate from "effect/Predicate";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 
@@ -18,11 +21,16 @@ export class RunnerFailure extends Schema.TaggedError<RunnerFailure, { readonly 
 
 const LIMIT = 600;
 
-export const describe = (cause: Cause.Cause<unknown>): string =>
-  pipe(
+/** A typed failure with a tag, such as a refusal, with every field it carries; anything else in Effect's words. */
+export const describe = (cause: Cause.Cause<unknown>): string => {
+  const error = Cause.findErrorOption(cause);
+  if (Option.isSome(error) && Predicate.hasProperty(error.value, "_tag"))
+    return Str.slice(0, LIMIT)(Formatter.format({ ...error.value }));
+  return pipe(
     Str.split(Cause.pretty(cause), "\n"),
     Arr.filter((line) => !Str.startsWith("at ")(Str.trimStart(line))),
     Arr.join("\n"),
     Str.trim,
     Str.slice(0, LIMIT),
   );
+};

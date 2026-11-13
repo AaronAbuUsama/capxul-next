@@ -11,7 +11,6 @@ import * as Cause from "effect/Cause";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
-import * as Formatter from "effect/Formatter";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Predicate from "effect/Predicate";
@@ -68,14 +67,9 @@ const classify = (operation: OperationName, exit: Exit.Exit<unknown, unknown>) =
     : ({ outcome: "defect", refusal: null } as const);
 };
 
-/** How a call that did not succeed failed, in words: a typed refusal with every field it carries, else the cause. */
-const failureOf = (exit: Exit.Exit<unknown, unknown>): string | null => {
-  if (Exit.isSuccess(exit)) return null;
-  const error = Cause.findErrorOption(exit.cause);
-  return Option.isSome(error) && Predicate.hasProperty(error.value, "_tag")
-    ? Formatter.format({ ...error.value })
-    : describe(exit.cause);
-};
+/** How a call that did not succeed failed, in words (failure.ts). */
+const failureOf = (exit: Exit.Exit<unknown, unknown>): string | null =>
+  Exit.isSuccess(exit) ? null : describe(exit.cause);
 
 /** What the client needs of a stage: where its Core answers, the doors' tokens, and when its warm-up ends. */
 export interface Target {
