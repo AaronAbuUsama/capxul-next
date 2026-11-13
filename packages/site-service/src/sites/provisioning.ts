@@ -3,7 +3,7 @@ import { createHmac, randomUUID } from "node:crypto";
 import { createPublicClient, http, isAddress, recoverMessageAddress, type Address, type Hex } from "viem";
 import { PROVISION_PATH, provisioningMessage } from "@capxul/sdk";
 import { longFetch } from "@capxul/sdk/node";
-import { failure, json, readBody, ServiceError } from "./http.ts";
+import { failure, json, logCause, readBody, ServiceError } from "./http.ts";
 import { settleSite, type ProvisioningLifecycle } from "./lifecycle.ts";
 
 export type ProvisioningOptions = {
@@ -77,6 +77,7 @@ export function createProvisioningHandler(options: ProvisioningOptions): (req: I
       if (options.lifecycle) await settleSite(options.lifecycle, info, trace);
       json(res, 200, site);
     } catch (error) {
+      logCause("provision", trace, error);
       if (creating && options.lifecycle) {
         try {
           if ((await options.lifecycle.store.site(creating))?.state === "creating")

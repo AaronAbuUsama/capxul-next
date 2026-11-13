@@ -8,13 +8,15 @@ test("longFetch rejects a malformed or silent peer instead of crashing, and keep
   const peer = createServer((socket) => socket.once("data", (data) => {
     const path = String(data).split(" ")[1];
     if (path === "/600") socket.end("HTTP/1.1 600 Odd\r\ncontent-length: 2\r\n\r\nhi");
+    if (path === "/upgrade") socket.write("HTTP/1.1 101 Switching Protocols\r\nconnection: upgrade\r\nupgrade: other\r\n\r\n");
     if (path === "/ok") socket.end("HTTP/1.1 200 OK\r\ncontent-length: 2\r\n\r\nok");
   }));
   await new Promise<void>((done) => peer.listen(0, "127.0.0.1", done));
   t.after(() => { peer.close(); });
   const base = `http://127.0.0.1:${(peer.address() as { port: number }).port}`;
   const send = longFetch(300);
-  await assert.rejects(send(`${base}/600`, { method: "POST" }), RangeError);
+  await assert.rejects(send(`${base}/600`, { method: "POST" }), { code: "BAD_STATUS" });
+  await assert.rejects(send(`${base}/upgrade`, { method: "POST" }), { code: "UNEXPECTED_UPGRADE" });
   await assert.rejects(send(`${base}/silent`, { method: "POST" }), { code: "IDLE_TIMEOUT" });
   await assert.rejects(send(`${base}/ok`, { method: "POST", body: new Uint8Array([104, 105]) as never }), TypeError);
   const answered = await send(`${base}/ok`, { method: "POST", body: "{}" });

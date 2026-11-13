@@ -17,13 +17,15 @@ export function longFetch(idleMs: number): TextFetch {
       res.on("data", (chunk: Buffer) => chunks.push(chunk));
       res.on("error", reject);
       res.on("end", () => {
-        // Response refuses a status outside 200-599 or a body on 204/304; that is the peer's fault, never a crash.
+        // Response refuses a status outside 200-599 or a body on 204/304: the peer's fault, a rejection, never a crash.
         try {
           resolve(new Response(chunks.length ? Buffer.concat(chunks) : null, { status: res.statusCode ?? 502,
             headers: Object.entries(res.headers).flatMap(([k, v]) => v === undefined ? [] : (Array.isArray(v) ? v : [v]).map((x) => [k, x] as [string, string])) }));
-        } catch (error) { reject(error); }
+        } catch (error) { reject(Object.assign(new Error(`The peer answered an unusable status ${res.statusCode}`), { code: "BAD_STATUS", cause: error })); }
       });
     });
+    // A 101 hands the socket over and never ends a response; without this the request would wait forever.
+    req.on("upgrade", (_res, socket) => { socket.destroy(); reject(Object.assign(new Error("The peer switched protocols"), { code: "UNEXPECTED_UPGRADE" })); });
     req.on("timeout", () => req.destroy(Object.assign(new Error(`No activity for ${idleMs} ms`), { code: "IDLE_TIMEOUT" })));
     req.on("error", reject);
     req.end(init.body);

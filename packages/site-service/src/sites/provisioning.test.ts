@@ -75,6 +75,7 @@ async function setup() {
   mount();
   return { root, bench, info, options, coreUrl, sites: createSitesClient({ coreUrl, account: founder }),
     siteUrl: () => siteServiceUrl, removeFounder: () => { founderOwns = false; },
+    async stopService() { await new Promise<void>((resolve) => { siteService.close(() => resolve()); siteService.closeAllConnections(); }); },
     async restart() { await new Promise<void>((resolve) => siteService.close(() => resolve())); siteService = createSiteService(options); siteServiceUrl = await listen(siteService); mount(); },
   };
 }
@@ -110,6 +111,17 @@ test("public SDK/CLI retries an interrupted bench creation and preserves identit
   await writeFile(join(s.bench, expected.site, "site.json"), JSON.stringify(data));
   await assert.rejects(s.sites.provision({ org: "acme" }), { code: "INVALID_INPUT" });
   assert.equal(JSON.parse(await readFile(join(s.bench, expected.site, "site.json"), "utf8")).settings.safe_address, personal);
+});
+
+test("a provisioning failure without a declared code is logged with its trace and cause code, never its address", async (t) => {
+  const s = await setup();
+  await s.stopService();
+  const logged = t.mock.method(console, "error", () => {});
+  await assert.rejects(s.sites.provision({ org: "acme" }), { code: "PROVIDER_ERROR" });
+  const lines = logged.mock.calls.map((call) => String(call.arguments[0]));
+  assert.equal(lines.length, 1, lines.join("\n"));
+  assert.match(lines[0]!, /^Sites provision [0-9a-f-]{36}: \S+ ECONNREFUSED$/);
+  assert.equal(s.info.released, false);
 });
 
 test("public provisioning rejects wrong callers, altered bodies, wrong origins, expired requests and removed Safe ownership", async () => {
