@@ -5,21 +5,22 @@ import type { BoardFacts } from "./runtime.ts";
 import { integer } from "./types.ts";
 
 type Log = { block_number: string; tx_hash: string };
-/** The source owners' readers Board composes from: Core's indexing door and Organizations' admitted deployment. */
+/** The source owners' readers Board composes from: Core's indexing door and Organizations' admitted deployment. Property
+ * function types (not method shorthand) keep parameters contravariant, so a reader that needs more input fails tsc. */
 export type BoardReaders = {
-  readAdmittedDeployment(sql: Sql, input: { orgId: string; chainId: number }): Promise<{
+  readAdmittedDeployment: (sql: Sql, input: { orgId: string; chainId: number }) => Promise<{
     safe_address: string; gate_address: string; director_hat: string } | null>;
-  readSafeOwnersAt(sql: Sql, input: { chainId: number; safe: string; atBlock?: string; finality: number }): Promise<{
+  readSafeOwnersAt: (sql: Sql, input: { chainId: number; safe: string; atBlock?: string; finality: number }) => Promise<{
     safe_address: string; deployed: boolean; owners: string[]; threshold: number; nonce: string } | null>;
-  readHatAt(sql: Sql, input: { chainId: number; hatId: string; companySafe: string; atBlock?: string; finality: number }): Promise<{
+  readHatAt: (sql: Sql, input: { chainId: number; hatId: string; companySafe: string; atBlock?: string; finality: number }) => Promise<{
     supply: string; max_supply: string } | null>;
-  readHatWearersAt(sql: Sql, input: { chainId: number; hatId: string; companySafe: string; atBlock?: string; finality: number }): Promise<{
+  readHatWearersAt: (sql: Sql, input: { chainId: number; hatId: string; companySafe: string; atBlock?: string; finality: number }) => Promise<{
     wearer: string; wearing: boolean }[]>;
-  readSafeApprovals(sql: Sql, input: { chainId: number; safe: string; safeTxHash: string; atBlock?: string; finality: number }): Promise<{ owner: string }[]>;
-  readSafeExecution(sql: Sql, input: { chainId: number; safe: string; nonce: string; finality: number }): Promise<(Log & {
+  readSafeApprovals: (sql: Sql, input: { chainId: number; safe: string; safeTxHash: string; atBlock?: string; finality: number }) => Promise<{ owner: string }[]>;
+  readSafeExecution: (sql: Sql, input: { chainId: number; safe: string; nonce: string; finality: number }) => Promise<(Log & {
     safe_tx_hash: string; success: boolean; msg_sender: string; threshold: number }) | null>;
-  readHatTransfersInTx(sql: Sql, input: { chainId: number; txHash: string; hatId: string; finality: number }): Promise<{ from: string; to: string; value: string }[]>;
-  readWearerHatsAt(sql: Sql, input: { chainId: number; wearer: string; companySafe: string; atBlock?: string; finality: number }): Promise<{ hat_id: string; details: string; wearing: boolean | null }[]>;
+  readHatTransfersInTx: (sql: Sql, input: { chainId: number; txHash: string; hatId: string; finality: number }) => Promise<{ from: string; to: string; value: string }[]>;
+  readWearerHatsAt: (sql: Sql, input: { chainId: number; wearer: string; companySafe: string; atBlock?: string; finality: number }) => Promise<{ hat_id: string; details: string; wearing: boolean | null }[]>;
 };
 
 const low = (a: string) => a.toLowerCase() as Address;

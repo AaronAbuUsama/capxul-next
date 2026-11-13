@@ -23,10 +23,10 @@ const readers = (): BoardReaders => {
       calls.push({ name: "owners", input });
       return { safe_address: safe, deployed: true, owners: [A, B], threshold: 2, nonce: "5" };
     },
-    // Core scopes both hat readers to companySafe: another company's hat reads null or [].
-    readHatAt: async (_sql, input) => { refuse("chain-hats"); calls.push({ name: "hat", input });
+    // Core scopes both hat readers to companySafe (required, else INVALID_INPUT): another company's hat reads null or [].
+    readHatAt: async (_sql, input) => { assert.match(input.companySafe, /^0x[\da-fA-F]{40}$/); refuse("chain-hats"); calls.push({ name: "hat", input });
       return input.companySafe === safe ? { supply: "1", max_supply: "4294967295" } : null; },
-    readHatWearersAt: async (_sql, input) => { refuse("hat-wearers"); calls.push({ name: "wearers", input });
+    readHatWearersAt: async (_sql, input) => { assert.match(input.companySafe, /^0x[\da-fA-F]{40}$/); refuse("hat-wearers"); calls.push({ name: "wearers", input });
       return input.companySafe === safe ? [{ wearer: A.toLowerCase(), wearing: true }, { wearer: B, wearing: false }] : []; },
     readSafeApprovals: log("approvals", [{ owner: A }, { owner: A.toLowerCase() }, { owner: "0x00000000000000000000000000000000000000cc" }]),
     readSafeExecution: log("execution", { safe_tx_hash: `0x${"AB".repeat(32)}`, success: true, tx_hash: `0x${"cd".repeat(32)}`, block_number: "91",
