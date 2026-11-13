@@ -9,7 +9,7 @@ import { BY, operation, rpc, WORLD } from "../plugs/kit.ts";
 export const rpc_sites_provision = rpc({
   id: "sites.provision", title: "Provision the site for a company already born on chain", concept: concept_sites,
   about: "Slice zero's public provisioning stage after the chain fixture registers the company's trusted directory with Core. The caller presents an Access Bearer session. Core authenticates it on the canonical world clock and admits only the company setup's founder principal, once the setup has deployed its money and not failed, or a principal holding a current Seat in the company (sites.provision-principal). It then calls the private bench-local site service and releases delivery. The SDK and CLI hold no bench password, site-service token or Core admin secret. Repeating the same company finishes a failed creation without changing its identity. This is not the full org.create onboarding flow and does not mint a company or prove first-event delivery.",
-  kind: "mutation", who: "The company setup's founder principal, or a person with a current Seat in the company, authenticated by an Access Bearer session.",
+  kind: "mutation", who: "The company setup's founder principal, or a person or agent with a current Seat in the company, authenticated by an Access Bearer session.",
   input: Schema.Struct({ org: Schema.String }),
   output: Schema.Struct({ org: Schema.String, safe: Schema.String, site: Schema.String, url: Schema.String, state: Schema.Literal("provisioned") }),
   errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT, error_PROVIDER_ERROR, error_PROVIDER_RESPONSE_INVALID],
@@ -19,7 +19,7 @@ export const rpc_sites_provision = rpc({
 export const operation_org_site_provision = operation({
   id: "org.site.provision", title: "Provision a company's site through Core", area: "organizations", command: "org site provision", priority: "critical",
   about: "The narrow site-creation stage used by slice zero after company birth and trusted Core registration. Requires --org and --confirm. It does not shell into bench, mint a company, or claim a ready site before delivery applies its first events.",
-  who: "The registered founder.", changes: "Creates or finishes the company's site and releases Core delivery.", implementedBy: rpc_sites_provision,
+  who: "The founder of the company's deployed setup, or a person or agent with a current Seat in the company.", changes: "Creates or finishes the company's site and releases Core delivery.", implementedBy: rpc_sites_provision,
   acceptance: [
     { claim: "A founder provisions the registered company's site without bench credentials; a repeat preserves its identity.", observes: "cli: org site provision --org acme --confirm --json returns the registered Safe and acme-main.<base> with state provisioned; repeating it returns the same site and Safe. read: Frappe's Company and Safe bank account match Core. No private site-service token or bench password is present in the caller environment." },
     { claim: "A failed provisioning can be retried without releasing an incomplete site.", observes: "Stop the bench before provisioning: the command fails PROVIDER_ERROR and Core remains unreleased. Restart the bench and repeat: the same site is completed and delivery is released." },

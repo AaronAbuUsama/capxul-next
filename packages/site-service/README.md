@@ -31,7 +31,7 @@ The image must already contain Frappe, ERPNext, HRMS, CRM, WhatsApp and Capxul. 
 
 ## Checks and delivery scope
 
-`pnpm --filter @capxul/site-service test` runs real HTTP, EIP-191 signing and child processes with isolated Core/RPC/bench fixtures. It checks CLI and SDK, interrupted retry, duplicate concurrency, service restart, immutable identity and authority/refusal controls. It is **not** a Postgres/Ponder/Frappe acceptance run. The integrated slice-zero runner must register its real chain fixture, invoke this public CLI, verify Frappe source values and wait for Core delivery. The old skeleton CLI remains only as a comparison fixture, not the selected-stack entry point.
+`pnpm --filter @capxul/site-service test` runs real HTTP, Access Bearer authorization through an injected authorizer and child processes with isolated Core/RPC/bench fixtures. It checks CLI and SDK, interrupted retry, duplicate concurrency, service restart, immutable identity and authority/refusal controls. It is **not** a Postgres/Ponder/Frappe acceptance run. The integrated slice-zero runner must register its real chain fixture, invoke this public CLI, verify Frappe source values and wait for Core delivery. The old skeleton CLI remains only as a comparison fixture, not the selected-stack entry point.
 
 ## Document door and durable lifecycle
 
