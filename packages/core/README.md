@@ -23,6 +23,7 @@ of `src/handlers.ts` and `pnpm types` fails with `Property '"record.export"' is 
 | `src/doors.ts` | `serveDoors`: each request to the group its path names, `PLATFORM_PATH` or `WORLD_PATH`. |
 | `src/handlers.ts` | One handler per operation, in its blueprint group. Five are `src/site-ops/`'s; the rest are empty. |
 | `src/site-ops/` | The document, report, clock and record operations (below). `door.ts` is its door. |
+| `src/organizations/`, `src/approvals/`, `src/chain/`, `src/cast/` | The chain operations, org.create, org.member.grant and approval.sign (below). `organizations/handlers.ts` is what `handlers.ts` and the Worker use. |
 | `src/server.ts` | `Served`, the handlers and middlewares of both groups, and `CoreRpcs`, both groups merged for a test in memory. |
 | `src/telemetry/spans.ts` | One span per call, named after the operation, under the trace id of the caller's `traceparent`, with every span beneath it. |
 | `src/telemetry/sink.ts` | Where a call's spans go: `app.spans`, written after the call ends and before the answer leaves. |
@@ -40,6 +41,7 @@ of `src/handlers.ts` and `pnpm types` fails with `Property '"record.export"' is 
 | `test/server.test.ts` | Core's groups in memory: all twelve answer `NotImplemented` under one span each, kept with the caller's trace id; sign-in refusals. |
 | `test/site-ops-documents.test.ts`, `test/site-ops-world.test.ts` | The five operations served in memory through Core's groups against a stand-in company site (`test/support/site-ops.ts`): what the site is asked, what Core answers, what the record keeps. |
 | `test/site-ops-sql.test.ts` | The clock, the record, the document hashes and the cast in Postgres with the migrations applied. Runs only with `CAPXUL_TEST_DATABASE` (a throwaway Postgres); skipped otherwise, as in CI. |
+| `test/chain/` | The chain operations end to end against a local stand-in of a world (`up.sh`: Anvil from the seed, the faucet's USDC, the test paymaster, alto from the world's bundler image, Postgres; `down.sh` removes it): `pnpm --filter @capxul/core chain:test`. Not in `pnpm test`, which has no chain. |
 | `test/doors.test.ts` | The SDK's own client against `serveDoors` over HTTP in this process: all twelve at their doors, the server span under the SDK's trace, wrong tokens refused, other paths 404 in JSON. |
 
 ## What every call gets
@@ -84,7 +86,31 @@ What it reads that other operations write, each a seam with its own file:
 | The first `world_created` of the record | `record.ts` | `world.create` (and the runner, for a stage: `packages/runner/src/world/born.ts`) |
 | A person's site user, `app.cast (person, email)` | `cast.ts` | the world's cast (step 1.12); its users are made on the site by `org.create` and `org.member.grant` |
 | A company's site: `Capxul Settings.org_slug` is the org id | `sites.ts` | `org.create`, when it configures the site |
-| The approval of a held payment (`PaymentApprovals.open`) | `payments.ts` | `approval.sign`'s half; until it is merged, a Safe payment dies naming it (`PaymentApprovalsUnbuilt`) |
+| The approval of a held payment (`PaymentApprovals.open`) | `payments.ts` | `approval.sign`'s half: `PaymentApprovalsLive` (`organizations/handlers.ts`, `approvals/payments.ts`) |
+
+## The chain operations (`src/organizations/`, `src/approvals/`, `src/chain/`)
+
+| Operation | What it does |
+|---|---|
+| `org.create` | Checks everything first (the founder's and every Director's claimed Safe, every person named, the handle, an unfinished founding, the capital against the founder's Safe). Then the service key mints the company Safe through Companies House's company role, under the org id, and sends the Installer's `deployMoney` (the Board's hats with Books, Invoices and People, the Director hat on every founding Director's Safe, the Signer Gate, Roles). The setup is prepared as one UserOperation of the founder's Safe (the capital, then the company Safe's install batch) and every Director gets an approval of its digest. Records `org_founded`, adds the company to `app.companies` and starts its site through `SiteDoor.make`. The same founding again answers `Resumed`. |
+| `org.member.grant` | A Director proposes: the company Safe's transaction at its next nonce (one more seat when the hat is full, then the hat minted to the member's Safe), read live from the chain. Each Director's approval is their own Safe's EIP-1271 digest of it. Records `officer_change_proposed` and `proposal_opened`. |
+| `approval.sign` | Checks the signer, the signature (raw secp256k1 over the digest), a subject already sent (`AlreadySent`) and the expiry in world time, keeps the signature, and once the threshold is signed (the founder among them, for a setup) sends the subject as one UserOperation through the world's bundler, sponsored by the test paymaster: the signer's own Safe's for a setup or a payment, the relayer's for a company Safe transaction. Answers once it is in a block; records `approval_signed` (and `approval_landed` when sent). |
+
+How it reaches the chain: `chain/WorldChain.ts`, the world's chain and bundler over the Worker's `CHAIN` binding to
+the world's door (`/<token>/rpc`, `/<token>/bundler`), with the door's token; the door's read-only `/chain` is the
+callers'. The addresses and the service key are the seed's (`chain/seeded.ts`, checked against the contracts'
+deployment record by `test/seeded.test.ts`). What a landing means for the company's site (its company and Safe, the bench's
+clock, each hat, the founder's capital, a payment's posting) is queued in `app.site_deliveries` and handed to the site
+once it is ready (`organizations/site.ts`, through `capxul.core_company` in `packages/frappe-app`). Blueprint
+decisions.md 48 to 50 say why.
+
+What it reads that others write:
+
+| Seam | File | Who fills it |
+|---|---|---|
+| The world's cast, `app.cast (person, email, signer, safe)` | `cast/Cast.ts` | `world.create` (step 1.12) |
+| The world's companies, `app.companies (org, handle, name, site_state, site_url)` | `organizations/store.ts` | the world's migration; org.create adds to it. `world.show` should list it through `companiesOf` (`organizations/site.ts`), which moves each site on first |
+| The world's clock and record | `src/site-ops` | `WorldClock`, `WorldRecord` |
 
 ## A stage of `CapxulCore`
 
