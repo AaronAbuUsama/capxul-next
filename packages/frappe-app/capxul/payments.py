@@ -5,6 +5,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt, getdate
 
+from capxul import trace
 from capxul.canon import canonical, document_hash, money, to_address_for
 
 WAITING = "Waiting for signature"
@@ -84,13 +85,14 @@ def request_payment(name):
         frappe.throw(_("Migrate this site before requesting a payment"))
     seq = int(row[0][0] or 0) + 1
     frappe.db.set_single_value("Capxul Settings", "request_seq", seq)
+    trace_id = trace.ensure()  # the request, its approval, the chain event and the ledger rows share one trace
     req = frappe.get_doc(
         {"doctype": "Capxul Payment Request", "payment_entry": name, "document_hash": h, "status": "Requesting",
          "requested_by": frappe.session.user, "canonical_json": canonical(pe, s.asset), "request_seq": seq}
     ).insert(ignore_permissions=True)
     body = {
         "request_id": req.name, "idempotency_key": req.name, "cursor": seq,
-        "trace_id": frappe.flags.get("capxul_trace") or "",
+        "trace_id": trace_id,
         "org": s.org_slug, "site": frappe.local.site, "doctype": "Payment Entry", "name": name, "document_hash": h,
         "requested_by": frappe.session.user, "to_party": pe.party_name or pe.party, "to_address": to_addr,
         "amount": money(pe.paid_amount), "asset": s.asset, "department": dept,

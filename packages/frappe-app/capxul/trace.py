@@ -23,6 +23,13 @@ def from_request():
         frappe.flags.capxul_trace = t
 
 
+def ensure():
+    """This command's trace id; a command no caller traced (a person's desk Submit) starts its own (plugs.request-starts-trace)."""
+    if not frappe.flags.get("capxul_trace"):
+        frappe.flags.capxul_trace = "tr_" + frappe.generate_hash(length=24).lower()
+    return frappe.flags.capxul_trace
+
+
 def stamp(doc, method=None):
     t = frappe.flags.get("capxul_trace")
     if not t or doc.doctype in SKIP or doc.meta.istable or frappe.flags.in_install or frappe.flags.in_setup_wizard or not doc.name:

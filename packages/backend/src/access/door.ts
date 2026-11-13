@@ -1,5 +1,11 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import type { Sql } from "../platform/db.ts";
+
+/** World creation only, after base roles/schema and the common outbox; never on up or restore. */
+export async function migrateAccess(sql: Sql): Promise<void> {
+  await sql.query(readFileSync(new URL("./schema.sql", import.meta.url), "utf8"));
+}
 
 export { challenge, sendCode, verifyCode, withKey, revoke, type AccessConfig, type SignIn } from "./sign-in.ts";
 export { routeAccess, accessPaths, accessError, type AccessServices } from "./routes.ts";
