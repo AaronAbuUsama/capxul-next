@@ -45,8 +45,7 @@ def longest(step_id):
 path = max((longest(i) for i in left), key=lambda p: p[0], default=(0, []))[1]
 
 items = []
-for number, name, delivers, done_when, _state in table(roadmap, "## Phases"):
-    m = number.split(".")[0] if "." in number else number
+for number, delivers, done_when, _state in table(roadmap, "## Phases"):
     mine = [s for s in steps if s["milestone"] == number.split(".")[0]]
     if not mine:
         continue
@@ -66,18 +65,25 @@ for entry in filter(None, (e.strip() for e in merges.split("\x1e"))):
     items.append({"kind": "change", "id": number.group(1) if number else "", "name": title, "detail": f"pull request {number.group(1)}" if number else "",
                   "state": "Merged", "done": 1, "of": 1, "pct": 100, "path": "", "waits": "", "at": at, "needs": ""})
 
-# Work done so far, day by day: the units of every step finished on or before each day.
+# Work done so far, hour by hour: the units of every step finished by the end of each of the last 48 hours.
+def when(text):
+    return datetime.datetime.fromisoformat(text.replace("Z", "+00:00"))
+
+
 total = sum(s["of"] for s in steps)
-today = datetime.datetime.now(datetime.timezone.utc).date()
-start = min([datetime.date.fromisoformat(s["at"]) for s in steps if s["at"]] + [today])
-days = max(1, (today - start).days + 1)
+now = datetime.datetime.now(datetime.timezone.utc)
+finished = [(when(s["at"]), s["of"]) for s in steps if s["at"]]
+start = min([t for t, _ in finished] + [now])
+hours = max(1.0, (now - start).total_seconds() / 3600)
+this_hour = now.replace(minute=0, second=0, microsecond=0)
 activity = []
-for n in range(13, -1, -1):
-    day = today - datetime.timedelta(days=n)
-    activity.append({"date": str(day), "done": sum(s["of"] for s in steps if s["at"] and s["at"] <= str(day)), "total": total})
+for n in range(47, -1, -1):
+    end = this_hour - datetime.timedelta(hours=n) + datetime.timedelta(hours=1)
+    activity.append({"hour": (end - datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:00Z"), "done": sum(of for t, of in finished if t < end), "total": total})
 done_now = sum(s["done"] for s in steps)
-items.append({"kind": "pace", "id": "pace", "name": "Units of work finished per day since the first step was done", "detail": f"{days} day(s) counted",
-              "state": "", "done": done_now, "of": total, "pct": round(100 * done_now / total), "path": "", "waits": "", "at": str(start), "needs": str(days)})
+items.append({"kind": "pace", "id": "pace", "name": "Work finished per hour since the first step was done", "detail": f"{hours:.1f} hours counted",
+              "state": "", "done": done_now, "of": total, "pct": round(100 * done_now / total), "path": "", "waits": "", "at": start.strftime("%Y-%m-%dT%H:%MZ"),
+              "needs": f"{hours:.2f}"})
 
 out = os.path.join(ROOT, "var", "status-feed")
 os.makedirs(out, exist_ok=True)

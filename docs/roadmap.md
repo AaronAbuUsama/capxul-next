@@ -51,11 +51,11 @@ request is named under Evidence. `Needs` lists the steps that must be Done first
 several like things (twelve scenarios); every other step counts as one. `Waits on` names a person when only they can
 unblock it.
 
-| Step | Milestone | What | Needs | State | Count | Waits on | Done on | Evidence |
+| Step | Milestone | What | Needs | State | Count | Waits on | Done at (UTC) | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| 0.1 | 0 | Alchemy deploys from an agent's container with no key inside it | | Done | | | 2026-11-13 | `spikes/hosting`, PR 142 |
-| 0.2 | 0 | A world's one database is a Neon branch: created, isolated, forked from another world | | Done | | | 2026-11-13 | `spikes/hosting`, PR 142 |
-| 0.3 | 0 | A world is created, used and destroyed as one unit, with an owner, an expiry and timed steps | 0.2 | Done | | | 2026-11-13 | `spikes/hosting`, PR 142 |
+| 0.1 | 0 | Alchemy deploys from an agent's container with no key inside it | | Done | | | 2026-11-13T06:55Z | `spikes/hosting`, PR 142 |
+| 0.2 | 0 | A world's one database is a Neon branch: created, isolated, forked from another world | | Done | | | 2026-11-13T06:59Z | `spikes/hosting`, PR 142 |
+| 0.3 | 0 | A world is created, used and destroyed as one unit, with an owner, an expiry and timed steps | 0.2 | Done | | | 2026-11-13T07:23Z | `spikes/hosting`, PR 142 |
 | 0.4 | 0 | Alchemy state is shared, so any container can see and destroy any world | 0.1 | In progress | | | | |
 | 0.5 | 0 | Expired worlds are deleted without anyone remembering to, Cloudflare resources included | 0.4 | In progress | | | | |
 | 0.6 | 0 | A world's chain and index run as Cloudflare Containers against its Neon branch and stop when idle | 0.2 | In progress | | | | |
