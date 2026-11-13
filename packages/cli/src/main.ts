@@ -5,8 +5,8 @@ import type { Hex } from "viem";
 
 const args = process.argv.slice(2);
 try {
-  if (args[0] === "world") {
-    // The supervisor owns this adapter. Load it only for world commands, not site provisioning.
+  if (args[0] === "world" || args[0] === "record") {
+    // The supervisor owns world and catalogue adapters, not site provisioning.
     const { runDevnet } = await import(new URL("./devnet.ts", import.meta.url).href);
     process.exitCode = await runDevnet(args);
   } else {
