@@ -62,6 +62,12 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
     const bearerRoute = req.method === "POST" ? bearerRoutes.find((r) => r.prefixes.some((p) => url.pathname.startsWith(p))) : undefined;
     if (bearerRoute) {
       if (paused) return json(res, 503, { error: "SNAPSHOT_PAUSED" });
+      // An absent bearer reaches the router: public sign-in and unauthenticated reads decide for themselves.
+      const bearer = /^Bearer (\S+)$/.exec(String(req.headers.authorization ?? ""))?.[1] ?? "";
+      // Above the default limit, only a bearer of the session token's shape may make Core buffer the body;
+      // the route still authenticates it on its own transaction.
+      if ((bearerRoute.bodyLimit ?? 1_048_576) > 1_048_576 && !/^[A-Za-z0-9_-]{43}$/.test(bearer))
+        return json(res, 401, { error: "NOT_AUTHENTICATED" });
       activeRequests++;
       try {
         const parts: Buffer[] = []; let bytes = 0;
@@ -69,8 +75,6 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
         let input: unknown;
         try { input = JSON.parse(Buffer.concat(parts).toString("utf8") || "{}"); } catch { return json(res, 400, { error: "INVALID_INPUT" }); }
         if (!input || typeof input !== "object" || Array.isArray(input)) return json(res, 400, { error: "INVALID_INPUT" });
-        // An absent bearer reaches the router: public sign-in and unauthenticated reads decide for themselves.
-        const bearer = /^Bearer (\S+)$/.exec(String(req.headers.authorization ?? ""))?.[1] ?? "";
         let answer: Awaited<ReturnType<BearerRoute["route"]>>;
         try {
           answer = await db.transaction("", async (sql) => bearerRoute.route(sql, url.pathname, input as Record<string, unknown>, bearer, await worldNow(sql)),

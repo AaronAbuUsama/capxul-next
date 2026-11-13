@@ -29,12 +29,15 @@ test("accounts.admission.admit refuses unsigned, wrongly signed and session-only
   const deploymentFile = join(mkdtempSync(join(tmpdir(), "operator-admit-")), "deployment.json");
   writeFileSync(deploymentFile, JSON.stringify({ companiesHouse: record.companiesHouse, agentOwner: record.contracts.AgentOwner.address }));
   const secret = randomBytes(16).toString("hex");
-  let code = "";
+  let code = "", reached = 0;
   const mail = { async send(m: { text?: string }) { code = m.text!.match(/\b\d{6}\b/)![0]; return { id: randomBytes(4).toString("hex") }; } };
   const core = createCore({ database: env.DATABASE_URL, workerDatabase: env.WORKER_DATABASE_URL, secret, port: 0, host: "127.0.0.1",
     url: "http://127.0.0.1", frappe: "http://127.0.0.1:1", ponder: "http://127.0.0.1:1", rpc: "http://127.0.0.1:1", chainId: 84532,
     socket: "http://127.0.0.1:1", startPaused: false, finality: 0, world: "operator-admit" }, undefined,
-  () => accessRoutes({ mail, secret, coreUrl: "http://127.0.0.1", rpc: "http://127.0.0.1:1", deploymentFile, namespace: "capxul:devnet:email:v1" }));
+  () => [...accessRoutes({ mail, secret, coreUrl: "http://127.0.0.1", rpc: "http://127.0.0.1:1", deploymentFile, namespace: "capxul:devnet:email:v1" }),
+    // Test-only large-body route: counts how often the dispatch lets a caller reach it.
+    { prefixes: ["/test/large/"], bodyLimit: 32_000_512, async route(_sql, _path, input) { reached++; return { status: 200, body: { bytes: String(input.blob ?? "").length } }; },
+      render: () => ({ status: 500, body: { error: "INTERNAL_ERROR" } }) }]);
   const address = await core.start();
   const base = `http://127.0.0.1:${(address as { port: number }).port}`;
   const post = (path: string, body: string, headers: Record<string, string> = {}) =>
@@ -56,6 +59,12 @@ test("accounts.admission.admit refuses unsigned, wrongly signed and session-only
     assert.deepEqual(refused.map((r) => r.status), [401, 401, 401, 401]);
     assert.equal((await admin.query("select 1 from app.admissions where email=$1", [target])).rowCount, 0);
     assert.equal((await admin.query("select 1 from app.transition_outbox where event->>'name'='waitlist_entry_transitioned'")).rowCount, 0);
+    // Above the default body limit, a missing or malformed bearer is refused before Core buffers the body.
+    const big = JSON.stringify({ blob: "x".repeat(2 * 1_048_576) });
+    const large = [await post("/test/large/upload", big), await post("/test/large/upload", big, { authorization: "Bearer not-a-session-token" })];
+    assert.deepEqual(large.map((r) => r.status), [401, 401]); assert.equal(reached, 0);
+    const shaped = await post("/test/large/upload", big, { authorization: `Bearer ${session.token}` });
+    assert.equal(shaped.status, 200); assert.deepEqual(await shaped.json(), { bytes: 2 * 1_048_576 }); assert.equal(reached, 1);
     const signed = await post("/admin/accounts/admit", raw, { "x-capxul-signature": signature(raw, secret) });
     assert.equal(signed.status, 200);
     assert.deepEqual(await signed.json(), { admitted: [target], already: [], invalid: [] });
