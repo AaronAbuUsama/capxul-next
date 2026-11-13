@@ -65,22 +65,25 @@ unblock it.
 | 0.6 | 0 | A world's chain and index run as Cloudflare Containers against its Neon branch and stop when idle | 0.2 | Done |  |  | 2026-11-13T08:20Z | `spikes/containers`, `records/ct-w3.prove.txt`: Anvil with the seeded state and Ponder ran as containers against the world's Neon branch, state survived a stop through R2, both stopped when idle and woke in 1.6 s. Core and the real indexer package were not tried |
 | 0.7 | 0 | One operation goes from an Effect contract, to a scenario that fails on an empty handler, to a pass | 0.2 | Done |  |  | 2026-11-13T09:44Z | `spikes/pipeline`, `green-records/run-1..3`: two operations declared in Effect; five scenarios written by a separate agent failed on the empty server, then passed in three full runs in a row (15 fresh worlds), with the runner's checks of spans, events and their payloads on every call. 9 of 84 calls over the provisional 500 ms budget, all a world's first database call |
 | 0.8 | 0 | Two worlds at different clocks share one Frappe bench |  | Done |  |  | 2026-11-13T09:05Z | `spikes/bench-clocks`, `observed.txt`: three sites of two worlds on one bench read their own world's time in bench commands, web requests, worker jobs and the scheduler. Four gaps to close in step 1.4: the web process must load the app at start, plain Python processes read host time, a running clock is an hour out across daylight saving, and Frappe caches a site's config for 60 s |
-| 0.9 | 0 | A scenario run from a template world is timed end to end | 0.6, 0.7 | Not started | | | | |
+| 0.9 | 0 | A scenario run from a template world is timed end to end | 0.7, 1.12 | Not started |  |  |  |  |
 | 1.1 | 1 | The thin line's operations are declared in the contract and the server compiles with empty handlers | 0.7 | In progress | 0/12 |  |  |  |
 | 1.2 | 1 | The scenario runner checks declared events, spans and speed on every run and stores the timings | 0.7 | In progress |  |  |  |  |
 | 1.3 | 1 | One command creates and destroys a private world: chain, index, Core and database | 0.4, 0.5, 0.6 | In progress |  |  |  |  |
 | 1.4 | 1 | A company's Frappe site in a private world is reached through the door | 0.8, 1.3 | In progress |  |  |  |  |
 | 1.5 | 1 | The thin line's scenarios are written by a separate agent and fail on empty handlers | 1.1, 1.2 | Not started | 0/12 | | | |
-| 1.6 | 1 | The thin line's scenarios pass in a fresh private world | 1.3, 1.4, 1.5, 1.9 | Not started | 0/12 | | | |
+| 1.6 | 1 | The thin line's scenarios pass in a fresh private world | 1.3, 1.4, 1.5, 1.9, 1.11, 1.12 | Not started | 0/12 |  |  |  |
 | 1.7 | 1 | CI fails when TypeScript is not idiomatic Effect |  | Done |  |  | 2026-11-13T07:58Z | Pull request 160 (a keyword count), replaced in pull request 184 by the lint rung: oxlint with Effect's rules from `@effect/tsgo` and the `capxul/effect-only` rule, all errors, run by CI |
 | 1.8 | 1 | CI on `master` creates a world, runs the thin line and destroys the world | 1.6 | Not started |  | Aaron: Cloudflare and Neon keys as CI secrets (not available yet; until then runs are proven from a clean agent container) |  |  |
 | 1.9 | 1 | The SDK: a typed client of every blueprint operation, derived from the blueprint, through which the scenarios call Core | 1.1 | Not started | | | | |
 | 1.10 | 1 | The CLI: the one Capxul command line, every blueprint operation a command derived from the blueprint; the thin line's scenarios also pass through it, giving the same answers as the SDK | 1.9 | Not started | | | | |
+| 1.11 | 1 | A private world includes the bundler and a test paymaster, so a signed approval lands on the chain as one real UserOperation | 1.3 | Not started | | | | |
+| 1.12 | 1 | Every new private world gets its cast, funded from the test token's faucet, and a world can be saved as a template and started from it | 1.3 | Not started | | | | |
+| 1.13 | 1 | A step's state comes from run records: each step names the proof that closes it, and the dashboard reads the records, not a hand-typed column | | Not started | | | | |
 | 2.1 | 2 | A host for the Frappe bench and a domain on Cloudflare exist | | Not started | | Aaron: a host account and a domain | | |
 | 2.2 | 2 | The platform (bench, tunnel, shared state) is deployed by Alchemy | 2.1, 0.4 | Not started | | | | |
 | 2.3 | 2 | A shared world exists whose sites are created with a per-world token | 2.2, 1.6 | Not started | | | | |
 | 2.4 | 2 | The thin line's scenarios pass on the shared world after a deploy | 2.3 | Not started | 0/12 | | | |
-| 2.5 | 2 | The drift check runs on a schedule and is clean | 2.2 | Not started | | | | |
+| 2.5 | 2 | A drift check that catches changed settings and replaced code runs on a schedule and is clean (the pinned Alchemy reports drift but exits 0, and misses code replaced by hand) | 2.2 | Not started |  |  |  |  |
 
 ## Risks, proven or killed
 
