@@ -85,3 +85,17 @@ export const decision_devnet_preparation_host_user = defineDecision({
   source: "Retained solgate run-20261112131330936-216fd544 systemd/CLI evidence and isolated USER-only supervisor controls, 12 November 2026",
   affects: [component_devnet, concept_devnet],
 });
+
+export const decision_devnet_composed_catalogue = defineDecision({
+  id: "devnet.composed-catalogue",
+  title: "Composition records actual world lifecycle and snapshot catalogue facts",
+  question: "How does the executable supervisor populate the transactional catalogue without mistaking financial record heads or schema creation for world history?",
+  options: [
+    { label: "world-targeted-facts", text: "Fresh creation alone migrates the catalogue and inserts its creating world after installing the actual chain clock. Successful composed up/stop records the corresponding lifecycle transaction. Snapshot save captures the catalogue cut after quiescence, before copying the database, and records snapshot metadata only after publication and successful resume. Restore captures the abandoned catalogue history after quiescence, reads the actual saved catalogue cut from the installed database, and rewrites offline before resume. Catalogue epoch/sequence/head never comes from the financial cut. Missing catalogue schema or rows refuses; up and restore never backfill retained worlds." },
+    { label: "schema-only", text: "Create the catalogue tables but infer rows and command history when a reader asks for them." },
+  ],
+  chosen: "world-targeted-facts",
+  why: "A database schema does not establish a born world, a completed stop, or a saved snapshot. Restricted worker transactions target the world's own database and close before template copying. A temporary recovery fence is not a user lifecycle stop. Failed process actions do not emit successful lifecycle records; a published snapshot whose resume or catalogue publication fails remains an explicitly failed operation, never repaired or credited automatically. Restore retains abandoned records from the actual drained source, not a disconnected fixture or a connection reopened on its fenced abandoned database.",
+  source: "Integration composition ownership assignment, 12 November 2026; reviewed Recovery worldCatalogue doors; PR77 8144d0a fresh-create migration gap",
+  affects: [component_devnet, concept_devnet],
+});
