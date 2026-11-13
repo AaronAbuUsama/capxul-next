@@ -241,10 +241,12 @@ export const decision_signals_world_rows = defineDecision({
     {
       label: "world-rows",
       text:
-        "Core writes each row to the world's own Postgres (app.signal_rows, worker-only, bounded), stamped with the world " +
-        "instant, and evaluates both alerts over world-time windows behind its authenticated, server-wide " +
-        "/admin/operator-alerts. A world paused for a snapshot writes no row. The rows a live environment exports to PostHog " +
-        "are the same rows.",
+        "Core writes each row to the world's own Postgres (app.signal_rows, worker-only), stamped with the world's instant: " +
+        "a stopped devnet clock where the world has one, otherwise the host clock through RealTime, which is the world's " +
+        "time in staging and production (Runtime's world-time door replaces this reader, including a running devnet " +
+        "clock). Both alerts are evaluated over those windows behind the authenticated, server-wide /admin/operator-alerts, " +
+        "and each body's rows older than its longest window are pruned. A world paused for a snapshot writes no row. The " +
+        "rows a live environment exports to PostHog are the same rows.",
     },
     { label: "host-rows", text: "Keep the rows in memory and bound the windows by the host's clock." },
   ],
@@ -255,7 +257,12 @@ export const decision_signals_world_rows = defineDecision({
     "and a warp past it clears it: on a devnet, the operator's hour is the world's hour. Rows in Postgres survive Core's " +
     "restarts and can be counted by an eval. Both alerts are server-wide with route operator (signals.operator-watch), " +
     "so they cannot join an Organization's /admin/alerts list, whose money-path faults must each fire alone. A row is " +
-    "written after its answer is sent, so a slow or failing row write never changes an rpc's answer.",
+    "written after its answer is sent, so a slow or failing row write never changes an rpc's answer. A caller that never " +
+    "passed Core's door (a bad signature, wrong method or oversize body) and the liveness probes write no row, so an " +
+    "anonymous flood cannot fill the table or push real calls out of the windows. A process run writes a row when it did " +
+    "work or failed, and each process registers where its due runs are read (plugs.payments.settle: unconsumed final " +
+    "payments, due from their block time). Core cannot report its own death: a stopped Core is the supervisor's and the " +
+    "hosted uptime check's to see, out of scope here.",
   source: "Integrator rulings, 13 November 2026 (Shared builds the wide-row writer and both alerts; the separate server-wide route)",
   affects: [log_operation_row, log_process_row, metric_process_queue_age, alert_rpc_failing, alert_process_stuck],
 });

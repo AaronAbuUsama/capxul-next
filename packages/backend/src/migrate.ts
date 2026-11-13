@@ -46,13 +46,13 @@ try {
   await db.query("grant select,update on app.world to capxul_worker; grant select,insert on app.world_record to capxul_worker");
   await db.query("grant select,insert,update on app.indexer_observation to capxul_worker");
   await db.query("insert into app.world (world_id) values ($1) on conflict do nothing", [process.env.CAPXUL_WORLD ?? "main"]);
-  // Shared signals: retained spans and the world's wide rows, both worker-only.
-  await migrateSpans(db);
-  await migrateSignals(db);
   await db.query("grant usage on all sequences in schema app to capxul_core, capxul_worker");
   await db.query("grant usage on schema ponder to capxul_worker");
   await db.query("alter default privileges for role capxul_ponder in schema ponder grant select on tables to capxul_worker");
   await db.query("grant select on all tables in schema ponder to capxul_worker");
+  // Shared signals last in the chain: retained spans and the world's wide rows, both worker-only.
+  await migrateSpans(db);
+  await migrateSignals(db);
   await db.query("COMMIT");
   console.log("Core schema v1 migrated; separate non-superuser tenant, worker and Ponder roles");
 } catch (error) { await db.query("ROLLBACK"); throw error; }

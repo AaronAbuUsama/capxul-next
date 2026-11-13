@@ -9,7 +9,7 @@ import { deferDelivery, deliver, RequestCollector, resend, retryParked, signatur
 import { settings } from "./platform/config.ts";
 import { Database } from "./platform/db.ts";
 import { alerts, indexerState } from "./platform/diagnostics.ts";
-import { createSignals, type Signals } from "./shared/door.ts";
+import { createSignals, settleQueue, type Signals } from "./shared/door.ts";
 
 type Config = ReturnType<typeof settings>;
 
@@ -38,6 +38,7 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
   let pauseWork: Promise<Awaited<ReturnType<typeof readSnapshotCut>>> | undefined;
   // Shared signals: a span and an operation_row per request, a process_row per run, and the operator alerts.
   const signals = createSignals(db, { world: config.world, paused: () => paused || closing });
+  signals.addQueue(settleQueue(config.chainId, config.finality));
   let sampler: ReturnType<typeof setInterval> | undefined;
   const collector = new RequestCollector(db, { ...config, running: () => !paused && !closing });
   const drained: (() => void)[] = [];
@@ -105,11 +106,18 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
     } finally { activeRequests--; notifyDrain(); }
   }
   const server = createServer((req, res) => {
+    // The row a request writes after its answer is part of the request, so a snapshot pause drains it too; the pause and
+    // resume calls themselves are not counted, or the pause would wait for itself.
+    const counted = !String(req.url ?? "").startsWith("/admin/snapshot/");
+    if (counted) activeRequests++;
     void signals.request(req, res, () => Effect.runPromise(Effect.tryPromise(() => route(req, res))).catch((error) => {
       const message = String(error.cause?.message ?? error.message);
       const code = message.split(":")[0];
       json(res, code === "NOT_FOUND" ? 404 : code === "FORBIDDEN" ? 403 : ["INVALID_INPUT", "IDEMPOTENCY_CONFLICT", "IDENTITY_CONFLICT"].includes(code!) ? 400 : 500, { error: message });
-    }));
+    })).catch((error) => {
+      console.error(`Core request: ${(error as Error)?.name ?? "Error"}`);
+      if (!res.headersSent) json(res, 500, { error: "INTERNAL_ERROR" });
+    }).finally(() => { if (counted) { activeRequests--; notifyDrain(); } });
   });
   async function tick() {
     if (paused || closing) return;

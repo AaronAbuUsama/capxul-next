@@ -5,9 +5,8 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { performance } from "node:perf_hooks";
+import { realNowIso, realNowMs, stopwatch } from "@capxul/runtime/time";
 import { Effect, Tracer } from "effect";
-import { worldNow } from "../devnet/door.ts";
 import type { Database, Sql } from "../platform/db.ts";
 import { spanCollector, type SpanContext } from "../platform/spans.ts";
 
@@ -68,31 +67,64 @@ const failureOf = (status: number, code: string | null): { outcome: "ok" | "refu
   : status < 500 || (code && REFUSED.has(code)) ? { outcome: "refused", failure: { code: code ?? `HTTP_${status}`, mode: "refusal", retryable: false } }
   : { outcome: "failed", failure: { code: code ?? "INTERNAL_ERROR", mode: "defect", retryable: true } };
 
-async function insertRow(db: Database, body: "operation_row" | "process_row" | "process_queue_age", trace: string | null, org: string | null, attributes: unknown) {
-  const at = await worldNow(db.worker);
+/**
+ * The instant a row is stamped with and a window is measured in (signals.world-rows): a world's stopped authority clock
+ * where it has one (a devnet); otherwise the host clock through RealTime, which is the world's time in staging and
+ * production. A running devnet clock is read the same way until Runtime's world-time door replaces this reader.
+ */
+export async function signalNow(sql: Sql): Promise<number> {
+  const clock = (await sql.query("select clock from app.world")).rows[0]?.clock;
+  return clock?.clockMode === "stopped" && Number.isSafeInteger(clock?.nowMs) ? clock.nowMs : realNowMs();
+}
+/** The longest window each body is read over; older rows are pruned. */
+const WINDOWS = { operation_row: 15 * 60_000, process_row: 60 * 60_000, process_queue_age: 5 * 60_000 } as const;
+/** Answers no row is written for: a caller that never got past Core's door (bad signature, wrong method, oversize) and the
+ * liveness probes. Writing them would let an anonymous flood fill the table and push real calls out of the windows. */
+const UNCOUNTED = new Set([401, 405, 413]);
+const PROBES = new Set(["/health", "/ready"]);
+
+async function insertRow(db: Database, body: keyof typeof WINDOWS, trace: string | null, org: string | null, attributes: unknown) {
+  const at = await signalNow(db.worker);
   await db.worker.query("insert into app.signal_rows (body,at,trace_id,org_id,attributes) values ($1,$2,$3,$4,$5::jsonb)",
     [body, at, trace, org, JSON.stringify(attributes)]);
+}
+
+/**
+ * plugs.payments.settle's due runs: indexed PaymentSent facts of a born company, past the finality depth, that Core has not
+ * consumed. They are due from their block time, which is the world's time (the devnet pins its chain to the world clock).
+ */
+export function settleQueue(chainId: number, finality: number) {
+  return { workflow: "plugs.payments.settle", async read(sql: Sql) {
+    const row = (await sql.query(`select min(p.block_time)::float8 as oldest, count(*)::int as due from app.chain_payments p
+      join app.organizations o on o.safe=p.sender and o.token=p.token
+      where p.chain_id=$1 and p.block_number <= (select indexed_block - $2 from ponder.indexer_progress where chain_id=$1)
+        and exists (select 1 from app.chain_logs l where l.chain_id=$1 and l.event='CompanySafeMinted' and l.args->>'safe'=o.safe)
+        and not exists (select 1 from app.consumed_facts c where c.org_id=o.org_id and c.log_id=p.log_id)`, [chainId, finality])).rows[0];
+    return { oldestDue: row?.oldest ?? null, dueRuns: row?.due ?? 0 };
+  } };
 }
 
 export function createSignals(db: Database, config: SignalsConfig) {
   // Every transaction a request opens counts toward its db_ms.
   const transaction = db.transaction.bind(db);
   db.transaction = async <T>(...args: Parameters<typeof transaction<T>>): Promise<T> => {
-    const started = performance.now();
-    try { return await transaction(...args); } finally { noteDb(performance.now() - started); }
+    const elapsed = stopwatch();
+    try { return await transaction(...args); } finally { noteDb(elapsed()); }
   };
+  // The run spans are kept under: set by whoever started this world's run (the eval harness), never by a caller.
+  const runId = ID.test(process.env["CAPXUL_RUN_ID"] ?? "") ? process.env["CAPXUL_RUN_ID"]! : "core";
   const codeVersion = process.env["CAPXUL_CODE_VERSION"] || "unknown";
   const env = ENVS.find((e) => e === process.env["CAPXUL_ENV"]) ?? "unknown";
   const spanSql: Sql = { query: ((...args: Parameters<Sql["query"]>) => config.paused() ? Promise.resolve({ rows: [] }) : (db.worker.query as any)(...args)) as Sql["query"] };
   /** Wrap one HTTP request: its rpc span (child of the caller's trace), then its operation_row. Never alters the answer. */
   async function request(req: IncomingMessage, res: ServerResponse, handle: () => Promise<void>): Promise<void> {
     if (config.paused()) return handle();
-    const url = new URL(req.url ?? "/", "http://core");
+    // A request line that is not a URL still gets an answer from the handler; it is counted under the root rpc.
+    const url = URL.parse(req.url ?? "/", "http://core") ?? new URL("/", "http://core");
     const { rpc, concept } = rpcOf(url.pathname);
     const trace = traceOf(req.headers);
     // Every event the request enqueues carries this trace, including one the caller did not name.
     req.headers["x-capxul-trace"] = trace.traceId;
-    const run = String(req.headers["x-capxul-run"] ?? "");
     const surfaceHeader = String(req.headers["x-capxul-surface"] ?? "") as Surface;
     const surface = SURFACES.includes(surfaceHeader) ? surfaceHeader : "http";
     let code: string | null = null;
@@ -103,21 +135,25 @@ export function createSignals(db: Database, config: SignalsConfig) {
         code = /"error":"([A-Z][A-Z0-9_]{1,60})(?:[:"])/.exec(String(args[0]))?.[1] ?? null;
       return end(...args);
     }) as typeof res.end;
-    const collector = spanCollector(spanSql, { runId: ID.test(run) ? run : "core", worldId: config.world, codeVersion,
+    const collector = spanCollector(spanSql, { runId, worldId: config.world, codeVersion,
       callId: randomBytes(8).toString("hex"), capxul_env: env, producer: "backend", org_id: null, actor: null }, ERROR_CODES);
     // A caller that names only a trace id gets a root span in that trace (an all-zero parent id is no parent).
     const parent = Tracer.externalSpan({ traceId: trace.traceId, spanId: trace.parentSpanId ?? "0".repeat(16) });
-    const started = performance.now();
+    const elapsed = stopwatch();
     let call: Call | undefined;
     await Effect.runPromiseExit(Effect.gen(function* () {
       const span = yield* Effect.currentSpan;
       call = { tracer: collector.tracer, span, dbMs: 0, chainCalls: 0 };
-      yield* Effect.promise(() => current.run(call!, handle));
+      yield* Effect.tryPromise({ try: () => current.run(call!, handle), catch: (error) => {
+        // The handler answers its own errors; one that escapes is a defect, logged by its class only.
+        console.error(`Core request ${rpc}: ${(error as Error)?.name ?? "Error"} escaped the handler`);
+        return { code: "INTERNAL_ERROR" };
+      } });
       if (res.statusCode >= 400) yield* Effect.fail({ code: failureOf(res.statusCode, code).failure!.code });
     }).pipe(Effect.withSpan(`rpc.${rpc}`, { parent }), Effect.withTracer(collector.tracer)));
-    const duration = performance.now() - started;
+    const duration = elapsed();
     const { outcome, failure } = failureOf(res.statusCode, code);
-    if (config.paused()) return;
+    if (config.paused() || UNCOUNTED.has(res.statusCode) || PROBES.has(url.pathname)) return;
     try {
       await collector.flush();
       await insertRow(db, "operation_row", trace.traceId, null, { rpc, concept, surface, outcome, failure,
@@ -128,7 +164,7 @@ export function createSignals(db: Database, config: SignalsConfig) {
   /** One durable process run. A run returns true when it did work; an idle poll writes no row, a throw is a failed run. */
   async function processRun(run: { workflow: string; concept: string; trigger: "transition" | "chain-event" | "timer" | "cron" | "signal"; key: string; org?: string },
     work: () => Promise<boolean | void>): Promise<void> {
-    const started = performance.now();
+    const elapsed = stopwatch();
     let outcome: "done" | "failed" = "done", failure: Failure = null, did = false;
     try { did = (await work()) === true; }
     catch (error) {
@@ -138,7 +174,7 @@ export function createSignals(db: Database, config: SignalsConfig) {
     } finally {
       if ((did || outcome === "failed") && !config.paused())
         await insertRow(db, "process_row", null, run.org ?? null, { workflow: run.workflow, concept: run.concept, trigger: run.trigger,
-          idempotency_key: run.key, outcome, failure, queue_wait_ms: null, duration_ms: Math.round(performance.now() - started), resumes: 0 })
+          idempotency_key: run.key, outcome, failure, queue_wait_ms: null, duration_ms: Math.round(elapsed()), resumes: 0 })
           .catch((error) => console.error(`Core signals ${run.workflow}: ${error.message}`));
     }
   }
@@ -147,22 +183,24 @@ export function createSignals(db: Database, config: SignalsConfig) {
   type QueueSource = { workflow: string; read: (sql: Sql, now: number) => Promise<{ oldestDue: number | null; dueRuns: number }> };
   const sources: QueueSource[] = [];
   async function queueAges() {
-    const now = await worldNow(db.worker);
+    const now = await signalNow(db.worker);
     return Promise.all(sources.map(async (s) => {
       const { oldestDue, dueRuns } = await s.read(db.worker, now);
       return { workflow: s.workflow, due_runs: dueRuns, age_ms: oldestDue === null ? 0 : Math.max(0, now - oldestDue) };
     }));
   }
-  /** Sampled every minute: one process_queue_age row per process, then rows past a fixed bound are dropped. */
+  /** Sampled every minute: one process_queue_age row per process, then each body's rows older than its window are dropped. */
   async function sampleQueues(): Promise<void> {
     if (config.paused()) return;
     for (const q of await queueAges()) await insertRow(db, "process_queue_age", null, null, { workflow: q.workflow, due_runs: q.due_runs, value: q.age_ms });
-    await db.worker.query("delete from app.signal_rows where id < (select max(id) - 200000 from app.signal_rows)");
+    const now = await signalNow(db.worker);
+    for (const [body, window] of Object.entries(WINDOWS))
+      await db.worker.query("delete from app.signal_rows where body=$1 and at < $2", [body, now - window]);
   }
 
   /** rpc_failing and process_stuck, from the rows, over the world's own time windows. */
   async function operatorAlerts() {
-    const now = await worldNow(db.worker);
+    const now = await signalNow(db.worker);
     const rpcs = (await db.worker.query(`select attributes->>'rpc' as rpc, count(*)::int as calls,
         count(*) filter (where attributes->>'outcome'='failed')::int as failures
       from app.signal_rows where body='operation_row' and at >= $1 group by 1 order by 3 desc, 1`, [now - 15 * 60_000])).rows;
@@ -174,7 +212,7 @@ export function createSignals(db: Database, config: SignalsConfig) {
     const processes = [...new Set([...failed.map((f) => f.workflow), ...late.map((l) => l.workflow)])].sort().map((workflow) => ({
       workflow, failures: failed.find((f) => f.workflow === workflow)?.failures ?? 0, oldest_due_ms: late.find((l) => l.workflow === workflow)?.age_ms ?? 0,
     }));
-    return { observedAt: new Date().toISOString(), worldAt: now, alerts: [
+    return { observedAt: realNowIso(), worldAt: now, alerts: [
       { id: "rpc_failing", severity: "notify", route: ["operator"], active: failing.length > 0,
         reason: failing.length ? `${failing.map((r) => r.rpc).join(", ")} failing over 15 minutes` : "", rpcs: failing },
       { id: "process_stuck", severity: "page", route: ["operator"], active: processes.length > 0,

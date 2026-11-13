@@ -67,11 +67,13 @@ export async function deliver(db: Database, org: string, frappe: string, secret:
     // One in-flight delivery per company across processes. A crash releases this lock and rolls back the ack.
     await sql.query("select pg_advisory_xact_lock(hashtextextended($1,0))", [org]);
     const company = (await sql.query("select * from app.organizations where org_id=$1 for update", [org])).rows[0]!;
-    if (!company.released || company.retry_at && new Date(company.retry_at).getTime() > Date.now()) return;
+    if (!company.released || company.retry_at && new Date(company.retry_at).getTime() > Date.now()) return false;
     const event = (await sql.query("select * from app.site_events where org_id=$1 and state='pending' order by seq limit 1 for update", [org])).rows[0];
-    if (!event) return;
+    if (!event) return false;
     try { await offer(sql, org, company, event, frappe, secret); }
     catch (error) { throw new DeliveryRefused(Number(event.seq), error); }
+    // An offered event is a run of plugs.events.deliver (signals.wide-rows), whatever the site answered.
+    return true;
   }, true);
 }
 

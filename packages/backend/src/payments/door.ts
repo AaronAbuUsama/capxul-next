@@ -10,7 +10,7 @@ export async function consume(sql: Sql, org: string, chain: number, finality: nu
   if (!progress) throw new Error("INDEXER_NOT_READY: no indexed head");
   const cutoff = BigInt(progress.indexed_block) - BigInt(finality);
   const born = await sql.query("select 1 from app.chain_logs where chain_id=$1 and event='CompanySafeMinted' and args->>'safe'=$2 and block_number <= $3", [chain, company.safe, cutoff.toString()]);
-  if (!born.rowCount) return; // No operator metadata can manufacture an indexed company birth.
+  if (!born.rowCount) return false; // No operator metadata can manufacture an indexed company birth.
   // A transaction commits its consumed identity, approval settlement, record and delivery sequence together.
   const facts = (await sql.query(`
     select p.log_id,p.block_number,p.log_index,p.tx_hash,p.block_time,'payment_sent' as kind,to_jsonb(p) || jsonb_build_object('amount',p.amount::text) as fact
@@ -23,6 +23,7 @@ export async function consume(sql: Sql, org: string, chain: number, finality: nu
       from app.chain_logs l join app.hats h on h.org_id=$1 and h.hat_id=l.args->>'id'
       where l.chain_id=$2 and l.event='TransferSingle' and l.block_number<=$5
     order by block_number,log_index`, [org, chain, company.safe, company.token, cutoff.toString()])).rows;
+  let consumed = false;
   for (const row of facts) {
     const inserted = await sql.query("insert into app.consumed_facts (org_id,log_id) values ($1,$2) on conflict do nothing returning log_id", [org, row.log_id]);
     if (!inserted.rowCount) continue;
@@ -62,5 +63,8 @@ export async function consume(sql: Sql, org: string, chain: number, finality: nu
       }
     }
     await record(sql, org, "indexed_fact_consumed", trace, { log_id: row.log_id, kind: row.kind, cutoff: cutoff.toString() });
+    consumed = true;
   }
+  // Whether this run did work, for its process_row (signals.wide-rows): an idle poll writes none.
+  return consumed;
 }

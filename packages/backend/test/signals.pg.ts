@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
+import { connect } from "node:net";
 import test from "node:test";
 import pg from "pg";
 import { Database } from "../src/platform/db.ts";
 import { migrateSpans, readSpans } from "../src/platform/spans.ts";
-import { childSpan, createSignals, migrateSignals } from "../src/shared/door.ts";
+import { childSpan, createSignals, migrateSignals, settleQueue, signalNow } from "../src/shared/door.ts";
 
 // Explicit standalone PG control, not part of the Ponder/v4 fixture suite's *.test.ts glob.
 const url = process.env.SIGNALS_TEST_ADMIN_URL;
@@ -28,9 +29,14 @@ test("wide rows, rpc spans and the two operator alerts, in the world's own time"
   const db = new Database(roleUrl("capxul_core"), roleUrl("capxul_worker"));
   let paused = false, broken = true;
   const seen: Record<string, string> = {};
+  process.env["CAPXUL_RUN_ID"] = "run-9";
   const signals = createSignals(db, { world: "world-a", paused: () => paused });
   const secret = "private@example.test memo";
-  const server = createServer((req, res) => void signals.request(req, res, async () => {
+  // Like Core's server.ts: the route answers its own errors, and the wrapper's promise is caught.
+  const server = createServer((req, res) => void signals.request(req, res, () => route(req, res).catch(() => {
+    if (!res.headersSent) { res.writeHead(500, { "content-type": "application/json" }); res.end(JSON.stringify({ error: "INTERNAL_ERROR" })); }
+  })).catch(() => res.destroy()));
+  async function route(req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse) {
     const path = new URL(req.url!, "http://x").pathname;
     seen[path] = String(req.headers["x-capxul-trace"]);
     const send = (status: number, body: unknown) => { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(body)); };
@@ -40,8 +46,11 @@ test("wide rows, rpc spans and the two operator alerts, in the world's own time"
     }
     if (path === "/books/annotations/refuse") return send(400, { error: `INVALID_INPUT: ${secret}` });
     if (path === "/books/annotations/list") return broken ? send(500, { error: `permission denied for table records ${secret}` }) : send(200, {});
+    if (path === "/ready") return send(503, { ready: false });
+    if (path === "/admin/org") return send(401, { error: "bad signature" });
+    if (path === "/escape") throw new Error(`escaped ${secret}`);
     send(404, { error: "NOT_FOUND: unknown route" });
-  }));
+  }
   await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
   const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
   // A row is written just after its answer is sent; a call returns once its row is kept.
@@ -57,9 +66,10 @@ test("wide rows, rpc spans and the two operator alerts, in the world's own time"
   try {
     await t.test("a request joins the caller's trace; its child span and operation_row follow; no value enters storage", async () => {
       const trace = "4bf92f3577b34da6a3ce929d0e0e4736", parent = "00f067aa0ba902b7";
-      assert.equal(await call("/books/annotations/save", { traceparent: `00-${trace}-${parent}-01`, "x-capxul-run": "run-9", "x-capxul-surface": "cli" }), 200);
+      assert.equal(await call("/books/annotations/save", { traceparent: `00-${trace}-${parent}-01`, "x-capxul-run": "run-caller", "x-capxul-surface": "cli" }), 200);
       assert.equal(seen["/books/annotations/save"], trace, "the handler (and so every event it enqueues) sees the caller's trace");
       const spans = await readSpans(db.worker, { runId: "run-9", worldId: "world-a", traceId: trace });
+      assert.deepEqual(await readSpans(db.worker, { runId: "run-caller", worldId: "world-a", traceId: trace }), [], "a caller cannot name the run");
       const rpc = spans.find((s) => s.name === "rpc.books.annotations.save"), child = spans.find((s) => s.name === "chain.readContract");
       assert(rpc && child, JSON.stringify(spans));
       assert.equal(rpc.parentSpanId, parent); assert.equal(child.parentSpanId, rpc.spanId); assert.equal(rpc.outcome, "success");
@@ -84,7 +94,7 @@ test("wide rows, rpc spans and the two operator alerts, in the world's own time"
       const [, refused, failed] = await rows("operation_row");
       assert.deepEqual([refused.attributes.outcome, refused.attributes.failure.code, refused.trace_id], ["refused", "INVALID_INPUT", bare]);
       assert.deepEqual([failed.attributes.outcome, failed.attributes.failure.code], ["failed", "INTERNAL_ERROR"]);
-      const [root] = await readSpans(db.worker, { runId: "core", worldId: "world-a", traceId: bare });
+      const [root] = await readSpans(db.worker, { runId: "run-9", worldId: "world-a", traceId: bare });
       assert.equal(root!.parentSpanId, null); assert.equal(root!.errorCode, "INVALID_INPUT");
       const stored = JSON.stringify([...(await admin.query("select * from app.signal_rows")).rows, ...(await admin.query("select * from app.completed_spans")).rows]);
       assert(!stored.includes("private@example") && !stored.includes("memo") && !stored.includes("permission denied"));
@@ -139,6 +149,65 @@ test("wide rows, rpc spans and the two operator alerts, in the world's own time"
       assert.equal(late.active, true); assert.deepEqual(late.processes, [{ workflow: "payments.lifecycle.payment", failures: 0, oldest_due_ms: 5 * 60_000 + 1 }]);
       await signals.sampleQueues();
       assert.deepEqual((await rows("process_queue_age")).map((r) => r.attributes), [{ workflow: "payments.lifecycle.payment", due_runs: 1, value: 5 * 60_000 + 1 }]);
+    });
+
+    await t.test("anonymous answers and probes write nothing; a bad request line or an escaped error never crashes", async () => {
+      const before = (await rows("operation_row")).length;
+      const raw = (path: string) => fetch(base + path, { method: "POST", body: "{}" }).then((r) => r.status);
+      for (let i = 0; i < 20; i++) assert.equal(await raw("/admin/org"), 401);
+      assert.equal(await raw("/ready"), 503);
+      // A request line that is no URL: Node hands it to the handler, which must answer, not crash Core.
+      const answered = await new Promise<string>((done) => {
+        const socket = connect((server.address() as { port: number }).port, "127.0.0.1", () => socket.write("POST //[ HTTP/1.1\r\nHost: x\r\nContent-Length: 2\r\n\r\n{}"));
+        let text = ""; socket.on("data", (d) => { text += d; socket.end(); }); socket.on("close", () => done(text));
+      });
+      assert.match(answered, /^HTTP\/1\.1 \d{3}/, "the server is still up and answered");
+      assert.equal(await call("/escape"), 500);
+      await new Promise((r) => setTimeout(r, 100));
+      const after = await rows("operation_row");
+      assert.deepEqual(after.slice(before).map((r) => [r.attributes.rpc, r.attributes.outcome]), [["root", "failed"], ["escape", "failed"]]);
+      assert(!JSON.stringify(after).includes("private@"));
+    });
+
+    await t.test("a world without a stopped clock stamps host time; rows leave by their own window", async () => {
+      await admin.query("update app.world set clock='{}'::jsonb");
+      const host = Date.now(), at = await signalNow(db.worker);
+      assert(Math.abs(at - host) < 5_000, "staging and production read RealTime");
+      await admin.query("delete from app.signal_rows");
+      await call("/books/annotations/save");
+      assert(Math.abs(Number((await rows("operation_row"))[0].at) - host) < 5_000);
+      assert.equal((await signals.operatorAlerts()).alerts.length, 2, "the alert route answers on every world");
+      await setClock(T0);
+      await admin.query("insert into app.signal_rows (body,at,attributes) values ('operation_row',$1,'{}'),('process_row',$1,'{}'),('process_row',$2,'{}')",
+        [T0 - 15 * 60_000 - 1, T0 - 60 * 60_000 - 1]);
+      await signals.sampleQueues();
+      assert.deepEqual((await admin.query("select body,at from app.signal_rows where at < $1 order by body", [T0 - 15 * 60_000 + 1])).rows.map((r) => r.body), ["process_row"],
+        "an operation_row past 15 minutes and a process_row past an hour are pruned; one inside its hour stays");
+    });
+
+    await t.test("plugs.payments.settle is late once an unconsumed final payment has waited over 5 world minutes", async () => {
+      await admin.query(`create schema ponder; create table ponder.indexer_progress (chain_id int primary key, indexed_block bigint);
+        create table app.organizations (org_id text primary key, safe text, token text);
+        create table app.chain_payments (chain_id int, log_id text, sender text, token text, block_number bigint, block_time bigint);
+        create table app.chain_logs (chain_id int, event text, args jsonb);
+        create table app.consumed_facts (org_id text, log_id text);
+        grant usage on schema ponder to capxul_worker; grant select on all tables in schema ponder to capxul_worker;
+        grant select on app.organizations, app.chain_payments, app.chain_logs, app.consumed_facts to capxul_worker;
+        insert into ponder.indexer_progress values (84532, 100);
+        insert into app.organizations values ('acme','0xsafe','0xusdc'),('unborn','0xother','0xusdc');
+        insert into app.chain_logs values (84532,'CompanySafeMinted','{"safe":"0xsafe"}');`);
+      await admin.query("insert into app.chain_payments values (84532,'paid',  '0xsafe','0xusdc',90,$1),(84532,'due','0xsafe','0xusdc',95,$2),(84532,'fresh','0xsafe','0xusdc',99,$3),(84532,'unborn','0xother','0xusdc',90,$1)",
+        [T0 - 60 * 60_000, T0 - 5 * 60_000 - 1, T0 - 60 * 60_000]);
+      await admin.query("insert into app.consumed_facts values ('acme','paid')");
+      const queue = settleQueue(84532, 2);
+      assert.deepEqual(await queue.read(db.worker), { oldestDue: T0 - 5 * 60_000 - 1, dueRuns: 1 },
+        "consumed, not yet final (block 99 > 100-2) and unborn companies' payments are not due");
+      const quiet = createSignals(db, { world: "world-a", paused: () => false });
+      quiet.addQueue(queue);
+      const late = (await quiet.operatorAlerts()).alerts.find((a) => a.id === "process_stuck") as { active: boolean; processes: { workflow: string }[] };
+      assert.equal(late.active, true); assert.deepEqual(late.processes.map((p) => p.workflow), ["plugs.payments.settle"]);
+      await admin.query("insert into app.consumed_facts values ('acme','due')");
+      assert.equal((await quiet.operatorAlerts()).alerts.find((a) => a.id === "process_stuck")!.active, false, "consumed: clears");
     });
 
     await t.test("a world paused for a snapshot writes no row and no span", async () => {
