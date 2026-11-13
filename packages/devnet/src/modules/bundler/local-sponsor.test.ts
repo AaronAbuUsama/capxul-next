@@ -101,6 +101,8 @@ test("estimation is admitted, then delegated unchanged to the real bundler, whos
 
 test("the HTTP sponsor starts only with explicit test-only admission and a listed signer, serves loopback JSON-RPC and closes", async () => {
   await assert.rejects(startLocalSponsor({ ...fixture().config, admission: "staging" as "test-only" }), /test-only admission/);
+  assert.throws(() => localSponsorHandler({ ...fixture().config, admission: "staging" as "test-only" }), /test-only admission/, "the handler itself refuses without admission");
+  assert.throws(() => localSponsorHandler({ ...fixture().config, chain: { ...fixture().config.chain, rpcUrl: "https://sepolia.base.org" } }), /loopback/);
   await assert.rejects(startLocalSponsor(fixture({}, false).config), /does not list the disposable signer/);
   await assert.rejects(startLocalSponsor({ ...fixture().config, chain: { ...fixture().config.chain, rpcUrl: "https://sepolia.base.org" } }), /loopback/);
   const sponsor = await startLocalSponsor(fixture().config);
