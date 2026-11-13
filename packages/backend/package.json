@@ -8,7 +8,7 @@
     "bind-indexer": "node --experimental-strip-types --no-warnings src/bind-indexer.ts",
     "start": "node --experimental-strip-types --no-warnings src/main.ts",
     "check": "tsc -p .",
-    "test": "node --experimental-strip-types --no-warnings --test test/site.test.ts test/accounts-claim.test.ts test/sponsorship.test.ts ../sdk/src/approvals/safe-op.test.ts",
+    "test": "node --experimental-strip-types --no-warnings --test test/site.test.ts test/accounts-claim.test.ts test/sponsorship.test.ts ../sdk/src/approvals/safe-op.test.ts test/board-transactions.test.ts",
     "test:integration": "node --experimental-strip-types --no-warnings --test --test-concurrency=1 test/*.test.ts"
   },
   "dependencies": { "@capxul/runtime": "workspace:*",
