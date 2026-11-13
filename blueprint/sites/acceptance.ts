@@ -24,7 +24,7 @@ export const screen_supplier_invoice = defineScreen({
 
 export const screen_safe_trial_balance = defineScreen({
   id: "safe-trial-balance", title: "Safe account Trial Balance", surface: "frappe-desk", kind: "report",
-  about: "The remaining Safe balance after founder funding and supplier payment, reconciled at one chain cutoff.",
+  about: "The remaining Safe balance after founder funding and supplier payment, reconciled at one chain cutoff, in the net closing values ERPNext's Trial Balance shows by default.",
   record: doctype_account,
   shows: [
     { label: "Safe account and closing debit/credit", from: doctype_account },
@@ -77,4 +77,17 @@ export const decision_sites_slice_zero_acceptance = defineDecision({
   why: "Aaron's operation-done ruling requires tests, quiet alerts and seeded faults. An empty or stale diagnostic response is not evidence of quietness. A selected-stack run requires Postgres/Ponder/ERPNext/v4 provenance; skeleton results remain explicitly partial. Faults are restricted to disposable local test worlds and every seed has a repair in finally. The operator diagnostics API is the local test alert surface, not proof of hosted paging or notification transport.",
   source: "aaron.operation-done; Aaron's wave 0 slice 0 acceptance brief, 12 November 2026",
   affects: [screen_supplier_invoice, screen_payment_entry, screen_general_ledger, screen_safe_trial_balance, insight_slice_zero_health, alert_indexer_unready, alert_delivery_stuck, alert_money_event_parked],
+});
+
+export const decision_sites_trial_balance_net_values = defineDecision({
+  id: "sites.trial-balance-net-values", title: "The Safe Trial Balance check compares the net closing values the screen shows",
+  question: "ERPNext's Trial Balance screen turns 'show net values' on by default, but its report API returns gross closing debit and credit when the filter is omitted. Which does the source-equality check read?",
+  options: [
+    { label: "net-values", text: "Read the API source and open the screen with show_net_values set, which is the screen's own default, so the person and the check compare the same closing debit and credit." },
+    { label: "gross-values", text: "Open the screen with net values turned off so it matches the API's gross default." },
+  ],
+  chosen: "net-values",
+  why: "The pinned ERPNext trial_balance.js declares show_net_values with default 1, and the API applies it only when sent. A Safe account that was funded and then paid has both debits and credits, so gross and net closing columns differ while the money is right. Keeping ERPNext's own screen default follows aaron.frappe-native. The balance assertion (closing debit minus credit equals the same-cutoff USDC balance) is unchanged.",
+  source: "aaron.frappe-native; pinned ERPNext accounts/report/trial_balance/trial_balance.js, 13 November 2026",
+  affects: [screen_safe_trial_balance],
 });

@@ -74,11 +74,35 @@ export const decision_system_eval_reporting = defineDecision({
   affects: [f.system_capxul],
 });
 
+export const decision_system_eval_screen_captures = defineDecision({
+  id: "system.eval-screen-captures", title: "A run that asks for a screen's shows claim succeeds only with its capture",
+  question: "Can `passed` be true when a requested screen shows claim has no source-equality capture in the run?",
+  options: [
+    { label: "capture-required", text: "A requested eval on a screen: subject whose ID ends in /shows passes only with a receipt screens entry for that screen with a path, a source and assertion source-equality; the engine's uncapturedScreens is the one rule, used by the run, its --json uncaptured list and slice evidence. In a run, an otherwise passing shows claim without one is recorded fail with that reason, never pass: its claim keeps a screenshot, and a completed plan still reports every assertion (system.eval-reporting). Every collected manifest, capture and source file must be a non-empty regular file, not a link, written during this run (modification time at or after the receipt's at); a source is a run-relative file with an optional RFC 6901 JSON pointer (empty or starting with /, ~1 for / and ~0 for ~, own properties only) that must name a non-null value, resolved by the engine's pointerValue in both the runner and the full gate; external --screens files are copied in only after those checks. Bad evidence fails collection and leaves the run incomplete. Historical receipts are not rescored." },
+    { label: "verdicts-only", text: "Keep success as every requested verdict passing. A run can then report passed:true while slice zero stays partial for the same receipt, so the harness and the slice disagree about one attempt." },
+  ],
+  chosen: "capture-required", why: "Slice evidence already required source-equality captures for shows claims (portal.product-slices); the run result did not, so a direct run could exit 0, and record a shows pass, without the screens acceptance needs. Independent review of PR87 found that an older run's manifest, an empty capture or an unresolved source would still count. One shared rule plus same-run, non-empty, resolvable evidence keeps the run's answer and the slice's answer the same.",
+  source: "Receipt-first harness lane audit of the Wave Zero gate, 13 November 2026; packages/evals/src/execute.ts finish and packages/blueprint-engine/src/slices.ts sliceEvidence",
+  affects: [f.system_capxul],
+});
+
 export const decision_system_standing_gaps = defineDecision({
   id: "system.standing-gaps", title: "A standing gap carries a decision and a current reason",
   question: "How can the build distinguish an open gap from an explicitly retained boundary?",
   options: [{ label: "stands", text: "A decision may carry stands: entries of { record: kind:id, rule, why }. Match against derived gaps, move matched findings to standing with the decision id and reason. An unmatched entry is a stale-standing-gap problem. Never waive a problem or invent a gap." }],
   chosen: "stands", why: "Recorded reasons must be machine-readable and cannot outlive the gaps they explain. Standing is visible, not missing design silently erased.",
   source: "Builder, m1-engine-rules, 10 November 2026; m1 gap task decisions",
+  affects: [f.system_capxul],
+});
+
+export const decision_system_eval_screen_manifests = defineDecision({
+  id: "system.eval-screen-manifests", title: "Each eval module lists its own screen captures",
+  question: "How do two modules in one run both report screen captures when the run has one screens.json?",
+  options: [
+    { label: "per-module", text: "The runner collects <run>/screens.json and every <run>/<module>/screens.json one directory down, in that order (modules sorted by name), into the receipt's screens. Every in-run manifest lists run-relative paths and sources, so a module writes only its own manifest and captures under its own directory. The run-level manifest is acceptance's and, like <run>/acceptance/screens.json, may list only files under acceptance/; any other module manifest may list only captures and source files under its own <module>/; paths are compared and recorded in normalized form. A path listed twice, a capture outside the module's directory, a symlinked run subdirectory, a missing capture or an invalid entry fails the run's evidence collection, which makes the run incomplete. --screens still imports one external manifest relative to its own file, and fails when in-run manifests are also present." },
+    { label: "shared-file", text: "Every module reads, merges and rewrites <run>/screens.json. Correct only while scripts run strictly one after another, and a module that writes the whole file silently drops another module's captures." },
+  ],
+  chosen: "per-module", why: "Acceptance already writes the whole run-level file, and Sites now captures the hat-grants and payment-requests screens in the same run. Separate manifests cannot overwrite each other and keep each capture attributable to its module, with no ordering assumption.",
+  source: "Sites lane request for scr:hat-grants/shows and scr:payment-requests/shows, 13 November 2026; packages/evals/src/execute.ts screen collection",
   affects: [f.system_capxul],
 });
