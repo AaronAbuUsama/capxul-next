@@ -2,12 +2,14 @@ import { readFileSync } from "node:fs";
 import { isDeepStrictEqual } from "node:util";
 import type { Sql } from "../platform/db.ts";
 import { emit, readEvent, type TransitionEvent } from "../platform/outbox.ts";
-import { worldNow } from "../devnet/door.ts";
 import type { SiteAck } from "./site-contracts.ts";
 import { enqueue } from "./events.ts";
 
 // Role deliveries have their own key space, so a chain-log or payment key never shadows a grant's native event.
 const key = (occurrence: string) => `role:${occurrence}`;
+
+/** Business time on the caller's transaction. Composition supplies the world clock; plugs never reads devnet (system.layout). */
+export type WorldNow = (sql: Sql) => Promise<number>;
 
 export type RoleOccurrence = { id: string; at: number; trace_id: string; actor: string | null };
 export type RoleGrant = {
@@ -119,7 +121,7 @@ export async function transitionRoleGrant(sql: Sql, org: string, grantId: string
 }
 
 /** Same delivery/repair transaction. Only our durable record occurrence can identify a projected grant. */
-export async function settleRoleDelivery(sql: Sql, org: string, eventKey: string, ack: SiteAck): Promise<number | undefined> {
+export async function settleRoleDelivery(sql: Sql, org: string, eventKey: string, ack: SiteAck, worldNow: WorldNow): Promise<number | undefined> {
   // Legacy hat events (no role: key) have no Core grant projection, and a stack without the composed outbox has none either.
   if (!eventKey.startsWith("role:") || !(await sql.query("select to_regclass('app.transition_outbox') is not null as ok")).rows[0].ok) return;
   const born = await readEvent(sql, JSON.stringify(["plugs.role-grant", org, eventKey.slice(5)]));

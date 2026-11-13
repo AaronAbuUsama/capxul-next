@@ -2,13 +2,13 @@ import { createHmac } from "node:crypto";
 import { Effect, Result } from "effect";
 import { record, type Database, type Sql } from "../platform/db.ts";
 import { createFrappeSite } from "./site.ts";
-import { settleRoleDelivery } from "./roles.ts";
+import { settleRoleDelivery, type WorldNow } from "./roles.ts";
 export { RequestCollector } from "./collector.ts";
 export { enqueue } from "./events.ts";
 export { FrappeSite, FrappeSiteError, createFrappeSite, frappeSiteLayer } from "./site.ts";
 export type { AccountInput, DoorInput, ReportInput, SiteInput } from "./site.ts";
 export { migrateRoleProjections, recordRoleGrant, transitionRoleGrant, readRoles } from "./roles.ts";
-export type { RoleOccurrence, RoleGrant, GrantInput, GrantChange } from "./roles.ts";
+export type { RoleOccurrence, RoleGrant, GrantInput, GrantChange, WorldNow } from "./roles.ts";
 
 export async function status(sql: Sql, org: string) {
   const row = (await sql.query("select released,next_seq-1 as last_seq,last_ack from app.organizations where org_id=$1", [org])).rows[0];
@@ -25,7 +25,7 @@ export async function resend(sql: Sql, org: string, from: number) {
 }
 export function signature(body: string, secret: string) { return createHmac("sha256", secret).update(body).digest("hex"); }
 
-export async function retryParked(sql: Sql, org: string, key: string, frappe: string, secret: string) {
+export async function retryParked(sql: Sql, org: string, key: string, frappe: string, secret: string, worldNow: WorldNow) {
   await sql.query("select pg_advisory_xact_lock(hashtextextended($1,0))", [org]);
   const event = (await sql.query("select e.*,o.site from app.site_events e join app.organizations o using (org_id) where e.org_id=$1 and e.event_key=$2 for update of e", [org, key])).rows[0];
   if (!event) throw new Error("NOT_FOUND: unknown parked event");
@@ -35,7 +35,7 @@ export async function retryParked(sql: Sql, org: string, key: string, frappe: st
   }));
   if (ack.parked || ack.last_seq < Number(event.seq)) throw new Error("REPAIR_FAILED: site has not applied parked money event");
   await sql.query("update app.site_events set state='applied',last_error=null,applied_at=now(),map_version=$3 where org_id=$1 and event_key=$2", [org, key, ack.map_version ?? null]);
-  const at = event.kind === "hat_granted" ? await settleRoleDelivery(sql, org, key, ack) : undefined;
+  const at = event.kind === "hat_granted" ? await settleRoleDelivery(sql, org, key, ack, worldNow) : undefined;
   await record(sql, org, "site_event_repaired", event.trace, { event_key: key, seq: event.seq }, at);
   return status(sql, org);
 }
@@ -62,7 +62,7 @@ export async function deferDelivery(db: Database, org: string, error: unknown) {
   }, true);
 }
 
-export async function deliver(db: Database, org: string, frappe: string, secret: string) {
+export async function deliver(db: Database, org: string, frappe: string, secret: string, worldNow: WorldNow) {
   return db.transaction(org, async (sql) => {
     // One in-flight delivery per company across processes. A crash releases this lock and rolls back the ack.
     await sql.query("select pg_advisory_xact_lock(hashtextextended($1,0))", [org]);
@@ -70,12 +70,12 @@ export async function deliver(db: Database, org: string, frappe: string, secret:
     if (!company.released || company.retry_at && new Date(company.retry_at).getTime() > Date.now()) return;
     const event = (await sql.query("select * from app.site_events where org_id=$1 and state='pending' order by seq limit 1 for update", [org])).rows[0];
     if (!event) return;
-    try { await offer(sql, org, company, event, frappe, secret); }
+    try { await offer(sql, org, company, event, frappe, secret, worldNow); }
     catch (error) { throw new DeliveryRefused(Number(event.seq), error); }
   }, true);
 }
 
-async function offer(sql: Sql, org: string, company: any, event: any, frappe: string, secret: string) {
+async function offer(sql: Sql, org: string, company: any, event: any, frappe: string, secret: string, worldNow: WorldNow) {
   await sql.query("update app.site_events set attempts=attempts+1,last_attempt_at=now() where org_id=$1 and seq=$2", [org, event.seq]);
   const result = await Effect.runPromise(Effect.result(createFrappeSite({ baseUrl: frappe, secret }).applyEvent({
     orgId: org, site: company.site, traceId: event.trace,
@@ -100,6 +100,6 @@ async function offer(sql: Sql, org: string, company: any, event: any, frappe: st
   const state = ack.parked ? "parked" : "applied";
   await sql.query("update app.site_events set state=$3,applied_at=now(),last_error=$4,map_version=$5 where org_id=$1 and seq=$2", [org, event.seq, state, ack.parked ? ack.error : null, ack.map_version ?? null]);
   await sql.query("update app.organizations set last_ack=$2,retry_at=null,failures=0 where org_id=$1", [org, event.seq]);
-  const at = event.kind === "hat_granted" ? await settleRoleDelivery(sql, org, event.event_key, ack) : undefined;
+  const at = event.kind === "hat_granted" ? await settleRoleDelivery(sql, org, event.event_key, ack, worldNow) : undefined;
   await record(sql, org, "site_event_acknowledged", event.trace, { seq: event.seq, state, duplicate: !ack.applied, map_version: ack.map_version ?? null }, at);
 }

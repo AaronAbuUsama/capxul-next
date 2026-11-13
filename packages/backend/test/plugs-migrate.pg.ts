@@ -6,6 +6,7 @@ import { createServer } from "node:http";
 import test from "node:test";
 import pg from "pg";
 import { Database } from "../src/platform/db.ts";
+import { worldNow } from "../src/devnet/door.ts";
 import { deferDelivery, deliver, DeliveryRefused, enqueue, signature } from "../src/plugs/door.ts";
 import { serveOrganization, type ConsumeBackoff } from "../src/server.ts";
 
@@ -92,7 +93,7 @@ test("plugs delivery on the real migrate path: legacy and role ACKs, guarded bac
           await enqueue(tx, "real", "84532:0xlegacy:1:hat_granted", "hat_granted", {}, "tr_legacy");
           await enqueue(tx, "real", "role:projected-elsewhere", "hat_granted", {}, "tr_role");
         }, true);
-        await deliver(core, "real", origin, secret); await deliver(core, "real", origin, secret);
+        await deliver(core, "real", origin, secret, worldNow); await deliver(core, "real", origin, secret, worldNow);
         assert.deepEqual((await events("real")).map((e) => e.state), ["applied", "applied"]);
         assert.equal((await backoff("real")).last_ack, 2);
       });
@@ -103,10 +104,10 @@ test("plugs delivery on the real migrate path: legacy and role ACKs, guarded bac
           await enqueue(tx, "raced", "raced-1", "hat_revoked", {}, "tr_r1"); await enqueue(tx, "raced", "raced-2", "hat_revoked", {}, "tr_r2");
         }, true);
         refuse.add("raced");
-        const error = await deliver(core, "raced", origin, secret).then(() => null, (e) => e);
+        const error = await deliver(core, "raced", origin, secret, worldNow).then(() => null, (e) => e);
         assert.ok(error instanceof DeliveryRefused); assert.equal(error.seq, 1);
         refuse.delete("raced");
-        await deliver(core, "raced", origin, secret); // the other instance
+        await deliver(core, "raced", origin, secret, worldNow); // the other instance
         await deferDelivery(core, "raced", error);
         assert.deepEqual(await events("raced"), [{ seq: 1, state: "applied", attempts: 1, failed: false }, { seq: 2, state: "pending", attempts: 0, failed: false }]);
         assert.deepEqual(await backoff("raced"), { last_ack: 1, failures: 0, waiting: false });

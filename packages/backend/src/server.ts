@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { timingSafeEqual } from "node:crypto";
 import { Effect } from "effect";
 import { get, prepare, submitted } from "./approvals/door.ts";
-import { readSnapshotCut } from "./devnet/door.ts";
+import { readSnapshotCut, worldNow } from "./devnet/door.ts";
 import { info, register, release } from "./organizations/door.ts";
 import { consume } from "./payments/door.ts";
 import { deferDelivery, deliver, RequestCollector, resend, retryParked, signature, status } from "./plugs/door.ts";
@@ -32,7 +32,7 @@ export async function serveOrganization(db: Database, config: Pick<Config, "chai
       console.error(`Core consume ${org} (failure ${failures}): ${describe(error)}`);
     }
   }
-  try { await deliver(db, org, config.frappe, config.secret); }
+  try { await deliver(db, org, config.frappe, config.secret, worldNow); }
   catch (error) {
     console.error(`Core delivery ${org}: ${describe(error)}`);
     await deferDelivery(db, org, error).catch((e) => console.error(`Core delivery backoff ${org}: ${describe(e)}`));
@@ -98,7 +98,7 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
           case "/admin/release": return release(sql, org);
           case "/admin/status": return status(sql, org);
           case "/admin/resend": return resend(sql, org, Number(b.from ?? 1));
-          case "/admin/retry-parked": return retryParked(sql, org, b.event_key, config.frappe, config.secret);
+          case "/admin/retry-parked": return retryParked(sql, org, b.event_key, config.frappe, config.secret, worldNow);
           case "/prepare": {
             const a = await prepare(sql, b, trace);
             return { approval_id: a.id, approval_url: `${config.url}/approve/${a.id}`, requested_by: a.requested_by };
