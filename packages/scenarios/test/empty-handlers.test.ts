@@ -16,9 +16,28 @@ import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Random from "effect/Random";
 import * as Str from "effect/String";
-import { Capxul, claimOf, scenarios, type CapxulClient, type Scenario } from "../src/door.ts";
+import { Capxul, claimOf, Given, scenarios, type CapxulClient, type Scenario } from "../src/door.ts";
 
 const RECORD = new URL("../records/empty-handlers.json", import.meta.url);
+
+const ZERO = "0x0000000000000000000000000000000000000000";
+
+/**
+ * A chain on which nothing an operation does has happened, as a world's chain is while Core's handlers are empty:
+ * its first block, every balance 0, no owners, no hats worn, no logs. Reads are not operations: they are not in
+ * `calls`.
+ */
+const emptyChain: CapxulClient["chain"] = {
+  head: () => Effect.succeed({ number: 0, timestamp: "2026-11-13T09:00:00.000Z", hash: `0x${Str.repeat(64)("0")}` }),
+  balance: () => Effect.succeed("0"),
+  safe: () => Effect.succeed({ owners: [], threshold: 0, nonce: 0 }),
+  hat: () => Effect.succeed({ details: "", maxSupply: 0, supply: 0, active: false }),
+  wears: () => Effect.succeed(false),
+  companySafeFor: () => Effect.succeed(ZERO),
+  transaction: ({ transaction }) =>
+    Effect.succeed({ transaction, block: 0, from: ZERO, to: null, status: "reverted" as const, logs: [] }),
+  logs: () => Effect.succeed([]),
+};
 
 /** Capxul as Core's empty handlers answer it: every call fails with NotImplemented naming its operation. */
 const emptyHandlers = (calls: Array<string>): CapxulClient => {
@@ -40,6 +59,7 @@ const emptyHandlers = (calls: Array<string>): CapxulClient => {
     "report.run": empty("report.run"),
     "world.clock.warp": empty("world.clock.warp"),
     "record.export": empty("record.export"),
+    chain: emptyChain,
   };
 };
 
@@ -61,6 +81,8 @@ const run = async (each: Scenario): Promise<Result> => {
   const exit = await Effect.runPromiseExit(
     each.run.pipe(
       Effect.provideService(Capxul, emptyHandlers(calls)),
+      // The starting world's example facts: what its maker would hand, had Core's handlers made it.
+      Effect.provideService(Given, { world: each.given, facts: Effect.succeed(each.given.example) }),
       Random.withSeed(each.name),
       Effect.timeout("10 seconds"),
     ),

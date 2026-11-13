@@ -107,6 +107,8 @@ export class Held extends Schema.TaggedClass<Held, { readonly brand: unique symb
     payeeAddress: Address,
     /** The hash `doc.create` gave the document. */
     documentHash: Hash,
+    /** The payment's id on the chain: the `paymentId` the Payments contract's `PaymentSent` carries when it is sent. */
+    paymentId: Hash,
   }),
   /** The signature the payment waits for. Its signer is the member whose permission may pay it. */
   approval: Approval,
@@ -173,6 +175,7 @@ export const submit = declareOutcomes({
           payee: "Brightside Cleaning Ltd",
           payeeAddress: address(31),
           documentHash: `0x${Str.repeat(32)("ef")}`,
+          paymentId: `0x${Str.repeat(32)("9a")}`,
         },
         approval: {
           id: "apr_pay00001",

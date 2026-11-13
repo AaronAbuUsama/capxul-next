@@ -38,18 +38,18 @@ These hold for every call of every scenario, so no claim repeats them:
 
 ## Starting worlds
 
-Declared in `src/starting-worlds.ts`. Each is made through the door from the one before it.
+Declared in `src/starting-worlds.ts`. Each is made through the door from the one before it, then either saved as a template that each scenario gets a restore of, or made by its steps for each scenario. A scenario reads the facts of its world, and of every world it is made from, with `given` (decisions.md, 38).
 
-- `nothing`. The platform is deployed. No world has the name the scenario uses. The scenario's operator owns fewer live worlds than the limit, and a second operator exists.
-- `quota-full`. Made from `nothing`. The scenario's operator owns as many live private worlds as one owner may have. Steps: `world.create` as operator: creates private worlds until the limit is reached.
-- `fresh`. Made from `nothing`. A private world owned by the scenario's operator, its clock frozen, its record one entry long. Its cast: dana, eli, sam and olga, each with a claimed personal Safe holding 10,000 USDC, and pat, who has not finished signing up and has no Safe. No company. Steps: `world.create` as operator: creates a private world with a frozen clock and a lifetime of 60 minutes.
-- `founded`. Made from `fresh`. Northwind (handle `northwind`), founded by dana: Directors dana and eli, 2 of 2; members sam and pat with no permission; 1,000 USDC of dana's capital in the company Safe; its site ready, with users for dana and eli. Steps: `org.create` as dana: founds northwind with eli as a Director, threshold 2, members sam and pat, and 1,000 USDC of capital; `approval.sign` as dana: signs her setup approval; `approval.sign` as eli: signs his setup approval, which sends the setup; wait as operator: until world.show lists northwind's site as ready.
-- `office-holder`. Made from `founded`. sam holds Manage books: his Safe wears the Books hat and he has a user on Northwind's site. Steps: `org.member.grant` as dana: grants sam manage-books; `approval.sign` as dana: signs the proposal; `approval.sign` as eli: signs the proposal, which executes it; wait as sam: until doc.create stops refusing with NoSiteUser.
-- `payment-drafted`. Made from `office-holder`. The supplier Brightside Cleaning Ltd with a payment address; a submitted Purchase Invoice of 125.50 USDC from it; and a draft Payment Entry paying that invoice from the Capxul Safe account. Steps: `doc.create` as sam: creates the Supplier with its payment address; `doc.create` as sam: creates the Purchase Invoice of 125.50 USDC; `doc.submit` as sam: submits the Purchase Invoice, which posts; `doc.create` as sam: creates the Payment Entry from the Capxul Safe account against the invoice.
-- `payment-held`. Made from `payment-drafted`. The Payment Entry is submitted and held for sam's signature; nothing is posted for it yet. Steps: `doc.submit` as sam: submits the Payment Entry, which is held.
-- `paid`. Made from `payment-held`. sam signed: Brightside was paid 125.50 USDC from the company Safe, the Payment Entry posted and the invoice has nothing outstanding. Steps: `approval.sign` as sam: signs the held payment, which sends it; wait as sam: until report.run's General Ledger shows the Payment Entry.
-- `with-snapshot`. Made from `paid`. Two snapshots of the world: `m3`, saved as a template, and `draft`, which is not. Steps: `world.snapshot.save` as operator: saves m3 as a template; `world.snapshot.save` as operator: saves draft.
-- `restored`. Made from `with-snapshot`. A second private world, made from `m3` by the same operator, which names the first world, `m3` and its record position as its parent. Steps: `world.snapshot.restore` as operator: restores m3 into a new world with a lifetime of 60 minutes.
+- `nothing`. The platform is deployed. No world has the name the scenario uses. The scenario's operator owns fewer live worlds than the limit, and a second operator exists. The facts name both operators. A scenario gets it made by its steps. Facts it adds: `operators`, `calls`.
+- `quota-full`. Made from `nothing`. The scenario's operator owns as many live private worlds as one owner may have. Steps: `world.create` as operator: creates private worlds until the limit is reached (fact `filled`). A scenario gets it made by its steps. Facts it adds: `filled`.
+- `fresh`. Made from `nothing`. A private world owned by the scenario's operator, its clock frozen. Its cast: dana, eli, sam and olga, each with a claimed personal Safe holding 10,000 USDC, and pat, who has not finished signing up and has no Safe. No company. Steps: `world.create` as operator: creates a private world with a frozen clock and a lifetime of 60 minutes (fact `world`). A scenario gets it restored from its template. Facts it adds: `world`.
+- `founded`. Made from `fresh`. Northwind (handle `northwind`), founded by dana: Directors dana and eli, 2 of 2; members sam and pat with no permission; 1,000 USDC of dana's capital in the company Safe; its site ready, with users for dana and eli. Steps: `org.create` as dana: founds northwind with eli as a Director, threshold 2, members sam and pat, and 1,000 USDC of capital (fact `founded`); `approval.sign` as dana: signs her setup approval (fact `setupCollected`); `approval.sign` as eli: signs his setup approval, which sends the setup (fact `setupSent`); wait as operator: until world.show lists northwind's site as ready. A scenario gets it restored from its template. Facts it adds: `founded`, `setupCollected`, `setupSent`.
+- `office-holder`. Made from `founded`. sam holds Manage books: his Safe wears the Books hat and he has a user on Northwind's site. The site holds no document yet. Steps: `org.member.grant` as dana: grants sam manage-books (fact `grant`); `approval.sign` as dana: signs the proposal (fact `grantCollected`); `approval.sign` as eli: signs the proposal, which executes it (fact `grantSent`); wait as sam: until report.run of the General Ledger stops refusing with NoSiteUser; a report makes nothing. A scenario gets it restored from its template. Facts it adds: `grant`, `grantCollected`, `grantSent`.
+- `payment-drafted`. Made from `office-holder`. The supplier Brightside Cleaning Ltd with a payment address; a submitted Purchase Invoice of 125.50 USDC from it; and a draft Payment Entry paying that invoice from the Capxul Safe account. Their fields are the vocabulary's (src/documents/site.ts). Steps: `doc.create` as sam: creates the Supplier with supplierFields(BRIGHTSIDE) (fact `supplier`); `doc.create` as sam: creates the Purchase Invoice with invoiceFields of 125.50 USDC from the Supplier (fact `invoice`); `doc.submit` as sam: submits the Purchase Invoice, which posts (fact `invoicePosted`); `doc.create` as sam: creates the Payment Entry with paymentFields from the Capxul Safe account against the invoice (fact `payment`). A scenario gets it restored from its template. Facts it adds: `supplier`, `invoice`, `invoicePosted`, `payment`.
+- `payment-held`. Made from `payment-drafted`. The Payment Entry is submitted and held for sam's signature; nothing is posted for it yet. Steps: `doc.submit` as sam: submits the Payment Entry, which is held (fact `held`). A scenario gets it restored from its template. Facts it adds: `held`.
+- `paid`. Made from `payment-held`. sam signed: Brightside was paid 125.50 USDC from the company Safe, the Payment Entry posted and the invoice has nothing outstanding. Steps: `approval.sign` as sam: signs the held payment, which sends it (fact `paidSent`); wait as sam: until report.run's General Ledger shows the Payment Entry. A scenario gets it restored from its template. Facts it adds: `paidSent`.
+- `with-snapshot`. Made from `paid`. Two snapshots of the world: `m3`, saved as a template, and `draft`, which is not. A snapshot belongs to the world it was saved in, so this world is made by its steps. Steps: `world.snapshot.save` as operator: saves m3 as a template (fact `m3`); `world.snapshot.save` as operator: saves draft (fact `draft`). A scenario gets it made by its steps. Facts it adds: `m3`, `draft`.
+- `restored`. Made from `with-snapshot`. A second private world, made from `m3` by the same operator, which names the first world, `m3` and its record position as its parent. The scenario runs in the second world. Steps: `world.snapshot.restore` as operator: restores m3 into a new world with a lifetime of 60 minutes (fact `restored`). A scenario gets it made by its steps. Facts it adds: `restored`.
 
 ## 1. `world.create`
 
@@ -60,11 +60,11 @@ Declared in `src/starting-worlds.ts`. Each is made through the door from the one
 
 1. A new world runs with its clock and a record that begins with its birth. *(thin line)*
    - Given: `nothing`.
-   - Observes: world.create with a frozen clock answers state running, clock frozen, record head 1 and no parent. record.export through the world's door lists exactly one entry, `world_created`, at seq 1.
+   - Observes: world.create with a frozen clock answers state running, clock frozen, record head 1 and no parent. record.export at the new world's door lists exactly one entry, `world_created`, at seq 1, carrying what world.create answered.
    - Old: `acc:world.create/c-52e22ec1e2a6c1cc`, kept word for word.
 2. A fresh world can begin before host time, though not before its seeded chain's last block, and an existing world's time cannot be reset.
    - Given: `nothing`.
-   - Observes: world.create with a frozen clock starting one day after the seeded chain's last block answers that time as its clock, and the chain's head through the door has that timestamp. Creating the same name again is refused with WorldExists naming its owner and expiry, and world.show shows the clock unchanged. A start before the seeded chain's last block is refused with ClockBeforeSeed naming the earliest start.
+   - Observes: A start before the seeded chain's last block is refused with ClockBeforeSeed naming the earliest start. world.create with a frozen clock starting halfway between that earliest start and host time answers that time as its clock, and chain.head at the new world's door has that timestamp: a new world's chain mines a block at its start. Creating the same name again is refused with WorldExists naming its owner and expiry, and world.show shows the clock unchanged.
    - Refusals: `WorldExists`, `ClockBeforeSeed`.
    - Old: `acc:world.create/c-fc7bfdea5dd33f3e`, rewritten. It said: "A fresh world can begin before host time, but an existing world's time cannot be reset." Why: A world's chain is loaded from the seeded chain state, and a chain's time cannot go back past its last block.
 3. A real world is never made by this operation: asking for one is refused and nothing is made.
@@ -74,11 +74,11 @@ Declared in `src/starting-worlds.ts`. Each is made through the door from the one
    - Old: `acc:world.create/c-4ee06f2f1dd89e20`, rewritten. It said: "Production is never made without the platform owner's approval." Why: Grades replace kinds. A real world is made by the platform's own deploy with Aaron's written go-ahead, never by this operation.
 4. Every world has an owner and an expiry: the caller owns the world it creates, and it expires after the lifetime asked for.
    - Given: `nothing`.
-   - Observes: world.create with a lifetime of 60 minutes answers the calling operator as owner and an expiry 60 minutes after the call, within a minute; world.show answers the same.
+   - Observes: world.create with a lifetime of 60 minutes answers the calling operator, the first operator `nothing`'s facts name, as owner and an expiry 60 minutes after the call, within a minute; world.show answers the same. world.create by the second operator answers the second operator as its owner.
    - Old: none; this claim is new.
 5. A world is born with its cast: each person can call through the door and signs with a known test key, and everyone but pat holds a claimed personal Safe with 10,000 USDC.
    - Given: `nothing`.
-   - Observes: world.create lists dana, eli, sam, pat and olga, each with a signer address; every one but pat has a Safe, and each Safe's USDC balance read through the door's chain RPC is 10,000.
+   - Observes: world.create lists dana, eli, sam, pat and olga, each with a signer address that is one of the well-known test keys; every one but pat has a Safe, and each Safe's balance of the world's USDC (chain.balance at the new world's door) is 10,000. record.export at the new world's door as each person is refused with NotWorldOwner, not NotSignedIn: the door signs each of them in.
    - Old: none; this claim is new.
 6. An owner with as many live worlds as allowed is refused, and nothing is made.
    - Given: `quota-full`.
@@ -100,7 +100,7 @@ Old claims not kept:
 
 1. The Organization's Safe is Companies House's company Safe for this founder. *(thin line)*
    - Given: `fresh`.
-   - Observes: org.create as dana answers a Safe. Through the door's chain RPC, CompanySafeMinted names that Safe with dana's personal Safe as founderSafe, and the minter's companySafeAddressFor(dana's Safe) is the same address.
+   - Observes: org.create as dana answers a Safe. Through the door's chain RPC, chain.logs holds one CompanySafeMinted from the world's minter (`contracts.companySafeMinter`) naming that Safe, dana's personal Safe as founderSafe and the org id as company, and chain.companySafeFor of the world's Companies House owner and namespace (`contracts`), the org id and dana's Safe is the same address.
    - Old: `acc:org.create/c-37a24168b5b82483`, kept word for word.
 2. It answers with the Organization's id and the approvals its founding Directors must sign, before anyone has signed.
    - Given: `fresh`.
@@ -108,7 +108,7 @@ Old claims not kept:
    - Old: `acc:org.create/c-f76d985ce2889eda`, rewritten. It said: "It prints and saves the exact ID before authorization, then stops at a truthful deadline." Why: The operation never waits for a signature, so it has no deadline; the command line's waiting is not part of the contract.
 3. Once enough founding Directors have signed, the setup completes: the board and the capital are on the chain and the company's site becomes ready.
    - Given: `fresh`.
-   - Observes: After org.create, approval.sign by dana answers Collected and by eli answers Sent for the org setup. Through the door's chain RPC the company Safe's owners are dana's and eli's Safes with threshold 2 and it holds 1,000 USDC; world.show then lists the company's site as ready.
+   - Observes: After org.create, approval.sign by dana answers Collected and by eli answers Sent for the org setup, whose subject is the org id. Through the door's chain RPC the company Safe's owners are dana's and eli's Safes with threshold 2 (chain.safe) and it holds 1,000 USDC (chain.balance), and dana's Safe holds 9,000; world.show then lists the company's site as ready.
    - Old: none; this claim is new.
 4. The same intent resumes the same Organization; a changed intent or another founder refuses.
    - Given: `fresh`.
@@ -122,7 +122,7 @@ Old claims not kept:
    - Old: `acc:org.create/c-313abdcaa41f9df9`, rewritten. It said: "It needs the founder's deployed, claimed account before the first write." Why: What the founder needs is a claimed personal Safe; "account" named an old accounts concept.
 6. Bio and size are stored trimmed, and an over-long bio is refused.
    - Given: `fresh`.
-   - Observes: org.create with a bio and a size padded with spaces answers them trimmed. A bio of 281 characters is rejected by the payload's schema and no company is made.
+   - Observes: org.create with a bio and a size padded with spaces answers them trimmed. A bio of 281 characters is rejected by the payload's schema before it is sent: the call fails with PayloadRejected naming org.create, no company is made and the record gains no entry.
    - Old: `acc:org.create/c-38c97cf2c6a5056c`, kept word for word.
 7. A founding Director or member who is not a person of the world, capital beyond the founder's balance, and a second founding while the first is unfinished are each refused, and nothing is made.
    - Given: `fresh`.
@@ -144,7 +144,7 @@ Old claims not kept:
 
 1. A grant is a Director proposal, applied once it executes. *(thin line)*
    - Given: `founded`.
-   - Observes: org.member.grant as dana of manage-books to sam answers the change proposed and one approval each for dana and eli. approval.sign by dana answers Collected, 1 of 2; by eli, Sent for the officer change. Through the door's chain RPC sam's Safe then wears the Books hat, and doc.create as sam stops refusing with NoSiteUser once his user reaches the site.
+   - Observes: org.member.grant as dana of manage-books to sam answers the change proposed and one approval each for dana and eli. approval.sign by dana answers Collected, 1 of 2; by eli, Sent for the officer change. Through the door's chain RPC (chain.transaction of what eli's signature sent) a hat is minted to sam's Safe, chain.hat gives its details as Books, and chain.wears says sam's Safe wears it; doc.create as sam stops refusing with NoSiteUser once his user reaches the site.
    - Old: `acc:org.member.grant/c-6412f20281167621`, kept word for word.
 2. A caller who is not a Director, a person who is not a current member, and a grant of what the member holds are each refused.
    - Given: `office-holder`.
@@ -162,7 +162,7 @@ Old claims not kept:
    - Old: `acc:org.member.grant/c-b8a4adcbed22e66d`, rewritten. It said: "It reports one `officer_change_transitioned` (`propose`) for the proposing Director, carrying neither the Seat nor the note." Why: Events are named for what happened, not for a state machine's transition.
 5. The proposal mints the officer hat to the member's Safe, and takes one more seat first when every seat is worn.
    - Given: `founded`.
-   - Observes: Through the door's chain RPC, the executed transaction is Hats.mintHat(hat, sam's Safe), preceded by changeHatMaxSupply(hat, supply + 1) when every seat of the hat is worn.
+   - Observes: Through the door's chain RPC, the logs of the executed transaction (chain.transaction) from the world's Hats (`contracts.hats`) are a TransferSingle of the hat from the zero address to sam's Safe, which is what Hats.mintHat emits, preceded by a HatMaxSupplyChanged of the hat to its supply + 1 exactly when every seat of the hat was worn at the block before (chain.hat at that block).
    - Old: `acc:org.member.grant/c-3254ec4a40c86a97`, rewritten. It said: "The proposal mints the officer hat to the Seat's Safe, and takes one more seat first when every seat is worn." Why: "Seat" is not a word of this contract.
 6. A member whose Safe already wears the hat, and a member with no personal Safe, are each refused before anything is proposed.
    - Given: `office-holder`.
@@ -171,7 +171,7 @@ Old claims not kept:
    - Old: `acc:org.member.grant/c-7db203df47b9ca84`, rewritten. It said: "A Seat whose Safe already wears the hat, and a Seat with no personal Safe, are each refused before anything is proposed." Why: "Seat" is not a word of this contract.
 7. Manage people is the People hat.
    - Given: `founded`.
-   - Observes: After a grant of manage-people to sam is signed by dana and eli, sam's Safe wears the deployment's People hat, read through the door's chain RPC.
+   - Observes: After a grant of manage-people to sam is signed by dana and eli, sam's Safe wears (chain.wears) the hat the transaction minted to it, and chain.hat gives that hat's details as People (OFFICER_HAT_DETAILS).
    - Old: `acc:org.member.grant/c-640d6eb596538a6f`, kept word for word.
 
 Old claims not kept:
@@ -187,7 +187,7 @@ Old claims not kept:
 
 1. A document is created as a draft and Frappe's validations apply. *(thin line)*
    - Given: `office-holder`.
-   - Observes: doc.create as sam of a Supplier named Brightside Cleaning Ltd answers its name and docstatus 0. A Supplier with no name is refused with SiteRefused for validation, and report.run of the Supplier list shows only Brightside.
+   - Observes: doc.create as sam of a Supplier named Brightside Cleaning Ltd answers its name and docstatus 0. A Supplier with no name is refused with SiteRefused for validation, and report.run of the Supplier list (Site.REPORTS.supplierList, the Supplier doctype's list) shows only Brightside.
    - Refusals: `SiteRefused`.
    - Old: `acc:doc.create/c-4a88a94b435451b9`, kept word for word.
 2. A caller with no user on the company's site is refused, and nothing is made.
@@ -202,7 +202,7 @@ Old claims not kept:
    - Old: none; this claim is new.
 4. The answer carries the document's hash, and a payment held for the document names the same hash.
    - Given: `payment-drafted`.
-   - Observes: The hash doc.create answered for the Payment Entry equals `payment.documentHash` in doc.submit's Held answer for it.
+   - Observes: The hash doc.create answered for the Payment Entry (the `payment` fact) equals `payment.documentHash` in doc.submit's Held answer for it.
    - Old: none; this claim is new.
 
 ## 5. `doc.submit`
@@ -214,7 +214,7 @@ Old claims not kept:
 
 1. A Payment Entry from the Safe is held, not posted, and the signer is named. *(thin line)*
    - Given: `payment-drafted`.
-   - Observes: doc.submit as sam of the Payment Entry answers Held with docstatus 0, the amount 125.50 USDC, Brightside's address and an approval whose signer is sam. report.run's General Ledger shows no line for it yet.
+   - Observes: doc.submit as sam of the Payment Entry answers Held with docstatus 0, the amount 125.50 USDC, Brightside's address (the payment address the `supplier` fact's fields hold) and an approval whose signer is sam at his signer address. report.run's General Ledger shows no line for it yet.
    - Old: `acc:doc.submit/c-df3c0c51cdf3899b`, kept word for word.
 2. An ordinary document posts to the ledger when submitted.
    - Given: `office-holder`.
@@ -227,7 +227,7 @@ Old claims not kept:
    - Old: none; this claim is new.
 4. A payment from the Safe of more than the Safe holds is refused before anything is held.
    - Given: `office-holder`.
-   - Observes: doc.submit of a Payment Entry of 5,000 USDC from the Capxul Safe account is refused with InsufficientBalance naming the Safe, its balance and the amount; no approval is opened and record.export shows no new entry.
+   - Observes: doc.submit of a Payment Entry of 5,000 USDC from the Capxul Safe account is refused with InsufficientBalance naming the company Safe (the `founded` fact's Safe), its balance and the amount; no approval is opened and record.export shows no new entry.
    - Refusals: `InsufficientBalance`.
    - Old: none; this claim is new.
 
@@ -240,25 +240,25 @@ Old claims not kept:
 
 1. A signed held payment is sent once, from the signer's Safe, and its Payment Entry posts once. *(thin line)*
    - Given: `payment-held`.
-   - Observes: approval.sign as sam with his key's signature of the digest answers Sent for the payment with one transaction. Through the door's chain RPC that transaction holds one UserOperationEvent from sam's Safe and one PaymentSent carrying the payment's id; Brightside's address gained 125.50 USDC and the company Safe lost 125.50. report.run's General Ledger then shows the Payment Entry once and the invoice has nothing outstanding.
+   - Observes: approval.sign as sam with his key's signature of the held approval's digest (the `held` fact) answers Sent for the payment with one transaction. Through the door's chain RPC (chain.transaction) that transaction holds one UserOperationEvent from sam's Safe and one PaymentSent carrying the payment's `paymentId` and `documentHash` from the Held answer; by chain.balance Brightside's address gained 125.50 USDC and the company Safe lost 125.50. report.run's General Ledger then shows the Payment Entry once and the invoice has nothing outstanding.
    - Old: `acc:payment.send/c-c9400dfaeba081e7`, rewritten. It said: "A signed personal payment is sent once and records its one Payment." Why: The thin line signs a payment held by doc.submit from the company Safe; it does not prepare a personal payment.
 2. A replay of the same signature answers with the same hash and sends nothing more.
    - Given: `payment-held`.
-   - Observes: approval.sign with the same signature twice answers Sent, then AlreadySent with the same transaction and no event. Through the door's chain RPC there is one PaymentSent for the payment.
+   - Observes: approval.sign with the same signature twice answers Sent, then AlreadySent with the same transaction and no event. Through the door's chain RPC (chain.logs of PaymentSent from the world's Payments) there is one PaymentSent with the payment's `paymentId`.
    - Old: `acc:payment.send/c-59edd1848ac75c56`, kept word for word.
 3. A signature that does not recover the signer, an unknown approval and another person's approval are each refused, and nothing is sent.
    - Given: `payment-held`.
-   - Observes: approval.sign as sam with olga's key's signature is refused with SignatureInvalid naming both addresses; of an id nobody issued, with ApprovalNotFound; as olga of sam's approval, with NotYourApproval. No PaymentSent appears through the door's chain RPC and record.export shows no new entry.
+   - Observes: approval.sign as sam with olga's key's signature is refused with SignatureInvalid naming both addresses; of an id nobody issued, with ApprovalNotFound; as olga of sam's approval, with NotYourApproval. No PaymentSent appears through the door's chain RPC (chain.logs) and record.export shows no new entry.
    - Refusals: `SignatureInvalid`, `ApprovalNotFound`, `NotYourApproval`.
    - Old: `acc:payment.send/c-59a1c78521a27aca`, rewritten. It said: "A signature that does not recover the account's signer, an unknown execution and another person's execution are each refused and nothing is sent." Why: What is signed is an approval, not an execution.
 4. An expired approval is refused, naming when it expired, and nothing is sent.
    - Given: `payment-held`.
-   - Observes: The operator warps the clock past the approval's expiry; approval.sign as sam is then refused with ApprovalExpired naming the expiry, and no PaymentSent appears.
+   - Observes: The operator warps the clock past the held approval's expiry (the `held` fact); approval.sign as sam is then refused with ApprovalExpired naming the expiry, and no PaymentSent appears (chain.logs).
    - Refusals: `ApprovalExpired`.
    - Old: `acc:payment.send/c-37ce3ad182b6ecb0`, rewritten. It said: "An expired approval is refused and names the wait command." Why: Which command to run next is the command line's to say; the refusal carries the expiry it needs to say it.
 5. A signature short of the threshold is kept, and nothing is sent until the last one needed.
    - Given: `founded`.
-   - Observes: After org.member.grant, approval.sign by dana answers Collected with 1 of 2 and the hat is not worn; approval.sign by eli answers Sent.
+   - Observes: After org.member.grant, approval.sign by dana answers Collected with 1 of 2; approval.sign by eli answers Sent, and the hat its transaction minted to sam's Safe (chain.transaction) was not worn by it at the block before (chain.wears at that block) and is worn after.
    - Old: none; this claim is new.
 
 Old claims not kept:
@@ -278,7 +278,7 @@ Old claims not kept:
 
 1. A report runs as the caller and the books agree with the chain. *(thin line)*
    - Given: `paid`.
-   - Observes: report.run as sam of the General Ledger filtered to the Capxul Safe account answers lines whose balance equals the company Safe's USDC balance read through the door's chain RPC at the world's now; the Trial Balance agrees, and the paid invoice has nothing outstanding.
+   - Observes: report.run as sam of the General Ledger filtered to the Capxul Safe account answers lines whose balance equals the company Safe's USDC balance read through the door's chain RPC at the latest block (chain.balance of `contracts.usdc` for the `founded` fact's Safe); the Trial Balance agrees, and the paid invoice has nothing outstanding in Accounts Payable.
    - Old: `acc:report.run/c-6c39c42c744b8c91`, kept word for word.
 2. A report the caller's roles do not open, and a report that does not exist, are each refused by the site.
    - Given: `paid`.
@@ -300,7 +300,7 @@ Old claims not kept:
 
 1. A warp moves the chain and every site together and runs what fell due. *(thin line)*
    - Given: `founded`.
-   - Observes: world.clock.warp by 7 days answers the clock a week on and one site. The chain's head through the door has a timestamp at or after it, and report.run of the Scheduled Job Log shows the site's daily job ran once for each day. A warp to an earlier time is refused with ClockBackwards and the clock does not move.
+   - Observes: world.clock.warp by 7 days answers the clock a week on and one site. chain.head has a timestamp at or after it, and report.run of the Scheduled Job Log filtered to the Capxul app's daily job (Site.DAILY_JOB) shows it ran once for each day, 7 runs more than before. A warp to an earlier time is refused with ClockBackwards and the clock does not move.
    - Refusals: `ClockBackwards`.
    - Old: `acc:world.clock.warp/c-2bceeaa41942995d`, kept word for word.
 2. Only the world's owner may move the clock; a person of the world is refused and the clock does not move.
@@ -318,11 +318,11 @@ Old claims not kept:
 
 1. An export carries the lineage and every entry once. *(thin line)*
    - Given: `restored`.
-   - Observes: record.export of the restored world answers a lineage naming the first world, `m3` and its record position, and entries 1 to the head, each once, in order: the first world's entries up to that position, then `world_created`.
+   - Observes: record.export of the restored world answers a lineage naming the first world, `m3` and its record position, and entries 1 to the head, each once, in order: the first world's entries up to that position, entry for entry as record.export at the first world's door answers them, then `world_created`.
    - Old: `acc:record.export/c-bd1acd26102d2d92`, kept word for word.
 2. The record is the world's events: every event a successful call emitted is one entry, in order, carrying exactly what the event carried, and a refused call or a read adds none.
    - Given: `paid`.
-   - Observes: For every call the scenario made while reaching `paid`, record.export holds that call's declared events under its trace id with the same carried values, in the order the calls were made; a refused call and a report.run hold none.
+   - Observes: For every call made in making `paid` (the `calls` fact), record.export holds that call's declared events under its trace id carrying what its declaration computes from the call's payload and answer, in the order the calls were made; a refused call and a report.run hold none, and the scenario's own calls add their events likewise.
    - Old: none; this claim is new.
 3. Only the world's owner may export the record.
    - Given: `fresh`.
@@ -343,7 +343,7 @@ Old claims not kept:
 
 1. A snapshot saves everything that makes the world and leaves it untouched. *(thin line)*
    - Given: `paid`.
-   - Observes: world.snapshot.save answers the record position it holds, the clock and one company. Afterwards record.export lists one new entry, `snapshot_saved`, and nothing else changed: world.show, the General Ledger and the Safes' balances read the same as before. world.snapshot.restore of it is covered by that operation's claims.
+   - Observes: world.snapshot.save answers the record position it holds, the clock and one company. Afterwards record.export lists one new entry, `snapshot_saved`, and nothing else changed: world.show, the General Ledger and the USDC balances of the company Safe and every personal Safe (chain.balance) read the same as before. world.snapshot.restore of it is covered by that operation's claims.
    - Old: `acc:world.snapshot.save/c-69e4dbcdf13e3750`, kept word for word.
 2. A name already saved is refused unless replacing is asked for, and the snapshot is unchanged.
    - Given: `with-snapshot`.
@@ -352,28 +352,28 @@ Old claims not kept:
    - Old: none; this claim is new.
 3. Only the world's owner may save a snapshot, and only of a world that exists.
    - Given: `fresh`.
-   - Observes: world.snapshot.save by the second operator is refused with NotWorldOwner naming the owner; of a name with no world, with WorldNotFound.
+   - Observes: world.snapshot.save by the second operator (`operator: second`) is refused with NotWorldOwner naming the first operator as owner; of a name with no world, with WorldNotFound. The record gains no entry.
    - Refusals: `NotWorldOwner`, `WorldNotFound`.
    - Old: none; this claim is new.
 
 ## 11. `world.snapshot.restore`
 
 - Served by: the platform group.
-- Refusals: `WorldNotFound`, `SnapshotNotFound`, `NotWorldOwner`, `WorldExists`, `ExpiryBeyondSource`, `WorldQuotaReached`, `SnapshotIncompatible`, `NotImplemented`, and `NotSignedIn` from sign-in.
+- Refusals: `WorldNotFound`, `SnapshotNotFound`, `NotWorldOwner`, `WorldExists`, `ExpiryBeyondSource`, `WorldQuotaReached`, `NotImplemented`, and `NotSignedIn` from sign-in.
 - Emits: `world_created`.
 - Budget: 120,000 ms, provisional. Basis: a branch fork took 10 s (spikes/hosting) and a deploy 39 to 43 s (spikes/containers); restoring sites onto a bench is not measured.
 
 1. A restore into a separate world leaves the first world untouched and the two never see each other. *(thin line)*
    - Given: `with-snapshot`.
-   - Observes: world.snapshot.restore of `m3` as a new world answers a different door and the parent. A doc.create and an approval.sign of a payment in each world appear in that world's record.export and General Ledger only, and each Safe's balance through each door moves only in its own world.
+   - Observes: world.snapshot.restore of `m3` as a new world answers a different door and the parent. A doc.create and an approval.sign of a held payment in each world (calls `at` the new world's door for the new one) appear in that world's record.export and General Ledger only, and the company Safe's USDC balance (chain.balance at each door) moves only in its own world.
    - Old: `acc:world.snapshot.restore/c-1dd79fdbcb1c0fd7`, kept word for word.
 2. The new world holds what the snapshot saved: its record up to the snapshot, its clock, its people, companies, documents, balances and hats.
    - Given: `with-snapshot`.
-   - Observes: In the new world record.export lists the first world's entries up to the snapshot's position, then one `world_created` naming the parent; the clock is the snapshot's; the General Ledger, Trial Balance, Safe balances and hats read the same as in the first world at the save.
+   - Observes: In the new world (calls `at` its door) record.export lists the first world's entries up to the snapshot's position, entry for entry, then one `world_created` naming the parent; the clock is the snapshot's; the General Ledger and Trial Balance read the same as in the first world at the save, and through each world's chain reads every Safe's USDC balance (chain.balance) and sam's Books hat (chain.wears) read the same as in the first world at the snapshot's block.
    - Old: none; this claim is new.
 3. Anyone on the platform may restore a template snapshot; only the owner may restore any other.
    - Given: `with-snapshot`.
-   - Observes: The second operator restores `m3` and owns the new world. Restoring `draft` as the second operator is refused with NotWorldOwner.
+   - Observes: The second operator (`operator: second`) restores `m3` and owns the new world: its owner is the second operator `nothing`'s facts name, and record.export at its door as the second operator answers. Restoring `draft` as the second operator is refused with NotWorldOwner naming the first operator.
    - Refusals: `NotWorldOwner`.
    - Old: none; this claim is new.
 4. A world made from a snapshot cannot outlive the world it came from.
@@ -403,11 +403,11 @@ Old claims not kept:
    - Observes: world.show of the restored world answers parent with the first world, `m3` and the record position `m3` holds.
    - Old: `acc:world.show/c-6aa449b0c9f7abaf`, kept word for word.
 2. A world made from nothing names no parent, and a name with no world is refused.
-   - Given: `fresh`.
-   - Observes: world.show answers parent null. world.show of a name no world has is refused with WorldNotFound.
+   - Given: `nothing`.
+   - Observes: world.show of a world world.create has just made answers parent null. world.show of a name no world has is refused with WorldNotFound.
    - Refusals: `WorldNotFound`.
    - Old: none; this claim is new.
 3. It shows a world's owner, grade, expiry, clock, record head, cast and companies, each company with its site's state.
    - Given: `founded`.
-   - Observes: world.show answers the values world.create answered, a record head that matches record.export's, and northwind with its site ready at its own address.
+   - Observes: world.show answers the owner, grade, expiry, door, chain id, contracts and cast that the call that made the world answered (the `world` fact), a record head that matches record.export's, and northwind with its site ready at its own address.
    - Old: none; this claim is new.

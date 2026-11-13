@@ -493,6 +493,9 @@ importers:
       effect:
         specifier: 'catalog:'
         version: 4.1.2
+      viem:
+        specifier: 'catalog:'
+        version: 2.55.18(typescript@5.9.3)(zod@3.25.76)
     devDependencies:
       '@capxul/scenarios':
         specifier: workspace:*

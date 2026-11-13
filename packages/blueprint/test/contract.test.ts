@@ -23,7 +23,8 @@ import { refusalsOf, type EventClass, type Operation } from "../src/operation.ts
 import * as OrganizationsOps from "../src/organizations/operations.ts";
 import * as RecordOps from "../src/record/operations.ts";
 import * as ReportsOps from "../src/reports/operations.ts";
-import { startingWorlds } from "../src/starting-worlds.ts";
+import * as Chain from "../src/chain/chain.ts";
+import { startingWorlds, type StartingWorld } from "../src/starting-worlds.ts";
 import * as Telemetry from "../src/telemetry.ts";
 import * as Values from "../src/values.ts";
 import * as WorldOps from "../src/world/operations.ts";
@@ -148,7 +149,7 @@ test("every refusal is declared in errors.ts and nowhere else, and every operati
 });
 
 test("starting worlds are declared once, and every claim and step names only declared things", () => {
-  const worlds = Rec.values(startingWorlds);
+  const worlds: ReadonlyArray<StartingWorld> = Rec.values(startingWorlds);
   assert.equal(new Set(Arr.map(worlds, (world) => world.name)).size, worlds.length, "two starting worlds share a name");
   for (const world of worlds) {
     if (world.from !== null) assert.ok(worlds.includes(world.from), `${world.name} is made from an undeclared world`);
@@ -178,6 +179,57 @@ test("starting worlds are declared once, and every claim and step names only dec
 test("claims.md is what the sources render", () => {
   const onDisk = readFileSync(new URL("../claims.md", import.meta.url), "utf8");
   assert.equal(onDisk, renderClaims(), "claims.md is out of date: run `pnpm claims`");
+});
+
+/** The names of a schema's fields, when it is a struct. */
+const fieldsOf = (schema: unknown): ReadonlyArray<string> =>
+  (typeof schema === "object" || typeof schema === "function") &&
+  schema !== null &&
+  "fields" in schema &&
+  typeof schema.fields === "object"
+    ? Rec.keys({ ...schema.fields })
+    : [];
+
+test("every starting world hands the facts its steps make, its parent's included, and its example decodes", () => {
+  const worlds: ReadonlyArray<StartingWorld> = Rec.values(startingWorlds);
+  for (const world of worlds) {
+    const own = fieldsOf(world.facts);
+    const parent = world.from === null ? [] : fieldsOf(world.from.facts);
+    for (const field of parent) assert.ok(own.includes(field), `${world.name} drops ${field} of ${world.from?.name}`);
+    const added = Arr.filter(own, (field) => !parent.includes(field));
+    const made = Arr.flatMap(world.steps, (step) => (step.fact === null ? [] : [step.fact]));
+    assert.deepEqual(sorted(made), sorted(Arr.dedupe(made)), `${world.name}: two steps make one fact`);
+    const unmade = world.from === null ? [] : Arr.filter(added, (field) => !made.includes(field));
+    assert.deepEqual(unmade, [], `${world.name}: facts no step makes`);
+    for (const fact of made) assert.ok(added.includes(fact), `${world.name}: a step makes ${fact}, not its own fact`);
+    const decoded = Schema.decodeUnknownExit(world.facts)(world.example);
+    assert.ok(Exit.isSuccess(decoded), `${world.name}'s example facts do not decode: ${String(decoded)}`);
+  }
+});
+
+test("a world whose claims need what a restore would change is made by its steps", () => {
+  const byName = new Map(Arr.map(Rec.values(startingWorlds), (world) => [world.name, world.made] as const));
+  // A quota is the operator's own live worlds, and a snapshot belongs to the world it was saved in.
+  for (const name of ["nothing", "quota-full", "with-snapshot", "restored"])
+    assert.equal(byName.get(name), "by its steps", name);
+});
+
+test("every chain read is declared with how it is asked, and every declared log has its signature", () => {
+  for (const [name, read] of Rec.toEntries(Chain.reads)) assert.ok(read.via.length > 10, `${name} says no via`);
+  const tags = Arr.filter(
+    Arr.map(Chain.Log.members, (member) => String(member.fields._tag.ast.literal)),
+    (tag) => tag !== "Other",
+  );
+  assert.deepEqual(sorted(tags), sorted(Rec.keys(Chain.LOG_SIGNATURES)));
+  assert.deepEqual(sorted(Chain.LogName.literals), sorted(Rec.keys(Chain.LOG_SIGNATURES)));
+  for (const [name, signature] of Rec.toEntries(Chain.LOG_SIGNATURES))
+    assert.ok(Str.startsWith(`event ${name}(`)(signature), `${name}'s signature is another event's`);
+});
+
+test("PayloadRejected is declared once and no operation's door refuses with it", () => {
+  assert.equal(Errors.exitCode.PayloadRejected, 2);
+  for (const [name, operation] of all)
+    assert.ok(!refusalsOf(operation).includes(Errors.PayloadRejected), `${name} declares PayloadRejected`);
 });
 
 /** The text of one cell of a Markdown table row. */

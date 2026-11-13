@@ -10,7 +10,7 @@ export const create: ClaimsOf = {
     claim(
       "A document is created as a draft and Frappe's validations apply.",
       w.officeHolder,
-      "doc.create as sam of a Supplier named Brightside Cleaning Ltd answers its name and docstatus 0. A Supplier with no name is refused with SiteRefused for validation, and report.run of the Supplier list shows only Brightside.",
+      "doc.create as sam of a Supplier named Brightside Cleaning Ltd answers its name and docstatus 0. A Supplier with no name is refused with SiteRefused for validation, and report.run of the Supplier list (Site.REPORTS.supplierList, the Supplier doctype's list) shows only Brightside.",
       { refusals: [SiteRefused], origin: kept("doc.create/c-4a88a94b435451b9"), thinLine: true },
     ),
     claim(
@@ -28,7 +28,7 @@ export const create: ClaimsOf = {
     claim(
       "The answer carries the document's hash, and a payment held for the document names the same hash.",
       w.paymentDrafted,
-      "The hash doc.create answered for the Payment Entry equals `payment.documentHash` in doc.submit's Held answer for it.",
+      "The hash doc.create answered for the Payment Entry (the `payment` fact) equals `payment.documentHash` in doc.submit's Held answer for it.",
     ),
   ],
   dropped: [],
@@ -40,7 +40,7 @@ export const submit: ClaimsOf = {
     claim(
       "A Payment Entry from the Safe is held, not posted, and the signer is named.",
       w.paymentDrafted,
-      "doc.submit as sam of the Payment Entry answers Held with docstatus 0, the amount 125.50 USDC, Brightside's address and an approval whose signer is sam. report.run's General Ledger shows no line for it yet.",
+      "doc.submit as sam of the Payment Entry answers Held with docstatus 0, the amount 125.50 USDC, Brightside's address (the payment address the `supplier` fact's fields hold) and an approval whose signer is sam at his signer address. report.run's General Ledger shows no line for it yet.",
       { origin: kept("doc.submit/c-df3c0c51cdf3899b"), thinLine: true },
     ),
     claim(
@@ -58,7 +58,7 @@ export const submit: ClaimsOf = {
     claim(
       "A payment from the Safe of more than the Safe holds is refused before anything is held.",
       w.officeHolder,
-      "doc.submit of a Payment Entry of 5,000 USDC from the Capxul Safe account is refused with InsufficientBalance naming the Safe, its balance and the amount; no approval is opened and record.export shows no new entry.",
+      "doc.submit of a Payment Entry of 5,000 USDC from the Capxul Safe account is refused with InsufficientBalance naming the company Safe (the `founded` fact's Safe), its balance and the amount; no approval is opened and record.export shows no new entry.",
       { refusals: [InsufficientBalance] },
     ),
   ],

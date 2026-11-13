@@ -52,6 +52,8 @@ export type Timing = typeof Timing.Type;
 export const CheckedCall = Schema.Struct({
   operation: Schema.String,
   traceId: Schema.String,
+  /** Another world's door the call went to; null or absent for the stage's own (records before it say nothing). */
+  at: Schema.NullOr(Schema.String).pipe(Schema.optional),
   outcome: CallOutcome,
   /** The refusal's tag, for a refused call. */
   refusal: Schema.NullOr(Schema.String),
@@ -68,7 +70,13 @@ export const CheckedCall = Schema.Struct({
 export type CheckedCall = typeof CheckedCall.Type;
 
 /** What the operation's server span must say for each outcome the caller can see. */
-const spanOutcomeFor = { success: "success", refusal: "failure", defect: "defect", unanswered: "none" } as const;
+const spanOutcomeFor = {
+  success: "success",
+  refusal: "failure",
+  rejected: "none",
+  defect: "defect",
+  unanswered: "none",
+} as const;
 
 const round = (ms: number): number => Math.round(ms * 1000) / 1000;
 const byStart = Order.mapInput(Order.Number, (step: Step) => step.startMs);
@@ -97,18 +105,26 @@ export const checkCall = (call: Call, kept: Kept): CheckedCall => {
   const [span] = spans.length === 1 ? spans : [];
   const events = Arr.filter(kept.events, (event) => event.trace_id === call.traceId);
   const emitted = checkEvents(call, events);
+  // A call its client rejected never left the caller (decisions.md, 43): Core must have kept no span of it at all.
+  const unsent = call.outcome === "rejected";
   const checks: ReadonlyArray<Check> = [
-    {
-      check: "span",
-      passed: span !== undefined,
-      detail:
-        span === undefined
-          ? `${spans.length} ${call.operation} spans under the call's trace id, expected one`
-          : `one ${call.operation} span, ${round(span.duration_ms)} ms`,
-    },
+    unsent
+      ? {
+          check: "span",
+          passed: spans.length === 0,
+          detail: `${spans.length} ${call.operation} spans under the trace id of a call that was never sent, expected none`,
+        }
+      : {
+          check: "span",
+          passed: span !== undefined,
+          detail:
+            span === undefined
+              ? `${spans.length} ${call.operation} spans under the call's trace id, expected one`
+              : `one ${call.operation} span, ${round(span.duration_ms)} ms`,
+        },
     {
       check: "outcome",
-      passed: span?.outcome === spanOutcomeFor[call.outcome],
+      passed: unsent ? spans.length === 0 : span?.outcome === spanOutcomeFor[call.outcome],
       detail: `the caller saw ${call.outcome}; the span says ${span?.outcome ?? "nothing"}`,
     },
     { check: "events", passed: emitted.passed, detail: emitted.detail },
@@ -116,6 +132,7 @@ export const checkCall = (call: Call, kept: Kept): CheckedCall => {
   return {
     operation: call.operation,
     traceId: call.traceId,
+    at: call.at,
     outcome: call.outcome,
     refusal: call.refusal,
     failure: call.failure,

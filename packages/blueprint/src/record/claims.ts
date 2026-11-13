@@ -10,13 +10,13 @@ export const exportRecord: ClaimsOf = {
     claim(
       "An export carries the lineage and every entry once.",
       w.restored,
-      "record.export of the restored world answers a lineage naming the first world, `m3` and its record position, and entries 1 to the head, each once, in order: the first world's entries up to that position, then `world_created`.",
+      "record.export of the restored world answers a lineage naming the first world, `m3` and its record position, and entries 1 to the head, each once, in order: the first world's entries up to that position, entry for entry as record.export at the first world's door answers them, then `world_created`.",
       { origin: kept("record.export/c-bd1acd26102d2d92"), thinLine: true },
     ),
     claim(
       "The record is the world's events: every event a successful call emitted is one entry, in order, carrying exactly what the event carried, and a refused call or a read adds none.",
       w.paid,
-      "For every call the scenario made while reaching `paid`, record.export holds that call's declared events under its trace id with the same carried values, in the order the calls were made; a refused call and a report.run hold none.",
+      "For every call made in making `paid` (the `calls` fact), record.export holds that call's declared events under its trace id carrying what its declaration computes from the call's payload and answer, in the order the calls were made; a refused call and a report.run hold none, and the scenario's own calls add their events likewise.",
     ),
     claim(
       "Only the world's owner may export the record.",

@@ -2,7 +2,7 @@
 // blueprint puts it in, and its client fits the scenarios' `Capxul` exactly.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { operations, servedBy } from "@capxul/blueprint";
+import { Chain, operations, servedBy } from "@capxul/blueprint";
 import { Capxul } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
@@ -25,10 +25,17 @@ test("each operation is served by the group the blueprint puts it in", () => {
 
 test("the client has one function per blueprint operation, keyed by its name", () => {
   const door: Sdk.Door = { send: () => Effect.die("not sent") };
+  const reach: Sdk.Reach = { platform: () => door, world: () => door, chain: () => () => Effect.die("not read") };
   const client = Effect.runSync(
-    Sdk.make.pipe(Effect.provideService(Sdk.PlatformDoor, door), Effect.provideService(Sdk.WorldDoor, door)),
+    Sdk.make.pipe(
+      Effect.provideService(Sdk.PlatformDoor, door),
+      Effect.provideService(Sdk.WorldDoor, door),
+      Effect.provideService(Sdk.ReachDoors, reach),
+    ),
   );
-  assert.deepEqual(sorted(Rec.keys(client)), sorted(Rec.keys(operations)));
+  const { chain, ...calls } = client;
+  assert.deepEqual(sorted(Rec.keys(calls)), sorted(Rec.keys(operations)));
+  assert.deepEqual(sorted(Rec.keys(chain)), sorted(Rec.keys(Chain.reads)), "the chain reads are the blueprint's");
   for (const name of Rec.keys(operations)) assert.equal(typeof client[name], "function", name);
 });
 

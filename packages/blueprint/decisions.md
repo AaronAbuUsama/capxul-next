@@ -61,7 +61,8 @@ the history the training data needs. A read emits nothing, so it adds nothing.
 **9. Refusals and shape faults.** Chosen: a refusal is a typed error with the fields a caller needs to act, declared
 once in `errors.ts` with its command-line exit code. A payload of the wrong shape (a hyphen too many, a negative
 duration, a bio of 281 characters) is rejected by its schema before a handler runs, and is not a refusal. Why: the
-compiler and the client then hold the shape, and a refusal always needs the world's state to decide.
+compiler and the client then hold the shape, and a refusal always needs the world's state to decide. How such a
+payload surfaces: entry 43.
 
 **10. Old codes not kept.** `CLI_USAGE`, `CLI_DEADLINE`, `CLI_STORAGE` and `CANCELLED` are the command line's, not
 the door's. `CAPACITY_REACHED` (one machine's room) became `WorldQuotaReached` (an owner's live worlds).
@@ -100,7 +101,7 @@ sites; there is no profile. Why: a real world is made only with Aaron's written 
 `NotSignedIn`. A platform call acts as an operator. A call through a world's door with the door token acts as the
 world's owner, or, with the `capxul-person` header, as that person of the world's cast. Only private and shared
 worlds honour the header. Why: scenarios must act as several people now, and the contract must not change when real
-sign-in arrives, only the middleware.
+sign-in arrives, only the middleware. Amended by entry 36: the owner's operator token also signs in at the door.
 
 **17. Snapshots.** Chosen: a snapshot is a branch of the world's database, a copy of its chain state in R2 and a
 backup of each site, named within its world and deleted with it. `template` lets anyone on the platform restore it;
@@ -115,6 +116,7 @@ restores in place.
 **19. A snapshot from other code.** Chosen: a restore deploys the running code and applies its pending migrations to
 the forked database; when the snapshot's migrations are not a prefix of the code's, it is refused
 (`SnapshotIncompatible`). No claim covers this yet: making such a snapshot needs two versions of the code.
+Amended by entry 46: the refusal is removed and the rule stays, as a fault.
 
 **20. The clock.** Chosen: a world begins at host time or a chosen time, but not before its seeded chain's last
 block (`ClockBeforeSeed`), because the chain is loaded from saved state and cannot go back. A running clock runs at
@@ -155,6 +157,7 @@ founding members and the founder's opening capital (Aaron's answers, 1 and 3). W
 world, and restored by a scenario into a fresh private world. A step that waits for background work (a site
 becoming ready) polls an operation until it answers differently. Five old names that no catalogue held
 (`org-with-site`, `world-frozen` and others) are gone; `fresh` has a frozen clock, and `founded` has a ready site.
+Amended by entry 39: four of them are made by their steps instead, and claims about lineage start from `nothing`.
 
 **28. Where a held payment's details come from.** Chosen: the hold reads the payee, the amount and the asset from
 the Payment Entry, the payee's address from the Supplier, and the document hash from what `doc.create` stored.
@@ -187,6 +190,98 @@ operation. Why: the caller gets a typed answer it can recognise, the runner's ch
 a fault, and a scenario run against an empty handler fails on its own expectation, which is what step 1.5 requires.
 A middleware cannot do it, because a handler may only fail with its own operation's refusals. An operation keeps
 the refusal after it is built; a built handler never returns it.
+
+## Closing the scenarios' gaps (13 November 2026)
+
+The scenarios' author found claims no scenario could check in full (gaps.md). Each entry closes one cause.
+
+**34. Reading the chain.** Claims say "through the door's chain RPC", and `Capxul` read no chain. Options: a
+thirteenth operation, `chain.read`, served by Core; or a typed read client on `Capxul`, backed by the world door's
+chain JSON-RPC. Chosen: the read client, `capxul.chain`. Its eight reads (`head`, `balance`, `safe`, `hat`, `wears`,
+`companySafeFor`, `transaction`, `logs`) are declared once in `src/chain/reads.ts`, with the logs they decode and
+every Solidity signature they use in `src/chain/logs.ts`; the SDK serves them. Why: an operation would put a copy of
+the chain's state behind Core, the very thing the claims check Core against, and would need its own events, budget,
+claims and handler. Read directly, the chain is the one owner of its state. With it:
+- the door's chain JSON-RPC is at `CHAIN_PATH` under the world's door and answers only `CHAIN_READ_METHODS`
+  (src/telemetry.ts): it reads and never writes;
+- `WorldView.contracts` names the addresses the reads take (USDC, Hats, Payments, the entry point, the company Safe
+  minter, its owner and namespace), from the world's deployment;
+- `Held.payment.paymentId` is the id `PaymentSent` carries, so a payment is found on the chain by what Core answered;
+- a company Safe's `company`, in `CompanySafeMinted` and `companySafeAddressFor`, is the Organization's id;
+- a new world's chain mines a block at its clock's start, so `chain.head` shows the start;
+- an officer hat is known on the chain by its details (`OFFICER_HAT_DETAILS`: Books, Invoices, People).
+The SDK decodes the ABI with viem as a pure codec, from the blueprint's signatures; it does no I/O, which is Effect's
+HttpClient. viem is already a runtime dependency of the repository (the scenarios sign with it), so the count of
+non-Effect runtime dependencies does not rise; whether a second package may depend on it is Aaron's to say (the
+question is in the report of this change). `packages/indexer/abis.ts` still holds its own copy of the log
+signatures; it should import them from here.
+
+**35. Door paths.** `WorldView.door` is a base address. The blueprint declares where a door's parts answer:
+`PLATFORM_PATH`, `WORLD_PATH` and `CHAIN_PATH`. Core imports the first two from here; the SDK builds every address
+from them. Why: a caller that holds only a world's view must find its operations and its chain.
+
+**36. Reaching another world.** A scenario could call only the world it was handed. Options: `world.create` and
+`world.snapshot.restore` answer a door token; or the door accepts the credential of the operator who owns the world.
+Chosen: the second, with `CallOptions.at` (a `WorldView.door`) on every world operation and chain read. A call `at`
+another world's door signs in with the operator's token (`CallOptions.operator`); with `as`, it acts as that
+person. Any other operator's token is not signed in at that door. Why: a token in an answer would be written into
+every run record, and the operator is already who the caller is. This amends entry 16.
+
+**37. Two operators, and who the caller is.** Chosen: `CallOptions.operator`, `first` (the default) or `second`,
+picks whose credential signs a platform call or a call `at` another world. The starting world `nothing` hands both
+operators' names as facts (`operators`), so a claim can name the caller. Why: the names are the platform's, and a
+scenario learns them from the world it is handed, not from a setting of its own. The runner makes the second
+operator's token (`CAPXUL_SECOND_PLATFORM_TOKEN`, name `WORLD_SECOND_OWNER`); the platform must accept it.
+
+**38. Starting worlds hand their facts.** A scenario could not see what the steps that made its world answered.
+Chosen: each starting world declares `facts`, a schema of what its steps answered (each step names the fact its
+last answer becomes), its parent's included, and an example of them. Every world also hands `calls`, each call made
+in making it with its trace, payload and answer, and `nothing` hands `operators`. A scenario reads them with
+`given(startingWorlds.x)` (packages/scenarios), typed by the world's schema, for its own world or any it is made
+from. The maker of the world keeps the facts encoded; `Given` hands them. Why: an approval's digest, a document's
+hash and a trace id are only ever answered once, to whoever made the world.
+
+**39. Starting worlds and templates.** Entry 27 restores every starting world from a template, but a restored world
+names its template as parent and its record ends with the restore's `world_created`, against `fresh`'s "parent
+null, record one entry long". Chosen: entry 27 holds for `fresh` to `paid`, and the claims are made to agree: a
+claim about a world made from nothing starts from `nothing` and makes it (world.show 2), and `fresh` no longer
+promises its record's length. `quota-full` (the operator's own live worlds), `with-snapshot` and `restored` (a
+snapshot belongs to the world it was saved in) are made by their steps for each scenario, from a restored `paid`.
+`StartingWorld.made` says which. The `world` fact is the answer of the call that made the scenario's world, so
+world.show 3 compares with it. Why: templates are the roadmap's (steps 0.9 and 1.12), and the record and the
+lineage already say truthfully what a restore is.
+
+**40. The site's vocabulary.** It lived in the scenarios' `support/books.ts`. Chosen: `src/documents/site.ts`
+(`Site` at the door) declares the doctypes, field names, the Supplier's payment address field, the Safe account's
+prefix, the reports, their filters and row fields, the daily job, and the documents the starting worlds make.
+report.run fills `company`, and for a report over a period `from_date` and `to_date`, when the filters leave them
+out; a doctype's name runs that doctype's list (Frappe's report view), so the Supplier list is the Supplier doctype
+and the Scheduled Job Log is its doctype. `books.ts` re-exports it.
+
+**41. `office-holder`'s wait.** It waited on doc.create, which makes a document when it stops refusing. Chosen: it
+waits on report.run of the General Ledger, which makes nothing, so the site holds no document yet.
+
+**42. Signing and subjects.** Chosen: an approval's `digest` is the exact 32-byte hash its signer signs with
+secp256k1, with no prefix (no EIP-191 message prefix), `v` 27 or 28; the cast's keys are among the first ten
+accounts of the public test mnemonic (`test test ... junk`), each named by its `signerAddress` (`CAST_KEYS`, src/values.ts). `Subject` is typed
+by kind: an org setup by its org id, an officer change by its change id, a payment by its request id.
+
+**43. A payload the schema rejects.** Chosen: the caller's client checks every payload against its operation's
+schema before it sends anything, and refuses one that does not fit with `PayloadRejected` (in `errors.ts`, exit code
+2, declared by no operation). Nothing reaches a door, so Core keeps no span: the runner records the call as
+`rejected` and its generic checks require that no span exists under its trace. Why: Effect's Rpc client cannot send
+such a payload at all, and the caller must be able to tell the rejection from a fault. This narrows entry 9.
+
+**44. The job a warp runs.** world.clock.warp 1 named no job. Chosen: the Capxul app's daily job,
+`capxul.clock.daily`, whose Scheduled Job Type is `clock.daily` (`Site.DAILY_JOB`).
+
+**45. world.create 2's start.** It started a day after the seeded chain's last block, which is before host time only
+if the seed is over a day old. Chosen: it starts halfway between that block and host time, which is always before
+host time, so the claim needs no condition.
+
+**46. `SnapshotIncompatible`.** No claim could exercise it: a snapshot from other code cannot be made through the
+door. Chosen: the refusal is removed. A restore of a snapshot whose migrations are not a prefix of the running
+code's still fails, as a fault (entry 10), and the templates are remade on every change to the code (entry 27).
 
 ## Answered by Aaron, 13 November 2026
 

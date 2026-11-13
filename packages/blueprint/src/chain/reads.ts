@@ -1,0 +1,113 @@
+// The reads of a world's chain a caller may make through the world's door (decisions.md, 34). Each is declared once,
+// here: what it is asked, what it answers, and the JSON-RPC call and contract function behind it. The SDK serves them
+// over the door's chain JSON-RPC (`CHAIN_PATH`, read-only methods only), so a claim reads the chain itself, never a
+// copy of it that Core keeps. Every address a read takes comes from the world's view (`WorldView.contracts`), from
+// an operation's answer or from a log. A read that gets no answer is a defect, as an unanswered call is.
+import type * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
+import type { CallOptions } from "../telemetry.ts";
+import { Address, Amount, Hash, HatId, Instant } from "../values.ts";
+import { Log, LogName } from "./logs.ts";
+
+/** The block a read reads at: a block number, or null for the latest. */
+const Block = Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)));
+
+/** The contract functions the reads call, by their Solidity signatures, as the contracts declare them. */
+export const FUNCTION_SIGNATURES = {
+  balanceOf: "function balanceOf(address holder) view returns (uint256)",
+  decimals: "function decimals() view returns (uint8)",
+  getOwners: "function getOwners() view returns (address[])",
+  getThreshold: "function getThreshold() view returns (uint256)",
+  nonce: "function nonce() view returns (uint256)",
+  viewHat:
+    "function viewHat(uint256 hatId) view returns (string details, uint32 maxSupply, uint32 supply, address eligibility, address toggle, string imageURI, uint16 lastHatId, bool mutable_, bool active)",
+  isWearerOfHat: "function isWearerOfHat(address user, uint256 hatId) view returns (bool)",
+  companySafeAddressFor:
+    "function companySafeAddressFor(address owner, string namespace, string company, address founderSafe) pure returns (address)",
+} as const;
+
+export interface Read<P extends Schema.Struct.Fields, A extends Schema.Codec<unknown, unknown>> {
+  readonly payload: Schema.Struct<P>;
+  readonly answer: A;
+  /** How the door's chain RPC is asked: the JSON-RPC method and, for a contract, the functions called. */
+  readonly via: string;
+}
+
+const read = <P extends Schema.Struct.Fields, A extends Schema.Codec<unknown, unknown>>(
+  payload: P,
+  answer: A,
+  via: string,
+): Read<P, A> => ({ payload: Schema.Struct(payload), answer, via });
+
+/** Every chain read, by the name a caller calls it by (`capxul.chain.<name>`). */
+export const reads = {
+  /** The chain's latest block. A world's clock is its chain's: a new world mines a block at its start. */
+  head: read(
+    {},
+    Schema.Struct({ number: Schema.Int, timestamp: Instant, hash: Hash }),
+    "eth_getBlockByNumber(latest); the timestamp as an instant",
+  ),
+  /** What `holder` holds of an ERC-20 `token`, in the token's own decimals. */
+  balance: read(
+    { token: Address, holder: Address, block: Block },
+    Amount,
+    "eth_call of the token's balanceOf(holder) and decimals()",
+  ),
+  /** A Safe's owners, in the Safe's order, its threshold and its nonce. */
+  safe: read(
+    { safe: Address, block: Block },
+    Schema.Struct({ owners: Schema.Array(Address), threshold: Schema.Int, nonce: Schema.Int }),
+    "eth_call of the Safe's getOwners(), getThreshold() and nonce()",
+  ),
+  /** A hat of the Hats protocol at `hats`: its details, how many may wear it, how many do, and whether it is active. */
+  hat: read(
+    { hats: Address, hat: HatId, block: Block },
+    Schema.Struct({ details: Schema.String, maxSupply: Schema.Int, supply: Schema.Int, active: Schema.Boolean }),
+    "eth_call of the Hats protocol's viewHat(hat)",
+  ),
+  /** Whether `wearer` wears `hat`. */
+  wears: read(
+    { hats: Address, hat: HatId, wearer: Address, block: Block },
+    Schema.Boolean,
+    "eth_call of the Hats protocol's isWearerOfHat(wearer, hat)",
+  ),
+  /** The company Safe Companies House derives for `company` (an Organization's id) and its founder's Safe. */
+  companySafeFor: read(
+    { minter: Address, owner: Address, namespace: Schema.String, company: Schema.String, founderSafe: Address },
+    Address,
+    "eth_call of the minter's companySafeAddressFor(owner, namespace, company, founderSafe)",
+  ),
+  /** One transaction as the chain included it, with every log it emitted, decoded, in order. */
+  transaction: read(
+    { transaction: Hash },
+    Schema.Struct({
+      transaction: Hash,
+      block: Schema.Int,
+      from: Address,
+      to: Schema.NullOr(Address),
+      status: Schema.Literals(["success", "reverted"]),
+      logs: Schema.Array(Log),
+    }),
+    "eth_getTransactionReceipt",
+  ),
+  /** Every log of one declared kind, from one contract or any, between two blocks (null: the first, the latest). */
+  logs: read(
+    { log: LogName, address: Schema.NullOr(Address), fromBlock: Block, toBlock: Block },
+    Schema.Array(Log),
+    "eth_getLogs by the log's first topic",
+  ),
+} as const;
+
+export type ReadName = keyof typeof reads;
+
+/** How a chain read is made: the world's chain it reads (`at`) and the operator who signs in to that door. */
+export type ReadOptions = Pick<CallOptions, "at" | "operator">;
+
+/** What one read takes and answers. */
+export type ReadPayload<Name extends ReadName> = (typeof reads)[Name]["payload"]["Type"];
+export type ReadAnswer<Name extends ReadName> = (typeof reads)[Name]["answer"]["Type"];
+
+/** One function per read, as the SDK and the scenarios' `Capxul` offer them under `chain`. */
+export type Reader = {
+  readonly [Name in ReadName]: (payload: ReadPayload<Name>, options?: ReadOptions) => Effect.Effect<ReadAnswer<Name>>;
+};

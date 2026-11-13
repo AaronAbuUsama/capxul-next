@@ -11,6 +11,7 @@ export {
   type Call,
   type CallOptions,
   type Client,
+  type Full,
   type Payload,
   type PlatformName,
   type Refusal,
@@ -20,6 +21,9 @@ export {
 export {
   PlatformDoor,
   platformDoor,
+  reach,
+  ReachDoors,
+  reachFromConfig,
   platformDoorFromConfig,
   platformTarget,
   WorldDoor,
@@ -27,6 +31,10 @@ export {
   worldDoorFromConfig,
   worldTarget,
   type Door,
+  type JsonRpc,
+  type Operator,
+  type Reach,
+  type ReachSpec,
   type Target,
 } from "./transport.ts";
 export * as TestDoor from "./test-door.ts";

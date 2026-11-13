@@ -18,7 +18,7 @@ The parts of a world, as `packages/world` builds it (roadmap step 1.3):
 | # | Operation | Parts it needs | Starting worlds its scenarios need | Why here |
 |---|---|---|---|---|
 | 1 | `world.create` | registry, stack, database, chain, index, clock, the cast | `nothing`, `quota-full` | Nothing else can run without a world. It is `packages/world`'s create with an Rpc in front. |
-| 2 | `world.show` | registry, database | `fresh`, `founded`, `restored` | A read of what create wrote. The first claim needs `restored` and waits for step 12's operation. |
+| 2 | `world.show` | registry, database | `nothing`, `founded`, `restored` | A read of what create wrote. The first claim needs `restored` and waits for step 12's operation. |
 | 3 | `record.export` | database | `fresh`, `paid`, `restored` | Reads the record, which every operation after it writes. Built early so every later scenario can read the record. |
 | 4 | `world.clock.warp` | chain, clock, site when there is one | `founded` | The chain half can be built on `fresh`; its thin line claim needs a company's site and waits for step 1.4. |
 | 5 | `org.create` | database, chain, index, signing | `fresh` | The first operation inside a world. Its third claim needs `approval.sign`. |
@@ -38,7 +38,9 @@ every part, because a snapshot holds them all.
 
 ## Making the starting worlds
 
-Each starting world is made once per change to the code, through the door, by the operations above, and saved as a
-template snapshot in a kept template world. A scenario restores the one it needs into a fresh private world. Until
-`world.snapshot.restore` exists (step 12), a scenario makes its starting world from `nothing` by running the steps
-itself, which is slower but needs nothing more.
+Each starting world is made through the door by the operations above. `fresh` to `paid` are made once per change to
+the code and saved as template snapshots in a kept template world, and a scenario gets the one it needs restored into
+a fresh private world; `quota-full`, `with-snapshot` and `restored` are made by their steps for each scenario
+(`StartingWorld.made`, decisions.md 39). Whoever makes a world keeps its facts for the scenarios (decisions.md 38).
+Until `world.snapshot.restore` exists (step 12), a scenario's starting world is made from `nothing` by running the
+steps, which is slower but needs nothing more.
