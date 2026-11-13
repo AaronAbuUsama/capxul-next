@@ -21,6 +21,48 @@ import { flow_client_approvals_sign } from "./flows.ts";
 const OLD = "packages/backend/src";
 const t = machine_approval.t;
 
+export const decision_approvals_unsponsored_replacement = defineDecision({
+  id: "approvals.unsponsored-replacement-finality",
+  title: "An inherited nonce can displace a replacement before sponsorship",
+  question: "What ends an unsponsored replacement when the original approval has already consumed their shared nonce?",
+  options: [
+    { label: "finality", text: "A matching indexed final UserOperationEvent displaces the replacement even while it is sponsoring; chain wakes include sponsoring approvals with a persisted nonce." },
+    { label: "wait", text: "Ignore final facts before sponsorship and keep rescheduling after the deadline when the nonce has moved." },
+  ],
+  chosen: "finality",
+  why: "Opening a replacement already persists the original's nonce. If its first carrier run is late, a consumed nonce cannot become usable again, and waiting for sponsorship leaves its opener stuck forever. Another operation's finalized hash is displacement proof before or after sponsorship; a raw receipt or moved nonce alone is not. Without the indexed final fact it still waits. The terminal transition, opener callback and carrier deletion remain one transaction, so callback failure rolls back and retry applies the effect once without sponsoring or sending.",
+  source: "approvals.lifecycle.carry; approvals replacement nonce; PR55 mirror4554855744 and native red control, 12 November 2026",
+  affects: [t.displace, workflow_approvals_lifecycle_carry],
+});
+
+export const decision_approvals_signing_intent = defineDecision({
+  id: "approvals.signing-intent",
+  title: "Expose immutable intent independently of the sponsored operation",
+  question: "Which public fields let a signer check the operation's nonce and window against the opener's intent?",
+  options: [
+    { label: "intent", text: "Expose the stored nonceKey, original deadline and replacement reference with the replaced approval's persisted nonce, separately from operation and expiresAt." },
+    { label: "operation", text: "Derive the expected nonce and deadline from the operation being checked." },
+  ],
+  chosen: "intent",
+  why: "Checking an operation against itself proves nothing. Ordinary approvals bind their stored lane without fixing a sequence; replacements bind the original approval's full nonce, not the new operation's nonce. Sponsor expiry may be shorter than the opener's deadline. Calls, sender, sendAfter and these immutable fields supply intent, while chain/module/EntryPoint/multiSend come from trusted deployment configuration and the actual client chain. This detects inconsistent builder output; the client's originally prepared intent is stronger than a view when the backend itself is malicious. The SDK transport remains wire-only until an independent canonical verifier and signer are composed.",
+  source: "approvals.signing-area; approvals replacement nonce contract; signing builder owner contract, 12 November 2026",
+  affects: [rpc_approvals_signing_get, flow_client_approvals_sign],
+});
+
+export const decision_approvals_public_transport = defineDecision({
+  id: "approvals.public-transport",
+  title: "Bearer-authenticated live signing releases SQL between frames",
+  question: "How do the four signing rpcs reach a public client without exposing the collector's service authority?",
+  options: [
+    { label: "bearer", text: "GET /approvals/signing/get?approvalId=… returns a snapshot, or SSE with Accept: text/event-stream; POST /approvals/signing/review, /sign and /decline take the declared JSON inputs. Resolve the raw Bearer through Access on the caller transaction and canonical world time." },
+    { label: "service", text: "Let a browser use the collector's private HMAC and identify its signer in the body." },
+  ],
+  chosen: "bearer",
+  why: "A service credential is not a person's session. Each live frame reauthenticates and checks signer ownership and any approval gate before reading, using a short transaction that releases its connection before waiting or writing to the socket. Disconnect cancels the wait. Mutations carry X-Capxul-Trace and X-Capxul-Call-Id; same-Sql signer-scoped call metadata refuses reuse with different input and preserves the original trace, but stores no second approval state. Replays invoke the idempotent signing door, not open. The SDK transport follows these frames and sends signatures only when supplied by its caller; it does not invent a SafeOp digest, sponsorship policy or signing authority.",
+  source: "approvals.signing-area; approvals.tenant-is-signer; integrator public transport contract, 12 November 2026",
+  affects: [rpc_approvals_signing_get, rpc_approvals_signing_review, rpc_approvals_signing_sign, rpc_approvals_signing_decline],
+});
+
 export const decision_approvals_transactional_carrier = defineDecision({
   id: "approvals.transactional-carrier",
   title: "The caller's transaction persists the carrier and its wake",

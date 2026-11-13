@@ -73,7 +73,7 @@ async function step(sql: Sql, person: string, id: string, services: CarrierServi
   }
   // Only an indexed, final fact can resolve a used nonce; receipts alone cannot settle it.
   const fact = await transaction(sql, row.org_id ?? "", (client) => services.fact(client, row));
-  if (fact && ["pending", "signed", "sending", "sent"].includes(row.state) && fact.chain_id === row.chain_id &&
+  if (fact && live.includes(row.state) && fact.chain_id === row.chain_id &&
       fact.sender === row.sender && fact.nonce === row.nonce) {
     const own = fact.user_op_hash === row.user_op_hash;
     if (!own || row.state !== "pending") {
@@ -171,5 +171,5 @@ async function step(sql: Sql, person: string, id: string, services: CarrierServi
 export async function wakeChain(sql: Sql, key: Pick<ChainFact, "chain_id" | "sender" | "nonce">, now: Date) {
   await sql.query(`update app.approval_carriers c set wake_at=$4,wake_version=c.wake_version+1 from app.approvals a
     where c.approval_id=a.approval_id and a.chain_id=$1 and a.sender=$2 and a.nonce=$3
-      and a.state in ('pending','signed','sending','sent')`, [key.chain_id, key.sender, key.nonce, now]);
+      and a.state in ('sponsoring','pending','signed','sending','sent')`, [key.chain_id, key.sender, key.nonce, now]);
 }
