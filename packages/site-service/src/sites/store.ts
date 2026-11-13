@@ -29,6 +29,13 @@ export async function rewriteSites(sql: Sql, input: { world: string; bench: stri
     [row.org_id, input.sites[row.org_id], input.world, input.bench]);
 }
 
+/** orgId -> host on the caller's checked-out Sql. app.sites RLS shows only the transaction's app.org_id, worker included. */
+export async function readSiteHosts(sql: Sql, orgIds?: readonly string[]): Promise<Record<string, string>> {
+  const rows = (await sql.query<{ org_id: string; host: string }>(
+    "select org_id,host from app.sites where $1::text[] is null or org_id=any($1) order by org_id", [orgIds ?? null])).rows;
+  return Object.fromEntries(rows.map((row) => [row.org_id, row.host]));
+}
+
 /** SQL callbacks reuse the checked-out tenant connection; no nested pool checkout. */
 export class SitesStore {
   readonly db: Database;
