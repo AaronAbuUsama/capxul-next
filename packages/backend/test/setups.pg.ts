@@ -149,6 +149,10 @@ test("get and resume answer the founder and refuse everyone else alike; RLS keep
   const resumed = await as("founder", (sql) => resume(sql, { orgId }, services, now + 2, trace));
   assert.deepEqual([resumed.setup, resumed.issue, resumed.recovery], ["processing", null, "none"]);
   assert.deepEqual((await events("org_setup_transitioned")).at(-1).props.transition, "resume");
+  // A paused world clock: a second stall and resume at the same instant is a second event, not a lost one.
+  await admin.query("update app.org_setups set status='needs_attention' where org_id=$1", [orgId]);
+  await as("founder", (sql) => resume(sql, { orgId }, services, now + 2, trace));
+  assert.equal((await events("org_setup_transitioned")).filter((e) => e.props.org_id === orgId && e.props.transition === "resume").length, 2);
   await admin.query("update app.org_setups set status='failed' where org_id=$1", [orgId]);
   await assert.rejects(as("founder", (sql) => resume(sql, { orgId }, services, now + 3, trace)), /^Error: WRONG_STATE/);
   const tenant = async (name: string) => db.transaction("", async (sql) => {
@@ -176,8 +180,16 @@ test("bought seats raise and lower the limit exactly while the Payment stands, o
   assert.deepEqual(await step((sql) => addBoughtSeats(sql, buy, now + 1, trace)), { org_id: orgId, payment_id: "pay_7", seat_limit: 13, added: false });
   assert.deepEqual(await step((sql) => returnBoughtSeats(sql, { org_id: orgId, payment_id: "pay_7" }, now + 2, trace)), { org_id: orgId, payment_id: "pay_7", seat_limit: 10, returned: true });
   assert.deepEqual(await step((sql) => returnBoughtSeats(sql, { org_id: orgId, payment_id: "pay_7" }, now + 3, trace)), { org_id: orgId, payment_id: "pay_7", seat_limit: 10, returned: false });
-  assert.deepEqual(await step((sql) => addBoughtSeats(sql, { ...buy, seats: 3 }, now + 4, trace)), { org_id: orgId, payment_id: "pay_7", seat_limit: 13, added: true });
+  for (const other of [{ seats: 7 }, { command_id: "cmd_8" }, { amount_raw: "70000000" }, { token_address: `0x${"cd".repeat(20)}` }])
+    await assert.rejects(step((sql) => addBoughtSeats(sql, { ...buy, ...other }, now + 4, trace)), /^Error: IDEMPOTENCY_CONFLICT/, JSON.stringify(other));
+  assert.deepEqual(await limit(), { seat_limit: 10, seat_limit_raised_by: "purchase" }, "a re-count with other terms adds nothing");
+  assert.deepEqual(await step((sql) => addBoughtSeats(sql, buy, now + 4, trace)), { org_id: orgId, payment_id: "pay_7", seat_limit: 13, added: true });
+  await assert.rejects(step((sql) => addBoughtSeats(sql, { ...buy, seats: 4 }, now + 5, trace)), /^Error: IDEMPOTENCY_CONFLICT/, "counted, other terms");
+  // A paused world clock: the same reorg and re-settle at one instant are still two events each.
+  await step((sql) => returnBoughtSeats(sql, { org_id: orgId, payment_id: "pay_7" }, now + 4, trace));
+  await step((sql) => addBoughtSeats(sql, buy, now + 4, trace));
   assert.deepEqual(await limit(), { seat_limit: 13, seat_limit_raised_by: "purchase" });
   assert.deepEqual((await events("seat_purchase_transitioned")).map((e) => [e.props.transition, e.props.from, e.props.to]),
-    [["add", null, "counted"], ["take_back", "counted", "returned"], ["add_again", "returned", "counted"]]);
+    [["add", null, "counted"], ["take_back", "counted", "returned"], ["add_again", "returned", "counted"], ["take_back", "counted", "returned"],
+      ["add_again", "returned", "counted"]]);
 });

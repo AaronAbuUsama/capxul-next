@@ -33,6 +33,10 @@ create table if not exists app.organizations (
 );
 create unique index if not exists organizations_by_party on app.organizations(party_id);
 
+-- Transition event ids: a world clock can stand still, so an id never relies on the instant being new.
+create sequence if not exists app.org_transition_seq;
+grant usage on sequence app.org_transition_seq to capxul_core, capxul_worker;
+
 create table if not exists app.org_setups (
   org_id text primary key references app.organizations, founder_principal_id text not null,
   intent_hash text not null check (intent_hash ~ '^[0-9a-f]{64}$'), with_fde boolean not null,

@@ -1376,7 +1376,8 @@ export const decision_organizations_admitted_deployment = defineDecision({
   question:
     "Board and Budgets need to know which finalized MoneyDeployed this Organization owns, and to re-check it in indexing. " +
     "The event carries officer hats only in `MoneyDeploy.officers` order, and which hat means which officer permission is " +
-    "the binding organizations.native-hat-binding-authority leaves to Aaron. What does the row hold, and what does its door answer?",
+    "the native hat binding still open as a question to Aaron (who may bind a chain hat to a named role: the authorised " +
+    "setup, Board or budget intent, or a Director-edited registry). What does the row hold, and what does its door answer?",
   options: [
     {
       label: "occurrence-numeric",
