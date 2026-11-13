@@ -8,7 +8,7 @@ export type { ApprovalContext, Open, Opened, TerminalEvent, Terminal } from "./t
 export { open, withdraw } from "./store.ts";
 export { migrateApprovals } from "./migrate.ts";
 export { signingGet, signingReview, signingSign, signingDecline, type SigningContext } from "./signing.ts";
-export { carry, wakeChain, type CarrierServices, type ChainFact, type Sponsorship } from "./carrier.ts";
+export { carry, wakeChain, type CarrierServices, type ChainFact, type Expired, type Sponsorship } from "./carrier.ts";
 export { carrierSponsor, sponsorHttpTransport, type SponsorConfig, type SponsorTransport } from "./sponsorship.ts";
 export { createSigningHandler, type SigningTransport } from "./http.ts";
 

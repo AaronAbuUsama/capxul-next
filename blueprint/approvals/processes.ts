@@ -44,7 +44,7 @@ export const workflow_approvals_lifecycle_carry = defineWorkflow({
     "paymaster sponsors it for its window (from `send_after`, or now, to the deadline) and its simulation is where the " +
     "chain refuses before anyone signs, with the code the bundler's sponsor call maps the revert to (INSUFFICIENT_BALANCE, " +
     "PAYROLL_BUDGET_EXCEEDED, CHILDREN_EXCEED_PARENT, AMOUNT_BELOW_USE, WRONG_STATE, ROLE_PERMISSION_DENIED or " +
-    "TRANSACTION_FAILED), kept in `refusal`. The send: claimed first (`sending`, committed before the call, K4), then sent once; an unanswered send is " +
+    "TRANSACTION_FAILED), kept in `refusal`; an expired window is never a refusal, but waits for the lapse below. The send: claimed first (`sending`, committed before the call, K4), then sent once; an unanswered send is " +
     "looked up by hash and never sent again; a definitive refusal the bundler confirms it does not hold bounces back to " +
     "`signed` and is sent again 30 seconds later while the window is open (CAP-1018). A dated operation is held until its " +
     "day; then each need (a holder's balance of a token) and the gate are checked, and while one fails the send waits an " +

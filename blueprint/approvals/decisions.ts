@@ -234,9 +234,12 @@ export const decision_approvals_sponsor_in_process = defineDecision({
     "CHILDREN_EXCEED_PARENT, AMOUNT_BELOW_USE, WRONG_STATE (BudgetIsClosed), ROLE_PERMISSION_DENIED (any other Roles, " +
     "Budgets or Gate refusal) or TRANSACTION_FAILED (updated at assembly to integrations.sponsor-refusals, which once " +
     "named only three). Each opener maps it to its own frozen refusal (board answers WRONG_STATE `execution_reverts`). " +
-    "The cost is one workflow start on the chain-submit path, inside the operation's budget.",
-  source: `${OLD}/payments/executions/external/builds.ts:76; blueprint/shared/external.ts (bundler.sponsor failures; integrations.sponsor-refusals); K18 in docs/as-is/payments.md`,
-  affects: [workflow_approvals_lifecycle_carry, rpc_approvals_signing_get, integration_bundler, t.refuse],
+    "The cost is one workflow start on the chain-submit path, inside the operation's budget. Expiry is never a refusal: " +
+    "with less than one whole second of window left (the sponsor's own boundary) the process does not ask, and an " +
+    "expired answer is not an attempt; both wait for the lapse at the window's end plus grace, whose nonce guard ends it " +
+    "expired or leaves an inherited, moved nonce to its indexed ending.",
+  source: `${OLD}/payments/executions/external/builds.ts:76; blueprint/shared/external.ts (bundler.sponsor failures; integrations.sponsor-refusals); K18 in docs/as-is/payments.md; approvals.verified-sponsorship expired outcome, 13 November 2026`,
+  affects: [workflow_approvals_lifecycle_carry, rpc_approvals_signing_get, integration_bundler, t.refuse, t.expire],
 });
 
 export const decision_approvals_send_once = defineDecision({

@@ -6,11 +6,13 @@ export type Sponsorship = {
   nonce: string; signer_address: string; user_operation: UserOperation; digest: string; user_op_hash: string;
   valid_after: Date | null; valid_until: Date;
 };
+/** The sponsor's answer when less than one whole second of window is left: never a refusal. */
+export type Expired = { expired: true };
 export type ChainFact = { chain_id: number; sender: string; nonce: string; user_op_hash: string; success: boolean; transaction_hash: string; block_number: number };
 /** Deployment supplies real gateway, chain, indexed-finality and access services, never a second sending path. */
 export type CarrierServices = {
   now: () => Promise<Date>;
-  sponsor: (approval: Approval) => Promise<Sponsorship | Refusal>;
+  sponsor: (approval: Approval) => Promise<Sponsorship | Refusal | Expired>;
   send: (approval: Approval) => Promise<{ hash: string } | { refused: Refusal }>;
   lookup: (approval: Approval) => Promise<{ held: boolean }>;
   nonce: (approval: Approval) => Promise<string>;
@@ -20,6 +22,8 @@ export type CarrierServices = {
 };
 const live = ["sponsoring", "pending", "signed", "sending", "sent"];
 const plus = (now: Date, ms: number) => new Date(now.getTime() + ms);
+// The sponsor's own boundary (until <= ceil(now) in whole seconds), so the carrier and the adapter never disagree.
+const lapsed = (deadline: Date, now: Date) => Math.floor(deadline.getTime() / 1000) <= Math.ceil(now.getTime() / 1000);
 
 /** One checked-out worker connection; every transaction finishes before any outside call. */
 export async function carry(db: Database, services: CarrierServices, limit = 100): Promise<number> {
@@ -103,10 +107,14 @@ async function step(sql: Sql, person: string, id: string, services: CarrierServi
     return;
   }
   if (row.state === "sponsoring") {
-    let sponsor: Sponsorship | Refusal;
+    // Expiry is never a refusal: it waits for the lapse at window end plus grace, whose nonce guard decides between
+    // expired and the indexed ending of an inherited nonce. No attempt is counted.
+    const lapse = () => update(async (client, current) => { await wake(client, current, trace, plus(end, 120_000)); });
+    if (lapsed(row.deadline, now)) { await lapse(); return; }
+    let sponsor: Sponsorship | Refusal | Expired;
     try {
       sponsor = await services.sponsor(row);
-      if (!("code" in sponsor)) {
+      if (!("code" in sponsor) && !("expired" in sponsor)) {
         const op = sponsor.user_operation;
         if (!Number.isFinite(sponsor.valid_until.getTime()) || sponsor.valid_until <= now || sponsor.valid_until > row.deadline ||
             (sponsor.valid_after && (!Number.isFinite(sponsor.valid_after.getTime()) || sponsor.valid_after >= sponsor.valid_until)) ||
@@ -130,6 +138,7 @@ async function step(sql: Sql, person: string, id: string, services: CarrierServi
       });
       return;
     }
+    if ("expired" in sponsor) { await lapse(); return; }
     await update(async (client, current) => {
       if ("code" in sponsor) await move(client, current, "refuse", { refusal: sponsor, ended_at: now }, now, trace, services.terminal);
       else await move(client, current, "sponsor", sponsor, now, trace);

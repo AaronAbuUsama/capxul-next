@@ -126,7 +126,7 @@ export function approvalSponsor(config: SponsorConfig): (a: SponsorshipRequest) 
  * synchronous SponsorConfig.now for the window and its completion check, never host time.
  */
 export function carrierSponsor(config: Omit<SponsorConfig, "now">, now: () => Promise<Date>) {
-  return async (a: Approval): Promise<VerifiedSponsorship | SponsorRefusal> => {
+  return async (a: Approval): Promise<VerifiedSponsorship | SponsorRefusal | { expired: true }> => {
     const at = await now();
     return approvalSponsor({ ...config, now: () => at })({ chain_id: a.chain_id, sender: a.sender, calls: a.calls,
       nonce_key: a.nonce_key, nonce: a.nonce, deadline: a.deadline, send_after: a.send_after });

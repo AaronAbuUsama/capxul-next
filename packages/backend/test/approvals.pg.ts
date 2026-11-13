@@ -257,5 +257,36 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
     await t.test("public signing HTTP/SDK auth, atomic replay and live revocation controls", async () => {
       await signingTransportControls(db, admin, ctx, terms);
     });
+    await t.test("sponsorship expiry is never a refusal: it waits for the lapse, counts no attempt and ends expired", async () => {
+      // A later deadline than every earlier approval, so they all lapse here and only this one is ever sponsored.
+      const deadline = new Date(now.getTime() + 3_600_000);
+      const mine = await tenant((sql) => open(sql, ctx, { ...terms, subject_id: "expiry-boundary", deadline: deadline.toISOString() }, "expiry-trace"));
+      let clock = new Date(deadline.getTime() - 1000), calls = 0;
+      const ends: string[] = [];
+      const services: CarrierServices = {
+        now: async () => clock,
+        sponsor: async (row) => { assert.equal(row.approval_id, mine.approval_id); calls++; return { expired: true }; },
+        send: async () => { throw new Error("nothing is sent"); }, lookup: async () => ({ held: false }),
+        nonce: async (row) => row.nonce!, needsAndGate: async () => false, fact: async () => null,
+        terminal: async (_sql, event) => { if (event.approval_id === mine.approval_id) ends.push(`${event.outcome}:${event.refusal}`); },
+      };
+      const carrierOf = async () => (await admin.query("select wake_at,attempts from app.approval_carriers where approval_id=$1", [mine.approval_id])).rows[0];
+      const lapseAt = new Date(deadline.getTime() + 120_000);
+      // One whole second left: the sponsor is asked, and its expired answer waits for the lapse without an attempt.
+      await carry(db, services);
+      assert.equal(calls, 1);
+      assert.deepEqual(await carrierOf(), { wake_at: lapseAt, attempts: 0 });
+      // Less than a whole second left: the carrier does not ask at all.
+      await admin.query("update app.approval_carriers set wake_at=$2 where approval_id=$1", [mine.approval_id, clock]);
+      clock = new Date(deadline.getTime() - 500);
+      await carry(db, services);
+      assert.equal(calls, 1);
+      assert.deepEqual(await carrierOf(), { wake_at: lapseAt, attempts: 0 });
+      assert.equal((await admin.query("select state from app.approvals where approval_id=$1", [mine.approval_id])).rows[0].state, "sponsoring");
+      clock = lapseAt;
+      await carry(db, services);
+      assert.deepEqual(ends, ["expired:null"]);
+      assert.equal((await admin.query("select state from app.approvals where approval_id=$1", [mine.approval_id])).rows[0].state, "expired");
+    });
   } finally { await db.close(); await admin.end(); }
 });
