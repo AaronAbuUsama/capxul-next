@@ -64,11 +64,11 @@ export async function writeAnnotation(sql: Sql, owner: Owner, reference: Referen
   return saved;
 }
 
-/** Unchecked names from a money instruction; only the site's posting boundary may resolve them. */
+/** Unchecked names from a money instruction; only the site's posting boundary may resolve them.
+ * A side that says nothing is still born, waiting in review (books.every-side-births). */
 export async function birthAnnotation(sql: Sql, side: MoneySide, context: { at: number; traceId: string }) {
-  if (!side.against) return;
   const owner: Owner = { kind: "organization", id: side.org_id };
-  const against: Against = side.against;
+  const against: Against = side.against ?? {};
   const prior = against.same_as ? await annotation(sql, owner, against.same_as) : undefined;
   const account = against.account ?? prior?.account ?? null;
   await writeAnnotation(sql, owner, side.reference, {
