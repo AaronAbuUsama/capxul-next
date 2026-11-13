@@ -93,6 +93,20 @@ import { concept_agents, concept_devnet, concept_payments } from "../shared/foun
 const CLAUDE = "Claude, organizations design, 8 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 
+export const decision_organizations_authenticated_seats = defineDecision({
+  id: "organizations.authenticated-seats",
+  title: "Seat admission checks the authenticated principal, never the owner label",
+  question: "How do restricted-role consumers admit a current Seat and its readable Safes without manufacturing membership from tenant scope?",
+  options: [
+    { label: "authenticated", text: "requireSeat rechecks the actor against app.person_id and access principals on the caller's Sql. Humans match principal id; agents match their own authoritative Safe, even with a null Seat principal. app.caller_safes() returns the non-released own Party Safe and active Seat organization Party Safes; without an own Party it returns empty. Owner labels and app.org_id are routing scope, never actor identity. Tenant roles only read Seats; restricted workers own writes after route authorization." },
+    { label: "scope", text: "Trust supplied owner or organization settings to manufacture an actor or membership." },
+  ],
+  chosen: "authenticated",
+  why: "Access.authenticate alone establishes the actor from an opaque active session. Same-transaction checks stop a supplied actor, Safe or owner label from impersonating another Seat. Fixed-search-path security-definer SQL reads the source-owned directory under forced RLS without recursively reading its own policy. Its execute grant is limited to Core and worker; no Safe authority or Hats cache is duplicated. A company Safe is admitted only through its current Seat and non-released Party, not old transport people rows. Separately, delivery workers read committed membership with readSeatBySafe(Sql, orgId, wearerSafe): the exact Organization and lowercased wearer Safe must match an active Seat, else null. This plain same-Sql reader neither creates an actor nor relaxes tenant RLS or requireSeat; the existing worker role can read without a request session. Access readPrincipalBySafe supplies identity, while Parties lookup(Sql, seat.party_id).display_name supplies the nullable canonical name. Missing identity or name is not invented or recovered from legacy people. This tranche creates only org-members and admission functions; full onboarding schemas and public procedures remain separate, unproved work.",
+  source: "aaron.postgres-and-ponder; organizations.fde-seat; Access Principal/session contract; PR50 ownerTransaction; integrator migration composition lease; agreed Plugs worker membership/read contract, 12 November 2026",
+  affects: [table_org_members, table_organizations, concept_parties],
+});
+
 const ALL_OPERATIONS = [
   operation_org_create, operation_org_list, operation_org_me, operation_org_retry, operation_org_show, operation_org_wait,
   operation_use_org, operation_org_member_list, operation_org_member_get, operation_invite_list, operation_invite_decline,
@@ -1327,4 +1341,3 @@ export const decision_organizations_fde_guests = defineDecision({
 
 const SURFACE_PASS = "Claude, surface pass, 9 November 2026 (question 48)";
 const surfaceBy = (evidence: string) => `${SURFACE_PASS}; evidence: ${evidence}`;
-

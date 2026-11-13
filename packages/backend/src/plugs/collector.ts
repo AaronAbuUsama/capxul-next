@@ -6,7 +6,8 @@ import { createFrappeSite, type FrappeSite } from "./site.ts";
 
 type Site = { org_id: string; site: string };
 type Options = { frappe: string; socket: string; secret: string; url: string; running: () => boolean };
-type Listener = { socket?: Socket; retry?: ReturnType<typeof setTimeout>; dirty: boolean; work?: Promise<void>; connecting?: Promise<void> };
+type Listener = { socket?: Socket; retry?: ReturnType<typeof setTimeout> | undefined; dirty: boolean;
+  work?: Promise<void> | undefined; connecting?: Promise<void> | undefined };
 export class RequestCollector {
   private listeners = new Map<string, Listener>();
   private db: Database;
