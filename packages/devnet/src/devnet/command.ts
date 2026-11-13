@@ -61,8 +61,8 @@ export async function runDevnet(args: string[]): Promise<number> {
       console.log(JSON.stringify({ snapshot: manifest.id, world: clone.c.world.id, epoch: clone.c.world.epoch })); return 0;
     } else if (commandName === "fixture" && rest.length === 2) {
       const { fixtureOperation } = await import("./faults.ts");
-      await fixtureOperation(stack, rest[0]!, rest[1]!);
-      console.log(JSON.stringify({ fixture: rest[0], target: rest[1], state: "complete" })); return 0;
+      const evidence = await fixtureOperation(stack, rest[0]!, rest[1]!);
+      console.log(JSON.stringify(evidence ?? { fixture: rest[0], target: rest[1], state: "complete" })); return 0;
     } else if (commandName === "prepare" && rest.length === 1) {
       const { prepareSlice } = await import("./preparation.ts");
       const result = await prepareSlice(stack, configFile, rest[0]!);

@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { rename, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import type { Database, Sql } from "../platform/db.ts";
 export { Database } from "../platform/db.ts";
 
@@ -15,6 +17,24 @@ export async function worldNow(sql: Sql): Promise<number> {
 export async function updateWorldClock(db: Database, clock: WorldClock) {
   if (!Number.isSafeInteger(clock.nowMs) || !Number.isFinite(clock.rate) || clock.rate < 0 || !["stopped", "running"].includes(clock.clockMode)) throw new Error("INVALID_CLOCK: authority clock required");
   await db.worker.query("update app.world set clock=$1", [clock]);
+}
+
+/** File stem the supervisor and Core share for one consumer's resume fault; consumer names never enter paths. */
+export const resumeFaultStem = (consumer: string) => `resume-${createHash("sha256").update(consumer).digest("hex").slice(0, 32)}`;
+
+/**
+ * Devnet-only resume fault point between a consumer's effect and its ACK, inside their shared transaction.
+ * Inert unless the world supervisor gave this Core a private CAPXUL_FAULT_DIR. An armed consumer claims its
+ * one-shot arm by rename, reports where it stopped, then holds the uncommitted effect until the supervisor's SIGKILL.
+ */
+export async function resumeFault(consumer: string, eventId: string): Promise<void> {
+  const directory = process.env.CAPXUL_FAULT_DIR;
+  if (!directory) return;
+  const stem = join(directory, resumeFaultStem(consumer));
+  try { await rename(`${stem}.armed`, `${stem}.claimed`); } catch (error: any) { if (error.code === "ENOENT") return; throw error; }
+  await writeFile(`${stem}.tmp`, JSON.stringify({ consumer, eventId, pid: process.pid, at: Date.now() }), { mode: 0o600 });
+  await rename(`${stem}.tmp`, `${stem}.reached`);
+  await new Promise<never>(() => { setInterval(() => {}, 60_000); });
 }
 
 export async function readSnapshotCut(db: Database) {

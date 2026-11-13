@@ -29,6 +29,21 @@ export const decision_devnet_selected_world_now = defineDecision({
   affects: [component_devnet, concept_devnet],
 });
 
+export const decision_devnet_resume_fault_mount = defineDecision({
+  id: "devnet.resume-fault-mount",
+  title: "Workflow resume claims kill the real Core between a consumer's effect and its ACK",
+  question: "How does a selected-stack run kill a workflow mid-run for wfl:*/resume without faking the crash or the recovery?",
+  options: [
+    { label: "supervised-kill-before-ack", text: "The supervisor gives Core in a disposable local world, never main, a private fault directory. The private nested command world fixture resume-arm <consumer> arms that consumer's next delivery once. The shared outbox consume calls the backend devnet door's fault point after the consumer's effect and before its ACK, in the same transaction. Armed, Core claims the arm by rename, writes where it stopped (consumer, event, pid, time) and holds the uncommitted effect. world fixture resume-kill <consumer> waits for that report, checks the holder is the world's supervised Core child, SIGKILLs it, waits for supervision to restart the wrapper (Core starts paused), then pauses and resumes it through the same signed path as world up and waits for readiness. It returns and keeps the kill and restart evidence. Effect and ACK die together, so the restarted relay must redeliver. The command does not judge the claim; the concept binding checks that the workflow finished with the same result and exactly one ACK." },
+    { label: "graceful-stop", text: "Stop Core with SIGTERM and call the drained restart a kill." },
+    { label: "in-process-throw", text: "Throw inside the consumer and let the transaction roll back, without killing any process." },
+  ],
+  chosen: "supervised-kill-before-ack",
+  why: "A graceful stop drains in-flight work, so it never interrupts a consumer mid-run. A thrown error is the ordinary rollback path, not a crash. Killing the real process between effect and ACK is the only point where a lost ACK would become a duplicate or a gap. The fault point is inert without the directory the supervisor passes only to disposable local worlds. The arm is one-shot and keyed by a hash of the consumer name, so names never become paths and a second arm refuses until the first is resolved. Restart reuses supervision and the paused-start, signed-resume order rather than a second startup path.",
+  source: "Wave Zero integrator ruling 2 (Runtime owns the wfl:*/resume fault mount), 13 November 2026; packages/backend/src/platform/outbox.ts consume/relay",
+  affects: [component_devnet, concept_devnet],
+});
+
 export const decision_devnet_bench_callback_startup = defineDecision({
   id: "devnet.bench-callback-startup",
   title: "Bench callback configuration precedes websocket startup",

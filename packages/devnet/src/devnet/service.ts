@@ -18,6 +18,8 @@ export function runtimeEnv(c: Config, component: Component): NodeJS.ProcessEnv {
     CORE_HOST: "127.0.0.1", CORE_PORT: String(c.ports.core), CORE_URL: loopback(c.ports.publicCore), CORE_START_PAUSED: "true",
     FRAPPE_URL: loopback(c.ports.bench), FRAPPE_SOCKET_URL: loopback(c.ports.socket), PONDER_URL: loopback(c.ports.ponder),
     SITE_SERVICE_URL: loopback(c.ports.siteService), SITE_SERVICE_TOKEN: c.siteToken,
+    // Disposable local worlds only: the private directory through which `world fixture resume-*` arms Core's resume fault.
+    ...(c.world.kind === "local" && c.world.id !== "main" ? { CAPXUL_FAULT_DIR: join(c.controlDir, "faults") } : {}),
   });
   if (component === "site-service") Object.assign(env, c.bench.env, {
     SITE_SERVICE_TOKEN: c.siteToken, CAPXUL_SECRET: c.secret, SITE_SERVICE_STATE_DIR: join(c.world.stateDir, "site-service"),

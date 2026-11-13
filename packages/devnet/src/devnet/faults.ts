@@ -1,15 +1,60 @@
 import assert from "node:assert/strict";
-import { readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { resumeFaultStem } from "@capxul/backend/devnet";
 import { bench, delivered, preparePayment, readFixture, settledPayment, submitPayment } from "./fixture.ts";
-import { command } from "./processes.ts";
-import { httpReady, loopback, signedCore, until } from "./supervisor.ts";
+import { alive, command } from "./processes.ts";
+import { httpReady, loopback, signedCore, stateFile, until, type Config, type Host } from "./supervisor.ts";
 import type { composeWorld } from "./composition.ts";
+
+const procStat = async (pid: number) => { const s = await readFile(`/proc/${pid}/stat`, "utf8"); return s.slice(s.lastIndexOf(")") + 2).split(" "); };
+
+/**
+ * `wfl:*\/resume` fault mount. `resume-arm` arms one consumer's next effect; `resume-kill` waits until Core reports it
+ * holds that effect uncommitted and unacknowledged, SIGKILLs the Core process, then lets supervision restart it paused
+ * and resumes it through the same signed path as `world up`. The ACK and the effect die together; the restarted relay
+ * must redeliver. Evidence is returned and kept under the private fault directory; nothing here judges the claim.
+ */
+export async function resumeFault(c: Config, host: Pick<Host, "start">, action: string, consumer: string, timeout = 120_000) {
+  const directory = join(c.controlDir, "faults"), stem = join(directory, resumeFaultStem(consumer));
+  const exists = (suffix: string) => access(`${stem}.${suffix}`).then(() => true, () => false);
+  if (action === "resume-arm") {
+    await mkdir(directory, { recursive: true, mode: 0o700 });
+    for (const suffix of ["armed", "claimed", "reached"]) if (await exists(suffix)) throw new Error("this consumer already has an armed or unresolved resume fault");
+    await writeFile(`${stem}.armed`, JSON.stringify({ consumer, armedAt: Date.now() }), { flag: "wx", mode: 0o600 });
+    return { consumer, state: "armed" };
+  }
+  try { await until("consumer reached its resume fault point", () => exists("reached"), timeout); }
+  catch (error) { await rm(`${stem}.armed`, { force: true }); throw error; }
+  const reached = JSON.parse(await readFile(`${stem}.reached`, "utf8"));
+  const before = JSON.parse(await readFile(stateFile(c, "core"), "utf8"));
+  if (reached.consumer !== consumer || before.state !== "running" || Number((await procStat(reached.pid))[1]) !== before.pid) {
+    throw new Error("the process holding the fault is not this world's supervised Core");
+  }
+  process.kill(reached.pid, "SIGKILL");
+  const killedAt = Date.now();
+  // Supervision restarts the wrapper, whose Core starts paused; start() only waits for and re-pauses a live one.
+  await until("supervised Core restart", async () => {
+    try { const now = JSON.parse(await readFile(stateFile(c, "core"), "utf8")); return now.pid !== before.pid && await alive(stateFile(c, "core")); }
+    catch { return false; }
+  }, timeout);
+  await host.start("core");
+  await signedCore(c, "/admin/snapshot/resume");
+  await until("Core /ready after resume fault", () => httpReady(`${loopback(c.ports.core)}/ready`), timeout);
+  const after = JSON.parse(await readFile(stateFile(c, "core"), "utf8"));
+  const result = { consumer, eventId: reached.eventId, reachedAt: reached.at, killed: { pid: reached.pid, signal: "SIGKILL", at: killedAt },
+    restarted: { pid: after.pid, birth: after.birth, codeVersion: after.codeVersion, readyAt: Date.now() } };
+  await writeFile(`${stem}-${killedAt}.done.json`, JSON.stringify(result), { flag: "wx", mode: 0o600 });
+  await rm(`${stem}.reached`); await rm(`${stem}.claimed`);
+  return result;
+}
 
 /** These commands are private, reversible fixtures for the selected disposable world only. */
 export async function fixtureOperation(stack: Awaited<ReturnType<typeof composeWorld>>, action: string, id: string) {
-  const { c, host } = stack, f = await readFixture(c);
+  const { c, host } = stack;
   if (c.world.kind !== "local" || c.world.id === "main") throw new Error("fault commands require a disposable local world");
+  if (action === "resume-arm" || action === "resume-kill") return resumeFault(c, host, action, id);
+  const f = await readFixture(c);
   if (action === "load") {
     await stack.read(id);
     const replay = await signedCore(c, "/admin/resend", { slug: f.slug, from: 1 });

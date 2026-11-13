@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { resumeFault } from "../devnet/door.ts";
 import type { Database, Sql } from "./db.ts";
 
 /** Props are the source transition's exact blueprint event, not a notification payload. */
@@ -51,6 +52,7 @@ export async function consume(sql: Sql, consumer: string, eventId: string, effec
   const event = await readEvent(sql, eventId);
   if (!event) throw new Error("NOT_FOUND: committed transition required");
   await effect(sql, event);
+  await resumeFault(consumer, eventId);
   await sql.query("insert into app.transition_acks (consumer,event_id) values ($1,$2)", [consumer, eventId]);
   return true;
 }
