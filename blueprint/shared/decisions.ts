@@ -3186,3 +3186,21 @@ export const decision_rules_fde_acts_for_asker = defineDecision({
     f.concept_budgets, f.component_core_sdk, x.integration_fde_host,
   ],
 });
+
+export const decision_integrations_bundler_door = defineDecision({
+  id: "integrations.bundler-door",
+  title: "Core's bundler door answers a refusal and throws only on a lost or wrong answer",
+  question: "What does the bundler door Core composes into the approval carrier return, and which rejections are refusals?",
+  options: [
+    { label: "refusal-is-an-answer", text: "send returns the signed hash or a TRANSACTION_FAILED refusal; it throws PROVIDER_ERROR when no answer came and PROVIDER_RESPONSE_INVALID for a wrong hash. lookup returns whether the bundler holds the operation and its receipt." },
+    { label: "throw-everything", text: "Every failure, refusals included, is thrown and the carrier sorts them." },
+  ],
+  chosen: "refusal-is-an-answer",
+  why:
+    "A validation refusal is a definite answer the carrier acts on (back to signed, sent again in the window), while a lost answer may mean the operation is held, so the carrier looks it up and never sends again. " +
+    "Refusals are the ERC-4337 validation codes -32500 to -32503, -32506 and -32507, and invalid params -32602; throttling and stake refusals (-32504, -32505) and every other error mean the bundler did not take the operation, so they are lost answers. " +
+    "The hash the bundler answers must equal the signed one, or the door refuses the answer. Held means the bundler returns the operation or its receipt; a receipt is never settlement, which comes only from Core's final indexed fact. " +
+    "The provider is product code in the backend's Shared module, and the devnet uses the same one.",
+  source: "integration bundler; Approvals and Requests agreement, 13 November 2026",
+  affects: [x.integration_bundler],
+});

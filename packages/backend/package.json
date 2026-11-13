@@ -2,13 +2,13 @@
   "name": "@capxul/backend",
   "private": true,
   "type": "module",
-  "exports": { "./devnet": "./src/devnet/door.ts", "./server": "./src/server.ts", "./plugs": "./src/plugs/door.ts" },
+  "exports": { "./devnet": "./src/devnet/door.ts", "./server": "./src/server.ts", "./plugs": "./src/plugs/door.ts", "./organizations": "./src/organizations/door.ts" },
   "scripts": {
     "migrate": "node --experimental-strip-types --no-warnings src/migrate.ts",
     "bind-indexer": "node --experimental-strip-types --no-warnings src/bind-indexer.ts",
     "start": "node --experimental-strip-types --no-warnings src/main.ts",
     "check": "tsc -p .",
-    "test": "node --experimental-strip-types --no-warnings --test test/site.test.ts test/books-validation.test.ts test/accounts-claim.test.ts test/sponsorship.test.ts ../sdk/src/approvals/safe-op.test.ts",
+    "test": "node --experimental-strip-types --no-warnings --test test/site.test.ts test/books-validation.test.ts test/accounts-claim.test.ts test/sponsorship.test.ts test/bundler.test.ts ../sdk/src/approvals/safe-op.test.ts",
     "test:integration": "node --experimental-strip-types --no-warnings --test --test-concurrency=1 test/*.test.ts"
   },
   "dependencies": { "@capxul/site-service": "workspace:*", "effect": "catalog:", "pg": "8.16.3", "socket.io-client": "4.8.1", "viem": "catalog:" },
