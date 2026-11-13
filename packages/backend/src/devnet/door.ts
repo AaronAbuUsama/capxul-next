@@ -36,7 +36,8 @@ export async function resumeFault(consumer: string, event: { id: string; name: s
   // An arm may name the event and its transition; any other delivery of this consumer passes untouched.
   if ((arm.event && arm.event !== event.name) || (arm.transition && arm.transition !== event.props.transition)) return;
   try { await rename(`${stem}.armed`, `${stem}.claimed`); } catch (error: any) { if (error.code === "ENOENT") return; throw error; }
-  await writeFile(`${stem}.tmp`, JSON.stringify({ consumer, eventId: event.id, event: event.name, transition: event.props.transition ?? null,
+  // Props can carry people's data: they only select the arm. The report echoes the arm's own match, never the envelope's props.
+  await writeFile(`${stem}.tmp`, JSON.stringify({ consumer, eventId: event.id, event: event.name, transition: arm.transition ?? null,
     pid: process.pid, at: Date.now() }), { mode: 0o600 });
   await rename(`${stem}.tmp`, `${stem}.reached`);
   await new Promise<never>(() => { setInterval(() => {}, 60_000); });
