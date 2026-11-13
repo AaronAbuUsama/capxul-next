@@ -143,3 +143,47 @@ export async function resumed(database: Database, dir: string, transition: strin
     writeFileSync(join(dir, `resume-${transition}.json`), JSON.stringify({ fault, after, feeds: noted }) + "\n");
   } finally { await client.query("rollback"); client.release(); }
 }
+
+/**
+ * Real Movement transitions the relay acknowledged during this run. Each `record` was noted exactly once, in its side's
+ * feed, as that Movement's id with the event's fields. A `remove` or `restore` was acknowledged without an append.
+ * A second delivery of any of them changes nothing. Every redelivery rolls back.
+ */
+export async function movementsNoted(database: Database, dir: string, runStartedAt: string) {
+  await hostAckClock(database.worker);
+  const events = (await database.worker.query(`select o.event from app.transition_outbox o
+    join app.transition_acks a on a.consumer=$1 and a.event_id=o.id
+    where o.event->>'name'='movement_transitioned' and o.event->>'machine'='movement' and a.acked_at>=$3::timestamptz
+    order by o.seq desc limit $2`, [CONSUMER, SAMPLE, runStartedAt])).rows.map((r) => r.event as TransitionEvent);
+  assert(events.some((e) => e.props.transition === "record"), "no Movement record acknowledged in this run");
+  const evidence = [];
+  for (const event of events) {
+    const p = event.props as Record<string, string | number | null>;
+    const client = await database.worker.connect();
+    try {
+      await client.query("begin"); await client.query("set local lock_timeout='30s'");
+      assert.deepEqual([p.owner_kind, p.owner_id], [event.owner_kind, event.owner_id]);
+      const feed: [string, string] = [String(p.owner_kind), String(p.owner_id)];
+      await client.query("select pg_advisory_xact_lock(hashtextextended($1,0))", [JSON.stringify(["activity", ...feed])]);
+      const noted = (await client.query("select * from app.activity_changes where event_id=$1", [event.id])).rows;
+      if (p.transition === "record") {
+        assert.equal(event.entity_id, `${p.chain_id}:${p.tx_hash}:${p.log_index}:${p.side}`);
+        assert.equal(noted.length, 1);
+        const row = noted[0];
+        assert.deepEqual([row.owner_kind, row.owner_id, row.row_kind, row.row_id, row.transition, row.from, row.to, row.changed_at],
+          [...feed, "movement", event.entity_id, "record", null, "recorded", event.at]);
+        const earlier = (await client.query(`select 1 from app.activity_changes where owner_kind=$1 and owner_id=$2
+          and row_kind='movement' and row_id=$3 and seq<$4 limit 1`, [...feed, event.entity_id, row.seq])).rowCount;
+        assert.equal(row.change, earlier ? "updated" : "new");
+      } else {
+        assert(p.transition === "remove" || p.transition === "restore", "a Movement transition Activity knows");
+        assert.equal(noted.length, 0);
+      }
+      const before = await feedRows(client, [feed]);
+      await note(client, event);
+      assert.deepEqual(await feedRows(client, [feed]), before);
+      evidence.push({ event: event.id, transition: p.transition, movement: event.entity_id, feed, rows: noted.length });
+    } finally { await client.query("rollback"); client.release(); }
+  }
+  writeFileSync(join(dir, "movements.json"), JSON.stringify(evidence) + "\n");
+}

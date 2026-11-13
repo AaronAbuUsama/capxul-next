@@ -30,9 +30,21 @@
       "eval": "tbl:activity-changes/writers",
       "checks": [
         "ACTIVITY.selected-stack",
-        "ACTIVITY.writer-acl"
+        "ACTIVITY.writer-acl",
+        "ACTIVITY.note-movement-record",
+        "ACTIVITY.note-payment-open.idempotent",
+        "ACTIVITY.note-payment-schedule.idempotent",
+        "ACTIVITY.note-payment-come-due.idempotent",
+        "ACTIVITY.note-payment-escrow.idempotent",
+        "ACTIVITY.note-payment-submit.idempotent",
+        "ACTIVITY.note-payment-settle.idempotent",
+        "ACTIVITY.note-payment-mismatch.idempotent",
+        "ACTIVITY.note-payment-unsettle.idempotent",
+        "ACTIVITY.note-payment-lapse.idempotent",
+        "ACTIVITY.note-payment-retry.idempotent",
+        "ACTIVITY.note-payment-cancel.idempotent"
       ],
-      "missing": "Only the worker may append, and no runtime role may change or remove a row, by grant and by actual attempt. Still needs all eleven real payment transitions and Movement record through the committed outbox in one run. Core has no source emitter for schedule, come_due, escrow or movement record, and composition does not relay Activity yet."
+      "missing": "Only the worker may append, and no runtime role may change or remove a row, by grant and by actual attempt. Each of the eleven payment transitions (note-payment-*.idempotent) and Movement record (note-movement-record, with remove/restore acknowledged without an append) must be noted exactly once per holding feed from real in-run outbox events. Activate only from one complete fresh selected-stack run with #92's relay, Core's Movement emitters (#124) and its transfer tick, and every payment kind driven. Escrow waits on claim escrow (Core, in scope)."
     },
     {
       "eval": "wfl:activity.changes.note-payment-open/idempotent",
