@@ -5,7 +5,7 @@
 ## This branch is `master`: the rebuild line (read this first)
 
 `master` is a separate line of work from `main` and `integration/build`. It was cut from `main` at `f12a831` on
-13 November 2026 (tag `rebuild-start`), at Aaron's request, to rethink the blueprint and the build pipeline without
+13 November 2026, at Aaron's request, to rethink the blueprint and the build pipeline without
 disturbing the product work in flight on those two branches.
 
 - Rebuild work goes by pull request into `master`. Where the rules below say `integration/build`, read `master`.
