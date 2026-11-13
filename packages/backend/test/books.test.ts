@@ -23,6 +23,25 @@ function side(org: string, key = "payment:17"): MoneySide {
 const rows = (org: string, table = "book_facts") => db.transaction(org,
   async (sql) => (await sql.query(`select * from app.${table} where ${table === "book_annotations" ? "owner_id" : "org_id"}=$1`, [org])).rows);
 
+test("a side with no against is still born waiting, once, with no account fact", async () => {
+  const org = `books-${randomUUID()}`, input = side(org);
+  const committed = await db.transaction(org, (sql) => recordMoneyFact(sql, { sides: [input] }, context));
+  assert.equal(committed.recorded.length, 1);
+  assert.deepEqual((await rows(org)).map((r) => r.kind), ["payment_settled"], "saying nothing assigns no account");
+  const [row, ...more] = await rows(org, "book_annotations");
+  assert.deepEqual(more, []);
+  assert.equal(row!.status, "waiting"); assert.equal(row!.account, null); assert.equal(row!.last_editor_kind, "system");
+  const events = () => db.ownerTransaction({ kind: "organization", id: org }, async (sql) =>
+    (await sql.query("select event from app.transition_outbox where event->>'owner_id'=$1", [org])).rows.map((r) => r.event), true);
+  const born = await events();
+  assert.equal(born.length, 1);
+  assert.deepEqual(born[0].props, { from: null, to: "waiting", transition: "queue", owner_kind: "organization",
+    owner_id: org, reference_kind: "payment", reference_id: "payment_17", account: null });
+  assert.equal(born[0].trace_id, context.traceId);
+  await db.transaction(org, (sql) => recordMoneyFact(sql, { sides: [input] }, context));
+  assert.deepEqual(await events(), born, "a replay births nothing more");
+});
+
 test("money and annotation birth roll back with their invoker; reversal preserves captured evidence and replay is inert", async () => {
   const org = `books-${randomUUID()}`, input = side(org);
   input.against = { account: "6100 - Site cleaning", party: { type: "Supplier", id: "party_supplier" } };

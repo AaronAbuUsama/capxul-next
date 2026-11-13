@@ -101,6 +101,8 @@ export const procedure_books_record_money_fact = defineProcedure({
     "A key with a standing fact of the same kind and amount writes nothing (a replay, " +
     "a second writer). A side from a Payment, deposit or payout whose key holds a standing Movement fact reverses it and " +
     "records itself as the next generation; a Movement side never replaces one of theirs (books.money-key). The " +
+    "Every recorded Organization side births its row's annotation if it has none: a side with no `against` is born " +
+    "waiting (`queue`), so unclassified money is in review (books.every-side-births). The " +
     "`against` choice becomes the row's annotation only if nobody annotated the row yet, kept as given in the site's " +
     "names: this procedure holds no chart and makes no outside call, so it does not check the account. The Capxul app " +
     "on the site resolves it when it posts the entry, and a part it cannot post (an unknown, disabled or group account, " +
