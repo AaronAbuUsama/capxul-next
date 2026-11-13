@@ -5,32 +5,25 @@
 // Nothing is saved on stop: alto keeps its mempool in memory, and everything else it needs (its simulation
 // contracts, its executor's nonce, the paymaster's deposit) is on the chain, which is saved.
 import * as Cloudflare from "@alchemy.run/cloudflare";
-import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
-import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
-import * as Ref from "effect/Ref";
-import * as Schedule from "effect/Schedule";
 import * as Semaphore from "effect/Semaphore";
 import * as Str from "effect/String";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
+import { BUNDLER_START, gaveUpMessage, type StartReport, startPatiently } from "../containers/patience.ts";
+import { remembered, stamp } from "../containers/record.ts";
 import { BundlerFailed } from "../failures.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
 import { ALTO_PORT, Alto } from "./Alto.ts";
 import { BUNDLER_KEYS, ENTRY_POINT } from "./Keys.ts";
 
-/** How long a start may take before the call that caused it gives up. */
-const READY_WITHIN = "240 seconds";
 /** Cloudflare's own stop of an idle container, put far enough out that the world's idle stop always comes first. */
 const ALTO_INACTIVITY_MS = 3600 * 1000;
 /** Where the chain's address alto is started with is kept. */
 const RPC_URL_KEY = "rpcUrl";
-/** How many starts and stops the bundler remembers. */
-const REMEMBERED = 20;
-
-/** What the bundler remembers about its own starts and stops. */
+/** What the bundler remembers about its own starts and stops: each start with every try (src/containers). */
 export interface BundlerRecord {
-  readonly starts: ReadonlyArray<{ readonly at: string; readonly readyMs: number; readonly startCalls: number }>;
+  readonly starts: ReadonlyArray<StartReport & { readonly at: string; readonly readyMs: number }>;
   readonly stops: ReadonlyArray<{ readonly at: string; readonly ms: number }>;
 }
 
@@ -40,10 +33,6 @@ const failed =
   (step: BundlerFailed["step"]) =>
   (cause: unknown): BundlerFailed =>
     BundlerFailed.make({ step, message: describeFailure(cause) });
-
-const stamp = (ms: number): string => DateTime.formatIso(DateTime.makeUnsafe(ms));
-const remembered = <A>(list: ReadonlyArray<A>, next: A): ReadonlyArray<A> =>
-  Arr.takeRight(Arr.append(list, next), REMEMBERED);
 
 /** alto's settings. ALTO_RPC_URL holds the door's token, so it is only ever a variable of the running container. */
 const settings = (rpcUrl: string) => ({
@@ -100,7 +89,8 @@ export default class Bundler extends Cloudflare.DurableObject<Bundler>()(
       // A new container application refuses starts for a while ("There is no container instance that can be
       // provided to this Durable Object, try again later"), from the start or from the call after it, and a start
       // made before its first instance has the image can be lost. So while alto is awaited, it is started again
-      // whenever it is seen not running, and a refusal is "not yet", not a failure.
+      // whenever it is seen not running, within BUNDLER_START (src/containers/patience.ts), and a refusal is "not
+      // yet", not a failure.
       const begin = (offered: string) =>
         Effect.gen(function* () {
           if ((yield* running) && (yield* answersEntryPoint)) return;
@@ -111,32 +101,23 @@ export default class Bundler extends Cloudflare.DurableObject<Bundler>()(
           const rpcUrl = kept ?? offered;
           if (kept === undefined) yield* state.storage.put(RPC_URL_KEY, rpcUrl);
           const began = yield* Clock.currentTimeMillis;
-          const startCalls = yield* Ref.make(0);
-          const attempt = Effect.gen(function* () {
-            if (!(yield* running)) {
-              yield* Ref.update(startCalls, (n) => n + 1);
-              const started = yield* alto.start({ enableInternet: true, env: settings(rpcUrl) }).pipe(
-                // The world's idle stop, which is recorded, must be the stop that happens.
-                Effect.andThen(alto.setInactivityTimeout(ALTO_INACTIVITY_MS)),
-                Effect.as(true),
-                Effect.catch((error) =>
-                  Effect.as(Effect.logWarning(`alto start refused: ${describeFailure(error)}`), false),
-                ),
-              );
-              if (!started) return false;
-            }
-            return yield* answersEntryPoint;
+          const report = yield* startPatiently({
+            running: alto.running,
+            // The world's idle stop, which is recorded, must be the stop that happens.
+            start: alto
+              .start({ enableInternet: true, env: settings(rpcUrl) })
+              .pipe(Effect.andThen(alto.setInactivityTimeout(ALTO_INACTIVITY_MS))),
+            ready: Effect.filterOrFail(
+              answersEntryPoint,
+              (ready) => ready,
+              () => "alto does not name the EntryPoint yet",
+            ),
+            patience: BUNDLER_START,
+            gaveUp: (tried) =>
+              BundlerFailed.make({ step: "ready", message: gaveUpMessage("alto", BUNDLER_START, tried) }),
           });
-          yield* attempt.pipe(
-            Effect.repeat({ until: (ready) => ready, schedule: Schedule.spaced("1 second") }),
-            Effect.timeoutOrElse({
-              duration: READY_WITHIN,
-              orElse: () =>
-                Effect.fail(BundlerFailed.make({ step: "ready", message: `alto not ready in ${READY_WITHIN}` })),
-            }),
-          );
           const readyMs = (yield* Clock.currentTimeMillis) - began;
-          const start = { at: stamp(began), readyMs, startCalls: yield* Ref.get(startCalls) };
+          const start = { at: stamp(began), readyMs, ...report };
           yield* remember((old) => ({ ...old, starts: remembered(old.starts, start) }));
         }).pipe(lock.withPermits(1));
 

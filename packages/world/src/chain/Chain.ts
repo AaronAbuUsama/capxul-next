@@ -3,6 +3,7 @@
 //
 //   wake:  nothing saved  -> start anvil from the seed in the image
 //          state saved    -> start anvil empty, then anvil_loadState with what was saved
+//          a refused start is tried again, with backoff, within CHAIN_START (src/containers/patience.ts)
 //   stop:  anvil_dumpState -> R2 -> destroy the container
 //   idle:  every call pushes a durable callback forward; when it fires, the chain is stopped the same way
 //   save:  while calls arrive the state is also saved every SAVE_EVERY, so a container that goes away without
@@ -17,7 +18,6 @@ import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Alchemy from "alchemy";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
-import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Predicate from "effect/Predicate";
 import * as Ref from "effect/Ref";
@@ -26,56 +26,22 @@ import * as Semaphore from "effect/Semaphore";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import Bundler from "../bundler/Bundler.ts";
+import { CHAIN_START, gaveUpMessage, startPatiently } from "../containers/patience.ts";
 import { ChainFailed } from "../failures.ts";
 import Indexer from "../index/Indexer.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
 import { Anvil, RPC_PORT, restoreEntrypoint } from "./Anvil.ts";
 import { ChainState } from "./ChainState.ts";
+import { remembered, stamp } from "../containers/record.ts";
+import { type ChainRecord, fresh, withGaveUp } from "./record.ts";
 
 /** How much of the chain an unsaved stop may cost, at most. */
 const SAVE_EVERY = "20 seconds";
-/** How long a chain may sit unused before it is saved and stopped, unless the door is told otherwise. */
-const IDLE_SECONDS = 600;
-/** How many starts and stops the chain remembers. */
-const REMEMBERED = 20;
 /** At most one storage write for the idle stop in this many milliseconds, however busy the chain is. */
 const TOUCH_EVERY_MS = 5000;
 
 /** A stage is one world, so each class has one object, under this name. */
 export const WORLD = "world";
-
-/** What the chain remembers about its own starts and stops. */
-export interface ChainRecord {
-  readonly idleSeconds: number;
-  /** True from a start until the stop that saved it. Still true at the next start: the container went unsaved. */
-  readonly up: boolean;
-  /** Whether the chain's first state came from another world. */
-  readonly adopted: boolean;
-  readonly starts: ReadonlyArray<{
-    readonly at: string;
-    readonly from: "seed" | "saved state";
-    readonly afterUnsavedStop: boolean;
-    readonly ms: number;
-  }>;
-  readonly stops: ReadonlyArray<{
-    readonly at: string;
-    readonly why: "asked" | "idle";
-    readonly head: string;
-    readonly savedBytes: number;
-    readonly ms: number;
-  }>;
-  /** The last save made while the chain kept running. */
-  readonly lastSave: { readonly at: string; readonly head: string; readonly ms: number } | null;
-}
-
-const fresh: ChainRecord = {
-  idleSeconds: IDLE_SECONDS,
-  up: false,
-  adopted: false,
-  starts: [],
-  stops: [],
-  lastSave: null,
-};
 
 /** anvil's answer to one call. A result that is a string is all the chain itself ever asks for. */
 const RpcAnswer = Schema.Struct({ result: Schema.optional(Schema.Unknown), error: Schema.optional(Schema.Unknown) });
@@ -84,10 +50,6 @@ const failed =
   (step: ChainFailed["step"]) =>
   (cause: unknown): ChainFailed =>
     ChainFailed.make({ step, message: describeFailure(cause) });
-
-const stamp = (ms: number): string => DateTime.formatIso(DateTime.makeUnsafe(ms));
-const remembered = <A>(list: ReadonlyArray<A>, next: A): ReadonlyArray<A> =>
-  Arr.takeRight(Arr.append(list, next), REMEMBERED);
 
 export default class Chain extends Cloudflare.DurableObject<Chain>()(
   "Chain",
@@ -142,15 +104,35 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
             ),
           );
 
+      // Cloudflare can refuse to start the container ("no container instance ... try again later"), most often just
+      // after the world is made or after its container went away, so the start is tried again within CHAIN_START
+      // (src/containers), and every try is remembered. A chain that never answers fails the call that woke it.
       const wake = Effect.gen(function* () {
         if (yield* running("start")) return;
         const began = yield* Clock.currentTimeMillis;
         const { up: afterUnsavedStop, idleSeconds } = yield* record;
         const object = yield* saved.get(key).pipe(Effect.mapError(failed("restore")));
         const restoring = Predicate.isNotNull(object);
-        yield* anvil
-          .start(restoring ? { entrypoint: restoreEntrypoint, enableInternet: false } : { enableInternet: false })
-          .pipe(Effect.mapError(failed("start")));
+        const report = yield* startPatiently({
+          running: anvil.running,
+          start: anvil.start(
+            restoring ? { entrypoint: restoreEntrypoint, enableInternet: false } : { enableInternet: false },
+          ),
+          ready: call("start", "eth_chainId"),
+          patience: CHAIN_START,
+          gaveUp: (tried) => tried,
+        }).pipe(
+          Effect.catch((tried) =>
+            remember((old) => withGaveUp(old, stamp(began), tried)).pipe(
+              Effect.ignore,
+              Effect.andThen(
+                Effect.fail(
+                  ChainFailed.make({ step: "start", message: gaveUpMessage("the chain", CHAIN_START, tried) }),
+                ),
+              ),
+            ),
+          ),
+        );
         // Cloudflare stops a container by itself once its Durable Object has been quiet for a while, and that stop
         // saves nothing. Its limit is put well past ours, so the idle callback below always gets there first.
         yield* anvil.setInactivityTimeout((idleSeconds + 300) * 1000).pipe(Effect.mapError(failed("start")));
@@ -159,10 +141,11 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
           yield* call("restore", "anvil_loadState", [dump]);
         }
         yield* call("start", "eth_chainId");
-        const ms = (yield* Clock.currentTimeMillis) - began;
+        const wakeMs = (yield* Clock.currentTimeMillis) - began;
+        // The index is started again by its own Durable Object, which never makes the chain wait on it.
         yield* indexer.resume().pipe(Effect.mapError(failed("start")));
         const from = restoring ? ("saved state" as const) : ("seed" as const);
-        const start = { at: stamp(began), from, afterUnsavedStop, ms };
+        const start = { at: stamp(began), from, afterUnsavedStop, wakeMs, ...report };
         yield* remember((old) => ({ ...old, up: true, starts: remembered(old.starts, start) }));
       }).pipe(lock.withPermits(1));
 

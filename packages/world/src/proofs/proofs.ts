@@ -8,6 +8,7 @@ import { bundler } from "./bundler.ts";
 import { commands } from "./commands.ts";
 import { fails, interrupted, interruptedRun, keeps, timesOut } from "./endings.ts";
 import { fresh } from "./fresh.ts";
+import { patience } from "./patience.ts";
 import { limits, race, sweeps } from "./shared.ts";
 import { site } from "./site.ts";
 import { snapshot } from "./snapshot.ts";
@@ -25,6 +26,7 @@ export const PROOFS = {
   bundler,
   site,
   snapshot,
+  patience,
   // Not a proof by itself: the run that `interrupted` starts as its own process and interrupts.
   "interrupted-run": interruptedRun,
 };
