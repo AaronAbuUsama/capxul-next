@@ -25,3 +25,4 @@ allowBuilds:
   msgpackr-extract: false
 patchedDependencies:
   '@pimlico/alto@0.0.21': packages/devnet/patches/@pimlico__alto@0.0.21.patch
+  ponder@0.18.6: packages/indexer/patches/ponder@0.18.6.patch
