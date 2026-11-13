@@ -5312,6 +5312,7 @@
         "door:indexing",
         "door:organizations",
         "door:parties",
+        "integration:chain-rpc",
         "milestone:m2",
         "milestone:m3",
         "operation:org.proposal.approve",
