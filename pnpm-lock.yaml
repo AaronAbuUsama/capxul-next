@@ -269,6 +269,9 @@ importers:
       '@capxul/sdk':
         specifier: workspace:*
         version: link:../sdk
+      '@capxul/site-service':
+        specifier: workspace:*
+        version: link:../site-service
       '@pimlico/alto':
         specifier: 0.0.21
         version: 0.0.21(patch_hash=eabbaa85879d7653de5f16140e5c83544e0ffdfd680c75f0f70c71ba7c4b3dd4)(typescript@5.9.3)

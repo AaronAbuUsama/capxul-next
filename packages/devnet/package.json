@@ -10,6 +10,7 @@
   "dependencies": {
     "@capxul/backend": "workspace:*",
     "@capxul/sdk": "workspace:*",
+    "@capxul/site-service": "workspace:*",
     "@pimlico/alto": "0.0.21",
     "viem": "catalog:"
   },

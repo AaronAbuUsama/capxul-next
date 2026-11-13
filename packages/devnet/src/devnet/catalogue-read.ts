@@ -2,6 +2,7 @@ import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { Database } from "@capxul/backend/devnet";
 import { readWorldCompanies } from "@capxul/backend/organizations";
+import { readSiteHosts } from "@capxul/site-service";
 import { worldCatalogue, type RecordFilter } from "./catalogue.ts";
 import { psqlAdmin } from "./postgres.ts";
 import { databaseUrl, type Config } from "./supervisor.ts";
@@ -89,12 +90,11 @@ export async function readCatalogue(c: Config, words: string[]): Promise<unknown
   return result;
 }
 
-/** Organizations' complete inventory; config.sites and financial records never stand in for company identity. */
+/** Organizations' complete inventory, each site host from Sites (organizations.world-company-hosts); config.sites and
+ * financial records never stand in for company identity. */
 async function worldCompanies(c: Config) {
   const db = new Database(databaseUrl(c.database.tenant, c.world), databaseUrl(c.database.worker, c.world));
-  try {
-    const client = await db.worker.connect();
-    try { return await readWorldCompanies(client); } finally { client.release(); }
-  } catch (cause) { throw new Error("World company inventory is unavailable; inspect private world diagnostics", { cause }); }
+  try { return await readWorldCompanies(db, (sql) => readSiteHosts(sql)); }
+  catch (cause) { throw new Error("World company inventory is unavailable; inspect private world diagnostics", { cause }); }
   finally { await db.close(); }
 }

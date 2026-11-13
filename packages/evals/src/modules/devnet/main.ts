@@ -83,14 +83,20 @@ if (process.argv.includes("--list")) {
           // Independent restricted reads: the catalogue through capxul_core and the complete company inventory through capxul_worker.
           const [w] = await query(`SELECT jsonb_build_object('world',to_jsonb(w),'head',coalesce((SELECT max(seq) FROM app.command_records r WHERE r.world_id=w.world_id AND r.epoch=w.epoch),0))
             FROM app.worlds w WHERE world_id=${literal}`);
-          const orgs = await psqlAdmin(inventory.href)("SELECT jsonb_build_object('orgId',org_id,'name',name,'site',site) FROM app.organizations ORDER BY org_id");
+          const workerQuery = psqlAdmin(inventory.href);
+          const orgs = await workerQuery("SELECT jsonb_build_object('orgId',org_id,'name',name) FROM app.organizations ORDER BY org_id");
+          // app.sites admits one Organization at a time, even to the worker: read each host in that Organization's own scope.
+          const lit = (s: unknown) => `'${String(s).replaceAll("'", "''")}'`;
+          const hosts = orgs.length ? (await workerQuery(orgs.map((o) => `SELECT jsonb_build_object('scope',set_config('app.org_id',${lit(o.orgId)},false));
+            SELECT jsonb_build_object('orgId',org_id,'host',host) FROM app.sites WHERE org_id=${lit(o.orgId)};`).join("\n"))).filter((r) => "host" in r) : [];
+          const site = (orgId: unknown) => hosts.find((h) => h.orgId === orgId)?.host ?? null;
           assert(w && orgs.length > 0, "selected world's catalogue or company inventory is not populated");
           const row = w.world as Record<string, unknown>;
           const shown = JSON.parse((await cli(["world", "show", config.world.id])).stdout);
           const expected = { worldId: row.world_id, name: row.name, kind: row.kind, profile: row.profile, address: row.address, state: row.state, clockMode: row.clock_mode,
             rate: row.rate, worldNow: row.world_now, epoch: row.epoch, chainId: row.chain_id, hosted: row.hosted, parentWorld: row.parent_world,
             parentSnapshot: row.parent_snapshot, parentSeq: row.parent_seq,
-            companies: orgs.map((o) => ({ orgId: o.orgId, name: o.name, url: o.site === null ? null : `http://${o.site}:${config.ports.publicBench}` })), recordHead: w.head };
+            companies: orgs.map((o) => ({ orgId: o.orgId, name: o.name, url: site(o.orgId) === null ? null : `http://${site(o.orgId)}:${config.ports.publicBench}` })), recordHead: w.head };
           // The declared WorldView exactly: no extra or missing field, declared enums and JSON types.
           assert.deepEqual(Object.keys(shown).sort(), Object.keys(expected).sort());
           assert(["local", "simulated", "staging", "production"].includes(shown.kind) && ["core", "full"].includes(shown.profile) && ["frozen", "running"].includes(shown.clockMode) &&

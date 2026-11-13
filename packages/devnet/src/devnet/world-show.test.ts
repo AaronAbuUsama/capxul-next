@@ -7,7 +7,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { Database } from "@capxul/backend/devnet";
-import { migrateWorldCompanies } from "@capxul/backend/organizations";
+import { migrateSites } from "@capxul/site-service";
 import { psqlAdmin } from "./door.ts";
 import { migrateCatalogue, worldCatalogue, type Command, type WorldRow } from "./catalogue.ts";
 import { writeConfig, type Config } from "./supervisor.ts";
@@ -26,12 +26,12 @@ test("native world show reads stopped catalogue facts and Organizations' complet
   const now = Date.parse("2026-03-02T09:00:00Z");
   try {
     await maintenanceQuery(`CREATE DATABASE "${database}"`);
-    // The real foundation and Organizations adapter migrations, never a hand-made organizations table.
+    // The real foundation, Organizations and Sites migrations, never a hand-made organizations or sites table.
     const migrated = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", fileURLToPath(new URL("../../../backend/src/migrate.ts", import.meta.url))], { encoding: "utf8", timeout: 60000,
       env: { ...process.env, PG_ADMIN_URL: url.href, DATABASE_URL: restricted("capxul_core"), WORKER_DATABASE_URL: restricted("capxul_worker"), PONDER_DATABASE_URL: restricted("capxul_ponder"), CAPXUL_WORLD: "town1" } });
     assert.equal(migrated.status, 0, migrated.stderr);
     const pools = new Database(url.href, url.href), privileged = await pools.worker.connect();
-    try { await migrateWorldCompanies(privileged); } finally { privileged.release(); await pools.close(); }
+    try { await migrateSites(privileged); } finally { privileged.release(); await pools.close(); }
     await migrateCatalogue(admin);
     const query = (sql: string) => admin(`SET ROLE capxul_worker; ${sql}`);
     const store = worldCatalogue(query, []);
@@ -45,10 +45,19 @@ test("native world show reads stopped catalogue facts and Organizations' complet
     await store.transition("town1", "stop", { ...command, command: "world stop" });
     // A restored clone's lineage is stored on its own row; this projects it, it does not prove a composed restore.
     await store.create({ ...base, world_id: "town3", name: "town3", parent_world: "town1", parent_snapshot: "m3", parent_seq: 5, world_now: now + 60000 }, command);
-    await query(`INSERT INTO app.organizations(org_id,name,safe,site,admin_email,token,released) VALUES
-      ('harbourline','Harbour Line Trading','0x01','harbourline-town1.localhost','private@example.test','private-token',true),
-      ('acore','Core Only Ltd','0x02',NULL,'private@example.test','private-token',false),
-      ('zeta','Zeta Works','0x03','zeta-town1.localhost','private@example.test','private-token',false) RETURNING to_jsonb(org_id)`);
+    // Harbour Line's Party is released and Core Only has no site: the inventory still lists both.
+    const companyRows: [string, string, string, string | null][] = [["harbourline", "Harbour Line Trading", "released", "harbourline-town1.localhost"],
+      ["acore", "Core Only Ltd", "active", null], ["zeta", "Zeta Works", "active", "zeta-town1.localhost"]];
+    for (const [i, [org, name, state, host]] of companyRows.entries()) {
+      const safe = `0x${(0xa0 + i).toString(16).padStart(40, "0")}`, founder = `0x${(0xf0 + i).toString(16).padStart(40, "0")}`;
+      await admin(`INSERT INTO app.parties(party_id,kind,state,handle,safe_address,owner_kind,owner_id,created_at,updated_at) VALUES
+        ('party_${org}','organization','${state}',${state === "released" ? "NULL" : `'${org}'`},'${safe}','organization','${org}',1,1),
+        ('founder_${org}','person','active',NULL,'${founder}','person','founder_${org}',1,1);
+        INSERT INTO app.organizations(org_id,party_id,name,country,chain_id,safe_address,founder_party_id,founder_safe,seat_limit,abbr,default_currency,time_zone,fiscal_year_start,created_at,updated_at)
+        VALUES ('${org}','party_${org}','${name}','GB',84532,'${safe}','founder_${org}','${founder}',3,'AC','GBP','Europe/London','01-01',1,1)`);
+      if (host) await admin(`INSERT INTO app.sites(org_id,site_id,world_id,slug,host,state,bench,created_at,updated_at)
+        VALUES ('${org}','${org}','town1','${org}','${host}','ready','bench-town1',1,1)`);
+    }
 
     const configFile = join(directory, "world.json");
     const config: Config = { version: 1, root: directory, controlDir: join(directory, "control"), snapshots: join(directory, "snapshots"), codeVersion: "no-running-build",
