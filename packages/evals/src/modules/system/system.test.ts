@@ -1,4 +1,8 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { sliceZeroRequired } from "@capxul/blueprint-engine";
 import { loadTarget } from "../../../../blueprint-engine/scripts/target.ts";
@@ -105,8 +109,33 @@ test("a concept imports another only through the door of a concept it depends on
   assert.equal(judgeImports(b, "payments", tree(pkg)).pass, false);
 });
 
-test("generated code cannot pass without a generator", () => {
-  const j = judgeGenerated({ files: ["packages/backend/src/generated/x.ts"] }, "abc1234");
-  assert.equal(j.pass, false);
-  assert.match(j.detail, /packages\/generate does not exist/);
+test("generated code passes only when the commit's own generator, run in a clean checkout of it, finds nothing stale", () => {
+  assert.match(judgeGenerated(".", "abc1234", { files: ["packages/backend/src/generated/x.ts"] }).detail, /packages\/generate does not exist/);
+  // A repository whose generator accepts packages/a/src/generated/x.ts only when it reads "fresh".
+  const root = mkdtempSync(join(tmpdir(), "capxul-generated-test-"));
+  const git = (...args: string[]) => execFileSync("git", ["-C", root, "-c", "user.name=t", "-c", "user.email=t@t", ...args], { encoding: "utf8" }).trim();
+  const put = (path: string, text: string) => { mkdirSync(dirname(join(root, path)), { recursive: true }); writeFileSync(join(root, path), text); };
+  const commit = (x: string) => { put("packages/a/src/generated/x.ts", x); git("add", "-A"); git("commit", "-qm", x); return git("rev-parse", "HEAD"); };
+  try {
+    git("init", "-q");
+    put("package.json", '{ "name": "fixture", "private": true }\n');
+    put("packages/generate/src/main.ts", `import { readFileSync } from "node:fs";
+const x = readFileSync("packages/a/src/generated/x.ts", "utf8");
+if (x === "fresh\\n") console.log("generate:check: 1 generated file matches the records");
+else { console.error("generate:check  packages/a/src/generated/x.ts: differs"); process.exitCode = 1; }\n`);
+    const stale = commit("stale\n");
+    const fresh = commit("fresh\n");
+    git("checkout", "-q", stale);
+    put("packages/a/src/generated/x.ts", "fresh\n"); // fixed in the working tree only
+    const judge = (c: string) => judgeGenerated(root, c, { files: git("ls-tree", "-r", "--name-only", c.replace("+dirty", "")).split("\n") });
+    const failed = judge(stale);
+    assert.equal(failed.pass, false, failed.detail);
+    assert.match(failed.detail, /x\.ts: differs/);
+    assert.equal(failed.steps.length, 3);
+    const passed = judge(fresh);
+    assert.equal(passed.pass, true, passed.detail);
+    assert.match(passed.detail, /1 generated file matches/);
+    assert.match(judge(`${fresh}+dirty`).detail, /uncommitted changes/);
+    assert.equal(git("worktree", "list").split("\n").length, 1, "every checkout is removed");
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

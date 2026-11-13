@@ -1,6 +1,8 @@
 // sys:imports/<concept> and sys:generated, judged statically from the build's own commit (system.eval-system-checks).
-import { execFileSync } from "node:child_process";
-import { posix } from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, posix } from "node:path";
 import type { Blueprint } from "@capxul/blueprint-engine";
 import { resolvePackage, specifiersOf, withoutExtension, type Package } from "./imports.ts";
 
@@ -81,12 +83,38 @@ export const judgeImports = (b: Pick<Blueprint, "records">, concept: string, tre
   return { pass: !violations.length, detail, files, violations };
 };
 
-/** sys:generated: regenerating every packages/<package>/src/generated/ from the records gives no diff and compiles. Until the
- * generator (packages/generate) exists at the commit, nothing can regenerate, so the claim fails with that reason. */
-export const judgeGenerated = (tree: { files: readonly string[] }, commit: string): { pass: boolean; detail: string; generated: readonly string[] } => {
+export interface Step { readonly command: string; readonly exit: number | null; readonly stdout: string; readonly stderr: string }
+export interface GeneratedJudgement { readonly pass: boolean; readonly detail: string; readonly generated: readonly string[]; readonly steps: readonly Step[] }
+
+const GENERATOR = "packages/generate/src/main.ts";
+
+/** sys:generated: the commit's own generator, run with --check in a clean worktree of that commit, finds every
+ * packages/<package>/src/generated/ file as the records generate it and every generated package compiling. Until the
+ * generator exists at the commit, nothing can regenerate, so the claim fails with that reason. */
+export const judgeGenerated = (root: string, commit: string, tree: { files: readonly string[] }): GeneratedJudgement => {
   const generated = tree.files.filter((f) => /^packages\/[^/]+\/src\/generated\//.test(f));
-  const generator = tree.files.some((f) => f.startsWith("packages/generate/"));
-  return { pass: false, generated, detail: generator
-    ? `packages/generate exists at ${commit}, but this check does not run it yet (${generated.length} generated files); extend system.eval-system-checks`
-    : `packages/generate does not exist at ${commit}, so nothing regenerates the ${generated.length} files under src/generated/` };
+  if (commit.endsWith("+dirty")) return { pass: false, generated, steps: [], detail: `the commit ${commit} has uncommitted changes, so the build under test is not in git` };
+  if (!tree.files.includes(GENERATOR)) return { pass: false, generated, steps: [],
+    detail: `packages/generate does not exist at ${commit}, so nothing regenerates the ${generated.length} files under src/generated/` };
+  const steps: Step[] = [];
+  const dir = mkdtempSync(join(tmpdir(), "capxul-generated-"));
+  const run = (command: string, args: readonly string[], cwd: string): boolean => {
+    const r = spawnSync(command, args, { cwd, encoding: "utf8", maxBuffer: 1 << 26, timeout: 600_000 });
+    steps.push({ command: [command, ...args].join(" "), exit: r.status, stdout: r.stdout ?? "", stderr: r.stderr || (r.error ? String(r.error) : "") });
+    return r.status === 0;
+  };
+  try {
+    // The lockfile pins every version; when the shared store lacks one, the network only fills the store.
+    const ok = run("git", ["worktree", "add", "--detach", dir, commit], root)
+      && (run("pnpm", ["install", "--offline", "--frozen-lockfile"], dir) || run("pnpm", ["install", "--prefer-offline", "--frozen-lockfile"], dir))
+      && run(process.execPath, ["--experimental-strip-types", "--no-warnings", GENERATOR, "--check"], dir);
+    const last = steps.at(-1)!;
+    const why = (last.stderr || last.stdout).trim().split("\n").slice(-3).join(" ");
+    return { pass: ok, generated, steps, detail: ok
+      ? `${GENERATOR} --check at ${commit}: ${last.stdout.trim().split("\n")[0] ?? "exit 0"} (${generated.length} files under src/generated/)`
+      : `${last.command} exited ${last.exit} at ${commit}: ${why}` };
+  } finally {
+    spawnSync("git", ["worktree", "remove", "--force", dir], { cwd: root });
+    rmSync(dir, { recursive: true, force: true });
+  }
 };

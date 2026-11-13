@@ -17,5 +17,6 @@ run tested. Evidence for each check is in `<run>/system/<check>.json`.
   not a literal, is a violation. Tests in a
   concept folder count; a receipt commit marked `+dirty` is refused. A concept with no such code fails with that
   reason rather than passing empty. Each concept's lane fixes its own violations; the check lists every one with its line.
-- **Generated:** passes only once `packages/generate` regenerates every `src/generated/` from the records with no diff
-  and the result compiles. Until the generator exists, it fails with that reason.
+- **Generated:** in a clean `git worktree` of the receipt's commit, after `pnpm install --frozen-lockfile` (offline
+  first), runs that commit's own `packages/generate/src/main.ts --check` and passes only on exit 0. The evidence keeps each
+  step's command, exit, stdout and stderr. Until `packages/generate` exists at the commit, it fails with that reason.

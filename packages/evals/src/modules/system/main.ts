@@ -36,7 +36,7 @@ if (process.argv.includes("--list")) {
     const dir = resolve(run, "system"); mkdirSync(dir, { recursive: true });
     for (const check of wanted) {
       const t = performance.now();
-      const j = check.concept ? judgeImports(blueprint, check.concept, tree) : judgeGenerated(tree, commit);
+      const j = check.concept ? judgeImports(blueprint, check.concept, tree) : judgeGenerated(process.cwd(), commit, tree);
       writeFileSync(join(dir, `${check.name}.json`), `${JSON.stringify({ eval: check.id, commit, ...j }, null, 2)}\n`);
       if (!j.pass) failed = true;
       report(check.name, j.pass, performance.now() - t, j.detail);
