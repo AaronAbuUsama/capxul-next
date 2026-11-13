@@ -24,7 +24,8 @@ alter table app.files enable row level security;
 alter table app.files force row level security;
 drop policy if exists media_read on app.files;
 create policy media_read on app.files for select to capxul_core using (
-  (current_setting('app.owner_kind',true)='person' and person_id=current_setting('app.owner_id',true))
+  -- The authenticated principal (Access), never owner labels alone.
+  person_id=nullif(current_setting('app.person_id',true),'')
   or (purpose='image' and state='kept')
 );
 drop policy if exists media_writer on app.files;

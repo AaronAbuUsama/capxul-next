@@ -58,6 +58,12 @@ test("native files keep public image reads separate from private identity files 
     assert.deepEqual((await core.query("select file_id from app.files order by file_id")).rows, [{ file_id: image.file_id }]);
     assert.deepEqual((await as("person-b", () => core.query("select file_id from app.files order by file_id"))).rows.map((r) => r.file_id).sort(), [image.file_id, other.file_id].sort());
     assert.equal(await as("person-b", () => get(core, held.file_id)), null);
+    // Owner labels are not authentication: without Access's person_id only the public image shows.
+    await core.query("begin");
+    try {
+      await core.query("select set_config('app.owner_kind','person',true),set_config('app.owner_id','person-a',true)");
+      assert.deepEqual((await core.query("select file_id from app.files")).rows, [{ file_id: image.file_id }]);
+    } finally { await core.query("rollback"); }
     assert.equal(await get(core, "file_00000000000000000000000000"), null);
     assert.deepEqual(await as("person-a", () => requireImage(core, image.file_id)), {
       file_id: image.file_id, content_type: "image/png", size: 33,

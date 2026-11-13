@@ -18,8 +18,10 @@ alter table app.agents enable row level security;
 alter table app.agents force row level security;
 drop policy if exists agents_read on app.agents;
 create policy agents_read on app.agents for select to capxul_core using (
-  (owner_kind=current_setting('app.owner_kind',true) and owner_id=current_setting('app.owner_id',true))
-  or safe_address in (select safe_address from app.principals where person_id=current_setting('app.person_id',true))
+  -- The authenticated principal (Access) or a current Seat (Organizations), never owner labels alone.
+  (owner_kind='person' and owner_id=nullif(current_setting('app.person_id',true),''))
+  or (owner_kind='organization' and app.current_member(owner_id))
+  or safe_address in (select safe_address from app.principals where person_id=nullif(current_setting('app.person_id',true),''))
 );
 drop policy if exists agents_service_read on app.agents;
 create policy agents_service_read on app.agents for select to capxul_worker using(true);
