@@ -1,4 +1,11 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { randomUUID } from "node:crypto";
+
+/** Core's request signal has already chosen the 32-hex trace id (from traceparent or x-capxul-trace); keep it, or mint one. */
+export function requestTrace(req: IncomingMessage): string {
+  const trace = req.headers["x-capxul-trace"];
+  return typeof trace === "string" && /^[0-9a-f]{32}$/.test(trace) ? trace : randomUUID().replaceAll("-", "");
+}
 
 export class ServiceError extends Error {
   readonly status: number;
