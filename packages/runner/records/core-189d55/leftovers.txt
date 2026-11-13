@@ -1,0 +1,15 @@
+# What the stack CapxulCore left in the two accounts after every stage of this session (core-21f831 and core-ed03c5,
+# a trial of the default mode not kept, and core-189d55, the one-stage run of this folder), read from their APIs on
+# 2026-11-13T12:47:04Z. The account and organization ids are left out. Expected: none of each.
+
+## Cloudflare Worker scripts whose name holds 'capxulcore'
+none
+
+## Cloudflare Hyperdrive configurations whose name holds 'capxulcore'
+none
+
+## Neon projects whose name holds 'capxulcore'
+none
+
+## Alchemy's state on this machine for CapxulCore (packages/runner/.alchemy/state, never committed)
+0 files

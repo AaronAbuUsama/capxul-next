@@ -16,12 +16,12 @@ import * as Str from "effect/String";
 import type * as HttpClient from "effect/http/HttpClient";
 import { checkCall, failuresOf, type CheckedCall } from "./checks/checks.ts";
 import { capxulFor, type Call, type Target } from "./client.ts";
-import { describe, RunnerFailure } from "./failure.ts";
+import { describe, endedOf, RunnerFailure } from "./failure.ts";
 import { writeRecord, type RunRecord } from "./record.ts";
 import type { Settings } from "./settings.ts";
 import { telemetryOf } from "./world/database.ts";
 import { isEmpty } from "./world/leftovers.ts";
-import { runInStage, type Lifecycle, type Stage } from "./world/stage.ts";
+import { runInStage, type Lifecycle, type Stage, type StageSpec } from "./world/stage.ts";
 
 /** What a run is: its kind and name, the claim it proves, and the calls it makes through a stage's Core. */
 export interface Plan {
@@ -39,7 +39,8 @@ export interface Plan {
 /** What a run's own calls may fail with: the runner's own failure, or a scenario's. */
 export type RunFailure = RunnerFailure | ExpectationFailed | Failure;
 
-interface Used {
+/** What one run did in its stage: how its own calls ended, each call checked, and how long each part took. */
+export interface Used {
   readonly run: Exit.Exit<void, RunFailure>;
   readonly calls: ReadonlyArray<CheckedCall>;
   readonly ms: { readonly run: number; readonly checks: number };
@@ -48,7 +49,7 @@ interface Used {
 const millis = (took: Duration.Duration) => Math.round(Duration.toMillis(took));
 
 /** The run, then the generic checks on every call it made, while the stage still exists. */
-const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
+export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
   Effect.gen(function* () {
     const log = yield* Ref.make<ReadonlyArray<Call>>([]);
     const target: Target = {
@@ -100,7 +101,8 @@ const failuresIn = (lifecycle: Lifecycle<Used, RunnerFailure>): ReadonlyArray<st
   ];
 };
 
-const recordOf = (plan: Plan, startedAt: string, lifecycle: Lifecycle<Used, RunnerFailure>): RunRecord => {
+/** The run record of `plan` from what became of its stage. */
+export const recordOf = (plan: Plan, startedAt: string, lifecycle: Lifecycle<Used, RunnerFailure>): RunRecord => {
   const used = lifecycle.used !== undefined && Exit.isSuccess(lifecycle.used) ? lifecycle.used.value : undefined;
   const failures = failuresIn(lifecycle);
   return {
@@ -113,6 +115,7 @@ const recordOf = (plan: Plan, startedAt: string, lifecycle: Lifecycle<Used, Runn
     startedAt,
     outcome: failures.length === 0 ? "passed" : "failed",
     failure: failures.length === 0 ? null : Arr.join(failures, "\n"),
+    ended: used === undefined ? null : endedOf(used.run),
     readiness: lifecycle.readiness,
     calls: used?.calls ?? [],
     afterwards: { stage: lifecycle.afterwards, before: lifecycle.found.before, after: lifecycle.found.after },
@@ -125,19 +128,26 @@ const recordOf = (plan: Plan, startedAt: string, lifecycle: Lifecycle<Used, Runn
   };
 };
 
+/** A fresh name of `prefix-<6 hex>`: `core-` for a stage of `CapxulCore`. */
+export const freshName = (prefix: string) =>
+  Effect.map(Random.nextIntBetween(0, 0xffffff), (n) => `${prefix}-${Str.padStart(6, "0")(n.toString(16))}`);
+
+/** The declared settings of a stage named `name`, its use limited to `useTimeout`. */
+export const stageSpec = (name: string, settings: Settings, useTimeout: Duration.Duration): StageSpec => ({
+  name,
+  owner: settings.owner,
+  timeouts: { create: settings.createTimeout, use: useTimeout, destroy: settings.destroyTimeout },
+  warmUp: { answers: settings.readyAnswers, every: settings.probeEvery, warmUp: settings.warmUp },
+  accounts: { cloudflareAccount: settings.cloudflareAccount, neonOrg: settings.neonOrg },
+});
+
 /** Runs one plan in its own fresh stage and returns its run record, which is also on disk by then. */
 export const runPlan = (plan: Plan, settings: Settings) =>
   Effect.gen(function* () {
     const startedAt = DateTime.formatIso(yield* DateTime.now);
-    const name = `core-${Str.padStart(6, "0")((yield* Random.nextIntBetween(0, 0xffffff)).toString(16))}`;
+    const name = yield* freshName("core");
     const lifecycle = yield* runInStage(
-      {
-        name,
-        owner: settings.owner,
-        timeouts: { create: settings.createTimeout, use: settings.useTimeout, destroy: settings.destroyTimeout },
-        warmUp: { answers: settings.readyAnswers, every: settings.probeEvery, warmUp: settings.warmUp },
-        accounts: { cloudflareAccount: settings.cloudflareAccount, neonOrg: settings.neonOrg },
-      },
+      stageSpec(name, settings, settings.useTimeout),
       use(plan, settings),
       (progress) =>
         writeRecord(settings.records, recordOf(plan, startedAt, progress)).pipe(Effect.orDie, Effect.asVoid),
