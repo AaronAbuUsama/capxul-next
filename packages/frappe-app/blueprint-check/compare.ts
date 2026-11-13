@@ -35,6 +35,7 @@ export interface FeatureRecord {
   readonly label: string;
   readonly default: "on" | "off";
   readonly modules?: readonly string[];
+  readonly doctypes?: readonly string[];
   readonly apps?: readonly string[];
   readonly app?: string;
   readonly prefixes?: readonly string[];
@@ -147,7 +148,7 @@ export const compareSite = (
   for (const [id, c] of Object.entries(code.features)) {
     const f = records.features.find((x) => x.id === id);
     if (!f) { out.push(`feature ${id}: the code's catalog has it; the blueprint has no feature record`); continue; }
-    const a: Record<string, unknown> = { label: f.label, default: f.default, modules: f.modules, apps: f.apps, app: f.app, prefixes: f.prefixes, paths: f.paths, needs: f.needs?.map((n) => n.id) };
+    const a: Record<string, unknown> = { label: f.label, default: f.default, modules: f.modules, doctypes: f.doctypes, apps: f.apps, app: f.app, prefixes: f.prefixes, paths: f.paths, needs: f.needs?.map((n) => n.id) };
     const b: Record<string, unknown> = { ...c, default: flag(c.default) ? "on" : "off" };
     for (const k of new Set([...Object.keys(a), ...Object.keys(b)]))
       if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) out.push(`feature ${id}: ${k} is ${show(a[k])} in the blueprint and ${show(b[k])} in the code`);
