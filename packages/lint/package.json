@@ -1,0 +1,14 @@
+{
+  "name": "@capxul/lint",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The Capxul lint plugin (tooling.plugin). Today it holds only its generated facts; T0 adds the rules.",
+  "scripts": {
+    "check": "tsc -p ."
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -535,6 +535,46 @@ export const decision_tooling_generated_header = defineDecision({
   affects: SHIPPED,
 });
 
+export const decision_tooling_facts_derivation = defineDecision({
+  id: "tooling.facts-derivation",
+  title: "packages/generate starts with facts.ts, derived from the records as they are",
+  question:
+    "sys:generated is in slice zero's gate (portal.slice-zero-measured-gate), and tooling.plugin names one target, " +
+    "packages/lint/src/generated/facts.ts. Its rules in docs/design/tooling.md were derived from the book of 8 November, " +
+    "where every rpc id was <concept>.<area>.<name>. Today four sites rpcs have two-part ids and twelve payroll rpcs " +
+    "belong to payments. What does packages/generate write now, and how do the rules read those records?",
+  options: [
+    {
+      label: "facts-first",
+      text:
+        "packages/generate ships its shared writer (tooling.generated-header) and the one designed target, facts.ts, in a " +
+        "packages/lint that holds only that file until T0 adds the rules. pnpm generate owns every packages/<package>/src/" +
+        "generated/: it writes each target and deletes any other file there; pnpm generate:check renders in memory and " +
+        "names each file that differs, is missing or no target writes, and runs in pnpm test. The rules read the records, " +
+        "not the ids: an rpc's, procedure's or workflow's concept is its concept field; a flow's is the concept whose " +
+        "blueprint/<concept>/ modules export it (payments/agreements included); an rpc's area is every segment between " +
+        "the first and the last, so a two-part id adds no area file; every list is sorted by code unit. spans is the P6 " +
+        "tree over the records: each rpc's and flow's spans, rpc.<id>, sdk.<flow id> (not its sdk method path), sdk.step.<name> for sign, build and " +
+        "encrypt steps, wait.person, wait.chain, db.tx, call.<integration>.<call>, workflow.<id>, workflow.step.<name> " +
+        "and cli.<command> with the command's words joined by dots (a span name has no spaces). A name's constant is " +
+        "Spans followed by each segment in camelCase, and two names with one constant fail the generation. The B1 targets (Spans, " +
+        "errors, Config, handler types) are designed and added as their own records first.",
+    },
+    { label: "wait-for-b1", text: "Leave packages/generate unbuilt until B1 designs all its targets; sys:generated fails in slice zero until then." },
+  ],
+  chosen: "facts-first",
+  why:
+    "The gate requires sys:generated now, and facts.ts is the only target the book specifies, so it is the honest first " +
+    "target: a real file, hashed, regenerated and compiled, that fails the claim on a hand edit or an unregenerated " +
+    "record change. Owning the whole folder makes 'regenerating into a clean tree changes nothing' cover stray files " +
+    "too. Reading concepts from the records rather than the id keeps payroll's rpcs in payments, where cut.agreements-" +
+    "in-payments put them; a two-part id names no area, and inventing one would design a file the book never asked for.",
+  source:
+    "Amp, Wave Zero generator lane, 13 November 2026; evidence: docs/design/tooling.md section 3; the book at 9c55eaa8 " +
+    "(sites.open, retry, show and provision have two-part ids; twelve payroll.* rpcs and one workflow are payments')",
+  affects: [f.system_capxul, decision_tooling_generated_header, decision_tooling_plugin],
+});
+
 export const decision_tooling_errors = defineDecision({
   id: "tooling.errors",
   title: "Typed failures by generated types; no throw; a failing catch keeps its cause",
