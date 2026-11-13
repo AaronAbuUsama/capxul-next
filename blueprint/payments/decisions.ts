@@ -241,7 +241,11 @@ export const decision_payments_one_process_per_payment = defineDecision({
     "then reconciles source facts on that same transaction and world instant. Indexed progress and committed carrier " +
     "events wake those waits; no periodic scan substitutes for a source event. Requests and Activity consume only " +
     "after the source commit, each under its own outbox effect and ACK. Snapshot recovery copies these waits without " +
-    "migration, clock rebasing or network work in the source transaction.",
+    "migration, clock rebasing or network work in the source transaction. Review, 13 November 2026: indexer_progress.ready " +
+    "is Ponder's lock state only, which a Ponder killed while locked keeps, so Core's worker wakes and resumes Payments " +
+    "only while diagnostics' indexer state is ready (Ponder's /ready, the chain head and the head's last advance); " +
+    "otherwise the tick does nothing. A scheduled personal Payment's day-ahead check reads its paying Safe's token " +
+    "balance over chain-rpc at that tick's finalized block, outside the Payment's transaction.",
   source: by("A3; rules.durable-processes; payment.retry.yaml and payment.cancel.yaml (one payment id each)"),
   affects: [workflow_payments_lifecycle_payment, machine_payment, table_payments, table_payment_commands],
 });
