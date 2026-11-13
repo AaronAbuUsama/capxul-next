@@ -1,0 +1,2820 @@
+{
+  "kind": "scenario",
+  "name": "world.create claim 1",
+  "proves": {
+    "operation": "world.create",
+    "claim": 1
+  },
+  "given": "nothing",
+  "stage": "run-e710b3-1",
+  "owner": "pops",
+  "startedAt": "2026-11-13T15:48:14.102Z",
+  "outcome": "passed",
+  "failure": null,
+  "ended": {
+    "as": "succeeded",
+    "tag": null,
+    "detail": null
+  },
+  "readiness": null,
+  "calls": [
+    {
+      "operation": "world.create",
+      "traceId": "b771eb846423b8a471c3c6af57e999dd",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 112559.493,
+        "serverMs": 112219.885,
+        "budgetMs": 90000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": true
+      },
+      "steps": [
+        {
+          "name": "platform.world.create",
+          "parent": "world.create",
+          "startMs": 0.339,
+          "ms": 112219.546,
+          "outcome": "success"
+        },
+        {
+          "name": "world.lifecycle.create",
+          "parent": "platform.world.create",
+          "startMs": 1.066,
+          "ms": 102331.819,
+          "outcome": "success"
+        },
+        {
+          "name": "world.plan",
+          "parent": "world.lifecycle.create",
+          "startMs": 1.407,
+          "ms": 1.477,
+          "outcome": "success"
+        },
+        {
+          "name": "world.stopwatch",
+          "parent": "world.lifecycle.create",
+          "startMs": 4.696,
+          "ms": 0.189,
+          "outcome": "success"
+        },
+        {
+          "name": "world.claim",
+          "parent": "world.lifecycle.create",
+          "startMs": 6.011,
+          "ms": 544.873,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 6.072,
+          "ms": 127.813,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.claim",
+          "startMs": 6.119,
+          "ms": 258.766,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 134.794,
+          "ms": 129.091,
+          "outcome": "success"
+        },
+        {
+          "name": "world.site.grant",
+          "parent": "world.claim",
+          "startMs": 265.286,
+          "ms": 0.598,
+          "outcome": "success"
+        },
+        {
+          "name": "world.claim",
+          "parent": "world.claim",
+          "startMs": 266.527,
+          "ms": 124.358,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "world.claim",
+          "startMs": 267.146,
+          "ms": 123.739,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 267.184,
+          "ms": 122.7,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "world.claim",
+          "startMs": 392.157,
+          "ms": 157.727,
+          "outcome": "success"
+        },
+        {
+          "name": "world.deploy",
+          "parent": "world.lifecycle.create",
+          "startMs": 551.218,
+          "ms": 61381.666,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.deploy",
+          "parent": "world.deploy",
+          "startMs": 551.583,
+          "ms": 61380.302,
+          "outcome": "success"
+        },
+        {
+          "name": "Alchemist.build",
+          "parent": "Alchemist.plan",
+          "startMs": 551.835,
+          "ms": 31.049,
+          "outcome": "success"
+        },
+        {
+          "name": "Alchemist.plan",
+          "parent": "world.engine.deploy",
+          "startMs": 552.123,
+          "ms": 6389.761,
+          "outcome": "success"
+        },
+        {
+          "name": "Alchemist.buildServices",
+          "parent": "Alchemist.build",
+          "startMs": 552.496,
+          "ms": 1.388,
+          "outcome": "success"
+        },
+        {
+          "name": "Alchemist.configServices",
+          "parent": "Alchemist.buildServices",
+          "startMs": 552.855,
+          "ms": 1.029,
+          "outcome": "success"
+        },
+        {
+          "name": "loadConfigProvider",
+          "parent": "Alchemist.configServices",
+          "startMs": 552.964,
+          "ms": 0.92,
+          "outcome": "success"
+        },
+        {
+          "name": "lazyCredentials",
+          "parent": "Alchemist.build",
+          "startMs": 553.786,
+          "ms": 0.099,
+          "outcome": "success"
+        },
+        {
+          "name": "lazyCredentials",
+          "parent": "Alchemist.build",
+          "startMs": 554.806,
+          "ms": 0.078,
+          "outcome": "success"
+        },
+        {
+          "name": "lazyCredentials",
+          "parent": "Alchemist.build",
+          "startMs": 554.816,
+          "ms": 0.069,
+          "outcome": "success"
+        },
+        {
+          "name": "lazyCredentials",
+          "parent": "Alchemist.build",
+          "startMs": 554.84,
+          "ms": 0.044,
+          "outcome": "success"
+        },
+        {
+          "name": "lazyCredentials",
+          "parent": "Alchemist.build",
+          "startMs": 558.804,
+          "ms": 0.081,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.make",
+          "parent": "Alchemist.plan",
+          "startMs": 584.361,
+          "ms": 6356.524,
+          "outcome": "success"
+        },
+        {
+          "name": "state_store.init",
+          "parent": "Alchemist.build",
+          "startMs": 590.398,
+          "ms": 4740.486,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetScriptScriptAndVersionSetting",
+          "parent": "state_store.init",
+          "startMs": 595.59,
+          "ms": 508.295,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetSubdomain",
+          "parent": "state_store.login",
+          "startMs": 1104.6,
+          "ms": 424.285,
+          "outcome": "success"
+        },
+        {
+          "name": "state_store.login",
+          "parent": "state_store.init",
+          "startMs": 1104.64,
+          "ms": 3775.245,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.ListStores",
+          "parent": "state_store.login",
+          "startMs": 1533.115,
+          "ms": 624.77,
+          "outcome": "success"
+        },
+        {
+          "name": "state_store.read_secret_via_edge",
+          "parent": "state_store.login",
+          "startMs": 2158.726,
+          "ms": 2139.159,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.CreateSubdomainEdgePreviewSession",
+          "parent": "state_store.read_secret_via_edge",
+          "startMs": 2159.206,
+          "ms": 246.679,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetSubdomain",
+          "parent": "state_store.read_secret_via_edge",
+          "startMs": 2159.703,
+          "ms": 342.182,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "state_store.read_secret_via_edge",
+          "startMs": 2406.294,
+          "ms": 215.591,
+          "outcome": "failure"
+        },
+        {
+          "name": "Cloudflare.CreateScriptEdgePreview",
+          "parent": "state_store.read_secret_via_edge",
+          "startMs": 2622.872,
+          "ms": 1475.013,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "state_store.read_secret_via_edge",
+          "startMs": 4097.57,
+          "ms": 199.315,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetSubdomain",
+          "parent": "state_store.login",
+          "startMs": 4298.306,
+          "ms": 581.578,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetScriptScriptAndVersionSetting",
+          "parent": "state_store.init",
+          "startMs": 4880.228,
+          "ms": 314.657,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "state_store.init",
+          "startMs": 5196.806,
+          "ms": 132.078,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.make",
+          "startMs": 5332.338,
+          "ms": 103.546,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.diff.resource",
+          "parent": "plan.make",
+          "startMs": 5440.19,
+          "ms": 725.695,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5445.788,
+          "ms": 141.097,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.diff.resource",
+          "parent": "plan.make",
+          "startMs": 5445.82,
+          "ms": 678.064,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.diff.resource",
+          "parent": "plan.make",
+          "startMs": 5447.967,
+          "ms": 253.917,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5448.576,
+          "ms": 252.309,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.diff.resource",
+          "parent": "plan.make",
+          "startMs": 5448.885,
+          "ms": 792.999,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.diff.resource",
+          "parent": "plan.make",
+          "startMs": 5451.259,
+          "ms": 1305.625,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.diff.resource",
+          "parent": "plan.make",
+          "startMs": 5453.066,
+          "ms": 757.818,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5453.885,
+          "ms": 217,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.diff.resource",
+          "parent": "plan.make",
+          "startMs": 5455.006,
+          "ms": 673.879,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.diff.resource",
+          "parent": "plan.make",
+          "startMs": 5455.228,
+          "ms": 1209.657,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.diff.resource",
+          "parent": "plan.make",
+          "startMs": 5455.568,
+          "ms": 220.317,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.diff.resource",
+          "parent": "plan.make",
+          "startMs": 5456.785,
+          "ms": 214.099,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5456.94,
+          "ms": 218.944,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5457.058,
+          "ms": 210.827,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.diff.resource",
+          "parent": "plan.make",
+          "startMs": 5457.684,
+          "ms": 431.2,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5458.158,
+          "ms": 429.727,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.diff.resource",
+          "parent": "plan.make",
+          "startMs": 5458.792,
+          "ms": 772.092,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5460.995,
+          "ms": 442.89,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5461.66,
+          "ms": 404.224,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5589.161,
+          "ms": 135.723,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetBucket",
+          "parent": "plan.diff.resource",
+          "startMs": 5674.565,
+          "ms": 536.32,
+          "outcome": "failure"
+        },
+        {
+          "name": "Neon.ListProjectBranches",
+          "parent": "plan.diff.resource",
+          "startMs": 5726.187,
+          "ms": 438.698,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5869.572,
+          "ms": 108.313,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5870.334,
+          "ms": 138.55,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5870.856,
+          "ms": 87.029,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5871.26,
+          "ms": 101.625,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5904.542,
+          "ms": 120.342,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5979.307,
+          "ms": 84.577,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5979.606,
+          "ms": 199.278,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 6025.768,
+          "ms": 98.117,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 6026.982,
+          "ms": 100.903,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 6027.355,
+          "ms": 102.53,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 6028.324,
+          "ms": 121.56,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "plan.diff.resource",
+          "startMs": 6065.408,
+          "ms": 690.476,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 6131.21,
+          "ms": 98.675,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 6151.231,
+          "ms": 90.654,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "plan.diff.resource",
+          "startMs": 6180.271,
+          "ms": 483.614,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.make",
+          "startMs": 6758.015,
+          "ms": 181.869,
+          "outcome": "success"
+        },
+        {
+          "name": "Alchemist.describeStackPlan",
+          "parent": "Alchemist.plan",
+          "startMs": 6941.023,
+          "ms": 0.862,
+          "outcome": "success"
+        },
+        {
+          "name": "Alchemist.apply",
+          "parent": "world.engine.deploy",
+          "startMs": 6941.657,
+          "ms": 54989.227,
+          "outcome": "success"
+        },
+        {
+          "name": "apply",
+          "parent": "Alchemist.apply",
+          "startMs": 6942.077,
+          "ms": 54988.807,
+          "outcome": "success"
+        },
+        {
+          "name": "apply.resource",
+          "parent": "apply",
+          "startMs": 6944.075,
+          "ms": 9406.809,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 6949.323,
+          "ms": 227.562,
+          "outcome": "success"
+        },
+        {
+          "name": "apply.resource",
+          "parent": "apply",
+          "startMs": 6950.273,
+          "ms": 12198.611,
+          "outcome": "success"
+        },
+        {
+          "name": "apply.resource",
+          "parent": "apply",
+          "startMs": 6950.647,
+          "ms": 477.237,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 6950.818,
+          "ms": 151.066,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 6951.138,
+          "ms": 156.746,
+          "outcome": "success"
+        },
+        {
+          "name": "apply.resource",
+          "parent": "apply",
+          "startMs": 6951.885,
+          "ms": 32757.999,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 6952.887,
+          "ms": 173.998,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 6953.313,
+          "ms": 184.571,
+          "outcome": "success"
+        },
+        {
+          "name": "apply.resource",
+          "parent": "apply",
+          "startMs": 6953.381,
+          "ms": 13640.503,
+          "outcome": "success"
+        },
+        {
+          "name": "apply.resource",
+          "parent": "apply",
+          "startMs": 6954.036,
+          "ms": 5536.848,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 6954.41,
+          "ms": 306.474,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 6954.649,
+          "ms": 157.235,
+          "outcome": "success"
+        },
+        {
+          "name": "apply.resource",
+          "parent": "apply",
+          "startMs": 6954.847,
+          "ms": 47063.037,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 6954.985,
+          "ms": 167.899,
+          "outcome": "success"
+        },
+        {
+          "name": "apply.resource",
+          "parent": "apply",
+          "startMs": 6955.363,
+          "ms": 54747.522,
+          "outcome": "success"
+        },
+        {
+          "name": "apply.resource",
+          "parent": "apply",
+          "startMs": 6955.445,
+          "ms": 652.44,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 6955.541,
+          "ms": 359.343,
+          "outcome": "success"
+        },
+        {
+          "name": "apply.resource",
+          "parent": "apply",
+          "startMs": 6956.202,
+          "ms": 625.683,
+          "outcome": "success"
+        },
+        {
+          "name": "apply.resource",
+          "parent": "apply",
+          "startMs": 6956.384,
+          "ms": 573.5,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 6956.857,
+          "ms": 272.028,
+          "outcome": "success"
+        },
+        {
+          "name": "apply.resource",
+          "parent": "apply",
+          "startMs": 6956.937,
+          "ms": 41389.948,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 6957.292,
+          "ms": 252.593,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 6957.484,
+          "ms": 498.4,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7102.96,
+          "ms": 163.924,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7109.095,
+          "ms": 144.789,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7112.408,
+          "ms": 151.477,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7123.634,
+          "ms": 149.25,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7128.399,
+          "ms": 183.486,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7138.427,
+          "ms": 163.458,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7177.714,
+          "ms": 158.171,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7210.324,
+          "ms": 162.56,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7229.948,
+          "ms": 134.937,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.create",
+          "parent": "apply.resource",
+          "startMs": 7256.859,
+          "ms": 1.025,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7258.318,
+          "ms": 169.566,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7261.606,
+          "ms": 159.278,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.create",
+          "parent": "apply.resource",
+          "startMs": 7264.206,
+          "ms": 5049.678,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetBucket",
+          "parent": "provider.create",
+          "startMs": 7265.939,
+          "ms": 815.945,
+          "outcome": "failure"
+        },
+        {
+          "name": "provider.precreate",
+          "parent": "apply.resource",
+          "startMs": 7273.989,
+          "ms": 24166.896,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.precreate",
+          "parent": "apply.resource",
+          "startMs": 7303.136,
+          "ms": 3747.749,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7315.09,
+          "ms": 148.794,
+          "outcome": "success"
+        },
+        {
+          "name": "buildAndPushImage",
+          "parent": "provider.precreate",
+          "startMs": 7325.151,
+          "ms": 619.733,
+          "outcome": "success"
+        },
+        {
+          "name": "publishImage",
+          "parent": "buildAndPushImage",
+          "startMs": 7325.617,
+          "ms": 619.267,
+          "outcome": "success"
+        },
+        {
+          "name": "registryCredentials",
+          "parent": "publishImage",
+          "startMs": 7326.518,
+          "ms": 454.367,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "registryCredentials",
+          "startMs": 7326.959,
+          "ms": 453.926,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.create",
+          "parent": "apply.resource",
+          "startMs": 7336.897,
+          "ms": 8830.988,
+          "outcome": "success"
+        },
+        {
+          "name": "Neon.ListProjectBranches",
+          "parent": "provider.create",
+          "startMs": 7338.452,
+          "ms": 504.432,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.create",
+          "parent": "apply.resource",
+          "startMs": 7365.387,
+          "ms": 0.497,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7365.696,
+          "ms": 215.189,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.create",
+          "parent": "apply.resource",
+          "startMs": 7373.56,
+          "ms": 0.324,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7374.165,
+          "ms": 155.72,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7456.721,
+          "ms": 325.164,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.create",
+          "parent": "apply.resource",
+          "startMs": 7464.414,
+          "ms": 0.47,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7466.025,
+          "ms": 141.859,
+          "outcome": "success"
+        },
+        {
+          "name": "HEAD",
+          "parent": "resolveRegistryDigest",
+          "startMs": 7781.469,
+          "ms": 162.416,
+          "outcome": "success"
+        },
+        {
+          "name": "resolveRegistryDigest",
+          "parent": "publishImage",
+          "startMs": 7781.561,
+          "ms": 163.324,
+          "outcome": "success"
+        },
+        {
+          "name": "Neon.CreateProjectBranch",
+          "parent": "provider.create",
+          "startMs": 7843.285,
+          "ms": 374.6,
+          "outcome": "success"
+        },
+        {
+          "name": "applicationConfigurationHash",
+          "parent": "provider.precreate",
+          "startMs": 7945.434,
+          "ms": 0.451,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.precreate",
+          "startMs": 7946.073,
+          "ms": 833.811,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.CreateBucket",
+          "parent": "provider.create",
+          "startMs": 8081.678,
+          "ms": 870.206,
+          "outcome": "success"
+        },
+        {
+          "name": "Neon.GetProjectOperation",
+          "parent": "provider.create",
+          "startMs": 8219.209,
+          "ms": 234.675,
+          "outcome": "success"
+        },
+        {
+          "name": "Neon.GetProjectOperation",
+          "parent": "provider.create",
+          "startMs": 8219.436,
+          "ms": 537.448,
+          "outcome": "success"
+        },
+        {
+          "name": "Neon.GetProjectOperation",
+          "parent": "provider.create",
+          "startMs": 8219.512,
+          "ms": 459.372,
+          "outcome": "success"
+        },
+        {
+          "name": "Neon.GetProjectOperation",
+          "parent": "provider.create",
+          "startMs": 8219.635,
+          "ms": 455.25,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.precreate",
+          "startMs": 8782.247,
+          "ms": 2267.637,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.ListBucketDomainCustoms",
+          "parent": "provider.create",
+          "startMs": 8953.35,
+          "ms": 1021.535,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetBucketLifecycle",
+          "parent": "provider.create",
+          "startMs": 9975.401,
+          "ms": 453.483,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.PutBucketLifecycle",
+          "parent": "provider.create",
+          "startMs": 10430.549,
+          "ms": 650.335,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 11051.562,
+          "ms": 131.323,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetBucketCors",
+          "parent": "provider.create",
+          "startMs": 11081.661,
+          "ms": 598.223,
+          "outcome": "failure"
+        },
+        {
+          "name": "Cloudflare.ListBucketDomainManageds",
+          "parent": "provider.create",
+          "startMs": 11681.039,
+          "ms": 632.846,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 12314.938,
+          "ms": 172.946,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.observe",
+          "parent": "apply.resource",
+          "startMs": 12489.098,
+          "ms": 334.787,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetScriptScriptAndVersionSetting",
+          "parent": "provider.observe",
+          "startMs": 12489.989,
+          "ms": 332.896,
+          "outcome": "failure"
+        },
+        {
+          "name": "provider.precreate",
+          "parent": "apply.resource",
+          "startMs": 12823.645,
+          "ms": 1779.239,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetScriptScriptAndVersionSetting",
+          "parent": "provider.precreate",
+          "startMs": 12827.499,
+          "ms": 324.385,
+          "outcome": "failure"
+        },
+        {
+          "name": "Cloudflare.PutScript",
+          "parent": "provider.precreate",
+          "startMs": 13153.552,
+          "ms": 829.332,
+          "outcome": "success"
+        },
+        {
+          "name": "Neon.GetProjectOperation",
+          "parent": "provider.create",
+          "startMs": 13454.384,
+          "ms": 222.501,
+          "outcome": "success"
+        },
+        {
+          "name": "Neon.GetProjectOperation",
+          "parent": "provider.create",
+          "startMs": 13679.58,
+          "ms": 228.305,
+          "outcome": "success"
+        },
+        {
+          "name": "Neon.GetProjectOperation",
+          "parent": "provider.create",
+          "startMs": 13757.72,
+          "ms": 214.164,
+          "outcome": "success"
+        },
+        {
+          "name": "Neon.UpdateProjectBranch",
+          "parent": "provider.create",
+          "startMs": 13972.958,
+          "ms": 264.926,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetScriptScriptAndVersionSetting",
+          "parent": "provider.precreate",
+          "startMs": 13983.329,
+          "ms": 364.556,
+          "outcome": "success"
+        },
+        {
+          "name": "Neon.GetProjectOperation",
+          "parent": "provider.create",
+          "startMs": 14238.251,
+          "ms": 213.634,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetSubdomain",
+          "parent": "provider.precreate",
+          "startMs": 14348.985,
+          "ms": 252.899,
+          "outcome": "success"
+        },
+        {
+          "name": "Neon.GetProject",
+          "parent": "provider.create",
+          "startMs": 14452.868,
+          "ms": 232.016,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 14604.588,
+          "ms": 134.297,
+          "outcome": "success"
+        },
+        {
+          "name": "Neon.ListProjectBranchEndpoints",
+          "parent": "provider.create",
+          "startMs": 14685.041,
+          "ms": 219.844,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.create",
+          "parent": "apply.resource",
+          "startMs": 14739.562,
+          "ms": 5710.323,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 14741.248,
+          "ms": 490.636,
+          "outcome": "success"
+        },
+        {
+          "name": "Neon.GetProjectBranch",
+          "parent": "provider.create",
+          "startMs": 14905.416,
+          "ms": 226.469,
+          "outcome": "success"
+        },
+        {
+          "name": "Neon.ListProjectBranchDatabases",
+          "parent": "provider.create",
+          "startMs": 15132.896,
+          "ms": 213.989,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 15246.218,
+          "ms": 514.666,
+          "outcome": "success"
+        },
+        {
+          "name": "Neon.GetConnectionURI",
+          "parent": "provider.create",
+          "startMs": 15346.996,
+          "ms": 401.888,
+          "outcome": "success"
+        },
+        {
+          "name": "Neon.GetConnectionURI",
+          "parent": "provider.create",
+          "startMs": 15748.738,
+          "ms": 418.147,
+          "outcome": "success"
+        },
+        {
+          "name": "applicationConfigurationHash",
+          "parent": "provider.create",
+          "startMs": 15761.66,
+          "ms": 0.225,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 15762.796,
+          "ms": 920.088,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 16168.804,
+          "ms": 179.08,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 16349.03,
+          "ms": 157.855,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.observe",
+          "parent": "apply.resource",
+          "startMs": 16349.94,
+          "ms": 507.945,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.observe",
+          "startMs": 16350.018,
+          "ms": 506.866,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.read",
+          "parent": "apply.resource",
+          "startMs": 16507.637,
+          "ms": 383.247,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.ListConfigs",
+          "parent": "provider.read",
+          "startMs": 16508.989,
+          "ms": 380.896,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 16682.638,
+          "ms": 581.246,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.precreate",
+          "parent": "apply.resource",
+          "startMs": 16858.146,
+          "ms": 14601.739,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.create",
+          "parent": "apply.resource",
+          "startMs": 16891.286,
+          "ms": 2098.598,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.CreateConfig",
+          "parent": "provider.create",
+          "startMs": 16892.401,
+          "ms": 2096.483,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 17264.957,
+          "ms": 460.928,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 17727.079,
+          "ms": 2722.806,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 18989.878,
+          "ms": 158.007,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 20451.074,
+          "ms": 142.811,
+          "outcome": "success"
+        },
+        {
+          "name": "buildAndPushImage",
+          "parent": "provider.precreate",
+          "startMs": 27780.006,
+          "ms": 674.878,
+          "outcome": "success"
+        },
+        {
+          "name": "registryCredentials",
+          "parent": "publishImage",
+          "startMs": 27780.159,
+          "ms": 497.725,
+          "outcome": "success"
+        },
+        {
+          "name": "publishImage",
+          "parent": "buildAndPushImage",
+          "startMs": 27780.216,
+          "ms": 674.669,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "registryCredentials",
+          "startMs": 27780.28,
+          "ms": 497.605,
+          "outcome": "success"
+        },
+        {
+          "name": "buildAndPushImage",
+          "parent": "provider.precreate",
+          "startMs": 28107.672,
+          "ms": 758.213,
+          "outcome": "success"
+        },
+        {
+          "name": "publishImage",
+          "parent": "buildAndPushImage",
+          "startMs": 28107.862,
+          "ms": 758.023,
+          "outcome": "success"
+        },
+        {
+          "name": "registryCredentials",
+          "parent": "publishImage",
+          "startMs": 28108.32,
+          "ms": 584.565,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "registryCredentials",
+          "startMs": 28108.432,
+          "ms": 584.452,
+          "outcome": "success"
+        },
+        {
+          "name": "resolveRegistryDigest",
+          "parent": "publishImage",
+          "startMs": 28277.75,
+          "ms": 176.135,
+          "outcome": "success"
+        },
+        {
+          "name": "HEAD",
+          "parent": "resolveRegistryDigest",
+          "startMs": 28278.58,
+          "ms": 175.305,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.precreate",
+          "startMs": 28455.208,
+          "ms": 749.677,
+          "outcome": "success"
+        },
+        {
+          "name": "applicationConfigurationHash",
+          "parent": "provider.precreate",
+          "startMs": 28455.6,
+          "ms": 0.284,
+          "outcome": "success"
+        },
+        {
+          "name": "resolveRegistryDigest",
+          "parent": "publishImage",
+          "startMs": 28693.088,
+          "ms": 172.796,
+          "outcome": "success"
+        },
+        {
+          "name": "HEAD",
+          "parent": "resolveRegistryDigest",
+          "startMs": 28693.508,
+          "ms": 172.376,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.precreate",
+          "startMs": 28866.6,
+          "ms": 447.284,
+          "outcome": "success"
+        },
+        {
+          "name": "applicationConfigurationHash",
+          "parent": "provider.precreate",
+          "startMs": 28866.655,
+          "ms": 0.23,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.precreate",
+          "startMs": 29205.739,
+          "ms": 2253.146,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.precreate",
+          "startMs": 29315.006,
+          "ms": 2125.879,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 31441.279,
+          "ms": 152.606,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 31460.425,
+          "ms": 145.46,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.create",
+          "parent": "apply.resource",
+          "startMs": 31595.148,
+          "ms": 29962.736,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 31596.698,
+          "ms": 909.186,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.create",
+          "parent": "apply.resource",
+          "startMs": 31607.401,
+          "ms": 7953.484,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.create",
+          "parent": "apply.resource",
+          "startMs": 31609.164,
+          "ms": 22257.721,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetScriptScriptAndVersionSetting",
+          "parent": "provider.create",
+          "startMs": 31609.293,
+          "ms": 336.591,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 31611.65,
+          "ms": 893.234,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.ListNamespaces",
+          "parent": "provider.create",
+          "startMs": 35609.878,
+          "ms": 277.006,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.PutScript",
+          "parent": "provider.create",
+          "startMs": 35891.009,
+          "ms": 2427.875,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetScriptScriptAndVersionSetting",
+          "parent": "provider.create",
+          "startMs": 38318.658,
+          "ms": 264.226,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetScriptSubdomain",
+          "parent": "provider.create",
+          "startMs": 38584.291,
+          "ms": 263.594,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.CreateScriptSubdomain",
+          "parent": "provider.create",
+          "startMs": 38848.022,
+          "ms": 455.863,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.ListScriptDeployments",
+          "parent": "provider.create",
+          "startMs": 39305.664,
+          "ms": 254.221,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 39561.758,
+          "ms": 146.127,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 39709.457,
+          "ms": 147.428,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.read",
+          "parent": "apply.resource",
+          "startMs": 39857.688,
+          "ms": 486.197,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetScriptSubdomain",
+          "parent": "provider.read",
+          "startMs": 39859.338,
+          "ms": 483.546,
+          "outcome": "failure"
+        },
+        {
+          "name": "provider.create",
+          "parent": "apply.resource",
+          "startMs": 40343.857,
+          "ms": 7834.028,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetScriptScriptAndVersionSetting",
+          "parent": "provider.create",
+          "startMs": 40345.259,
+          "ms": 550.626,
+          "outcome": "failure"
+        },
+        {
+          "name": "Cloudflare.GetScriptScriptAndVersionSetting",
+          "parent": "provider.create",
+          "startMs": 43574.864,
+          "ms": 291.021,
+          "outcome": "failure"
+        },
+        {
+          "name": "Cloudflare.PutScript",
+          "parent": "provider.create",
+          "startMs": 43866.444,
+          "ms": 2125.441,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetScriptScriptAndVersionSetting",
+          "parent": "provider.create",
+          "startMs": 45992.532,
+          "ms": 364.352,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetScriptSubdomain",
+          "parent": "provider.create",
+          "startMs": 46357.414,
+          "ms": 371.471,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.CreateScriptSubdomain",
+          "parent": "provider.create",
+          "startMs": 46729.328,
+          "ms": 391.556,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 47070.199,
+          "ms": 662.685,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.ListScriptDeployments",
+          "parent": "provider.create",
+          "startMs": 47121.387,
+          "ms": 1056.497,
+          "outcome": "success"
+        },
+        {
+          "name": "applicationConfigurationHash",
+          "parent": "provider.create",
+          "startMs": 47733.658,
+          "ms": 0.227,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 47734.843,
+          "ms": 1582.041,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 48178.702,
+          "ms": 168.182,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 49316.48,
+          "ms": 600.404,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 49917.405,
+          "ms": 860.479,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 50778.619,
+          "ms": 3088.265,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 53867.685,
+          "ms": 149.199,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 56487,
+          "ms": 570.884,
+          "outcome": "success"
+        },
+        {
+          "name": "applicationConfigurationHash",
+          "parent": "provider.create",
+          "startMs": 57057.652,
+          "ms": 0.233,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 57058.98,
+          "ms": 848.904,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 57907.939,
+          "ms": 447.946,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 58355.895,
+          "ms": 580.99,
+          "outcome": "success"
+        },
+        {
+          "name": "distilled.operation",
+          "parent": "provider.create",
+          "startMs": 58938.396,
+          "ms": 2619.489,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 61558.719,
+          "ms": 143.166,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "apply",
+          "startMs": 61703.804,
+          "ms": 88.08,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply",
+          "startMs": 61797.633,
+          "ms": 132.252,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "world.lifecycle.create",
+          "startMs": 61932.634,
+          "ms": 548.251,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 61933.257,
+          "ms": 183.628,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 61933.343,
+          "ms": 91.541,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 62025.845,
+          "ms": 90.039,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 62116.634,
+          "ms": 86.251,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 62116.82,
+          "ms": 195.065,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 62203.354,
+          "ms": 107.53,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 62311.852,
+          "ms": 169.033,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 62312.198,
+          "ms": 84.687,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 62396.915,
+          "ms": 82.97,
+          "outcome": "success"
+        },
+        {
+          "name": "world.migrate",
+          "parent": "world.lifecycle.create",
+          "startMs": 62481.004,
+          "ms": 725.881,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.migrate",
+          "parent": "world.migrate",
+          "startMs": 62481.421,
+          "ms": 725.463,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 62481.882,
+          "ms": 491.003,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "world.database.migrate",
+          "startMs": 62482.232,
+          "ms": 491.652,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "world.database.migrate",
+          "startMs": 62973.742,
+          "ms": 107.143,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 62974.244,
+          "ms": 106.64,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "world.database.migrate",
+          "startMs": 63082.273,
+          "ms": 124.612,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 63082.84,
+          "ms": 124.045,
+          "outcome": "success"
+        },
+        {
+          "name": "world.chain",
+          "parent": "world.lifecycle.create",
+          "startMs": 63208.056,
+          "ms": 2338.829,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.chain",
+          "startMs": 63208.937,
+          "ms": 2336.948,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.lifecycle.create",
+          "startMs": 65547.131,
+          "ms": 114.753,
+          "outcome": "success"
+        },
+        {
+          "name": "world.fund",
+          "parent": "world.lifecycle.create",
+          "startMs": 65661.883,
+          "ms": 336.001,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.fund",
+          "startMs": 65663.081,
+          "ms": 113.804,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.fund",
+          "startMs": 65777.82,
+          "ms": 120.065,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.fund",
+          "startMs": 65898.636,
+          "ms": 98.248,
+          "outcome": "success"
+        },
+        {
+          "name": "world.index",
+          "parent": "world.lifecycle.create",
+          "startMs": 65999.07,
+          "ms": 35729.814,
+          "outcome": "success"
+        },
+        {
+          "name": "world.bundler",
+          "parent": "world.lifecycle.create",
+          "startMs": 65999.867,
+          "ms": 25820.017,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.index",
+          "startMs": 65999.965,
+          "ms": 98.92,
+          "outcome": "success"
+        },
+        {
+          "name": "world.bundler.up",
+          "parent": "world.bundler",
+          "startMs": 66000.21,
+          "ms": 25819.674,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.up",
+          "startMs": 66001.259,
+          "ms": 556.625,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.index",
+          "startMs": 66099.564,
+          "ms": 818.321,
+          "outcome": "failure"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.up",
+          "startMs": 66558.715,
+          "ms": 115.17,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.up",
+          "startMs": 66674.991,
+          "ms": 134.894,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.up",
+          "startMs": 66812.81,
+          "ms": 116.074,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.up",
+          "startMs": 66930.828,
+          "ms": 84.056,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.up",
+          "startMs": 67016.82,
+          "ms": 129.065,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.up",
+          "startMs": 67146.587,
+          "ms": 87.298,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.up",
+          "startMs": 67234.791,
+          "ms": 85.093,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.up",
+          "startMs": 67320.273,
+          "ms": 85.611,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.up",
+          "startMs": 67407.454,
+          "ms": 113.431,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.up",
+          "startMs": 67521.452,
+          "ms": 92.433,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.up",
+          "startMs": 67615.096,
+          "ms": 93.789,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.up",
+          "startMs": 67709.161,
+          "ms": 111.723,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.up",
+          "startMs": 67822.544,
+          "ms": 23923.34,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.index",
+          "startMs": 68920.174,
+          "ms": 94.71,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.index",
+          "startMs": 69015.865,
+          "ms": 834.019,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "world.index",
+          "startMs": 71851.166,
+          "ms": 98.718,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.index",
+          "startMs": 71950.504,
+          "ms": 815.38,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "world.index",
+          "startMs": 74767.045,
+          "ms": 113.839,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.index",
+          "startMs": 74881.581,
+          "ms": 438.303,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.index",
+          "startMs": 77321.688,
+          "ms": 10818.196,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.index",
+          "startMs": 90142.683,
+          "ms": 259.202,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.bundler.up",
+          "startMs": 91747.038,
+          "ms": 72.847,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.index",
+          "startMs": 92403.083,
+          "ms": 249.801,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.index",
+          "startMs": 94654.171,
+          "ms": 221.714,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.index",
+          "startMs": 96878.541,
+          "ms": 240.344,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.index",
+          "startMs": 99120.775,
+          "ms": 231.109,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.index",
+          "startMs": 101353.671,
+          "ms": 375.213,
+          "outcome": "success"
+        },
+        {
+          "name": "world.core",
+          "parent": "world.lifecycle.create",
+          "startMs": 101729.96,
+          "ms": 601.924,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.core",
+          "startMs": 101730.139,
+          "ms": 600.746,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.cast",
+          "parent": "platform.world.create",
+          "startMs": 102334.382,
+          "ms": 2411.503,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 102337.453,
+          "ms": 152.432,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 102490.708,
+          "ms": 90.176,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 102582.013,
+          "ms": 86.872,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 102670.387,
+          "ms": 113.497,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 102784.974,
+          "ms": 91.91,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 102876.912,
+          "ms": 92.973,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 102970.766,
+          "ms": 90.118,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 103061.555,
+          "ms": 87.33,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 103149.839,
+          "ms": 93.045,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 103243.638,
+          "ms": 112.247,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 103356.593,
+          "ms": 150.292,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 103507.371,
+          "ms": 88.513,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 103597.3,
+          "ms": 100.585,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 103698.661,
+          "ms": 91.224,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 103790.323,
+          "ms": 92.562,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 103883.884,
+          "ms": 92,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 103976.745,
+          "ms": 89.139,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 104066.609,
+          "ms": 117.275,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 104183.996,
+          "ms": 92.888,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 104277.436,
+          "ms": 91.448,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 104369.772,
+          "ms": 94.113,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 104464.742,
+          "ms": 89.142,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 104553.692,
+          "ms": 97.193,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.cast",
+          "startMs": 104651.913,
+          "ms": 93.971,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.world.create",
+          "startMs": 104746.909,
+          "ms": 88.975,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.world.create",
+          "startMs": 104836.098,
+          "ms": 106.787,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.world.create",
+          "startMs": 104943.277,
+          "ms": 114.607,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 104943.784,
+          "ms": 114.1,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.create",
+          "startMs": 105058.479,
+          "ms": 1386.406,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 105059.957,
+          "ms": 245.927,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 105305.935,
+          "ms": 532.95,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 105306.104,
+          "ms": 178.781,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 105306.679,
+          "ms": 87.205,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 105395.175,
+          "ms": 89.71,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 105484.848,
+          "ms": 89.036,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 105485.469,
+          "ms": 177.415,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 105575.272,
+          "ms": 86.612,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 105662.354,
+          "ms": 176.53,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 105663.163,
+          "ms": 93.722,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 105757.652,
+          "ms": 81.232,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 105839.472,
+          "ms": 605.413,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 105839.512,
+          "ms": 108.372,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 105840.282,
+          "ms": 597.603,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 105840.296,
+          "ms": 107.588,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 105840.382,
+          "ms": 603.502,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 105840.583,
+          "ms": 603.301,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 105840.974,
+          "ms": 597.91,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.steady",
+          "parent": "platform.world.create",
+          "startMs": 106444.863,
+          "ms": 5253.022,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 106445.221,
+          "ms": 83.663,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 107030.108,
+          "ms": 58.777,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 107589.845,
+          "ms": 90.04,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 108180.855,
+          "ms": 79.029,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 108760.687,
+          "ms": 98.198,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 109359.159,
+          "ms": 51.725,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 109911.704,
+          "ms": 75.181,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 110488.5,
+          "ms": 97.385,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 111086.603,
+          "ms": 58.281,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 111644.981,
+          "ms": 51.903,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.emit",
+          "parent": "platform.world.create",
+          "startMs": 111697.637,
+          "ms": 522.248,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.emit",
+          "startMs": 111700.651,
+          "ms": 109.233,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 111701.096,
+          "ms": 108.789,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 111809.986,
+          "ms": 164.898,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "platform.emit",
+          "startMs": 111810.27,
+          "ms": 288.614,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 111975.796,
+          "ms": 122.089,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.emit",
+          "startMs": 112098.535,
+          "ms": 121.349,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 112099.157,
+          "ms": 120.727,
+          "outcome": "success"
+        }
+      ],
+      "events": [
+        "world_created"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.create span, 112219.885 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: world_created {\"grade\":\"private\",\"owner\":\"pops\",\"world\":\"wc1-lgbgg4j0\",\"parent\":null,\"expiresAt\":\"2026-11-13T16:48:14.118Z\"}; declared for a success: world_created {\"world\":\"wc1-lgbgg4j0\",\"owner\":\"pops\",\"grade\":\"private\",\"expiresAt\":\"2026-11-13T16:48:14.118Z\",\"parent\":null}"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "67e9b555ca274eeeca5abf292b5d150c",
+      "at": "https://capxulworld-core-w-wc1-lgbgg4j0-mljtkc4tqjylt2e5.thedao.workers.dev",
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 561.762,
+        "serverMs": 357,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 156,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 156,
+          "ms": 100,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 256,
+          "ms": 101,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 357 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    }
+  ],
+  "making": [],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": [
+        "capxulworld-core-w-wc1-lgbgg4j0-mljtkc4tqjylt2e5",
+        "capxulworld-door-w-wc1-lgbgg4j0-haimfy4p2gqv572a",
+        "capxulworld-alto-w-wc1-lgbgg4j0-jamvrpfz7xxm2fd3",
+        "capxulworld-ponder-w-wc1-lgbgg4j0-x5hm54xsueouugjz",
+        "capxulworld-anvil-w-wc1-lgbgg4j0-66dblmvyq6pkvime",
+        "capxulworld-door-w-wc1-lgbgg4j0-haimfy4p2gqv572a",
+        "capxulworld-door-w-wc1-lgbgg4j0-haimfy4p2gqv572a",
+        "capxulworld-door-w-wc1-lgbgg4j0-haimfy4p2gqv572a",
+        "capxulworld-chainstate-w-wc1-lgbgg4j0-6xpb7m7aa5i2it7q",
+        "capxulworld-world-db-w-wc1-lgbgg4j0-53kdh3kkmkzrepl3",
+        "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-wc1-lgbgg4j0"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    }
+  },
+  "ms": {
+    "create": 0,
+    "run": 113127,
+    "checks": 3500,
+    "destroy": 18778
+  }
+}

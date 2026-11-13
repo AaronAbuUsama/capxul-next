@@ -20,6 +20,7 @@ import { platformDown, platformUp } from "../lifecycle/platform.ts";
 import type { World } from "../lifecycle/spec.ts";
 import { requireComplete, sweep } from "../lifecycle/sweep.ts";
 import { proofNames, prove } from "../proofs/proofs.ts";
+import { servePlatformOn } from "../platform/serve.ts";
 
 /** Where a command's result goes. */
 export class Report extends Context.Service<Report, { readonly print: (value: unknown) => Effect.Effect<void> }>()(
@@ -182,6 +183,15 @@ const platformCommand = Command.make("platform").pipe(
   Command.withSubcommands([
     Command.make("up", {}, () => Effect.flatMap(platformUp, report)),
     Command.make("down", {}, () => Effect.flatMap(platformDown, report)),
+    Command.make(
+      "serve",
+      { port: Flag.Int("port").pipe(Flag.withDefault(8790), Flag.withDescription("The loopback port to serve on")) },
+      (input) => servePlatformOn(input.port),
+    ).pipe(
+      Command.withDescription(
+        "Serve the blueprint's platform group on this machine's loopback, signed in by WORLD_OWNER with CAPXUL_PLATFORM_TOKEN (and WORLD_SECOND_OWNER with CAPXUL_SECOND_PLATFORM_TOKEN), until stopped",
+      ),
+    ),
   ]),
 );
 

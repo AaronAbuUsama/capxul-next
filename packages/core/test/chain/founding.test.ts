@@ -35,7 +35,7 @@ const migrations = Arr.map(
   [
     "../../migrations/0001_telemetry.sql",
     "../../migrations/0002_site_ops.sql",
-    "./world-tables.sql",
+    "../../migrations/0003_world.sql",
     "../../migrations/0004_organizations.sql",
     "../../migrations/0005_approvals.sql",
   ],

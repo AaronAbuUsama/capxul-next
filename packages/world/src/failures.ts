@@ -107,10 +107,22 @@ export class ProofFailed extends Schema.TaggedError<ProofFailed, { readonly bran
   message: Schema.String,
 }) {}
 
+/**
+ * A step of the platform's operations failed (src/platform): a fault of the infrastructure, which the caller sees as
+ * a defect. The platform's refusals are the blueprint's.
+ */
+export class PlatformFailed extends Schema.TaggedError<PlatformFailed, { readonly brand: unique symbol }>()(
+  "PlatformFailed",
+  {
+    step: Schema.Literals(["cast", "clock", "facts", "telemetry", "snapshot", "branch", "restore", "sites"]),
+    message: Schema.String,
+  },
+) {}
+
 // Inside a world's Durable Objects.
 
 export class ChainFailed extends Schema.TaggedError<ChainFailed, { readonly brand: unique symbol }>()("ChainFailed", {
-  step: Schema.Literals(["start", "rpc", "save", "restore", "stop", "asleep", "adopt"]),
+  step: Schema.Literals(["start", "rpc", "save", "restore", "stop", "asleep", "adopt", "snapshot"]),
   message: Schema.String,
 }) {}
 

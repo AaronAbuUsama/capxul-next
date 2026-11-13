@@ -37,7 +37,7 @@ of `src/handlers.ts` and `pnpm types` fails with `Property '"record.export"' is 
 | `src/failures.ts` | Core's own failures: `SiteDoorFailed` (`unset`, `unreachable`, `refused`). |
 | `src/stack/database.ts` | A stage's database: a Neon project of its own, and Hyperdrive in front of it with its query cache off. |
 | `alchemy.run.ts` | The stack `CapxulCore`. One stage is one Core and its database. |
-| `migrations/` | The `app` schema: `app.spans` and `app.events` (0001); `app.clock` and `app.documents` (0002). Applied by the runner when a stage is created, and by the world when it is made. |
+| `migrations/` | The `app` schema: `app.spans` and `app.events` (0001); `app.clock` and `app.documents` (0002); the world's chain contracts, cast and companies (`app.world`, `app.cast`, `app.companies`, 0003). Applied by the runner when a stage is created, and by the world when it is made. |
 | `test/server.test.ts` | Core's groups in memory: all twelve answer `NotImplemented` under one span each, kept with the caller's trace id; sign-in refusals. |
 | `test/site-ops-documents.test.ts`, `test/site-ops-world.test.ts` | The five operations served in memory through Core's groups against a stand-in company site (`test/support/site-ops.ts`): what the site is asked, what Core answers, what the record keeps. |
 | `test/site-ops-sql.test.ts` | The clock, the record, the document hashes and the cast in Postgres with the migrations applied. Runs only with `CAPXUL_TEST_DATABASE` (a throwaway Postgres); skipped otherwise, as in CI. |
@@ -60,7 +60,12 @@ of `src/handlers.ts` and `pnpm types` fails with `Property '"record.export"' is 
   platform call acts as the owner, the operator that deployed the stage. Tokens are compared as strings.
 - **`CurrentCall`**: its trace id and operation, for the events a built handler will emit into `app.events`.
 
-Core serves the platform group too, until `packages/world` serves it (blueprint decisions.md, entry 11).
+`packages/world` serves the platform group (blueprint decisions.md, entries 11 and 51), with Core's own sign-in and
+span middlewares, which the door exports (`PlatformSignInLive`, `TelemetryLive`). Core's platform door keeps its
+empty handlers until it is removed; nothing calls it. A world's facts (its chain's contracts, its cast with the
+signer and Safe of each person, its companies) are tables of the `app` schema too (`migrations/0003_world.sql`),
+written by the platform and read by Core; its clock is `app.clock`, its grade and parent its record's latest
+`world_created`.
 
 ## The document, report, clock and record operations (`src/site-ops/`)
 
@@ -102,7 +107,7 @@ callers'. The addresses and the service key are the seed's (`chain/seeded.ts`, c
 deployment record by `test/seeded.test.ts`). What a landing means for the company's site (its company and Safe, the bench's
 clock, each hat, the founder's capital, a payment's posting) is queued in `app.site_deliveries` and handed to the site
 once it is ready (`organizations/site.ts`, through `capxul.core_company` in `packages/frappe-app`). Blueprint
-decisions.md 48 to 50 say why.
+decisions.md 51 to 50 say why.
 
 What it reads that others write:
 

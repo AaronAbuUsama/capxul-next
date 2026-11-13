@@ -1,0 +1,112 @@
+// A snapshot's database: a branch of the world's own branch, made through Neon's API with no compute of its own, so it
+// costs only the storage it does not share with its parent. A world restored from the snapshot forks it in turn
+// (src/database/Db.ts). Neon refuses to fork a branch that has an expiry, so the world's own branch has its expiry
+// taken off first; the sweeper deletes the world at its recorded expiry. A branch with children cannot be deleted,
+// so a world restored from a snapshot must go before the snapshot does, which its expiry makes so (ExpiryBeyondSource).
+import * as Config from "effect/Config";
+import * as Effect from "effect/Effect";
+import * as Predicate from "effect/Predicate";
+import * as Redacted from "effect/Redacted";
+import * as Schedule from "effect/Schedule";
+import * as Schema from "effect/Schema";
+import * as Str from "effect/String";
+import * as HttpClient from "effect/http/HttpClient";
+import * as HttpClientRequest from "effect/http/HttpClientRequest";
+import { PlatformFailed } from "../failures.ts";
+import { liftBranchExpiry } from "../lifecycle/account.ts";
+import { describeFailure } from "../lifecycle/describe.ts";
+import { WorldOutput } from "../lifecycle/parts.ts";
+import { recordedOutput, recordOutput } from "../stack/engine.ts";
+import { PLATFORM } from "../stack/names.ts";
+import { forgetSnapshots, prepareStore, snapshotsOf } from "./store.ts";
+
+const NEON = "https://console.neon.tech/api/v2";
+const Platform = Schema.Struct({ projectId: Schema.String });
+const Created = Schema.Struct({ branch: Schema.Struct({ id: Schema.String }) });
+
+const failed = (cause: unknown) => PlatformFailed.make({ step: "branch", message: describeFailure(cause) });
+
+/** Neon locks a project while an operation on it runs (423): such a request is sent again. */
+const LOCKED = 423;
+
+/** One request to Neon's API; its JSON answer, or Neon's refusal with its status. `missing` is an answer too. */
+const neon = (request: HttpClientRequest.HttpClientRequest, missing: "fail" | "ok" = "fail") =>
+  Effect.gen(function* () {
+    const key = yield* Config.Redacted("NEON_API_KEY");
+    const response = yield* HttpClient.execute(request.pipe(HttpClientRequest.bearerToken(Redacted.value(key))));
+    if (response.status === 404 && missing === "ok") return null;
+    if (response.status >= 300) {
+      const body = yield* response.text;
+      return yield* Effect.fail({ status: response.status, body: Str.slice(0, 200)(body) });
+    }
+    return yield* response.json;
+  }).pipe(
+    Effect.scoped,
+    Effect.retry({
+      while: (error) => Predicate.hasProperty(error, "status") && error.status === LOCKED,
+      schedule: Schedule.spaced("2 seconds"),
+      times: 60,
+    }),
+    Effect.mapError(failed),
+  );
+
+const Branch = Schema.Struct({ branch: Schema.Struct({ current_state: Schema.String }) });
+
+/** Waits until Neon has finished making a branch, so it can be forked and read. */
+const ready = (project: string, branch: string) =>
+  neon(HttpClientRequest.get(`${NEON}/projects/${project}/branches/${branch}`)).pipe(
+    Effect.flatMap(Schema.decodeUnknownEffect(Branch)),
+    Effect.filterOrFail(
+      (answer) => answer.branch.current_state === "ready",
+      (answer) => failed(`branch ${branch} is ${answer.branch.current_state}`),
+    ),
+    Effect.retry(Schedule.max([Schedule.spaced("1 second"), Schedule.recurs(90)])),
+    Effect.mapError(failed),
+  );
+
+/** The Neon project every world's branch belongs to. */
+export const projectId = Effect.flatMap(recordedOutput(PLATFORM), Schema.decodeUnknownEffect(Platform)).pipe(
+  Effect.mapBoth({ onSuccess: (platform) => platform.projectId, onFailure: failed }),
+);
+
+/** Makes a world's branch forkable, once: its Neon expiry is taken off, and its record says so. */
+export const forkable = Effect.fn("platform.forkable")(function* (stage: string) {
+  const output = yield* Schema.decodeUnknownEffect(WorldOutput)(yield* recordedOutput(stage));
+  const raw = yield* recordedOutput(stage);
+  const recorded: Record<string, unknown> = Predicate.isObject(raw) ? { ...raw } : {};
+  if (recorded["neonExpiry"] !== undefined) return output.branch;
+  yield* liftBranchExpiry(yield* projectId, output.branch);
+  yield* recordOutput(stage, { ...recorded, neonExpiry: "lifted so that snapshots could be saved" });
+  return output.branch;
+}, Effect.mapError(failed));
+
+/** A branch of `parent` called `name`, with no compute; its id. Waits until Neon has finished making it. */
+export const branchOf = Effect.fn("platform.branch")(function* (parent: string, name: string) {
+  const project = yield* projectId;
+  const answer = yield* neon(
+    HttpClientRequest.post(`${NEON}/projects/${project}/branches`).pipe(
+      HttpClientRequest.bodyJsonUnsafe({ branch: { parent_id: parent, name } }),
+    ),
+  );
+  const created = yield* Schema.decodeUnknownEffect(Created)(answer).pipe(Effect.mapError(failed));
+  yield* ready(project, created.branch.id);
+  return created.branch.id;
+}, Effect.mapError(failed));
+
+/** Deletes a branch. One that is already gone is no failure. */
+export const dropBranch = Effect.fn("platform.dropBranch")(function* (branch: string) {
+  const project = yield* projectId;
+  yield* neon(HttpClientRequest.delete(`${NEON}/projects/${project}/branches/${branch}`), "ok");
+});
+
+/**
+ * Deletes every snapshot a world saved: their branches, then the platform's rows of them. Its chain states go with
+ * the world's bucket. Run before the world's own branch is destroyed, which Neon refuses while it has children.
+ */
+export const dropSnapshots = Effect.fn("platform.dropSnapshots")(function* (stage: string) {
+  yield* prepareStore;
+  const rows = yield* snapshotsOf(stage);
+  yield* Effect.forEach(rows, (row) => dropBranch(row.branch_id), { discard: true });
+  yield* forgetSnapshots(stage);
+  return rows.length;
+});

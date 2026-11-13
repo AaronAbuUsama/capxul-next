@@ -9,6 +9,8 @@
 //   POST /chain/idle?seconds=N   how long the chain may sit unused before that happens by itself
 //   GET  /chain/dump      the chain's whole state, for a world that is being made from this one
 //   POST /chain/adopt     take another world's state as this chain's first state
+//   POST /chain/snapshot/<name>   save the chain's whole state now under a snapshot's name
+//   GET  /chain/snapshot/<name>   the state a snapshot saved, for a world restored from it
 //   POST /index/start     start Ponder against this door's quiet-rpc
 //   POST /index/stop
 //   GET  /index/status
@@ -72,6 +74,11 @@ export default class Door extends Cloudflare.Worker<Door>()(
         // The index and the bundler reach the chain through this door's public address, on its quiet path.
         const quietRpc = `https://${pipe(request.headers["host"] ?? "", Str.trim)}/${given}/quiet-rpc`;
         const route = `${request.method} /${Arr.join(rest, "/")}`;
+        const [part, action, snapshot = ""] = rest;
+        if (part === "chain" && action === "snapshot" && /^[a-z0-9][a-z0-9-]{0,30}$/.test(snapshot)) {
+          if (request.method === "POST") return json(yield* chain.saveAs(snapshot));
+          if (request.method === "GET") return HttpServerResponse.text(yield* chain.snapshot(snapshot));
+        }
         switch (route) {
           case "POST /rpc":
             return rpcAnswer(yield* chain.rpc(yield* request.text));

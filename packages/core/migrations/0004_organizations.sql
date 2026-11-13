@@ -1,5 +1,5 @@
 -- What Core keeps of each company it founded (org.create) and of each change to its officers (org.member.grant), in
--- the world's `app` schema. The world's list of companies and their sites is `app.companies` (0002_world.sql), which
+-- the world's `app` schema. The world's list of companies and their sites is `app.companies` (0003_world.sql), which
 -- org.create adds to; this is the rest. Applied when a world is created.
 
 create table if not exists app.organizations (

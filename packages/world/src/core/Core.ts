@@ -36,7 +36,12 @@ export const defaultCore: CoreSlot = Effect.gen(function* () {
   const door = yield* Door;
   // The door's own token: the same resource the door made, yielded again by its logical id.
   const doorToken = yield* Alchemy.Random(DOOR_TOKEN_ID, { bytes: 16 });
-  const operatorToken = yield* Alchemy.Random(OPERATOR_TOKEN_ID, { bytes: 24 });
+  const minted = yield* Alchemy.Random(OPERATOR_TOKEN_ID, { bytes: 24 });
+  // The owner operator's own token when the platform made the world (decisions.md, 36); otherwise the world's own.
+  const operatorToken = Option.getOrElse(
+    Option.map(settings.operatorToken, (token): unknown => token),
+    () => minted.text,
+  );
   const siteKey = yield* Alchemy.Random(SITE_KEY_ID, { bytes: 15 });
   const siteSecret = yield* Alchemy.Random(SITE_SECRET_ID, { bytes: 24 });
   const site = Option.match(settings.bench, {
@@ -52,7 +57,7 @@ export const defaultCore: CoreSlot = Effect.gen(function* () {
     [CORE_ENV.world]: nameOf(stage),
     [CORE_ENV.owner]: settings.owner,
     [CORE_ENV.doorToken]: doorToken.text,
-    [CORE_ENV.platformToken]: operatorToken.text,
+    [CORE_ENV.platformToken]: operatorToken,
     [CORE_ENV.chain]: door,
     [CORE_ENV.chainToken]: doorToken.text,
     ...site,

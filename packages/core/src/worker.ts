@@ -19,6 +19,7 @@ import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import * as RpcSerialization from "effect/rpc/RpcSerialization";
 import { chainRead } from "./chain.ts";
+import { COMPANIES_PATH, companiesRead } from "./platform/companies.ts";
 import { serveDoors } from "./doors.ts";
 import { ENV, identityOf } from "./env.ts";
 import { HEALTH_PATH, PROBE_PATH, probeSite } from "./probe.ts";
@@ -70,6 +71,24 @@ export default class Core extends Cloudflare.Worker<Core>()(
           // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: each request gets the site door its environment names
           Effect.provide(SiteDoor.fromEnv(env).pipe(Layer.provide(FetchHttpClient.layer))),
         );
+      const siteDoor = SiteDoor.fromEnv(env).pipe(Layer.provide(FetchHttpClient.layer));
+      // Hyperdrive pools connections by transaction, so a statement prepared on one connection may run on another:
+      // statements go unnamed (the first world run of approval.sign, w-cops2, failed on a named one).
+      const database = SQL.PostgresLayer({ url: connectionString(env), prepare: false });
+      if (path === COMPANIES_PATH)
+        return yield* companiesRead(owners).pipe(
+          // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: each request gets its own database pool
+          Effect.provide(
+            siteOpsLive(env).pipe(
+              Layer.provideMerge(ChainOps.layer(env)),
+              Layer.provideMerge(siteDoor),
+              Layer.provideMerge(database),
+            ),
+          ),
+          Effect.catchTag("SqlError", (error) =>
+            Effect.succeed(HttpServerResponse.jsonUnsafe({ error: error.message }, { status: 500 })),
+          ),
+        );
       // One pool per request, opened on the first query and closed when the request ends.
       const served = Served.pipe(
         Layer.provideMerge(RpcSerialization.layerJson),
@@ -78,9 +97,7 @@ export default class Core extends Cloudflare.Worker<Core>()(
         ),
         Layer.provide(SqlSpanSink),
         Layer.provide(ChainOps.layer(env)),
-        // Hyperdrive pools connections by transaction, so a statement prepared on one connection may run on another:
-        // statements go unnamed (the first world run of approval.sign, w-cops2, failed on a named one).
-        Layer.provide(SQL.PostgresLayer({ url: connectionString(env), prepare: false })),
+        Layer.provide(database),
         Layer.provide(Layer.succeed(CoreIdentity, identity)),
       );
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: each request gets its own database pool

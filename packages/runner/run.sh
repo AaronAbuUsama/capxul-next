@@ -26,6 +26,6 @@ export CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-$(account 'https://api.cl
 export NEON_ORG_ID="${NEON_ORG_ID:-$(account https://console.neon.tech/api/v2/users/me/organizations "import json,sys; print(json.load(sys.stdin)['organizations'][0]['id'])")}"
 case "${1:-}" in
   alchemy) shift; exec bun node_modules/alchemy/bin/cli.js "$@" ;;
-  door|chain|scenarios) exec bun src/main.ts "$@" ;;
+  door|chain|scenarios|starting-worlds) exec bun src/main.ts "$@" ;;
   *) echo "usage: ./run.sh door | scenarios [--one-stage] [--expect=pass|not-implemented] [name...] | alchemy <args...>" >&2; exit 2 ;;
 esac

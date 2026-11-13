@@ -35,16 +35,18 @@ export const Registry = Effect.gen(function* () {
 });
 
 /**
- * The world's branch. It forks another world's branch when the world is made from one, and Neon deletes it by
- * itself the moment the world expires.
+ * The world's branch. It forks another world's branch when the world is made from one, or a snapshot's when it is
+ * restored from one, and Neon deletes it by itself the moment the world expires.
  */
 export const WorldBranch = Effect.gen(function* () {
   const { stage } = yield* Alchemy.Stack;
   const project = yield* WorldsProject;
-  const { expiresAt, forkedFrom } = yield* worldSettings;
-  const parent = Option.isSome(forkedFrom)
-    ? { parentBranch: yield* Neon.Branch.ref(BRANCH_ID, { stage: forkedFrom.value }) }
-    : {};
+  const { expiresAt, forkedFrom, parentBranch } = yield* worldSettings;
+  const parent = Option.isSome(parentBranch)
+    ? { parentBranch: { branchId: parentBranch.value } }
+    : Option.isSome(forkedFrom)
+      ? { parentBranch: yield* Neon.Branch.ref(BRANCH_ID, { stage: forkedFrom.value }) }
+      : {};
   return yield* Neon.Branch(BRANCH_ID, { project, name: stage, expiresAt, ...parent });
 });
 
