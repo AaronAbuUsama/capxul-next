@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import pg from "pg";
-import { authenticate, migrateAccess, revoke, sendCode, verifyCode } from "../access/door.ts";
-import { migrateAgents } from "../agents/door.ts";
-import { migrateMedia, upload, get as getFile } from "../media/door.ts";
-import { migrate as migrateSeats } from "../organizations/door.ts";
-import { register, resolveRecipient } from "../parties/door.ts";
-import { migrateOutbox } from "../platform/outbox.ts";
-import { get as getDocument, migrateDocuments, store, type StoreInput } from "./door.ts";
-import { documentsRoutes } from "./mount.ts";
+import { authenticate, migrateAccess, revoke, sendCode, verifyCode } from "../src/access/door.ts";
+import { migrateAgents } from "../src/agents/door.ts";
+import { migrateMedia, upload, get as getFile } from "../src/media/door.ts";
+import { migrate as migrateSeats } from "../src/organizations/door.ts";
+import { register, resolveRecipient } from "../src/parties/door.ts";
+import { migrateOutbox } from "../src/platform/outbox.ts";
+import { get as getDocument, migrateDocuments, store, type StoreInput } from "../src/documents/door.ts";
+import { documentsRoutes } from "../src/documents/mount.ts";
 
 // Component proof with Access's real sign-in/authenticate and Seat's real caller_safes/current_member.
 // Seat and agent rows are superuser fixtures: no Seat or agent writer exists yet. Not selected-stack acceptance.
@@ -109,7 +109,8 @@ test("native sessions: tenants and admissions on documents, files and agents fol
     const image = await as(ann.token, () => upload(sql, { purpose: "image", content_type: "image/png", bytes: png }, runtime));
     const held = await as(ann.token, () => upload(sql, { purpose: "document", content_type: "application/pdf", bytes: Buffer.from("%PDF-1.7\nann") }, runtime));
     await assert.rejects(as(null, () => upload(sql, { purpose: "image", content_type: "image/png", bytes: png }, runtime)), /NOT_AUTHENTICATED/);
-    const files = () => ids("select file_id from app.files");
+    // Scoped to this test's files: other native suites leave committed kept images, which anyone may read.
+    const files = () => ids(`select file_id from app.files where file_id in ('${image.file_id}','${held.file_id}')`);
     assert.deepEqual(await as(ann.token, files), [image.file_id, held.file_id].sort());
     for (const token of [bob.token, cy.token, null]) assert.deepEqual(await as(token, files), [image.file_id]);
     assert.deepEqual(await as(null, async () => { await labelled("person", ann.personId); return files(); }), [image.file_id]);
