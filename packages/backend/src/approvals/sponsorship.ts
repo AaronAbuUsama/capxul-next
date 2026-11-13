@@ -1,6 +1,7 @@
 import { decodeFunctionResult, encodeFunctionData, keccak256, parseAbi, stringToHex, toHex, type Address, type Hex, type PublicClient } from "viem";
 import { address, bytes, uint, packCalls, packUserOperation, toRpcUserOperation, safeOpDigest, entryPointHash, entryPointAbi, safeModuleAbi, PACKED_USER_OPERATION, type SafeCall, type SafeUserOperation } from "../../../sdk/src/approvals/safe-op.ts";
 import { SponsorError, sponsorRefusal, type SponsorTransport } from "./sponsorship-rpc.ts";
+import type { Approval } from "./types.ts";
 
 export { sponsorHttpTransport, SponsorError } from "./sponsorship-rpc.ts";
 export type { SponsorTransport } from "./sponsorship-rpc.ts";
@@ -117,5 +118,17 @@ export function approvalSponsor(config: SponsorConfig): (a: SponsorshipRequest) 
       if (refusal) return refusal;
       throw new SponsorError("PROVIDER_ERROR", "Sponsorship chain or gateway did not answer");
     }
+  };
+}
+
+/**
+ * The carrier's sponsor, on the world's authority clock: `now` is awaited once per call and that one reading is the
+ * synchronous SponsorConfig.now for the window and its completion check, never host time.
+ */
+export function carrierSponsor(config: Omit<SponsorConfig, "now">, now: () => Promise<Date>) {
+  return async (a: Approval): Promise<VerifiedSponsorship | SponsorRefusal> => {
+    const at = await now();
+    return approvalSponsor({ ...config, now: () => at })({ chain_id: a.chain_id, sender: a.sender, calls: a.calls,
+      nonce_key: a.nonce_key, nonce: a.nonce, deadline: a.deadline, send_after: a.send_after });
   };
 }

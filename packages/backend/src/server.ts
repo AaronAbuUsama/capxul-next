@@ -17,8 +17,8 @@ import { alerts, indexerState } from "./platform/diagnostics.ts";
 type Config = ReturnType<typeof settings>;
 /**
  * Builds the approval carrier's chain-facing half (sponsorship, the bundler's send and lookup, the Safe nonce, needs and
- * gate) against the world's authority clock, never host time. PR84's SponsorConfig.now is synchronous, so read `now`
- * once per call: `sponsor: async (a) => { const at = await now(); return approvalSponsor({ ...config, now: () => at })(a); }`.
+ * gate) against the world's authority clock, never host time: its sponsor is approvals' `carrierSponsor(config, now)`,
+ * which reads that clock once per call for PR84's synchronous SponsorConfig.now.
  */
 export type CarrierChain = (now: () => Promise<Date>) => Pick<CarrierServices, "sponsor" | "send" | "lookup" | "nonce" | "needsAndGate">;
 function json(res: ServerResponse, status: number, body: unknown) {

@@ -8,8 +8,8 @@ const provision = createProvisioningHandler({
   coreSecret: config.secret, siteServiceUrl: required("SITE_SERVICE_URL"), siteServiceToken: required("SITE_SERVICE_TOKEN"),
 });
 // The approval carrier starts once its chain half is composed as the third argument (a CarrierChain built on the
-// world clock it is given): PR84's approvalSponsor and Shared's bundler send/lookup. Until then approvals open and are
-// signed but are not sponsored or sent.
+// world clock it is given): `sponsor: carrierSponsor(deployment, now)` and Shared's bundler send/lookup, which do not
+// exist yet. Until then approvals open and are signed but are not sponsored or sent.
 const core = createCore(config, provision);
 await core.start();
 console.log("Core listening with durable Postgres app state and Ponder facts");

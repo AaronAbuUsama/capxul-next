@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { test } from "node:test";
 import { encodeAbiParameters, encodeErrorResult, parseAbi, pad, type Hex, type PublicClient } from "viem";
-import { approvalSponsor, sponsorHttpTransport, SponsorError, type SponsorConfig, type SponsorshipRequest, type SponsorTransport } from "../src/approvals/sponsorship.ts";
+import { approvalSponsor, carrierSponsor, sponsorHttpTransport, SponsorError, type SponsorConfig, type SponsorshipRequest, type SponsorTransport } from "../src/approvals/sponsorship.ts";
+import type { CarrierServices } from "../src/approvals/door.ts";
+import type { Approval } from "../src/approvals/types.ts";
 import { safeOpDigest, entryPointHash, packCalls, type SafeUserOperation } from "../../sdk/src/approvals/safe-op.ts";
 
 const sender = "0x1111111111111111111111111111111111111111", owner = "0x2222222222222222222222222222222222222222";
@@ -137,4 +139,21 @@ test("actual sponsor HTTP preserves custom-revert codes without leaking gateway 
       assert.ok("code" in result); assert.equal(result.code, code); assert.doesNotMatch(result.reason, /secret|credential|URL/);
     }
   } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
+});
+
+test("carrier sponsor maps the approval row and windows it on one reading of the world clock, never host time", async () => {
+  const { config } = fixture();
+  const { now: _hostless, ...deployment } = config;
+  let readings = 0;
+  // The world clock is a day behind host time, which is already past the deadline.
+  assert.ok(Date.now() > request.deadline.getTime());
+  const sponsor: CarrierServices["sponsor"] = carrierSponsor(deployment, async () => { readings++; return now; });
+  const row = { ...request, approval_id: "approval-1", person_id: "person-1", state: "sponsoring" } as unknown as Approval;
+  const result = await sponsor(row);
+  assert.ok("user_operation" in result, JSON.stringify(result));
+  assert.equal(readings, 1);
+  assert.equal(result.nonce, nonce.toString());
+  assert.equal(result.valid_after?.toISOString(), "2026-11-12T12:01:01.000Z");
+  assert.equal(result.valid_until.toISOString(), "2026-11-12T12:05:00.000Z");
+  assert.equal(result.user_operation.callData, packCalls(request.calls, multiSend));
 });
