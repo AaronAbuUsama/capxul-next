@@ -1,0 +1,130 @@
+# The bench-clocks checks after the four fixes (fix/bench-gaps), run as: BENCH_PROJECT=benchfix BENCH_IMAGE=benchfix:spike spikes/bench-clocks/run.sh all
+# 13 November 2026, a Claude cloud container. The image build and Docker's own lines are left out, as in observed.txt.
+
+== start the bench: MariaDB, Redis, web (gunicorn), worker, scheduler
+SERVICE     STATE     STATUS
+mariadb     running   Up 17 seconds (healthy)
+redis       running   Up 18 seconds (healthy)
+scheduler   running   Up 4 seconds
+web         running   Up 4 seconds
+worker      running   Up 3 seconds
+
+== 1. one bench, three sites: two in world alpha, one in world beta
+joined world: "alpha"
+site alpha1.localhost (world alpha) created in 101 s; capxul_world in its site_config.json: alpha
+site alpha1.localhost encryption key print at creation (before anything served the site): 83f2b8f2
+joined world: "alpha"
+site alpha2.localhost (world alpha) created in 102 s; capxul_world in its site_config.json: alpha
+site alpha2.localhost encryption key print at creation (before anything served the site): 89fdedc9
+joined world: "beta"
+site beta1.localhost (world beta) created in 104 s; capxul_world in its site_config.json: beta
+site beta1.localhost encryption key print at creation (before anything served the site): 8f94a097
+sites on the bench: alpha1.localhost alpha2.localhost beta1.localhost 
+databases on the one MariaDB: 3
+
+== 2. world alpha frozen at 2027-03-31 10:00:00 UTC; world beta running on from 2026-06-15 12:00:00 UTC (13:00 in London's summer)
+alpha written from alpha1.localhost: {"alpha": {"offset_ms": 0, "frozen_at_ms": 1806487200000, "rate": 1.0, "host_anchor_ms": 1794563257478}}
+beta  written from beta1.localhost: {"alpha": {"offset_ms": 0, "frozen_at_ms": 1806487200000, "rate": 1.0, "host_anchor_ms": 1794563257478}, "beta": -13038457646}
+the bench's one clock file: {"alpha": {"offset_ms": 0, "frozen_at_ms": 1806487200000, "rate": 1.0, "host_anchor_ms": 1794563257478}, "beta": -13038457646}
+
+== 3. each site reads its world's time: in a bench process and in the web process (the host's real time beside it)
+bench  {"site": "alpha1.localhost", "world": "alpha", "now_datetime": "2027-03-31 11:00:00", "nowdate": "2027-03-31", "host_utc": "2026-11-13 09:47:40", "pid": 348, "capxul_loaded": true, "wrapper": true}
+bench  {"site": "alpha2.localhost", "world": "alpha", "now_datetime": "2027-03-31 11:00:00", "nowdate": "2027-03-31", "host_utc": "2026-11-13 09:47:41", "pid": 357, "capxul_loaded": true, "wrapper": true}
+bench  {"site": "beta1.localhost", "world": "beta", "now_datetime": "2026-06-15 13:00:06", "nowdate": "2026-06-15", "host_utc": "2026-11-13 09:47:43", "pid": 366, "capxul_loaded": true, "wrapper": true}
+web    alpha1.localhost {"world": "alpha", "world_local": "2027-03-31 11:00:00", "nowdate": "2027-03-31", "host_utc": "2026-11-13T09:47:44"}
+web    alpha2.localhost {"world": "alpha", "world_local": "2027-03-31 11:00:00", "nowdate": "2027-03-31", "host_utc": "2026-11-13T09:47:44"}
+web    beta1.localhost {"world": "beta", "world_local": "2026-06-15 13:00:06", "nowdate": "2026-06-15", "host_utc": "2026-11-13T09:47:44"}
+bench  alpha1.localhost frappe.utils.nowdate: 2027-03-31
+bench  alpha2.localhost frappe.utils.nowdate: 2027-03-31
+bench  beta1.localhost frappe.utils.nowdate: 2026-06-15
+web    40 answers from world alpha read 2027-03-31
+web    20 answers from world beta read 2026-06-15
+web    gunicorn worker process 23 answered alpha1.localhost 15 times since the web process started
+web    gunicorn worker process 23 answered alpha2.localhost 9 times since the web process started
+web    gunicorn worker process 23 answered beta1.localhost 10 times since the web process started
+web    gunicorn worker process 24 answered alpha1.localhost 6 times since the web process started
+web    gunicorn worker process 24 answered alpha2.localhost 12 times since the web process started
+web    gunicorn worker process 24 answered beta1.localhost 11 times since the web process started
+a plain Python process on the bench (frappe.init, frappe.connect, then the reading), not started by the bench CLI:
+plain  {"site": "alpha1.localhost", "world": "alpha", "now_datetime": "2027-03-31 11:00:00", "nowdate": "2027-03-31", "host_utc": "2026-11-13 09:47:50", "pid": 516, "capxul_loaded": true, "wrapper": true}
+plain  {"site": "alpha2.localhost", "world": "alpha", "now_datetime": "2027-03-31 11:00:00", "nowdate": "2027-03-31", "host_utc": "2026-11-13 09:47:51", "pid": 523, "capxul_loaded": true, "wrapper": true}
+plain  {"site": "beta1.localhost", "world": "beta", "now_datetime": "2026-06-15 13:00:15", "nowdate": "2026-06-15", "host_utc": "2026-11-13 09:47:52", "pid": 530, "capxul_loaded": true, "wrapper": true}
+
+== 4. a document created on each site carries its world's time in creation
+bench  {"site": "alpha1.localhost", "via": "bench execute", "todo": "7vbge5vkua", "creation": "2027-03-31 11:00:00"}
+bench  {"site": "alpha2.localhost", "via": "bench execute", "todo": "802n8dibsg", "creation": "2027-03-31 11:00:00"}
+bench  {"site": "beta1.localhost", "via": "bench execute", "todo": "80qpajol22", "creation": "2026-06-15 13:00:21"}
+web    alpha1.localhost {"via": "POST /api/resource/ToDo", "todo": "81tth1qp3s", "creation": "2027-03-31 11:00:00", "modified": "2027-03-31 11:00:00"}
+web    alpha1.localhost encryption key print: 83f2b8f2 after web served the site, 83f2b8f2 after a bench command stored its first secret, 83f2b8f2 after web used that secret twice (second request: accepted)
+web    alpha2.localhost {"via": "POST /api/resource/ToDo", "todo": "831nksi4gr", "creation": "2027-03-31 11:00:00", "modified": "2027-03-31 11:00:00"}
+web    alpha2.localhost encryption key print: 89fdedc9 after web served the site, 89fdedc9 after a bench command stored its first secret, 89fdedc9 after web used that secret twice (second request: accepted)
+web    beta1.localhost {"via": "POST /api/resource/ToDo", "todo": "842enes6tb", "creation": "2026-06-15 13:00:32", "modified": "2026-06-15 13:00:32"}
+web    beta1.localhost encryption key print: 8f94a097 after web served the site, 8f94a097 after a bench command stored its first secret, 8f94a097 after web used that secret twice (second request: accepted)
+the same insert from a plain Python process, not started by the bench CLI:
+plain  {"site": "alpha1.localhost", "via": "plain python", "todo": "84o2ktoehs", "creation": "2027-03-31 11:00:00"}
+plain  {"site": "alpha2.localhost", "via": "plain python", "todo": "85g57v4qga", "creation": "2027-03-31 11:00:00"}
+plain  {"site": "beta1.localhost", "via": "plain python", "todo": "868enm4ksu", "creation": "2026-06-15 13:00:38"}
+
+== 5. alpha moves forward to 2027-04-30 10:00:00 UTC with one write; beta is not written
+clock file before: {"alpha": {"offset_ms": 0, "frozen_at_ms": 1806487200000, "rate": 1.0, "host_anchor_ms": 1794563257478}, "beta": -13038457646}
+alpha written from alpha2.localhost: {"alpha": {"offset_ms": 0, "frozen_at_ms": 1809079200000, "rate": 1.0, "host_anchor_ms": 1794563298408}, "beta": -13038457646}
+bench  {"site": "alpha1.localhost", "world": "alpha", "now_datetime": "2027-04-30 11:00:00", "nowdate": "2027-04-30", "host_utc": "2026-11-13 09:48:19", "pid": 716, "capxul_loaded": true, "wrapper": true}
+bench  {"site": "alpha2.localhost", "world": "alpha", "now_datetime": "2027-04-30 11:00:00", "nowdate": "2027-04-30", "host_utc": "2026-11-13 09:48:21", "pid": 725, "capxul_loaded": true, "wrapper": true}
+bench  {"site": "beta1.localhost", "world": "beta", "now_datetime": "2026-06-15 13:00:45", "nowdate": "2026-06-15", "host_utc": "2026-11-13 09:48:22", "pid": 734, "capxul_loaded": true, "wrapper": true}
+web    alpha1.localhost {"world": "alpha", "world_local": "2027-04-30 11:00:00", "nowdate": "2027-04-30", "host_utc": "2026-11-13T09:48:22"}
+web    alpha2.localhost {"world": "alpha", "world_local": "2027-04-30 11:00:00", "nowdate": "2027-04-30", "host_utc": "2026-11-13T09:48:23"}
+web    beta1.localhost {"world": "beta", "world_local": "2026-06-15 13:00:45", "nowdate": "2026-06-15", "host_utc": "2026-11-13T09:48:23"}
+
+== 6a. the background worker (one process for all sites), restarted first so its first job meets a fresh process
+{"site": "alpha1.localhost", "enqueued": "round 1"}
+{"site": "beta1.localhost", "enqueued": "round 1"}
+{"site": "alpha2.localhost", "enqueued": "round 1"}
+{"site": "alpha1.localhost", "enqueued": "round 2"}
+{"site": "beta1.localhost", "enqueued": "round 2"}
+{"site": "alpha2.localhost", "enqueued": "round 2"}
+worker {"todo_creation": "2027-04-30 11:00:00", "tag": "round 1", "site": "alpha1.localhost", "world": "alpha", "now_datetime": "2027-04-30 11:00:00", "nowdate": "2027-04-30", "host_utc": "2026-11-13 09:48:31", "pid": 28, "capxul_loaded": true, "wrapper": true}
+worker {"todo_creation": "2027-04-30 11:00:00", "tag": "round 2", "site": "alpha1.localhost", "world": "alpha", "now_datetime": "2027-04-30 11:00:00", "nowdate": "2027-04-30", "host_utc": "2026-11-13 09:48:35", "pid": 37, "capxul_loaded": true, "wrapper": true}
+worker {"todo_creation": "2027-04-30 11:00:00", "tag": "round 1", "site": "alpha2.localhost", "world": "alpha", "now_datetime": "2027-04-30 11:00:00", "nowdate": "2027-04-30", "host_utc": "2026-11-13 09:48:33", "pid": 32, "capxul_loaded": true, "wrapper": true}
+worker {"todo_creation": "2027-04-30 11:00:00", "tag": "round 2", "site": "alpha2.localhost", "world": "alpha", "now_datetime": "2027-04-30 11:00:00", "nowdate": "2027-04-30", "host_utc": "2026-11-13 09:48:37", "pid": 41, "capxul_loaded": true, "wrapper": true}
+worker {"todo_creation": "2026-06-15 13:00:55", "tag": "round 1", "site": "beta1.localhost", "world": "beta", "now_datetime": "2026-06-15 13:00:54", "nowdate": "2026-06-15", "host_utc": "2026-11-13 09:48:32", "pid": 30, "capxul_loaded": true, "wrapper": true}
+worker {"todo_creation": "2026-06-15 13:00:59", "tag": "round 2", "site": "beta1.localhost", "world": "beta", "now_datetime": "2026-06-15 13:00:58", "nowdate": "2026-06-15", "host_utc": "2026-11-13 09:48:36", "pid": 39, "capxul_loaded": true, "wrapper": true}
+
+== 6b. the scheduler (one process for all sites; tick "scheduler_tick_interval": 15)
+alpha: the daily job was not due by the host's clock (job made today, host 2026-11-13 09:48 UTC); it is due by alpha's
+sched  {"site": "alpha1.localhost", "last_execution": "2027-04-30 11:00:00", "all_job_logs_on_site": 10, "notes": [["capxul daily job ran for 2027-04-30", "2027-04-30 11:00:00"]], "logs": [["Complete", "2027-04-30 11:00:00"]]}
+sched  {"site": "alpha2.localhost", "last_execution": "2027-04-30 11:00:00", "all_job_logs_on_site": 4, "notes": [["capxul daily job ran for 2027-04-30", "2027-04-30 11:00:00"]], "logs": [["Complete", "2027-04-30 11:00:00"]]}
+beta: rewind its jobs to beta's now with the app's own function, then watch three ticks before beta's midnight
+beta rewound: {"world": "beta", "offset_ms": -13038457646, "host_utc": "2026-11-13T09:49:08.302720+00:00", "world_local": "2026-06-15 13:01:30.656727", "nowdate": "2026-06-15", "tz": "Europe/London"}
+sched  {"site": "beta1.localhost", "last_execution": "2026-06-15 13:01:30", "all_job_logs_on_site": 0, "notes": [], "logs": []}
+beta: move its clock (the app's write) to 23:59:15 site time on 15 June, and wait for its midnight
+beta written from beta1.localhost: {"alpha": {"offset_ms": 0, "frozen_at_ms": 1809079200000, "rate": 1.0, "host_anchor_ms": 1794563298408}, "beta": -12999045397}
+beta now: {"site": "beta1.localhost", "world": "beta", "now_datetime": "2026-06-15 23:59:17", "nowdate": "2026-06-15", "host_utc": "2026-11-13 09:50:03", "pid": 955, "capxul_loaded": true, "wrapper": true}
+sched  {"site": "beta1.localhost", "last_execution": "2026-06-16 00:00:38", "all_job_logs_on_site": 10, "notes": [["capxul daily job ran for 2026-06-16", "2026-06-16 00:00:38"]], "logs": [["Complete", "2026-06-16 00:00:38"]]}
+alpha after beta's move: {"site": "alpha1.localhost", "world": "alpha", "now_datetime": "2027-04-30 11:00:00", "nowdate": "2027-04-30", "host_utc": "2026-11-13 09:51:31", "pid": 1132, "capxul_loaded": true, "wrapper": true}
+
+== 3b. the web process just after it starts: gunicorn serves frappe.app:application, as packages/bench-image/resources/start-web.sh does
+the bench's Python loads capxul at start (capxul_world_clock.pth): import capxul
+web    frappe.app: sign-in as the first request after the start stamps User.last_login 2026-06-16 00:00:57 (beta reads 2026-06-16 00:01:01)
+web    frappe.app: sign-in on the warmed process stamps User.last_login 2026-06-16 00:01:02; who am I: {"message":"Administrator"}
+web    frappe.app: first request after a restart, same cookie: {"message":"Administrator"}
+
+== 5b. a site changes world (capxul.clock.join_world writes its site_config.json): how soon each process follows
+alpha2.localhost joined: "beta"
+bench  {"site": "alpha2.localhost", "world": "beta", "now_datetime": "2026-06-16 00:01:10", "nowdate": "2026-06-16", "host_utc": "2026-11-13 09:51:56", "pid": 139, "capxul_loaded": true, "wrapper": true}
+web    alpha2.localhost 2 s after the change: beta 2026-06-16 00:01:10
+web    alpha2.localhost answers as world beta eight times running 3 s after the change (the world is read from site_config.json, not Frappe's 60 s copy)
+
+== 7. memory of the bench with three sites (docker stats), after 60 more requests so the web process is warm
+benchfix-mariadb-1           374.8MiB  cpu 0.55%
+benchfix-redis-1              20.6MiB  cpu 0.76%
+benchfix-scheduler-1         70.04MiB  cpu 0.00%
+benchfix-web-1               121.6MiB  cpu 0.01%
+benchfix-worker-1            85.17MiB  cpu 98.95%
+total: 672 MiB
+
+== total wall time: 591 s (image build included)
+
+== remove everything this run started
+containers of this project left: 0
+volumes of this project left: 0
+networks of this project left: 0

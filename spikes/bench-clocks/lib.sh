@@ -3,7 +3,8 @@
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ALPHA_SITES=(alpha1.localhost alpha2.localhost); BETA_SITES=(beta1.localhost)
 SITES=("${ALPHA_SITES[@]}" "${BETA_SITES[@]}")
-dc() { docker compose -f "$HERE/compose.yaml" "$@"; }
+export BENCH_PROJECT="${BENCH_PROJECT:-bench-clocks}" BENCH_IMAGE="${BENCH_IMAGE:-bench-clocks:spike}"   # another name keeps runs apart
+dc() { docker compose -p "$BENCH_PROJECT" -f "$HERE/compose.yaml" "$@"; }
 b() { dc exec -T web bench "$@"; }                       # a bench command (its own process) on the shared bench
 web_ready() { for _ in $(seq 1 90); do dc exec -T web bash -c 'exec 3<>/dev/tcp/127.0.0.1/8000' 2>/dev/null && return 0; sleep 1; done; }   # listening; no request is made
 say() { printf '\n== %s\n' "$*"; }
@@ -29,3 +30,7 @@ http() { local site="$1" path="$2"; shift 2; dc exec -T web curl -sS -H "Host: $
 field() { python3 -c 'import json,sys; d=json.load(sys.stdin); d=d.get("message", d.get("data", d)); print(d[sys.argv[1]])' "$1"; }
 set_frozen() { capxul "$1" clock.write_world "{\"world\":\"$2\",\"offset_ms\":0,\"frozen_at_ms\":$(ms "$3")}"; }   # site world "YYYY-MM-DD HH:MM:SS" (UTC)
 set_running() { capxul "$1" clock.write_world "{\"world\":\"$2\",\"offset_ms\":$(( $(ms "$3") - $(now_ms) ))}"; }  # runs on from that UTC instant
+keyprint() {   # the first 8 hex digits of the SHA-256 of the site's encryption key (never the key), or "none"
+  dc exec -T web python3 -c 'import hashlib,json,sys; k=json.load(open(f"sites/{sys.argv[1]}/site_config.json")).get("encryption_key")
+print(hashlib.sha256(k.encode()).hexdigest()[:8] if k else "none")' "$1"
+}

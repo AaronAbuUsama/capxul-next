@@ -21,3 +21,5 @@ COPY --from=capxul-app --chown=frappe:0 . /home/frappe/frappe-bench/apps/capxul
 RUN --mount=type=secret,id=build_ca,uid=1000,required=false \
     bash /opt/spike/image-build.sh app
 WORKDIR /home/frappe/frappe-bench
+# Every Python process of the bench loads the world clock before Frappe can read the time (capxul/boot.py).
+RUN env/bin/python -c "import capxul.boot as b; print(b.write_pth())"

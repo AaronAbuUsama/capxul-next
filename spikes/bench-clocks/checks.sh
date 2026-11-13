@@ -6,7 +6,7 @@ set -euo pipefail
 A1="${ALPHA_SITES[0]}"; A2="${ALPHA_SITES[1]}"; B1="${BETA_SITES[0]}"
 
 clocks() {
-  say "2. world alpha frozen at 2027-03-31 10:00:00 UTC; world beta running on from 2026-06-15 12:00:00 UTC"
+  say "2. world alpha frozen at 2027-03-31 10:00:00 UTC; world beta running on from 2026-06-15 12:00:00 UTC (13:00 in London's summer)"
   echo "alpha written from $A1: $(set_frozen "$A1" alpha "2027-03-31 10:00:00")"
   echo "beta  written from $B1: $(set_running "$B1" beta "2026-06-15 12:00:00")"
   echo "the bench's one clock file: $(dc exec -T web cat sites/capxul-world-clocks.json)"
@@ -47,10 +47,6 @@ read_step() {
   for s in "${SITES[@]}"; do echo "plain  $(plain "$s" show)"; done
 }
 
-keyprint() {   # the first 8 hex digits of the SHA-256 of the site's encryption key (never the key), or "none"
-  dc exec -T web python3 -c 'import hashlib,json,sys; k=json.load(open(f"sites/{sys.argv[1]}/site_config.json")).get("encryption_key")
-print(hashlib.sha256(k.encode()).hexdigest()[:8] if k else "none")' "$1"
-}
 new_token() { probe "$1" api_keys | field token; }   # a fresh API secret for Administrator, made by a bench command
 post_todo() {   # post_todo <site> <token>: POST /api/resource/ToDo to the web process
   http "$1" /api/resource/ToDo -X POST -H "Authorization: token $2" -H 'Content-Type: application/json' \
@@ -61,12 +57,11 @@ print(json.dumps({"via": "POST /api/resource/ToDo", "todo": d["name"], "creation
 docs() {
   say "4. a document created on each site carries its world's time in creation"
   for s in "${SITES[@]}"; do echo "bench  $(probe "$s" make_doc)"; done
-  for s in "${SITES[@]}"; do
-    k0="$(keyprint "$s")"; tok="$(new_token "$s")"; k1="$(keyprint "$s")"; r="$(post_todo "$s" "$tok")"; echo "web    $s $r"
-    if [[ "$r" == REFUSED* ]]; then   # finding 4 in the README: the web process held an older site_config.json
-      echo "web    $s encryption key print: $k0 before the bench command made the site's first secret, $k1 after it, $(keyprint "$s") after the refused request"
-      echo "web    $s second attempt: $(post_todo "$s" "$(new_token "$s")")"
-    fi
+  for s in "${SITES[@]}"; do   # the web process has served every site by now (step 3), so it holds each site_config.json
+    k0="$(keyprint "$s")"; tok="$(new_token "$s")"; k1="$(keyprint "$s")"
+    r1="$(post_todo "$s" "$tok")"; r2="$(post_todo "$s" "$tok")"; echo "web    $s $r1"
+    echo "web    $s encryption key print: $k0 after web served the site, $k1 after a bench command stored its first secret," \
+      "$(keyprint "$s") after web used that secret twice (second request: $([[ "$r2" == REFUSED* ]] && echo "$r2" || echo accepted))"
   done
   echo "the same insert from a plain Python process, not started by the bench CLI:"
   for s in "${SITES[@]}"; do echo "plain  $(plain "$s" make_doc '{"label":"plain python"}')"; done
@@ -102,14 +97,10 @@ web_start() {   # web_start <label>: what the first request to a just-started we
 }
 
 fresh_web() {
-  say "3b. the web process just after it starts (gunicorn imports no app; capxul is loaded by the first hook Frappe calls)"
+  say "3b. the web process just after it starts: gunicorn serves frappe.app:application, as packages/bench-image/resources/start-web.sh does"
+  echo "the bench's Python loads capxul at start (capxul_world_clock.pth): $(dc exec -T web bash -c 'cat env/lib/python3*/site-packages/capxul_world_clock.pth')"
   dc up -d --force-recreate web >/dev/null 2>&1
-  echo "gunicorn serves frappe.app:application, as packages/bench-image/resources/start-web.sh does:"
   web_start "frappe.app"
-  WEB_APP=webentry:application dc up -d --force-recreate web >/dev/null 2>&1
-  echo "gunicorn serves webentry:application (probe/webentry.py: import capxul, then frappe.app):"
-  web_start "webentry  "
-  dc up -d web >/dev/null 2>&1; web_ready   # back to the entry the hosted bench uses today
 }
 
 world_change() {
@@ -121,7 +112,7 @@ world_change() {
   n=0; while [ "$n" -lt 8 ] && [ $((SECONDS - t0)) -lt 180 ]; do
     if [ "$(http "$A2" /api/method/capxul.clock.now | field world)" = beta ]; then n=$((n + 1)); else n=0; sleep 3; fi
   done
-  echo "web    $A2 answers as world beta eight times running $((SECONDS - t0)) s after the change (Frappe keeps site_config.json in a web process for up to 60 s)"
+  echo "web    $A2 answers as world beta eight times running $((SECONDS - t0)) s after the change (the world is read from site_config.json, not Frappe's 60 s copy)"
 }
 
 case "${1:-all}" in

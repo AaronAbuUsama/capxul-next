@@ -28,7 +28,17 @@ CUSTOM_FIELDS = {
 
 
 def after_install():
+    ensure_encryption_key()
     ensure_defaults()
+
+
+def ensure_encryption_key():
+    """Write the site's encryption key while the site is being made, before anything can serve it. Frappe makes the key the
+    first time a secret is stored; a web process holding a site_config.json older than that (it keeps one for up to 60 s)
+    would make a second key and write it over the first, and whatever the first key encrypted could not be read again."""
+    from frappe.utils.password import get_encryption_key
+
+    return get_encryption_key()
 
 
 def after_migrate():

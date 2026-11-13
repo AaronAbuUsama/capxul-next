@@ -24,7 +24,7 @@ an empty secrets file as missing, so a run cut short is safe to repeat.
 | `Containerfile` | Builder stage (runs `resources/build-bench.sh`), then the runtime stage on frappe/base with the bench copied in |
 | `resources/build-bench.sh` | `bench init` at the pinned Frappe, each app fetched at its commit (refused if the commit differs), the capxul app copied in, `bench build --production`, `capxul-image.json` written, git history and caches removed |
 | `resources/entrypoint.sh` | Links the image's assets into the sites folder at every start, so a new image serves its own assets |
-| `resources/start-web.sh` | gunicorn, the web process |
+| `resources/start-web.sh` | gunicorn, the web process (it reads world time from its first request: the build writes `capxul_world_clock.pth`, `capxul/boot.py`) |
 | `compose.yaml` | The hosted layout, one container per process: `configurator` (one-shot), `backend`, `websocket`, `queue-short`, `queue-long`, `scheduler`, `frontend` (nginx, the only published port, on loopback), `mariadb`, `redis-cache`, `redis-queue`; `site-admin` (profile `admin`) is the one container with the database root password |
 | `bin/build.sh` | Builds the image; uses the host network and the proxy variables when `HTTPS_PROXY` is set |
 | `bin/env.sh` | Makes the secrets folder once (`mariadb.env`, `bench.env`, mode 0600); never overwrites |
