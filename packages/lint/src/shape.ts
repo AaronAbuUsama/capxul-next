@@ -33,6 +33,9 @@ export const PACKAGES: Readonly<Record<string, string>> = {
   indexer: "the Ponder app that indexes the chain into the world's database",
   "status-feed": "the data files behind the status dashboard",
   lint: "the ladder's own rules and this shape check",
+  core: "the Capxul server: a Cloudflare Worker that serves every blueprint operation",
+  runner: "the scenario runner: runs scenarios against a world, checks every call and writes run records",
+  scenarios: "the acceptance scenarios, each proving one blueprint claim through the door",
 };
 
 /** The only file allowed under docs/. */

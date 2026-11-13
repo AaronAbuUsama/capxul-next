@@ -9,7 +9,7 @@ import it; it imports neither.
 
 | File | What it holds |
 |---|---|
-| `src/door.ts` | The one door: `operations` (the twelve, by name), the two Rpc groups and `servedBy`. |
+| `src/door.ts` | The one door: `operations` (the twelve, by name), the two Rpc groups, `servedBy`, and `allClaims`, which scenarios name the claim they prove by. |
 | `src/operation.ts` | The format: `declare`, `declareOutcomes`, `outcome`, `Budget`, and what the runner reads. |
 | `src/errors.ts` | Every refusal, declared once, with its command-line exit code, `NotImplemented` included (every operation declares it; decisions.md, entry 33). |
 | `src/values.ts` | The shared values: names, ids, instants, money, approvals, the view of a world. |
