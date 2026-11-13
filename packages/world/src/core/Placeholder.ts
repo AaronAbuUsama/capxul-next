@@ -12,7 +12,9 @@ export default class PlaceholderCore extends Cloudflare.Worker<PlaceholderCore>(
     const { stage } = yield* Alchemy.Stack;
     return {
       fetch: Effect.succeed(
-        HttpServerResponse.text(JSON.stringify({ core: "placeholder", world: stage }), { contentType: "application/json" }),
+        HttpServerResponse.text(JSON.stringify({ core: "placeholder", world: stage }), {
+          contentType: "application/json",
+        }),
       ),
     };
   }),

@@ -28,7 +28,9 @@ const post = (database: Redacted.Redacted<string>, body: unknown) =>
     );
     const answer = yield* response.json;
     if (response.status === 200) return answer;
-    const refusal = yield* Schema.decodeUnknownEffect(Refusal)(answer).pipe(Effect.orElseSucceed(() => ({ message: "no message" })));
+    const refusal = yield* Schema.decodeUnknownEffect(Refusal)(answer).pipe(
+      Effect.orElseSucceed(() => ({ message: "no message" })),
+    );
     return yield* new DatabaseRefused({ status: response.status, message: refusal.message });
   }).pipe(Effect.scoped, Effect.withSpan("world.database.post"));
 
@@ -42,7 +44,10 @@ export const query = (database: Redacted.Redacted<string>, sql: string, params: 
 const Results = Schema.Struct({ results: Schema.Array(Rows) });
 
 /** Several statements as one transaction: all of them or none. Returns each statement's rows. */
-export const transaction = (database: Redacted.Redacted<string>, queries: ReadonlyArray<{ readonly query: string; readonly params: ReadonlyArray<unknown> }>) =>
+export const transaction = (
+  database: Redacted.Redacted<string>,
+  queries: ReadonlyArray<{ readonly query: string; readonly params: ReadonlyArray<unknown> }>,
+) =>
   post(database, { queries }).pipe(
     Effect.flatMap(Schema.decodeUnknownEffect(Results)),
     Effect.map((answer) => answer.results.map((result) => result.rows)),
@@ -65,15 +70,24 @@ const Applied = Schema.Array(Schema.Struct({ name: Schema.String }));
  * them or none. What has been applied is kept in `world.migrations`, so a world forked from another, which already
  * holds its parent's schema, is given only what its parent lacked.
  */
-export const migrate = Effect.fn("world.database.migrate")(function* (database: Redacted.Redacted<string>, directory: string) {
+export const migrate = Effect.fn("world.database.migrate")(function* (
+  database: Redacted.Redacted<string>,
+  directory: string,
+) {
   const fs = yield* FileSystem.FileSystem;
   yield* post(database, {
     queries: [
       { query: "create schema if not exists world", params: [] },
-      { query: "create table if not exists world.migrations (name text primary key, applied_at timestamptz not null default now())", params: [] },
+      {
+        query:
+          "create table if not exists world.migrations (name text primary key, applied_at timestamptz not null default now())",
+        params: [],
+      },
     ],
   });
-  const applied = yield* query(database, "select name from world.migrations").pipe(Effect.flatMap(Schema.decodeUnknownEffect(Applied)));
+  const applied = yield* query(database, "select name from world.migrations").pipe(
+    Effect.flatMap(Schema.decodeUnknownEffect(Applied)),
+  );
   const seen = new Set(applied.map((row) => row.name));
   const files = (yield* fs.readDirectory(directory)).filter((name) => name.endsWith(".sql") && !seen.has(name)).sort();
   if (files.length === 0) return files;

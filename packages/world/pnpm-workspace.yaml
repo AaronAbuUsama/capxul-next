@@ -1,3 +1,0 @@
-# Settings for this package alone. It is not yet a member of the repository's workspace (the root file excludes it):
-# Alchemy's beta releases are younger than the root's release-age policy allows. Install with --ignore-workspace.
-verifyDepsBeforeRun: false

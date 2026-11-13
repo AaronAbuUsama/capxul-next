@@ -1,9 +1,6 @@
 # pnpm workspaces (decision tooling.package-manager: Aaron, 8 November 2026: pnpm, not npm).
 packages:
   - packages/*
-  # packages/world installs by itself (pnpm install --ignore-workspace): Alchemy's beta releases are younger than
-  # the release-age policy below allows, so it cannot join the workspace's lockfile yet.
-  - "!packages/world"
 
 # One version of each shared dependency; manifests refer to it as "catalog:".
 catalog:
@@ -18,6 +15,14 @@ catalog:
   oxfmt: 0.75.0
   "@oxlint/plugins": 1.90.0
   "@effect/tsgo": 0.63.0
+  # packages/world: Alchemy and the Effect platform packages it runs on, pinned together (alchemy 2.0.0-beta.85 is
+  # built on effect 4.1.2).
+  alchemy: 2.0.0-beta.85
+  "@alchemy.run/cloudflare": 2.0.0-beta.85
+  "@alchemy.run/neon": 2.0.0-beta.85
+  "@effect/platform-bun": 4.1.2
+  "@effect/platform-node": 4.1.2
+  "@cloudflare/workers-types": 4.20260702.1
 
 # Supply chain: a version must be at least 3 days old, and no dependency runs an install script
 # unless it is listed here.
@@ -26,3 +31,8 @@ onlyBuiltDependencies: []
 
 savePrefix: ""
 packageImportMethod: clone-or-copy
+
+# Install scripts that are known and deliberately not run.
+allowBuilds:
+  # Alchemy's Cloudflare package brings workerd for its local emulator, which a deploy never starts.
+  workerd: false

@@ -5,7 +5,7 @@ import * as Alchemy from "alchemy";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
-import * as Schema from "effect/Schema";
+import { WorldSettingsMissing } from "../failures.ts";
 
 export interface WorldSettings {
   readonly owner: string;
@@ -19,10 +19,6 @@ export const WorldSettings = Context.Reference<Option.Option<WorldSettings>>("ca
   defaultValue: () => Option.none(),
 });
 
-export class WorldSettingsMissing extends Schema.TaggedError<WorldSettingsMissing>()("WorldSettingsMissing", {
-  message: Schema.String,
-}) {}
-
 const blank: WorldSettings = { owner: "", expiresAt: "", forkedFrom: Option.none() };
 
 /**
@@ -34,6 +30,8 @@ export const worldSettings = Effect.gen(function* () {
   const provided = yield* WorldSettings;
   if (Option.isSome(provided)) return provided.value;
   return yield* Effect.die(
-    new WorldSettingsMissing({ message: "a world is deployed through this package's create, which provides its owner and expiry" }),
+    WorldSettingsMissing.make({
+      message: "a world is deployed through this package's create, which provides its owner and expiry",
+    }),
   );
 });

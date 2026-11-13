@@ -63,7 +63,14 @@ export interface ChainRecord {
   readonly lastSave: { readonly at: string; readonly head: string; readonly ms: number } | null;
 }
 
-const fresh: ChainRecord = { idleSeconds: IDLE_SECONDS, up: false, adopted: false, starts: [], stops: [], lastSave: null };
+const fresh: ChainRecord = {
+  idleSeconds: IDLE_SECONDS,
+  up: false,
+  adopted: false,
+  starts: [],
+  stops: [],
+  lastSave: null,
+};
 
 const RpcAnswer = Schema.Struct({ result: Schema.optional(Schema.Unknown), error: Schema.optional(Schema.Unknown) });
 const decodeAnswer = Schema.decodeUnknownEffect(Schema.fromJsonString(RpcAnswer));
@@ -100,7 +107,10 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
       const forward = (body: string) =>
         port
           .fetch(HttpClientRequest.post("http://container/").pipe(HttpClientRequest.bodyText(body, "application/json")))
-          .pipe(Effect.flatMap((response) => response.text), Effect.mapError(failed("rpc")));
+          .pipe(
+            Effect.flatMap((response) => response.text),
+            Effect.mapError(failed("rpc")),
+          );
 
       /** Calls one method and insists on a result. */
       const call = (step: ChainFailed["step"], method: string, params: ReadonlyArray<unknown> = []) =>
@@ -132,7 +142,12 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
         yield* call("start", "eth_chainId");
         const ms = (yield* Clock.currentTimeMillis) - began;
         yield* indexer.resume().pipe(Effect.mapError(failed("start")));
-        const start = { at: stamp(began), from: object ? ("saved state" as const) : ("seed" as const), afterUnsavedStop, ms };
+        const start = {
+          at: stamp(began),
+          from: object ? ("saved state" as const) : ("seed" as const),
+          afterUnsavedStop,
+          ms,
+        };
         yield* remember((old) => ({ ...old, up: true, starts: [...old.starts, start].slice(-REMEMBERED) }));
       }).pipe(lock.withPermits(1));
 
@@ -197,13 +212,21 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
         /** Saves the chain and stops its container now. */
         stop: () => halt("asked"),
         /** The chain's whole state as it is now, for a world that is being made from this one. */
-        dump: () => wake.pipe(Effect.andThen(touch), Effect.andThen(save), Effect.map(({ dump }) => dump)),
+        dump: () =>
+          wake.pipe(
+            Effect.andThen(touch),
+            Effect.andThen(save),
+            Effect.map(({ dump }) => dump),
+          ),
         /** Takes another world's state as this chain's first state. Refused once the chain has ever started. */
         adopt: (dump: string) =>
           Effect.gen(function* () {
             const old = yield* record;
             if (old.starts.length > 0) {
-              return yield* new ChainFailed({ step: "adopt", message: "the chain has already started from its own state" });
+              return yield* new ChainFailed({
+                step: "adopt",
+                message: "the chain has already started from its own state",
+              });
             }
             yield* saved.put(key, dump).pipe(Effect.mapError(failed("adopt")));
             yield* state.storage.put("record", { ...old, adopted: true });

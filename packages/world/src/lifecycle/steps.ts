@@ -25,13 +25,21 @@ export const makeStopwatch = (timeouts: Timeouts) =>
           duration: timeouts[name],
           orElse: () => {
             const afterMs = Duration.toMillis(timeouts[name]);
-            return Effect.fail(new StepTimedOut({ step: name, afterMs, message: `the ${name} step did not finish within its declared ${afterMs} ms` }));
+            return Effect.fail(
+              new StepTimedOut({
+                step: name,
+                afterMs,
+                message: `the ${name} step did not finish within its declared ${afterMs} ms`,
+              }),
+            );
           },
         }),
         Effect.exit,
         Effect.timed,
         Effect.tap(([took]) => Ref.update(taken, (was) => ({ ...was, [name]: Math.round(Duration.toMillis(took)) }))),
-        Effect.flatMap(([, exit]) => (Exit.isSuccess(exit) ? Effect.succeed(exit.value) : Effect.failCause(exit.cause))),
+        Effect.flatMap(([, exit]) =>
+          Exit.isSuccess(exit) ? Effect.succeed(exit.value) : Effect.failCause(exit.cause),
+        ),
         Effect.withSpan(`world.${name}`),
       );
     return { step, durations: Ref.get(taken) } satisfies Stopwatch;

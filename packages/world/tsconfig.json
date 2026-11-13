@@ -1,17 +1,17 @@
 {
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2023",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "lib": ["ES2023"],
-    "types": ["bun", "@cloudflare/workers-types"],
-    "strict": true,
-    "exactOptionalPropertyTypes": true,
-    "noUncheckedIndexedAccess": true,
-    "noEmit": true,
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "skipLibCheck": true
+    // The door, the chain and the index run inside Cloudflare Workers and Durable Objects.
+    "types": ["node", "@cloudflare/workers-types"],
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        // Effect 4 ships these only as unstable modules, with no stable replacement: the HTTP client and server
+        // (calls to the door, Neon and Cloudflare; the Workers' answers), the command line, the file system (records
+        // and migrations) and Bun's runtime, which Alchemy needs. The catalog's exact pin of effect is the guard.
+        "allowedUnstableApis": ["effect/http", "effect/cli", "effect/FileSystem", "@effect/platform-bun"]
+      }
+    ]
   },
-  "include": ["alchemy.run.ts", "src"]
+  "include": ["alchemy.run.ts", "src", "test"]
 }

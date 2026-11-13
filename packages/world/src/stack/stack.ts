@@ -21,6 +21,9 @@ import Door from "../door/Door.ts";
 import { PLATFORM, STACK } from "./names.ts";
 import { worldSettings } from "./settings.ts";
 
+// Each provider takes its HTTP client from the stack's own services, as Alchemy's stacks are written; none is meant
+// to feed another, so they are merged side by side.
+// @effect-diagnostics-next-line layerMergeAllWithDependencies:off
 const providers = Layer.mergeAll(Cloudflare.providers(), Neon.providers(), Alchemy.RandomProvider());
 
 /** What fills the Core slot: anything that deploys a Worker and says where it answers. */

@@ -53,7 +53,9 @@ export default class Indexer extends Cloudflare.DurableObject<Indexer>()(
         Effect.gen(function* () {
           if (yield* running) return { started: false as const };
           const atMs = yield* Clock.currentTimeMillis;
-          yield* ponder.start({ enableInternet: true, env: { RPC_URL: rpcUrl } }).pipe(Effect.mapError(failed("start")));
+          yield* ponder
+            .start({ enableInternet: true, env: { RPC_URL: rpcUrl } })
+            .pipe(Effect.mapError(failed("start")));
           // Not for Ponder's sake (it loses nothing by being stopped) but so that the world's own idle stop, which
           // is the one that is recorded, is the stop that happens.
           yield* ponder.setInactivityTimeout(3600 * 1000).pipe(Effect.mapError(failed("start")));
@@ -77,7 +79,11 @@ export default class Indexer extends Cloudflare.DurableObject<Indexer>()(
         start: (rpcUrl: string) => begin(rpcUrl),
         /** Starts Ponder again with what it was last started with; does nothing if it never was. */
         resume: () =>
-          record.pipe(Effect.flatMap((old) => (old.rpcUrl ? begin(old.rpcUrl) : Effect.succeed({ started: false as const })))),
+          Effect.gen(function* () {
+            const { rpcUrl } = yield* record;
+            if (rpcUrl === null) return { started: false as const };
+            return yield* begin(rpcUrl);
+          }),
         stop: () =>
           Effect.gen(function* () {
             if (!(yield* running.pipe(Effect.mapError(failed("stop"))))) return { stopped: false as const };
@@ -97,7 +103,14 @@ export default class Indexer extends Cloudflare.DurableObject<Indexer>()(
             const indexed = ready?.status === 200 ? yield* probe("/status") : null;
             if (ready?.status === 200) yield* noteReady;
             const { starts, stops } = yield* record;
-            return { running: up, health: health?.status ?? null, ready: ready?.status ?? null, indexed: indexed?.body ?? null, starts, stops };
+            return {
+              running: up,
+              health: health?.status ?? null,
+              ready: ready?.status ?? null,
+              indexed: indexed?.body ?? null,
+              starts,
+              stops,
+            };
           }),
       };
     });

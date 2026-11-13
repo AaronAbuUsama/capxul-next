@@ -8,7 +8,14 @@ export const RPC_PORT = 8545;
 
 /** How anvil starts when its state comes from a save instead of from the seed in the image. */
 export const restoreEntrypoint = [
-  "anvil", "--host", "0.0.0.0", "--port", String(RPC_PORT), "--chain-id", String(CHAIN_ID), "--no-request-size-limit",
+  "anvil",
+  "--host",
+  "0.0.0.0",
+  "--port",
+  String(RPC_PORT),
+  "--chain-id",
+  String(CHAIN_ID),
+  "--no-request-size-limit",
 ];
 
 export class Anvil extends Cloudflare.Container<Anvil>()("Anvil", {

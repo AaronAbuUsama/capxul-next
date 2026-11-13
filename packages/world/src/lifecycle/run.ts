@@ -27,7 +27,8 @@ export const DEFAULT_RECORDS = `${import.meta.dirname}/../../records`;
 export const describe = (cause: Cause.Cause<unknown>): string => {
   const first = Cause.squash(cause);
   const tag = typeof first === "object" && first !== null && "_tag" in first ? `${String(first._tag)}: ` : "";
-  const message = typeof first === "object" && first !== null && "message" in first ? String(first.message) : String(first);
+  const message =
+    typeof first === "object" && first !== null && "message" in first ? String(first.message) : String(first);
   return `${tag}${message}`.replace(/postgres(ql)?:\/\/\S+/g, "<connection string>").slice(0, 400);
 };
 
@@ -36,7 +37,9 @@ const outcomeOf = (created: boolean, used: Option.Option<Exit.Exit<unknown, unkn
   if (Exit.isSuccess(used.value)) return "passed";
   if (Cause.hasInterruptsOnly(used.value.cause)) return "interrupted";
   const failure = Cause.squash(used.value.cause);
-  return typeof failure === "object" && failure !== null && "_tag" in failure && failure._tag === "StepTimedOut" ? "timed out" : "failed";
+  return typeof failure === "object" && failure !== null && "_tag" in failure && failure._tag === "StepTimedOut"
+    ? "timed out"
+    : "failed";
 };
 
 /**
@@ -96,11 +99,20 @@ export const withWorld = <A, E, R>(spec: WorldSpec, use: (world: World) => Effec
       const keep = spec.keepOnFailure === true && before.outcome !== "passed" && before.ms.create !== null;
       const after = keep
         ? yield* watch
-            .step("park", Effect.flatMap(recordedOutput(plan.stage), (output) => Effect.andThen(markParked(output), stopWorld(plan.stage))))
+            .step(
+              "park",
+              Effect.flatMap(recordedOutput(plan.stage), (output) =>
+                Effect.andThen(markParked(output), stopWorld(plan.stage)),
+              ),
+            )
             .pipe(Effect.exit, Effect.as("kept until expiry" as const))
         : yield* takeDown(plan.stage, watch, holder).pipe(
             Effect.exit,
-            Effect.tap((gone) => (Exit.isFailure(gone) ? Effect.logError(`world ${plan.stage}: destroy failed: ${describe(gone.cause)}`) : Effect.void)),
+            Effect.tap((gone) =>
+              Exit.isFailure(gone)
+                ? Effect.logError(`world ${plan.stage}: destroy failed: ${describe(gone.cause)}`)
+                : Effect.void,
+            ),
             Effect.map((gone) => (Exit.isSuccess(gone) ? ("destroyed" as const) : ("destroy failed" as const))),
           );
       return yield* recordNow(after, (yield* Clock.currentTimeMillis) - began);
@@ -109,7 +121,9 @@ export const withWorld = <A, E, R>(spec: WorldSpec, use: (world: World) => Effec
     // `leave` is the release of acquireUseRelease in all but name: it cannot be interrupted, and it runs when `run`
     // fails, dies or is interrupted, whether or not the create had finished.
     const [ran, record] = yield* Effect.uninterruptibleMask((restore) =>
-      Effect.flatMap(Effect.exit(restore(run)), (ran) => Effect.map(leave.pipe(Effect.orDie), (record) => [ran, record] as const)),
+      Effect.flatMap(Effect.exit(restore(run)), (ran) =>
+        Effect.map(leave.pipe(Effect.orDie), (record) => [ran, record] as const),
+      ),
     );
     // A world that could not be created is the caller's typed failure, once its record is written and whatever
     // the create left behind is gone.

@@ -11,7 +11,17 @@ export { chainAnswers, indexStatus, open, rpc } from "./lifecycle/parts.ts";
 export { platformDown, platformUp, WorldsStillExist } from "./lifecycle/platform.ts";
 export { RunRecord } from "./lifecycle/record.ts";
 export { withWorld } from "./lifecycle/run.ts";
-export { LifetimeTooLong, Limits, StepTimedOut, Timeouts, TooManyWorlds, type World, WorldNotFound, WorldNotReady, type WorldSpec } from "./lifecycle/spec.ts";
+export {
+  LifetimeTooLong,
+  Limits,
+  StepTimedOut,
+  Timeouts,
+  TooManyWorlds,
+  type World,
+  WorldNotFound,
+  WorldNotReady,
+  type WorldSpec,
+} from "./lifecycle/spec.ts";
 export { sweep, SweepIncomplete, SweepReport } from "./lifecycle/sweep.ts";
 export { Core } from "./stack/engine.ts";
 export { InvalidWorldName, STACK } from "./stack/names.ts";

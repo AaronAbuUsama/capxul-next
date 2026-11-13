@@ -1,12 +1,12 @@
-// bun test src
-import { describe, expect, test } from "bun:test";
-import { balanceOfCall, constructorArguments, mintCall } from "./faucet.ts";
+import * as assert from "node:assert/strict";
+import { describe, test } from "node:test";
+import { balanceOfCall, constructorArguments, mintCall } from "../src/chain/faucet.ts";
 
 const words = (hex: string) => hex.match(/.{64}/g) ?? [];
 
 describe("the faucet's calldata", () => {
   test("the token's constructor arguments are (string, string, uint8), ABI-encoded", () => {
-    expect(words(constructorArguments("World test USD", "USDC", 6))).toEqual([
+    assert.deepStrictEqual(words(constructorArguments("World test USD", "USDC", 6)), [
       "0000000000000000000000000000000000000000000000000000000000000060",
       "00000000000000000000000000000000000000000000000000000000000000a0",
       "0000000000000000000000000000000000000000000000000000000000000006",
@@ -18,16 +18,18 @@ describe("the faucet's calldata", () => {
   });
   test("a name longer than one word moves the second string's offset", () => {
     const encoded = words(constructorArguments("A name that is longer than thirty-two bytes", "T", 18));
-    expect(encoded[1]).toBe("00000000000000000000000000000000000000000000000000000000000000c0");
-    expect(encoded.length).toBe(8);
+    assert.strictEqual(encoded[1], "00000000000000000000000000000000000000000000000000000000000000c0");
+    assert.strictEqual(encoded.length, 8);
   });
   test("mint(address,uint256) carries the address and the amount", () => {
-    expect(mintCall({ to: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", amount: 250_000_000n })).toBe(
+    assert.strictEqual(
+      mintCall({ to: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", amount: 250_000_000n }),
       "0x40c10f1900000000000000000000000070997970c51812dc3a010c7d01b50e0d17dc79c8000000000000000000000000000000000000000000000000000000000ee6b280",
     );
   });
   test("balanceOf(address) carries the address", () => {
-    expect(balanceOfCall("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")).toBe(
+    assert.strictEqual(
+      balanceOfCall("0x70997970C51812dc3A010C7d01b50e0d17dc79C8"),
       "0x70a0823100000000000000000000000070997970c51812dc3a010c7d01b50e0d17dc79c8",
     );
   });

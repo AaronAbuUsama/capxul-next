@@ -36,7 +36,13 @@ const report = (value: unknown) =>
 
 const lifetimeOf = (given: string) =>
   Option.match(Duration.fromInput(given as Duration.Input), {
-    onNone: () => Effect.fail(new InvalidLifetime({ given, message: `"${given}" is not a duration; write it like "2 hours" or "30 minutes"` })),
+    onNone: () =>
+      Effect.fail(
+        new InvalidLifetime({
+          given,
+          message: `"${given}" is not a duration; write it like "2 hours" or "30 minutes"`,
+        }),
+      ),
     onSome: Effect.succeed,
   });
 
@@ -46,12 +52,20 @@ export class InvalidMint extends Schema.TaggedError<InvalidMint>()("InvalidMint"
 }) {}
 
 const mintsOf = (given: string) =>
-  Effect.forEach(given.split(",").filter((part) => part.trim() !== ""), (part) => {
-    const [to, amount] = part.trim().split("=");
-    return to !== undefined && /^0x[0-9a-fA-F]{40}$/.test(to) && amount !== undefined && /^[0-9]+$/.test(amount)
-      ? Effect.succeed({ to, amount: BigInt(amount) })
-      : Effect.fail(new InvalidMint({ given: part, message: `"${part}" is not address=amount, e.g. 0x7099...79C8=250000000 for 250 USDC` }));
-  });
+  Effect.forEach(
+    given.split(",").filter((part) => part.trim() !== ""),
+    (part) => {
+      const [to, amount] = part.trim().split("=");
+      return to !== undefined && /^0x[0-9a-fA-F]{40}$/.test(to) && amount !== undefined && /^[0-9]+$/.test(amount)
+        ? Effect.succeed({ to, amount: BigInt(amount) })
+        : Effect.fail(
+            new InvalidMint({
+              given: part,
+              message: `"${part}" is not address=amount, e.g. 0x7099...79C8=250000000 for 250 USDC`,
+            }),
+          );
+    },
+  );
 
 /** A world's addresses as they may be printed: the token is shown only when asked for. */
 const addresses = (world: World, reveal: boolean) => ({
@@ -62,12 +76,17 @@ const addresses = (world: World, reveal: boolean) => ({
   coreUrl: world.coreUrl,
   testUsdc: world.testUsdc,
   funded: world.funded,
-  rpcUrl: reveal ? Redacted.value(world.rpcUrl) : Redacted.value(world.rpcUrl).replace(/\/[0-9a-f]{32}\//, "/<token: show --reveal>/"),
+  rpcUrl: reveal
+    ? Redacted.value(world.rpcUrl)
+    : Redacted.value(world.rpcUrl).replace(/\/[0-9a-f]{32}\//, "/<token: show --reveal>/"),
   database: "reached with `sql <world> <statement>`, or in-process through the world's handle; never printed",
 });
 
 const name = Argument.String("name").pipe(Argument.withDescription("The world's name"));
-const reveal = Flag.Boolean("reveal").pipe(Flag.withDefault(false), Flag.withDescription("Print the chain's address with the world's token"));
+const reveal = Flag.Boolean("reveal").pipe(
+  Flag.withDefault(false),
+  Flag.withDescription("Print the chain's address with the world's token"),
+);
 
 const createCommand = Command.make(
   "create",
@@ -75,15 +94,29 @@ const createCommand = Command.make(
     name,
     owner: Flag.String("owner").pipe(Flag.withDescription("Who the world belongs to")),
     lifetime: Flag.String("lifetime").pipe(Flag.withDescription('How long the world may exist, e.g. "2 hours"')),
-    from: Flag.String("from").pipe(Flag.optional, Flag.withDescription("Make the world from this world's database and chain")),
-    mint: Flag.String("mint").pipe(Flag.optional, Flag.withDescription("Test USDC to mint from the faucet: address=amount, comma separated, amounts in millionths of a USDC")),
+    from: Flag.String("from").pipe(
+      Flag.optional,
+      Flag.withDescription("Make the world from this world's database and chain"),
+    ),
+    mint: Flag.String("mint").pipe(
+      Flag.optional,
+      Flag.withDescription(
+        "Test USDC to mint from the faucet: address=amount, comma separated, amounts in millionths of a USDC",
+      ),
+    ),
     reveal,
   },
   (input) =>
     Effect.gen(function* () {
       const lifetime = yield* lifetimeOf(input.lifetime);
       const mint = yield* mintsOf(Option.getOrElse(input.mint, () => ""));
-      const made = yield* create({ name: input.name, owner: input.owner, lifetime, mint, ...(Option.isSome(input.from) ? { from: input.from.value } : {}) });
+      const made = yield* create({
+        name: input.name,
+        owner: input.owner,
+        lifetime,
+        mint,
+        ...(Option.isSome(input.from) ? { from: input.from.value } : {}),
+      });
       yield* report({ ...addresses(made.world, input.reveal), ms: made.ms });
     }),
 ).pipe(Command.withDescription("Create a private world: database, chain, index and Core"));
@@ -134,5 +167,15 @@ const proveCommand = Command.make(
 
 export const world = Command.make("world").pipe(
   Command.withDescription("Create, destroy, list and sweep private worlds"),
-  Command.withSubcommands([createCommand, destroyCommand, listCommand, showCommand, sqlCommand, sweepCommand, inventoryCommand, platformCommand, proveCommand]),
+  Command.withSubcommands([
+    createCommand,
+    destroyCommand,
+    listCommand,
+    showCommand,
+    sqlCommand,
+    sweepCommand,
+    inventoryCommand,
+    platformCommand,
+    proveCommand,
+  ]),
 );

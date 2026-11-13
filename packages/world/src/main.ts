@@ -13,9 +13,15 @@ import * as Command from "effect/cli/Command";
 import { Report, world } from "./cli/commands.ts";
 import { SharedState } from "./stack/engine.ts";
 
-const ToStandardError = Layer.succeed(Console.Console, { ...globalThis.console, log: console.error, info: console.error });
+const ToStandardError = Layer.succeed(Console.Console, {
+  ...globalThis.console,
+  log: console.error,
+  info: console.error,
+});
 
-const Alchemy = Layer.mergeAll(Alchemist.layer(), Interaction.layerNonInteractive({ stdout: process.stderr })).pipe(Layer.provideMerge(ToStandardError));
+const Alchemy = Layer.mergeAll(Alchemist.layer(), Interaction.layerNonInteractive({ stdout: process.stderr })).pipe(
+  Layer.provideMerge(ToStandardError),
+);
 
 const ReportLive = Layer.succeed(Report, {
   print: (value) => Effect.sync(() => void process.stdout.write(`${JSON.stringify(value, null, 2)}\n`)),

@@ -4,14 +4,16 @@
 // The state store is the account's shared one (Cloudflare.state()), so any container that holds the Cloudflare key
 // sees every world. Nothing here reads or writes state on this machine.
 import * as Alchemist from "alchemy/Alchemist";
+import * as Arr from "effect/Array";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import * as Schedule from "effect/Schedule";
-import * as Schema from "effect/Schema";
+import * as Str from "effect/String";
 import PlaceholderCore from "../core/Placeholder.ts";
+import { StateUnreadable } from "../failures.ts";
 import { STACK } from "./names.ts";
 import { WorldSettings } from "./settings.ts";
 import { type CoreSlot, worldStack } from "./stack.ts";
@@ -22,14 +24,11 @@ export const Core = Context.Reference<CoreSlot>("capxul/world/Core", { defaultVa
 /** The stack file, for opening the state store without running the stack's program. */
 const ENTRYPOINT = `${import.meta.dirname}/../../alchemy.run.ts`;
 
-export class StateUnreadable extends Schema.TaggedError<StateUnreadable>()("StateUnreadable", {
-  stage: Schema.String,
-  what: Schema.String,
-  message: Schema.String,
-}) {}
-
 /** Deploys one stage. A world stage needs its settings; the platform stage takes none. */
-export const deployStage = Effect.fn("world.engine.deploy")(function* (stage: string, settings: Option.Option<WorldSettings>) {
+export const deployStage = Effect.fn("world.engine.deploy")(function* (
+  stage: string,
+  settings: Option.Option<WorldSettings>,
+) {
   const stack = worldStack(yield* Core);
   return yield* Alchemist.plan({ stack, operation: "deploy", stage }).pipe(
     Effect.flatMap(Alchemist.apply),
@@ -50,22 +49,26 @@ export const destroyStage = Effect.fn("world.engine.destroy")(function* (stage: 
  * The shared state store, opened once for the life of the program: opening it fetches the store's token through
  * Cloudflare, which takes three to four seconds.
  */
-export class SharedState extends Context.Service<SharedState, Effect.Success<ReturnType<typeof Alchemist.State.store>>>()(
-  "capxul/world/SharedState",
+export type StateStore = Effect.Success<ReturnType<typeof Alchemist.State.store>>;
+
+export class SharedState extends Context.Service<SharedState, { readonly store: StateStore }>()(
+  "@capxul/world/stack/engine/SharedState",
 ) {
   // Opening the store goes through the network twice; a refusal on the way is tried again before it is believed.
   static readonly layer = Layer.effect(
     SharedState,
     Alchemist.State.store({ type: "configured", entrypoint: ENTRYPOINT }).pipe(
       Effect.retry(Schedule.max([Schedule.spaced("5 seconds"), Schedule.recurs(3)])),
+      Effect.map((store) => ({ store })),
     ),
   );
 }
 
 /** Runs `use` with the shared state store. */
-export const withState = <A, E, R>(use: (state: SharedState["Service"]) => Effect.Effect<A, E, R>) =>
+export const withState = <A, E, R>(use: (state: StateStore) => Effect.Effect<A, E, R>) =>
   Effect.gen(function* () {
-    return yield* use(yield* SharedState);
+    const { store } = yield* SharedState;
+    return yield* use(store);
   });
 
 /** Every stage the shared store holds for the stack, with the outputs each one recorded. */
@@ -90,26 +93,37 @@ export const recordOutput = (stage: string, value: unknown) =>
 /** Removes whatever the store still holds for a stage once its resources are gone. */
 export const forgetStage = (stage: string) => withState((state) => state.deleteStack({ stack: STACK, stage }));
 
-const asSecret = (value: unknown): Option.Option<Redacted.Redacted<string>> =>
-  Redacted.isRedacted(value) ? Option.some(Redacted.make(String(Redacted.value(value)))) : typeof value === "string" ? Option.some(Redacted.make(value)) : Option.none();
+const asSecret = (value: unknown): Option.Option<Redacted.Redacted> => {
+  const inner = Redacted.isRedacted(value) ? Redacted.value(value) : value;
+  return typeof inner === "string" ? Option.some(Redacted.make(inner)) : Option.none();
+};
 
 /**
  * One attribute of one resource of a stage, as a secret. This is how the database's connection string and the
  * door's token are reached: from the resource's own state in the shared store, never from a stack output.
  */
-export const secretOf = Effect.fn("world.engine.secret")(function* (stage: string, logicalId: string, attribute: string) {
-  const missing = (message: string) => new StateUnreadable({ stage, what: `${logicalId}.${attribute}`, message });
+export const secretOf = Effect.fn("world.engine.secret")(function* (
+  stage: string,
+  logicalId: string,
+  attribute: string,
+) {
+  const missing = (message: string) => StateUnreadable.make({ stage, what: `${logicalId}.${attribute}`, message });
   return yield* withState((state) =>
     Effect.gen(function* () {
       const fqns = yield* state.list({ stack: STACK, stage });
-      const fqn = fqns.find((candidate) => candidate === logicalId || candidate.endsWith(`/${logicalId}`));
-      if (fqn === undefined) return yield* missing(`the stage holds no resource called ${logicalId}`);
+      const fqn = yield* Arr.findFirst(
+        fqns,
+        (candidate) => candidate === logicalId || Str.endsWith(`/${logicalId}`)(candidate),
+      ).pipe(
+        Effect.fromOption,
+        Effect.mapError(() => missing(`the stage holds no resource called ${logicalId}`)),
+      );
       const found = yield* state.get({ stack: STACK, stage, fqn });
-      const attributes: Record<string, unknown> = found !== undefined && "attr" in found && found.attr !== undefined ? found.attr : {};
-      return yield* Option.match(asSecret(attributes[attribute]), {
-        onNone: () => Effect.fail(missing(`the resource has no ${attribute} yet`)),
-        onSome: Effect.succeed,
-      });
+      const attributes: Record<string, unknown> =
+        found !== undefined && "attr" in found && found.attr !== undefined ? found.attr : {};
+      return yield* Effect.fromOption(asSecret(attributes[attribute])).pipe(
+        Effect.mapError(() => missing(`the resource has no ${attribute} yet`)),
+      );
     }),
   );
 });

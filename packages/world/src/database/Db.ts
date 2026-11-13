@@ -42,7 +42,9 @@ export const WorldBranch = Effect.gen(function* () {
   const { stage } = yield* Alchemy.Stack;
   const project = yield* WorldsProject;
   const { expiresAt, forkedFrom } = yield* worldSettings;
-  const parent = Option.isSome(forkedFrom) ? { parentBranch: yield* Neon.Branch.ref(BRANCH_ID, { stage: forkedFrom.value }) } : {};
+  const parent = Option.isSome(forkedFrom)
+    ? { parentBranch: yield* Neon.Branch.ref(BRANCH_ID, { stage: forkedFrom.value }) }
+    : {};
   return yield* Neon.Branch(BRANCH_ID, { project, name: stage, expiresAt, ...parent });
 });
 

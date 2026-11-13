@@ -26,7 +26,10 @@ export const platformUp = Effect.gen(function* () {
 export const platformDown = Effect.gen(function* () {
   const worlds = (yield* recordedStages).map(({ stage }) => stage).filter(isWorldStage);
   if (worlds.length > 0) {
-    return yield* new WorldsStillExist({ worlds, message: `destroy or sweep these worlds first: ${worlds.join(", ")}` });
+    return yield* new WorldsStillExist({
+      worlds,
+      message: `destroy or sweep these worlds first: ${worlds.join(", ")}`,
+    });
   }
   const removed = yield* destroyStage(PLATFORM);
   yield* forgetStage(PLATFORM);

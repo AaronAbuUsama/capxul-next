@@ -61,35 +61,50 @@ const receiptOf = <E, R>(call: Call<E, R>, step: FaucetFailed["step"], hash: unk
     Effect.retry(Schedule.max([Schedule.spaced("500 millis"), Schedule.recurs(20)])),
     Effect.mapError((error) => new FaucetFailed({ step, message: `no receipt: ${String(error).slice(0, 160)}` })),
     Effect.flatMap((receipt) =>
-      receipt.status === "0x1" ? Effect.succeed(receipt) : Effect.fail(new FaucetFailed({ step, message: `the transaction reverted (status ${receipt.status})` })),
+      receipt.status === "0x1"
+        ? Effect.succeed(receipt)
+        : Effect.fail(new FaucetFailed({ step, message: `the transaction reverted (status ${receipt.status})` })),
     ),
   );
 
 /** Puts the token on the chain unless it is already there, as it is in a world made from another. */
 export const ensureToken = <E, R>(call: Call<E, R>) =>
   Effect.gen(function* () {
-    if ((yield* call("eth_getCode", [TEST_USDC, "latest"])) !== "0x") return { deployed: false as const, address: TEST_USDC };
+    if ((yield* call("eth_getCode", [TEST_USDC, "latest"])) !== "0x")
+      return { deployed: false as const, address: TEST_USDC };
     const fs = yield* FileSystem.FileSystem;
     const code = (yield* fs.readFileString(`${import.meta.dirname}/test-usdc.hex`)).trim();
     const data = `0x${code}${constructorArguments("World test USD", "USDC", 6)}`;
     const hash = yield* call("eth_sendTransaction", [{ from: FAUCET_OPERATOR, data, gas: "0x2dc6c0" }]);
     const { contractAddress } = yield* receiptOf(call, "deploy", hash);
     if (contractAddress?.toLowerCase() !== TEST_USDC.toLowerCase()) {
-      return yield* new FaucetFailed({ step: "deploy", message: `the token landed at ${contractAddress}, not at ${TEST_USDC}: the operator had already sent a transaction` });
+      return yield* new FaucetFailed({
+        step: "deploy",
+        message: `the token landed at ${contractAddress}, not at ${TEST_USDC}: the operator had already sent a transaction`,
+      });
     }
     return { deployed: true as const, address: TEST_USDC };
   });
 
 /** What an address holds, in the token's smallest unit. */
 export const balanceOf = <E, R>(call: Call<E, R>, account: string) =>
-  call("eth_call", [{ to: TEST_USDC, data: balanceOfCall(account) }, "latest"]).pipe(Effect.map((answer) => BigInt(String(answer))));
+  call("eth_call", [{ to: TEST_USDC, data: balanceOfCall(account) }, "latest"]).pipe(
+    Effect.map((answer) => BigInt(String(answer))),
+  );
 
 /** Mints to each address through the token's open `mint`, one transaction each, and says what each then holds. */
 export const mintAll = <E, R>(call: Call<E, R>, mints: ReadonlyArray<Mint>) =>
   Effect.forEach(mints, (mint) =>
     Effect.gen(function* () {
-      const tx = yield* call("eth_sendTransaction", [{ from: FAUCET_OPERATOR, to: TEST_USDC, data: mintCall(mint), gas: "0x30d40" }]);
+      const tx = yield* call("eth_sendTransaction", [
+        { from: FAUCET_OPERATOR, to: TEST_USDC, data: mintCall(mint), gas: "0x30d40" },
+      ]);
       yield* receiptOf(call, "mint", tx);
-      return { to: mint.to, minted: mint.amount.toString(), tx: String(tx), holds: (yield* balanceOf(call, mint.to)).toString() };
+      return {
+        to: mint.to,
+        minted: mint.amount.toString(),
+        tx: String(tx),
+        holds: (yield* balanceOf(call, mint.to)).toString(),
+      };
     }),
   );

@@ -26,4 +26,6 @@ const isProof = (name: string): name is keyof typeof PROOFS => name in PROOFS;
 export const prove = (name: string) =>
   isProof(name)
     ? PROOFS[name]
-    : Effect.fail(new ProofFailed({ message: `no proof called ${name}; there are: ${Object.keys(PROOFS).join(", ")}` }));
+    : Effect.fail(
+        new ProofFailed({ message: `no proof called ${name}; there are: ${Object.keys(PROOFS).join(", ")}` }),
+      );

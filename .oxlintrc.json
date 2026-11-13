@@ -17,6 +17,8 @@
     "spikes/**",
     // Ponder's files: Ponder requires async handlers and a Hono API, so they are a different kind of code.
     "packages/indexer/**",
+    // The world's configuration of that Ponder app, built into the index's image: Ponder's own kind of file too.
+    "packages/world/ponder/**",
     // Solidity and its vendored libraries; oxlint reads no Solidity, but the folder also holds vendored JavaScript.
     "packages/contracts/**",
     // The Frappe app is Python plus two browser form scripts that Frappe loads with its own globals; like the
@@ -31,10 +33,14 @@
       "entries": {
         "packages/lint/src/shape.entry.ts": "the shape check's command line: reads git's file list and the disk, prints, sets the exit code",
         "packages/blueprint/src/claims/render.entry.ts": "writes claims.md: the one place the claims render touches the disk",
+        "packages/world/src/main.ts": "the world command line: reads the arguments, prints results to standard output and the log to standard error, sets the exit code",
         "packages/*/test/**/*.test.ts": "a test file is run by the test runner as its own program"
       },
       // Places where JSON text is the format of the outside world, each with its reason.
-      "jsonEdges": {}
+      "jsonEdges": {
+        "packages/world/src/lifecycle/record.ts": "a run record and a proof's observations are JSON files, written to be read by people and by scoring",
+        "packages/world/src/chain/Chain.ts": "anvil's saved state travels as the text of a JSON-RPC answer, which the chain reads only for its result"
+      }
     }
   },
   "rules": {
@@ -202,6 +208,7 @@
       "files": [
         "packages/lint/src/shape.entry.ts",
         "packages/blueprint/src/claims/render.entry.ts",
+        "packages/world/src/main.ts",
         "packages/*/test/**/*.test.ts"
       ],
       "rules": {
@@ -236,6 +243,25 @@
       "files": ["packages/blueprint/**"],
       "rules": {
         "effecttsgo/api-stability-leak": "off"
+      }
+    },
+    {
+      // Every export of the world package shows Alchemy's and Effect's platform services in its type (HttpClient,
+      // FileSystem, Path, ChildProcessSpawner and the rest): a deploy needs them, and Effect 4 marks them unstable
+      // with no stable replacement. packages/world/tsconfig.json allows the same modules for the same reason.
+      "files": ["packages/world/**"],
+      "rules": {
+        "effecttsgo/api-stability-leak": "off"
+      }
+    },
+    {
+      // The world package's own failures: a step that timed out, a part that is not ready, a registry or an account
+      // that could not be read. They are faults of the infrastructure, not refusals of the contract, so the
+      // blueprint does not declare them. The contract's refusals (WorldExists, WorldQuotaReached, WorldNotFound)
+      // are imported from the blueprint. This one file is where the world's failures are declared.
+      "files": ["packages/world/src/failures.ts"],
+      "rules": {
+        "capxul/blueprint-owns-names": "off"
       }
     },
     {

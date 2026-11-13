@@ -37,7 +37,11 @@ const COLUMNS = `name, owner, to_char(expires_at at time zone 'UTC', 'YYYY-MM-DD
 /** The registry's connection, read from the platform stage's state. Fails typed when the platform is not deployed. */
 export const registry = secretOf(PLATFORM, REGISTRY_ID, "connectionUri").pipe(
   Effect.catchTag("StateUnreadable", (error) =>
-    Effect.fail(new PlatformMissing({ message: `the platform stage is not deployed (${error.message}); run the platform up command once` })),
+    Effect.fail(
+      new PlatformMissing({
+        message: `the platform stage is not deployed (${error.message}); run the platform up command once`,
+      }),
+    ),
   ),
 );
 
@@ -84,10 +88,17 @@ export const claim = Effect.fn("world.claim")(function* (
       message: `a world called ${world} already exists or is being created (owner ${other.owner}, expires ${other.expires_at})`,
     });
   }
-  const [{ live }] = yield* query(database, "select count(*)::int as live from worlds where owner = $1 and expires_at > now()", [owner]).pipe(
-    Effect.flatMap(Schema.decodeUnknownEffect(Count)),
-  );
-  return yield* new TooManyWorlds({ owner, live, most: mostPerOwner, message: `${owner} already has ${live} live worlds; the most an owner may have is ${mostPerOwner}` });
+  const [{ live }] = yield* query(
+    database,
+    "select count(*)::int as live from worlds where owner = $1 and expires_at > now()",
+    [owner],
+  ).pipe(Effect.flatMap(Schema.decodeUnknownEffect(Count)));
+  return yield* new TooManyWorlds({
+    owner,
+    live,
+    most: mostPerOwner,
+    message: `${owner} already has ${live} live worlds; the most an owner may have is ${mostPerOwner}`,
+  });
 });
 
 /** Gives the name back. With a holder, only that holder's row is removed. */
@@ -99,4 +110,6 @@ export const release = (database: Redacted.Redacted<string>, world: string, hold
 
 /** Every name that is taken. */
 export const claims = (database: Redacted.Redacted<string>) =>
-  query(database, `select ${COLUMNS} from worlds order by name`).pipe(Effect.flatMap(Schema.decodeUnknownEffect(Claims)));
+  query(database, `select ${COLUMNS} from worlds order by name`).pipe(
+    Effect.flatMap(Schema.decodeUnknownEffect(Claims)),
+  );

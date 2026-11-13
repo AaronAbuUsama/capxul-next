@@ -43,7 +43,12 @@ export interface World {
   readonly coreUrl: string;
   /** The world's test USDC, and what the faucet minted when the world was created. */
   readonly testUsdc: string;
-  readonly funded: ReadonlyArray<{ readonly to: string; readonly minted: string; readonly holds: string; readonly tx: string }>;
+  readonly funded: ReadonlyArray<{
+    readonly to: string;
+    readonly minted: string;
+    readonly holds: string;
+    readonly tx: string;
+  }>;
   /** The chain's JSON-RPC address. It carries the world's token, so it is a secret. */
   readonly rpcUrl: Redacted.Redacted<string>;
   /** The door's address with the world's token: the chain's and the index's controls live under it. */
@@ -54,7 +59,11 @@ export interface World {
   readonly sql: (
     statement: string,
     params?: ReadonlyArray<unknown>,
-  ) => Effect.Effect<ReadonlyArray<unknown>, DatabaseRefused | HttpClientError | Schema.SchemaError, HttpClient.HttpClient>;
+  ) => Effect.Effect<
+    ReadonlyArray<unknown>,
+    DatabaseRefused | HttpClientError | Schema.SchemaError,
+    HttpClient.HttpClient
+  >;
 }
 
 export class StepTimedOut extends Schema.TaggedError<StepTimedOut>()("StepTimedOut", {

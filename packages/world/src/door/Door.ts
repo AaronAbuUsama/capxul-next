@@ -44,7 +44,8 @@ export default class Door extends Cloudflare.Worker<Door>()(
         const env = yield* Cloudflare.WorkerEnvironment;
         const url = new URL(request.url, "http://door");
         const [, given, ...rest] = url.pathname.split("/");
-        if (given === undefined || given === "" || given !== text(env["DOOR_TOKEN"])) return json({ error: "not found" }, 404);
+        if (given === undefined || given === "" || given !== text(env["DOOR_TOKEN"]))
+          return json({ error: "not found" }, 404);
         const chain = chains.getByName(WORLD);
         const indexer = indexers.getByName(WORLD);
         const route = `${request.method} /${rest.join("/")}`;
@@ -52,7 +53,9 @@ export default class Door extends Cloudflare.Worker<Door>()(
           return HttpServerResponse.text(yield* chain.rpc(yield* request.text), { contentType: "application/json" });
         }
         if (route === "POST /quiet-rpc") {
-          return HttpServerResponse.text(yield* chain.quietRpc(yield* request.text), { contentType: "application/json" });
+          return HttpServerResponse.text(yield* chain.quietRpc(yield* request.text), {
+            contentType: "application/json",
+          });
         }
         if (route === "GET /chain/status") return json(yield* chain.status());
         if (route === "POST /chain/stop") return json(yield* chain.stop());
@@ -69,7 +72,9 @@ export default class Door extends Cloudflare.Worker<Door>()(
         if (route === "GET /index/status") return json(yield* indexer.status());
         return json({ error: "no such route", route }, 404);
       }).pipe(
-        Effect.catch((error) => Effect.succeed(json({ error }, "step" in error && error.step === "asleep" ? 503 : 502))),
+        Effect.catch((error) =>
+          Effect.succeed(json({ error }, "step" in error && error.step === "asleep" ? 503 : 502)),
+        ),
       ),
     };
   }),

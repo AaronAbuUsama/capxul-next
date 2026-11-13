@@ -32,7 +32,11 @@ export interface Plan {
 export const planOf = Effect.fn("world.plan")(function* (spec: WorldSpec) {
   yield* Schema.decodeUnknownEffect(WorldName)(nameOf(spec.name)).pipe(
     Effect.mapError(
-      () => new InvalidWorldName({ name: spec.name, message: "a world's name is 2 to 15 lower case letters, digits or dashes, starting with a letter" }),
+      () =>
+        new InvalidWorldName({
+          name: spec.name,
+          message: "a world's name is 2 to 15 lower case letters, digits or dashes, starting with a letter",
+        }),
     ),
   );
   const { maxLifetime } = yield* Limits;
@@ -74,7 +78,10 @@ const makeForkable = (parent: string, child: string) =>
     const output = yield* recordedOutput(parent);
     const { branch } = yield* Schema.decodeUnknownEffect(WorldOutput)(output);
     yield* liftBranchExpiry(projectId, branch);
-    yield* recordOutput(parent, { ...(typeof output === "object" && output !== null ? output : {}), neonExpiry: `lifted so that ${child} could be made from it` });
+    yield* recordOutput(parent, {
+      ...(typeof output === "object" && output !== null ? output : {}),
+      neonExpiry: `lifted so that ${child} could be made from it`,
+    });
   });
 
 /**
@@ -103,7 +110,9 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
       Effect.gen(function* () {
         if (Option.isSome(plan.forkedFrom)) yield* makeForkable(plan.forkedFrom.value, plan.stage);
         const settings = { owner: plan.owner, expiresAt: plan.expiresAt, forkedFrom: plan.forkedFrom };
-        return yield* deployStage(plan.stage, Option.some(settings)).pipe(Effect.flatMap(Schema.decodeUnknownEffect(WorldOutput)));
+        return yield* deployStage(plan.stage, Option.some(settings)).pipe(
+          Effect.flatMap(Schema.decodeUnknownEffect(WorldOutput)),
+        );
       }),
     );
     const world = yield* handle(output);
@@ -147,7 +156,11 @@ export const takeDown = (stage: string, watch: Stopwatch, holder: Option.Option<
 export const mustExist = Effect.fn("world.mustExist")(function* (name: string) {
   const stage = stageOf(name);
   const output = yield* recordedOutput(stage);
-  if (output === undefined) return yield* new WorldNotFound({ world: stage, message: `the shared state holds no world called ${nameOf(stage)}` });
+  if (output === undefined)
+    return yield* new WorldNotFound({
+      world: stage,
+      message: `the shared state holds no world called ${nameOf(stage)}`,
+    });
   return stage;
 });
 

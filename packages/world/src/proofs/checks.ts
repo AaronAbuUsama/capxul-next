@@ -12,7 +12,8 @@ export class ProofFailed extends Schema.TaggedError<ProofFailed>()("ProofFailed"
 }) {}
 
 /** Fails the proof unless the condition holds. */
-export const insist = (condition: boolean, message: string) => (condition ? Effect.void : Effect.fail(new ProofFailed({ message })));
+export const insist = (condition: boolean, message: string) =>
+  condition ? Effect.void : Effect.fail(new ProofFailed({ message }));
 
 /** Writes what a proof observed to `records/<name>.proof.json` and gives it back. */
 export const observed = <A>(name: string, observations: A) =>
@@ -33,7 +34,14 @@ const pad = (hex: string) => hex.slice(2).toLowerCase().padStart(64, "0");
 /** Calldata of `transfer(PAID, 1 USDC)`. */
 const PAY_ONE = `0xa9059cbb${pad(PAID)}${(1_000_000).toString(16).padStart(64, "0")}`;
 
-const TransferRow = Schema.Struct({ log_id: Schema.String, token: Schema.String, from: Schema.String, to: Schema.String, amount: Schema.String, block_number: Schema.String });
+const TransferRow = Schema.Struct({
+  log_id: Schema.String,
+  token: Schema.String,
+  from: Schema.String,
+  to: Schema.String,
+  amount: Schema.String,
+  block_number: Schema.String,
+});
 const COLUMNS = `log_id, token, "from", "to", amount::text, block_number::text`;
 
 const indexedRow = (world: World, where: string, params: ReadonlyArray<unknown>) =>
@@ -53,6 +61,8 @@ export const mintIsIndexed = (world: World) =>
  */
 export const transferIsIndexed = (world: World) =>
   Effect.gen(function* () {
-    const tx = String(yield* rpc(world, "eth_sendTransaction", [{ from: FUNDED, to: world.testUsdc, data: PAY_ONE, gas: "0x30d40" }]));
+    const tx = String(
+      yield* rpc(world, "eth_sendTransaction", [{ from: FUNDED, to: world.testUsdc, data: PAY_ONE, gas: "0x30d40" }]),
+    );
     return { tx, row: yield* indexedRow(world, "tx_hash = $1", [tx]) };
   });

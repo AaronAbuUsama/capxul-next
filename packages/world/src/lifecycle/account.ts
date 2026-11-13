@@ -39,36 +39,48 @@ const getJson = <S extends Schema.Top>(what: string, url: string, token: Redacte
     Effect.flatMap(({ status, body }) =>
       status === 200
         ? Schema.decodeUnknownEffect(Schema.fromJsonString(schema))(body).pipe(
-            Effect.mapError((error) => new AccountUnreadable({ what, status, message: String(error.message).slice(0, 200) })),
+            Effect.mapError(
+              (error) => new AccountUnreadable({ what, status, message: String(error.message).slice(0, 200) }),
+            ),
           )
         : Effect.fail(new AccountUnreadable({ what, status, message: body.slice(0, 200) })),
     ),
   );
 
-const named = (key: string) => Schema.Struct({ result: Schema.Array(Schema.Record(Schema.String, Schema.Unknown)) }).pipe(
-  Schema.decodeTo(Schema.Array(Schema.String), {
-    decode: (answer: { readonly result: ReadonlyArray<Record<string, unknown>> }) => answer.result.map((item) => String(item[key] ?? "")),
-    encode: () => ({ result: [] }),
-  } as never),
-);
+const named = (key: string) =>
+  Schema.Struct({ result: Schema.Array(Schema.Record(Schema.String, Schema.Unknown)) }).pipe(
+    Schema.decodeTo(Schema.Array(Schema.String), {
+      decode: (answer: { readonly result: ReadonlyArray<Record<string, unknown>> }) =>
+        answer.result.map((item) => String(item[key] ?? "")),
+      encode: () => ({ result: [] }),
+    } as never),
+  );
 
-const mine = (names: ReadonlyArray<string>) => names.filter((name) => name.toLowerCase().startsWith(STACK.toLowerCase()));
+const mine = (names: ReadonlyArray<string>) =>
+  names.filter((name) => name.toLowerCase().startsWith(STACK.toLowerCase()));
 const count = (names: ReadonlyArray<string>) => ({ inAccount: names.length, ofThisStack: mine(names) });
 
-const Buckets = Schema.Struct({ result: Schema.Struct({ buckets: Schema.Array(Schema.Struct({ name: Schema.String })) }) });
+const Buckets = Schema.Struct({
+  result: Schema.Struct({ buckets: Schema.Array(Schema.Struct({ name: Schema.String })) }),
+});
 const Projects = Schema.Struct({ projects: Schema.Array(Schema.Struct({ id: Schema.String, name: Schema.String })) });
 const Branches = Schema.Struct({ branches: Schema.Array(Schema.Struct({ name: Schema.String })) });
 const Items = Schema.Struct({ result: Schema.Array(Schema.Record(Schema.String, Schema.Unknown)) });
 const Catalog = Schema.Struct({ repositories: Schema.optional(Schema.Array(Schema.String)) });
 const Tags = Schema.Struct({ tags: Schema.optional(Schema.NullOr(Schema.Array(Schema.String))) });
-const Credentials = Schema.Struct({ result: Schema.Struct({ username: Schema.optional(Schema.String), password: Schema.String }) });
+const Credentials = Schema.Struct({
+  result: Schema.Struct({ username: Schema.optional(Schema.String), password: Schema.String }),
+});
 
 /**
  * Takes the expiry Neon itself enforces off a branch. Neon refuses to fork a branch that has one ("Branches with an
  * expiration date cannot have child branches"), so a world that another is made from stops being deleted by Neon
  * and is deleted by the sweeper alone, at the same recorded expiry.
  */
-export const liftBranchExpiry = Effect.fn("world.account.liftBranchExpiry")(function* (projectId: string, branchId: string) {
+export const liftBranchExpiry = Effect.fn("world.account.liftBranchExpiry")(function* (
+  projectId: string,
+  branchId: string,
+) {
   const { neon } = yield* settings;
   const { status, body } = yield* send(
     "neon branch expiry",
@@ -77,7 +89,8 @@ export const liftBranchExpiry = Effect.fn("world.account.liftBranchExpiry")(func
       HttpClientRequest.bodyJsonUnsafe({ branch: { expires_at: null } }),
     ),
   );
-  if (status >= 300) return yield* new AccountUnreadable({ what: "neon branch expiry", status, message: body.slice(0, 200) });
+  if (status >= 300)
+    return yield* new AccountUnreadable({ what: "neon branch expiry", status, message: body.slice(0, 200) });
 });
 
 /** A short-lived way in to Cloudflare's image registry, as a Basic authorization header value. */
@@ -85,14 +98,20 @@ const registryAuth = Effect.gen(function* () {
   const { account, cloudflare } = yield* settings;
   const { status, body } = yield* send(
     "registry credentials",
-    HttpClientRequest.post(`https://api.cloudflare.com/client/v4/accounts/${account}/containers/registries/registry.cloudflare.com/credentials`).pipe(
+    HttpClientRequest.post(
+      `https://api.cloudflare.com/client/v4/accounts/${account}/containers/registries/registry.cloudflare.com/credentials`,
+    ).pipe(
       HttpClientRequest.bearerToken(Redacted.value(cloudflare)),
       HttpClientRequest.bodyJsonUnsafe({ expiration_minutes: 5, permissions: ["pull", "push"] }),
     ),
   );
-  if (status >= 300) return yield* new AccountUnreadable({ what: "registry credentials", status, message: body.slice(0, 200) });
+  if (status >= 300)
+    return yield* new AccountUnreadable({ what: "registry credentials", status, message: body.slice(0, 200) });
   const { result } = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Credentials))(body).pipe(
-    Effect.mapError((error) => new AccountUnreadable({ what: "registry credentials", status, message: String(error.message).slice(0, 200) })),
+    Effect.mapError(
+      (error) =>
+        new AccountUnreadable({ what: "registry credentials", status, message: String(error.message).slice(0, 200) }),
+    ),
   );
   return Redacted.make(`Basic ${btoa(`${result.username ?? "v1"}:${result.password}`)}`);
 });
@@ -106,15 +125,21 @@ const registryCall = (auth: Redacted.Redacted<string>, method: "GET" | "DELETE" 
     ),
   );
 
-const decodeBody = <S extends Schema.Top>(what: string, schema: S) => (answer: { readonly status: number; readonly body: string }) =>
-  Schema.decodeUnknownEffect(Schema.fromJsonString(schema))(answer.body).pipe(
-    Effect.mapError((error) => new AccountUnreadable({ what, status: answer.status, message: String(error.message).slice(0, 200) })),
-  );
+const decodeBody =
+  <S extends Schema.Top>(what: string, schema: S) =>
+  (answer: { readonly status: number; readonly body: string }) =>
+    Schema.decodeUnknownEffect(Schema.fromJsonString(schema))(answer.body).pipe(
+      Effect.mapError(
+        (error) => new AccountUnreadable({ what, status: answer.status, message: String(error.message).slice(0, 200) }),
+      ),
+    );
 
 /** The names of this stack's image repositories in Cloudflare's registry, without the account id in front. */
 export const imageRepositories = Effect.gen(function* () {
   const auth = yield* registryAuth;
-  const catalog = yield* registryCall(auth, "GET", "/v2/_catalog").pipe(Effect.flatMap(decodeBody("registry catalog", Catalog)));
+  const catalog = yield* registryCall(auth, "GET", "/v2/_catalog").pipe(
+    Effect.flatMap(decodeBody("registry catalog", Catalog)),
+  );
   const names = (catalog.repositories ?? []).map((name) => name.split("/").at(-1) ?? name);
   return { inAccount: names.length, ofThisStack: names.filter((name) => name.startsWith(IMAGE_PREFIX)) };
 }).pipe(Effect.withSpan("world.account.images"));
@@ -127,7 +152,9 @@ const ROUNDS = 5;
  * manifests it pointed at, which the registry then lists by digest, so each repository is listed and emptied again
  * until it lists nothing. Whether a repository is really gone is for the caller to read back.
  */
-export const removeImageRepositories = Effect.fn("world.account.removeImages")(function* (repositories: ReadonlyArray<string>) {
+export const removeImageRepositories = Effect.fn("world.account.removeImages")(function* (
+  repositories: ReadonlyArray<string>,
+) {
   if (repositories.length === 0) return;
   const { account } = yield* settings;
   const auth = yield* registryAuth;
@@ -149,8 +176,15 @@ export const inventory = Effect.gen(function* () {
   const { account, cloudflare, neon, org } = yield* settings;
   const cf = `https://api.cloudflare.com/client/v4/accounts/${account}`;
   const list = (what: string, path: string, key: string) =>
-    getJson(what, `${cf}${path}`, cloudflare, Items).pipe(Effect.map((answer) => answer.result.map((item) => String(item[key] ?? ""))));
-  const projects = yield* getJson("neon projects", `https://console.neon.tech/api/v2/projects?org_id=${org}&limit=400`, neon, Projects);
+    getJson(what, `${cf}${path}`, cloudflare, Items).pipe(
+      Effect.map((answer) => answer.result.map((item) => String(item[key] ?? ""))),
+    );
+  const projects = yield* getJson(
+    "neon projects",
+    `https://console.neon.tech/api/v2/projects?org_id=${org}&limit=400`,
+    neon,
+    Projects,
+  );
   const ours = projects.projects.filter((project) => project.name.toLowerCase().startsWith(STACK.toLowerCase()));
   const branches = yield* Effect.forEach(ours, (project) =>
     getJson("neon branches", `https://console.neon.tech/api/v2/projects/${project.id}/branches`, neon, Branches).pipe(
@@ -160,8 +194,14 @@ export const inventory = Effect.gen(function* () {
   return {
     workers: count(yield* list("workers", "/workers/scripts", "id")),
     containerApplications: count(yield* list("container applications", "/containers/applications", "name")),
-    durableObjectNamespaces: count(yield* list("durable object namespaces", "/workers/durable_objects/namespaces?per_page=1000", "script")),
-    r2Buckets: count((yield* getJson("r2 buckets", `${cf}/r2/buckets?per_page=1000`, cloudflare, Buckets)).result.buckets.map((bucket) => bucket.name)),
+    durableObjectNamespaces: count(
+      yield* list("durable object namespaces", "/workers/durable_objects/namespaces?per_page=1000", "script"),
+    ),
+    r2Buckets: count(
+      (yield* getJson("r2 buckets", `${cf}/r2/buckets?per_page=1000`, cloudflare, Buckets)).result.buckets.map(
+        (bucket) => bucket.name,
+      ),
+    ),
     hyperdriveConfigurations: count(yield* list("hyperdrive configurations", "/hyperdrive/configs", "name")),
     neonProjects: count(projects.projects.map((project) => project.name)),
     neonBranches: { inThisStacksProjects: branches.flat().length, names: branches.flat() },

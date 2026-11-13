@@ -29,7 +29,9 @@ export const limits = Effect.gen(function* () {
   const held = (yield* claims(names)).filter((entry) => entry.owner === OWNER).map((entry) => entry.name);
   yield* Effect.forEach(HELD, (world) => release(names, world));
   const listing = yield* inventory;
-  const made = [...listing.workers.ofThisStack, ...listing.neonBranches.names].filter((name) => name.includes("p-forever") || name.includes("p-sixth"));
+  const made = [...listing.workers.ofThisStack, ...listing.neonBranches.names].filter(
+    (name) => name.includes("p-forever") || name.includes("p-sixth"),
+  );
   const results = { askedFor8Days: refusal(tooLong), sixthWorldOfOneOwner: refusal(sixth) };
   yield* observed("limits", {
     proof: "a lifetime over the limit and a sixth live world of one owner are both refused before anything is created",
@@ -39,7 +41,10 @@ export const limits = Effect.gen(function* () {
     resourcesOfTheRefusedWorlds: made,
   });
   yield* insist(results.askedFor8Days.startsWith("LifetimeTooLong"), `8 days: ${results.askedFor8Days}`);
-  yield* insist(results.sixthWorldOfOneOwner.startsWith("TooManyWorlds"), `the sixth world: ${results.sixthWorldOfOneOwner}`);
+  yield* insist(
+    results.sixthWorldOfOneOwner.startsWith("TooManyWorlds"),
+    `the sixth world: ${results.sixthWorldOfOneOwner}`,
+  );
   yield* insist(held.length === 5 && made.length === 0, "a refused create left something behind");
   return { ...results, resourcesOfTheRefusedWorlds: made };
 });

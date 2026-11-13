@@ -33,7 +33,11 @@ export const create = (spec: WorldSpec) =>
     );
     if (Exit.isFailure(up)) {
       const nothingMade = Option.isNone(yield* Ref.get(held));
-      const after = nothingMade ? "nothing of it was made" : cleaned ? "what the create had made is destroyed" : "the cleanup failed; sweep removes it at its expiry";
+      const after = nothingMade
+        ? "nothing of it was made"
+        : cleaned
+          ? "what the create had made is destroyed"
+          : "the cleanup failed; sweep removes it at its expiry";
       yield* Effect.logError(`world ${plan.stage}: not created; ${after}`);
       return yield* Effect.failCause(up.cause);
     }

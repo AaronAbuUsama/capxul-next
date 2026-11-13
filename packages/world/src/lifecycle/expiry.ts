@@ -15,7 +15,12 @@ export const Recorded = Schema.Struct({
 });
 
 export type Finding =
-  | { readonly kind: "expired" | "live"; readonly owner: string | null; readonly expiresAt: string; readonly status: string | null }
+  | {
+      readonly kind: "expired" | "live";
+      readonly owner: string | null;
+      readonly expiresAt: string;
+      readonly status: string | null;
+    }
   | { readonly kind: "no-expiry"; readonly owner: string | null }
   | { readonly kind: "unreadable"; readonly detail: string };
 
@@ -36,7 +41,12 @@ export const classify = (now: DateTime.Utc, output: unknown): Effect.Effect<Find
         const owner = recorded.owner ?? null;
         if (recorded.expiresAt === undefined) return { kind: "no-expiry", owner };
         const expired = DateTime.isLessThanOrEqualTo(recorded.expiresAt, now);
-        return { kind: expired ? "expired" : "live", owner, expiresAt: DateTime.formatIso(recorded.expiresAt), status: recorded.status ?? null };
+        return {
+          kind: expired ? "expired" : "live",
+          owner,
+          expiresAt: DateTime.formatIso(recorded.expiresAt),
+          status: recorded.status ?? null,
+        };
       },
     }),
   );
@@ -52,7 +62,10 @@ export const Verdict = Schema.Literals([
 export type Verdict = typeof Verdict.Type;
 
 /** What the sweeper does about a finding. It never deletes a world whose expiry it cannot read. */
-export const decide = (finding: Finding, dryRun: boolean): "destroy" | Exclude<Verdict, "destroyed" | "destroy failed"> => {
+export const decide = (
+  finding: Finding,
+  dryRun: boolean,
+): "destroy" | Exclude<Verdict, "destroyed" | "destroy failed"> => {
   if (finding.kind === "unreadable") return "kept: expiry unreadable";
   if (finding.kind === "no-expiry") return "kept: no expiry recorded";
   if (finding.kind === "live") return "kept: not expired";

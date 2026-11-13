@@ -53,24 +53,30 @@ export class SweepIncomplete extends Schema.TaggedError<SweepIncomplete>()("Swee
 const blank = { owner: null, expiresAt: null, status: null, detail: null, destroyMs: null };
 
 /** Decides about one world and, when it has expired, destroys it. A destroy that fails does not stop the sweep. */
-const sweepWorld = (now: DateTime.Utc, dryRun: boolean) => (recorded: { readonly stage: string; readonly output: unknown }) =>
-  Effect.gen(function* () {
-    const finding = yield* classify(now, recorded.output);
-    const decision = decide(finding, dryRun);
-    const known =
-      finding.kind === "unreadable"
-        ? { ...blank, detail: finding.detail }
-        : finding.kind === "no-expiry"
-          ? { ...blank, owner: finding.owner }
-          : { ...blank, owner: finding.owner, expiresAt: finding.expiresAt, status: finding.status };
-    if (decision !== "destroy") return { world: recorded.stage, ...known, verdict: decision } satisfies WorldReport;
-    const watch = yield* makeStopwatch(yield* Timeouts);
-    const gone = yield* Effect.exit(takeDown(recorded.stage, watch));
-    const { destroy } = yield* watch.durations;
-    return Exit.isSuccess(gone)
-      ? ({ world: recorded.stage, ...known, verdict: "destroyed", destroyMs: destroy ?? null } satisfies WorldReport)
-      : ({ world: recorded.stage, ...known, verdict: "destroy failed", detail: describe(gone.cause) } satisfies WorldReport);
-  });
+const sweepWorld =
+  (now: DateTime.Utc, dryRun: boolean) => (recorded: { readonly stage: string; readonly output: unknown }) =>
+    Effect.gen(function* () {
+      const finding = yield* classify(now, recorded.output);
+      const decision = decide(finding, dryRun);
+      const known =
+        finding.kind === "unreadable"
+          ? { ...blank, detail: finding.detail }
+          : finding.kind === "no-expiry"
+            ? { ...blank, owner: finding.owner }
+            : { ...blank, owner: finding.owner, expiresAt: finding.expiresAt, status: finding.status };
+      if (decision !== "destroy") return { world: recorded.stage, ...known, verdict: decision } satisfies WorldReport;
+      const watch = yield* makeStopwatch(yield* Timeouts);
+      const gone = yield* Effect.exit(takeDown(recorded.stage, watch));
+      const { destroy } = yield* watch.durations;
+      return Exit.isSuccess(gone)
+        ? ({ world: recorded.stage, ...known, verdict: "destroyed", destroyMs: destroy ?? null } satisfies WorldReport)
+        : ({
+            world: recorded.stage,
+            ...known,
+            verdict: "destroy failed",
+            detail: describe(gone.cause),
+          } satisfies WorldReport);
+    });
 
 /** Gives back the names whose world is gone and whose claim has expired. Skipped when the platform is gone too. */
 const releaseStaleNames = (now: DateTime.Utc, stages: ReadonlyArray<string>, dryRun: boolean) =>
@@ -87,12 +93,19 @@ const releaseStaleNames = (now: DateTime.Utc, stages: ReadonlyArray<string>, dry
 export const removeLeftoverImages = (stages: ReadonlyArray<string>, dryRun: boolean) =>
   Effect.gen(function* () {
     const { ofThisStack } = yield* imageRepositories;
-    const leftovers = leftoverRepositories(ofThisStack, stages, { prefix: IMAGE_PREFIX, shared: [CHAIN_IMAGE, INDEX_IMAGE], platform: PLATFORM });
+    const leftovers = leftoverRepositories(ofThisStack, stages, {
+      prefix: IMAGE_PREFIX,
+      shared: [CHAIN_IMAGE, INDEX_IMAGE],
+      platform: PLATFORM,
+    });
     if (dryRun) return { removed: leftovers, left: [] as ReadonlyArray<string> };
     yield* removeImageRepositories(leftovers);
     // What is reported as removed is what the registry no longer lists, not what was asked for.
     const still = (yield* imageRepositories).ofThisStack;
-    return { removed: leftovers.filter((name) => !still.includes(name)), left: leftovers.filter((name) => still.includes(name)) };
+    return {
+      removed: leftovers.filter((name) => !still.includes(name)),
+      left: leftovers.filter((name) => still.includes(name)),
+    };
   });
 
 /**
@@ -103,13 +116,28 @@ export const sweep = Effect.fn("world.sweep")(function* (options: { readonly dry
   const dryRun = options.dryRun === true;
   const now = yield* DateTime.now;
   const stages = yield* recordedStages;
-  const worlds = yield* Effect.forEach(stages.filter(({ stage }) => isWorldStage(stage)), sweepWorld(now, dryRun));
-  const remaining = stages.map(({ stage }) => stage).filter((stage) => !worlds.some((world) => world.world === stage && world.verdict === "destroyed"));
+  const worlds = yield* Effect.forEach(
+    stages.filter(({ stage }) => isWorldStage(stage)),
+    sweepWorld(now, dryRun),
+  );
+  const remaining = stages
+    .map(({ stage }) => stage)
+    .filter((stage) => !worlds.some((world) => world.world === stage && world.verdict === "destroyed"));
   const namesReleased = yield* releaseStaleNames(now, remaining, dryRun);
   const images = yield* removeLeftoverImages(remaining, dryRun);
-  const report: SweepReport = { at: DateTime.formatIso(now), dryRun, worlds, namesReleased, imagesRemoved: images.removed, imagesLeft: images.left };
+  const report: SweepReport = {
+    at: DateTime.formatIso(now),
+    dryRun,
+    worlds,
+    namesReleased,
+    imagesRemoved: images.removed,
+    imagesLeft: images.left,
+  };
   if (worlds.some((world) => world.verdict === "destroy failed") || images.left.length > 0) {
-    return yield* new SweepIncomplete({ report, message: "an expired world or a leftover image repository could not be removed" });
+    return yield* new SweepIncomplete({
+      report,
+      message: "an expired world or a leftover image repository could not be removed",
+    });
   }
   return report;
 });

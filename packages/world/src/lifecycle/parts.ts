@@ -53,7 +53,13 @@ export const open = Effect.fn("world.open")(function* (name: string) {
   const stage = stageOf(name);
   const output = yield* recordedOutput(stage);
   const decoded = yield* Schema.decodeUnknownEffect(WorldOutput)(output).pipe(
-    Effect.mapError(() => new WorldNotFound({ world: stage, message: `no deployed world called ${nameOf(stage)} is recorded in the shared state` })),
+    Effect.mapError(
+      () =>
+        new WorldNotFound({
+          world: stage,
+          message: `no deployed world called ${nameOf(stage)} is recorded in the shared state`,
+        }),
+    ),
   );
   return yield* handle(decoded);
 });
@@ -79,12 +85,19 @@ export const rpc = (world: Pick<World, "door">, method: string, params: Readonly
   door(world, "POST", "/rpc", JSON.stringify({ jsonrpc: "2.0", id: 1, method, params })).pipe(
     Effect.flatMap(({ status, body }) =>
       Schema.decodeUnknownEffect(Schema.fromJsonString(RpcAnswer))(body).pipe(
-        Effect.mapError(() => new WorldNotReady({ part: "chain", message: `${method}: HTTP ${status}: ${body.slice(0, 160)}` })),
+        Effect.mapError(
+          () => new WorldNotReady({ part: "chain", message: `${method}: HTTP ${status}: ${body.slice(0, 160)}` }),
+        ),
       ),
     ),
     Effect.flatMap((answer) =>
       answer.result === undefined || answer.result === null
-        ? Effect.fail(new WorldNotReady({ part: "chain", message: `${method}: ${JSON.stringify(answer.error ?? "no result")}`.slice(0, 200) }))
+        ? Effect.fail(
+            new WorldNotReady({
+              part: "chain",
+              message: `${method}: ${JSON.stringify(answer.error ?? "no result")}`.slice(0, 200),
+            }),
+          )
         : Effect.succeed(answer.result),
     ),
   );
@@ -105,20 +118,34 @@ export const chainAnswers = (world: Pick<World, "door">) => patient(rpc(world, "
 export const adoptChain = (child: Pick<World, "door">, parent: Pick<World, "door">) =>
   Effect.gen(function* () {
     const dump = yield* door(parent, "GET", "/chain/dump");
-    if (dump.status !== 200) return yield* new WorldNotReady({ part: "fork", message: `the parent's chain gave no state: HTTP ${dump.status}` });
+    if (dump.status !== 200)
+      return yield* new WorldNotReady({
+        part: "fork",
+        message: `the parent's chain gave no state: HTTP ${dump.status}`,
+      });
     const adopted = yield* door(child, "POST", "/chain/adopt", dump.body);
-    if (adopted.status !== 200) return yield* new WorldNotReady({ part: "fork", message: `the new chain refused the state: ${adopted.body.slice(0, 160)}` });
+    if (adopted.status !== 200)
+      return yield* new WorldNotReady({
+        part: "fork",
+        message: `the new chain refused the state: ${adopted.body.slice(0, 160)}`,
+      });
     return dump.body.length;
   });
 
-const IndexStatus = Schema.Struct({ running: Schema.Boolean, ready: Schema.NullOr(Schema.Number), indexed: Schema.NullOr(Schema.String) });
+const IndexStatus = Schema.Struct({
+  running: Schema.Boolean,
+  ready: Schema.NullOr(Schema.Number),
+  indexed: Schema.NullOr(Schema.String),
+});
 
 /** What the index says about itself now. */
 export const indexStatus = (world: Pick<World, "door">) =>
   door(world, "GET", "/index/status").pipe(
     Effect.flatMap(({ status, body }) =>
       Schema.decodeUnknownEffect(Schema.fromJsonString(IndexStatus))(body).pipe(
-        Effect.mapError(() => new WorldNotReady({ part: "index", message: `status: HTTP ${status}: ${body.slice(0, 160)}` })),
+        Effect.mapError(
+          () => new WorldNotReady({ part: "index", message: `status: HTTP ${status}: ${body.slice(0, 160)}` }),
+        ),
       ),
     ),
   );
@@ -129,7 +156,8 @@ export const indexReady = (world: Pick<World, "door">) =>
     Effect.gen(function* () {
       const status = yield* indexStatus(world);
       if (!status.running) yield* door(world, "POST", "/index/start");
-      if (status.ready !== 200) return yield* new WorldNotReady({ part: "index", message: `running ${status.running}, ready ${status.ready}` });
+      if (status.ready !== 200)
+        return yield* new WorldNotReady({ part: "index", message: `running ${status.running}, ready ${status.ready}` });
       return status.indexed;
     }),
   );
@@ -139,7 +167,9 @@ export const coreAnswers = (world: Pick<World, "coreUrl">) =>
   patient(
     send(HttpClientRequest.get(`${world.coreUrl}/`)).pipe(
       Effect.flatMap(({ status, body }) =>
-        status === 200 ? Effect.succeed(body) : Effect.fail(new WorldNotReady({ part: "core", message: `Core answered ${status}` })),
+        status === 200
+          ? Effect.succeed(body)
+          : Effect.fail(new WorldNotReady({ part: "core", message: `Core answered ${status}` })),
       ),
     ),
   );
