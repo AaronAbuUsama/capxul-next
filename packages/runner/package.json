@@ -13,6 +13,7 @@
     "@capxul/core": "workspace:*",
     "@capxul/scenarios": "workspace:*",
     "@capxul/sdk": "workspace:*",
+    "@capxul/world": "workspace:*",
     "@effect/platform-bun": "catalog:",
     "alchemy": "catalog:",
     "effect": "catalog:"

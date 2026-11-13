@@ -25,7 +25,7 @@ export default Alchemy.Stack(
     const n = yield* names;
     const host = yield* Host;
     const bench = yield* Bench(host.context);
-    const edge = yield* Edge(host.context, bench.network, { web: bench.webService, door: bench.doorService });
+    const edge = yield* Edge(host.context, bench.network, { web: bench.webService, door: bench.doorService }, bench);
     // No secret is an output: alchemy prints outputs in plain text. The door key is read from its resource's state.
     return {
       stage: n.stage,
@@ -36,6 +36,7 @@ export default Alchemy.Stack(
       edge: edge.mode,
       tunnelId: edge.tunnelId ?? "",
       doorHost: n.doorHost,
+      doorUrl: edge.doorUrl,
       doorKeyId: bench.doorKeyId,
       records: Arr.map(edge.records, (r) => r.name),
       zoneId: edge.zoneId,

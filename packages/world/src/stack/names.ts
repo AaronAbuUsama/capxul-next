@@ -35,8 +35,10 @@ export const STEPS = [
   "fund",
   "index",
   "core",
+  "site",
   "use",
   "park",
+  "unsite",
   "destroy",
   "release",
 ] as const;

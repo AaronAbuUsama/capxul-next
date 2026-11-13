@@ -13,6 +13,8 @@
     "@alchemy.run/cloudflare": "catalog:",
     "@alchemy.run/neon": "catalog:",
     "@capxul/blueprint": "workspace:*",
+    "@capxul/core": "workspace:*",
+    "@capxul/platform": "workspace:*",
     "@effect/platform-bun": "catalog:",
     "@effect/platform-node": "catalog:",
     "alchemy": "catalog:",
