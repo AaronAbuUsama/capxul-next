@@ -9,11 +9,18 @@ export type SigningContext = ApprovalContext & {
   terminal?: Terminal;
 };
 
-function view(row: Approval, ctx: SigningContext) {
+async function view(sql: Sql, row: Approval, ctx: SigningContext) {
+  let replacement: { approvalId: string; nonce: string } | null = null;
+  if (row.replaces) {
+    const original = await read(sql, ctx.person_id, row.replaces);
+    if (!original.nonce) throw new Error("Invalid replacement intent");
+    replacement = { approvalId: original.approval_id, nonce: original.nonce };
+  }
   return {
     approvalId: row.approval_id, url: `${ctx.site_url.replace(/\/$/, "")}/approve/${row.approval_id}`, state: row.state,
     opener: row.opener, subjectKind: row.subject_kind, subjectId: row.subject_id, orgId: row.org_id,
     summary: row.summary, network: { chainId: row.chain_id, ...ctx.network }, sender: row.sender, calls: row.calls,
+    nonceKey: row.nonce_key, deadline: row.deadline.toISOString(), replacement,
     signer: row.signer_address ? { address: row.signer_address } : null,
     operation: row.user_operation ? { userOperation: row.user_operation, digest: row.digest, userOpHash: row.user_op_hash,
       validAfter: row.valid_after?.toISOString() ?? null, validUntil: row.valid_until!.toISOString() } : null,
@@ -28,7 +35,7 @@ function authenticated(ctx: ApprovalContext) {
 }
 export async function signingGet(sql: Sql, ctx: SigningContext, b: { approvalId: string }) {
   authenticated(ctx);
-  return view(await read(sql, ctx.person_id, b.approvalId), ctx);
+  return view(sql, await read(sql, ctx.person_id, b.approvalId, false), ctx);
 }
 export async function signingReview(sql: Sql, ctx: SigningContext, b: { approvalId: string }) {
   authenticated(ctx);
@@ -37,12 +44,12 @@ export async function signingReview(sql: Sql, ctx: SigningContext, b: { approval
     await sql.query("update app.approvals set reviewed_at=$3,updated_at=$3 where person_id=$1 and approval_id=$2", [ctx.person_id, b.approvalId, ctx.now]);
     row.reviewed_at = ctx.now;
   }
-  return view(row, ctx);
+  return view(sql, row, ctx);
 }
 export async function signingSign(sql: Sql, ctx: SigningContext, b: { approvalId: string; signature: string }, trace = "") {
   authenticated(ctx);
   const row = await read(sql, ctx.person_id, b.approvalId);
-  if (row.signature && row.signature === b.signature.toLowerCase()) return view(row, ctx);
+  if (row.signature && row.signature === b.signature.toLowerCase()) return view(sql, row, ctx);
   if (row.state !== "pending" || !row.valid_until || ctx.now >= row.valid_until) throw new Error(`WRONG_STATE: ${row.state}`);
   let recovered: string;
   try {
@@ -52,11 +59,11 @@ export async function signingSign(sql: Sql, ctx: SigningContext, b: { approvalId
   } catch { throw new Error("INVALID_INPUT: signature"); }
   if (row.gate) await ctx.requireFeature(sql, row.gate, { personId: row.person_id, ...(row.org_id ? { orgId: row.org_id } : {}) });
   const signed = await move(sql, row, "sign", { signature: b.signature.toLowerCase(), signed_at: ctx.now }, ctx.now, trace, ctx.terminal);
-  return view(signed, ctx);
+  return view(sql, signed, ctx);
 }
 export async function signingDecline(sql: Sql, ctx: SigningContext, b: { approvalId: string }, trace = "") {
   authenticated(ctx);
   const row = await read(sql, ctx.person_id, b.approvalId);
-  if (row.state === "declined") return view(row, ctx);
-  return view(await move(sql, row, "decline", { ended_at: ctx.now }, ctx.now, trace, ctx.terminal), ctx);
+  if (row.state === "declined") return view(sql, row, ctx);
+  return view(sql, await move(sql, row, "decline", { ended_at: ctx.now }, ctx.now, trace, ctx.terminal), ctx);
 }

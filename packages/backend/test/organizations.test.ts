@@ -10,7 +10,7 @@ import { lookup } from "../src/parties/door.ts";
 
 const now = 946684800123, suffix = randomBytes(6).toString("hex");
 const addr = () => `0x${randomBytes(20).toString("hex")}`;
-// 3: the Organization's own Party is released; 4: the Organization itself is released. Neither admits a Seat.
+// 3 and 4: the Organization's own Party is released (the target table has no separate released flag). Neither admits a Seat.
 const orgs = [0, 1, 2, 3, 4].map(n => ({ id: `seat-${suffix}-${n}`, safe: addr(), party: `org-party-${suffix}-${n}` }));
 const people = ["human", "other", "agent", "no-party", "released"].map(name => ({
   id: `${name}-${suffix}`, safe: addr(), party: `${name}-party-${suffix}`, token: randomBytes(32).toString("base64url"),
@@ -33,12 +33,12 @@ before(async () => {
   // Source fixtures only, not public onboarding proof: seed immutable principals and opaque sessions with the worker.
   await db.transaction("", async sql => {
     for (const o of orgs) {
-      await sql.query(`insert into app.organizations(org_id,name,safe,site,admin_email,token)
-        values($1,$1,$2,$1,'fixture@example.test',$2)`, [o.id, o.safe]);
       await sql.query(`insert into app.parties(party_id,kind,state,safe_address,owner_kind,owner_id,created_at,updated_at)
-        values($1,'organization',$2,$3,'organization',$4,$5,$5)`, [o.party, o === orgs[3] ? "released" : "active", o.safe, o.id, now]);
+        values($1,'organization',$2,$3,'organization',$4,$5,$5)`, [o.party, o === orgs[3] || o === orgs[4] ? "released" : "active", o.safe, o.id, now]);
+      await sql.query(`insert into app.organizations(org_id,party_id,name,country,chain_id,safe_address,founder_party_id,founder_safe,
+        seat_limit,abbr,default_currency,time_zone,fiscal_year_start,created_at,updated_at)
+        values($1,$2,$1,'GH',84532,$3,$2,$3,10,'FX','USD','Africa/Accra','01-01',$4,$4)`, [o.id, o.party, o.safe, now]);
     }
-    await sql.query("update app.organizations set released=true where org_id=$1", [orgs[4]!.id]);
     for (const p of people) {
       await sql.query(`insert into app.principals(person_id,kind,email,safe_address,signer_address,created_at)
         values($1,$2,$3,$4,$5,$6)`, [p.id, p.kind, p.kind === "person" ? `${p.id}@example.test` : null,

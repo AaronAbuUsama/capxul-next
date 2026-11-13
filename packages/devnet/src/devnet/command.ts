@@ -24,7 +24,7 @@ export async function runDevnet(args: string[]): Promise<number> {
     const config = await readConfig(configFile);
     diagnostics = join(config.controlDir, "last-error.log");
     await mkdir(config.controlDir, { recursive: true, mode: 0o700 });
-    if (world === "record" || commandName === "snapshot" && rest[0] === "list") {
+    if (world === "record" || commandName === "show" || commandName === "snapshot" && rest[0] === "list") {
       const { readCatalogue } = await import("./catalogue-read.ts");
       console.log(JSON.stringify(await readCatalogue(config, words))); return 0;
     }
@@ -82,15 +82,16 @@ export async function runDevnet(args: string[]): Promise<number> {
       await writeFile(join(candidate, "token"), token, { mode: 0o600 });
       const { runGate } = await import("./gate.ts");
       return await runGate(stack.c, rest[2] ?? "harbourline", token, configFile);
-    } else throw new Error("usage: world init <id>; world create|up|stop|inspect; world provision <slug>; world snapshot save|read|restore <id> [--as CONFIG]; world run slice-zero [--slug SLUG] --config FILE [--json]");
+    } else throw new Error("usage: world init <id>; world create|up|stop|inspect; world show [ID]; world provision <slug>; world snapshot save|read|restore <id> [--as CONFIG]; world run slice-zero [--slug SLUG] --config FILE [--json]");
     console.log(JSON.stringify({ world: stack.c.world.id, state: commandName === "stop" ? "stopped" : "running" }));
     return 0;
   } catch (error) {
     // Nested startup/cleanup failures must retain their causes privately, without leaking argv or credentials to stdout.
     if (diagnostics) await writeFile(diagnostics, inspect(error, { depth: 10 }), { mode: 0o600 });
     const message = (error as Error).message;
-    const code = message.startsWith("CLI_USAGE:") ? "CLI_USAGE" : message.startsWith("INVALID_INPUT:") ? "INVALID_INPUT" : "WORLD_RUNTIME_ERROR";
+    const code = ["CLI_USAGE", "INVALID_INPUT", "WRONG_STATE"].find((declared) => message.startsWith(`${declared}:`)) ?? "WORLD_RUNTIME_ERROR";
     console.error(JSON.stringify({ error: { code, message } }));
-    return code === "CLI_USAGE" ? 2 : 1;
+    // Declared input refusals exit 2 (blueprint vocabulary); undeclared runtime failures exit 1.
+    return code === "WORLD_RUNTIME_ERROR" ? 1 : 2;
   } finally { for (const lock of locks.reverse()) await rm(lock, { recursive: true }); }
 }

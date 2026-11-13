@@ -35,5 +35,9 @@ export type Approval = {
 };
 export type TerminalEvent = Pick<Approval, "approval_id" | "person_id" | "org_id" | "opener" | "subject_kind" | "subject_id" | "chain_id" | "sender" | "nonce" | "user_op_hash" | "transaction_hash" | "block_number"> & {
   outcome: Exclude<ApprovalState, "sponsoring" | "pending" | "signed" | "sending" | "sent">; observedAt: string;
+  /** The code the opener answers with; set only when the outcome is `refused`. */
+  refusal: Refusal | null;
+  /** The trace of the step that ended it (the carrier keeps the opening trace; a decline keeps its call), for the opener to continue. */
+  trace_id: string;
 };
 export type Terminal = (sql: Sql, event: TerminalEvent) => Promise<void>;
