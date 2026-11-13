@@ -29,11 +29,11 @@ import {
 import { open } from "../approvals/store.ts";
 import { Cast, type CastMember } from "../cast/Cast.ts";
 import { ERC20, INSTALLER, MINTER, ROLES } from "../chain/abi.ts";
-import { head, readContract, sendAsService, usdcOf } from "../chain/calls.ts";
+import { readContract, sendAsService, usdcOf } from "../chain/calls.ts";
 import { approvedBySender, execTransaction, multiSend } from "../chain/safe.ts";
 import { APPROVAL_LIFETIME_MS, SEEDED, TIER, USDC_DECIMALS } from "../chain/seeded.ts";
 import { nonceKeyOf, prepare } from "../chain/userop.ts";
-import { emitDeclared } from "../record/emit.ts";
+import { emitDeclared, worldNow } from "../record/emit.ts";
 import { callerPerson, instant } from "./caller.ts";
 import { newId } from "./ids.ts";
 import { startSite } from "./site.ts";
@@ -192,7 +192,7 @@ export const orgCreate = Effect.fn("org.create.found")(function* (founding: Foun
     nonceKey: nonceKeyOf(`org_setup:${org}`),
     callGas: 6_000_000n,
   });
-  const now = yield* head;
+  const now = yield* worldNow;
   const expiresAt = instant(now.timestampMs + APPROVAL_LIFETIME_MS);
   const signers = [checked.founder, ...Arr.map(checked.coDirectors, (each) => each.member)];
   const approvals = yield* Effect.forEach(signers, (member) =>

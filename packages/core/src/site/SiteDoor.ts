@@ -64,6 +64,10 @@ export class SiteDoor extends Context.Service<
     readonly make: (label: string, company: string) => Effect.Effect<DoorSite, SiteDoorFailed>;
     /** One of the world's sites as the door holds it now. */
     readonly site: (site: string) => Effect.Effect<DoorSite, SiteDoorFailed>;
+    /** Sets the world's clock on the bench, through one of its ready sites: frozen at an instant, or running offset. */
+    readonly clock: (
+      clock: { readonly frozen_at_ms: number } | { readonly offset_ms: number },
+    ) => Effect.Effect<SiteAnswer, SiteDoorFailed>;
     /** One REST call to one of the world's sites, as its own API user. A site's own refusal is an answer. */
     readonly call: (site: string, call: SiteCall) => Effect.Effect<SiteAnswer, SiteDoorFailed>;
   }
@@ -136,6 +140,7 @@ export class SiteDoor extends Context.Service<
               );
             }),
           site: (site) => Effect.flatMap(send(HttpClientRequest.get(`/sites/${site}`)), decodeSite),
+          clock: (clock) => send(HttpClientRequest.bodyJsonUnsafe(HttpClientRequest.post("/clock"), clock)),
           sites: send(HttpClientRequest.get("/world")).pipe(
             Effect.flatMap((answer) => Schema.decodeUnknownEffect(WorldSites)(answer.body)),
             Effect.mapError((error) =>

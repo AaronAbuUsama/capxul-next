@@ -10,11 +10,10 @@ import * as Option from "effect/Option";
 import * as Str from "effect/String";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { recoverAddress, zeroAddress } from "viem";
-import { head } from "../chain/calls.ts";
 import { contractSignatures, relay } from "../chain/safe.ts";
 import { send } from "../chain/userop.ts";
 import { caller } from "../organizations/caller.ts";
-import { emitDeclared } from "../record/emit.ts";
+import { emitDeclared, worldNow } from "../record/emit.ts";
 import { reconcile } from "../organizations/site.ts";
 import { checkFunds, landed, orgOf } from "./landed.ts";
 import { approvalsOf, find, keep, markSent, type ApprovalRow } from "./store.ts";
@@ -57,7 +56,7 @@ export const approvalSign = Effect.fn("approval.sign.sign")(function* (signing: 
       transaction: held.tx,
       block: Number(held.block),
     });
-  const now = yield* head;
+  const now = yield* worldNow;
   const expiry = DateTime.toEpochMillis(DateTime.makeUnsafe(approval.expires_at));
   if (now.timestampMs >= expiry)
     return yield* Errors.ApprovalExpired.make({ approval: approval.approval, expiredAt: approval.expires_at });

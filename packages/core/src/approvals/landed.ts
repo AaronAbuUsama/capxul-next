@@ -11,10 +11,11 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { decodeEventLog, formatUnits } from "viem";
 import { Cast } from "../cast/Cast.ts";
 import { BUDGETS } from "../chain/abi.ts";
-import { head, usdcOf } from "../chain/calls.ts";
+import { usdcOf } from "../chain/calls.ts";
 import { SEEDED, USDC_DECIMALS } from "../chain/seeded.ts";
 import type { Landed } from "../chain/userop.ts";
 import { instant } from "../organizations/caller.ts";
+import { worldNow } from "../record/emit.ts";
 import { topicsOf } from "../organizations/found.ts";
 import { deliver, SITE_HATS } from "../organizations/site.ts";
 import * as Store from "../organizations/store.ts";
@@ -68,7 +69,7 @@ export const landed = Effect.fn("approval.sign.landed")(function* (subject: Subj
     // The site posts the Payment Entry it holds for this hash, as the chain paid it (capxul/payments.py).
     const held = yield* subjectOf(subject.kind, subject.id);
     if (held.org === null || held.about === null) return yield* Effect.void;
-    const now = yield* head;
+    const now = yield* worldNow;
     return yield* deliver(held.org, "paid", {
       document_hash: held.about["documentHash"] ?? "",
       tx_hash: landing.receipt.transactionHash,
@@ -84,6 +85,7 @@ export const landed = Effect.fn("approval.sign.landed")(function* (subject: Subj
     yield* Store.markReady(org.org, budgetOf(landing, org.safe));
     const [company] = yield* sql<{ readonly name: string }>`select name from app.companies where org = ${org.org}`;
     yield* deliver(org.org, "configure", { company_name: company?.name ?? org.handle, safe_address: org.safe });
+    yield* deliver(org.org, "clock", {});
     for (const name of org.directors) {
       const member = yield* personOf(name);
       if (member !== null)
@@ -94,7 +96,7 @@ export const landed = Effect.fn("approval.sign.landed")(function* (subject: Subj
       select spends from app.subjects where kind = 'org_setup' and id = ${org.org}`;
     const amount = capital[0]?.spends?.amount ?? null;
     if (amount !== null && founder !== null) {
-      const now = yield* head;
+      const now = yield* worldNow;
       yield* deliver(org.org, "capital", {
         tx_hash: landing.receipt.transactionHash,
         amount: formatUnits(BigInt(amount), USDC_DECIMALS),

@@ -34,6 +34,7 @@ const read = (name: string) => readFileSync(`${import.meta.dirname}/${name}`, "u
 const migrations = Arr.map(
   [
     "../../migrations/0001_telemetry.sql",
+    "../../migrations/0002_site_ops.sql",
     "./world-tables.sql",
     "../../migrations/0004_organizations.sql",
     "../../migrations/0005_approvals.sql",
@@ -170,7 +171,7 @@ it(
     const told = yield* Ref.get(site.told);
     assert.deepEqual(
       Arr.map(told, (each) => Option.getOrElse(Arr.last(Str.split(each.call.path, ".")), () => "")),
-      ["configure", "grant", "grant", "capital"],
+      ["configure", "/clock", "grant", "grant", "capital"],
     );
   }),
 );

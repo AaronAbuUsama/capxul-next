@@ -2,6 +2,7 @@
 // world (test/chain/up.sh), from a founded company (the starting world `founded`'s chain): `pnpm --filter @capxul/core
 // chain:test`, not `pnpm test`, which has no chain. One world for the file, so its tests run in order.
 import { strict as assert } from "node:assert";
+import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { Values } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
@@ -16,7 +17,7 @@ import { HATS } from "../../src/chain/abi.ts";
 import { readContract, usdcOf } from "../../src/chain/calls.ts";
 import { sameAddress } from "../../src/chain/hex.ts";
 import { SEEDED } from "../../src/chain/seeded.ts";
-import { WorldChain } from "../../src/chain/WorldChain.ts";
+import { WorldClock } from "../../src/site-ops/door.ts";
 import { foundNorthwind, grant as grantIn, open } from "./setup.ts";
 import { answer, eventsOf, HAT_LOGS, logsOf, OPERATIONS, PAID, refusal, safeOf, sign } from "./world.ts";
 
@@ -24,6 +25,7 @@ const read = (name: string) => readFileSync(`${import.meta.dirname}/${name}`, "u
 const migrations = Arr.map(
   [
     "../../migrations/0001_telemetry.sql",
+    "../../migrations/0002_site_ops.sql",
     "./world-tables.sql",
     "../../migrations/0004_organizations.sql",
     "../../migrations/0005_approvals.sql",
@@ -167,13 +169,13 @@ it(
   "approval.sign: an approval past its expiry in world time is refused, naming it (claim 4)",
   Effect.gen(function* () {
     const proposed = yield* answer(yield* grant("sam", "manage-people"));
-    const chain = yield* WorldChain;
-    yield* chain.rpc("evm_increaseTime", [25 * 3600]);
-    yield* chain.rpc("evm_mine", []);
+    const clock = yield* WorldClock;
+    yield* clock.moveTo((yield* clock.now).nowMs + 25 * 3600 * 1000);
     const [dana] = proposed.approvals;
     assert.ok(dana !== undefined, "no approvals");
     const expired = yield* refusal(yield* sign(dana));
     assert.ok(expired._tag === "ApprovalExpired" && expired.expiredAt === dana.expiresAt);
-    yield* Effect.promise(() => runtime.dispose());
   }),
 );
+
+test("the runtime is let go", () => runtime.dispose());

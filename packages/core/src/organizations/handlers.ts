@@ -8,9 +8,13 @@ import type { Approvals, Organizations } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as FetchHttpClient from "effect/http/FetchHttpClient";
+import * as PgClient from "@effect/sql-pg/PgClient";
+import { openPayment } from "../approvals/payments.ts";
 import { approvalSign } from "../approvals/sign.ts";
 import { Cast } from "../cast/Cast.ts";
 import { WorldChain } from "../chain/WorldChain.ts";
+import type { WorldClock } from "../site-ops/clock.ts";
+import { PaymentApprovals } from "../site-ops/payments.ts";
 import { SiteDoor } from "../site/SiteDoor.ts";
 import { orgCreate } from "./found.ts";
 import { orgMemberGrant } from "./grant.ts";
@@ -42,3 +46,17 @@ export const ChainOps = {
     SiteDoor.fromEnv({}).pipe(Layer.provide(FetchHttpClient.layer)),
   ),
 };
+
+/**
+ * approval.sign's half of a held payment (src/site-ops/payments.ts): doc.submit opens the payment's approval here.
+ * Needs the world's chain, its cast and its database, as the three handlers do.
+ */
+export const PaymentApprovalsLive = Layer.effect(
+  PaymentApprovals,
+  Effect.gen(function* () {
+    const context = yield* Effect.context<WorldChain | Cast | PgClient.PgClient | WorldClock>();
+    return PaymentApprovals.of({
+      open: (payment) => openPayment(payment).pipe(Effect.catchTags(faults), Effect.provideContext(context)),
+    });
+  }),
+);

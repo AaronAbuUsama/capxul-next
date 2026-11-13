@@ -68,7 +68,7 @@ export const commands = Effect.gen(function* () {
       check("the chain answers as the seeded chain", chainId === "0x14a34"),
       check("the faucet funded the address asked for", funded === OPENING),
       check("the index is running and ready", index.running && index.ready === 200),
-      check("Core answers its health check for this world", core.world === world.stage),
+      check("Core answers its health check for this world", core.world === world.name),
       check("the database answers", database.one === 1),
       check("the destroy command succeeded", destroyRun.exitCode === 0 && destroyed.resourcesDestroyed > 0),
       check("the shared state holds nothing of the world", listed.length === 0),

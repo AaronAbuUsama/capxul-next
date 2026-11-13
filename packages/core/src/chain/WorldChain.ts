@@ -13,7 +13,7 @@ import * as Predicate from "effect/Predicate";
 import * as Redacted from "effect/Redacted";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
-import * as FetchHttpClient from "effect/http/FetchHttpClient";
+import * as HttpClientError from "effect/http/HttpClientError";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
@@ -54,10 +54,19 @@ export class WorldChain extends Context.Service<
     if (!isFetcher(binding) || Option.isNone(token))
       return Layer.succeed(WorldChain, WorldChain.of({ rpc: unbound("rpc"), bundler: unbound("bundler") }));
     const base = `https://chain/${Redacted.value(token.value)}`;
-    const through: typeof globalThis.fetch = (input, init) => binding.fetch(new Request(input, init));
+    // Every request goes over the binding: an HttpClient whose transport is the bound Worker's own fetch.
+    const through = HttpClient.make((request) =>
+      HttpClientRequest.toWeb(request).pipe(
+        Effect.flatMap((web) => Effect.tryPromise(() => binding.fetch(web))),
+        Effect.mapBoth({
+          onSuccess: (response) => HttpClientResponse.fromWeb(request, response),
+          onFailure: (cause) =>
+            new HttpClientError.HttpClientError({ reason: new HttpClientError.TransportError({ request, cause }) }),
+        }),
+      ),
+    );
     return WorldChain.at({ rpc: Redacted.make(`${base}/rpc`), bundler: Redacted.make(`${base}/bundler`) }).pipe(
-      Layer.provide(FetchHttpClient.layer),
-      Layer.provide(Layer.succeed(FetchHttpClient.Fetch, through)),
+      Layer.provide(Layer.succeed(HttpClient.HttpClient, through)),
     );
   };
 }

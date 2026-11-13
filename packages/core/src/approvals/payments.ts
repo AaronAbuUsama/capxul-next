@@ -3,7 +3,7 @@
 // wears, so Budgets pays from the company Safe through its Roles and Gate, and Payments sends it with the document's
 // hash. It is prepared now, so its digest is known before doc.submit answers; approval.sign sends it with the
 // member's signature. The payment's id on the chain is what `spend` answers, read by simulating it now.
-import { Errors, type Values } from "@capxul/blueprint";
+import { Errors } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import {
@@ -16,13 +16,15 @@ import {
   stringToHex,
 } from "viem";
 import { Cast } from "../cast/Cast.ts";
-import { head, hexOf, usdcOf } from "../chain/calls.ts";
+import { hexOf, usdcOf } from "../chain/calls.ts";
 import { APPROVAL_LIFETIME_MS, SEEDED, USDC_DECIMALS } from "../chain/seeded.ts";
 import { nonceKeyOf, prepare } from "../chain/userop.ts";
 import { WorldChain } from "../chain/WorldChain.ts";
 import { instant } from "../organizations/caller.ts";
+import { worldNow } from "../record/emit.ts";
 import { newId } from "../organizations/ids.ts";
 import * as Store from "../organizations/store.ts";
+import type { OpenedPayment, PaymentToHold } from "../site-ops/payments.ts";
 import { open } from "./store.ts";
 import { hex } from "../chain/hex.ts";
 
@@ -31,27 +33,6 @@ const SPEND = parseAbi([
 ]);
 /** Payments' kind of a payment to a supplier (Budgets refuses any above its prepared kinds). */
 const SUPPLIER_PAYMENT = 1;
-
-/** A payment from a company's Safe, as doc.submit read it from the site, waiting for an approval. */
-export interface PaymentToHold {
-  readonly org: string;
-  /** The member who submitted it, whose Books hat pays it and who signs it. */
-  readonly person: string;
-  readonly document: { readonly doctype: string; readonly name: string };
-  readonly payee: string;
-  readonly payeeAddress: string;
-  readonly amount: typeof Values.Money.Type;
-  /** The company Safe it is paid from, as the company's site keeps it. */
-  readonly safe: string;
-  readonly documentHash: string;
-}
-
-/** The approval opened for it: the request's id, the payment's id on the chain, and the signature it waits for. */
-export interface OpenedPayment {
-  readonly request: string;
-  readonly paymentId: string;
-  readonly approval: typeof Values.Approval.Type;
-}
 
 /** Opens the approval of `payment`, or refuses when the company Safe holds less than it pays. */
 export const openPayment = Effect.fn("payment.open")(function* (payment: PaymentToHold) {
@@ -99,7 +80,7 @@ export const openPayment = Effect.fn("payment.open")(function* (payment: Payment
     nonceKey: nonceKeyOf(`payment:${request}`),
     callGas: 1_500_000n,
   });
-  const now = yield* head;
+  const now = yield* worldNow;
   const approval = {
     id: yield* newId("apr"),
     signer: member.person,

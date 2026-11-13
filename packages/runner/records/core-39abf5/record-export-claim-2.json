@@ -1,0 +1,50 @@
+{
+  "kind": "scenario",
+  "name": "record.export claim 2",
+  "proves": {
+    "operation": "record.export",
+    "claim": 2
+  },
+  "given": "paid",
+  "stage": "core-39abf5",
+  "owner": "runner",
+  "startedAt": "2026-11-13T14:27:35.355Z",
+  "outcome": "failed",
+  "failure": "the run failed: Error: the runner has no facts of the starting world paid: it makes no starting world before roadmap step 1.12",
+  "ended": {
+    "as": "died",
+    "tag": null,
+    "detail": "Error: the runner has no facts of the starting world paid: it makes no starting world before roadmap step 1.12"
+  },
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 11448
+  },
+  "calls": [],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [
+        "capxulcore-core-core-39abf5-gt34l7lsbuhil62p"
+      ],
+      "hyperdrives": [
+        "capxulcore-core-hyperdrive-core-39abf5-3tbqizsie6alarbn"
+      ],
+      "neonProjects": [
+        "CapxulCore-core-db-core-39abf5-haiqantmvkjka6hs"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": []
+    }
+  },
+  "ms": {
+    "create": 29361,
+    "run": 4,
+    "checks": 0,
+    "destroy": 2996
+  }
+}

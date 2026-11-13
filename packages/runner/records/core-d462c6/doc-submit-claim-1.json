@@ -1,0 +1,50 @@
+{
+  "kind": "scenario",
+  "name": "doc.submit claim 1",
+  "proves": {
+    "operation": "doc.submit",
+    "claim": 1
+  },
+  "given": "payment-drafted",
+  "stage": "core-d462c6",
+  "owner": "runner",
+  "startedAt": "2026-11-13T14:21:03.122Z",
+  "outcome": "failed",
+  "failure": "the run failed: Error: the runner has no facts of the starting world payment-drafted: it makes no starting world before roadmap step 1.12",
+  "ended": {
+    "as": "died",
+    "tag": null,
+    "detail": "Error: the runner has no facts of the starting world payment-drafted: it makes no starting world before roadmap step 1.12"
+  },
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 11615
+  },
+  "calls": [],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [
+        "capxulcore-core-core-d462c6-ljioopcb4ld5maq2"
+      ],
+      "hyperdrives": [
+        "capxulcore-core-hyperdrive-core-d462c6-vnbeyo3zvkf3w3y7"
+      ],
+      "neonProjects": [
+        "CapxulCore-core-db-core-d462c6-6hqupvszuhbo5hzz"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": []
+    }
+  },
+  "ms": {
+    "create": 28943,
+    "run": 3,
+    "checks": 0,
+    "destroy": 2758
+  }
+}

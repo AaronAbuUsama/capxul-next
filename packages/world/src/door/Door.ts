@@ -1,9 +1,11 @@
 // The world's one address for its chain and its index. Nothing reaches a container except through here, and only
 // with the world's token as the first path segment.
 //   POST /rpc             JSON-RPC for people and programs: wakes the chain and keeps it awake
-//   POST /quiet-rpc       JSON-RPC for the index: does neither
+//   POST /quiet-rpc       JSON-RPC for the index and the bundler: does neither
+//   POST /bundler         JSON-RPC to the bundler: wakes the chain, keeps it awake, starts alto if it is stopped
+//   GET  /bundler/status
 //   GET  /chain/status
-//   POST /chain/stop      save the chain, stop it and the index
+//   POST /chain/stop      stop the bundler and the index, save the chain and stop it
 //   POST /chain/idle?seconds=N   how long the chain may sit unused before that happens by itself
 //   GET  /chain/dump      the chain's whole state, for a world that is being made from this one
 //   POST /chain/adopt     take another world's state as this chain's first state
@@ -20,6 +22,7 @@ import * as Redacted from "effect/Redacted";
 import * as Str from "effect/String";
 import { HttpServerRequest } from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
+import Bundler from "../bundler/Bundler.ts";
 import Chain, { WORLD } from "../chain/Chain.ts";
 import Indexer from "../index/Indexer.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
@@ -53,6 +56,7 @@ export default class Door extends Cloudflare.Worker<Door>()(
   Effect.gen(function* () {
     const chains = yield* Chain;
     const indexers = yield* Indexer;
+    const bundlers = yield* Bundler;
 
     return {
       fetch: Effect.gen(function* () {
@@ -64,12 +68,22 @@ export default class Door extends Cloudflare.Worker<Door>()(
         if (token === undefined || Str.isEmpty(given) || given !== token) return json({ error: "not found" }, 404);
         const chain = chains.getByName(WORLD);
         const indexer = indexers.getByName(WORLD);
+        const bundler = bundlers.getByName(WORLD);
+        // The index and the bundler reach the chain through this door's public address, on its quiet path.
+        const quietRpc = `https://${pipe(request.headers["host"] ?? "", Str.trim)}/${given}/quiet-rpc`;
         const route = `${request.method} /${Arr.join(rest, "/")}`;
         switch (route) {
           case "POST /rpc":
             return rpcAnswer(yield* chain.rpc(yield* request.text));
           case "POST /quiet-rpc":
             return rpcAnswer(yield* chain.quietRpc(yield* request.text));
+          case "POST /bundler": {
+            const body = yield* request.text;
+            yield* chain.awake();
+            return rpcAnswer(yield* bundler.rpc(body, quietRpc));
+          }
+          case "GET /bundler/status":
+            return json(yield* bundler.status());
           case "GET /chain/status":
             return json(yield* chain.status());
           case "POST /chain/stop":
@@ -82,9 +96,7 @@ export default class Door extends Cloudflare.Worker<Door>()(
           case "POST /chain/adopt":
             return json(yield* chain.adopt(yield* request.text));
           case "POST /index/start":
-            return json(
-              yield* indexer.start(`https://${pipe(request.headers["host"] ?? "", Str.trim)}/${given}/quiet-rpc`),
-            );
+            return json(yield* indexer.start(quietRpc));
           case "POST /index/stop":
             return json(yield* indexer.stop());
           case "GET /index/status":

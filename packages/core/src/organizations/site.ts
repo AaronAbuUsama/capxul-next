@@ -9,10 +9,12 @@
 // grant lands and whenever the world's companies are read (`companiesOf`, for world.show).
 import type { Values } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
+import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Str from "effect/String";
 import * as PgClient from "@effect/sql-pg/PgClient";
+import { WorldClock } from "../site-ops/clock.ts";
 import { SiteDoor } from "../site/SiteDoor.ts";
 import * as Store from "./store.ts";
 
@@ -30,6 +32,8 @@ const METHOD = {
   grant: "/api/method/capxul.core_company.grant",
   capital: "/api/method/capxul.core_company.capital",
   paid: "/api/method/capxul.core_company.paid",
+  /** Not a site's method: the bench's own clock, set to the world's through the door (door.py, `POST /clock`). */
+  clock: "/clock",
 } as const;
 export type DeliveryKind = keyof typeof METHOD;
 
@@ -97,6 +101,15 @@ export const reconcile = Effect.fn("site.reconcile")(function* (org: string) {
   return yield* Effect.void;
 });
 
+/** The world's clock, set on the bench as it is now: a frozen clock at its instant, a running one by its offset. */
+const benchClock = Effect.gen(function* () {
+  const door = yield* SiteDoor;
+  const clock = yield* WorldClock;
+  const now = yield* clock.now;
+  const host = yield* Clock.currentTimeMillis;
+  return yield* door.clock(now.mode === "frozen" ? { frozen_at_ms: now.nowMs } : { offset_ms: now.nowMs - host });
+});
+
 /** Hands the site each delivery in order and answers how many it took; the first it does not take stops the rest. */
 const deliverInOrder = (site: string, pending: ReadonlyArray<Pending>) =>
   Effect.gen(function* () {
@@ -104,9 +117,11 @@ const deliverInOrder = (site: string, pending: ReadonlyArray<Pending>) =>
     const sql = yield* PgClient.PgClient;
     let taken = 0;
     for (const each of pending) {
-      const answer = yield* door
-        .call(site, { method: "POST", path: METHOD[each.kind], body: each.body })
-        .pipe(Effect.option);
+      const sent =
+        each.kind === "clock"
+          ? benchClock
+          : door.call(site, { method: "POST", path: METHOD[each.kind], body: each.body });
+      const answer = yield* Effect.option(sent);
       if (Option.isNone(answer) || answer.value.status !== 200) {
         yield* Effect.logWarning(`the site ${site} did not take ${each.kind} ${each.id}`);
         return taken;

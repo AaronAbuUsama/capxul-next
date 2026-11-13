@@ -35,6 +35,7 @@ import { SEEDED, TIER } from "../../src/chain/seeded.ts";
 import { WorldChain } from "../../src/chain/WorldChain.ts";
 import { topicsOf } from "../../src/organizations/found.ts";
 import { CoreIdentity, Served, SiteDoor, SqlSpanSink, type SiteCall } from "../../src/door.ts";
+import { siteOpsLive } from "../../src/site-ops/door.ts";
 
 export interface Urls {
   readonly rpc: string;
@@ -82,6 +83,14 @@ export const fakeSiteDoor = Effect.gen(function* () {
   const told = yield* Ref.make<ReadonlyArray<{ readonly site: string; readonly call: SiteCall }>>([]);
   const door = SiteDoor.of({
     sites: Effect.succeed({ world: "test", sites: [] }),
+    clock: (clock) =>
+      Effect.as(
+        Ref.update(told, (all) => [
+          ...all,
+          { site: "", call: { method: "POST" as const, path: "/clock", body: clock } },
+        ]),
+        { status: 200, body: {} },
+      ),
     make: (label) => Effect.succeed({ site: `${label}-test.worlds.test`, state: "creating" }),
     site: (site) =>
       Ref.modify(looks, (seen) => {
@@ -115,6 +124,7 @@ export const core = (urls: Urls, site: Layer.Layer<SiteDoor>) => {
   return Served.pipe(
     Layer.provide(SqlSpanSink),
     Layer.provide(Layer.succeed(CoreIdentity, IDENTITY)),
+    Layer.provideMerge(siteOpsLive({})),
     Layer.provideMerge(Layer.mergeAll(chain, site, Cast.fromDatabase)),
     Layer.provideMerge(PgClient.layer({ url: Redacted.make(urls.database) })),
   );

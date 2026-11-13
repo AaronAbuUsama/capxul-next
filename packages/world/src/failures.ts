@@ -114,6 +114,15 @@ export class ChainFailed extends Schema.TaggedError<ChainFailed, { readonly bran
   message: Schema.String,
 }) {}
 
+/** The world's bundler: inside its Durable Object (start, ready, rpc, stop, status), and from outside (setup, call). */
+export class BundlerFailed extends Schema.TaggedError<BundlerFailed, { readonly brand: unique symbol }>()(
+  "BundlerFailed",
+  {
+    step: Schema.Literals(["start", "ready", "rpc", "stop", "status", "setup", "call"]),
+    message: Schema.String,
+  },
+) {}
+
 export class IndexerFailed extends Schema.TaggedError<IndexerFailed, { readonly brand: unique symbol }>()(
   "IndexerFailed",
   { step: Schema.Literals(["start", "stop", "status"]), message: Schema.String },

@@ -6,6 +6,7 @@
 import { Errors, PlatformRpcs, WorldRpcs, type OperationName } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
 import { approvalSignHandler, orgCreateHandler, orgMemberGrantHandler } from "./organizations/handlers.ts";
+import { siteOps } from "./site-ops/door.ts";
 
 /** The answer of an operation that has no implementation yet. */
 const unbuilt = (operation: OperationName) => () => Effect.fail(Errors.NotImplemented.make({ operation }));
@@ -22,10 +23,10 @@ export const PlatformHandlers = PlatformRpcs.toLayer({
 export const WorldHandlers = WorldRpcs.toLayer({
   "org.create": orgCreateHandler,
   "org.member.grant": orgMemberGrantHandler,
-  "doc.create": unbuilt("doc.create"),
-  "doc.submit": unbuilt("doc.submit"),
+  "doc.create": siteOps["doc.create"],
+  "doc.submit": siteOps["doc.submit"],
   "approval.sign": approvalSignHandler,
-  "report.run": unbuilt("report.run"),
-  "world.clock.warp": unbuilt("world.clock.warp"),
-  "record.export": unbuilt("record.export"),
+  "report.run": siteOps["report.run"],
+  "world.clock.warp": siteOps["world.clock.warp"],
+  "record.export": siteOps["record.export"],
 });

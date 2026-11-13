@@ -1,7 +1,7 @@
 {
   "proof": "a run whose use fails is recorded as failed and its world is destroyed",
   "outcome": "passed",
-  "at": "2026-11-13T12:26:11.713Z",
+  "at": "2026-11-13T13:59:45.147Z",
   "checks": [
     {
       "check": "the run is recorded as failed, with why",
@@ -29,25 +29,26 @@
       "world": "w-p-fails",
       "owner": "proof",
       "forkedFrom": "nothing",
-      "expiresAt": "2026-11-13T13:04:24.609Z",
+      "expiresAt": "2026-11-13T14:37:34.240Z",
       "outcome": "failed",
       "failure": "DatabaseRefused: relation \"app.no_such_table\" does not exist",
       "worldAfterwards": "destroyed",
       "keptUntil": null,
       "ms": {
-        "claim": 932,
-        "deploy": 45405,
-        "migrate": 753,
-        "chain": 2762,
-        "fund": 297,
-        "index": 37491,
-        "core": 280,
-        "use": 111,
+        "claim": 990,
+        "deploy": 60061,
+        "migrate": 904,
+        "chain": 2177,
+        "fund": 403,
+        "bundler": 44642,
+        "index": 46355,
+        "core": 569,
+        "use": 109,
         "park": null,
-        "destroy": 13907,
-        "release": 244,
-        "create": 88181,
-        "total": 102448
+        "destroy": 14385,
+        "release": 347,
+        "create": 111746,
+        "total": 126591
       },
       "timeouts": {
         "claim": 45000,
@@ -55,6 +56,7 @@
         "migrate": 45000,
         "chain": 180000,
         "fund": 60000,
+        "bundler": 300000,
         "index": 180000,
         "core": 60000,
         "use": 600000,
@@ -75,6 +77,7 @@
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
         "imageRepositories": [
+          "capxulworld-alto",
           "capxulworld-anvil",
           "capxulworld-ponder"
         ]
@@ -90,12 +93,15 @@
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
         "imageRepositories": [
+          "capxulworld-alto",
           "capxulworld-anvil",
           "capxulworld-ponder"
         ]
       },
       "leftOfTheseWorlds": [],
-      "sameAsBefore": true
+      "sameAsBefore": true,
+      "sameAsBeforeAccountWide": true,
+      "otherWorlds": []
     }
   }
 }

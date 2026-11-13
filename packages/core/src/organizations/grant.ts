@@ -13,10 +13,10 @@ import { encodeFunctionData } from "viem";
 import { open } from "../approvals/store.ts";
 import { Cast } from "../cast/Cast.ts";
 import { HATS, SAFE } from "../chain/abi.ts";
-import { head, readContract } from "../chain/calls.ts";
+import { readContract } from "../chain/calls.ts";
 import { multiSend, safeMessageDigest, safeTxHash } from "../chain/safe.ts";
 import { APPROVAL_LIFETIME_MS, SEEDED } from "../chain/seeded.ts";
-import { emitDeclared } from "../record/emit.ts";
+import { emitDeclared, worldNow } from "../record/emit.ts";
 import { caller, instant } from "./caller.ts";
 import { newId } from "./ids.ts";
 import * as Store from "./store.ts";
@@ -83,7 +83,7 @@ export const orgMemberGrant = Effect.fn("org.member.grant.propose")(function* (g
     nonce: BigInt(nonce),
   };
   const hash = safeTxHash(tx);
-  const now = yield* head;
+  const now = yield* worldNow;
   const expiresAt = instant(now.timestampMs + APPROVAL_LIFETIME_MS);
   const directors = yield* Effect.forEach(organization.directors, (name) =>
     Effect.flatMap(cast.find(name), (listed) =>
