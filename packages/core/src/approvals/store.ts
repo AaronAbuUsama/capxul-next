@@ -43,6 +43,8 @@ export interface Opening {
   readonly landing: Landing;
   /** What sending it spends of the test USDC, in its smallest unit: checked before it is sent. */
   readonly spends: { readonly safe: string; readonly amount: bigint } | null;
+  /** What its landing must tell the company's site, as JSON values. */
+  readonly about: Readonly<Record<string, string>> | null;
   readonly approvals: ReadonlyArray<Approval & { readonly signerSafe: string | null }>;
 }
 
@@ -58,6 +60,7 @@ export const open = Effect.fn("approvals.open")(function* (opening: Opening) {
     needs: opening.needs,
     landing: sql.json(landing),
     spends: opening.spends === null ? null : sql.json({ safe: opening.spends.safe, amount: opening.spends.amount.toString() }),
+    about: opening.about === null ? null : sql.json(opening.about),
     state: "open",
   })}`;
   const rows = Arr.map(opening.approvals, (approval, position) => ({
@@ -94,6 +97,7 @@ interface SubjectRow {
   readonly needs: string | null;
   readonly landing: unknown;
   readonly spends: { readonly safe: string; readonly amount: string } | null;
+  readonly about: Readonly<Record<string, string>> | null;
   readonly state: string;
   readonly tx: string | null;
   readonly block: string | null;

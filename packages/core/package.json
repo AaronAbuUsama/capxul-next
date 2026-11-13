@@ -6,7 +6,8 @@
   "exports": "./src/door.ts",
   "scripts": {
     "types": "effect-tsgo tsc -p .",
-    "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts"
+    "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts",
+    "chain:test": "node --experimental-strip-types --no-warnings --test test/chain/*.test.ts"
   },
   "dependencies": {
     "@alchemy.run/cloudflare": "catalog:",

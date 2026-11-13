@@ -219,6 +219,7 @@ export const orgCreate = Effect.fn("org.create.found")(function* (founding: Foun
         needs: checked.founder.person,
         landing: { via: "operation", operation },
         spends: checked.capital > 0n ? { safe: checked.founderSafe, amount: checked.capital } : null,
+        about: null,
         approvals,
       });
       yield* emitDeclared("org.create", founding, answer);

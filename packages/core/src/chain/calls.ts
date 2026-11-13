@@ -106,7 +106,12 @@ export const SERVICE_ADDRESS = service.address;
 export const sendAsService = Effect.fn("chain.send")(function* (to: string, data: Hex, gas: bigint = 8_000_000n) {
     const chain = yield* WorldChain;
     const nonce = yield* hexOf("eth_getTransactionCount", yield* chain.rpc("eth_getTransactionCount", [service.address, "pending"]));
-    const price = yield* hexOf("eth_gasPrice", yield* chain.rpc("eth_gasPrice", []));
+    // The latest block's base fee twice over and a gwei: enough to be mined at once, and never compounding as
+    // eth_gasPrice, which follows the last transactions' own prices, would.
+    const latest = yield* chain.rpc("eth_getBlockByNumber", ["latest", false]).pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(Schema.Struct({ baseFeePerGas: Schema.String }))),
+      Effect.mapError((error) => (Schema.is(ChainFailed)(error) ? error : answerFailed("eth_getBlockByNumber", error.message))),
+    );
     const signed = yield* Effect.tryPromise({
       try: () =>
         service.signTransaction({
@@ -114,7 +119,7 @@ export const sendAsService = Effect.fn("chain.send")(function* (to: string, data
           to: to as Hex,
           data,
           gas,
-          gasPrice: BigInt(price) * 2n,
+          gasPrice: BigInt(latest.baseFeePerGas) * 2n + 1_000_000_000n,
           nonce: Number(BigInt(nonce)),
           chainId: CHAIN_ID,
           type: "legacy",

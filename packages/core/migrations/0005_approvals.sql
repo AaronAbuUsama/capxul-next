@@ -13,6 +13,8 @@ create table if not exists app.subjects (
   landing jsonb not null,
   -- What sending it spends, checked before it is sent: {"safe", "amount"} in the test USDC's smallest unit, or null.
   spends jsonb,
+  -- What its landing must tell the company's site: for a payment, its document's hash, its amount and its payee.
+  about jsonb,
   -- open until it is sent, then sent with its transaction and block.
   state text not null,
   tx text,

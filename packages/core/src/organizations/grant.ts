@@ -122,6 +122,7 @@ export const orgMemberGrant = Effect.fn("org.member.grant.propose")(function* (g
           via: "company",
           tx: { safe: tx.safe, to: tx.to, data: tx.data, operation: tx.operation, nonce: tx.nonce.toString() },
         },
+        about: null,
         approvals,
       });
       yield* emitDeclared("org.member.grant", grant, answer);

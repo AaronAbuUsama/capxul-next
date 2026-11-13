@@ -29,6 +29,7 @@ const METHOD = {
   configure: "/api/method/capxul.core_company.configure",
   grant: "/api/method/capxul.core_company.grant",
   capital: "/api/method/capxul.core_company.capital",
+  paid: "/api/method/capxul.core_company.paid",
 } as const;
 export type DeliveryKind = keyof typeof METHOD;
 

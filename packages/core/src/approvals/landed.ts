@@ -1,10 +1,9 @@
 // What a subject's landing means beyond its transaction, by kind, and what must hold before it is sent. A company's
 // setup makes the company ready: its top budget is read from the transaction's logs, and its site is to be told the
 // company, its Safe, each Director's hat and the founder's capital. An officer change is executed, and the member's
-// hat is to be told to the site. A payment is doc.submit's: what it means for the site is `PaymentLanding`'s.
+// hat is to be told to the site. A payment's Payment Entry is to be posted on the site, as the chain paid it.
 import { Errors } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
-import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as PgClient from "@effect/sql-pg/PgClient";
@@ -19,15 +18,6 @@ import { topicsOf } from "../organizations/found.ts";
 import { deliver, SITE_HATS } from "../organizations/site.ts";
 import * as Store from "../organizations/store.ts";
 import { subjectOf, type Subject } from "./store.ts";
-
-/**
- * What a sent payment means for the company's site (posting its Payment Entry). doc.submit's builder provides it;
- * until then a landed payment is only on the chain.
- */
-export const PaymentLanding = Context.Reference<(request: string, landed: Landed) => Effect.Effect<void>>(
-  "@capxul/core/approvals/PaymentLanding",
-  { defaultValue: () => () => Effect.void },
-);
 
 const hex = (text: string): Hex => (text.startsWith("0x") ? (text as Hex) : "0x");
 const title = (person: string) => `${person.charAt(0).toUpperCase()}${person.slice(1)}`;
@@ -72,7 +62,19 @@ const personOf = Effect.fn("approval.sign.person")(function* (name: string) {
 /** Records what the landing of `subject` made, inside the transaction that marks it sent. */
 export const landed = Effect.fn("approval.sign.landed")(function* (subject: Subject, landing: Landed) {
   const sql = yield* PgClient.PgClient;
-  if (subject.kind === "payment") return yield* (yield* PaymentLanding)(subject.id, landing);
+  if (subject.kind === "payment") {
+    // The site posts the Payment Entry it holds for this hash, as the chain paid it (capxul/payments.py).
+    const held = yield* subjectOf(subject.kind, subject.id);
+    if (held.org === null || held.about === null) return;
+    const now = yield* head;
+    return yield* deliver(held.org, "paid", {
+      document_hash: held.about["documentHash"] ?? "",
+      tx_hash: landing.receipt.transactionHash,
+      amount: held.about["amount"] ?? "0",
+      to: held.about["payee"] ?? "",
+      block_time: instant(now.timestampMs),
+    });
+  }
   if (subject.kind === "org_setup") {
     const organization = yield* Store.byOrg(subject.id);
     if (Option.isNone(organization)) return;
@@ -118,6 +120,6 @@ export const orgOf = (subject: Subject) =>
   Effect.gen(function* () {
     if (subject.kind === "org_setup") return Option.some(subject.id);
     if (subject.kind === "officer_change") return Option.map(yield* Store.changeOf(subject.id), (change) => change.org);
-    return Option.none<string>();
+    return Option.flatMapNullishOr(Option.some(yield* subjectOf(subject.kind, subject.id)), (held) => held.org);
   });
 
