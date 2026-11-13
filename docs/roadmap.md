@@ -22,6 +22,7 @@ change, and the change is written here with its date.
 | The old thin line is not canon | Agreed 13 November 2026: the old thin line and blueprint records are a list of behaviours to consider. Each operation is designed again. Payloads and results are fully typed: nothing carries JSON text in a string to be parsed later. |
 | Spend cap | Agreed 13 November 2026: at most $10 a day across Cloudflare and Neon. A world is destroyed after its run, so normal use stays far below it. |
 | Hono | Accepted 13 November 2026 as a non-Effect dependency while Ponder is used, because Ponder's API file requires it. Looked at again when Ponder is. |
+| Test addresses | Agreed 13 November 2026: until `capxul.com` is moved to Cloudflare, rehearsals put test addresses on `abuusama.dev`, using only names that start with `cx-`, removed after each rehearsal. `capxul.com` is the domain for real worlds; moving its DNS is Aaron's step. |
 | Convergence | The threads on `main` continue until phase 1 passes here. Then `master` becomes the trunk and they move over journey by journey. |
 
 ## World lifecycle rules, enforced by code
@@ -82,8 +83,8 @@ unblock it.
 | 1.11 | 1 | A private world includes the bundler and a test paymaster, so a signed approval lands on the chain as one real UserOperation | 1.3 | Not started | | | | |  |
 | 1.12 | 1 | Every new private world gets its cast, funded from the test token's faucet, and a world can be saved as a template and started from it | 1.3 | Not started | | | | |  |
 | 1.13 | 1 | A step's state comes from run records: each step names the proof that closes it, and the dashboard reads the records, not a hand-typed column | | Not started | | | | |  |
-| 2.1 | 2 | A host for the Frappe bench and a domain on Cloudflare exist | | Not started | | Aaron: a host account and a domain | | |  |
-| 2.2 | 2 | The platform (bench, tunnel, shared state) is deployed by Alchemy | 2.1, 0.4 | Not started | | | | |  |
+| 2.1 | 2 | A host for the Frappe bench and a domain on Cloudflare exist |  | Not started |  | Aaron: a host account for the bench, and capxul.com's DNS moved to Cloudflare (a rehearsal on a stand-in host and abuusama.dev runs meanwhile) |  |  |  |
+| 2.2 | 2 | The platform (bench, tunnel, shared state) is deployed by Alchemy | 2.1, 0.4 | In progress |  |  |  |  |  |
 | 2.3 | 2 | A shared world exists whose sites are created with a per-world token | 2.2, 1.6 | Not started | | | | |  |
 | 2.4 | 2 | The thin line's scenarios pass on the shared world after a deploy | 2.3 | Not started | 0/12 | | | |  |
 | 2.5 | 2 | A drift check that catches changed settings and replaced code runs on a schedule and is clean (the pinned Alchemy reports drift but exits 0, and misses code replaced by hand) | 2.2 | Not started |  |  |  |  |  |
