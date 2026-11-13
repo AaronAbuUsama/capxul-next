@@ -125,8 +125,8 @@ test("public SDK/CLI retries an interrupted bench creation and preserves identit
 test("public provisioning rejects wrong callers, altered bodies, wrong origins, expired requests and removed Safe ownership", async () => {
   const s = await setup();
   await assert.rejects(createSitesClient({ coreUrl: s.coreUrl, account: other }).provision({ org: "acme" }), { code: "ROLE_PERMISSION_DENIED" });
-  // A signed caller is admitted (Core records the call) even when not the founder; an unauthenticated one never is.
-  assert.equal(s.admitted(), 1);
+  // Only an authorised founder is admitted (Core records the call); a signed stranger or unauthenticated caller never is.
+  assert.equal(s.admitted(), 0);
   const send = async (raw: string, signature?: Hex) => fetch(`${s.coreUrl}${PROVISION_PATH}`, {
     method: "POST", body: raw, headers: signature ? { "x-capxul-signature": signature } : {},
   });
@@ -137,11 +137,18 @@ test("public provisioning rejects wrong callers, altered bodies, wrong origins, 
   assert.equal((await send(raw, await founder.signMessage({ message: provisioningMessage("https://another.test", raw) }))).status, 401);
   const expired = JSON.stringify({ org: "acme", caller: founder.address, expiresAt: Date.now() - 1 });
   assert.equal((await send(expired, await founder.signMessage({ message: provisioningMessage(s.coreUrl, expired) }))).status, 401);
-  assert.equal(s.admitted(), 1);
+  assert.equal(s.admitted(), 0);
   s.removeFounder();
   await assert.rejects(s.sites.provision({ org: "acme" }), { code: "ROLE_PERMISSION_DENIED" });
+  assert.equal(s.admitted(), 0);
   assert.equal(s.info.released, false);
   await assert.rejects(readFile(join(s.bench, s.info.site, "site.json")), { code: "ENOENT" });
+});
+
+test("a founder's successful provision is admitted exactly once", async () => {
+  const s = await setup();
+  assert.equal((await s.sites.provision({ org: "acme" })).state, "provisioned");
+  assert.equal(s.admitted(), 1);
 });
 
 test("private service refuses unsigned, malformed and path-injecting requests before bench", async () => {

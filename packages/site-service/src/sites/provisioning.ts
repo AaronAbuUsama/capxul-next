@@ -12,7 +12,8 @@ export type ProvisioningOptions = {
 const OWNERS = [{ type: "function", name: "getOwners", stateMutability: "view", inputs: [], outputs: [{ type: "address[]" }] }] as const;
 
 /** Mount before Core consumes the request stream. False means this is not our route. */
-/** `admit`, when Core supplies it, is called once the caller is authenticated, so Core records the call (signals.world-rows). */
+/** `admit`, when Core supplies it, is called once the caller is authorised as the company's founder, so Core records the call
+ * and an anonymous caller with a fresh key cannot fill its signal tables (signals.world-rows). */
 export function createProvisioningHandler(options: ProvisioningOptions): (req: IncomingMessage, res: ServerResponse, admit?: () => void) => Promise<boolean> {
   if (!options.coreSecret || !options.siteServiceToken) throw new Error("Private provisioning credentials are required");
   const client = createPublicClient({ transport: http(options.rpcUrl) });
@@ -40,7 +41,6 @@ export function createProvisioningHandler(options: ProvisioningOptions): (req: I
       try { caller = await recoverMessageAddress({ message: provisioningMessage(options.publicOrigin, raw), signature: signature as Hex }); }
       catch { throw new ServiceError(401, "NOT_AUTHENTICATED", "Invalid request signature"); }
       if (caller.toLowerCase() !== input.caller.toLowerCase()) throw new ServiceError(401, "NOT_AUTHENTICATED", "Request signature does not match caller");
-      admit();
       if (!/^[a-z][a-z0-9-]{1,30}$/.test(input.org)) throw new ServiceError(400, "INVALID_INPUT", "Invalid company slug");
       const info = await core("/admin/org-info", { slug: input.org }, trace);
       if (info.slug !== input.org || !isAddress(info.safe ?? "") || typeof info.name !== "string" || typeof info.site !== "string") {
@@ -59,6 +59,7 @@ export function createProvisioningHandler(options: ProvisioningOptions): (req: I
         if (signers.some((signer) => signer.toLowerCase() === caller.toLowerCase())) { authorised = true; break; }
       }
       if (!authorised) throw new ServiceError(403, "ROLE_PERMISSION_DENIED", "Founder no longer owns the company's Safe");
+      admit();
       if (options.lifecycle) {
         await options.lifecycle.store.begin({ org: info.slug, world: options.lifecycle.world, host: info.site, bench: options.lifecycle.bench, trace });
         creating = info.slug;
