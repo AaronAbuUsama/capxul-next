@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import pg from "pg";
-import { authenticate, revoke, sendCode, verifyCode } from "../access/door.ts";
+import { authenticate, migrateAccess, revoke, sendCode, verifyCode } from "../access/door.ts";
 import { migrateAgents } from "../agents/door.ts";
 import { migrateMedia, upload, get as getFile } from "../media/door.ts";
 import { migrate as migrateSeats } from "../organizations/door.ts";
@@ -40,7 +39,7 @@ test("native sessions: tenants and admissions on documents, files and agents fol
   try {
     await sql.query("begin");
     await migrateOutbox(sql);
-    await sql.query(readFileSync(new URL("../access/schema.sql", import.meta.url), "utf8"));
+    await migrateAccess(sql);
     await migrateSeats(sql);
     await migrateDocuments(sql); await migrateMedia(sql); await migrateAgents(sql);
 

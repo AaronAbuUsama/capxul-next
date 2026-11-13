@@ -11,8 +11,9 @@ import { migrateMedia } from "../../../../backend/src/media/door.ts";
 import { migrateOutbox } from "../../../../backend/src/platform/outbox.ts";
 
 // Access by URL, as in ../storage/actors.ts: evals' stricter compile must not traverse backend internals.
-const { authenticate, sendCode, verifyCode } = await import(new URL("../../../../backend/src/access/door.ts", import.meta.url).href) as {
+const { authenticate, migrateAccess, sendCode, verifyCode } = await import(new URL("../../../../backend/src/access/door.ts", import.meta.url).href) as {
   authenticate(sql: unknown, bearer: string, now: number): Promise<unknown>;
+  migrateAccess(sql: unknown): Promise<void>;
   sendCode(sql: unknown, input: { email: string }, mail: unknown, now: number): Promise<unknown>;
   verifyCode(sql: unknown, input: { email: string; code: string; client: string }, config: unknown, now: number):
     Promise<{ ok: true; value: { personId: string; token: string; safe: string } } | { ok: false }>;
@@ -36,7 +37,6 @@ test("native media runner proves files tenancy and kept-image admission through 
   const actorsFile = join(directory, "..", `${directory.split("/").pop()}-actors.json`);
   const now = Date.UTC(2026, 10, 13, 12);
   const prior = (await admin.tenant.query("select world_id,epoch,clock from app.world")).rows[0];
-  const access = await readFile(new URL("../../../../backend/src/access/schema.sql", import.meta.url), "utf8");
   // Stands in for Core's shared bearer dispatch: media's real mount entry on one tenant transaction, now = worldNow.
   const entries = mediaRoutes();
   const server = createServer(async (request, response) => {
@@ -53,7 +53,7 @@ test("native media runner proves files tenancy and kept-image admission through 
   });
   try {
     await admin.tenant.query("begin");
-    await migrateOutbox(admin.tenant as never); await admin.tenant.query(access);
+    await migrateOutbox(admin.tenant as never); await migrateAccess(admin.tenant);
     await admin.tenant.query("commit");
     const sql = await admin.tenant.connect();
     try { await migrateMedia(sql); } finally { sql.release(); }
