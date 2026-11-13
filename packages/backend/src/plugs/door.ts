@@ -6,6 +6,7 @@ import { settleRoleDelivery } from "./roles.ts";
 export { RequestCollector } from "./collector.ts";
 export { enqueue } from "./events.ts";
 export { FrappeSite, FrappeSiteError, createFrappeSite, frappeSiteLayer } from "./site.ts";
+export { consume } from "./follow.ts";
 export type { AccountInput, DoorInput, ReportInput, SiteInput } from "./site.ts";
 export { migrateRoleProjections, recordRoleGrant, transitionRoleGrant, readRoles } from "./roles.ts";
 export type { RoleOccurrence, RoleGrant, GrantInput, GrantChange } from "./roles.ts";
