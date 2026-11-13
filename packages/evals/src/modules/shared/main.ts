@@ -161,8 +161,9 @@ const checks: Record<string, Check> = {
     await refused("TRANSACTION_FAILED", () => provider.send({ operation: before.operation, entryPoint: entryPoint07Address, expectedHash: before.expectedHash }));
     assert.equal(count(g!.forwarded, "eth_sendUserOperation"), 1, "the refusal came from the real bundler");
     const reason = String(g!.answers.at(-1)?.body?.error?.message ?? "");
-    // AA2x is ERC-4337's account-validation family: the Safe refused a signature no owner made.
-    assert(/AA2[0-9]/.test(reason), `the real bundler refused in account validation: ${reason.slice(0, 120)}`);
+    // AA23 (the account reverted in validation) or AA24 (signature error): the Safe refused a signature no owner made. Not
+    // AA20-22 (account not deployed, funded or expired) or AA25 (nonce), which would say nothing about the signature.
+    assert(/AA2[34]/.test(reason), `the real bundler refused the signature in account validation: ${reason.slice(0, 120)}`);
     const after = await unsignedOperation(w);
     assert.equal(after.operation.nonce, before.operation.nonce, "nothing reached the chain");
     assert.deepEqual(await bundlerProvider(httpTransport(bundlerUrl(w))).lookup(before.expectedHash), { operation: null, receipt: null });
@@ -178,6 +179,11 @@ const checks: Record<string, Check> = {
     assert.equal(count(g!.received, "eth_sendUserOperation"), 1, "sent once, never again");
     assert.equal(count(g!.forwarded, "eth_sendUserOperation"), 0);
     assert(count(g!.forwarded, "eth_getUserOperationByHash") >= 1 && count(g!.forwarded, "eth_getUserOperationReceipt") >= 1, "the real bundler answered the lookup of the unanswered send");
+    // At the moment of that lookup, the real bundler said it held nothing: every answer to both reads was a null result.
+    for (const method of ["eth_getUserOperationByHash", "eth_getUserOperationReceipt"]) {
+      const answers = g!.answers.filter((a) => a.method === method);
+      assert(answers.length >= 1 && answers.every((a) => a.body && !("error" in a.body) && a.body.result === null), `the inner ${method} answered result null`);
+    }
     assert.deepEqual(await bundlerProvider(httpTransport(bundlerUrl(w))).lookup(op.expectedHash), { operation: null, receipt: null },
       "the real bundler, asked directly, holds nothing for the operation");
     note("send", { sends: 1, refusedAfterMs: elapsed, realLookup: "held nothing" });
@@ -213,20 +219,27 @@ if (process.argv.includes("--list")) {
     const parsed = parseRunReceipt(JSON.parse(await readFile(join(run, "receipt.json"), "utf8")));
     assert(parsed.ok, "invalid running receipt");
     const receipt = parsed.value;
-    assert.equal(receipt.state, "running");
-    assert.deepEqual([receipt.environment.world, receipt.environment.storage, receipt.environment.indexer, receipt.environment.stack], ["slice-zero", "postgres", "ponder", "postgres-ponder-erpnext-v4"]);
-    assert.equal(receipt.commit, config.codeVersion); assert.equal(receipt.environment.components.core, config.codeVersion);
-    assert.equal(resolve(config.root), process.cwd());
+    assert.equal(receipt.state, "running", "the run receipt is not running");
+    assert.deepEqual([receipt.environment.world, receipt.environment.storage, receipt.environment.indexer, receipt.environment.stack], ["slice-zero", "postgres", "ponder", "postgres-ponder-erpnext-v4"],
+      "the run receipt is not the slice-zero Postgres/Ponder/ERPNext/v4 stack");
+    assert.equal(receipt.commit, config.codeVersion, "the run receipt's commit is not the world's code version");
+    assert.equal(receipt.environment.components.core, config.codeVersion, "the run receipt's Core is not the world's code version");
+    assert.equal(resolve(config.root), process.cwd(), "the world's root is not this checkout");
     const f = fixtureFrom(fixture, process.argv[2]!);
-    assert.equal(f.world, "slice-zero");
+    assert.equal(f.world, "slice-zero", "the fixture is not slice-zero's");
     assert(config.world.sites.some((site: { name: string; company: string }) => site.name === f.site && site.company === f.slug), "fixture does not belong to this concrete world");
     const { stdout } = await promisify(execFile)(process.execPath, [join(config.root, "packages/cli/src/main.ts"), "world", "inspect", "--config", configPath, "--json"], { timeout: 60000, maxBuffer: 1024 * 1024 });
     const live = JSON.parse(stdout);
-    assert.equal(live.version, 1); assert.equal(live.world.id, config.world.id); assert.equal(live.world.epoch, config.world.epoch);
-    assert.equal(live.codeVersion, config.codeVersion); assert.equal(live.stack, receipt.environment.stack);
-    assert.equal(live.core.world, config.world.id); assert.equal(live.core.storage, "postgres"); assert.equal(live.core.indexer, "ponder");
+    assert.equal(live.version, 1, "inspection version is not 1");
+    assert.equal(live.world.id, config.world.id, "inspection names another world");
+    assert.equal(live.world.epoch, config.world.epoch, "inspection names another epoch");
+    assert.equal(live.codeVersion, config.codeVersion, "inspection's code version is not the world's");
+    assert.equal(live.stack, receipt.environment.stack, "inspection's stack is not the receipt's");
+    assert.equal(live.core.world, config.world.id, "Core serves another world");
+    assert.equal(live.core.storage, "postgres", "Core's storage is not Postgres");
+    assert.equal(live.core.indexer, "ponder", "Core's indexer is not Ponder");
     assert(live.core.ok && !live.core.paused, "Core is not ready");
-    assert.equal(live.chain.chainId, config.chainId);
+    assert.equal(live.chain.chainId, config.chainId, "inspection's chain is not the world's");
     assert(Math.abs(Date.now() - Date.parse(live.observedAt)) < 15000, "inspection is stale");
     const evidence = resolve(run, "shared", "checks"); await mkdir(evidence, { recursive: true });
     await writeFile(join(evidence, "..", "inspection.json"), JSON.stringify(live, null, 2) + "\n");
@@ -234,8 +247,11 @@ if (process.argv.includes("--list")) {
     emit("SHARED.selected-stack", true, 0, "private fixture, running receipt and live public inspection identify one selected stack");
   } catch (error) {
     failed = true;
-    // Assertion text only: no config, fixture or secret values are interpolated into guard messages.
-    const why = error instanceof assert.AssertionError ? error.message.split("\n")[0] : error instanceof Error ? error.name : "unknown";
+    // Fixed assertion text only: no config, fixture or secret values are interpolated into guard messages. Any other error
+    // (a missing file, a failed exec) gives its class and its code, such as ENOENT, never its message.
+    const code = (error as { code?: unknown })?.code;
+    const why = error instanceof assert.AssertionError ? error.message.split("\n")[0]
+      : error instanceof Error ? `${error.name}${typeof code === "string" || typeof code === "number" ? ` ${code}` : ""}` : "unknown";
     emit("SHARED.selected-stack", false, 0, `selected-world prerequisite refused (${why}); no component proof or historical receipt accepted`);
     for (const [name] of selected) emit(name, false, 0, "no verified selected-world observation in this run");
   }
