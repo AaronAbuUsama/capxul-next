@@ -1,6 +1,9 @@
 # pnpm workspaces (decision tooling.package-manager: Aaron, 8 November 2026 — pnpm, not npm).
 packages:
   - packages/*
+  # packages/world installs by itself (pnpm install --ignore-workspace): Alchemy's beta releases are younger than
+  # the release-age policy below allows, so it cannot join the workspace's lockfile yet.
+  - "!packages/world"
 
 # One version of each shared dependency; manifests refer to it as "catalog:".
 catalog:

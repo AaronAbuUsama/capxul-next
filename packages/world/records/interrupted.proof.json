@@ -1,0 +1,5 @@
+{
+  "proof": "a run interrupted by SIGINT during its use (the run's record is p-int.json)",
+  "leftOfThisWorld": [],
+  "inSharedState": []
+}

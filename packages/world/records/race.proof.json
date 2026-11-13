@@ -1,0 +1,45 @@
+{
+  "proof": "two creates of one world name at once",
+  "results": [
+    "created",
+    "WorldAlreadyExists: a world called w-p-race already exists or is being created (owner racer-a, expires 2026-11-13T10:39:40.490Z)"
+  ],
+  "whatTheAccountsHeldAfterwards": {
+    "workers": [
+      "capxulworld-core-w-p-race-yv752i2glorkts22",
+      "capxulworld-door-w-p-race-7dacitg3qoc72ppd"
+    ],
+    "containerApplications": [
+      "capxulworld-ponder-w-p-race-skvedztikj46a7dj",
+      "capxulworld-anvil-w-p-race-awci2xcghn4lzbun"
+    ],
+    "r2Buckets": [
+      "capxulworld-chainstate-w-p-race-qeki3ya3rr56nwah"
+    ],
+    "hyperdriveConfigurations": [
+      "capxulworld-world-db-w-p-race-26ntss3w376lsbdz"
+    ],
+    "neonBranches": [
+      "CapxulWorld-worlds-db-platform-linmcg36ztdrzhwq/w-p-race"
+    ]
+  },
+  "inSharedState": [
+    {
+      "world": "w-p-race",
+      "owner": "racer-a",
+      "expiresAt": "2026-11-13T10:39:40.490Z",
+      "status": "up",
+      "state": "live"
+    }
+  ],
+  "afterDestroy": {
+    "destroyed": true,
+    "left": {
+      "workers": [],
+      "containerApplications": [],
+      "r2Buckets": [],
+      "hyperdriveConfigurations": [],
+      "neonBranches": []
+    }
+  }
+}

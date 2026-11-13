@@ -1,0 +1,35 @@
+{
+  "world": "w-p-slow",
+  "owner": "proof",
+  "forkedFrom": "nothing",
+  "expiresAt": "2026-11-13T10:39:25.799Z",
+  "outcome": "timed out",
+  "failure": "StepTimedOut: the use step did not finish within its declared 5000 ms",
+  "worldAfterwards": "destroyed",
+  "ms": {
+    "claim": 663,
+    "deploy": 45137,
+    "migrate": 811,
+    "chain": 2071,
+    "index": 39762,
+    "core": 536,
+    "use": 5006,
+    "park": null,
+    "destroy": 25269,
+    "release": 261,
+    "create": 89274,
+    "total": 119815
+  },
+  "timeouts": {
+    "claim": 45000,
+    "deploy": 240000,
+    "migrate": 45000,
+    "chain": 180000,
+    "index": 180000,
+    "core": 60000,
+    "use": 5000,
+    "park": 60000,
+    "destroy": 240000,
+    "release": 45000
+  }
+}

@@ -10,7 +10,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..", "..")
 BASELINE = os.path.join(HERE, "baseline.json")
 # Code written on the rebuild line. A folder is added here when its code is written the new way.
-SCOPE = ["spikes/hosting", "spikes/pipeline", "spikes/state", "spikes/containers", "packages/contract", "packages/core", "packages/runner"]
+SCOPE = ["spikes/hosting", "spikes/pipeline", "spikes/state", "spikes/containers", "packages/contract", "packages/core", "packages/runner", "packages/world"]
 # A file that starts a process may touch the outside world directly: one per program, named here by suffix.
 ENTRY = ("alchemy.run.ts", "run-world.ts", ".entry.ts", "main.ts")
 CONSTRUCTS = {

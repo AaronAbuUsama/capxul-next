@@ -1,0 +1,19 @@
+{
+  "proof": "a lifetime over the limit and a sixth live world of one owner are both refused before anything is created",
+  "limits": {
+    "maxLifetime": "7d",
+    "maxPerOwner": 5
+  },
+  "results": {
+    "askedFor8Days": "LifetimeTooLong: a world may live at most 7d; 8d was asked for",
+    "sixthWorldOfOneOwner": "TooManyWorlds: limit-proof already has 5 live worlds; the most an owner may have is 5"
+  },
+  "namesTheOwnerHeldAtTheSixthCreate": [
+    "w-p-held1",
+    "w-p-held2",
+    "w-p-held3",
+    "w-p-held4",
+    "w-p-held5"
+  ],
+  "resourcesOfTheRefusedWorlds": []
+}

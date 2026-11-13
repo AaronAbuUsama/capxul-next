@@ -1,0 +1,230 @@
+{
+  "proof": "a world from nothing, a world forked from it, and both destroyed",
+  "passed": true,
+  "observations": {
+    "chain": {
+      "chainId": "0x14a34",
+      "seedHead": "0x2dacb0d",
+      "headAfterTransfer": "0x2dacb0e"
+    },
+    "faucet": {
+      "testUsdc": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+      "mintedAtCreation": [
+        {
+          "to": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          "minted": "250000000",
+          "tx": "0x1286a5870f634d6720972f7f23241ac4afc838119da009766ff3fbeb7b9d4591",
+          "holds": "250000000"
+        }
+      ],
+      "mintEventInTheIndex": {
+        "log_id": "84532:0x1286a5870f634d6720972f7f23241ac4afc838119da009766ff3fbeb7b9d4591:0",
+        "token": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+        "from": "0x0000000000000000000000000000000000000000",
+        "to": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "amount": "250000000",
+        "block_number": "47893261"
+      },
+      "balancesAfterOnePayment": {
+        "funded": "249000000",
+        "paid": "1000000"
+      }
+    },
+    "index": {
+      "progress": [
+        {
+          "indexed_block": "47893261"
+        }
+      ],
+      "paymentEventInTheIndex": {
+        "tx": "0x693580934627f032e3dfeca6da4579f9fd933685ac8accc41d11c30e6e0f4760",
+        "row": {
+          "log_id": "84532:0x693580934627f032e3dfeca6da4579f9fd933685ac8accc41d11c30e6e0f4760:0",
+          "token": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+          "from": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "to": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "amount": "1000000",
+          "block_number": "47893262"
+        }
+      }
+    },
+    "core": "{\"core\":\"placeholder\",\"world\":\"w-p-fresh\"}",
+    "fork": {
+      "startedWithNotes": [
+        {
+          "world": "w-p-fresh",
+          "note": "written in the first world"
+        }
+      ],
+      "startedWithIndexedTransfers": [
+        {
+          "n": 1
+        }
+      ],
+      "startedWithFundedBalance": "249000000",
+      "chainHead": "0x2dacb0e",
+      "ownIndexedTransfer": {
+        "tx": "0xfbbb9e87c3cf9ee5c634763b613a0beeb8245e0c153508019b82e421e156c62c",
+        "row": {
+          "log_id": "84532:0xfbbb9e87c3cf9ee5c634763b613a0beeb8245e0c153508019b82e421e156c62c:0",
+          "token": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+          "from": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "to": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "amount": "1000000",
+          "block_number": "47893263"
+        }
+      },
+      "firstWorldNotesAfterForkWrote": [
+        {
+          "n": 1
+        }
+      ],
+      "whileBothExisted": {
+        "workers": [
+          "capxulworld-core-w-p-fork-hhh33wwcjkzfrowh",
+          "capxulworld-core-w-p-fresh-76vi2w3nepz6ybu3",
+          "capxulworld-door-w-p-fork-klgiuzb4debo3236",
+          "capxulworld-door-w-p-fresh-3tpfzsvazqgm23el"
+        ],
+        "containerApplications": [
+          "capxulworld-ponder-w-p-fork-nco4n624xvpy5loi",
+          "capxulworld-anvil-w-p-fork-7fnjhfyd5qu5u3ge",
+          "capxulworld-ponder-w-p-fresh-q373mqwgxpqecaui",
+          "capxulworld-anvil-w-p-fresh-zn5xflwrfcpqat4z"
+        ],
+        "durableObjectNamespaces": [
+          "capxulworld-door-w-p-fresh-3tpfzsvazqgm23el",
+          "capxulworld-door-w-p-fresh-3tpfzsvazqgm23el",
+          "capxulworld-door-w-p-fork-klgiuzb4debo3236",
+          "capxulworld-door-w-p-fork-klgiuzb4debo3236"
+        ],
+        "r2Buckets": [
+          "capxulworld-chainstate-w-p-fork-gueonsjy6yujyx2h",
+          "capxulworld-chainstate-w-p-fresh-ydmuz6gttc4xxadj"
+        ],
+        "hyperdriveConfigurations": [
+          "capxulworld-world-db-w-p-fork-s7p6wbxdxf5hd4bk",
+          "capxulworld-world-db-w-p-fresh-3zlmjmp67el7nbiy"
+        ],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-linmcg36ztdrzhwq/w-p-fork",
+          "CapxulWorld-worlds-db-platform-linmcg36ztdrzhwq/w-p-fresh",
+          "CapxulWorld-worlds-db-platform-linmcg36ztdrzhwq/registry",
+          "CapxulWorld-worlds-db-platform-linmcg36ztdrzhwq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      }
+    },
+    "forkRecord": {
+      "world": "w-p-fork",
+      "owner": "proof",
+      "forkedFrom": "w-p-fresh",
+      "expiresAt": "2026-11-13T10:51:23.050Z",
+      "outcome": "passed",
+      "failure": null,
+      "worldAfterwards": "destroyed",
+      "ms": {
+        "claim": 493,
+        "deploy": 51593,
+        "migrate": 539,
+        "chain": 5140,
+        "fund": 85,
+        "index": 17537,
+        "core": 494,
+        "use": 11591,
+        "park": null,
+        "destroy": 13431,
+        "release": 234,
+        "create": 76437,
+        "total": 101698
+      },
+      "timeouts": {
+        "claim": 45000,
+        "deploy": 240000,
+        "migrate": 45000,
+        "chain": 180000,
+        "fund": 60000,
+        "index": 180000,
+        "core": 60000,
+        "use": 600000,
+        "park": 60000,
+        "destroy": 240000,
+        "release": 45000
+      }
+    }
+  },
+  "failure": null,
+  "record": {
+    "world": "w-p-fresh",
+    "owner": "proof",
+    "forkedFrom": "nothing",
+    "expiresAt": "2026-11-13T10:49:34.508Z",
+    "outcome": "passed",
+    "failure": null,
+    "worldAfterwards": "destroyed",
+    "ms": {
+      "claim": 881,
+      "deploy": 59983,
+      "migrate": 906,
+      "chain": 1927,
+      "fund": 522,
+      "index": 40283,
+      "core": 665,
+      "use": 104766,
+      "park": null,
+      "destroy": 12184,
+      "release": 253,
+      "create": 105475,
+      "total": 222679
+    },
+    "timeouts": {
+      "claim": 45000,
+      "deploy": 240000,
+      "migrate": 45000,
+      "chain": 180000,
+      "fund": 60000,
+      "index": 180000,
+      "core": 60000,
+      "use": 600000,
+      "park": 60000,
+      "destroy": 240000,
+      "release": 45000
+    }
+  },
+  "listing": {
+    "before": {
+      "workers": [],
+      "containerApplications": [],
+      "durableObjectNamespaces": [],
+      "r2Buckets": [],
+      "hyperdriveConfigurations": [],
+      "neonBranches": [
+        "CapxulWorld-worlds-db-platform-linmcg36ztdrzhwq/registry",
+        "CapxulWorld-worlds-db-platform-linmcg36ztdrzhwq/main"
+      ],
+      "imageRepositories": [
+        "capxulworld-anvil",
+        "capxulworld-ponder"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "containerApplications": [],
+      "durableObjectNamespaces": [],
+      "r2Buckets": [],
+      "hyperdriveConfigurations": [],
+      "neonBranches": [
+        "CapxulWorld-worlds-db-platform-linmcg36ztdrzhwq/registry",
+        "CapxulWorld-worlds-db-platform-linmcg36ztdrzhwq/main"
+      ],
+      "imageRepositories": [
+        "capxulworld-anvil",
+        "capxulworld-ponder"
+      ]
+    },
+    "leftOfTheseWorlds": []
+  }
+}

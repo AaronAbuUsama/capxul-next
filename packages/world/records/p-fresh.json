@@ -1,0 +1,37 @@
+{
+  "world": "w-p-fresh",
+  "owner": "proof",
+  "forkedFrom": "nothing",
+  "expiresAt": "2026-11-13T10:49:34.508Z",
+  "outcome": "passed",
+  "failure": null,
+  "worldAfterwards": "destroyed",
+  "ms": {
+    "claim": 881,
+    "deploy": 59983,
+    "migrate": 906,
+    "chain": 1927,
+    "fund": 522,
+    "index": 40283,
+    "core": 665,
+    "use": 104766,
+    "park": null,
+    "destroy": 12184,
+    "release": 253,
+    "create": 105475,
+    "total": 222679
+  },
+  "timeouts": {
+    "claim": 45000,
+    "deploy": 240000,
+    "migrate": 45000,
+    "chain": 180000,
+    "fund": 60000,
+    "index": 180000,
+    "core": 60000,
+    "use": 600000,
+    "park": 60000,
+    "destroy": 240000,
+    "release": 45000
+  }
+}
