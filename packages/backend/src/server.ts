@@ -1,25 +1,39 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { timingSafeEqual } from "node:crypto";
 import { Effect } from "effect";
+import { admitWave } from "./accounts/door.ts";
 import { get, prepare, submitted } from "./approvals/door.ts";
-import { readSnapshotCut } from "./devnet/door.ts";
+import { readSnapshotCut, worldNow } from "./devnet/door.ts";
 import { info, register, release } from "./organizations/door.ts";
 import { consume } from "./payments/door.ts";
 import { deliver, RequestCollector, resend, retryParked, signature, status } from "./plugs/door.ts";
 import { note } from "./activity/door.ts";
 import { settings } from "./platform/config.ts";
-import { Database } from "./platform/db.ts";
+import { Database, type Sql } from "./platform/db.ts";
 import { relay } from "./platform/outbox.ts";
 import { alerts, indexerState } from "./platform/diagnostics.ts";
 
 type Config = ReturnType<typeof settings>;
+/** A concept's public bearer router, mounted before diagnostic HMAC ingress. One transaction per call: a returned
+ * answer commits (a spent OTP try stays spent); a thrown error rolls back and only then is rendered. */
+export type BearerRoute = {
+  prefixes: readonly string[];
+  /** Worker role when the router's writes need it; default is the tenant role, whose RLS policies stay in force. */
+  system?: boolean;
+  /** Bytes read before parsing; default 1 MiB. */
+  bodyLimit?: number;
+  route: (sql: Sql, path: string, input: Record<string, unknown>, bearer: string, now: number) => Promise<{ status: number; body: unknown } | null>;
+  render: (error: unknown) => { status: number; body: unknown };
+};
 function json(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" });
   res.end(JSON.stringify(body));
 }
-export function createCore(config: Config, provision?: (req: IncomingMessage, res: ServerResponse) => Promise<boolean>) {
+export function createCore(config: Config, provision?: (req: IncomingMessage, res: ServerResponse) => Promise<boolean>,
+  routes: (db: Database) => readonly BearerRoute[] = () => []) {
   if (!Number.isSafeInteger(config.finality) || config.finality < 0) throw new Error("FINALITY_DEPTH must be a nonnegative integer");
   const db = new Database(config.database, config.workerDatabase);
+  const bearerRoutes = routes(db);
   let paused = config.startPaused, closing = false, activeRequests = 0, activeDeliveries = 0;
   let activeLoop: Promise<void> = Promise.resolve(), timer: ReturnType<typeof setTimeout> | undefined;
   let pauseWork: Promise<Awaited<ReturnType<typeof readSnapshotCut>>> | undefined;
@@ -45,6 +59,26 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
       try { if (await provision(req, res)) return; }
       finally { activeRequests--; notifyDrain(); }
     }
+    const bearerRoute = req.method === "POST" ? bearerRoutes.find((r) => r.prefixes.some((p) => url.pathname.startsWith(p))) : undefined;
+    if (bearerRoute) {
+      if (paused) return json(res, 503, { error: "SNAPSHOT_PAUSED" });
+      activeRequests++;
+      try {
+        const parts: Buffer[] = []; let bytes = 0;
+        for await (const part of req) { bytes += part.length; if (bytes > (bearerRoute.bodyLimit ?? 1_048_576)) return json(res, 413, { error: "request too large" }); parts.push(part); }
+        let input: unknown;
+        try { input = JSON.parse(Buffer.concat(parts).toString("utf8") || "{}"); } catch { return json(res, 400, { error: "INVALID_INPUT" }); }
+        if (!input || typeof input !== "object" || Array.isArray(input)) return json(res, 400, { error: "INVALID_INPUT" });
+        // An absent bearer reaches the router: public sign-in and unauthenticated reads decide for themselves.
+        const bearer = /^Bearer (\S+)$/.exec(String(req.headers.authorization ?? ""))?.[1] ?? "";
+        let answer: Awaited<ReturnType<BearerRoute["route"]>>;
+        try {
+          answer = await db.transaction("", async (sql) => bearerRoute.route(sql, url.pathname, input as Record<string, unknown>, bearer, await worldNow(sql)),
+            bearerRoute.system ?? false);
+        } catch (error) { const rendered = bearerRoute.render(error); return json(res, rendered.status, rendered.body); }
+        return answer ? json(res, answer.status, answer.body) : json(res, 404, { error: "NOT_FOUND" });
+      } finally { activeRequests--; notifyDrain(); }
+    }
     if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
     const chunks: Buffer[] = []; let size = 0;
     for await (const chunk of req) { size += chunk.length; if (size > 1_048_576) return json(res, 413, { error: "request too large" }); chunks.push(chunk); }
@@ -65,6 +99,9 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
     if (paused && !reads.includes(url.pathname)) return json(res, 503, { error: "SNAPSHOT_PAUSED" });
     activeRequests++;
     try {
+      // accounts.admission.admit: the HMAC operator key is this deployment's operator authority; admissions are worker writes.
+      if (url.pathname === "/admin/accounts/admit")
+        return json(res, 200, await db.transaction("", async (sql) => admitWave(sql, b, trace, await worldNow(sql)), true));
       const answer = await db.transaction(org, async (sql) => {
         switch (url.pathname) {
           case "/admin/org": return register(sql, b, trace);

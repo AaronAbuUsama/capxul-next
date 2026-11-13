@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
 import pg from "pg";
+import { migrateAccess } from "./access/door.ts";
+import { migrateAccounts } from "./accounts/door.ts";
 import { migrateActivity } from "./activity/door.ts";
 import { migrateApprovals } from "./approvals/migrate.ts";
 import { migratePayments } from "./payments/door.ts";
@@ -53,7 +55,14 @@ try {
   await db.query("alter default privileges for role capxul_ponder in schema ponder grant select on tables to capxul_worker");
   await db.query("grant select on all tables in schema ponder to capxul_worker");
   // Concept schemas, in dependency order: payments emit through the outbox and read approvals; Activity follows payments.
-  await migrateApprovals(db); await migrateOutbox(db); await migratePayments(db); await migrateActivity(db);
+  // Access emits sign-in events through the outbox; Accounts references principals; later concepts read both.
+  await migrateApprovals(db); await migrateOutbox(db); await migrateAccess(db); await migrateAccounts(db);
+  await migratePayments(db); await migrateActivity(db);
+  // The world's durable sign-in Mail sink is created once, with the world; never on up or restore.
+  if (process.env.ACCESS_MAIL === "devnet-sink") {
+    const { migrateMailSink } = await import("../../devnet/src/devnet/door.ts");
+    await migrateMailSink(async (text) => (([] as pg.QueryResult[]).concat(await db.query(text) as unknown as pg.QueryResult)).flatMap((r) => r.rows));
+  }
   await db.query("COMMIT");
   console.log("Core schema v1 migrated; separate non-superuser tenant, worker and Ponder roles");
 } catch (error) { await db.query("ROLLBACK"); throw error; }
