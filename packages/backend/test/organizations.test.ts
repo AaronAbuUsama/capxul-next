@@ -1,18 +1,16 @@
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import test from "node:test";
-import { Database, type Sql } from "../src/platform/db.ts";
+import test, { before } from "node:test";
+import type { Sql } from "../src/platform/db.ts";
+import { authenticate, digest } from "../src/access/door.ts";
+import { db, ready } from "./organizations-fixture.ts";
 import { callerSafes, readSeatBySafe, requireSeat, type Actor } from "../src/organizations/door.ts";
 import { lookup } from "../src/parties/door.ts";
 
-if (process.env.CAPXUL_DISPOSABLE !== "true" || !process.env.CAPXUL_WORLD || process.env.CAPXUL_WORLD === "main")
-  throw new Error("named disposable migrated Postgres required");
-// Until Access is composed into the wave, validate its exact published source in an isolated worktree.
-const access = await import(new URL(process.env.CAPXUL_ACCESS_MODULE ?? "../src/access/door.ts", import.meta.url).href);
-const db = new Database(process.env.DATABASE_URL!, process.env.WORKER_DATABASE_URL!);
 const now = 946684800123, suffix = randomBytes(6).toString("hex");
 const addr = () => `0x${randomBytes(20).toString("hex")}`;
-const orgs = [0, 1, 2].map(n => ({ id: `seat-${suffix}-${n}`, safe: addr(), party: `org-party-${suffix}-${n}` }));
+// 3: the Organization's own Party is released; 4: the Organization itself is released. Neither admits a Seat.
+const orgs = [0, 1, 2, 3, 4].map(n => ({ id: `seat-${suffix}-${n}`, safe: addr(), party: `org-party-${suffix}-${n}` }));
 const people = ["human", "other", "agent", "no-party", "released"].map(name => ({
   id: `${name}-${suffix}`, safe: addr(), party: `${name}-party-${suffix}`, token: randomBytes(32).toString("base64url"),
   kind: name === "agent" ? "agent" : "person", signer: name === "agent" ? addr() : null,
@@ -20,12 +18,13 @@ const people = ["human", "other", "agent", "no-party", "released"].map(name => (
 const human = people[0]!, other = people[1]!, agent = people[2]!, noParty = people[3]!, released = people[4]!;
 const actor = (p: typeof human): Actor => ({ principalId: p.id, kind: p.kind === "agent" ? "agent" : "human", safe: p.safe });
 const as = <T>(p: typeof human, run: (sql: Sql) => Promise<T>, worker = false) => db.transaction("", async sql => {
-  const principal = await access.authenticate(sql, p.token, now);
+  const principal = await authenticate(sql, p.token, now);
   assert.equal(principal.personId, p.id);
   return run(sql);
 }, worker);
 
-test.before(async () => {
+before(async () => {
+  await ready;
   for (const pool of [db.tenant, db.worker]) {
     const role = (await pool.query("select rolsuper,rolbypassrls from pg_roles where rolname=current_user")).rows[0];
     assert.deepEqual(role, { rolsuper: false, rolbypassrls: false });
@@ -36,20 +35,21 @@ test.before(async () => {
       await sql.query(`insert into app.organizations(org_id,name,safe,site,admin_email,token)
         values($1,$1,$2,$1,'fixture@example.test',$2)`, [o.id, o.safe]);
       await sql.query(`insert into app.parties(party_id,kind,state,safe_address,owner_kind,owner_id,created_at,updated_at)
-        values($1,'organization','active',$2,'organization',$3,$4,$4)`, [o.party, o.safe, o.id, now]);
+        values($1,'organization',$2,$3,'organization',$4,$5,$5)`, [o.party, o === orgs[3] ? "released" : "active", o.safe, o.id, now]);
     }
+    await sql.query("update app.organizations set released=true where org_id=$1", [orgs[4]!.id]);
     for (const p of people) {
       await sql.query(`insert into app.principals(person_id,kind,email,safe_address,signer_address,created_at)
         values($1,$2,$3,$4,$5,$6)`, [p.id, p.kind, p.kind === "person" ? `${p.id}@example.test` : null,
         p.safe, p.signer, new Date(now)]);
       await sql.query(`insert into app.sessions(person_id,session_id,token_hash,method,status,client,created_at,expires_at)
         values($1,$1,$2,'code','active','organizations-native',$3,$4)`,
-      [p.id, access.digest(p.token), new Date(now), new Date(now + 3600_000)]);
+      [p.id, digest(p.token), new Date(now), new Date(now + 3600_000)]);
       if (p !== noParty) await sql.query(`insert into app.parties(party_id,kind,state,safe_address,owner_kind,owner_id,created_at,updated_at,display_name)
         values($1,$2,$3,$4,'person',$5,$6,$6,$7)`, [p.party, p.kind, p === released ? "released" : "active", p.safe, p.id, now,
         p === human ? "Directory human" : null]);
     }
-    for (const [p, indices] of [[human, [0, 1]], [other, [2]], [agent, [1]], [released, [0]]] as const) {
+    for (const [p, indices] of [[human, [0, 1, 3, 4]], [other, [2]], [agent, [1]], [released, [0]]] as const) {
       for (const i of indices) await sql.query(`insert into app.org_members
         (org_id,member_id,party_id,principal_id,kind,safe_address,seat_use,status,joined_at,updated_at)
         values($1,$2,$3,$4,$5,$6,$7,'active',$8,$8)`,
@@ -58,7 +58,6 @@ test.before(async () => {
     }
   }, true);
 });
-test.after(() => db.close());
 
 test("authenticated human admits only active Seats and their organization Safes on both restricted roles", async () => {
   for (const worker of [false, true]) await as(human, async sql => {
@@ -71,6 +70,7 @@ test("authenticated human admits only active Seats and their organization Safes 
     if (!worker) assert.deepEqual([...new Set(rows.map(r => r.org_id))].sort(), [orgs[0]!.id, orgs[1]!.id].sort());
     await assert.rejects(requireSeat(sql, orgs[2]!.id, actor(human)), /ROLE_PERMISSION_DENIED/);
     await assert.rejects(requireSeat(sql, "nonexistent", actor(human)), /ROLE_PERMISSION_DENIED/);
+    for (const dead of [orgs[3]!, orgs[4]!]) await assert.rejects(requireSeat(sql, dead.id, actor(human)), /ROLE_PERMISSION_DENIED/);
     await assert.rejects(requireSeat(sql, orgs[2]!.id, actor(other)), /ROLE_PERMISSION_DENIED/);
     await assert.rejects(requireSeat(sql, orgs[0]!.id, { ...actor(human), safe: other.safe }), /ROLE_PERMISSION_DENIED/);
     await assert.rejects(requireSeat(sql, orgs[0]!.id, { ...actor(human), kind: "agent" }), /ROLE_PERMISSION_DENIED/);
@@ -99,6 +99,11 @@ test("agent Seat uses its own authenticated Safe despite null principal; no Part
     await assert.rejects(requireSeat(sql, orgs[1]!.id, { ...actor(agent), safe: human.safe }), /ROLE_PERMISSION_DENIED/);
   });
   for (const p of [noParty, released]) await as(p, async sql => assert.deepEqual(await callerSafes(sql), []));
+  await as(released, async sql => {
+    // A released member Party keeps its row but admits nothing: not requireSeat, not the Seat RLS, not callerSafes.
+    await assert.rejects(requireSeat(sql, orgs[0]!.id, actor(released)), /ROLE_PERMISSION_DENIED/);
+    assert.equal((await sql.query("select * from app.org_members where org_id=$1", [orgs[0]!.id])).rowCount, 0);
+  });
 });
 
 test("worker reads committed Seats by Organization and wearer Safe without authenticating an actor", async () => {
