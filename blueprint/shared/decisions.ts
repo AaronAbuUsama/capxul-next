@@ -164,7 +164,7 @@ export const decision_runtime_outbox_poison_event = defineDecision({
   title: "One failing transition never blocks a consumer's later events",
   question: "What does a relay batch do when one event's consumer effect fails?",
   options: [
-    { label: "per-event", text: "Each event's effect and ACK run in their own savepoint; a failure rolls back only that event, is recorded with its code and attempt count, and is retried after fresher events." },
+    { label: "per-event", text: "Each event's effect and ACK run in their own savepoint; a failure rolls back only that event, is recorded with its code and attempt count, and is retried after fresher events and events that failed fewer times." },
     { label: "batch", text: "Roll back the whole batch, so the same failing event is retried first on every tick." },
   ],
   chosen: "per-event",
@@ -172,7 +172,8 @@ export const decision_runtime_outbox_poison_event = defineDecision({
     "ACKs, not a cursor, carry delivery (runtime.transition-outbox), so a consumer has no ordering to keep across events. " +
     "Rolling back the whole batch let one poison event (a missing payment row, say) hold every later event for that consumer on every tick. " +
     "A savepoint keeps one event's effect and ACK atomic exactly as before; the failure record keeps only the error's leading code, never its message or event data. " +
-    "Failed events sort after fresh ones, so even a batch of poison events cannot starve the rest. The record reads no clock (time.no-direct-reads).",
+    "Events sort by attempts, then sequence, so neither a batch of poison events nor more permanent failures than one batch holds " +
+    "can starve the rest or an event that failed once. The record reads no clock (time.no-direct-reads).",
   source: "Activity's relay finding and the integrator's ruling, 13 November 2026; runtime.transition-outbox",
   affects: [f.component_backend],
 });

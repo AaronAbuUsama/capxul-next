@@ -55,22 +55,27 @@ export async function consume(sql: Sql, consumer: string, eventId: string, effec
   return true;
 }
 
-/** The leading `CODE:` of a failure, or its class name; never the message, which may carry event data. */
-const failureCode = (error: unknown) => (error instanceof Error ? /^([A-Z][A-Z_]{1,63}):/.exec(error.message)?.[1] ?? error.name : "Error").slice(0, 64);
+/** The leading `CODE:` of a failure, else its SQLSTATE, else its class name; never the message, which may carry event data. */
+const failureCode = (error: unknown) => {
+  if (!(error instanceof Error)) return "Error";
+  const sqlState = (error as { code?: unknown }).code;
+  return (/^([A-Z][A-Z_]{1,63}):/.exec(error.message)?.[1] ?? (typeof sqlState === "string" && /^[0-9A-Z]{5}$/.test(sqlState) ? sqlState : error.name)).slice(0, 64);
+};
 
 /**
  * Composition calls this for explicit consumers; ACKs, not a cursor, prevent loss of late-committing sources. Each
  * event's effect and ACK run in their own savepoint: a failing event rolls back alone, is recorded, and is retried after
- * fresher events, so it never holds back the rest (runtime.outbox-poison-event).
+ * fresher events and events that failed fewer times, so neither it nor a pile of permanent failures holds back the rest
+ * (runtime.outbox-poison-event).
  */
 export async function relay(db: Database, consumer: string, names: readonly string[], effect: Handler, limit = 100): Promise<number> {
   if (!consumer || !Number.isSafeInteger(limit) || limit < 1 || limit > 1000) throw new Error("INVALID_INPUT: invalid relay batch");
   return db.transaction("", async (sql) => {
-    const rows = (await sql.query(`select o.id, f.event_id is not null as failed from app.transition_outbox o
+    const rows = (await sql.query(`select o.id from app.transition_outbox o
       left join app.transition_failures f on f.consumer=$1 and f.event_id=o.id
       where o.event->>'name'=any($2::text[]) and not exists
         (select 1 from app.transition_acks a where a.consumer=$1 and a.event_id=o.id)
-      order by (f.event_id is not null), o.seq limit $3`, [consumer, names, limit])).rows;
+      order by coalesce(f.attempts,0), o.seq limit $3`, [consumer, names, limit])).rows;
     let delivered = 0;
     for (const row of rows) {
       const lock = (await sql.query("select pg_try_advisory_xact_lock(hashtextextended($1, 38119)) as held", [lockKey(consumer, row.id)])).rows[0];
@@ -78,7 +83,8 @@ export async function relay(db: Database, consumer: string, names: readonly stri
       await sql.query("savepoint transition_event");
       try {
         if (await consume(sql, consumer, row.id, effect)) delivered++;
-        if (row.failed) await sql.query("delete from app.transition_failures where consumer=$1 and event_id=$2", [consumer, row.id]);
+        // Also clears a failure another relay recorded for an event this one delivered.
+        await sql.query("delete from app.transition_failures where consumer=$1 and event_id=$2", [consumer, row.id]);
         await sql.query("release savepoint transition_event");
       } catch (error) {
         await sql.query("rollback to savepoint transition_event");

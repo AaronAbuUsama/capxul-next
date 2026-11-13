@@ -134,6 +134,21 @@ test("committed runtime outbox: rollback, crash retry, concurrency, exact identi
       assert.deepEqual(seen, ["fresh", "poison"], "a failed event is retried after fresher ones");
       assert.equal((await admin.query("select attempts from app.transition_failures where event_id='poison'")).rows[0].attempts, 2);
     });
+    await t.test("permanent poison events beyond the batch limit never starve a later event that fails once", async () => {
+      const name = "starve_transitioned";
+      await db.transaction("", async (sql) => {
+        for (const id of ["stuck-1", "stuck-2", "stuck-3", "late-row"]) await emit(sql, { ...event(id), name });
+      }, true);
+      let lateTries = 0;
+      const handler = async (_sql: Parameters<typeof consume>[0], e: TransitionEvent) => {
+        if (e.id.startsWith("stuck-")) throw new Error("NOT_FOUND: payment row");
+        if (e.id === "late-row" && lateTries++ === 0) throw new Error("NOT_FOUND: payment row not committed yet");
+      };
+      for (let i = 0; i < 6; i++) await relay(db, "starve-reader", [name], handler, 2);
+      assert.deepEqual((await admin.query("select event_id from app.transition_acks where consumer='starve-reader'")).rows, [{ event_id: "late-row" }],
+        "the event that failed once is retried and delivered although three poison events outnumber the batch");
+      assert.equal((await admin.query("select count(*)::int as n from app.transition_failures where consumer='starve-reader'")).rows[0].n, 3);
+    });
     await t.test("a source committing behind another delivered sequence is not lost", async () => {
       const late = await db.worker.connect(); await late.query("begin");
       try {
