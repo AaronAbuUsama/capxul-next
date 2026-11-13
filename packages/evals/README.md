@@ -20,14 +20,22 @@ Each attempt saves `receipt.json` before execution and a same-run `status.json` 
 their assertion verdicts even in a finalized incomplete attempt; only a complete receipt can satisfy slice acceptance.
 Supply `--environment <json>` for non-skeleton runs; its world must match `--world`. The JSON skeleton is always
 `{stack:"skeleton-json",storage:"json",indexer:"inline"}`, never selected-stack evidence. Children receive
-`CAPXUL_EVAL_RUN_DIR`; a child may write `screens.json` there as an array of `{screen,path,source,assertion}`. Paths must be
-existing run-relative files. `--screens <manifest>` imports an external manifest and its captures instead. For screen value
+`CAPXUL_EVAL_RUN_DIR`; a child may write `screens.json` there, or its own `<module>/screens.json` one directory down, as an
+array of `{screen,path,source,assertion}`. The runner collects all of them, so modules never overwrite each other's
+captures. The run-level manifest is acceptance's and lists only `acceptance/` files; any other module manifest lists only
+files under its own `<module>/`; paths are normalized, and a path listed twice,
+a symlinked run subdirectory or `--screens` beside in-run manifests fails the run (`system.eval-screen-manifests`). Paths in every in-run manifest must be
+existing run-relative files. Every manifest, capture and source file must be a non-empty regular file, not a link, written during this run
+(mtime at or after the receipt's `at`); `source` is a run-relative file with an optional RFC 6901 `#/json/pointer` (`~1`
+for `/`, `~0` for `~`, own keys only) that must name a non-null value. An otherwise passing screen `/shows` claim with no such capture is recorded `fail` with that reason
+(`system.eval-screen-captures`). `--screens <manifest>` imports an external manifest and its captures instead. For screen value
 equality use `assertion:"source-equality"` and keep the source readback in the run too. The engine exports `parseRunReceipt`.
 
 `--json` sends script/recorder logs to stderr and prints one JSON result on stdout:
-`{version:1,run,runDir,state,passed,counts:{pass,fail,not_run},exitCode}`. `runDir` is repository-relative and contains
+`{version:1,run,runDir,state,passed,counts:{pass,fail,not_run},uncaptured,exitCode}`. `runDir` is repository-relative and contains
 `receipt.json` and `status.json`. `passed` is true (exit 0) only for a complete, nonempty selection with every requested eval
-passing. Unbound requests make new attempts incomplete; completed assertion failures also exit 1. Validation failures before a run starts have no run directory
+passing and a source-equality capture in the receipt for every requested screen `/shows` claim; `uncaptured` lists the
+requested `/shows` IDs without one (`system.eval-screen-captures`). Unbound requests make new attempts incomplete; completed assertion failures also exit 1. Validation failures before a run starts have no run directory
 and print their diagnostic to stderr instead. With pnpm, use `pnpm --silent evals -- ... --json` to suppress pnpm's banner.
 
 `--prepare <argv-json-file>` optionally runs preparation inside the attempt, before binding scripts. The file contains a

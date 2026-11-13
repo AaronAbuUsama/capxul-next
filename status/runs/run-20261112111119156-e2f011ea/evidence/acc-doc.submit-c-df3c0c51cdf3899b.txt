@@ -1,0 +1,8 @@
+eval     acc:doc.submit/c-df3c0c51cdf3899b
+claim    A Payment Entry from the Safe is held, not posted, and the signer is named.
+verdict  not_run
+run      run-20261112111119156-e2f011ea  at 2026-11-12T11:11:19.156Z  commit c0b4d33c618819ac5fca1c8196a979a9f8e9c313+dirty
+script     world slice-zero  company sites-unbound-audit
+why      no binding
+
+no check is bound to this eval, so nothing was run for it

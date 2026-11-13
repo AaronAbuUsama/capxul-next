@@ -1,11 +1,13 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { createHmac, randomUUID } from "node:crypto";
+import { createHmac } from "node:crypto";
 import { createPublicClient, http, isAddress, recoverMessageAddress, type Address, type Hex } from "viem";
 import { PROVISION_PATH, provisioningMessage } from "@capxul/sdk";
-import { failure, json, readBody, ServiceError } from "./http.ts";
+import { failure, json, readBody, requestTrace, ServiceError } from "./http.ts";
+import { settleSite, type ProvisioningLifecycle } from "./lifecycle.ts";
 
 export type ProvisioningOptions = {
   publicOrigin: string; rpcUrl: string; coreUrl: string; coreSecret: string; siteServiceUrl: string; siteServiceToken: string;
+  lifecycle?: ProvisioningLifecycle;
 };
 const OWNERS = [{ type: "function", name: "getOwners", stateMutability: "view", inputs: [], outputs: [{ type: "address[]" }] }] as const;
 
@@ -23,6 +25,8 @@ export function createProvisioningHandler(options: ProvisioningOptions): (req: I
   };
   return async (req, res) => {
     if (req.url !== PROVISION_PATH) return false;
+    const trace = requestTrace(req);
+    let creating: string | undefined;
     try {
       if (req.method !== "POST") throw new ServiceError(405, "INVALID_INPUT", "POST required");
       const raw = await readBody(req);
@@ -36,7 +40,6 @@ export function createProvisioningHandler(options: ProvisioningOptions): (req: I
       catch { throw new ServiceError(401, "NOT_AUTHENTICATED", "Invalid request signature"); }
       if (caller.toLowerCase() !== input.caller.toLowerCase()) throw new ServiceError(401, "NOT_AUTHENTICATED", "Request signature does not match caller");
       if (!/^[a-z][a-z0-9-]{1,30}$/.test(input.org)) throw new ServiceError(400, "INVALID_INPUT", "Invalid company slug");
-      const trace = randomUUID();
       const info = await core("/admin/org-info", { slug: input.org }, trace);
       if (info.slug !== input.org || !isAddress(info.safe ?? "") || typeof info.name !== "string" || typeof info.site !== "string") {
         throw new ServiceError(400, "INVALID_INPUT", "Company must be registered after its chain birth");
@@ -54,6 +57,10 @@ export function createProvisioningHandler(options: ProvisioningOptions): (req: I
         if (signers.some((signer) => signer.toLowerCase() === caller.toLowerCase())) { authorised = true; break; }
       }
       if (!authorised) throw new ServiceError(403, "ROLE_PERMISSION_DENIED", "Founder no longer owns the company's Safe");
+      if (options.lifecycle) {
+        await options.lifecycle.store.begin({ org: info.slug, world: options.lifecycle.world, host: info.site, bench: options.lifecycle.bench, trace });
+        creating = info.slug;
+      }
       const response = await fetch(`${options.siteServiceUrl}/sites/create`, {
         method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${options.siteServiceToken}`, "x-capxul-trace": trace },
         body: JSON.stringify({ org: info.slug, name: info.name, safe: info.safe, adminEmail: info.adminEmail }), signal: AbortSignal.timeout(30 * 60_000),
@@ -65,8 +72,15 @@ export function createProvisioningHandler(options: ProvisioningOptions): (req: I
         throw new ServiceError(502, "PROVIDER_RESPONSE_INVALID", "Site service did not confirm the registered identity");
       }
       await core("/admin/release", { slug: input.org }, trace);
+      if (options.lifecycle) await settleSite(options.lifecycle, info, trace);
       json(res, 200, site);
     } catch (error) {
+      if (creating && options.lifecycle) {
+        try {
+          if ((await options.lifecycle.store.site(creating))?.state === "creating")
+            await options.lifecycle.store.transition(creating, "fail", trace, { failure: error instanceof ServiceError ? error.code : "PROVIDER_ERROR" });
+        } catch { /* If the database is down, its durable creating row remains available for a retry. */ }
+      }
       failure(res, error instanceof SyntaxError ? new ServiceError(400, "INVALID_INPUT", "Invalid JSON") : error);
     }
     return true;

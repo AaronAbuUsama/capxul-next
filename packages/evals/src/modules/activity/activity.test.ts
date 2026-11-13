@@ -10,9 +10,10 @@ test("activity catalogue needs no fixture and execution cannot pass without a ru
   const list = spawnSync("bash", [script, "--list"], { env, encoding: "utf8" });
   assert.equal(list.status, 0, list.stderr);
   const names = list.stdout.trim().split("\n").map((line) => {
-    const [name, kind] = line.split("\t"); assert.equal(kind, "check"); return name;
+    const [name = "", kind] = line.split("\t"); assert.equal(kind, "check"); return name;
   });
-  assert.equal(names.length, 4);
+  assert.equal(names.length, 28);
+  for (const kind of ["idempotent", "resume"]) assert.equal(names.filter((name) => new RegExp(`^ACTIVITY\\.note-payment-[a-z-]+\\.${kind}$`).test(name)).length, 11);
   const result = spawnSync("bash", [script, "missing-world", "--only", "ACTIVITY"], { env, encoding: "utf8" });
   assert.equal(result.status, 1);
   const lines = result.stdout.trim().split("\n").map((line) => line.split("\t"));
