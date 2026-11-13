@@ -78,8 +78,7 @@ test("Board public adapter composes real auth/Seat/approval doors atomically", {
     try { await check(); } finally {
       await db.query("rollback to control"); approved = []; currentOwners = liveOwners = validOwners = [director, second];
       liveNonce = 0n; liveThreshold = 2n; indexedThreshold = 2; config = { thresholdType: 0, min: 1n, target: 2n }; wears = office = false; reads.length = 0;
-      executions = {}; moves = []; fault = false;
-    }
+      executions = {}; moves = []; fault = false; }
   });
   const empty = async () => {
     for (const table of ["officer_changes", "board_proposals", "proposal_approvals", "approvals", "transition_outbox"]) {
@@ -101,7 +100,8 @@ test("Board public adapter composes real auth/Seat/approval doors atomically", {
     await db.query(readFileSync(join(source, "access/schema.sql"), "utf8"));
     await db.query(readFileSync(join(source, "parties/schema.sql"), "utf8"));
     await organizations.migrate(db); await approvals.migrateApprovals(db); await migrateOutbox(db); await migrate(db);
-    await db.query(`insert into app.organizations(org_id,name,safe,site,admin_email,token) values($1,$1,$2,$1,'fixture@board.test',$2)`, [org, safe]);
+    await db.query(`with o as (insert into app.organizations(org_id,name,safe,site,admin_email,token) values($1,$1,$2,$1,'fixture@board.test',$2) returning org_id)
+      insert into app.parties(party_id,kind,state,handle,display_name,safe_address,owner_kind,owner_id,created_at,updated_at) select $1||'-party','organization','active',$1,$1,$2,'organization',org_id,$3,$3 from o`, [org, safe, now]); // its own live Party admits Seats
     for (const [id, addr] of [["director", director], ["second", second], ["outsider", outsider], ["agent", agent]] as const) {
       await db.query("insert into app.principals values($1,$2,$3,$4,$5,$6)", [id, id === "agent" ? "agent" : "person", id === "agent" ? null : `${id}@board.test`, addr, id === "agent" ? address(16) : null, new Date(now)]);
       await db.query(`insert into app.sessions(person_id,session_id,token_hash,method,status,client,created_at,expires_at)
