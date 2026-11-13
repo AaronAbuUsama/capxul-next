@@ -74,6 +74,15 @@ export const decision_system_eval_reporting = defineDecision({
   affects: [f.system_capxul],
 });
 
+export const decision_system_standing_gaps = defineDecision({
+  id: "system.standing-gaps", title: "A standing gap carries a decision and a current reason",
+  question: "How can the build distinguish an open gap from an explicitly retained boundary?",
+  options: [{ label: "stands", text: "A decision may carry stands: entries of { record: kind:id, rule, why }. Match against derived gaps, move matched findings to standing with the decision id and reason. An unmatched entry is a stale-standing-gap problem. Never waive a problem or invent a gap." }],
+  chosen: "stands", why: "Recorded reasons must be machine-readable and cannot outlive the gaps they explain. Standing is visible, not missing design silently erased.",
+  source: "Builder, m1-engine-rules, 10 November 2026; m1 gap task decisions",
+  affects: [f.system_capxul],
+});
+
 export const decision_system_eval_screen_manifests = defineDecision({
   id: "system.eval-screen-manifests", title: "Each eval module lists its own screen captures",
   question: "How do two modules in one run both report screen captures when the run has one screens.json?",
@@ -83,14 +92,5 @@ export const decision_system_eval_screen_manifests = defineDecision({
   ],
   chosen: "per-module", why: "Acceptance already writes the whole run-level file, and Sites now captures the hat-grants and payment-requests screens in the same run. Separate manifests cannot overwrite each other and keep each capture attributable to its module, with no ordering assumption.",
   source: "Sites lane request for scr:hat-grants/shows and scr:payment-requests/shows, 13 November 2026; packages/evals/src/execute.ts screen collection",
-  affects: [f.system_capxul],
-});
-
-export const decision_system_standing_gaps = defineDecision({
-  id: "system.standing-gaps", title: "A standing gap carries a decision and a current reason",
-  question: "How can the build distinguish an open gap from an explicitly retained boundary?",
-  options: [{ label: "stands", text: "A decision may carry stands: entries of { record: kind:id, rule, why }. Match against derived gaps, move matched findings to standing with the decision id and reason. An unmatched entry is a stale-standing-gap problem. Never waive a problem or invent a gap." }],
-  chosen: "stands", why: "Recorded reasons must be machine-readable and cannot outlive the gaps they explain. Standing is visible, not missing design silently erased.",
-  source: "Builder, m1-engine-rules, 10 November 2026; m1 gap task decisions",
   affects: [f.system_capxul],
 });
