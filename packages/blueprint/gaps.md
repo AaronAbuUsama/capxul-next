@@ -152,3 +152,21 @@ By scenario:
   `operations[call.operation].expected(...)` of its decoded payload and answer under `call.trace`, in order; a
   refused call and a report.run hold none.
 - **record.export 3, 4**: none.
+
+## Still open after the scenarios were updated (13 November 2026)
+
+Every claim is now checked as written. These points go back to the blueprint:
+
+1. **world.snapshot.restore 2, "at the snapshot's block".** The `m3` fact names no block, so balances and hats are
+   read at the latest block in both worlds. The ledgers are compared with the first world as it is now. That is exact
+   only because nothing moves the first world after `m3` is saved. A block number in the snapshot's answer would make
+   it exact without that condition.
+2. **world.snapshot.restore 1, "in that world's General Ledger only".** Both worlds continue one naming series, so a
+   document can have the same name in each. The scenario therefore checks that each world's whole ledger, record head
+   and Safe balance are unchanged by the other world's calls.
+3. **org.member.grant 5.** Read literally: the Hats logs of the grant's transaction are exactly
+   `[HatMaxSupplyChanged?, TransferSingle]`.
+4. **Small readings where a claim is silent:**
+   - org.create 3 compares the Safe's owners as a set.
+   - world.create 6 expects `WorldQuotaReached.owner` to be the first operator.
+   - approval.sign 1 takes Brightside's address from the `supplier` fact's `capxul_wallet_address`.
