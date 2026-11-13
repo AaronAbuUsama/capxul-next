@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import type pg from "pg";
 import {
-  BaseError, ContractFunctionRevertedError, TransactionReceiptNotFoundError,
+  BaseError, ContractFunctionRevertedError, TransactionNotFoundError, TransactionReceiptNotFoundError, parseTransaction,
   createPublicClient, createWalletClient, decodeErrorResult, decodeEventLog, encodeFunctionData,
   http, isAddress, keccak256, parseAbi, stringToHex, type Address, type Chain, type Hex, type LocalAccount, type PublicClient,
 } from "viem";
@@ -39,7 +39,7 @@ const CLAIMER = parseAbi([
 const ROLES = parseAbi(["function execTransactionWithRole(address to,uint256 value,bytes data,uint8 operation,bytes32 roleKey,bool shouldRevert) returns (bool success)"]);
 const revertCode = (name: string): NonNullable<ClaimReceipt["errorCode"]> => name === "SwapRefused" ? "WRONG_STATE" :
   ["EmailNotNormalized", "InvalidSigner"].includes(name) ? "INVALID_INPUT" : "TRANSACTION_FAILED";
-export type Stored = { hash: Hex; raw_transaction: Hex; request_digest: Hex; safe: Address; signer: Address; scheduled_id: string | null; attempted: boolean; receipt: any };
+export type Stored = { hash: Hex; raw_transaction: Hex; request_digest: Hex; job: string; safe: Address | null; signer: Address | null; scheduled_id: string | null; attempted: boolean; receipt: any };
 export type SignerKey = { worker: pg.Pool; rpcUrl: string; chain: Chain; account: LocalAccount };
 /** One job's transaction: `prepare` simulates it and names what the row keeps; a revert maps through `revert`. */
 export type SignerJob = { key: string; digest: Hex; to: Address; data: Hex; job: string;
@@ -53,6 +53,19 @@ export function storedSend(sql: Sql, key: SignerKey, requestKey: string): Promis
 export async function saveReceipt(key: SignerKey, requestKey: string, receipt: unknown): Promise<void> {
   await key.worker.query("update app.service_signer_sends set receipt=$4 where account=$1 and chain_id=$2 and request_key=$3",
     [key.account.address.toLowerCase(), key.chain.id, requestKey, receipt]);
+}
+
+/**
+ * The identical signed bytes again, only when no node knows the transaction and its nonce is still open
+ * (integrations.signer-rebroadcast): the same hash can be mined at most once, so this never sends a second transaction.
+ */
+export async function rebroadcastIfDropped(client: PublicClient, stored: Pick<Stored, "hash" | "raw_transaction" | "attempted">, account: Address): Promise<void> {
+  if (!stored.attempted) return;
+  try { await client.getTransaction({ hash: stored.hash }); return; }
+  catch (error) { if (!(error instanceof TransactionNotFoundError)) return; }
+  const nonce = parseTransaction(stored.raw_transaction).nonce;
+  if (nonce === undefined || await client.getTransactionCount({ address: account, blockTag: "pending" }) > nonce) return;
+  try { await client.sendRawTransaction({ serializedTransaction: stored.raw_transaction }); } catch { /* Looked up again on the next poll. */ }
 }
 
 /**
@@ -73,6 +86,8 @@ export async function durableSend(key: SignerKey, job: SignerJob): Promise<{ has
     client = await worker.connect();
     locked = (await client.query("select pg_try_advisory_lock(hashtextextended($1,7143)) as locked", [accountId])).rows[0].locked;
     if (!locked) throw new ServiceSignerError("WRONG_STATE");
+    // Each key does one job: a key configured for two jobs would share one lane and misread the other's rows.
+    if ((await client.query("select 1 from app.service_signer_sends where account=$1 and job<>$2 limit 1", [accountId, job.job])).rowCount) throw new ServiceSignerError("INVALID_INPUT");
     let stored = await storedSend(client, key, job.key);
     if (stored && stored.request_digest !== job.digest) throw new ServiceSignerError("INVALID_INPUT");
     if (!stored) {
@@ -160,13 +175,14 @@ export function claimServiceSigner(config: ClaimSignerConfig): ServiceSigner {
           catch (error) {
             if (!(error instanceof TransactionReceiptNotFoundError) && Date.now() >= deadline) throw error;
           }
+          if (!receipt) await rebroadcastIfDropped(publicClient as PublicClient, stored, account.address).catch(() => {});
           if (receipt) {
             let safe: Address | null = null;
             if (receipt.status === "success") {
               for (const log of receipt.logs.filter((l) => l.address.toLowerCase() === config.companiesHouse.toLowerCase())) {
                 try {
                   const decoded = decodeEventLog({ abi: CLAIMER, eventName: "CapxulSafeClaimed", data: log.data, topics: log.topics });
-                  if (decoded.args.safe.toLowerCase() === stored.safe.toLowerCase() && decoded.args.signer.toLowerCase() === stored.signer.toLowerCase()) safe = decoded.args.safe;
+                  if (decoded.args.safe.toLowerCase() === stored.safe?.toLowerCase() && decoded.args.signer.toLowerCase() === stored.signer?.toLowerCase()) safe = decoded.args.safe;
                 } catch { /* An unrelated Companies House log is not a claim. */ }
               }
               if (!safe) throw new ServiceSignerError("TRANSACTION_FAILED", stored.hash);

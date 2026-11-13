@@ -3,7 +3,7 @@ import {
   TransactionReceiptNotFoundError, createPublicClient, decodeErrorResult, decodeEventLog, encodeFunctionData, http, isAddress,
   keccak256, parseAbi, stringToHex, type Address, type Chain, type Hex, type LocalAccount,
 } from "viem";
-import { ServiceSignerError, durableSend, saveReceipt, storedSend, type SignerKey } from "./service-signer.ts";
+import { ServiceSignerError, durableSend, rebroadcastIfDropped, saveReceipt, storedSend, type SignerKey, type Stored } from "./service-signer.ts";
 
 /** Budgets' executor key: it only pays the gas of `Budgets.execute(scheduledId)`, which anyone may call on the day. */
 export type BudgetsExecutorConfig = { worker: pg.Pool; rpcUrl: string; chain: Chain; account: LocalAccount; budgets: Address };
@@ -15,6 +15,7 @@ export interface BudgetsExecutor {
   send(input: { key: string; scheduledId: bigint }): Promise<{ hash: Hex }>;
   /** One read, no wait: what was recorded for the key and, once mined, its receipt. */
   lookup(input: { key: string }): Promise<{ hash: Hex | null; receipt: ExecuteReceipt | null }>;
+  /** Polls up to 60 s; a mined revert, or a success without this id's ScheduledPaid, is recorded and then TRANSACTION_FAILED. */
   waitForReceipt(input: { key: string; hash: Hex }): Promise<ExecuteReceipt>;
 }
 
@@ -29,12 +30,21 @@ const BUDGETS = parseAbi([
 export function budgetsExecutor(config: BudgetsExecutorConfig): BudgetsExecutor {
   if (!isAddress(config.budgets)) throw new ServiceSignerError("INVALID_INPUT");
   const key: SignerKey = config;
-  const decode = async (stored: { hash: Hex; scheduled_id: string | null }, signal?: AbortSignal): Promise<ExecuteReceipt | null> => {
+  /** waitForReceipt's mapping of a recorded receipt: only a paid execution is a success. */
+  const settled = (receipt: ExecuteReceipt): ExecuteReceipt => {
+    if (receipt.status === "reverted" || !receipt.paymentId) throw new ServiceSignerError("TRANSACTION_FAILED", receipt.hash, receipt.revert ?? undefined);
+    return receipt;
+  };
+  const decode = async (stored: Stored, signal?: AbortSignal): Promise<ExecuteReceipt | null> => {
     const client = createPublicClient({ chain: config.chain, transport: http(config.rpcUrl, { retryCount: 0, timeout: 10_000, ...(signal ? { fetchOptions: { signal } } : {}) }) });
     if (await client.getChainId() !== config.chain.id) throw new ServiceSignerError("PROVIDER_ERROR", stored.hash);
     let receipt;
     try { receipt = await client.getTransactionReceipt({ hash: stored.hash }); }
-    catch (error) { if (error instanceof TransactionReceiptNotFoundError) return null; throw error; }
+    catch (error) {
+      if (!(error instanceof TransactionReceiptNotFoundError)) throw error;
+      await rebroadcastIfDropped(client, stored, config.account.address).catch(() => {});
+      return null;
+    }
     const scheduledId = stored.scheduled_id!;
     let paymentId: Hex | null = null, revert: string | null = null;
     for (const log of receipt.logs.filter((l) => l.address.toLowerCase() === config.budgets.toLowerCase())) {
@@ -43,11 +53,10 @@ export function budgetsExecutor(config: BudgetsExecutorConfig): BudgetsExecutor 
         if (e.args.scheduledId.toString() === scheduledId) paymentId = e.args.paymentId;
       } catch { /* Another Budgets event in the same transaction. */ }
     }
-    if (receipt.status === "success" && !paymentId) throw new ServiceSignerError("TRANSACTION_FAILED", stored.hash);
     if (receipt.status === "reverted") {
       // The exact transaction's trace only; never replay eth_call at block end and invent a refusal.
       try {
-        const response = await fetch(config.rpcUrl, { method: "POST", headers: { "content-type": "application/json" }, signal: AbortSignal.timeout(5_000),
+        const response = await fetch(config.rpcUrl, { method: "POST", headers: { "content-type": "application/json" }, signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(5_000)]) : AbortSignal.timeout(5_000),
           body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "debug_traceTransaction", params: [stored.hash, { disableStorage: true, disableStack: true, enableMemory: false }] }) });
         const raw = ((await response.json()) as { result?: { returnValue?: string } }).result?.returnValue;
         if (raw) revert = decodeErrorResult({ abi: BUDGETS, data: (raw.startsWith("0x") ? raw : `0x${raw}`) as Hex }).errorName;
@@ -90,12 +99,13 @@ export function budgetsExecutor(config: BudgetsExecutorConfig): BudgetsExecutor 
       const signal = AbortSignal.timeout(60_000), deadline = Date.now() + 60_000;
       const stored = await recorded(requestKey).catch((error) => { throw error instanceof ServiceSignerError ? error : new ServiceSignerError("PROVIDER_ERROR", hash); });
       if (!stored || stored.hash.toLowerCase() !== hash.toLowerCase()) throw new ServiceSignerError("INVALID_INPUT");
-      if (stored.receipt) return stored.receipt;
+      if (stored.receipt) return settled(stored.receipt);
       // Polls once a second; a failed poll does not end the wait (old R7).
       while (Date.now() < deadline) {
         try {
           const receipt = await decode(stored, signal);
-          if (receipt) { await saveReceipt(key, requestKey, receipt); return receipt; }
+          // Recorded before any refusal, so the key's lane is free whatever the outcome.
+          if (receipt) { await saveReceipt(key, requestKey, receipt); return settled(receipt); }
         } catch (error) { if (error instanceof ServiceSignerError && error.code === "TRANSACTION_FAILED") throw error; }
         await new Promise((r) => setTimeout(r, Math.min(1_000, Math.max(0, deadline - Date.now()))));
       }
