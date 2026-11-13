@@ -211,11 +211,12 @@ export const table_org_deployments = defineTable({
   title: "Organization deployments: which hat is which",
   about:
     "What `Installer.deployMoney` made for the Organization, as its MoneyDeployed event names it: the Board's top hat, " +
-    "the Shareholders' top hat, the Director hat, the three officer hats by name (Books, Invoicing, People), the Roles " +
-    "modifier and the Signer Gate. The setup writes it once, from the indexed event at finality, and nothing changes it: " +
-    "the event is emitted once per company and its hat ids are fixed. Every concept above answers 'which officer hat is " +
-    "which' from here (board, budgets, books, applications, requests). Who wears a hat now, the budget tree and the " +
-    "Board's signers stay chain facts in indexing.",
+    "the Shareholders' top hat, the Director hat, the officer hats in the event's order, the Roles modifier and the " +
+    "Signer Gate, with the MoneyDeployed occurrence it was admitted from (chain and log id) so a reader can re-check it in " +
+    "indexing. The setup writes it once, from the indexed event at finality, and nothing changes it: the event is emitted " +
+    "once per company and its hat ids are fixed. The officer hats by name (Books, Invoicing, People) stay null until " +
+    "organizations.admitted-deployment's open binding is answered. Who wears a hat now, the budget tree and the Board's " +
+    "signers stay chain facts in indexing.",
   was: [`${T}/setups.ts:35`, `${O}/setups/external/deploys.ts:213`, `${T}/roles.ts:11`, `${T}/roles.ts:23`],
   concept: concept_organizations,
   tenancy: "organization",
@@ -226,11 +227,14 @@ export const table_org_deployments = defineTable({
     board_top_hat: S,
     shareholders_top_hat: S,
     director_hat: S,
-    books_hat: S,
-    invoicing_hat: S,
-    people_hat: S,
+    officer_hats: Schema.Array(S),
+    books_hat: NullOr(S),
+    invoicing_hat: NullOr(S),
+    people_hat: NullOr(S),
     roles_address: S,
     gate_address: S,
+    chain_id: N,
+    log_id: S,
     deploy_tx_hash: S,
     block_number: N,
     created_at: N,
