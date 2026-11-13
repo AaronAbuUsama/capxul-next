@@ -14,9 +14,25 @@ const pascal = (id: string): string => id.split(/[.-]/).map((p) => p.charAt(0).t
 export const doorName = (id: string): string => camel(id.split(".").at(-1)!);
 /** A workflow's export: its id in PascalCase (payments.lifecycle.payment gives PaymentsLifecyclePayment). */
 export const workflowName = pascal;
-/** A span's constant in the generated Spans: each segment in camelCase (sdk.step.browser-install gives
- * Spans.sdk.step.browserInstall). */
-export const spanConstant = (name: string): string => `Spans.${name.split(".").map(camel).join(".")}`;
+/** Each span name's constant in the generated Spans, which facts.ts and every spans.ts share: each segment in
+ * camelCase (sdk.step.browser-install gives Spans.sdk.step.browserInstall), and a name that is also the prefix of
+ * another is its node's `_` (cli.bank.accounts gives Spans.cli.bank.accounts._), since no segment is `_`. Throws when
+ * two names would have one constant. */
+export const spanConstants = (names: readonly string[]): Map<string, string> => {
+  const path = (n: string) => n.split(".").map(camel).join(".");
+  const paths = new Set(names.map(path));
+  const out = new Map<string, string>();
+  const byConstant = new Map<string, string>();
+  for (const name of names) {
+    const p = path(name);
+    const constant = `Spans.${p}${[...paths].some((q) => q.startsWith(`${p}.`)) ? "._" : ""}`;
+    const other = byConstant.get(constant);
+    if (other !== undefined) throw new Error(`spans ${other} and ${name} would both be ${constant}`);
+    byConstant.set(constant, name);
+    out.set(name, constant);
+  }
+  return out;
+};
 
 const SDK_STEP_KINDS = new Set(["sign", "build", "encrypt"]);
 
@@ -47,7 +63,7 @@ export interface FactsInput {
 }
 
 /** The facts as a value, every list sorted and every map keyed in sorted order. Throws when two span names share one
- * constant, because the generated Spans could not hold both. */
+ * constant (spanConstants), because the generated Spans could not hold both. */
 export const factsOf = ({ records, conceptOf }: FactsInput) => {
   const of = (kind: string) => records.filter((r) => r._kind === kind);
   const conceptField = (r: AnyRecord) => idOf(r["concept"]);
@@ -75,15 +91,7 @@ export const factsOf = ({ records, conceptOf }: FactsInput) => {
       waits: sorted(list<{ name?: string }>(w["waits"]).flatMap((s) => (s.name ? [s.name] : []))),
     };
   }
-  const spans: Record<string, string> = {};
-  const byConstant = new Map<string, string>();
-  for (const name of spanNames(records)) {
-    const constant = spanConstant(name);
-    const other = byConstant.get(constant);
-    if (other !== undefined) throw new Error(`spans ${other} and ${name} would both be ${constant}`);
-    byConstant.set(constant, name);
-    spans[name] = constant;
-  }
+  const spans = Object.fromEntries(spanConstants(spanNames(records)));
   return { concepts, workflows, spans };
 };
 

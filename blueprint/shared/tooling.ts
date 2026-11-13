@@ -557,14 +557,18 @@ export const decision_tooling_facts_derivation = defineDecision({
         "tree over the records: each rpc's and flow's spans, rpc.<id>, sdk.<flow id> (not its sdk method path), sdk.step.<name> for sign, build and " +
         "encrypt steps, wait.person, wait.chain, db.tx, call.<integration>.<call>, workflow.<id>, workflow.step.<name> " +
         "and cli.<command> with the command's words joined by dots (a span name has no spaces). A name's constant is " +
-        "Spans followed by each segment in camelCase, and two names with one constant fail the generation. The B1 targets (Spans, " +
-        "errors, Config, handler types) are designed and added as their own records first.",
+        "Spans followed by each segment in camelCase, and a name that is also another's prefix is its node's _ " +
+        "(cli.bank.accounts, the list beside bank accounts add, is Spans.cli.bank.accounts._); two names with one " +
+        "constant fail the generation. The other B1 targets " +
+        "are already designed (tooling.lane-gate; docs/design/tooling.md section 7): tooling.generated-targets places the " +
+        "ones built now (Spans, the error classes, Config) and lists those that remain (workflow skeletons, handler types, " +
+        "transition tables, migrations, RequestTime and StepTime, Schema.Finite).",
     },
-    { label: "wait-for-b1", text: "Leave packages/generate unbuilt until B1 designs all its targets; sys:generated fails in slice zero until then." },
+    { label: "wait-for-b1", text: "Leave packages/generate unbuilt until B1 builds all its targets; sys:generated fails in slice zero until then." },
   ],
   chosen: "facts-first",
   why:
-    "The gate requires sys:generated now, and facts.ts is the only target the book specifies, so it is the honest first " +
+    "The gate requires sys:generated now, and facts.ts is T0's target, the first the book places (B1 adds the rest), so it is the honest first " +
     "target: a real file, hashed, regenerated and compiled, that fails the claim on a hand edit or an unregenerated " +
     "record change. Owning the whole folder makes 'regenerating into a clean tree changes nothing' cover stray files " +
     "too. Reading concepts from the records rather than the id keeps payroll's rpcs in payments, where cut.agreements-" +
@@ -573,6 +577,47 @@ export const decision_tooling_facts_derivation = defineDecision({
     "Amp, Wave Zero generator lane, 13 November 2026; evidence: docs/design/tooling.md section 3; the book at 9c55eaa8 " +
     "(sites.open, retry, show and provision have two-part ids; twelve payroll.* rpcs and one workflow are payments')",
   affects: [f.system_capxul, decision_tooling_generated_header, decision_tooling_plugin],
+});
+
+export const decision_tooling_generated_targets = defineDecision({
+  id: "tooling.generated-targets",
+  title: "Spans, error classes and Config are generated now; other B1 targets wait",
+  question:
+    "tooling.lane-gate and docs/design/tooling.md section 7 design B1's generated targets, but fix a path only " +
+    "for the workflow skeletons. Which can packages/generate write now without any lane's code, where does each " +
+    "go, and which wait?",
+  options: [
+    {
+      label: "generated-only-now",
+      text:
+        "Write now the targets no hand-written code has to change for, each through the shared writer and compiled by " +
+        "its package. Spans: packages/backend, packages/sdk and packages/cli each get src/generated/spans.ts, one " +
+        "nested constant Spans whose leaves are the P6 names at the constants tooling.facts-derivation gives " +
+        "(Spans.sdk.step.browserInstall is 'sdk.step.browser-install'), the same bytes in each, because " +
+        "capxul/imports lets a package import only its own src/generated/. Errors: packages/backend/src/generated/errors.ts, one Schema.TaggedError class per " +
+        "error record, named and tagged by the code in PascalCase (NOT_AUTHENTICATED gives NotAuthenticated), with an " +
+        "optional cause (Schema.Defect) and the record's code, class, actor, message, retryable and exit as static " +
+        "fields. Config: packages/backend/src/generated/config/<environment>.ts, one Config.all per environment " +
+        "record, every config entry a required non-empty string and every secret a required Redacted. Not yet: the " +
+        "SDK's error classes (the SDK does not depend on effect); the workflow skeletons at " +
+        "packages/backend/src/generated/workflows/<concept>.ts, whose steps provide StepTime and whose timer waits " +
+        "call Timers.until, both owed by packages/runtime/src/time/, which does not exist, and whose Workflow.make " +
+        "needs a payload schema no record gives; handler types, transition tables, migrations, RequestTime and " +
+        "Schema.Finite, which every lane's code must adopt.",
+    },
+    { label: "all-or-nothing", text: "Build no B1 target until all of them can land together." },
+  ],
+  chosen: "generated-only-now",
+  why:
+    "These three are fully derived from records that exist (51 errors, 5 environments, the P6 tree), and no code " +
+    "has to change to receive them, so writing them now adds real files that sys:generated regenerates and " +
+    "compiles without touching a lane. The rest need another lane's code first, or a design the records do not " +
+    "yet carry; whether sys:generated waits for them is a question about the claim's meaning, put to Aaron by the " +
+    "integrator.",
+  source:
+    "Amp, Wave Zero generator lane, 13 November 2026, on the integrator's instruction while Aaron rules on " +
+    "sys:generated's scope (options A/B/C); evidence: tooling.lane-gate; docs/design/tooling.md section 7",
+  affects: [f.system_capxul, f.component_backend, f.component_core_sdk, f.component_cli, decision_tooling_generated_header],
 });
 
 export const decision_tooling_errors = defineDecision({

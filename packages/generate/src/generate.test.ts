@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
+import { renderConfigs, renderErrors, renderSpans } from "./modules/b1/service.ts";
 import { factsOf, renderFacts } from "./modules/facts/service.ts";
 import { compare, HEADER, withHeader } from "./modules/writer/service.ts";
 
@@ -59,4 +60,23 @@ test("facts read concepts from the records, not the ids", () => {
 test("two span names with one constant fail the generation", () => {
   const records = [r("rpc", "a.b.sign-in", { spans: [] }), r("rpc", "a.b.signIn", { spans: [] })];
   assert.throws(() => factsOf({ records, conceptOf: new Map() }), /rpc\.a\.b\.sign-in and rpc\.a\.b\.signIn would both be Spans\.rpc\.a\.b\.signIn/);
+});
+
+test("a span that is also another's prefix is its node's _, in Spans and in the facts alike", () => {
+  const records = [r("operation", "bank.accounts", { command: "bank accounts" }), r("operation", "bank.accounts.add", { command: "bank accounts add" })];
+  assert.equal(factsOf({ records, conceptOf: new Map() }).spans["cli.bank.accounts"], "Spans.cli.bank.accounts._");
+  assert.equal(factsOf({ records, conceptOf: new Map() }).spans["cli.bank.accounts.add"], "Spans.cli.bank.accounts.add");
+  const spans = renderSpans(records);
+  assert.match(spans, /accounts: \{\n {8}_: "cli\.bank\.accounts",\n {8}add: "cli\.bank\.accounts\.add",/);
+});
+
+test("errors are one class per record, named from the code; a config entry and a secret are both required", () => {
+  const errors = renderErrors([r("error", "NOT_AUTHENTICATED", { class: "auth", actor: "caller", message: "m", retryable: false, exit: 3 })]);
+  assert.match(errors, /export class NotAuthenticated extends Schema\.TaggedError<NotAuthenticated>\(\)\("NotAuthenticated", \{ cause: Schema\.optional\(Schema\.Defect\(\)\) \}\)/);
+  assert.match(errors, /static readonly code = "NOT_AUTHENTICATED";\n.*\n.*\n.*\n.*\n {2}static readonly exit = 3;/);
+  assert.throws(() => renderErrors([r("error", "A_B"), r("error", "A__B")]), /A_B and A__B would both be AB/);
+  const configs = renderConfigs([r("environment", "shared-world", { config: ["SITE_URL"], secrets: ["DATABASE_URL"] })]);
+  assert.deepEqual([...configs.keys()], ["config/shared-world.ts"]);
+  assert.match(configs.get("config/shared-world.ts")!, /SharedWorldConfig = Config\.all\(\{\n {2}DATABASE_URL: Config\.Redacted\("DATABASE_URL"\),\n {2}SITE_URL: Config\.NonEmptyString\("SITE_URL"\),\n\}\);/);
+  assert.throws(() => renderConfigs([r("environment", "x", { config: ["K"], secrets: ["K"] })]), /lists K as both config and secret/);
 });

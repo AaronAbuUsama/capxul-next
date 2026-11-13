@@ -5,6 +5,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { buildBlueprint } from "../../blueprint-engine/src/index.ts";
+import { renderConfigs, renderErrors, renderSpans } from "./modules/b1/service.ts";
 import { renderFacts } from "./modules/facts/service.ts";
 import { withHeader } from "./modules/writer/service.ts";
 
@@ -35,5 +36,12 @@ export const render = async (root: string): Promise<Map<string, string>> => {
       for (const r of recordsOf(modules)) if (isRecord(r)) conceptOf.set(keyOf(r), c.id);
     }
   }
-  return new Map([["packages/lint/src/generated/facts.ts", withHeader(renderFacts({ records, conceptOf }))]]);
+  // Each package that opens spans gets its own copy: a package imports only its own src/generated/ (tooling.generated-targets).
+  const spans = withHeader(renderSpans(records));
+  return new Map([
+    ["packages/lint/src/generated/facts.ts", withHeader(renderFacts({ records, conceptOf }))],
+    ...["backend", "sdk", "cli"].map((p) => [`packages/${p}/src/generated/spans.ts`, spans] as const),
+    ["packages/backend/src/generated/errors.ts", withHeader(renderErrors(records))],
+    ...[...renderConfigs(records)].map(([path, body]) => [`packages/backend/src/generated/${path}`, withHeader(body)] as const),
+  ]);
 };

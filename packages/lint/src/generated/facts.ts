@@ -1,4 +1,4 @@
-// Generated from blueprint by packages/generate. Do not edit. sha256:8f0d7961f71b250255bb2566ada19fa6f6207ba930549e9f4f1e009818ec9076
+// Generated from blueprint by packages/generate. Do not edit. sha256:64d6e363fd366a78a20096e8fcecf5a1a141600450587e7b29b79f788e184b41
 export const facts = {
   concepts: {
     access: {
@@ -787,7 +787,7 @@ export const facts = {
     "cli.auth.switch": "Spans.cli.auth.switch",
     "cli.auth.verify": "Spans.cli.auth.verify",
     "cli.balance": "Spans.cli.balance",
-    "cli.bank.accounts": "Spans.cli.bank.accounts",
+    "cli.bank.accounts": "Spans.cli.bank.accounts._",
     "cli.bank.accounts.add": "Spans.cli.bank.accounts.add",
     "cli.bank.accounts.remove": "Spans.cli.bank.accounts.remove",
     "cli.bank.deposits": "Spans.cli.bank.deposits",
