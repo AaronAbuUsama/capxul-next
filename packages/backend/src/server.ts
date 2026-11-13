@@ -13,20 +13,22 @@ import { alerts, indexerState } from "./platform/diagnostics.ts";
 type Config = ReturnType<typeof settings>;
 
 const describe = (error: unknown) => error instanceof Error ? error.message : String(error);
-/** Per-organization consume backoff, real time: a failing chain read must not retry every 200 ms. */
-export type ConsumeBackoff = Map<string, { failures: number; until: number }>;
+/** Per-organization consume backoff, counted in worker ticks rather than read from a clock (time.no-direct-reads):
+ *  after a failure that organization's consume sits out 5, 10, 20 then 40 ticks (about 1, 2, 4 and 8 s at the 200 ms tick). */
+export type ConsumeBackoff = Map<string, { failures: number; skip: number }>;
 
 /** One organization's turn of the worker. It never throws: one failing organization must not stall those sorted after it. */
 export async function serveOrganization(db: Database, config: Pick<Config, "chainId" | "finality" | "frappe" | "secret">, org: string, indexed: boolean,
-  backoff: ConsumeBackoff = new Map()) {
+  backoff: ConsumeBackoff) {
   const held = backoff.get(org);
-  if (indexed && !(held && held.until > Date.now())) {
+  if (held && held.skip > 0) held.skip -= 1;
+  else if (indexed) {
     try {
       await db.transaction(org, (sql) => consume(sql, org, config.chainId, config.finality), true);
       backoff.delete(org);
     } catch (error) {
       const failures = (held?.failures ?? 0) + 1;
-      backoff.set(org, { failures, until: Date.now() + Math.min(8, 2 ** Math.min(failures - 1, 3)) * 1000 });
+      backoff.set(org, { failures, skip: 5 * 2 ** Math.min(failures - 1, 3) });
       console.error(`Core consume ${org} (failure ${failures}): ${describe(error)}`);
     }
   }
