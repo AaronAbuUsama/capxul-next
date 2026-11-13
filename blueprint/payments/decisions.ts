@@ -796,7 +796,7 @@ export const decision_payments_movement_memos = defineDecision({
   why:
     "The frozen `document verify` #1 ('A standalone Movement participant can verify its exact Memo') needs it, and a " +
     "Movement and the document that records it are one money fact (documents.movement-memos). The Memo is a pure " +
-    "function of the Transfer (basis movement, reference `<chain id>:<tx hash>:<log index>`, issued at the block time, " +
+    "function of the Transfer (basis movement, subject and reference its log id per documents.movement-subject, issued at the block time, " +
     "the Capxul sides as participants), so a replay stores nothing new. The record transaction then invokes two " +
     "procedures of two concepts (books, documents), within sys:tx-width.",
   source: by("blueprint/documents/decisions.ts (documents.movement-memos); document.verify.yaml #1"),

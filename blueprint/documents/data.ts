@@ -84,7 +84,7 @@ export const table_documents = defineTable({
     "the value a payment, an escrow or an offer carries on chain (for a receipt, the two are one). `kind`, `format`, " +
     "`media_type` and `issued_at` are read from the bytes at store time and checked against them again on every read. " +
     "`subject_kind` and `subject_id` name the record it belongs to (a Payment, a request, an agreement, an equity offer, a " +
-    "Movement's `<chain id>:<tx hash>:<log index>`); the envelope binds it through its origin id, so one note on two Payments is " +
+    "Movement's Transfer by its log id `<chain id>:<tx hash>:<receipt ordinal>`, documents.movement-subject); the envelope binds it through its origin id, so one note on two Payments is " +
     "two documents. `participants` are who may read it, as the storing concept gave them: each by Safe, with its Party and " +
     "role. An Organization participant is read by whoever holds an active Seat in it at read time, never by whoever stored " +
     "it. Salary documents use Frappe HR's permissions and door, not a new Core participant reader. Historical kind and subject values remain stored; new Core payslip and salary-slip stores are refused. " +
@@ -161,8 +161,8 @@ export const table_documents = defineTable({
       fields: ["subject_kind", "subject_id"],
       crossTenant: true,
       for:
-        "Activity's Movement row: the Memo of a Movement by its `<chain id>:<tx hash>:<log index>`, for whichever side reads " +
-        "it (a Movement keeps no document id); and `documents.store`'s check that a subject's repeat is the same document.",
+        "Activity's Movement row: the Memo of a Movement by its Transfer's log id, the Movement id without `:<side>`, for whichever side " +
+        "reads it (a Movement keeps no document id); and `documents.store`'s check that a subject's repeat is the same document.",
     },
   ],
   retention:

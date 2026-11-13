@@ -229,6 +229,39 @@ export const decision_documents_movement_memos = defineDecision({
   affects: [procedure_documents_store, table_documents, concept_payments, operation_document_verify],
 });
 
+export const decision_documents_movement_subject = defineDecision({
+  id: "documents.movement-subject",
+  title: "A Movement's Memo is keyed by its Transfer's log id, never by one side",
+  question:
+    "Since payments.movement-occurrence, payments keys a Movement by indexing's receipt-ordinal log id `<chain id>:<tx " +
+    "hash>:<ordinal in its receipt>` and names it `<log id>:<side>`, the id Activity's change log copies " +
+    "(activity.row-ids). Documents still named a Movement Memo's subject and reference by the block-global " +
+    "`<chain id>:<tx hash>:<log index>`. Which key does the Memo of a Movement carry?",
+  options: [
+    {
+      label: "log-id",
+      text:
+        "Subject `movement` with id the Transfer's log id, and the same bare log id as the Memo's reference: one Memo for " +
+        "every side, which `activity get` finds by dropping `:<side>` from the Movement id.",
+    },
+    { label: "per-side", text: "Subject id `<log id>:<side>`: one Memo per Movement row, each naming one side." },
+    { label: "money-key", text: "Reference books' money key `transfer:<log id>`, with the bare log id as subject." },
+  ],
+  chosen: "log-id",
+  why:
+    "A block-global log index shifts when a transaction is re-included at another position, so the old key could name " +
+    "another Transfer's Memo after a reorg; the receipt ordinal is the occurrence's own name. A Memo records one Transfer " +
+    "and names every Capxul side as a participant (documents.movement-memos), so a per-side key would store two documents " +
+    "for one money fact, and each would hide the other side's view. The reference is inside the hashed, immutable bytes " +
+    "and `basis: movement` already says what it names, so it carries the log id alone; `transfer:` is books' namespace " +
+    "for telling money keys apart, not part of what the Memo records. Documents stays agnostic of the id's parts: the " +
+    "storer gives the key and `by_subject` matches it exactly.",
+  source:
+    "Integrator cross-lane review, 13 November 2026; payments.movement-occurrence (PR #124); activity.row-ids (PR #163); " +
+    "documents.movement-memos",
+  affects: [procedure_documents_store, table_documents],
+});
+
 export const decision_documents_no_machine_no_process = defineDecision({
   id: "documents.no-machine-no-process",
   title: "No state machine, no event and no process",

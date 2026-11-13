@@ -37,7 +37,7 @@ export const Named = Schema.Struct({ party_id: NullOr(S), safe: S });
 export const MemoContent = Schema.Struct({
   kind: Schema.Literal("memo"),
   basis: Schema.Literals(["payment", "movement"]),
-  /** 0 to 120 characters: a request's reference; for a Movement, its `<chain id>:<tx hash>:<log index>`. */
+  /** 0 to 120 characters: a request's reference; for a Movement, its Transfer's log id `<chain id>:<tx hash>:<receipt ordinal>` (documents.movement-subject). */
   reference: S,
   /** 0 to 280 characters: the payer's or issuer's note; empty for a Movement. */
   note: S,

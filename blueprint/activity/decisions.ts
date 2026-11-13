@@ -485,7 +485,8 @@ export const decision_activity_static_links = defineDecision({
   why:
     "Activity depends on documents, so a plain import is the conventional link, and a renamed export now fails the " +
     "typecheck instead of dangling. `activity get` keeps finding a Movement's Memo by the by-subject index on " +
-    "`<chain id>:<tx hash>:<log index>`, which payments.movements.record now writes through `documents.store`.",
+    "its Transfer's log id, the Movement id without `:<side>` (documents.movement-subject), which " +
+    "payments.movements.record now writes through `documents.store`.",
   source: by("docs/decisions/assembly-items.md (activity, documents); blueprint/payments/processes.ts (movements.record invokes documents.store)"),
   affects: [table_documents, rpc_activity_feed_get],
 });
