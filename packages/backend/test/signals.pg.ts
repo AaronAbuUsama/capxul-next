@@ -170,6 +170,8 @@ test("wide rows, rpc spans and the two operator alerts, in the world's own time"
       for (let i = 0; i < 5; i++) assert.equal(await raw("/unsigned/fail"), 500);
       // Sites' lookup before it has authenticated a provisioning caller: answered, never counted.
       for (let i = 0; i < 5; i++) assert.equal(await fetch(base + "/admin/org-info", { method: "POST", body: "{}", headers: { "x-capxul-preauth": "1" } }).then((r) => r.status), 404);
+      // The mark is honoured on /admin/org-info only: on any other signed rpc it withholds nothing.
+      assert.equal(await call("/books/annotations/refuse", { "x-capxul-preauth": "1" }), 400);
       // Aborted uploads to a real rpc's path: the caller hangs up mid-body, before any door.
       for (let i = 0; i < 5; i++) await new Promise<void>((done) => {
         const socket = connect((server.address() as { port: number }).port, "127.0.0.1", () => {
@@ -185,10 +187,10 @@ test("wide rows, rpc spans and the two operator alerts, in the world's own time"
       assert.equal(await call("/escape"), 500);
       await new Promise((r) => setTimeout(r, 100));
       const after = await rows("operation_row");
-      assert.deepEqual(after.slice(before).map((r) => [r.attributes.rpc, r.attributes.outcome]), [["escape", "failed"]],
-        "of all these, only the admitted /escape wrote a row; the pre-auth lookups wrote none");
+      assert.deepEqual(after.slice(before).map((r) => [r.attributes.rpc, r.attributes.outcome]), [["books.annotations.refuse", "refused"], ["escape", "failed"]],
+        "of all these, only the admitted refuse and /escape wrote rows; the pre-auth lookups wrote none");
       const spans = (await admin.query("select event->>'name' as name from app.completed_spans")).rows.slice(spansBefore).map((r) => r.name);
-      assert.deepEqual(spans, ["rpc.escape"], "and only its span; a 401, a probe, a bad request line, an aborted body or an unsigned call writes none");
+      assert.deepEqual(spans, ["rpc.books.annotations.refuse", "rpc.escape"], "and only their spans; a 401, a probe, a bad request line, an aborted body or an unsigned call writes none");
       assert.equal(((await alert("rpc_failing")) as { rpcs: { rpc: string }[] }).rpcs.some((r) => ["unsigned.fail", "books.aborted", "admin.org", "root"].includes(r.rpc)), false,
         "anonymous failures cannot fire rpc_failing");
       assert(!JSON.stringify(after).includes("private@"));

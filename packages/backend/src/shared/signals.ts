@@ -90,11 +90,14 @@ const admitted = new WeakSet<IncomingMessage>();
 /** Mark a request as admitted, right after its caller is authenticated. */
 export function admit(req: IncomingMessage): void { admitted.add(req); }
 /**
- * Core's HMAC door: admit a signed request unless its signer marks it `x-capxul-preauth`, a lookup a raw route makes before
- * it has authenticated its own caller (Sites reads /admin/org-info to check a provisioning signature's founder). Only a
- * holder of Core's secret can send the mark, and it can only withhold rows, never add them.
+ * Core's HMAC door: admit a signed request unless it is an /admin/org-info lookup its signer marks `x-capxul-preauth`, made
+ * by a raw route before it has authenticated its own caller (Sites checks a provisioning signature's founder). The mark is
+ * honoured on that path only; only a holder of Core's secret can send it, and it can only withhold rows, never add them.
  */
-export function admitSigned(req: IncomingMessage): void { if (req.headers["x-capxul-preauth"] === undefined) admit(req); }
+export function admitSigned(req: IncomingMessage): void {
+  const lookup = URL.parse(req.url ?? "", "http://x")?.pathname === "/admin/org-info";
+  if (!lookup || req.headers["x-capxul-preauth"] === undefined) admit(req);
+}
 
 async function insertRow(db: Database, body: keyof typeof WINDOWS, trace: string | null, org: string | null, attributes: unknown) {
   const at = await signalNow(db.worker);
