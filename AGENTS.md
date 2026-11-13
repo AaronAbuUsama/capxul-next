@@ -8,7 +8,7 @@
 13 November 2026, at Aaron's request, to rethink the blueprint and the build pipeline without
 disturbing the product work in flight on those two branches.
 
-- Rebuild work goes by pull request into `master`. Where the rules below say `integration/build`, read `master`.
+- Rebuild work goes by pull request into `master`.
 - Never merge `master` into `main` or `integration/build`, and never open a pull request from this line into them,
   unless Aaron asks for it in writing.
 - Work that belongs to the in-flight product line stays on `main` and `integration/build`. Do not base it on `master`.
