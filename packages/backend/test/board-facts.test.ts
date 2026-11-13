@@ -6,6 +6,13 @@ import type { Sql } from "../src/platform/db.ts";
 // DB-free mapping of the source owners' readers onto Board's facts; the readers themselves are Core's and Organizations'.
 const sql = {} as Sql, safe = "0x00000000000000000000000000000000000000Aa", A = "0x000000000000000000000000000000000000000A", B = "0x000000000000000000000000000000000000000b";
 const calls: { name: string; input: unknown }[] = [];
+let ruled: string | null = null;
+const refuse = (name: string) => { if (ruled) throw new Error(ruled === "module" ? "HISTORICAL_UNAVAILABLE: hat 7 is ruled by a module; read Hats live"
+  : `HISTORICAL_UNAVAILABLE: ${name} changed after block 90`); };
+const chain: { functionName: string; args: readonly unknown[] }[] = [];
+const client = { readContract: async (c: { functionName: string; args: readonly unknown[] }) => { chain.push(c);
+  return c.functionName === "isWearerOfHat" ? c.args[0] === B : ["office:x", 9, 3, A, A, "", 0, true, true]; } };
+const live = { client: client as never, hats: "0x3bc1a0ad72417f2d411118085256fc53cbddd137" as const };
 const readers = (): BoardReaders => {
   const log = <T>(name: string, value: T) => async (_sql: Sql, input: unknown) => { calls.push({ name, input }); return value; };
   return {
@@ -14,13 +21,13 @@ const readers = (): BoardReaders => {
       calls.push({ name: "owners", input });
       return { safe_address: safe, deployed: true, owners: [A, B], threshold: 2, nonce: "5" };
     },
-    readHatAt: log("hat", { company_safe: safe.toLowerCase(), supply: "1", max_supply: "4294967295" }),
-    readHatWearersAt: log("wearers", [{ wearer: A.toLowerCase(), wearing: true }, { wearer: B, wearing: false }]),
+    readHatAt: async (_sql, input) => { refuse("chain-hats"); calls.push({ name: "hat", input }); return { company_safe: safe.toLowerCase(), supply: "1", max_supply: "4294967295" }; },
+    readHatWearersAt: async (_sql, input) => { refuse("hat-wearers"); calls.push({ name: "wearers", input }); return [{ wearer: A.toLowerCase(), wearing: true }, { wearer: B, wearing: false }]; },
     readSafeApprovals: log("approvals", [{ owner: A }, { owner: A.toLowerCase() }, { owner: "0x00000000000000000000000000000000000000cc" }]),
     readSafeExecution: log("execution", { safe_tx_hash: `0x${"AB".repeat(32)}`, success: true, tx_hash: `0x${"cd".repeat(32)}`, block_number: "91",
       msg_sender: A, threshold: 2 }),
     readHatTransfersInTx: log("transfers", [{ from: "0x0000000000000000000000000000000000000000", to: B, value: "1" }]),
-    readWearerHatsAt: async (_sql, input) => { calls.push({ name: "worn", input }); return input.wearer === A
+    readWearerHatsAt: async (_sql, input) => { refuse("hat-wearers"); calls.push({ name: "worn", input }); return input.wearer === A
       ? [{ details: "allowance:x", wearing: true }, { details: "office:finance", wearing: false }]
       : [{ details: "allowance:y", wearing: true }, { details: "office:ops", wearing: true }]; },
   };
@@ -28,7 +35,7 @@ const readers = (): BoardReaders => {
 
 test("planning facts are lowercase, current and never bind an officer hat", async () => {
   calls.length = 0;
-  const f = boardFacts(readers());
+  const f = boardFacts(readers(), live); ruled = null; chain.length = 0;
   assert.deepEqual(await f.deployment(sql, "org", 84532), { safe_address: safe.toLowerCase(), gate_address: "0x00000000000000000000000000000000000000bb",
     director_hat: "7", books_hat: null, invoicing_hat: null, people_hat: null });
   assert.deepEqual((await f.safe(sql, 84532, safe as never))!.owners, [A.toLowerCase(), B.toLowerCase()]);
@@ -52,4 +59,16 @@ test("settlement facts use one finality, dedupe approvals, and take sender and t
   assert.equal(await f.hatMoved(sql, 84532, "0x01", "8", "0x0000000000000000000000000000000000000000", B.toLowerCase() as never, 3), true);
   assert.equal(await f.hatMoved(sql, 84532, "0x01", "8", B as never, "0x0000000000000000000000000000000000000000", 3), false);
   assert(calls.every((c) => (c.input as { finality: number }).finality === 3));
+});
+
+test("a module-ruled hat is read live from Hats; offices are not guessed; other refusals propagate", async () => {
+  const f = boardFacts(readers(), live); ruled = "module"; chain.length = 0;
+  assert.deepEqual(await f.wearers(sql, 84532, "7", [A, B] as never), [B.toLowerCase()], "live isWearerOfHat, not the indexed rows");
+  assert.deepEqual(chain.map((c) => [c.functionName, c.args]), [["isWearerOfHat", [A, 7n]], ["isWearerOfHat", [B, 7n]]]);
+  assert.deepEqual(await f.hat(sql, 84532, "7", safe as never), { supply: 3n, max_supply: 9n });
+  await assert.rejects(f.hasOffice(sql, 84532, safe as never, B as never), /PROVIDER_ERROR: .*module-ruled/);
+  ruled = "changed"; chain.length = 0;
+  await assert.rejects(f.wearers(sql, 84532, "7", [A] as never), /HISTORICAL_UNAVAILABLE: hat-wearers changed/);
+  await assert.rejects(f.hat(sql, 84532, "7", safe as never), /HISTORICAL_UNAVAILABLE: chain-hats changed/);
+  assert.equal(chain.length, 0, "only a module-ruled refusal reads live"); ruled = null;
 });
