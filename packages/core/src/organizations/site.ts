@@ -55,7 +55,7 @@ export const deliver = Effect.fn("site.queue")(function* (
   body: Record<string, unknown>,
 ) {
   const sql = yield* PgClient.PgClient;
-  yield* sql`insert into app.site_deliveries ${sql.insert({ org, kind, body: sql.json({ ...body, org }) })}`;
+  yield* sql`insert into app.site_deliveries (org, kind, body) values (${org}, ${kind}, ${sql.json({ ...body, org })})`;
 });
 
 interface Pending {

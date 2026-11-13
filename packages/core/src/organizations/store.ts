@@ -104,20 +104,14 @@ export const insert = Effect.fn("organizations.insert")(function* (
   organization: Organization & { readonly name: string; readonly foundedMs: number },
 ) {
   const sql = yield* PgClient.PgClient;
-  yield* sql`insert into app.organizations ${sql.insert({
-    org: organization.org,
-    handle: organization.handle,
-    founder: organization.founder,
-    founder_safe: organization.founderSafe,
-    safe: organization.safe,
-    founding: sql.json(organization.founding),
-    directors: sql.json(organization.directors),
-    threshold: organization.threshold,
-    members: sql.json(organization.members),
-    setup: organization.setup,
-    deployment: sql.json(organization.deployment),
-    founded_ms: organization.foundedMs,
-  })}`;
+  // Each JSON value is its own parameter of the statement, never inside another fragment: a client the deploy hands
+  // as a proxy (alchemy's Postgres) replays a fragment only where it is an argument of the statement itself.
+  yield* sql`insert into app.organizations
+    (org, handle, founder, founder_safe, safe, founding, directors, threshold, members, setup, deployment, founded_ms)
+    values (${organization.org}, ${organization.handle}, ${organization.founder}, ${organization.founderSafe},
+      ${organization.safe}, ${sql.json(organization.founding)}, ${sql.json(organization.directors)},
+      ${organization.threshold}, ${sql.json(organization.members)}, ${organization.setup},
+      ${sql.json(organization.deployment)}, ${organization.foundedMs})`;
   yield* sql`insert into app.companies ${sql.insert({
     org: organization.org,
     handle: organization.handle,

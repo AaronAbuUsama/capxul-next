@@ -5,10 +5,11 @@ import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { SEEDED, TIER } from "../src/chain/seeded.ts";
+import { sameAddress } from "../src/chain/hex.ts";
 import { RELAYER } from "../src/chain/safe.ts";
 
 const record = JSON.parse(readFileSync(`${import.meta.dirname}/../../contracts/deployments/devnet.json`, "utf8"));
-const same = (a: string, b: string) => assert.equal(a.toLowerCase(), b.toLowerCase());
+const same = (a: string, b: string) => assert.ok(sameAddress(a, b), `${a} is not ${b}`);
 
 test("the v4 contracts and Companies House are where the deployment record puts them", () => {
   same(SEEDED.companiesHouse, record.companiesHouse);
@@ -21,7 +22,7 @@ test("the v4 contracts and Companies House are where the deployment record puts 
     ["Budgets", "budgets"],
   ] as const)
     same(SEEDED[key], record.contracts[name].address);
-  same(SEEDED.hats, record.contracts.Budgets.constructorArguments.hats_);
+  same(SEEDED.hats, record.contracts.Budgets.constructorArguments["hats_"]);
   assert.equal(TIER.personalNamespace, record.tiers[0].namespace);
   assert.equal(TIER.companyNamespace, record.tiers[0].companyNamespace);
 });

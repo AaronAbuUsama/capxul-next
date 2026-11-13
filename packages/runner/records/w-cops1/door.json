@@ -1,0 +1,407 @@
+{
+  "kind": "door",
+  "name": "the chain operations through a world: a company founded and set up, an officer granted",
+  "proves": null,
+  "given": null,
+  "stage": "w-cops1",
+  "owner": "chain-ops",
+  "startedAt": "2026-11-13T15:40:09.636Z",
+  "outcome": "failed",
+  "failure": "the run failed: effect/sql/SqlError: PgConnection: Failed to encode query\n  [cause]: effect/sql/SqlError/UnknownError: PgConnection: Failed to encode query\n    [cause]: PgTypesCodecError: Cannot infer a PostgreSQL type for {\n      \"_id\": \"Effect\",\n      \"op\": \"OnSuccess\",\n      \"args\": Object([[Circular]])\n    }\n  }\n}",
+  "ended": {
+    "as": "died",
+    "tag": null,
+    "detail": "effect/sql/SqlError: PgConnection: Failed to encode query\n  [cause]: effect/sql/SqlError/UnknownError: PgConnection: Failed to encode query\n    [cause]: PgTypesCodecError: Cannot infer a PostgreSQL type for {\n      \"_id\": \"Effect\",\n      \"op\": \"OnSuccess\",\n      \"args\": Object([[Circular]])\n    }\n  }\n}"
+  },
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 11452
+  },
+  "calls": [
+    {
+      "operation": "org.create",
+      "traceId": "89650ecff620388c2770a31b6900c185",
+      "at": null,
+      "outcome": "defect",
+      "refusal": null,
+      "failure": "effect/sql/SqlError: PgConnection: Failed to encode query\n  [cause]: effect/sql/SqlError/UnknownError: PgConnection: Failed to encode query\n    [cause]: PgTypesCodecError: Cannot infer a PostgreSQL type for {\n      \"_id\": \"Effect\",\n      \"op\": \"OnSuccess\",\n      \"args\": Object([[Circular]])\n    }\n  }\n}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 2731.128,
+        "serverMs": 2523,
+        "budgetMs": 8000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 0,
+          "ms": 160,
+          "outcome": "success"
+        },
+        {
+          "name": "org.create.check",
+          "parent": "org.create.found",
+          "startMs": 0,
+          "ms": 1037,
+          "outcome": "success"
+        },
+        {
+          "name": "org.create.found",
+          "parent": "org.create",
+          "startMs": 0,
+          "ms": 2523,
+          "outcome": "failure"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.byHandle",
+          "startMs": 160,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.byHandle",
+          "parent": "org.create.check",
+          "startMs": 160,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 267,
+          "ms": 108,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 375,
+          "ms": 110,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 485,
+          "ms": 102,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.unfinished",
+          "startMs": 587,
+          "ms": 106,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.unfinished",
+          "parent": "org.create.check",
+          "startMs": 587,
+          "ms": 106,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 693,
+          "ms": 344,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "org.create.check",
+          "startMs": 693,
+          "ms": 344,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_getTransactionCount",
+          "startMs": 1037,
+          "ms": 45,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_getTransactionCount",
+          "parent": "chain.send",
+          "startMs": 1037,
+          "ms": 45,
+          "outcome": "success"
+        },
+        {
+          "name": "chain.send",
+          "parent": "org.create.deploy",
+          "startMs": 1037,
+          "ms": 175,
+          "outcome": "success"
+        },
+        {
+          "name": "org.create.deploy",
+          "parent": "org.create.found",
+          "startMs": 1037,
+          "ms": 386,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_getBlockByNumber",
+          "startMs": 1082,
+          "ms": 46,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_getBlockByNumber",
+          "parent": "chain.send",
+          "startMs": 1082,
+          "ms": 46,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_sendRawTransaction",
+          "startMs": 1128,
+          "ms": 42,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_sendRawTransaction",
+          "parent": "chain.send",
+          "startMs": 1128,
+          "ms": 42,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_getTransactionReceipt",
+          "startMs": 1170,
+          "ms": 42,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_getTransactionReceipt",
+          "parent": "chain.send",
+          "startMs": 1170,
+          "ms": 42,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 1212,
+          "ms": 41,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "org.create.deploy",
+          "startMs": 1212,
+          "ms": 41,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_getTransactionCount",
+          "startMs": 1253,
+          "ms": 35,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_getTransactionCount",
+          "parent": "chain.send",
+          "startMs": 1253,
+          "ms": 35,
+          "outcome": "success"
+        },
+        {
+          "name": "chain.send",
+          "parent": "org.create.deploy",
+          "startMs": 1253,
+          "ms": 170,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_getBlockByNumber",
+          "startMs": 1288,
+          "ms": 49,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_getBlockByNumber",
+          "parent": "chain.send",
+          "startMs": 1288,
+          "ms": 49,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_sendRawTransaction",
+          "startMs": 1337,
+          "ms": 40,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_sendRawTransaction",
+          "parent": "chain.send",
+          "startMs": 1337,
+          "ms": 40,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_getTransactionReceipt",
+          "startMs": 1377,
+          "ms": 46,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_getTransactionReceipt",
+          "parent": "chain.send",
+          "startMs": 1377,
+          "ms": 46,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 1423,
+          "ms": 39,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "org.create.found",
+          "startMs": 1423,
+          "ms": 39,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 1462,
+          "ms": 56,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "userop.prepare",
+          "startMs": 1462,
+          "ms": 56,
+          "outcome": "success"
+        },
+        {
+          "name": "userop.prepare",
+          "parent": "org.create.found",
+          "startMs": 1462,
+          "ms": 756,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "bundler pimlico_getUserOperationGasPrice",
+          "startMs": 1518,
+          "ms": 665,
+          "outcome": "success"
+        },
+        {
+          "name": "bundler pimlico_getUserOperationGasPrice",
+          "parent": "userop.prepare",
+          "startMs": 1518,
+          "ms": 665,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 2183,
+          "ms": 35,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "userop.prepare",
+          "startMs": 2183,
+          "ms": 35,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.found",
+          "startMs": 2218,
+          "ms": 106,
+          "outcome": "success"
+        },
+        {
+          "name": "BEGIN postgres",
+          "parent": "sql.transaction",
+          "startMs": 2324,
+          "ms": 99,
+          "outcome": "success"
+        },
+        {
+          "name": "sql.transaction",
+          "parent": "org.create.found",
+          "startMs": 2324,
+          "ms": 199,
+          "outcome": "failure"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.insert",
+          "startMs": 2423,
+          "ms": 0,
+          "outcome": "failure"
+        },
+        {
+          "name": "organizations.insert",
+          "parent": "sql.transaction",
+          "startMs": 2423,
+          "ms": 0,
+          "outcome": "failure"
+        },
+        {
+          "name": "ROLLBACK postgres",
+          "parent": "sql.transaction",
+          "startMs": 2423,
+          "ms": 100,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one org.create span, 2523 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw defect; the span says defect"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a defect: none"
+        }
+      ]
+    }
+  ],
+  "afterwards": {
+    "stage": "left to its owner",
+    "before": null,
+    "after": null
+  },
+  "ms": {
+    "create": 12322,
+    "run": 2738,
+    "checks": 537,
+    "destroy": null
+  }
+}

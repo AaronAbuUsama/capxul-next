@@ -84,7 +84,7 @@ const journey = Effect.gen(function* () {
   const sent = Option.getOrNull(Arr.findFirst(granted, (each) => each._tag === "Sent"));
   if (sent === null || sent._tag !== "Sent") return yield* expectThat(false, "the grant was not sent");
   const landed = yield* capxul.chain.transaction({ transaction: sent.transaction });
-  yield* expectThat(
+  return yield* expectThat(
     landed.status === "success" && Arr.some(landed.logs, (log) => log._tag === "TransferSingle"),
     "the grant's transaction minted no hat",
   );

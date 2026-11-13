@@ -52,20 +52,12 @@ export interface Opening {
 export const open = Effect.fn("approvals.open")(function* (opening: Opening) {
   const sql = yield* PgClient.PgClient;
   const landing = yield* Schema.encodeEffect(Schema.toCodecJson(Landing))(opening.landing).pipe(Effect.orDie);
-  yield* sql`insert into app.subjects ${sql.insert({
-    kind: opening.subject.kind,
-    id: opening.subject.id,
-    org: opening.org,
-    threshold: opening.threshold,
-    needs: opening.needs,
-    landing: sql.json(landing),
-    spends:
-      opening.spends === null
-        ? null
-        : sql.json({ safe: opening.spends.safe, amount: opening.spends.amount.toString() }),
-    about: opening.about === null ? null : sql.json(opening.about),
-    state: "open",
-  })}`;
+  // Each JSON value is its own parameter of the statement (organizations/store.ts says why).
+  const spends =
+    opening.spends === null ? null : { safe: opening.spends.safe, amount: opening.spends.amount.toString() };
+  yield* sql`insert into app.subjects (kind, id, org, threshold, needs, landing, spends, about, state)
+    values (${opening.subject.kind}, ${opening.subject.id}, ${opening.org}, ${opening.threshold}, ${opening.needs},
+      ${sql.json(landing)}, ${sql.json(spends)}, ${sql.json(opening.about)}, 'open')`;
   const rows = Arr.map(opening.approvals, (approval, position) => ({
     approval: approval.id,
     subject_kind: opening.subject.kind,
