@@ -1,7 +1,6 @@
 // The ERC-4337 bundler (integration bundler): the provider every caller shares, and the product door Core composes.
 // Provider payloads and URLs never enter an error: they can carry tokens and signed operations.
 import type { Hex } from "viem";
-import type { toRpcUserOperation } from "../../../sdk/src/approvals/safe-op.ts";
 
 /** ERC-4337 v0.7 JSON-RPC representation, not viem's bigint representation. */
 export type RpcUserOperation = {
@@ -28,9 +27,10 @@ class RpcRejection extends Error {
   readonly rpcCode: number;
   constructor(rpcCode: number) { super("bundler rejected RPC request"); this.rpcCode = rpcCode; }
 }
-/** ERC-4337 validation rejections and invalid params: the bundler looked at the operation and refused it. Throttling and
- * stake refusals (-32504, -32505) and anything else are not a refusal of the operation: it is looked up instead. */
-const REFUSALS = new Set([-32500, -32501, -32502, -32503, -32506, -32507, -32602]);
+/** ERC-4337 rejections (-32500 to -32599) and invalid params (-32602), except throttling and stake (-32504, -32505), which
+ * say nothing about the operation. A refusal is believed only after a lookup finds the operation not held: Alto answers
+ * -32602 "Already known" for an identical operation already in its mempool (integrations.bundler-door). */
+const refusalCode = (code: number) => code === -32602 || (code <= -32500 && code >= -32599 && code !== -32504 && code !== -32505);
 const invalid = () => new ProviderError("PROVIDER_RESPONSE_INVALID", "bundler returned an invalid response");
 const unavailable = () => new ProviderError("PROVIDER_ERROR", "bundler did not answer; use the operation hash for recovery");
 const object = (x: unknown): x is Record<string, unknown> => x !== null && typeof x === "object" && !Array.isArray(x);
@@ -44,7 +44,7 @@ const operation = (x: unknown): x is RpcUserOperation => object(x) && address(x.
   (x.paymaster === undefined || (address(x.paymaster) && quantity(x.paymasterVerificationGasLimit) && quantity(x.paymasterPostOpGasLimit) && (x.paymasterData === undefined || hex(x.paymasterData))));
 const refused = (error: unknown) => {
   const code = error instanceof RpcRejection ? error.rpcCode : object(error) && typeof error.code === "number" ? error.code : null;
-  return code !== null && REFUSALS.has(code);
+  return code !== null && refusalCode(code);
 };
 
 /** JSON-RPC over HTTP: 5 s for a send, 2 s for a read (integration bundler). */
@@ -102,10 +102,11 @@ export function bundlerProvider(transport: RpcTransport): Bundler {
       let answer: unknown;
       try { answer = await transport.request("eth_sendUserOperation", [op, entryPoint]); }
       catch (error) {
-        if (refused(error)) throw new ProviderError("TRANSACTION_FAILED", "bundler rejected operation validation");
         if (error instanceof ProviderError && error.code === "PROVIDER_RESPONSE_INVALID") throw error;
+        // Held wins over any answer: a refusal of an operation the bundler already holds is not a refusal.
         const found = await lookup(expectedHash);
         if (found.operation || found.receipt) return expectedHash;
+        if (refused(error)) throw new ProviderError("TRANSACTION_FAILED", "bundler rejected operation validation");
         throw unavailable();
       }
       if (!hash(answer) || answer.toLowerCase() !== expectedHash.toLowerCase()) throw invalid();
@@ -114,8 +115,8 @@ export function bundlerProvider(transport: RpcTransport): Bundler {
   };
 }
 
-/** The operation the approval carrier sends: exactly what the SDK's toRpcUserOperation packs. */
-export type SignedUserOperation = ReturnType<typeof toRpcUserOperation>;
+/** The operation the approval carrier sends: what the SDK's toRpcUserOperation packs is assignable to it. */
+export type SignedUserOperation = RpcUserOperation;
 export type BundlerSend = { hash: Hex } | { refused: { code: "TRANSACTION_FAILED"; reason: string } };
 export type BundlerHeld = { held: boolean; receipt: { success: boolean; transactionHash: Hex } | null };
 

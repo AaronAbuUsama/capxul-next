@@ -22,7 +22,7 @@ const gateway = (sendCode: number | null, held: unknown = null, sends = { n: 0 }
 
 test("send: the signed hash, lowercased; validation refusals are answers; throttling and stake are lost answers", async () => {
   assert.deepEqual(await bundler({ gatewayUrl: "http://127.0.0.1:1", entryPoint }, gateway(null)).send(op, { expectedHash: signed }), { hash: signed.toLowerCase() });
-  for (const rpc of [-32500, -32501, -32502, -32503, -32506, -32507, -32602]) {
+  for (const rpc of [-32500, -32501, -32502, -32503, -32506, -32507, -32508, -32599, -32602]) {
     const sends = { n: 0 };
     const answer = await bundler({ gatewayUrl: "x", entryPoint }, gateway(rpc, null, sends)).send(op, { expectedHash: signed });
     assert.deepEqual(answer, { refused: { code: "TRANSACTION_FAILED", reason: "the bundler refused the operation in validation" } }, `rpc ${rpc}`);
@@ -33,8 +33,13 @@ test("send: the signed hash, lowercased; validation refusals are answers; thrott
     await assert.rejects(bundler({ gatewayUrl: "x", entryPoint }, gateway(rpc, null, sends)).send(op, { expectedHash: signed }), code("PROVIDER_ERROR"), `rpc ${rpc}`);
     assert.equal(sends.n, 1, "a lost answer is looked up, never sent again");
   }
-  // A lost answer for an operation the bundler does hold is the signed hash.
-  assert.deepEqual(await bundler({ gatewayUrl: "x", entryPoint }, gateway(-32504, { userOperation: op })).send(op, { expectedHash: signed }), { hash: signed.toLowerCase() });
+  // A lost answer, or a refusal, for an operation the bundler does hold is the signed hash: Alto answers -32602
+  // "Already known" when the identical operation is already in its mempool.
+  for (const rpc of [-32504, -32602, -32500]) {
+    const sends = { n: 0 };
+    assert.deepEqual(await bundler({ gatewayUrl: "x", entryPoint }, gateway(rpc, { userOperation: op }, sends)).send(op, { expectedHash: signed }), { hash: signed.toLowerCase() }, `rpc ${rpc}`);
+    assert.equal(sends.n, 1);
+  }
 });
 
 test("send: an answered hash that is not the signed one is PROVIDER_RESPONSE_INVALID, never success", async () => {
