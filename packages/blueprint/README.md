@@ -11,7 +11,7 @@ import it; it imports neither.
 |---|---|
 | `src/door.ts` | The one door: `operations` (the twelve, by name), the two Rpc groups and `servedBy`. |
 | `src/operation.ts` | The format: `declare`, `declareOutcomes`, `outcome`, `Budget`, and what the runner reads. |
-| `src/errors.ts` | Every refusal, declared once, with its command-line exit code. |
+| `src/errors.ts` | Every refusal, declared once, with its command-line exit code, `NotImplemented` included (every operation declares it; decisions.md, entry 33). |
 | `src/values.ts` | The shared values: names, ids, instants, money, approvals, the view of a world. |
 | `src/telemetry.ts` | The trace header, `Telemetry`, and the two sign-in middlewares. |
 | `src/starting-worlds.ts` | Every starting world the claims begin from, and how each is made. |
@@ -43,8 +43,8 @@ Core, through its door. Each group's `toLayer` does not compile until every oper
 
 ## Adding or changing an operation
 
-1. Declare its refusals in `src/errors.ts` (add each to `refusals` and `exitCode`), and its events in its concept's
-   `operations.ts`.
+1. Declare its refusals in `src/errors.ts` (add each to `refusals` and `exitCode`; every operation also lists
+   `NotImplemented`), and its events in its concept's `operations.ts`.
 2. Declare it with `declare({ rpc, emits, budget, examples })`, or with `declareOutcomes` and one `outcome` per
    member of a success union. Give one example per kind of success.
 3. Add it to `operations` and to one Rpc group in `src/door.ts`, and its claims to its concept's `claims.ts` and to
@@ -52,7 +52,8 @@ Core, through its door. Each group's `toLayer` does not compile until every oper
 4. Run `pnpm claims` to render claims.md, then `pnpm types` and `pnpm test`.
 
 A budget is provisional until a green run measures the operation. That run's p95 then replaces `ms` and `basis` in
-the declaration, and `provisional` becomes false.
+the declaration, and `provisional` becomes false. A budget is recorded next to every measured time and is not
+enforced: nothing fails on speed until it is set from measured runs.
 
 ## Checks
 

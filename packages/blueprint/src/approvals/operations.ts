@@ -12,6 +12,7 @@ import {
   NotYourApproval,
   SignatureInvalid,
   TransactionReverted,
+  NotImplemented,
 } from "../errors.ts";
 import { declareOutcomes, outcome } from "../operation.ts";
 import { ApprovalId, Hash, PersonId, Signature, Subject } from "../values.ts";
@@ -75,6 +76,7 @@ const signRpc = Rpc.make("approval.sign", {
     ApprovalClosed,
     InsufficientBalance,
     TransactionReverted,
+    NotImplemented,
   ]),
 });
 
