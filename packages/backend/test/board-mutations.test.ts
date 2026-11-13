@@ -276,8 +276,8 @@ test("Board public adapter composes real auth/Seat/approval doors atomically", {
       assert.deepEqual(new Map(settled.map((s) => [s.proposal_id, s.transition])), new Map([[p.proposal_id, "reject"], [rejection.proposalId, "execute"]]));
       assert.equal((await readOfficerChange(db, org, first.change.changeId))!.state, "ended");
       const foreign = await propose(db, context, input("foreign")), failing = await propose(db, context, input("failing"));
-      executed(foreign.nonce, `0x${"ab".repeat(32)}`); executed(failing.nonce, failing.safe_tx_hash, false);
-      assert.deepEqual(await carryNonce(db, carryWorld(), key(foreign.nonce), now + 1), [{ proposal_id: foreign.proposal_id, transition: "replace" }]);
+      executed(foreign.nonce, `0x${"ab".repeat(32)}`).threshold = null; executed(failing.nonce, failing.safe_tx_hash, false);
+      assert.deepEqual(await carryNonce(db, carryWorld(), key(foreign.nonce), now + 1), [{ proposal_id: foreign.proposal_id, transition: "replace" }]); assert.equal((await readProposal(db, org, foreign.proposal_id))!.threshold, null);
       assert.deepEqual(await carryNonce(db, carryWorld(), key(failing.nonce), now + 1), [{ proposal_id: failing.proposal_id, transition: "fail" }]);
       liveNonce = 5n; const second: any = await grant();
       const q = (await readProposal(db, org, (await readOfficerChange(db, org, second.change.changeId))!.proposal_id))!; executed(q.nonce, q.safe_tx_hash);

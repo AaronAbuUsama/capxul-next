@@ -5,9 +5,10 @@ import { officerEvent, proposalEvent } from "./events.ts";
 import type { ApprovalContext } from "./runtime.ts";
 import { integer, type Proposal, type ProposalStatus } from "./types.ts";
 
-/** The one indexed ExecutionSuccess/ExecutionFailure that used a Safe nonce, as of the deployment's finality depth. */
+/** The one indexed ExecutionSuccess/ExecutionFailure that used a Safe nonce, as of the deployment's finality depth.
+ * threshold is the Safe's threshold it settled with, or null when the indexer cannot reconstruct that historical state. */
 export type Execution = { safe_tx_hash: Hex; success: boolean; tx_hash: Hex; user_op_hash: Hex | null;
-  block_number: number; threshold: number };
+  block_number: number; threshold: number | null };
 
 /** Historical, finalized source reads for settlement. Never live RPC and never current planning state. */
 export type SettlementFacts = {
@@ -68,7 +69,7 @@ export async function carryNonce(sql: Sql, world: CarryWorld, key: NonceKey, at:
   if (!waiting.length) return [];
   const exec = await world.facts.execution(sql, key.chainId, safe, key.nonce, world.finality);
   if (!exec) return [];
-  integer(exec.block_number); integer(exec.threshold);
+  integer(exec.block_number); if (exec.threshold !== null && integer(exec.threshold) < 1) throw new Error("PROVIDER_RESPONSE_INVALID: threshold");
   const used = exec.safe_tx_hash.toLowerCase();
   // Only a Capxul rejection whose own hash used the nonce rejects; any other foreign hash replaces.
   const rejection = (await sql.query(`select rejects from app.board_proposals where org_id=$1 and safe_address=$2 and nonce=$3
