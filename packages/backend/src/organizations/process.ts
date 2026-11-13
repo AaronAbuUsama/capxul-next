@@ -5,7 +5,7 @@
 import type { Database, Sql } from "../platform/db.ts";
 import { emit } from "../platform/outbox.ts";
 import { activate, register, release } from "../parties/door.ts";
-import type { SetupStatus } from "./setups.ts";
+import { transitionId, type SetupStatus } from "./setups.ts";
 
 export type Call = { to: string; value: string; data: string };
 /** Indexing's numeric MoneyDeployed receipt (Core's readMoneyDeployment). */
@@ -57,7 +57,7 @@ async function setupRow(sql: Sql, orgId: string) {
 }
 async function transitioned(sql: Sql, row: { org_id: string; founder_principal_id: string }, from: SetupStatus, to: SetupStatus,
   transition: string, issue: Reason | null, now: number, trace: string) {
-  await emit(sql, { id: `org-setup:${row.org_id}:${transition}:${from}:${issue ?? ""}:${now}`, name: "org_setup_transitioned", machine: "org-setup",
+  await emit(sql, { id: await transitionId(sql, `org-setup:${row.org_id}:${transition}`), name: "org_setup_transitioned", machine: "org-setup",
     entity_id: row.org_id, owner_kind: "organization", owner_id: row.org_id, actor: null, trace_id: trace, at: now,
     props: { from, to, transition, org_id: row.org_id, person_id: row.founder_principal_id, issue_reason: issue } });
 }
@@ -82,7 +82,7 @@ async function fail(sql: Sql, row: any, reason: Reason, code: string, now: numbe
   await transitioned(sql, row, row.status, "failed", "fail", reason, now, trace);
 }
 async function emitFde(sql: Sql, row: any, from: string | null, to: string, transition: string, now: number, trace: string, safe = row.fde_safe) {
-  await emit(sql, { id: `org-fde:${row.org_id}:${transition}:${now}`, name: "org_fde_transitioned", machine: "org-fde", entity_id: row.org_id,
+  await emit(sql, { id: await transitionId(sql, `org-fde:${row.org_id}:${transition}`), name: "org_fde_transitioned", machine: "org-fde", entity_id: row.org_id,
     owner_kind: "organization", owner_id: row.org_id, actor: null, trace_id: trace, at: now,
     props: { from, to, transition, org_id: row.org_id, safe_address: safe, paid_through: null } });
 }
