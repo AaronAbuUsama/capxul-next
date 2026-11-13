@@ -23,18 +23,31 @@ test("human Access principal with no wallet binding reaches the document door", 
   const server = createServer((req, res) => void handler(req, res));
   t.after(() => new Promise<void>((resolve) => { server.closeAllConnections(); server.close(() => resolve()); }));
   const url = await listen(server);
+  const traces: string[][] = [];
   handler = createDocumentHandler({
-    authorize: () => Effect.succeed({ personId: "person-original", kind: "person", email: "director@example.invalid",
-      safeAddress: person.address, signerAddress: null }),
-    provider: { doorCall: (input) => Effect.succeed({ doctype: "Supplier", name: "S-1", docstatus: 0, fields: { user: input.user } }),
+    authorize: ({ traceId }) => { traces.push([traceId]); return Effect.succeed({ personId: "person-original", kind: "person", email: "director@example.invalid",
+      safeAddress: person.address, signerAddress: null }); },
+    provider: { doorCall: (input) => { traces.at(-1)!.push(input.traceId!); return Effect.succeed({ doctype: "Supplier", name: "S-1", docstatus: 0, fields: { user: input.user } }); },
       doorReport: () => Effect.succeed({ columns: [], rows: [] }) },
-    store: { site: async () => ({ host: "acme-town1.localhost", state: "ready" }) as any, logCall: async () => {} },
+    store: { site: async () => ({ host: "acme-town1.localhost", state: "ready" }) as any, logCall: async (call) => { traces.at(-1)!.push(call.trace); } },
     requestAnswer: () => Effect.succeed({ status: "collecting" }),
   });
   const response = await fetch(`${url}${DOCUMENT_PATH}`, { method: "POST", headers: { Authorization: "Bearer actual-session" },
     body: JSON.stringify({ verb: "get", orgId: "acme", doctype: "Supplier", name: "S-1" }) });
   assert.equal(response.status, 200);
   assert.equal((await response.json() as any).fields.user, "director@example.invalid");
+  // Core's request signal sets x-capxul-trace; authorization, the site call and the audit all join it.
+  const joined = "0af7651916cd43dd8448eb211c80319c";
+  const send = (trace: string) => fetch(`${url}${DOCUMENT_PATH}`, { method: "POST",
+    headers: { Authorization: "Bearer actual-session", "x-capxul-trace": trace },
+    body: JSON.stringify({ verb: "get", orgId: "acme", doctype: "Supplier", name: "S-1" }) });
+  assert.equal((await send(joined)).status, 200);
+  assert.deepEqual(traces.at(-1), [joined, joined, joined]);
+  for (const malformed of ["0AF7651916CD43DD8448EB211C80319C", "0af76519-16cd-43dd-8448-eb211c80319c"]) {
+    assert.equal((await send(malformed)).status, 200);
+    const [fresh, ...rest] = traces.at(-1)!;
+    assert.match(fresh!, /^[0-9a-f]{32}$/); assert.notEqual(fresh, joined); assert.deepEqual(rest, [fresh, fresh]);
+  }
 });
 
 test("Bearer public SDK/CLI resolves its principal and exact document/report/held results", async (t) => {
