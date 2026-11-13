@@ -92,8 +92,8 @@ test("an empty person_id is no owner, so an accepted send records once and never
     await db.transaction("", (sql) => planDelivery(sql, blank, instant), true);
     let calls = 0;
     const mail = { async send() { calls++; return { id: "blank-owner" }; } };
-    await deliverNotices(db, mail);
-    await deliverNotices(db, mail);
+    await deliverNotices(db, mail, worldNow);
+    await deliverNotices(db, mail, worldNow);
     assert.equal(calls, 1, "a recorded outcome is not replayed");
     assert.equal((await read(blank)).status, "sent");
     const rows = (await db.worker.query(`select event->>'owner_kind' as kind,event->>'owner_id' as id from app.transition_outbox
