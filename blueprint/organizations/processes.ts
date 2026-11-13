@@ -173,9 +173,9 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     contract_agent_owner.f.safeAddressFor,
   ],
   idempotency:
-    "One process per Organization (`org-setup:<orgId>`). The mint and deployMoney are each sent once (the service " +
-    "signer records the signed bytes before broadcast, CAP-1097); one install approval at a time; the host's provision " +
-    "is keyed by the Organization's id.",
+    "One process per Organization. Mint and deployMoney are sent once per attempt, keyed `org-setup:<orgId>:mint:<n>` " +
+    "and `:deploy:<n>`; only a recorded revert moves on (organizations.setup-send-attempts). One install approval at " +
+    "a time; the host's provision is keyed by org id.",
   // Real time bounding one run's work between its waits (time.real-elapsed): sends, receipts and a host call with retries.
   timeoutMs: 30 * 60_000,
   retries: { max: 5, backoff: "exponential" },

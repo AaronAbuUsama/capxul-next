@@ -42,7 +42,9 @@ create table if not exists app.org_setups (
   intent_hash text not null check (intent_hash ~ '^[0-9a-f]{64}$'), with_fde boolean not null,
   status text not null check (status in ('processing','awaiting_authorization','needs_attention','ready','failed')),
   steps text[] not null check (steps <@ array['safe_minted','money_deployed','installed']),
-  mint_tx_hash text, deploy_tx_hash text, install_approval_id text, issue jsonb,
+  mint_tx_hash text, mint_attempt integer not null default 1 check (mint_attempt >= 1),
+  deploy_tx_hash text, deploy_attempt integer not null default 1 check (deploy_attempt >= 1),
+  install_approval_id text, install_tx_hash text, install_block bigint, issue jsonb,
   fde_signer text, fde_safe text, fde_party_id text references app.parties,
   checked_at bigint not null, ready_at bigint, created_at bigint not null, updated_at bigint not null,
   check ((status = 'ready') = (ready_at is not null))

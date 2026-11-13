@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import pg from "pg";
+import { worldNow } from "../src/devnet/door.ts";
 import { Database, type Sql } from "../src/platform/db.ts";
 import { emit, migrateOutbox, relay, type TransitionEvent } from "../src/platform/outbox.ts";
 import { followPayment, getRequest, migrateRequests, onPaymentTransition, type ReadPayment } from "../src/requests/door.ts";
@@ -13,8 +14,6 @@ const issuer = `0x${"31".repeat(20)}`, payer = `0x${"42".repeat(20)}`;
 const owner = { owner_kind: "person" as const, owner_id: "issuer-principal" };
 const at = 1_794_480_000_000;
 
-/** The world's now as each ACK instant (platform/outbox.ts consume takes it from its caller). */
-const WORLD = Date.UTC(2031, 0, 2, 3, 4, 5);
 test("requests PG admission and committed payment followers", async (t) => {
   const admin = new pg.Client({ connectionString: url }); await admin.connect();
   const db = new Database(roleUrl("capxul_core"), roleUrl("capxul_worker"));
@@ -46,6 +45,9 @@ test("requests PG admission and committed payment followers", async (t) => {
       if not exists(select 1 from pg_roles where rolname='capxul_worker') then create role capxul_worker login nosuperuser nobypassrls; end if;
       end $$; grant usage on schema app to capxul_core,capxul_worker`);
     await migrateRequests(admin); await migrateOutbox(admin);
+    // The world's stopped clock, read by every ACK (followPayment and the relay both stamp it).
+    await admin.query("create table if not exists app.world (clock jsonb not null); grant select on app.world to capxul_core,capxul_worker");
+    await admin.query("insert into app.world (clock) values ($1)", [{ nowMs: at + 60_000, clockMode: "stopped", rate: 1 }]);
     await t.test("owner writes, addressed Safe reads only, strangers see nothing", async () => {
       await seed("admission", "open");
       const key = { ...owner, request_id: "admission" };
@@ -62,52 +64,54 @@ test("requests PG admission and committed payment followers", async (t) => {
     });
     await t.test("source consumer rollback leaves neither effect nor ACK; replay emits once", async () => {
       await seed("settlement"); const id = await source("settlement", "settle");
-      await assert.rejects(worker(async (sql) => { await followPayment(sql, id, WORLD, read); throw new Error("crash before commit"); }), /crash before commit/);
+      await assert.rejects(worker(async (sql) => { await followPayment(sql, id, read); throw new Error("crash before commit"); }), /crash before commit/);
       assert.equal((await state("settlement")).status, "paying");
       assert.equal((await admin.query("select count(*)::int as n from app.transition_acks where event_id=$1", [id])).rows[0].n, 0);
-      assert.equal(await worker((sql) => followPayment(sql, id, WORLD, read)), true);
-      assert.equal(await worker((sql) => followPayment(sql, id, WORLD, read)), false);
+      assert.equal(await worker((sql) => followPayment(sql, id, read)), true);
+      assert.equal(await worker((sql) => followPayment(sql, id, read)), false);
       assert.equal((await state("settlement")).status, "paid");
       const events = (await admin.query("select event from app.transition_outbox where event->>'entity_id'='settlement' order by seq")).rows;
       assert.equal(events.length, 1);
       assert.deepEqual(events[0].event.props, { from: "paying", to: "paid", transition: "settle", request_id: "settlement", ...owner, kind: "invoice", payer_kind: "capxul" });
       assert.equal(events[0].event.at, at + 33);
       const unsettle = await source("settlement", "unsettle");
-      await worker((sql) => followPayment(sql, unsettle, WORLD, async (...args) => ({ ...await read(...args)!, status: "pending" })));
+      await worker((sql) => followPayment(sql, unsettle, async (...args) => ({ ...await read(...args)!, status: "pending" })));
       assert.equal((await state("settlement")).status, "paying");
       const cancel = await source("settlement", "cancel");
-      await worker((sql) => followPayment(sql, cancel, WORLD, async (...args) => ({ ...await read(...args)!, status: "cancelled" })));
+      await worker((sql) => followPayment(sql, cancel, async (...args) => ({ ...await read(...args)!, status: "cancelled" })));
       const reopened = await state("settlement");
       assert.deepEqual([reopened.status, reopened.payment_id, reopened.chain_payment_id, reopened.pay_key], ["open", null, null, null]);
     });
     await t.test("current attempt, deposit, lapsed and escrow ending guards", async () => {
       await seed("superseded", "paying", { payment_id: "other-payment" });
       const cancelled = await source("superseded", "cancel");
-      await worker((sql) => followPayment(sql, cancelled, WORLD, async (...args) => ({ ...await read(...args)!, status: "cancelled" })));
+      await worker((sql) => followPayment(sql, cancelled, async (...args) => ({ ...await read(...args)!, status: "cancelled" })));
       assert.equal((await state("superseded")).status, "paying");
       await seed("deposit", "paid", { deposit_id: "bank-credit" });
       const reversed = await source("deposit", "unsettle");
-      await worker((sql) => followPayment(sql, reversed, WORLD, async (...args) => ({ ...await read(...args)!, status: "pending" })));
+      await worker((sql) => followPayment(sql, reversed, async (...args) => ({ ...await read(...args)!, status: "pending" })));
       assert.equal((await state("deposit")).status, "paid");
       await seed("lapsed");
       const lapsed = await source("lapsed", "lapse");
-      await worker((sql) => followPayment(sql, lapsed, WORLD, read));
+      await worker((sql) => followPayment(sql, lapsed, read));
       assert.equal((await state("lapsed")).status, "paying");
       for (const [name, received, checked, heldAtEnd, expected] of [["funded", "12700001", at - 1, "12700001", "paid"], ["short", "12700000", at - 1, "12700000", "cancelled"], ["late", "12700001", at + 1, "0", "cancelled"], ["stale", "12700001", at - 1, "0", "cancelled"], ["historical", "0", at + 1, "12700001", "paid"]] as const) {
         await seed(name, "cancelled", { payment_id: null, escrow_address: payer, escrow_received_raw: received, escrow_checked_at: checked, decided_at: at });
         const id = await source(name, "settle");
-        await assert.rejects(worker((sql) => followPayment(sql, id, WORLD, read)), /verification_unavailable/);
+        await assert.rejects(worker((sql) => followPayment(sql, id, read)), /verification_unavailable/);
         assert.equal((await admin.query("select count(*)::int as n from app.transition_acks where event_id=$1", [id])).rows[0].n, 0);
-        await worker((sql) => followPayment(sql, id, WORLD, read, async () => heldAtEnd));
+        await worker((sql) => followPayment(sql, id, read, async () => heldAtEnd));
         assert.equal((await state(name)).status, expected);
       }
     });
     await t.test("explicit shared relay owns the single effect and ACK boundary", async () => {
       await seed("relay"); await source("relay", "settle");
       const effect = (sql: Sql, event: TransitionEvent) => onPaymentTransition(sql, event, read);
-      assert.equal(await relay(db, "requests.lifecycle.payment-followers", ["payment_transitioned"], effect, async () => WORLD), 1);
-      assert.equal(await relay(db, "requests.lifecycle.payment-followers", ["payment_transitioned"], effect, async () => WORLD), 0);
+      assert.equal(await relay(db, "requests.lifecycle.payment-followers", ["payment_transitioned"], effect, worldNow), 1);
+      assert.equal(await relay(db, "requests.lifecycle.payment-followers", ["payment_transitioned"], effect, worldNow), 0);
       assert.equal((await state("relay")).status, "paid");
+      const acks = await admin.query("select distinct (extract(epoch from acked_at)*1000)::bigint as at from app.transition_acks");
+      assert.deepEqual(acks.rows.map((r) => Number(r.at)), [at + 60_000], "every ACK is stamped at the world's now");
     });
   } finally { await db.close(); await admin.end(); }
 });
