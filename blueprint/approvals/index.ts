@@ -7,5 +7,6 @@ import * as processes from "./processes.ts";
 import * as flows from "./flows.ts";
 import * as operations from "./operations.ts";
 import * as decisions from "./decisions.ts";
+import * as sponsorshipDecisions from "./sponsorship-decisions.ts";
 
-export const modules = [data, procedures, signing, processes, flows, operations, decisions] as const;
+export const modules = [data, procedures, signing, processes, flows, operations, decisions, sponsorshipDecisions] as const;
