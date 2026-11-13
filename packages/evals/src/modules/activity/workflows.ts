@@ -54,6 +54,9 @@ async function hostAckClock(sql: Sql) {
   const column = (await sql.query(`select column_default from information_schema.columns
     where table_schema='app' and table_name='transition_acks' and column_name='acked_at'`)).rows[0];
   assert.equal(column?.column_default, "now()", "transition_acks.acked_at is no longer the database host clock; this check must move to the host-stamped ACK column");
+  // The default is only the clock while nothing rewrites the column on insert or update.
+  const triggers = (await sql.query("select count(*)::int as n from pg_trigger where tgrelid='app.transition_acks'::regclass and not tgisinternal")).rows[0].n;
+  assert.equal(triggers, 0, "a trigger may rewrite transition_acks.acked_at");
 }
 
 /** In the caller's transaction, holding the feeds' locks: the event was noted exactly once in each feed holding its Payment. */
@@ -87,20 +90,23 @@ export type ResumeFault = { consumer: string; eventId: string; event: string; tr
 
 const world = (config: string, ...args: string[]) => JSON.parse(execFileSync("pnpm", ["--silent", "capxul", "world", "fixture", ...args, "--config", config, "--json"],
   { encoding: "utf8", timeout: 600_000, stdio: ["ignore", "pipe", "pipe"] }).trim().split("\n").at(-1)!);
-const missingDriver = /expected fixture|unknown fixture|usage: world fixture/;
+// Only the world refusing `payment` as a fixture command at all; a refusal for one kind (escrow, say) fails that kind alone.
+const missingDriver = /expected fixture load\|seed\|repair/;
 let driversMissing = false;
 
 /**
  * Arms Activity's consumer for the next `transition` delivery only, drives one real transition of that kind through the
  * world's public-path payment fixture, and lets the fault mount kill Core between the appender and its ACK, then
- * restart and resume it. `after` is the outbox position before arming, so the faulted event is one this drive caused.
- * When the world has no payment driver at all, every later kind fails at once instead of arming and waiting.
+ * restart and resume it. `after` is the outbox position before arming, and `driven` is the transition event id the
+ * driver printed, so the faulted event must be the one this drive caused. Only when the world has no `payment` fixture
+ * at all do the later kinds fail at once; a refusal for one kind fails that kind alone.
  */
-export async function driveResume(database: Database, config: string, transition: string): Promise<{ fault: ResumeFault; after: number }> {
+export async function driveResume(database: Database, config: string, transition: string): Promise<{ fault: ResumeFault; after: number; driven: string }> {
   if (driversMissing) throw new Error("world fixture payment is not available in this world");
   const after = Number((await database.worker.query("select coalesce(max(seq),0) as seq from app.transition_outbox")).rows[0].seq);
   world(config, "resume-arm", CONSUMER, "--event", "payment_transitioned", "--transition", transition);
-  try { world(config, "payment", transition); }
+  let driven: string;
+  try { driven = String(world(config, "payment", transition).eventId ?? ""); }
   catch (error) {
     driversMissing ||= missingDriver.test(String((error as { stderr?: unknown }).stderr ?? ""));
     // Remove the unclaimed arm: disarm where the world has it, else resume-kill, which drops the arm on its timeout.
@@ -108,7 +114,7 @@ export async function driveResume(database: Database, config: string, transition
     catch { try { world(config, "resume-kill", CONSUMER); } catch { /* the arm was removed on timeout */ } }
     throw error;
   }
-  return { fault: world(config, "resume-kill", CONSUMER), after };
+  return { fault: world(config, "resume-kill", CONSUMER), after, driven };
 }
 
 /**
@@ -116,8 +122,11 @@ export async function driveResume(database: Database, config: string, transition
  * relay redelivered it, and it finished with the same result an uninterrupted run gives: one ACK, committed after the
  * kill, exactly one change per holding feed with the event's fields, and each feed's `seq` still gapless.
  */
-export async function resumed(database: Database, dir: string, transition: string, { fault, after }: { fault: ResumeFault; after: number }) {
+export async function resumed(database: Database, dir: string, transition: string,
+  { fault, after, driven }: { fault: ResumeFault; after: number; driven: string }) {
   assert.equal(fault.consumer, CONSUMER);
+  // The driver names the transition event it caused; the fault must have held exactly that one.
+  assert.equal(fault.eventId, driven, "the faulted event is the transition this drive caused");
   await hostAckClock(database.worker);
   // The restarted relay redelivers on its own schedule; wait for it within the workflow's 30 s timeout.
   for (const deadline = Date.now() + 30_000; ;) {
@@ -131,7 +140,7 @@ export async function resumed(database: Database, dir: string, transition: strin
     const row = (await client.query("select seq,event from app.transition_outbox where id=$1", [fault.eventId])).rows[0];
     const event = row?.event as TransitionEvent | undefined;
     assert(event && event.name === "payment_transitioned" && event.machine === "payment", "faulted event is a payment transition");
-    assert(Number(row.seq) > after, "the faulted event was emitted after the arm, by this drive");
+    assert(Number(row.seq) > after, "the faulted event was emitted after the arm");
     const acks = (await client.query("select (extract(epoch from acked_at)*1000)::float8 as at from app.transition_acks where consumer=$1 and event_id=$2",
       [CONSUMER, fault.eventId])).rows;
     assert.equal(acks.length, 1);
@@ -140,7 +149,7 @@ export async function resumed(database: Database, dir: string, transition: strin
     const gaps = (await client.query(`select owner_kind,owner_id,count(*)::int as n,max(seq)::int as top from app.activity_changes
       where (owner_kind,owner_id) in (select * from unnest($1::text[],$2::text[])) group by 1,2`, [feeds.map((f) => f[0]), feeds.map((f) => f[1])])).rows;
     assert(gaps.length === feeds.length && gaps.every((g) => g.n === g.top), "every holding feed's seq is gapless");
-    writeFileSync(join(dir, `resume-${transition}.json`), JSON.stringify({ fault, after, feeds: noted }) + "\n");
+    writeFileSync(join(dir, `resume-${transition}.json`), JSON.stringify({ fault, after, driven, feeds: noted }) + "\n");
   } finally { await client.query("rollback"); client.release(); }
 }
 
