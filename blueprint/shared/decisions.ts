@@ -14,6 +14,23 @@ import * as x from "./external.ts";
 const CLAUDE = "Claude, target architecture, 7 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 
+export const decision_contracts_safe_nonce_read = defineDecision({
+  id: "contracts.safe-nonce-read",
+  title: "Declare the existing Safe transaction nonce getter",
+  question: "Which nonce does Board read alongside the Safe's owners and threshold?",
+  options: [
+    { label: "safe-getter", text: "Declare Safe 1.5.0's nonce() uint256 getter for the same pinned-block read." },
+    { label: "derived", text: "Infer a Safe nonce from other transaction counts or indexed events." },
+  ],
+  chosen: "safe-getter",
+  why:
+    "Safe 1.5.0 declares uint256 public override nonce; the existing installer and fork test interfaces already expose its view getter. " +
+    "Board's live planning needs that Safe transaction nonce, not an account nonce or ERC-4337 nonce. " +
+    "This fills the external contract record only: no new provider, policy, historical snapshot or execution proof is introduced.",
+  source: "safe-global/safe-smart-account v1.5.0 contracts/Safe.sol:64; packages/contracts/test/utils/Installer/ExternalViews.sol:42; packages/contracts/test/fork/Interfaces.sol:51, 12 November 2026",
+  affects: [x.contract_safe, f.concept_board],
+});
+
 export const decision_contracts_gate_threshold_read = defineDecision({
   id: "contracts.gate-threshold-read",
   title: "Read the Gate's actual threshold configuration for Board cleanup",
