@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+# rehearse.sh: the whole milestone-2 rehearsal as one run, on the machine PLATFORM_DOCKER_HOST points at (default:
+# this one). Deploy the platform, deploy it again with no change, create a world and its site with the world's token,
+# break the platform by hand and catch it, repair it, show what a host swap changes, then destroy everything. Each
+# step writes its transcript to records/, and records/summary.json holds every step's duration and outcome.
+# The destroy runs even when a step fails or the run is interrupted (roadmap, world lifecycle rule 1).
+# Nothing secret is printed: tokens and keys appear only as 8-digit prints.
+set -uo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"; cd "$HERE"
+REC="$HERE/records"; VAR="$HERE/../../var/platform"; mkdir -p "$REC" "$VAR/tokens"; : >"$VAR/steps.jsonl"
+# Declared timeouts (rule 6), in seconds.
+T_DEPLOY=1500 T_SITE=900 T_DRIFT=300 T_DESTROY=900
+export PLATFORM_STAGE="${PLATFORM_STAGE:-pr-r2}" WORLD=acme
+export PLATFORM_EDGE="${PLATFORM_EDGE:-none}"   # this machine cannot create a tunnel (records/01-tunnel-refused.txt)
+export WORLD_PLATFORM_STAGE="$PLATFORM_STAGE" WORLD_SITES=r1 WORLD_OWNER=rehearsal WORLD_SITE_QUOTA=1
+NOW=$(date +%s); EXPIRES=$((NOW + 3 * 3600))
+export WORLD_EXPIRES_AT="$(date -u -d "@$EXPIRES" +%Y-%m-%dT%H:%M:%SZ)"
+DOOR=http://127.0.0.1:18100 SITE="$WORLD-r1.${PLATFORM_DOMAIN:-worlds.abuusama.dev}"
+CTX="cx-platform-$PLATFORM_STAGE" C="cx-platform-$PLATFORM_STAGE"
+
+say() { printf '\n== %s (%s)\n' "$*" "$(date -u +%H:%M:%SZ)"; }
+# timed <name> <timeout> <cmd...>: runs a command, prints its own lines, records its duration and exit code (and the
+# exit code the step should have, WANT, default 0: a drift check on a broken platform should exit 2)
+timed() {
+  local name="$1" limit="$2"; shift 2
+  local t0; t0=$(date +%s.%N)
+  ( "$@" ) </dev/null & local pid=$!   # a shell function cannot run under timeout(1), so a watchdog stops it
+  ( sleep "$limit"; kill -TERM "$pid" ) 2>/dev/null & local dog=$!
+  wait "$pid"; local code=$?
+  pkill -P "$dog" 2>/dev/null; kill "$dog" 2>/dev/null; wait "$dog" 2>/dev/null
+  local s; s=$(python3 -c "import sys; print(round(float(sys.argv[2]) - float(sys.argv[1]), 1))" "$t0" "$(date +%s.%N)")
+  echo "-- $name: exit $code in $s s"
+  printf '{"step":"%s","exit":%d,"want":%d,"seconds":%s}\n' "$name" "$code" "${WANT:-0}" "$s" >>"$VAR/steps.jsonl"
+  return $code
+}
+alc() { ./run.sh "$@" 2>&1 | grep -E 'INFO: (Plan|Done|Failed|\[)|ERROR' | grep -v '] noop$'; return "${PIPESTATUS[0]}"; }
+door() { local path="$1"; shift; curl -sS --max-time "$T_SITE" "$@" "$DOOR$path"; echo; }
+bearer() { echo "Authorization: Bearer $(cat "$VAR/tokens/$1.token")"; }
+web() { docker --context "$CTX" exec "$C-web" curl -sS -H "Host: $1" "http://127.0.0.1:8000$2"; echo; }
+inventory() {
+  echo "containers: $(docker ps -a --filter name="$C-" --format '{{.Names}}={{.State}}' | sort | tr '\n' ' ')"
+  echo "volumes: $(docker volume ls -q --filter name="$C-" | tr '\n' ' ')"
+  echo "networks: $(docker network ls -q --filter name="$C" | wc -l)  images: $(docker images -q 'cx-platform-*' | wc -l)  context: $(docker context ls -q | grep -c "^$CTX$")"
+}
+
+tunnels() {
+  local a; a=$(curl -sS --max-time 20 'https://api.cloudflare.com/client/v4/accounts?per_page=5' | python3 -c "import json,sys; print(json.load(sys.stdin)['result'][0]['id'])")
+  curl -sS --max-time 20 "https://api.cloudflare.com/client/v4/accounts/$a/cfd_tunnel?is_deleted=false&per_page=100" \
+    | python3 -c 'import json,sys; print([t["name"] for t in json.load(sys.stdin)["result"] if t["name"].startswith("cx-platform")])'
+}
+
+destroy_all() {
+  say "5. destroy the world, then the platform"
+  timed "destroy world" "$T_DESTROY" alc destroy -c world.run.ts --stage "pr-$WORLD" --yes
+  timed "destroy platform" "$T_DESTROY" alc destroy --stage "$PLATFORM_STAGE" --yes
+  say "5. what is left"
+  inventory
+  echo "tunnels named cx-platform-* (not deleted): $(tunnels)"
+  ./zone.sh
+  python3 - "$VAR/steps.jsonl" "$REC/summary.json" "$PLATFORM_STAGE" <<'EOF'
+import json, sys
+steps = [json.loads(l) for l in open(sys.argv[1])]
+json.dump({"stage": sys.argv[3], "outcome": "passed" if all(s["exit"] == s.get("want", 0) for s in steps) else "see steps",
+           "steps": steps}, open(sys.argv[2], "w"), indent=2)
+EOF
+}
+
+step0() {
+  say "0. the zone before anything is created"
+  ./zone.sh
+}
+step1() {
+  say "1. deploy the platform $PLATFORM_STAGE (stack CapxulPlatformRehearsal) on ${PLATFORM_DOCKER_HOST:-unix:///var/run/docker.sock}"
+  timed "deploy" "$T_DEPLOY" alc deploy --stage "$PLATFORM_STAGE" --yes || return 1
+  inventory
+  say "1. wait until the door answers (it writes the bench's config first)"
+  timed "door ready" 120 bash -c "until curl -sf $DOOR/health; do sleep 1; done"; echo
+  say "1. deploy again with no change"
+  timed "deploy, no change" "$T_DEPLOY" alc deploy --stage "$PLATFORM_STAGE" --yes
+}
+step2() {
+  say "2. create world $WORLD (stack CapxulWorldRehearsal, stage pr-$WORLD): its site's DNS name, borrowing the platform"
+  timed "world deploy" "$T_DEPLOY" alc deploy -c world.run.ts --stage "pr-$WORLD" --yes
+  say "2. mint the world's site token (quota $WORLD_SITE_QUOTA, expires $WORLD_EXPIRES_AT) and a second world's"
+  ./run.sh bun src/run-mint.ts "$WORLD" "$WORLD_SITE_QUOTA" "$EXPIRES" "$VAR/tokens/$WORLD.token"
+  ./run.sh bun src/run-mint.ts globex 1 "$EXPIRES" "$VAR/tokens/globex.token"
+  ./run.sh bun src/run-mint.ts "$WORLD" 5 "$((NOW - 60))" "$VAR/tokens/expired.token"
+  python3 -c "import sys; t=open(sys.argv[1]).read(); open(sys.argv[2],'w').write(t.replace('.1.', '.9.', 1))" \
+    "$VAR/tokens/$WORLD.token" "$VAR/tokens/forged.token"
+  say "2. the door refuses before any work"
+  echo "no token:            $(door /sites -X POST -d '{"label":"r1"}')"
+  echo "quota raised by hand: $(door /sites -X POST -H "$(bearer forged)" -d '{"label":"r1"}')"
+  echo "expired token:       $(door /sites -X POST -H "$(bearer expired)" -d '{"label":"r1"}')"
+  echo "bad label:           $(door /sites -X POST -H "$(bearer "$WORLD")" -d '{"label":"../globex-r1"}')"
+  say "2. create the site $SITE with world $WORLD's token"
+  timed "site creation" "$T_SITE" door /sites -X POST -H "$(bearer "$WORLD")" -d '{"label":"r1","company":"Acme Rehearsal"}'
+  echo "second site, quota 1: $(door /sites -X POST -H "$(bearer "$WORLD")" -d '{"label":"r2"}')"
+  echo "world $WORLD sees:    $(door /world -H "$(bearer "$WORLD")")"
+  echo "world globex sees:   $(door /world -H "$(bearer globex)")"
+  say "2. set world $WORLD's clock (frozen at 2027-03-31 10:00 UTC) and read it from the site"
+  door /clock -X POST -H "$(bearer "$WORLD")" -d '{"frozen_at_ms":1806487200000}'
+  echo "host time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "web, Host $SITE (plain HTTP to the bench's web process on its host, not through a tunnel):"
+  web "$SITE" /api/method/capxul.clock.now
+  echo "web, Host $SITE, Frappe's ping: $(web "$SITE" /api/method/ping)"
+  say "2. the site's DNS name as the public resolver answers it"
+  curl -sS -H 'accept: application/dns-json' "https://cloudflare-dns.com/dns-query?name=$SITE&type=TXT" \
+    | python3 -c 'import json,sys; d=json.load(sys.stdin); print("TXT", [a["data"] for a in d.get("Answer", [])])'
+  curl -sS -H 'accept: application/dns-json' "https://cloudflare-dns.com/dns-query?name=$SITE&type=A" \
+    | python3 -c 'import json,sys; d=json.load(sys.stdin); print("A", [a["data"] for a in d.get("Answer", [])], "status", d["Status"])'
+}
+. "$HERE/rehearse-drift.sh"
+
+trap destroy_all EXIT
+case "${1:-all}" in
+  all)
+    step0 2>&1 | tee "$REC/00-zone-before.txt"
+    step1 2>&1 | tee "$REC/02-deploy.txt"
+    step2 2>&1 | tee "$REC/03-world-and-site.txt"
+    step3 2>&1 | tee "$REC/04-drift.txt"
+    step4 2>&1 | tee "$REC/05-swap-host.txt"
+    trap - EXIT
+    destroy_all 2>&1 | tee "$REC/06-destroy.txt"
+    ;;
+  *) echo "usage: rehearse.sh [all]" >&2; trap - EXIT; exit 2 ;;
+esac

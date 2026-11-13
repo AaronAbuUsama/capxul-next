@@ -1,0 +1,74 @@
+
+== 3. drift check on the clean platform (src/run-drift.ts: Alchemy's scan plus the code check) (11:26:43Z)
+{
+  "stage": "pr-r2",
+  "clean": true,
+  "settings": [],
+  "code": []
+}
+-- drift check, clean: exit 0 in 15.9 s
+
+== 3. change three things by hand (11:26:59Z)
+DNS record pr-r2-door before: "cx-platform pr-r2: site door; no tunnel (PLATFORM_EDGE=none)"
+DNS record after the edit: pr-r2-door.worlds.abuusama.dev "changed by hand"
+stopped cx-platform-pr-r2-worker
+appended a line to /opt/door/door.py inside cx-platform-pr-r2-door (the door keeps running)
+
+== 3. the pinned alchemy drift (2.0.0-beta.85) (11:27:00Z)
+[11:27:08.355] INFO: Plan: 2 to update
+[11:27:08.356] INFO: [DoorRecord] update
+[11:27:08.357] INFO: [Worker] update
+-- alchemy drift, after hand changes: exit 0 in 7.6 s
+
+== 3. the drift check (11:27:08Z)
+{
+  "stage": "pr-r2",
+  "clean": false,
+  "settings": [
+    {
+      "fqn": "DoorRecord",
+      "status": "drifted"
+    },
+    {
+      "fqn": "Worker",
+      "status": "drifted"
+    }
+  ],
+  "code": [
+    {
+      "container": "cx-platform-pr-r2-door",
+      "changed": [
+        "C /opt/door/door.py"
+      ]
+    }
+  ]
+}
+-- drift check, after hand changes: exit 2 in 16.2 s
+
+== 3. repair: recreate each container whose code changed, then alchemy drift --repair (11:27:24Z)
+removed cx-platform-pr-r2-door (its code changed; repair recreates it from the image)
+[11:27:32.777] INFO: Plan: 1 to create, 2 to update
+[11:27:32.777] INFO: [Door] create
+[11:27:32.778] INFO: [DoorRecord] update
+[11:27:32.778] INFO: [Worker] update
+[11:27:33.149] INFO: [Door] creating
+[11:27:33.575] INFO: [Door] created (426ms)
+[11:27:33.576] INFO: [DoorRecord] updating
+[11:27:33.576] INFO: [Worker] updating
+[11:27:33.879] INFO: [Worker] updated (303ms)
+[11:27:34.195] INFO: [DoorRecord] updated (619ms)
+[11:27:34.196] INFO: Done: 3 succeeded (1.4s)
+-- alchemy drift --repair: exit 0 in 8.5 s
+{
+  "stage": "pr-r2",
+  "clean": true,
+  "settings": [],
+  "code": []
+}
+-- drift check, after repair: exit 0 in 15.7 s
+DNS record pr-r2-door after repair: "cx-platform pr-r2: site door; no tunnel (PLATFORM_EDGE=none)"
+hand line in the door's code after repair: 0
+site still there after repair: {"message":{"world":"acme","offset_ms":11917929156,"host_utc":"2026-11-13T11:27:50.843808+00:00","world_local":"2027-03-31 11:00:00","nowdate":"2027-03-31","tz":"Europe/London"}}
+containers: cx-platform-pr-r2-door=running cx-platform-pr-r2-mariadb=running cx-platform-pr-r2-redis=running cx-platform-pr-r2-scheduler=running cx-platform-pr-r2-web=running cx-platform-pr-r2-worker=running 
+volumes: cx-platform-pr-r2-db cx-platform-pr-r2-sites 
+networks: 1  images: 2  context: 1

@@ -1,0 +1,5 @@
+# The site door: the spike bench's image plus door.py. It runs in its own container on the bench, shares the sites
+# volume with web, worker and scheduler, and is the only process that creates sites.
+ARG BENCH_IMAGE
+FROM ${BENCH_IMAGE}
+COPY --chown=frappe:0 door.py /opt/door/door.py

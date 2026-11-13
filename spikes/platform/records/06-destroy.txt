@@ -1,0 +1,63 @@
+
+== 5. destroy the world, then the platform (11:28:05Z)
+[11:28:11.287] INFO: Plan ready (4.4s)
+[11:28:11.289] INFO: Plan: 1 to delete
+[11:28:11.289] INFO: [Site-r1] delete
+[11:28:11.423] INFO: [Site-r1] deleting
+[11:28:11.861] INFO: [Site-r1] deleted (439ms)
+[11:28:12.037] INFO: Done: 1 succeeded (748ms)
+-- destroy world: exit 0 in 6.7 s
+[11:28:17.858] INFO: Plan ready (4.4s)
+[11:28:17.860] INFO: Plan: 14 to delete
+[11:28:17.860] INFO: [BenchImage] delete
+[11:28:17.860] INFO: [DbRootPassword] delete
+[11:28:17.860] INFO: [DbVolume] delete
+[11:28:17.860] INFO: [Door] delete
+[11:28:17.860] INFO: [DoorImage] delete
+[11:28:17.860] INFO: [DoorRecord] delete
+[11:28:17.860] INFO: [Host] delete
+[11:28:17.860] INFO: [MariaDB] delete
+[11:28:17.860] INFO: [Network] delete
+[11:28:17.860] INFO: [Redis] delete
+[11:28:17.861] INFO: [Scheduler] delete
+[11:28:17.861] INFO: [SitesVolume] delete
+[11:28:17.861] INFO: [Web] delete
+[11:28:17.861] INFO: [Worker] delete
+[11:28:18.956] INFO: [Door] deleting
+[11:28:18.956] INFO: [Web] deleting
+[11:28:18.956] INFO: [Worker] deleting
+[11:28:18.957] INFO: [Scheduler] deleting
+[11:28:18.957] INFO: [MariaDB] deleting
+[11:28:18.957] INFO: [DoorRecord] deleting
+[11:28:18.957] INFO: [Redis] deleting
+[11:28:19.551] INFO: [DoorRecord] deleted (594ms)
+[11:28:20.015] INFO: [Worker] deleted (1.1s)
+[11:28:20.151] INFO: [MariaDB] deleted (1.2s)
+[11:28:20.152] INFO: [DbVolume] deleting
+[11:28:20.152] INFO: [Web] deleted (1.2s)
+[11:28:20.154] INFO: [Redis] deleted (1.2s)
+[11:28:20.735] INFO: [DbVolume] deleted (583ms)
+[11:28:29.741] INFO: [Scheduler] deleted (10.8s)
+[11:28:29.834] INFO: [Door] deleted (10.9s)
+[11:28:29.834] INFO: [DoorImage] deleting
+[11:28:29.834] INFO: [DbRootPassword] deleting
+[11:28:29.834] INFO: [Network] deleting
+[11:28:29.834] INFO: [SitesVolume] deleting
+[11:28:30.036] INFO: [DoorImage] deleted (202ms)
+[11:28:30.036] INFO: [BenchImage] deleting
+[11:28:30.040] INFO: [SitesVolume] deleted (206ms)
+[11:28:30.062] INFO: [DbRootPassword] deleted (228ms)
+[11:28:30.183] INFO: [Network] deleted (349ms)
+[11:28:30.218] INFO: [BenchImage] deleted (182ms)
+[11:28:30.218] INFO: [Host] deleting
+[11:28:30.432] INFO: [Host] deleted (214ms)
+[11:28:30.637] INFO: Done: 14 succeeded (12.8s)
+-- destroy platform: exit 0 in 18.5 s
+
+== 5. what is left (11:28:30Z)
+containers: 
+volumes: 
+networks: 0  images: 0  context: 0
+tunnels named cx-platform-* (not deleted): []
+zone abuusama.dev: 66 records; under worlds.abuusama.dev: 0 []
+zone abuusama.dev: the other 66 records print 00b6780dc2951888
