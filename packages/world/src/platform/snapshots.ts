@@ -4,8 +4,9 @@
 // a new world: its database forks the snapshot's branch, its chain adopts the saved state, and its record continues
 // the snapshot's with its own `world_created`, naming its parent.
 //
-// A company's site is not saved yet: a world with companies is a fault to save, until the bench can back a site up
-// and restore it (it waits on roadmap step 1.4 and the site door).
+// A world's company sites are saved with it, on its bench (src/site/Saved.ts): each site's database, backed up under
+// the snapshot's name; a restore makes each again in the new world from its backup, under its own label, and points
+// the new world's companies at their new sites. A world with companies and no bench is a fault to save.
 import { CurrentOperator, Errors, type World as Blueprint } from "@capxul/blueprint";
 import * as Clock from "effect/Clock";
 import * as DateTime from "effect/DateTime";
@@ -19,10 +20,14 @@ import { branchOf, dropBranch, forkable } from "./branches.ts";
 import { existing, isTaken, keptOrDestroyed, tried } from "./create.ts";
 import { instantOf, readFacts, writeRestored } from "./facts.ts";
 import { tokenOf } from "./operators.ts";
+import { restoreSites, saveSites } from "../site/Saved.ts";
 import { refusalsOnly } from "./refusals.ts";
 import { steady } from "./steady.ts";
 import { keepSnapshot, prepareStore, snapshotOf } from "./store.ts";
 import { emitDeclared, opened, viewOf } from "./view.ts";
+
+/** How long a restore waits for its sites, each made again from its backup one after another on the bench. */
+const SITE_RESTORE = Duration.minutes(8);
 
 type SavePayload = (typeof Blueprint.snapshotSave.rpc.payloadSchema)["Type"];
 type RestorePayload = (typeof Blueprint.snapshotRestore.rpc.payloadSchema)["Type"];
@@ -46,8 +51,11 @@ export const save = Effect.fn("platform.world.snapshot.save")(function* (payload
   return yield* Effect.gen(function* () {
     const hostMs = yield* Clock.currentTimeMillis;
     const facts = yield* readFacts(handle.database, hostMs);
-    if (facts.companies.length > 0)
-      return yield* Effect.die("a world with companies cannot be saved yet: a site's backup waits on the bench");
+    if (facts.companies.length > 0) {
+      const bench = output.bench ?? "none";
+      if (bench === "none") return yield* Effect.die(`${stage} has companies but no bench: its sites cannot be saved`);
+      yield* saveSites(stage, bench, payload.snapshot);
+    }
     const parent = yield* forkable(stage);
     if (Option.isSome(found)) yield* dropBranch(found.value.branch_id);
     const suffix = yield* Random.nextIntBetween(0, 0xffffff);
@@ -100,8 +108,9 @@ export const restore = Effect.fn("platform.world.snapshot.restore")(function* (p
       asked: instantOf(askedMs),
       latest: output.expiresAt,
     });
-  if (snapshot.companies > 0)
-    return yield* Effect.die("a snapshot with companies cannot be restored yet: a site's restore waits on the bench");
+  const bench = output.bench ?? "none";
+  if (snapshot.companies > 0 && bench === "none")
+    return yield* Effect.die(`${stage} has companies but no bench: its sites cannot be restored`);
   const token = yield* Effect.flatMap(tokenOf(operator), (held) =>
     Option.match(held, {
       onNone: () => Effect.die(`the platform holds no token for ${operator}`),
@@ -121,11 +130,25 @@ export const restore = Effect.fn("platform.world.snapshot.restore")(function* (p
     made.world.stage,
     Effect.gen(function* () {
       const parent = { world: payload.world, snapshot: payload.snapshot, recordSeq: snapshot.record_seq };
+      const restoredAt = yield* Clock.currentTimeMillis;
       yield* writeRestored(made.world.database, {
         mode: snapshot.clock_mode,
         worldMs: snapshot.clock_ms,
-        hostMs: yield* Clock.currentTimeMillis,
+        hostMs: restoredAt,
       });
+      if (snapshot.companies > 0) {
+        const clock =
+          snapshot.clock_mode === "frozen"
+            ? { frozen_at_ms: snapshot.clock_ms }
+            : { offset_ms: snapshot.clock_ms - restoredAt };
+        const sites = yield* restoreSites(stage, made.world.stage, bench, payload.snapshot, clock).pipe(
+          Effect.timeout(SITE_RESTORE),
+        );
+        // The new world's companies are the saved world's, at their new sites.
+        yield* Effect.forEach(sites, (site) =>
+          made.world.sql("update app.companies set site_url = $2 where site_url = $1", [site.from, site.site]),
+        );
+      }
       const { view, facts } = yield* viewOf(made.world.stage, { parent });
       yield* steady(view.door);
       const success = { ...view, recordHead: snapshot.record_seq + 1 };

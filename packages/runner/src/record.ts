@@ -14,6 +14,17 @@ import { Ended } from "./failure.ts";
 import { Inventory } from "./world/leftovers.ts";
 import { Readiness } from "./world/warmup.ts";
 
+/**
+ * How a run ended. `rehearsed` is `passed` in a run whose Core ran locally (`--core=local`, src/local/host.ts): every
+ * expectation and check held, but Core was not on Cloudflare, so the record proves nothing a step needs (a step's
+ * Proof counts only `passed`).
+ */
+export const Outcome = Schema.Literals(["passed", "rehearsed", "failed"]);
+export type Outcome = typeof Outcome.Type;
+
+/** `passed`, or `rehearsed` when Core ran where `core` says, off Cloudflare. */
+export const passedOr = (core: string | undefined): Outcome => (core === undefined ? "passed" : "rehearsed");
+
 export const RunRecord = Schema.Struct({
   /** `door`: every operation called once with its blueprint example. `scenario`: one registered scenario. */
   kind: Schema.Literals(["door", "scenario"]),
@@ -30,7 +41,9 @@ export const RunRecord = Schema.Struct({
    * `passed`: the run's own expectations held, every generic check passed on every call, the stage was destroyed,
    * and the accounts held nothing of it afterwards.
    */
-  outcome: Schema.Literals(["passed", "failed"]),
+  outcome: Outcome,
+  /** Where Core ran, when not on Cloudflare: the local-Core rehearsal's label (src/local/host.ts). */
+  core: Schema.optional(Schema.String),
   failure: Schema.NullOr(Schema.String),
   /** How the run's own program ended, before any check; null when it never ran or did not finish. */
   ended: Schema.NullOr(Ended),

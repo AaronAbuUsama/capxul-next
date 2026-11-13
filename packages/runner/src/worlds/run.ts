@@ -10,11 +10,12 @@ import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
+import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import { checkCall, failuresOf } from "../checks/checks.ts";
 import type { Call } from "../client.ts";
 import { describe, endedOf } from "../failure.ts";
-import { slugOf, writeJson, RunRecord } from "../record.ts";
+import { passedOr, slugOf, writeJson, RunRecord } from "../record.ts";
 import { freshName, scenarioPlan, use } from "../run.ts";
 import type { Settings } from "../settings.ts";
 import { summarize, Summary } from "../summary.ts";
@@ -26,6 +27,9 @@ import { Platform } from "./platform.ts";
 import { startingWorldsOf, type StartingWorlds } from "./starting.ts";
 
 const now = Effect.map(DateTime.now, DateTime.formatIso);
+
+/** The label of where Core ran, when a host runs it off Cloudflare (src/local/host.ts); undefined on Cloudflare. */
+export const coreLabel = Effect.map(World.CoreHost, (host) => Option.getOrUndefined(Option.map(host, (h) => h.label)));
 const millis = (took: Duration.Duration) => Math.round(Duration.toMillis(took));
 const NOWHERE = "http://127.0.0.1:9";
 
@@ -116,6 +120,7 @@ const runOne = (scenario: Scenario, settings: Settings, starting: StartingWorlds
   Effect.uninterruptibleMask((restore) =>
     Effect.gen(function* () {
       const platform = yield* Platform;
+      const core = yield* coreLabel;
       const startedAt = yield* now;
       const before = yield* platform.made;
       const triedBefore = (yield* platform.tried).length;
@@ -165,7 +170,8 @@ const runOne = (scenario: Scenario, settings: Settings, starting: StartingWorlds
         stage: got?.stage ?? `${run}-${index + 1}`,
         owner: settings.owner,
         startedAt,
-        outcome: failures.length === 0 ? "passed" : "failed",
+        outcome: failures.length === 0 ? passedOr(core) : "failed",
+        ...(core === undefined ? {} : { core }),
         failure: failures.length === 0 ? null : Arr.join(failures, "\n"),
         ended: value === undefined ? null : endedOf(value.run),
         readiness: got?.readiness ?? null,
@@ -200,6 +206,7 @@ export const runInWorlds = (scenarios: ReadonlyArray<Scenario>, settings: Settin
       Effect.ensuring(Effect.flatMap(starting.templateWorlds, destroyAll)),
     );
     const summary = summarize({
+      core: yield* coreLabel,
       run,
       mode: "a world each",
       expect: "pass",

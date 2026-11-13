@@ -12,12 +12,14 @@ import * as Schema from "effect/Schema";
 import { bringUpBundler } from "../bundler/setup.ts";
 import { SEED_HEAD } from "../chain/contracts.ts";
 import { ensureToken, mintAll, TEST_USDC } from "../chain/faucet.ts";
-import { CORE_MIGRATIONS } from "../core/Core.ts";
+import { CORE_MIGRATIONS, SITE_KEY_ID, SITE_SECRET_ID } from "../core/Core.ts";
+import { CoreHost } from "../core/host.ts";
 import { migrate } from "../database/sql.ts";
-import { LifetimeTooLong, SiteFailed } from "../failures.ts";
+import { LifetimeTooLong, SiteFailed, WorldNotReady } from "../failures.ts";
 import { explained } from "../index/account.ts";
 import { BenchStage, grant, makeSites, removeSites } from "../site/Bench.ts";
-import { deployStage, destroyStage, forgetStage, recordOutput, recordedOutput } from "../stack/engine.ts";
+import type { BenchGrant } from "../stack/settings.ts";
+import { deployStage, destroyStage, forgetStage, recordOutput, recordedOutput, secretOf } from "../stack/engine.ts";
 import { PLATFORM, stageOf } from "../stack/names.ts";
 import { dropSnapshots } from "../platform/branches.ts";
 import { liftBranchExpiry } from "./account.ts";
@@ -177,7 +179,7 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
     yield* Effect.logInfo(
       `world ${plan.stage}: the bundler serves ${Arr.join(bundler.entryPoints, ", ")}, paymaster ${world.paymaster}`,
     );
-    yield* watch.step("core", coreAnswers(world));
+    yield* watch.step("core", Effect.andThen(hostCore(world, spec, bench), coreAnswers(world)));
     yield* Effect.logInfo(`world ${plan.stage}: Core answers`);
     const companies = spec.companies ?? [];
     const sites =
@@ -194,6 +196,25 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
     return { ...world, funded, sites } satisfies World;
   });
 
+/** Starts the world's Core where its host runs it, when a host does (src/core/host.ts); nothing otherwise. */
+const hostCore = (world: World, spec: WorldSpec, bench: Option.Option<BenchGrant>) =>
+  Effect.gen(function* () {
+    const host = yield* CoreHost;
+    if (Option.isNone(host)) return;
+    const hosted = {
+      world,
+      operatorToken: spec.operatorToken ?? world.operatorToken,
+      bench,
+      siteKey: yield* secretOf(world.stage, SITE_KEY_ID, "text"),
+      siteSecret: yield* secretOf(world.stage, SITE_SECRET_ID, "text"),
+    };
+    yield* host.value.start(hosted).pipe(Effect.mapError((message) => WorldNotReady.make({ part: "core", message })));
+  });
+
+/** Stops the world's Core where its host runs it; nothing when no host does. */
+const unhostCore = (stage: string) =>
+  Effect.flatMap(CoreHost, (host) => (Option.isSome(host) ? host.value.stop(stage) : Effect.void));
+
 /**
  * Takes a world down: destroys everything its stage created, removes what the shared state still holds for it, and
  * gives its name back. It works from the shared state alone, so it also removes a world that was only half created.
@@ -204,6 +225,7 @@ export const takeDown = (stage: string, watch: Stopwatch, holder: Option.Option<
     // its name are kept, so the sweeper, which reads them, removes the sites at the next sweep.
     const bench = benchOf(yield* recordedOutput(stage));
     const unsited = yield* Effect.exit(watch.step("unsite", removeSites(stage, bench)));
+    yield* unhostCore(stage);
     // A world's snapshots are branches of its own branch, which Neon will not delete while they exist.
     const removed = yield* watch.step(
       "destroy",

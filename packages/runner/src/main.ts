@@ -22,6 +22,7 @@ import { runInWorld } from "./in-world.ts";
 import { chainJourney } from "./chain-journey.ts";
 import { door, runPlan, scenarioPlan, type Plan } from "./run.ts";
 import { OtherWorlds } from "./world/existing.ts";
+import { localCoreHost } from "./local/host.ts";
 import { platformFor } from "./worlds/platform.ts";
 import { runInWorlds } from "./worlds/run.ts";
 import { timeStartingWorlds } from "./worlds/timing.ts";
@@ -30,11 +31,17 @@ import { Settings } from "./settings.ts";
 import { ranAsExpected, type Expectation, type Mode } from "./summary.ts";
 
 const USAGE =
-  "usage: door [--world=<name>] | chain --world=<name> | scenarios [--one-stage] [--expect=pass|not-implemented] [name...] | starting-worlds";
+  "usage: door [--world=<name>] | chain --world=<name> | scenarios [--one-stage] [--expect=pass|not-implemented] [--core=local] [name...] | starting-worlds [--core=local]";
 const [command, ...rest] = process.argv.slice(2);
 const WORLD_FLAG = "--world=";
 const world = Arr.findFirst(rest, Str.startsWith(WORLD_FLAG)).pipe(Option.map(Str.slice(WORLD_FLAG.length)));
-const flags = Arr.filter(rest, (each) => Str.startsWith("--")(each) && !Str.startsWith(WORLD_FLAG)(each));
+const LOCAL_CORE = "--core=local";
+/** `--core=local`: every world's Core runs here in workerd, next to a stand-in bench (src/local/host.ts). */
+const localCore = Arr.contains(rest, LOCAL_CORE);
+const flags = Arr.filter(
+  rest,
+  (each) => Str.startsWith("--")(each) && !Str.startsWith(WORLD_FLAG)(each) && each !== LOCAL_CORE,
+);
 const names = Arr.filter(rest, (each) => !Str.startsWith("--")(each));
 
 const usage = (message: string) => Effect.fail(RunnerFailure.make({ step: "arguments", message }));
@@ -61,6 +68,8 @@ const options = (): Effect.Effect<{ readonly mode: Mode; readonly expect: Expect
  */
 const plans = (settings: Settings): Effect.Effect<ReadonlyArray<Plan>, RunnerFailure> => {
   if (command === "door") return flags.length === 0 && names.length === 0 ? Effect.succeed([door]) : usage(USAGE);
+  if (localCore && command !== "scenarios" && command !== "starting-worlds")
+    return usage(`${LOCAL_CORE} is for runs in private worlds: scenarios and starting-worlds; ${USAGE}`);
   if (command === "starting-worlds")
     return flags.length === 0 && names.length === 0 ? Effect.succeed([]) : usage(USAGE);
   if (command === "chain")
@@ -99,6 +108,7 @@ const inWorlds = <A, E, R>(settings: Settings, run: Effect.Effect<A, E, R>) =>
   run.pipe(
     Effect.provide(
       Layer.mergeAll(platformFor(settings), OtherWorlds.fromSharedState).pipe(
+        Layer.provideMerge(localCore ? localCoreHost : Layer.empty),
         Layer.provideMerge(SharedState.layer),
         Layer.provideMerge(BunServices.layer),
       ),
@@ -144,6 +154,10 @@ const program = Effect.gen(function* () {
   const chosen = yield* plans(settings);
   if (Option.isSome(world) && (command === "scenarios" || command === "starting-worlds"))
     return yield* usage(`--world is for the door and the chain journey only; ${USAGE}`);
+  if (localCore && Arr.contains(flags, "--expect=not-implemented"))
+    return yield* usage(
+      `${LOCAL_CORE} runs in private worlds, which a run expecting not-implemented does not; ${USAGE}`,
+    );
   if (command === "chain" && Option.isNone(world))
     return yield* usage(`chain needs --world=<name>: a stage has no chain; ${USAGE}`);
   if (command === "starting-worlds") return yield* theStartingWorlds(settings);

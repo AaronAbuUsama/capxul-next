@@ -14,7 +14,7 @@ import * as Str from "effect/String";
 import { failuresOf } from "./checks/checks.ts";
 import { CallOutcome } from "./client.ts";
 import { Ended } from "./failure.ts";
-import { RunRecord } from "./record.ts";
+import { Outcome, passedOr, RunRecord } from "./record.ts";
 import { Inventory, isEmpty } from "./world/leftovers.ts";
 import { Readiness } from "./world/warmup.ts";
 
@@ -78,7 +78,9 @@ export const Summary = Schema.Struct({
   owner: Schema.String,
   startedAt: Schema.String,
   /** `passed` exactly when every claim had its scenario in the run, each ended as expected, and no stage is left. */
-  outcome: Schema.Literals(["passed", "failed"]),
+  outcome: Outcome,
+  /** Where Core ran, when not on Cloudflare: a local-Core rehearsal, whose outcome is at best `rehearsed`. */
+  core: Schema.optional(Schema.String),
   failure: Schema.NullOr(Schema.String),
   count: Schema.Struct({
     scenarios: Schema.Finite,
@@ -122,7 +124,7 @@ const whyNotRefused = (record: RunRecord): string | null => {
 };
 
 const whyNot = (expect: Expectation, record: RunRecord): string | null =>
-  expect === "pass" ? (record.outcome === "passed" ? null : (record.failure ?? "failed")) : whyNotRefused(record);
+  expect === "pass" ? (record.outcome !== "failed" ? null : (record.failure ?? "failed")) : whyNotRefused(record);
 
 const lineOf = (expect: Expectation, record: RunRecord, path: string): ScenarioLine => {
   const why = whyNot(expect, record);
@@ -187,6 +189,8 @@ export interface SummaryInput {
   readonly owner: string;
   readonly startedAt: string;
   readonly records: ReadonlyArray<RunRecord>;
+  /** Where Core ran, when not on Cloudflare (src/local/host.ts). */
+  readonly core?: string | undefined;
   /** Where each record is, under the records folder. */
   readonly pathOf: (record: RunRecord, index: number) => string;
 }
@@ -214,7 +218,8 @@ export const summarize = (input: SummaryInput): Summary => {
     expect: input.expect,
     owner: input.owner,
     startedAt: input.startedAt,
-    outcome: failures.length === 0 ? "passed" : "failed",
+    outcome: failures.length === 0 ? passedOr(input.core) : "failed",
+    ...(input.core === undefined ? {} : { core: input.core }),
     failure: failures.length === 0 ? null : Arr.join(failures, "\n"),
     count: {
       scenarios: input.records.length,

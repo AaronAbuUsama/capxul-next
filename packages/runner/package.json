@@ -9,6 +9,7 @@
     "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts"
   },
   "dependencies": {
+    "@alchemy.run/cloudflare": "catalog:",
     "@capxul/blueprint": "workspace:*",
     "@capxul/core": "workspace:*",
     "@capxul/scenarios": "workspace:*",
@@ -17,7 +18,8 @@
     "@effect/platform-bun": "catalog:",
     "alchemy": "catalog:",
     "effect": "catalog:",
-    "viem": "catalog:"
+    "viem": "catalog:",
+    "workerd": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",

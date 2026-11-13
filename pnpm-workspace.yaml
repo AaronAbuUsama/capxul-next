@@ -30,6 +30,9 @@ catalog:
   "@effect/platform-node": 4.1.2
   "@cloudflare/workers-types": 4.20260702.1
   "@types/bun": 1.4.4
+  # The workerd that Alchemy's own local runtime pins (a dependency of @alchemy.run/cloudflare-runtime): the runner
+  # serves a local Core with it (packages/runner, --core=local). Its install script stays denied below.
+  workerd: 1.20261026.1
 
 # Supply chain: a version must be at least 3 days old, and no dependency runs an install script
 # unless it is listed here.
