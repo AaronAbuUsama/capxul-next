@@ -29,6 +29,85 @@ export const decision_devnet_selected_world_now = defineDecision({
   affects: [component_devnet, concept_devnet],
 });
 
+export const decision_devnet_one_world_clock = defineDecision({
+  id: "devnet.one-world-clock",
+  title: "Every component of a selected world takes its time from one door",
+  question:
+    "time.one-clock and aaron.world-clock already say a world has one clock that the chain, Core, every Frappe site and the bundler follow. " +
+    "The selected supervisor implemented a stopped clock in clock.json and Postgres only: the bench took the clock after provisioning, Anvil dated " +
+    "blocks by its own wall offset and Alto judged sponsorship windows by host Date.now. Which door installs the clock in each follower, which " +
+    "Frappe subsystems run on which clock, and what fails when any component reads the host instead?",
+  options: [
+    { label: "one-door-every-follower", text:
+      "(1) Authority. The supervisor's world clock {nowMs, clockMode, rate} is the only business time. One door writes clock.json, app.world.clock, " +
+      "the bench's capxul-world-clocks.json entry for the world and the chain pin together. createWorld calls it before Ponder starts and before any " +
+      "site exists; restore installs the saved instant offline before resume; every later move goes through it. No site, fixture or consumer writes a clock. " +
+      "(2) Chain. The supervisor is the only miner (devnet.only-miner): after every Anvil start it sets the block timestamp interval to zero and the next " +
+      "block timestamp to now, so every block, automined ones included, is dated at the world's now (time.blocks-at-now). " +
+      "(3) Bundler. Alto's account and paymaster validity checks (v0.6 and v0.7, safe and unsafe validators) read the chain head's timestamp, which is the " +
+      "world's now, through the devnet pnpm patch of @pimlico/alto 0.0.21; Alto's own operational timers stay real. A guard fails when the patched reads " +
+      "are absent. " +
+      "(4) Core. Business time is worldNow(sql); real time only for time.real-elapsed's measures and protections, each labelled. " +
+      "(5) Frappe follows the same clock, subsystem by subsystem, as devnet.frappe-clock-subsystems rules. " +
+      "(6) Checks. world inspect reads every follower (authority, database, chain head and next block, the bench entry and each site's capxul.clock.now, the " +
+      "bundler's patched reads) and refuses on any disagreement. The time.no-direct-reads scan covers packages/*/src and *.sql with a committed allowlist " +
+      "labelling each host read rebound, real-on-purpose or world. Each check has a negative control that makes it fail: no bench install at create, an " +
+      "unpinned Anvil, a reverted Alto patch, an unlabelled host read." },
+    { label: "start-at-wall-time", text: "Start every world's clock and chain at the host's time and leave followers reading the host. Any frozen clock, warp or restore to an old cut separates them again." },
+    { label: "alto-date-preload", text: "Replace Date.now inside the Alto process with the world clock through a preload. It also freezes Alto's own timeouts and polling, which are real on purpose." },
+    { label: "install-after-provisioning", text: "Keep writing the bench clock from the acceptance fixture after the site is provisioned. The site's first life is on host time; the first restore moves it 34.6 days and Frappe expires the fixture's session." },
+  ],
+  chosen: "one-door-every-follower",
+  why:
+    "The baseline run-20261113051714662-5d3784b9 failed all thirteen acceptance checks because Frappe deleted the hat-holder's session as Session Expired " +
+    "at the frozen world instant: provisioning had stamped the site on host time, and restore moved it to the world's. Alto 0.0.21 compares validAfter " +
+    "and validUntil with host Date.now (UnsafeValidator getValidationResult07) while EntryPoint uses block time, so on the seeded chain no dated " +
+    "sponsorship passes both, and no flag disables the validAfter check. Anvil, unpinned, dates automined blocks by its own wall offset. Each is a second " +
+    "clock the design forbade but nothing measured. One door at birth and restore makes the followers agree by construction, and the inspection and scan " +
+    "make a regression fail instead of surfacing as an unrelated 401. A frozen Anvil with a zero interval mines any number of blocks in one second " +
+    "(measured 13 November 2026), so pinning needs no tick. Ponder 0.18.6 finds its finalized block at start by bisecting from block 0 for one older " +
+    "than its 180 s reorg window: on a frozen chain every block since birth shares the head's time, so after a restart it asked for block 23,946,692 " +
+    "below the seeded genesis and never became ready (w2clock and scrz3, 13 November 2026). A pnpm patch bounds that search by the indexer's first " +
+    "block; the reorg window itself stays, so a reorg fault within a run is still recoverable, and the patch guard covers it with Alto's.",
+  source:
+    "Baseline run-20261113051714662-5d3784b9 (Frappe Activity Log Session Expired at the frozen instant); @pimlico/alto 0.0.21 UnsafeValidator.js 181 and 275, " +
+    "SafeValidator.js 111 and 322; clock audit thread T-01a1cfb4; Aaron, 13 November 2026: the fix is fundamental, not ad hoc",
+  affects: [component_devnet, concept_devnet],
+});
+
+export const decision_devnet_frappe_clock_subsystems = defineDecision({
+  id: "devnet.frappe-clock-subsystems",
+  title: "Frappe sessions follow the world clock; infrastructure stays real",
+  question:
+    "Point (5) of devnet.site-follows-world keeps Frappe sessions, caches, locks, tokens and the job queue's own timestamps on real time. " +
+    "time.real-elapsed puts every expiry a person is promised, a session included, on the world's now, and Frappe itself derives session lifetime " +
+    "from the patched now while comparing session_end with the host. Which clock does each Frappe subsystem in a world use?",
+  options: [
+    { label: "sessions-on-world", text:
+      "Supersedes point (5) of devnet.site-follows-world. Sessions are on the world's now: last_updated, the Sessions expiry threshold and the " +
+      "session_end comparison read it, so one session is judged on one clock: a one-day world clock warp keeps it and a warp past its lifetime ends it " +
+      "cleanly (devnet.time-is-right test 6, bound to world clock warp). A snapshot restore still invalidates every session by design " +
+      "(devnet.world-evidence quiesce-template-bundle). The clock read fails closed: a missing or unreadable world entry raises instead of returning " +
+      "the host's time. Every bench Python process installs the clock at interpreter start (a world-clock .pth in the bench venv), because Frappe " +
+      "validates the session in init_request before any app is imported: a fresh web worker otherwise judges a world-stamped session on the host and " +
+      "deletes it. Each site's capxul.clock.now reports whether its workers booted with the clock, and world inspect refuses one that did not. Redis TTLs, locks, caches, rate limits and the job queue's enqueue and timeout stamps are real on purpose: infrastructure " +
+      "envelopes, never a business expiry, and nothing a person is promised is stored only as a Redis TTL. Scheduled jobs decide due-ness on the " +
+      "world's now (points 2 and 6 of that decision). SQL NOW() or CURRENT_DATE compared with stored world dates is replaced by world time (its " +
+      "point 3). Browser default dates on Desk and report filters are judged on every captured screen: a host date there fails the screen check." },
+    { label: "keep-real-time-sessions", text: "Keep point (5): sessions on host time. Frappe already stamps last_updated with the patched now, so a session born on one clock is judged on the other and dies at the first restore or warp." },
+    { label: "bench-beneath-clock", text: "Option C of devnet.site-follows-world: a clock beneath every bench process. It makes sessions agree too, but it is the heaviest path and stays the fallback if the session path cannot be made consistent." },
+  ],
+  chosen: "sessions-on-world",
+  why:
+    "The baseline run-20261113051714662-5d3784b9 lost its only hat-holder session as Session Expired at the frozen world instant between preparation " +
+    "and the first read, after the site's clock moved 34.6 days at restore. A session is a promise to a person, which time.real-elapsed already puts on " +
+    "now; point (5) contradicted it and Frappe's own code mixes the two. Infrastructure envelopes stay real because no product decision rests on them. " +
+    "On world w2clock (13 November 2026) the bench clock installed at birth was not enough: after a backend restart a fresh admin sid read 200 once and " +
+    "then 401 Session Expired on the second gunicorn worker, every time; with the start-up install the same sequence read 200 eight times out of eight.",
+  source: "Baseline run-20261113051714662-5d3784b9; frappe/sessions.py get_session_data_from_cache; frappe/app.py init_request; w2clock session control and clock audit T-01a1cfb4, 13 November 2026",
+  affects: [component_devnet, concept_devnet],
+});
+
 export const decision_devnet_bench_callback_startup = defineDecision({
   id: "devnet.bench-callback-startup",
   title: "Bench callback configuration precedes websocket startup",
