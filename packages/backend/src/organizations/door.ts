@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import { record, type Sql } from "../platform/db.ts";
 
+export { begin, get, readAdmittedDeployment, readSetupFounder, resume, view, type AdmittedDeployment, FUNDAMENTAL_APPS, HEAD_APPS, SEATS_AT_BIRTH,
+  type BeginInput, type Board, type SetupIssue, type SetupServices, type SetupStatus, type SetupView } from "./setups.ts";
+export { addBoughtSeats, returnBoughtSeats, type BoughtSeats } from "./procedures.ts";
+export { advance, onApprovalEnded, onApprovalTransitioned, type Advanced, type MoneyDeploymentFact, type SetupProcessServices } from "./process.ts";
+
 export type WorldCompany = { orgId: string; name: string; site: string | null };
 
 /** Explicit privileged provisioning after the foundation schema; never run during a read. */

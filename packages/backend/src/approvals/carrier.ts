@@ -27,13 +27,19 @@ export async function carry(db: Database, services: CarrierServices, limit = 100
   let count = 0;
   try {
     const now = await services.now();
-    const due = (await sql.query("select approval_id,person_id from app.approval_carriers where wake_at<=$1 order by wake_at,approval_id limit $2", [now, limit])).rows;
+    const due = (await sql.query("select approval_id,person_id,wake_version from app.approval_carriers where wake_at<=$1 order by wake_at,approval_id limit $2", [now, limit])).rows;
     for (const key of due) {
       const lock = `approval-carrier:${key.approval_id}`;
       if (!(await sql.query("select pg_try_advisory_lock(hashtextextended($1,0)) as locked", [lock])).rows[0].locked) continue;
       try {
         await step(sql, key.person_id, key.approval_id, services);
         count++;
+      } catch (error) {
+        // One failing approval (a reader, a provider or its opener's callback) must not head every later batch.
+        // Its step rolled back; it backs off in its own transaction unless a wake committed since this batch read it.
+        await sql.query("update app.approval_carriers set wake_at=$2 where approval_id=$1 and wake_version=$3",
+          [key.approval_id, plus(now, 30_000), key.wake_version]);
+        console.error(`Approval carrier ${key.approval_id}: ${(error as Error).message}`);
       } finally { await sql.query("select pg_advisory_unlock(hashtextextended($1,0))", [lock]); }
     }
   } finally { sql.release(); }
@@ -67,13 +73,15 @@ async function step(sql: Sql, person: string, id: string, services: CarrierServi
         subject_kind: row.subject_kind, subject_id: row.subject_id, outcome: row.state as Parameters<Terminal>[1]["outcome"],
         chain_id: row.chain_id, sender: row.sender, nonce: row.nonce, user_op_hash: row.user_op_hash,
         transaction_hash: row.transaction_hash, block_number: row.block_number, observedAt: row.updated_at.toISOString(),
+        refusal: row.state === "refused" ? row.refusal : null, trace_id: trace,
       });
     });
     return;
   }
   // Only an indexed, final fact can resolve a used nonce; receipts alone cannot settle it.
-  const fact = await transaction(sql, row.org_id ?? "", (client) => services.fact(client, row));
-  if (fact && ["pending", "signed", "sending", "sent"].includes(row.state) && fact.chain_id === row.chain_id &&
+  // Before a nonce is held there is nothing to look up, and the indexed reader refuses the attempt.
+  const fact = row.nonce === null ? null : await transaction(sql, row.org_id ?? "", (client) => services.fact(client, row));
+  if (fact && live.includes(row.state) && fact.chain_id === row.chain_id &&
       fact.sender === row.sender && fact.nonce === row.nonce) {
     const own = fact.user_op_hash === row.user_op_hash;
     if (!own || row.state !== "pending") {
@@ -171,5 +179,5 @@ async function step(sql: Sql, person: string, id: string, services: CarrierServi
 export async function wakeChain(sql: Sql, key: Pick<ChainFact, "chain_id" | "sender" | "nonce">, now: Date) {
   await sql.query(`update app.approval_carriers c set wake_at=$4,wake_version=c.wake_version+1 from app.approvals a
     where c.approval_id=a.approval_id and a.chain_id=$1 and a.sender=$2 and a.nonce=$3
-      and a.state in ('pending','signed','sending','sent')`, [key.chain_id, key.sender, key.nonce, now]);
+      and a.state in ('sponsoring','pending','signed','sending','sent')`, [key.chain_id, key.sender, key.nonce, now]);
 }

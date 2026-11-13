@@ -7,8 +7,8 @@ import { Database } from "../src/platform/db.ts";
 import { migrateOutbox } from "../src/platform/outbox.ts";
 import { migrate } from "../src/organizations/door.ts";
 
-// Component regression on a disposable database: the Core schema, then the outbox, Access, Accounts, Parties and
-// Organizations migrations in their composition order. Not selected-stack acceptance.
+// Component regression on a disposable database: the outbox, Access, Accounts, Parties and Organizations
+// migrations in their composition order. Not selected-stack acceptance.
 const url = process.env.ORGANIZATIONS_TEST_ADMIN_URL;
 if (!url || process.env.CAPXUL_DISPOSABLE !== "true" || !new URL(url).pathname.startsWith("/organizations_"))
   throw new Error("ORGANIZATIONS_TEST_ADMIN_URL must name a disposable /organizations_* Postgres database");
@@ -49,14 +49,8 @@ async function provision() {
   const sql = (path: string) => readFile(new URL(path, import.meta.url), "utf8");
   await admin.query("begin");
   try {
-    await admin.query(await sql("../src/schema.sql"));
-    await admin.query("grant usage on schema app to capxul_core,capxul_worker");
-    // The legacy company table's tenant policy and grants, as src/migrate.ts sets them.
-    await admin.query(`alter table app.organizations enable row level security; alter table app.organizations force row level security;
-      create policy tenant on app.organizations to capxul_core,capxul_worker
-        using (org_id=current_setting('app.org_id',true) or current_user='capxul_worker')
-        with check (org_id=current_setting('app.org_id',true) or current_user='capxul_worker');
-      grant select,insert,update on app.organizations to capxul_core,capxul_worker`);
+    // The target organizations table replaces the legacy Core one, which its migration refuses to sit beside.
+    await admin.query("create schema app; grant usage on schema app to capxul_core,capxul_worker");
     await migrateOutbox(admin);
     for (const path of ["../src/access/schema.sql", "../src/accounts/schema.sql", "../src/parties/schema.sql"]) await admin.query(await sql(path));
     await migrate(admin);

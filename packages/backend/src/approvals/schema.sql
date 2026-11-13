@@ -45,3 +45,16 @@ create policy tenant on app.approval_carriers to capxul_core,capxul_worker
   with check (person_id=current_setting('app.person_id',true) or current_user='capxul_worker');
 grant select,insert,update on app.approvals,app.approval_carriers to capxul_core,capxul_worker;
 grant delete on app.approval_carriers to capxul_core,capxul_worker;
+
+-- Request identity only; signing state remains solely on approvals.
+create table if not exists app.approval_calls (
+  person_id text not null, call_id text not null, request jsonb not null, trace_id text not null,
+  at double precision not null, primary key(person_id,call_id)
+);
+alter table app.approval_calls enable row level security;
+alter table app.approval_calls force row level security;
+drop policy if exists tenant on app.approval_calls;
+create policy tenant on app.approval_calls to capxul_core,capxul_worker
+  using (person_id=current_setting('app.person_id',true) or current_user='capxul_worker')
+  with check (person_id=current_setting('app.person_id',true) or current_user='capxul_worker');
+grant select,insert on app.approval_calls to capxul_core,capxul_worker;
