@@ -174,7 +174,8 @@ export const rpc_board_proposals_approve = defineRpc({
     DIRECTOR + " The `owner-safe-proposals` gate must be on for the Organization (FEATURE_NOT_AVAILABLE). An id the " +
     "Organization does not hold is INVALID_INPUT; a proposal that is no longer waiting is WRONG_STATE. The step is " +
     "decided from the chain now: when the indexed approvals of Directors who still sign, with the caller's, reach the " +
-    "Gate's threshold and the proposal's nonce is the Safe's current one, the caller's approval executes it (one " +
+    "Gate's threshold for the remaining valid owners (read thresholdConfig at that same block, board.cleanup-threshold) " +
+    "and the proposal's nonce is the Safe's current one, the caller's approval executes it (one " +
     "`HatsSignerGate.removeSigner` per lapsed owner, then `Safe.execTransaction` with each approval as a v = 1 " +
     "signature and the caller as sender); otherwise it is `Safe.approveHash(safeTxHash)`, and a caller whose own " +
     "approval is already on chain is WRONG_STATE (wait for the other Directors). A proposal at a later nonce collects " +
@@ -205,6 +206,8 @@ export const rpc_board_proposals_approve = defineRpc({
   calls: [integration_chain_rpc.c.readContract],
   chain: [
     contract_hats_signer_gate.f.isValidSigner,
+    contract_hats_signer_gate.f.thresholdConfig,
+    contract_safe.f.getOwners,
     contract_safe.f.getThreshold,
     contract_safe.f.approveHash,
     contract_hats_signer_gate.f.removeSigner,
@@ -223,7 +226,8 @@ export const rpc_board_proposals_reject = defineRpc({
   about:
     DIRECTOR + " An id the Organization does not hold is INVALID_INPUT; a rejection, or a proposal that is no longer " +
     "waiting, is WRONG_STATE. A rejection of that proposal already waiting answers again, unchanged, and reports " +
-    "nothing. Otherwise it opens the rejection through `board.propose` (kind rejection, `rejects` the proposal, the " +
+    "nothing. The public write checks owners and Gate validity at one live block (board.mutation-authority). " +
+    "Otherwise it opens the rejection through `board.propose` (kind rejection, `rejects` the proposal, the " +
     "rejected proposal's nonce): one company Safe call of `Payments.paid(bytes32(0))` with value 0, a read that does " +
     "nothing, because the Gate refuses any call into the Safe itself. Once it executes the nonce is used up and the " +
     "rejected proposal can never run; it needs the threshold like any proposal. The caller's approval of the " +
@@ -234,14 +238,15 @@ export const rpc_board_proposals_reject = defineRpc({
   who: "A Director of the Organization.",
   input: ProposalInput,
   output: ProposalView,
-  errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT, error_WRONG_STATE],
+  errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT, error_WRONG_STATE, error_PROVIDER_ERROR, error_PROVIDER_RESPONSE_INVALID],
   reads: [...READS, table_hat_wearers],
   writes: [],
   drives: [],
   invokes: [procedure_board_propose],
   emits: [],
-  calls: [],
-  chain: [contract_payments.f.paid],
+  calls: [integration_chain_rpc.c.readContract],
+  chain: [contract_payments.f.paid, contract_safe.f.getOwners, contract_safe.f.getThreshold,
+    contract_hats_signer_gate.f.isValidSigner, contract_hats_signer_gate.f.thresholdConfig],
   spans: ["rpc.board.proposals.reject"],
-  budget: budget("write"),
+  budget: budget("chain-read"),
 });
