@@ -15,8 +15,9 @@ catalog:
   oxfmt: 0.75.0
   "@oxlint/plugins": 1.90.0
   "@effect/tsgo": 0.63.0
-  # Core's Worker and the runner's worlds: Alchemy 2.0.0-beta.85 on Effect 4.1.2, the pair the pipeline spike
-  # proved (published 2 November 2026). The platform packages are Effect's own, at effect's version.
+  # Core's Worker and the runner's stages: Alchemy 2.0.0-beta.85 on Effect 4.1.2, the pair the pipeline spike
+  # proved (published 2 November 2026). The platform packages are Effect's own, at effect's version: Bun for the
+  # runner; Node for the CLI's process (stdin, stdout, exit code) and the SDK's tests' HTTP server.
   alchemy: 2.0.0-beta.85
   "@alchemy.run/cloudflare": 2.0.0-beta.85
   "@alchemy.run/neon": 2.0.0-beta.85
