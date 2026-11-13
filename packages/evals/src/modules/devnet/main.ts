@@ -8,14 +8,15 @@ import { psqlAdmin } from "../../../../devnet/src/devnet/door.ts";
 import { fixtureFrom } from "../acceptance/fixture.ts";
 import { assertSchema, observeSchema, type Table } from "./schema.ts";
 
-const checks = { "DEVNET.worlds-schema": "worlds", "DEVNET.snapshots-schema": "world_snapshots", "DEVNET.records-schema": "command_records", "DEVNET.record-export": "record-export" } as const;
+const checks = { "DEVNET.worlds-schema": "worlds", "DEVNET.snapshots-schema": "world_snapshots", "DEVNET.records-schema": "command_records", "DEVNET.record-export": "record-export",
+  "DEVNET.world-show": "world-show", "DEVNET.world-show-unknown": "world-show-unknown" } as const;
 if (process.argv.includes("--list")) {
   console.log("DEVNET.selected-stack\tguard");
   for (const name of Object.keys(checks)) console.log(`${name}\tcheck`);
 } else {
   const onlyIndex = process.argv.indexOf("--only");
   const only = onlyIndex < 0 ? [] : (process.argv[onlyIndex + 1] ?? "").split(",");
-  const selected = Object.entries(checks).filter(([name]) => !only.length || only.some((prefix) => name.startsWith(prefix))) as [string, Table | "record-export"][];
+  const selected = Object.entries(checks).filter(([name]) => !only.length || only.some((prefix) => name.startsWith(prefix))) as [string, Table | "record-export" | "world-show" | "world-show-unknown"][];
   const emit = (name: string, ok: boolean, ms: number, detail: string) => console.log(`@check\t${name}\t${ok ? "pass" : "fail"}\t${ms}\t${detail}`);
   let failed = false;
   try {
@@ -47,6 +48,11 @@ if (process.argv.includes("--list")) {
     assert(["127.0.0.1", "localhost", "[::1]"].includes(worker.hostname), "nonlocal database refused");
     worker.pathname = `/${config.world.database}`;
     const query = psqlAdmin(worker.href);
+    const inventory = new URL(config.database.worker);
+    assert.equal(decodeURIComponent(inventory.username), "capxul_worker"); assert.equal(inventory.host, worker.host);
+    inventory.pathname = worker.pathname;
+    const literal = `'${config.world.id.replaceAll("'", "''")}'`;
+    const cli = (args: string[]) => promisify(execFile)(process.execPath, [join(config.root, "packages/cli/src/main.ts"), ...args, "--config", configPath, "--json"], { timeout: 60000, maxBuffer: 1024 * 1024 });
     const dir = resolve(run, "devnet"); await mkdir(dir, { recursive: true });
     await writeFile(join(dir, "inspection.json"), JSON.stringify(live, null, 2) + "\n");
     emit("DEVNET.selected-stack", true, 0, "private fixture, running receipt and live public inspection identify one selected stack");
@@ -71,6 +77,46 @@ if (process.argv.includes("--list")) {
           assert.deepEqual(result, { lines: source.records.length + 1, bytes: Buffer.byteLength(data), lineage: source.lineage });
           await writeFile(join(dir, "record-export-source.json"), JSON.stringify(source, null, 2) + "\n");
           emit(name, true, Date.now() - start, "public CLI export returns exact line/byte counts and lineage for the same-run selected world's actual catalogue");
+          continue;
+        }
+        if (table === "world-show") {
+          // Independent restricted reads: the catalogue through capxul_core and the complete company inventory through capxul_worker.
+          const [w] = await query(`SELECT jsonb_build_object('world',to_jsonb(w),'head',coalesce((SELECT max(seq) FROM app.command_records r WHERE r.world_id=w.world_id AND r.epoch=w.epoch),0))
+            FROM app.worlds w WHERE world_id=${literal}`);
+          const orgs = await psqlAdmin(inventory.href)("SELECT jsonb_build_object('orgId',org_id,'name',name,'site',site) FROM app.organizations ORDER BY org_id");
+          assert(w && orgs.length > 0, "selected world's catalogue or company inventory is not populated");
+          const row = w.world as Record<string, unknown>;
+          const shown = JSON.parse((await cli(["world", "show", config.world.id])).stdout);
+          const expected = { worldId: row.world_id, name: row.name, kind: row.kind, profile: row.profile, address: row.address, state: row.state, clockMode: row.clock_mode,
+            rate: row.rate, worldNow: row.world_now, epoch: row.epoch, chainId: row.chain_id, hosted: row.hosted, parentWorld: row.parent_world,
+            parentSnapshot: row.parent_snapshot, parentSeq: row.parent_seq,
+            companies: orgs.map((o) => ({ orgId: o.orgId, name: o.name, url: o.site === null ? null : `http://${o.site}:${config.ports.publicBench}` })), recordHead: w.head };
+          // The declared WorldView exactly: no extra or missing field, declared enums and JSON types.
+          assert.deepEqual(Object.keys(shown).sort(), Object.keys(expected).sort());
+          assert(["local", "simulated", "staging", "production"].includes(shown.kind) && ["core", "full"].includes(shown.profile) && ["frozen", "running"].includes(shown.clockMode) &&
+            ["creating", "running", "stopped", "restoring", "parked", "closed"].includes(shown.state), "WorldView enum differs");
+          for (const key of ["rate", "worldNow", "epoch", "chainId", "recordHead"]) assert(Number.isFinite(shown[key]), `${key} is not a number`);
+          assert.deepEqual(shown, expected, "world show differs from the selected world's catalogue or Organizations inventory");
+          assert.equal(shown.chainId, config.chainId);
+          await writeFile(join(dir, "world-show.json"), JSON.stringify({ shown, catalogue: w, inventory: orgs }, null, 2) + "\n");
+          emit(name, true, Date.now() - start, "public world show prints exactly the declared WorldView of the same-run selected world's catalogue and complete company inventory");
+          continue;
+        }
+        if (table === "world-show-unknown") {
+          const state = `SELECT jsonb_build_object('worlds',(SELECT jsonb_agg(to_jsonb(w) ORDER BY world_id) FROM app.worlds w),
+            'records',(SELECT count(*) FROM app.command_records),'head',(SELECT max(real_time) FROM app.command_records))`;
+          const [before] = await query(state);
+          const unknown = config.world.id === "nosuchworld" ? "otherworld" : "nosuchworld";
+          const refused = await cli(["world", "show", unknown]).then(() => assert.fail("unknown world was shown"), (e: { code?: number; stdout?: string; stderr?: string }) => e);
+          assert.equal(refused.code, 2, "INVALID_INPUT exit code");
+          assert.equal(refused.stdout, "");
+          const printed = JSON.parse(refused.stderr ?? "");
+          assert.deepEqual(Object.keys(printed), ["error"]); assert.deepEqual(Object.keys(printed.error).sort(), ["code", "message"]);
+          assert.equal(printed.error.code, "INVALID_INPUT"); assert.equal(typeof printed.error.message, "string");
+          const [after] = await query(state);
+          assert.deepEqual(after, before, "a refused world show changed the catalogue");
+          await writeFile(join(dir, "world-show-unknown.json"), JSON.stringify({ unknown, refusal: printed, before, after }, null, 2) + "\n");
+          emit(name, true, Date.now() - start, "world show of an unknown world exits 2 with only {error:{code:INVALID_INPUT,message}} and leaves the same-run catalogue unchanged");
           continue;
         }
         const schema = await observeSchema(query, table);

@@ -1,5 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { Database } from "@capxul/backend/devnet";
+import { readWorldCompanies } from "@capxul/backend/organizations";
 import { worldCatalogue, type RecordFilter } from "./catalogue.ts";
 import { psqlAdmin } from "./postgres.ts";
 import { databaseUrl, type Config } from "./supervisor.ts";
@@ -15,10 +17,11 @@ const entryView = (r: Record<string, unknown>) => ({
 /** Does not compose, migrate, acquire a mutation lock, or require any world process to be running. */
 export async function readCatalogue(c: Config, words: string[]): Promise<unknown> {
   const snapshot = words.slice(0, 3).join(" ") === "world snapshot list";
-  const verb = snapshot ? "snapshots" : words[1];
-  if (!snapshot && (words[0] !== "record" || !["list", "show", "export"].includes(verb!))) throw new Error("CLI_USAGE: expected record list|show|export");
+  const worldShow = words.slice(0, 2).join(" ") === "world show";
+  const verb = snapshot ? "snapshots" : worldShow ? "world" : words[1];
+  if (!snapshot && !worldShow && (words[0] !== "record" || !["list", "show", "export"].includes(verb!))) throw new Error("CLI_USAGE: expected record list|show|export");
   const rest = words.slice(snapshot ? 3 : 2);
-  if (snapshot && rest[0] && !rest[0].startsWith("--")) {
+  if ((snapshot || worldShow) && rest[0] && !rest[0].startsWith("--")) {
     if (rest.shift() !== c.world.id) throw new Error("INVALID_INPUT: world does not match the private config");
   }
   const allowed = verb === "list" ? ["world", "who", "kind", "from", "to", "trace", "epoch", "limit", "include-abandoned"] :
@@ -55,6 +58,16 @@ export async function readCatalogue(c: Config, words: string[]): Promise<unknown
     catch (cause) { throw new Error("Catalogue query failed; inspect private world diagnostics", { cause }); }
   }, []);
   const world = c.world.id;
+  if (verb === "world") {
+    const { world: w, cut } = await store.view(world);
+    const companies = await worldCompanies(c);
+    return { worldId: w.world_id, name: w.name, kind: w.kind, profile: w.profile, address: w.address, state: w.state, clockMode: w.clock_mode,
+      rate: w.rate, worldNow: w.world_now, epoch: w.epoch, chainId: w.chain_id, hosted: w.hosted, parentWorld: w.parent_world,
+      parentSnapshot: w.parent_snapshot, parentSeq: w.parent_seq,
+      // The configured native route, not proof of DNS, a listener or HTTP readiness.
+      companies: companies.map((o) => ({ orgId: o.orgId, name: o.name, url: o.site === null ? null : `http://${o.site}:${c.ports.publicBench}` })),
+      recordHead: cut.seq };
+  }
   // An absent world must not become an empty successful list or a synthetic birth.
   const row = await store.show(world);
   if (verb === "snapshots") return { snapshots: (await store.snapshots(world)).map((s) => ({
@@ -70,4 +83,14 @@ export async function readCatalogue(c: Config, words: string[]): Promise<unknown
   try { await writeFile(resolve(flags.get("out")!), data, { flag: "wx", mode: 0o600 }); }
   catch (cause) { throw new Error("Record export could not create a new private output file", { cause }); }
   return result;
+}
+
+/** Organizations' complete inventory; config.sites and financial records never stand in for company identity. */
+async function worldCompanies(c: Config) {
+  const db = new Database(databaseUrl(c.database.tenant, c.world), databaseUrl(c.database.worker, c.world));
+  try {
+    const client = await db.worker.connect();
+    try { return await readWorldCompanies(client); } finally { client.release(); }
+  } catch (cause) { throw new Error("World company inventory is unavailable; inspect private world diagnostics", { cause }); }
+  finally { await db.close(); }
 }
