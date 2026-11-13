@@ -25,6 +25,17 @@ export type RunEnvironment = typeof RunEnvironment.Type;
 const RelativePath = Nonempty.pipe(Schema.check(Schema.isPattern(/^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))(?!.*[:\\]).+$/)));
 export const ScreenEvidence = Schema.Struct({ screen: Nonempty, path: RelativePath, source: Nonempty, assertion: Nonempty });
 export type ScreenEvidence = typeof ScreenEvidence.Type;
+/** The value a screen source names: `file#pointer`, the pointer per RFC 6901 ("" or "/a/b", with ~1 for "/" and ~0 for "~"),
+ * following only own properties. `undefined` when the pointer is malformed or names nothing. */
+export const pointerValue = (doc: unknown, pointer: string): unknown => {
+  if (pointer !== "" && !pointer.startsWith("/")) return undefined;
+  let at = doc;
+  for (const token of pointer === "" ? [] : pointer.slice(1).split("/").map((t) => t.replaceAll("~1", "/").replaceAll("~0", "~"))) {
+    if (at === null || typeof at !== "object" || !Object.hasOwn(at, token)) return undefined;
+    at = (at as Record<string, unknown>)[token];
+  }
+  return at;
+};
 
 /** Written before execution, finalized after it. Missing or running receipts cannot establish completion. */
 export const RunReceipt = Schema.Struct({

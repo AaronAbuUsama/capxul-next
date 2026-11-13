@@ -2,7 +2,7 @@
   "name": "@capxul/backend",
   "private": true,
   "type": "module",
-  "exports": { "./devnet": "./src/devnet/door.ts", "./server": "./src/server.ts", "./plugs": "./src/plugs/door.ts" },
+  "exports": { "./devnet": "./src/devnet/door.ts", "./server": "./src/server.ts", "./plugs": "./src/plugs/door.ts", "./organizations": "./src/organizations/door.ts" },
   "scripts": {
     "migrate": "node --experimental-strip-types --no-warnings src/migrate.ts",
     "bind-indexer": "node --experimental-strip-types --no-warnings src/bind-indexer.ts",
