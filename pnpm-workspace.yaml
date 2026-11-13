@@ -1,8 +1,8 @@
 # pnpm workspaces (decision tooling.package-manager: Aaron, 8 November 2026 — pnpm, not npm).
 packages:
   - packages/*
-  # Installed on its own with --ignore-workspace, pinned to effect 4.1.2 like the spikes (packages/contract/README.md).
-  - "!packages/contract"
+  # Installed on its own with --ignore-workspace, pinned to effect 4.1.2 like the spikes (packages/blueprint/README.md).
+  - "!packages/blueprint"
 
 # One version of each shared dependency; manifests refer to it as "catalog:".
 catalog:

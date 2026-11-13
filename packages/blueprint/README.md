@@ -1,4 +1,6 @@
-# contract
+# blueprint
+
+The blueprint: what Capxul does, declared once as Effect code that the product imports. (Named `blueprint` so it is not confused with the Solidity contracts in `packages/contracts`.)
 
 The thin line's contract (roadmap step 1.1): twelve operations declared as Effect code, with their refusals, the
 events each kind of success emits and what each carries, one speed budget each, and numbered acceptance claims.
