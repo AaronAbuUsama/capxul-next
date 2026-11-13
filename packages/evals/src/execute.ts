@@ -2,7 +2,7 @@
 import { randomUUID } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, posix, resolve } from "node:path";
 import { mergeResults, parseRunReceipt, uncapturedScreens, type Blueprint, type RunEnvironment, type RunReceipt } from "@capxul/blueprint-engine";
 import type { Bindings } from "./modules/bindings/service.ts";
 import { cap, evidenceText, fileNameOf, foldChecks, parseCheckLines, redact, resultsFile, scoreEvals, type CheckLine, type Row, type RunInfo } from "./modules/runs/service.ts";
@@ -113,10 +113,16 @@ export const executeRun = async (root: string, blueprint: Blueprint, bindings: B
       atomicJson(join(dir, "receipt.json"), receipt);
     }
     // In-run manifests: <run>/screens.json and one <module>/screens.json per module directory, every path run-relative,
-    // so modules never overwrite each other's captures. --screens imports one external manifest relative to its own file.
-    const manifests = options.screens ? [{ file: resolve(root, options.screens), base: dirname(resolve(root, options.screens)) }]
-      : [join(dir, "screens.json"), ...readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => join(dir, d.name, "screens.json")).sort()]
-        .filter((file) => existsSync(file)).map((file) => ({ file, base: dir }));
+    // so modules never overwrite each other's captures; a module manifest lists only files under its own <module>/.
+    // --screens imports one external manifest relative to its own file and refuses to run beside in-run manifests.
+    const entries = readdirSync(dir, { withFileTypes: true });
+    const linked = entries.filter((d) => d.isSymbolicLink() && statSync(join(dir, d.name)).isDirectory()).map((d) => d.name);
+    if (linked.length) throw new Error(`run directory entries must not be symlinked directories: ${linked.join(", ")}`);
+    const inRun = [{ file: join(dir, "screens.json"), base: dir, owner: "" },
+      ...entries.filter((d) => d.isDirectory()).map((d) => d.name).sort().map((name) => ({ file: join(dir, name, "screens.json"), base: dir, owner: `${name}/` }))]
+      .filter(({ file }) => existsSync(file));
+    if (options.screens && inRun.length) throw new Error(`--screens cannot be combined with in-run manifests: ${inRun.map(({ file }) => file).join(", ")}`);
+    const manifests = options.screens ? [{ file: resolve(root, options.screens), base: dirname(resolve(root, options.screens)), owner: "" }] : inRun;
     // Every manifest, capture and source file must be non-empty and written during this run (statSync follows links), and
     // a source's JSON pointer must name a value, so an older run's evidence cannot count (system.eval-screen-captures).
     const fresh = (file: string, what: string): void => {
@@ -128,14 +134,18 @@ export const executeRun = async (root: string, blueprint: Blueprint, bindings: B
       if (from !== to) { mkdirSync(dirname(to), { recursive: true }); copyFileSync(from, to); }
     };
     const screens: RunReceipt["screens"][number][] = [];
-    for (const { file, base } of manifests) {
+    for (const { file, base, owner } of manifests) {
       fresh(file, "screen manifest");
       const validated = parseRunReceipt({ ...receipt, screens: JSON.parse(readFileSync(file, "utf8")) as unknown });
       if (!validated.ok) throw new Error(`${file}: ${validated.errors.join("\n")}`);
-      for (const screen of validated.value.screens) {
-        if (screens.some((s) => s.path === screen.path)) throw new Error(`screen evidence listed twice: ${screen.path}`);
-        const [source = "", pointer] = screen.source.split("#");
-        if (!source || isAbsolute(source) || /(^|\/)\.\.(\/|$)|[:\\]/.test(source)) throw new Error(`screen source must be a run-relative file: ${screen.source}`);
+      for (const listed of validated.value.screens) {
+        // Compare and record canonical paths, so ./a/x.png and a/x.png are the same capture.
+        const [rawSource = "", pointer] = listed.source.split("#");
+        if (!rawSource || isAbsolute(rawSource) || /(^|\/)\.\.(\/|$)|[:\\]/.test(rawSource)) throw new Error(`screen source must be a run-relative file: ${listed.source}`);
+        const path = posix.normalize(listed.path), source = posix.normalize(rawSource);
+        const screen = { ...listed, path, source: pointer === undefined ? source : `${source}#${pointer}` };
+        if (owner && (!path.startsWith(owner) || !source.startsWith(owner))) throw new Error(`${file} may list only files under ${owner}: ${listed.path}, ${listed.source}`);
+        if (screens.some((s) => s.path === path)) throw new Error(`screen evidence listed twice: ${path}`);
         fresh(resolve(base, screen.path), "screen capture");
         fresh(resolve(base, source), "screen source");
         if (pointer !== undefined) {

@@ -22,7 +22,8 @@ Supply `--environment <json>` for non-skeleton runs; its world must match `--wor
 `{stack:"skeleton-json",storage:"json",indexer:"inline"}`, never selected-stack evidence. Children receive
 `CAPXUL_EVAL_RUN_DIR`; a child may write `screens.json` there, or its own `<module>/screens.json` one directory down, as an
 array of `{screen,path,source,assertion}`. The runner collects all of them, so modules never overwrite each other's
-captures; a path listed twice fails the run (`system.eval-screen-manifests`). Paths in every in-run manifest must be
+captures. A module manifest lists only files under its own `<module>/`; paths are normalized, and a path listed twice,
+a symlinked run subdirectory or `--screens` beside in-run manifests fails the run (`system.eval-screen-manifests`). Paths in every in-run manifest must be
 existing run-relative files. Every manifest, capture and source file must be non-empty and written during this run
 (mtime at or after the receipt's `at`); `source` is a run-relative file with an optional `#/json/pointer` that must name a
 non-null value. An otherwise passing screen `/shows` claim with no such capture is recorded `fail` with that reason
