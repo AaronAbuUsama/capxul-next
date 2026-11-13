@@ -1337,6 +1337,149 @@ export const decision_organizations_fde_guests = defineDecision({
   ],
 });
 
+export const decision_organizations_begin_gaps = defineDecision({
+  id: "organizations.begin-gaps",
+  title: "What begin does where the record and ERPNext's data are silent",
+  question:
+    "organizations.setups.begin takes the time zone from the country's first zone, needs the founder's claimed account and " +
+    "stores the name as ERPNext's Company. Frappe's country data has no zone for 38 countries, the record does not say " +
+    "which Party is the founder's, and ERPNext's Company name is a 140-character Data field. What does begin do?",
+  options: [
+    {
+      label: "refuse-before-write",
+      text:
+        "A country with no zone in Frappe 16.54's country data and no `timeZone` given is INVALID_INPUT naming `timeZone`. " +
+        "The founder's Party is their own active person Party at their claimed personal Safe; without one the account is not " +
+        "set up, WRONG_STATE like an unclaimed Safe. A name over 140 characters after trimming is INVALID_INPUT. All three are " +
+        "checked before the first write.",
+    },
+    {
+      label: "invent-defaults",
+      text: "Default a zoneless country to UTC, register a person Party for the founder inside begin, and truncate long names.",
+    },
+  ],
+  chosen: "refuse-before-write",
+  why:
+    "A default zone Capxul invents would date every voucher of that Company in a zone nobody chose, and ERPNext's setup wizard " +
+    "offers no default for these countries either. Registering the founder's Party belongs to parties' profile procedures, " +
+    "not to organizations, and a truncated name is not the name the founder gave. Each refusal leaves nothing written, as " +
+    "begin's other refusals do. A country with no currency in that data, or an unpriced one, starts in USD as begin already says.",
+  source:
+    "Amp Organizations lane, 13 November 2026; Frappe 16.54.0 frappe/geo/country_info.json and ERPNext 16.54.0 " +
+    "erpnext/public/js/setup_wizard.js in the capxul-bench image; blueprint/organizations/setups.ts (rpc_organizations_setups_begin)",
+  affects: [rpc_organizations_setups_begin, table_organizations, concept_organizations],
+});
+
+export const decision_organizations_admitted_deployment = defineDecision({
+  id: "organizations.admitted-deployment",
+  title: "The deployment row names its MoneyDeployed log; officer hats stay numeric",
+  question:
+    "Board and Budgets need to know which finalized MoneyDeployed this Organization owns, and to re-check it in indexing. " +
+    "The event carries officer hats only in `MoneyDeploy.officers` order, and which hat means which officer permission is " +
+    "the native hat binding still open as a question to Aaron (who may bind a chain hat to a named role: the authorised " +
+    "setup, Board or budget intent, or a Director-edited registry). What does the row hold, and what does its door answer?",
+  options: [
+    {
+      label: "occurrence-numeric",
+      text:
+        "Record the chain and log id of the admitted MoneyDeployed, and the officer hats as a numeric list in the event's " +
+        "order. The named officer columns stay null until that binding is answered. `readAdmittedDeployment(sql, {orgId, " +
+        "chainId})` answers the row on the caller's Sql, or null until the setup admits it at finality.",
+    },
+    {
+      label: "named-by-order",
+      text: "Fill Books, Invoicing and People from the order the setup sent, and give readers only the named columns.",
+    },
+  ],
+  chosen: "occurrence-numeric",
+  why:
+    "The log id lets Board re-check the row with indexing's `readMoneyDeployment` instead of trusting a copy, and a row " +
+    "nobody admitted reads as null, so a reader fails closed. Naming officer hats by install position is the mapping the open " +
+    "binding decision has not authorised, and Board will not infer it from Hat details either; until it is answered the named " +
+    "columns stay empty and officer grants stay fail-closed. The Director hat, top hats, Roles and Gate are named by the event " +
+    "itself, so they need no binding. The row stays written once and never changed, as organizations.deployment-row chose; " +
+    "it is never read from the editable `app.hats`.",
+  source:
+    "Amp Organizations lane, 13 November 2026, agreed with Board (PR58 BoardFacts.deployment) and the integrator; " +
+    "IInstaller.sol MoneyDeployment (officerHats in MoneyDeploy.officers order); PR59 indexing/deployment.ts readMoneyDeployment",
+  affects: [table_org_deployments, workflow_organizations_setups_set_up, concept_board],
+});
+
+export const decision_organizations_setup_send_attempts = defineDecision({
+  id: "organizations.setup-send-attempts",
+  title: "Setup sends are keyed per attempt; completion waits for the landed install",
+  question:
+    "The service signer answers the same hash for a key it has seen, so one fixed key per send cannot both survive a " +
+    "crash (send once) and retry after a revert (send again). And the install's facts read false while the signed " +
+    "install is still unmined. How does the setup key its sends, and when does it judge the install?",
+  options: [
+    {
+      label: "attempts-and-landing",
+      text:
+        "Count attempts on the setup (mint_attempt, deploy_attempt) and key each send `org-setup:<orgId>:mint:<n>`; a " +
+        "crash resends attempt n and gets its hash, and only the transaction that records a final revert, or a lost send (the " +
+        "signer no longer knows the hash and the key's nonce is used by another transaction), moves to n+1. Record the " +
+        "install transaction and block from approvals' landed ending, and judge the install's facts only at finality " +
+        "anchored to that block; final facts that differ fail the setup (install_mismatch), since its batch ran. Provider " +
+        "errors, matched by their code, go back to the process's retries; the last one stalls it.",
+    },
+    {
+      label: "fixed-keys",
+      text: "Keep one key per send and judge the install whenever the process runs.",
+    },
+  ],
+  chosen: "attempts-and-landing",
+  why:
+    "A fixed key makes a reverted send's retry return the reverted hash forever, and a fresh key per run sends twice " +
+    "after a crash, minting new hats. Counting attempts in the row the revert is recorded in gives both. Judging the " +
+    "install before it landed reads an unmined install as reverted, stalls the setup and lets a retry open a second " +
+    "batch while the first can still land; once it landed and is final, a retry would run a second batch on a Safe the " +
+    "first already changed, so a mismatch is definitive. A lost broadcast never gets a receipt, so without send_lost the " +
+    "setup would wait forever. The workflow's own retries (max 5, exponential) cover provider outages, so a first " +
+    "PROVIDER_ERROR is not yet a stall.",
+  source:
+    "Amp Organizations lane, 13 November 2026, from the integrator's independent review of PR122; " +
+    "packages/backend/src/shared/service-signer.ts (stored hash per key); approvals TerminalEvent (transaction_hash, block_number)",
+  affects: [table_org_setups, workflow_organizations_setups_set_up],
+});
+
+export const decision_organizations_cutover_migrate_order = defineDecision({
+  id: "organizations.cutover-migrate-order",
+  title: "Core's schema splits around Organizations: base first, per-org tables after",
+  question:
+    "Core's one schema.sql created the legacy app.organizations (site, token, delivery cursors) together with the " +
+    "per-organization tables that reference it, and ran before every concept. The target app.organizations needs Parties " +
+    "and Access first and refuses to migrate over the legacy shape. Where do Organizations and those tables go in the " +
+    "world's migration?",
+  options: [
+    {
+      label: "split-around-organizations",
+      text:
+        "Split schema.sql into the world's base (schema app, schema_version, world, world_record, indexer_observation), " +
+        "applied first, and schema-per-org.sql (people, hats, the site payment approvals, site_events, consumed_facts, " +
+        "site_request_answers, transaction_traces, records), applied right after Organizations. Order: base, outbox, " +
+        "Access, Accounts, Parties, Organizations, the per-organization tables and their tenant policy, then Approvals, " +
+        "payments and Activity. The legacy app.organizations is no longer created; the target keeps its name and org_id, " +
+        "so every `references app.organizations` stays as it is.",
+    },
+    {
+      label: "drop-foreign-keys",
+      text: "Keep one schema.sql first and drop its foreign keys to app.organizations, so Organizations can come later.",
+    },
+  ],
+  chosen: "split-around-organizations",
+  why:
+    "Dropping the foreign keys would let rows for no Organization in, in Core's tables and in other lanes' (Board, Plugs, " +
+    "Sites), which reference app.organizations too. Splitting keeps every reference and only moves when each table is " +
+    "created. Organizations keeps its own policies and grants, so it leaves the legacy tenant loop, which re-run would " +
+    "otherwise undo. Approvals must still run after the per-organization tables, because it renames the legacy " +
+    "app.approvals to site_payment_approvals. A world is created fresh by the migration, so nothing is moved or dropped.",
+  source:
+    "Amp Organizations lane, 13 November 2026, ruled by the Wave Zero integrator for the Organizations cut-over; " +
+    "packages/backend/src/migrate.ts, packages/backend/src/schema.sql",
+  affects: [table_organizations],
+});
+
 // ── the command surface (surface.tree, surface.head-group; Aaron, 9 November 2026) ──────────────────────────────
 
 const SURFACE_PASS = "Claude, surface pass, 9 November 2026 (question 48)";

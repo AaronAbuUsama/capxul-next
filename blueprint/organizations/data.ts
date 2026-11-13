@@ -44,6 +44,8 @@ export const SetupIssue = Schema.Struct({
     "approval_declined",
     "approval_displaced",
     "install_reverted",
+    "send_lost",
+    "install_mismatch",
     "provider_answer_invalid",
   ]),
   /** The error code the step ended with (PROVIDER_ERROR, TRANSACTION_FAILED, CANCELLED…). */
@@ -174,9 +176,18 @@ export const table_org_setups = defineTable({
     status: Schema.Literals(["processing", "awaiting_authorization", "needs_attention", "ready", "failed"]),
     steps: Schema.Array(SetupStep),
     mint_tx_hash: NullOr(S),
+    /** Which mint send this is: the signer's key is `org-setup:<orgId>:mint:<n>`, so a crash resends the same one and only a
+     * reverted mint moves to the next (organizations.setup-send-attempts). */
+    mint_attempt: N,
     deploy_tx_hash: NullOr(S),
+    /** Which deployMoney send this is, keyed `org-setup:<orgId>:deploy:<n>` like the mint's. */
+    deploy_attempt: N,
     /** The founder's install batch: an approval opened with `approvals.open` in this concept's transaction. */
     install_approval_id: NullOr(S),
+    /** The install transaction and its block, from approvals' landed ending: completion reads the install's facts at
+     * finality anchored to it. */
+    install_tx_hash: NullOr(S),
+    install_block: NullOr(N),
     issue: NullOr(SetupIssue),
     /**
      * The FDE's key (its address only), made and held by Capxul's FDE host when the setup asked it; null before then and
@@ -211,11 +222,12 @@ export const table_org_deployments = defineTable({
   title: "Organization deployments: which hat is which",
   about:
     "What `Installer.deployMoney` made for the Organization, as its MoneyDeployed event names it: the Board's top hat, " +
-    "the Shareholders' top hat, the Director hat, the three officer hats by name (Books, Invoicing, People), the Roles " +
-    "modifier and the Signer Gate. The setup writes it once, from the indexed event at finality, and nothing changes it: " +
-    "the event is emitted once per company and its hat ids are fixed. Every concept above answers 'which officer hat is " +
-    "which' from here (board, budgets, books, applications, requests). Who wears a hat now, the budget tree and the " +
-    "Board's signers stay chain facts in indexing.",
+    "the Shareholders' top hat, the Director hat, the officer hats in the event's order, the Roles modifier and the " +
+    "Signer Gate, with the MoneyDeployed occurrence it was admitted from (chain and log id) so a reader can re-check it in " +
+    "indexing. The setup writes it once, from the indexed event at finality, and nothing changes it: the event is emitted " +
+    "once per company and its hat ids are fixed. The officer hats by name (Books, Invoicing, People) stay null until " +
+    "organizations.admitted-deployment's open binding is answered. Who wears a hat now, the budget tree and the Board's " +
+    "signers stay chain facts in indexing.",
   was: [`${T}/setups.ts:35`, `${O}/setups/external/deploys.ts:213`, `${T}/roles.ts:11`, `${T}/roles.ts:23`],
   concept: concept_organizations,
   tenancy: "organization",
@@ -226,17 +238,28 @@ export const table_org_deployments = defineTable({
     board_top_hat: S,
     shareholders_top_hat: S,
     director_hat: S,
-    books_hat: S,
-    invoicing_hat: S,
-    people_hat: S,
+    officer_hats: Schema.Array(S),
+    books_hat: NullOr(S),
+    invoicing_hat: NullOr(S),
+    people_hat: NullOr(S),
     roles_address: S,
     gate_address: S,
+    chain_id: N,
+    log_id: S,
     deploy_tx_hash: S,
     block_number: N,
     created_at: N,
   }),
   key: ["org_id"],
-  indexes: [],
+  indexes: [
+    {
+      name: "by_occurrence",
+      fields: ["chain_id", "log_id"],
+      unique: true,
+      crossTenant: true,
+      for: "One MoneyDeployed occurrence is admitted by one Organization only (organizations.admitted-deployment).",
+    },
+  ],
   retention: KEPT,
 });
 
@@ -805,7 +828,9 @@ export const machine_org_setup = defineMachine({
     stall: {
       from: ["processing", "awaiting_authorization"],
       to: "needs_attention",
-      about: "A step stopped: its provider retries ran out, a service send reverted, or the install approval was refused, declined, displaced, expired or reverted.",
+      about:
+        "A step stopped: its provider retries ran out, a service send reverted or was lost, or the install approval was " +
+        "refused, declined, displaced, expired or reverted.",
       emits: [event_org_setup_transitioned],
     },
     resume: {
@@ -817,7 +842,10 @@ export const machine_org_setup = defineMachine({
     fail: {
       from: ["processing", "needs_attention"],
       to: "failed",
-      about: "CompanySafeMinted names an owner other than the founder's Safe (the Party is released), or a step's answer is PROVIDER_RESPONSE_INVALID.",
+      about:
+        "CompanySafeMinted names an owner other than the founder's Safe (the Party is released), the landed install's final " +
+        "facts differ from the deployment (install_mismatch: its batch ran, so no second one is opened), or a step's answer " +
+        "is PROVIDER_RESPONSE_INVALID.",
       emits: [event_org_setup_transitioned],
     },
   },
