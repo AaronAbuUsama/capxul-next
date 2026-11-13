@@ -144,9 +144,16 @@ export const restore = Effect.fn("platform.world.snapshot.restore")(function* (p
         const sites = yield* restoreSites(stage, made.world.stage, bench, payload.snapshot, clock).pipe(
           Effect.timeout(SITE_RESTORE),
         );
-        // The new world's companies are the saved world's, at their new sites.
+        // The new world's companies are the saved world's, at their new sites: Core reaches a company's site by its
+        // name (`app.organizations.site`) and lists it by its address (`app.companies.site_url`).
         yield* Effect.forEach(sites, (site) =>
-          made.world.sql("update app.companies set site_url = $2 where site_url = $1", [site.from, site.site]),
+          Effect.andThen(
+            made.world.sql("update app.organizations set site = $2 where site = $1", [site.from, site.site]),
+            made.world.sql("update app.companies set site_url = $2 where site_url = $1", [
+              `https://${site.from}`,
+              `https://${site.site}`,
+            ]),
+          ),
         );
       }
       const { view, facts } = yield* viewOf(made.world.stage, { parent });
