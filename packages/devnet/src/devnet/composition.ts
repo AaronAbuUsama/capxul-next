@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { Database, nextDue, openDue, readSnapshotCut, rewriteRestoredWorld, updateWorldClock } from "@capxul/backend/devnet";
 import { canaryBundlerKeys, prepareBundler, suppliedAlto } from "../modules/bundler/service.ts";
 import { composeBench } from "./bench.ts";
-import { installClock, moveChain, readClocks, readWorldClock } from "./clock.ts";
+import { installClock, moveChain, readClocks, readWorldClock, type WorldClock } from "./clock.ts";
 import { bench as benchExecute } from "./fixture.ts";
 import { warpTarget, warpWorld } from "./warp.ts";
 import { migrateCatalogue, psqlAdmin, readSnapshot, restoreSnapshot, saveSnapshot, worldCatalogue,
@@ -134,10 +134,10 @@ export async function composeWorld(configFile: string) {
       return manifest;
     },
     /** world clock warp (devnet.supervisor-warp): a running world's frozen clock moves forward through every due stop, every follower with it. */
-    async warp(target: { by?: string; to?: string }) {
+    async warp(target: { by?: string; to?: string; at?: number }, outside?: (clock: WorldClock) => Promise<void>) {
       const row = await catalogue(c).show(c.world.id);
       if (row.state !== "running") throw new Error("WRONG_STATE: only a running world's clock is warped; world up first");
-      const from = await readWorldClock(c), at = warpTarget(from.nowMs, target);
+      const from = await readWorldClock(c), at = target.at ?? warpTarget(from.nowMs, target);
       const result = await warpWorld(from, at, {
         database: (clock) => store(c, c.world, (db) => updateWorldClock(db, clock)),
         nextDue: (after, until) => store(c, c.world, (db) => nextDue(db, after, until)),
@@ -147,6 +147,7 @@ export async function composeWorld(configFile: string) {
         site: async (site, fromMs, toMs) => { const host = Date.now();
           await benchExecute(c, site.name, "capxul.clock.advance", [], { from_offset_ms: fromMs - host, to_offset_ms: toMs - host, step_days: 1 }); },
         bench: (clock) => bench.clock(c.world.id, clock),
+        ...(outside ? { outside } : {}),
       }, { stateDir: c.world.stateDir, sites: c.world.sites, finality: c.finality });
       await catalogue(c).clock(c.world.id, result.worldNow, await recordedCommand(c, "world clock warp", { ...target, stops: result.stops.length }));
       return { worldId: c.world.id, clockMode: "frozen" as const, rate: result.rate, worldNow: result.worldNow };

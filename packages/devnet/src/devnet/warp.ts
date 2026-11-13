@@ -17,6 +17,8 @@ export type WarpFollowers = {
   site(site: Site, fromMs: number, toMs: number): Promise<void>;
   /** The bench's clock entry for the world, which every site's web and job workers read. */
   bench(clock: WorldClock): Promise<void>;
+  /** The followers that joined over the control protocol, which acknowledge each stop (devnet.time-protocol). */
+  outside?(clock: WorldClock): Promise<void>;
 };
 export type WarpOptions = { stateDir: string; sites: readonly Site[]; finality: number; settleMs?: number; maxStops?: number };
 export type WarpResult = { clockMode: "stopped"; rate: number; worldNow: number; stops: number[] };
@@ -66,6 +68,7 @@ export async function warpWorld(from: WorldClock, target: number, followers: War
     await follower("chain", () => followers.chain(stop, options.finality));
     for (const site of options.sites) await follower(`site ${site.company}`, () => followers.site(site, now, stop));
     await follower("bench clock", () => followers.bench(clock));
+    if (followers.outside) await follower("protocol followers", () => followers.outside!(clock));
     await authority(clock);
     const deadline = performance.now() + (options.settleMs ?? 60_000);
     let open = await followers.openDue(stop);
