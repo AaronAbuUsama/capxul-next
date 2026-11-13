@@ -1,7 +1,7 @@
 {
   "proof": "of two creates of one name at once, one creates the world and the other is refused before it makes anything",
   "outcome": "passed",
-  "at": "2026-11-13T14:12:07.409Z",
+  "at": "2026-11-13T18:06:26.145Z",
   "checks": [
     {
       "check": "exactly one create succeeded",
@@ -35,26 +35,26 @@
   "observations": {
     "results": [
       "created",
-      "WorldExists: {\"world\":\"p-race\",\"owner\":\"racer-a\",\"expiresAt\":\"2026-11-13T14:49:52.550Z\"}"
+      "WorldExists: {\"world\":\"p-race\",\"owner\":\"racer-a\",\"expiresAt\":\"2026-11-13T18:43:32.459Z\"}"
     ],
     "whatTheAccountsHeld": [
-      "capxulworld-core-w-p-race-zf7vx5f5spd2hdif",
-      "capxulworld-door-w-p-race-7jcnqsmnigbtxdio",
-      "capxulworld-alto-w-p-race-lnx3xcf5zzxioazj",
-      "capxulworld-ponder-w-p-race-y7pf66xnf4o6i4fv",
-      "capxulworld-anvil-w-p-race-lfvtbkojoklzwkyk",
-      "capxulworld-door-w-p-race-7jcnqsmnigbtxdio",
-      "capxulworld-door-w-p-race-7jcnqsmnigbtxdio",
-      "capxulworld-door-w-p-race-7jcnqsmnigbtxdio",
-      "capxulworld-chainstate-w-p-race-4vbgub5yi4uwyw45",
-      "capxulworld-world-db-w-p-race-otxkosxx2tuxaup2",
+      "capxulworld-core-w-p-race-64ygykzmnwemqynq",
+      "capxulworld-door-w-p-race-5k7vi7cgmlvfq4wz",
+      "capxulworld-alto-w-p-race-6sjzezcanjny4day",
+      "capxulworld-ponder-w-p-race-lm3l25rdwjeyuozx",
+      "capxulworld-anvil-w-p-race-enzoywryvhpzj7s5",
+      "capxulworld-door-w-p-race-5k7vi7cgmlvfq4wz",
+      "capxulworld-door-w-p-race-5k7vi7cgmlvfq4wz",
+      "capxulworld-door-w-p-race-5k7vi7cgmlvfq4wz",
+      "capxulworld-chainstate-w-p-race-jqonvzfki6fm7gqa",
+      "capxulworld-world-db-w-p-race-bbyvqj6mi2wn52jy",
       "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-p-race"
     ],
     "inSharedState": [
       {
         "world": "w-p-race",
         "owner": "racer-a",
-        "expiresAt": "2026-11-13T14:49:52.550Z",
+        "expiresAt": "2026-11-13T18:43:32.459Z",
         "status": "up",
         "state": "live"
       }

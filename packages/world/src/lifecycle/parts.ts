@@ -211,7 +211,14 @@ export const isRunning = (world: Door, part: "chain" | "index") =>
 export const indexStatus = (world: Door) =>
   doorCall(world, "index", HttpClientRequest.get("/index/status"), IndexStatus);
 
-/** Starts the index and waits until Ponder says its backfill is done. A start that did not hold is made again. */
+/** The chain's or the index's own record of its starts (each with every try) and stops, as its Durable Object keeps it. */
+export const partStatus = (world: Door, part: "chain" | "index") =>
+  doorCall(world, part, HttpClientRequest.get(`/${part}/status`), Schema.Unknown);
+
+/**
+ * Starts the index and waits until Ponder says its backfill is done. The index's Durable Object tries a refused start
+ * again within its patience (src/containers/patience.ts); a start that did not hold is made again from here.
+ */
 export const indexReady = (world: Door) =>
   patient(
     Effect.gen(function* () {
