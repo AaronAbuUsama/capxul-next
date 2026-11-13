@@ -44,18 +44,38 @@ Learned from worlds piling up on one machine on the other line.
 
 Phase 1 is narrow and done by few agents. Parallel agents start at phase 3, one journey each.
 
-## Risks to spike, and where each stands
+## Steps to the goal of phases 0 to 2
 
-| Risk | State |
-|---|---|
-| Alchemy deploys from an agent's container with no key inside it | Proven (`spikes/hosting`) |
-| A world's database as a Neon branch: created, isolated, forked from another world | Proven (`spikes/hosting`) |
-| World lifecycle: a world is created, used and destroyed as one unit, with an owner, an expiry and timed steps | Proven (`spikes/hosting`) |
-| Deleting expired Cloudflare resources without anyone remembering to | Open |
-| One operation from contract to a passing scenario | Next |
-| Chain, Ponder and Core as Cloudflare Containers against a world's Neon branch | Open |
-| Two worlds at different clocks on one Frappe bench | Open |
-| Alchemy state shared between containers | Open |
-| How long a scenario run takes from a template world | Open |
-| Real sign-in and signing for people | Open |
-| Bridge banking | Open |
+Progress is counted from this table and nothing else. A step is Done only when a run proves it; the run or pull
+request is named under Evidence. `Needs` lists the steps that must be Done first. `Count` is used where a step is
+several like things (twelve scenarios); every other step counts as one. `Waits on` names a person when only they can
+unblock it.
+
+| Step | Milestone | What | Needs | State | Count | Waits on | Done on | Evidence |
+|---|---|---|---|---|---|---|---|---|
+| 0.1 | 0 | Alchemy deploys from an agent's container with no key inside it | | Done | | | 2026-11-13 | `spikes/hosting`, PR 142 |
+| 0.2 | 0 | A world's one database is a Neon branch: created, isolated, forked from another world | | Done | | | 2026-11-13 | `spikes/hosting`, PR 142 |
+| 0.3 | 0 | A world is created, used and destroyed as one unit, with an owner, an expiry and timed steps | 0.2 | Done | | | 2026-11-13 | `spikes/hosting`, PR 142 |
+| 0.4 | 0 | Alchemy state is shared, so any container can see and destroy any world | 0.1 | In progress | | | | |
+| 0.5 | 0 | Expired worlds are deleted without anyone remembering to, Cloudflare resources included | 0.4 | In progress | | | | |
+| 0.6 | 0 | A world's chain and index run as Cloudflare Containers against its Neon branch and stop when idle | 0.2 | In progress | | | | |
+| 0.7 | 0 | One operation goes from an Effect contract, to a scenario that fails on an empty handler, to a pass | 0.2 | Not started | | | | |
+| 0.8 | 0 | Two worlds at different clocks share one Frappe bench | | Not started | | | | |
+| 0.9 | 0 | A scenario run from a template world is timed end to end | 0.6, 0.7 | Not started | | | | |
+| 1.1 | 1 | The thin line's operations are declared in the contract and the server compiles with empty handlers | 0.7 | Not started | 0/12 | | | |
+| 1.2 | 1 | The scenario runner checks declared events, spans and speed on every run and stores the timings | 0.7 | Not started | | | | |
+| 1.3 | 1 | One command creates and destroys a private world: chain, index, Core and database | 0.4, 0.5, 0.6 | Not started | | | | |
+| 1.4 | 1 | A company's Frappe site in a private world is reached through the door | 0.8, 1.3 | Not started | | | | |
+| 1.5 | 1 | The thin line's scenarios are written by a separate agent and fail on empty handlers | 1.1, 1.2 | Not started | 0/12 | | | |
+| 1.6 | 1 | The thin line's scenarios pass in a fresh private world | 1.3, 1.4, 1.5 | Not started | 0/12 | | | |
+| 1.7 | 1 | CI fails when the two Effect counts rise | 1.1 | Not started | | | | |
+| 1.8 | 1 | CI on `master` creates a world, runs the thin line and destroys the world | 1.6 | Not started | | Aaron: Cloudflare and Neon keys as CI secrets | | |
+| 2.1 | 2 | A host for the Frappe bench and a domain on Cloudflare exist | | Not started | | Aaron: a host account and a domain | | |
+| 2.2 | 2 | The platform (bench, tunnel, shared state) is deployed by Alchemy | 2.1, 0.4 | Not started | | | | |
+| 2.3 | 2 | A shared world exists whose sites are created with a per-world token | 2.2, 1.6 | Not started | | | | |
+| 2.4 | 2 | The thin line's scenarios pass on the shared world after a deploy | 2.3 | Not started | 0/12 | | | |
+| 2.5 | 2 | The drift check runs on a schedule and is clean | 2.2 | Not started | | | | |
+
+## Risks for later phases
+
+Not needed to finish phases 0 to 2, so not counted above: real sign-in and signing for people, and Bridge banking.
