@@ -375,6 +375,20 @@ export const decision_plugs_ledger_trace_display = dec({
   affects: [f.component_frappe_app, doctype_gl_entry],
 });
 
+export const decision_plugs_request_starts_trace = dec({
+  id: "plugs.request-starts-trace",
+  title: "A payment request starts the money trail's trace when no caller sent one",
+  question: "A person who presses Submit in the desk sends no X-Capxul-Trace, so the request, its chain event and its ledger rows carry an empty trace. Where does the trace come from then?",
+  options: [
+    { label: "request-starts", text: "request_payment keeps a caller's trace and otherwise starts one (tr_ plus 24 random lowercase characters) before writing the request row. The request body carries it to Core, the approval and PaymentSent bring it back, and the posted GL rows are stamped with it." },
+    { label: "caller-only", text: "Only callers that send a trace get one; desk submissions post untraced ledger rows." },
+  ],
+  chosen: "request-starts",
+  why: "plugs.ledger-trace-display requires the settled payment's GL rows to show one persisted trace, and the desk is the ordinary way a person requests a payment. On world scrz1 (run run-20261113054032098-f6e9c408) the hat holder's request carried no trace, both GL rows of the settled payment had a null capxul_trace and ACCEPT.money-reconciled failed. A trace started at the request is the earliest point both the site and Core share.",
+  evidence: "Selected-stack run run-20261113054032098-f6e9c408 on world scrz1, 13 November 2026",
+  affects: [f.component_frappe_app, d.table_payment_requests, doctype_gl_entry],
+});
+
 export const decision_plugs_later_deposits = dec({
   id: "plugs.later-deposits",
   title: "Later incoming transfers are not founder capital",
