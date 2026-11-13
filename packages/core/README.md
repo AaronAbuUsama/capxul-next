@@ -39,7 +39,7 @@ Core serves the platform group too, until `packages/world` serves it (blueprint 
 ## A stage of `CapxulCore`
 
 A stage is named `core-<6 hex>`, which is also its world's name. It holds a Neon project (`core-db`, London) whose
-default branch is the database, a Hyperdrive configuration in front of it (`core-db`), and the Worker (`Core`). The
+default branch is the database, a Hyperdrive configuration in front of it (`core-hyperdrive`), and the Worker (`Core`). The
 Worker reads `WORLD_OWNER` at deploy; Alchemy binds it into the Worker's environment. The runner
 (`packages/runner`) deploys a stage, applies `migrations/`, waits for Core to answer, runs, reads the spans back and
 destroys the stage, whatever happened. Alchemy's state is local (`.alchemy/`, never committed), so only the checkout

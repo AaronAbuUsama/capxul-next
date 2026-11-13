@@ -24,5 +24,8 @@ export const CoreProject = Effect.gen(function* () {
  */
 export const CoreDatabase = Effect.gen(function* () {
   const project = yield* CoreProject;
-  return yield* Cloudflare.Hyperdrive.Connection("core-db", { origin: project.origin, caching: { disabled: true } });
+  return yield* Cloudflare.Hyperdrive.Connection("core-hyperdrive", {
+    origin: project.origin,
+    caching: { disabled: true },
+  });
 });
