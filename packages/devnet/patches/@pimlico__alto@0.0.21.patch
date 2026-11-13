@@ -41,3 +41,63 @@ index 9ee2998ec07657268c14adb28bc8ac5b71ab64a6..c1683cd4b24d08ee8a9629d50086a385
      }
      async stop() {
          await this.fastify.close();
+diff --git a/esm/rpc/validation/SafeValidator.js b/esm/rpc/validation/SafeValidator.js
+index cbf1bf8..8cf31fe 100644
+--- a/esm/rpc/validation/SafeValidator.js
++++ b/esm/rpc/validation/SafeValidator.js
+@@ -6,6 +6,7 @@ import { tracerResultParserV06 } from "./TracerResultParserV06.js";
+ import { tracerResultParserV07 } from "./TracerResultParserV07.js";
+ import { UnsafeValidator } from "./UnsafeValidator.js";
+ import { debug_traceCall } from "./tracer.js";
++const chainNow = async (publicClient) => Number((await publicClient.getBlock({ blockTag: "latest" })).timestamp); // capxul: one world clock (devnet.one-world-clock)
+ export class SafeValidator extends UnsafeValidator {
+     senderManager;
+     constructor({ config, senderManager, metrics, gasPriceManager }) {
+@@ -108,7 +109,7 @@ export class SafeValidator extends UnsafeValidator {
+         if (validationResult.returnInfo.sigFailed) {
+             throw new RpcError("Invalid UserOp signature or paymaster signature", ERC7769Errors.InvalidSignature);
+         }
+-        const now = Date.now() / 1000;
++        const now = await chainNow(this.config.publicClient);
+         this.logger.debug({
+             validAfter: validationResult.returnInfo.validAfter,
+             validUntil: validationResult.returnInfo.validUntil,
+@@ -319,7 +320,7 @@ export class SafeValidator extends UnsafeValidator {
+         if (res.returnInfo.paymasterSigFailed) {
+             throw new RpcError("Invalid UserOp paymasterData", ERC7769Errors.InvalidSignature);
+         }
+-        const now = Math.floor(Date.now() / 1000);
++        const now = await chainNow(this.config.publicClient);
+         if (res.returnInfo.validAfter > now - 5) {
+             throw new RpcError(`User operation is not valid yet, validAfter=${res.returnInfo.validAfter}, now=${now}`, ERC7769Errors.ExpiresShortly);
+         }
+diff --git a/esm/rpc/validation/UnsafeValidator.js b/esm/rpc/validation/UnsafeValidator.js
+index 0db719e..66765e3 100644
+--- a/esm/rpc/validation/UnsafeValidator.js
++++ b/esm/rpc/validation/UnsafeValidator.js
+@@ -6,6 +6,7 @@ import { fromZodError } from "zod-validation-error";
+ import { getEip7702DelegationOverrides } from "../../utils/eip7702.js";
+ import { GasEstimationHandler } from "../estimation/gasEstimationHandler.js";
+ import { toErc7769Code } from "../estimation/utils.js";
++const chainNow = async (publicClient) => Number((await publicClient.getBlock({ blockTag: "latest" })).timestamp); // capxul: one world clock (devnet.one-world-clock)
+ export class UnsafeValidator {
+     config;
+     metrics;
+@@ -178,7 +179,7 @@ export class UnsafeValidator {
+         if (validationResult.returnInfo.sigFailed) {
+             throw new RpcError("Invalid UserOperation signature or paymaster signature", ERC7769Errors.InvalidSignature);
+         }
+-        const now = Date.now() / 1000;
++        const now = await chainNow(this.config.publicClient);
+         this.logger.debug({
+             validAfter: validationResult.returnInfo.validAfter,
+             validUntil: validationResult.returnInfo.validUntil,
+@@ -272,7 +273,7 @@ export class UnsafeValidator {
+         if (res.returnInfo.paymasterSigFailed) {
+             throw new RpcError("Invalid UserOp paymasterData", ERC7769Errors.InvalidSignature);
+         }
+-        const now = Math.floor(Date.now() / 1000);
++        const now = await chainNow(this.config.publicClient);
+         if (res.returnInfo.validAfter > now) {
+             throw new RpcError(`User operation is not valid yet, validAfter=${res.returnInfo.validAfter}, now=${now}`, ERC7769Errors.ExpiresShortly);
+         }

@@ -1,79 +1,39 @@
 {
   "area": "plugs",
-  "script": "spikes/skeleton/run.sh",
-  "worlds": [
-    "main"
-  ],
-  "secrets": [
-    "spikes/skeleton/.env",
-    "spikes/skeleton/core/people.json"
-  ],
-  "bindings": [
-    {
-      "eval": "wfl:plugs.events.deliver/idempotent",
-      "checks": [
-        "B4b.redelivery-answered-already-applied",
-        "B4b.one-posting"
-      ],
-      "why": "Core delivers the same payment_sent event to the real site a second time. The first check finds the site answering 'already applied'; the second finds one applied event, the same ledger rows and one submission: a second run with the same key changes nothing."
-    }
-  ],
+  "script": "packages/evals/src/modules/plugs/run.sh",
+  "worlds": ["slice-zero"],
+  "secrets": [],
+  "bindings": [],
   "near": [
     {
       "eval": "acc:payment.prepare-document/c-c62b571173b28006",
-      "checks": ["B3.submit-waits-for-signature", "B3.still-a-draft-while-waiting"],
-      "missing": "The payment waits for a signature, but nothing checks that the answer names whose signature it is."
+      "checks": ["PLUGS.selected-stack", "PLUGS.saved-answers"],
+      "missing": "Native immutable requests match committed saved answers and approval trace/identity. This does not invoke the public prepare command, check the awaiting signer's canonical name, or prove its waiting draft and eventual chain settlement."
     },
     {
-      "eval": "acc:payment.prepare-document/c-81875db5ae4f4b6d",
-      "checks": ["B4a.signer-without-hat-refused-by-chain"],
-      "missing": "A person with no hat that may pay is refused, but by the chain at signing with NOT_AUTHORISED, not when the payment is prepared, and the reason shown to them is not checked."
-    },
-    {
-      "eval": "wfl:plugs.events.deliver/resume",
-      "checks": [
-        "B4c.signed-while-frappe-down-money-moved",
-        "B4c.core-holds-undelivered-event",
-        "B4c.entry-posts-after-frappe-returns",
-        "B4c.exactly-once"
-      ],
-      "missing": "A delivery that cannot land because the site is down finishes once the site is back, exactly once, but the process is not killed mid-run: it is the stand-in's outbox, not the workflow engine."
-    },
-    {
-      "eval": "acc:org.events.status/c-ef5edbe491887c31",
-      "checks": [
-        "B4g.parked-event-visible-with-reason",
-        "B4g.poison-event-outbox-drains",
-        "B4g.later-hat-still-reaches-site"
-      ],
-      "missing": "An event the site cannot apply is parked with its error and does not block the next, but the error is read from the site, not listed by `org events status`."
+      "eval": "wfl:plugs.payments.collect/idempotent",
+      "checks": ["PLUGS.selected-stack", "PLUGS.saved-answers"],
+      "missing": "Read-only equality of persisted requests/answers is not a lost-ACK retry or collector process-death control. The actual workflow must replay its complete saved success/refusal answer and keep one approval in this fresh selected run."
     },
     {
       "eval": "acc:org.roles.show/c-97c546c64250eacb",
-      "checks": [
-        "B2.roles-follow-grant",
-        "B2.revoke-removes-roles"
-      ],
-      "missing": "A hat's roles follow its grant and its revoke, but the union of several hats, and each role's hats named, are not read."
+      "checks": ["PLUGS.selected-stack", "PLUGS.native-release-map", "PLUGS.native-site"],
+      "missing": "The real provider admits the shipped named role map and observes native readiness. It does not establish finalized numeric-hat/Department authority, bootstrap a hat-created user, or exercise the public role union command through grant and revoke."
     },
     {
       "eval": "jrn:grant_hat_in_frappe",
-      "checks": [
-        "B2.hat-grant-on-chain",
-        "B2.roles-follow-grant",
-        "B2.hand-edit-of-roles-refused"
-      ],
-      "missing": "A hat is granted and the roles follow, but the grant is not a Director proposal, and `org roles show` and `org roles drift` are not run."
+      "checks": ["PLUGS.selected-stack", "PLUGS.native-release-map", "PLUGS.native-site"],
+      "missing": "Release-map and readiness observations are prerequisites only. A real Director proposal, finalized authoritative projection, permission controls and public roles show/drift still need execution without fixture grants."
     },
     {
-      "eval": "jrn:stays_true_when_broken",
-      "checks": [
-        "B4a.signer-without-hat-refused-by-chain",
-        "B4b.one-posting",
-        "B4c.exactly-once",
-        "B4g.poison-event-outbox-drains"
-      ],
-      "missing": "Each breakage ends consistent, but the steps `org events status`, `retry` and `resend` are not run as commands."
+      "eval": "wfl:plugs.events.deliver/idempotent",
+      "checks": ["PLUGS.selected-stack"],
+      "missing": "The old main-world JSON skeleton replay is not selected proof. Kill/replay the actual selected worker after native commit before ACK and observe one accounting posting with complete saved acknowledgement/history controls in this run."
+    },
+    {
+      "eval": "wfl:plugs.events.deliver/resume",
+      "checks": ["PLUGS.selected-stack"],
+      "missing": "Observe actual selected process death and restart with the durable outbox, native ERPNext and original posted-money controls. Component controls or a stopped bench alone do not prove workflow resume."
     }
   ]
 }

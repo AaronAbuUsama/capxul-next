@@ -1,5 +1,5 @@
 import type { Sql } from "../platform/db.ts";
-export { readChainFact } from "./carrier.ts";
+export { readChainFact, type IndexedUserOperation } from "./carrier.ts";
 export { readMoneyDeployment, type MoneyDeploymentFact } from "./deployment.ts";
 export { readSafeExecution, readSafeApprovals, readSafeOwnersAt, type SafeExecutionFact, type SafeApprovalFact, type SafeOwnersFact } from "./safes.ts";
 export { readHatAt, readHatWearersAt, readWearerHatsAt, readHatTransfersInTx, type HatFact, type HatWearerFact, type WearerHatFact, type HatTransferInTx } from "./hats.ts";
