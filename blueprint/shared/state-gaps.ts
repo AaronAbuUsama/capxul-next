@@ -95,6 +95,18 @@ export const decision_system_standing_gaps = defineDecision({
   affects: [f.system_capxul],
 });
 
+export const decision_system_eval_warm_budgets = defineDecision({
+  id: "system.eval-warm-budgets", title: "Budget claims are judged from this run's warm samples by one shared rule",
+  question: "How does a runner prove a budget claim (bud:*/p95, rpc:*/budget, flw:*/budget) on the selected stack?",
+  options: [
+    { label: "warm-in-run", text: "Use only samples measured in this run, from operational host time (the database's clock_timestamp() created_at/acked_at pairs or span durations), never the world or chain clock. A sample may subtract only named waits the claim's subject record excludes: a workflow's waits (wait.<name>), its budget's excludes and chain.confirm; a flow's local wait steps (wait.<step>) and its budget's excludes; an operation's or rpc's budget excludes, which are usually none. Any other wait name, or waits longer than the sample, is refused. Every sample carries its host-clock start (startedAt, epoch ms); the helper orders each kind by it, a kind being one measured path in one process, so the earliest sample of each kind is cold and excluded whatever order the caller passes; a missing start or two samples of one kind starting together is refused. Every kind needs a warm sample, and the warm count N must be at least 2, or the check fails. With N at least 20, p95 and p50 are nearest-rank (the ceil(q*N)-th smallest). With N below 20, the maximum must be within the p95 budget and the median within the p50 budget. Budgets without p50 check p95 only. The numbers come from the eval's blueprint record, and the evidence keeps the budget, its exclusions, N (warm samples only), the method, every sample, warm and cold, and the result. packages/evals/src/modules/budgets is the one implementation every runner uses." },
+    { label: "per-lane", text: "Each lane computes its own percentiles. Different warm-up, sample-size and percentile rules would make the same claim pass in one runner and fail in another." },
+  ],
+  chosen: "warm-in-run", why: "A budget claim is a statement about this build on this stack, so only same-run host-clock samples can prove it, and world time can be moved by the devnet clock. Independent review found that an unnamed wait amount could cancel any sample and that the cold sample depended on the caller's array order, so waits are named by the record and order by the host clock. Nearest-rank p95 below 20 samples is the maximum anyway; requiring max and median there keeps small runs honest without pretending to a percentile. One shared helper keeps every lane's verdict comparable.",
+  source: "Wave Zero integrator ruling on budget evals, 13 November 2026; packages/blueprint-engine/src/evals.ts bud/rpc/flw budget claims",
+  affects: [f.system_capxul],
+});
+
 export const decision_system_eval_screen_manifests = defineDecision({
   id: "system.eval-screen-manifests", title: "Each eval module lists its own screen captures",
   question: "How do two modules in one run both report screen captures when the run has one screens.json?",
