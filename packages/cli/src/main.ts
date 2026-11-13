@@ -1,7 +1,5 @@
 #!/usr/bin/env -S node --experimental-strip-types --no-warnings
 import { createSitesClient, ProvisioningError } from "@capxul/sdk";
-import { privateKeyToAccount } from "viem/accounts";
-import type { Hex } from "viem";
 import { runDocuments } from "./documents.ts";
 
 const args = process.argv.slice(2);
@@ -22,10 +20,9 @@ try {
       throw new ProvisioningError("CLI_USAGE", usage);
     }
     if (!args.includes("--confirm")) throw new ProvisioningError("CLI_USAGE", "Review the registered company, then pass --confirm to provision its site");
-    const key = process.env.CAPXUL_PRIVATE_KEY;
-    if (!/^0x[\da-fA-F]{64}$/.test(key ?? "")) throw new ProvisioningError("NOT_AUTHENTICATED", "CAPXUL_PRIVATE_KEY must contain the caller's local signing key");
     if (!process.env.CAPXUL_CORE_URL) throw new ProvisioningError("CLI_USAGE", "CAPXUL_CORE_URL is required");
-    const sites = createSitesClient({ coreUrl: process.env.CAPXUL_CORE_URL, account: privateKeyToAccount(key as Hex) });
+    // The person's Access session, as for doc and report commands; no wallet key or bench credential.
+    const sites = createSitesClient({ coreUrl: process.env.CAPXUL_CORE_URL, bearer: () => process.env.CAPXUL_ACCESS_TOKEN ?? "" });
     const result = await sites.provision({ org });
     console.log(args.includes("--json") ? JSON.stringify(result) : `${result.org}: ${result.site} provisioned; Core delivery released`);
   }

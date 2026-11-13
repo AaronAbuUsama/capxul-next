@@ -2,7 +2,7 @@
 
 The public CLI calls the product SDK; it has no bench subprocesses or operator secrets. This first slice implements only the site-provisioning stage, not the complete onboarding command family.
 
-Run `node --experimental-strip-types --no-warnings packages/cli/src/main.ts org site provision --org <slug> --confirm --json` after the company's real v4 birth and trusted Core registration. `CAPXUL_CORE_URL` identifies Core; `CAPXUL_PRIVATE_KEY` is the caller's local signing key (public test key in an orb). Neither value is sent to the site service as a credential; only the signed request reaches Core, and the private key never leaves the CLI.
+Run `node --experimental-strip-types --no-warnings packages/cli/src/main.ts org site provision --org <slug> --confirm --json` after the company's real v4 birth and trusted Core registration. `CAPXUL_CORE_URL` identifies Core; `CAPXUL_ACCESS_TOKEN` is the person's Access session, sent to Core as `Authorization: Bearer` exactly as for `doc` and `report` commands. No wallet key or signature is used, and the session never reaches the site service.
 
 The SDK verifies response identity and exposes named refusals. JSON success goes to stdout, JSON errors to stderr; exit 0 means provisioned and delivery released, not that all first events have landed. Usage errors exit 2; other refusals exit 1. See `packages/site-service/README.md` for the backend boundary and integrated-run prerequisites.
 

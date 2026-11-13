@@ -15,9 +15,10 @@ function json(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" });
   res.end(JSON.stringify(body));
 }
-export function createCore(config: Config, provision?: (req: IncomingMessage, res: ServerResponse) => Promise<boolean>) {
+export function createCore(config: Config, mountProvision?: (db: Database) => (req: IncomingMessage, res: ServerResponse) => Promise<boolean>) {
   if (!Number.isSafeInteger(config.finality) || config.finality < 0) throw new Error("FINALITY_DEPTH must be a nonnegative integer");
   const db = new Database(config.database, config.workerDatabase);
+  const provision = mountProvision?.(db);
   let paused = config.startPaused, closing = false, activeRequests = 0, activeDeliveries = 0;
   let activeLoop: Promise<void> = Promise.resolve(), timer: ReturnType<typeof setTimeout> | undefined;
   let pauseWork: Promise<Awaited<ReturnType<typeof readSnapshotCut>>> | undefined;

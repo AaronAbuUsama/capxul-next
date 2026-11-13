@@ -1,11 +1,8 @@
-import type { Address, Hex, LocalAccount } from "viem";
+import type { Address } from "viem";
 
 export * from "./documents.ts";
 
 export const PROVISION_PATH = "/org/site/provision";
-export const provisioningMessage = (origin: string, raw: string): string =>
-  `Capxul site provisioning\n${new URL(origin).origin}\nPOST ${PROVISION_PATH}\n${raw}`;
-
 export type ProvisionedSite = { org: string; safe: Address; site: string; url: string; state: "provisioned" };
 
 export class ProvisioningError extends Error {
@@ -13,18 +10,19 @@ export class ProvisioningError extends Error {
   constructor(code: string, message: string) { super(message); this.name = "ProvisioningError"; this.code = code; }
 }
 
-/** Public caller door. Only the caller's signer is needed; service credentials never enter the SDK. */
-export function createSitesClient(options: { coreUrl: string; account: Pick<LocalAccount, "address" | "signMessage"> }) {
+/** Public caller door. Every call obtains the person's current opaque Access session; no wallet key or service credential. */
+export function createSitesClient(options: { coreUrl: string; bearer(): string | Promise<string> }) {
   const origin = new URL(options.coreUrl).origin;
   return {
     async provision(input: { org: string }): Promise<ProvisionedSite> {
       if (!/^[a-z][a-z0-9-]{1,30}$/.test(input.org)) throw new ProvisioningError("INVALID_INPUT", "Invalid company slug");
-      const raw = JSON.stringify({ org: input.org, caller: options.account.address, expiresAt: Date.now() + 60_000 });
-      const signature: Hex = await options.account.signMessage({ message: provisioningMessage(origin, raw) });
+      const bearer = await options.bearer();
+      if (!bearer || /\s/.test(bearer)) throw new ProvisioningError("NOT_AUTHENTICATED", "An Access Bearer session is required");
+      const raw = JSON.stringify({ org: input.org });
       let response: Response;
       try {
         response = await fetch(`${origin}${PROVISION_PATH}`, {
-          method: "POST", body: raw, headers: { "content-type": "application/json", "x-capxul-signature": signature },
+          method: "POST", body: raw, headers: { "content-type": "application/json", authorization: `Bearer ${bearer}` },
           signal: AbortSignal.timeout(30 * 60_000),
         });
       } catch { throw new ProvisioningError("PROVIDER_ERROR", "Core is unreachable; retry the same company to resume provisioning"); }

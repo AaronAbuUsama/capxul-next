@@ -11,15 +11,14 @@ import { execFile, spawn } from "node:child_process";
 import { once } from "node:events";
 import { setTimeout as delay } from "node:timers/promises";
 import { promisify } from "node:util";
-import { encodeAbiParameters, type Address, type Hex } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { createSitesClient, PROVISION_PATH, provisioningMessage } from "@capxul/sdk";
+import { Effect } from "effect";
+import type { Address } from "viem";
+import { createSitesClient, PROVISION_PATH } from "@capxul/sdk";
 import { createProvisioningHandler, createSiteService } from "./door.ts";
 
 const exec = promisify(execFile);
-const key = `0x${"11".repeat(32)}` as Hex;
-const founder = privateKeyToAccount(key);
-const other = privateKeyToAccount(`0x${"22".repeat(32)}`);
+// Opaque Access sessions; the authorizer below stands in for Core's Access/Organizations composition.
+const founderSession = "founder-session", memberSession = "member-session";
 const safe = `0x${"33".repeat(20)}` as Address;
 const personal = `0x${"44".repeat(20)}` as Address;
 const servers: Server[] = [];
@@ -45,18 +44,16 @@ async function setup() {
   let siteService = createSiteService(options);
   let siteServiceUrl = await listen(siteService);
   const info = { slug: "acme", name: "Acme '$(touch NEVER)' Ltd", safe, site: "acme-town1.localhost", adminEmail: "founder@example.test",
-    people: [{ email: "founder@example.test", name: "Founder", address: founder.address }], released: false };
-  let founderOwns = true;
-  const rpcUrl = await listen(createServer(async (req, res) => {
-    let raw = ""; for await (const chunk of req) raw += chunk;
-    const call = JSON.parse(raw);
-    const address = call.params?.[0]?.to?.toLowerCase();
-    let result: string;
-    if (call.method === "eth_getCode") result = "0x6000";
-    else if (call.method === "eth_call") result = encodeAbiParameters([{ type: "address[]" }], [address === safe.toLowerCase() ? [personal] : [founderOwns ? founder.address : other.address]]);
-    else throw new Error(`Unexpected RPC ${call.method}`);
-    res.setHeader("content-type", "application/json"); res.end(JSON.stringify({ jsonrpc: "2.0", id: call.id, result }));
-  }));
+    released: false };
+  let founderAdmitted = true;
+  const authorized: { orgId: string; bearer: string }[] = [];
+  const authorize = ({ orgId, bearer }: { orgId: string; bearer: string }) => {
+    authorized.push({ orgId, bearer });
+    if (bearer === "unavailable") return Effect.fail({ code: "SQL_DOWN", message: "postgres://secret@db" });
+    if (bearer !== founderSession && bearer !== memberSession) return Effect.fail({ code: "NOT_AUTHENTICATED", message: "session ended or expired" });
+    if (bearer === memberSession || !founderAdmitted) return Effect.fail({ code: "ROLE_PERMISSION_DENIED", message: "current Seat required" });
+    return Effect.succeed({ personId: "person-founder", kind: "person" as const, email: "founder@example.test", safeAddress: personal, signerAddress: null });
+  };
   let handler: ReturnType<typeof createProvisioningHandler>;
   const coreUrl = await listen(createServer(async (req, res) => {
     if (await handler(req, res)) return;
@@ -71,10 +68,10 @@ async function setup() {
     }
     res.setHeader("content-type", "application/json"); res.end(JSON.stringify(info));
   }));
-  const mount = () => { handler = createProvisioningHandler({ publicOrigin: coreUrl, rpcUrl, coreUrl, coreSecret: options.secret, siteServiceUrl, siteServiceToken: options.token }); };
+  const mount = () => { handler = createProvisioningHandler({ coreUrl, coreSecret: options.secret, siteServiceUrl, siteServiceToken: options.token, authorize }); };
   mount();
-  return { root, bench, info, options, coreUrl, sites: createSitesClient({ coreUrl, account: founder }),
-    siteUrl: () => siteServiceUrl, removeFounder: () => { founderOwns = false; },
+  return { root, bench, info, options, coreUrl, sites: createSitesClient({ coreUrl, bearer: () => founderSession }), authorized,
+    siteUrl: () => siteServiceUrl, removeFounder: () => { founderAdmitted = false; },
     async restart() { await new Promise<void>((resolve) => siteService.close(() => resolve())); siteService = createSiteService(options); siteServiceUrl = await listen(siteService); mount(); },
   };
 }
@@ -87,7 +84,7 @@ test("public SDK/CLI retries an interrupted bench creation and preserves identit
   await rm(join(s.bench, "fail-configure"));
   const cli = fileURLToPath(new URL("../../../cli/src/main.ts", import.meta.url));
   const { stdout } = await exec(process.execPath, ["--experimental-strip-types", "--no-warnings", cli, "org", "site", "provision", "--org", "acme", "--confirm", "--json"], {
-    env: { PATH: process.env.PATH, CAPXUL_CORE_URL: s.coreUrl, CAPXUL_PRIVATE_KEY: key },
+    env: { PATH: process.env.PATH, CAPXUL_CORE_URL: s.coreUrl, CAPXUL_ACCESS_TOKEN: founderSession },
   });
   const expected = { org: "acme", safe: safe.toLowerCase(), site: "acme-town1.localhost", url: "http://acme-town1.localhost:8000", state: "provisioned" };
   assert.deepEqual(JSON.parse(stdout), expected);
@@ -112,19 +109,26 @@ test("public SDK/CLI retries an interrupted bench creation and preserves identit
   assert.equal(JSON.parse(await readFile(join(s.bench, expected.site, "site.json"), "utf8")).settings.safe_address, personal);
 });
 
-test("public provisioning rejects wrong callers, altered bodies, wrong origins, expired requests and removed Safe ownership", async () => {
+test("public provisioning admits only an authorized Access principal and refuses before any site work", async () => {
   const s = await setup();
-  await assert.rejects(createSitesClient({ coreUrl: s.coreUrl, account: other }).provision({ org: "acme" }), { code: "ROLE_PERMISSION_DENIED" });
-  const send = async (raw: string, signature?: Hex) => fetch(`${s.coreUrl}${PROVISION_PATH}`, {
-    method: "POST", body: raw, headers: signature ? { "x-capxul-signature": signature } : {},
-  });
-  const raw = JSON.stringify({ org: "acme", caller: founder.address, expiresAt: Date.now() + 30_000 });
-  const signature = await founder.signMessage({ message: provisioningMessage(s.coreUrl, raw) });
-  assert.equal((await send(raw)).status, 401);
-  assert.equal((await send(raw.replace("acme", "other"), signature)).status, 401);
-  assert.equal((await send(raw, await founder.signMessage({ message: provisioningMessage("https://another.test", raw) }))).status, 401);
-  const expired = JSON.stringify({ org: "acme", caller: founder.address, expiresAt: Date.now() - 1 });
-  assert.equal((await send(expired, await founder.signMessage({ message: provisioningMessage(s.coreUrl, expired) }))).status, 401);
+  await assert.rejects(createSitesClient({ coreUrl: s.coreUrl, bearer: () => memberSession }).provision({ org: "acme" }), { code: "ROLE_PERMISSION_DENIED" });
+  await assert.rejects(createSitesClient({ coreUrl: s.coreUrl, bearer: () => "" }).provision({ org: "acme" }), { code: "NOT_AUTHENTICATED" });
+  const send = (body: string, headers: Record<string, string> = {}) => fetch(`${s.coreUrl}${PROVISION_PATH}`, { method: "POST", body, headers });
+  const body = JSON.stringify({ org: "acme" });
+  const seen = s.authorized.length;
+  // No Bearer, or only the removed wallet signature: refused before Core asks Access anything.
+  assert.equal((await send(body)).status, 401);
+  assert.equal((await send(body, { "x-capxul-signature": "0x" + "ab".repeat(65) })).status, 401);
+  assert.equal((await send(body, { authorization: `Bearer ${founderSession} extra` })).status, 401);
+  assert.equal(s.authorized.length, seen);
+  // The old signed body's caller/expiry fields are not accepted beside a session.
+  assert.equal((await send(JSON.stringify({ org: "acme", caller: "0x" + "11".repeat(20), expiresAt: Date.now() + 30_000 }), { authorization: `Bearer ${founderSession}` })).status, 400);
+  const ended = await send(body, { authorization: "Bearer ended-session" });
+  assert.equal(ended.status, 401); assert.equal((await ended.json()).error.code, "NOT_AUTHENTICATED");
+  const unavailable = await send(body, { authorization: "Bearer unavailable" });
+  assert.equal(unavailable.status, 503);
+  assert.deepEqual((await unavailable.json()).error, { code: "PROVIDER_ERROR", message: "Provisioning authority is unavailable; retry the same company" });
+  assert.deepEqual(s.authorized.slice(seen), [{ orgId: "acme", bearer: "ended-session" }, { orgId: "acme", bearer: "unavailable" }]);
   s.removeFounder();
   await assert.rejects(s.sites.provision({ org: "acme" }), { code: "ROLE_PERMISSION_DENIED" });
   assert.equal(s.info.released, false);
