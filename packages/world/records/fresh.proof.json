@@ -1,7 +1,7 @@
 {
   "proof": "a world made from nothing answers on every part, a world forked from it starts with its rows and chain, and both are destroyed",
   "outcome": "passed",
-  "at": "2026-11-13T13:20:31.045Z",
+  "at": "2026-11-13T13:57:24.948Z",
   "checks": [
     {
       "check": "the first world's run passed",
@@ -98,7 +98,7 @@
       "index": {
         "progress": [
           {
-            "indexed_block": "47893263"
+            "indexed_block": "47893267"
           }
         ],
         "paymentEventInTheIndex": {
@@ -148,26 +148,26 @@
         "world": "w-p-fork",
         "owner": "proof",
         "forkedFrom": "w-p-fresh",
-        "expiresAt": "2026-11-13T13:58:23.794Z",
+        "expiresAt": "2026-11-13T14:35:04.220Z",
         "outcome": "passed",
         "failure": null,
         "worldAfterwards": "destroyed",
         "keptUntil": null,
         "ms": {
-          "claim": 571,
-          "deploy": 57028,
-          "migrate": 595,
-          "chain": 6699,
-          "fund": 135,
-          "bundler": 19959,
-          "index": 23709,
-          "core": 473,
-          "use": 3159,
+          "claim": 479,
+          "deploy": 62210,
+          "migrate": 556,
+          "chain": 5955,
+          "fund": 140,
+          "bundler": 30632,
+          "index": 30726,
+          "core": 490,
+          "use": 5173,
           "park": null,
-          "destroy": 14362,
-          "release": 255,
-          "create": 90130,
-          "total": 107910
+          "destroy": 14674,
+          "release": 321,
+          "create": 101532,
+          "total": 121705
         },
         "timeouts": {
           "claim": 45000,
@@ -189,26 +189,26 @@
       "world": "w-p-fresh",
       "owner": "proof",
       "forkedFrom": "nothing",
-      "expiresAt": "2026-11-13T13:56:39.411Z",
+      "expiresAt": "2026-11-13T14:32:55.206Z",
       "outcome": "passed",
       "failure": null,
       "worldAfterwards": "destroyed",
       "keptUntil": null,
       "ms": {
-        "claim": 880,
-        "deploy": 53007,
-        "migrate": 908,
-        "chain": 2391,
-        "fund": 724,
-        "bundler": 31033,
-        "index": 31815,
-        "core": 459,
-        "use": 121836,
+        "claim": 972,
+        "deploy": 57428,
+        "migrate": 686,
+        "chain": 2024,
+        "fund": 895,
+        "bundler": 30759,
+        "index": 60479,
+        "core": 612,
+        "use": 127246,
         "park": null,
-        "destroy": 14947,
-        "release": 454,
-        "create": 90457,
-        "total": 227698
+        "destroy": 14818,
+        "release": 288,
+        "create": 123475,
+        "total": 265831
       },
       "timeouts": {
         "claim": 45000,
@@ -259,7 +259,9 @@
         ]
       },
       "leftOfTheseWorlds": [],
-      "sameAsBefore": true
+      "sameAsBefore": true,
+      "sameAsBeforeAccountWide": true,
+      "otherWorlds": []
     }
   }
 }

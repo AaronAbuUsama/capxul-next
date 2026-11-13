@@ -1,7 +1,7 @@
 {
   "proof": "a use that outlasts its declared 5 s timeout is stopped at 5 s, recorded as timed out, and its world is destroyed",
-  "outcome": "failed",
-  "at": "2026-11-13T13:25:40.964Z",
+  "outcome": "passed",
+  "at": "2026-11-13T14:02:08.947Z",
   "checks": [
     {
       "check": "the run is recorded as timed out",
@@ -25,7 +25,7 @@
     },
     {
       "check": "the accounts hold what they held before",
-      "held": false
+      "held": true
     }
   ],
   "observations": {
@@ -33,26 +33,26 @@
       "world": "w-p-slow",
       "owner": "proof",
       "forkedFrom": "nothing",
-      "expiresAt": "2026-11-13T14:03:31.094Z",
+      "expiresAt": "2026-11-13T14:39:53.930Z",
       "outcome": "timed out",
       "failure": "StepTimedOut: the use step did not finish within its declared 5000 ms",
       "worldAfterwards": "destroyed",
       "keptUntil": null,
       "ms": {
-        "claim": 921,
-        "deploy": 53291,
-        "migrate": 711,
-        "chain": 2119,
-        "fund": 379,
-        "bundler": 18872,
-        "index": 49357,
-        "core": 305,
-        "use": 5005,
+        "claim": 957,
+        "deploy": 61069,
+        "migrate": 789,
+        "chain": 2933,
+        "fund": 498,
+        "bundler": 16904,
+        "index": 42691,
+        "core": 1021,
+        "use": 5003,
         "park": null,
-        "destroy": 14042,
-        "release": 262,
-        "create": 107360,
-        "total": 126678
+        "destroy": 14348,
+        "release": 250,
+        "create": 110222,
+        "total": 129826
       },
       "timeouts": {
         "claim": 45000,
@@ -87,25 +87,12 @@
         ]
       },
       "after": {
-        "workers": [
-          "capxulworld-core-w-c1-64cheulmne2gbzxw",
-          "capxulworld-door-w-c1-tm6tn3u7tjlo5mdc"
-        ],
-        "containerApplications": [
-          "capxulworld-anvil-w-c1-auwerbww7fylegc2"
-        ],
-        "durableObjectNamespaces": [
-          "capxulworld-door-w-c1-tm6tn3u7tjlo5mdc",
-          "capxulworld-door-w-c1-tm6tn3u7tjlo5mdc"
-        ],
-        "r2Buckets": [
-          "capxulworld-chainstate-w-c1-abzx3dt2yhmgd44o"
-        ],
-        "hyperdriveConfigurations": [
-          "capxulworld-world-db-w-c1-cvmt2gyrnxlujvgm"
-        ],
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
         "neonBranches": [
-          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-c1",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
@@ -116,7 +103,9 @@
         ]
       },
       "leftOfTheseWorlds": [],
-      "sameAsBefore": false
+      "sameAsBefore": true,
+      "sameAsBeforeAccountWide": true,
+      "otherWorlds": []
     }
   }
 }

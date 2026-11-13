@@ -1,7 +1,7 @@
 {
   "proof": "a run interrupted by SIGINT during its use writes its record and destroys its world before the process exits",
   "outcome": "passed",
-  "at": "2026-11-13T13:27:51.637Z",
+  "at": "2026-11-13T14:04:24.228Z",
   "checks": [
     {
       "check": "the process was interrupted during the use and exited non-zero",
@@ -39,43 +39,43 @@
   "observations": {
     "exitCode": 130,
     "logTail": [
-      "[13:27:34.386] INFO: world w-p-int: Core answers",
-      "[13:27:34.387] INFO: the use has started and will never end: interrupt this process now",
-      "[13:27:34.414] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).",
+      "[14:04:05.456] INFO: world w-p-int: Core answers",
+      "[14:04:05.457] INFO: the use has started and will never end: interrupt this process now",
+      "[14:04:05.470] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).",
       "i Refreshing Cloudflare State Store credentials",
       "+ Refreshing Cloudflare State Store credentials",
-      "[13:27:39.061] INFO: [Ponder] Cloudflare Container delete: deleting capxulworld-ponder-w-p-int-mbbvqstlrih6zn6w",
-      "[13:27:39.065] INFO: [Core] Cloudflare Worker delete: deleting capxulworld-core-w-p-int-7hhxyzfnrgy5knzb",
-      "[13:27:39.068] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-p-int-m6zywc43rt6uag6p",
-      "[13:27:39.078] INFO: [Alto] Cloudflare Container delete: deleting capxulworld-alto-w-p-int-eizyqj4eyhsujumn",
-      "[13:27:39.087] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-p-int-kvddkwjvjb3fevtm",
-      "[13:27:40.746] INFO: [world] Neon: using environment variables (NEON_API_KEY).",
-      "[13:27:47.717] INFO: world w-p-int: destroyed (9 resources) and its name released"
+      "[14:04:10.806] INFO: [Alto] Cloudflare Container delete: deleting capxulworld-alto-w-p-int-uoouccdjonrwc7lk",
+      "[14:04:10.827] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-p-int-rm6yooc3va74e5ck",
+      "[14:04:10.829] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-p-int-t5dze2ud6sxmauig",
+      "[14:04:10.830] INFO: [Ponder] Cloudflare Container delete: deleting capxulworld-ponder-w-p-int-urnju5fyz5uewmj6",
+      "[14:04:10.839] INFO: [Core] Cloudflare Worker delete: deleting capxulworld-core-w-p-int-e2cuj3pxaix5bmtw",
+      "[14:04:12.246] INFO: [world] Neon: using environment variables (NEON_API_KEY).",
+      "[14:04:19.242] INFO: world w-p-int: destroyed (9 resources) and its name released"
     ],
     "record": {
       "world": "w-p-int",
       "owner": "proof",
       "forkedFrom": "nothing",
-      "expiresAt": "2026-11-13T14:05:53.541Z",
+      "expiresAt": "2026-11-13T14:42:26.447Z",
       "outcome": "interrupted",
       "failure": "the run was interrupted",
       "worldAfterwards": "destroyed",
       "keptUntil": null,
       "ms": {
-        "claim": 698,
-        "deploy": 69648,
-        "migrate": 658,
-        "chain": 2618,
-        "fund": 378,
-        "bundler": 19864,
-        "index": 26270,
-        "core": 310,
-        "use": 5,
+        "claim": 749,
+        "deploy": 61560,
+        "migrate": 877,
+        "chain": 2622,
+        "fund": 340,
+        "bundler": 32014,
+        "index": 30202,
+        "core": 564,
+        "use": 2,
         "park": null,
-        "destroy": 13045,
-        "release": 275,
-        "create": 100844,
-        "total": 114175
+        "destroy": 13529,
+        "release": 252,
+        "create": 99010,
+        "total": 112796
       },
       "timeouts": {
         "claim": 45000,
@@ -94,26 +94,12 @@
     },
     "inventory": {
       "before": {
-        "workers": [
-          "capxulworld-core-w-c1-64cheulmne2gbzxw",
-          "capxulworld-door-w-c1-tm6tn3u7tjlo5mdc"
-        ],
-        "containerApplications": [
-          "capxulworld-ponder-w-c1-cvqj5bt547s26gyl",
-          "capxulworld-anvil-w-c1-auwerbww7fylegc2"
-        ],
-        "durableObjectNamespaces": [
-          "capxulworld-door-w-c1-tm6tn3u7tjlo5mdc",
-          "capxulworld-door-w-c1-tm6tn3u7tjlo5mdc"
-        ],
-        "r2Buckets": [
-          "capxulworld-chainstate-w-c1-abzx3dt2yhmgd44o"
-        ],
-        "hyperdriveConfigurations": [
-          "capxulworld-world-db-w-c1-cvmt2gyrnxlujvgm"
-        ],
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
         "neonBranches": [
-          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-c1",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
@@ -124,26 +110,12 @@
         ]
       },
       "after": {
-        "workers": [
-          "capxulworld-core-w-c1-64cheulmne2gbzxw",
-          "capxulworld-door-w-c1-tm6tn3u7tjlo5mdc"
-        ],
-        "containerApplications": [
-          "capxulworld-ponder-w-c1-cvqj5bt547s26gyl",
-          "capxulworld-anvil-w-c1-auwerbww7fylegc2"
-        ],
-        "durableObjectNamespaces": [
-          "capxulworld-door-w-c1-tm6tn3u7tjlo5mdc",
-          "capxulworld-door-w-c1-tm6tn3u7tjlo5mdc"
-        ],
-        "r2Buckets": [
-          "capxulworld-chainstate-w-c1-abzx3dt2yhmgd44o"
-        ],
-        "hyperdriveConfigurations": [
-          "capxulworld-world-db-w-c1-cvmt2gyrnxlujvgm"
-        ],
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
         "neonBranches": [
-          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-c1",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
@@ -154,7 +126,9 @@
         ]
       },
       "leftOfTheseWorlds": [],
-      "sameAsBefore": true
+      "sameAsBefore": true,
+      "sameAsBeforeAccountWide": true,
+      "otherWorlds": []
     }
   }
 }

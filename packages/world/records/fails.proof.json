@@ -1,7 +1,7 @@
 {
   "proof": "a run whose use fails is recorded as failed and its world is destroyed",
-  "outcome": "failed",
-  "at": "2026-11-13T13:23:23.113Z",
+  "outcome": "passed",
+  "at": "2026-11-13T13:59:45.147Z",
   "checks": [
     {
       "check": "the run is recorded as failed, with why",
@@ -21,7 +21,7 @@
     },
     {
       "check": "the accounts hold what they held before",
-      "held": false
+      "held": true
     }
   ],
   "observations": {
@@ -29,26 +29,26 @@
       "world": "w-p-fails",
       "owner": "proof",
       "forkedFrom": "nothing",
-      "expiresAt": "2026-11-13T14:00:49.192Z",
+      "expiresAt": "2026-11-13T14:37:34.240Z",
       "outcome": "failed",
       "failure": "DatabaseRefused: relation \"app.no_such_table\" does not exist",
       "worldAfterwards": "destroyed",
       "keptUntil": null,
       "ms": {
-        "claim": 6365,
-        "deploy": 80693,
-        "migrate": 806,
-        "chain": 2193,
-        "fund": 275,
-        "bundler": 29457,
-        "index": 44481,
-        "core": 316,
-        "use": 117,
+        "claim": 990,
+        "deploy": 60061,
+        "migrate": 904,
+        "chain": 2177,
+        "fund": 403,
+        "bundler": 44642,
+        "index": 46355,
+        "core": 569,
+        "use": 109,
         "park": null,
-        "destroy": 13524,
-        "release": 262,
-        "create": 135489,
-        "total": 149397
+        "destroy": 14385,
+        "release": 347,
+        "create": 111746,
+        "total": 126591
       },
       "timeouts": {
         "claim": 45000,
@@ -86,12 +86,9 @@
         "workers": [],
         "containerApplications": [],
         "durableObjectNamespaces": [],
-        "r2Buckets": [
-          "capxulworld-chainstate-w-c1-s754ypolqtj7x4mm"
-        ],
+        "r2Buckets": [],
         "hyperdriveConfigurations": [],
         "neonBranches": [
-          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-c1",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
@@ -102,7 +99,9 @@
         ]
       },
       "leftOfTheseWorlds": [],
-      "sameAsBefore": false
+      "sameAsBefore": true,
+      "sameAsBeforeAccountWide": true,
+      "otherWorlds": []
     }
   }
 }

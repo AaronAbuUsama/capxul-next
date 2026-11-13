@@ -108,7 +108,10 @@ never printed. The connection string is also the index container's `DATABASE_URL
 
 Each proof is `./run.sh prove <case>`. It writes `records/<case>.proof.json`: its claim, its `outcome` (passed only
 when every check held), each check, its observations, and the inventory of both accounts before and after. The run
-records (`p-*.json`) are `withWorld`'s own, with every step's duration and declared timeout.
+records (`p-*.json`) are `withWorld`'s own, with every step's duration and declared timeout. The two accounts are
+shared with other builders, whose worlds may be made or destroyed while a proof runs, so "the accounts hold what they
+held before" compares everything except resources whose names carry another world's stage; the record keeps the
+comparison of everything (`sameAsBeforeAccountWide`) and names the worlds it set aside (`otherWorlds`).
 
 | Proof | What it shows | Records |
 |---|---|---|
@@ -125,27 +128,35 @@ records (`p-*.json`) are `withWorld`'s own, with every step's duration and decla
 
 ## Timings
 
-From the records above: ten creates (one through `world create`, six through `withWorld`, three at once in one
-process) and seven destroys whose duration was recorded, all on 13 November 2026 with the images already published.
+From the records above, all made on 13 November 2026 with the images already published, every world with its
+bundler: eight creates one at a time (two through `world create`, six through `withWorld`), three at once in one
+process (`sweep`), and seven destroys. "Before" is the same table from the ten creates recorded before the bundler
+was added (the records at `1fd8698e`).
 
-| Step | Median s | Range s | Where the time goes |
-|---|---|---|---|
-| claim | 0.9 | 0.4 to 1.3 | One transaction on the registry branch, and the world's record in the shared state. |
-| deploy | 45.8 | 38.4 to 53.1 | Alchemy: the Neon branch and Hyperdrive, two Workers, and two container applications, each created and then created again to attach its Durable Object. |
-| migrate | 0.8 | 0.6 to 1.1 | Over Neon's HTTPS endpoint. |
-| chain | 2.4 | 2.0 to 4.8 | Anvil's first start from the seed; a fork first copies its parent's state. |
-| fund | 0.3 | 0.1 to 0.6 | The token's deployment and one transaction for each mint. |
-| index | 46.5 | 37.5 to 59.2 | The Ponder container's first start on 1/4 vCPU: the image pull, Ponder's own start, its tables and the backfill. |
-| core | 0.5 | 0.3 to 0.6 | Until the stand-in's address answers `/health`. |
-| **create** | **95.3** | **87.9 to 116.4** | From the claim to a world whose every part answers. |
-| destroy | 13.5 | 12.8 to 17.2 | `alchemy destroy` of the stage and the stage's record. |
-| release | 0.2 | 0.2 to 0.6 | The name's row. |
-| park | 6.2 | one run | Saving the chain and stopping both containers. |
+| Step | Median s | Range s | Before | Where the time goes |
+|---|---|---|---|---|
+| claim | 0.8 | 0.5 to 1.2 | 0.9 | One transaction on the registry branch, and the world's record in the shared state. |
+| deploy | 60.6 | 55.6 to 63.6; 89 to 90 three at once | 45.8 | Alchemy: the Neon branch and Hyperdrive, two Workers, and three container applications, each created and then created again to attach its Durable Object. |
+| migrate | 0.8 | 0.6 to 0.9 | 0.8 | Over Neon's HTTPS endpoint. |
+| chain | 2.4 | 2.0 to 6.0 | 2.4 | Anvil's first start from the seed; a fork first copies its parent's state. |
+| fund | 0.4 | 0.1 to 0.9 | 0.3 | The token's deployment and one transaction for each mint. |
+| bundler | 29.3 | 16.9 to 44.6; 36 to 45 three at once | none | Beside the index step: the bundler's accounts funded, the paymaster deployed and funded (two transactions), then alto's first start on its new container application, which refuses starts for a while (4 to 13 start calls) and deploys alto's simulation contracts. A fork has the paymaster and the contracts already. |
+| index | 40.7 | 30.2 to 60.5; 27 to 128 three at once | 46.5 | The Ponder container's first start on 1/4 vCPU: the image pull, Ponder's own start, its tables and the backfill. |
+| core | 0.6 | 0.3 to 1.0 | 0.5 | Until the stand-in's address answers `/health`. |
+| **create** | **104.1** | **99.0 to 123.5; 132 to 223 three at once** | **95.3** | From the claim to a world whose every part answers. |
+| destroy | 14.7 | 13.5 to 15.7 | 13.5 | `alchemy destroy` of the stage and the stage's record. |
+| release | 0.3 | 0.3 to 0.6 | 0.2 | The name's row. |
+| park | 5.1 | one run | 6.2 | Saving the chain and stopping the bundler and both containers. |
 
-So a create is about a minute and a half, and two steps are nearly all of it: Alchemy's deploy and the index's first
-start. Neither was attacked here; a larger instance for the index, or a world forked from a template that is
-already indexed (step 0.9), are the places to look. When an image must be rebuilt, the deploy also builds and
-publishes it.
+So the bundler adds about 15 s to a create, all of it in the deploy: one more container application, created and
+created again to attach its Durable Object. Its own step runs beside the index's and outlasted it in two of eleven
+creates, by 1.8 s and 9.1 s. A create is still nearly all Alchemy's deploy and the index's first start; neither was
+attacked here. When an image must be rebuilt, the deploy also builds and publishes it.
+
+From the bundler proof (`bundler.proof.json`): `eth_sendUserOperation` answered in 0.57 s and the operation's receipt
+came 1.52 s after the send; the index wrote its transfer 11.2 s after the receipt. Stopping the bundler with the
+chain took 0.22 s; after the stop, the next UserOperation woke the chain and alto (one start call, 7.0 s for alto)
+and had its receipt 11.8 s after it was begun.
 
 ## What was learned on the way
 
@@ -159,6 +170,22 @@ publishes it.
 - **A fork carries its parent's index.** Ponder resumes from the forked `ponder` schema; the chain's state is copied
   after the database is forked, so the chain is never behind the index. Fork a quiet world.
 - **The Docker daemon of an agent's container cannot push.** See Images above.
+- **anvil answers `null` to `anvil_setBalance`**, which the world's chain call takes for no answer, so the bundler's
+  setup judges the faucet by reading the balance back.
+- **The bundler's first start takes several start calls, as in the spike.** On a new container application a start
+  is refused or lost for a while after the deploy, and the Durable Object starts alto again every second, for up to
+  240 s, until it serves the EntryPoint. The committed record's first start took 10 start calls and 25.2 s; the
+  bundler proof's three runs in this session took 4 to 13 (17.7 to 27.9 s).
+- **The bundler keeps the chain address of its first start.** The door gives alto the chain's quiet address built
+  from the request's host, which is right for a call through the door's public address (the create's) and wrong for
+  one over a service binding, so a later start uses the first one. It holds the door's token, so it is kept apart
+  from the record that `/bundler/status` gives out.
+- **The accounts are shared with other builders.** While these proofs ran, another builder's worlds were made and
+  destroyed in the same accounts, and failed the account-wide "same as before" check of six proof runs; see What is
+  proven. Two failures had nothing to do with the bundler, and the next run of each passed: one `commands` run's
+  deploy was refused by Cloudflare while creating the Core Worker (`WorkerNotFound`), and in one `sweep` run one of
+  its three simultaneous worlds' chains never answered within the chain step's 180 s. Each create removed what it had
+  made.
 
 ## Not done
 

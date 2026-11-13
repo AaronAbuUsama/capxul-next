@@ -1,7 +1,7 @@
 {
   "proof": "`world create` makes a private world whose chain, index, Core and database answer, and `world destroy` removes all of it",
   "outcome": "passed",
-  "at": "2026-11-13T12:19:52.777Z",
+  "at": "2026-11-13T13:52:46.274Z",
   "checks": [
     {
       "check": "the create command succeeded",
@@ -54,20 +54,21 @@
       "destroy": "pnpm --filter @capxul/world world destroy p-cli"
     },
     "createMs": {
-      "claim": 1074,
-      "deploy": 44607,
-      "migrate": 958,
-      "chain": 2375,
-      "fund": 584,
-      "index": 37740,
-      "core": 346,
-      "create": 87938
+      "claim": 766,
+      "deploy": 58075,
+      "migrate": 729,
+      "chain": 2405,
+      "fund": 661,
+      "bundler": 27804,
+      "index": 38622,
+      "core": 562,
+      "create": 102086
     },
     "destroyMs": {
-      "destroy": 13269,
-      "release": 599
+      "destroy": 14939,
+      "release": 537
     },
-    "resourcesDestroyed": 8,
+    "resourcesDestroyed": 9,
     "answers": {
       "chainId": "0x14a34",
       "fundedHolds": "250000000",
@@ -81,32 +82,32 @@
       }
     },
     "createLogTail": [
-      "[12:18:31.568] INFO: [Door] Cloudflare Worker reconcile: previous durable object tags [\"alchemy:dos:Chain;Indexer\"]",
-      "[12:18:31.568] INFO: [Door] Cloudflare Worker create: preparing bundle for capxulworld-door-w-p-cli-bfvvlfmptwaxirwp",
-      "[12:18:34.614] INFO: [Door] Cloudflare Worker create: uploading script for capxulworld-door-w-p-cli-bfvvlfmptwaxirwp",
-      "[12:18:34.928] INFO: [Door] Cloudflare Worker put: durable object reconciliation {\"oldDoClassNameByLogicalId\":{\"Chain\":\"Chain\",\"Indexer\":\"Indexer\"},\"currentDoClassNameByLogicalId\":{\"Chain\":\"Chain\",\"Indexer\":\"Indexer\"},\"deletedClasses\":[],\"renamedClasses\":[],\"transferredClasses\":[],\"newSqliteClasses\":[]}",
-      "[12:18:40.837] INFO: [Ponder] Cloudflare Container reconcile: recreating capxulworld-ponder-w-p-cli-7movrl5rbpmfszr2 to attach durable object binding",
-      "[12:18:42.525] INFO: [Ponder] Cloudflare Container create: creating application capxulworld-ponder-w-p-cli-7movrl5rbpmfszr2",
-      "[12:18:45.565] INFO: world w-p-cli: deployed",
-      "[12:18:46.525] INFO: world w-p-cli: migrations applied (0001_app.sql)",
-      "[12:18:48.900] INFO: world w-p-cli: the chain answers",
-      "[12:18:49.485] INFO: world w-p-cli: test USDC at 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6, minted to 1 addresses",
-      "[12:19:27.227] INFO: world w-p-cli: the index is ready",
-      "[12:19:27.573] INFO: world w-p-cli: Core answers"
+      "[13:51:11.418] INFO: [Door] Cloudflare Worker put: durable object reconciliation {\"oldDoClassNameByLogicalId\":{\"Bundler\":\"Bundler\",\"Chain\":\"Chain\",\"Indexer\":\"Indexer\"},\"currentDoClassNameByLogicalId\":{\"Bundler\":\"Bundler\",\"Chain\":\"Chain\",\"Indexer\":\"Indexer\"},\"deletedClasses\":[],\"renamedClasses\":[],\"transferredClasses\":[],\"newSqliteClasses\":[]}",
+      "[13:51:18.974] INFO: [Ponder] Cloudflare Container reconcile: recreating capxulworld-ponder-w-p-cli-6b7eavivhsbqltj5 to attach durable object binding",
+      "[13:51:20.987] INFO: [Ponder] Cloudflare Container create: creating application capxulworld-ponder-w-p-cli-6b7eavivhsbqltj5",
+      "[13:51:29.967] INFO: [Alto] Cloudflare Container reconcile: recreating capxulworld-alto-w-p-cli-7phowye2vojsvvs5 to attach durable object binding",
+      "[13:51:32.066] INFO: [Alto] Cloudflare Container create: creating application capxulworld-alto-w-p-cli-7phowye2vojsvvs5",
+      "[13:51:34.937] INFO: world w-p-cli: deployed",
+      "[13:51:35.667] INFO: world w-p-cli: migrations applied (0001_app.sql)",
+      "[13:51:38.072] INFO: world w-p-cli: the chain answers",
+      "[13:51:38.734] INFO: world w-p-cli: test USDC at 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6, minted to 1 addresses",
+      "[13:52:17.357] INFO: world w-p-cli: the index is ready",
+      "[13:52:17.358] INFO: world w-p-cli: the bundler serves 0x0000000071727De22E5E9d8BAf0edAc6f37da032, paymaster 0xE2dE380E3e8281e2cc458675102c3FC2277fC5A8",
+      "[13:52:17.921] INFO: world w-p-cli: Core answers"
     ],
     "destroyLogTail": [
-      "[12:19:31.541] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).",
       "i Refreshing Cloudflare State Store credentials",
       "+ Refreshing Cloudflare State Store credentials",
-      "[12:19:35.083] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).",
+      "[13:52:26.030] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).",
       "i Refreshing Cloudflare State Store credentials",
       "+ Refreshing Cloudflare State Store credentials",
-      "[12:19:40.001] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-p-cli-bfvvlfmptwaxirwp",
-      "[12:19:40.005] INFO: [Core] Cloudflare Worker delete: deleting capxulworld-core-w-p-cli-67ams3uuybjeczi6",
-      "[12:19:40.006] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-p-cli-y3ckraan5lvoowmu",
-      "[12:19:40.022] INFO: [Ponder] Cloudflare Container delete: deleting capxulworld-ponder-w-p-cli-7movrl5rbpmfszr2",
-      "[12:19:41.763] INFO: [world] Neon: using environment variables (NEON_API_KEY).",
-      "[12:19:48.937] INFO: world w-p-cli: destroyed (8 resources) and its name released"
+      "[13:52:31.949] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-p-cli-ubs243dcqfu472pb",
+      "[13:52:31.956] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-p-cli-4l5fa2qbigru4sha",
+      "[13:52:31.981] INFO: [Core] Cloudflare Worker delete: deleting capxulworld-core-w-p-cli-jf3f6u3remlm5eez",
+      "[13:52:31.990] INFO: [Alto] Cloudflare Container delete: deleting capxulworld-alto-w-p-cli-7phowye2vojsvvs5",
+      "[13:52:31.991] INFO: [Ponder] Cloudflare Container delete: deleting capxulworld-ponder-w-p-cli-6b7eavivhsbqltj5",
+      "[13:52:34.133] INFO: [world] Neon: using environment variables (NEON_API_KEY).",
+      "[13:52:41.489] INFO: world w-p-cli: destroyed (9 resources) and its name released"
     ],
     "inventory": {
       "before": {
@@ -116,10 +117,11 @@
         "r2Buckets": [],
         "hyperdriveConfigurations": [],
         "neonBranches": [
-          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main",
-          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry"
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
         "imageRepositories": [
+          "capxulworld-alto",
           "capxulworld-anvil",
           "capxulworld-ponder"
         ]
@@ -131,16 +133,19 @@
         "r2Buckets": [],
         "hyperdriveConfigurations": [],
         "neonBranches": [
-          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main",
-          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry"
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
         "imageRepositories": [
+          "capxulworld-alto",
           "capxulworld-anvil",
           "capxulworld-ponder"
         ]
       },
       "leftOfTheseWorlds": [],
-      "sameAsBefore": true
+      "sameAsBefore": true,
+      "sameAsBeforeAccountWide": true,
+      "otherWorlds": []
     }
   }
 }

@@ -1,7 +1,7 @@
 {
   "proof": "the sweeper, run with nothing but the shared state, destroys a world once its expiry has passed and keeps a live one and one with no recorded expiry",
-  "outcome": "failed",
-  "at": "2026-11-13T13:41:18.512Z",
+  "outcome": "passed",
+  "at": "2026-11-13T14:23:46.167Z",
   "checks": [
     {
       "check": "both sweeps ran to the end",
@@ -29,70 +29,70 @@
     },
     {
       "check": "the shared state held the two kept worlds only",
-      "held": false
+      "held": true
     },
     {
       "check": "once the two kept worlds were destroyed, the accounts hold what they held before",
-      "held": false
+      "held": true
     }
   ],
   "observations": {
     "created": [
       {
         "world": "w-p-old",
-        "expiresAt": "2026-11-13T13:40:11.742Z",
+        "expiresAt": "2026-11-13T14:22:41.270Z",
         "ms": {
-          "claim": 1057,
-          "deploy": 92256,
-          "migrate": 727,
-          "chain": 2381,
-          "fund": 383,
-          "bundler": 26145,
-          "index": 37577,
-          "core": 497,
-          "create": 135169
+          "claim": 770,
+          "deploy": 89794,
+          "migrate": 749,
+          "chain": 2499,
+          "fund": 349,
+          "bundler": 45065,
+          "index": 128258,
+          "core": 291,
+          "create": 223135
         }
       },
       {
         "world": "w-p-live",
-        "expiresAt": "2026-11-13T14:16:11.747Z",
+        "expiresAt": "2026-11-13T14:58:41.278Z",
         "ms": {
-          "claim": 1087,
-          "deploy": 92360,
-          "migrate": 803,
-          "chain": 2322,
-          "fund": 432,
-          "bundler": 9408,
-          "index": 40008,
-          "core": 469,
-          "create": 137955
+          "claim": 1068,
+          "deploy": 89778,
+          "migrate": 762,
+          "chain": 2147,
+          "fund": 351,
+          "index": 27361,
+          "bundler": 36436,
+          "core": 616,
+          "create": 131602
         }
       },
       {
         "world": "w-p-undated",
-        "expiresAt": "2026-11-13T14:16:11.749Z",
+        "expiresAt": "2026-11-13T14:58:41.281Z",
         "ms": {
-          "claim": 1344,
-          "deploy": 92258,
-          "migrate": 757,
-          "chain": 2556,
-          "fund": 417,
-          "bundler": 11555,
-          "index": 39415,
-          "core": 478,
-          "create": 137514
+          "claim": 1250,
+          "deploy": 89141,
+          "migrate": 814,
+          "chain": 2291,
+          "fund": 397,
+          "bundler": 41510,
+          "index": 56267,
+          "core": 273,
+          "create": 150792
         }
       }
     ],
     "sweepBeforeTheExpiry": {
       "report": {
-        "at": "2026-11-13T13:38:34.863Z",
+        "at": "2026-11-13T14:22:30.139Z",
         "dryRun": false,
         "worlds": [
           {
             "world": "w-p-live",
             "owner": "proof",
-            "expiresAt": "2026-11-13T14:16:11.747Z",
+            "expiresAt": "2026-11-13T14:58:41.278Z",
             "status": null,
             "verdict": "kept: not expired",
             "detail": null,
@@ -101,16 +101,7 @@
           {
             "world": "w-p-old",
             "owner": "proof",
-            "expiresAt": "2026-11-13T13:40:11.742Z",
-            "status": null,
-            "verdict": "kept: not expired",
-            "detail": null,
-            "destroyMs": null
-          },
-          {
-            "world": "w-p-site",
-            "owner": "proof",
-            "expiresAt": "2026-11-13T14:36:40.831Z",
+            "expiresAt": "2026-11-13T14:22:41.270Z",
             "status": null,
             "verdict": "kept: not expired",
             "detail": null,
@@ -124,6 +115,15 @@
             "verdict": "kept: no expiry recorded",
             "detail": null,
             "destroyMs": null
+          },
+          {
+            "world": "w-ws2-1e2toclu",
+            "owner": "pops",
+            "expiresAt": "2026-11-13T15:21:56.317Z",
+            "status": "creating",
+            "verdict": "kept: not expired",
+            "detail": null,
+            "destroyMs": null
           }
         ],
         "namesReleased": [],
@@ -131,20 +131,20 @@
         "imagesLeft": []
       },
       "logTail": [
-        "[13:38:30.836] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).",
+        "[14:22:25.326] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).",
         "i Refreshing Cloudflare State Store credentials",
         "+ Refreshing Cloudflare State Store credentials"
       ]
     },
     "sweepAfterTheExpiry": {
       "report": {
-        "at": "2026-11-13T13:40:21.425Z",
+        "at": "2026-11-13T14:22:54.355Z",
         "dryRun": false,
         "worlds": [
           {
             "world": "w-p-live",
             "owner": "proof",
-            "expiresAt": "2026-11-13T14:16:11.747Z",
+            "expiresAt": "2026-11-13T14:58:41.278Z",
             "status": null,
             "verdict": "kept: not expired",
             "detail": null,
@@ -153,29 +153,11 @@
           {
             "world": "w-p-old",
             "owner": "proof",
-            "expiresAt": "2026-11-13T13:40:11.742Z",
+            "expiresAt": "2026-11-13T14:22:41.270Z",
             "status": null,
             "verdict": "destroyed",
             "detail": null,
-            "destroyMs": 14384
-          },
-          {
-            "world": "w-p-site",
-            "owner": "proof",
-            "expiresAt": "2026-11-13T14:36:40.831Z",
-            "status": null,
-            "verdict": "kept: not expired",
-            "detail": null,
-            "destroyMs": null
-          },
-          {
-            "world": "w-p-site2",
-            "owner": "proof",
-            "expiresAt": "2026-11-13T14:39:55.075Z",
-            "status": "creating",
-            "verdict": "kept: not expired",
-            "detail": null,
-            "destroyMs": null
+            "destroyMs": 10220
           },
           {
             "world": "w-p-undated",
@@ -194,22 +176,20 @@
       "logTail": [
         "i Refreshing Cloudflare State Store credentials",
         "+ Refreshing Cloudflare State Store credentials",
-        "[13:40:22.130] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).",
+        "[14:22:54.760] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).",
         "i Refreshing Cloudflare State Store credentials",
         "+ Refreshing Cloudflare State Store credentials",
-        "[13:40:28.175] INFO: [Alto] Cloudflare Container delete: deleting capxulworld-alto-w-p-old-cb2gqbqgvpjdyzeu",
-        "[13:40:28.180] INFO: [Ponder] Cloudflare Container delete: deleting capxulworld-ponder-w-p-old-wcxcaaf2oc5lcgk5",
-        "[13:40:28.193] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-p-old-7i73ee3uwjybap5u",
-        "[13:40:28.236] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-p-old-tuohv3ml3gkfhqrh",
-        "[13:40:28.238] INFO: [Core] Cloudflare Worker delete: deleting capxulworld-core-w-p-old-yun4gl44c26hwqcf",
-        "[13:40:29.609] INFO: [world] Neon: using environment variables (NEON_API_KEY).",
-        "[13:40:37.052] INFO: world w-p-old: destroyed (9 resources) and its name released"
+        "[14:23:00.358] INFO: [Core] Cloudflare Worker delete: deleting capxulworld-core-w-p-old-5ojvprhrmr2itzed",
+        "[14:23:00.373] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-p-old-he4svqiyt5al4i2b",
+        "[14:23:00.375] INFO: [Alto] Cloudflare Container delete: deleting capxulworld-alto-w-p-old-ovjltumh3r4xpdus",
+        "[14:23:00.376] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-p-old-bhjt7d5jts73psf3",
+        "[14:23:00.392] INFO: [Ponder] Cloudflare Container delete: deleting capxulworld-ponder-w-p-old-zzlxok6sdze7n777",
+        "[14:23:01.921] INFO: [world] Neon: using environment variables (NEON_API_KEY).",
+        "[14:23:05.595] INFO: world w-p-old: destroyed (9 resources) and its name released"
       ]
     },
     "inSharedStateAfterTheSweep": [
       "w-p-live: live",
-      "w-p-site: live",
-      "w-p-site2: live",
       "w-p-undated: no-expiry"
     ],
     "inventory": {
@@ -231,34 +211,23 @@
       },
       "after": {
         "workers": [
-          "capxulworld-core-w-p-site-a62y5oed4qzsjsaa",
-          "capxulworld-core-w-p-site2-dyrq55clvhmipv2y",
-          "capxulworld-door-w-p-site-l3otxa2faojni7q2",
-          "capxulworld-door-w-p-site2-mgpw5j7bq774zkzm"
+          "capxulworld-door-w-ws2-b0p1w4vs-wnutcoxglda4rdjn"
         ],
         "containerApplications": [
-          "capxulworld-ponder-w-p-site2-7uk2vjc7j2y5lr7l",
-          "capxulworld-anvil-w-p-site2-y4eosuk4xnsjupig",
-          "capxulworld-ponder-w-p-site-2scwxlmigat25z4n",
-          "capxulworld-anvil-w-p-site-jkefslsvow4s6bhq"
+          "capxulworld-anvil-w-ws2-b0p1w4vs-6ide4obo5v2l6tty"
         ],
         "durableObjectNamespaces": [
-          "capxulworld-door-w-p-site-l3otxa2faojni7q2",
-          "capxulworld-door-w-p-site-l3otxa2faojni7q2",
-          "capxulworld-door-w-p-site2-mgpw5j7bq774zkzm",
-          "capxulworld-door-w-p-site2-mgpw5j7bq774zkzm"
+          "capxulworld-door-w-ws2-b0p1w4vs-wnutcoxglda4rdjn",
+          "capxulworld-door-w-ws2-b0p1w4vs-wnutcoxglda4rdjn"
         ],
         "r2Buckets": [
-          "capxulworld-chainstate-w-p-site-yjzq3zm5ql4zmcah",
-          "capxulworld-chainstate-w-p-site2-ffzchm3f52t2zk35"
+          "capxulworld-chainstate-w-ws2-b0p1w4vs-vrnfpj4yi3wb34ob"
         ],
         "hyperdriveConfigurations": [
-          "capxulworld-world-db-w-p-site2-vhyxhpcfjv45lqdm",
-          "capxulworld-world-db-w-p-site-fbpxdhoi5esaaqww"
+          "capxulworld-world-db-w-ws2-b0p1w4vs-wotfazls7c4y73n4"
         ],
         "neonBranches": [
-          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-p-site2",
-          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-p-site",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-ws2-b0p1w4vs",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
@@ -269,7 +238,11 @@
         ]
       },
       "leftOfTheseWorlds": [],
-      "sameAsBefore": false
+      "sameAsBefore": true,
+      "sameAsBeforeAccountWide": false,
+      "otherWorlds": [
+        "w-ws2-b0p1w4vs"
+      ]
     }
   }
 }
