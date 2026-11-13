@@ -122,9 +122,37 @@ export const decision_notices_reminder_dispatch = defineDecision({
     { label: "checkpoint-is-send", text: "Always send checkpointed reminders even if the payment has left escrow before dispatch." },
   ],
   chosen: "dispatch-boundary",
-  why: "A recipient checkpoint alone is not a provider attempt. A crash before Mail must not send stale money-waiting reminders after a committed stop. A bounded source relay batch is not readiness: before a new reminder dispatch claim, the canonical outbox reader must report no unacknowledged payment envelopes, including those beyond the batch or busy in another consumer session. Otherwise defer unchanged work to a later bounded tick, reporting pending progress. Once dispatch is durably started, a lost response may hide provider acceptance, so cancellation cannot erase its replay or classified delivery retries. Shared payer/command targets remain required while any referencing workflow lives; a later live checkpoint can rearm a canceled never-started target. No lock or transaction spans Mail except the existing per-identity session lock. The exact public delivery schema and outcome-only birth remain unchanged.",
+  why: "A recipient checkpoint alone is not a provider attempt. A crash before Mail must not send stale money-waiting reminders after a committed stop. A bounded source relay batch is not readiness: before a new reminder dispatch claim, the canonical outbox reader must report no unacknowledged payment envelopes, including those beyond the batch or busy in another consumer session. Otherwise defer unchanged work to a later bounded tick, reporting pending progress. Once dispatch is durably started, a lost response may hide provider acceptance, so cancellation cannot erase its replay or classified delivery retries. Shared payer/command targets remain required while any referencing workflow lives; a later live checkpoint can rearm a canceled never-started target. No lock or transaction spans Mail except the existing per-identity session lock, and the dispatch boundary is never held across source reads or chain RPC: preparation resolves recipients first, then takes the boundary and rechecks that the workflow is still unprepared. Within one delivery tick a pending-envelope answer of yes is reused (every later reminder defers anyway); no is never reused, because a stop committed after it must still be seen. The exact public delivery schema and outcome-only birth remain unchanged.",
   source: "Notices PR68 mirror findings4549944806 and4550086500 reproduced on real Postgres worker resume, 12 November 2026; notices.money-waiting-reminders; notices.postgres-execution; notices.first-attempt",
   affects: [workflow_notices_payments_money_reminders, workflow_notices_delivery_retry, table_notices],
+});
+
+export const decision_notices_event_owner = defineDecision({
+  id: "notices.event-owner",
+  title: "A notice's transition belongs to its recipient, not to the payer's Organization",
+  question: "Whose outbox scope carries `notice_transitioned` when a notice is about one owner's money but goes to another person?",
+  options: [
+    { label: "recipient-person", text: "Owner is the recipient person when `person_id` is known; otherwise no owner: a mailbox Capxul cannot attribute to a person (an outside payee or payer, a pre-sign-in grantee) belongs to no Organization's scope, and the Organization stays a fact in `org_id`." },
+    { label: "subject-organization", text: "Owner is the subject's Organization whenever there is one, so a payee's or outside payer's notice lands in the payer company's scope." },
+  ],
+  chosen: "recipient-person",
+  why: "The event names its recipient through `person_id` and never carries the mailbox. A payee's or invoice payer's notice placed in the paying Organization's scope would let that company read another person's delivery history. A Director's notice is that Director's; the Organization still appears in `org_id` as a fact. An outside mailbox has no Capxul owner, so the envelope carries none.",
+  source: "Notices PR68 independent review, 13 November 2026; event notice_transitioned; notices.postgres-execution",
+  affects: [event_notice_transitioned, machine_notice],
+});
+
+export const decision_notices_replay_window = defineDecision({
+  id: "notices.replay-window",
+  title: "A lost-outcome replay relies on the provider's idempotency window in host time",
+  question: "How long does a replayed provider key still deduplicate an accepted send, when world time can be stopped?",
+  options: [
+    { label: "provider-window", text: "Replay with the same provider key and accept that the provider deduplicates only for its own window (Resend: 24 hours of real time). A replay after that window, however little world time passed, may send a second copy." },
+    { label: "record-before-send", text: "Record a pending provider attempt before Mail and never replay it, giving up on lost-outcome delivery." },
+  ],
+  chosen: "provider-window",
+  why: "notices.first-attempt forbids a delivery row before the first outcome, and a lost answer must not drop the notice. The provider key closes the accepted-send/lost-record window only while the provider remembers it, measured in the provider's real time, not the world clock: a stopped or slowed world, or a Core held paused longer than a day, can outlast it. The devnet sink deduplicates by key indefinitely, so local worlds do not see this. A production replay older than a day is an at-least-once duplicate, never a silent loss.",
+  source: "Notices PR68 independent review, 13 November 2026; notices.provider-key-bound; notices.postgres-execution; integration Mail (Resend Idempotency-Key)",
+  affects: [table_notices, machine_notice, workflow_notices_delivery_retry],
 });
 
 /** The workflows that tell an Organization through its Directors. */

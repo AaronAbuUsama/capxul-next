@@ -37,8 +37,8 @@ export async function readNotices(sql: Sql, options: { to?: string; template?: s
 
 const transitioned: Emit = async (sql, props, at, id, trace) => {
   await emit(sql, { id: `notice:${id}`, name: "notice_transitioned", machine: "notice", entity_id: props.notice_id,
-    owner_kind: props.org_id ? "organization" : props.person_id ? "person" : null,
-    owner_id: props.org_id ?? props.person_id, actor: null, trace_id: trace, at, props });
+    // notices.event-owner: the recipient person, or no owner. Never the Organization, even for an outside mailbox.
+    owner_kind: props.person_id ? "person" : null, owner_id: props.person_id ?? null, actor: null, trace_id: trace, at, props });
 };
 
 /** `now` is devnet's canonical worldNow, injected by composition (notices.worker-authority); never a host clock. */
@@ -56,8 +56,14 @@ export function noticesWorker(db: Database, mail: Mail, sources: Omit<Sources,"p
   return async () => {
     const scheduled = await relay(db, "notices", sourceNames, schedule);
     const prepared = await prepareDue(db, now, resolve);
-    const delivered = await deliverNotices(db, mail, now);
-    const finished = await finishDue(db, now);
+    // A failed delivery row is rethrown only after the workflows it does not block have advanced.
+    let failure: unknown;
+    const delivered = await deliverNotices(db, mail, now).catch((error: unknown) => { failure = error; return 0; });
+    const finished = await finishDue(db, now).catch((error: unknown) => {
+      // Neither failure may hide the other.
+      throw failure === undefined ? error : new AggregateError([failure, error], "Notices delivery and completion both failed");
+    });
+    if (failure !== undefined) throw failure;
     return scheduled + prepared + delivered + finished;
   };
 }
