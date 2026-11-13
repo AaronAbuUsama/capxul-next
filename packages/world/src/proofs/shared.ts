@@ -23,9 +23,9 @@ const outcomeOf = <A, E>(exit: Exit.Exit<A, E>) => (Exit.isSuccess(exit) ? "crea
 const cleanUp = (names: ReadonlyArray<string>) =>
   Effect.forEach(names, (name) => Effect.ignore(destroy(name)), { discard: true });
 
-/** One world's resources: two Workers, two container applications, two Durable Object namespaces, a bucket, a
- * Hyperdrive configuration and a branch. */
-const ONE_WORLD = 9;
+/** One world's resources: two Workers, three container applications (chain, index, bundler), three Durable Object
+ * namespaces, a bucket, a Hyperdrive configuration and a branch. */
+const ONE_WORLD = 11;
 
 const raceSpec = (owner: string): WorldSpec => ({ name: "p-race", owner, lifetime: Duration.minutes(40) });
 

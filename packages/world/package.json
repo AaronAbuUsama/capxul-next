@@ -16,7 +16,8 @@
     "@effect/platform-bun": "catalog:",
     "@effect/platform-node": "catalog:",
     "alchemy": "catalog:",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "viem": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
