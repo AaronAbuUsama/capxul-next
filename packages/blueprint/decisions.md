@@ -353,6 +353,20 @@ inside it, so it is a question for Aaron, not built here. With it:
 - world.create and world.snapshot.restore answer once the new world's Core has answered its health check ten times
   in a row, so a caller's first call `at` it is not answered by Cloudflare's edge.
 
+**52. A world's sites in its snapshots, and a rehearsal with Core off Cloudflare (step 1.6).** Amends 51, whose
+"saving or restoring a world with companies is a fault" held until the bench could back a site up. Chosen: a snapshot
+saves each of the world's sites as a backup of its database on the bench (`bench backup`), named by the snapshot and
+kept by the site door beside the world's sites, removed with them; a restore makes each again in the new world under
+its own label from that backup (`bench new-site --source-sql`), with the backup's encryption key, joined to the new
+world and its clock, its API user given the new world's credential, and the new world's companies pointed at their
+new sites. The door lets a world restore only backups of the world whose token is shown beside its own. Why: entry 17
+always said a snapshot holds a backup of each site; only the bench's half was missing. Separately, until a bench
+Cloudflare can reach exists (roadmap 2.1), the runner can run every world's Core in workerd on its own machine, next
+to a stand-in bench (`./run.sh scenarios --core=local`), with the world's database, chain, index and bundler still on
+Cloudflare and Neon. Such a run proves nothing a step needs: its records say so, and its outcome is at best
+`rehearsed`, never `passed`. Found on the way, and true of the pinned Frappe: a new Scheduled Job Type is named by a
+hash, not by its method (entry 44 assumed the latter); the Capxul app names the daily job's type `clock.daily` itself.
+
 ## Answered by Aaron, 13 November 2026
 
 **1. Founding a company in one step.** Yes: `org.create` takes the founding Directors, the approval threshold and the

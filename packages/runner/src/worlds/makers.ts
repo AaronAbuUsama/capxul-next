@@ -5,17 +5,18 @@
 // encoded as the blueprint's own schema encodes that answer. Every call it makes becomes one entry of `calls`.
 //
 // A starting world with no maker here names the operations its steps need: those are not built yet.
-import { MadeCall, operations, servedBy, startingWorlds, World, type StartingWorld } from "@capxul/blueprint";
+import { MadeCall, servedBy, startingWorlds, World, type StartingWorld } from "@capxul/blueprint";
 import { Capxul } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Predicate from "effect/Predicate";
-import * as Schema from "effect/Schema";
 import type { Call } from "../client.ts";
 import { RunnerFailure } from "../failure.ts";
 import { freshName } from "../run.ts";
+import { companyMakers } from "./company.ts";
+import { encodeAnswer, encoded, schemasOf } from "./encode.ts";
 
 /** Facts as a world's maker keeps them: encoded, as `Given` hands them and `given` decodes them. */
 export type Facts = Readonly<Record<string, unknown>>;
@@ -30,26 +31,10 @@ export interface Making {
 /** A starting world's own steps, as an Effect of the scenarios' client. */
 export type Steps = (making: Making) => Effect.Effect<Making, RunnerFailure, Capxul>;
 
+export { encodeAnswer };
+
 /** How long a world made for a scenario, or by its steps, may live: an hour and a half. */
 export const SCENARIO_MINUTES = 90;
-
-type Codec = Schema.Codec<unknown, unknown>;
-const schemasOf = (name: keyof typeof operations) =>
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- an operation's schemas need no services: they are the blueprint's plain Schemas, which Rpc's generic type leaves open.
-  operations[name].rpc as unknown as {
-    readonly payloadSchema: Codec;
-    readonly successSchema: Codec;
-    readonly errorSchema: Codec;
-  };
-
-const encoded = (schema: Codec, value: unknown) =>
-  Schema.encodeUnknownEffect(Schema.toCodecJson(schema))(value).pipe(
-    Effect.mapError((error) => RunnerFailure.make({ step: "starting world", message: error.message })),
-  );
-
-/** An answer of `operation`, encoded as the blueprint encodes it: what a fact holds. */
-export const encodeAnswer = (operation: keyof typeof operations, answer: unknown) =>
-  encoded(schemasOf(operation).successSchema, answer);
 
 /** One recorded call as the `calls` fact holds it (the blueprint's `MadeCall`), encoded. */
 export const madeCallOf = (call: Call, own: Making["own"]) =>
@@ -176,6 +161,7 @@ export const makers: Readonly<Record<string, Steps>> = {
   [startingWorlds.nothing.name]: (making) => Effect.succeed(making),
   [startingWorlds.quotaFull.name]: quotaFull,
   [startingWorlds.fresh.name]: fresh(TEMPLATE_MINUTES),
+  ...companyMakers,
   [startingWorlds.withSnapshot.name]: withSnapshot,
   [startingWorlds.restored.name]: restored,
 };

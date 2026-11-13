@@ -5,32 +5,15 @@ import { test } from "node:test";
 import { MadeCall, startingWorlds, World } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
+import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import { madeCallOf, makers, waitsOn } from "../src/worlds/makers.ts";
 
-test("the runner makes nothing, quota-full, fresh, with-snapshot and restored by their steps", () => {
-  for (const world of [
-    startingWorlds.nothing,
-    startingWorlds.quotaFull,
-    startingWorlds.fresh,
-    startingWorlds.withSnapshot,
-    startingWorlds.restored,
-  ])
+test("the runner has a maker for every starting world, so none waits on an operation", () => {
+  for (const world of Rec.values(startingWorlds)) {
     assert.ok(makers[world.name] !== undefined, world.name);
-  assert.deepEqual(waitsOn(startingWorlds.fresh), []);
-  assert.deepEqual(waitsOn(startingWorlds.quotaFull), []);
-});
-
-test("a world whose steps need operations not built names them, its ancestors' first", () => {
-  assert.deepEqual(waitsOn(startingWorlds.founded), ["org.create", "approval.sign"]);
-  assert.deepEqual(waitsOn(startingWorlds.paid), [
-    "org.create",
-    "approval.sign",
-    "org.member.grant",
-    "doc.create",
-    "doc.submit",
-  ]);
-  assert.deepEqual(waitsOn(startingWorlds.restored), waitsOn(startingWorlds.paid));
+    assert.deepEqual(waitsOn(world), [], world.name);
+  }
 });
 
 test("a recorded call becomes a MadeCall, encoded as the blueprint encodes it", () => {

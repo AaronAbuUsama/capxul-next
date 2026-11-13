@@ -13,6 +13,7 @@ reads the blueprint (`@capxul/blueprint`), deploys Core (`@capxul/core`) and run
 ./run.sh chain --world=<name> # the chain operations' journey (src/chain-journey.ts) through a world's Core
 ./run.sh scenarios [name...]  # the registered scenarios (or those named), each in fresh private worlds (below)
 ./run.sh starting-worlds      # make every starting world the runner can make, timed, then destroy them all
+WORLD_BENCH=<platform stage> ./run.sh scenarios --core=local [name...]   # a rehearsal: Core in workerd here (below)
 ./run.sh scenarios --expect=not-implemented              # each in a fresh stage; must fail on NotImplemented
 ./run.sh scenarios --one-stage --expect=not-implemented  # the same, all in one fresh stage
 ```
@@ -85,12 +86,12 @@ the facts its steps answered (decision 38), with every call made in making it as
 | `fresh` to `paid` | Once per run, one after another in one template world (`tpl-<6 hex>`, 6 hours), each saved there as a template snapshot of its own name; each scenario gets a restore of it into a world of its own (`s-<6 hex>`, 90 minutes), whose `world` fact is the restore's answer. |
 | `quota-full`, `with-snapshot`, `restored` | By their steps for each scenario, from a world got the same way. |
 
-A starting world with no maker here fails its scenario naming the operations its steps call (`waitsOn`). Today the
-runner makes `nothing`, `quota-full`, `fresh`, `with-snapshot` and `restored`; `founded` to `paid` have no maker yet,
-so `with-snapshot` and `restored`, made from `paid`, cannot be reached either. Their operations are built, but their
-makers need two things the runner lacks: the cast's keys to sign approvals with (a secp256k1 signer here, viem as the
-scenarios use it, a dependency this package does not have), and a company site that becomes ready, which needs a
-bench the world's Core on Cloudflare can reach (roadmap steps 1.4 and 2.2).
+A starting world with no maker here fails its scenario naming the operations its steps call (`waitsOn`). The runner
+makes every one: `founded` to `paid` by their declared steps in `src/worlds/company.ts`, each approval signed with the
+cast's keys (`CAST_KEYS`, through viem, blueprint decisions 34 and 42), each wait polling an operation until it answers
+differently (decision 27). A template of a world with a company saves its site with it, and a restore makes the site
+again in the new world (decision 52). With Core on Cloudflare they need a bench Cloudflare can reach (roadmap steps
+1.4 and 2.1); until it exists they are rehearsed with `--core=local`.
 
 The calls made in making the world get the generic checks too (`making` in the run record). The platform's own
 calls are checked against what it kept (`PlatformKept`: its spans, and the events each wrote into its world's record).
@@ -102,6 +103,29 @@ destroyed when the run ends. Records go to `records/<run>/<scenario>.json`, the 
 every call, destroys each one's worlds before the next and the template at the end, and writes
 `records/<run>/starting-worlds.json`.
 
+## A rehearsal with Core run locally (`--core=local`)
+
+`WORLD_BENCH=<stage> ./run.sh scenarios --core=local [name...]` (and `starting-worlds --core=local`) runs every
+scenario as above, except that each world's Core runs in this process's machine instead of on Cloudflare, next to a
+stand-in bench of `packages/platform` (`PLATFORM_HOST=standin`, `PLATFORM_EDGE=none`), which nothing on Cloudflare can
+reach. Everything else of a world is unchanged: its database (a Neon branch), chain, index, bundler and door are on
+Cloudflare and Neon, and the platform makes and destroys it as always. It is runner plumbing (`src/local/`), plugged
+into `packages/world` through its `CoreHost` seam (`src/core/host.ts` there):
+
+| Part | File | What |
+|---|---|---|
+| Core's bundle | `src/local/bundle.ts` | Alchemy's own rolldown build of `packages/core`'s Worker (`CORE_WORKER_MAIN`), wrapped in Alchemy's Worker bridge, with the compatibility date and flags a deploy gives it: the same bundle a deploy uploads. Built once per run into a temporary directory. |
+| workerd | `src/local/workerd.ts` | One `workerd serve` per world (the version Alchemy's local runtime pins; `run.sh` finds it), on a free loopback port the world's door then names, with the bindings a deploy binds, by the same names. Its log is beside its configuration. |
+| Database | `src/local/database.ts` | Core's `DATABASE` is a Hyperdrive binding whose origin is a loopback TCP port. This machine has no TCP route out, so each connection is carried byte for byte over a WebSocket of its own to the world's Neon endpoint (`wss://<host>/v2`, the serverless driver's way), through the session's proxy. A WebSocket closed before Neon answers the first message is opened again. |
+| Chain | `src/local/forward.ts` | Core's `CHAIN` service binding goes to one loopback HTTP server, which carries each request to the door of the world whose token starts its path, through the proxy. |
+| Host | `src/local/host.ts` | `World.CoreHost`: the address each world's Core will answer at (decided before its deploy, so its door names it), its start once the world's parts answer (the world's `core` step then waits for it), and its stop at its destroy. The run's end stops all. |
+
+Every record such a run writes carries `core` (`LOCAL_CORE_LABEL`), and its `outcome` is `rehearsed` where it would
+be `passed`: a step's Proof counts only `passed`, so a rehearsal can never be taken for the proof that the scenarios
+pass with Core on Cloudflare (roadmap step 1.6). What it shows is everything else: the starting worlds, the sites, the
+operations against real ERPNext, the snapshots with sites, and every generic check. What it cannot show is in
+`records/` beside its runs.
+
 ## A scenarios run and its summary
 
 `./run.sh scenarios` also writes a summary (`src/summary.ts`, `src/scenario-runs.ts`): one JSON file whose `outcome`
@@ -111,7 +135,7 @@ times and what the accounts held of it afterwards. What the run expects is decla
 
 | `--expect=` | A scenario is as expected when | For |
 |---|---|---|
-| `pass` (default) | its run record passed | step 1.6: the thin line passes |
+| `pass` (default) | its run record passed (or, with `--core=local`, was `rehearsed`) | step 1.6: the thin line passes |
 | `not-implemented` | it failed on `NotImplemented`, or on an `ExpectationFailed` that names it, never passed and never died; it made a call, every call was answered `NotImplemented`, and every generic check passed on every call | step 1.5: the scenarios fail on Core's empty handlers |
 
 The summary's `outcome` is `passed` exactly when every claim the blueprint declares has its scenario in the run, every
@@ -173,6 +197,8 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | `src/given.ts` | `Given`: the facts of a scenario's starting world. `nothing`'s are the run's operators; for any other world, the declared example facts in a run that expects `not-implemented`, and a defect otherwise, until the runner makes starting worlds (step 1.12). |
 | `src/checks/checks.ts`, `src/checks/events.ts` | The generic checks, the timings and the steps. A builder never changes these. |
 | `src/world/` | The stage's life, its database, the warm-up and the inventory: the runner's plumbing. |
+| `src/worlds/` | A run in private worlds: the platform this process serves, the starting worlds (`starting.ts`), their makers (`makers.ts`; those with a company in `company.ts`), how a fact is encoded (`encode.ts`), the run and its timing. |
+| `src/local/` | `--core=local`: Core's bundle, its workerd, its database bridge, its chain forwarder and the host that runs one per world (above). |
 | `src/scenario-runs.ts` | A scenarios run in either mode, ending in its summary. |
 | `src/summary.ts` | The summary: what each scenario was expected to do, the claims a run must cover, the stages it must leave. |
 | `src/record.ts`, `src/failure.ts` | The run record, the JSON writers, and how a run ended and a failure is worded. |
@@ -183,4 +209,6 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 - A stage has an owner but no expiry: if this process is killed outright (`kill -9`), nothing deletes the stage.
   `packages/world` gives worlds an expiry and a sweeper (step 1.3). Alchemy's state is local (`.alchemy/`, ignored).
 - The template worlds are made once per run, not once per change to the code (decision 46): a run pays for them.
+- A local Core's database connection is not pooled: each request opens one over its own WebSocket, which Hyperdrive
+  on Cloudflare would pool. Its server times are therefore not Core's on Cloudflare.
 - Runs go one at a time, and so do the scenarios of a one-stage run.

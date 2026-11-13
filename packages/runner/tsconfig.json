@@ -8,8 +8,20 @@
         "name": "@effect/language-service",
         // The runner calls the blueprint's Rpc groups over HTTP, and reads and writes files under Bun. Effect 4 ships
         // Rpc, HTTP, the file system, paths and its Bun platform only as unstable modules, with no stable replacement.
-        // The catalog's exact pin of effect is the guard, as in packages/blueprint.
-        "allowedUnstableApis": ["effect/rpc", "effect/http", "effect/FileSystem", "effect/Path", "@effect/platform-bun"]
+        // The catalog's exact pin of effect is the guard, as in packages/blueprint. A local Core (src/local) also needs
+        // sockets (its database bridge) and child processes (workerd), which Effect 4 ships only as unstable modules
+        // too, Bun's through the shared Node ones.
+        "allowedUnstableApis": [
+          "effect/rpc",
+          "effect/http",
+          "effect/FileSystem",
+          "effect/Path",
+          "effect/socket",
+          "effect/net",
+          "effect/process",
+          "@effect/platform-bun",
+          "@effect/platform-node-shared"
+        ]
       }
     ]
   },

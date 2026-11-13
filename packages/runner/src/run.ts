@@ -69,7 +69,7 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
     };
     const [runTook, run] = yield* plan.calls(target, log).pipe(Effect.exit, Effect.timed);
     const calls = yield* Ref.get(log);
-    const [checksTook, kept] = yield* Effect.timed(keptFor(stage.database, calls));
+    const [checksTook, kept] = yield* Effect.timed(keptFor(Option.some(stage.database), calls));
     return {
       run,
       calls: Arr.map(calls, (call) => checkCall(call, kept)),
@@ -83,20 +83,19 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
 
 /**
  * What Core kept for every call: the stage's own database for calls through its own door, and, for a call made `at`
- * another world's door, that world's database, when the shared state knows the world (world/existing.ts).
+ * another world's door, that world's database, when the shared state knows the world (world/existing.ts). A client
+ * with no world of its own (a starting world's maker, whose every world call goes `at` a door) passes none.
  */
-const keptFor = (database: Redacted.Redacted, calls: ReadonlyArray<Call>) =>
+export const keptFor = (database: Option.Option<Redacted.Redacted>, calls: ReadonlyArray<Call>) =>
   Effect.gen(function* () {
     // Where the platform group is served by this process (worlds/platform.ts), its calls are kept by it.
     const platform = yield* Effect.serviceOption(PlatformKept);
     const byPlatform = (call: Call) => Option.isSome(platform) && servedBy(call.operation) === "platform";
-    const own = yield* telemetryOf(
-      database,
-      Arr.map(
-        Arr.filter(calls, (call) => call.at === null && !byPlatform(call)),
-        (call) => call.traceId,
-      ),
+    const ownCalls = Arr.map(
+      Arr.filter(calls, (call) => call.at === null && !byPlatform(call)),
+      (call) => call.traceId,
     );
+    const own = Option.isSome(database) ? yield* telemetryOf(database.value, ownCalls) : { spans: [], events: [] };
     const served = Option.isNone(platform)
       ? { spans: [], events: [] }
       : yield* platform.value.kept(Arr.map(Arr.filter(calls, byPlatform), (call) => call.traceId));

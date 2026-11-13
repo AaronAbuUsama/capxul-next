@@ -5,6 +5,8 @@ export { bundlerCall, bundlerStatus, servesEntryPoint } from "./bundler/client.t
 export { BUNDLER_PATH, ENTRY_POINT, TEST_PAYMASTER } from "./bundler/Keys.ts";
 export { balanceOf, type Funded, type Mint, TEST_USDC } from "./chain/faucet.ts";
 export { Core, CORE_MIGRATIONS, defaultCore } from "./core/Core.ts";
+export { CoreHost, type HostedCore } from "./core/host.ts";
+export type { BenchGrant } from "./stack/settings.ts";
 export { CORE_HEALTH } from "./core/health.ts";
 export { WorldBranch, WorldDatabase } from "./database/Db.ts";
 export { migrate, query, statementsOf } from "./database/sql.ts";

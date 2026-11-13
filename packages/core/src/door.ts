@@ -13,5 +13,8 @@ export { SiteDoor, SiteDoorFailed, type SiteAnswer, type SiteCall } from "./site
 export { SpanSink, SqlSpanSink } from "./telemetry/sink.ts";
 export { keepingTracer, outcomeOf, type KeptSpan, type SpanOutcome } from "./telemetry/spans.ts";
 
+/** Core's Worker module, as Alchemy bundles it: what a local Core (packages/runner, `--core=local`) builds too. */
+export const CORE_WORKER_MAIN = `${import.meta.dirname}/worker.ts`;
+
 /** The `.sql` files applied to a stage's database when it is created, in name order. */
 export const migrations = new URL("../migrations/", import.meta.url);

@@ -185,6 +185,22 @@ class CoreApi(unittest.TestCase):
             self.core(core_api.report, "org_northwind1", SAM, "Supplier", {"supplier_name": "B"})
         self.assertEqual(listed, [(SAM, "Supplier", {"supplier_name": "B"})])
 
+    def test_a_report_the_roles_do_not_open_is_refused_for_permission_before_its_part(self):
+        class Report(Doc):
+            def is_permitted(self):
+                return self["open"]
+
+        DB.insert(Report({"doctype": "Report", "name": "Salary Register", "ref_doctype": "Salary Slip", "open": False}))
+        desk = type(sys)("frappe.desk.query_report")
+        desk.run = lambda *a, **k: self.fail("the report ran")
+        p = patch.dict(sys.modules, {"frappe.desk": type(sys)("frappe.desk"), "frappe.desk.query_report": desk})
+        p.start()
+        self.addCleanup(p.stop)
+        refused = self.core(core_api.report, "org_northwind1", SAM, "Salary Register", {})
+        self.assertEqual((refused["refused"], refused["reason"], refused["target"]), ("site-refused", "permission", "Salary Register"))
+        DB.find("Report", "Salary Register")[0]["open"] = True
+        self.assertEqual(self.core(core_api.report, "org_northwind1", SAM, "Salary Register", {})["reason"], "part_off")
+
     def test_a_reports_required_filters_are_filled_when_left_out(self):
         erpnext = type(sys)("erpnext.accounts.utils")
         erpnext.get_fiscal_year = lambda date, company=None: ("2026", "2026-01-01", "2026-12-31")
@@ -213,13 +229,27 @@ class CoreApi(unittest.TestCase):
         write = lambda world, offset, frozen=None: calls.append(("write", world, offset, frozen))
         with patch.object(clock, "_host_ms", lambda: 1_000_000), patch.object(clock, "site_time", lambda ms: f"site {ms}"), \
                 patch.object(clock.advance, "__wrapped__", advance), patch.object(clock.write_world, "__wrapped__", write), \
-                patch.object(clock, "world_of_site", lambda: "w1"):
+                patch.object(clock, "world_of_site", lambda: "w1"), \
+                patch.object(clock, "name_daily_job", lambda: calls.append(("name",))):
             moved = self.core(core_api.warp, 400_000, 400_000 + 7 * 86_400_000, True, True)
             self.core(core_api.warp, 400_000, 500_000, False, False)
         self.assertEqual((moved["stops"], moved["jobs"]), (8, 7))
         self.assertEqual(sql[0], ("update", ("site 400000", "site 400000")))
+        self.assertEqual(calls[:2], [("sync",), ("name",)], "the daily job's type is named after it is synced")
         self.assertIn(("advance", -600_000, 7 * 86_400_000 - 600_000), calls)
         self.assertEqual([c for c in calls if c[0] == "write"], [("write", "w1", 7 * 86_400_000 - 600_000, 400_000 + 7 * 86_400_000)])
+
+
+class DailyJobName(unittest.TestCase):
+    def test_the_daily_jobs_type_is_renamed_to_its_declared_name_once(self):
+        renamed = []
+        with patch.object(clock.frappe.db, "get_value", create=True, return_value="pme9huru30"), \
+                patch.object(clock.frappe, "rename_doc", create=True, side_effect=lambda *a, **k: renamed.append((a, k))):
+            clock.name_daily_job()
+        self.assertEqual(renamed, [(("Scheduled Job Type", "pme9huru30", "clock.daily"), {"force": True})])
+        with patch.object(clock.frappe.db, "get_value", create=True, return_value="clock.daily"), \
+                patch.object(clock.frappe, "rename_doc", create=True, side_effect=AssertionError("renamed again")):
+            clock.name_daily_job()
 
 
 class Keccak(unittest.TestCase):

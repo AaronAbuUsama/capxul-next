@@ -8,6 +8,9 @@
 #   ./run.sh scenarios [--one-stage] [--expect=pass|not-implemented] [name...]
 #                                 run the registered scenarios (or those named), each in its own fresh stage, or all
 #                                 in one fresh stage (only with --expect=not-implemented), and write their summary
+#   ./run.sh scenarios --core=local [name...]
+#                                 the same in private worlds, with every world's Core run here in workerd next to a
+#                                 stand-in bench (WORLD_BENCH=<platform stage>): a rehearsal, labelled so in every record
 #   ./run.sh alchemy <args...>    an alchemy command for the CapxulCore stack, e.g. alchemy state list. Never nuke.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -24,6 +27,14 @@ export WORLD_SECOND_OWNER="${WORLD_SECOND_OWNER:-runner-2}"
 account() { curl -sS --max-time 20 "$1" | python3 -c "$2"; }
 export CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-$(account 'https://api.cloudflare.com/client/v4/accounts?per_page=5' "import json,sys; print(json.load(sys.stdin)['result'][0]['id'])")}"
 export NEON_ORG_ID="${NEON_ORG_ID:-$(account https://console.neon.tech/api/v2/users/me/organizations "import json,sys; print(json.load(sys.stdin)['organizations'][0]['id'])")}"
+# A local Core (--core=local) is served by the workerd Alchemy's local runtime pins.
+export CAPXUL_WORKERD="${CAPXUL_WORKERD:-$(bun -e 'import w from "workerd"; console.log(w)')}"
+# The disk guard: a run in private worlds with a bench fills the disk with sites and their backups; stop before it is
+# full (RUNNER_MIN_FREE_GB, default 4).
+free_gb() { df -Pk . | awk 'NR==2 { print int($4 / 1048576) }'; }
+if [ "${1:-}" = scenarios ] || [ "${1:-}" = starting-worlds ]; then
+  [ "$(free_gb)" -ge "${RUNNER_MIN_FREE_GB:-4}" ] || { echo "run.sh: only $(free_gb) GB free; at least ${RUNNER_MIN_FREE_GB:-4} needed" >&2; exit 2; }
+fi
 case "${1:-}" in
   alchemy) shift; exec bun node_modules/alchemy/bin/cli.js "$@" ;;
   door|chain|scenarios|starting-worlds) exec bun src/main.ts "$@" ;;

@@ -9,18 +9,18 @@ import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
+import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import { checkCall, CheckedCall, failuresOf } from "../checks/checks.ts";
 import { describe } from "../failure.ts";
-import { writeJson } from "../record.ts";
-import { freshName } from "../run.ts";
+import { Outcome, passedOr, writeJson } from "../record.ts";
+import { freshName, keptFor } from "../run.ts";
 import type { Settings } from "../settings.ts";
 import { Inventory } from "../world/leftovers.ts";
-import { PlatformKept } from "./kept.ts";
 import { waitsOn } from "./makers.ts";
 import { Platform } from "./platform.ts";
-import { destroyAll, leftOf } from "./run.ts";
+import { coreLabel, destroyAll, leftOf } from "./run.ts";
 import { startingWorldsOf } from "./starting.ts";
 
 const Line = Schema.Struct({
@@ -40,7 +40,9 @@ export const StartingWorldsRecord = Schema.Struct({
   run: Schema.String,
   startedAt: Schema.String,
   /** `passed` when every world the runner can make was made, every call passed every check, and nothing is left. */
-  outcome: Schema.Literals(["passed", "failed"]),
+  outcome: Outcome,
+  /** Where Core ran, when not on Cloudflare (src/local/host.ts). */
+  core: Schema.optional(Schema.String),
   failure: Schema.NullOr(Schema.String),
   worlds: Schema.Array(Line),
   /** The template worlds, and how long their destroy took at the end. */
@@ -56,7 +58,6 @@ const millis = (took: Duration.Duration) => Math.round(Duration.toMillis(took));
 export const timeStartingWorlds = (settings: Settings) =>
   Effect.gen(function* () {
     const platform = yield* Platform;
-    const kept = yield* PlatformKept;
     const startedAt = DateTime.formatIso(yield* DateTime.now);
     const run = yield* freshName("run");
     const starting = yield* startingWorldsOf(settings, platform.url);
@@ -66,7 +67,7 @@ export const timeStartingWorlds = (settings: Settings) =>
         const callsBefore = (yield* starting.made).length;
         const [took, exit] = yield* starting.forScenario(world).pipe(Effect.exit, Effect.timed);
         const calls = Arr.map(Arr.drop(yield* starting.made, callsBefore), (each) => each.call);
-        const found = yield* Effect.orElseSucceed(kept.kept(Arr.map(calls, (call) => call.traceId)), () => ({
+        const found = yield* Effect.orElseSucceed(keptFor(Option.none(), calls), () => ({
           spans: [],
           events: [],
         }));
@@ -107,11 +108,13 @@ export const timeStartingWorlds = (settings: Settings) =>
         ? ["the accounts still hold some of the run's worlds"]
         : []),
     ];
+    const core = yield* coreLabel;
     const record: StartingWorldsRecord = {
       kind: "starting worlds",
       run,
       startedAt,
-      outcome: failures.length === 0 ? "passed" : "failed",
+      outcome: failures.length === 0 ? passedOr(core) : "failed",
+      ...(core === undefined ? {} : { core }),
       failure: failures.length === 0 ? null : Arr.join(failures, "\n"),
       worlds: lines,
       templates,

@@ -1,6 +1,7 @@
 // The parts of a deployed world, reached from outside: its door (chain and index), its Core, and its record in the
 // shared state. Bringing a world up is waiting, with a limit, until each part answers.
 import { Errors } from "@capxul/blueprint";
+import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Predicate from "effect/Predicate";
 import * as Redacted from "effect/Redacted";
@@ -79,6 +80,16 @@ export const open = Effect.fn("world.open")(function* (name: string) {
 
 type Door = Pick<World, "door">;
 
+/**
+ * Sends one request to the world's door. A connection reset before any answer (the session's proxy does it now and
+ * then: a template's snapshot save of the chain failed so in a rehearsal, 13 November 2026) is sent again on a fresh
+ * one; an answer, of any status, never is.
+ */
+const toDoor = (world: Door, request: HttpClientRequest.HttpClientRequest) =>
+  HttpClient.execute(request.pipe(HttpClientRequest.prependUrl(Redacted.value(world.door)))).pipe(
+    Effect.retry({ times: 2, schedule: Schedule.spaced(Duration.millis(500)) }),
+  );
+
 /** One call to the world's door, its answer decoded with `schema`. A door that does not answer so is not ready. */
 const doorCall = <S extends Schema.Constraint>(
   world: Door,
@@ -87,7 +98,7 @@ const doorCall = <S extends Schema.Constraint>(
   schema: S,
 ) =>
   Effect.gen(function* () {
-    const response = yield* HttpClient.execute(request.pipe(HttpClientRequest.prependUrl(Redacted.value(world.door))));
+    const response = yield* toDoor(world, request);
     if (response.status !== 200) {
       const body = yield* response.text;
       return yield* WorldNotReady.make({ part, message: `HTTP ${response.status}: ${Str.slice(0, 160)(body)}` });
@@ -104,7 +115,7 @@ const doorCall = <S extends Schema.Constraint>(
 
 /** One call to the world's door whose answer is text: the chain's saved state. */
 const doorText = (world: Door, part: WorldNotReady["part"], request: HttpClientRequest.HttpClientRequest) =>
-  HttpClient.execute(request.pipe(HttpClientRequest.prependUrl(Redacted.value(world.door)))).pipe(
+  toDoor(world, request).pipe(
     Effect.flatMap((response) => Effect.map(response.text, (body) => ({ status: response.status, body }))),
     Effect.mapError((error) => WorldNotReady.make({ part, message: describeFailure(error) })),
     Effect.flatMap(({ status, body }) =>

@@ -29,6 +29,10 @@ GET    /world                         the token's claims and the world's sites
 ANY    /sites/<site>/api/...          a call to the site's own REST API, as the user `Authorization: token k:s` names;
                                       cookies are dropped, and any other kind of credential is refused
 POST   /clock {"frozen_at_ms": n} or {"offset_ms": n}   sets the world's clock, through one of its sites
+POST   /world/backup {"snapshot"}     saves every site of the world under the snapshot's name (snapshots.py)
+POST   /world/restore {"snapshot", "api_key", "api_secret", "clock"}   with the source world's token in
+       `X-Capxul-Source-Token`: starts restoring every site that world saved as the snapshot into the token's world,
+       each under its own label, and answers 202; each is then a site of this world like any other
 GET    /health
 """
 
@@ -42,15 +46,16 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from snapshots import backup_world, remove_backups, restore_world
 from sites import (BENCH, DOMAIN, FORWARDED, KEY, LABEL, PORT, REGISTRY, REGISTRY_LOCK, SECRET, SITE_CALL, TOKEN, WEB,
                    Refused,
                    bench, build, entries_of, entry_path, public, read_entry, remove_site, site_of, update_entry,
                    write_entry)
 
 
-def claims(headers, site_call=False):
-    given = headers.get("X-Capxul-Site-Token")
-    if not given and not site_call:
+def claims(headers, site_call=False, header="X-Capxul-Site-Token"):
+    given = headers.get(header)
+    if not given and not site_call and header == "X-Capxul-Site-Token":
         bearer = headers.get("Authorization") or ""
         given = bearer[len("Bearer "):] if bearer.startswith("Bearer ") else None
     if not given:
@@ -149,6 +154,7 @@ class Door(BaseHTTPRequestHandler):
                 return self.answer(200, {**c, "sites": [public(e) for e in entries_of(c["world"])]})
             if route == ("DELETE", "/world"):
                 gone = [remove_site(e["site"]) for e in entries_of(c["world"])]
+                remove_backups(c["world"])
                 return self.answer(200, {"world": c["world"], "removed": gone})
             if method in ("GET", "DELETE") and self.path.startswith("/sites/"):
                 entry = site_of(c, self.path[len("/sites/"):])
@@ -158,6 +164,11 @@ class Door(BaseHTTPRequestHandler):
                 return self.answer(202, create_site(c, body))
             if route == ("POST", "/clock"):
                 return self.answer(200, set_clock(c, body))
+            if route == ("POST", "/world/backup"):
+                return self.answer(200, backup_world(c, body))
+            if route == ("POST", "/world/restore"):
+                source = claims(self.headers, header="X-Capxul-Source-Token")
+                return self.answer(202, restore_world(c, source, body))
             raise Refused(404, "no-such-route")
         except Refused as r:
             print(f"door: refused {method} {self.path.split('/api/')[0]} {r.code} {r.detail[:200]}", flush=True)

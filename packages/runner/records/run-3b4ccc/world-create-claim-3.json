@@ -1,0 +1,147 @@
+{
+  "kind": "scenario",
+  "name": "world.create claim 3",
+  "proves": {
+    "operation": "world.create",
+    "claim": 3
+  },
+  "given": "nothing",
+  "stage": "run-3b4ccc-3",
+  "owner": "runner",
+  "startedAt": "2026-11-13T20:48:35.388Z",
+  "outcome": "rehearsed",
+  "core": "local-Core rehearsal: Core ran in workerd on the runner's machine, next to a stand-in bench, against the world's database, chain, index and bundler on Cloudflare and Neon. Not the proof that the scenarios pass with Core on Cloudflare (roadmap step 1.6).",
+  "failure": null,
+  "ended": {
+    "as": "succeeded",
+    "tag": null,
+    "detail": null
+  },
+  "readiness": null,
+  "calls": [
+    {
+      "operation": "world.create",
+      "traceId": "a172a5fc43e1b2fb9fe2db40d85efcca",
+      "at": null,
+      "outcome": "refusal",
+      "refusal": "GradeNotOffered",
+      "failure": "{\"_tag\":\"GradeNotOffered\",\"grade\":\"real\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 123.028,
+        "serverMs": 0.549,
+        "budgetMs": 90000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "platform.world.create",
+          "parent": "world.create",
+          "startMs": 0.164,
+          "ms": 0.385,
+          "outcome": "failure"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.create span, 0.549 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "85f04002f2f141c16f590423dc5910fd",
+      "at": null,
+      "outcome": "refusal",
+      "refusal": "WorldNotFound",
+      "failure": "{\"_tag\":\"WorldNotFound\",\"world\":\"wc3-qyvya1p4\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 191.107,
+        "serverMs": 70.557,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": -0.779,
+          "ms": 70.336,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": -0.155,
+          "ms": 69.712,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.141,
+          "ms": 70.416,
+          "outcome": "failure"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 70.557 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    }
+  ],
+  "making": [],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    }
+  },
+  "ms": {
+    "create": 0,
+    "run": 318,
+    "checks": 397,
+    "destroy": 0
+  }
+}

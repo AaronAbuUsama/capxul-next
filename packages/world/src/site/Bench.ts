@@ -35,7 +35,7 @@ import type { BenchGrant } from "../stack/settings.ts";
 /** The platform stage whose bench a new world's sites go on; unset, worlds have no bench and no sites. */
 export const BenchStage = Config.option(Config.String("WORLD_BENCH"));
 
-const TOKEN_HEADER = "x-capxul-site-token";
+export const TOKEN_HEADER = "x-capxul-site-token";
 
 export const SiteState = Schema.Struct({
   site: Schema.String,
@@ -56,10 +56,10 @@ const Removed = Schema.Struct({
 const unix = (iso: string) => Math.floor(DateTime.toEpochMillis(DateTime.makeUnsafe(iso)) / 1000);
 
 /** A quarter of an hour from now, in Unix seconds: the life of a token minted to read or remove a world's sites. */
-const soon = Effect.map(DateTime.now, (now) => Math.floor(DateTime.toEpochMillis(now) / 1000) + 15 * 60);
+export const soon = Effect.map(DateTime.now, (now) => Math.floor(DateTime.toEpochMillis(now) / 1000) + 15 * 60);
 
 /** A token for `world` on `bench`, minted under the platform's door key, read from the shared state. */
-const tokenFor = (bench: string, world: string, quota: number, expires: number) =>
+export const tokenFor = (bench: string, world: string, quota: number, expires: number) =>
   withState((state) =>
     Effect.gen(function* () {
       const outputs = yield* Platform.platformOutputsIn(state, bench);
@@ -79,7 +79,7 @@ export const grant = Effect.fn("world.site.grant")(function* (stage: string, exp
 });
 
 /** One call to the site door with `token`, its answer decoded with `schema`. */
-const doorCall = <S extends Schema.Constraint>(
+export const doorCall = <S extends Schema.Constraint>(
   door: string,
   token: Redacted.Redacted,
   request: HttpClientRequest.HttpClientRequest,
@@ -132,22 +132,24 @@ export const makeSites = Effect.fn("world.site.make")(function* (
     ),
   );
   // The door makes one site at a time, about 100 s each: the step's declared timeout bounds the wait.
-  const ready = (site: string) =>
-    doorCall(bench.door, bench.token, HttpClientRequest.get(`/sites/${site}`), SiteState).pipe(
-      Effect.flatMap((state) =>
-        state.state === "ready"
-          ? Effect.succeed(state)
-          : state.state === "creating"
-            ? Effect.fail(SiteFailed.make({ step: "waiting", message: `${site} is still being made` }))
-            : Effect.die(SiteFailed.make({ step: "make", message: `${site}: ${state.state}: ${state.error ?? ""}` })),
-      ),
-      Effect.retry({
-        while: (error) => error.step === "waiting",
-        schedule: Schedule.spaced(Duration.seconds(3)),
-      }),
-    );
-  return yield* Effect.forEach(asked, (one) => ready(one.site));
+  return yield* Effect.forEach(asked, (one) => readyOn(bench.door, bench.token, one.site));
 });
+
+/** Waits until the door says `site` is ready; a site that failed is a defect, with the door's reason. */
+export const readyOn = (door: string, token: Redacted.Redacted, site: string) =>
+  doorCall(door, token, HttpClientRequest.get(`/sites/${site}`), SiteState).pipe(
+    Effect.flatMap((state) =>
+      state.state === "ready"
+        ? Effect.succeed(state)
+        : state.state === "creating"
+          ? Effect.fail(SiteFailed.make({ step: "waiting", message: `${site} is still being made` }))
+          : Effect.die(SiteFailed.make({ step: "make", message: `${site}: ${state.state}: ${state.error ?? ""}` })),
+    ),
+    Effect.retry({
+      while: (error) => error.step === "waiting",
+      schedule: Schedule.spaced(Duration.seconds(3)),
+    }),
+  );
 
 /** The world's sites on `bench`, as the door holds them, with a fresh token of quota 0. */
 export const sitesOn = Effect.fn("world.site.list")(function* (stage: string, bench: string) {

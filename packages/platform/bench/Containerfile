@@ -1,4 +1,5 @@
-# The smallest bench that can prove the world clock: pinned Frappe, pinned ERPNext and the capxul app, no built assets.
+# The smallest bench that can prove the world clock: pinned Frappe, pinned ERPNext, pinned HRMS and the capxul app, no
+# built assets. HRMS is here for the payroll report the thin line's report.run 2 asks for (Site.REPORTS.payroll).
 # ERPNext is here only because the capxul app does not install without it (its custom fields sit on Supplier, Customer,
 # Employee, GL Entry and Payment Entry: `install-app capxul` on Frappe alone ends "Could not find DocType: Supplier").
 # Built by the platform stack (src/bench.ts) with the pins from packages/bench-image/apps.lock.json, which bin/run.sh reads.
@@ -18,6 +19,10 @@ ARG ERPNEXT_URL
 ARG ERPNEXT_COMMIT
 RUN --mount=type=secret,id=build_ca,uid=1000,required=false \
     bash /opt/bench/image-build.sh erpnext "$ERPNEXT_URL" "$ERPNEXT_COMMIT"
+ARG HRMS_URL
+ARG HRMS_COMMIT
+RUN --mount=type=secret,id=build_ca,uid=1000,required=false \
+    bash /opt/bench/image-build.sh hrms "$HRMS_URL" "$HRMS_COMMIT"
 COPY --from=capxul-app --chown=frappe:0 . /home/frappe/frappe-bench/apps/capxul
 RUN --mount=type=secret,id=build_ca,uid=1000,required=false \
     bash /opt/bench/image-build.sh app

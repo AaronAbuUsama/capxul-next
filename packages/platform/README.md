@@ -53,10 +53,12 @@ from the shared state by whoever holds the Cloudflare key (`src/state.ts`), neve
 
 | Call | What |
 |---|---|
-| `POST /sites {label, company, api_key, api_secret}` | Answers 202 and makes the site in the background (one at a time; about 93 s): new site, ERPNext, capxul, the wizard with the company, migrate, the scheduler, joining the token's world (its clock), and an API user of the site's own, `capxul-core@service.invalid`, with the key and secret the world sent and the roles `Accounts User`, `Purchase User`, `Sales User`. Never the bench's Administrator. |
+| `POST /sites {label, company, api_key, api_secret}` | Answers 202 and makes the site in the background (one at a time; about 93 s, more with HRMS): new site, ERPNext, HRMS, capxul, the wizard with the company, migrate, the scheduler, joining the token's world (its clock), and an API user of the site's own, `capxul-core@service.invalid`, with the key and secret the world sent and the roles `Accounts User`, `Purchase User`, `Sales User`. Never the bench's Administrator. |
 | `GET /sites/<site>`, `GET /world` | A site's state (`creating`, `ready`, `failed`) with each step's time; the world's sites. |
 | `ANY /sites/<site>/api/...` | One call to the site's own REST API, carried to web with the site's Host, as the user `Authorization: token <key>:<secret>` names. Cookies are dropped and any other credential refused; a site not ready answers `site-creating` or `site-failed`. |
-| `DELETE /sites/<site>`, `DELETE /world` | Removes a site (`bench drop-site`, its archive deleted; if that fails, its database and user dropped directly), or every site of the world. A token of quota 0 may do it, so the sweeper can for an expired world. |
+| `DELETE /sites/<site>`, `DELETE /world` | Removes a site (`bench drop-site`, its archive deleted; if that fails, its database and user dropped directly), or every site of the world and its saved backups. A token of quota 0 may do it, so the sweeper can for an expired world. |
+| `POST /world/backup {snapshot}` | Saves every site of the world (each must be ready) under the snapshot's name (`door/snapshots.py`): `bench backup` of its database and its encryption key, in the door's registry folder; a second save of the name replaces it. Seconds per site. |
+| `POST /world/restore {snapshot, api_key, api_secret, clock}` | With the source world's token in `X-Capxul-Source-Token` as well: makes every site that world saved as the snapshot again in the token's world, under the same label, and answers 202. Each is a new site from the backup (`bench new-site --source-sql`), with the backup's encryption key, joined to the new world (`capxul.world.rewrite`), set to its clock, its API user given the new credential, its scheduler on: about 8 s in the rehearsal, against about 95 s for a new site. Within the token's quota. |
 
 The platform records `doorUrl`, where a world reaches the door: `http://<stage>-door.<domain>` through the tunnel, or,
 with `PLATFORM_EDGE=none`, the host's loopback port (only the host itself reaches it).
@@ -135,7 +137,7 @@ no AWS keys, may not create a Cloudflare credential (a tunnel's token is one), a
 | `AWS.EC2.Instance` (2.0.0-beta.85) types its requirements as `any` | Narrowed in one place, `src/aws.ts`, with the reason |
 | `amazonLinux2023()` resolves the newest image on every plan | The image is pinned (`PLATFORM_AMI_ID`, resolved once by the bootstrap): a new one replaces the machine. Replacing the machine was not rehearsed: the new attachment needs the data disk detached from the old machine first |
 | Changing the machine's user data replaces it (EC2 runs user data once) | `src/user-data.ts` does only what Docker cannot do later |
-| The bench is the light image (Frappe, ERPNext, capxul), not the hosted six-app image of `packages/bench-image` | Enough for the thin line; moving is a change of `src/bench.ts` and `bench/` |
+| The bench is the light image (Frappe, ERPNext, HRMS, capxul), not the hosted six-app image of `packages/bench-image` | HRMS was added for the thin line's payroll report (report.run 2), each pinned in `packages/bench-image/apps.lock.json`; moving to the hosted image is a change of `src/bench.ts` and `bench/` |
 | Sites under `worlds.abuusama.dev` are two levels under the zone, outside the free certificate | HTTP only until real worlds move to `capxul.com` (roadmap, "Test addresses"); a token sent to the door through the tunnel travels in clear until then |
 
 | File | What |

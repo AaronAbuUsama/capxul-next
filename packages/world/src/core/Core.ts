@@ -22,6 +22,7 @@ import Door, { DOOR_TOKEN_ID } from "../door/Door.ts";
 import { nameOf } from "../stack/names.ts";
 import { worldSettings } from "../stack/settings.ts";
 import type { CoreSlot } from "../stack/stack.ts";
+import { CoreHost } from "./host.ts";
 
 /** Logical ids of the Core slot's own secrets, as the state store keys them. */
 export const OPERATOR_TOKEN_ID = "operator-token";
@@ -31,6 +32,14 @@ export const SITE_SECRET_ID = "site-secret";
 /** What fills a world's Core slot when the caller provides nothing else: the real Core, with the world's facts. */
 export const defaultCore: CoreSlot = Effect.gen(function* () {
   const { stage } = yield* Alchemy.Stack;
+  const host = yield* CoreHost;
+  // Core run by a host off Cloudflare (host.ts): no Worker, only the secrets the world's handle and sites read.
+  if (Option.isSome(host)) {
+    yield* Alchemy.Random(OPERATOR_TOKEN_ID, { bytes: 24 });
+    yield* Alchemy.Random(SITE_KEY_ID, { bytes: 15 });
+    yield* Alchemy.Random(SITE_SECRET_ID, { bytes: 24 });
+    return { url: yield* host.value.urlOf(stage) };
+  }
   const settings = yield* worldSettings;
   const database = yield* WorldDatabase;
   const door = yield* Door;
