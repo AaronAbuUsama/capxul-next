@@ -132,7 +132,7 @@
         "claim": 2,
         "says": "A world made from nothing names no parent, and a name with no world is refused."
       },
-      "given": "fresh",
+      "given": "nothing",
       "calls": [
         "record.export"
       ],

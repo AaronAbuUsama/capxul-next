@@ -1,15 +1,28 @@
 // How the SDK reaches a door: one Effect Rpc client per blueprint group, over HTTP with JSON, carrying the
 // credential on every request. Where each door is and its credential come from Effect Config or a layer argument.
-import { CREDENTIAL_HEADER, PlatformRpcs, WorldRpcs, type OperationName } from "@capxul/blueprint";
+import {
+  CHAIN_PATH,
+  CREDENTIAL_HEADER,
+  Errors,
+  PlatformRpcs,
+  WORLD_PATH,
+  WorldRpcs,
+  type OperationName,
+  type Values,
+} from "@capxul/blueprint";
 import type { Refusal } from "./operations.ts";
 import * as Config from "effect/Config";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
+import * as Schema from "effect/Schema";
+import * as Str from "effect/String";
 import type * as Headers from "effect/http/Headers";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
+import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import type * as Rpc from "effect/rpc/Rpc";
 import * as RpcClient from "effect/rpc/RpcClient";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
@@ -92,4 +105,119 @@ export const platformDoorFromConfig: Layer.Layer<PlatformDoor, Config.ConfigErro
 /** A world's door, from `worldTarget`. */
 export const worldDoorFromConfig: Layer.Layer<WorldDoor, Config.ConfigError, HttpClient.HttpClient> = Layer.unwrap(
   Effect.map(worldTarget, worldDoor),
+);
+
+/** Which operator signs a call: the blueprint's two. */
+export type Operator = typeof Values.OperatorRole.Type;
+
+/**
+ * One chain JSON-RPC endpoint: a world's chain through its door, at `CHAIN_PATH`. It answers a method's `result`; an
+ * error, or no answer, is a defect, as an unanswered call is.
+ */
+export type JsonRpc = (method: string, params: ReadonlyArray<unknown>) => Effect.Effect<unknown>;
+
+/** What reaches every door the client was not handed a layer for: another operator, another world, a chain. */
+export interface Reach {
+  /** The platform's door, signed in as `operator`. */
+  readonly platform: (operator: Operator) => Door;
+  /** The world group at another world's door (a `WorldView.door`), signed in with `operator`'s credential. */
+  readonly world: (door: string, operator: Operator) => Door;
+  /** The chain JSON-RPC of the client's own world (null), or of the world at `door` as `operator`. */
+  readonly chain: (door: string | null, operator: Operator) => JsonRpc;
+}
+
+export class ReachDoors extends Context.Service<ReachDoors, Reach>()("@capxul/sdk/transport/ReachDoors") {}
+
+/** Where the platform answers, the client's own world's chain, and each operator's credential. */
+export interface ReachSpec {
+  /** The platform group's address (its `PLATFORM_PATH` URL). */
+  readonly platform: string;
+  /** The chain JSON-RPC of the client's own world (its `CHAIN_PATH` URL) and that world's door token. */
+  readonly chain: Target;
+  /** Each operator's token. A call as an operator with none is refused `NotSignedIn` for `no_credential`. */
+  readonly operators: { readonly first: Redacted.Redacted; readonly second: Redacted.Redacted | null };
+}
+
+/** A door made for each call, at `target`, through `http`. Every Rpc client is closed when its call ends. */
+const doorAt = <Rpcs extends Rpc.Any>(
+  group: RpcGroup.RpcGroup<Rpcs>,
+  target: Target | null,
+  http: HttpClient.HttpClient,
+): Door => ({
+  send: (name, payload, headers) =>
+    target === null
+      ? Effect.fail(Errors.NotSignedIn.make({ reason: "no_credential" }))
+      : Effect.scoped(Effect.flatMap(doorOf(group), (door) => door.send(name, payload, headers))).pipe(
+          Effect.provide(protocol(target)),
+          Effect.provideService(HttpClient.HttpClient, http),
+        ),
+});
+
+const RpcAnswer = Schema.Union([
+  Schema.Struct({ result: Schema.Unknown }),
+  Schema.Struct({ error: Schema.Struct({ code: Schema.Int, message: Schema.String }) }),
+]);
+
+/** JSON-RPC 2.0 over HTTP to `target`, its credential on every request. */
+const jsonRpcAt =
+  (target: Target | null, http: HttpClient.HttpClient): JsonRpc =>
+  (method, params) =>
+    Effect.gen(function* () {
+      if (target === null) return yield* Effect.die(`no credential to read the chain with (${method})`);
+      const request = HttpClientRequest.post(target.url).pipe(
+        HttpClientRequest.setHeader(CREDENTIAL_HEADER, `Bearer ${Redacted.value(target.token)}`),
+        HttpClientRequest.bodyJsonUnsafe({ jsonrpc: "2.0", id: 1, method, params }),
+      );
+      const response = yield* HttpClient.filterStatusOk(http).execute(request);
+      const answer = yield* HttpClientResponse.schemaBodyJson(RpcAnswer)(response);
+      return "result" in answer
+        ? answer.result
+        : yield* Effect.die(`the chain refused ${method}: ${answer.error.code} ${answer.error.message}`);
+    }).pipe(Effect.orDie, Effect.withSpan(`chain ${method}`, { kind: "client" }));
+
+/** `door` (a base address) with `path` under it. */
+const under = (door: string, path: string) => `${Str.replace(/\/+$/, "")(door)}${path}`;
+
+/** Reaches the doors `spec` names, and any world's door by its address. */
+export const reach = (spec: ReachSpec): Layer.Layer<ReachDoors, never, HttpClient.HttpClient> =>
+  Layer.effect(
+    ReachDoors,
+    Effect.map(Effect.service(HttpClient.HttpClient), (http) => {
+      const token = (operator: Operator) => (operator === "first" ? spec.operators.first : spec.operators.second);
+      const at = (url: string, operator: Operator): Target | null => {
+        const credential = token(operator);
+        return credential === null ? null : { url, token: credential };
+      };
+      return ReachDoors.of({
+        platform: (operator) => doorAt(PlatformRpcs, at(spec.platform, operator), http),
+        world: (door, operator) => doorAt(WorldRpcs, at(under(door, WORLD_PATH), operator), http),
+        chain: (door, operator) =>
+          jsonRpcAt(door === null ? spec.chain : at(under(door, CHAIN_PATH), operator), http),
+      });
+    }),
+  );
+
+/**
+ * What reaches other doors, from Config: `CAPXUL_PLATFORM_URL` and `CAPXUL_PLATFORM_TOKEN` (the first operator),
+ * `CAPXUL_SECOND_PLATFORM_TOKEN` (the second, optional), and the client's own world's chain at `CAPXUL_CHAIN_URL`
+ * (by default `CAPXUL_DOOR_URL` with `CHAIN_PATH` in place of `WORLD_PATH`) with `CAPXUL_DOOR_TOKEN`.
+ */
+export const reachFromConfig: Layer.Layer<ReachDoors, Config.ConfigError, HttpClient.HttpClient> = Layer.unwrap(
+  Effect.map(
+    Config.all({
+      platform: platformTarget,
+      world: worldTarget,
+      second: Config.option(Config.Redacted("CAPXUL_SECOND_PLATFORM_TOKEN")),
+      chainUrl: Config.option(Config.String("CAPXUL_CHAIN_URL")),
+    }),
+    ({ platform, world, second, chainUrl }) =>
+      reach({
+        platform: platform.url,
+        chain: {
+          url: Option.getOrElse(chainUrl, () => Str.replace(new RegExp(`${WORLD_PATH}/?$`), CHAIN_PATH)(world.url)),
+          token: world.token,
+        },
+        operators: { first: platform.token, second: Option.getOrNull(second) },
+      }),
+  ),
 );

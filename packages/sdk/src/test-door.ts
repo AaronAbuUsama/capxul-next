@@ -3,6 +3,7 @@
 // `NotImplemented`, as Core's empty handlers do, or answers its operation's first blueprint example. It keeps what
 // it saw of each call, so a test can check what the SDK sent. It is not a server of Capxul.
 import {
+  CHAIN_PATH,
   CREDENTIAL_HEADER,
   CurrentCall,
   CurrentCaller,
@@ -10,10 +11,12 @@ import {
   Errors,
   operations,
   PERSON_HEADER,
+  PLATFORM_PATH,
   PlatformRpcs,
   PlatformSignIn,
   Telemetry,
   TRACE_HEADER,
+  WORLD_PATH,
   WorldRpcs,
   WorldSignIn,
   type OperationName,
@@ -29,6 +32,9 @@ import * as Str from "effect/String";
 import * as Headers from "effect/http/Headers";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServer from "effect/http/HttpServer";
+import * as HttpServerRequest from "effect/http/HttpServerRequest";
+import * as HttpServerResponse from "effect/http/HttpServerResponse";
+import * as Schema from "effect/Schema";
 import * as RpcSerialization from "effect/rpc/RpcSerialization";
 import * as RpcServer from "effect/rpc/RpcServer";
 import { platformNames, worldNames } from "./operations.ts";
@@ -40,6 +46,8 @@ export interface Options {
   /** The one token sign-in accepts, for both groups. */
   readonly token: string;
   readonly answer: Answer;
+  /** How the door's chain JSON-RPC answers each method; left out, the door serves no chain. */
+  readonly chain?: (method: string, params: ReadonlyArray<unknown>) => unknown;
 }
 
 /** One call as the door saw it, after sign-in let it through. */
@@ -52,8 +60,7 @@ export interface Seen {
 /** Every call the door has seen, in order. */
 export class Calls extends Context.Service<Calls, Ref.Ref<ReadonlyArray<Seen>>>()("@capxul/sdk/test-door/Calls") {}
 
-export const PLATFORM_PATH = "/platform";
-export const WORLD_PATH = "/world";
+export { CHAIN_PATH, PLATFORM_PATH, WORLD_PATH };
 
 /** The test world's name and owner, which sign-in gives every call. */
 export const WORLD = "town";
@@ -128,8 +135,28 @@ export const routes = (options: Options): Layer.Layer<never, never, HttpRouter.H
     Layer.provide(WorldRpcs.toLayer(handlersOf(worldNames, options.answer) as never)),
     Layer.provide(worldSignIn(options.token)),
   );
-  return Layer.merge(platform, world).pipe(Layer.provide(telemetry), Layer.provide(RpcSerialization.layerJson));
+  const groups = Layer.merge(platform, world).pipe(
+    Layer.provide(telemetry),
+    Layer.provide(RpcSerialization.layerJson),
+  );
+  const answerChain = options.chain;
+  return answerChain === undefined ? groups : Layer.merge(groups, chainRoute(options.token, answerChain));
 };
+
+const RpcRequest = Schema.Struct({ id: Schema.Int, method: Schema.String, params: Schema.Array(Schema.Unknown) });
+
+/** The chain JSON-RPC at `CHAIN_PATH`, behind the same token: each method answered by `answer`. */
+const chainRoute = (token: string, answer: (method: string, params: ReadonlyArray<unknown>) => unknown) =>
+  HttpRouter.add(
+    "POST",
+    CHAIN_PATH,
+    Effect.gen(function* () {
+      const request = yield* HttpServerRequest.HttpServerRequest;
+      yield* signedIn(token, request.headers);
+      const { id, method, params } = yield* HttpServerRequest.schemaBodyJson(RpcRequest);
+      return HttpServerResponse.jsonUnsafe({ jsonrpc: "2.0", id, result: answer(method, params) });
+    }).pipe(Effect.orElseSucceed(() => HttpServerResponse.jsonUnsafe({ error: "refused" }, { status: 401 }))),
+  );
 
 /** The door, served by the `HttpServer` it is given, with the log of what it saw. */
 export const serve = (options: Options): Layer.Layer<Calls, never, HttpServer.HttpServer> =>
@@ -137,8 +164,16 @@ export const serve = (options: Options): Layer.Layer<Calls, never, HttpServer.Ht
     Layer.provideMerge(Layer.effect(Calls, Ref.make<ReadonlyArray<Seen>>([]))),
   );
 
-/** Where the served door's two groups answer. */
-export const urls: Effect.Effect<{ readonly platform: string; readonly world: string }, never, HttpServer.HttpServer> =
-  HttpServer.addressFormattedWith((address) =>
-    Effect.succeed({ platform: `${address}${PLATFORM_PATH}`, world: `${address}${WORLD_PATH}` }),
-  );
+/** Where the served door answers: its base address (a `WorldView.door`), its two groups and its chain. */
+export const urls: Effect.Effect<
+  { readonly door: string; readonly platform: string; readonly world: string; readonly chain: string },
+  never,
+  HttpServer.HttpServer
+> = HttpServer.addressFormattedWith((address) =>
+  Effect.succeed({
+    door: address,
+    platform: `${address}${PLATFORM_PATH}`,
+    world: `${address}${WORLD_PATH}`,
+    chain: `${address}${CHAIN_PATH}`,
+  }),
+);

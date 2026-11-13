@@ -1,7 +1,15 @@
 // The SDK's operations, derived from the blueprint and never listed here: their names are the blueprint's Rpc
 // groups' own, and each call's types are its operation's Rpc. An operation added to the blueprint appears here with
 // no change to this package; test/operations.test.ts proves the two sets are equal.
-import { operations, PlatformRpcs, WorldRpcs, type Errors, type OperationName, type Values } from "@capxul/blueprint";
+import {
+  operations,
+  PlatformRpcs,
+  WorldRpcs,
+  type CallOptions,
+  type Chain,
+  type Errors,
+  type OperationName,
+} from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import type * as Effect from "effect/Effect";
 import type * as Rpc from "effect/rpc/Rpc";
@@ -13,17 +21,17 @@ type RpcOf<Name extends OperationName> = (typeof operations)[Name]["rpc"];
 export type Payload<Name extends OperationName> = Rpc.PayloadConstructor<RpcOf<Name>>;
 /** What a call of the operation answers: its declared success. */
 export type Success<Name extends OperationName> = Rpc.Success<RpcOf<Name>>;
-/** What a call of the operation fails with: one of its declared refusals, or `NotSignedIn` from sign-in. */
-export type Refusal<Name extends OperationName> = Rpc.Error<RpcOf<Name>> | Errors.NotSignedIn;
+/**
+ * What a call of the operation fails with: one of its declared refusals, `NotSignedIn` from sign-in, or
+ * `PayloadRejected` when its payload is not of its schema and so was never sent.
+ */
+export type Refusal<Name extends OperationName> =
+  | Rpc.Error<RpcOf<Name>>
+  | Errors.NotSignedIn
+  | Errors.PayloadRejected;
 
-/** How one call is made. */
-export interface CallOptions {
-  /**
-   * The person of the world's cast the call acts as (the blueprint's `capxul-person` header). Left out, a call
-   * through a world's door acts as the world's owner. A platform call always acts as its operator.
-   */
-  readonly as?: typeof Values.PersonId.Type;
-}
+/** How one call is made: the blueprint's `CallOptions` (as a person, as an operator, at another world's door). */
+export type { CallOptions };
 
 /**
  * One operation's call. It answers the operation's success or fails with one of its refusals. A call that got no
@@ -36,6 +44,9 @@ export type Call<Name extends OperationName> = (
 
 /** One function per operation, named as the blueprint names it. */
 export type Client<Names extends OperationName = OperationName> = { readonly [Name in Names]: Call<Name> };
+
+/** Every operation and the chain reads (`chain`): what `make` answers, and the scenarios' `Capxul`. */
+export type Full = Client & { readonly chain: Chain.Reader };
 
 /** The operations the platform's world service serves. */
 export type PlatformName = RpcGroup.Rpcs<typeof PlatformRpcs>["_tag"];

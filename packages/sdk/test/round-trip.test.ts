@@ -25,12 +25,17 @@ const served = (answer: Sdk.TestDoor.Answer) =>
     Layer.provideMerge(NodeHttpServer.layer(createServer, { port: 0, host: "127.0.0.1" })),
   );
 
-const doors = (token: string) =>
+const doors = (token: string, second: string | null = null) =>
   Layer.unwrap(
     Effect.map(Sdk.TestDoor.urls, (urls) =>
-      Layer.merge(
+      Layer.mergeAll(
         Sdk.platformDoor({ url: urls.platform, token: Redacted.make(token) }),
         Sdk.worldDoor({ url: urls.world, token: Redacted.make(token) }),
+        Sdk.reach({
+          platform: urls.platform,
+          chain: { url: urls.chain, token: Redacted.make(token) },
+          operators: { first: Redacted.make(token), second: second === null ? null : Redacted.make(second) },
+        }),
       ),
     ),
   ).pipe(Layer.provide(FetchHttpClient.layer));
@@ -150,7 +155,7 @@ test("the doors' addresses and credentials can come from Config", async () => {
       CAPXUL_DOOR_URL: urls.world,
       CAPXUL_DOOR_TOKEN: TOKEN,
     };
-    const fromConfig = Layer.merge(Sdk.platformDoorFromConfig, Sdk.worldDoorFromConfig).pipe(
+    const fromConfig = Layer.mergeAll(Sdk.platformDoorFromConfig, Sdk.worldDoorFromConfig, Sdk.reachFromConfig).pipe(
       Layer.provide(FetchHttpClient.layer),
       Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnvRecord(env))),
     );

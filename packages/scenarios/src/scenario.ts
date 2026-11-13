@@ -1,11 +1,18 @@
 // How a scenario is declared. A scenario proves one acceptance claim of the blueprint black-box: from the claim's
 // starting world, through `Capxul` only, reading only what the operations answer. It holds no check of events, spans
 // or speed: the runner applies those to every call it makes.
-import { allClaims, startingWorlds, type Claim, type OperationName, type StartingWorld } from "@capxul/blueprint";
+import {
+  allClaims,
+  holdsFactsOf,
+  startingWorlds,
+  type Claim,
+  type OperationName,
+  type StartingWorld,
+} from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
-import type { Capxul, Failure } from "./client.ts";
+import { Given, type Capxul, type Failure } from "./client.ts";
 
 /** The claim a scenario proves: an operation, and the claim's number in claims.md (from 1). */
 export interface Proves {
@@ -14,10 +21,11 @@ export interface Proves {
 }
 
 /**
- * What a scenario does in its world: an Effect that needs only `Capxul`. It may fail with what a call through the
- * door fails with (a declared refusal) or with `ExpectationFailed`; any failure or defect fails the scenario.
+ * What a scenario does in its world: an Effect that needs `Capxul`, and `Given` when it reads its starting world's
+ * facts. It may fail with what a call through the door fails with (a declared refusal) or with `ExpectationFailed`;
+ * any failure or defect fails the scenario.
  */
-export type Run = Effect.Effect<void, ExpectationFailed | Failure, Capxul>;
+export type Run = Effect.Effect<void, ExpectationFailed | Failure, Capxul | Given>;
 
 export interface Scenario {
   /** Unique among all scenarios; it names the run record. */
@@ -58,6 +66,21 @@ export const example = (name: string, given: StartingWorld, run: Run): Scenario 
   given,
   run,
 });
+
+/**
+ * The facts of `world`, typed by its own schema: the scenario's starting world's, or those of a world it is made
+ * from. Facts the maker did not keep, or that are not of the schema, are a defect: the scenario cannot act on them.
+ */
+export const given = <Facts extends Schema.Codec<unknown, unknown>>(
+  world: StartingWorld<Facts>,
+): Effect.Effect<Facts["Type"], never, Given> =>
+  Effect.gen(function* () {
+    const handed = yield* Given;
+    if (!holdsFactsOf(handed.world, world))
+      return yield* Effect.die(`a scenario of ${handed.world.name} asked for the facts of ${world.name}`);
+    const facts = yield* handed.facts;
+    return yield* Effect.orDie(Schema.decodeUnknownEffect(world.facts)(facts));
+  });
 
 /** What a scenario fails with when the world did not answer as its claim says. */
 // oxlint-disable-next-line capxul/blueprint-owns-names -- a scenario's own failed expectation, not a refusal of Capxul's
