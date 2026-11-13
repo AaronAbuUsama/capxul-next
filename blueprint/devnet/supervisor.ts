@@ -65,7 +65,10 @@ export const decision_devnet_one_world_clock = defineDecision({
     "sponsorship passes both, and no flag disables the validAfter check. Anvil, unpinned, dates automined blocks by its own wall offset. Each is a second " +
     "clock the design forbade but nothing measured. One door at birth and restore makes the followers agree by construction, and the inspection and scan " +
     "make a regression fail instead of surfacing as an unrelated 401. A frozen Anvil with a zero interval mines any number of blocks in one second " +
-    "(measured 13 November 2026), so pinning needs no tick.",
+    "(measured 13 November 2026), so pinning needs no tick. Ponder 0.18.6 finds its finalized block at start by bisecting from block 0 for one older " +
+    "than its 180 s reorg window: on a frozen chain every block since birth shares the head's time, so after a restart it asked for block 23,946,692 " +
+    "below the seeded genesis and never became ready (w2clock and scrz3, 13 November 2026). A pnpm patch bounds that search by the indexer's first " +
+    "block; the reorg window itself stays, so a reorg fault within a run is still recoverable, and the patch guard covers it with Alto's.",
   source:
     "Baseline run-20261113051714662-5d3784b9 (Frappe Activity Log Session Expired at the frozen instant); @pimlico/alto 0.0.21 UnsafeValidator.js 181 and 275, " +
     "SafeValidator.js 111 and 322; clock audit thread T-01a1cfb4; Aaron, 13 November 2026: the fix is fundamental, not ad hoc",
@@ -84,7 +87,9 @@ export const decision_devnet_frappe_clock_subsystems = defineDecision({
       "Supersedes point (5) of devnet.site-follows-world. Sessions are on the world's now: last_updated, the Sessions expiry threshold and the " +
       "session_end comparison read it, so one session is judged on one clock; a step beyond its lifetime ends it, and a restore or a one-day step " +
       "within it keeps it (devnet.time-is-right test 6). The clock read fails closed: a missing or unreadable world entry raises instead of returning " +
-      "the host's time. Redis TTLs, locks, caches, rate limits and the job queue's enqueue and timeout stamps are real on purpose: infrastructure " +
+      "the host's time. Every bench Python process installs the clock at interpreter start (a world-clock .pth in the bench venv), because Frappe " +
+      "validates the session in init_request before any app is imported: a fresh web worker otherwise judges a world-stamped session on the host and " +
+      "deletes it. Each site's capxul.clock.now reports whether its workers booted with the clock, and world inspect refuses one that did not. Redis TTLs, locks, caches, rate limits and the job queue's enqueue and timeout stamps are real on purpose: infrastructure " +
       "envelopes, never a business expiry, and nothing a person is promised is stored only as a Redis TTL. Scheduled jobs decide due-ness on the " +
       "world's now (points 2 and 6 of that decision). SQL NOW() or CURRENT_DATE compared with stored world dates is replaced by world time (its " +
       "point 3). Browser default dates on Desk and report filters are judged on every captured screen: a host date there fails the screen check." },
@@ -95,8 +100,10 @@ export const decision_devnet_frappe_clock_subsystems = defineDecision({
   why:
     "The baseline run-20261113051714662-5d3784b9 lost its only hat-holder session as Session Expired at the frozen world instant between preparation " +
     "and the first read, after the site's clock moved 34.6 days at restore. A session is a promise to a person, which time.real-elapsed already puts on " +
-    "now; point (5) contradicted it and Frappe's own code mixes the two. Infrastructure envelopes stay real because no product decision rests on them.",
-  source: "Baseline run-20261113051714662-5d3784b9 Frappe Activity Log; frappe/sessions.py get_session_data_from_cache and get_expired_threshold; clock audit thread T-01a1cfb4, 13 November 2026",
+    "now; point (5) contradicted it and Frappe's own code mixes the two. Infrastructure envelopes stay real because no product decision rests on them. " +
+    "On world w2clock (13 November 2026) the bench clock installed at birth was not enough: after a backend restart a fresh admin sid read 200 once and " +
+    "then 401 Session Expired on the second gunicorn worker, every time; with the start-up install the same sequence read 200 eight times out of eight.",
+  source: "Baseline run-20261113051714662-5d3784b9; frappe/sessions.py get_session_data_from_cache; frappe/app.py init_request; w2clock session control and clock audit T-01a1cfb4, 13 November 2026",
   affects: [component_devnet, concept_devnet],
 });
 

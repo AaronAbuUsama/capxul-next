@@ -24,6 +24,9 @@ from capxul.emit import emit
 
 OVERRIDE = "capxul_clock_override_ms"
 _installed = False
+# True when the clock was installed before Frappe's request path loaded (world-clock.pth at interpreter start). False means a web
+# worker judged its first session on the host's clock before this app was imported; world inspect refuses that bench.
+booted = "frappe.app" not in sys.modules
 _cache = {"mtime": None, "data": {}}
 
 
@@ -164,7 +167,7 @@ def now():
     host = datetime.now(timezone.utc)
     w = frappe.utils.now_datetime()
     return {"world": world_of_site(), "offset_ms": offset_ms(), "host_utc": host.isoformat(), "world_local": str(w), "nowdate": frappe.utils.nowdate(),
-            "tz": frappe.utils.get_system_timezone()}
+            "tz": frappe.utils.get_system_timezone(), "booted": booted}
 
 
 @emit

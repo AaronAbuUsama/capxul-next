@@ -27,23 +27,28 @@ export async function pinChain(c: Config, clock: WorldClock): Promise<void> {
   await rpc(c, "anvil_setBlockTimestampInterval", [0]);
 }
 
-/** (1) The one door: authority file, database row, bench entry and chain move together. Fresh creation runs it before Ponder and before any site. */
-export async function installClock(c: Config, bench: Pick<Bench, "clock">, clock: WorldClock, fresh = false): Promise<void> {
-  await writeFile(join(c.world.stateDir, "clock.json"), JSON.stringify(clock), { flag: fresh ? "wx" : "w", mode: 0o600 });
+/** (1) The one door: authority file, database row, bench entry and chain move together. Creation runs it before Ponder and
+ *  before any site; restore runs it before resume, while Anvil is stopped, and every Anvil start pins the chain from clock.json. */
+export async function installClock(c: Config, bench: Pick<Bench, "clock">, clock: WorldClock, at: "birth" | "restore"): Promise<void> {
+  await writeFile(join(c.world.stateDir, "clock.json"), JSON.stringify(clock), { flag: at === "birth" ? "wx" : "w", mode: 0o600 });
   const db = new Database(databaseUrl(c.database.tenant, c.world), databaseUrl(c.database.worker, c.world));
   try { await updateWorldClock(db, clock); } finally { await db.close(); }
   await bench.clock(c.world.id, clock);
-  await pinChain(c, clock);
+  if (at === "birth") await pinChain(c, clock);
 }
 
-/** (3) Guard on the devnet pnpm patch: Alto's validity windows must read the chain head, never the host clock. */
-export async function altoFollowsChain(root: string): Promise<void> {
+/** (3) Guard on the devnet pnpm patches: Alto's validity windows read the chain head, never the host clock, and Ponder's
+ *  finality search stays above the seeded genesis, where a frozen chain's equal timestamps would send it. */
+export async function patchesHold(root: string): Promise<void> {
   const directory = join(root, "packages/devnet/node_modules/@pimlico/alto/esm/rpc/validation");
   for (const file of ["UnsafeValidator.js", "SafeValidator.js"]) {
     const source = await readFile(join(directory, file), "utf8");
     assert.equal(source.split("const now = await chainNow(this.config.publicClient);").length - 1, 2, `Alto ${file} lost the one-world-clock patch`);
-    assert(!source.includes("Date.now()"), `Alto ${file} reads the host clock`);
+    assert(!/Date\.now\(/.test(source), `Alto ${file} reads the host clock`);
   }
+  const finality = await readFile(join(root, "packages/indexer/node_modules/ponder/dist/esm/utils/finality.js"), "utf8");
+  assert(finality.includes("let low = lowerBound ? hexToNumber(lowerBound.number) + 1 : firstBlock;") &&
+    finality.includes("numberToHex(firstBlock), false"), "Ponder lost the one-world-clock finality patch");
 }
 
 const second = (ms: number) => Math.floor(ms / 1000);
@@ -67,10 +72,11 @@ export async function readClocks(c: Config, bench: Pick<Bench, "clocks">, databa
     assert(response.ok, `site ${site.company} did not answer its clock`);
     const served = (await response.json() as any).message;
     assert.equal(served.world, c.world.id, `site ${site.company} follows another world`);
+    assert.equal(served.booted, true, `site ${site.company}'s web workers did not install the world clock at start; a fresh worker judges sessions on host time`);
     assert.equal(String(served.world_local).slice(0, 19), local(authority.nowMs, served.tz), `site ${site.company} serves a now other than the world's`);
     sites[site.company] = served.world_local;
   }
-  if (c.bundler) await altoFollowsChain(c.root);
+  await patchesHold(c.root);
   return { authority, database: authority, chain: { head: Number(head.timestamp), next: Number(next.timestamp) }, bench: entry, sites,
     bundler: c.bundler ? "chain-head" : null };
 }

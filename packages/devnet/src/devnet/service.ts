@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { gateway } from "./gateway.ts";
@@ -11,6 +12,8 @@ export function runtimeEnv(c: Config, component: Component): NodeJS.ProcessEnv {
   if (component === "ponder") Object.assign(env, {
     PONDER_DATABASE_URL: databaseUrl(c.database.ponder, c.world), RPC_URL: loopback(c.ports.anvil),
     DEPLOYMENT_FILE: join(c.world.stateDir, "deployment.json"), ENTRY_POINT_ADDRESS: "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+    // The patched finality search stays above the seeded genesis: a frozen chain dates every block alike (devnet.one-world-clock).
+    PONDER_FIRST_BLOCK: String(JSON.parse(readFileSync(join(c.world.stateDir, "deployment.json"), "utf8")).deployedBlock),
   });
   if (component === "core") Object.assign(env, {
     DATABASE_URL: databaseUrl(c.database.tenant, c.world), WORKER_DATABASE_URL: databaseUrl(c.database.worker, c.world),

@@ -44,11 +44,11 @@ export async function composeWorld(configFile: string) {
       if (clock.clockMode !== "stopped") throw new Error("slice-zero supervisor requires a stopped authority clock; running-clock pump is not installed");
       return clock;
     },
+    installClock: (world, clock) => { c.world = world; return installClock(c, bench, clock, "restore"); },
     store: {
       updateClock: (world, clock) => store(c, world, (db) => updateWorldClock(db, clock)),
       async rewrite(world, input) {
         await store(c, world, (db) => rewriteRestoredWorld(db, { ...input, coreUrl: loopback(c.ports.publicCore) }));
-        await writeFile(join(world.stateDir, "clock.json"), JSON.stringify(input.clock), { mode: 0o600 });
         c.world = world;
         const deployment = JSON.parse(await readFile(join(world.stateDir, "deployment.json"), "utf8"));
         if (deployment.paymaster) {
@@ -198,7 +198,7 @@ export async function createWorld(configFile: string): Promise<void> {
     const block = await (await connect(loopback(c.ports.anvil))).client.getBlock();
     const clock = { nowMs: Number(block.timestamp) * 1000, clockMode: "stopped" as const, rate: 1 };
     // devnet.one-world-clock: the one door, before Ponder starts and before any site exists.
-    await installClock(c, stack.bench, clock, true);
+    await installClock(c, stack.bench, clock, "birth");
     const now = clock.nowMs;
     await catalogue(c).create({ world_id: c.world.id, name: c.world.id, kind: c.world.kind, profile: "full",
       address: loopback(c.ports.publicCore), template: null, chain_id: c.chainId, chain_instance: `anvil-${c.world.id}`,
