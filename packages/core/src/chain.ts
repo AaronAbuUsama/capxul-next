@@ -9,6 +9,7 @@ import * as Option from "effect/Option";
 import * as Predicate from "effect/Predicate";
 import * as Redacted from "effect/Redacted";
 import * as Schema from "effect/Schema";
+import * as Str from "effect/String";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import { ENV, secretOf } from "./env.ts";
@@ -40,7 +41,7 @@ export const chainRead = (env: Record<string, unknown>, tokens: ReadonlyArray<Re
       return rpcError(null, -32001, "not signed in at this world's door", 401);
     if (request.method !== "POST") return rpcError(null, -32600, "POST a JSON-RPC body", 405);
     const text = yield* request.text;
-    const body = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Body))(text).pipe(Effect.option);
+    const body = yield* request.json.pipe(Effect.flatMap(Schema.decodeUnknownEffect(Body)), Effect.option);
     if (Option.isNone(body)) return rpcError(null, -32700, "not a JSON-RPC call");
     const calls: ReadonlyArray<typeof Call.Type> = isBatch(body.value) ? body.value : [body.value];
     const refused = Arr.findFirst(calls, (call) => !Arr.contains(allowed, call.method));
@@ -61,6 +62,6 @@ export const chainRead = (env: Record<string, unknown>, tokens: ReadonlyArray<Re
     return HttpServerResponse.text(answer, { contentType: "application/json" });
   }).pipe(
     Effect.catch((error) =>
-      Effect.succeed(rpcError(null, -32603, `the chain did not answer: ${String(error)}`.slice(0, 300), 502)),
+      Effect.succeed(rpcError(null, -32603, Str.slice(0, 300)(`the chain did not answer: ${String(error)}`), 502)),
     ),
   );

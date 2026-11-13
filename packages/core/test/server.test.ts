@@ -126,7 +126,7 @@ test("a call without the credential, or with another door's, is refused at sign-
 
 test("the owner's operator token acts as the owner at the world's door; the second operator's does not", async () => {
   const owner = await Effect.runPromise(call("record.export", { [CREDENTIAL_HEADER]: `Bearer ${PLATFORM}` }));
-  assert.ok(isNotImplemented(failureOf(owner.exit)), "the owner's token was not signed in at the world's door");
+  assert.ok(isNotImplemented(owner.exit.pipe(failureOf)), "the owner's token was not signed in at the world's door");
   const other = await Effect.runPromise(call("record.export", { [CREDENTIAL_HEADER]: `Bearer ${SECOND}` }));
   const error = failureOf(other.exit);
   assert.ok(Schema.is(Errors.NotSignedIn)(error), "another operator's token was signed in at the world's door");
@@ -135,5 +135,5 @@ test("the owner's operator token acts as the owner at the world's door; the seco
 
 test("the second operator's platform token signs a platform call in", async () => {
   const { exit } = await Effect.runPromise(call("world.show", { [CREDENTIAL_HEADER]: `Bearer ${SECOND}` }));
-  assert.ok(isNotImplemented(failureOf(exit)), "the second operator was not signed in at the platform");
+  assert.ok(isNotImplemented(exit.pipe(failureOf)), "the second operator was not signed in at the platform");
 });

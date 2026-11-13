@@ -24,20 +24,21 @@ import { writeRecord } from "../record.ts";
 import type { Settings } from "../settings.ts";
 import { answersSteadily } from "./warmup.ts";
 
+const trimmed = (url: string) => Str.replace(/\/+$/, "")(url);
+
 /** The database of the world whose Core answers at a door, or none when no world of the shared state does. */
 export class OtherWorlds extends Context.Service<
   OtherWorlds,
   { readonly databaseAt: (door: string) => Effect.Effect<Option.Option<Redacted.Redacted>> }
 >()("@capxul/runner/world/existing/OtherWorlds") {
   /** No other world is known: a call `at` another door has no telemetry to read. */
-  static readonly none = Layer.succeed(OtherWorlds, { databaseAt: () => Effect.succeed(Option.none()) });
+  static readonly none = Layer.succeed(OtherWorlds, { databaseAt: () => Effect.succeedNone });
 
   /** Every world of the shared state, found by the address its Core answers at. */
   static readonly fromSharedState = Layer.effect(
     OtherWorlds,
     Effect.gen(function* () {
       const context = yield* Effect.context<World.SharedState>();
-      const trimmed = (url: string) => Str.replace(/\/+$/, "")(url);
       return {
         databaseAt: (door: string) =>
           Effect.gen(function* () {

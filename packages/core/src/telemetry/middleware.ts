@@ -21,6 +21,7 @@ import {
   Values,
   WorldSignIn,
 } from "@capxul/blueprint";
+import * as Arr from "effect/Array";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -65,7 +66,7 @@ const credentialed = <A>(
     onNone: () => Effect.fail(Errors.NotSignedIn.make({ reason: "no_credential" })),
     onSome: (credential) =>
       Option.match(
-        Option.fromNullishOr(accepted.find(([token]) => credential === `Bearer ${Redacted.value(token)}`)),
+        Arr.findFirst(accepted, ([token]) => credential === `Bearer ${Redacted.value(token)}`),
         {
           onNone: () => Effect.fail(Errors.NotSignedIn.make({ reason: "unknown_caller" })),
           onSome: ([, who]) => Effect.succeed(who),

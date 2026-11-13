@@ -52,7 +52,10 @@ export const probeSite = (world: string, tokens: ReadonlyArray<Redacted.Redacted
     Effect.catchTag("SiteDoorFailed", (failed) =>
       Effect.succeed(
         json(
-          { world, failed: { reason: failed.reason, status: failed.status, code: failed.code, message: failed.message } },
+          {
+            world,
+            failed: { reason: failed.reason, status: failed.status, code: failed.code, message: failed.message },
+          },
           failed.reason === "refused" ? (failed.status ?? 502) : 502,
         ),
       ),

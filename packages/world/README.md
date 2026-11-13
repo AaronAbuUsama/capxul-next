@@ -1,7 +1,7 @@
 # @capxul/world
 
-One command creates and destroys a private world: its database, its chain, its index and its Core
-([roadmap](../../docs/roadmap.md) step 1.3). A world is one stage of the Alchemy stack `CapxulWorld`; nothing of it
+One command creates and destroys a private world: its database, its chain, its index, its Core and its companies'
+sites ([roadmap](../../docs/roadmap.md) steps 1.3 and 1.4). A world is one stage of the Alchemy stack `CapxulWorld`; nothing of it
 lives on the machine that made it. Built on `alchemy` 2.0.0-beta.85 and Effect 4.1.2, run with Bun.
 
 | Part | What it is |
@@ -10,7 +10,8 @@ lives on the machine that made it. Built on `alchemy` 2.0.0-beta.85 and Effect 4
 | Chain | Anvil 1.9.0 with `packages/contracts/state/core.json`, started with `--no-request-size-limit`, as a Cloudflare Container owned by a Durable Object. Its state is saved to an R2 bucket every 20 s while it is used and when it stops; it stops after 10 idle minutes and wakes on the next call. |
 | Index | The real Ponder app of `packages/indexer` (its ABIs, schema and handlers, unchanged), as a Cloudflare Container, writing to the world's branch. |
 | Door | A Worker in front of the chain and the index. Every path starts with the world's token. |
-| Core | A Worker. Until `packages/core` lands, a stand-in with Core's door shape: one endpoint, `GET /health`. |
+| Core | The real Core (`packages/core`): the blueprint's two groups at `/platform` and `/world` with their empty handlers, the chain's reads at `/chain`, `/health`, and a read-only site probe. It binds the world's branch through Hyperdrive and the world's door through a service binding. |
+| Sites | With `WORLD_BENCH` set and `--company` given, each company's Frappe site on that shared bench (`packages/platform`), made by the bench's site door with the world's own site token, at `<label>-<world>.<domain>`. |
 | Test USDC | The contracts package's `MockERC20`, put on the chain when the world is created. Its open `mint` is the faucet. |
 
 ## Commands
@@ -20,6 +21,7 @@ lives on the machine that made it. Built on `alchemy` 2.0.0-beta.85 and Effect 4
 ```bash
 pnpm --filter @capxul/world world platform up      # once: the Neon project and the registry of world names
 pnpm --filter @capxul/world world create demo --owner me --lifetime "2 hours" [--from other] [--mint 0xADDRESS=250000000]
+WORLD_BENCH=pr-site pnpm --filter @capxul/world world create demo --owner me --lifetime "2 hours" --company "acme=Acme Ltd"
 pnpm --filter @capxul/world world destroy demo
 ```
 
@@ -52,10 +54,39 @@ Provide `SharedState.layer` over `Alchemist.layer()`. `spec.migrations` names Co
 
 ### Core's slot
 
-`src/core/Core.ts` is the one place that says what runs as Core. It holds the stand-in (`src/core/StandIn.ts`) and
-the stand-in's migrations. Swapping in `packages/core` is that file alone: import its Worker in place of
-`StandInCore` and point `CORE_MIGRATIONS` at its migrations. A world is ready once Core answers 200 on
-`CORE_HEALTH` (`src/core/health.ts`). A caller can also provide its own `Core` for one run.
+`src/core/Core.ts` is the one place that says what runs as Core: `packages/core`'s Worker, handed the world's own
+facts through Core's `CoreDeployment` (never its own stage's): the world's branch through `WorldDatabase`, the
+world's token (the door's `door-token`, which Core's world door and
+its chain reads accept), the owner operator's token (`operator-token`: Core's platform door, and the world's door as
+its owner, blueprint decisions 36), a service binding to the world's door for the chain, and, when the world has a
+bench, the site door's address, the world's site token and the credential of the API user the door makes on each site
+(`site-key`, `site-secret`). Every token is an `Alchemy.Random` of the stage, bound as a secret and read back from the
+state (`World.doorToken`, `World.operatorToken`), never an output. `CORE_MIGRATIONS` is Core's `migrations/`. A world
+is ready once Core answers 200 on `CORE_HEALTH`, Core's `/health`. A caller can also provide its own `Core` for one run.
+
+The proof that a world made by `world create` answers every blueprint operation at its door is the runner's door
+check, run against such a world: `packages/runner/records/w-c1/door.json` (`passed`: all twelve answered
+`NotImplemented` through the SDK, every span, outcome and events check held, the spans read from the world's own
+database). Core's `/chain` answered `eth_blockNumber` from the world's chain and refused `eth_sendTransaction` with
+JSON-RPC's -32601 (run by hand, not recorded).
+
+### A company's site (step 1.4)
+
+`src/site/Bench.ts`, and two steps of a world's life:
+
+| When | What |
+|---|---|
+| claim | With `WORLD_BENCH=<platform stage>`, the world's site token is minted under that platform's door key (read from the shared state with the world's own store, `@capxul/platform`'s `doorKeyIn` and `mint`), for this world, `WORLD_MAX_SITES` (3) sites and the world's expiry. The bench is written into the world's record before anything exists, and into its outputs. |
+| deploy | Core is deployed with the token and the site door's address (src/core/Core.ts). |
+| `site`, after `core` | Each company of `spec.companies` (`--company label=Name,...`): the door makes the site with the world's token and the world's site credential, and the step waits until every site is ready (declared timeout 8 minutes). |
+| `unsite`, before `destroy` | Every take-down (a destroy, a failed or interrupted run, a failed create, the sweeper) removes every site of the world from the bench its record names, with a token minted anew (quota 0, 15 minutes: the world's own may have expired), and checks the door holds none. If that fails, the world's Cloudflare and Neon resources are still destroyed, but its record and name are kept, so the next sweep removes the sites. |
+
+Why here: the world owns what runs where and is the only thing that lives and dies with its sites, so making and
+removing them are world steps; reaching a site is what Core's operations will do, so that is a Core service
+(`packages/core`, `SiteDoor`), which reads the token and credential the world bound into it. The site door
+(`packages/platform`, `door/door.py`) is the only process that makes or removes sites, and the only way to a site: it
+checks the token's world against the site's on every call and carries ERPNext's REST calls on the site's own API user.
+Until `org.create` makes a company's site, the world makes it at create; one credential serves the world's sites.
 
 ### Images
 
@@ -101,6 +132,7 @@ records (`p-*.json`) are `withWorld`'s own, with every step's duration and decla
 | `race` | Two creates of one name at once: one world, one `WorldExists`, one world's resources in the accounts. | `race.proof.json` |
 | `limits` | 8 days is `LifetimeTooLong`, an owner's sixth world `WorldQuotaReached`, a bad name `InvalidWorldName`; nothing is made. | `limits.proof.json` |
 | `sweep` | The sweeper, run as the command line with an empty home directory, keeps three worlds before an expiry; after it, destroys the expired one and keeps the live one and the one with no recorded expiry. | `sweep.proof.json` |
+| `site` | Run with `WORLD_BENCH=pr-site`, a stand-in bench of `packages/platform` in this container (`PLATFORM_HOST=standin`, `PLATFORM_EDGE=none`). A world made with one company gets `acme-p-site.worlds.abuusama.dev`, ready in 93.5 s (new-site 21.3, ERPNext 42.8, capxul 3.0, wizard 16.5, migrate 5.8, scheduler 0.7, join the world 0.6, the API user 1.4). Through the door, on the site's own API user: the company's record (`Acme Ltd`), its Supplier list, `get_logged_user` answering `capxul-core@service.invalid` (never Administrator), and the site's clock reading world `p-site`. A second world, `p-site2`, made inside the first's run: its token is refused for the first world's site (`403 site-not-in-world`) and it sees no site. Both destroyed: the site removed in 1.8 s with its world, the door holding no site of either, the bench's folders, the door's registry and MariaDB's databases as before, and nothing of either world in either account. Core's probe at both worlds' doors answered the site door's typed failure `unreachable` (Cloudflare's own 403 for a loopback address): **Core reaching the site is recorded, not proven** (below). | `site.proof.json`, `p-site.json`, `p-site2.json` |
 
 ## Timings
 
@@ -115,7 +147,9 @@ process) and seven destroys whose duration was recorded, all on 13 November 2026
 | chain | 2.4 | 2.0 to 4.8 | Anvil's first start from the seed; a fork first copies its parent's state. |
 | fund | 0.3 | 0.1 to 0.6 | The token's deployment and one transaction for each mint. |
 | index | 46.5 | 37.5 to 59.2 | The Ponder container's first start on 1/4 vCPU: the image pull, Ponder's own start, its tables and the backfill. |
-| core | 0.5 | 0.3 to 0.6 | Until the stand-in's address answers `/health`. |
+| core | 0.5 | 0.3 to 0.6 | Until Core's address answers `/health` (the stand-in's, in these runs; the real Core's took 0.5 to 0.6 s in `site`). |
+| site | 93.5 | one run | The site door making one company's site (`site` above). |
+| unsite | 1.8 | one run | `bench drop-site` of the world's site; 0.4 s for a world with no site. |
 | **create** | **95.3** | **87.9 to 116.4** | From the claim to a world whose every part answers. |
 | destroy | 13.5 | 12.8 to 17.2 | `alchemy destroy` of the stage and the stage's record. |
 | release | 0.2 | 0.2 to 0.6 | The name's row. |
@@ -143,7 +177,16 @@ publishes it.
 
 - Nothing schedules `sweep`. Until something does, a world that was forked from, a parked world and a half-created
   world wait for whoever runs it (Neon still deletes their branches at their expiry).
-- Core is the stand-in. The real Core (`packages/core`) and its use of `WorldDatabase` are not proven here.
+- **Core reaching a company's site is not proven.** Core runs on Cloudflare; the only bench there is now is the
+  stand-in in an agent's container, which nothing on Cloudflare can reach: a tunnel's token is a credential the
+  container may not create (`packages/platform/records/spike/01`), its proxy carries no WebSocket, and a home-made
+  relay into the container was refused by the session's policy as an inbound tunnel. The route is built and its
+  failure is typed; it is proven once the AWS bench and its Cloudflare Tunnel are up (roadmap 2.1, Aaron's bootstrap),
+  by `WORLD_BENCH=staging ./run.sh prove site` with the probe check turned to a read.
+- The sweeper's removal of an expired world's sites is the same `unsite` step as every take-down; no proof runs it on
+  an expired world with a site.
+- `WorldDatabase` keeps Hyperdrive's query cache on; Core's own stage turns it off so a read sees the write before it.
+  No Core handler reads yet; turn it off here when one does.
 - The index polls through the door, so a busy world makes about one Worker request a second for it. What an idle or a
   busy world costs was not measured.
 - Who the cast is and how a mint is booked is not here: `spec.mint` is only the hook.

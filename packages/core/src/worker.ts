@@ -64,8 +64,8 @@ export default class Core extends Cloudflare.Worker<Core>()(
       if (path === HEALTH_PATH) return HttpServerResponse.jsonUnsafe({ core: "capxul", world: identity.world });
       if (path === CHAIN_PATH) return yield* chainRead(env, owners);
       if (path === PROBE_PATH)
-        // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: each request gets the site door its environment names
         return yield* probeSite(identity.world, owners).pipe(
+          // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: each request gets the site door its environment names
           Effect.provide(SiteDoor.fromEnv(env).pipe(Layer.provide(FetchHttpClient.layer))),
         );
       // One pool per request, opened on the first query and closed when the request ends.

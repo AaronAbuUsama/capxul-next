@@ -22,6 +22,8 @@ import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
+import * as HttpClientResponse from "effect/http/HttpClientResponse";
+import * as Str from "effect/String";
 import { SITE_KEY_ID, SITE_SECRET_ID } from "../core/Core.ts";
 import { SiteFailed } from "../failures.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
@@ -53,12 +55,16 @@ const Removed = Schema.Struct({
 
 const unix = (iso: string) => Math.floor(DateTime.toEpochMillis(DateTime.makeUnsafe(iso)) / 1000);
 
+/** A quarter of an hour from now, in Unix seconds: the life of a token minted to read or remove a world's sites. */
+const soon = Effect.map(DateTime.now, (now) => Math.floor(DateTime.toEpochMillis(now) / 1000) + 15 * 60);
+
 /** A token for `world` on `bench`, minted under the platform's door key, read from the shared state. */
 const tokenFor = (bench: string, world: string, quota: number, expires: number) =>
   withState((state) =>
     Effect.gen(function* () {
       const outputs = yield* Platform.platformOutputsIn(state, bench);
       const key = yield* Platform.doorKeyIn(state, bench);
+      // oxlint-disable-next-line effecttsgo/strict-effect-provide -- WebCrypto's HMAC is the platform's own layer, used for this one signature
       const token = yield* Platform.mint(key, { world, quota, expires }).pipe(Effect.provide(Platform.cryptoLayer));
       return { door: outputs.doorUrl, token };
     }),
@@ -86,10 +92,14 @@ const doorCall = <S extends Schema.Constraint>(
         HttpClientRequest.setHeader(TOKEN_HEADER, Redacted.value(token)),
       ),
     );
-    const body = yield* response.json;
-    if (response.status >= 400)
-      return yield* SiteFailed.make({ step: "door", message: `HTTP ${response.status}: ${describeFailure(body)}` });
-    return yield* Schema.decodeUnknownEffect(schema)(body);
+    if (response.status >= 400) {
+      const refused = yield* response.text;
+      return yield* SiteFailed.make({
+        step: "door",
+        message: `HTTP ${response.status}: ${Str.slice(0, 300)(refused)}`,
+      });
+    }
+    return yield* HttpClientResponse.schemaBodyJson(schema)(response);
   }).pipe(
     Effect.scoped,
     Effect.mapError((error) =>
@@ -141,7 +151,7 @@ export const makeSites = Effect.fn("world.site.make")(function* (
 
 /** The world's sites on `bench`, as the door holds them, with a fresh token of quota 0. */
 export const sitesOn = Effect.fn("world.site.list")(function* (stage: string, bench: string) {
-  const expires = unix(DateTime.formatIso(DateTime.addDuration(yield* DateTime.now, Duration.minutes(15))));
+  const expires = yield* soon;
   const { door, token } = yield* tokenFor(bench, nameOf(stage), 0, expires);
   const found = yield* doorCall(door, token, HttpClientRequest.get("/world"), WorldSites);
   return found.sites;
@@ -153,7 +163,7 @@ export const sitesOn = Effect.fn("world.site.list")(function* (stage: string, be
  */
 export const removeSites = Effect.fn("world.site.remove")(function* (stage: string, bench: Option.Option<string>) {
   if (Option.isNone(bench)) return [];
-  const expires = unix(DateTime.formatIso(DateTime.addDuration(yield* DateTime.now, Duration.minutes(15))));
+  const expires = yield* soon;
   const { door, token } = yield* tokenFor(bench.value, nameOf(stage), 0, expires);
   const gone = yield* doorCall(door, token, HttpClientRequest.delete("/world"), Removed);
   const left = (yield* doorCall(door, token, HttpClientRequest.get("/world"), WorldSites)).sites;
@@ -166,4 +176,34 @@ export const removeSites = Effect.fn("world.site.remove")(function* (stage: stri
       )}`,
     });
   return Arr.map(gone.removed, (site) => site.site);
+});
+
+/**
+ * One read of one site through the door, as world `stage` with a fresh token of quota 0 and the world's site
+ * credential: what the door and the site answered, a refusal included. Used by the proof that a second world's token
+ * is refused for the first world's site.
+ */
+export const readSite = Effect.fn("world.site.read")(function* (
+  stage: string,
+  bench: string,
+  credentialOf: string,
+  site: string,
+  path: string,
+) {
+  const expires = yield* soon;
+  const { door, token } = yield* tokenFor(bench, nameOf(stage), 0, expires);
+  const key = yield* secretOf(credentialOf, SITE_KEY_ID, "text");
+  const secret = yield* secretOf(credentialOf, SITE_SECRET_ID, "text");
+  return yield* Effect.gen(function* () {
+    const response = yield* HttpClient.execute(
+      HttpClientRequest.get(`${door}/sites/${site}${path}`).pipe(
+        HttpClientRequest.setHeader(TOKEN_HEADER, Redacted.value(token)),
+        HttpClientRequest.setHeader("authorization", `token ${Redacted.value(key)}:${Redacted.value(secret)}`),
+      ),
+    );
+    return { status: response.status, body: yield* response.json };
+  }).pipe(
+    Effect.scoped,
+    Effect.mapError((error) => SiteFailed.make({ step: "door", message: describeFailure(error) })),
+  );
 });

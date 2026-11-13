@@ -18,19 +18,9 @@ import * as Schema from "effect/Schema";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import { ENV, secretOf, textOf } from "../env.ts";
+import { SiteDoorFailed } from "../failures.ts";
 
-/** Core's own failure in reaching a site: not a refusal of the contract. Nothing in it carries a secret. */
-export class SiteDoorFailed extends Schema.TaggedError<SiteDoorFailed, { readonly brand: unique symbol }>()(
-  "SiteDoorFailed",
-  {
-    /** `unset`: this Core was deployed with no bench; `unreachable`: no answer; `refused`: the door said no. */
-    reason: Schema.Literals(["unset", "unreachable", "refused"]),
-    status: Schema.NullOr(Schema.Int),
-    /** The door's refusal code (door.py), such as `site-not-in-world` or `site-creating`. */
-    code: Schema.NullOr(Schema.String),
-    message: Schema.String,
-  },
-) {}
+export { SiteDoorFailed };
 
 /** What a site answered: its status and its JSON body, as ERPNext wrote it. */
 export interface SiteAnswer {
@@ -91,7 +81,17 @@ export class SiteDoor extends Context.Service<
                   SiteDoorFailed.make({ reason: "unreachable", status: null, code: null, message: error.message }),
                 ),
               );
-            const body = yield* response.json.pipe(Effect.orElseSucceed(() => null));
+            // The door answers every call with JSON, and so does a site's API through it: an answer that is not JSON
+            // came from something in between (Cloudflare's edge refusing a private address, a proxy), not the door.
+            const parsed = yield* response.json.pipe(Effect.option);
+            if (Option.isNone(parsed))
+              return yield* SiteDoorFailed.make({
+                reason: "unreachable",
+                status: response.status,
+                code: null,
+                message: `HTTP ${response.status} that is not JSON (${response.headers["content-type"] ?? "no content type"}): not the site door's answer`,
+              });
+            const body = parsed.value;
             const refusal = Schema.decodeUnknownOption(Refusal)(body);
             if (Option.isSome(refusal) && response.status >= 400)
               return yield* SiteDoorFailed.make({

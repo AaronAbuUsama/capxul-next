@@ -16,7 +16,8 @@ import * as Option from "effect/Option";
 import * as Str from "effect/String";
 import * as FetchHttpClient from "effect/http/FetchHttpClient";
 import { RunnerFailure } from "./failure.ts";
-import { door, runInWorld, runPlan, scenarioPlan, type Plan } from "./run.ts";
+import { runInWorld } from "./in-world.ts";
+import { door, runPlan, scenarioPlan, type Plan } from "./run.ts";
 import { OtherWorlds } from "./world/existing.ts";
 import { runScenarios } from "./scenario-runs.ts";
 import { Settings } from "./settings.ts";
@@ -98,7 +99,7 @@ const program = Effect.gen(function* () {
   const settings = yield* Settings;
   const chosen = yield* plans(settings);
   if (Option.isSome(world) && command !== "door") return yield* usage(`--world is for the door only; ${USAGE}`);
-  yield* command === "door" ? theDoor(settings) : theScenarios(settings, chosen);
+  return yield* command === "door" ? theDoor(settings) : theScenarios(settings, chosen);
 });
 
 program.pipe(
