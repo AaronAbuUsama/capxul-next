@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { test } from "node:test";
-import { encodeAbiParameters, encodeErrorResult, parseAbi, pad, type Hex, type PublicClient } from "viem";
+import { createPublicClient, custom, encodeAbiParameters, encodeErrorResult, parseAbi, pad, type Hex, type PublicClient } from "viem";
 import { approvalSponsor, sponsorHttpTransport, SponsorError, type SponsorConfig, type SponsorshipRequest, type SponsorTransport } from "../src/approvals/sponsorship.ts";
 import { safeOpDigest, entryPointHash, packCalls, type SafeUserOperation } from "../../sdk/src/approvals/safe-op.ts";
 
@@ -78,8 +78,10 @@ test("sponsor uses the canonical world clock for its start and completion expiry
   assert.equal(result.valid_after.toISOString(), "2026-11-12T12:01:01.000Z");
   let reads = 0;
   const expired = await approvalSponsor({ ...config, now: () => ++reads === 1 ? frozenNow() : request.deadline })(input);
-  assert.ok("code" in expired);
-  assert.equal(expired.code, "PROVIDER_RESPONSE_INVALID");
+  assert.deepEqual(expired, { code: "WRONG_STATE", reason: "Approval expired during sponsorship" });
+  // The same deadline already reached before sponsorship is the same state; a window empty by its own dates is input.
+  assert.deepEqual(await approvalSponsor({ ...config, now: () => request.deadline })(input), { code: "WRONG_STATE", reason: "Approval expired before sponsorship" });
+  assert.deepEqual(await approvalSponsor({ ...config, now: frozenNow })({ ...request, send_after: request.deadline }), { code: "INVALID_INPUT", reason: "Approval window is empty" });
 });
 
 test("sponsor refuses absent/claim-owned accounts, wrong modules/hashes, consumed or foreign nonce lanes", async () => {
@@ -112,8 +114,8 @@ test("sponsor refuses always-valid mocks, invalid signatures, narrowed/broadened
 
 test("actual sponsor HTTP preserves custom-revert codes without leaking gateway text", async () => {
   const abi = parseAbi(["error OverBudget(uint256 id,uint128 left,uint128 requested)", "error ERC20InsufficientBalance(address sender,uint256 balance,uint256 needed)", "error ConditionViolation(uint8 status,bytes32 info)", "error ChildrenExceedParent(uint256 id,uint128 left,uint128 requested)", "error AmountBelowUse(uint256 id,uint128 used,uint128 requested)", "error BudgetIsClosed(uint256 id)", "error NoMembership()", "error FailedOpWithRevert(uint256 opIndex,string reason,bytes inner)"]);
-  let data: Hex = "0x12345678";
-  const server = createServer((_req, res) => { res.setHeader("content-type", "application/json"); res.end(JSON.stringify({ jsonrpc: "2.0", id: 1, error: { code: -32500, message: "secret gateway URL/credential", data: { revertData: data } } })); });
+  let data: Hex = "0x12345678", errorCode = -32500, raw: string | null = null;
+  const server = createServer((_req, res) => { res.setHeader("content-type", "application/json"); res.end(raw ?? JSON.stringify({ jsonrpc: "2.0", id: 1, error: { code: errorCode, message: "secret gateway URL/credential", data: { revertData: data } } })); });
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
   try {
     const port = (server.address() as { port: number }).port;
@@ -129,12 +131,50 @@ test("actual sponsor HTTP preserves custom-revert codes without leaking gateway 
       [encodeErrorResult({ abi, errorName: "ConditionViolation", args: [16, pad("0x", { size: 32 })] }), "ROLE_PERMISSION_DENIED"],
       [encodeErrorResult({ abi, errorName: "FailedOpWithRevert", args: [0n, "AA33 reverted", encodeErrorResult({ abi, errorName: "OverBudget", args: [3n, 7n, 11n] })] }), "PAYROLL_BUDGET_EXCEEDED"],
       ["0x12345678", "TRANSACTION_FAILED"],
+      // decodeErrorResult always knows Error(string) and Panic; neither is an authority refusal.
+      [encodeErrorResult({ abi: parseAbi(["error Error(string)"]), errorName: "Error", args: ["Sender not EntryPoint"] }), "TRANSACTION_FAILED"],
+      [encodeErrorResult({ abi: parseAbi(["error Panic(uint256)"]), errorName: "Panic", args: [0x11n] }), "TRANSACTION_FAILED"],
+      ["0x", "TRANSACTION_FAILED"],
     ];
     for (const [revert, code] of cases) {
       data = revert;
       const { config } = fixture();
       const result = await approvalSponsor({ ...config, gateway })(request);
-      assert.ok("code" in result); assert.equal(result.code, code); assert.doesNotMatch(result.reason, /secret|credential|URL/);
+      assert.ok("code" in result); assert.equal(result.code, code, revert); assert.doesNotMatch(result.reason, /secret|credential|URL/);
     }
+    data = "0x"; errorCode = 3;
+    const noData = await approvalSponsor({ ...fixture().config, gateway })(request);
+    assert.ok("code" in noData); assert.equal(noData.code, "TRANSACTION_FAILED", "execution reverted without data is final");
+    errorCode = -32504;
+    await assert.rejects(approvalSponsor({ ...fixture().config, gateway })(request), { code: "PROVIDER_ERROR" }, "a throttled or banned entity is retried");
+    raw = '{"jsonrpc":"2.0","id":1,"res';
+    await assert.rejects(approvalSponsor({ ...fixture().config, gateway })(request), { code: "PROVIDER_ERROR" }, "a truncated 200 body is retried");
   } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
+});
+
+test("chain reverts from viem reads are final refusals; only an outage is retried", async () => {
+  const errorAbi = parseAbi(["error Error(string)", "error NoMembership()"]);
+  const notEntryPoint = encodeErrorResult({ abi: errorAbi, errorName: "Error", args: ["Sender not EntryPoint"] });
+  const cases: [string, () => unknown, string | null][] = [
+    ["revert without data (sender is not a Safe)", () => { throw { code: 3, message: "execution reverted" }; }, "TRANSACTION_FAILED"],
+    ["empty return data", () => "0x", "TRANSACTION_FAILED"],
+    ["Error(string)", () => { throw { code: 3, message: "execution reverted", data: notEntryPoint }; }, "TRANSACTION_FAILED"],
+    ["Roles NoMembership", () => { throw { code: 3, message: "execution reverted", data: encodeErrorResult({ abi: errorAbi, errorName: "NoMembership" }) }; }, "ROLE_PERMISSION_DENIED"],
+    ["node outage", () => { throw new Error("socket hang up"); }, null],
+    // viem wraps these node failures in ContractFunctionRevertedError too; they are outages, not reverts.
+    ["node internal error -32603", () => { throw { code: -32603, message: "Internal error" }; }, null],
+    ["node header not found", () => { throw { code: -32000, message: "header not found" }; }, null],
+    ["node gas cap", () => { throw { code: -32000, message: "gas required exceeds allowance (30000000)" }; }, null],
+  ];
+  for (const [name, answer, code] of cases) {
+    const chain = createPublicClient({ transport: custom({ async request({ method }) { if (method === "eth_call") return answer(); throw new Error(`unexpected ${method}`); } }, { retryCount: 0 }), cacheTime: 0 });
+    const { config } = fixture();
+    const fake = config.client as unknown as { readContract(x: { functionName: string }): Promise<unknown> };
+    const client = { ...fake, readContract: (x: { functionName: string }) => x.functionName === "getOwners"
+      ? chain.readContract({ address: sender, abi: parseAbi(["function getOwners() view returns (address[])"]), functionName: "getOwners" }) : fake.readContract(x) } as unknown as PublicClient;
+    const sponsor = approvalSponsor({ ...config, client });
+    if (code === null) { await assert.rejects(sponsor(request), { code: "PROVIDER_ERROR" }, name); continue; }
+    const result = await sponsor(request);
+    assert.ok("code" in result, name); assert.equal(result.code, code, name);
+  }
 });
