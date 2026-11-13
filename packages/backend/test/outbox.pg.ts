@@ -4,7 +4,7 @@ import { once } from "node:events";
 import test from "node:test";
 import pg from "pg";
 import { Database, transaction } from "../src/platform/db.ts";
-import { consume, emit, migrateOutbox, readEvent, relay, type TransitionEvent } from "../src/platform/outbox.ts";
+import { consume, emit, hasPending, migrateOutbox, readEvent, relay, type TransitionEvent } from "../src/platform/outbox.ts";
 
 // Explicit standalone PG control, not part of the Ponder/v4 fixture suite's *.test.ts glob.
 const url = process.env.OUTBOX_TEST_ADMIN_URL;
@@ -160,6 +160,36 @@ test("committed runtime outbox: rollback, crash retry, concurrency, exact identi
         assert.equal(await relay(db, "late-reader", ["late_transitioned"], async (_sql, e) => { seen.push(e.id); }), 1);
         assert.deepEqual(seen, ["early", "late"]);
       } finally { await late.query("rollback"); late.release(); }
+    });
+    await t.test("readiness includes beyond-batch and lock-busy envelopes until their ACK commits", async () => {
+      const names = ["readiness_transitioned"], consumer = "readiness";
+      assert.equal(await hasPending(db.worker,consumer,names),false);
+      await db.transaction("",async (sql) => {
+        for (let n=0;n<101;n++) await emit(sql,{ ...event(`ready-${n}`), name: names[0]! });
+      },true);
+      assert.equal(await relay(db,consumer,names,async () => {}),100);
+      assert.equal(await hasPending(db.worker,consumer,names),true,"one full relay batch leaves the 101st envelope pending");
+      const held = await db.worker.connect();
+      try {
+        await held.query("begin");
+        assert.equal(await consume(held,consumer,"ready-100",async () => {}),true);
+        assert.equal(await hasPending(held,consumer,names),false,"passed Sql sees its own uncommitted ACK");
+        assert.equal(await relay(db,consumer,names,async () => {}),0,"another relay skips the busy event");
+        assert.equal(await hasPending(db.worker,consumer,names),true,"readiness must not skip its busy uncommitted ACK");
+        await held.query("rollback");
+        assert.equal(await hasPending(db.worker,consumer,names),true,"rolled-back ACK leaves work pending");
+        await held.query("begin");
+        await consume(held,consumer,"ready-100",async () => {});
+        await held.query("commit");
+      } finally { await held.query("rollback"); held.release(); }
+      assert.equal(await hasPending(db.worker,consumer,names),false,"only committed ACK closes readiness");
+      assert.equal(await hasPending(db.worker,"another-consumer",names),true,"ACKs belong to their consumer");
+      await db.transaction("",(sql) => emit(sql,{ ...event("ready-other"), name: "other_transitioned" }),true);
+      assert.equal(await hasPending(db.worker,consumer,names),false,"unrelated envelope names do not block readiness");
+      assert.equal(await hasPending(db.worker,consumer,["other_transitioned"]),true);
+      assert.equal(await hasPending(db.worker,consumer,[]),false);
+      await assert.rejects(db.ownerTransaction({ kind: "person", id: "person-a" },(sql) => hasPending(sql,consumer,names)),/permission denied/,
+        "the reader must not elevate caller visibility or add tenant ACK grants");
     });
   } finally { await db.close(); await admin.end(); }
 });

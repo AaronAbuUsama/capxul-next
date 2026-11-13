@@ -489,3 +489,31 @@ export const decision_activity_static_links = defineDecision({
   source: by("docs/decisions/assembly-items.md (activity, documents); blueprint/payments/processes.ts (movements.record invokes documents.store)"),
   affects: [table_documents, rpc_activity_feed_get],
 });
+
+export const decision_activity_tenancy_evidence = defineDecision({
+  id: "activity.tenancy-evidence",
+  title: "Activity change-log tenancy is proved as owner isolation, without a session read",
+  question:
+    "`tbl:activity-changes/tenancy` claims a second owner reads and writes none of the first's rows. In Wave Zero, must " +
+    "its proof also go through authenticated and revoked sessions reading the public change feed?",
+  options: [
+    {
+      label: "owner-isolation",
+      text:
+        "Prove it on the selected stack's tenant role, through Core's own owner scoping: each owner reads exactly its rows " +
+        "at one snapshot, and is refused every write to another owner's rows and to its own.",
+    },
+    { label: "session-read", text: "Mount `activity.changes.read` in Wave Zero and prove it through signed-in and revoked sessions." },
+    { label: "session-check", text: "Keep the read unmounted, but authenticate a real session and read the table inside it." },
+  ],
+  chosen: "owner-isolation",
+  why:
+    "The table is owner-tenanted with no admissions, so its tenancy claim is owner isolation and nothing else. Slice-0 " +
+    "holds no `activity.changes.read` and no access rpc, and no required eval names the read, so mounting it would add a " +
+    "public surface outside the wave. Mapping a session to its owner scope is access's claim, proved by access's evals, " +
+    "not this table's. The live checks exercise the claim on the runtime role and scope the server itself uses.",
+  source:
+    "Activity lane and the Wave Zero integrator, 13 November 2026; evidence: `pnpm blueprint:slices --json` (slice-0 " +
+    "records and required evals); blueprint/activity/data.ts (tenancy owner, no admits); packages/evals/src/modules/activity/tables.ts",
+  affects: [table_activity_changes],
+});

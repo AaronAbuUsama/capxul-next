@@ -33,6 +33,16 @@ import * as r from "./world-rpcs.ts";
 import * as o from "./world-ops.ts";
 import * as w from "./world-processes.ts";
 
+export const decision_devnet_local_catalogue_reads = defineDecision({
+  id: "devnet.local-catalogue-reads", title: "Local record and snapshot reads do not start a world",
+  question: "How do local catalogue reads remain available while the chain is stopped?",
+  options: [{ label: "restricted-offline-read", text: "The main CLI accepts record list|show|export --config FILE [--world ID] and world snapshot list [ID] --config FILE. The private local config selects exactly one world's database; an explicit world must match it. Reads use capxul_core, never migration credentials, and neither compose services nor take the mutation lock. Missing schema or world rows refuse without migration, backfill or financial-record substitution. List and show project the declared EntryView/SnapshotView wire fields; internal storage paths and credentials are not in those views. Record filters use inclusive world-time milliseconds, abandoned branches are opt-in for list, and show defaults to the current catalogue epoch unless --epoch is explicit. Export uses the catalogue's single-statement history snapshot, preserves all epochs and abandoned records, and creates --out as a new owner-private file without overwriting an existing file. Reads never append synthetic command entries." }],
+  chosen: "restricted-offline-read",
+  why: "The existing query contracts promise reads while the chain is stopped, a stable public view and a lineage-first training export. Requiring a private config keeps selection local without inventing a global registry; mutation locks and current-build startup checks must not turn reads into lifecycle operations.",
+  source: BY("aaron.one-cli; devnet.record-home; devnet.catalogue-storage"),
+  affects: [o.operation_record_list, o.operation_record_show, o.operation_record_export, o.operation_world_snapshot_list, r.rpc_devnet_records_list, r.rpc_devnet_records_show, r.rpc_devnet_records_export, r.rpc_devnet_worlds_snapshot_list],
+});
+
 const NOTE = "docs/mission/worlds.md, section 7";
 const dec = (spec: { id: string; title: string; question: string; options: { label: string; text: string }[]; chosen: string; why: string; affects: readonly object[] }) =>
   defineDecision({ id: spec.id, title: spec.title, question: spec.question, options: spec.options, chosen: spec.chosen, why: spec.why, source: BY(NOTE), affects: spec.affects as never });

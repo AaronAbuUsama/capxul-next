@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "evals": {
+    "wfl:plugs.events.deliver/idempotent": {
+      "verdict": "not_run",
+      "commit": "6734a8e784396d1bae4548fa7638096271c21b2e",
+      "at": "2026-11-13T05:31:04.850Z",
+      "claim": "a second run with the same key (The site answers a repeated event key as already applied, and a transition already made is not made twice.) changes nothing",
+      "run": "run-20261113053104850-cfaaee70",
+      "evidence": "status/runs/run-20261113053104850-cfaaee70/evidence/wfl-plugs.events.deliver-idempotent.txt"
+    }
+  }
+}
