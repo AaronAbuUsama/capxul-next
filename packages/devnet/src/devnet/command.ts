@@ -89,7 +89,7 @@ export async function runDevnet(args: string[]): Promise<number> {
     // Nested startup/cleanup failures must retain their causes privately, without leaking argv or credentials to stdout.
     if (diagnostics) await writeFile(diagnostics, inspect(error, { depth: 10 }), { mode: 0o600 });
     const message = (error as Error).message;
-    const code = message.startsWith("CLI_USAGE:") ? "CLI_USAGE" : message.startsWith("INVALID_INPUT:") ? "INVALID_INPUT" : "WORLD_RUNTIME_ERROR";
+    const code = ["CLI_USAGE", "INVALID_INPUT", "WRONG_STATE"].find((declared) => message.startsWith(`${declared}:`)) ?? "WORLD_RUNTIME_ERROR";
     console.error(JSON.stringify({ error: { code, message } }));
     // Declared input refusals exit 2 (blueprint vocabulary); undeclared runtime failures exit 1.
     return code === "WORLD_RUNTIME_ERROR" ? 1 : 2;

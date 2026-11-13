@@ -106,6 +106,8 @@ if (process.argv.includes("--list")) {
           const state = `SELECT jsonb_build_object('worlds',(SELECT jsonb_agg(to_jsonb(w) ORDER BY world_id) FROM app.worlds w),
             'records',(SELECT count(*) FROM app.command_records),'head',(SELECT max(real_time) FROM app.command_records))`;
           const [before] = await query(state);
+          // A refusal against an empty or foreign catalogue would prove nothing about this world.
+          assert(Array.isArray(before?.worlds) && before.worlds.some((w: { world_id?: string }) => w.world_id === config.world.id), "selected world's catalogue row is missing");
           const unknown = config.world.id === "nosuchworld" ? "otherworld" : "nosuchworld";
           const refused = await cli(["world", "show", unknown]).then(() => assert.fail("unknown world was shown"), (e: { code?: number; stdout?: string; stderr?: string }) => e);
           assert.equal(refused.code, 2, "INVALID_INPUT exit code");
