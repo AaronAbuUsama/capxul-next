@@ -35,7 +35,7 @@ const stepsOf = (world: StartingWorld) =>
     Effect.mapError(() =>
       RunnerFailure.make({
         step: "starting world",
-        message: `the runner cannot make ${world.name} yet: its steps wait on ${Arr.join(waitsOn(world), ", ")}`,
+        message: `the runner has no maker for ${world.name} yet; its steps, and its ancestors', call ${Arr.join(waitsOn(world), ", ")}`,
       }),
     ),
   );

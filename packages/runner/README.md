@@ -85,10 +85,12 @@ the facts its steps answered (decision 38), with every call made in making it as
 | `fresh` to `paid` | Once per run, one after another in one template world (`tpl-<6 hex>`, 6 hours), each saved there as a template snapshot of its own name; each scenario gets a restore of it into a world of its own (`s-<6 hex>`, 90 minutes), whose `world` fact is the restore's answer. |
 | `quota-full`, `with-snapshot`, `restored` | By their steps for each scenario, from a world got the same way. |
 
-A starting world whose steps need an operation no maker here makes yet fails its scenario with the operations it
-waits on (`waitsOn`). Today the runner makes `nothing`, `quota-full` and `fresh`; `founded` to `paid` wait on
-`org.create`, `approval.sign`, `org.member.grant`, `doc.create`, `doc.submit` and `report.run`, and so do
-`with-snapshot` and `restored`, which are made from `paid`.
+A starting world with no maker here fails its scenario naming the operations its steps call (`waitsOn`). Today the
+runner makes `nothing`, `quota-full`, `fresh`, `with-snapshot` and `restored`; `founded` to `paid` have no maker yet,
+so `with-snapshot` and `restored`, made from `paid`, cannot be reached either. Their operations are built, but their
+makers need two things the runner lacks: the cast's keys to sign approvals with (a secp256k1 signer here, viem as the
+scenarios use it, a dependency this package does not have), and a company site that becomes ready, which needs a
+bench the world's Core on Cloudflare can reach (roadmap steps 1.4 and 2.2).
 
 The calls made in making the world get the generic checks too (`making` in the run record). The platform's own
 calls are checked against what it kept (`PlatformKept`: its spans, and the events each wrote into its world's record).
