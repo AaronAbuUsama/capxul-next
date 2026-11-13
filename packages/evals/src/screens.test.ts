@@ -23,11 +23,13 @@ test("a shows claim passes only with a fresh, non-empty, source-resolved capture
       bindings: ids.map((id, i) => ({ eval: id, checks: [`S${i + 1}.done`], why: "screen capture regression" })),
     }], { evals: new Set(ids), scripts: new Map([["run.sh", parseScriptList("S1.done\tcheck\nS2.done\tcheck")]]) });
     assert.ok(loaded.ok);
-    const png = "printf '\\211PNG\\r\\n\\032\\n'";
+    // Real 1×1 images; a bare PNG signature is not a capture.
+    const png = "printf '%s' 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQAAAAA3bvkkAAAACklEQVQI12NoAAAAggCB3UNq9AAAAABJRU5ErkJggg==' | base64 -d", jpg = "printf '%s' '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AVN//2Q==' | base64 -d";
     const checks = [
       "printf '@check\\tS1.done\\tpass\\t1\\tok\\n@check\\tS2.done\\tpass\\t1\\tok\\n'",
       'mkdir -p "$CAPXUL_EVAL_RUN_DIR/acceptance" "$CAPXUL_EVAL_RUN_DIR/sites"',
       `${png} > "$CAPXUL_EVAL_RUN_DIR/acceptance/shot.png"; ${png} > "$CAPXUL_EVAL_RUN_DIR/sites/shot.png"; printf text > "$CAPXUL_EVAL_RUN_DIR/acceptance/note.png"`,
+      `{ printf '\\211PNG\\r\\n\\032\\n'; head -c 40 /dev/zero; } > "$CAPXUL_EVAL_RUN_DIR/acceptance/magic.png"; ${jpg} | head -c -2 > "$CAPXUL_EVAL_RUN_DIR/acceptance/cut.jpg"; ${jpg} > "$CAPXUL_EVAL_RUN_DIR/acceptance/shot.jpg"; printf text > "$CAPXUL_EVAL_RUN_DIR/acceptance/notes.txt"`,
       `printf '{"invoice":{"supplier":"Acme"},"a/b~c":1,"tilde":{"~1":1},"slash":{"/":1},"rows":[]}' > "$CAPXUL_EVAL_RUN_DIR/acceptance/sources.json"`,
     ].join("\n");
     const manifest = (screen: string, assertion = "source-equality", source = "acceptance/sources.json#/invoice/supplier", path = "acceptance/shot.png") =>
@@ -35,7 +37,7 @@ test("a shows claim passes only with a fresh, non-empty, source-resolved capture
     // An earlier run's manifest and capture, offered through --screens: real files, but older than this run.
     const old = join(root, "old");
     mkdirSync(old);
-    writeFileSync(join(old, "shot.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    writeFileSync(join(old, "shot.png"), Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQAAAAA3bvkkAAAACklEQVQI12NoAAAAggCB3UNq9AAAAABJRU5ErkJggg==", "base64"));
     writeFileSync(join(old, "sources.json"), '{"invoice":{"supplier":"Acme"}}');
     writeFileSync(join(old, "screens.json"), '[{"screen":"supplier-invoice","path":"shot.png","source":"sources.json#/invoice/supplier","assertion":"source-equality"}]');
     for (const f of ["shot.png", "sources.json", "screens.json"]) utimesSync(join(old, f), new Date("2026-01-01T00:00:00Z"), new Date("2026-01-01T00:00:00Z"));
@@ -64,6 +66,10 @@ test("a shows claim passes only with a fresh, non-empty, source-resolved capture
       [checks + manifest("supplier-invoice", "source-equality", "acceptance/sources.json#/invoice/supplier", "acceptance/note.png"), undefined, "incomplete", 0, [shows]],
       [checks + manifest("supplier-invoice", "source-equality", "acceptance/sources.json#/invoice/supplier", "acceptance/sources.json"), undefined, "incomplete", 0, [shows]],
       [checks + manifest("supplier-invoice", "source-equality", "acceptance/shot.png"), undefined, "incomplete", 0, [shows]],
+      [checks + manifest("supplier-invoice", "source-equality", "acceptance/sources.json#/invoice/supplier", "acceptance/magic.png"), undefined, "incomplete", 0, [shows]],
+      [checks + manifest("supplier-invoice", "source-equality", "acceptance/sources.json#/invoice/supplier", "acceptance/cut.jpg"), undefined, "incomplete", 0, [shows]],
+      [checks + manifest("supplier-invoice", "source-equality", "acceptance/sources.json#/invoice/supplier", "acceptance/shot.jpg"), undefined, "complete", 2, []],
+      [checks + manifest("supplier-invoice", "source-equality", "acceptance/notes.txt"), undefined, "incomplete", 0, [shows]],
       [checks + manifest("supplier-invoice", "source-equality", "acceptance/sources.json#/invoice/supplier", "sites/shot.png"), undefined, "incomplete", 0, [shows]],
       [checks + manifest("supplier-invoice", "source-equality", "doctype:Purchase Invoice"), undefined, "incomplete", 0, [shows]],
       [checks, "old/screens.json", "incomplete", 0, [shows]],

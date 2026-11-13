@@ -38,9 +38,14 @@ export const pointerValue = (doc: unknown, pointer: string): unknown => {
   return at;
 };
 
-/** A screen capture is a PNG or JPEG by its magic bytes, so a JSON source or a manifest cannot stand in for one. */
-export const isScreenImage = (bytes: Uint8Array): boolean =>
-  [[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], [0xff, 0xd8, 0xff]].some((magic) => magic.every((byte, i) => bytes[i] === byte));
+/** A screen capture is a whole PNG or JPEG, so a JSON source, a manifest or a bare magic number cannot stand in for one: a PNG
+ * is its signature followed by a 13-byte IHDR chunk, and a JPEG starts with SOI (FFD8FF) and ends with EOI (FFD9). */
+export const isScreenImage = (bytes: Uint8Array): boolean => {
+  const at = (offset: number, expected: readonly number[]): boolean => expected.every((byte, i) => bytes[offset + i] === byte);
+  const png = bytes.length >= 33 && at(0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) && at(8, [0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52]);
+  const jpeg = bytes.length >= 5 && at(0, [0xff, 0xd8, 0xff]) && at(bytes.length - 2, [0xff, 0xd9]);
+  return png || jpeg;
+};
 
 /** Written before execution, finalized after it. Missing or running receipts cannot establish completion. */
 export const RunReceipt = Schema.Struct({

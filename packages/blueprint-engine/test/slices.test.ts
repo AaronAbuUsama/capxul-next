@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildBlueprint, defineContract, defineJourney, defineRole, defineScreen, keyOf, mergeResults, sliceEvidence, slicesOf, sliceZeroRequired, underOf, type SliceRun } from "../src/index.ts";
+import { buildBlueprint, defineContract, defineInvariant, defineJourney, defineRole, defineScreen, keyOf, mergeResults, sliceEvidence, slicesOf, sliceZeroRequired, underOf, type SliceRun } from "../src/index.ts";
 import * as f from "./fixtures/invitations.ts";
 
 const chain = defineContract({ id: "mail-chain", title: "Mail chain", about: "A fixture.", functions: { send: { signature: "send()", about: "Send." } },
@@ -112,4 +112,15 @@ test("slice zero's gate takes its records' claims at every level, their invarian
   // Nothing the gate required before widening leaves it: every L1, screen and alert claim on a foundation record.
   const reach = new Set(slicesOf(real, { conceptOf: new Map() }).slices[0]!.records);
   for (const e of real.evals.filter((e) => reach.has(e.subject) && (e.level === "L1" || /^(scr|alr):/.test(e.id)))) assert.ok(gate.has(e.id), e.id);
+});
+
+test("an invariant joins slice zero only over a foundation record, or over none (portal.slice-zero-measured-gate)", () => {
+  const reach = new Set(underOf(b, b.records.get("journey:thin_line")!).under);
+  assert.ok(reach.has("table:invitations") && !reach.has("table:grants"));
+  const fixture = { title: "A fixture invariant", about: "A fixture.", statement: "Holds.", check: "property" } as const;
+  const gate = sliceZeroRequired(buildBlueprint({ name: "slices", stage: "as-is", records: [...records,
+    defineInvariant({ ...fixture, id: "elsewhere", over: [f.grants] }), defineInvariant({ ...fixture, id: "whole-world", over: [] })] }));
+  assert.ok(gate.includes("inv:one-open-invitation"), "over a foundation table");
+  assert.ok(gate.includes("inv:whole-world"), "over no record: the decision reads it as holding for the whole world");
+  assert.ok(!gate.includes("inv:elsewhere"), "over only records outside slice zero");
 });

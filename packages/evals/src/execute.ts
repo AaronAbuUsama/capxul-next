@@ -155,10 +155,14 @@ export const executeRun = async (root: string, blueprint: Blueprint, bindings: B
         const inside = (file: string): boolean => realpathSync(resolve(base, file)).startsWith(`${realpathSync(base)}/`);
         if (!inside(screen.path) || !inside(source)) throw new Error(`screen evidence must lie inside ${base}: ${path}, ${source}`);
         const capture = realpathSync(resolve(base, path));
-        if (capture === realpathSync(resolve(base, source)) || manifests.some((m) => existsSync(m.file) && realpathSync(m.file) === capture)
-          || !isScreenImage(readFileSync(capture).subarray(0, 8))) throw new Error(`screen capture must be a PNG or JPEG image, not its source or a manifest: ${path}`);
+        if (capture === realpathSync(resolve(base, source))) throw new Error(`screen capture is its own source: ${path}`);
+        if (manifests.some((m) => existsSync(m.file) && realpathSync(m.file) === capture) || !isScreenImage(readFileSync(capture)))
+          throw new Error(`screen capture must be a whole PNG or JPEG image, not a manifest: ${path}`);
+        // Every source is a JSON readback, whether or not a pointer names one value in it.
+        let doc: unknown;
+        try { doc = JSON.parse(readFileSync(resolve(base, source), "utf8")); } catch { throw new Error(`screen source is not JSON: ${source}`); }
         if (pointer !== undefined) {
-          const value = pointerValue(JSON.parse(readFileSync(resolve(base, source), "utf8")), pointer);
+          const value = pointerValue(doc, pointer);
           if (value === undefined || value === null) throw new Error(`screen source names no value: ${screen.source}`);
         }
         bring(base, screen.path);

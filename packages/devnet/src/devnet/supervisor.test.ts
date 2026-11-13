@@ -192,7 +192,9 @@ test("slice acceptance requires the full fresh same-run contract and every sourc
   const status = { version: 1, evals: Object.fromEntries(required.map((id) => [id, { verdict: "pass", commit: "fixture", at, run: receipt.id, claim: `claim ${id}` }])) };
   const save = async () => { await writeFile(join(directory, "receipt.json"), JSON.stringify(receipt)); await writeFile(join(directory, "status.json"), JSON.stringify(status)); };
   try {
-    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]);
+    // Real 1×1 images: a bare magic number is not a capture.
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQAAAAA3bvkkAAAACklEQVQI12NoAAAAggCB3UNq9AAAAABJRU5ErkJggg==", "base64");
+    const jpeg = Buffer.from("/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AVN//2Q==", "base64");
     for (const screen of receipt.screens) await writeFile(join(directory, screen.path), png);
     await writeFile(join(directory, "prepare.log"), "prepared");
     const preparation = { run: { id: receipt.id, at, commit: "fixture" } };
@@ -223,11 +225,21 @@ test("slice acceptance requires the full fresh same-run contract and every sourc
     await writeFile(join(outside, "shot.png"), png); await symlink(outside, join(directory, "ext"));
     receipt.screens[0]!.path = "ext/shot.png"; await save();
     await assert.rejects(verifyRun(root, summary, required, environment, started), /inside this run/);
-    await writeFile(join(directory, "note.png"), "text");
-    for (const path of ["source.json", "note.png"]) {
+    await writeFile(join(directory, "note.png"), "text"); // Long enough to pass a length check: only the IHDR and EOI rules can refuse these.
+    await writeFile(join(directory, "magic.png"), Buffer.concat([png.subarray(0, 8), Buffer.alloc(40)]));
+    await writeFile(join(directory, "cut.jpg"), jpeg.subarray(0, -2));
+    await writeFile(join(directory, "shot.jpg"), jpeg); await writeFile(join(directory, "notes.txt"), "not json");
+    receipt.screens[0]!.path = "source.json"; await save();
+    await assert.rejects(verifyRun(root, summary, required, environment, started), /its own source/);
+    for (const path of ["note.png", "magic.png", "cut.jpg"]) {
       receipt.screens[0]!.path = path; await save();
       await assert.rejects(verifyRun(root, summary, required, environment, started), /not a PNG or JPEG/, path);
     }
+    receipt.screens[0]!.path = "shot.jpg"; await save();
+    assert.equal(await verifyRun(root, summary, required, environment, started), true);
+    // Every source is JSON, even without a pointer.
+    receipt.screens[0]!.source = "notes.txt"; await save();
+    await assert.rejects(verifyRun(root, summary, required, environment, started), /not JSON/);
     receipt.screens[0]!.path = "supplier-invoice.png";
     receipt.screens[0]!.source = "source.json#/supplier-invoice/value"; await save();
     await writeFile(join(directory, "source.json"), "");

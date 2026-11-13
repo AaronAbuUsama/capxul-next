@@ -26,7 +26,7 @@ test("each module lists only its own captures; duplicates, symlinked modules and
     const script = (sites: string, extra = "") => [
       "printf '@check\\tM1.done\\tpass\\t1\\tok\\n'",
       'mkdir -p "$CAPXUL_EVAL_RUN_DIR/acceptance" "$CAPXUL_EVAL_RUN_DIR/sites"',
-      `printf '\\377\\330\\377' > "$CAPXUL_EVAL_RUN_DIR/acceptance/invoice.png"; printf '\\211PNG\\r\\n\\032\\n' > "$CAPXUL_EVAL_RUN_DIR/sites/grants.png"`,
+      `printf '%s' '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AVN//2Q==' | base64 -d > "$CAPXUL_EVAL_RUN_DIR/acceptance/invoice.png"; printf '%s' 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQAAAAA3bvkkAAAACklEQVQI12NoAAAAggCB3UNq9AAAAABJRU5ErkJggg==' | base64 -d > "$CAPXUL_EVAL_RUN_DIR/sites/grants.png"`,
       `printf '{"x":1}' > "$CAPXUL_EVAL_RUN_DIR/sites/sources.json"`,
       `printf '{"x":1}' > "$CAPXUL_EVAL_RUN_DIR/acceptance/sources.json"`,
       `printf '%s' '[${entry("supplier-invoice", "acceptance/invoice.png", "acceptance/sources.json#/x")}]' > "$CAPXUL_EVAL_RUN_DIR/screens.json"`,

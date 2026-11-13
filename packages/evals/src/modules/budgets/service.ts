@@ -57,13 +57,21 @@ const median = (sorted: readonly number[]): number =>
   sorted.length % 2 ? sorted[(sorted.length - 1) / 2]! : (sorted[sorted.length / 2 - 1]! + sorted[sorted.length / 2]!) / 2;
 const finite = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n >= 0;
 
-export const judgeBudget = (budget: Budget, samples: readonly Sample[]): Judgement => {
+/** True when a wait name is one the budget excludes; an exclusion ending in `.*` (such as `wait.*`) names a prefix. */
+export const excludes = (budget: Budget, name: string): boolean =>
+  budget.excludes.some((e) => e === name || (e.endsWith(".*") && name.startsWith(e.slice(0, -1)) && name.length > e.length - 1));
+
+/** `runAt` is the receipt's `at` (epoch ms): a sample must start inside the run, between it and `now`, so a caller cannot
+ * place a slow sample before the run, where it would become the cold one. */
+export const judgeBudget = (budget: Budget, samples: readonly Sample[], runAt: number, now = Date.now()): Judgement => {
   const fail = (why: string, warm: Timed[] = [], cold: Timed[] = []): Judgement =>
     ({ pass: false, budget, n: warm.length, method: "none", p95: null, p50: null, samples, warm, cold, detail: why });
   const waited = (s: Sample): number => (s.waits ?? []).reduce((sum, w) => sum + w.ms, 0);
   const bad = samples.filter((s) => (s.clock !== "host" && s.clock !== "span") || !finite(s.ms) || !finite(s.startedAt) ||
-    (s.waits ?? []).some((w) => !budget.excludes.includes(w.name) || !finite(w.ms)) || waited(s) > s.ms);
+    (s.waits ?? []).some((w) => !excludes(budget, w.name) || !finite(w.ms)) || waited(s) > s.ms);
   if (bad.length) return fail(`${bad.length} samples are not host-clock or span timings with a start and only the claim's waits (${budget.excludes.join(", ") || "none"})`);
+  const outside = samples.filter((s) => s.startedAt < runAt || s.startedAt > now);
+  if (outside.length) return fail(`${outside.length} samples start outside this run (${new Date(runAt).toISOString()} to ${new Date(now).toISOString()})`);
   // Each kind in host-clock order; its earliest sample is cold, whatever order the caller passed.
   const timed = [...samples].sort((a, z) => a.startedAt - z.startedAt).map((s) => ({ ...s, netMs: s.ms - waited(s) }));
   const tied = timed.filter((s, i) => timed.some((o, j) => j !== i && o.kind === s.kind && o.startedAt === s.startedAt));

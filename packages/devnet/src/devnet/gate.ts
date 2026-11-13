@@ -55,9 +55,13 @@ export async function verifyRun(root: string, summary: any, required: string[], 
       // Links resolve at every level, so a linked directory cannot bring evidence from outside the run; a capture is an image.
       const real = await realpath(directory), shot = await realpath(join(directory, capture.path));
       assert(shot.startsWith(`${real}/`) && (await realpath(join(directory, file))).startsWith(`${real}/`), "screen evidence must lie inside this run");
-      assert(shot !== await realpath(join(directory, file)) && isScreenImage(await readFile(shot)), `screen evidence ${capture.path} is not a PNG or JPEG image`);
+      assert(shot !== await realpath(join(directory, file)), `screen evidence ${capture.path} is its own source`);
+      assert(isScreenImage(await readFile(shot)), `screen evidence ${capture.path} is not a PNG or JPEG image`);
+      // Every source is a JSON readback, whether or not a pointer names one value in it.
+      let doc: unknown;
+      try { doc = JSON.parse(await readFile(join(directory, file), "utf8")); } catch { assert.fail(`screen source ${file} is not JSON`); }
       if (pointer !== undefined) {
-        const value = pointerValue(JSON.parse(await readFile(join(directory, file), "utf8")), pointer);
+        const value = pointerValue(doc, pointer);
         assert(value !== undefined && value !== null, `screen source ${capture.source} names no value`);
       }
     }
