@@ -88,7 +88,18 @@ On AWS (CI, or a laptop with AWS credentials): `PLATFORM_HOST=aws bin/run.sh dep
 
 ## What is proven, and what only CI can prove
 
-PROVEN_TABLE
+`bin/rehearse.sh pr-p2` ran once from nothing to nothing on 13 November 2026 in a Claude cloud container
+(`PLATFORM_HOST=standin`, `PLATFORM_EDGE=none`); every line quoted is in `records/rehearsal/`, and `summary.json`
+holds each step's exit code, the exit code it should have and its duration (`"outcome": "passed"`).
+
+| Question | Result | Record |
+|---|---|---|
+| Is the platform deployed by Alchemy as one stack, and is a second deploy a no-op? | Yes. `Plan: 14 to create, 1 to adopted` (the context bin/run.sh made) … `Done: 15 succeeded`, 9.2 s with the bench image already built (an earlier run of the same script, `pr-p1`, built it cold: 160.8 s); again: `Plan: no changes`, 11.1 s | `01-deploy.txt` |
+| A company site made with a token scoped to its world, the door key read from the shared state? | Yes. Tokens minted by `src/run-mint.ts` from the stage's `DoorKey-g1`; refusals `token-missing`, `token-signature-invalid` (quota raised by hand), `token-expired`, `site-label-invalid`, `site-quota-reached` (`acme holds 1 of 1`); globex's token sees `"sites": []`; the site, made in 100.8 s, reads `"world":"acme"`, `"world_local":"2027-03-31 11:00:00"` over plain HTTP to the bench's web process | `02-site.txt` |
+| Does the drift check catch changed settings and code replaced by hand, exit non-zero, and come back clean after a repair? | Yes. Clean first (exit 0, 15 resources). Three hand changes: the door's DNS record edited through the API, the worker stopped, a line appended to `/opt/door/door.py` in the running door. The pinned `alchemy drift`: `Plan: 2 to update`, exit 0, the code not seen. Ours: `DoorRecord` and `Worker` `drifted`, `C /opt/door/door.py`, **exit 2**. After the repair (the door recreated, `alchemy drift --repair`): exit 0, the record's content back, the hand line gone, the site still answering | `03-drift.txt`, `drift-*.json` |
+| Does destroy leave nothing? | Yes. `Done: 15 succeeded`; then no container, volume, network, image or context of the stage, `CapxulPlatform/pr-p2: none` in the shared state, and `abuusama.dev: 66 records; under worlds.abuusama.dev: 0`, the other 66 printing `00b6780dc2951888`, as before the run | `04-destroy.txt`, `00-zone-before.txt` |
+| The AWS path, without AWS keys? | Types and lint pass for both stacks and the bootstrap; the unit tests read the IAM trust and permissions, the Cloudflare token's scope, the first boot and the token. The platform stack in its AWS form (`PLATFORM_HOST=aws`, `PLATFORM_EDGE=tunnel`, stage `staging`) plans against the shared state: 18 to create, the tunnel, ingress, wildcard and connector among them. The host stack loads and resolves its providers, then stops at AWS's sign-in (placeholder keys): Alchemy cannot plan AWS offline | `records/aws/` |
+| Are the workflows valid? | `actionlint` 1.7.7, with shellcheck, finds nothing in the four workflows | (run, not recorded) |
 
 Only a CI run with the bootstrap's keys can prove: the machine coming up from its user data (disk found, formatted,
 mounted, Docker on loopback), the SSM forward carrying Alchemy's Docker traffic (several connections at once), the

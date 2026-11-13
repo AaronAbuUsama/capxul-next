@@ -1,0 +1,25 @@
+
+== 2. mint world acme's site token from the door key in the shared state (quota 1), and others (12:20:13Z)
+minted: world=acme quota=1 expires=1794583189 print=4e36eae1 file=/home/user/wt/platform/packages/platform/../../var/platform/tokens/acme.token
+minted: world=globex quota=1 expires=1794583189 print=0afe84bd file=/home/user/wt/platform/packages/platform/../../var/platform/tokens/globex.token
+minted: world=acme quota=5 expires=1794572329 print=c904df48 file=/home/user/wt/platform/packages/platform/../../var/platform/tokens/expired.token
+
+== 2. the door refuses before any work (12:20:43Z)
+no token:             {"refused": "token-missing", "detail": ""}
+quota raised by hand: {"refused": "token-signature-invalid", "detail": ""}
+expired token:        {"refused": "token-expired", "detail": "expired at 1794572329"}
+bad label:            {"refused": "site-label-invalid", "detail": "1 to 12 of a-z and 0-9"}
+
+== 2. create the site acme-r1.worlds.abuusama.dev with world acme's token (12:20:43Z)
+{"site": "acme-r1.worlds.abuusama.dev", "world": "acme", "ms": 100633, "steps": [{"step": "new-site", "ms": 25306}, {"step": "install erpnext", "ms": 49596}, {"step": "install capxul", "ms": 3208}, {"step": "setup wizard", "ms": 14568}, {"step": "migrate", "ms": 6394}, {"step": "enable scheduler", "ms": 769}, {"step": "join world", "ms": 792}]}
+-- site creation: exit 0 (want 0) in 100.8 s
+second site, quota 1: {"refused": "site-quota-reached", "detail": "world acme holds 1 of 1: ['acme-r1.worlds.abuusama.dev']"}
+world acme sees:     {"world": "acme", "quota": 1, "expires": 1794583189, "sites": ["acme-r1.worlds.abuusama.dev"]}
+world globex sees:    {"world": "globex", "quota": 1, "expires": 1794583189, "sites": []}
+
+== 2. set world acme's clock (frozen at 2027-03-31 10:00 UTC) and read it from the site (12:22:24Z)
+{"world": "acme", "via": "acme-r1.worlds.abuusama.dev", "ms": 958, "result": "CAPXUL_RESULT:{\"acme\": {\"offset_ms\": 0, \"frozen_at_ms\": 1806487200000, \"rate\": 1.0, \"host_anchor_ms\": 1794572544642}}"}
+host time: 2026-11-13T12:22:24Z
+web, Host acme-r1.worlds.abuusama.dev (plain HTTP to the bench's web process; no tunnel here):
+{"message":{"world":"acme","offset_ms":11914654477,"host_utc":"2026-11-13T12:22:25.521928+00:00","world_local":"2027-03-31 11:00:00","nowdate":"2027-03-31","tz":"Europe/London"}}
+web, Host acme-r1.worlds.abuusama.dev, Frappe's ping: {"message":"pong"}

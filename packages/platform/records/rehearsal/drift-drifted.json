@@ -1,0 +1,30 @@
+{
+  "stage": "pr-p2",
+  "checkedAt": "2026-11-13T12:23:08.292Z",
+  "outcome": "drifted",
+  "clean": false,
+  "stacks": [
+    "CapxulPlatform"
+  ],
+  "resources": 15,
+  "settings": [
+    {
+      "stack": "CapxulPlatform",
+      "fqn": "DoorRecord",
+      "status": "drifted"
+    },
+    {
+      "stack": "CapxulPlatform",
+      "fqn": "Worker",
+      "status": "drifted"
+    }
+  ],
+  "code": [
+    {
+      "container": "cx-platform-pr-p2-door",
+      "changed": [
+        "C /opt/door/door.py"
+      ]
+    }
+  ]
+}

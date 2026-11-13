@@ -1,0 +1,64 @@
+
+== 1. deploy the platform pr-p2 (stack CapxulPlatform) on the stand-in host (12:19:50Z)
+[12:19:56.651] INFO: Plan ready (5.4s)
+[12:19:56.653] INFO: Plan: 14 to create, 1 to adopted
+[12:19:56.653] INFO: [BenchImage] create
+[12:19:56.653] INFO: [DbRootPassword] create
+[12:19:56.653] INFO: [DbVolume] create
+[12:19:56.653] INFO: [Door] create
+[12:19:56.653] INFO: [DoorImage] create
+[12:19:56.653] INFO: [DoorKey-g1] create
+[12:19:56.654] INFO: [DoorRecord] create
+[12:19:56.654] INFO: [Host] adopted
+[12:19:56.654] INFO: [MariaDB] create
+[12:19:56.654] INFO: [Network] create
+[12:19:56.654] INFO: [Redis] create
+[12:19:56.654] INFO: [Scheduler] create
+[12:19:56.654] INFO: [SitesVolume] create
+[12:19:56.654] INFO: [Web] create
+[12:19:56.654] INFO: [Worker] create
+[12:19:56.781] INFO: [Host] adopting
+[12:19:56.843] INFO: [DbRootPassword] creating
+[12:19:56.864] INFO: [DoorKey-g1] creating
+[12:19:56.944] INFO: [DoorKey-g1] created (79ms)
+[12:19:56.944] INFO: [DbRootPassword] created (101ms)
+[12:19:56.951] INFO: [BenchImage] creating
+[12:19:56.951] INFO: [SitesVolume] creating
+[12:19:56.951] INFO: [Network] creating
+[12:19:56.951] INFO: [Host] adopted (171ms)
+[12:19:57.069] INFO: [DbVolume] creating
+[12:19:57.165] INFO: [DoorRecord] creating
+[12:19:57.265] INFO: [Redis] creating
+[12:19:57.265] INFO: [Network] created (314ms)
+[12:19:57.278] INFO: [SitesVolume] created (327ms)
+[12:19:57.326] INFO: [MariaDB] creating
+[12:19:57.327] INFO: [DbVolume] created (258ms)
+[12:19:57.545] INFO: [Web] creating
+[12:19:57.545] INFO: [DoorImage] creating
+[12:19:57.545] INFO: [Worker] creating
+[12:19:57.545] INFO: [Scheduler] creating
+[12:19:57.545] INFO: [BenchImage] created (594ms)
+[12:19:57.794] INFO: [Redis] created (529ms)
+[12:19:57.903] INFO: [MariaDB] created (577ms)
+[12:19:58.207] INFO: [DoorRecord] created (1.0s)
+[12:19:58.244] INFO: [Web] created (699ms)
+[12:19:58.246] INFO: [Scheduler] created (701ms)
+[12:19:58.262] INFO: [Worker] created (717ms)
+[12:19:58.319] INFO: [Door] creating
+[12:19:58.319] INFO: [DoorImage] created (774ms)
+[12:19:58.821] INFO: [Door] created (503ms)
+[12:19:58.986] INFO: Done: 15 succeeded (2.3s)
+-- deploy: exit 0 (want 0) in 9.2 s
+containers: cx-platform-pr-p2-door=running cx-platform-pr-p2-mariadb=running cx-platform-pr-p2-redis=running cx-platform-pr-p2-scheduler=running cx-platform-pr-p2-web=running cx-platform-pr-p2-worker=running 
+volumes: cx-platform-pr-p2-db cx-platform-pr-p2-sites 
+networks: 1  images: 2  context: 1
+
+== 1. wait until the door answers (it writes the bench's config first) (12:19:59Z)
+{"ok": true}-- door ready: exit 0 (want 0) in 3.1 s
+
+
+== 1. deploy again with no change (12:20:02Z)
+[12:20:13.433] INFO: Plan ready (7.2s)
+[12:20:13.434] INFO: Plan: no changes
+[12:20:13.637] INFO: Done: 0 succeeded (201ms)
+-- deploy, no change: exit 0 (want 0) in 11.1 s

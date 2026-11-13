@@ -1,0 +1,94 @@
+
+== 3. drift check on the clean platform (src/run-drift.ts: Alchemy's scan plus the code check) (12:22:25Z)
+{
+  "stage": "pr-p2",
+  "checkedAt": "2026-11-13T12:22:41.812Z",
+  "outcome": "passed",
+  "clean": true,
+  "stacks": [
+    "CapxulPlatform"
+  ],
+  "resources": 15,
+  "settings": [],
+  "code": []
+}
+-- drift check, clean: exit 0 (want 0) in 16.1 s
+
+== 3. change three things by hand (12:22:41Z)
+DNS record pr-p2-door before: "cx-platform pr-p2: site door; no tunnel (PLATFORM_EDGE=none)"
+DNS record after the edit: pr-p2-door.worlds.abuusama.dev "changed by hand"
+stopped cx-platform-pr-p2-worker
+appended a line to /opt/door/door.py inside cx-platform-pr-p2-door (the door keeps running)
+
+== 3. the pinned alchemy drift (2.0.0-beta.85), for comparison (12:22:43Z)
+[12:22:50.554] INFO: Plan: 2 to update
+[12:22:50.555] INFO: [DoorRecord] update
+[12:22:50.555] INFO: [Worker] update
+-- alchemy drift, after hand changes: exit 0 (want 0) in 7.4 s
+
+== 3. the drift check (12:22:50Z)
+{
+  "stage": "pr-p2",
+  "checkedAt": "2026-11-13T12:23:08.292Z",
+  "outcome": "drifted",
+  "clean": false,
+  "stacks": [
+    "CapxulPlatform"
+  ],
+  "resources": 15,
+  "settings": [
+    {
+      "stack": "CapxulPlatform",
+      "fqn": "DoorRecord",
+      "status": "drifted"
+    },
+    {
+      "stack": "CapxulPlatform",
+      "fqn": "Worker",
+      "status": "drifted"
+    }
+  ],
+  "code": [
+    {
+      "container": "cx-platform-pr-p2-door",
+      "changed": [
+        "C /opt/door/door.py"
+      ]
+    }
+  ]
+}
+-- drift check, after hand changes: exit 2 (want 2) in 17.6 s
+
+== 3. repair: recreate each container whose code changed, then alchemy drift --repair (12:23:08Z)
+removed cx-platform-pr-p2-door (its code changed; the repair recreates it from its image)
+[12:23:15.974] INFO: Plan: 1 to create, 2 to update
+[12:23:15.975] INFO: [Door] create
+[12:23:15.975] INFO: [DoorRecord] update
+[12:23:15.976] INFO: [Worker] update
+[12:23:16.392] INFO: [Door] creating
+[12:23:16.911] INFO: [Door] created (520ms)
+[12:23:16.911] INFO: [DoorRecord] updating
+[12:23:16.912] INFO: [Worker] updating
+[12:23:17.529] INFO: [Worker] updated (616ms)
+[12:23:17.810] INFO: [DoorRecord] updated (899ms)
+[12:23:17.811] INFO: Done: 3 succeeded (1.8s)
+-- alchemy drift --repair: exit 0 (want 0) in 8.6 s
+{
+  "stage": "pr-p2",
+  "checkedAt": "2026-11-13T12:23:41.091Z",
+  "outcome": "passed",
+  "clean": true,
+  "stacks": [
+    "CapxulPlatform"
+  ],
+  "resources": 15,
+  "settings": [],
+  "code": []
+}
+-- drift check, after repair: exit 0 (want 0) in 23.1 s
+DNS record pr-p2-door after repair: "cx-platform pr-p2: site door; no tunnel (PLATFORM_EDGE=none)"
+hand line in the door's code after repair: 0
+site still there after repair: {"message":{"world":"acme","offset_ms":11914577664,"host_utc":"2026-11-13T12:23:42.334419+00:00","world_local":"2027-03-31 11:00:00","nowdate":"2027-03-31","tz":"Europe/London"}}
+containers: cx-platform-pr-p2-door=running cx-platform-pr-p2-mariadb=running cx-platform-pr-p2-redis=running cx-platform-pr-p2-scheduler=running cx-platform-pr-p2-web=running cx-platform-pr-p2-worker=running 
+volumes: cx-platform-pr-p2-db cx-platform-pr-p2-sites 
+networks: 1  images: 2  context: 1

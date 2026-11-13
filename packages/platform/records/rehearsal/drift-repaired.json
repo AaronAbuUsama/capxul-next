@@ -1,0 +1,12 @@
+{
+  "stage": "pr-p2",
+  "checkedAt": "2026-11-13T12:23:41.091Z",
+  "outcome": "passed",
+  "clean": true,
+  "stacks": [
+    "CapxulPlatform"
+  ],
+  "resources": 15,
+  "settings": [],
+  "code": []
+}
