@@ -15,10 +15,13 @@ const OWNERS = [{ type: "function", name: "getOwners", stateMutability: "view", 
 export function createProvisioningHandler(options: ProvisioningOptions): (req: IncomingMessage, res: ServerResponse) => Promise<boolean> {
   if (!options.coreSecret || !options.siteServiceToken) throw new Error("Private provisioning credentials are required");
   const client = createPublicClient({ transport: http(options.rpcUrl) });
-  const core = async (path: string, body: unknown, trace: string): Promise<any> => {
+  // A lookup made before the caller is authenticated is marked x-capxul-preauth, so Core answers it but writes no span or
+  // row for it (signals.world-rows): an anonymous caller must not be able to fill Core's tables through this route.
+  const core = async (path: string, body: unknown, trace: string, preauth = false): Promise<any> => {
     const raw = JSON.stringify(body);
     const response = await fetch(`${options.coreUrl}${path}`, { method: "POST", body: raw, signal: AbortSignal.timeout(15_000), headers: {
       "content-type": "application/json", "x-capxul-signature": createHmac("sha256", options.coreSecret).update(raw).digest("hex"), "x-capxul-trace": trace,
+      ...(preauth ? { "x-capxul-preauth": "1" } : {}),
     } });
     if (!response.ok) throw new ServiceError(response.status === 404 ? 400 : 503, response.status === 404 ? "INVALID_INPUT" : "PROVIDER_ERROR", "Core registration or release was refused");
     return response.json();
@@ -40,7 +43,7 @@ export function createProvisioningHandler(options: ProvisioningOptions): (req: I
       catch { throw new ServiceError(401, "NOT_AUTHENTICATED", "Invalid request signature"); }
       if (caller.toLowerCase() !== input.caller.toLowerCase()) throw new ServiceError(401, "NOT_AUTHENTICATED", "Request signature does not match caller");
       if (!/^[a-z][a-z0-9-]{1,30}$/.test(input.org)) throw new ServiceError(400, "INVALID_INPUT", "Invalid company slug");
-      const info = await core("/admin/org-info", { slug: input.org }, trace);
+      const info = await core("/admin/org-info", { slug: input.org }, trace, true);
       if (info.slug !== input.org || !isAddress(info.safe ?? "") || typeof info.name !== "string" || typeof info.site !== "string") {
         throw new ServiceError(400, "INVALID_INPUT", "Company must be registered after its chain birth");
       }

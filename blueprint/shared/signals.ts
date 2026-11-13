@@ -259,7 +259,8 @@ export const decision_signals_world_rows = defineDecision({
     "so they cannot join an Organization's /admin/alerts list, whose money-path faults must each fire alone. A row is " +
     "written after its answer is sent, so a slow or failing row write never changes an rpc's answer. Rows and spans are " +
     "decided by admission, not by status: only a request Core admitted (its HMAC signature verified, or a raw route's " +
-    "own authentication, which that route's handler marks) writes its rpc span, child spans and operation_row. A caller " +
+    "own authentication, which that route's handler marks) writes its rpc span, child spans and operation_row; a signed " +
+    "lookup a raw route makes before it has authenticated its own caller is marked pre-auth and writes nothing. A caller " +
     "that never passed a door (a bad signature, wrong method, oversize or aborted body, a request line that is no URL, " +
     "unauthenticated invalid JSON) and the liveness probes write nothing, so an anonymous caller can neither fill the " +
     "tables, push real calls out of the windows nor fire rpc_failing. A process run writes a row when it did " +

@@ -4,7 +4,7 @@ export { ServiceSignerError, claimServiceSigner, migrateServiceSigner } from "./
 export type { ClaimSend, ClaimReceipt, ClaimSignerConfig, ServiceSigner } from "./service-signer.ts";
 export { IndexerError, readIndexerHead, readPersonalSafeClaim } from "./indexer.ts";
 export type { IndexerProgress, IndexedClaim, ClaimLookup } from "./indexer.ts";
-export { admit, childSpan, createSignals, migrateSignals, noteChainCall, rpcOf, settleQueue, signalNow, traceOf } from "./signals.ts";
+export { admit, admitSigned, childSpan, createSignals, migrateSignals, noteChainCall, rpcOf, settleQueue, signalNow, traceOf } from "./signals.ts";
 export type { Signals, SignalsConfig } from "./signals.ts";
 export { ChainRpcError, chainRpc } from "./chain-rpc.ts";
 export type { ChainBlock, ChainLog, ChainNode, ChainRpc } from "./chain-rpc.ts";

@@ -5,7 +5,7 @@ import test from "node:test";
 import pg from "pg";
 import { Database } from "../src/platform/db.ts";
 import { migrateSpans, readSpans } from "../src/platform/spans.ts";
-import { childSpan, createSignals, migrateSignals, settleQueue, signalNow } from "../src/shared/door.ts";
+import { admitSigned, childSpan, createSignals, migrateSignals, settleQueue, signalNow } from "../src/shared/door.ts";
 
 // Explicit standalone PG control, not part of the Ponder/v4 fixture suite's *.test.ts glob.
 const url = process.env.SIGNALS_TEST_ADMIN_URL;
@@ -50,7 +50,8 @@ test("wide rows, rpc spans and the two operator alerts, in the world's own time"
     if (path === "/admin/org") return send(401, { error: "bad signature" });
     if (path === "/unsigned/fail") return send(500, { error: "INTERNAL_ERROR" });
     if (path === "/books/aborted") { for await (const _ of req) { /* the caller aborts mid-body */ } return send(500, { error: "INTERNAL_ERROR" }); }
-    signals.admit(req);
+    // The stand-in for Core's HMAC check has passed: admitted unless its signer marked it a pre-auth lookup.
+    admitSigned(req);
     if (path === "/books/annotations/save") {
       await db.transaction("", async (sql) => sql.query("select pg_sleep(0.02)"), true);
       return send(200, await childSpan("chain.readContract", async () => ({ ok: true })));
@@ -167,6 +168,8 @@ test("wide rows, rpc spans and the two operator alerts, in the world's own time"
       for (let i = 0; i < 20; i++) assert.equal(await raw("/admin/org"), 401);
       assert.equal(await raw("/ready"), 503);
       for (let i = 0; i < 5; i++) assert.equal(await raw("/unsigned/fail"), 500);
+      // Sites' lookup before it has authenticated a provisioning caller: answered, never counted.
+      for (let i = 0; i < 5; i++) assert.equal(await fetch(base + "/admin/org-info", { method: "POST", body: "{}", headers: { "x-capxul-preauth": "1" } }).then((r) => r.status), 404);
       // Aborted uploads to a real rpc's path: the caller hangs up mid-body, before any door.
       for (let i = 0; i < 5; i++) await new Promise<void>((done) => {
         const socket = connect((server.address() as { port: number }).port, "127.0.0.1", () => {
@@ -183,7 +186,7 @@ test("wide rows, rpc spans and the two operator alerts, in the world's own time"
       await new Promise((r) => setTimeout(r, 100));
       const after = await rows("operation_row");
       assert.deepEqual(after.slice(before).map((r) => [r.attributes.rpc, r.attributes.outcome]), [["escape", "failed"]],
-        "of all these, only the admitted /escape wrote a row");
+        "of all these, only the admitted /escape wrote a row; the pre-auth lookups wrote none");
       const spans = (await admin.query("select event->>'name' as name from app.completed_spans")).rows.slice(spansBefore).map((r) => r.name);
       assert.deepEqual(spans, ["rpc.escape"], "and only its span; a 401, a probe, a bad request line, an aborted body or an unsigned call writes none");
       assert.equal(((await alert("rpc_failing")) as { rpcs: { rpc: string }[] }).rpcs.some((r) => ["unsigned.fail", "books.aborted", "admin.org", "root"].includes(r.rpc)), false,

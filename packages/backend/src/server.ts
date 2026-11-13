@@ -9,7 +9,7 @@ import { deferDelivery, deliver, RequestCollector, resend, retryParked, signatur
 import { settings } from "./platform/config.ts";
 import { Database } from "./platform/db.ts";
 import { alerts, indexerState } from "./platform/diagnostics.ts";
-import { createSignals, settleQueue, type Signals } from "./shared/door.ts";
+import { admitSigned, createSignals, settleQueue, type Signals } from "./shared/door.ts";
 
 type Config = ReturnType<typeof settings>;
 
@@ -87,7 +87,7 @@ export function createCore(config: Config, provision?: RawRoute) {
     const expected = Buffer.from(signature(raw, config.secret));
     const actual = Buffer.from(String(req.headers["x-capxul-signature"] ?? ""));
     if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return json(res, 401, { error: "bad signature" });
-    signals.admit(req);
+    admitSigned(req);
     let b: any;
     try { b = JSON.parse(raw || "{}"); } catch { return json(res, 400, { error: "INVALID_INPUT: body is not JSON" }); }
     const trace = String(req.headers["x-capxul-trace"] ?? "");
@@ -129,7 +129,7 @@ export function createCore(config: Config, provision?: RawRoute) {
     // The row a request writes after its answer is part of the request, so a snapshot pause drains it too; the pause and
     // resume calls themselves are not counted, or the pause would wait for itself.
     // Judged on the parsed path, as route matches it: /./admin/snapshot/pause or an absolute form must not count itself.
-    const counted = !(URL.parse(req.url ?? "/", "http://core")?.pathname ?? "/").startsWith("/admin/snapshot/");
+    const counted = !["/admin/snapshot/pause", "/admin/snapshot/resume"].includes(URL.parse(req.url ?? "/", "http://core")?.pathname ?? "/");
     if (counted) activeRequests++;
     void signals.request(req, res, () => Effect.runPromise(Effect.tryPromise(() => route(req, res))).catch((error) => {
       const message = String(error.cause?.message ?? error.message);
