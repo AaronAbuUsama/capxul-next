@@ -1,0 +1,80 @@
+{
+  "proof": "a lifetime over the limit, a sixth live world of one owner and a name the contract refuses are each refused before anything is created",
+  "outcome": "passed",
+  "at": "2026-11-13T12:33:00.536Z",
+  "checks": [
+    {
+      "check": "8 days is refused with LifetimeTooLong",
+      "held": true
+    },
+    {
+      "check": "an owner's sixth world is refused with the contract's WorldQuotaReached",
+      "held": true
+    },
+    {
+      "check": "a name the contract refuses is refused with InvalidWorldName",
+      "held": true
+    },
+    {
+      "check": "the owner held five names at the sixth create",
+      "held": true
+    },
+    {
+      "check": "the accounts hold what they held before",
+      "held": true
+    }
+  ],
+  "observations": {
+    "limits": {
+      "maxLifetime": "7d",
+      "maxPerOwner": 5,
+      "maxKeep": "1d"
+    },
+    "results": {
+      "askedFor8Days": "LifetimeTooLong: a world may live at most 7d; 8d was asked for",
+      "sixthWorldOfOneOwner": "WorldQuotaReached: {\"owner\":\"limit-proof\",\"live\":5,\"limit\":5}",
+      "badName": "InvalidWorldName: a world's name is 2 to 15 lower case letters, digits or dashes, starting with a letter"
+    },
+    "namesTheOwnerHeldAtTheSixthCreate": [
+      "w-p-held1",
+      "w-p-held2",
+      "w-p-held3",
+      "w-p-held4",
+      "w-p-held5"
+    ],
+    "inventory": {
+      "before": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "after": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "leftOfTheseWorlds": [],
+      "sameAsBefore": true
+    }
+  }
+}

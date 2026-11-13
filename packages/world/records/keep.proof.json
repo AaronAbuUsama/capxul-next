@@ -1,0 +1,149 @@
+{
+  "proof": "keeping a failed world is asked for with a duration: it is parked, stopped, until then, and the sweeper deletes it when the keep ends",
+  "outcome": "passed",
+  "at": "2026-11-13T12:38:13.819Z",
+  "checks": [
+    {
+      "check": "the run is recorded as failed and its world as kept",
+      "held": true
+    },
+    {
+      "check": "the keep ends before the world's own expiry",
+      "held": true
+    },
+    {
+      "check": "the kept world's chain and index are stopped",
+      "held": true
+    },
+    {
+      "check": "the shared state says it is parked until its keep ends",
+      "held": true
+    },
+    {
+      "check": "a sweep before the keep ends leaves it",
+      "held": true
+    },
+    {
+      "check": "a sweep after the keep ends destroys it",
+      "held": true
+    },
+    {
+      "check": "nothing of the world is left in the accounts",
+      "held": true
+    },
+    {
+      "check": "the accounts hold what they held before",
+      "held": true
+    }
+  ],
+  "observations": {
+    "keepFor": "3m",
+    "record": {
+      "world": "w-p-keep",
+      "owner": "proof",
+      "forkedFrom": "nothing",
+      "expiresAt": "2026-11-13T13:13:09.941Z",
+      "outcome": "failed",
+      "failure": "DatabaseRefused: relation \"app.no_such_table\" does not exist",
+      "worldAfterwards": "kept",
+      "keptUntil": "2026-11-13T12:37:45.297Z",
+      "ms": {
+        "claim": 810,
+        "deploy": 46100,
+        "migrate": 736,
+        "chain": 2573,
+        "fund": 436,
+        "index": 43816,
+        "core": 475,
+        "use": 109,
+        "park": 6153,
+        "destroy": null,
+        "release": null,
+        "create": 95244,
+        "total": 101510
+      },
+      "timeouts": {
+        "claim": 45000,
+        "deploy": 240000,
+        "migrate": 45000,
+        "chain": 180000,
+        "fund": 60000,
+        "index": 180000,
+        "core": 60000,
+        "use": 600000,
+        "park": 60000,
+        "destroy": 240000,
+        "release": 45000
+      }
+    },
+    "afterTheRun": {
+      "chainRunning": false,
+      "indexRunning": false,
+      "inSharedState": [
+        {
+          "world": "w-p-keep",
+          "owner": "proof",
+          "expiresAt": "2026-11-13T12:37:45.297Z",
+          "status": "parked",
+          "state": "live"
+        }
+      ]
+    },
+    "sweepBeforeTheKeepEnds": [
+      {
+        "world": "w-p-keep",
+        "owner": "proof",
+        "expiresAt": "2026-11-13T12:37:45.297Z",
+        "status": "parked",
+        "detail": null,
+        "destroyMs": null,
+        "verdict": "kept: not expired"
+      }
+    ],
+    "sweepAfter": [
+      {
+        "world": "w-p-keep",
+        "owner": "proof",
+        "expiresAt": "2026-11-13T12:37:45.297Z",
+        "status": "parked",
+        "detail": null,
+        "destroyMs": 14897,
+        "verdict": "destroyed"
+      }
+    ],
+    "inventory": {
+      "before": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "after": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "leftOfTheseWorlds": [],
+      "sameAsBefore": true
+    }
+  }
+}

@@ -1,0 +1,259 @@
+{
+  "proof": "a world made from nothing answers on every part, a world forked from it starts with its rows and chain, and both are destroyed",
+  "outcome": "passed",
+  "at": "2026-11-13T12:24:16.360Z",
+  "checks": [
+    {
+      "check": "the first world's run passed",
+      "held": true
+    },
+    {
+      "check": "the chain is the seeded chain (id 84532)",
+      "held": true
+    },
+    {
+      "check": "the faucet minted 250 test USDC at creation",
+      "held": true
+    },
+    {
+      "check": "the index wrote the faucet's mint to the world's database",
+      "held": true
+    },
+    {
+      "check": "a payment through the world's RPC address moved 1 USDC",
+      "held": true
+    },
+    {
+      "check": "the index wrote the payment to the world's database",
+      "held": true
+    },
+    {
+      "check": "Core answers its health check for this world",
+      "held": true
+    },
+    {
+      "check": "the fork starts with the first world's row",
+      "held": true
+    },
+    {
+      "check": "the fork starts with the first world's indexed payment",
+      "held": true
+    },
+    {
+      "check": "the fork's chain holds the first world's balances",
+      "held": true
+    },
+    {
+      "check": "the fork's chain is not behind the first world's",
+      "held": true
+    },
+    {
+      "check": "the first world does not see the fork's row",
+      "held": true
+    },
+    {
+      "check": "the forked world's run passed and its world was destroyed",
+      "held": true
+    },
+    {
+      "check": "the first world was destroyed",
+      "held": true
+    },
+    {
+      "check": "nothing of either world is left in the accounts",
+      "held": true
+    },
+    {
+      "check": "the accounts hold what they held before",
+      "held": true
+    }
+  ],
+  "observations": {
+    "failure": null,
+    "observed": {
+      "chain": {
+        "chainId": "0x14a34",
+        "seedHead": "0x2dacb0d",
+        "headAfterPayment": "0x2dacb0e"
+      },
+      "faucet": {
+        "testUsdc": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+        "mintedAtCreation": [
+          {
+            "to": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+            "minted": "250000000",
+            "tx": "0x1286a5870f634d6720972f7f23241ac4afc838119da009766ff3fbeb7b9d4591",
+            "holds": "250000000"
+          }
+        ],
+        "mintEventInTheIndex": {
+          "log_id": "84532:0x1286a5870f634d6720972f7f23241ac4afc838119da009766ff3fbeb7b9d4591:0",
+          "token": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+          "from": "0x0000000000000000000000000000000000000000",
+          "to": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "amount": "250000000",
+          "block_number": "47893261"
+        }
+      },
+      "index": {
+        "progress": [
+          {
+            "indexed_block": "47893261"
+          }
+        ],
+        "paymentEventInTheIndex": {
+          "tx": "0x693580934627f032e3dfeca6da4579f9fd933685ac8accc41d11c30e6e0f4760",
+          "row": {
+            "log_id": "84532:0x693580934627f032e3dfeca6da4579f9fd933685ac8accc41d11c30e6e0f4760:0",
+            "token": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+            "from": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "to": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+            "amount": "1000000",
+            "block_number": "47893262"
+          }
+        }
+      },
+      "balancesAfterOnePayment": {
+        "funded": "249000000",
+        "paid": "1000000"
+      },
+      "core": {
+        "core": "stand-in",
+        "world": "w-p-fresh"
+      },
+      "fork": {
+        "startedWithNotes": [
+          {
+            "world": "w-p-fresh",
+            "note": "written in the first world"
+          }
+        ],
+        "startedWithIndexedTransfers": 1,
+        "startedWithFundedBalance": "249000000",
+        "chainHead": "0x2dacb0e",
+        "ownIndexedTransfer": {
+          "tx": "0xfbbb9e87c3cf9ee5c634763b613a0beeb8245e0c153508019b82e421e156c62c",
+          "row": {
+            "log_id": "84532:0xfbbb9e87c3cf9ee5c634763b613a0beeb8245e0c153508019b82e421e156c62c:0",
+            "token": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+            "from": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "to": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+            "amount": "1000000",
+            "block_number": "47893263"
+          }
+        },
+        "firstWorldNotesAfterForkWrote": 1
+      },
+      "forkRecord": {
+        "world": "w-p-fork",
+        "owner": "proof",
+        "forkedFrom": "w-p-fresh",
+        "expiresAt": "2026-11-13T13:02:05.003Z",
+        "outcome": "passed",
+        "failure": null,
+        "worldAfterwards": "destroyed",
+        "keptUntil": null,
+        "ms": {
+          "claim": 361,
+          "deploy": 38430,
+          "migrate": 585,
+          "chain": 4758,
+          "fund": 98,
+          "index": 49926,
+          "core": 510,
+          "use": 5146,
+          "park": null,
+          "destroy": 13069,
+          "release": 243,
+          "create": 95345,
+          "total": 113807
+        },
+        "timeouts": {
+          "claim": 45000,
+          "deploy": 240000,
+          "migrate": 45000,
+          "chain": 180000,
+          "fund": 60000,
+          "index": 180000,
+          "core": 60000,
+          "use": 600000,
+          "park": 60000,
+          "destroy": 240000,
+          "release": 45000
+        }
+      }
+    },
+    "record": {
+      "world": "w-p-fresh",
+      "owner": "proof",
+      "forkedFrom": "nothing",
+      "expiresAt": "2026-11-13T13:00:24.877Z",
+      "outcome": "passed",
+      "failure": null,
+      "worldAfterwards": "destroyed",
+      "keptUntil": null,
+      "ms": {
+        "claim": 852,
+        "deploy": 42644,
+        "migrate": 1051,
+        "chain": 2609,
+        "fund": 644,
+        "index": 46022,
+        "core": 602,
+        "use": 119118,
+        "park": null,
+        "destroy": 12810,
+        "release": 230,
+        "create": 94815,
+        "total": 226976
+      },
+      "timeouts": {
+        "claim": 45000,
+        "deploy": 240000,
+        "migrate": 45000,
+        "chain": 180000,
+        "fund": 60000,
+        "index": 180000,
+        "core": 60000,
+        "use": 600000,
+        "park": 60000,
+        "destroy": 240000,
+        "release": 45000
+      }
+    },
+    "inventory": {
+      "before": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry"
+        ],
+        "imageRepositories": [
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "after": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "leftOfTheseWorlds": [],
+      "sameAsBefore": true
+    }
+  }
+}

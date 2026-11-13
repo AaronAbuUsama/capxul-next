@@ -1,0 +1,38 @@
+{
+  "world": "w-p-int",
+  "owner": "proof",
+  "forkedFrom": "nothing",
+  "expiresAt": "2026-11-13T13:08:27.678Z",
+  "outcome": "interrupted",
+  "failure": "the run was interrupted",
+  "worldAfterwards": "destroyed",
+  "keptUntil": null,
+  "ms": {
+    "claim": 676,
+    "deploy": 42586,
+    "migrate": 925,
+    "chain": 2236,
+    "fund": 313,
+    "index": 48624,
+    "core": 438,
+    "use": 2,
+    "park": null,
+    "destroy": 17230,
+    "release": 270,
+    "create": 96102,
+    "total": 113607
+  },
+  "timeouts": {
+    "claim": 45000,
+    "deploy": 240000,
+    "migrate": 45000,
+    "chain": 180000,
+    "fund": 60000,
+    "index": 180000,
+    "core": 60000,
+    "use": 600000,
+    "park": 60000,
+    "destroy": 240000,
+    "release": 45000
+  }
+}
