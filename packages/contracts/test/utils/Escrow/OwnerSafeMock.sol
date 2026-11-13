@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.28;
 
-/// @dev A payee Safe for D11. It answers `isOwner(address)` from an owner list, or, when told, with a
+/// @dev An escrow owner Safe for D11. It answers `isOwner(address)` from an owner list, or, when told, with a
 /// revert, a short or long answer, or any 32-byte word, so the escrow's fail-closed read can be tested.
 /// `claim` swaps Companies House out, as the claimer does on chain; `addOwner` adds a recovery key.
-contract PayeeSafeMock {
+contract OwnerSafeMock {
     enum Answer {
         Owners, // the honest answer from `owners`
         Revert,

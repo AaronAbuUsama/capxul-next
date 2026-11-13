@@ -9,12 +9,11 @@ import { Addresses } from "./Addresses.sol";
 import { Fork_Test } from "./Fork_Test.t.sol";
 import { ISafe, ISafeProxyFactory } from "./Interfaces.sol";
 
-/// @notice D11 on the real Safe 1.4.1 (invariant S8, "Fork (real Safe, two owners)"): a claim escrow reads
-/// the payee Safe's real `isOwner`. There is no beta escrow fork suite (R2 4.5); these are new, plus R2
+/// @notice G5 (D11) on a real Safe: a claim escrow reads its owner Safe's real `isOwner(bootstrapOwner)`. There is no beta escrow fork suite (R2 4.5); these are new, plus R2
 /// ES20 (beta `CapxulEscrow.t.sol:276`, a claimed payee collecting two escrows in one batch) on a real Safe.
 contract Escrow_Fork_Test is Fork_Test {
     uint256 internal constant AMOUNT = 100 * USDC_UNIT;
-    uint8 internal constant CLAIM = 1;
+    uint8 internal constant OWNER_COLLECTS = 1;
 
     address internal companiesHouse;
     Payments internal payments;
@@ -27,7 +26,7 @@ contract Escrow_Fork_Test is Fork_Test {
         factory = new EscrowFactory(address(payments), companiesHouse);
     }
 
-    function test_S8_ARealSafeThatStillListsCompaniesHouseIsNotClaimedUntilItIsRemoved() external {
+    function test_G5_ARealSafeThatStillListsCompaniesHouseIsNotClaimedUntilItIsRemoved() external {
         address[] memory owners = new address[](2);
         owners[0] = users.amira;
         owners[1] = companiesHouse;
@@ -61,7 +60,7 @@ contract Escrow_Fork_Test is Fork_Test {
         assertEq(uint256(escrow.state()), uint256(IEscrow.State.Paid), "paid");
     }
 
-    function test_S8_ARealSafeWithTwoOwnersNeitherCompaniesHouseCollects() external {
+    function test_G5_ARealSafeWithTwoOwnersNeitherCompaniesHouseCollects() external {
         address[] memory owners = new address[](2);
         owners[0] = users.amira;
         owners[1] = users.bob; // a recovery key added after the claim
@@ -74,7 +73,7 @@ contract Escrow_Fork_Test is Fork_Test {
         assertTrue(payments.paid(escrow.paymentId()), "paid through Payments");
     }
 
-    function test_ES20_AClaimedPayeeCollectsTwoEscrowsInOneBatch() external {
+    function test_ES20_AClaimedOwnerCollectsTwoEscrowsInOneBatch() external {
         address[] memory owners = new address[](1);
         owners[0] = users.amira;
         ISafe payee = _safe(owners);
@@ -95,14 +94,18 @@ contract Escrow_Fork_Test is Fork_Test {
 
     function _fundedClaimEscrow(address payee, string memory job) internal returns (IEscrow escrow) {
         IEscrow.Terms memory terms = IEscrow.Terms({
-            ownerSafe: address(companySafe),
-            payeeSafe: payee,
+            owner: payee,
+            sender: address(companySafe),
+            authority: address(0),
+            authorityKey: 0,
+            bootstrapOwner: factory.bootstrapOwner(),
             token: address(usdc),
             amount: AMOUNT,
             jobNonce: keccak256(bytes(job)),
             kind: 1,
             documentHash: keccak256("invoice"),
-            condition: CLAIM
+            condition: OWNER_COLLECTS,
+            ownerTakesSurplus: false
         });
         escrow = IEscrow(factory.deploy(terms, keccak256(bytes(job))));
         usdc.mint(address(escrow), AMOUNT);

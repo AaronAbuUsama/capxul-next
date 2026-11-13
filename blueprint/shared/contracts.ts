@@ -18,8 +18,6 @@ import { decision_aaron_escrow_general, decision_aaron_frappe_native, decision_a
 import { decision_cut_equity_parked } from "./cut.ts";
 
 export const CONTRACT_ALLOWANCES: readonly { subject: string; decision: string }[] = [
-  { subject: "blueprint:escrow", decision: "contracts.general-escrow-not-built" },
-  { subject: "blueprint:escrow-factory", decision: "contracts.general-escrow-not-built" },
   { subject: "code:Vesting", decision: "contracts.equity-in-code" },
   { subject: "code:Captable", decision: "contracts.equity-in-code" },
   { subject: "code:ShareClass", decision: "contracts.equity-in-code" },
@@ -34,7 +32,7 @@ const BY = "The coordinator, 10 November 2026, on Aaron's delegation of the book
 const rulings = [decision_aaron_one_door, decision_aaron_frappe_native];
 const built = [
   x.contract_companies_house_claimer, x.contract_company_safe_minter, x.contract_installer, x.contract_payments,
-  x.contract_budgets, x.contract_agreements, x.contract_escrow_factory_v4, x.contract_escrow_v4, x.contract_agent_owner,
+  x.contract_budgets, x.contract_agreements, x.contract_escrow_factory, x.contract_escrow, x.contract_agent_owner,
 ];
 
 export const decision_contracts_code_is_truth = defineDecision({
@@ -89,38 +87,43 @@ export const decision_contracts_record_shape = defineDecision({
     "compared. The fields are optional so a record that is archived or parked still loads. A mapping kept in the tool instead of " +
     "the record would be a second place to forget.",
   source: BY,
-  affects: [...built, x.contract_safe, x.contract_escrow, x.contract_escrow_factory],
+  affects: [...built, x.contract_safe],
 });
 
-export const decision_contracts_general_escrow_not_built = defineDecision({
-  id: "contracts.general-escrow-not-built",
-  title: "The general escrow is designed and not built; v4's escrow is what exists",
+export const decision_contracts_general_escrow_built = defineDecision({
+  id: "contracts.general-escrow-built",
+  title: "The general escrow is built and replaces v4's Escrow and EscrowFactory in place",
   question:
-    "aaron.escrow-general and payments.general-escrow designed an escrow with a sender, an owner who may not exist yet, an " +
-    "authority term, canRefund and ownerTakesSurplus. The code has v4's Escrow and EscrowFactory (`ownerSafe`, `payeeSafe`, no " +
-    "canRefund, EscrowCreated with 8 arguments, EscrowRefunded with 4). What does the book say exists?",
+    "payments.escrow-contract-build writes the general escrow (aaron.escrow-general, payments.general-escrow) in packages/contracts. " +
+    "Until then the book recorded v4's escrow as built (`escrow-v4`, `escrow-factory-v4`) and the general one as designed, with an " +
+    "allowance. Does the general escrow sit beside v4's, or replace it, and what does its ABI add to the design?",
   options: [
     {
-      label: "record-v4-keep-design",
+      label: "replace-in-place",
       text:
-        "Two records describe what is built: `escrow-factory-v4` and `escrow-v4`, from the compiled Escrow and EscrowFactory, whole " +
-        "(the 4 events, the 16 errors, `InvoicePaymentCompleted`, the refund only by `ownerSafe`). The records `escrow` and " +
-        "`escrow-factory` stay as written and say `code: designed`: the general escrow is designed and not built, dated 10 November " +
-        "2026, until the build in payments.escrow-contract-build writes it. The operations, workflows and notices that name its " +
-        "functions and events keep naming them. The check lists the difference as allowed, with this decision.",
+        "The Solidity `Escrow` and `EscrowFactory` become the general escrow, under the same names and with the factory's constructor " +
+        "(Payments, Companies House) unchanged, so the deploy manifest does not move. The records `escrow` and `escrow-factory` say " +
+        "`code: built` and carry the whole compiled ABI; `escrow-v4` and `escrow-factory-v4` are removed with the code they described, " +
+        "and the allowance goes. Exits' terms builder sets owner, sender, Companies House from the factory and `ownerTakesSurplus`. " +
+        "Agreed with indexing and payments (E2, E3) on 13 November 2026, three points the design left open: EscrowDeployed also carries " +
+        "`authority` and `authorityKey`, so the escrows row never waits on the escrow's own logs; InvoicePaymentCompleted stays, with " +
+        "the roles renamed (owner, sender), and marks the escrow paid; a refusal to refund is `CannotRefund(address who)` and a refusal " +
+        "to collect is `NotOwner()`. The conditions are named CONDITION_AMOUNT_REACHED (0) and CONDITION_OWNER_COLLECTS (1). Nothing " +
+        "in either contract reads the time (time.one-clock): there is no expiry.",
     },
-    { label: "rewrite-to-v4", text: "Rewrite escrow and escrow-factory as v4's, and the operations that name canRefund, `by` and the authority term with them." },
-    { label: "delete-design", text: "Delete the general escrow's design." },
+    { label: "side-by-side", text: "Add GeneralEscrow and GeneralEscrowFactory beside v4's and keep both deployed." },
   ],
-  chosen: "record-v4-keep-design",
+  chosen: "replace-in-place",
   why:
-    "The design is Aaron's (aaron.escrow-general) and nothing was built from it; deleting it, or rewriting the operations built on " +
-    "it, would decide for him and lose work. Recording v4 as built is what the code is. Until the general escrow is built, a " +
-    "department's hat wearers cannot take an escrow back (v4's refund is the payer Safe's alone), `EscrowRefunded` does not name " +
-    "who took it back, and an exit claim reads the owner's `isExitClaimEscrow`; devnet and the evals that need those behaviours " +
-    "wait for the build. Reversible: the build turns `escrow` and `escrow-factory` to `code: built` and drops this allowance.",
-  source: BY,
-  affects: [x.contract_escrow, x.contract_escrow_factory, x.contract_escrow_v4, x.contract_escrow_factory_v4, decision_aaron_escrow_general, ...rulings],
+    "No product path calls v4's escrow (contracts.escrow-v4-boundary said so for every member), and a second factory would be a " +
+    "second address book entry, a second Ponder source and a deploy manifest change for no caller. The design kept v4's constructor " +
+    "so the manifest need not change. The three ABI points come from the consumers: indexing builds the escrows row from the " +
+    "factory's event, which admits the escrow, and needs the authority there; payments settles an invoice paid around its escrow. " +
+    "The Foundry trees, fuzz, differential and invariant suites check G1 to G11 (docs/design/escrow.md). The devnet's chain state " +
+    "(packages/contracts/state/core.json) is regenerated in its own landing window, because every world's genesis moves with it. " +
+    "This supersedes contracts.general-escrow-not-built, contracts.escrow-v4-boundary and contracts.escrow-factory-v4-boundary.",
+  source: "The coordinator's E1 lane, 13 November 2026, carrying out payments.escrow-contract-build on aaron.escrow-general",
+  affects: [x.contract_escrow, x.contract_escrow_factory, decision_aaron_escrow_general, ...rulings],
 });
 
 export const decision_contracts_devnet_addresses = defineDecision({

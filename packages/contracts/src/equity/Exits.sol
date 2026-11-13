@@ -36,8 +36,8 @@ contract Exits is IExits {
     uint16 internal constant KIND_EXIT = 8;
     /// @dev The sale token's decimals: preferences are priced in 6-decimal units (J4).
     uint8 internal constant PRICE_DECIMALS = 6;
-    /// @dev IEscrow.CONDITION_PAYEE_CLAIMED.
-    uint8 internal constant CONDITION_PAYEE_CLAIMED = 1;
+    /// @dev IEscrow.CONDITION_OWNER_COLLECTS.
+    uint8 internal constant CONDITION_OWNER_COLLECTS = 1;
     uint256 internal constant BPS = 10_000;
 
     /// @dev The company Safe (the Board), fixed at `initialize`.
@@ -56,7 +56,6 @@ contract Exits is IExits {
     /// @dev How many times a claim was redirected; each redirect gets a fresh escrow address.
     mapping(uint256 saleId => mapping(uint256 index => uint256)) private _redirects;
     mapping(uint256 transferId => Transfer) private _transfers;
-    mapping(address escrow => bool) private _exitClaimEscrows;
 
     /// @dev The holdings checked against the Captable and Options, and the waterfall's inputs built from them.
     struct Book {
@@ -135,7 +134,6 @@ contract Exits is IExits {
             if (!isClaim[i]) continue;
             address escrow = IEscrowFactory(_escrowFactory)
                 .deploy(_terms(saleId, i, p[i].payee, p[i].amount, s, 0), _salt(saleId, i, 0));
-            _exitClaimEscrows[escrow] = true;
             _claims[saleId][i] = Claim({ payee: p[i].payee, escrow: escrow, token: s.token, amount: p[i].amount });
             emit ClaimRecorded(saleId, i, p[i].payee, escrow, s.token, p[i].amount);
         }
@@ -150,7 +148,6 @@ contract Exits is IExits {
         // Exits itself or the claim's own escrow would strand the money (X3): refused like the zero address.
         if (to == address(0) || to == address(this) || to == c.escrow) revert ZeroAddress();
         delete _claims[saleId][index];
-        delete _exitClaimEscrows[c.escrow];
         emit Claimed(saleId, index, to);
         _sendExact(c.token, to, _takeBack(c));
     }
@@ -166,8 +163,6 @@ contract Exits is IExits {
         bytes32 salt = _salt(saleId, index, round);
         IEscrowFactory factory = IEscrowFactory(_escrowFactory);
         address escrow = factory.predictAddress(terms, salt);
-        delete _exitClaimEscrows[c.escrow];
-        _exitClaimEscrows[escrow] = true;
         _claims[saleId][index] = Claim({ payee: newPayee, escrow: escrow, token: c.token, amount: c.amount });
         emit ClaimRedirected(saleId, index, newPayee, escrow);
         // forge-lint: disable-next-line(unused-return) -- the address was predicted and recorded above
@@ -258,12 +253,6 @@ contract Exits is IExits {
     }
 
     // ---------------------------------------------------------------------- views
-
-    /// @notice Whether this contract registered the escrow as an exit claim.
-    /// @dev Escrow uses this identity check to route a direct collection's surplus to the shareholder.
-    function isExitClaimEscrow(address escrow) external view returns (bool) {
-        return _exitClaimEscrows[escrow];
-    }
 
     /// @inheritdoc IExits
     function predictClaimEscrow(
@@ -558,8 +547,8 @@ contract Exits is IExits {
         if (spent != amount) revert IPayments.InexactTransfer(tokenAddress, amount, spent);
     }
 
-    /// @dev A claim escrow's terms: owned by Exits (F5), the payee, the sale's token and terms, kind 8, "payee
-    /// claimed". `round` counts redirects, so a redirected claim always gets a fresh escrow.
+    /// @dev A claim escrow's terms: sent by Exits (F5) to the payee, the sale's token and terms, kind 8, owner-collects
+    /// once Companies House no longer owns the payee, and the surplus to the payee. `round` counts redirects, so a redirected claim always gets a fresh escrow.
     function _terms(
         uint256 saleId,
         uint256 index,
@@ -573,14 +562,18 @@ contract Exits is IExits {
         returns (IEscrow.Terms memory)
     {
         return IEscrow.Terms({
-            ownerSafe: address(this),
-            payeeSafe: payee,
+            owner: payee,
+            sender: address(this),
+            authority: address(0),
+            authorityKey: 0,
+            bootstrapOwner: IEscrowFactory(_escrowFactory).bootstrapOwner(),
             token: s.token,
             amount: amount,
             jobNonce: _salt(saleId, index, round),
             kind: KIND_EXIT,
             documentHash: s.termsHash,
-            condition: CONDITION_PAYEE_CLAIMED
+            condition: CONDITION_OWNER_COLLECTS,
+            ownerTakesSurplus: true
         });
     }
 

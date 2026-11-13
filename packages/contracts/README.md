@@ -34,8 +34,8 @@ downloads it once). No git submodules.
 
 ## Commands
 
-From the repository root: `pnpm contracts:test` (hermetic, 965 tests), `pnpm contracts:fork` (the fork and scenario tests from the
-seeded state, 67 tests), `pnpm contracts:prove` (the proof script). They are not part of the default `pnpm test`: a build is
+From the repository root: `pnpm contracts:test` (hermetic, 979 tests), `pnpm contracts:fork` (the fork and scenario tests from the
+seeded state, 70 tests), `pnpm contracts:prove` (the proof script). They are not part of the default `pnpm test`: a build is
 about 100 s and the fork run needs a chain. From this folder: `forge build`, `forge test`, `FOUNDRY_PROFILE=full forge test`
 (adds fuzz, invariant, symbolic and exhaustive tests; slow).
 

@@ -4,8 +4,6 @@ pragma solidity 0.8.28;
 import { IEscrow } from "../../../../../src/interfaces/IEscrow.sol";
 import { IExits } from "../../../../../src/interfaces/IExits.sol";
 import { IPayments } from "../../../../../src/interfaces/IPayments.sol";
-import { Exits } from "../../../../../src/equity/Exits.sol";
-import { Escrow } from "../../../../../src/money/Escrow.sol";
 import { Exits_Test } from "../../../../utils/Exits/Exits_Test.sol";
 import { MockBlacklistToken, MockExitSenderFeeToken } from "../../../../utils/Exits/ExitsMocks.sol";
 import { MockFeeOnTransferToken } from "../../../../mocks/MockFeeOnTransferToken.sol";
@@ -215,7 +213,6 @@ contract Claim_Exits_Unit_Concrete_Test is Exits_Test {
         exits.claim(SALE, 2, users.bob);
 
         assertEq(usdc.balanceOf(users.bob), before + AMOUNT + 7, "claim and surplus to named recipient");
-        assertFalse(Exits(address(exits)).isExitClaimEscrow(escrow), "closed escrow no longer registered");
         assertEq(usdc.balanceOf(escrow), 0, "claim escrow emptied");
         assertEq(usdc.balanceOf(address(exits)), 11, "unrelated donation remains unchanged");
     }
@@ -255,28 +252,30 @@ contract Claim_Exits_Unit_Concrete_Test is Exits_Test {
 
     function test_WhenThePayeeCollectsWithLimitedGas() external {
         // it should either pay the claim and surplus to the shareholder or leave the escrow unchanged
+        // The surplus routing is the escrow's own `ownerTakesSurplus` term, so no gas limit can misroute it.
         address escrow = _settleWithInvestorClaim(address(usdc));
         usdc.mint(escrow, 7);
         _markClaimed(users.investor);
         uint256 before = usdc.balanceOf(users.investor);
         uint256 successes;
-        uint256 guarded;
-        for (uint256 gasLimit = 80_000; gasLimit <= 250_000; gasLimit += 1000) {
+        uint256 failures;
+        for (uint256 gasLimit = 40_000; gasLimit <= 250_000; gasLimit += 1000) {
             uint256 snapshot = vm.snapshotState();
             vm.prank(users.investor);
-            (bool ok, bytes memory result) = escrow.call{ gas: gasLimit }(abi.encodeCall(IEscrow.collect, ()));
+            (bool ok,) = escrow.call{ gas: gasLimit }(abi.encodeCall(IEscrow.collect, ()));
             if (ok) {
                 ++successes;
                 assertEq(usdc.balanceOf(users.investor), before + AMOUNT + 7, "no surplus misrouted");
                 assertEq(usdc.balanceOf(address(exits)), 0, "no surplus left in Exits");
             } else {
-                if (result.length >= 4 && bytes4(result) == Escrow.InsufficientGasForExitIdentity.selector) ++guarded;
+                ++failures;
                 assertEq(usdc.balanceOf(escrow), AMOUNT + 7, "reverted collection keeps claim funded");
+                assertEq(uint256(IEscrow(escrow).state()), uint256(IEscrow.State.Open), "still open");
             }
             vm.revertToState(snapshot);
         }
         assertGt(successes, 0, "some gas limits allow collection");
-        assertGt(guarded, 0, "insufficient identity-check gas fails closed");
+        assertGt(failures, 0, "some gas limits are too low, and fail whole");
     }
 
     modifier whenThePayeeClaims() {

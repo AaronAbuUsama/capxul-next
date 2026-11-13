@@ -1,0 +1,18 @@
+RefundAuthority_Escrow_Unit_Concrete_Test
+├── when the caller is neither the sender nor admitted by the authority
+│   ├── it should revert with CannotRefund, for the owner and any other caller
+│   └── given the escrow has no authority
+│       └── it should refuse every caller but the sender
+├── when the caller is admitted by the authority for the escrow's key
+│   ├── it should pay the whole balance to the sender, not to the caller
+│   └── it should emit EscrowRefunded naming the caller as by
+├── when the authority admits the caller only for another key
+│   └── it should revert with CannotRefund
+├── when the authority reverts or answers malformed
+│   ├── it should refuse the caller (revert, 31 bytes, 64 bytes, a word of 2)
+│   └── it should still let the sender refund
+├── when the authority has no code
+│   └── it should refuse every caller but the sender
+└── given the holder is taken out and the next wearer admitted
+    ├── it should refuse the old holder at once
+    └── it should admit the new holder with no other write

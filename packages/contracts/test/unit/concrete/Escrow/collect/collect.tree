@@ -1,24 +1,28 @@
 Collect_Escrow_Unit_Concrete_Test
 ├── when a call is already running
 │   └── it should revert with ReentrantCall
-├── when the condition is not payee claimed
+├── when the condition is not owner collects
 │   └── it should revert with InvalidCondition
-├── when the caller is not the payee Safe
-│   └── it should revert with NotPayee
+├── when the caller is not the owner
+│   └── it should revert with NotOwner, for the sender and an admitted authority caller too
 ├── when the escrow is not open
 │   └── it should revert with JobNotOpen
-├── when the payee Safe still lists Companies House as an owner
+├── when the owner still lists the bootstrap owner as an owner
 │   └── it should revert with ConditionNotMet
-├── given the payee claimed and later added a second owner
-│   └── it should still let the payee collect
+├── given the owner claimed and later added a second owner
+│   └── it should still let the owner collect
+├── given the owner is a plain account and the bootstrap owner term is zero
+│   └── it should let the owner collect
 ├── when the escrow holds less than the amount
 │   └── it should revert with InsufficientFunding
-├── when the claimed payee collects a funded escrow
+├── when the claimed owner collects a funded escrow
 │   ├── it should mark the escrow paid
 │   ├── it should pay the fixed item with the escrow as executor
-│   ├── it should return any surplus to the owner Safe
+│   ├── it should return any surplus to the sender
 │   └── it should emit EscrowPaid
-├── when an ordinary claim uses exit payment kind
-│   └── it should return the surplus to the owner
-└── when the owner returns a malformed identity response
-    └── it should treat the escrow as an ordinary claim
+├── given ownerTakesSurplus
+│   ├── it should pay the amount through Payments and the surplus to the owner
+│   └── when the token takes a fee on transfer
+│       └── it should revert with InexactTransfer and leave the escrow open
+└── given no deadline
+    └── it should let the owner collect after any time has passed

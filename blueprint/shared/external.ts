@@ -1161,8 +1161,9 @@ const ESCROW_TERMS =
 
 export const contract_escrow_factory = defineContract({
   id: "escrow-factory",
-  code: "designed",
-  title: "EscrowFactory, general (designed, not built): counterfactual address",
+  code: "built",
+  artifact: "EscrowFactory",
+  title: "EscrowFactory, general: counterfactual address",
   about:
     "Deploys each escrow at the CREATE2 address of its terms and salt, known before it exists, so the money is sent " +
     "there first and the escrow deployed after, by anyone, in the same batch or later (`deploy` is idempotent and moves " +
@@ -1170,14 +1171,19 @@ export const contract_escrow_factory = defineContract({
     "that address can only be the same escrow. It is v4's factory with the general escrow's terms: it keeps v4's " +
     "constructor (Payments and the chain's Companies House) and its `bootstrapOwner()` view, which a terms builder reads " +
     "to fill the `bootstrapOwner` term (Exits from the factory it already holds), but each escrow checks only its own " +
-    "term (decision payments.general-escrow). The build writes and deploys it with its escrow " +
-    "(payments.escrow-contract-build); the devnet address is recorded once it is deployed.",
+    "term (decision payments.general-escrow). Built in packages/contracts (payments.escrow-contract-build, " +
+    "contracts.general-escrow-built); the devnet address is in the deployment file (contracts.devnet-addresses).",
   functions: {
+    bootstrapOwner: { signature: "bootstrapOwner() view returns (address)", about: "The chain's Companies House Safe, for a terms builder's `bootstrapOwner` term. No escrow reads it: each checks its own term." },
     deploy: {
       signature: "deploy(Terms terms, bytes32 salt) returns (address escrow)",
-      about: "Deploys the escrow for its terms at its predicted address, or returns the one there. Anyone may send it, before or after the money arrives.",
+      about: "Deploys the escrow for its terms at its predicted address, or returns the one there with no event. Anyone may send it, before or after the money arrives.",
     },
-    predictAddress: { signature: "predictAddress(Terms terms, bytes32 salt) view returns (address)", about: "The escrow's address before it exists: where the money is sent." },
+    payments: { signature: "payments() view returns (address)", about: "The Payments contract every escrow pays through (set at deploy, bound into every escrow's address)." },
+    predictAddress: {
+      signature: "predictAddress(Terms terms, bytes32 salt) view returns (address)",
+      about: "The escrow's address before it exists: where the money is sent. Refuses terms with a zero owner, sender or token, a zero amount, job nonce or document hash, or a condition above 1.",
+    },
     predictPaymentId: {
       signature: "predictPaymentId(Terms terms, bytes32 salt) view returns (bytes32)",
       about: "The Payments id its one payment to the owner will carry (executor the escrow for an owner-collects escrow), known before anyone signs.",
@@ -1185,35 +1191,57 @@ export const contract_escrow_factory = defineContract({
   },
   events: {
     EscrowDeployed: {
-      signature: "EscrowDeployed(address indexed escrow, address indexed owner, address indexed sender, bytes32 paymentId, bytes32 salt)",
-      about: "An escrow exists at its counterfactual address: what makes it, and the money already in it, known to indexing.",
+      signature:
+        "EscrowDeployed(address indexed escrow, address indexed owner, address indexed sender, bytes32 paymentId, bytes32 salt, address authority, uint256 authorityKey)",
+      about:
+        "An escrow exists at its counterfactual address: what makes it, and the money already in it, known to indexing. It carries " +
+        "the refund authority and its key, so the escrows row never depends on the order of the escrow's own logs (agreed with " +
+        "indexing, contracts.general-escrow-built).",
     },
+  },
+  errors: {
+    InvalidCondition: { signature: "InvalidCondition(uint8 condition)", about: "Terms with a condition above 1 (0 amount-reached, 1 owner-collects)." },
+    ZeroAddress: { signature: "ZeroAddress()", about: "Terms with a zero owner, sender or token, or a zero Payments or Companies House at construction." },
+    ZeroAmount: { signature: "ZeroAmount()", about: "Terms with a zero amount." },
+    ZeroDocumentHash: { signature: "ZeroDocumentHash()", about: "Terms with no document hash." },
+    ZeroJobNonce: { signature: "ZeroJobNonce()", about: "Terms with no job nonce." },
   },
   was: [`${V4}/interfaces/IEscrowFactory.sol:11`, `${V4}/money/EscrowFactory.sol:28`, `${ADDR}:49`],
 });
 
 export const contract_escrow = defineContract({
   id: "escrow",
-  code: "designed",
-  title: "Escrow, general (designed, not built): owner collects, sender takes back",
+  code: "built",
+  artifact: "Escrow",
+  title: "Escrow, general: owner collects, sender takes back",
   about:
     "One contract per escrow at its counterfactual address (EscrowFactory), its terms immutable and public. It holds " +
     "one payment of `amount` of `token` for its `owner`, the recipient's account, which may not exist yet: for a " +
     "mailbox with no account, the Safe CompaniesHouseClaimer derives from it. Two ways out, and only two: the owner " +
     "collects, and the money goes to the owner through Payments (its PaymentSent, sender the escrow, settles the " +
-    "Payment); or it is taken back, and the money goes to `sender`, where it came from. The owner may collect whenever " +
-    "it chooses once it can act: it calls itself, and where `bootstrapOwner` is named it no longer lists that address " +
-    "among its owners (D11, failing closed). The sender may take it back at any time until it is collected, even after " +
-    "the owner can act (D12): the sender itself, or any caller the `authority` term admits for `authorityKey` at the " +
-    "call, so a department's escrow (authority Budgets, key the budget id) is taken back by whoever " +
-    "`Budgets.authorised` admits then, its hat's wearers or those above and the company Safe, while the money still " +
-    "returns to the company Safe. An amount-reached escrow (an invoice) carries its owner's claim in its terms: anyone " +
-    "pays it out once it holds the amount, and from then it cannot be taken back. No expiry. What changed from v4: " +
-    "roles named for what they do (v4's `ownerSafe` is `sender`, `payeeSafe` is `owner`), the authority term, the " +
-    "bootstrap owner as a term, the exit-claim lookup replaced by `ownerTakesSurplus`, `canRefund`, and `by` on " +
-    "EscrowRefunded. Payments, Budgets and every other contract but Exits' terms builder stay as v4 has them " +
-    "(decision payments.general-escrow).",
+    "Payment); or it is taken back, and the money goes to `sender`, where it came from, by a plain token transfer. The " +
+    "owner may collect whenever it chooses once it can act: it calls itself, and where `bootstrapOwner` is named it no " +
+    "longer lists that address among its owners (D11, failing closed). The sender may take it back at any time until " +
+    "it is collected, even after the owner can act (D12): the sender itself, or any caller the `authority` term admits " +
+    "for `authorityKey` at the call, so a department's escrow (authority Budgets, key the budget id) is taken back by " +
+    "whoever `Budgets.authorised` admits then, its hat's wearers or those above and the company Safe, while the money " +
+    "still returns to the company Safe. An amount-reached escrow (an invoice) carries its owner's claim in its terms: " +
+    "anyone pays it out once it holds the amount, and from then it cannot be taken back. No expiry: nothing in it reads " +
+    "the time (time.one-clock). What changed from v4: roles named for what they do (v4's `ownerSafe` is `sender`, " +
+    "`payeeSafe` is `owner`), the authority term, the bootstrap owner as a term, the exit-claim lookup replaced by " +
+    "`ownerTakesSurplus`, `canRefund`, and `by` on EscrowRefunded. Payments, Budgets and every other contract but " +
+    "Exits' terms builder stay as v4 has them (decision payments.general-escrow).",
   functions: {
+    CONDITION_AMOUNT_REACHED: { signature: "CONDITION_AMOUNT_REACHED() view returns (uint8)", about: "Condition 0: the owner's claim stands in the terms; anyone pays out once the escrow holds the amount (an invoice)." },
+    CONDITION_OWNER_COLLECTS: { signature: "CONDITION_OWNER_COLLECTS() view returns (uint8)", about: "Condition 1: the owner collects when it chooses, once it can act (a claim escrow)." },
+    amount: { signature: "amount() view returns (uint256)", about: "The amount paid to the owner." },
+    authority: { signature: "authority() view returns (address)", about: "Zero, or the view a refund by anyone but the sender asks: `authorised(authorityKey, caller)`. Budgets for a department's escrow." },
+    authorityKey: { signature: "authorityKey() view returns (uint256)", about: "The key the authority is asked about: the budget id for a department's escrow." },
+    bootstrapOwner: { signature: "bootstrapOwner() view returns (address)", about: "Zero, or the address the owner must no longer list among its owners before it can collect (Companies House for a mailbox's Safe)." },
+    canRefund: {
+      signature: "canRefund(address who) view returns (bool)",
+      about: "Whether `who` may take it back now: the sender, or a caller the authority answers exactly true for under its key, read the way `refund` reads it.",
+    },
     collect: {
       signature: "collect()",
       about:
@@ -1221,22 +1249,32 @@ export const contract_escrow = defineContract({
         "`amount` to the owner through Payments, the escrow its executor; any surplus to the sender, or to the owner with " +
         "`ownerTakesSurplus`.",
     },
+    condition: { signature: "condition() view returns (uint8)", about: "The release condition: 0 amount-reached, 1 owner-collects." },
+    conditionMet: {
+      signature: "conditionMet() view returns (bool)",
+      about: "Amount-reached: the escrow holds the amount. Owner-collects: no bootstrap owner, or the owner has code and answers isOwner(bootstrapOwner) with exactly false; anything else fails closed (D11).",
+    },
+    documentHash: { signature: "documentHash() view returns (bytes32)", about: "The document the payment settles." },
+    jobNonce: { signature: "jobNonce() view returns (bytes32)", about: "The payment's job nonce: the Payment's own." },
+    kind: { signature: "kind() view returns (uint16)", about: "The payment kind." },
+    owner: { signature: "owner() view returns (address)", about: "Who collects: the only address `collect` or `payout` pays the amount." },
+    ownerTakesSurplus: { signature: "ownerTakesSurplus() view returns (bool)", about: "Whether a collection's surplus goes to the owner (an exit claim) rather than back to the sender." },
+    paymentId: { signature: "paymentId() view returns (bytes32)", about: "The Payments id of its one payment to the owner, as EscrowFactory.predictPaymentId gave it." },
+    payments: { signature: "payments() view returns (address)", about: "The Payments contract it pays through." },
     payout: {
       signature: "payout()",
-      about: "Amount-reached escrow only: anyone pays the owner once it holds the amount, the surplus to the sender. An owner-collects escrow refuses it.",
+      about: "Amount-reached escrow only: anyone pays the owner once it holds the amount, the surplus to the sender. If its payment id was already paid through Payments, it closes as Paid and returns its balance to the sender. An owner-collects escrow refuses it.",
     },
     refund: {
       signature: "refund()",
       about:
         "Takes the money back to the sender, whoever calls: the sender, or a caller the authority admits for its key now " +
         "(a revert or malformed answer refuses). While open: owner-collects until collected; amount-reached while short. " +
-        "Once closed, it returns a later deposit.",
+        "Once closed, it returns a later deposit and changes no state.",
     },
-    canRefund: {
-      signature: "canRefund(address who) view returns (bool)",
-      about: "Whether `who` may take it back now: the sender, or the authority's answer for its key, read the way `refund` reads it.",
-    },
+    sender: { signature: "sender() view returns (address)", about: "Where the money came from, and the only address a refund pays." },
     state: { signature: "state() view returns (State)", about: "Open, Paid (collected or paid out) or Refunded (taken back)." },
+    token: { signature: "token() view returns (address)", about: "The token held and paid." },
   },
   events: {
     EscrowCreated: {
@@ -1250,95 +1288,33 @@ export const contract_escrow = defineContract({
     },
     EscrowRefunded: {
       signature: "EscrowRefunded(address indexed sender, address indexed by, bytes32 indexed paymentId, uint256 amount, State state)",
-      about: "Taken back to its sender by `by` (state Refunded), or a later deposit returned (state Paid or Refunded, unchanged).",
+      about:
+        "Taken back to its sender by `by` (state Refunded, the first time only), or a later deposit returned (state Paid or " +
+        "Refunded, unchanged; amount may be 0). The money moves by a plain token transfer in the same transaction.",
+    },
+    InvoicePaymentCompleted: {
+      signature: "InvoicePaymentCompleted(address indexed owner, address indexed sender, bytes32 indexed paymentId, uint256 surplus)",
+      about: "An amount-reached escrow whose payment id was already paid through Payments: it closes as Paid and returns its balance, the surplus, to the sender.",
     },
   },
-  was: [`${V4}/interfaces/IEscrow.sol:30`, `${V4}/money/Escrow.sol:107-197`, "docs/planning/protocol-v4/spec/escrow.md"],
-});
-
-export const contract_escrow_factory_v4 = defineContract({
-  id: "escrow-factory-v4",
-  code: "built",
-  artifact: "EscrowFactory",
-  title: "EscrowFactory (built, v4): fixed-term escrows at their addresses",
-  about:
-    "What the code has (packages/contracts, v4): deploys each escrow at the CREATE2 address of its terms and salt, known before it exists, so money is sent there first and the escrow deployed after, by anyone (`deploy` is idempotent and moves no money). " +
-    "The terms are `ownerSafe` (the payer, and where a refund goes), `payeeSafe`, token, amount, job nonce, kind, document hash and a condition (0 the invoice amount is held, 1 the payee's Safe is claimed). " +
-    "The general escrow of `escrow-factory` is the design meant to replace it and is not built (decision contracts.general-escrow-not-built).",
-  functions: {
-    bootstrapOwner: { signature: "bootstrapOwner() view returns (address)", about: "The chain's Companies House Safe, the address a claim escrow's payee must no longer list among its owners." },
-    deploy: { signature: "deploy(Terms terms, bytes32 salt) returns (address escrow)", about: "Deploys the escrow for its terms at its predicted address, or returns the one there. Anyone may send it, before or after the money arrives." },
-    payments: { signature: "payments() view returns (address)", about: "The Payments contract every escrow pays through (set at deploy)." },
-    predictAddress: { signature: "predictAddress(Terms terms, bytes32 salt) view returns (address)", about: "The escrow's address before it exists: where the money is sent. Refuses terms with a zero address, amount, job nonce or document hash, or a condition above 1." },
-    predictPaymentId: { signature: "predictPaymentId(Terms terms, bytes32 salt) view returns (bytes32)", about: "The Payments id the escrow's one payment will carry, known before anyone signs (executor the escrow for a claim escrow)." },
-  },
-  events: {
-    EscrowDeployed: { signature: "EscrowDeployed(address indexed escrow, address indexed ownerSafe, address indexed payeeSafe, bytes32 paymentId, bytes32 salt)", about: "An escrow exists at its predicted address: what makes it, and the money already in it, known to indexing." },
-  },
   errors: {
-    InvalidCondition: { signature: "InvalidCondition(uint8 condition)", about: "Terms with a condition above 1 (0 invoice amount reached, 1 payee claimed)." },
-    ZeroAddress: { signature: "ZeroAddress()", about: "Terms with a zero owner, payee or token, or a zero Payments or bootstrap owner at construction." },
+    CannotRefund: { signature: "CannotRefund(address who)", about: "refund by a caller who is neither the sender nor admitted by the authority for its key now." },
+    ConditionMet: { signature: "ConditionMet()", about: "refund on an open amount-reached escrow that already holds the amount: the owner's claim stands." },
+    ConditionNotMet: { signature: "ConditionNotMet()", about: "payout before the amount is held, or collect before the owner can act." },
+    InexactTransfer: { signature: "InexactTransfer(address token, uint256 expected, uint256 received)", about: "With `ownerTakesSurplus`, the token moved the owner's share inexactly; the whole collection fails." },
+    InsufficientFunding: { signature: "InsufficientFunding()", about: "collect while the escrow holds less than the amount." },
+    InvalidCondition: { signature: "InvalidCondition(uint8 condition)", about: "payout on an owner-collects escrow, collect on an amount-reached one, or a condition above 1 at construction." },
+    JobNotOpen: { signature: "JobNotOpen()", about: "payout or collect on an escrow already paid or refunded." },
+    NotOwner: { signature: "NotOwner()", about: "collect by anyone but the owner, the sender and admitted wearers included." },
+    ReentrantCall: { signature: "ReentrantCall()", about: "A call back into the escrow while it runs." },
+    TokenCallReturnedFalse: { signature: "TokenCallReturnedFalse(address token)", about: "The token answered false to a transfer or approval." },
+    TokenHasNoCode: { signature: "TokenHasNoCode(address token)", about: "The token address holds no code." },
+    ZeroAddress: { signature: "ZeroAddress()", about: "Terms with a zero owner, sender or token, or a zero Payments, at construction." },
     ZeroAmount: { signature: "ZeroAmount()", about: "Terms with a zero amount." },
     ZeroDocumentHash: { signature: "ZeroDocumentHash()", about: "Terms with no document hash." },
     ZeroJobNonce: { signature: "ZeroJobNonce()", about: "Terms with no job nonce." },
   },
-  was: ["packages/contracts/src/money/EscrowFactory.sol", "packages/contracts/src/interfaces/IEscrowFactory.sol", "decision contracts.general-escrow-not-built"],
-});
-
-export const contract_escrow_v4 = defineContract({
-  id: "escrow-v4",
-  code: "built",
-  artifact: "Escrow",
-  title: "Escrow (built, v4): one fixed payment, owner refunds, payee collects",
-  about:
-    "What the code has (packages/contracts, v4): one contract per escrow, its terms immutable and public. It holds one payment of `amount` of `token` for `payeeSafe`, released one of two ways. Condition 0 (an invoice): anyone calls `payout` once it holds the amount, and from then it cannot be refunded. Condition 1 (the payee claimed): `payeeSafe` calls `collect` once Companies House is no longer among its owners (read as isOwner(bootstrapOwner) answering exactly false; any other answer fails closed), and Payments records the escrow as the executor. " +
-    "Only `ownerSafe`, the payer, may `refund`: an invoice escrow while open and short of the amount, a claim escrow while open even after the claim (D12), and any later deposit after Paid or Refunded. There is no authority term: a department's hat wearers cannot take an escrow back, only the Safe that funded it. A registered exit claim (the owner answers isExitClaimEscrow) sends its surplus to the payee, any other surplus returns to the owner. " +
-    "The general escrow of `escrow` (sender, owner, authority, canRefund, ten-argument EscrowCreated) is the design meant to replace it and is not built (decision contracts.general-escrow-not-built).",
-  functions: {
-    CONDITION_INVOICE_AMOUNT_REACHED: { signature: "CONDITION_INVOICE_AMOUNT_REACHED() view returns (uint8)", about: "Condition 0: anyone may payout once the escrow holds the amount." },
-    CONDITION_PAYEE_CLAIMED: { signature: "CONDITION_PAYEE_CLAIMED() view returns (uint8)", about: "Condition 1: the payee may collect once Companies House is not one of its owners." },
-    amount: { signature: "amount() view returns (uint256)", about: "The amount paid to the payee." },
-    bootstrapOwner: { signature: "bootstrapOwner() view returns (address)", about: "The chain's Companies House Safe, whose absence from the payee's owners is the claim." },
-    collect: { signature: "collect()", about: "Claim escrow only: the payee Safe, once Companies House is no longer among its owners, collects: exactly `amount` to the payee through Payments (the escrow its executor), any surplus to the owner (to the payee for a registered exit claim)." },
-    condition: { signature: "condition() view returns (uint8)", about: "The release condition: 0 invoice amount reached, 1 payee claimed." },
-    conditionMet: { signature: "conditionMet() view returns (bool)", about: "Whether the release condition holds: for an invoice, the balance is at least the amount; for a claim, the payee has code and answers isOwner(bootstrapOwner) with exactly false (anything else fails closed)." },
-    documentHash: { signature: "documentHash() view returns (bytes32)", about: "The document the payment settles." },
-    jobNonce: { signature: "jobNonce() view returns (bytes32)", about: "The payment's job nonce." },
-    kind: { signature: "kind() view returns (uint16)", about: "The payment kind." },
-    ownerSafe: { signature: "ownerSafe() view returns (address)", about: "The payer Safe: the only address that may refund, and where a refund and any surplus go." },
-    payeeSafe: { signature: "payeeSafe() view returns (address)", about: "The payee Safe, which may not exist yet: who is paid, and who collects a claim escrow." },
-    paymentId: { signature: "paymentId() view returns (bytes32)", about: "The Payments id of the escrow's one payment." },
-    payments: { signature: "payments() view returns (address)", about: "The Payments contract the escrow pays through." },
-    payout: { signature: "payout()", about: "Invoice escrow only: anyone pays the payee once the escrow holds `amount`, the surplus back to the owner. A claim escrow refuses it." },
-    refund: { signature: "refund()", about: "Only `ownerSafe`: takes the balance back while open (an invoice escrow only while short of the amount; a claim escrow even after the claim, until collected), or returns a later deposit after Paid or Refunded." },
-    state: { signature: "state() view returns (State)", about: "Open, Paid or Refunded." },
-    token: { signature: "token() view returns (address)", about: "The token held and paid." },
-  },
-  events: {
-    EscrowCreated: { signature: "EscrowCreated(address indexed ownerSafe, address indexed payeeSafe, bytes32 indexed paymentId, address token, uint256 amount, uint16 kind, bytes32 documentHash, uint8 condition)", about: "An escrow's terms, emitted when it is deployed: payer, payee, token, amount, kind, document and condition." },
-    EscrowPaid: { signature: "EscrowPaid(address indexed ownerSafe, address indexed payeeSafe, bytes32 indexed paymentId, uint256 amount)", about: "Collected by the payee or paid out to it: beside the PaymentSent with the same payment id." },
-    EscrowRefunded: { signature: "EscrowRefunded(address indexed ownerSafe, bytes32 indexed paymentId, uint256 amount, State state)", about: "Taken back by the owner (state Refunded), or a later deposit returned (state unchanged). It does not name the payee." },
-    InvoicePaymentCompleted: { signature: "InvoicePaymentCompleted(address indexed ownerSafe, address indexed payeeSafe, bytes32 indexed paymentId, uint256 surplus)", about: "An invoice escrow's payment id was already paid elsewhere: the escrow closes and returns its balance, the surplus, to the owner." },
-  },
-  errors: {
-    ConditionMet: { signature: "ConditionMet()", about: "refund on an invoice escrow that already holds the amount: it can no longer be taken back." },
-    ConditionNotMet: { signature: "ConditionNotMet()", about: "payout or collect before the release condition holds." },
-    InexactTransfer: { signature: "InexactTransfer(address token, uint256 expected, uint256 received)", about: "An exit claim's payout moved a different amount than expected." },
-    InsufficientFunding: { signature: "InsufficientFunding()", about: "payout or collect while the escrow holds less than the amount." },
-    InsufficientGasForExitIdentity: { signature: "InsufficientGasForExitIdentity()", about: "Too little gas left to ask the owner whether this is an exit claim." },
-    InvalidCondition: { signature: "InvalidCondition(uint8 condition)", about: "payout on a claim escrow, collect on an invoice escrow, or a condition above 1 at construction." },
-    JobNotOpen: { signature: "JobNotOpen()", about: "payout or collect on an escrow already paid or refunded." },
-    NotOwner: { signature: "NotOwner()", about: "refund from anyone but `ownerSafe`." },
-    NotPayee: { signature: "NotPayee()", about: "collect from anyone but `payeeSafe`." },
-    ReentrantCall: { signature: "ReentrantCall()", about: "A call back into the escrow while it runs." },
-    TokenCallReturnedFalse: { signature: "TokenCallReturnedFalse(address token)", about: "The token answered false to a transfer or approval." },
-    TokenHasNoCode: { signature: "TokenHasNoCode(address token)", about: "The token address holds no code." },
-    ZeroAddress: { signature: "ZeroAddress()", about: "A zero owner, payee, token, Payments or bootstrap owner at construction." },
-    ZeroAmount: { signature: "ZeroAmount()", about: "A zero amount at construction." },
-    ZeroDocumentHash: { signature: "ZeroDocumentHash()", about: "No document hash at construction." },
-    ZeroJobNonce: { signature: "ZeroJobNonce()", about: "No job nonce at construction." },
-  },
-  was: ["packages/contracts/src/money/Escrow.sol", "packages/contracts/src/interfaces/IEscrow.sol", "decision contracts.general-escrow-not-built"],
+  was: [`${V4}/interfaces/IEscrow.sol:30`, `${V4}/money/Escrow.sol:107-197`, "docs/planning/protocol-v4/spec/escrow.md", "packages/contracts/src/money/Escrow.sol"],
 });
 
 export const contract_agent_owner = defineContract({

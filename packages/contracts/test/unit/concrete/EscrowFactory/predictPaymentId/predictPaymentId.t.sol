@@ -7,7 +7,7 @@ import { Escrow_Test } from "../../../../utils/Escrow/Escrow_Test.sol";
 
 contract PredictPaymentId_EscrowFactory_Unit_Concrete_Test is Escrow_Test {
     function test_ShouldEqualThePaymentIdTheDeployedEscrowReports() external {
-        IEscrow.Terms memory terms = _terms(users.bob, INVOICE);
+        IEscrow.Terms memory terms = _terms(users.bob, AMOUNT_REACHED);
         bytes32 predicted = factory.predictPaymentId(terms, SALT);
         address escrow = factory.deploy(terms, SALT);
         // it should equal the payment id the deployed escrow reports
@@ -17,8 +17,8 @@ contract PredictPaymentId_EscrowFactory_Unit_Concrete_Test is Escrow_Test {
         assertEq(factory.predictPaymentId(terms, keccak256("other salt")), predicted, "salt-free invoice id");
     }
 
-    function test_GivenTheConditionIsPayeeClaimed() external {
-        IEscrow.Terms memory terms = _terms(address(claimedPayee), CLAIM);
+    function test_GivenTheConditionIsOwnerCollects() external {
+        IEscrow.Terms memory terms = _departmentTerms(address(claimedOwner));
         address predictedEscrow = factory.predictAddress(terms, SALT);
         bytes32 predicted = factory.predictPaymentId(terms, SALT);
         // it should bind the predicted escrow address as the executor

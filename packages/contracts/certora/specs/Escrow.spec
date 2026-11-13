@@ -1,9 +1,11 @@
-// Escrow.spec (fv/certora.md, "Escrow.spec", W2). S1 to S9 are unit, fuzz and invariant tests; these
-// rules add the state-machine part of S1 and S7 over every reachable state. Gate 11 runs them with
+// Escrow.spec (fv/certora.md, "Escrow.spec", W2), for the general escrow (docs/design/escrow.md G1 to G11, which
+// the unit, fuzz and invariant tests check). These rules add the state-machine part of G6, G7 and G11 over every
+// reachable state. Gate 11 runs them with
 // --rule_sanity basic, so on the reverting stub every rule is flagged (K7).
 //
-// Summaries: the token is EscrowTokenHarness, linked (DISPATCHER(true)); Payments' `send` and `paid` and
-// the payee's `isOwner` are NONDET: the rules read only the escrow's own state flag and the token.
+// Summaries: the token is EscrowTokenHarness, linked (DISPATCHER(true)); Payments' `send` and `paid`, the
+// owner's `isOwner` and the authority's `authorised` are NONDET: the rules read only the escrow's own state flag,
+// its terms and the token.
 
 using EscrowTokenHarness as tokenContract;
 
@@ -11,7 +13,8 @@ methods {
     function state() external returns (IEscrow.State) envfree;
     function condition() external returns (uint8) envfree;
     function amount() external returns (uint256) envfree;
-    function ownerSafe() external returns (address) envfree;
+    function sender() external returns (address) envfree;
+    function authority() external returns (address) envfree;
     function tokenContract.balanceOf(address) external returns (uint256) envfree;
 
     function _.transfer(address, uint256) external => DISPATCHER(true);
@@ -22,6 +25,7 @@ methods {
     function _.send(IPayments.PaymentItem) external => NONDET;
     function _.paid(bytes32) external => NONDET;
     function _.isOwner(address) external => NONDET;
+    function _.authorised(uint256, address) external => NONDET;
 }
 
 // S1: Paid and Refunded are final; nothing moves an escrow back to Open or between them.
@@ -45,12 +49,13 @@ rule S1_noSettlementAfterClose() {
     assert payoutReverted && lastReverted, "payout or collect succeeded after the escrow closed";
 }
 
-// S1: refund succeeds only for the owner Safe.
-rule S1_onlyOwnerRefunds() {
+// G6: with no authority term, refund succeeds only for the sender (CannotRefund).
+rule G6_onlySenderRefundsWithoutAuthority() {
     env e;
-    require e.msg.sender != ownerSafe();
+    require authority() == 0;
+    require e.msg.sender != sender();
     refund@withrevert(e);
-    assert lastReverted, "someone but the owner Safe refunded";
+    assert lastReverted, "someone but the sender refunded an escrow with no authority";
 }
 
 // S7: an open invoice escrow that holds the amount cannot be refunded (ConditionMet).

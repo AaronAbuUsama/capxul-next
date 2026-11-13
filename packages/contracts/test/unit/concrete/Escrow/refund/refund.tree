@@ -3,25 +3,26 @@ Refund_Escrow_Unit_Concrete_Test
 │   └── it should revert and leave the escrow open and funded
 ├── when a call is already running
 │   └── it should revert with ReentrantCall
-├── when the caller is not the owner Safe
-│   └── it should revert with NotOwner
-├── when the escrow is open and its condition is invoice amount reached
+├── when the escrow is open and its condition is amount reached
 │   ├── when it holds the amount
 │   │   └── it should revert with ConditionMet
 │   └── when it holds less than the amount
 │       ├── it should mark the escrow refunded
-│       ├── it should return the whole balance to the owner Safe
+│       ├── it should return the whole balance to the sender
 │       └── it should emit EscrowRefunded
-├── when the escrow is open and its condition is payee claimed
-│   ├── given the payee has not claimed
+├── when the escrow is open and its condition is owner collects
+│   ├── given the owner cannot act yet
 │   │   ├── it should mark the escrow refunded
-│   │   ├── it should return the whole balance to the owner Safe
+│   │   ├── it should return the whole balance to the sender
 │   │   └── it should emit EscrowRefunded
-│   └── given the payee has claimed but not collected
+│   └── given the owner can act but has not collected
 │       ├── it should mark the escrow refunded
-│       ├── it should return the whole balance to the owner Safe
+│       ├── it should return the whole balance to the sender
 │       ├── it should make a later collect revert with JobNotOpen
 │       └── it should emit EscrowRefunded
+├── when the escrow is open and empty
+│   └── it should still close it as refunded, so a later funding cannot be collected
 └── when the escrow is already paid or refunded
-    ├── it should return any balance sent to it since to the owner Safe
-    └── it should emit EscrowRefunded with the state unchanged
+    ├── it should return any balance sent to it since to the sender
+    ├── it should emit EscrowRefunded with the state unchanged
+    └── it should still refuse a caller who may not refund
