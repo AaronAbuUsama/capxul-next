@@ -34,13 +34,13 @@ Learned from worlds piling up on one machine on the other line.
 
 ## Phases
 
-| Phase | What it delivers | Done when |
-|---|---|---|
-| 0. Shape | The remaining spikes and the decisions they settle | Each risk has a run that proves or kills it |
-| 1. Walking pipeline | The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on `master` | The thin line's scenarios pass in CI in a fresh private world |
-| 2. Staging | The same line on a shared hosted world, deployed by Alchemy | The scenarios pass there after a deploy, and the drift check is clean |
-| 3. Breadth | Journeys ported one at a time, in the order Capxul's own company needs them | Each journey is green in a private world, then on staging |
-| 4. Real world | Production platform, real sign-in and signing, Bridge, public chain | Capxul's company runs a month on it |
+| Phase | What it delivers | Done when | State |
+|---|---|---|---|
+| 0. Shape | The remaining spikes and the decisions they settle | Each risk has a run that proves or kills it | In progress |
+| 1. Walking pipeline | The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on `master` | The thin line's scenarios pass in CI in a fresh private world | Not started |
+| 2. Staging | The same line on a shared hosted world, deployed by Alchemy | The scenarios pass there after a deploy, and the drift check is clean | Not started |
+| 3. Breadth | Journeys ported one at a time, in the order Capxul's own company needs them | Each journey is green in a private world, then on staging | Not started |
+| 4. Real world | Production platform, real sign-in and signing, Bridge, public chain | Capxul's company runs a month on it | Not started |
 
 Phase 1 is narrow and done by few agents. Parallel agents start at phase 3, one journey each.
 
@@ -50,7 +50,8 @@ Phase 1 is narrow and done by few agents. Parallel agents start at phase 3, one 
 |---|---|
 | Alchemy deploys from an agent's container with no key inside it | Proven (`spikes/hosting`) |
 | A world's database as a Neon branch: created, isolated, forked from another world | Proven (`spikes/hosting`) |
-| World lifecycle: the six rules above, in code | Next |
+| World lifecycle: a world is created, used and destroyed as one unit, with an owner, an expiry and timed steps | Proven (`spikes/hosting`) |
+| Deleting expired Cloudflare resources without anyone remembering to | Open |
 | One operation from contract to a passing scenario | Next |
 | Chain, Ponder and Core as Cloudflare Containers against a world's Neon branch | Open |
 | Two worlds at different clocks on one Frappe bench | Open |
