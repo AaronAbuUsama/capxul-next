@@ -36,7 +36,7 @@ export interface Patience {
 export const CHAIN_START: Patience = {
   within: Duration.minutes(2),
   first: Duration.seconds(1),
-  most: Duration.seconds(8),
+  most: Duration.seconds(4),
 };
 
 /**
@@ -48,14 +48,14 @@ export const CHAIN_START: Patience = {
 export const INDEX_START: Patience = {
   within: Duration.minutes(4),
   first: Duration.seconds(1),
-  most: Duration.seconds(8),
+  most: Duration.seconds(4),
 };
 
 /** The bundler: alto on a new container application took 2 to 13 start calls and up to 44.6 s (README, Timings). */
 export const BUNDLER_START: Patience = {
   within: Duration.minutes(4),
   first: Duration.seconds(1),
-  most: Duration.seconds(8),
+  most: Duration.seconds(4),
 };
 
 /** One try at starting a container and finding it ready. */

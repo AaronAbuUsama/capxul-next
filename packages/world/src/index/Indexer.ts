@@ -9,7 +9,9 @@ import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Alchemy from "alchemy";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
+import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
+import { pipe } from "effect/Function";
 import * as Option from "effect/Option";
 import * as Semaphore from "effect/Semaphore";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
@@ -27,9 +29,10 @@ const RESUME = "resume";
 
 interface Start extends StartReport {
   readonly at: string;
-  /** When Cloudflare accepted the start that held. */
+  /** When the start that held was asked for. */
   readonly atMs: number;
-  /** How long after `atMs` Ponder's server first answered `/health`, and `/ready`, as status was asked for. */
+  /** How long after `atMs` Ponder's server first answered `/health` (which the start waits for), and `/ready` (as the
+   * world's status is asked for). */
   readonly healthyMs: number | null;
   readonly readyMs: number | null;
   /** Where the time to ready went, from Ponder's own metrics; read once, at the first ready. */
@@ -54,6 +57,14 @@ const failed =
   (step: IndexerFailed["step"]) =>
   (cause: unknown): IndexerFailed =>
     IndexerFailed.make({ step, message: describeFailure(cause) });
+
+/** When the start that held was asked for: the last try that started the container and was not refused. */
+const acceptedAt = (report: StartReport): number | undefined =>
+  pipe(
+    Arr.findLast(report.attempts, (attempt) => attempt.started && attempt.outcome !== "refused"),
+    Option.map((attempt) => DateTime.toEpochMillis(DateTime.makeUnsafe(attempt.at))),
+    Option.getOrUndefined,
+  );
 
 /** Whether one of Ponder's endpoints answered 200. */
 const answered = (probed: Option.Option<{ readonly status: number; readonly body: string }>): boolean =>
@@ -88,14 +99,18 @@ export default class Indexer extends Cloudflare.DurableObject<Indexer>()(
           yield* remember((old) => ({ ...old, rpcUrl, wanted: true }));
           if (yield* running) return { started: false as const };
           const began = yield* Clock.currentTimeMillis;
+          // Cloudflare can accept a start and then fail the first call to the container ("no container instance")
+          // or let it go within seconds, so a start holds only once Ponder's own server answers.
           const report = yield* startPatiently({
             running: ponder.running,
-            start: ponder.start({ enableInternet: true, env: { RPC_URL: rpcUrl } }),
-            // Accepted is enough here: Ponder's own readiness is what the world's status reports.
-            ready: Effect.filterOrFail(
-              ponder.running,
-              (up) => up,
-              () => "the container is not running",
+            start: ponder
+              .start({ enableInternet: true, env: { RPC_URL: rpcUrl } })
+              .pipe(Effect.andThen(ponder.setInactivityTimeout(PONDER_INACTIVITY_MS))),
+            ready: port.fetch(HttpClientRequest.get("http://container/health")).pipe(
+              Effect.filterOrFail(
+                (response) => response.status === 200,
+                (response) => `Ponder's /health answered ${response.status}`,
+              ),
             ),
             patience: INDEX_START,
             gaveUp: (tried) => tried,
@@ -114,9 +129,16 @@ export default class Indexer extends Cloudflare.DurableObject<Indexer>()(
               ),
             ),
           );
-          yield* ponder.setInactivityTimeout(PONDER_INACTIVITY_MS).pipe(Effect.mapError(failed("start")));
-          const atMs = yield* Clock.currentTimeMillis;
-          const start: Start = { at: stamp(atMs), atMs, healthyMs: null, readyMs: null, timeline: null, ...report };
+          const now = yield* Clock.currentTimeMillis;
+          const atMs = acceptedAt(report) ?? now;
+          const start: Start = {
+            at: stamp(atMs),
+            atMs,
+            healthyMs: now - atMs,
+            readyMs: null,
+            timeline: null,
+            ...report,
+          };
           yield* remember((old) => ({ ...old, starts: remembered(old.starts, start) }));
           return {
             started: true as const,

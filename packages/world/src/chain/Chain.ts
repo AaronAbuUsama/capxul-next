@@ -113,11 +113,14 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
         const { up: afterUnsavedStop, idleSeconds } = yield* record;
         const object = yield* saved.get(key).pipe(Effect.mapError(failed("restore")));
         const restoring = Predicate.isNotNull(object);
+        // Cloudflare stops a container by itself once its Durable Object has been quiet for a while, and that stop
+        // saves nothing. Its limit is put well past ours, so the idle callback below always gets there first. It is
+        // set with the start: a refused start often shows only at the first call to the container after it.
         const report = yield* startPatiently({
           running: anvil.running,
-          start: anvil.start(
-            restoring ? { entrypoint: restoreEntrypoint, enableInternet: false } : { enableInternet: false },
-          ),
+          start: anvil
+            .start(restoring ? { entrypoint: restoreEntrypoint, enableInternet: false } : { enableInternet: false })
+            .pipe(Effect.andThen(anvil.setInactivityTimeout((idleSeconds + 300) * 1000))),
           ready: call("start", "eth_chainId"),
           patience: CHAIN_START,
           gaveUp: (tried) => tried,
@@ -133,9 +136,6 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
             ),
           ),
         );
-        // Cloudflare stops a container by itself once its Durable Object has been quiet for a while, and that stop
-        // saves nothing. Its limit is put well past ours, so the idle callback below always gets there first.
-        yield* anvil.setInactivityTimeout((idleSeconds + 300) * 1000).pipe(Effect.mapError(failed("start")));
         if (Predicate.isNotNull(object)) {
           const dump = yield* object.text().pipe(Effect.mapError(failed("restore")));
           yield* call("restore", "anvil_loadState", [dump]);
