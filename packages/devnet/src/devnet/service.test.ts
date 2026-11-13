@@ -21,54 +21,65 @@ async function component(behaviour: string) {
   return {
     child, finished, finish: (value: number) => { code(value); },
     signals: async () => (await readFile(log, "utf8").catch(() => "")).split("\n").filter(Boolean),
-    [Symbol.asyncDispose]: async () => { try { process.kill(-child.pid!, "SIGKILL"); } catch {} await rm(dir, { recursive: true, force: true }); },
+    dispose: async () => { try { process.kill(-child.pid!, "SIGKILL"); } catch {} await rm(dir, { recursive: true, force: true }); },
   };
+}
+// CI runs Node 22, which has no `await using`.
+async function withComponent(behaviour: string, check: (c: Awaited<ReturnType<typeof component>>) => Promise<void>) {
+  const c = await component(behaviour);
+  try { await check(c); } finally { await c.dispose(); }
 }
 
 test("a service stop signals the child once; its clean teardown inside the grace is recorded clean", { timeout: 10_000 }, async () => {
-  await using c = await component(`process.on("SIGTERM", () => { seen("SIGTERM"); setTimeout(() => process.exit(0), 300); });
-    process.on("SIGINT", () => seen("SIGINT"))`);
-  const close = watchChild(c.child, "core", c.finish, { asked: () => true, graceMs: 2000, settleMs: 100 });
-  process.kill(-c.child.pid!, "SIGTERM"); // systemd signals the whole control group
-  await close();
-  assert.equal(await c.finished, 0);
-  assert.deepEqual(await c.signals(), ["SIGTERM"], "a second signal would run the child's stop handler twice");
+  await withComponent(`process.on("SIGTERM", () => { seen("SIGTERM"); setTimeout(() => process.exit(0), 300); });
+    process.on("SIGINT", () => seen("SIGINT"))`, async (c) => {
+    const close = watchChild(c.child, "core", c.finish, { asked: () => true, graceMs: 2000, settleMs: 100 });
+    process.kill(-c.child.pid!, "SIGTERM"); // systemd signals the whole control group
+    await close();
+    assert.equal(await c.finished, 0);
+    assert.deepEqual(await c.signals(), ["SIGTERM"], "a second signal would run the child's stop handler twice");
+  });
 });
 
 test("a child still running after the grace gets the wrapper's SIGINT and its exit 0 stays clean", { timeout: 10_000 }, async () => {
-  await using c = await component(`process.on("SIGTERM", () => seen("SIGTERM")); process.on("SIGINT", () => { seen("SIGINT"); process.exit(0); })`);
-  const close = watchChild(c.child, "ponder", c.finish, { asked: () => true, graceMs: 300, settleMs: 100 });
-  process.kill(-c.child.pid!, "SIGTERM");
-  await Promise.race([close(), setTimeout(5000, undefined, { ref: false }).then(() => { throw new Error("the hung child was never signalled"); })]);
-  assert.equal(await c.finished, 0);
-  assert.deepEqual(await c.signals(), ["SIGTERM", "SIGINT"]);
+  await withComponent(`process.on("SIGTERM", () => seen("SIGTERM")); process.on("SIGINT", () => { seen("SIGINT"); process.exit(0); })`, async (c) => {
+    const close = watchChild(c.child, "ponder", c.finish, { asked: () => true, graceMs: 300, settleMs: 100 });
+    process.kill(-c.child.pid!, "SIGTERM");
+    await Promise.race([close(), setTimeout(5000, undefined, { ref: false }).then(() => { throw new Error("the hung child was never signalled"); })]);
+    assert.equal(await c.finished, 0);
+    assert.deepEqual(await c.signals(), ["SIGTERM", "SIGINT"]);
+  });
 });
 
 test("a child that fails its own stop is unclean", { timeout: 10_000 }, async () => {
-  await using c = await component(`process.on("SIGTERM", () => process.exit(3))`);
-  const close = watchChild(c.child, "core", c.finish, { asked: () => true, graceMs: 2000, settleMs: 100 });
-  process.kill(-c.child.pid!, "SIGTERM");
-  await assert.rejects(close(), /core exited 3/);
-  assert.equal(await c.finished, 1);
+  await withComponent(`process.on("SIGTERM", () => process.exit(3))`, async (c) => {
+    const close = watchChild(c.child, "core", c.finish, { asked: () => true, graceMs: 2000, settleMs: 100 });
+    process.kill(-c.child.pid!, "SIGTERM");
+    await assert.rejects(close(), /core exited 3/);
+    assert.equal(await c.finished, 1);
+  });
 });
 
 test("a crash nobody asked for is unclean", { timeout: 10_000 }, async () => {
-  await using c = await component(`setTimeout(() => process.exit(1), 100)`);
-  watchChild(c.child, "anvil", c.finish, { asked: () => false, graceMs: 2000, settleMs: 100 });
-  assert.equal(await c.finished, 1);
+  await withComponent(`setTimeout(() => process.exit(1), 100)`, async (c) => {
+    watchChild(c.child, "anvil", c.finish, { asked: () => false, graceMs: 2000, settleMs: 100 });
+    assert.equal(await c.finished, 1);
+  });
 });
 
 test("an unasked exit 0 is unclean, because the service manager would restart the wrapper mid-snapshot", { timeout: 10_000 }, async () => {
-  await using c = await component(`setTimeout(() => process.exit(0), 100)`);
-  watchChild(c.child, "site-service", c.finish, { asked: () => false, graceMs: 2000, settleMs: 300 });
-  assert.equal(await c.finished, 1);
+  await withComponent(`setTimeout(() => process.exit(0), 100)`, async (c) => {
+    watchChild(c.child, "site-service", c.finish, { asked: () => false, graceMs: 2000, settleMs: 300 });
+    assert.equal(await c.finished, 1);
+  });
 });
 
 test("a child that exits 0 just before the wrapper handles the same stop signal is clean", { timeout: 10_000 }, async () => {
   let asked = false;
-  await using c = await component(`setTimeout(() => process.exit(0), 50)`);
-  watchChild(c.child, "site-service", c.finish, { asked: () => asked, graceMs: 2000, settleMs: 500 });
-  await once(c.child, "exit");
-  void setTimeout(100).then(() => { asked = true; }); // the wrapper's own handler runs late in the same stop
-  assert.equal(await c.finished, 0);
+  await withComponent(`setTimeout(() => process.exit(0), 50)`, async (c) => {
+    watchChild(c.child, "site-service", c.finish, { asked: () => asked, graceMs: 2000, settleMs: 500 });
+    await once(c.child, "exit");
+    void setTimeout(100).then(() => { asked = true; }); // the wrapper's own handler runs late in the same stop
+    assert.equal(await c.finished, 0);
+  });
 });
