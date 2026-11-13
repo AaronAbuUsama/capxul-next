@@ -249,7 +249,8 @@
       // The SDK is an Effect Rpc client over HTTP and the CLI Effect's command line over it, so their exports show
       // Rpc's, HttpClient's and the CLI module's types. Effect 4 marks them unstable with no stable replacement; each
       // package's tsconfig.json allows them for the same reason, and the catalog's exact pin of effect is the guard.
-      "files": ["packages/sdk/**", "packages/cli/**"],
+      // A scenario's client (packages/scenarios) is typed by the blueprint's Rpc declarations, for the same reason.
+      "files": ["packages/sdk/**", "packages/cli/**", "packages/scenarios/**"],
       "rules": {
         "effecttsgo/api-stability-leak": "off"
       }
