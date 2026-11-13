@@ -1,3 +1,12 @@
+-- The security-definer functions in this file run as their owner and read RLS-forced tables (principals, org_members,
+-- parties, organizations) whose policies name only the runtime roles: an owner without BYPASSRLS would make
+-- them admit nothing, silently. Refuse such an owner here instead.
+do $$ begin
+  if not exists (select 1 from pg_roles where rolname=current_user and (rolsuper or rolbypassrls)) then
+    raise exception 'PROVISIONING_ROLE: Organizations must be migrated by a superuser or BYPASSRLS role';
+  end if;
+end $$;
+
 -- Seat source only. Access and Parties migrations must precede this explicit privileged migration.
 create table if not exists app.org_members (
   org_id text not null references app.organizations, member_id text not null,

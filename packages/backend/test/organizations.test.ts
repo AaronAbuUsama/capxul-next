@@ -4,7 +4,8 @@ import test, { before } from "node:test";
 import type { Sql } from "../src/platform/db.ts";
 import { authenticate, digest } from "../src/access/door.ts";
 import { db, ready } from "./organizations-fixture.ts";
-import { callerSafes, readSeatBySafe, requireSeat, type Actor } from "../src/organizations/door.ts";
+import pg from "pg";
+import { callerSafes, migrate, readSeatBySafe, requireSeat, type Actor } from "../src/organizations/door.ts";
 import { lookup } from "../src/parties/door.ts";
 
 const now = 946684800123, suffix = randomBytes(6).toString("hex");
@@ -159,4 +160,13 @@ test("tenant cannot write Seats, even after authentication and organization scop
     }), /permission denied/);
   }
   await as(human, sql => requireSeat(sql, orgs[0]!.id, actor(human)));
+});
+
+test("a provisioning owner without BYPASSRLS is refused rather than owning functions that admit nothing", async () => {
+  const admin = new pg.Client({ connectionString: process.env.ORGANIZATIONS_TEST_ADMIN_URL });
+  await admin.connect();
+  try {
+    await admin.query("begin; create role organizations_probe_owner nosuperuser nobypassrls; grant usage,create on schema app to organizations_probe_owner; set local role organizations_probe_owner");
+    await assert.rejects(migrate(admin), /PROVISIONING_ROLE/);
+  } finally { await admin.query("rollback"); await admin.end(); }
 });
