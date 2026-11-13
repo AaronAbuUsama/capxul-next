@@ -4,6 +4,7 @@ import { migrateAccess } from "./access/door.ts";
 import { migrateAccounts } from "./accounts/door.ts";
 import { migrateActivity } from "./activity/door.ts";
 import { migrateApprovals } from "./approvals/migrate.ts";
+import { migrate as migrateOrganizations } from "./organizations/door.ts";
 import { migratePayments } from "./payments/door.ts";
 import { required } from "./platform/config.ts";
 import { migrateOutbox } from "./platform/outbox.ts";
@@ -28,14 +29,28 @@ try {
     if (!exists.rowCount) await db.query(`create role ${role} login nosuperuser nocreatedb nocreaterole noinherit nobypassrls`);
     await db.query(`alter role ${role} nosuperuser nocreatedb nocreaterole noinherit nobypassrls password ${quote(decodeURIComponent(url.password))}`);
   }
+  // The world's base first; then the concepts in dependency order (organizations.cutover-migrate-order): the outbox,
+  // Access, Accounts and Parties, which Organizations needs; Organizations creates app.organizations, which the
+  // per-organization tables reference; Approvals renames the legacy app.approvals, then payments and Activity.
   await db.query(readFileSync(new URL("./schema.sql", import.meta.url), "utf8"));
-  await db.query(readFileSync(new URL("./parties/schema.sql", import.meta.url), "utf8"));
   await db.query("create schema if not exists ponder authorization capxul_ponder");
   // Ponder creates its versioned ponder_sync schema itself; it cannot alter/write the admin-owned app schema.
   await db.query((await db.query("select format('grant create on database %I to capxul_ponder',current_database()) as sql")).rows[0].sql);
   await db.query("grant usage on schema app to capxul_core, capxul_worker");
   await db.query("grant select on app.schema_version to capxul_core, capxul_worker");
-  const tables = ["organizations", "people", "hats", "approvals", "site_events", "consumed_facts", "site_request_answers", "transaction_traces", "records"];
+  await db.query("grant select on app.world, app.world_record to capxul_core");
+  await db.query("grant select,update on app.world to capxul_worker; grant select,insert on app.world_record to capxul_worker");
+  await db.query("grant select,insert,update on app.indexer_observation to capxul_worker");
+  await db.query("insert into app.world (world_id) values ($1) on conflict do nothing", [process.env.CAPXUL_WORLD ?? "main"]);
+  await db.query("grant usage on schema ponder to capxul_worker");
+  await db.query("alter default privileges for role capxul_ponder in schema ponder grant select on tables to capxul_worker");
+  await db.query("grant select on all tables in schema ponder to capxul_worker");
+  await migrateOutbox(db); await migrateAccess(db); await migrateAccounts(db);
+  await db.query(readFileSync(new URL("./parties/schema.sql", import.meta.url), "utf8"));
+  await migrateOrganizations(db);
+  await db.query(readFileSync(new URL("./schema-per-org.sql", import.meta.url), "utf8"));
+  // Organizations keeps its own policies and grants (organizations/schema.sql); the per-organization tables take this one.
+  const tables = ["people", "hats", "approvals", "site_events", "consumed_facts", "site_request_answers", "transaction_traces", "records"];
   for (const table of tables) {
     await db.query(`alter table app.${table} enable row level security; alter table app.${table} force row level security`);
     await db.query(`drop policy if exists tenant on app.${table}`);
@@ -46,18 +61,8 @@ try {
   }
   // Records are append-only even to the system worker.
   await db.query("revoke update on app.records from capxul_core, capxul_worker");
-  await db.query("grant select on app.world, app.world_record to capxul_core");
-  await db.query("grant select,update on app.world to capxul_worker; grant select,insert on app.world_record to capxul_worker");
-  await db.query("grant select,insert,update on app.indexer_observation to capxul_worker");
-  await db.query("insert into app.world (world_id) values ($1) on conflict do nothing", [process.env.CAPXUL_WORLD ?? "main"]);
   await db.query("grant usage on all sequences in schema app to capxul_core, capxul_worker");
-  await db.query("grant usage on schema ponder to capxul_worker");
-  await db.query("alter default privileges for role capxul_ponder in schema ponder grant select on tables to capxul_worker");
-  await db.query("grant select on all tables in schema ponder to capxul_worker");
-  // Concept schemas, in dependency order: payments emit through the outbox and read approvals; Activity follows payments.
-  // Access emits sign-in events through the outbox; Accounts references principals; later concepts read both.
-  await migrateApprovals(db); await migrateOutbox(db); await migrateAccess(db); await migrateAccounts(db);
-  await migratePayments(db); await migrateActivity(db);
+  await migrateApprovals(db); await migratePayments(db); await migrateActivity(db);
   // The world's one durable Mail sink (Access sign-in and Notices) is created here, once, with the world; never on up or restore.
   if (process.env.CAPXUL_MAIL_SINK === "devnet") {
     const { migrateMailSink } = await import("../../devnet/src/devnet/door.ts");

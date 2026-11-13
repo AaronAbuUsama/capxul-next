@@ -1443,6 +1443,43 @@ export const decision_organizations_setup_send_attempts = defineDecision({
   affects: [table_org_setups, workflow_organizations_setups_set_up],
 });
 
+export const decision_organizations_cutover_migrate_order = defineDecision({
+  id: "organizations.cutover-migrate-order",
+  title: "Core's schema splits around Organizations: base first, per-org tables after",
+  question:
+    "Core's one schema.sql created the legacy app.organizations (site, token, delivery cursors) together with the " +
+    "per-organization tables that reference it, and ran before every concept. The target app.organizations needs Parties " +
+    "and Access first and refuses to migrate over the legacy shape. Where do Organizations and those tables go in the " +
+    "world's migration?",
+  options: [
+    {
+      label: "split-around-organizations",
+      text:
+        "Split schema.sql into the world's base (schema app, schema_version, world, world_record, indexer_observation), " +
+        "applied first, and schema-per-org.sql (people, hats, the site payment approvals, site_events, consumed_facts, " +
+        "site_request_answers, transaction_traces, records), applied right after Organizations. Order: base, outbox, " +
+        "Access, Accounts, Parties, Organizations, the per-organization tables and their tenant policy, then Approvals, " +
+        "payments and Activity. The legacy app.organizations is no longer created; the target keeps its name and org_id, " +
+        "so every `references app.organizations` stays as it is.",
+    },
+    {
+      label: "drop-foreign-keys",
+      text: "Keep one schema.sql first and drop its foreign keys to app.organizations, so Organizations can come later.",
+    },
+  ],
+  chosen: "split-around-organizations",
+  why:
+    "Dropping the foreign keys would let rows for no Organization in, in Core's tables and in other lanes' (Board, Plugs, " +
+    "Sites), which reference app.organizations too. Splitting keeps every reference and only moves when each table is " +
+    "created. Organizations keeps its own policies and grants, so it leaves the legacy tenant loop, which re-run would " +
+    "otherwise undo. Approvals must still run after the per-organization tables, because it renames the legacy " +
+    "app.approvals to site_payment_approvals. A world is created fresh by the migration, so nothing is moved or dropped.",
+  source:
+    "Amp Organizations lane, 13 November 2026, ruled by the Wave Zero integrator for the Organizations cut-over; " +
+    "packages/backend/src/migrate.ts, packages/backend/src/schema.sql",
+  affects: [table_organizations],
+});
+
 // ── the command surface (surface.tree, surface.head-group; Aaron, 9 November 2026) ──────────────────────────────
 
 const SURFACE_PASS = "Claude, surface pass, 9 November 2026 (question 48)";
