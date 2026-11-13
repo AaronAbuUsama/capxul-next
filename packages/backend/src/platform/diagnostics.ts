@@ -1,3 +1,4 @@
+import { realNowMs } from "@capxul/runtime/time";
 import type { Database, Sql } from "./db.ts";
 
 export async function indexerState(db: Database, url: string, chainId: number, rpc: string, observe = false) {
@@ -7,9 +8,12 @@ export async function indexerState(db: Database, url: string, chainId: number, r
     fetch(rpc, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_blockNumber", params: [] }), signal: AbortSignal.timeout(2000) })
       .then((r) => r.json()).then((b: any) => BigInt(b.result).toString(), () => null),
   ]);
-  if (observe && head) await db.worker.query(`insert into app.indexer_observation (chain_id,indexed_block) values ($1,$2)
+  // Liveness is a host age (time.real-elapsed), never world time: the instant comes from RealTime, not a SQL clock.
+  if (observe && head) await db.worker.query(`insert into app.indexer_observation (chain_id,indexed_block,last_advance_at)
+    values ($1,$2,to_timestamp($3::double precision / 1000))
     on conflict (chain_id) do update set indexed_block=excluded.indexed_block,
-      last_advance_at=case when app.indexer_observation.indexed_block<>excluded.indexed_block then now() else app.indexer_observation.last_advance_at end`, [chainId, head.indexed_block]);
+      last_advance_at=case when app.indexer_observation.indexed_block<>excluded.indexed_block then excluded.last_advance_at
+        else app.indexer_observation.last_advance_at end`, [chainId, head.indexed_block, realNowMs()]);
   const observation = (await db.worker.query("select last_advance_at from app.indexer_observation where chain_id=$1", [chainId])).rows[0];
   const stale = head && observation && chainHead && BigInt(chainHead) > BigInt(head.indexed_block) && Date.now() - new Date(observation.last_advance_at).getTime() > 60_000;
   const reason = !response ? "Ponder readiness endpoint is unavailable" : !head ? "Ponder has no indexed head" : !chainHead ? "chain head is unavailable" : !observation ? "indexed head has no host-time observation" : BigInt(head.indexed_block) > BigInt(chainHead) ? "indexed head is ahead of the chain" : stale ? "indexed head has not advanced for 60 seconds while chain moves" : "";

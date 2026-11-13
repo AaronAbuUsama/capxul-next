@@ -61,5 +61,7 @@ create table if not exists app.world_record (
   at timestamptz not null default now()
 );
 create table if not exists app.indexer_observation (
-  chain_id integer primary key, indexed_block numeric not null, last_advance_at timestamptz not null default now()
+  chain_id integer primary key, indexed_block numeric not null, last_advance_at timestamptz not null
 );
+-- A host liveness age written from TS through RealTime (platform/diagnostics.ts); worlds migrated before this keep no default.
+alter table app.indexer_observation alter column last_advance_at drop default;
