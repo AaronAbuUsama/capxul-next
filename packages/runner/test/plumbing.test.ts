@@ -3,6 +3,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { Errors } from "@capxul/blueprint";
+import { ExpectationFailed } from "@capxul/scenarios";
 import * as Cause from "effect/Cause";
 import { describe } from "../src/failure.ts";
 import { slugOf } from "../src/record.ts";
@@ -33,4 +34,9 @@ test("a record's file name is its run's name in lower case, dashes for the rest"
 test("a refusal is described with every field it carries", () => {
   const cause = Cause.fail(Errors.NotImplemented.make({ operation: "record.export" }));
   assert.equal(describe(cause), '{"_tag":"NotImplemented","operation":"record.export"}');
+});
+
+test("a scenario's expectation is described with its message, which its enumerable fields leave out", () => {
+  const cause = Cause.fail(ExpectationFailed.make({ message: "refused with NotImplemented" }));
+  assert.equal(describe(cause), '{"_tag":"ExpectationFailed","message":"refused with NotImplemented"}');
 });
