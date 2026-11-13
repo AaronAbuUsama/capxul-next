@@ -5,7 +5,8 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 import pg from "pg";
 import { digest } from "../src/access/door.ts";
-import { rewriteRestoredSites } from "../src/devnet/door.ts";
+import { siteRequestAnswer } from "../src/approvals/door.ts";
+import { rewriteRestoredSites, worldNow } from "../src/devnet/door.ts";
 import { migrate as migrateOrganizations } from "../src/organizations/door.ts";
 import { signature } from "../src/plugs/door.ts";
 import { createCore } from "../src/server.ts";
@@ -79,7 +80,7 @@ test("Core's mounted document door authenticates, requires a Seat, reaches the s
   const core = createCore({ database: env.DATABASE_URL, workerDatabase: env.WORKER_DATABASE_URL, secret, port: 0, host: "127.0.0.1",
     url: "http://127.0.0.1", frappe: frappeUrl, ponder: "http://127.0.0.1:1", rpc: "http://127.0.0.1:1", chainId: 84532,
     socket: "http://127.0.0.1:1", startPaused: false, finality: 0, world: "town1" },
-  sitesRoutes({ world: "town1", frappe: frappeUrl, secret, provisioning: { publicOrigin: "http://127.0.0.1", rpcUrl: "http://127.0.0.1:1",
+  sitesRoutes({ world: "town1", frappe: frappeUrl, secret, worldNow, requestAnswer: siteRequestAnswer, provisioning: { publicOrigin: "http://127.0.0.1", rpcUrl: "http://127.0.0.1:1",
     coreUrl: "http://127.0.0.1:1", coreSecret: secret, siteServiceUrl: "http://127.0.0.1:1", siteServiceToken: "unused" } }));
   const base = `http://127.0.0.1:${((await core.start()) as { port: number }).port}`;
   cleanups.push(() => core.stop());
