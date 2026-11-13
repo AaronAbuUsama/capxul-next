@@ -6,6 +6,7 @@ export type { Call, OfficerChange, Permission, Proposal, ProposalStatus } from "
 export { propose, requireDirector, type BoardContext, type Propose, type Proposed } from "./proposals.ts";
 export { route as routeBoard, boardPaths, type BoardWorld } from "./routes.ts";
 export type { BoardDoors, BoardFacts, Deployment, SafeState } from "./runtime.ts";
+export { carryNonce, listProposalWaits, type CarryWorld, type Execution, type NonceKey, type SettlementFacts, type Settled } from "./carry.ts";
 
 /** Internal source read, scoped by the caller's company transaction. No settlement on reads. */
 export async function readProposal(sql: Sql, orgId: string, proposalId: string): Promise<Proposal | null> {
