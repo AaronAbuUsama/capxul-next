@@ -509,7 +509,9 @@ export const integration_service_signer = defineIntegration({
     "Companies House's claim role (a person's Safe claim) and tier key (a company Safe mint, `Installer.deployMoney`), " +
     "Budgets' executor (`Budgets.execute` of a dated payment), the escrow relayer (deploying and paying out a funded " +
     "escrow) and the testnet faucet. One send in flight per key; the signed bytes are recorded before they are broadcast, so " +
-    "a lost answer is looked up by hash and never sent twice (CAP-1097). Each key can do only its one job on chain.",
+    "a lost answer is looked up by hash and never re-signed (CAP-1097); the identical bytes are rebroadcast only when no node " +
+    "knows them and their nonce is still open (integrations.signer-rebroadcast). Each key can do only its one job on chain, " +
+    "and an account serves one job.",
   component: component_backend,
   system: "capxul service keys",
   service: "ServiceSigner",
@@ -522,6 +524,7 @@ export const integration_service_signer = defineIntegration({
       failures: [
         { when: "The nodes did not answer: the signed bytes are kept and looked up, never re-signed", error: error_PROVIDER_ERROR },
         { when: "The simulation reverted: the chain would refuse the transaction as it stands", error: error_TRANSACTION_FAILED },
+        { when: "The key's account already has sends of another job: one account never serves two lanes", error: error_INVALID_INPUT },
       ],
     },
     waitForReceipt: {
@@ -532,6 +535,7 @@ export const integration_service_signer = defineIntegration({
       failures: [
         { when: "No receipt by the deadline: the transaction may still land, so the caller looks it up later", error: error_PROVIDER_ERROR },
         { when: "The transaction reverted", error: error_TRANSACTION_FAILED },
+        { when: "It was mined without the job's event (ScheduledPaid, CapxulSafeClaimed): the receipt is kept, then refused", error: error_TRANSACTION_FAILED },
       ],
     },
   },

@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import test from "node:test";
 import pg from "pg";
-import { createPublicClient, decodeFunctionData, defineChain, http, keccak256, padHex, parseAbi, parseTransaction, stringToHex, type Address, type Hex } from "viem";
+import { createPublicClient, createWalletClient, decodeFunctionData, defineChain, http, keccak256, padHex, parseAbi, parseTransaction, stringToHex, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { claimServiceSigner, migrateServiceSigner, ServiceSignerError, type ClaimSignerConfig } from "../src/shared/door.ts";
 
@@ -83,7 +83,12 @@ test("real v4 role claim: durable bytes before ingress, lost-answer recovery, la
     const recovered = await claimServiceSigner(config).send(input);
     assert.equal(recovered.hash, stored.hash); assert.equal(broadcasts, 1);
     await assert.rejects(provider.send({ ...input, email: "different@example.test" }), code("INVALID_INPUT"));
-    await assert.rejects(provider.send({ ...input, key: "setup:person-732:1", email: "next@example.test" }), code("WRONG_STATE"));
+    // That claim was mined but nobody has read it: another key's send keeps its receipt, so the lane is free, and only
+    // then simulates (this one is refused by the chain, so nothing is signed).
+    const otherRole = claimServiceSigner({ ...config, namespace: "ungranted:namespace" });
+    await assert.rejects(otherRole.send({ ...input, key: "setup:person-732:1", email: "next@example.test" }), code("TRANSACTION_FAILED"));
+    assert.equal((await admin.query("select receipt->>'status' as status from app.service_signer_sends where request_key=$1", [input.key])).rows[0].status, "success");
+    assert.equal(broadcasts, 1);
     const receipt = await provider.waitForReceipt({ key: input.key, hash: recovered.hash });
     assert.equal(receipt.status, "success"); assert.equal(receipt.errorCode, null); assert(receipt.safe);
     const owners = await chainClient.readContract({ address: receipt.safe, abi: parseAbi(["function getOwners() view returns (address[])"]), functionName: "getOwners" });
@@ -120,6 +125,17 @@ test("real v4 role claim: durable bytes before ingress, lost-answer recovery, la
     for (const result of [a, b]) if (result.status === "rejected") assert(code("WRONG_STATE")(result.reason));
     const crashedReceipt = await provider.waitForReceipt({ key: next.key, hash: recoveredCrash.value.hash });
     assert.equal(crashedReceipt.status, "success"); assert(crashedReceipt.safe); assert.equal(broadcasts, 2);
+
+    // A mined success that carries no CapxulSafeClaimed is a failed claim: its receipt is kept (the lane is free), then
+    // refused on every read, never returned as a success.
+    const plain = await createWalletClient({ chain, account, transport: http(rpc) }).sendTransaction({ to: account.address, value: 0n });
+    assert.equal((await chainClient.waitForTransactionReceipt({ hash: plain })).status, "success");
+    await admin.query(`insert into app.service_signer_sends (account,chain_id,request_key,request_digest,raw_transaction,hash,safe,signer,attempted)
+      values ($1,84532,'setup:person-735:1','digest','0x',$2,$3,$4,true)`, [account.address.toLowerCase(), plain, crashedReceipt.safe, signer]);
+    for (let read = 0; read < 2; read++)
+      await assert.rejects(provider.waitForReceipt({ key: "setup:person-735:1", hash: plain }), code("TRANSACTION_FAILED"), `read ${read}`);
+    const kept = (await admin.query("select receipt from app.service_signer_sends where request_key='setup:person-735:1'")).rows[0].receipt;
+    assert.deepEqual([kept.status, kept.safe, kept.errorCode], ["success", null, "TRANSACTION_FAILED"]);
   } finally {
     crashChild?.kill("SIGKILL");
     server.closeAllConnections(); await new Promise<void>((resolve) => server.close(() => resolve()));

@@ -102,8 +102,12 @@ test("Budgets.execute of a real dated payment: refusal before the day, durable b
     assert(refused("PROVIDER_ERROR")(lost) && (lost as ServiceSignerError).hash, "lost answer keeps the hash");
     const hash = (lost as ServiceSignerError).hash!;
     assert.equal(broadcasts, 1); assert.deepEqual(errors, []);
-    // Another key on this executor while that send is unresolved: one send in flight per key.
-    await assert.rejects(provider.send({ key: `${key}-other`, scheduledId }), refused("WRONG_STATE"));
+    // Another key on this executor after that send was mined but never looked up: the send reads and keeps its receipt,
+    // so the lane is free, and only then simulates (this id is already paid).
+    await assert.rejects(provider.send({ key: `${key}-other`, scheduledId }), refused("TRANSACTION_FAILED", "NotPending"));
+    assert.equal((await admin.query("select receipt->>'status' as status from app.service_signer_sends where request_key=$1", [key])).rows[0].status, "success",
+      "the busy lane kept the unread receipt");
+    assert.equal(broadcasts, 1);
     // The same key with another scheduled id is not the same request.
     await assert.rejects(provider.send({ key, scheduledId: scheduledId + 1n }), refused("INVALID_INPUT"));
     dropReply = false;
@@ -141,6 +145,8 @@ test("Budgets.execute of a real dated payment: refusal before the day, durable b
     const keyTwo = `budget-execute:84532:${secondId}:1`;
     const dropped = await provider.send({ key: keyTwo, scheduledId: secondId }).then(() => assert.fail("broadcast was dropped"), (e: unknown) => e as ServiceSignerError);
     assert(refused("PROVIDER_ERROR")(dropped) && dropped.hash);
+    // While that send is truly pending (no node has it; its rebroadcast is dropped too), another key is refused.
+    await assert.rejects(provider.send({ key: `${keyTwo}-other`, scheduledId: secondId }), refused("WRONG_STATE"));
     dropBeforeNode = false;
     await send(chain, { from: holder.key, to: budgets, data: encodeFunctionData({ abi: BUDGETS, functionName: "cancel", args: [secondId] }) });
     const before = broadcasts;
