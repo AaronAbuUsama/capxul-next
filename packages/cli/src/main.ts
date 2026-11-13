@@ -1,5 +1,6 @@
 #!/usr/bin/env -S node --experimental-strip-types --no-warnings
 import { createSitesClient, ProvisioningError } from "@capxul/sdk";
+import { longFetch } from "@capxul/sdk/node";
 import { privateKeyToAccount } from "viem/accounts";
 import type { Hex } from "viem";
 import { runDocuments } from "./documents.ts";
@@ -25,7 +26,7 @@ try {
     const key = process.env.CAPXUL_PRIVATE_KEY;
     if (!/^0x[\da-fA-F]{64}$/.test(key ?? "")) throw new ProvisioningError("NOT_AUTHENTICATED", "CAPXUL_PRIVATE_KEY must contain the caller's local signing key");
     if (!process.env.CAPXUL_CORE_URL) throw new ProvisioningError("CLI_USAGE", "CAPXUL_CORE_URL is required");
-    const sites = createSitesClient({ coreUrl: process.env.CAPXUL_CORE_URL, account: privateKeyToAccount(key as Hex) });
+    const sites = createSitesClient({ coreUrl: process.env.CAPXUL_CORE_URL, account: privateKeyToAccount(key as Hex), fetch: longFetch(30 * 60_000) });
     const result = await sites.provision({ org });
     console.log(args.includes("--json") ? JSON.stringify(result) : `${result.org}: ${result.site} provisioned; Core delivery released`);
   }

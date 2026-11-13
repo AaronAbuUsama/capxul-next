@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { createHmac, randomUUID } from "node:crypto";
 import { createPublicClient, http, isAddress, recoverMessageAddress, type Address, type Hex } from "viem";
 import { PROVISION_PATH, provisioningMessage } from "@capxul/sdk";
+import { longFetch } from "@capxul/sdk/node";
 import { failure, json, readBody, ServiceError } from "./http.ts";
 import { settleSite, type ProvisioningLifecycle } from "./lifecycle.ts";
 
@@ -61,7 +62,8 @@ export function createProvisioningHandler(options: ProvisioningOptions): (req: I
         await options.lifecycle.store.begin({ org: info.slug, world: options.lifecycle.world, host: info.site, bench: options.lifecycle.bench, trace });
         creating = info.slug;
       }
-      const response = await fetch(`${options.siteServiceUrl}/sites/create`, {
+      // Built-in fetch would abandon a creation slower than 300 s; the signal below is the real budget.
+      const response = await longFetch(30 * 60_000)(`${options.siteServiceUrl}/sites/create`, {
         method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${options.siteServiceToken}`, "x-capxul-trace": trace },
         body: JSON.stringify({ org: info.slug, name: info.name, safe: info.safe, adminEmail: info.adminEmail }), signal: AbortSignal.timeout(30 * 60_000),
       });

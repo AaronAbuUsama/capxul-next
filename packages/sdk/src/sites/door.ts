@@ -14,8 +14,10 @@ export class ProvisioningError extends Error {
 }
 
 /** Public caller door. Only the caller's signer is needed; service credentials never enter the SDK. */
-export function createSitesClient(options: { coreUrl: string; account: Pick<LocalAccount, "address" | "signMessage"> }) {
-  const origin = new URL(options.coreUrl).origin;
+export function createSitesClient(options: { coreUrl: string; account: Pick<LocalAccount, "address" | "signMessage">;
+  /** Provisioning waits for the whole site creation. In Node pass `longFetch` from `@capxul/sdk/node`: built-in fetch gives up after 300 s. */
+  fetch?: typeof fetch }) {
+  const origin = new URL(options.coreUrl).origin, send = options.fetch ?? fetch;
   return {
     async provision(input: { org: string }): Promise<ProvisionedSite> {
       if (!/^[a-z][a-z0-9-]{1,30}$/.test(input.org)) throw new ProvisioningError("INVALID_INPUT", "Invalid company slug");
@@ -23,11 +25,15 @@ export function createSitesClient(options: { coreUrl: string; account: Pick<Loca
       const signature: Hex = await options.account.signMessage({ message: provisioningMessage(origin, raw) });
       let response: Response;
       try {
-        response = await fetch(`${origin}${PROVISION_PATH}`, {
+        response = await send(`${origin}${PROVISION_PATH}`, {
           method: "POST", body: raw, headers: { "content-type": "application/json", "x-capxul-signature": signature },
           signal: AbortSignal.timeout(30 * 60_000),
         });
-      } catch { throw new ProvisioningError("PROVIDER_ERROR", "Core is unreachable; retry the same company to resume provisioning"); }
+      } catch (error) {
+        // Name the transport cause (e.g. UND_ERR_HEADERS_TIMEOUT, ECONNREFUSED, TimeoutError) without echoing its message.
+        const cause = (error as { cause?: { code?: unknown } })?.cause?.code ?? (error as { code?: unknown; name?: unknown })?.code ?? (error as Error)?.name;
+        throw new ProvisioningError("PROVIDER_ERROR", `Core is unreachable (${String(cause ?? "unknown")}); retry the same company to resume provisioning`);
+      }
       const result = await response.json().catch(() => null);
       if (!response.ok) throw new ProvisioningError(result?.error?.code ?? "PROVIDER_ERROR", result?.error?.message ?? "Provisioning failed");
       if (result?.org !== input.org || !/^0x[\da-fA-F]{40}$/.test(result?.safe) || typeof result?.site !== "string" ||
