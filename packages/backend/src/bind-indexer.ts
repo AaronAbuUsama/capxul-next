@@ -30,13 +30,14 @@ export async function bindIndexer(sql: Sql) {
     await sql.query(`revoke all on app.${table} from public,capxul_core,capxul_worker`);
     await sql.query(`grant select on app.${table} to capxul_core,capxul_worker`);
   }
-  // Ponder owns these status rows; do not manufacture readiness in a historical block handler.
+  // Ponder owns these status rows; do not manufacture readiness in a historical block handler. `ready` is Ponder's
+  // backfill/rebuild state only (table indexer-progress). No clock in a predicate (time.no-direct-reads): heartbeat
+  // liveness is elapsed transport time, judged from head_seen_at by diagnostics, never by world time.
   await sql.query(`create or replace view app.indexer_progress with (security_barrier=true) as
     select p.chain_id,p.indexed_block,p.indexed_block_hash,p.indexed_block_time,
       substring(c.latest_checkpoint,27,16)::numeric as head_block,
       (m.value->>'heartbeat_at')::double precision as head_seen_at,
-      (m.value->>'is_ready')::integer=1 and (m.value->>'is_locked')::integer=1
-        and (m.value->>'heartbeat_at')::double precision > extract(epoch from clock_timestamp())*1000-60000 as ready,
+      (m.value->>'is_ready')::integer=1 and (m.value->>'is_locked')::integer=1 as ready,
       m.value->>'build_id' as build_id,(m.value->>'heartbeat_at')::double precision as updated_at
     from ponder.indexer_progress p join ponder._ponder_checkpoint c on c.chain_id=p.chain_id
     cross join ponder._ponder_meta m where m.key='app'`);
