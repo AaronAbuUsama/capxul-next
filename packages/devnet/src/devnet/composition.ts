@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Database, readSnapshotCut, rewriteRestoredWorld, updateWorldClock } from "@capxul/backend/devnet";
 import { canaryBundlerKeys, prepareBundler, suppliedAlto } from "../modules/bundler/service.ts";
 import { composeBench } from "./bench.ts";
-import { psqlAdmin, readSnapshot, restoreSnapshot, saveSnapshot, type World } from "./door.ts";
+import { migrateCatalogue, psqlAdmin, readSnapshot, restoreSnapshot, saveSnapshot, worldCatalogue,
+  type CatalogueCut, type CatalogueHistory, type Command, type World, type WorldRow } from "./door.ts";
 import { localRuntime } from "./runtime.ts";
 import { alive, command, supervised } from "./processes.ts";
 import { databaseUrl, httpReady, loopback, readConfig, stateFile, stop, up, writeConfig, type Config } from "./supervisor.ts";
@@ -14,6 +16,20 @@ import { runtimeEnv } from "./service.ts";
 async function store<T>(c: Config, world: World, run: (db: Database) => Promise<T>): Promise<T> {
   const db = new Database(databaseUrl(c.database.tenant, world), databaseUrl(c.database.worker, world));
   try { return await run(db); } finally { await db.close(); }
+}
+
+function catalogue(c: Config, world = c.world) {
+  return worldCatalogue(psqlAdmin(databaseUrl(c.database.worker, world)), [c.secret, c.siteToken,
+    c.bench.dbPassword, c.bench.adminPassword, ...Object.values(c.database).map((url) => decodeURIComponent(new URL(url).password))]);
+}
+
+async function recordedCommand(c: Config, command: string, args: object = {}): Promise<Command> {
+  const source = await store(c, c.world, (db) => readSnapshotCut(db));
+  assert.equal(source.world_id, c.world.id, "command database belongs to another world");
+  assert.equal(source.epoch, c.world.epoch, "command database belongs to another epoch");
+  assert.equal(source.clock.clockMode, "stopped", "composed catalogue requires stopped authority");
+  assert(Number.isSafeInteger(source.clock.nowMs), "invalid world clock");
+  return { trace: randomUUID(), command, args, worldTime: source.clock.nowMs, outcome: "ok", surface: "cli" };
 }
 
 export async function composeWorld(configFile: string) {
@@ -45,6 +61,23 @@ export async function composeWorld(configFile: string) {
   });
   const options = { root: c.snapshots, codeVersion: c.codeVersion, admin: psqlAdmin(c.database.admin), runtime };
   return { c, host, runtime,
+    async up() {
+      const row = await catalogue(c).show(c.world.id);
+      assert.equal(row.epoch, c.world.epoch, "catalogue belongs to another epoch");
+      assert.equal(row.chain_id, c.chainId, "catalogue belongs to another chain");
+      assert(["creating", "running", "stopped", "parked"].includes(row.state), "catalogue world cannot start in its current state");
+      await up(c, host);
+      const entry = await recordedCommand(c, "world up");
+      if (row.state === "running") await catalogue(c).append(c.world.id, entry);
+      else await catalogue(c).transition(c.world.id, row.state === "creating" ? "start" : "resume", entry);
+    },
+    async stop() {
+      // Physical stop remains available after crashes; successful catalogue recording never substitutes for it.
+      await stop(c, host);
+      const row = await catalogue(c).show(c.world.id), entry = await recordedCommand(c, "world stop");
+      if (row.state === "stopped") await catalogue(c).append(c.world.id, entry);
+      else await catalogue(c).transition(c.world.id, "stop", entry);
+    },
     async inspect() {
       const components: Record<string, { pid: number; birth: string; codeVersion: string }> = {};
       for (const component of ["anvil", "ponder", "site-service", "core", "ingress", ...(c.bundler ? ["bundler" as const] : [])] as const) {
@@ -75,15 +108,70 @@ export async function composeWorld(configFile: string) {
         bench: containers.map((container) => ({ service: container.Config.Labels["com.docker.compose.service"], image: container.Image, running: container.State.Running, health: container.State.Health?.Status ?? null })),
         bundlerConfigured: !!c.bundler };
     },
-    save: (id: string) => saveSnapshot(options, c.world, id),
+    async save(id: string) {
+      const row = await catalogue(c).show(c.world.id);
+      assert.equal(row.epoch, c.world.epoch, "catalogue belongs to another epoch");
+      assert.equal(row.state, "running", "snapshot catalogue world must be running");
+      let saved: CatalogueCut | undefined;
+      const manifest = await saveSnapshot({ ...options, runtime: { ...runtime,
+        async quiesce(world) {
+          const cut = await runtime.quiesce(world);
+          saved = await catalogue(c, world).cut(world.id);
+          return cut;
+        },
+      } }, c.world, id);
+      assert(saved, "snapshot has no drained catalogue cut");
+      assert.equal(saved.epoch, manifest.epoch, "snapshot catalogue epoch differs");
+      await catalogue(c).save({ world_id: c.world.id, name: id, epoch: saved.epoch, record_seq: saved.seq,
+        chain_state_ref: join(c.snapshots, id, "state", "anvil-state.json"),
+        site_backups: manifest.sites.map((site) => ({ org_id: site.company, backup_ref: join(c.snapshots, id, "sites", site.company) })),
+        clock_mode: manifest.cut.clockMode === "stopped" ? "frozen" : "running", rate: manifest.cut.rate,
+        world_now: manifest.cut.nowMs, code_version: manifest.codeVersion, template: false, created_at: Date.parse(manifest.createdAt),
+      }, await recordedCommand(c, "world snapshot save", { snapshot: id }));
+      return manifest;
+    },
     read: (id: string) => readSnapshot(options, id),
-    restore: (id: string) => restoreSnapshot(options, id, c.world),
+    async restore(id: string) {
+      const manifest = await readSnapshot(options, id);
+      let abandoned: CatalogueHistory | undefined;
+      return restoreSnapshot({ ...options, runtime: { ...runtime,
+        async quiesce(world) {
+          const cut = await runtime.quiesce(world);
+          // Read while the drained source still accepts connections, before it is renamed and fenced.
+          if (world.id === manifest.world) abandoned = await catalogue(c, world).history(world.id);
+          return cut;
+        },
+        async rewrite(world, saved, abandonedDatabase) {
+          const target = catalogue(c, world);
+          const history = await target.history(saved.world), source = await target.show(saved.world);
+          assert.equal(history.cut.epoch, saved.epoch, "restored catalogue epoch differs from snapshot");
+          const row: WorldRow = { ...source, world_id: world.id, name: world.id === saved.world ? source.name : world.id,
+            kind: world.kind, address: loopback(c.ports.publicCore), chain_instance: `anvil-${world.id}`,
+            epoch: world.epoch, clock_mode: saved.cut.clockMode === "stopped" ? "frozen" : "running",
+            world_now: saved.cut.nowMs, rate: saved.cut.rate, updated_at: Date.now(),
+            ...(world.id === saved.world ? {} : { created_at: Date.now(), parent_world: saved.world, parent_snapshot: saved.id, parent_seq: history.cut.seq }),
+          };
+          assert.equal(!!abandonedDatabase, !!abandoned, "in-place restore requires its actual drained catalogue history");
+          await target.rewrite(row, { sourceWorld: saved.world, snapshot: saved.id, cut: history.cut,
+            ...(abandoned ? { abandoned } : {}),
+          }, { trace: randomUUID(), command: "world snapshot restore", args: { snapshot: saved.id },
+            worldTime: saved.cut.nowMs, outcome: "ok", surface: "cli" });
+          await runtime.rewrite(world, saved, abandonedDatabase);
+        },
+        async resume(world) {
+          await runtime.resume(world);
+          const row = await catalogue(c, world).show(world.id);
+          await catalogue(c, world).transition(world.id, row.state === "creating" ? "start" : "restored",
+            await recordedCommand(c, "world snapshot restore resumed", { snapshot: id }));
+        },
+      } }, id, c.world);
+    },
   };
 }
 
 /** The only schema-writing path. Existing worlds and restored databases cannot enter it. */
 export async function createWorld(configFile: string): Promise<void> {
-  const { c, host } = await composeWorld(configFile);
+  const stack = await composeWorld(configFile), { c, host } = stack;
   const admin = psqlAdmin(c.database.admin);
   const db = c.world.database;
   const literal = `'${db.replaceAll("'", "''")}'`;
@@ -97,6 +185,8 @@ export async function createWorld(configFile: string): Promise<void> {
     await copyFile(join(c.root, "packages/contracts/state/core.json"), join(c.world.stateDir, "anvil-state.json"));
     await admin(`CREATE DATABASE "${db}"`);
     await command(["pnpm", "--filter", "@capxul/backend", "migrate"], c.root, env);
+    // Narrow fresh-create migration from PR77 8144d0a; no UI or cloud-supervisor changes adopted.
+    await migrateCatalogue(psqlAdmin(databaseUrl(c.database.admin, c.world)));
     await host.start("anvil");
     await initializeDeployment(c);
     await writeConfig(configFile, c);
@@ -108,10 +198,16 @@ export async function createWorld(configFile: string): Promise<void> {
     const clock = { nowMs: Number(block.timestamp) * 1000, clockMode: "stopped" as const, rate: 1 };
     await writeFile(join(c.world.stateDir, "clock.json"), JSON.stringify(clock), { flag: "wx", mode: 0o600 });
     await store(c, c.world, (db) => updateWorldClock(db, clock));
+    const now = Date.now();
+    await catalogue(c).create({ world_id: c.world.id, name: c.world.id, kind: c.world.kind, profile: "full",
+      address: loopback(c.ports.publicCore), template: null, chain_id: c.chainId, chain_instance: `anvil-${c.world.id}`,
+      clock_mode: "frozen", rate: clock.rate, world_now: clock.nowMs, epoch: c.world.epoch,
+      parent_world: null, parent_snapshot: null, parent_seq: null, hosted: false, state: "creating", created_at: now, updated_at: now,
+    }, await recordedCommand(c, "world create"));
     await host.start("ponder");
     await command(["pnpm", "--filter", "@capxul/backend", "bind-indexer"], c.root, env);
     await rm(join(c.world.stateDir, "create-pending.json"));
-    await up(c, host);
+    await stack.up();
   } catch (error) {
     try { await stop(c, host); } catch (cleanup) { throw new AggregateError([error, cleanup], "world creation failed and remains fenced; inspect pending state"); }
     throw error;

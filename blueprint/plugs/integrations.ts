@@ -71,6 +71,13 @@ export const integration_frappe_site = defineIntegration({
       p95Ms: 2_000,
       failures: [down, badSig, unusable, { when: "The person has no viewer or site user for this Organization", error: error_ROLE_PERMISSION_DENIED }],
     },
+    readHatMap: {
+      about: "POST capxul.service.read_hat_map: {map_version,hats,available_roles} from release data and native Roles. Verify admitted hash, exact map and availability or refuse PROVIDER_RESPONSE_INVALID. No numeric-hat admission, departments, job/scope or people.",
+      timeoutMs: 5_000,
+      retries: { max: 2, backoff: "exponential" },
+      p95Ms: 2_000,
+      failures: [down, badSig, unusable],
+    },
     readSite: {
       about: "POST capxul.service.read_site: Capxul app version, installed apps, Company, feature rows, map_version and sign_in:{mode:'assertion',configured,oauth}. Observe the actual assertion hook and legacy OAuth row, never infer sign-in from provisioning. Reads only.",
       timeoutMs: 5_000,
