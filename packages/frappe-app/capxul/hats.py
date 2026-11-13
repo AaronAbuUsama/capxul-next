@@ -1,6 +1,7 @@
 """hat_granted / hat_revoked -> Frappe User, Has Role, User Permission."""
 import hashlib
 import json
+import re
 
 import frappe
 
@@ -40,6 +41,22 @@ def reproject_grants():
                 drop = old[email] - roles
                 if drop:
                     user.remove_roles(*drop)
+                    forget_masks(email)
+
+
+def _forget(email):
+    """Delete exactly this user's masked-field cache entries. Frappe's get_keys appends `*`, so a glob alone would also
+    clear a@x.com and a@x.co.uk for a@x.co; keep only keys that end with this user."""
+    pattern = "masked_fields::*::" + re.sub(r"([\\*?\[\]])", r"\\\1", email)
+    suffix = "::" + email
+    keys = [k for k in frappe.cache.get_keys(pattern) if (k.decode() if isinstance(k, bytes) else k).endswith(suffix)]
+    frappe.cache.delete_value(keys, make_keys=False)
+
+
+def forget_masks(email):
+    """Frappe caches a user's masked fields per role (masked_fields::<doctype>::<parent>::<user>) and never clears them when
+    roles change, so desk and REST would keep the old masking. Drop the user's entries once the role change commits."""
+    frappe.db.after_commit.add(lambda: _forget(email))
 
 
 def ensure_department(name):
@@ -78,6 +95,7 @@ def ensure_user(email, full_name, roles):
         add = [r for r in roles if r not in have]
         if add:
             user.add_roles(*add)
+            forget_masks(email)
         return user
     first, _, last = (full_name or email).partition(" ")
     user = frappe.get_doc(
@@ -134,6 +152,7 @@ def apply_hat_revoked(data, event_key=None):
         drop = gave - keep
         if drop and frappe.db.exists("User", email):
             frappe.get_doc("User", email).remove_roles(*drop)
+            forget_masks(email)
         if dept and not any(g.department == dept for g in remaining):
             dname = frappe.db.get_value("Department", {"department_name": dept}) or dept
             for up in frappe.get_all("User Permission", {"user": email, "allow": "Department", "for_value": dname}):

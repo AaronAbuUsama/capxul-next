@@ -375,6 +375,20 @@ export const decision_plugs_ledger_trace_display = dec({
   affects: [f.component_frappe_app, doctype_gl_entry],
 });
 
+export const decision_plugs_request_starts_trace = dec({
+  id: "plugs.request-starts-trace",
+  title: "A payment request starts the money trail's trace when no caller sent one",
+  question: "A person who presses Submit in the desk sends no X-Capxul-Trace, so the request, its chain event and its ledger rows carry an empty trace. Where does the trace come from then?",
+  options: [
+    { label: "request-starts", text: "request_payment keeps a caller's trace and otherwise starts one (tr_ plus 24 random lowercase characters) before writing the request row. The request body carries it to Core, the approval and PaymentSent bring it back, and the posted GL rows are stamped with it." },
+    { label: "caller-only", text: "Only callers that send a trace get one; desk submissions post untraced ledger rows." },
+  ],
+  chosen: "request-starts",
+  why: "plugs.ledger-trace-display requires the settled payment's GL rows to show one persisted trace, and the desk is the ordinary way a person requests a payment. On world scrz1 (run run-20261113054032098-f6e9c408) the hat holder's request carried no trace, both GL rows of the settled payment had a null capxul_trace and ACCEPT.money-reconciled failed. A trace started at the request is the earliest point both the site and Core share.",
+  evidence: "Selected-stack run run-20261113054032098-f6e9c408 on world scrz1, 13 November 2026",
+  affects: [f.component_frappe_app, d.table_payment_requests, doctype_gl_entry],
+});
+
 export const decision_plugs_later_deposits = dec({
   id: "plugs.later-deposits",
   title: "Later incoming transfers are not founder capital",
@@ -395,6 +409,61 @@ export const decision_plugs_answer_origin = dec({
   why: "A site commits an answer before Core knows it was accepted. Regenerating the URL from runtime configuration makes a legitimate retry conflict with the full answer_json. Persisting the exact answer closes that crash window; coordinated explicit restore rebasing keeps links inside the cloned world without weakening conflicting-answer checks or rewriting financial history.",
   evidence: "PR #34 mirror finding 4548573454, 12 November 2026; capxul.payments.answer_request durable answer comparison",
   affects: [f.component_frappe_app, integration_frappe_site, d.table_payment_requests, d.table_site_request_cursors, pr.workflow_plugs_payments_collect],
+});
+
+export const decision_plugs_typed_site_transport = dec({
+  id: "plugs.typed-site-transport",
+  title: "One typed, signed site transport for workflows and product calls",
+  question: "How do the collector, event delivery and public document door agree on site failures and successful acknowledgements?",
+  options: [{ label: "typed-provider", text: "The backend FrappeSite Effect service owns a configured transport origin and secret, signs exact request bytes and short-lived user assertions, refuses redirects, bounds timeouts/retries and validates response schemas and request/tenant/cursor identities. Network failures, 401 and 5xx map to PROVIDER_ERROR; invalid successful answers map to PROVIDER_RESPONSE_INVALID. Product run/report responses carry explicit ok/data or ok/error envelopes. A native FeatureNotAvailable PermissionError subclass distinguishes disabled features without matching translated text. Native permission and missing-document failures retain the declared public error vocabulary. A missing readSite method is WRONG_STATE. HTTP 409 event cursor conflicts retain the site's expected sequence for durable replay; they never acknowledge money. The existing checked-out SQL connection and complete saved collector answer remain authoritative." }],
+  chosen: "typed-provider",
+  why: "The durable workflow's narrow fetch calls do not implement the declared FrappeSite error contract. Sharing one schema-checked provider prevents public handlers and workflows from interpreting the same failed site call differently, while keeping all requests inbound to the site and all transaction ownership in the existing invoker.",
+  evidence: "Slice-zero plugs binding audit and product-door/provider ownership agreement, 12 November 2026; packages/backend/src/plugs/collector.ts and door.ts",
+  affects: [f.component_backend, f.component_frappe_app, integration_frappe_site, pr.workflow_plugs_payments_collect, pr.workflow_plugs_events_deliver],
+});
+
+export const decision_plugs_native_feature_defaults = dec({
+  id: "plugs.native-feature-defaults",
+  title: "Native feature readiness reports the eleven declared switches",
+  question: "How does native feature setup satisfy Sites' recorded defaults without hiding existing choices?",
+  options: [{ label: "seed-and-observe", text: "New native sites seed accounts, people, projects and crm on; payroll, whatsapp, attendance, recruitment, reviews, stock and manufacturing off. Migration adds missing switches and refreshes caches and user module blocks, preserving existing choices rather than resetting them during configure or restore. On pinned HRMS the split attendance, recruitment and performance DocTypes still live in HR, so feature records name those DocTypes explicitly; their document APIs close without closing Employee, leave, expenses or shared project timesheets. readSite returns the actual native rows, never substituted defaults." }],
+  chosen: "seed-and-observe",
+  why: "PR57's real readiness comparison exposed the native eight-feature/payroll-on catalog. Module names alone cannot close the split features on this HRMS release. Recording explicit DocTypes makes the blueprint comparison cover the native guard as well as the default list; discovery types/schema and disabled-DocType guards use this same explicit ownership before falling back to module ownership. A shared native module cannot be blocked wholesale while it contains an enabled feature's explicitly owned DocTypes: those DocTypes remain reachable and the disabled feature's other DocTypes are still refused individually. Existing enabled payroll cannot safely be guessed to be an old default rather than an intentional choice; readiness must report that drift honestly.",
+  evidence: "PR57 mirror finding4549544850; native boundary.localhost read_site and HRMS DocType/module observation, 12 November 2026",
+  affects: [f.component_frappe_app, integration_frappe_site],
+});
+
+export const decision_plugs_role_projections = dec({
+  id: "plugs.role-projections",
+  title: "Persist role authority and its exact transitions in the source transaction",
+  question: "How do a finalized hat occurrence and the site's acknowledgement survive a Core restart?",
+  options: [{ label: "transactional-projections", text: "Tenant-keyed site-users and role-grants live in Postgres, readable in exact organization owner scope and writable only by the trusted worker. The source transaction records the grant and user, enqueues native delivery and appends the exact role_grant_transitioned event together. It receives canonical person identity and finalized occurrence identity from authoritative composition, never invents a person from email or an address. A matching native map-version acknowledgement applies the grant; a failed acknowledgement records failure. A finalized revoke retires a pending grant or revokes an applied/failed grant, queues removal and preserves roles supplied by other applied grants. Caller-supplied world milliseconds date rows and events; there is no host-time business fallback." }],
+  chosen: "transactional-projections",
+  why: "The legacy organization directory and native grant rows do not establish Core's declared projections or exact events. A caller-owned transaction closes the state/event/delivery crash window without copying ERPNext documents or sending a provider request inside the common outbox ACK. Native hats treat null and empty departments as the same unscoped identity: new rows use null and retention compares that equivalence, without rewriting committed transition history. This storage boundary does not manufacture the still-pending authoritative person/finalized-fact export or claim the workflow is mounted.",
+  evidence: "Slice-zero plugs continuation; landed common outbox and canonical clock contracts, 12 November 2026",
+  affects: [d.table_site_users, d.table_role_grants, d.machine_role_grant, pr.workflow_plugs_roles_project],
+});
+
+export const decision_plugs_role_delivery = dec({
+  id: "plugs.role-delivery",
+  title: "Settle native role acknowledgements with the authoritative clock",
+  question: "Where does a native role acknowledgement become durable Core authority?",
+  options: [{ label: "atomic-ack", text: "Existing delivery and parked repair settle the site's ACK, grant transition and exact outbox emission on the same caller Sql. worldNow reads that transaction's stored stopped clock; missing, malformed or running clocks refuse without a host/block-time fallback. Historical projected grants still validate that clock and date each new ACK at stored world-ms without changing the original grant or outbox event. Legacy events with no projection retain their existing behavior. Only provider transport failures enter delivery retry handling; settlement failures propagate and roll back. A successful matching native map applies a pending/failed grant, parked failure fails a pending grant, and historical applied/revoked replay cannot resurrect authority. Native readHatMap observes release DEFAULT_HAT_ROLES, its canonical hash and actual installed Role availability. The backend admits only its known release hash and refuses altered maps or unavailable roles. The map contains no numeric chain-hat admission, departments, jobs, scope or person names; those remain separate authoritative composition prerequisites." }],
+  chosen: "atomic-ack",
+  why: "Catching a clock or transition failure after ACK writes can commit delivery without its authority event. A read-only native map observation closes the release/availability gap without accepting editable hat registration as chain admission or inventing department/name metadata.",
+  evidence: "Integrator's same-Sql worldNow and migration agreement, landed wave458a747; native setup.DEFAULT_HAT_ROLES and hats.map_version, 12 November 2026",
+  affects: [integration_frappe_site, d.machine_role_grant, pr.workflow_plugs_events_deliver],
+});
+
+export const decision_plugs_selected_observations = dec({
+  id: "plugs.selected-observations",
+  title: "Selected Plugs checks do not inherit skeleton acceptance",
+  question: "What can the selected Plugs runner establish before the authority and public lifecycle composition is complete?",
+  options: [{ label: "same-run-observations", text: "Require a running selected Postgres/Ponder/ERPNext/v4 receipt for the current source, private configuration and matching live world/epoch/site. Read the native release map, actual site readiness and committed saved answers against the native request outbox. These are near-only observations, not grants, public commands, replay/crash controls or lifecycle acceptance. Remove the legacy main-world JSON skeleton replay binding instead of reusing its evidence. No selected claim passes until its complete public scenario executes in that fresh run." }],
+  chosen: "same-run-observations",
+  why: "The old Plugs binding launches a main-world skeleton and cannot prove the selected backend. Release-map availability does not authorize a numeric hat or bootstrap a native user; a consistent saved answer alone does not prove lost-ACK replay. Keeping those limits explicit prevents component history or synthetic fixture grants from silently satisfying selected evals.",
+  evidence: "Wave0 integrator source/selected-run ownership agreement, 12 November 2026; evals/bindings/plugs.json legacy skeleton binding",
+  affects: [integration_frappe_site, pr.workflow_plugs_payments_collect, pr.workflow_plugs_events_deliver],
 });
 
 void ops; 

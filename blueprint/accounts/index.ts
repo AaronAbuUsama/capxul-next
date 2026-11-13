@@ -11,5 +11,6 @@ import * as processes from "./processes.ts";
 import * as flows from "./flows.ts";
 import * as operations from "./operations.ts";
 import * as decisions from "./decisions.ts";
+import * as runtime from "./runtime.ts";
 
-export const modules = [stateGaps, data, procedures, admission, setup, grants, processes, flows, operations, decisions] as const;
+export const modules = [stateGaps, data, procedures, admission, setup, grants, processes, flows, operations, decisions, runtime] as const;

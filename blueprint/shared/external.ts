@@ -140,7 +140,12 @@ export const integration_bundler = defineIntegration({
           error: error_ROLE_PERMISSION_DENIED,
         },
         { when: "The simulation reverts for any other reason: the chain would refuse the operation as it stands", error: error_TRANSACTION_FAILED },
-        { when: "The paymaster answer has no paymaster data, or a window that is zero or already past", error: error_PROVIDER_RESPONSE_INVALID },
+        { when: "The paymaster answer has no paymaster data, or its validated window is not exactly the one requested (zero, open, narrowed or widened)", error: error_PROVIDER_RESPONSE_INVALID },
+        { when: "The canonical world clock has reached the approval's deadline, before or during sponsorship: the approval has expired", error: error_WRONG_STATE },
+        {
+          when: "The gateway's reply is not JSON (truncated or proxied), it answers throttled or banned (ERC-7769 -32504), or a chain read fails with a node's internal error, missing header or gas cap: an outage, retried",
+          error: error_PROVIDER_ERROR,
+        },
       ],
     },
     send: {
@@ -1410,6 +1415,7 @@ export const contract_safe = defineContract({
     },
     getOwners: { signature: "getOwners() view returns (address[])", about: "A Safe's owners: an agent's sign-in proof, a Board's signers." },
     getThreshold: { signature: "getThreshold() view returns (uint256)", about: "How many approvals a Board proposal needs." },
+    nonce: { signature: "nonce() view returns (uint256)", about: "The Safe transaction nonce, read with owners and threshold at the same pinned block when planning a Board proposal." },
   },
   events: {
     ApproveHash: { signature: "ApproveHash(bytes32 indexed approvedHash, address indexed owner)", about: "A Director approved a proposal." },
@@ -1551,6 +1557,7 @@ export const contract_hats_signer_gate = defineContract({
     claimSignerFor: { signature: "claimSignerFor(uint256 hatId, address signer)", about: "Seats a Director the founder added." },
     removeSigner: { signature: "removeSigner(address signer)", about: "Removes a signer whose hat lapsed." },
     setThresholdConfig: { signature: "setThresholdConfig(ThresholdConfig thresholdConfig)", about: "Sets the Board's threshold." },
+    thresholdConfig: { signature: "thresholdConfig() view returns ((uint8 thresholdType, uint120 min, uint120 target) config)", about: "Reads the Gate's configured threshold rule; Board combines it with live owners and signer validity for lapsed-owner cleanup." },
     isValidSigner: { signature: "isValidSigner(address account) view returns (bool valid)", about: "Whether a Director still wears the hat." },
   },
   events: {},

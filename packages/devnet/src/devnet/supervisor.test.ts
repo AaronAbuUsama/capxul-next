@@ -51,8 +51,9 @@ test("runtime children receive only their restricted world credentials, never op
   } finally { delete process.env.PG_ADMIN_URL; delete process.env.CAPXUL_PRIVATE_KEY; }
 });
 
-test("gate supplies the selected tenant database to runners and retains their failed verdict", async () => {
-  const root = await mkdtemp(join(tmpdir(), "world-gate-env-")), c = config(root), previous = process.env.PATH;
+test("gate retains host supervision context without operator credentials and preserves a failed verdict", async () => {
+  const root = await mkdtemp(join(tmpdir(), "world-gate-env-")), c = config(root);
+  const previous = { PATH: process.env.PATH, AMP_ORB: process.env.AMP_ORB, USER: process.env.USER, AMP_THREAD_IDENTITY_AUTH: process.env.AMP_THREAD_IDENTITY_AUTH };
   try {
     await mkdir(c.controlDir);
     for (const dir of ["packages/bench-image", "packages/indexer"]) await mkdir(join(root, dir), { recursive: true });
@@ -65,6 +66,8 @@ else {
   const url=new URL(process.env.CAPXUL_STORAGE_EVAL_DATABASE);
   assert.equal(url.username,"capxul_core"); assert.equal(url.pathname,"/world_slice0"); assert.equal(url.password,"tenant-secret");
   assert.equal(process.env.PG_ADMIN_URL,undefined); assert.equal(process.env.WORKER_DATABASE_URL,undefined);
+  assert.equal(process.env.AMP_ORB,"1"); assert.equal(process.env.AMP_THREAD_IDENTITY_AUTH,undefined);
+  assert.equal(process.env.USER,require("node:os").userInfo().username);
   const args=process.argv,env=JSON.parse(fs.readFileSync(args[args.indexOf("--environment")+1],"utf8"));
   const at=new Date().toISOString(),id="run-storage",dir=path.resolve("status/runs",id); fs.mkdirSync(dir,{recursive:true});
   fs.writeFileSync(path.join(dir,"receipt.json"),JSON.stringify({version:1,id,state:"complete",commit:env.components.core,at,finishedAt:at,environment:env,
@@ -73,10 +76,15 @@ else {
   console.log(JSON.stringify({version:1,run:id,runDir:"status/runs/"+id,state:"complete",passed:false,exitCode:1})); process.exitCode=1;
 }
 `, { mode: 0o700 });
-    process.env.PATH = `${root}:${previous}`;
+    process.env.PATH = `${root}:${previous.PATH}`;
+    process.env.AMP_ORB = "1";
+    process.env.USER = "not-the-operating-system-caller";
+    process.env.AMP_THREAD_IDENTITY_AUTH = "unrelated-operator-credential";
+    assert.equal(runtimeEnv(c, "core").AMP_ORB, undefined, "application children do not acquire host supervision context");
+    assert.equal(runtimeEnv(c, "core").USER, undefined, "application children do not acquire host execution identity");
     assert.equal(await runGate(c, "harbourline", "private-run-token", join(root, "config.json")), 1);
   } finally {
-    if (previous === undefined) delete process.env.PATH; else process.env.PATH = previous;
+    for (const [key, value] of Object.entries(previous)) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
     await rm(root, { recursive: true });
   }
 });
@@ -173,12 +181,14 @@ test("slice acceptance requires the full fresh same-run contract and every sourc
   await mkdir(directory, { recursive: true });
   const at = new Date().toISOString(), started = Date.parse(at);
   const environment = { world: "slice-zero", stack: "postgres-ponder-erpnext-v4", storage: "postgres", indexer: "ponder", components: { core: "fixture" } } as const;
-  const required = ["opaque-b", "opaque-a"];
+  // The gate's screen list comes from the requested shows claims, not a fixed list.
+  const shows = ["supplier-invoice", "payment-entry", "general-ledger", "safe-trial-balance"];
+  const required = ["opaque-b", "opaque-a", ...shows.map((screen) => `scr:${screen}/shows`), "scr:payment-entry/refuses"];
   const receipt = { version: 1, id: "run-test", state: "complete", commit: "fixture", at, finishedAt: at, environment,
     requested: required, evals: required.map((id) => ({ id, claim: `claim ${id}` })), scripts: [],
     prepare: { argv: ["actual-prepare"], exitCode: 0, signal: null, log: "prepare.log" },
-    screens: ["supplier-invoice", "payment-entry", "general-ledger", "trial-balance"].map((screen) => ({ screen, path: `${screen}.png`, source: "source.json", assertion: "source-equality" })) };
-  const summary = { version: 1, run: receipt.id, runDir: "status/runs/run-test", state: "complete", passed: true, counts: { pass: 2, fail: 0, not_run: 0 }, exitCode: 0 };
+    screens: shows.map((screen, i) => ({ screen: i === 0 ? `screen:${screen}` : screen, path: `${screen}.png`, source: `source.json#/${screen}/value`, assertion: "source-equality" })) };
+  const summary = { version: 1, run: receipt.id, runDir: "status/runs/run-test", state: "complete", passed: true, counts: { pass: required.length, fail: 0, not_run: 0 }, exitCode: 0 };
   const status = { version: 1, evals: Object.fromEntries(required.map((id) => [id, { verdict: "pass", commit: "fixture", at, run: receipt.id, claim: `claim ${id}` }])) };
   const save = async () => { await writeFile(join(directory, "receipt.json"), JSON.stringify(receipt)); await writeFile(join(directory, "status.json"), JSON.stringify(status)); };
   try {
@@ -186,7 +196,8 @@ test("slice acceptance requires the full fresh same-run contract and every sourc
     await writeFile(join(directory, "prepare.log"), "prepared");
     const preparation = { run: { id: receipt.id, at, commit: "fixture" } };
     await writeFile(join(directory, "preparation.json"), JSON.stringify(preparation));
-    await writeFile(join(directory, "source.json"), "{}");
+    const sources = JSON.stringify(Object.fromEntries(shows.map((screen) => [screen, { value: 1 }])));
+    await writeFile(join(directory, "source.json"), sources);
     await save(); assert.equal(await verifyRun(root, summary, required, environment, started), true);
     receipt.prepare.exitCode = 1; await save();
     await assert.rejects(verifyRun(root, summary, required, environment, started), /preparation|invalid/);
@@ -196,10 +207,17 @@ test("slice acceptance requires the full fresh same-run contract and every sourc
     preparation.run.id = receipt.id; await writeFile(join(directory, "preparation.json"), JSON.stringify(preparation));
     receipt.screens[0]!.source = "../older-source.json"; await save();
     await assert.rejects(verifyRun(root, summary, required, environment, started), /belong to this run/);
-    receipt.screens[0]!.source = "source.json"; await save();
+    receipt.screens[0]!.source = "source.json#/supplier-invoice/missing"; await save();
+    await assert.rejects(verifyRun(root, summary, required, environment, started), /names no value/);
+    // RFC 6901: a pointer starts with "/" and follows only own keys.
+    for (const pointer of ["supplier-invoice", "/constructor"]) {
+      receipt.screens[0]!.source = `source.json#${pointer}`; await save();
+      await assert.rejects(verifyRun(root, summary, required, environment, started), /names no value/);
+    }
+    receipt.screens[0]!.source = "source.json#/supplier-invoice/value"; await save();
     await writeFile(join(directory, "source.json"), "");
     await assert.rejects(verifyRun(root, summary, required, environment, started), /source evidence/);
-    await writeFile(join(directory, "source.json"), "{}");
+    await writeFile(join(directory, "source.json"), sources);
     await assert.rejects(verifyRun(root, summary, required.slice(0, 1), environment, started));
     await assert.rejects(verifyRun(root, summary, required, { ...environment, storage: "json" }, started));
     await assert.rejects(verifyRun(root, summary, required, environment, started + 1), /predates/);
@@ -209,7 +227,7 @@ test("slice acceptance requires the full fresh same-run contract and every sourc
     status.evals["opaque-a"]!.run = "previous-run"; await save();
     await assert.rejects(verifyRun(root, summary, required, environment, started), /fresh/);
     status.evals["opaque-a"]!.run = receipt.id; receipt.screens.pop(); await save();
-    await assert.rejects(verifyRun(root, summary, required, environment, started), /trial-balance/);
+    await assert.rejects(verifyRun(root, summary, required, environment, started), /safe-trial-balance/);
     status.evals["opaque-a"]!.verdict = "not_run"; await save();
     assert.equal(await verifyRun(root, { ...summary, passed: false, exitCode: 1 }, required, environment, started), false);
   } finally { await rm(root, { recursive: true }); }

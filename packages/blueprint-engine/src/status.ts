@@ -25,6 +25,17 @@ export type RunEnvironment = typeof RunEnvironment.Type;
 const RelativePath = Nonempty.pipe(Schema.check(Schema.isPattern(/^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))(?!.*[:\\]).+$/)));
 export const ScreenEvidence = Schema.Struct({ screen: Nonempty, path: RelativePath, source: Nonempty, assertion: Nonempty });
 export type ScreenEvidence = typeof ScreenEvidence.Type;
+/** The value a screen source names: `file#pointer`, the pointer per RFC 6901 ("" or "/a/b", with ~1 for "/" and ~0 for "~"),
+ * following only own properties. `undefined` when the pointer is malformed or names nothing. */
+export const pointerValue = (doc: unknown, pointer: string): unknown => {
+  if (pointer !== "" && !pointer.startsWith("/")) return undefined;
+  let at = doc;
+  for (const token of pointer === "" ? [] : pointer.slice(1).split("/").map((t) => t.replaceAll("~1", "/").replaceAll("~0", "~"))) {
+    if (at === null || typeof at !== "object" || !Object.hasOwn(at, token)) return undefined;
+    at = (at as Record<string, unknown>)[token];
+  }
+  return at;
+};
 
 /** Written before execution, finalized after it. Missing or running receipts cannot establish completion. */
 export const RunReceipt = Schema.Struct({
@@ -37,7 +48,10 @@ export const RunReceipt = Schema.Struct({
   environment: RunEnvironment,
   requested: Schema.Array(Nonempty),
   evals: Schema.Array(Schema.Struct({ id: Nonempty, claim: Nonempty, observes: Schema.optionalKey(Nonempty) })),
-  scripts: Schema.Array(Schema.Struct({ script: Nonempty, exitCode: Schema.NullOr(Schema.Int), signal: Schema.NullOr(Nonempty) })),
+  scripts: Schema.Array(Schema.Struct({
+    script: Nonempty, exitCode: Schema.NullOr(Schema.Int), signal: Schema.NullOr(Nonempty),
+    evals: Schema.optionalKey(Schema.Array(Nonempty)), completed: Schema.optionalKey(Schema.Boolean),
+  })),
   prepare: Schema.optionalKey(Schema.Struct({
     argv: Schema.Array(Schema.String), exitCode: Schema.NullOr(Schema.Int), signal: Schema.NullOr(Nonempty), log: Schema.Literal("prepare.log"),
   })),
@@ -93,9 +107,23 @@ export const parseRunReceipt = (u: unknown): Parsed<RunReceipt> => {
     return { ok: false, errors: ["receipt contracts must match every requested eval exactly once"] };
   if (r.prepare && (!r.prepare.argv[0] || r.prepare.argv.some((arg) => arg.includes("\0"))))
     return { ok: false, errors: ["preparation argv must name an executable and contain only NUL-free arguments"] };
-  if (r.state === "complete" && (!r.finishedAt || Date.parse(r.finishedAt) < Date.parse(r.at) || r.scripts.some((s) => s.exitCode !== 0 || s.signal !== null) ||
+  const planned = r.scripts.some((s) => s.evals !== undefined || s.completed !== undefined);
+  if (planned) {
+    const assigned = r.scripts.flatMap((s) => s.evals ?? []);
+    if (r.scripts.some((s) => !s.evals?.length || s.completed === undefined) ||
+      new Set(r.scripts.map((s) => s.script)).size !== r.scripts.length ||
+      new Set(assigned).size !== assigned.length || assigned.some((id) => !requested.has(id)))
+      return { ok: false, errors: ["script plans must assign requested evals exactly once and include completion flags"] };
+    if (r.scripts.some((s) => s.completed && (s.signal !== null || (s.exitCode !== 0 && s.exitCode !== 1) ||
+      (r.prepare && (r.prepare.exitCode !== 0 || r.prepare.signal !== null)))))
+      return { ok: false, errors: ["a completed plan requires successful preparation and a normal assertion exit (0 or 1)"] };
+    if ((r.state !== "running" && (!r.finishedAt || Date.parse(r.finishedAt) < Date.parse(r.at))) ||
+      (r.state === "complete" && assigned.length !== requested.size))
+      return { ok: false, errors: ["a finalized run needs a finish time; a complete run must plan every requested eval"] };
+  }
+  if (r.state === "complete" && (!r.finishedAt || Date.parse(r.finishedAt) < Date.parse(r.at) || r.scripts.some((s) => planned ? !s.completed : s.exitCode !== 0 || s.signal !== null) ||
     (r.prepare && (r.prepare.exitCode !== 0 || r.prepare.signal !== null))))
-    return { ok: false, errors: ["a complete run must finish preparation and every script successfully"] };
+    return { ok: false, errors: ["a complete run must finish preparation and every script's assertions"] };
   if (r.environment.stack === "postgres-ponder-erpnext-v4" && (r.environment.storage !== "postgres" || r.environment.indexer !== "ponder"))
     return { ok: false, errors: ["the selected stack requires Postgres and Ponder"] };
   return parsed;
@@ -121,8 +149,14 @@ export const mergeResults = (b: Pick<Blueprint, "evals">, doc: StatusDocument | 
     if (receipt.id !== run.run || receipt.commit !== run.commit || receipt.at !== run.at ||
       new Set(ids).size !== ids.length || ids.length !== receipt.requested.length || receipt.requested.some((id) => !ids.includes(id)))
       return { ok: false, errors: ["receipt and results must name the same run, commit, time and complete requested set"] };
-    if (receipt.state !== "complete" && run.results.some((r) => r.verdict === "pass"))
-      return { ok: false, errors: ["an unfinished run cannot record a pass"] };
+    if (run.results.some((r) => r.verdict === "pass" && (receipt.state === "running" ||
+      (receipt.state !== "complete" && (!receipt.finishedAt || !receipt.scripts.some((s) => s.completed && s.evals?.includes(r.id)))))))
+      return { ok: false, errors: ["a pass requires a finalized run and its own completed script plan"] };
+    for (const script of receipt.scripts.filter((s) => s.completed)) {
+      const rows = run.results.filter((r) => script.evals?.includes(r.id));
+      if (rows.some((r) => r.verdict === "not_run") || (script.exitCode === 1 && !rows.some((r) => r.verdict === "fail")))
+        return { ok: false, errors: ["a completed plan must report every assertion; exit 1 requires an explicit failed eval"] };
+    }
     if (receipt.evals.some((e) => defs.get(e.id)?.claim !== e.claim || defs.get(e.id)?.observes !== e.observes))
       return { ok: false, errors: ["receipt eval contracts differ from the blueprint or requested set"] };
   }
