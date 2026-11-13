@@ -24,7 +24,7 @@ test("plugs delivery on the real migrate path: legacy and role ACKs, guarded bac
   for (const [role, env] of roles) if (existing.has(role) && !process.env[env]) {
     await admin.end(); throw new Error(`${env} must supply existing ${role} credentials; refusing before any write`);
   }
-  const login: Record<string, string> = {};
+  const login: Record<string, string> = {}, created: string[] = [];
   for (const [role, env] of roles) {
     if (existing.has(role)) {
       const supplied = new URL(process.env[env]!);
@@ -34,10 +34,17 @@ test("plugs delivery on the real migrate path: legacy and role ACKs, guarded bac
       const check = new URL(supplied.href); check.pathname = new URL(url).pathname;
       const client = new pg.Client({ connectionString: check.href });
       try { await client.connect(); } catch (error) { await admin.end(); throw new Error(`${env} does not log in as ${role}; refusing before any write`, { cause: error }); }
-      await client.end(); login[role] = database(supplied.href);
+      await client.end();
+      // A trust/peer cluster accepts any password, so logging in proves nothing and migrate.ts would reset the shared password.
+      check.password = randomBytes(18).toString("hex");
+      const probe = new pg.Client({ connectionString: check.href });
+      const unchecked = await probe.connect().then(() => true, () => false); await probe.end().catch(() => {});
+      if (unchecked) { await admin.end(); throw new Error(`the cluster accepts any password for ${role}; refusing to migrate an existing role before any write`); }
+      login[role] = database(supplied.href);
     } else {
       const password = randomBytes(24).toString("hex");
       await admin.query(`create role ${role} login nosuperuser nocreatedb nocreaterole noinherit nobypassrls password '${password}'`);
+      created.push(role);
       const u = new URL(url); u.username = role; u.password = password; login[role] = database(u.href);
     }
   }
@@ -108,17 +115,25 @@ test("plugs delivery on the real migrate path: legacy and role ACKs, guarded bac
         for (const id of ["a-bad", "b-good"]) await core.transaction(id, (tx) => enqueue(tx, id, `${id}-1`, "hat_revoked", {}, `tr_${id}`), true);
         refuse.add("a-bad");
         const config = { chainId: 84532, finality: 0, frappe: origin, secret };
-        for (const id of ["a-bad", "b-good"]) await serveOrganization(core, config, id, true); // no Ponder views: consume fails too, and is caught
+        const consumed = new Map<string, { failures: number; until: number }>();
+        for (const id of ["a-bad", "b-good"]) await serveOrganization(core, config, id, true, consumed); // no Ponder views: consume fails too, and is caught
+        assert.equal(consumed.get("a-bad")?.failures, 1); assert.ok(consumed.get("a-bad")!.until > Date.now(), "a failed consume backs off");
         assert.deepEqual(await events("a-bad"), [{ seq: 1, state: "pending", attempts: 1, failed: true }]);
         assert.deepEqual(await backoff("a-bad"), { last_ack: 0, failures: 1, waiting: true });
         assert.deepEqual(await events("b-good"), [{ seq: 1, state: "applied", attempts: 1, failed: false }]);
-        await serveOrganization(core, config, "a-bad", true);
+        await serveOrganization(core, config, "a-bad", true, consumed);
         assert.equal((await events("a-bad"))[0].attempts, 1, "a deferred site is not offered again before its retry time");
+        assert.equal(consumed.get("a-bad")?.failures, 1, "consume is not retried before its backoff ends");
+        consumed.get("a-bad")!.until = 0; await serveOrganization(core, config, "a-bad", true, consumed);
+        assert.equal(consumed.get("a-bad")?.failures, 2, "after the backoff it tries again and doubles the wait");
       });
     }
   } finally {
     await db?.close(); await fresh?.end();
-    await admin.query("drop database if exists plugs_migrate_test with (force)"); await admin.end();
+    await admin.query("drop database if exists plugs_migrate_test with (force)");
+    // Leave the cluster as found: roles this run created would make the next run (or roles.pg.ts) refuse.
+    for (const role of created.reverse()) await admin.query(`drop role if exists ${role}`);
+    await admin.end();
     receiver.closeAllConnections(); await new Promise<void>((done) => receiver.close(() => done()));
   }
 });
