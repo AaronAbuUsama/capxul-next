@@ -1,0 +1,11 @@
+{
+  "area": "documents",
+  "script": "packages/evals/src/modules/documents/run.sh",
+  "worlds": ["slice-zero"],
+  "bindings": [
+    { "eval": "tbl:documents/schema", "checks": ["DOCUMENTS.schema"], "why": "In the receipt's real selected world, inspect exact ordered Postgres column names/types/nullability, primary key, all secondary index keys/uniqueness and forced RLS, using the restricted Core role. The runner never migrates or seeds." }
+  ],
+  "near": [
+    { "eval": "tbl:documents/writers", "checks": ["DOCUMENTS.closed-table-writes"], "missing": "Runtime table DML is denied. The shared authenticated participant/Seat admission, full authorized stores in their subject transactions, rollback and end-to-end read controls still need the same selected-stack run; component codec vectors are not that proof." }
+  ]
+}
