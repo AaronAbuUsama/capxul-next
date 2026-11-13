@@ -184,16 +184,22 @@ export async function readSetupFounder(sql: Sql, orgId: string) {
     safe: row.safe_address as string, status: row.status as SetupStatus, steps: row.steps as SetupView["steps"] } : null;
 }
 
-export type Deployment = {
-  org_id: string; safe_address: string; board_top_hat: string; shareholders_top_hat: string; director_hat: string;
-  books_hat: string; invoicing_hat: string; people_hat: string; roles_address: string; gate_address: string;
-  deploy_tx_hash: string; block_number: number; created_at: number;
+export type AdmittedDeployment = {
+  org_id: string; chain_id: number; log_id: string; safe_address: string; gate_address: string; roles_address: string;
+  board_top_hat: string; shareholders_top_hat: string; director_hat: string; officer_hats: string[];
+  deploy_tx_hash: string; block_number: number; admitted_at: number;
 };
-/** The org-deployments row: which hat is which, written once from MoneyDeployed at finality. Null until money is
- * deployed. Tenants read it only as a current member (RLS); the worker reads any. Hat ids are decimal strings. */
-export async function readDeployment(sql: Sql, orgId: string): Promise<Deployment | null> {
-  const row = (await sql.query("select * from app.org_deployments where org_id=$1", [orgId])).rows[0];
-  return row ? { ...row, block_number: Number(row.block_number), created_at: Number(row.created_at) } : null;
+/** The MoneyDeployed occurrence this Organization's setup admitted at finality, or null until then. Officer hats are
+ * numeric, in `MoneyDeploy.officers` order: naming them waits on organizations.admitted-deployment. Tenants read it only
+ * as a current member (RLS); the worker reads any. Hat ids are decimal strings, addresses lowercase. */
+export async function readAdmittedDeployment(sql: Sql, input: { orgId: string; chainId: number }): Promise<AdmittedDeployment | null> {
+  const r = (await sql.query(`select org_id, chain_id, log_id, safe_address, gate_address, roles_address, board_top_hat,
+    shareholders_top_hat, director_hat, officer_hats, deploy_tx_hash, block_number, created_at
+    from app.org_deployments where org_id=$1 and chain_id=$2`, [input.orgId, input.chainId])).rows[0];
+  return r ? { org_id: r.org_id, chain_id: Number(r.chain_id), log_id: r.log_id, safe_address: r.safe_address,
+    gate_address: r.gate_address, roles_address: r.roles_address, board_top_hat: r.board_top_hat,
+    shareholders_top_hat: r.shareholders_top_hat, director_hat: r.director_hat, officer_hats: r.officer_hats,
+    deploy_tx_hash: r.deploy_tx_hash, block_number: Number(r.block_number), admitted_at: Number(r.created_at) } : null;
 }
 
 /** A current member, or the setup's founder; anyone else, and an unknown id, read the same refusal. */

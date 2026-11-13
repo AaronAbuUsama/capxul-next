@@ -48,9 +48,12 @@ create index if not exists org_setups_by_founder_status on app.org_setups(founde
 create table if not exists app.org_deployments (
   org_id text primary key references app.organizations, safe_address text not null,
   board_top_hat text not null, shareholders_top_hat text not null, director_hat text not null,
-  books_hat text not null, invoicing_hat text not null, people_hat text not null,
-  roles_address text not null, gate_address text not null, deploy_tx_hash text not null,
-  block_number bigint not null, created_at bigint not null
+  officer_hats text[] not null check (cardinality(officer_hats) > 0),
+  -- Named officer hats stay null until organizations.admitted-deployment's binding is answered.
+  books_hat text, invoicing_hat text, people_hat text,
+  roles_address text not null, gate_address text not null, chain_id bigint not null, log_id text not null,
+  deploy_tx_hash text not null, block_number bigint not null, created_at bigint not null,
+  unique (chain_id, log_id)
 );
 
 create table if not exists app.org_seat_purchases (

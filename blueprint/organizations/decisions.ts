@@ -1370,6 +1370,40 @@ export const decision_organizations_begin_gaps = defineDecision({
   affects: [rpc_organizations_setups_begin, table_organizations, concept_organizations],
 });
 
+export const decision_organizations_admitted_deployment = defineDecision({
+  id: "organizations.admitted-deployment",
+  title: "The deployment row names its MoneyDeployed log; officer hats stay numeric",
+  question:
+    "Board and Budgets need to know which finalized MoneyDeployed this Organization owns, and to re-check it in indexing. " +
+    "The event carries officer hats only in `MoneyDeploy.officers` order, and which hat means which officer permission is " +
+    "the binding organizations.native-hat-binding-authority leaves to Aaron. What does the row hold, and what does its door answer?",
+  options: [
+    {
+      label: "occurrence-numeric",
+      text:
+        "Record the chain and log id of the admitted MoneyDeployed, and the officer hats as a numeric list in the event's " +
+        "order. The named officer columns stay null until that binding is answered. `readAdmittedDeployment(sql, {orgId, " +
+        "chainId})` answers the row on the caller's Sql, or null until the setup admits it at finality.",
+    },
+    {
+      label: "named-by-order",
+      text: "Fill Books, Invoicing and People from the order the setup sent, and give readers only the named columns.",
+    },
+  ],
+  chosen: "occurrence-numeric",
+  why:
+    "The log id lets Board re-check the row with indexing's `readMoneyDeployment` instead of trusting a copy, and a row " +
+    "nobody admitted reads as null, so a reader fails closed. Naming officer hats by install position is the mapping the open " +
+    "binding decision has not authorised, and Board will not infer it from Hat details either; until it is answered the named " +
+    "columns stay empty and officer grants stay fail-closed. The Director hat, top hats, Roles and Gate are named by the event " +
+    "itself, so they need no binding. The row stays written once and never changed, as organizations.deployment-row chose; " +
+    "it is never read from the editable `app.hats`.",
+  source:
+    "Amp Organizations lane, 13 November 2026, agreed with Board (PR58 BoardFacts.deployment) and the integrator; " +
+    "IInstaller.sol MoneyDeployment (officerHats in MoneyDeploy.officers order); PR59 indexing/deployment.ts readMoneyDeployment",
+  affects: [table_org_deployments, workflow_organizations_setups_set_up, concept_board],
+});
+
 // ── the command surface (surface.tree, surface.head-group; Aaron, 9 November 2026) ──────────────────────────────
 
 const SURFACE_PASS = "Claude, surface pass, 9 November 2026 (question 48)";

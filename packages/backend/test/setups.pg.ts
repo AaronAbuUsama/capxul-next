@@ -7,7 +7,7 @@ import { migrateOutbox } from "../src/platform/outbox.ts";
 import { companySafeAddress } from "../src/platform/safe.ts";
 import { readPrincipal } from "../src/access/door.ts";
 import { eligibility } from "../src/accounts/door.ts";
-import { addBoughtSeats, begin, get, migrate, readDeployment, readSetupFounder, resume, returnBoughtSeats, type SetupServices } from "../src/organizations/door.ts";
+import { addBoughtSeats, begin, get, migrate, readAdmittedDeployment, readSetupFounder, resume, returnBoughtSeats, type SetupServices } from "../src/organizations/door.ts";
 
 // Standalone PG control on a dedicated loopback database, built from the concept migrations alone (no legacy schema).
 // Eligibility is the real Accounts door; the image and Board services are stand-ins, not Media or indexing proof.
@@ -127,14 +127,19 @@ test("get and resume answer the founder and refuse everyone else alike; RLS keep
   assert.deepEqual(await readSetupFounder(db.worker, orgId), { orgId, founderPrincipalId: "person_founder", founderSafe: people.founder!.safe,
     safe: companySafeAddress(config, "acme-labs", people.founder!.safe as `0x${string}`), status: "processing", steps: [] });
   assert.equal(await readSetupFounder(db.worker, "org_unknown"), null);
-  assert.equal(await readDeployment(db.worker, orgId), null, "no deployment before MoneyDeployed");
-  await admin.query(`insert into app.org_deployments values($1,$2,'11','12','13','14','15','16',$3,$4,$5,4417,$6)`,
-    [orgId, `0x${"5a".repeat(20)}`, `0x${"7a".repeat(20)}`, `0x${"9a".repeat(20)}`, `0x${"ee".repeat(32)}`, now]);
-  const deployed = await readDeployment(db.worker, orgId);
-  assert.deepEqual([deployed?.director_hat, deployed?.books_hat, deployed?.gate_address, deployed?.block_number], ["13", "14", `0x${"9a".repeat(20)}`, 4417]);
+  const read = (sql: Parameters<typeof readAdmittedDeployment>[0], chainId = 84532) => readAdmittedDeployment(sql, { orgId, chainId });
+  assert.equal(await read(db.worker), null, "no deployment before MoneyDeployed is admitted");
+  await admin.query(`insert into app.org_deployments (org_id, safe_address, board_top_hat, shareholders_top_hat, director_hat,
+    officer_hats, roles_address, gate_address, chain_id, log_id, deploy_tx_hash, block_number, created_at)
+    values ($1,$2,'11','12','13',array['16','14','15'],$3,$4,84532,'84532:4417:3',$5,4417,$6)`,
+  [orgId, `0x${"5a".repeat(20)}`, `0x${"7a".repeat(20)}`, `0x${"9a".repeat(20)}`, `0x${"ee".repeat(32)}`, now]);
+  const deployed = await read(db.worker);
+  assert.deepEqual([deployed?.log_id, deployed?.director_hat, deployed?.officer_hats, deployed?.gate_address, deployed?.block_number, deployed?.admitted_at],
+    ["84532:4417:3", "13", ["16", "14", "15"], `0x${"9a".repeat(20)}`, 4417, now], "officer hats come back in event order, unnamed");
+  assert.equal(await read(db.worker, 8453), null, "another chain's deployment is not this one");
   const tenantRead = (name: string) => db.transaction("", async (sql) => {
     await sql.query("select set_config('app.person_id',$1,true)", [people[name]!.id]);
-    return readDeployment(sql, orgId);
+    return read(sql);
   });
   assert.equal(await tenantRead("founder"), null, "the founder is not yet a member: the deployment stays hidden from tenants");
   for (const id of [orgId, "org_unknown"]) await assert.rejects(as("other", (sql) => get(sql, { orgId: id }, services)), /^Error: ROLE_PERMISSION_DENIED/);
