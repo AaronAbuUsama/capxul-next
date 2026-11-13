@@ -239,6 +239,16 @@
       }
     },
     {
+      // Core and the runner exist to serve and call the blueprint's Rpc groups over HTTP, and Core is an Alchemy
+      // Worker, so their exports show Rpc's, HTTP's, SQL's and Alchemy's own types. Effect 4 marks those modules
+      // unstable with no stable replacement; their tsconfig.json files allow them for the same reason, and the
+      // catalog's exact pin of effect is the guard, as for packages/blueprint above.
+      "files": ["packages/core/**", "packages/runner/**"],
+      "rules": {
+        "effecttsgo/api-stability-leak": "off"
+      }
+    },
+    {
       // node:test's test() and describe() return a promise that the runner itself awaits.
       "files": ["packages/*/test/**"],
       "rules": {

@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "@cloudflare/workers-types"],
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        // Core serves the blueprint's Rpc groups over HTTP and keeps its spans through SQL. Effect 4 ships Rpc, HTTP
+        // and SQL only under effect/rpc, effect/http and effect/sql, marked unstable, with no stable replacement. The
+        // catalog's exact pin of effect is the guard, as in packages/blueprint.
+        "allowedUnstableApis": ["effect/rpc", "effect/http", "effect/sql"]
+      }
+    ]
+  },
+  "include": ["alchemy.run.ts", "src", "test"]
+}
