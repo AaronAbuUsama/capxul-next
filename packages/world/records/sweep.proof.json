@@ -1,52 +1,218 @@
 {
-  "proof": "after the sweep: the expired world is gone, the live one and the one with no recorded expiry are not",
-  "inSharedState": [
-    "w-p-live: live",
-    "w-p-undated: no-expiry"
+  "proof": "the sweeper, run with nothing but the shared state, destroys a world once its expiry has passed and keeps a live one and one with no recorded expiry",
+  "outcome": "passed",
+  "at": "2026-11-13T12:43:29.412Z",
+  "checks": [
+    {
+      "check": "both sweeps ran to the end",
+      "held": true
+    },
+    {
+      "check": "before the expiry, the sweep kept all three",
+      "held": true
+    },
+    {
+      "check": "after the expiry, the sweep destroyed the expired world",
+      "held": true
+    },
+    {
+      "check": "after the expiry, the sweep kept the live world and the one with no expiry",
+      "held": true
+    },
+    {
+      "check": "nothing of the expired world was left in the accounts",
+      "held": true
+    },
+    {
+      "check": "the two kept worlds were still whole",
+      "held": true
+    },
+    {
+      "check": "the shared state held the two kept worlds only",
+      "held": true
+    },
+    {
+      "check": "once the two kept worlds were destroyed, the accounts hold what they held before",
+      "held": true
+    }
   ],
-  "leftOfTheExpiredWorld": {
-    "workers": [],
-    "containerApplications": [],
-    "r2Buckets": [],
-    "hyperdriveConfigurations": [],
-    "neonBranches": []
-  },
-  "theLiveWorld": {
-    "workers": [
-      "capxulworld-core-w-p-live-kwavzb6jtpeq3qxq",
-      "capxulworld-door-w-p-live-4wzu4m4ob34ee4tv"
+  "observations": {
+    "created": [
+      {
+        "world": "w-p-old",
+        "expiresAt": "2026-11-13T12:42:23.908Z",
+        "ms": {
+          "claim": 999,
+          "deploy": 53130,
+          "migrate": 924,
+          "chain": 2303,
+          "fund": 360,
+          "index": 46989,
+          "core": 498,
+          "create": 105470
+        }
+      },
+      {
+        "world": "w-p-live",
+        "expiresAt": "2026-11-13T13:18:23.912Z",
+        "ms": {
+          "claim": 1320,
+          "deploy": 51960,
+          "migrate": 683,
+          "chain": 2329,
+          "fund": 286,
+          "index": 49490,
+          "core": 613,
+          "create": 107019
+        }
+      },
+      {
+        "world": "w-p-undated",
+        "expiresAt": "2026-11-13T13:18:23.914Z",
+        "ms": {
+          "claim": 1247,
+          "deploy": 51976,
+          "migrate": 751,
+          "chain": 2085,
+          "fund": 372,
+          "index": 59169,
+          "core": 506,
+          "create": 116376
+        }
+      }
     ],
-    "containerApplications": [
-      "capxulworld-ponder-w-p-live-raz35knosdjehyqd",
-      "capxulworld-anvil-w-p-live-hnygm7v54e3kvchc"
+    "sweepBeforeTheExpiry": {
+      "report": {
+        "at": "2026-11-13T12:40:25.834Z",
+        "dryRun": false,
+        "worlds": [
+          {
+            "world": "w-p-live",
+            "owner": "proof",
+            "expiresAt": "2026-11-13T13:18:23.912Z",
+            "status": null,
+            "verdict": "kept: not expired",
+            "detail": null,
+            "destroyMs": null
+          },
+          {
+            "world": "w-p-old",
+            "owner": "proof",
+            "expiresAt": "2026-11-13T12:42:23.908Z",
+            "status": null,
+            "verdict": "kept: not expired",
+            "detail": null,
+            "destroyMs": null
+          },
+          {
+            "world": "w-p-undated",
+            "owner": "proof",
+            "expiresAt": null,
+            "status": null,
+            "verdict": "kept: no expiry recorded",
+            "detail": null,
+            "destroyMs": null
+          }
+        ],
+        "namesReleased": [],
+        "imagesRemoved": [],
+        "imagesLeft": []
+      },
+      "logTail": [
+        "[12:40:21.258] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).",
+        "i Refreshing Cloudflare State Store credentials",
+        "+ Refreshing Cloudflare State Store credentials"
+      ]
+    },
+    "sweepAfterTheExpiry": {
+      "report": {
+        "at": "2026-11-13T12:42:33.119Z",
+        "dryRun": false,
+        "worlds": [
+          {
+            "world": "w-p-live",
+            "owner": "proof",
+            "expiresAt": "2026-11-13T13:18:23.912Z",
+            "status": null,
+            "verdict": "kept: not expired",
+            "detail": null,
+            "destroyMs": null
+          },
+          {
+            "world": "w-p-old",
+            "owner": "proof",
+            "expiresAt": "2026-11-13T12:42:23.908Z",
+            "status": null,
+            "verdict": "destroyed",
+            "detail": null,
+            "destroyMs": 13696
+          },
+          {
+            "world": "w-p-undated",
+            "owner": "proof",
+            "expiresAt": null,
+            "status": null,
+            "verdict": "kept: no expiry recorded",
+            "detail": null,
+            "destroyMs": null
+          }
+        ],
+        "namesReleased": [],
+        "imagesRemoved": [],
+        "imagesLeft": []
+      },
+      "logTail": [
+        "[12:42:29.680] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).",
+        "i Refreshing Cloudflare State Store credentials",
+        "+ Refreshing Cloudflare State Store credentials",
+        "[12:42:33.902] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).",
+        "i Refreshing Cloudflare State Store credentials",
+        "+ Refreshing Cloudflare State Store credentials",
+        "[12:42:38.956] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-p-old-ef5cm6tjnx3thldc",
+        "[12:42:38.960] INFO: [Core] Cloudflare Worker delete: deleting capxulworld-core-w-p-old-vqqccj32oxsebr6u",
+        "[12:42:39.004] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-p-old-72i4ldqhvj73s4z3",
+        "[12:42:39.009] INFO: [Ponder] Cloudflare Container delete: deleting capxulworld-ponder-w-p-old-ssq7mgspfgev2uir",
+        "[12:42:40.819] INFO: [world] Neon: using environment variables (NEON_API_KEY).",
+        "[12:42:48.121] INFO: world w-p-old: destroyed (8 resources) and its name released"
+      ]
+    },
+    "inSharedStateAfterTheSweep": [
+      "w-p-live: live",
+      "w-p-undated: no-expiry"
     ],
-    "r2Buckets": [
-      "capxulworld-chainstate-w-p-live-rr6hog5mkfdgyruw"
-    ],
-    "hyperdriveConfigurations": [
-      "capxulworld-world-db-w-p-live-3gpt62ccsno2htbb"
-    ],
-    "neonBranches": [
-      "CapxulWorld-worlds-db-platform-linmcg36ztdrzhwq/w-p-live"
-    ]
-  },
-  "theWorldWithNoExpiry": {
-    "workers": [
-      "capxulworld-core-w-p-undated-fuexvzs7caw2lpzo",
-      "capxulworld-door-w-p-undated-onggjadrnckvkuc6"
-    ],
-    "containerApplications": [
-      "capxulworld-ponder-w-p-undated-rngjngld2lbo7x7e",
-      "capxulworld-anvil-w-p-undated-b6uwzm5vs2bcrufy"
-    ],
-    "r2Buckets": [
-      "capxulworld-chainstate-w-p-undated-pbkztsyumy5if5wu"
-    ],
-    "hyperdriveConfigurations": [
-      "capxulworld-world-db-w-p-undated-2u3mqsfqhzp3mxux"
-    ],
-    "neonBranches": [
-      "CapxulWorld-worlds-db-platform-linmcg36ztdrzhwq/w-p-undated"
-    ]
+    "inventory": {
+      "before": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "after": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "leftOfTheseWorlds": [],
+      "sameAsBefore": true
+    }
   }
 }
