@@ -1,5 +1,6 @@
 import type { Sql } from "../platform/db.ts";
 import { readApproval } from "../approvals/door.ts";
+import { EXECUTE_LOOKUP_MS, executionKey, type BudgetExecution } from "./execute.ts";
 import { change, followPayment, type PaymentContext } from "./lifecycle.ts";
 import type { Owner, Payment } from "./types.ts";
 
@@ -7,7 +8,8 @@ export interface ReconcileContext extends PaymentContext {
   /** Actual paying Safe balance read outside the source transaction, never request-body funding. */
   balance?: { chainId: number; safe: string; token: string; raw: string; blockNumber: string };
 }
-export interface ReconciledPayment { payment: Payment | null; blocked: "personal_funding" | "budget_executor" | null }
+/** `execute`: a budget's dated Payment on its day; the caller runs `executeOnce` outside, then `recordExecution`. */
+export interface ReconciledPayment { payment: Payment | null; blocked: "personal_funding" | null; execute: BudgetExecution | null }
 
 /** One due instance, one caller worker transaction. Lock Payment, then its wait; Books feed locks come last. */
 export async function reconcilePayment(sql: Sql, owner: Owner, id: string, input: {
@@ -18,16 +20,16 @@ export async function reconcilePayment(sql: Sql, owner: Owner, id: string, input
   let payment = (await sql.query<Payment>("select * from app.payments where owner_kind=$1 and owner_id=$2 and id=$3 for update",
     [owner.kind, owner.id, id])).rows[0] ?? null;
   const key = [owner.kind, owner.id, id];
-  if (!payment) return { payment: null, blocked: null };
+  if (!payment) return { payment: null, blocked: null, execute: null };
   if (payment.chain_id !== input.chainId) throw new Error("INVALID_INPUT: payment chain differs");
-  const process = (await sql.query(`select wake_at from app.payment_processes
+  const process = (await sql.query(`select wake_at,execute_attempt from app.payment_processes
     where owner_kind=$1 and owner_id=$2 and payment_id=$3 for update`, key)).rows[0];
-  if (!process || process.wake_at === null || process.wake_at > context.at) return { payment, blocked: null };
+  if (!process || process.wake_at === null || process.wake_at > context.at) return { payment, blocked: null, execute: null };
   const progress = (await sql.query("select indexed_block,ready from app.indexer_progress where chain_id=$1", [input.chainId])).rows[0];
   if (!progress?.ready) throw new Error("INDEXER_NOT_READY: canonical indexed head required");
   const head = BigInt(progress.indexed_block), cutoff = head - BigInt(input.finality);
   let wakeAt: number | null = null, awaitBlock: string | null = (head + 1n).toString();
-  let blocked: ReconciledPayment["blocked"] = null;
+  let blocked: ReconciledPayment["blocked"] = null, execute: BudgetExecution | null = null;
   if (payment.status === "prepared" && payment.pay_at !== null) {
     const approval = payment.approval_id ? await readApproval(sql, payment.approval_id) : null;
     if (payment.route === "personal") {
@@ -73,7 +75,7 @@ export async function reconcilePayment(sql: Sql, owner: Owner, id: string, input
   }
   // Settlement owns the Books call and is last among business effects. A carrier never fabricates it.
   payment = await followPayment(sql, owner, id, input, context);
-  if (!payment) return { payment: null, blocked: null };
+  if (!payment) return { payment: null, blocked: null, execute: null };
   if (["settled", "mismatched"].includes(payment.status)) {
     blocked = null; wakeAt = null;
     const confirmed = BigInt(payment.settled_block_number!) + 2n * BigInt(input.finality);
@@ -82,12 +84,16 @@ export async function reconcilePayment(sql: Sql, owner: Owner, id: string, input
     blocked = null; wakeAt = null; awaitBlock = null;
   } else if (payment.status === "due" && payment.route === "budget" && payment.pay_at !== null) {
     if (context.at < payment.pay_at) wakeAt = payment.pay_at;
-    // No generic executor-key capability is published. Do not pretend an intent sent a transaction.
-    else blocked = "budget_executor";
+    // Sent outside this transaction with the executor key; until its answer is recorded, it is looked up again shortly.
+    else {
+      execute = { owner, payment_id: id, chain_id: payment.chain_id, scheduled_id: payment.scheduled_id!, attempt: process.execute_attempt,
+        key: executionKey(payment.chain_id, payment.scheduled_id!, process.execute_attempt) };
+      wakeAt = context.at + EXECUTE_LOOKUP_MS;
+    }
   }
   if (awaitBlock === null && wakeAt === null && payment.status !== "needs_retry")
     await sql.query("delete from app.payment_processes where owner_kind=$1 and owner_id=$2 and payment_id=$3", key);
   else await sql.query(`update app.payment_processes set wake_at=$4,await_block=$5
     where owner_kind=$1 and owner_id=$2 and payment_id=$3`, [...key, wakeAt, awaitBlock]);
-  return { payment, blocked };
+  return { payment, blocked, execute };
 }

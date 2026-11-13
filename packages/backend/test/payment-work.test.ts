@@ -76,7 +76,7 @@ test("durable payment work recovers actual reservation, day-ahead and cancellati
     const due = await run(payAt - 86_400_000);
     assert.equal(due.payment?.status, "due"); assert.equal(due.payment.shortfall, null);
     const blocked = await run(payAt);
-    assert.equal(blocked.blocked, "budget_executor"); assert.equal(blocked.payment?.status, "due");
+    assert.equal(blocked.execute?.key, `budget-execute:${chain.chainId}:${reservation.args.scheduledId}:0`); assert.equal(blocked.payment?.status, "due");
     await send(chain, { from: testKey("second").key, to: context.budgets as Hex,
       data: encodeFunctionData({ abi: budgetAbi, functionName: "cancel", args: [BigInt(reservation.args.scheduledId)] }) });
     let cancellation;

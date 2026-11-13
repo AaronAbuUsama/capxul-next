@@ -80,6 +80,8 @@ create table if not exists app.payment_processes (
   primary key(owner_kind,owner_id,payment_id),
   foreign key(owner_id,owner_kind,payment_id) references app.payments(owner_id,owner_kind,id)
 );
+-- A budget's dated Payment: its current `Budgets.execute` attempt, part of the executor key; a mined revert moves it on.
+alter table app.payment_processes add column if not exists execute_attempt integer not null default 0;
 create index if not exists "payment-processes-due" on app.payment_processes(wake_at,owner_kind,owner_id,payment_id);
 create index if not exists "payment-processes-chain" on app.payment_processes(chain_id,await_block);
 alter table app.payment_processes enable row level security;

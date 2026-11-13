@@ -8,6 +8,7 @@ export type { Owner, Payment, PaymentTransitionProps } from "./types.ts";
 export { followPayment, approvalTerminal, type PaymentContext, type PaymentFact } from "./lifecycle.ts";
 export { prepareCommand, type PrepareCommand, type PrepareContext, type PreparedCommand, type PreparedItem } from "./prepare.ts";
 export { listPaymentWork, wakePaymentChain, onApprovalTransition, type PaymentWork } from "./work.ts";
+export { executeOnce, recordExecution, executionKey, EXECUTE_RETRY_MS, EXECUTE_LOOKUP_MS, type BudgetExecution, type ExecutionAnswer } from "./execute.ts";
 export { reconcilePayment, type ReconcileContext, type ReconciledPayment } from "./reconcile.ts";
 
 /** Called by the admin migrator inside its existing transaction, never during resume. */
