@@ -15,7 +15,7 @@ test("snapshot save retains the fence failure alongside refusal to resume an uno
   const bench = composeBench([]);
   const runtime = localRuntime({ bench,
     processes: { running: async () => true, fence: async () => { throw original; }, start: unexpected, stop: unexpected },
-    store: { updateClock: unexpected, rewrite: unexpected }, core: () => { throw new Error("unexpected Core request"); }, clock: unexpected });
+    store: { updateClock: unexpected, rewrite: unexpected }, core: () => { throw new Error("unexpected Core request"); }, clock: unexpected, installClock: unexpected });
   const world: World = { id: "fixture", kind: "local", database: "unused", stateDir: join(root, "state"), sites: [], epoch: 1 };
   const options: Options = { root, codeVersion: "fixture", admin: unexpected, runtime };
   try {
