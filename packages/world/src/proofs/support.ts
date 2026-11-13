@@ -6,6 +6,7 @@ import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
 import { pipe } from "effect/Function";
 import * as Order from "effect/Order";
+import * as Predicate from "effect/Predicate";
 import * as Rec from "effect/Record";
 import * as Ref from "effect/Ref";
 import * as Str from "effect/String";
@@ -50,6 +51,35 @@ export const stackListing = Effect.map(inventory, ofThisStackOnly);
 /** What a world creates, without the image repositories every world shares, which belong to the platform. */
 export const worldResources = (listing: StackListing) => Rec.remove(listing, "imageRepositories");
 
+/**
+ * The world stage a resource's name carries, if any: `<kind>-w-<name>-<16 random>` for a Cloudflare resource,
+ * `<project>/w-<name>` for a Neon branch. The platform's own resources carry none.
+ */
+export const worldStageOf = (name: string): string | undefined =>
+  /\/(w-[a-z0-9-]+)$/.exec(name)?.[1] ?? /-(w-[a-z0-9-]+?)-[a-z0-9]{16}$/.exec(name)?.[1];
+
+/**
+ * Whether a name belongs to one of `others`: it carries that world's stage, as its own part (`-w-a-`, `/w-a`, `-w-a`
+ * at the end), wherever it is: a world's snapshot branch, for one, is named `snap-<stage>-...`.
+ */
+const ofAny = (name: string, others: ReadonlyArray<string>): boolean =>
+  Arr.some(
+    others,
+    (stage) =>
+      Str.includes(`-${stage}-`)(name) ||
+      Str.includes(`/${stage}-`)(name) ||
+      Str.endsWith(`/${stage}`)(name) ||
+      Str.endsWith(`-${stage}`)(name),
+  );
+
+/** Every resource, without those of `others`, the worlds a proof did not make. */
+const withoutOtherWorlds = (listing: StackListing, others: ReadonlyArray<string>): StackListing =>
+  Rec.map(listing, (names) => Arr.filter(names, (name) => !ofAny(name, others)));
+
+/** The world stages a listing's resources carry. */
+const worldsIn = (listing: StackListing): ReadonlyArray<string> =>
+  Arr.filter(Arr.map(Arr.flatten(Rec.values(worldResources(listing))), worldStageOf), Predicate.isNotUndefined);
+
 const fingerprint = (listing: StackListing): string =>
   Arr.join(
     Arr.map(
@@ -63,13 +93,28 @@ const fingerprint = (listing: StackListing): string =>
 export const sameResources = (before: StackListing, after: StackListing): boolean =>
   fingerprint(before) === fingerprint(after);
 
-/** The inventory before and after, and what is left of the named worlds: the evidence that a destroy removed all. */
-export const inventoryReport = (before: StackListing, after: StackListing, stages: ReadonlyArray<string>) => ({
-  before,
-  after,
-  leftOfTheseWorlds: namesOfWorlds(after, stages),
-  sameAsBefore: sameResources(before, after),
-});
+/**
+ * The inventory before and after, and what is left of the named worlds: the evidence that a destroy removed all.
+ * The two accounts are shared: another builder's worlds may be made or destroyed while a proof runs. So
+ * `sameAsBefore` compares everything but the resources of other worlds (a name that carries another world's stage,
+ * a stage seen in either listing);
+ * the platform's resources, anything with no world in its name, and the named worlds' own are all compared.
+ * `sameAsBeforeAccountWide` is the comparison of everything, and `otherWorlds` names the worlds it set aside.
+ */
+export const inventoryReport = (before: StackListing, after: StackListing, stages: ReadonlyArray<string>) => {
+  const others = Arr.filter(
+    Arr.dedupe([...worldsIn(before), ...worldsIn(after)]),
+    (stage) => !Arr.contains(stages, stage),
+  );
+  return {
+    before,
+    after,
+    leftOfTheseWorlds: namesOfWorlds(after, stages),
+    sameAsBefore: sameResources(withoutOtherWorlds(before, others), withoutOtherWorlds(after, others)),
+    sameAsBeforeAccountWide: sameResources(before, after),
+    otherWorlds: others,
+  };
+};
 
 /** How a run of the command line ended. */
 export interface Ran {

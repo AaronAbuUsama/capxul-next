@@ -1,8 +1,14 @@
+> **Kept as a record.** This is the README of `spikes/bundler` as it was when the spike was deleted, kept with the
+> spike's records: they are the files beside it (its `records/` is this folder), and its two links are made to work
+> from here. Its code moved into `packages/world`: `src/bundler` (alto's container and Durable Object, its keys),
+> `images/alto`, and the proof `bundler` (`src/proofs/bundler.ts`, `src/proofs/userop.ts`). See
+> `packages/world/README.md`.
+
 # Bundler spike
 
-Throwaway code that answers the risk behind step 1.11 of [docs/roadmap.md](../../docs/roadmap.md): can a private
+Throwaway code that answers the risk behind step 1.11 of [docs/roadmap.md](../../../../docs/roadmap.md): can a private
 world hold an ERC-4337 bundler and a test paymaster, so that a signed approval lands on the chain as one real
-UserOperation? It builds on [spikes/containers](../containers/README.md): the world's chain is the same anvil
+UserOperation? It builds on [spikes/containers](../../../../spikes/containers/README.md): the world's chain is the same anvil
 container behind a Durable Object, saved to R2 and stopped when idle, and the bundler is a second container in the
 same world. It is deployed with Alchemy (`alchemy` 2.0.0-beta.85 on Effect 4.1.2) from an agent's container. Nothing
 here is product code.

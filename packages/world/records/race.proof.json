@@ -1,7 +1,7 @@
 {
   "proof": "of two creates of one name at once, one creates the world and the other is refused before it makes anything",
   "outcome": "passed",
-  "at": "2026-11-13T12:32:45.916Z",
+  "at": "2026-11-13T14:12:07.409Z",
   "checks": [
     {
       "check": "exactly one create succeeded",
@@ -35,24 +35,26 @@
   "observations": {
     "results": [
       "created",
-      "WorldExists: {\"world\":\"p-race\",\"owner\":\"racer-a\",\"expiresAt\":\"2026-11-13T13:10:36.063Z\"}"
+      "WorldExists: {\"world\":\"p-race\",\"owner\":\"racer-a\",\"expiresAt\":\"2026-11-13T14:49:52.550Z\"}"
     ],
     "whatTheAccountsHeld": [
-      "capxulworld-core-w-p-race-qiyuwoh5oq4l7hfn",
-      "capxulworld-door-w-p-race-jjyvzzy5ekjwaacm",
-      "capxulworld-ponder-w-p-race-u5xjqupn5u4jn3kg",
-      "capxulworld-anvil-w-p-race-5zu32d5dbjps5zwq",
-      "capxulworld-door-w-p-race-jjyvzzy5ekjwaacm",
-      "capxulworld-door-w-p-race-jjyvzzy5ekjwaacm",
-      "capxulworld-chainstate-w-p-race-xadg34abxb5ssm3w",
-      "capxulworld-world-db-w-p-race-aidknqvhnob7tzny",
+      "capxulworld-core-w-p-race-zf7vx5f5spd2hdif",
+      "capxulworld-door-w-p-race-7jcnqsmnigbtxdio",
+      "capxulworld-alto-w-p-race-lnx3xcf5zzxioazj",
+      "capxulworld-ponder-w-p-race-y7pf66xnf4o6i4fv",
+      "capxulworld-anvil-w-p-race-lfvtbkojoklzwkyk",
+      "capxulworld-door-w-p-race-7jcnqsmnigbtxdio",
+      "capxulworld-door-w-p-race-7jcnqsmnigbtxdio",
+      "capxulworld-door-w-p-race-7jcnqsmnigbtxdio",
+      "capxulworld-chainstate-w-p-race-4vbgub5yi4uwyw45",
+      "capxulworld-world-db-w-p-race-otxkosxx2tuxaup2",
       "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-p-race"
     ],
     "inSharedState": [
       {
         "world": "w-p-race",
         "owner": "racer-a",
-        "expiresAt": "2026-11-13T13:10:36.063Z",
+        "expiresAt": "2026-11-13T14:49:52.550Z",
         "status": "up",
         "state": "live"
       }
@@ -69,6 +71,7 @@
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
         "imageRepositories": [
+          "capxulworld-alto",
           "capxulworld-anvil",
           "capxulworld-ponder"
         ]
@@ -84,12 +87,15 @@
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
         "imageRepositories": [
+          "capxulworld-alto",
           "capxulworld-anvil",
           "capxulworld-ponder"
         ]
       },
       "leftOfTheseWorlds": [],
-      "sameAsBefore": true
+      "sameAsBefore": true,
+      "sameAsBeforeAccountWide": true,
+      "otherWorlds": []
     }
   }
 }

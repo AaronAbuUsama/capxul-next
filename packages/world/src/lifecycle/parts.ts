@@ -10,6 +10,7 @@ import * as Str from "effect/String";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
+import { BUNDLER_PATH, ENTRY_POINT, TEST_PAYMASTER } from "../bundler/Keys.ts";
 import { TEST_USDC } from "../chain/faucet.ts";
 import { OPERATOR_TOKEN_ID } from "../core/Core.ts";
 import { CORE_HEALTH } from "../core/health.ts";
@@ -56,6 +57,9 @@ export const handle = Effect.fn("world.handle")(function* (output: WorldOutput) 
     doorToken: token,
     operatorToken,
     rpcUrl: Redacted.make(`${door}/rpc`),
+    bundlerUrl: Redacted.make(`${door}${BUNDLER_PATH}`),
+    entryPoint: ENTRY_POINT,
+    paymaster: TEST_PAYMASTER,
     door: Redacted.make(door),
     database,
     sql: (statement, params) => query(database, statement, params),

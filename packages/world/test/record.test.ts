@@ -12,6 +12,7 @@ const timeouts = {
   migrate: 3,
   chain: 4,
   fund: 11,
+  bundler: 12,
   index: 5,
   core: 6,
   site: 12,
