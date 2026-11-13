@@ -601,7 +601,7 @@ export const decision_tooling_generated_targets = defineDecision({
         "record, every config entry a required non-empty string and every secret a required Redacted. Not yet: the " +
         "SDK's error classes (the SDK does not depend on effect); the workflow skeletons at " +
         "packages/backend/src/generated/workflows/<concept>.ts, whose steps provide StepTime and whose timer waits " +
-        "call Timers.until, both owed by packages/runtime/src/time/, which does not exist, and whose Workflow.make " +
+        "call Timers.until, both owed by packages/runtime/src/time/, which exports neither yet, and whose Workflow.make " +
         "needs a payload schema no record gives; handler types, transition tables, migrations, RequestTime and " +
         "Schema.Finite, which every lane's code must adopt.",
     },

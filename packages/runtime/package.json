@@ -1,0 +1,18 @@
+{
+  "name": "@capxul/runtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The clock module (decision time.no-direct-reads): the only code that reads a clock.",
+  "exports": {
+    "./time": "./src/time/door.ts"
+  },
+  "scripts": {
+    "check": "tsc -p .",
+    "test": "node --experimental-strip-types --no-warnings --test 'src/**/*.test.ts'"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

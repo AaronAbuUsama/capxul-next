@@ -25,7 +25,7 @@ that commit, checks that commit.
   per error); `packages/backend/src/generated/config/<environment>.ts` (one required-only `Config` per environment).
 
 Not built yet, though `tooling.lane-gate` and `docs/design/tooling.md` section 7 design them: the workflow skeletons
-(they need `StepTime` and `Timers` from a `packages/runtime` that does not exist), the SDK's error classes, handler
+(they need `StepTime` and `Timers`, which `packages/runtime/src/time/` does not export yet), the SDK's error classes, handler
 types, transition tables, migrations, `RequestTime` and `Schema.Finite`.
 
 Two runs write the same bytes: keys and lists are sorted by code unit, files end with one newline and lines end in LF.
