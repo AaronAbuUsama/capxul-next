@@ -1,0 +1,90 @@
+{
+  "stage": "pr-r2",
+  "outcome": "passed",
+  "steps": [
+    {
+      "step": "deploy",
+      "exit": 0,
+      "want": 0,
+      "seconds": 8.7
+    },
+    {
+      "step": "door ready",
+      "exit": 0,
+      "want": 0,
+      "seconds": 3.1
+    },
+    {
+      "step": "deploy, no change",
+      "exit": 0,
+      "want": 0,
+      "seconds": 9.8
+    },
+    {
+      "step": "world deploy",
+      "exit": 0,
+      "want": 0,
+      "seconds": 8.5
+    },
+    {
+      "step": "site creation",
+      "exit": 0,
+      "want": 0,
+      "seconds": 78.3
+    },
+    {
+      "step": "drift check, clean",
+      "exit": 0,
+      "want": 0,
+      "seconds": 15.9
+    },
+    {
+      "step": "alchemy drift, after hand changes",
+      "exit": 0,
+      "want": 0,
+      "seconds": 7.6
+    },
+    {
+      "step": "drift check, after hand changes",
+      "exit": 2,
+      "want": 2,
+      "seconds": 16.2
+    },
+    {
+      "step": "alchemy drift --repair",
+      "exit": 0,
+      "want": 0,
+      "seconds": 8.5
+    },
+    {
+      "step": "drift check, after repair",
+      "exit": 0,
+      "want": 0,
+      "seconds": 15.7
+    },
+    {
+      "step": "plan pr-r3 on another host",
+      "exit": 0,
+      "want": 0,
+      "seconds": 6.4
+    },
+    {
+      "step": "plan pr-r2 with another endpoint",
+      "exit": 0,
+      "want": 0,
+      "seconds": 8.0
+    },
+    {
+      "step": "destroy world",
+      "exit": 0,
+      "want": 0,
+      "seconds": 6.7
+    },
+    {
+      "step": "destroy platform",
+      "exit": 0,
+      "want": 0,
+      "seconds": 18.5
+    }
+  ]
+}

@@ -84,10 +84,10 @@ unblock it.
 | 1.12 | 1 | Every new private world gets its cast, funded from the test token's faucet, and a world can be saved as a template and started from it | 1.3 | Not started | | | | |  |
 | 1.13 | 1 | A step's state comes from run records: each step names the proof that closes it, and the dashboard reads the records, not a hand-typed column | | Not started | | | | |  |
 | 2.1 | 2 | A host for the Frappe bench and a domain on Cloudflare exist |  | Not started |  | Aaron: a host account for the bench, and capxul.com's DNS moved to Cloudflare (a rehearsal on a stand-in host and abuusama.dev runs meanwhile) |  |  |  |
-| 2.2 | 2 | The platform (bench, tunnel, shared state) is deployed by Alchemy | 2.1, 0.4 | In progress |  |  |  |  |  |
+| 2.2 | 2 | The platform (bench, tunnel, shared state) is deployed by Alchemy | 2.1, 0.4 | In progress |  | 2.1 |  | Rehearsed on a stand-in host (`spikes/platform/records`): deploy 8.7 s, no-change deploy 9.8 s, a site by per-world token, host swap and a clean destroy (zone records 66 before and after). Not done: the tunnel, whose creation this session's proxy refuses, and the real host |  |
 | 2.3 | 2 | A shared world exists whose sites are created with a per-world token | 2.2, 1.6 | Not started | | | | |  |
 | 2.4 | 2 | The thin line's scenarios pass on the shared world after a deploy | 2.3 | Not started | 0/12 | | | |  |
-| 2.5 | 2 | A drift check that catches changed settings and replaced code runs on a schedule and is clean (the pinned Alchemy reports drift but exits 0, and misses code replaced by hand) | 2.2 | Not started |  |  |  |  |  |
+| 2.5 | 2 | A drift check that catches changed settings and replaced code runs on a schedule and is clean (the pinned Alchemy reports drift but exits 0, and misses code replaced by hand) | 2.2 | In progress |  |  |  | Our check (`spikes/platform/src/run-drift.ts`) caught 3 of 3 hand changes and exited 2; `alchemy drift` caught 2 of 3 and exited 0. Not yet on a schedule |  |
 
 ## Risks, proven or killed
 

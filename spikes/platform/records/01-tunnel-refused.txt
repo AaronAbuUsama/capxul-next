@@ -1,0 +1,21 @@
+# Edge: the tunnel could not be created from this machine (excerpt of a real deploy, 13 November 2026, 11:08 UTC)
+# ./run.sh deploy --stage pr-r1 --yes   (PLATFORM_EDGE=tunnel, the design)
+[11:08:24.521] INFO: Plan: 10 to create
+[11:08:24.521] INFO: [Connector] create
+[11:08:24.522] INFO: [DoorRecord] create
+[11:08:24.522] INFO: [Ingress] create
+[11:08:24.522] INFO: [Tunnel] create
+[11:08:24.535] INFO: [Tunnel] creating
+[11:08:25.258] ERROR: [Ingress] fail — Forbidden: denied by policy: this request might create, show or change an API token or another credential for this vendor, so the proxy will not send it with your organization's credential. Requests to this vendor with a path- or host-override header, or an unusually encoded path, are refused too. Manage API tokens and other credentials in the vendor's own settings. Otherwise, resend without the override header and with a plainly encoded path; if your organization's rule or stored credential adds that header, an admin must change it.
+[11:08:25.259] ERROR: [DoorRecord] fail — Forbidden: denied by policy: this request might create, show or change an API token or another credential for this vendor, so the proxy will not send it with your organization's credential. Requests to this vendor with a path- or host-override header, or an unusually encoded path, are refused too. Manage API tokens and other credentials in the vendor's own settings. Otherwise, resend without the override header and with a plainly encoded path; if your organization's rule or stored credential adds that header, an admin must change it.
+[11:08:25.259] ERROR: [Connector] fail — Forbidden: denied by policy: this request might create, show or change an API token or another credential for this vendor, so the proxy will not send it with your organization's credential. Requests to this vendor with a path- or host-override header, or an unusually encoded path, are refused too. Manage API tokens and other credentials in the vendor's own settings. Otherwise, resend without the override header and with a plainly encoded path; if your organization's rule or stored credential adds that header, an admin must change it.
+[11:08:25.259] ERROR: [Tunnel] fail — Forbidden: denied by policy: this request might create, show or change an API token or another credential for this vendor, so the proxy will not send it with your organization's credential. Requests to this vendor with a path- or host-override header, or an unusually encoded path, are refused too. Manage API tokens and other credentials in the vendor's own settings. Otherwise, resend without the override header and with a plainly encoded path; if your organization's rule or stored credential adds that header, an admin must change it. (724ms)
+[11:08:38.558] INFO: Failed: 6 succeeded, 4 failed (14.0s)
+
+# Cloudflare afterwards: tunnels in the account named cx-platform-* (not deleted)
+[]
+
+# The connector's way out, probed before the deploy (agent proxy status, recentRelayFailures):
+{'ts': '2026-11-13T10:58:53.253Z', 'kind': 'ws_closed_mid_exchange', 'detail': 'tunnel closed (code 1006) after 2s; 517 B sent, 39 B received, client reading, 0 B still queued in the relay', 'host': 'region1.v2.argotunnel.com:7844'}
+{'ts': '2026-11-13T10:59:12.935Z', 'kind': 'ws_closed_mid_exchange', 'detail': 'tunnel closed (code 1006) after 2s; 517 B sent, 39 B received, client reading, 0 B still queued in the relay', 'host': 'region1.v2.argotunnel.com:7844'}
+# and a direct TCP connection to the edge (198.41.192.7:7844, region1.v2.argotunnel.com) from this machine: Connection refused
