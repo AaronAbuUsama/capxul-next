@@ -21,12 +21,15 @@ const readers = (): BoardReaders => {
     readSafeApprovals: log("approvals", [{ owner: A }, { owner: A.toLowerCase() }, { owner: "0x00000000000000000000000000000000000000cc" }]),
     readSafeExecution: log("execution", { safe_tx_hash: `0x${"AB".repeat(32)}`, success: true, tx_hash: `0x${"cd".repeat(32)}`, block_number: "91" }),
     readHatTransfersInTx: log("transfers", [{ from: "0x0000000000000000000000000000000000000000", to: B, value: "1" }]),
+    readWearerHatsAt: async (_sql, input) => { calls.push({ name: "worn", input }); return input.wearer === A
+      ? [{ details: "allowance:x", wearing: true }, { details: "office:finance", wearing: false }]
+      : [{ details: "allowance:y", wearing: true }, { details: "office:ops", wearing: true }]; },
   };
 };
 
 test("planning facts are lowercase, current and never bind an officer hat", async () => {
   calls.length = 0; historical = false;
-  const f = boardFacts(readers(), async () => false);
+  const f = boardFacts(readers());
   assert.deepEqual(await f.deployment(sql, "org", 84532), { safe_address: safe.toLowerCase(), gate_address: "0x00000000000000000000000000000000000000bb",
     director_hat: "7", books_hat: null, invoicing_hat: null, people_hat: null });
   assert.deepEqual((await f.safe(sql, 84532, safe as never))!.owners, [A.toLowerCase(), B.toLowerCase()]);
@@ -34,6 +37,9 @@ test("planning facts are lowercase, current and never bind an officer hat", asyn
   assert.deepEqual(await f.approvals(sql, 84532, safe as never, "0x01", [A, B] as never), [A.toLowerCase()]);
   assert.deepEqual(await f.hat(sql, 84532, "8", safe as never), { supply: 1n, max_supply: 4294967295n });
   assert.equal(await f.hat(sql, 84532, "8", B as never), null, "another company's hat");
+  assert.equal(await f.hasOffice(sql, 84532, safe as never, A as never), false, "an allowance or an office no longer worn is no office");
+  assert.equal(await f.hasOffice(sql, 84532, safe as never, B as never), true);
+  assert.deepEqual(calls.at(-1)!.input, { chainId: 84532, wearer: B, companySafe: safe, finality: 0 });
   assert(calls.filter((c) => c.name !== "deployment").every((c) => (c.input as { finality: number }).finality === 0));
 });
 

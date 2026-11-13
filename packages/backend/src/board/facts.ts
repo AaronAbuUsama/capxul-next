@@ -18,6 +18,7 @@ export type BoardReaders = {
   readSafeExecution(sql: Sql, input: { chainId: number; safe: string; nonce: string; finality: number }): Promise<(Log & {
     safe_tx_hash: string; success: boolean }) | null>;
   readHatTransfersInTx(sql: Sql, input: { chainId: number; txHash: string; hatId: string; finality: number }): Promise<{ from: string; to: string; value: string }[]>;
+  readWearerHatsAt(sql: Sql, input: { chainId: number; wearer: string; companySafe: string; atBlock?: string; finality: number }): Promise<{ details: string; wearing: boolean }[]>;
 };
 
 const low = (a: string) => a.toLowerCase() as Address;
@@ -25,9 +26,10 @@ const low = (a: string) => a.toLowerCase() as Address;
 /**
  * Current planning reads at the indexed head (finality 0): the live public mutations re-read owners, threshold, nonce and
  * Gate validity at one RPC block anyway. Officer hats stay null until the admitted deployment binds them
- * (board.officer-hat-unbound); no install order or Hat details are read as a permission.
+ * (board.officer-hat-unbound); no install order or Hat details are read as a permission. An office is a worn company hat
+ * whose details begin `office:`, which budgets writes into department and team hats (board.people-hat-role-conflict).
  */
-export function boardFacts(r: BoardReaders, hasOffice: BoardFacts["hasOffice"]): BoardFacts {
+export function boardFacts(r: BoardReaders): BoardFacts {
   return {
     deployment: async (sql, org, chainId) => {
       const d = await r.readAdmittedDeployment(sql, { orgId: org, chainId });
@@ -50,7 +52,8 @@ export function boardFacts(r: BoardReaders, hasOffice: BoardFacts["hasOffice"]):
       const h = await r.readHatAt(sql, { chainId, hatId: hat, finality: 0 });
       return h && low(h.company_safe) === low(safe) ? { supply: BigInt(h.supply), max_supply: BigInt(h.max_supply) } : null;
     },
-    hasOffice,
+    hasOffice: async (sql, chainId, safe, wearer) => (await r.readWearerHatsAt(sql, { chainId, wearer, companySafe: safe, finality: 0 }))
+      .some((h) => h.wearing && h.details.startsWith("office:")),
   };
 }
 
