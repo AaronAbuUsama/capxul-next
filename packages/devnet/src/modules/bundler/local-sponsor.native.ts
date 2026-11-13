@@ -54,8 +54,9 @@ try {
     try { chain = await connect(anvilUrl); break; } catch { if (i > 50) throw new Error(`anvil not ready: ${children[0]!.output}`); await new Promise(r => setTimeout(r, 100)); }
   }
   assert.equal(chain.chainId, 84532);
-  // core.json's last block is weeks old. Real Alto 0.0.21 admits validity windows by its host Date.now() while EntryPoint
-  // uses block time, so a bounded window can satisfy both only on a chain synced to wall time.
+  // core.json's last block is weeks old. Alto 0.0.21, as patched (packages/devnet/patches, devnet.one-world-clock), admits
+  // validity windows by the latest block's time, as EntryPoint does; the sponsor signs windows from wall time here, so the
+  // chain is synced to wall time to keep both on one clock.
   summary.seedChainBehindWallSeconds = Math.floor(Date.now() / 1000) - Number((await chain.client.getBlock()).timestamp);
   await chain.client.request({ method: "anvil_setTime" as never, params: [Math.floor(Date.now() / 1000)] as never });
   await chain.client.request({ method: "evm_mine" as never });
@@ -86,8 +87,8 @@ try {
   Object.assign(summary, { altoPid: altoChild.pid, altoPort });
   log("PASS real foreground Alto 0.0.21 serves EntryPoint v0.7 on loopback");
 
-  // This disposable world's canonical clock is wall time. Alto 0.0.21 admits validAfter by its host Date.now(), not chain
-  // time, and Anvil blocks never run behind it, so a clock ahead of wall time would be refused until wall time caught up.
+  // This disposable world's canonical clock is wall time: the sponsor's windows come from it, and patched Alto admits
+  // validAfter by the latest block's time, which follows wall time here because each wait below mines a block after it.
   const now = () => new Date();
   // Wait for wall time, then mine so Alto's simulation block is inside the window too.
   const until = async (instant: Date) => {
@@ -137,7 +138,7 @@ try {
   assert.ok("user_operation" in now1, JSON.stringify(now1));
   assert.equal(now1.signer_address.toLowerCase(), holder.address.toLowerCase());
   assert.equal(now1.valid_after.getTime() / 1000, Math.ceil(now1.valid_after.getTime() / 1000));
-  await until(now1.valid_after); // Alto refuses validAfter beyond its wall clock
+  await until(now1.valid_after); // Alto refuses validAfter beyond the latest block's time
   const op1 = await signed(now1);
   assert.equal(await provider.send({ ...op1, entryPoint: ENTRY_POINT_07_ADDRESS }), now1.user_op_hash);
   // The same signed operation again before Alto bundles it (a carrier restart, a second instance): Alto answers -32602
