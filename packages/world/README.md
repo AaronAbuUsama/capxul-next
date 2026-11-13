@@ -56,14 +56,14 @@ Provide `SharedState.layer` over `Alchemist.layer()`. `spec.migrations` names Co
 ### The platform (roadmap steps 1.6 and 1.12)
 
 `src/platform` serves the blueprint's platform group with Effect's Rpc server at `PLATFORM_PATH`, on the loopback of
-the machine that holds the Cloudflare and Neon keys (blueprint decisions.md, 47): in the runner's own process
+the machine that holds the Cloudflare and Neon keys (blueprint decisions.md, 48): in the runner's own process
 (`packages/runner`, `src/worlds/platform.ts`), or by `./run.sh platform serve [--port 8790]`. Its sign-in and its
 spans are Core's middlewares; the first operator is `WORLD_OWNER` with `CAPXUL_PLATFORM_TOKEN`, the second
 `WORLD_SECOND_OWNER` with `CAPXUL_SECOND_PLATFORM_TOKEN`.
 
 | Operation | What it does |
 |---|---|
-| `world.create` | Refuses a real grade and a start before the seed (with an hour of room) before anything exists; then this package's create, with the chain's clock just after the seed and the owner operator's own token bound into Core (decisions 36); then the cast on the chain (`cast.ts`: dana, eli, sam and olga get a Safe claimed through Companies House's devnet claim role and 10,000 test USDC from the faucet, pat none; test accounts 4 to 8), the world's start block at its clock, its facts in its database (`packages/core/migrations/0002_world.sql`) and `world_created` as its record's first entry. It answers once Core has answered its health check ten times in a row. A failure after the claim destroys the world. |
+| `world.create` | Refuses a real grade and a start before the seed (with an hour of room) before anything exists; then this package's create, with the chain's clock just after the seed and the owner operator's own token bound into Core (decisions 36); then the cast on the chain (`cast.ts`: dana, eli, sam and olga get a Safe claimed through Companies House's devnet claim role and 10,000 test USDC from the faucet, pat none; test accounts 4 to 8), the world's start block at its clock, its facts in its database (`packages/core/migrations/0003_world.sql`) and `world_created` as its record's first entry. It answers once Core has answered its health check ten times in a row. A failure after the claim destroys the world. |
 | `world.show` | The shared state (owner, expiry, parked, door) and the world's database (grade, contracts, parent, clock, record head, cast, companies). |
 | `world.snapshot.save` | Owner only. A Neon branch of the world's branch with no compute (its expiry is lifted first: Neon will not fork a branch that has one), the chain's whole state saved in the world's R2 bucket under the snapshot's name (the door's `POST /chain/snapshot/<name>`), and a row in `platform.snapshots`; then `snapshot_saved`. A world with companies is a fault to save until a site can be backed up. |
 | `world.snapshot.restore` | A template's to anyone, any other snapshot's to its owner; never past the source's expiry. A new world whose branch forks the snapshot's and whose chain adopts the saved state (`GET /chain/snapshot/<name>` of the source's door); its parent and clock rewritten, then its own `world_created`. |
@@ -210,7 +210,7 @@ publishes it.
 - A company's site is not in a snapshot yet: the site door has no backup and restore, and Core cannot reach a bench
   from Cloudflare (step 1.4). Saving or restoring a world with companies is a fault until then.
 - The platform answers only on the machine that serves it. A caller elsewhere (a shared world's people) needs it hosted,
-  which is a question for Aaron (blueprint decisions.md, 47).
+  which is a question for Aaron (blueprint decisions.md, 48).
 - The index polls through the door, so a busy world makes about one Worker request a second for it. What an idle or a
   busy world costs was not measured.
 - Who the cast is and how a mint is booked is not here: `spec.mint` is only the hook.

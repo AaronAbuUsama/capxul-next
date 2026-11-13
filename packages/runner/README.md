@@ -70,7 +70,7 @@ has its telemetry read from the database of the world whose Core answers at that
 
 `./run.sh scenarios` expecting `pass` (the default) runs every scenario in private worlds of `packages/world`
 (`src/worlds/`). This process serves the platform group itself, on its loopback (`platform.ts`, blueprint
-decisions.md 47), signed in by the run's two operators (`WORLD_OWNER`, `WORLD_SECOND_OWNER` and their tokens), and
+decisions.md 48), signed in by the run's two operators (`WORLD_OWNER`, `WORLD_SECOND_OWNER` and their tokens), and
 the scenarios' client calls it there; a world's own operations go to its Core on Cloudflare.
 
 For each scenario the runner makes its starting world (`starting.ts`, `makers.ts`, decisions 27 and 39) and hands it

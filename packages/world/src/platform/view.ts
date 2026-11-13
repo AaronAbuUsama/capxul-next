@@ -31,14 +31,26 @@ export const opened = (stage: string) =>
     return { output, world: yield* handle(output) };
   }).pipe(Effect.mapError(failed("facts")));
 
-/** A world as world.show answers it, its clock read now. */
-export const viewOf = Effect.fn("platform.view")(function* (stage: string) {
+/** How a world was made, as its record's latest `world_created` says, or as the call making it now will say. */
+export interface Born {
+  readonly grade: typeof Values.Grade.Type;
+  readonly parent: typeof Values.Parent.Type | null;
+}
+
+/**
+ * A world as world.show answers it, its clock read now. Its grade and parent are what its record's latest
+ * `world_created` carried; `making` gives them for a world whose `world_created` is still to be written.
+ */
+export const viewOf = Effect.fn("platform.view")(function* (stage: string, making: Partial<Born> = {}) {
   const { output, world } = yield* opened(stage);
   const facts = yield* readFacts(world.database, yield* Clock.currentTimeMillis);
+  const grade = making.grade ?? facts.born?.grade;
+  const parent = making.parent === undefined ? (facts.born?.parent ?? null) : making.parent;
+  if (grade === undefined) return yield* failed("facts")(`${stage}'s record holds no world_created`);
   const view: typeof Values.WorldView.Type = {
     world: nameOf(stage),
     owner: output.owner,
-    grade: facts.grade,
+    grade,
     state: output.status === "parked" ? "parked" : "running",
     expiresAt: output.expiresAt,
     door: output.coreUrl,
@@ -46,7 +58,7 @@ export const viewOf = Effect.fn("platform.view")(function* (stage: string) {
     contracts: facts.contracts,
     clock: facts.clock,
     recordHead: facts.recordHead,
-    parent: facts.parent,
+    parent,
     cast: facts.cast,
     companies: facts.companies,
   };

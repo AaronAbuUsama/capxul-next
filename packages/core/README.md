@@ -54,10 +54,12 @@ of `src/handlers.ts` and `pnpm types` fails with `Property '"record.export"' is 
   platform call acts as the owner, the operator that deployed the stage. Tokens are compared as strings.
 - **`CurrentCall`**: its trace id and operation, for the events a built handler will emit into `app.events`.
 
-`packages/world` serves the platform group (blueprint decisions.md, entries 11 and 47), with Core's own sign-in and
+`packages/world` serves the platform group (blueprint decisions.md, entries 11 and 48), with Core's own sign-in and
 span middlewares, which the door exports (`PlatformSignInLive`, `TelemetryLive`). Core's platform door keeps its
-empty handlers until it is removed; nothing calls it. A world's facts (grade, contracts, parent, clock, cast,
-companies) are tables of the `app` schema too (`migrations/0002_world.sql`), written by the platform and read by Core.
+empty handlers until it is removed; nothing calls it. A world's facts (its chain's contracts, its cast with the
+signer and Safe of each person, its companies) are tables of the `app` schema too (`migrations/0003_world.sql`),
+written by the platform and read by Core; its clock is `app.clock`, its grade and parent its record's latest
+`world_created`.
 
 ## A stage of `CapxulCore`
 

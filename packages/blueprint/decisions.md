@@ -283,7 +283,7 @@ host time, so the claim needs no condition.
 door. Chosen: the refusal is removed. A restore of a snapshot whose migrations are not a prefix of the running
 code's still fails, as a fault (entry 10), and the templates are remade on every change to the code (entry 27).
 
-**47. Where the platform group runs (step 1.6).** A world takes about 95 s of Alchemy deploys, with the Cloudflare
+**48. Where the platform group runs (step 1.6).** A world takes about 95 s of Alchemy deploys, with the Cloudflare
 and Neon keys and, when an image changes, Docker: no Worker can host that, so a world's Core cannot serve
 `world.create`. Options: (a) Core's platform door forwards to a platform service; (b) a hosted platform service in the
 cloud (a Cloudflare Container running `packages/world`, or a process on the AWS bench host) holding the keys; (c) the
@@ -297,8 +297,10 @@ call acted on, and its events go into that world's record. A world's Core accept
 until it is removed: nothing calls it. What (c) cannot do: a caller on another machine (a shared world's people,
 phase 2) cannot reach a loopback platform. Hosting it, (b), changes hosting and adds a running service with the keys
 inside it, so it is a question for Aaron, not built here. With it:
-- a world's facts (grade, contracts, parent, clock, cast, companies) are rows of its own database
-  (`packages/core/migrations/0002_world.sql`), which its Core reads too; its owner and expiry stay the registry's;
+- a world's facts (its chain's contracts, its cast, its companies) are rows of its own database
+  (`packages/core/migrations/0003_world.sql`), which its Core reads too; its clock is `app.clock`, as Core's site
+  operations keep it; its grade and parent are what its record's latest `world_created` carried, as record.export
+  reads them; its owner and expiry stay the registry's;
 - the record is `app.events` in id order, an entry's position its rank, so a world restored from a snapshot holds its
   source's entries up to the snapshot and then its own `world_created`;
 - a snapshot is a Neon branch of the world's branch with no compute, the chain's whole state saved in the world's own

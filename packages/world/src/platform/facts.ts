@@ -1,5 +1,6 @@
-// A world's facts in its own database (packages/core/migrations/0002_world.sql): its grade, contracts, parent,
-// clock, cast and companies, and its record (app.events). The platform writes them when it makes a world and reads
+// A world's facts in its own database (packages/core/migrations/0003_world.sql): its chain's contracts, its clock (in
+// the shape Core's site operations keep it), its cast and its companies, and its record (app.events), whose latest
+// `world_created` says its grade and its parent. The platform writes them when it makes a world and reads
 // them for world.show; the world's Core reads the same rows. Everything goes over Neon's HTTPS endpoint as
 // statements with parameters; a JSON value is built in SQL (`jsonb_build_object`), never sent as JSON text.
 import * as Arr from "effect/Array";
@@ -46,21 +47,21 @@ const statement = (build: (params: Array<unknown>) => string): Statement => {
 const failed = (cause: unknown) => PlatformFailed.make({ step: "facts", message: describeFailure(cause) });
 
 export interface Birth {
-  readonly grade: typeof Values.Grade.Type;
   readonly chainId: number;
   readonly contracts: typeof Values.ChainContracts.Type;
-  readonly parent: typeof Values.Parent.Type | null;
   readonly clock: { readonly mode: typeof Values.ClockMode.Type; readonly worldMs: number; readonly hostMs: number };
   readonly cast: ReadonlyArray<Member>;
 }
 
+/**
+ * The clock as Core keeps it (packages/core, src/site-ops/clock.ts): a frozen clock's instant, or a running clock's
+ * offset from host time, so that it reads `worldMs` at host time `hostMs`.
+ */
 const clockRow = (clock: Birth["clock"]): Statement => ({
   query:
-    "insert into app.clock (one, mode, world_ms, host_ms) values (true, $1, $2, $3) on conflict (one) do update set mode = excluded.mode, world_ms = excluded.world_ms, host_ms = excluded.host_ms",
-  params: [clock.mode, clock.worldMs, clock.hostMs],
+    "insert into app.clock (id, mode, frozen_at_ms, offset_ms) values (1, $1, $2, $3) on conflict (id) do update set mode = excluded.mode, frozen_at_ms = excluded.frozen_at_ms, offset_ms = excluded.offset_ms",
+  params: [clock.mode, clock.mode === "frozen" ? clock.worldMs : null, clock.worldMs - clock.hostMs],
 });
-
-const parentJson = (parent: Birth["parent"]): JsonValue => parent;
 
 /** Writes a new world's facts, in one transaction. */
 export const writeBirth = (database: Redacted.Redacted, birth: Birth) =>
@@ -68,7 +69,7 @@ export const writeBirth = (database: Redacted.Redacted, birth: Birth) =>
     { query: "delete from app.world", params: [] },
     statement(
       (params) =>
-        `insert into app.world (one, grade, chain_id, contracts, parent) values (true, ${param(params, birth.grade)}, ${param(params, birth.chainId)}, ${jsonSql(birth.contracts, params)}, ${jsonSql(parentJson(birth.parent), params)})`,
+        `insert into app.world (one, chain_id, contracts) values (true, ${param(params, birth.chainId)}, ${jsonSql(birth.contracts, params)})`,
     ),
     clockRow(birth.clock),
     { query: "delete from app.cast", params: [] },
@@ -78,12 +79,12 @@ export const writeBirth = (database: Redacted.Redacted, birth: Birth) =>
     })),
   ]).pipe(Effect.asVoid, Effect.mapError(failed));
 
-/** Rewrites a restored world's parent and clock: the rest of its facts are its snapshot's. */
-export const writeRestored = (database: Redacted.Redacted, parent: typeof Values.Parent.Type, clock: Birth["clock"]) =>
-  transaction(database, [
-    statement((params) => `update app.world set parent = ${jsonSql(parentJson(parent), params)}`),
-    clockRow(clock),
-  ]).pipe(Effect.asVoid, Effect.mapError(failed));
+/**
+ * Sets a restored world's clock to its snapshot's: the rest of its facts are its snapshot's, and its parent is what
+ * its own `world_created` carries.
+ */
+export const writeRestored = (database: Redacted.Redacted, clock: Birth["clock"]) =>
+  transaction(database, [clockRow(clock)]).pipe(Effect.asVoid, Effect.mapError(failed));
 
 /** One event to write: its name and what it carries, already encoded as the record keeps it. */
 export interface Emitted {
@@ -109,15 +110,15 @@ export const emit = (
   ).pipe(Effect.asVoid, Effect.mapError(failed));
 
 const Row = Schema.Struct({
-  grade: Values.Grade,
   chain_id: Schema.Int,
   contracts: Values.ChainContracts,
-  parent: Schema.NullOr(Values.Parent),
-  mode: Values.ClockMode,
-  world_ms: Schema.Finite,
-  host_ms: Schema.Finite,
+  mode: Schema.NullOr(Values.ClockMode),
+  frozen_at_ms: Schema.NullOr(Schema.Finite),
+  offset_ms: Schema.NullOr(Schema.Finite),
   head: Schema.Int,
   migrations: Schema.NullOr(Schema.String),
+  /** What the record's latest `world_created` carried of how the world was made: its grade and its parent. */
+  born: Schema.NullOr(Schema.Struct({ grade: Values.Grade, parent: Schema.NullOr(Values.Parent) })),
 });
 const CastRow = Schema.Struct({
   person: Schema.String,
@@ -133,19 +134,28 @@ const CompanyRow = Schema.Struct({
   site_url: Schema.NullOr(Schema.String),
 });
 
-const ONE = `select w.grade, w.chain_id, w.contracts, w.parent, c.mode, c.world_ms, c.host_ms,
+const ONE = `select w.chain_id, w.contracts, c.mode, c.frozen_at_ms, c.offset_ms,
   (select count(*)::int from app.events) as head,
-  (select max(name) from world.migrations) as migrations
-  from app.world w cross join app.clock c`;
+  (select max(name) from world.migrations) as migrations,
+  (select jsonb_build_object('grade', payload->'grade', 'parent', payload->'parent') from app.events
+    where event = 'world_created' order by id desc limit 1) as born
+  from app.world w left join app.clock c on true`;
 
 /** An instant as the blueprint writes one, from epoch milliseconds. */
 export const instantOf = (ms: number): string => DateTime.formatIso(DateTime.makeUnsafe(ms));
 
-/** The world's clock now: frozen at its time, or running on from it at host time. */
+/**
+ * The world's clock now, as Core reads it (packages/core, src/site-ops/clock.ts): frozen at its instant, or running
+ * at host time plus its offset. No row is a running clock at host time.
+ */
 export const clockNow = (
-  row: { readonly mode: string; readonly world_ms: number; readonly host_ms: number },
+  row: {
+    readonly mode: string | null;
+    readonly frozen_at_ms: number | null;
+    readonly offset_ms: number | null;
+  },
   hostMs: number,
-) => (row.mode === "frozen" ? row.world_ms : row.world_ms + (hostMs - row.host_ms));
+) => (row.mode === "frozen" && row.frozen_at_ms !== null ? row.frozen_at_ms : hostMs + (row.offset_ms ?? 0));
 
 /** Everything the world's database says of the world, its clock read at `hostMs`. */
 export const readFacts = Effect.fn("platform.facts")(function* (database: Redacted.Redacted, hostMs: number) {
@@ -162,11 +172,10 @@ export const readFacts = Effect.fn("platform.facts")(function* (database: Redact
   );
   const nowMs = clockNow(row, hostMs);
   return {
-    grade: row.grade,
+    born: row.born,
     chainId: row.chain_id,
     contracts: row.contracts,
-    parent: row.parent,
-    clock: { mode: row.mode, now: instantOf(nowMs) },
+    clock: { mode: row.mode ?? "running", now: instantOf(nowMs) },
     clockMs: nowMs,
     recordHead: row.head,
     migrations: Option.getOrElse(Option.fromNullishOr(row.migrations), () => "none"),

@@ -1,4 +1,4 @@
-// world.snapshot.save and world.snapshot.restore, as the platform serves them (decisions.md, 17 to 19, 46 and 47).
+// world.snapshot.save and world.snapshot.restore, as the platform serves them (decisions.md, 17 to 19, 46 and 48).
 // A snapshot is a branch of the world's database, the chain's whole state saved under the snapshot's name in the
 // world's own bucket, and the platform's row of it; it belongs to its world and goes with it. A restore always makes
 // a new world: its database forks the snapshot's branch, its chain adopts the saved state, and its record continues
@@ -120,12 +120,12 @@ export const restore = Effect.fn("platform.world.snapshot.restore")(function* (p
     made.world.stage,
     Effect.gen(function* () {
       const parent = { world: payload.world, snapshot: payload.snapshot, recordSeq: snapshot.record_seq };
-      yield* writeRestored(made.world.database, parent, {
+      yield* writeRestored(made.world.database, {
         mode: snapshot.clock_mode,
         worldMs: snapshot.clock_ms,
         hostMs: yield* Clock.currentTimeMillis,
       });
-      const { view, facts } = yield* viewOf(made.world.stage);
+      const { view, facts } = yield* viewOf(made.world.stage, { parent });
       yield* steady(view.door);
       const success = { ...view, recordHead: snapshot.record_seq + 1 };
       yield* emitDeclared(

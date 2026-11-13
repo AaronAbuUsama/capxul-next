@@ -98,14 +98,12 @@ export const create = Effect.fn("platform.world.create")(function* (payload: Cre
       const cast = yield* makeCast(call);
       yield* mineStart((method, params) => rpcControl(made.world, method, params), startMs);
       yield* writeBirth(made.world.database, {
-        grade: payload.grade,
         chainId: CHAIN_ID,
         contracts: CONTRACTS,
-        parent: null,
         clock: { mode: payload.clock.mode, worldMs: startMs, hostMs: yield* Clock.currentTimeMillis },
         cast,
       });
-      const { view, facts } = yield* viewOf(stage);
+      const { view, facts } = yield* viewOf(stage, { grade: payload.grade, parent: null });
       yield* steady(view.door);
       yield* emitDeclared(
         "world.create",
