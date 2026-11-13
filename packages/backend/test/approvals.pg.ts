@@ -101,7 +101,9 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
             user_operation: { sender, nonce, callData: "0x1234", callGasLimit: "80000", verificationGasLimit: "90000", preVerificationGas: "40000", maxFeePerGas: "2", maxPriorityFeePerGas: "1", paymaster: recipient, paymasterVerificationGasLimit: "10000", paymasterPostOpGasLimit: "10000", paymasterData: "0x" } };
         },
         send: async () => { sends++; held = true; throw new Error("lost gateway answer"); }, lookup: async () => ({ held }),
-        nonce: async () => nonce, needsAndGate: async () => true, fact: async () => null,
+        nonce: async () => nonce, needsAndGate: async () => true,
+        // Like the indexed reader, a lookup without a held decimal nonce is invalid input.
+        fact: async (_sql, row) => { if (!/^\d+$/.test(String(row.nonce))) throw new Error("INVALID_INPUT: indexed carrier identity"); return null; },
         terminal: async (sql) => { await sql.query("select 1"); terminal++; },
       };
       await carry(db, services); // finishes the withdrawn carrier before opening another
