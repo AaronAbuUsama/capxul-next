@@ -1,11 +1,12 @@
 import type { Sql } from "../platform/db.ts";
-import { atOrCutoff, hatKey, indexedCutoff } from "./head.ts";
+import { address, atOrCutoff, hatKey, indexedCutoff } from "./head.ts";
 
 export interface HatFact {
   hat_id: string; company_safe: string; tree: string; admin_hat_id: string | null; level: number; details: string;
   max_supply: string; supply: string; eligibility: string; toggle: string; active: boolean; mutable: boolean; updated_block: string;
 }
 export interface HatWearerFact { wearer: string; holds: boolean; standing: boolean; wearing: boolean; since_block: string; updated_block: string }
+export interface WearerHatFact { hat_id: string; details: string; wearing: boolean; updated_block: string }
 export interface HatTransferInTx { log_id: string; log_index: number; tx_log_ordinal: number; operator: string; from: string; to: string; value: string }
 
 const decimal = (key: string | null) => key === null ? null : BigInt(key).toString();
@@ -33,6 +34,17 @@ export async function readHatWearersAt(sql: Sql, input: { chainId: number; hatId
   for (const row of rows) unchanged("hat-wearers", row.updated_block, at);
   return rows.map((r) => ({ wearer: r.wearer, holds: r.holds, standing: r.standing, wearing: r.wearing,
     since_block: String(r.since_block), updated_block: String(r.updated_block) }));
+}
+
+/** One wearer's hats in one company with their details, only if neither the wearer row nor its hat changed after atBlock. */
+export async function readWearerHatsAt(sql: Sql, input: { chainId: number; wearer: string; companySafe: string; atBlock?: string; finality: number }): Promise<WearerHatFact[]> {
+  const wearer = address(input.wearer, "wearer"), company = address(input.companySafe, "company Safe");
+  const at = atOrCutoff(await indexedCutoff(sql, input.chainId, input.finality), input.atBlock);
+  const rows = (await sql.query(`select w.hat_id,h.details,w.wearing,w.updated_block,h.updated_block as hat_block
+    from app.hat_wearers w join app.chain_hats h on h.chain_id=w.chain_id and h.hat_id=w.hat_id
+    where w.chain_id=$1 and w.wearer=$2 and w.company_safe=$3 order by w.hat_id`, [input.chainId, wearer, company])).rows;
+  for (const row of rows) { unchanged("hat-wearers", row.updated_block, at); unchanged("chain-hats", row.hat_block, at); }
+  return rows.map((r) => ({ hat_id: decimal(r.hat_id)!, details: r.details, wearing: r.wearing, updated_block: String(r.updated_block) }));
 }
 
 /** Every finalized Hats TransferSingle of that hat in one transaction, in log order. */

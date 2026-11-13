@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import pg from "pg";
 import { testKey } from "../../devnet/src/modules/test-keys/service.ts";
-import { readHatAt, readHatTransfersInTx, readHatWearersAt, readSafeApprovals, readSafeExecution, readSafeOwnersAt } from "../src/indexing/door.ts";
+import { readHatAt, readHatTransfersInTx, readHatWearersAt, readWearerHatsAt, readSafeApprovals, readSafeExecution, readSafeOwnersAt } from "../src/indexing/door.ts";
 
 if (!process.env.CORE_PROOF_DIR || process.env.CAPXUL_DISPOSABLE !== "true" || !process.env.CAPXUL_WORLD || process.env.CAPXUL_WORLD === "main")
   throw new Error("indexing reader controls require a named disposable real Ponder/v4 world");
@@ -48,6 +48,11 @@ test("finalized Safe and hat readers return exact log facts and refuse a newer p
       /HISTORICAL_UNAVAILABLE: chain-hats/);
     const wearers = await readHatWearersAt(sql, { chainId, hatId: fixture.hat, finality: 0 });
     assert.equal(wearers.find((w) => w.wearer === second)?.wearing, true);
+    const worn = await readWearerHatsAt(sql, { chainId, wearer: second, companySafe: safe, finality: 0 });
+    assert.deepEqual(worn.filter((w) => w.hat_id === BigInt(fixture.hat).toString()).map((w) => [w.details, w.wearing]), [[hat!.details, true]]);
+    assert.deepEqual(await readWearerHatsAt(sql, { chainId, wearer: second, companySafe: founder, finality: 0 }), [], "another company's hats stay out");
+    await assert.rejects(readWearerHatsAt(sql, { chainId, wearer: second, companySafe: safe, atBlock: (BigInt(worn[0]!.updated_block) - 1n).toString(), finality: 0 }),
+      /HISTORICAL_UNAVAILABLE/);
 
     const grant = (await sql.query(`select tx_hash,log_id from app.chain_logs where contract='hats' and event='TransferSingle'
       and args->>'to'=$1 and args->>'id'=$2 order by block_number limit 1`, [second, BigInt(fixture.hat).toString()])).rows[0];
