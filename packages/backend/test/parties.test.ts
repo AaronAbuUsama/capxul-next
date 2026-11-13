@@ -9,6 +9,7 @@ import { companySafeAddress, personalSafeAddress } from "../src/platform/safe.ts
 if (process.env.CAPXUL_DISPOSABLE !== "true" || !process.env.CAPXUL_WORLD || process.env.CAPXUL_WORLD === "main") throw new Error("named disposable migrated Postgres required");
 const db = new Database(process.env.DATABASE_URL!, process.env.WORKER_DATABASE_URL!);
 const config = { companiesHouse: "0x1234567890123456789012345678901234567890" as const, namespace: "party-test" };
+const trace = "trace-parties-0731";
 const address = (n: number) => `0x${n.toString(16).padStart(40, "0")}`;
 test.after(() => db.close());
 
@@ -59,30 +60,30 @@ test("registration, activation and release preserve caller atomicity, idempotenc
   const now = 946684800123, advanced = now + 47_000;
   const input = { kind: "organization" as const, handle: ` @${handle.toUpperCase()} `, display_name: "Acme",
     safe_address: address(stamp), owner_kind: "organization" as const, owner_id: `org-${suffix}` };
-  const eventCount = async () => Number((await db.worker.query("select count(*) from app.party_events")).rows[0].count);
+  const eventCount = async () => Number((await db.worker.query("select count(*) from app.transition_outbox where event->>'name'='party_transitioned'")).rows[0].count);
   const before = await eventCount();
-  await assert.rejects(db.transaction("", async (sql) => { await register(sql, input, now); throw new Error("abort-birth"); }, true), /abort-birth/);
+  await assert.rejects(db.transaction("", async (sql) => { await register(sql, input, now, trace); throw new Error("abort-birth"); }, true), /abort-birth/);
   assert.equal((await db.worker.query("select count(*) from app.parties where handle=$1", [handle])).rows[0].count, "0");
   assert.equal(await eventCount(), before);
-  const [row, replay] = await Promise.all([0, 1].map(() => db.transaction("", (sql) => register(sql, input, now), true)));
+  const [row, replay] = await Promise.all([0, 1].map(() => db.transaction("", (sql) => register(sql, input, now, trace), true)));
   assert.equal(row!.party_id, replay!.party_id); assert.equal(row!.state, "pending"); assert.equal(row!.handle, handle);
   assert.equal(Number(row!.created_at), now); assert.equal(Number(row!.updated_at), now);
   assert.equal(await eventCount(), before + 1);
-  await assert.rejects(db.transaction("", (sql) => register(sql, { ...input, handle: `${handle}-different` }, now), true), /INVALID_INPUT/);
-  await assert.rejects(db.transaction("", async (sql) => { await activate(sql, row!.party_id, advanced); throw new Error("abort-activate"); }, true), /abort-activate/);
+  await assert.rejects(db.transaction("", (sql) => register(sql, { ...input, handle: `${handle}-different` }, now, trace), true), /INVALID_INPUT/);
+  await assert.rejects(db.transaction("", async (sql) => { await activate(sql, row!.party_id, advanced, trace); throw new Error("abort-activate"); }, true), /abort-activate/);
   assert.equal((await lookup(db.worker, row!.party_id))!.state, "pending");
   assert.equal(Number((await lookup(db.worker, row!.party_id))!.updated_at), now);
   assert.equal(await eventCount(), before + 1, "rolled-back activation must not append an event");
-  await db.transaction("", async (sql) => { await activate(sql, row!.party_id, advanced); await activate(sql, row!.party_id, advanced + 1); }, true);
+  await db.transaction("", async (sql) => { await activate(sql, row!.party_id, advanced, trace); await activate(sql, row!.party_id, advanced + 1, trace); }, true);
   assert.equal(Number((await lookup(db.worker, row!.party_id))!.updated_at), advanced);
-  await assert.rejects(db.transaction("", (sql) => release(sql, row!.party_id, advanced), true), /WRONG_STATE/);
-  const second = await db.transaction("", (sql) => register(sql, { ...input, handle: `${handle}-two`, safe_address: address(stamp + 1) }, now), true);
-  await assert.rejects(db.transaction("", async (sql) => { await release(sql, second.party_id, advanced); throw new Error("abort-release"); }, true), /abort-release/);
+  await assert.rejects(db.transaction("", (sql) => release(sql, row!.party_id, advanced, trace), true), /WRONG_STATE/);
+  const second = await db.transaction("", (sql) => register(sql, { ...input, handle: `${handle}-two`, safe_address: address(stamp + 1) }, now, trace), true);
+  await assert.rejects(db.transaction("", async (sql) => { await release(sql, second.party_id, advanced, trace); throw new Error("abort-release"); }, true), /abort-release/);
   assert.equal((await lookup(db.worker, second.party_id))!.state, "pending");
-  await db.transaction("", async (sql) => { await release(sql, second.party_id, advanced); await release(sql, second.party_id, advanced + 1); }, true);
+  await db.transaction("", async (sql) => { await release(sql, second.party_id, advanced, trace); await release(sql, second.party_id, advanced + 1, trace); }, true);
   assert.equal(await lookup(db.worker, second.party_id), null);
   assert.equal(await lookupBySafe(db.worker, second.safe_address), null);
-  const reborn = await db.transaction("", (sql) => register(sql, { ...input, handle: `${handle}-two`, safe_address: address(stamp + 1) }, now), true);
+  const reborn = await db.transaction("", (sql) => register(sql, { ...input, handle: `${handle}-two`, safe_address: address(stamp + 1) }, now, trace), true);
   assert.notEqual(reborn.party_id, second.party_id);
   const beforeRead = await eventCount();
   const sql = await db.tenant.connect();
@@ -94,9 +95,10 @@ test("registration, activation and release preserve caller atomicity, idempotenc
     await sql.query("commit");
   } finally { await sql.query("rollback"); sql.release(); }
   assert.equal(await eventCount(), beforeRead, "name lookup must not mutate the directory or append an event");
-  const events = (await db.worker.query("select data->>'transition' as transition,at from app.party_events where party_id=$1 order by id", [row!.party_id])).rows;
+  const events = (await db.worker.query("select event->'props'->>'transition' as transition,event->'at' as at,event->>'trace_id' as trace from app.transition_outbox where event->>'entity_id'=$1 and event->>'name'='party_transitioned' order by seq", [row!.party_id])).rows;
   assert.deepEqual(events.map((r) => r.transition), ["register", "activate"]);
   assert.deepEqual(events.map((r) => Number(r.at)), [now, advanced]);
+  assert.deepEqual(events.map((r) => r.trace), [trace, trace]);
   const released = (await db.worker.query("select updated_at from app.parties where party_id=$1", [second.party_id])).rows[0];
   assert.equal(Number(released.updated_at), advanced);
 });
@@ -104,31 +106,31 @@ test("registration, activation and release preserve caller atomicity, idempotenc
 test("resolution names atomically, adopts outside identity and refuses malformed or released locators", async () => {
   const mailbox = `party-${Date.now()}@example.test`, safe = personalSafeAddress(config, mailbox);
   const now = 978307200456, advanced = now + 73_000;
-  const before = (await db.worker.query("select count(*) from app.party_events")).rows[0].count;
+  const before = (await db.worker.query("select count(*) from app.transition_outbox where event->>'name'='party_transitioned'")).rows[0].count;
   await assert.rejects(db.transaction("", async (sql) => {
-    await resolveRecipient(sql, { _tag: "mailbox", mailbox }, config, now); throw new Error("abort-resolve");
+    await resolveRecipient(sql, { _tag: "mailbox", mailbox }, config, now, trace); throw new Error("abort-resolve");
   }, true), /abort-resolve/);
   assert.equal((await db.worker.query("select count(*) from app.parties where safe_address=$1", [safe])).rows[0].count, "0");
-  assert.equal((await db.worker.query("select count(*) from app.party_events")).rows[0].count, before);
-  const outside = await db.transaction("", (sql) => resolveRecipient(sql, { _tag: "address", address: safe }, config, now), true);
+  assert.equal((await db.worker.query("select count(*) from app.transition_outbox where event->>'name'='party_transitioned'")).rows[0].count, before);
+  const outside = await db.transaction("", (sql) => resolveRecipient(sql, { _tag: "address", address: safe }, config, now, trace), true);
   assert(outside.resolved); assert.equal(outside.state, "outside");
-  const beforeAdoption = (await db.worker.query("select count(*) from app.party_events")).rows[0].count;
+  const beforeAdoption = (await db.worker.query("select count(*) from app.transition_outbox where event->>'name'='party_transitioned'")).rows[0].count;
   await assert.rejects(db.transaction("", async (sql) => {
-    await resolveRecipient(sql, { _tag: "mailbox", mailbox }, config, advanced); throw new Error("abort-adoption");
+    await resolveRecipient(sql, { _tag: "mailbox", mailbox }, config, advanced, trace); throw new Error("abort-adoption");
   }, true), /abort-adoption/);
   const unchanged = (await lookup(db.worker, outside.party_id))!;
   assert.equal(unchanged.state, "outside"); assert.equal(Number(unchanged.updated_at), now);
-  assert.equal((await db.worker.query("select count(*) from app.party_events")).rows[0].count, beforeAdoption);
-  const person = await db.transaction("", (sql) => resolveRecipient(sql, { _tag: "mailbox", mailbox: ` ${mailbox.toUpperCase()} ` }, config, advanced), true);
+  assert.equal((await db.worker.query("select count(*) from app.transition_outbox where event->>'name'='party_transitioned'")).rows[0].count, beforeAdoption);
+  const person = await db.transaction("", (sql) => resolveRecipient(sql, { _tag: "mailbox", mailbox: ` ${mailbox.toUpperCase()} ` }, config, advanced, trace), true);
   assert(person.resolved); assert.equal(person.party_id, outside.party_id); assert.equal(person.state, "provisional"); assert(person.named);
-  const again = await db.transaction("", (sql) => resolveRecipient(sql, { _tag: "mailbox", mailbox }, config, advanced + 1), true);
+  const again = await db.transaction("", (sql) => resolveRecipient(sql, { _tag: "mailbox", mailbox }, config, advanced + 1, trace), true);
   assert(again.resolved); assert.equal(again.named, false);
-  const named = await db.transaction("", (sql) => resolveRecipient(sql, { _tag: "mailbox", mailbox: `another-${mailbox}` }, config, now), true);
+  const named = await db.transaction("", (sql) => resolveRecipient(sql, { _tag: "mailbox", mailbox: `another-${mailbox}` }, config, now, trace), true);
   assert(named.resolved); assert.equal(named.state, "provisional");
   const asymmetric = await db.transaction("", (sql) => resolveRecipient(sql,
-    { _tag: "mailbox", mailbox: `  A+B.O'C-${Date.now()}@Sub-Domain.Example.Test  ` }, config, now), true);
+    { _tag: "mailbox", mailbox: `  A+B.O'C-${Date.now()}@Sub-Domain.Example.Test  ` }, config, now, trace), true);
   assert(asymmetric.resolved); assert.equal(asymmetric.state, "provisional"); assert.equal(asymmetric.named, true);
-  const counts = async () => (await db.worker.query("select (select count(*) from app.parties) as parties,(select count(*) from app.party_events) as events")).rows[0];
+  const counts = async () => (await db.worker.query("select (select count(*) from app.parties) as parties,(select count(*) from app.transition_outbox where event->>'name'='party_transitioned') as events")).rows[0];
   const beforeMalformed = await counts();
   for (const [locator, reason] of [
     [{ _tag: "mailbox", mailbox: "bad" }, "malformed"], [{ _tag: "address", address: address(0) }, "zero-address"],
@@ -138,24 +140,30 @@ test("resolution names atomically, adopts outside identity and refuses malformed
     [{ _tag: "mailbox", mailbox: "alice@-example.test" }, "malformed"],
     [{ _tag: "address", address: "not-address" }, "malformed"], [{ _tag: "handle", handle: "unregistered" }, "unknown-handle"],
     [{ _tag: "party", party_id: "unknown" }, "unknown-party"],
-  ] as const) assert.deepEqual(await db.transaction("", (sql) => resolveRecipient(sql, locator, config, now), true), { resolved: false, reason });
+  ] as const) assert.deepEqual(await db.transaction("", (sql) => resolveRecipient(sql, locator, config, now, trace), true), { resolved: false, reason });
   assert.deepEqual(await counts(), beforeMalformed, "refused locators must not insert a Party or transition event");
   const persisted = (await lookup(db.worker, person.party_id))!;
   assert.equal(Number(persisted.created_at), now); assert.equal(Number(persisted.updated_at), advanced);
-  const history = (await db.worker.query("select data,at from app.party_events where party_id=$1 order by id", [person.party_id])).rows;
+  const history = (await db.worker.query("select event->'props' as data,event->'at' as at,event from app.transition_outbox where event->>'entity_id'=$1 and event->>'name'='party_transitioned' order by seq", [person.party_id])).rows;
   assert.deepEqual(history.map((r) => Number(r.at)), [now, advanced]);
   const events = history.map((r) => r.data);
   assert.deepEqual(events.map((e) => [e.from, e.to, e.transition]), [[null, "outside", "name_address"], ["outside", "provisional", "adopt_mailbox"]]);
   for (const event of events) for (const privateKey of ["handle", "mailbox", "display_name", "safe_address"]) assert(!(privateKey in event));
+  assert.deepEqual(history.map((r) => [r.event.id, r.event.machine, r.event.owner_kind, r.event.owner_id, r.event.trace_id]), [
+    [`party:${person.party_id}:name_address`, "party", null, null, trace], [`party:${person.party_id}:adopt_mailbox`, "party", null, null, trace]]);
+  await assert.rejects(db.transaction("", (sql) => resolveRecipient(sql, { _tag: "mailbox", mailbox: `untraced-${mailbox}` }, config, now, ""), true), /INVALID_INPUT: trace_id/);
 });
 
-test("global reads do not grant tenant writers; event history is append-only", async () => {
+test("global reads do not grant tenant writers; transition history is append-only", async () => {
   const indexes = (await db.worker.query("select indexname,indexdef from pg_indexes where schemaname='app' and tablename='parties'")).rows;
   for (const name of ["parties-by-handle", "parties-by-safe", "parties-by-mailbox", "parties-by-owner"]) assert(indexes.some((i) => i.indexname === name));
-  for (const query of ["update app.parties set display_name='unauthorized'", "delete from app.parties", "insert into app.party_events(party_id,data,at) values ('bad','{}',0)"]) {
+  for (const query of ["update app.parties set display_name='unauthorized'", "delete from app.parties",
+    "insert into app.parties(party_id,kind,state,safe_address,created_at,updated_at) values ('bad','address','outside','0x00000000000000000000000000000000000000ff',0,0)"]) {
     await assert.rejects(db.transaction("unrelated-org", (sql) => sql.query(query)), /permission denied/);
   }
-  await assert.rejects(db.worker.query("delete from app.party_events"), /permission denied/);
-  await assert.rejects(db.worker.query("update app.party_events set at=0"), /permission denied/);
+  const forged = JSON.stringify({ id: "party:forged:register", name: "party_transitioned", owner_kind: "organization", owner_id: "someone-else" });
+  await assert.rejects(db.transaction("unrelated-org", (sql) => sql.query("insert into app.transition_outbox(id,event) values ('party:forged:register',$1::jsonb)", [forged])), /row-level security/);
+  await assert.rejects(db.worker.query("delete from app.transition_outbox where event->>'name'='party_transitioned'"), /permission denied/);
+  await assert.rejects(db.worker.query("update app.transition_outbox set event=event where event->>'name'='party_transitioned'"), /permission denied/);
   assert((await db.transaction("unrelated-org", (sql) => sql.query("select party_id from app.parties"))).rowCount! > 0);
 });
