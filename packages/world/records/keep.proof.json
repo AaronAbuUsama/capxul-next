@@ -1,7 +1,7 @@
 {
   "proof": "keeping a failed world is asked for with a duration: it is parked, stopped, until then, and the sweeper deletes it when the keep ends",
   "outcome": "passed",
-  "at": "2026-11-13T14:09:42.943Z",
+  "at": "2026-11-13T18:03:17.671Z",
   "checks": [
     {
       "check": "the run is recorded as failed and its world as kept",
@@ -42,26 +42,28 @@
       "world": "w-p-keep",
       "owner": "proof",
       "forkedFrom": "nothing",
-      "expiresAt": "2026-11-13T14:44:33.556Z",
+      "expiresAt": "2026-11-13T18:38:14.421Z",
       "outcome": "failed",
       "failure": "DatabaseRefused: relation \"app.no_such_table\" does not exist",
       "worldAfterwards": "kept",
-      "keptUntil": "2026-11-13T14:09:13.834Z",
+      "keptUntil": "2026-11-13T18:02:45.503Z",
       "ms": {
-        "claim": 837,
-        "deploy": 63592,
-        "migrate": 812,
-        "chain": 2274,
-        "fund": 458,
-        "bundler": 27645,
-        "index": 31472,
-        "core": 457,
-        "use": 109,
-        "park": 5075,
+        "claim": 1204,
+        "deploy": 56569,
+        "migrate": 802,
+        "chain": 1939,
+        "fund": 326,
+        "bundler": 28978,
+        "index": 11461,
+        "core": 642,
+        "site": null,
+        "use": 111,
+        "park": 5588,
+        "unsite": null,
         "destroy": null,
         "release": null,
-        "create": 100167,
-        "total": 105353
+        "create": 90966,
+        "total": 96671
       },
       "timeouts": {
         "claim": 45000,
@@ -70,10 +72,12 @@
         "chain": 180000,
         "fund": 60000,
         "bundler": 300000,
-        "index": 180000,
+        "index": 300000,
         "core": 60000,
+        "site": 480000,
         "use": 600000,
         "park": 60000,
+        "unsite": 180000,
         "destroy": 240000,
         "release": 45000
       }
@@ -85,7 +89,7 @@
         {
           "world": "w-p-keep",
           "owner": "proof",
-          "expiresAt": "2026-11-13T14:09:13.834Z",
+          "expiresAt": "2026-11-13T18:02:45.503Z",
           "status": "parked",
           "state": "live"
         }
@@ -95,7 +99,7 @@
       {
         "world": "w-p-keep",
         "owner": "proof",
-        "expiresAt": "2026-11-13T14:09:13.834Z",
+        "expiresAt": "2026-11-13T18:02:45.503Z",
         "status": "parked",
         "detail": null,
         "destroyMs": null,
@@ -106,10 +110,10 @@
       {
         "world": "w-p-keep",
         "owner": "proof",
-        "expiresAt": "2026-11-13T14:09:13.834Z",
+        "expiresAt": "2026-11-13T18:02:45.503Z",
         "status": "parked",
         "detail": null,
-        "destroyMs": 15290,
+        "destroyMs": 18047,
         "verdict": "destroyed"
       }
     ],

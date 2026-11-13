@@ -1,7 +1,7 @@
 {
   "proof": "a world made from nothing answers on every part, a world forked from it starts with its rows and chain, and both are destroyed",
   "outcome": "passed",
-  "at": "2026-11-13T14:50:36.530Z",
+  "at": "2026-11-13T17:51:43.997Z",
   "checks": [
     {
       "check": "the first world's run passed",
@@ -148,28 +148,28 @@
         "world": "w-p-fork",
         "owner": "proof",
         "forkedFrom": "w-p-fresh",
-        "expiresAt": "2026-11-13T15:28:18.415Z",
+        "expiresAt": "2026-11-13T18:29:27.357Z",
         "outcome": "passed",
         "failure": null,
         "worldAfterwards": "destroyed",
         "keptUntil": null,
         "ms": {
-          "claim": 626,
-          "deploy": 57828,
-          "migrate": 512,
-          "chain": 7240,
-          "fund": 113,
-          "bundler": 15094,
-          "index": 23565,
-          "core": 353,
+          "claim": 705,
+          "deploy": 59825,
+          "migrate": 527,
+          "chain": 6067,
+          "fund": 176,
+          "bundler": 24322,
+          "index": 19574,
+          "core": 609,
           "site": null,
-          "use": 5156,
+          "use": 3289,
           "park": null,
-          "unsite": 0,
-          "destroy": 18713,
-          "release": 342,
-          "create": 91684,
-          "total": 115997
+          "unsite": 1,
+          "destroy": 18591,
+          "release": 343,
+          "create": 93429,
+          "total": 115894
         },
         "timeouts": {
           "claim": 45000,
@@ -178,7 +178,7 @@
           "chain": 180000,
           "fund": 60000,
           "bundler": 300000,
-          "index": 180000,
+          "index": 300000,
           "core": 60000,
           "site": 480000,
           "use": 600000,
@@ -193,28 +193,28 @@
       "world": "w-p-fresh",
       "owner": "proof",
       "forkedFrom": "nothing",
-      "expiresAt": "2026-11-13T15:26:27.427Z",
+      "expiresAt": "2026-11-13T18:27:20.171Z",
       "outcome": "passed",
       "failure": null,
       "worldAfterwards": "destroyed",
       "keptUntil": null,
       "ms": {
-        "claim": 985,
-        "deploy": 59678,
-        "migrate": 744,
-        "chain": 2256,
-        "fund": 772,
-        "bundler": 11744,
-        "index": 42065,
-        "core": 618,
+        "claim": 946,
+        "deploy": 59440,
+        "migrate": 693,
+        "chain": 2215,
+        "fund": 719,
+        "bundler": 58411,
+        "index": 38409,
+        "core": 976,
         "site": null,
-        "use": 119212,
+        "use": 119205,
         "park": null,
         "unsite": 0,
-        "destroy": 16182,
-        "release": 293,
-        "create": 107775,
-        "total": 243553
+        "destroy": 16190,
+        "release": 260,
+        "create": 123875,
+        "total": 259629
       },
       "timeouts": {
         "claim": 45000,
@@ -223,7 +223,7 @@
         "chain": 180000,
         "fund": 60000,
         "bundler": 300000,
-        "index": 180000,
+        "index": 300000,
         "core": 60000,
         "site": 480000,
         "use": 600000,
@@ -235,27 +235,13 @@
     },
     "inventory": {
       "before": {
-        "workers": [
-          "capxulworld-core-w-wc4-m8yq098n-iuxugjxsyjedrjot",
-          "capxulworld-door-w-wc4-m8yq098n-bh5pocdhe5dimdbk"
-        ],
-        "containerApplications": [
-          "capxulworld-ponder-w-wc4-m8yq098n-hdtk27ki5qc3zyyt",
-          "capxulworld-anvil-w-wc4-m8yq098n-axt6tsc25e7z5g23"
-        ],
-        "durableObjectNamespaces": [
-          "capxulworld-door-w-wc4-m8yq098n-bh5pocdhe5dimdbk",
-          "capxulworld-door-w-wc4-m8yq098n-bh5pocdhe5dimdbk"
-        ],
-        "r2Buckets": [
-          "capxulworld-chainstate-w-wc4-m8yq098n-ygldz3av2adloa2p"
-        ],
-        "hyperdriveConfigurations": [
-          "capxulworld-world-db-w-wc4-m8yq098n-zij5i6ncjsdnmtxb"
-        ],
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
         "neonBranches": [
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
-          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-wc4-m8yq098n",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
         "imageRepositories": [
@@ -265,44 +251,12 @@
         ]
       },
       "after": {
-        "workers": [
-          "capxulworld-core-w-qf-434c00-3hrng6odro3ssqa7",
-          "capxulworld-core-w-qf-8f5c90-zdl4z4ww4wwihjf7",
-          "capxulworld-core-w-qf-a0e0f6-lckfsjpnoesouvev",
-          "capxulworld-door-w-qf-434c00-kwmgqgjnzavor7ac",
-          "capxulworld-door-w-qf-8f5c90-nlfpewxza6jpiqx6",
-          "capxulworld-door-w-qf-a0e0f6-chdtpojobhqkyo5z"
-        ],
-        "containerApplications": [
-          "capxulworld-ponder-w-qf-434c00-a4ybl2hjgcm3rlkh",
-          "capxulworld-ponder-w-qf-a0e0f6-lt4cvnhuj226c6gm",
-          "capxulworld-ponder-w-qf-8f5c90-xvqet6mqtvjsz26k",
-          "capxulworld-anvil-w-qf-8f5c90-xx3hp6a6a6crsool",
-          "capxulworld-anvil-w-qf-434c00-j7ifnsvnzb7ihr3c",
-          "capxulworld-anvil-w-qf-a0e0f6-j6gprjxlzdcfwvvl"
-        ],
-        "durableObjectNamespaces": [
-          "capxulworld-door-w-qf-a0e0f6-chdtpojobhqkyo5z",
-          "capxulworld-door-w-qf-a0e0f6-chdtpojobhqkyo5z",
-          "capxulworld-door-w-qf-434c00-kwmgqgjnzavor7ac",
-          "capxulworld-door-w-qf-434c00-kwmgqgjnzavor7ac",
-          "capxulworld-door-w-qf-8f5c90-nlfpewxza6jpiqx6",
-          "capxulworld-door-w-qf-8f5c90-nlfpewxza6jpiqx6"
-        ],
-        "r2Buckets": [
-          "capxulworld-chainstate-w-qf-434c00-sb36uqanq6onphnp",
-          "capxulworld-chainstate-w-qf-8f5c90-sbbnf3ey7ai7dlzf",
-          "capxulworld-chainstate-w-qf-a0e0f6-wmzuykviepdl5ku7"
-        ],
-        "hyperdriveConfigurations": [
-          "capxulworld-world-db-w-qf-434c00-stf23jxwnqeeyr6p",
-          "capxulworld-world-db-w-qf-8f5c90-pvdcumounmb3h4rd",
-          "capxulworld-world-db-w-qf-a0e0f6-ron2ecqltvstmcbk"
-        ],
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
         "neonBranches": [
-          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-qf-a0e0f6",
-          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-qf-8f5c90",
-          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-qf-434c00",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
@@ -314,13 +268,8 @@
       },
       "leftOfTheseWorlds": [],
       "sameAsBefore": true,
-      "sameAsBeforeAccountWide": false,
-      "otherWorlds": [
-        "w-wc4-m8yq098n",
-        "w-qf-434c00",
-        "w-qf-8f5c90",
-        "w-qf-a0e0f6"
-      ]
+      "sameAsBeforeAccountWide": true,
+      "otherWorlds": []
     }
   }
 }
