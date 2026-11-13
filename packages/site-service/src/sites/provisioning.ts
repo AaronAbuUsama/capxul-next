@@ -12,7 +12,8 @@ export type ProvisioningOptions = {
 const OWNERS = [{ type: "function", name: "getOwners", stateMutability: "view", inputs: [], outputs: [{ type: "address[]" }] }] as const;
 
 /** Mount before Core consumes the request stream. False means this is not our route. */
-export function createProvisioningHandler(options: ProvisioningOptions): (req: IncomingMessage, res: ServerResponse) => Promise<boolean> {
+/** `admit`, when Core supplies it, is called once the caller is authenticated, so Core records the call (signals.world-rows). */
+export function createProvisioningHandler(options: ProvisioningOptions): (req: IncomingMessage, res: ServerResponse, admit?: () => void) => Promise<boolean> {
   if (!options.coreSecret || !options.siteServiceToken) throw new Error("Private provisioning credentials are required");
   const client = createPublicClient({ transport: http(options.rpcUrl) });
   const core = async (path: string, body: unknown, trace: string): Promise<any> => {
@@ -23,7 +24,7 @@ export function createProvisioningHandler(options: ProvisioningOptions): (req: I
     if (!response.ok) throw new ServiceError(response.status === 404 ? 400 : 503, response.status === 404 ? "INVALID_INPUT" : "PROVIDER_ERROR", "Core registration or release was refused");
     return response.json();
   };
-  return async (req, res) => {
+  return async (req, res, admit = () => {}) => {
     if (req.url !== PROVISION_PATH) return false;
     const trace = randomUUID();
     let creating: string | undefined;
@@ -39,6 +40,7 @@ export function createProvisioningHandler(options: ProvisioningOptions): (req: I
       try { caller = await recoverMessageAddress({ message: provisioningMessage(options.publicOrigin, raw), signature: signature as Hex }); }
       catch { throw new ServiceError(401, "NOT_AUTHENTICATED", "Invalid request signature"); }
       if (caller.toLowerCase() !== input.caller.toLowerCase()) throw new ServiceError(401, "NOT_AUTHENTICATED", "Request signature does not match caller");
+      admit();
       if (!/^[a-z][a-z0-9-]{1,30}$/.test(input.org)) throw new ServiceError(400, "INVALID_INPUT", "Invalid company slug");
       const info = await core("/admin/org-info", { slug: input.org }, trace);
       if (info.slug !== input.org || !isAddress(info.safe ?? "") || typeof info.name !== "string" || typeof info.site !== "string") {

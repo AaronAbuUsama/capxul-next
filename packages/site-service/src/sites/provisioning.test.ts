@@ -58,8 +58,9 @@ async function setup() {
     res.setHeader("content-type", "application/json"); res.end(JSON.stringify({ jsonrpc: "2.0", id: call.id, result }));
   }));
   let handler: ReturnType<typeof createProvisioningHandler>;
+  let admits = 0;
   const coreUrl = await listen(createServer(async (req, res) => {
-    if (await handler(req, res)) return;
+    if (await handler(req, res, () => { admits++; })) return;
     let raw = ""; for await (const chunk of req) raw += chunk;
     assert.equal(req.headers["x-capxul-signature"], createHmac("sha256", options.secret).update(raw).digest("hex"));
     assert.ok(req.headers["x-capxul-trace"]);
@@ -74,7 +75,7 @@ async function setup() {
   const mount = () => { handler = createProvisioningHandler({ publicOrigin: coreUrl, rpcUrl, coreUrl, coreSecret: options.secret, siteServiceUrl, siteServiceToken: options.token }); };
   mount();
   return { root, bench, info, options, coreUrl, sites: createSitesClient({ coreUrl, account: founder }),
-    siteUrl: () => siteServiceUrl, removeFounder: () => { founderOwns = false; },
+    siteUrl: () => siteServiceUrl, admitted: () => admits, removeFounder: () => { founderOwns = false; },
     async restart() { await new Promise<void>((resolve) => siteService.close(() => resolve())); siteService = createSiteService(options); siteServiceUrl = await listen(siteService); mount(); },
   };
 }
@@ -115,6 +116,8 @@ test("public SDK/CLI retries an interrupted bench creation and preserves identit
 test("public provisioning rejects wrong callers, altered bodies, wrong origins, expired requests and removed Safe ownership", async () => {
   const s = await setup();
   await assert.rejects(createSitesClient({ coreUrl: s.coreUrl, account: other }).provision({ org: "acme" }), { code: "ROLE_PERMISSION_DENIED" });
+  // A signed caller is admitted (Core records the call) even when not the founder; an unauthenticated one never is.
+  assert.equal(s.admitted(), 1);
   const send = async (raw: string, signature?: Hex) => fetch(`${s.coreUrl}${PROVISION_PATH}`, {
     method: "POST", body: raw, headers: signature ? { "x-capxul-signature": signature } : {},
   });
@@ -125,6 +128,7 @@ test("public provisioning rejects wrong callers, altered bodies, wrong origins, 
   assert.equal((await send(raw, await founder.signMessage({ message: provisioningMessage("https://another.test", raw) }))).status, 401);
   const expired = JSON.stringify({ org: "acme", caller: founder.address, expiresAt: Date.now() - 1 });
   assert.equal((await send(expired, await founder.signMessage({ message: provisioningMessage(s.coreUrl, expired) }))).status, 401);
+  assert.equal(s.admitted(), 1);
   s.removeFounder();
   await assert.rejects(s.sites.provision({ org: "acme" }), { code: "ROLE_PERMISSION_DENIED" });
   assert.equal(s.info.released, false);
