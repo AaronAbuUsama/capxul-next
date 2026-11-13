@@ -229,3 +229,33 @@ export const decision_signals_operator_watch = defineDecision({
   source: "Aaron, 18:49 UTC 11 November 2026; old repository packages/tools/src/modules/analytics/internal/reliability.ts (reference only)",
   affects: [alert_rpc_failing, alert_process_stuck, dashboard_operator_health],
 });
+
+export const decision_signals_world_rows = defineDecision({
+  id: "signals.world-rows",
+  title: "A world keeps its own wide rows; its operator alerts read them in world time",
+  question:
+    "rpc_failing and process_stuck read operation_row, process_row and process_queue_age over windows of 15 minutes and an " +
+    "hour. Where does a world without PostHog keep those rows, which clock bounds the windows, and where does the operator " +
+    "read the two alerts?",
+  options: [
+    {
+      label: "world-rows",
+      text:
+        "Core writes each row to the world's own Postgres (app.signal_rows, worker-only, bounded), stamped with the world " +
+        "instant, and evaluates both alerts over world-time windows behind its authenticated, server-wide " +
+        "/admin/operator-alerts. A world paused for a snapshot writes no row. The rows a live environment exports to PostHog " +
+        "are the same rows.",
+    },
+    { label: "host-rows", text: "Keep the rows in memory and bound the windows by the host's clock." },
+  ],
+  chosen: "world-rows",
+  why:
+    "Every world has one clock that everything in it follows (time.worlds), and time.no-direct-reads keeps the host clock " +
+    "out of product code, so a row's time is the world's. A frozen devnet therefore holds its window until the clock moves, " +
+    "and a warp past it clears it: on a devnet, the operator's hour is the world's hour. Rows in Postgres survive Core's " +
+    "restarts and can be counted by an eval. Both alerts are server-wide with route operator (signals.operator-watch), " +
+    "so they cannot join an Organization's /admin/alerts list, whose money-path faults must each fire alone. A row is " +
+    "written after its answer is sent, so a slow or failing row write never changes an rpc's answer.",
+  source: "Integrator rulings, 13 November 2026 (Shared builds the wide-row writer and both alerts; the separate server-wide route)",
+  affects: [log_operation_row, log_process_row, metric_process_queue_age, alert_rpc_failing, alert_process_stuck],
+});

@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import pg from "pg";
 import { required } from "./platform/config.ts";
+import { migrateSpans } from "./platform/spans.ts";
+import { migrateSignals } from "./shared/door.ts";
 
 const admin = new URL(required("PG_ADMIN_URL"));
 const connections = ["DATABASE_URL", "WORKER_DATABASE_URL", "PONDER_DATABASE_URL"].map((name) => new URL(required(name)));
@@ -44,6 +46,9 @@ try {
   await db.query("grant select,update on app.world to capxul_worker; grant select,insert on app.world_record to capxul_worker");
   await db.query("grant select,insert,update on app.indexer_observation to capxul_worker");
   await db.query("insert into app.world (world_id) values ($1) on conflict do nothing", [process.env.CAPXUL_WORLD ?? "main"]);
+  // Shared signals: retained spans and the world's wide rows, both worker-only.
+  await migrateSpans(db);
+  await migrateSignals(db);
   await db.query("grant usage on all sequences in schema app to capxul_core, capxul_worker");
   await db.query("grant usage on schema ponder to capxul_worker");
   await db.query("alter default privileges for role capxul_ponder in schema ponder grant select on tables to capxul_worker");

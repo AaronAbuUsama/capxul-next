@@ -9,6 +9,7 @@ import { deferDelivery, deliver, RequestCollector, resend, retryParked, signatur
 import { settings } from "./platform/config.ts";
 import { Database } from "./platform/db.ts";
 import { alerts, indexerState } from "./platform/diagnostics.ts";
+import { createSignals } from "./shared/door.ts";
 
 type Config = ReturnType<typeof settings>;
 function json(res: ServerResponse, status: number, body: unknown) {
@@ -21,6 +22,9 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
   let paused = config.startPaused, closing = false, activeRequests = 0, activeDeliveries = 0;
   let activeLoop: Promise<void> = Promise.resolve(), timer: ReturnType<typeof setTimeout> | undefined;
   let pauseWork: Promise<Awaited<ReturnType<typeof readSnapshotCut>>> | undefined;
+  // Shared signals: a span and an operation_row per request, a process_row per run, and the operator alerts.
+  const signals = createSignals(db, { world: config.world, paused: () => paused || closing });
+  let sampler: ReturnType<typeof setInterval> | undefined;
   const collector = new RequestCollector(db, { ...config, running: () => !paused && !closing });
   const drained: (() => void)[] = [];
   function notifyDrain() { if (!activeRequests && !activeDeliveries) for (const done of drained.splice(0)) done(); }
@@ -59,7 +63,7 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
       return json(res, 200, { ...await pauseWork, paused: true, activeRequests: 0, activeDeliveries: 0 });
     }
     if (url.pathname === "/admin/snapshot/resume") { await pauseWork; pauseWork = undefined; paused = false; return json(res, 200, { paused: false }); }
-    const reads = ["/admin/org-info", "/admin/status", "/admin/alerts", "/approvals/get", "/admin/record"];
+    const reads = ["/admin/org-info", "/admin/status", "/admin/alerts", "/admin/operator-alerts", "/approvals/get", "/admin/record"];
     if (paused && !reads.includes(url.pathname)) return json(res, 503, { error: "SNAPSHOT_PAUSED" });
     activeRequests++;
     try {
@@ -79,6 +83,7 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
           case "/approvals/submitted": return submitted(sql, org, b.id, b.txHash, b.signer);
           case "/admin/record": return (await sql.query("select * from app.records where org_id=$1 order by id", [org])).rows;
           case "/admin/alerts": return alerts(db, sql, org, config.ponder, config.chainId, config.rpc);
+          case "/admin/operator-alerts": return signals.operatorAlerts();
           default: throw new Error("NOT_FOUND: unknown route");
         }
       });
@@ -86,11 +91,11 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
     } finally { activeRequests--; notifyDrain(); }
   }
   const server = createServer((req, res) => {
-    void Effect.runPromise(Effect.tryPromise(() => route(req, res))).catch((error) => {
+    void signals.request(req, res, () => Effect.runPromise(Effect.tryPromise(() => route(req, res))).catch((error) => {
       const message = String(error.cause?.message ?? error.message);
       const code = message.split(":")[0];
       json(res, code === "NOT_FOUND" ? 404 : code === "FORBIDDEN" ? 403 : ["INVALID_INPUT", "IDEMPOTENCY_CONFLICT", "IDENTITY_CONFLICT"].includes(code!) ? 400 : 500, { error: message });
-    });
+    }));
   });
   async function tick() {
     if (paused || closing) return;
@@ -104,9 +109,13 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
         if (company.released) collector.connect(company);
         // One organization's failure must not stall the organizations sorted after it.
         try {
-          if (index.ready) await db.transaction(org_id, (sql) => consume(sql, org_id, config.chainId, config.finality), true);
+          if (index.ready) await signals.processRun({ workflow: "plugs.payments.settle", concept: "plugs", trigger: "chain-event", key: org_id, org: org_id },
+            () => db.transaction(org_id, (sql) => consume(sql, org_id, config.chainId, config.finality), true));
         } catch (error) { console.error(`Core consume ${org_id}: ${(error as Error).message}`); }
-        try { await deliver(db, org_id, config.frappe, config.secret); }
+        try {
+          await signals.processRun({ workflow: "plugs.events.deliver", concept: "plugs", trigger: "transition", key: org_id, org: org_id },
+            () => deliver(db, org_id, config.frappe, config.secret));
+        }
         catch (error) {
           console.error(`Core delivery ${org_id}: ${(error as Error).message}`);
           await deferDelivery(db, org_id, error).catch((e) => console.error(`Core delivery backoff ${org_id}: ${e.message}`));
@@ -129,10 +138,11 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
       if (identity?.world_id !== config.world) throw new Error("WORLD_IDENTITY: restored database identity must match CAPXUL_WORLD before startup");
       await new Promise<void>((done, reject) => { server.once("error", reject); server.listen(config.port, config.host, done); });
       loop();
+      sampler = setInterval(() => void signals.sampleQueues().catch((error) => console.error(`Core queue sample: ${error.message}`)), 60_000);
       return server.address();
     },
     async stop() {
-      closing = true; paused = true; clearTimeout(timer);
+      closing = true; paused = true; clearTimeout(timer); clearInterval(sampler);
       await collector.pause();
       await new Promise<void>((done) => server.close(() => done()));
       await activeLoop; await waitForDrain(); await db.close();

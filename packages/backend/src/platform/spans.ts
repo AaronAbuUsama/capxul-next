@@ -64,7 +64,8 @@ export function spanCollector(sql: Sql, context: SpanContext, errorCodes: readon
           const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined;
           const row: CompletedSpan = {
             ...envelope, name: span.name, traceId: span.traceId, spanId: span.spanId,
-            parentSpanId: Option.getOrUndefined(span.parent)?.spanId ?? null,
+            // An all-zero external parent carries only the caller's trace id: the span is that trace's root.
+            parentSpanId: [Option.getOrUndefined(span.parent)?.spanId].find((id) => id && !/^0+$/.test(id)) ?? null,
             startedAt: Number(options.startTime) / 1_000_000, endedAt: Number(time) / 1_000_000,
             outcome: Exit.isSuccess(exit) ? "success" : "error",
             errorCode: Exit.isSuccess(exit) ? null : typeof code === "string" && codes.has(code) ? code : "INTERNAL_ERROR",
