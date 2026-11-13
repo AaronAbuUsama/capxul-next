@@ -27,6 +27,7 @@ test("captures listed by two modules in one run both reach the receipt; a path l
       "printf '@check\\tM1.done\\tpass\\t1\\tok\\n'",
       'mkdir -p "$CAPXUL_EVAL_RUN_DIR/acceptance" "$CAPXUL_EVAL_RUN_DIR/sites"',
       'printf png > "$CAPXUL_EVAL_RUN_DIR/acceptance/invoice.png"; printf png > "$CAPXUL_EVAL_RUN_DIR/sites/grants.png"',
+      `printf '{"x":1}' > "$CAPXUL_EVAL_RUN_DIR/sites/sources.json"`,
       `printf '%s' '[${entry("supplier-invoice", "acceptance/invoice.png")}]' > "$CAPXUL_EVAL_RUN_DIR/screens.json"`,
       `printf '%s' '[${sites}]' > "$CAPXUL_EVAL_RUN_DIR/sites/screens.json"`,
     ].join("\n");
