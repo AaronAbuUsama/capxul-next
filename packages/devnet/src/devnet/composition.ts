@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { Database, readSnapshotCut, rewriteRestoredWorld, updateWorldClock } from "@capxul/backend/devnet";
 import { canaryBundlerKeys, prepareBundler, suppliedAlto } from "../modules/bundler/service.ts";
 import { composeBench } from "./bench.ts";
+import { installClock, readClocks } from "./clock.ts";
 import { migrateCatalogue, psqlAdmin, readSnapshot, restoreSnapshot, saveSnapshot, worldCatalogue,
   type CatalogueCut, type CatalogueHistory, type Command, type World, type WorldRow } from "./door.ts";
 import { localRuntime } from "./runtime.ts";
@@ -43,11 +44,11 @@ export async function composeWorld(configFile: string) {
       if (clock.clockMode !== "stopped") throw new Error("slice-zero supervisor requires a stopped authority clock; running-clock pump is not installed");
       return clock;
     },
+    installClock: (world, clock) => { c.world = world; return installClock(c, bench, clock, "restore"); },
     store: {
       updateClock: (world, clock) => store(c, world, (db) => updateWorldClock(db, clock)),
       async rewrite(world, input) {
         await store(c, world, (db) => rewriteRestoredWorld(db, { ...input, coreUrl: loopback(c.ports.publicCore) }));
-        await writeFile(join(world.stateDir, "clock.json"), JSON.stringify(input.clock), { mode: 0o600 });
         c.world = world;
         const deployment = JSON.parse(await readFile(join(world.stateDir, "deployment.json"), "utf8"));
         if (deployment.paymaster) {
@@ -60,7 +61,7 @@ export async function composeWorld(configFile: string) {
     },
   });
   const options = { root: c.snapshots, codeVersion: c.codeVersion, admin: psqlAdmin(c.database.admin), runtime };
-  return { c, host, runtime,
+  return { c, host, runtime, bench,
     async up() {
       const row = await catalogue(c).show(c.world.id);
       assert.equal(row.epoch, c.world.epoch, "catalogue belongs to another epoch");
@@ -93,7 +94,7 @@ export async function composeWorld(configFile: string) {
       assert(await httpReady(`${loopback(c.ports.siteService)}/health`), "site service is not healthy");
       const world = await store(c, c.world, (db) => readSnapshotCut(db));
       assert.equal(world.world_id, c.world.id); assert.equal(Number(world.epoch), c.world.epoch);
-      assert.deepEqual(world.clock, JSON.parse(await readFile(join(c.world.stateDir, "clock.json"), "utf8")));
+      const clocks = await readClocks(c, bench, world.clock);
       const { connect } = await import("../modules/chain/service.ts");
       const chain = await connect(loopback(c.ports.publicRpc)), block = await chain.client.getBlock();
       assert.equal(await chain.client.getChainId(), c.chainId);
@@ -103,7 +104,7 @@ export async function composeWorld(configFile: string) {
       assert(containers.every((container) => container.State.Running && (!container.State.Health || container.State.Health.Status === "healthy")), "production bench is not healthy");
       return { version: 1, observedAt: new Date().toISOString(), codeVersion: c.codeVersion, stack: "postgres-ponder-erpnext-v4",
         world: { id: world.world_id, epoch: Number(world.epoch), kind: c.world.kind, database: c.world.database, sites: c.world.sites },
-        clock: world.clock, lineage: world.lineage, records: { seq: world.recordSeq, head: world.recordHead }, components, core,
+        clock: world.clock, clocks, lineage: world.lineage, records: { seq: world.recordSeq, head: world.recordHead }, components, core,
         chain: { chainId: c.chainId, blockNumber: String(block.number), blockHash: block.hash },
         bench: containers.map((container) => ({ service: container.Config.Labels["com.docker.compose.service"], image: container.Image, running: container.State.Running, health: container.State.Health?.Status ?? null })),
         bundlerConfigured: !!c.bundler };
@@ -126,7 +127,7 @@ export async function composeWorld(configFile: string) {
         chain_state_ref: join(c.snapshots, id, "state", "anvil-state.json"),
         site_backups: manifest.sites.map((site) => ({ org_id: site.company, backup_ref: join(c.snapshots, id, "sites", site.company) })),
         clock_mode: manifest.cut.clockMode === "stopped" ? "frozen" : "running", rate: manifest.cut.rate,
-        world_now: manifest.cut.nowMs, code_version: manifest.codeVersion, template: false, created_at: Date.parse(manifest.createdAt),
+        world_now: manifest.cut.nowMs, code_version: manifest.codeVersion, template: false, created_at: manifest.cut.nowMs,
       }, await recordedCommand(c, "world snapshot save", { snapshot: id }));
       return manifest;
     },
@@ -148,8 +149,8 @@ export async function composeWorld(configFile: string) {
           const row: WorldRow = { ...source, world_id: world.id, name: world.id === saved.world ? source.name : world.id,
             kind: world.kind, address: loopback(c.ports.publicCore), chain_instance: `anvil-${world.id}`,
             epoch: world.epoch, clock_mode: saved.cut.clockMode === "stopped" ? "frozen" : "running",
-            world_now: saved.cut.nowMs, rate: saved.cut.rate, updated_at: Date.now(),
-            ...(world.id === saved.world ? {} : { created_at: Date.now(), parent_world: saved.world, parent_snapshot: saved.id, parent_seq: history.cut.seq }),
+            world_now: saved.cut.nowMs, rate: saved.cut.rate, updated_at: saved.cut.nowMs,
+            ...(world.id === saved.world ? {} : { created_at: saved.cut.nowMs, parent_world: saved.world, parent_snapshot: saved.id, parent_seq: history.cut.seq }),
           };
           assert.equal(!!abandonedDatabase, !!abandoned, "in-place restore requires its actual drained catalogue history");
           await target.rewrite(row, { sourceWorld: saved.world, snapshot: saved.id, cut: history.cut,
@@ -196,9 +197,9 @@ export async function createWorld(configFile: string): Promise<void> {
     const { connect } = await import("../modules/chain/service.ts");
     const block = await (await connect(loopback(c.ports.anvil))).client.getBlock();
     const clock = { nowMs: Number(block.timestamp) * 1000, clockMode: "stopped" as const, rate: 1 };
-    await writeFile(join(c.world.stateDir, "clock.json"), JSON.stringify(clock), { flag: "wx", mode: 0o600 });
-    await store(c, c.world, (db) => updateWorldClock(db, clock));
-    const now = Date.now();
+    // devnet.one-world-clock: the one door, before Ponder starts and before any site exists.
+    await installClock(c, stack.bench, clock, "birth");
+    const now = clock.nowMs;
     await catalogue(c).create({ world_id: c.world.id, name: c.world.id, kind: c.world.kind, profile: "full",
       address: loopback(c.ports.publicCore), template: null, chain_id: c.chainId, chain_instance: `anvil-${c.world.id}`,
       clock_mode: "frozen", rate: clock.rate, world_now: clock.nowMs, epoch: c.world.epoch,
