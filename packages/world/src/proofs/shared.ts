@@ -7,13 +7,12 @@ import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
-import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import { claim, claims, registry, release } from "../lifecycle/claim.ts";
 import { describe } from "../lifecycle/describe.ts";
 import { expiryOf } from "../lifecycle/expiry.ts";
 import { create, destroy, list } from "../lifecycle/operations.ts";
-import { fromJsonText } from "../lifecycle/record.ts";
+import { decodeJsonText } from "../lifecycle/record.ts";
 import { Limits, type WorldSpec } from "../lifecycle/spec.ts";
 import { SweepReport } from "../lifecycle/sweep.ts";
 import { namesOfWorlds } from "../lifecycle/account.ts";
@@ -116,7 +115,7 @@ export const limits = Effect.gen(function* () {
   );
 });
 
-const decodeSweep = (ran: Ran) => Schema.decodeUnknownEffect(SweepReport)(fromJsonText(ran.stdout));
+const decodeSweep = (ran: Ran) => decodeJsonText(SweepReport)(ran.stdout);
 const verdictOf = (report: SweepReport, stage: string): string =>
   Option.match(
     Arr.findFirst(report.worlds, (world) => world.world === stage),

@@ -81,8 +81,9 @@ export const noDurations: RunRecord["ms"] = {
 /** The text of a JSON file, as every record is written. */
 export const asJsonText = (value: unknown): string => `${JSON.stringify(value, null, 2)}\n`;
 
-/** A record file read back, for the tests and for a proof that reads a run's record. */
-export const fromJsonText = (text: string): unknown => JSON.parse(text);
+/** JSON text decoded with `schema`: a record file read back, or what the command line printed. */
+export const decodeJsonText = <S extends Schema.Constraint>(schema: S) =>
+  Schema.decodeUnknownEffect(Schema.fromJsonString(schema));
 
 const writeJson = Effect.fn("world.record.writeJson")(function* (directory: string, file: string, value: unknown) {
   const fs = yield* FileSystem.FileSystem;
@@ -105,8 +106,7 @@ export const writeRecord = Effect.fn("world.record.write")(function* (
 /** Reads a run's record back from `<directory>/<file>.json`. */
 export const readRecord = Effect.fn("world.record.read")(function* (directory: string, file: string) {
   const fs = yield* FileSystem.FileSystem;
-  const text = yield* fs.readFileString(`${directory}/${file}.json`);
-  return yield* Schema.decodeUnknownEffect(RunRecord)(fromJsonText(text));
+  return yield* decodeJsonText(RunRecord)(yield* fs.readFileString(`${directory}/${file}.json`));
 });
 
 /** One thing a proof insists on, and whether it held. */

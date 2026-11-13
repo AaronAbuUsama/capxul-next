@@ -10,7 +10,7 @@ import { balanceOf } from "../chain/faucet.ts";
 import { CORE_HEALTH } from "../core/health.ts";
 import { destroy, list } from "../lifecycle/operations.ts";
 import { indexStatus, open, rpc, rpcHex } from "../lifecycle/parts.ts";
-import { fromJsonText } from "../lifecycle/record.ts";
+import { decodeJsonText } from "../lifecycle/record.ts";
 import { FUNDED, OPENING } from "./checks.ts";
 import { check, conclude, inventoryReport, runCommandLine, stackListing, tailOf } from "./support.ts";
 
@@ -27,12 +27,22 @@ const Health = Schema.Struct({ core: Schema.String, world: Schema.String });
 const One = Schema.Tuple([Schema.Struct({ one: Schema.Int })]);
 
 const NAME = "p-cli";
+const PROOF = "commands";
+const CLAIM =
+  "`world create` makes a private world whose chain, index, Core and database answer, and `world destroy` removes all of it";
 
 export const commands = Effect.gen(function* () {
   const before = yield* stackListing;
   const createArgs = ["create", NAME, "--owner", "proof", "--lifetime", "30 minutes", "--mint", `${FUNDED}=${OPENING}`];
   const createRun = yield* runCommandLine(createArgs, { viaPnpm: true });
-  const created = yield* Schema.decodeUnknownEffect(Created)(fromJsonText(createRun.stdout));
+  if (createRun.exitCode !== 0) {
+    // The create failed: the record says so, with the end of its log, and the proof fails.
+    return yield* conclude(PROOF, CLAIM, [check("the create command succeeded", false)], {
+      exitCode: createRun.exitCode,
+      createLogTail: tailOf(createRun, 40),
+    });
+  }
+  const created = yield* decodeJsonText(Created)(createRun.stdout);
   const world = yield* open(NAME);
   const chainId = yield* rpcHex(world, "eth_chainId");
   const funded = yield* balanceOf((method, params) => rpc(world, method, params), FUNDED);
@@ -43,12 +53,12 @@ export const commands = Effect.gen(function* () {
   );
   const [database] = yield* world.sql("select 1 as one").pipe(Effect.flatMap(Schema.decodeUnknownEffect(One)));
   const destroyRun = yield* runCommandLine(["destroy", NAME], { viaPnpm: true });
-  const destroyed = yield* Schema.decodeUnknownEffect(Destroyed)(fromJsonText(destroyRun.stdout));
+  const destroyed = yield* decodeJsonText(Destroyed)(destroyRun.stdout);
   const listed = Arr.filter(yield* list, (entry) => entry.world === world.stage);
   const inventory = inventoryReport(before, yield* stackListing, [world.stage]);
   return yield* conclude(
-    "commands",
-    "`world create` makes a private world whose chain, index, Core and database answer, and `world destroy` removes all of it",
+    PROOF,
+    CLAIM,
     [
       check("the create command succeeded", createRun.exitCode === 0),
       check(

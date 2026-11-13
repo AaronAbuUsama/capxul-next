@@ -3,7 +3,7 @@ import { describe, test } from "node:test";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import * as Rec from "effect/Record";
-import { fromJsonText, noDurations, renderRecord, RunRecord } from "../src/lifecycle/record.ts";
+import { noDurations, renderRecord, RunRecord } from "../src/lifecycle/record.ts";
 import { STEPS } from "../src/stack/names.ts";
 
 const timeouts = {
@@ -36,7 +36,7 @@ const decode = (value: unknown) => Effect.runSyncExit(Schema.decodeUnknownEffect
 
 describe("RunRecord", () => {
   test("a record survives being written and read back", () => {
-    const read = Effect.runSync(Schema.decodeUnknownEffect(RunRecord)(fromJsonText(render(record))));
+    const read = Effect.runSync(Schema.decodeUnknownEffect(RunRecord)(JSON.parse(render(record))));
     assert.deepStrictEqual(read, record);
   });
   test("every step has a duration field and a declared timeout", () => {
