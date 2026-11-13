@@ -8,7 +8,11 @@ import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Predicate from "effect/Predicate";
 import * as Rec from "effect/Record";
-import type * as Redacted from "effect/Redacted";
+import * as Option from "effect/Option";
+import * as Redacted from "effect/Redacted";
+import * as HttpClient from "effect/http/HttpClient";
+import * as HttpClientRequest from "effect/http/HttpClientRequest";
+import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import * as Schema from "effect/Schema";
 import * as Struct from "effect/Struct";
 import { PlatformFailed } from "../failures.ts";
@@ -17,6 +21,7 @@ import { handle, WorldOutput } from "../lifecycle/parts.ts";
 import { recordedOutput } from "../stack/engine.ts";
 import { nameOf } from "../stack/names.ts";
 import { emit, readFacts, type JsonValue } from "./facts.ts";
+import { tokenOf } from "./operators.ts";
 import { noteCall } from "./store.ts";
 
 const failed = (step: PlatformFailed["step"]) => (cause: unknown) =>
@@ -37,6 +42,30 @@ export interface Born {
   readonly parent: typeof Values.Parent.Type | null;
 }
 
+const Companies = Schema.Struct({ companies: Schema.Array(Values.Company) });
+
+/**
+ * The world's companies as its Core reads them (`GET /companies`, packages/core src/platform/companies.ts): Core's
+ * `companiesOf`, which also moves each company's site on towards ready. A Core that does not answer so leaves the
+ * companies as the world's database holds them, with a warning.
+ */
+const companiesThroughCore = (door: string, owner: string, held: ReadonlyArray<typeof Values.Company.Type>) =>
+  Effect.gen(function* () {
+    const token = yield* tokenOf(owner);
+    if (Option.isNone(token)) return held;
+    const response = yield* HttpClient.execute(
+      HttpClientRequest.get(`${door}/companies`).pipe(HttpClientRequest.bearerToken(Redacted.value(token.value))),
+    );
+    if (response.status !== 200) return yield* Effect.fail(`Core answered ${response.status}`);
+    const answer = yield* HttpClientResponse.schemaBodyJson(Companies)(response);
+    return answer.companies;
+  }).pipe(
+    Effect.scoped,
+    Effect.catch((error) =>
+      Effect.as(Effect.logWarning(`${door}: the companies as Core reads them: ${describeFailure(error)}`), held),
+    ),
+  );
+
 /**
  * A world as world.show answers it, its clock read now. Its grade and parent are what its record's latest
  * `world_created` carried; `making` gives them for a world whose `world_created` is still to be written.
@@ -47,6 +76,9 @@ export const viewOf = Effect.fn("platform.view")(function* (stage: string, makin
   const grade = making.grade ?? facts.born?.grade;
   const parent = making.parent === undefined ? (facts.born?.parent ?? null) : making.parent;
   if (grade === undefined) return yield* failed("facts")(`${stage}'s record holds no world_created`);
+  const companies = Arr.isReadonlyArrayEmpty(facts.companies)
+    ? facts.companies
+    : yield* companiesThroughCore(output.coreUrl, output.owner, facts.companies);
   const view: typeof Values.WorldView.Type = {
     world: nameOf(stage),
     owner: output.owner,
@@ -60,7 +92,7 @@ export const viewOf = Effect.fn("platform.view")(function* (stage: string, makin
     recordHead: facts.recordHead,
     parent,
     cast: facts.cast,
-    companies: facts.companies,
+    companies,
   };
   return { view, world, facts };
 });
