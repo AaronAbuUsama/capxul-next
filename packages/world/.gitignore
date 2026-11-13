@@ -1,0 +1,2 @@
+# Alchemy's run logs and Worker bundles. No state is kept here: the state is in the account's shared store.
+.alchemy/

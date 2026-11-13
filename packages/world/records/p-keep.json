@@ -1,0 +1,38 @@
+{
+  "world": "w-p-keep",
+  "owner": "proof",
+  "forkedFrom": "nothing",
+  "expiresAt": "2026-11-13T13:13:09.941Z",
+  "outcome": "failed",
+  "failure": "DatabaseRefused: relation \"app.no_such_table\" does not exist",
+  "worldAfterwards": "kept",
+  "keptUntil": "2026-11-13T12:37:45.297Z",
+  "ms": {
+    "claim": 810,
+    "deploy": 46100,
+    "migrate": 736,
+    "chain": 2573,
+    "fund": 436,
+    "index": 43816,
+    "core": 475,
+    "use": 109,
+    "park": 6153,
+    "destroy": null,
+    "release": null,
+    "create": 95244,
+    "total": 101510
+  },
+  "timeouts": {
+    "claim": 45000,
+    "deploy": 240000,
+    "migrate": 45000,
+    "chain": 180000,
+    "fund": 60000,
+    "index": 180000,
+    "core": 60000,
+    "use": 600000,
+    "park": 60000,
+    "destroy": 240000,
+    "release": 45000
+  }
+}

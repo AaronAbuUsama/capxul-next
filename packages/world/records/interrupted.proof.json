@@ -1,0 +1,128 @@
+{
+  "proof": "a run interrupted by SIGINT during its use writes its record and destroys its world before the process exits",
+  "outcome": "passed",
+  "at": "2026-11-13T12:30:26.064Z",
+  "checks": [
+    {
+      "check": "the process was interrupted during the use and exited non-zero",
+      "held": true
+    },
+    {
+      "check": "the run is recorded as interrupted",
+      "held": true
+    },
+    {
+      "check": "the interrupted use has its duration in the record",
+      "held": true
+    },
+    {
+      "check": "the shared state holds nothing of the world",
+      "held": true
+    },
+    {
+      "check": "the record has every step's duration up to the destroy",
+      "held": true
+    },
+    {
+      "check": "the world was destroyed",
+      "held": true
+    },
+    {
+      "check": "nothing of the world is left in the accounts",
+      "held": true
+    },
+    {
+      "check": "the accounts hold what they held before",
+      "held": true
+    }
+  ],
+  "observations": {
+    "exitCode": 130,
+    "logTail": [
+      "[12:30:03.341] INFO: world w-p-int: the index is ready",
+      "[12:30:03.780] INFO: world w-p-int: Core answers",
+      "[12:30:03.781] INFO: the use has started and will never end: interrupt this process now",
+      "[12:30:03.796] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).",
+      "i Refreshing Cloudflare State Store credentials",
+      "+ Refreshing Cloudflare State Store credentials",
+      "[12:30:12.178] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-p-int-sryisq7gvfa5jpsw",
+      "[12:30:12.200] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-p-int-j64eyose77xk25em",
+      "[12:30:12.202] INFO: [Ponder] Cloudflare Container delete: deleting capxulworld-ponder-w-p-int-phczm54ocihigcix",
+      "[12:30:12.207] INFO: [Core] Cloudflare Worker delete: deleting capxulworld-core-w-p-int-rkuew2mryhwgfjfu",
+      "[12:30:14.322] INFO: [world] Neon: using environment variables (NEON_API_KEY).",
+      "[12:30:21.286] INFO: world w-p-int: destroyed (8 resources) and its name released"
+    ],
+    "record": {
+      "world": "w-p-int",
+      "owner": "proof",
+      "forkedFrom": "nothing",
+      "expiresAt": "2026-11-13T13:08:27.678Z",
+      "outcome": "interrupted",
+      "failure": "the run was interrupted",
+      "worldAfterwards": "destroyed",
+      "keptUntil": null,
+      "ms": {
+        "claim": 676,
+        "deploy": 42586,
+        "migrate": 925,
+        "chain": 2236,
+        "fund": 313,
+        "index": 48624,
+        "core": 438,
+        "use": 2,
+        "park": null,
+        "destroy": 17230,
+        "release": 270,
+        "create": 96102,
+        "total": 113607
+      },
+      "timeouts": {
+        "claim": 45000,
+        "deploy": 240000,
+        "migrate": 45000,
+        "chain": 180000,
+        "fund": 60000,
+        "index": 180000,
+        "core": 60000,
+        "use": 600000,
+        "park": 60000,
+        "destroy": 240000,
+        "release": 45000
+      }
+    },
+    "inventory": {
+      "before": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "after": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "leftOfTheseWorlds": [],
+      "sameAsBefore": true
+    }
+  }
+}

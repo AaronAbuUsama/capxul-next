@@ -1,0 +1,10 @@
+# The build context is the repository's packages/ folder; only these reach the builder.
+*
+!indexer/abis.ts
+!indexer/ponder.schema.ts
+!indexer/ponder-env.d.ts
+!indexer/src
+!contracts/deployments/devnet.json
+!world/ponder/package.json
+!world/ponder/node_modules
+!world/ponder/ponder.config.ts
