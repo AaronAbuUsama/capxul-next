@@ -42,9 +42,17 @@ async function serve(c: Config, component: Component): Promise<() => Promise<voi
     child.once("error", reject);
     child.once("exit", (code, signal) => code === 0 && !signal ? done() : reject(new Error(`${component} exited ${code ?? signal}`)));
   });
-  // Unexpected exit must stop the wrapper too; no stale running receipt may survive it.
-  void exited.then(() => finish(1), (error) => { console.error(error.message); return finish(1); });
-  return async () => { if (child.pid && child.exitCode === null && child.signalCode === null) process.kill(-child.pid, "SIGINT"); await exited; };
+  // A child's exit must stop the wrapper too; no stale running receipt may survive it. systemd stops the whole control group at
+  // once, so a fast child (site-service) can exit 0 before this wrapper handles its own signal: exit 0 is clean whoever asked.
+  void exited.then(() => finish(0), (error) => { console.error(error.message); return finish(1); });
+  return async () => {
+    // A service stop usually signals the child too. A second signal during its teardown, after Node has dropped its handlers,
+    // kills it outright, so the wrapper signals only a child still running after a short grace.
+    const running = () => !!child.pid && child.exitCode === null && child.signalCode === null;
+    if (running()) await Promise.race([exited.catch(() => {}), new Promise((done) => setTimeout(done, 3000))]);
+    if (running()) process.kill(-child.pid!, "SIGINT");
+    await exited;
+  };
 }
 
 let finish: (code?: number) => Promise<void> = async () => {};
