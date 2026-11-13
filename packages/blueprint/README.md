@@ -19,6 +19,7 @@ import it; it imports neither.
 | `src/<concept>/claims.ts` | Its acceptance claims. `src/claims/` renders them into claims.md. |
 | `claims.md` | Every operation's claims, refusals, events and budget, and the starting worlds. Rendered; do not edit. |
 | `decisions.md` | Every design call, and the questions for Aaron. |
+| `gaps.md` | The claims the scenarios could not check in full, by cause. Each is closed by a blueprint change, then the scenario author updates the scenarios. |
 | `order.md` | The order to build the twelve in, and the starting worlds each needs. |
 
 ## The operations

@@ -14,8 +14,13 @@ empty handlers, which answer every call with `NotImplemented`. A builder never c
 | `src/scenario.ts` | The format: `scenario`, `example`, `expect`, `ExpectationFailed`, and the `Scenario` the runner reads. |
 | `src/client.ts` | `Capxul`, the one service a scenario is handed: a typed client with one function per blueprint operation. |
 | `src/registry.ts` | `scenarios`, every scenario the runner runs, in order. |
+| `src/<operation>/claim-<n>.ts` | The thin line's scenarios: one per claim of claims.md, 53 in all. |
+| `src/support/` | What scenarios share: reading the world back through the operations, signing with the cast's test keys, waiting for background work, and the site's documents and reports (`books.ts` holds every assumption about field and report names that the blueprint does not yet own). |
 | `src/examples/` | Examples: scenarios that prove no claim, to show the format and to try the runner. |
 | `test/registry.test.ts` | Unique names; each scenario proves a claim the blueprint declares, from its starting world; no claim twice. |
+| `test/claims.test.ts` | Every claim of the twelve operations is proved by a scenario. |
+| `test/empty-handlers.test.ts` | Every scenario fails against a Capxul whose every operation answers `NotImplemented`, on that refusal, and none passes or dies. It checks `records/empty-handlers.json` against the run. |
+| `records/empty-handlers.json` | The run record of that: step 1.5's proof. Written by `pnpm record`, never by hand. |
 
 ## Declaring a scenario
 
@@ -55,5 +60,6 @@ under its own trace id and recorded for the checks.
 
 ## Checks
 
-`pnpm types` and `pnpm test`. The example `src/examples/record-export.ts` fails against the empty handlers
+`pnpm types` and `pnpm test`. `pnpm record` rewrites `records/empty-handlers.json` from a run; `pnpm test` fails
+when the committed record and a run differ. The example `src/examples/record-export.ts` fails against the empty handlers
 (`NotImplemented`), as every real scenario must.
