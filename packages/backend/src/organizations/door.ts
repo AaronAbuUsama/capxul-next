@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { record, type Sql } from "../platform/db.ts";
 
-export { begin, get, resume, view, FUNDAMENTAL_APPS, HEAD_APPS, SEATS_AT_BIRTH,
+export { begin, get, readSetupFounder, resume, view, FUNDAMENTAL_APPS, HEAD_APPS, SEATS_AT_BIRTH,
   type BeginInput, type Board, type SetupIssue, type SetupServices, type SetupStatus, type SetupView } from "./setups.ts";
 export { addBoughtSeats, returnBoughtSeats, type BoughtSeats } from "./procedures.ts";
 

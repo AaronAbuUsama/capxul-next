@@ -5,15 +5,16 @@ import pg from "pg";
 import { Database, type Sql } from "../src/platform/db.ts";
 import { migrateOutbox } from "../src/platform/outbox.ts";
 import { companySafeAddress } from "../src/platform/safe.ts";
-import { addBoughtSeats, begin, get, migrate, resume, returnBoughtSeats, type SetupServices } from "../src/organizations/door.ts";
+import { readPrincipal } from "../src/access/door.ts";
+import { eligibility } from "../src/accounts/door.ts";
+import { addBoughtSeats, begin, get, migrate, readSetupFounder, resume, returnBoughtSeats, type SetupServices } from "../src/organizations/door.ts";
 
 // Standalone PG control on a dedicated loopback database, built from the concept migrations alone (no legacy schema).
-// Access and Accounts SQL default to their composed paths; until Access is composed, point CAPXUL_ACCESS_SQL and
-// CAPXUL_ACCOUNTS_SQL at that PR's exact files.
+// Eligibility is the real Accounts door; the image and Board services are stand-ins, not Media or indexing proof.
 const url = process.env.SETUPS_TEST_ADMIN_URL;
 if (!url || new URL(url).pathname !== "/setups_test" || !["localhost", "127.0.0.1"].includes(new URL(url).hostname))
   throw new Error("SETUPS_TEST_ADMIN_URL must name a dedicated loopback setups_test database");
-const sqlFile = (env: string, path: string) => readFileSync(process.env[env] ?? new URL(path, import.meta.url), "utf8");
+const sqlFile = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const admin = new pg.Client({ connectionString: url });
 const role = (name: string) => { const u = new URL(url); u.username = name; u.password = "setups"; return u.href; };
 let db: Database;
@@ -25,9 +26,8 @@ const people = Object.fromEntries(["founder", "waiting", "unclaimed", "other"].m
 const services: SetupServices = {
   chainId: 84532, companySafe: config, pricedCurrencies: ["GHS", "EUR"],
   async eligibility(sql) {
-    const a = (await sql.query("select status from app.admissions where email=current_setting('app.email',true)")).rows[0];
-    const s = (await sql.query("select status,safe_address from app.personal_safes where person_id=current_setting('app.person_id',true)")).rows[0];
-    return { access: a?.status === "admitted" ? "admitted" : "waiting", safe: s ?? null };
+    const principal = await readPrincipal(sql, (await sql.query("select current_setting('app.person_id',true) as id")).rows[0].id);
+    return eligibility(sql, principal!, { "beta-access": { target: "person", money: false } }, now);
   },
   async requireImage(_sql, fileId) { if (fileId !== "file_kept_image") throw new Error("INVALID_INPUT: not your kept image"); return {}; },
   async board() { return null; },
@@ -47,9 +47,7 @@ test.before(async () => {
     create role capxul_worker login password 'setups' nosuperuser nobypassrls; create schema app;
     grant usage on schema app to capxul_core,capxul_worker`);
   await migrateOutbox(admin);
-  await admin.query(sqlFile("CAPXUL_ACCESS_SQL", "../src/access/schema.sql"));
-  await admin.query(sqlFile("CAPXUL_ACCOUNTS_SQL", "../src/accounts/schema.sql"));
-  await admin.query(readFileSync(new URL("../src/parties/schema.sql", import.meta.url), "utf8"));
+  for (const path of ["../src/access/schema.sql", "../src/accounts/schema.sql", "../src/parties/schema.sql"]) await admin.query(sqlFile(path));
   await migrate(admin);
   db = new Database(role("capxul_core"), role("capxul_worker"));
   for (const [name, p] of Object.entries(people)) {
@@ -126,6 +124,9 @@ test("begin births the Organization, setup, apps and pending Party in one transa
 test("get and resume answer the founder and refuse everyone else alike; RLS keeps tenants to their own setups", async () => {
   const orgId = (await admin.query("select org_id from app.organizations where abbr='NHC'")).rows[0].org_id;
   assert.equal((await as("founder", (sql) => get(sql, { orgId }, services))).setup, "processing");
+  assert.deepEqual(await readSetupFounder(db.worker, orgId), { orgId, founderPrincipalId: "person_founder", founderSafe: people.founder!.safe,
+    safe: companySafeAddress(config, "acme-labs", people.founder!.safe as `0x${string}`), status: "processing", steps: [] });
+  assert.equal(await readSetupFounder(db.worker, "org_unknown"), null);
   for (const id of [orgId, "org_unknown"]) await assert.rejects(as("other", (sql) => get(sql, { orgId: id }, services)), /^Error: ROLE_PERMISSION_DENIED/);
   await assert.rejects(as("other", (sql) => resume(sql, { orgId }, services, now, trace)), /^Error: INVALID_INPUT/);
   assert.equal((await as("founder", (sql) => resume(sql, { orgId }, services, now + 1, trace))).setup, "processing");

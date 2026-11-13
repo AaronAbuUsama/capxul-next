@@ -176,6 +176,14 @@ export async function begin(sql: Sql, input: BeginInput, services: SetupServices
   return { orgId, resumed: false, setup: await view(sql, orgId, services) };
 }
 
+/** Committed-source read for another concept's own authorization (Sites' provisioning): who founded it and how far it got. */
+export async function readSetupFounder(sql: Sql, orgId: string) {
+  const row = (await sql.query(`select s.org_id,s.founder_principal_id,s.status,s.steps,o.founder_safe,o.safe_address
+    from app.org_setups s join app.organizations o using(org_id) where s.org_id=$1`, [orgId])).rows[0];
+  return row ? { orgId: row.org_id as string, founderPrincipalId: row.founder_principal_id as string, founderSafe: row.founder_safe as string,
+    safe: row.safe_address as string, status: row.status as SetupStatus, steps: row.steps as SetupView["steps"] } : null;
+}
+
 /** A current member, or the setup's founder; anyone else, and an unknown id, read the same refusal. */
 export async function get(sql: Sql, input: { orgId: string }, services: Pick<SetupServices, "board">): Promise<SetupView> {
   const person = await principal(sql);
