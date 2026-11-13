@@ -23,6 +23,7 @@ import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import * as RpcTest from "effect/rpc/RpcTest";
 import { CoreIdentity, CoreRpcs, Served, SpanSink, type KeptSpan } from "../src/door.ts";
+import { absent, BUILT } from "./support/built.ts";
 
 const names: ReadonlyArray<OperationName> = Rec.keys(operations);
 const DOOR = "door-token";
@@ -59,7 +60,7 @@ const call = (name: OperationName, headers: Record<string, string>, credential =
         const sent = { ...(credential ? credentialOf(name) : {}), ...headers };
         return yield* Effect.exit(send(name, operations[name].examples[0]?.payload, { headers: sent }));
       }),
-    ).pipe(Effect.provide(Served.pipe(Layer.provide(Layer.merge(sink, identity)))));
+    ).pipe(Effect.provide(Served.pipe(Layer.provide(Layer.mergeAll(sink, identity, absent)))));
     return { exit, kept };
   });
 
@@ -68,9 +69,12 @@ const isNotImplemented = Schema.is(Errors.NotImplemented);
 const failureOf = (exit: Exit.Exit<unknown, unknown>): unknown =>
   Exit.isFailure(exit) ? exit.cause.pipe(Cause.findErrorOption, Option.getOrUndefined) : undefined;
 
-test("every operation answers NotImplemented, naming itself, under one span kept with the caller's trace id", async () => {
+test("every operation not yet built answers NotImplemented, naming itself, under one span kept with the caller's trace id", async () => {
   assert.equal(names.length, 12);
-  for (const [index, name] of Arr.map(names, (each, i) => [i, each] as const)) {
+  for (const [index, name] of Arr.map(
+    Arr.filter(names, (each) => !BUILT.has(each)),
+    (each, i) => [i, each] as const,
+  )) {
     const traceId = trace(index + 1);
     const { exit, kept } = await Effect.runPromise(
       call(name, { [TRACE_HEADER]: `00-${traceId}-${Str.repeat(16)("1")}-01` }),
@@ -103,7 +107,7 @@ test("a person header that names no person is refused at sign-in, and the call i
 });
 
 test("a platform operation and a world operation are both served, by their own groups", async () => {
-  for (const name of ["world.show", "org.create"] as const) {
+  for (const name of ["world.show", "doc.create"] as const) {
     const { exit } = await Effect.runPromise(call(name, { [PERSON_HEADER]: "dana" }));
     const failure = failureOf(exit);
     assert.ok(isNotImplemented(failure), name);

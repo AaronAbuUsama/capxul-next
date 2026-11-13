@@ -8,7 +8,8 @@
         // Core serves the blueprint's Rpc groups over HTTP and keeps its spans through SQL. Effect 4 ships Rpc, HTTP
         // and SQL only under effect/rpc, effect/http and effect/sql, marked unstable, with no stable replacement. The
         // catalog's exact pin of effect is the guard, as in packages/blueprint.
-        "allowedUnstableApis": ["effect/rpc", "effect/http", "effect/sql"]
+        // `@effect/sql-pg` is the same SQL at the Postgres driver: Core's chain operations need its `json` for jsonb.
+        "allowedUnstableApis": ["effect/rpc", "effect/http", "effect/sql", "@effect/sql-pg"]
       }
     ]
   },

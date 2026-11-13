@@ -5,6 +5,7 @@
 // `toLayer` takes exactly one handler per operation of its group: delete a line and this file no longer compiles.
 import { Errors, PlatformRpcs, WorldRpcs, type OperationName } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
+import { approvalSignHandler, orgCreateHandler, orgMemberGrantHandler } from "./organizations/handlers.ts";
 
 /** The answer of an operation that has no implementation yet. */
 const unbuilt = (operation: OperationName) => () => Effect.fail(Errors.NotImplemented.make({ operation }));
@@ -19,11 +20,11 @@ export const PlatformHandlers = PlatformRpcs.toLayer({
 
 /** The world group: everything that acts inside one running world, served through its door. */
 export const WorldHandlers = WorldRpcs.toLayer({
-  "org.create": unbuilt("org.create"),
-  "org.member.grant": unbuilt("org.member.grant"),
+  "org.create": orgCreateHandler,
+  "org.member.grant": orgMemberGrantHandler,
   "doc.create": unbuilt("doc.create"),
   "doc.submit": unbuilt("doc.submit"),
-  "approval.sign": unbuilt("approval.sign"),
+  "approval.sign": approvalSignHandler,
   "report.run": unbuilt("report.run"),
   "world.clock.warp": unbuilt("world.clock.warp"),
   "record.export": unbuilt("record.export"),

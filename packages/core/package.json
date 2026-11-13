@@ -15,7 +15,8 @@
     "@capxul/blueprint": "workspace:*",
     "@effect/sql-pg": "catalog:",
     "alchemy": "catalog:",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "viem": "catalog:"
   },
   "devDependencies": {
     "@capxul/sdk": "workspace:*",

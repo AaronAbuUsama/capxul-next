@@ -39,6 +39,10 @@ const WorldSites = Schema.Struct({
   world: Schema.String,
   sites: Schema.Array(Schema.Struct({ site: Schema.String, state: Schema.String })),
 });
+/** One site as the door holds it: its name and its state (creating, ready, failed or removing). */
+const DoorSite = Schema.Struct({ site: Schema.String, state: Schema.String });
+export type DoorSite = typeof DoorSite.Type;
+
 const Refusal = Schema.Struct({ refused: Schema.String, detail: Schema.optional(Schema.String) });
 
 export class SiteDoor extends Context.Service<
@@ -46,6 +50,13 @@ export class SiteDoor extends Context.Service<
   {
     /** The world's sites, as the door holds them. */
     readonly sites: Effect.Effect<typeof WorldSites.Type, SiteDoorFailed>;
+    /**
+     * Starts making a site of the world for a company (about 100 s): `label` names it, `<label>-<world>.<domain>`,
+     * and it gets the world's site credential as its own API user. Answers the site as the door holds it.
+     */
+    readonly make: (label: string, company: string) => Effect.Effect<DoorSite, SiteDoorFailed>;
+    /** One of the world's sites as the door holds it now. */
+    readonly site: (site: string) => Effect.Effect<DoorSite, SiteDoorFailed>;
     /** One REST call to one of the world's sites, as its own API user. A site's own refusal is an answer. */
     readonly call: (site: string, call: SiteCall) => Effect.Effect<SiteAnswer, SiteDoorFailed>;
   }
@@ -102,7 +113,20 @@ export class SiteDoor extends Context.Service<
               });
             return { status: response.status, body } satisfies SiteAnswer;
           }).pipe(Effect.scoped);
+        const decodeSite = (answer: SiteAnswer) =>
+          Schema.decodeUnknownEffect(DoorSite)(answer.body).pipe(
+            Effect.mapError((error) =>
+              SiteDoorFailed.make({ reason: "refused", status: answer.status, code: null, message: error.message }),
+            ),
+          );
         return SiteDoor.of({
+          make: (label, company) =>
+            Effect.gen(function* () {
+              if (Option.isNone(key) || Option.isNone(secret)) return yield* unset;
+              const body = { label, company, api_key: Redacted.value(key.value), api_secret: Redacted.value(secret.value) };
+              return yield* Effect.flatMap(send(HttpClientRequest.bodyJsonUnsafe(HttpClientRequest.post("/sites"), body)), decodeSite);
+            }),
+          site: (site) => Effect.flatMap(send(HttpClientRequest.get(`/sites/${site}`)), decodeSite),
           sites: send(HttpClientRequest.get("/world")).pipe(
             Effect.flatMap((answer) => Schema.decodeUnknownEffect(WorldSites)(answer.body)),
             Effect.mapError((error) =>

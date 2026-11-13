@@ -22,6 +22,7 @@ import { chainRead } from "./chain.ts";
 import { serveDoors } from "./doors.ts";
 import { ENV, identityOf } from "./env.ts";
 import { HEALTH_PATH, PROBE_PATH, probeSite } from "./probe.ts";
+import { ChainOps } from "./organizations/handlers.ts";
 import { Served } from "./server.ts";
 import { SiteDoor } from "./site/SiteDoor.ts";
 import { CoreDeployment, ownDeployment } from "./stack/deployment.ts";
@@ -72,6 +73,7 @@ export default class Core extends Cloudflare.Worker<Core>()(
       const served = Served.pipe(
         Layer.provideMerge(RpcSerialization.layerJson),
         Layer.provide(SqlSpanSink),
+        Layer.provide(ChainOps.layer(env)),
         Layer.provide(SQL.PostgresLayer({ url: connectionString(env) })),
         Layer.provide(Layer.succeed(CoreIdentity, identity)),
       );

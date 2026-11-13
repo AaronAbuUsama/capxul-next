@@ -20,6 +20,7 @@ import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import * as HttpEffect from "effect/http/HttpEffect";
 import * as RpcSerialization from "effect/rpc/RpcSerialization";
 import { CoreIdentity, PLATFORM_PATH, Served, serveDoors, SpanSink, WORLD_PATH, type KeptSpan } from "../src/door.ts";
+import { absent, BUILT } from "./support/built.ts";
 
 const BASE = "https://core.test";
 const DOOR = Redacted.make("door-token");
@@ -38,7 +39,7 @@ const core = (kept: Array<KeptSpan>) => {
   });
   const served = Served.pipe(
     Layer.provideMerge(RpcSerialization.layerJson),
-    Layer.provide(Layer.merge(sink, identity)),
+    Layer.provide(Layer.mergeAll(sink, identity, absent)),
   );
   // The doors' Rpc servers start once, in a scope that lives as long as the test; each request is then handled.
   const handler = Effect.runSync(Effect.provide(serveDoors, Layer.merge(served, Layer.succeed(Scope.Scope, scope))));
@@ -82,18 +83,19 @@ const callAll = (tokens: { readonly door: Redacted.Redacted; readonly platform: 
 const errorOf = (exit: Exit.Exit<unknown, unknown>): unknown =>
   Exit.isFailure(exit) ? exit.cause.pipe(Cause.findErrorOption, Option.getOrUndefined) : undefined;
 
-test("through the SDK, each of the twelve answers NotImplemented at its door, under the trace the SDK sent", async () => {
+test("through the SDK, each of the twelve answers at its door under the trace the SDK sent, NotImplemented unless built", async () => {
   const { calls, kept } = await Effect.runPromise(callAll({ door: DOOR, platform: PLATFORM }));
   assert.equal(calls.length, 12);
   for (const { name, exit, traceId } of calls) {
+    const own = Arr.filter(kept, (span) => span.name === name);
+    assert.equal(own.length, 1, `${name}: ${own.length} server spans`);
+    if (BUILT.has(name)) continue;
     const error = errorOf(exit);
     assert.ok(
       Schema.is(Errors.NotImplemented)(error),
       `${name} did not answer NotImplemented: ${Exit.isFailure(exit) ? Cause.pretty(exit.cause) : "success"}`,
     );
     assert.equal(error.operation, name);
-    const own = Arr.filter(kept, (span) => span.name === name);
-    assert.equal(own.length, 1, `${name}: ${own.length} server spans`);
     assert.equal(own[0]?.traceId, traceId, `${name}: the server span is not under the caller's trace`);
   }
 });
