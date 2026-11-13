@@ -33,7 +33,7 @@ export const refusal = <A, E extends Tagged, R, const T extends E["_tag"]>(
     onFailure: (error) =>
       hasTag(error, tag)
         ? Effect.succeed(error)
-        : failed(`${what} was refused with ${error._tag} ${show(error)}; it must be refused with ${tag}`),
+        : failed(`${what} was refused with ${error._tag}; it must be refused with ${tag}`),
   });
 
 /** The kind of success `call` must answer, narrowed to its class. Another kind fails the scenario. */

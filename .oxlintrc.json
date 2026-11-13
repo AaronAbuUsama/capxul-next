@@ -239,6 +239,14 @@
       }
     },
     {
+      // The scenarios' client is typed by the blueprint's Rpc declarations (packages/scenarios/src/client.ts), so the
+      // package's door shows Rpc's types too; packages/scenarios/tsconfig.json allows effect/rpc for the same reason.
+      "files": ["packages/scenarios/src/door.ts"],
+      "rules": {
+        "effecttsgo/api-stability-leak": "off"
+      }
+    },
+    {
       // node:test's test() and describe() return a promise that the runner itself awaits.
       "files": ["packages/*/test/**"],
       "rules": {
