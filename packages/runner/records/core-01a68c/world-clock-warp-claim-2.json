@@ -1,0 +1,50 @@
+{
+  "kind": "scenario",
+  "name": "world.clock.warp claim 2",
+  "proves": {
+    "operation": "world.clock.warp",
+    "claim": 2
+  },
+  "given": "founded",
+  "stage": "core-01a68c",
+  "owner": "runner",
+  "startedAt": "2026-11-13T14:26:15.662Z",
+  "outcome": "failed",
+  "failure": "the run failed: Error: the runner has no facts of the starting world founded: it makes no starting world before roadmap step 1.12",
+  "ended": {
+    "as": "died",
+    "tag": null,
+    "detail": "Error: the runner has no facts of the starting world founded: it makes no starting world before roadmap step 1.12"
+  },
+  "readiness": {
+    "probes": 27,
+    "relapses": 1,
+    "ms": 15965
+  },
+  "calls": [],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [
+        "capxulcore-core-core-01a68c-y5sdldhg35al2lbt"
+      ],
+      "hyperdrives": [
+        "capxulcore-core-hyperdrive-core-01a68c-epwbrvaxfuo54gjj"
+      ],
+      "neonProjects": [
+        "CapxulCore-core-db-core-01a68c-tztodvbecuulozff"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": []
+    }
+  },
+  "ms": {
+    "create": 39119,
+    "run": 3,
+    "checks": 0,
+    "destroy": 3180
+  }
+}

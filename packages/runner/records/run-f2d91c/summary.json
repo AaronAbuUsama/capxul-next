@@ -1,0 +1,654 @@
+{
+  "kind": "scenarios",
+  "run": "run-f2d91c",
+  "what": "The registered scenarios run through the runner against a deployed Core. Passed when every claim the blueprint declares has its scenario in the run, every scenario's run record passed, and every stage was destroyed with nothing of it left in the accounts.",
+  "mode": "a stage each",
+  "expect": "pass",
+  "owner": "runner",
+  "startedAt": "2026-11-13T14:18:35.112Z",
+  "outcome": "failed",
+  "failure": "36 claims had no scenario in this run: world.create claim 1, world.create claim 2, world.create claim 3, world.create claim 4, world.create claim 5, world.create claim 6, org.create claim 1, org.create claim 2, org.create claim 3, org.create claim 4, org.create claim 5, org.create claim 6, org.create claim 7, org.member.grant claim 1, org.member.grant claim 2, org.member.grant claim 3, org.member.grant claim 4, org.member.grant claim 5, org.member.grant claim 6, org.member.grant claim 7, approval.sign claim 1, approval.sign claim 2, approval.sign claim 3, approval.sign claim 4, approval.sign claim 5, world.snapshot.save claim 1, world.snapshot.save claim 2, world.snapshot.save claim 3, world.snapshot.restore claim 1, world.snapshot.restore claim 2, world.snapshot.restore claim 3, world.snapshot.restore claim 4, world.snapshot.restore claim 5, world.show claim 1, world.show claim 2, world.show claim 3\ndoc.create claim 1: the run failed: Error: the runner has no facts of the starting world office-holder: it makes no starting world before roadmap step 1.12\ndoc.create claim 2: the run failed: Error: the runner has no facts of the starting world office-holder: it makes no starting world before roadmap step 1.12\ndoc.create claim 3: the run failed: Error: the runner has no facts of the starting world office-holder: it makes no starting world before roadmap step 1.12\ndoc.create claim 4: the run failed: Error: the runner has no facts of the starting world payment-drafted: it makes no starting world before roadmap step 1.12\ndoc.submit claim 1: the run failed: Error: the runner has no facts of the starting world payment-drafted: it makes no starting world before roadmap step 1.12\ndoc.submit claim 2: the run failed: Error: the runner has no facts of the starting world office-holder: it makes no starting world before roadmap step 1.12\ndoc.submit claim 3: the run failed: Error: the runner has no facts of the starting world payment-held: it makes no starting world before roadmap step 1.12\ndoc.submit claim 4: the run failed: Error: the runner has no facts of the starting world office-holder: it makes no starting world before roadmap step 1.12\nreport.run claim 1: the run failed: Error: the runner has no facts of the starting world paid: it makes no starting world before roadmap step 1.12\nreport.run claim 2: the run failed: Error: the runner has no facts of the starting world paid: it makes no starting world before roadmap step 1.12\nreport.run claim 3: the run failed: Error: the runner has no facts of the starting world paid: it makes no starting world before roadmap step 1.12\nworld.clock.warp claim 1: the run failed: Error: the runner has no facts of the starting world founded: it makes no starting world before roadmap step 1.12\nworld.clock.warp claim 2: the run failed: Error: the runner has no facts of the starting world founded: it makes no starting world before roadmap step 1.12\nrecord.export claim 1: the run failed: {\"_tag\":\"ExpectationFailed\",\"message\":\"the restored world's lineage is missing\"}\nrecord.export claim 2: the run failed: Error: the runner has no facts of the starting world paid: it makes no starting world before roadmap step 1.12\nrecord.export claim 3: the run failed: Error: the runner has no facts of the starting world fresh: it makes no starting world before roadmap step 1.12\nrecord.export claim 4: the run failed: {\"_tag\":\"ExpectationFailed\",\"message\":\"the positions from 2 to 3 is []; it must be [2,3]\"}",
+  "count": {
+    "scenarios": 18,
+    "claims": 17,
+    "declaredClaims": 53,
+    "asExpected": 1
+  },
+  "byOperation": {
+    "doc.create": 4,
+    "doc.submit": 4,
+    "report.run": 3,
+    "world.clock.warp": 2,
+    "record.export": 4
+  },
+  "scenarios": [
+    {
+      "name": "doc.create claim 1",
+      "proves": {
+        "operation": "doc.create",
+        "claim": 1
+      },
+      "stage": "core-e4bfe2",
+      "record": "core-e4bfe2/doc-create-claim-1.json",
+      "asExpected": false,
+      "why": "the run failed: Error: the runner has no facts of the starting world office-holder: it makes no starting world before roadmap step 1.12",
+      "ended": {
+        "as": "died",
+        "tag": null,
+        "detail": "Error: the runner has no facts of the starting world office-holder: it makes no starting world before roadmap step 1.12"
+      },
+      "calls": []
+    },
+    {
+      "name": "doc.create claim 2",
+      "proves": {
+        "operation": "doc.create",
+        "claim": 2
+      },
+      "stage": "core-e27bfc",
+      "record": "core-e27bfc/doc-create-claim-2.json",
+      "asExpected": false,
+      "why": "the run failed: Error: the runner has no facts of the starting world office-holder: it makes no starting world before roadmap step 1.12",
+      "ended": {
+        "as": "died",
+        "tag": null,
+        "detail": "Error: the runner has no facts of the starting world office-holder: it makes no starting world before roadmap step 1.12"
+      },
+      "calls": []
+    },
+    {
+      "name": "doc.create claim 3",
+      "proves": {
+        "operation": "doc.create",
+        "claim": 3
+      },
+      "stage": "core-2f9d94",
+      "record": "core-2f9d94/doc-create-claim-3.json",
+      "asExpected": false,
+      "why": "the run failed: Error: the runner has no facts of the starting world office-holder: it makes no starting world before roadmap step 1.12",
+      "ended": {
+        "as": "died",
+        "tag": null,
+        "detail": "Error: the runner has no facts of the starting world office-holder: it makes no starting world before roadmap step 1.12"
+      },
+      "calls": []
+    },
+    {
+      "name": "doc.create claim 4",
+      "proves": {
+        "operation": "doc.create",
+        "claim": 4
+      },
+      "stage": "core-dc837c",
+      "record": "core-dc837c/doc-create-claim-4.json",
+      "asExpected": false,
+      "why": "the run failed: Error: the runner has no facts of the starting world payment-drafted: it makes no starting world before roadmap step 1.12",
+      "ended": {
+        "as": "died",
+        "tag": null,
+        "detail": "Error: the runner has no facts of the starting world payment-drafted: it makes no starting world before roadmap step 1.12"
+      },
+      "calls": []
+    },
+    {
+      "name": "doc.submit claim 1",
+      "proves": {
+        "operation": "doc.submit",
+        "claim": 1
+      },
+      "stage": "core-d462c6",
+      "record": "core-d462c6/doc-submit-claim-1.json",
+      "asExpected": false,
+      "why": "the run failed: Error: the runner has no facts of the starting world payment-drafted: it makes no starting world before roadmap step 1.12",
+      "ended": {
+        "as": "died",
+        "tag": null,
+        "detail": "Error: the runner has no facts of the starting world payment-drafted: it makes no starting world before roadmap step 1.12"
+      },
+      "calls": []
+    },
+    {
+      "name": "doc.submit claim 2",
+      "proves": {
+        "operation": "doc.submit",
+        "claim": 2
+      },
+      "stage": "core-69e7f2",
+      "record": "core-69e7f2/doc-submit-claim-2.json",
+      "asExpected": false,
+      "why": "the run failed: Error: the runner has no facts of the starting world office-holder: it makes no starting world before roadmap step 1.12",
+      "ended": {
+        "as": "died",
+        "tag": null,
+        "detail": "Error: the runner has no facts of the starting world office-holder: it makes no starting world before roadmap step 1.12"
+      },
+      "calls": []
+    },
+    {
+      "name": "doc.submit claim 3",
+      "proves": {
+        "operation": "doc.submit",
+        "claim": 3
+      },
+      "stage": "core-da04ef",
+      "record": "core-da04ef/doc-submit-claim-3.json",
+      "asExpected": false,
+      "why": "the run failed: Error: the runner has no facts of the starting world payment-held: it makes no starting world before roadmap step 1.12",
+      "ended": {
+        "as": "died",
+        "tag": null,
+        "detail": "Error: the runner has no facts of the starting world payment-held: it makes no starting world before roadmap step 1.12"
+      },
+      "calls": []
+    },
+    {
+      "name": "doc.submit claim 4",
+      "proves": {
+        "operation": "doc.submit",
+        "claim": 4
+      },
+      "stage": "core-f71437",
+      "record": "core-f71437/doc-submit-claim-4.json",
+      "asExpected": false,
+      "why": "the run failed: Error: the runner has no facts of the starting world office-holder: it makes no starting world before roadmap step 1.12",
+      "ended": {
+        "as": "died",
+        "tag": null,
+        "detail": "Error: the runner has no facts of the starting world office-holder: it makes no starting world before roadmap step 1.12"
+      },
+      "calls": []
+    },
+    {
+      "name": "report.run claim 1",
+      "proves": {
+        "operation": "report.run",
+        "claim": 1
+      },
+      "stage": "core-1810ae",
+      "record": "core-1810ae/report-run-claim-1.json",
+      "asExpected": false,
+      "why": "the run failed: Error: the runner has no facts of the starting world paid: it makes no starting world before roadmap step 1.12",
+      "ended": {
+        "as": "died",
+        "tag": null,
+        "detail": "Error: the runner has no facts of the starting world paid: it makes no starting world before roadmap step 1.12"
+      },
+      "calls": []
+    },
+    {
+      "name": "report.run claim 2",
+      "proves": {
+        "operation": "report.run",
+        "claim": 2
+      },
+      "stage": "core-7557ef",
+      "record": "core-7557ef/report-run-claim-2.json",
+      "asExpected": false,
+      "why": "the run failed: Error: the runner has no facts of the starting world paid: it makes no starting world before roadmap step 1.12",
+      "ended": {
+        "as": "died",
+        "tag": null,
+        "detail": "Error: the runner has no facts of the starting world paid: it makes no starting world before roadmap step 1.12"
+      },
+      "calls": []
+    },
+    {
+      "name": "report.run claim 3",
+      "proves": {
+        "operation": "report.run",
+        "claim": 3
+      },
+      "stage": "core-f61189",
+      "record": "core-f61189/report-run-claim-3.json",
+      "asExpected": false,
+      "why": "the run failed: Error: the runner has no facts of the starting world paid: it makes no starting world before roadmap step 1.12",
+      "ended": {
+        "as": "died",
+        "tag": null,
+        "detail": "Error: the runner has no facts of the starting world paid: it makes no starting world before roadmap step 1.12"
+      },
+      "calls": []
+    },
+    {
+      "name": "world.clock.warp claim 1",
+      "proves": {
+        "operation": "world.clock.warp",
+        "claim": 1
+      },
+      "stage": "core-c0a7e6",
+      "record": "core-c0a7e6/world-clock-warp-claim-1.json",
+      "asExpected": false,
+      "why": "the run failed: Error: the runner has no facts of the starting world founded: it makes no starting world before roadmap step 1.12",
+      "ended": {
+        "as": "died",
+        "tag": null,
+        "detail": "Error: the runner has no facts of the starting world founded: it makes no starting world before roadmap step 1.12"
+      },
+      "calls": []
+    },
+    {
+      "name": "world.clock.warp claim 2",
+      "proves": {
+        "operation": "world.clock.warp",
+        "claim": 2
+      },
+      "stage": "core-01a68c",
+      "record": "core-01a68c/world-clock-warp-claim-2.json",
+      "asExpected": false,
+      "why": "the run failed: Error: the runner has no facts of the starting world founded: it makes no starting world before roadmap step 1.12",
+      "ended": {
+        "as": "died",
+        "tag": null,
+        "detail": "Error: the runner has no facts of the starting world founded: it makes no starting world before roadmap step 1.12"
+      },
+      "calls": []
+    },
+    {
+      "name": "record.export claim 1",
+      "proves": {
+        "operation": "record.export",
+        "claim": 1
+      },
+      "stage": "core-d4033b",
+      "record": "core-d4033b/record-export-claim-1.json",
+      "asExpected": false,
+      "why": "the run failed: {\"_tag\":\"ExpectationFailed\",\"message\":\"the restored world's lineage is missing\"}",
+      "ended": {
+        "as": "failed",
+        "tag": "ExpectationFailed",
+        "detail": "{\"_tag\":\"ExpectationFailed\",\"message\":\"the restored world's lineage is missing\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1208.904,
+          "serverMs": 989,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "record.export claim 2",
+      "proves": {
+        "operation": "record.export",
+        "claim": 2
+      },
+      "stage": "core-39abf5",
+      "record": "core-39abf5/record-export-claim-2.json",
+      "asExpected": false,
+      "why": "the run failed: Error: the runner has no facts of the starting world paid: it makes no starting world before roadmap step 1.12",
+      "ended": {
+        "as": "died",
+        "tag": null,
+        "detail": "Error: the runner has no facts of the starting world paid: it makes no starting world before roadmap step 1.12"
+      },
+      "calls": []
+    },
+    {
+      "name": "record.export claim 3",
+      "proves": {
+        "operation": "record.export",
+        "claim": 3
+      },
+      "stage": "core-f1b5e1",
+      "record": "core-f1b5e1/record-export-claim-3.json",
+      "asExpected": false,
+      "why": "the run failed: Error: the runner has no facts of the starting world fresh: it makes no starting world before roadmap step 1.12",
+      "ended": {
+        "as": "died",
+        "tag": null,
+        "detail": "Error: the runner has no facts of the starting world fresh: it makes no starting world before roadmap step 1.12"
+      },
+      "calls": []
+    },
+    {
+      "name": "record.export claim 4",
+      "proves": {
+        "operation": "record.export",
+        "claim": 4
+      },
+      "stage": "core-80be5e",
+      "record": "core-80be5e/record-export-claim-4.json",
+      "asExpected": false,
+      "why": "the run failed: {\"_tag\":\"ExpectationFailed\",\"message\":\"the positions from 2 to 3 is []; it must be [2,3]\"}",
+      "ended": {
+        "as": "failed",
+        "tag": "ExpectationFailed",
+        "detail": "{\"_tag\":\"ExpectationFailed\",\"message\":\"the positions from 2 to 3 is []; it must be [2,3]\"}"
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1011.119,
+          "serverMs": 825,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 490.105,
+          "serverMs": 330,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "example: record.export answers a fresh world with its first entry",
+      "proves": null,
+      "stage": "core-1f8e6e",
+      "record": "core-1f8e6e/example-record-export-answers-a-fresh-world-with-its-first-entry.json",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "succeeded",
+        "tag": null,
+        "detail": null
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 530.91,
+          "serverMs": 344,
+          "checksPassed": true
+        }
+      ]
+    }
+  ],
+  "stages": [
+    {
+      "name": "core-e4bfe2",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 11839
+      },
+      "createMs": 33062,
+      "destroyMs": 2141,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-e27bfc",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 11158
+      },
+      "createMs": 33760,
+      "destroyMs": 2604,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-2f9d94",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 11913
+      },
+      "createMs": 36284,
+      "destroyMs": 2919,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-dc837c",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 11987
+      },
+      "createMs": 29189,
+      "destroyMs": 2694,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-d462c6",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 11615
+      },
+      "createMs": 28943,
+      "destroyMs": 2758,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-69e7f2",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 11595
+      },
+      "createMs": 28334,
+      "destroyMs": 4996,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-da04ef",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 11312
+      },
+      "createMs": 29849,
+      "destroyMs": 3203,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-f71437",
+      "readiness": {
+        "probes": 23,
+        "relapses": 1,
+        "ms": 13494
+      },
+      "createMs": 38419,
+      "destroyMs": 2480,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-1810ae",
+      "readiness": {
+        "probes": 49,
+        "relapses": 20,
+        "ms": 29526
+      },
+      "createMs": 52294,
+      "destroyMs": 2795,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-7557ef",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 11366
+      },
+      "createMs": 30852,
+      "destroyMs": 2959,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-f61189",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 12159
+      },
+      "createMs": 31861,
+      "destroyMs": 2578,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-c0a7e6",
+      "readiness": {
+        "probes": 22,
+        "relapses": 0,
+        "ms": 12531
+      },
+      "createMs": 34148,
+      "destroyMs": 2695,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-01a68c",
+      "readiness": {
+        "probes": 27,
+        "relapses": 1,
+        "ms": 15965
+      },
+      "createMs": 39119,
+      "destroyMs": 3180,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-d4033b",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 11721
+      },
+      "createMs": 30650,
+      "destroyMs": 3137,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-39abf5",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 11448
+      },
+      "createMs": 29361,
+      "destroyMs": 2996,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-f1b5e1",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 11677
+      },
+      "createMs": 28713,
+      "destroyMs": 2265,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-80be5e",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 11408
+      },
+      "createMs": 28860,
+      "destroyMs": 2561,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-1f8e6e",
+      "readiness": {
+        "probes": 31,
+        "relapses": 1,
+        "ms": 17590
+      },
+      "createMs": 45015,
+      "destroyMs": 5361,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    }
+  ]
+}

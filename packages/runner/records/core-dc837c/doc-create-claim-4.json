@@ -1,0 +1,50 @@
+{
+  "kind": "scenario",
+  "name": "doc.create claim 4",
+  "proves": {
+    "operation": "doc.create",
+    "claim": 4
+  },
+  "given": "payment-drafted",
+  "stage": "core-dc837c",
+  "owner": "runner",
+  "startedAt": "2026-11-13T14:20:29.026Z",
+  "outcome": "failed",
+  "failure": "the run failed: Error: the runner has no facts of the starting world payment-drafted: it makes no starting world before roadmap step 1.12",
+  "ended": {
+    "as": "died",
+    "tag": null,
+    "detail": "Error: the runner has no facts of the starting world payment-drafted: it makes no starting world before roadmap step 1.12"
+  },
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 11987
+  },
+  "calls": [],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [
+        "capxulcore-core-core-dc837c-ogcerhbqqxmiqugm"
+      ],
+      "hyperdrives": [
+        "capxulcore-core-hyperdrive-core-dc837c-q4yvvllig6l24yv7"
+      ],
+      "neonProjects": [
+        "CapxulCore-core-db-core-dc837c-rcaew3y7tobkffis"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": []
+    }
+  },
+  "ms": {
+    "create": 29189,
+    "run": 2,
+    "checks": 0,
+    "destroy": 2694
+  }
+}

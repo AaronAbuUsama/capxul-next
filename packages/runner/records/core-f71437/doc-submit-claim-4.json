@@ -1,0 +1,50 @@
+{
+  "kind": "scenario",
+  "name": "doc.submit claim 4",
+  "proves": {
+    "operation": "doc.submit",
+    "claim": 4
+  },
+  "given": "office-holder",
+  "stage": "core-f71437",
+  "owner": "runner",
+  "startedAt": "2026-11-13T14:22:46.191Z",
+  "outcome": "failed",
+  "failure": "the run failed: Error: the runner has no facts of the starting world office-holder: it makes no starting world before roadmap step 1.12",
+  "ended": {
+    "as": "died",
+    "tag": null,
+    "detail": "Error: the runner has no facts of the starting world office-holder: it makes no starting world before roadmap step 1.12"
+  },
+  "readiness": {
+    "probes": 23,
+    "relapses": 1,
+    "ms": 13494
+  },
+  "calls": [],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [
+        "capxulcore-core-core-f71437-fa255udxh5zvytrp"
+      ],
+      "hyperdrives": [
+        "capxulcore-core-hyperdrive-core-f71437-gdun5zgpafhl5muu"
+      ],
+      "neonProjects": [
+        "CapxulCore-core-db-core-f71437-l4oy2jfjmde2asg3"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": []
+    }
+  },
+  "ms": {
+    "create": 38419,
+    "run": 2,
+    "checks": 0,
+    "destroy": 2480
+  }
+}

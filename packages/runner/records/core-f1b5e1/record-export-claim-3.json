@@ -1,0 +1,50 @@
+{
+  "kind": "scenario",
+  "name": "record.export claim 3",
+  "proves": {
+    "operation": "record.export",
+    "claim": 3
+  },
+  "given": "fresh",
+  "stage": "core-f1b5e1",
+  "owner": "runner",
+  "startedAt": "2026-11-13T14:28:08.752Z",
+  "outcome": "failed",
+  "failure": "the run failed: Error: the runner has no facts of the starting world fresh: it makes no starting world before roadmap step 1.12",
+  "ended": {
+    "as": "died",
+    "tag": null,
+    "detail": "Error: the runner has no facts of the starting world fresh: it makes no starting world before roadmap step 1.12"
+  },
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 11677
+  },
+  "calls": [],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [
+        "capxulcore-core-core-f1b5e1-2wedgkm3jsletbvo"
+      ],
+      "hyperdrives": [
+        "capxulcore-core-hyperdrive-core-f1b5e1-2gsat5n2y55ynq2u"
+      ],
+      "neonProjects": [
+        "CapxulCore-core-db-core-f1b5e1-com5m4lsoupsk7bx"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": []
+    }
+  },
+  "ms": {
+    "create": 28713,
+    "run": 2,
+    "checks": 0,
+    "destroy": 2265
+  }
+}
