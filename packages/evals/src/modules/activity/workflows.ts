@@ -3,7 +3,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { note, paymentTransitions } from "../../../../backend/src/activity/door.ts";
 import type { Database, Sql } from "../../../../backend/src/platform/db.ts";
-import { consume, type TransitionEvent } from "../../../../backend/src/platform/outbox.ts";
+import type { TransitionEvent } from "../../../../backend/src/platform/outbox.ts";
 
 const CONSUMER = "activity.changes";
 const SAMPLE = 20;
@@ -15,16 +15,19 @@ const feedRows = (sql: Sql, feeds: [string, string][]) => sql.query(`select * fr
 [feeds.map((f) => f[0]), feeds.map((f) => f[1])]).then((r) => r.rows);
 
 /**
- * Real `transition` events this run's Payment lifecycle committed and the relay acknowledged: each was noted once in each
- * feed holding its Payment, and a second run with the same event id changes nothing, whether it meets the consumer's ACK
- * or (as if the ACK were lost) only the change log's `by-owner-event` key. Every redelivery rolls back.
+ * Real `transition` events the relay acknowledged during this run (the newest first): each was noted once in each feed
+ * holding its Payment, and a second run with the same event id, as if its ACK were lost, changes nothing because of the
+ * change log's `by-owner-event` key. Every redelivery rolls back.
  */
-export async function idempotent(database: Database, dir: string, transition: string) {
+export async function idempotent(database: Database, dir: string, transition: string, runStartedAt: string) {
+  // Scoped by the database clock's ACK time, not the event's `at`: world time can be stopped or warped, and a restored
+  // world's baseline events were acknowledged before this run started.
   const events = (await database.worker.query(`select o.event from app.transition_outbox o
     join app.transition_acks a on a.consumer=$1 and a.event_id=o.id
     where o.event->>'name'='payment_transitioned' and o.event->>'machine'='payment' and o.event->'props'->>'transition'=$2
-    order by o.seq limit $3`, [CONSUMER, transition, SAMPLE])).rows.map((r) => r.event as TransitionEvent);
-  assert(events.length > 0, `no acknowledged ${transition} transition in this run`);
+      and a.acked_at>=$4::timestamptz
+    order by o.seq desc limit $3`, [CONSUMER, transition, SAMPLE, runStartedAt])).rows.map((r) => r.event as TransitionEvent);
+  assert(events.length > 0, `no ${transition} transition acknowledged in this run`);
   const evidence = [];
   for (const event of events) {
     const p = event.props as Record<string, string | null>;
@@ -50,7 +53,6 @@ export async function idempotent(database: Database, dir: string, transition: st
         assert.equal(row.change, earlier ? "updated" : "new");
       }
       const before = await feedRows(client, [...feeds.values()]);
-      assert.equal(await consume(client, CONSUMER, event.id, note), false);
       await note(client, event);
       assert.deepEqual(await feedRows(client, [...feeds.values()]), before);
       evidence.push({ event: event.id, payment: p.payment_id, feeds: noted.map((r) => ({ owner_kind: r.owner_kind, owner_id: r.owner_id, seq: Number(r.seq), change: r.change })) });

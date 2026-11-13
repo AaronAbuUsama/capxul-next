@@ -69,7 +69,7 @@ if (process.argv.includes("--list")) {
     await emit("ACTIVITY.tenancy", async () => { feeds = await tenancy(database, dir); });
     await emit("ACTIVITY.cross-owner", async () => { assert(feeds); await crossOwner(database, dir, feeds); });
     await emit("ACTIVITY.writer-acl", () => writerAcl(database, dir));
-    for (const [transition, name] of idempotentChecks) await emit(name, () => idempotent(database, dir, transition));
+    for (const [transition, name] of idempotentChecks) await emit(name, () => idempotent(database, dir, transition, receipt.at));
   } catch { failed = true; }
   finally { await db?.close(); }
   for (const name of checks.filter((name) => !seen.has(name))) await emit(name, async () => { throw new Error("prerequisite failed"); });

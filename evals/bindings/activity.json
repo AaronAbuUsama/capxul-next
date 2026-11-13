@@ -24,7 +24,7 @@
         "ACTIVITY.cross-owner",
         "ACTIVITY.writer-acl"
       ],
-      "missing": "The checks cover the whole claim: each owner's scoped read equals exactly its rows at one MVCC cut and resets with its transaction, and Core's own ownerTransaction on the tenant role is refused every insert/update/delete/truncate on another owner's rows and its own. Still needs one complete fresh selected-stack run that passes them, with person and organization feeds present. Judgment (integrator ruling, Activity lane 13 Nov): the earlier extra condition of authenticated/revoked sessions through the public activity read is dropped. The table is tenancy 'owner' with no admits, so its claim is owner isolation only. Slice-0 holds no activity.changes.read (or any access) RPC, and no required eval names it, so the read is not mounted in Wave Zero. Session-to-scope admission is Access's claim, not this table's."
+      "missing": "The checks cover the whole claim: each owner's scoped read equals exactly its rows at one MVCC cut and resets with its transaction, and Core's own ownerTransaction on the tenant role is refused every insert/update/delete/truncate on another owner's rows and its own. Still needs one complete fresh selected-stack run that passes them, with person and organization feeds present. No session read is required (decision activity.tenancy-evidence)."
     },
     {
       "eval": "tbl:activity-changes/writers",
