@@ -7,7 +7,7 @@ import { migrate as migrateBudgets } from "./budgets/door.ts";
 import { migratePayments } from "./payments/door.ts";
 import { required } from "./platform/config.ts";
 import { migrateOutbox } from "./platform/outbox.ts";
-import { migrateRequests } from "./requests/door.ts";
+import { migrateRequests } from "./requests/migrate.ts";
 import { migrateServiceSigner } from "./shared/door.ts";
 
 const admin = new URL(required("PG_ADMIN_URL"));
@@ -59,10 +59,10 @@ try {
   await db.query("grant usage on schema ponder to capxul_worker");
   await db.query("alter default privileges for role capxul_ponder in schema ponder grant select on tables to capxul_worker");
   await db.query("grant select on all tables in schema ponder to capxul_worker");
-  // Concept schemas, in dependency order: payments emit through the outbox and read approvals; requests follow
-  // payments; Books records payments' money sides; Activity follows payments. bind-indexer runs later, after Ponder.
-  await migrateOutbox(db); await migrateServiceSigner(db); await migratePayments(db); await migrateRequests(db);
-  await migrateBooks(db); await migrateBudgets(db); await migrateActivity(db);
+  // The accepted fresh-create order; migrateApprovals already ran before the org-policy loop. bind-indexer runs after Ponder.
+  await migrateOutbox(db); await migrateServiceSigner(db);
+  await migratePayments(db); await migrateRequests(db); await migrateBooks(db); await migrateBudgets(db);
+  await migrateActivity(db);
   // Later concepts append here, in the same transaction (Notices: migrateNotices).
   await db.query("COMMIT");
   console.log("Core schema v1 migrated; separate non-superuser tenant, worker and Ponder roles");
