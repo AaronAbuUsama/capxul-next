@@ -97,11 +97,12 @@ export const timeStartingWorlds = (settings: Settings) =>
       ),
     );
     const templates = yield* starting.templateWorlds;
-    const [destroyTook] = yield* Effect.timed(destroyAll(templates));
+    const [destroyTook, destroyedAll] = yield* Effect.timed(destroyAll(templates));
     const after = yield* leftOf(Arr.dedupe([...(yield* platform.made), ...(yield* platform.tried)]));
     const failures = [
       ...Arr.flatMap(lines, (line) => (line.outcome === "failed" ? [`${line.name}: ${line.why ?? ""}`] : [])),
       ...failuresOf(Arr.flatMap(lines, (line) => line.calls)),
+      ...(destroyedAll ? [] : ["a template world's destroy failed"]),
       ...(after === null || (after.worlds ?? []).length > 0
         ? ["the accounts still hold some of the run's worlds"]
         : []),

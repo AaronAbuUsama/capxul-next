@@ -16,7 +16,7 @@ export { withWorld } from "./lifecycle/run.ts";
 export { Limits, Timeouts, type World, type WorldSpec } from "./lifecycle/spec.ts";
 export { requireComplete, sweep, SweepReport } from "./lifecycle/sweep.ts";
 export { SharedState } from "./stack/engine.ts";
-export { STACK } from "./stack/names.ts";
+export { STACK, stageOf } from "./stack/names.ts";
 export type { CoreSlot } from "./stack/stack.ts";
 export { CONTRACTS, SEED_HEAD } from "./chain/contracts.ts";
 export { CAST, CAST_FUNDS } from "./platform/cast.ts";

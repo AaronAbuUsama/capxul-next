@@ -4,6 +4,7 @@
 // restore's answer. `quota-full`, `with-snapshot` and `restored` are made by their steps for each scenario, from a
 // world got the same way. Every call made on the way is a fact of the world (`calls`) and is kept for the checks.
 import { startingWorlds, type StartingWorld } from "@capxul/blueprint";
+import * as World from "@capxul/world";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -41,7 +42,7 @@ const stepsOf = (world: StartingWorld) =>
 
 /**
  * What makes the starting worlds of one run: its platform's address and the operators' tokens, and what it has made
- * so far. `templates` is every template world it made, which the run destroys at its end.
+ * so far. `templateWorlds` is every template world it made, by stage, which the run destroys at its end.
  */
 export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (settings: Settings, platformUrl: string) {
   const templates = yield* Ref.make(new Map<string, Making>());
@@ -92,7 +93,7 @@ export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (se
       const steps = yield* stepsOf(world);
       const after = yield* run(world, steps, from);
       if ((world.from === null || world.from === startingWorlds.nothing) && after.own !== null)
-        yield* Ref.update(templateWorlds, (all) => [...all, after.own?.world ?? ""]);
+        yield* Ref.update(templateWorlds, (all) => [...all, World.stageOf(after.own?.world ?? "")]);
       const saved = yield* run(
         world,
         (making) =>
