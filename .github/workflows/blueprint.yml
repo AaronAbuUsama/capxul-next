@@ -5,7 +5,7 @@ name: blueprint
 on:
   pull_request:
   push:
-    branches: [main, integration/build, integration/wave-0]
+    branches: [main, master, integration/build, integration/wave-0]
 jobs:
   gate:
     runs-on: ubuntu-latest
@@ -26,6 +26,8 @@ jobs:
       - run: pnpm contracts:check-blueprint
       - run: pnpm frozen
       - run: pnpm test
+      # The rebuild line's Effect measure: neither count may rise (packages/effect-counts/README.md).
+      - run: python3 packages/effect-counts/check.py
       - name: Ripple
         if: github.event_name == 'pull_request'
         # A report, not a gate. main predates the blueprint, so a pull request into main has no base to compare with.
