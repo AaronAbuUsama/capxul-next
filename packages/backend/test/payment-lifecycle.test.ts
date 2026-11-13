@@ -83,11 +83,6 @@ test("indexed settlement compares exact terms and commits source event and SQL b
     assert.equal((await readPayment(worker, owner, id))?.status, "prepared");
     assert.equal((await events()).length, 0);
     assert.deepEqual(await facts(), []);
-    await worker.query("savepoint unresolved_payroll");
-    await worker.query("update app.payments set source=$2 where id=$1", [id, { kind: "salary-slip", id: "slip-component", payroll_entry_id: "run-component", employee_id: "employee-component" }]);
-    await assert.rejects(followPayment(worker, owner, id, { chainId: chain.chainId, finality: 0 }, context), /payroll Books provenance mapping is not available/);
-    await worker.query("rollback to savepoint unresolved_payroll");
-    assert.deepEqual(await facts(), []); assert.deepEqual(await events(), []);
     const settled = await followPayment(worker, owner, id, { chainId: chain.chainId, finality: 0 }, context);
     assert.equal(settled?.status, "settled"); assert.equal(settled?.settled_tx_hash, paid.txHash.toLowerCase());
     assert.equal(settled?.settled_at, Number(fact.block_time));

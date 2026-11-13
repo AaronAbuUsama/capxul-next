@@ -91,6 +91,12 @@ test("same-Sql command birth, original terminal replay and exact v4 IDs/calldata
     await refuses({ ...input, items: [{ ...input.items[0]!, document_hash: `0x${"0".repeat(64)}` }] });
     await refuses(input, { ...context, owner: { kind: "person", id: owner.id } });
     await refuses(input, { ...context, approval: { ...context.approval, sender: testKey("stranger").address } }, /FORBIDDEN/);
+    // Unmapped payroll provenance is refused before any approval could move money it can never book.
+    const approvals = async () => (await sql.query("select count(*)::int as n from app.approvals")).rows[0].n;
+    const approvalsBefore = await approvals();
+    await refuses({ ...input, purpose: "payroll", items: [{ ...input.items[0]!, source: { kind: "salary-slip", id: "slip-component" } }, ...input.items.slice(1)] },
+      context, /WRONG_STATE: payroll Books provenance mapping is not available/);
+    assert.equal(await approvals(), approvalsBefore);
     await t.test("a child-authorized wearer cannot prepare through a closed ancestor", async () => {
       await boardCalls("close", [child]);
       try {
