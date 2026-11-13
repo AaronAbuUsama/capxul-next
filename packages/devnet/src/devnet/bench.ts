@@ -13,9 +13,9 @@ export function composeBench(composeArgs: string[], benchDir = "/home/frappe/fra
     catch { throw new Error("bench recovery command failed; world remains fenced, inspect container logs before retrying"); }
   };
   const python = async (args: string[], directory?: string) => {
-    await compose(["run", "--rm", "-T", "--no-deps", "-v", `${script}:/recovery.py:ro`,
+    return (await compose(["run", "--rm", "-T", "--no-deps", "-v", `${script}:/recovery.py:ro`,
       ...(directory ? ["--user", "0:0", "-v", `${resolve(directory)}:/recovery${args[0] === "restore" ? ":ro" : ""}`] : []),
-      "--workdir", benchDir, "site-admin", `${benchDir}/env/bin/python`, "/recovery.py", ...args]);
+      "--workdir", benchDir, "site-admin", `${benchDir}/env/bin/python`, "/recovery.py", ...args])).stdout;
   };
   return {
     ownsPause: () => ownsPause,
@@ -34,8 +34,17 @@ export function composeBench(composeArgs: string[], benchDir = "/home/frappe/fra
         throw new Error("a bench writer did not stop cleanly; snapshot refused");
       }
     },
-    backup: (site: Site, directory: string) => python(["backup", site.name, "/recovery"], directory),
-    restore: (site: Site, directory: string, inPlace: boolean) => python(["restore", site.name, "/recovery", inPlace ? "in-place" : "new"], directory),
+    backup: async (site: Site, directory: string) => { await python(["backup", site.name, "/recovery"], directory); },
+    restore: async (site: Site, directory: string, inPlace: boolean) => { await python(["restore", site.name, "/recovery", inPlace ? "in-place" : "new"], directory); },
+    /** The bench follower of the one world clock door; needs no site, so creation installs it before any site exists. */
+    clock: async (world: string, clock: Pick<Cut, "nowMs" | "clockMode" | "rate">) => { await
+      python(["clock", world, String(clock.nowMs), clock.clockMode === "stopped" ? "frozen" : "running", String(clock.rate)]); },
+    /** Every world's bench clock entry, read from the bench's own file. */
+    async clocks(): Promise<Record<string, any>> {
+      const line = (await python(["clocks"])).split("\n").find((l) => l.startsWith("CAPXUL_CLOCKS:"));
+      if (!line) throw new Error("bench clock file could not be read");
+      return JSON.parse(line.slice("CAPXUL_CLOCKS:".length));
+    },
     rewrite: (site: Site, world: string, cut: Cut) => python(["rewrite", site.name, world, String(cut.nowMs), cut.clockMode === "stopped" ? "frozen" : "running", String(cut.rate),
       ...(siteUrl || coreUrl ? [siteUrl?.(site) ?? "", coreUrl?.() ?? ""] : [])]),
     async resume() {
