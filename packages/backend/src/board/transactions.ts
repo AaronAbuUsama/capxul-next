@@ -1,4 +1,4 @@
-import { concat, encodeFunctionData, encodePacked, hashTypedData, isAddress, parseAbi, zeroAddress, type Address, type Hex } from "viem";
+import { concat, encodeFunctionData, encodePacked, hashTypedData, isAddress, isHex, parseAbi, zeroAddress, type Address, type Hex } from "viem";
 import type { Call, Proposal } from "./types.ts";
 
 const multiSend = parseAbi(["function multiSend(bytes transactions)"]);
@@ -32,12 +32,12 @@ export function cleanupThreshold(config: { thresholdType: number; min: bigint; t
 export function transaction(calls: Call[], multiSendAddress: Address) {
   if (!Array.isArray(calls) || !calls.length || calls.some((c) => !c ||
     typeof c.to !== "string" || !isAddress(c.to) ||
-    typeof c.data !== "string" || !/^0x(?:[\da-f]{2})*$/.test(c.data) ||
+    typeof c.data !== "string" || !isHex(c.data, { strict: true }) || c.data.length % 2 !== 0 ||
     typeof c.value !== "string" || !/^\d+$/.test(c.value) || BigInt(c.value) >= 1n << 256n)) {
     throw new Error("INVALID_INPUT: at least one valid call is required");
   }
   // Do not copy an opener's operation (or any other undeclared field) into immutable terms.
-  if (calls.length === 1) return { to: calls[0]!.to.toLowerCase() as Address, value: calls[0]!.value, data: calls[0]!.data, operation: "call" as const };
+  if (calls.length === 1) return { to: calls[0]!.to.toLowerCase() as Address, value: calls[0]!.value, data: calls[0]!.data.toLowerCase() as Hex, operation: "call" as const };
   return { to: multiSendAddress.toLowerCase() as Address, value: "0", operation: "delegatecall" as const,
     data: encodeFunctionData({ abi: multiSend, functionName: "multiSend", args: [concat(calls.map((c) => encodePacked(
       ["uint8", "address", "uint256", "uint256", "bytes"], [0, c.to, BigInt(c.value), BigInt((c.data.length - 2) / 2), c.data],
