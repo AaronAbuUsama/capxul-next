@@ -13,7 +13,9 @@ const checks = systemChecks(blueprint, sliceZeroRequired(blueprint));
 if (process.argv.includes("--list")) {
   for (const c of checks) console.log(`${c.name}\tcheck`);
 } else {
-  const only = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1]!.split(",") : null;
+  const value = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1] : null;
+  if (value !== null && (!value || value.startsWith("--"))) { console.error("--only needs a comma-separated list of check names"); process.exit(2); }
+  const only = value === null ? null : value.split(",");
   const wanted = checks.filter((c) => !only || only.some((p) => c.name === p || c.name.startsWith(`${p}.`)));
   const reported = new Set<string>();
   const report = (name: string, pass: boolean, ms: number, detail: string): void => {
@@ -28,7 +30,9 @@ if (process.argv.includes("--list")) {
     const receipt = parseRunReceipt(JSON.parse(readFileSync(join(run, "receipt.json"), "utf8")));
     assert(receipt.ok && receipt.value.state === "running", "a running receipt is required");
     // The receipt's commit is the build under test; its files are read from git, never the working tree.
-    const commit = receipt.value.commit, tree = treeAt(process.cwd(), commit);
+    const commit = receipt.value.commit;
+    assert(!commit.endsWith("+dirty"), `the receipt's commit ${commit} has uncommitted changes, so the build under test is not in git; commit them and run again`);
+    const tree = treeAt(process.cwd(), commit);
     const dir = resolve(run, "system"); mkdirSync(dir, { recursive: true });
     for (const check of wanted) {
       const t = performance.now();
