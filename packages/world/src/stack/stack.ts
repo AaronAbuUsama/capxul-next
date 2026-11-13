@@ -54,6 +54,7 @@ export const worldStack = (core: CoreSlot) =>
         coreUrl: served.url,
         doorUrl: door.url,
         branch: branch.branchId,
+        bench: Option.match(settings.bench, { onNone: () => "none", onSome: (bench) => bench.stage }),
       };
     }),
   );

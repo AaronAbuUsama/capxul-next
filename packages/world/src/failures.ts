@@ -33,6 +33,11 @@ export class InvalidMint extends Schema.TaggedError<InvalidMint, { readonly bran
   message: Schema.String,
 }) {}
 
+export class InvalidCompany extends Schema.TaggedError<InvalidCompany, { readonly brand: unique symbol }>()(
+  "InvalidCompany",
+  { given: Schema.String, message: Schema.String },
+) {}
+
 // The platform, the shared state and the two accounts.
 
 export class PlatformMissing extends Schema.TaggedError<PlatformMissing, { readonly brand: unique symbol }>()(
@@ -87,6 +92,15 @@ export class FaucetFailed extends Schema.TaggedError<FaucetFailed, { readonly br
   "FaucetFailed",
   { step: Schema.Literals(["deploy", "mint", "read"]), message: Schema.String },
 ) {}
+
+/**
+ * A world's company sites: none can be asked for without a bench (`WORLD_BENCH`), the site door refused or did
+ * not answer, a site could not be made, or a take-down left one on the bench.
+ */
+export class SiteFailed extends Schema.TaggedError<SiteFailed, { readonly brand: unique symbol }>()("SiteFailed", {
+  step: Schema.Literals(["plan", "door", "waiting", "make", "remove"]),
+  message: Schema.String,
+}) {}
 
 /** A proof's check did not hold, or no proof has the name asked for. */
 export class ProofFailed extends Schema.TaggedError<ProofFailed, { readonly brand: unique symbol }>()("ProofFailed", {

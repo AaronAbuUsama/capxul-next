@@ -397,6 +397,9 @@ importers:
       '@alchemy.run/neon':
         specifier: 'catalog:'
         version: 2.0.0-beta.85(@effect/platform-node@4.1.2(effect@4.1.2)(redis@6.3.1(@opentelemetry/api@1.10.0)))(@effect/sql-pg@4.1.2(effect@4.1.2))(alchemy@2.0.0-beta.85(@effect/platform-bun@4.1.2(effect@4.1.2))(@effect/platform-node@4.1.2(effect@4.1.2)(redis@6.3.1(@opentelemetry/api@1.10.0)))(effect@4.1.2)(vite@8.3.1(@types/node@22.19.1)(yaml@2.9.1))(ws@8.21.0))(effect@4.1.2)(hono@4.10.4)(pg@8.23.1)
+      '@capxul/blueprint':
+        specifier: workspace:*
+        version: link:../blueprint
       '@effect/platform-bun':
         specifier: 'catalog:'
         version: 4.1.2(effect@4.1.2)
@@ -434,6 +437,9 @@ importers:
       '@capxul/sdk':
         specifier: workspace:*
         version: link:../sdk
+      '@capxul/world':
+        specifier: workspace:*
+        version: link:../world
       '@effect/platform-bun':
         specifier: 'catalog:'
         version: 4.1.2(effect@4.1.2)
@@ -521,6 +527,12 @@ importers:
       '@capxul/blueprint':
         specifier: workspace:*
         version: link:../blueprint
+      '@capxul/core':
+        specifier: workspace:*
+        version: link:../core
+      '@capxul/platform':
+        specifier: workspace:*
+        version: link:../platform
       '@effect/platform-bun':
         specifier: 'catalog:'
         version: 4.1.2(effect@4.1.2)

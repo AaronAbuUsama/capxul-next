@@ -2,6 +2,7 @@
 // key over everything before it, in hex. door/door.py checks it; nothing else does. It names one world, the most sites
 // that world may hold, and the moment (Unix seconds, real time) it stops working, which is the world's expiry.
 // A world's create step mints it (src/run-mint.ts); packages/world reaches `mint` through src/door.ts.
+import { Values } from "@capxul/blueprint";
 import * as Digest from "effect/crypto/Digest";
 import * as Mac from "effect/crypto/Mac";
 import * as Effect from "effect/Effect";
@@ -13,7 +14,8 @@ import * as Str from "effect/String";
 import * as SecureRandom from "effect/crypto/SecureRandom";
 
 export const Claims = Schema.Struct({
-  world: Schema.String.check(Schema.isPattern(/^[a-z][a-z0-9]{1,15}$/)),
+  /** The blueprint's WorldName: the name a site's address ends with (`<label>-<world>.<domain>`). */
+  world: Values.WorldName,
   quota: Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 999 })),
   expires: Schema.Int.check(Schema.isBetween({ minimum: 1_000_000_000, maximum: 9_999_999_999 })),
 });

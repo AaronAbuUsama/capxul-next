@@ -5,13 +5,15 @@ import * as Arr from "effect/Array";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import { ensureToken, mintAll, TEST_USDC } from "../chain/faucet.ts";
 import { CORE_MIGRATIONS } from "../core/Core.ts";
 import { migrate } from "../database/sql.ts";
-import { LifetimeTooLong } from "../failures.ts";
+import { LifetimeTooLong, SiteFailed } from "../failures.ts";
+import { BenchStage, grant, makeSites, removeSites } from "../site/Bench.ts";
 import { deployStage, destroyStage, forgetStage, recordOutput, recordedOutput } from "../stack/engine.ts";
 import { PLATFORM, stageOf } from "../stack/names.ts";
 import { liftBranchExpiry } from "./account.ts";
@@ -44,6 +46,11 @@ export const planOf = Effect.fn("world.plan")(function* (spec: WorldSpec) {
       message: `a world may live at most ${Duration.format(maxLifetime)}; ${Duration.format(spec.lifetime)} was asked for`,
     });
   }
+  if (Arr.isReadonlyArrayNonEmpty(spec.companies ?? []) && Option.isNone(yield* BenchStage))
+    return yield* SiteFailed.make({
+      step: "plan",
+      message: "companies need a bench: set WORLD_BENCH to a platform stage",
+    });
   return {
     stage: stageOf(name),
     owner,
@@ -52,13 +59,23 @@ export const planOf = Effect.fn("world.plan")(function* (spec: WorldSpec) {
   } satisfies Plan;
 });
 
-const recordOf = (plan: Plan, status: string) => ({
+const recordOf = (plan: Plan, status: string, bench: string) => ({
   world: plan.stage,
   owner: plan.owner,
   expiresAt: plan.expiresAt,
   forkedFrom: Option.getOrElse(plan.forkedFrom, () => "nothing"),
   status,
+  bench,
 });
+
+/** The bench a world's outputs name, so its take-down finds its sites whatever `WORLD_BENCH` says then. */
+const benchOf = (output: unknown): Option.Option<string> =>
+  Option.filter(
+    Option.flatMap(Schema.decodeUnknownOption(Schema.Struct({ bench: Schema.String }))(output), (found) =>
+      Option.some(found.bench),
+    ),
+    (bench) => bench !== "none",
+  );
 
 const Platform = Schema.Struct({ projectId: Schema.String });
 
@@ -82,16 +99,20 @@ const makeForkable = Effect.fn("world.makeForkable")(function* (parent: string, 
 export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref.Ref<Option.Option<string>>) =>
   Effect.gen(function* () {
     const parent = yield* Effect.transposeOption(Option.map(plan.forkedFrom, open));
-    yield* watch.step(
+    const bench = yield* watch.step(
       "claim",
       Effect.gen(function* () {
         const names = yield* registry;
-        const { maxPerOwner } = yield* Limits;
+        const { maxPerOwner, maxSites } = yield* Limits;
+        // The site token is minted first: it is a signature, and nothing exists until the name is held.
+        const granted = yield* grant(plan.stage, plan.expiresAt, maxSites);
         yield* claim(names, plan.stage, plan.owner, plan.expiresAt, maxPerOwner).pipe(
           Effect.tap((holder) => Ref.set(held, Option.some(holder))),
           Effect.uninterruptible,
         );
-        yield* recordOutput(plan.stage, recordOf(plan, "creating"));
+        const named = Option.match(granted, { onNone: () => "none", onSome: (one) => one.stage });
+        yield* recordOutput(plan.stage, recordOf(plan, "creating", named));
+        return granted;
       }),
     );
     yield* Effect.logInfo(`world ${plan.stage}: claimed for ${plan.owner} until ${plan.expiresAt}`);
@@ -99,7 +120,7 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
       "deploy",
       Effect.gen(function* () {
         if (Option.isSome(plan.forkedFrom)) yield* makeForkable(plan.forkedFrom.value, plan.stage);
-        const settings = { owner: plan.owner, expiresAt: plan.expiresAt, forkedFrom: plan.forkedFrom };
+        const settings = { owner: plan.owner, expiresAt: plan.expiresAt, forkedFrom: plan.forkedFrom, bench };
         return yield* deployStage(plan.stage, Option.some(settings)).pipe(
           Effect.flatMap(Schema.decodeUnknownEffect(WorldOutput)),
         );
@@ -125,7 +146,19 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
     yield* Effect.logInfo(`world ${plan.stage}: the index is ready`);
     yield* watch.step("core", coreAnswers(world));
     yield* Effect.logInfo(`world ${plan.stage}: Core answers`);
-    return { ...world, funded } satisfies World;
+    const companies = spec.companies ?? [];
+    const sites =
+      Option.isNone(bench) || Arr.isReadonlyArrayEmpty(companies)
+        ? []
+        : yield* watch.step("site", makeSites(plan.stage, bench.value, companies));
+    if (Arr.isReadonlyArrayNonEmpty(sites))
+      yield* Effect.logInfo(
+        `world ${plan.stage}: sites ready: ${Arr.join(
+          Arr.map(sites, (one) => one.site),
+          ", ",
+        )}`,
+      );
+    return { ...world, funded, sites } satisfies World;
   });
 
 /**
@@ -134,7 +167,15 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
  */
 export const takeDown = (stage: string, watch: Stopwatch, holder: Option.Option<string> = Option.none()) =>
   Effect.gen(function* () {
-    const removed = yield* watch.step("destroy", destroyStage(stage).pipe(Effect.tap(() => forgetStage(stage))));
+    // The sites go first, and their removal is not allowed to stop the destroy. If it fails, the world's record and
+    // its name are kept, so the sweeper, which reads them, removes the sites at the next sweep.
+    const bench = benchOf(yield* recordedOutput(stage));
+    const unsited = yield* Effect.exit(watch.step("unsite", removeSites(stage, bench)));
+    const removed = yield* watch.step(
+      "destroy",
+      destroyStage(stage).pipe(Effect.tap(() => (Exit.isSuccess(unsited) ? forgetStage(stage) : Effect.void))),
+    );
+    if (Exit.isFailure(unsited)) return yield* Effect.failCause(unsited.cause);
     yield* watch.step(
       "release",
       Effect.flatMap(registry, (names) => release(names, stage, holder)),

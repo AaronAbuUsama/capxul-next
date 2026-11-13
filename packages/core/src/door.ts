@@ -5,6 +5,11 @@ export { default as stack } from "../alchemy.run.ts";
 export { PLATFORM_PATH, serveDoors, WORLD_PATH } from "./doors.ts";
 export { CoreRpcs, Served } from "./server.ts";
 export { CoreIdentity } from "./telemetry/middleware.ts";
+export { default as CoreWorker } from "./worker.ts";
+export { CoreDeployment, type Deployment } from "./stack/deployment.ts";
+export { ENV as CORE_ENV } from "./env.ts";
+export { HEALTH_PATH, PROBE_PATH } from "./probe.ts";
+export { SiteDoor, SiteDoorFailed, type SiteAnswer, type SiteCall } from "./site/SiteDoor.ts";
 export { SpanSink, SqlSpanSink } from "./telemetry/sink.ts";
 export { keepingTracer, outcomeOf, type KeptSpan, type SpanOutcome } from "./telemetry/spans.ts";
 

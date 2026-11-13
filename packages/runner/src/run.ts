@@ -12,7 +12,9 @@ import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
+import type * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
+import * as Result from "effect/Result";
 import * as Str from "effect/String";
 import type * as HttpClient from "effect/http/HttpClient";
 import { checkCall, failuresOf, type CheckedCall } from "./checks/checks.ts";
@@ -23,6 +25,7 @@ import { writeRecord, type RunRecord } from "./record.ts";
 import type { Settings } from "./settings.ts";
 import { telemetryOf } from "./world/database.ts";
 import { isEmpty } from "./world/leftovers.ts";
+import { OtherWorlds } from "./world/existing.ts";
 import { runInStage, type Lifecycle, type Stage, type StageSpec } from "./world/stage.ts";
 
 /** What a run is: its kind and name, the claim it proves, and the calls it makes through a stage's Core. */
@@ -64,12 +67,7 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
     };
     const [runTook, run] = yield* plan.calls(target, log).pipe(Effect.exit, Effect.timed);
     const calls = yield* Ref.get(log);
-    const [checksTook, kept] = yield* Effect.timed(
-      telemetryOf(
-        stage.database,
-        Arr.map(calls, (call) => call.traceId),
-      ),
-    );
+    const [checksTook, kept] = yield* Effect.timed(keptFor(stage.database, calls));
     return {
       run,
       calls: Arr.map(calls, (call) => checkCall(call, kept)),
@@ -80,6 +78,45 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
       RunnerFailure.make({ step: "checks", message: `what Core kept could not be read: ${error.message}` }),
     ),
   );
+
+/**
+ * What Core kept for every call: the stage's own database for calls through its own door, and, for a call made `at`
+ * another world's door, that world's database, when the shared state knows the world (world/existing.ts).
+ */
+const keptFor = (database: Redacted.Redacted, calls: ReadonlyArray<Call>) =>
+  Effect.gen(function* () {
+    const own = yield* telemetryOf(
+      database,
+      Arr.map(
+        Arr.filter(calls, (call) => call.at === null),
+        (call) => call.traceId,
+      ),
+    );
+    const doors = Arr.dedupe(
+      Arr.filterMap(calls, (call) => (call.at === null ? Result.failVoid : Result.succeed(call.at))),
+    );
+    if (Arr.isReadonlyArrayEmpty(doors)) return own;
+    const others = yield* OtherWorlds;
+    const elsewhere = yield* Effect.forEach(doors, (door) =>
+      Effect.flatMap(others.databaseAt(door), (found) =>
+        Option.match(found, {
+          onNone: () => Effect.succeed({ spans: [], events: [] }),
+          onSome: (theirs) =>
+            telemetryOf(
+              theirs,
+              Arr.map(
+                Arr.filter(calls, (call) => call.at === door),
+                (call) => call.traceId,
+              ),
+            ),
+        }),
+      ),
+    );
+    return {
+      spans: Arr.flatten([own.spans, ...Arr.map(elsewhere, (kept) => kept.spans)]),
+      events: Arr.flatten([own.events, ...Arr.map(elsewhere, (kept) => kept.events)]),
+    };
+  });
 
 /** Everything that went wrong, most fundamental first. Empty when the run passed. */
 const failuresIn = (lifecycle: Lifecycle<Used, RunnerFailure>): ReadonlyArray<string> => {

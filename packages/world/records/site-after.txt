@@ -1,0 +1,18 @@
+# After the site proof and the stand-in platform pr-site's destroy (13 November 2026, 13:46Z); each line is a command's output.
+## the zone before the work began (packages/platform/bin/zone.sh)
+zone abuusama.dev: 66 records; under worlds.abuusama.dev: 0 []
+zone abuusama.dev: the other 66 records print 00b6780dc2951888
+## the platform's destroy (bin/run.sh destroy --stage pr-site)
+INFO: Plan ready (5.1s)
+INFO: Plan: 15 to delete
+INFO: Done: 15 succeeded (22.9s)
+## Docker objects of the stage left on the engine
+containers: 0 volumes: 0 networks: 0 images: 0 context: 0
+## the shared state (bin/run.sh bun src/run-inventory.ts pr-site)
+CapxulPlatform/pr-site: none
+CapxulBenchHost/pr-site: none
+## worlds in the shared state (./run.sh list)
+[]
+## the zone after (packages/platform/bin/zone.sh)
+zone abuusama.dev: 66 records; under worlds.abuusama.dev: 0 []
+zone abuusama.dev: the other 66 records print 00b6780dc2951888

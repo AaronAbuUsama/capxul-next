@@ -1,0 +1,392 @@
+{
+  "proof": "a world made with a company gets the company's Frappe site on the shared bench, made by the site door with the world's own token, read through the door on the site's own API user; a second world's token is refused for it; destroying the world removes the site, and neither account nor the bench holds anything of either world afterwards. Core's world door reaching the site is recorded, not proven: the stand-in bench has no edge",
+  "outcome": "passed",
+  "at": "2026-11-13T13:42:26.342Z",
+  "checks": [
+    {
+      "check": "the first world's run passed",
+      "held": true
+    },
+    {
+      "check": "the world was made with its company's site, ready",
+      "held": true
+    },
+    {
+      "check": "the site is <label>-<world>.<domain>, joined to the world",
+      "held": true
+    },
+    {
+      "check": "the door read the company's record from the site",
+      "held": true
+    },
+    {
+      "check": "the door read the Supplier list from the site",
+      "held": true
+    },
+    {
+      "check": "the read ran as the site's own API user, not the bench's Administrator",
+      "held": true
+    },
+    {
+      "check": "the site reads its world's clock",
+      "held": true
+    },
+    {
+      "check": "the second world's token is refused for the first world's site",
+      "held": true
+    },
+    {
+      "check": "the second world sees none of its sites on the bench",
+      "held": true
+    },
+    {
+      "check": "Core's probe at the world's door answers the site door's typed failure: the stand-in door is not reachable from Cloudflare",
+      "held": true
+    },
+    {
+      "check": "the second world was destroyed",
+      "held": true
+    },
+    {
+      "check": "the first world was destroyed",
+      "held": true
+    },
+    {
+      "check": "the site was removed with its world: the door holds no site of either",
+      "held": true
+    },
+    {
+      "check": "the bench holds nothing of the world afterwards: no folder, no registry entry",
+      "held": true
+    },
+    {
+      "check": "the bench's databases are as before",
+      "held": true
+    },
+    {
+      "check": "neither account holds anything of either world afterwards",
+      "held": true
+    }
+  ],
+  "observations": {
+    "bench": "pr-site",
+    "site": {
+      "site": "acme-p-site.worlds.abuusama.dev",
+      "world": "p-site",
+      "company": "Acme Ltd",
+      "state": "ready",
+      "ms": 92121,
+      "steps": [
+        {
+          "step": "new-site",
+          "ms": 21278
+        },
+        {
+          "step": "install erpnext",
+          "ms": 42771
+        },
+        {
+          "step": "install capxul",
+          "ms": 3016
+        },
+        {
+          "step": "setup wizard",
+          "ms": 16478
+        },
+        {
+          "step": "migrate",
+          "ms": 5847
+        },
+        {
+          "step": "enable scheduler",
+          "ms": 746
+        },
+        {
+          "step": "join world",
+          "ms": 591
+        },
+        {
+          "step": "core user",
+          "ms": 1388
+        }
+      ],
+      "error": null
+    },
+    "reads": {
+      "company": {
+        "status": 200,
+        "body": {
+          "data": [
+            {
+              "name": "Acme Ltd"
+            }
+          ]
+        }
+      },
+      "suppliers": {
+        "status": 200,
+        "body": {
+          "data": []
+        }
+      },
+      "runsAs": {
+        "status": 200,
+        "body": {
+          "message": "capxul-core@service.invalid"
+        }
+      },
+      "clock": {
+        "status": 200,
+        "body": {
+          "message": {
+            "world": "p-site",
+            "offset_ms": 0,
+            "host_utc": "2026-11-13T13:39:54.554940+00:00",
+            "world_local": "2026-11-13 13:39:54.555059",
+            "nowdate": "2026-11-13",
+            "tz": "Europe/London"
+          }
+        }
+      }
+    },
+    "coreProbe": {
+      "status": 502,
+      "body": {
+        "world": "p-site",
+        "failed": {
+          "reason": "unreachable",
+          "status": 403,
+          "code": null,
+          "message": "HTTP 403 that is not JSON (text/plain; charset=UTF-8): not the site door's answer"
+        }
+      }
+    },
+    "second": {
+      "refused": {
+        "status": 403,
+        "body": {
+          "refused": "site-not-in-world",
+          "detail": "acme-p-site.worlds.abuusama.dev is not a site of world p-site2"
+        }
+      },
+      "seen": [],
+      "coreProbe": {
+        "status": 502,
+        "body": {
+          "world": "p-site2",
+          "failed": {
+            "reason": "unreachable",
+            "status": 403,
+            "code": null,
+            "message": "HTTP 403 that is not JSON (text/plain; charset=UTF-8): not the site door's answer"
+          }
+        }
+      }
+    },
+    "runs": {
+      "first": {
+        "world": "w-p-site",
+        "owner": "proof",
+        "forkedFrom": "nothing",
+        "expiresAt": "2026-11-13T14:36:40.831Z",
+        "outcome": "passed",
+        "failure": null,
+        "worldAfterwards": "destroyed",
+        "keptUntil": null,
+        "ms": {
+          "claim": 1026,
+          "deploy": 44068,
+          "migrate": 727,
+          "chain": 2192,
+          "fund": 440,
+          "index": 48112,
+          "core": 614,
+          "site": 93468,
+          "use": 123698,
+          "park": null,
+          "unsite": 1792,
+          "destroy": 24104,
+          "release": 287,
+          "create": 191098,
+          "total": 341048
+        },
+        "timeouts": {
+          "claim": 45000,
+          "deploy": 240000,
+          "migrate": 45000,
+          "chain": 180000,
+          "fund": 60000,
+          "index": 180000,
+          "core": 60000,
+          "site": 480000,
+          "use": 600000,
+          "park": 60000,
+          "unsite": 180000,
+          "destroy": 240000,
+          "release": 45000
+        }
+      },
+      "second": {
+        "world": "w-p-site2",
+        "owner": "proof",
+        "forkedFrom": "nothing",
+        "expiresAt": "2026-11-13T14:39:55.075Z",
+        "outcome": "passed",
+        "failure": null,
+        "worldAfterwards": "destroyed",
+        "keptUntil": null,
+        "ms": {
+          "claim": 948,
+          "deploy": 51207,
+          "migrate": 751,
+          "chain": 2126,
+          "fund": 399,
+          "index": 47356,
+          "core": 466,
+          "site": null,
+          "use": 1474,
+          "park": null,
+          "unsite": 400,
+          "destroy": 14419,
+          "release": 271,
+          "create": 103898,
+          "total": 120551
+        },
+        "timeouts": {
+          "claim": 45000,
+          "deploy": 240000,
+          "migrate": 45000,
+          "chain": 180000,
+          "fund": 60000,
+          "index": 180000,
+          "core": 60000,
+          "site": 480000,
+          "use": 600000,
+          "park": 60000,
+          "unsite": 180000,
+          "destroy": 240000,
+          "release": 45000
+        }
+      }
+    },
+    "onTheBench": {
+      "before": {
+        "folders": [
+          ".capxul-door",
+          "apps.json",
+          "apps.txt",
+          "common_site_config.json"
+        ],
+        "registry": [],
+        "databases": [
+          "information_schema",
+          "mysql",
+          "performance_schema",
+          "sys"
+        ]
+      },
+      "after": {
+        "folders": [
+          ".capxul-door",
+          "apps.json",
+          "apps.txt",
+          "common_site_config.json"
+        ],
+        "registry": [],
+        "databases": [
+          "information_schema",
+          "mysql",
+          "performance_schema",
+          "sys"
+        ]
+      },
+      "sitesLeft": {
+        "first": [],
+        "second": []
+      }
+    },
+    "inventory": {
+      "before": {
+        "workers": [
+          "capxulworld-core-w-p-live-2asokqyyyibuiciw",
+          "capxulworld-core-w-p-old-yun4gl44c26hwqcf",
+          "capxulworld-core-w-p-undated-iz4ty4sp7pd5w54q",
+          "capxulworld-door-w-p-live-6wjg5e4nqhlwz5bs",
+          "capxulworld-door-w-p-old-tuohv3ml3gkfhqrh",
+          "capxulworld-door-w-p-undated-5glhjzflmra2ii2m"
+        ],
+        "containerApplications": [
+          "capxulworld-anvil-w-p-undated-xqqvw4bevaax5vrg",
+          "capxulworld-anvil-w-p-live-distfmaff2udchdk",
+          "capxulworld-anvil-w-p-old-7i73ee3uwjybap5u"
+        ],
+        "durableObjectNamespaces": [
+          "capxulworld-door-w-p-old-tuohv3ml3gkfhqrh",
+          "capxulworld-door-w-p-old-tuohv3ml3gkfhqrh",
+          "capxulworld-door-w-p-old-tuohv3ml3gkfhqrh",
+          "capxulworld-door-w-p-live-6wjg5e4nqhlwz5bs",
+          "capxulworld-door-w-p-live-6wjg5e4nqhlwz5bs",
+          "capxulworld-door-w-p-live-6wjg5e4nqhlwz5bs",
+          "capxulworld-door-w-p-undated-5glhjzflmra2ii2m",
+          "capxulworld-door-w-p-undated-5glhjzflmra2ii2m",
+          "capxulworld-door-w-p-undated-5glhjzflmra2ii2m"
+        ],
+        "r2Buckets": [
+          "capxulworld-chainstate-w-p-live-dtx3y3sh3mhxmqxq",
+          "capxulworld-chainstate-w-p-old-rkd42dupk3pg3plb",
+          "capxulworld-chainstate-w-p-undated-u2r362mxuwgzhtc6"
+        ],
+        "hyperdriveConfigurations": [
+          "capxulworld-world-db-w-p-live-amivhxukujw5nmqb",
+          "capxulworld-world-db-w-p-old-hwdpqcch2kil3xec",
+          "capxulworld-world-db-w-p-undated-qqnyjsepsbn24dxl"
+        ],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-p-undated",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-p-live",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-p-old",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-alto",
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "after": {
+        "workers": [
+          "capxulworld-core-w-p-bundler-xwdu3wabghmr6evj",
+          "capxulworld-door-w-p-bundler-ppqvs2kk67fyub4u"
+        ],
+        "containerApplications": [
+          "capxulworld-ponder-w-p-bundler-fgh6aogoxzrryxdc",
+          "capxulworld-anvil-w-p-bundler-lsrls3t34dyrttjm"
+        ],
+        "durableObjectNamespaces": [
+          "capxulworld-door-w-p-bundler-ppqvs2kk67fyub4u",
+          "capxulworld-door-w-p-bundler-ppqvs2kk67fyub4u",
+          "capxulworld-door-w-p-bundler-ppqvs2kk67fyub4u"
+        ],
+        "r2Buckets": [
+          "capxulworld-chainstate-w-p-bundler-4vhvrvx67ouv4vfp"
+        ],
+        "hyperdriveConfigurations": [
+          "capxulworld-world-db-w-p-bundler-izwoqxeoz52fal5m"
+        ],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-p-bundler",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-alto",
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "leftOfTheseWorlds": [],
+      "sameAsBefore": false
+    }
+  }
+}

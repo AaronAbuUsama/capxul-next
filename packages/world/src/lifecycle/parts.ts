@@ -11,6 +11,7 @@ import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import { TEST_USDC } from "../chain/faucet.ts";
+import { OPERATOR_TOKEN_ID } from "../core/Core.ts";
 import { CORE_HEALTH } from "../core/health.ts";
 import { BRANCH_ID } from "../database/Db.ts";
 import { query } from "../database/sql.ts";
@@ -31,6 +32,8 @@ export const WorldOutput = Schema.Struct({
   coreUrl: Schema.String,
   doorUrl: Schema.String,
   branch: Schema.String,
+  /** The platform stage whose bench holds the world's sites, or `none`. */
+  bench: Schema.optional(Schema.String),
 });
 export type WorldOutput = typeof WorldOutput.Type;
 
@@ -39,6 +42,7 @@ export const handle = Effect.fn("world.handle")(function* (output: WorldOutput) 
   const token = yield* secretOf(output.world, DOOR_TOKEN_ID, "text");
   const database = yield* secretOf(output.world, BRANCH_ID, "connectionUri");
   const door = `${output.doorUrl}/${Redacted.value(token)}`;
+  const operatorToken = yield* secretOf(output.world, OPERATOR_TOKEN_ID, "text");
   const world: World = {
     name: nameOf(output.world),
     stage: output.world,
@@ -48,6 +52,9 @@ export const handle = Effect.fn("world.handle")(function* (output: WorldOutput) 
     coreUrl: output.coreUrl,
     testUsdc: TEST_USDC,
     funded: [],
+    sites: [],
+    doorToken: token,
+    operatorToken,
     rpcUrl: Redacted.make(`${door}/rpc`),
     door: Redacted.make(door),
     database,
