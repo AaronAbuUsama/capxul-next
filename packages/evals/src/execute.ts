@@ -1,9 +1,9 @@
 // Run I/O: save intent before children; distinguish completed assertions from incomplete script plans.
 import { randomUUID } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, posix, resolve } from "node:path";
-import { mergeResults, parseRunReceipt, pointerValue, uncapturedScreens, type Blueprint, type RunEnvironment, type RunReceipt } from "@capxul/blueprint-engine";
+import { isScreenImage, mergeResults, parseRunReceipt, pointerValue, uncapturedScreens, type Blueprint, type RunEnvironment, type RunReceipt } from "@capxul/blueprint-engine";
 import type { Bindings } from "./modules/bindings/service.ts";
 import { cap, evidenceText, fileNameOf, foldChecks, parseCheckLines, redact, resultsFile, scoreEvals, type CheckLine, type Row, type RunInfo } from "./modules/runs/service.ts";
 
@@ -150,6 +150,13 @@ export const executeRun = async (root: string, blueprint: Blueprint, bindings: B
         if (screens.some((s) => s.path === path)) throw new Error(`screen evidence listed twice: ${path}`);
         fresh(resolve(base, screen.path), "screen capture");
         fresh(resolve(base, source), "screen source");
+        // Links are resolved at every level, so a linked directory inside the run cannot carry evidence from outside it, and
+        // a capture is an image of its own, never its source or a manifest (engine isScreenImage).
+        const inside = (file: string): boolean => realpathSync(resolve(base, file)).startsWith(`${realpathSync(base)}/`);
+        if (!inside(screen.path) || !inside(source)) throw new Error(`screen evidence must lie inside ${base}: ${path}, ${source}`);
+        const capture = realpathSync(resolve(base, path));
+        if (capture === realpathSync(resolve(base, source)) || manifests.some((m) => existsSync(m.file) && realpathSync(m.file) === capture)
+          || !isScreenImage(readFileSync(capture).subarray(0, 8))) throw new Error(`screen capture must be a PNG or JPEG image, not its source or a manifest: ${path}`);
         if (pointer !== undefined) {
           const value = pointerValue(JSON.parse(readFileSync(resolve(base, source), "utf8")), pointer);
           if (value === undefined || value === null) throw new Error(`screen source names no value: ${screen.source}`);

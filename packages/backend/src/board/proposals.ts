@@ -32,12 +32,15 @@ export async function deployment(sql: Sql, org: string, context: BoardContext) {
   return r;
 }
 
+const lower = (list: readonly string[]) => list.map((a) => a.toLowerCase() as Address);
+
 export async function directors(sql: Sql, org: string, context: BoardContext) {
   const d = await deployment(sql, org, context);
   const safe = await context.facts.safe(sql, context.chainId, d.safe_address);
   if (!safe) throw new Error("WRONG_STATE: company Safe is not indexed");
-  const valid = await context.facts.wearers(sql, context.chainId, d.director_hat, safe.owners);
-  return { deployment: d, safe, valid, lapsed: (safe.owners as Address[]).filter((s) => !valid.includes(s)),
+  // Compare Safes in one case: indexed and provider addresses may arrive checksummed.
+  const owners = lower(safe.owners), valid = lower(await context.facts.wearers(sql, context.chainId, d.director_hat, owners));
+  return { deployment: d, safe: { ...safe, owners }, valid, lapsed: owners.filter((s) => !valid.includes(s)),
     executionThreshold: integer(safe.threshold), blockNumber: undefined as bigint | undefined };
 }
 
@@ -69,13 +72,14 @@ export async function requireDirector(sql: Sql, org: string, context: BoardConte
       throw new Error("PROVIDER_ERROR: could not read current Board signers");
     }
   }
-  if (context.kind !== "human" || !(state.safe.owners as string[]).includes(context.safe)) throw new Error("ROLE_PERMISSION_DENIED: current Director required");
-  if (!state.valid.includes(context.safe)) throw new Error("ROLE_PERMISSION_DENIED: director_hat_lapsed");
+  const me = context.safe.toLowerCase() as Address;
+  if (context.kind !== "human" || !state.safe.owners.includes(me)) throw new Error("ROLE_PERMISSION_DENIED: current Director required");
+  if (!state.valid.includes(me)) throw new Error("ROLE_PERMISSION_DENIED: director_hat_lapsed");
   return state;
 }
 
 export function approvalContext(c: BoardContext): ApprovalContext {
-  return { person_id: c.principalId, sender: c.safe, site_url: c.siteUrl, now: new Date(c.now) };
+  return { person_id: c.principalId, sender: c.safe.toLowerCase(), site_url: c.siteUrl, now: new Date(c.now) };
 }
 
 async function openApproval(sql: Sql, c: BoardContext, p: Proposal, state: Awaited<ReturnType<typeof directors>>, summary: Summary, trace: string) {
@@ -85,17 +89,17 @@ async function openApproval(sql: Sql, c: BoardContext, p: Proposal, state: Await
       and r.state in ('sponsoring','pending','signed','sending','sent') order by a.created_at desc limit 1`,
   [p.org_id, p.proposal_id, c.principalId])).rows[0];
   if (live) return { ...live, url: `${c.siteUrl.replace(/\/$/, "")}/approve/${live.approval_id}`, opened: false };
-  const approved = await c.facts.approvals(sql, c.chainId, p.safe_address, p.safe_tx_hash, state.valid);
-  const execute = new Set([...approved, c.safe]).size >= state.executionThreshold && p.nonce === integer(state.safe.nonce);
-  if (!execute && approved.includes(c.safe)) throw new Error("WRONG_STATE: Director already approved; wait for other Directors");
+  const me = c.safe.toLowerCase() as Address, approved = lower(await c.facts.approvals(sql, c.chainId, p.safe_address, p.safe_tx_hash, state.valid));
+  const execute = new Set([...approved, me]).size >= state.executionThreshold && p.nonce === integer(state.safe.nonce);
+  if (!execute && approved.includes(me)) throw new Error("WRONG_STATE: Director already approved; wait for other Directors");
   const step = execute ? "execute" : "approve";
   const sendAfter = execute && p.payment && p.payment.sends_at > c.now ? p.payment.sends_at : c.now;
   const opened = await c.doors.open(sql, approvalContext(c), { org_id: p.org_id, opener: "board", subject_kind: "proposal", subject_id: p.proposal_id,
-    chain_id: c.chainId, calls: approvalCalls(p, c.safe, approved, state.lapsed, state.deployment.gate_address, execute),
+    chain_id: c.chainId, calls: approvalCalls(p, me, approved, state.lapsed, state.deployment.gate_address, execute),
     summary, deadline: new Date(sendAfter + 10 * 60_000).toISOString(),
     ...(sendAfter > c.now ? { send_after: new Date(sendAfter).toISOString() } : {}), gate: "owner-safe-proposals" }, trace);
   await sql.query(`insert into app.proposal_approvals (org_id,proposal_id,approval_id,director_principal_id,director_safe,step,created_at)
-    values ($1,$2,$3,$4,$5,$6,$7) on conflict do nothing`, [p.org_id, p.proposal_id, opened.approval_id, c.principalId, c.safe, step, c.now]);
+    values ($1,$2,$3,$4,$5,$6,$7) on conflict do nothing`, [p.org_id, p.proposal_id, opened.approval_id, c.principalId, me, step, c.now]);
   return { ...opened, step };
 }
 
@@ -117,6 +121,8 @@ export async function createProposal(sql: Sql, context: BoardContext, input: Pro
   }
   const prior = (await sql.query(`select proposal_id from app.board_proposals
     where org_id=$1 and opener=$2 and subject_kind=$3 and subject_id=$4`, [input.org_id, input.opener, input.subject_kind, input.subject_id])).rows[0];
+  // Retrying a subject answers its proposal and the proposer's first approval as they stand. Openers own their
+  // subjects, so a different caller or changed calls cannot reach here today; neither is compared.
   if (prior) {
     const p = (await readProposal(sql, input.org_id, prior.proposal_id))!;
     const a = (await sql.query(`select approval_id,step from app.proposal_approvals where org_id=$1 and proposal_id=$2
@@ -125,7 +131,7 @@ export async function createProposal(sql: Sql, context: BoardContext, input: Pro
       url: `${context.siteUrl.replace(/\/$/, "")}/approve/${a.approval_id}`, step: a.step, opened: false };
   }
   const tx = transaction(input.calls, context.multiSend);
-  const calls = input.calls.map(({ to, value, data }) => ({ to: to.toLowerCase() as Address, value, data }));
+  const calls = input.calls.map(({ to, value, data }) => ({ to: to.toLowerCase() as Address, value, data: data.toLowerCase() as Call["data"] }));
   if (calls.some((call) => call.to.toLowerCase() === state.safe.safe_address.toLowerCase())) throw new Error("INVALID_INPUT: proposal cannot call the company Safe");
   let nonce = integer(state.safe.nonce);
   if (input.rejects) {
@@ -146,7 +152,7 @@ export async function createProposal(sql: Sql, context: BoardContext, input: Pro
     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,'awaiting_approvals','{}',$21,$21)`,
   [input.org_id, id, context.chainId, state.safe.safe_address, nonce, hash, input.kind, input.rejects,
     tx.to, tx.value, tx.data, tx.operation, JSON.stringify(calls), input.note, input.opener, input.subject_kind, input.subject_id,
-    input.payment && JSON.stringify(input.payment), context.principalId, context.safe, context.now]);
+    input.payment && JSON.stringify(input.payment), context.principalId, context.safe.toLowerCase(), context.now]);
   const p = (await readProposal(sql, input.org_id, id))!;
   const approval = await openApproval(sql, context, p, state, input.summary, trace);
   await proposalEvent(sql, p, null, "propose", trace, context.now);
