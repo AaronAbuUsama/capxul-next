@@ -1,0 +1,673 @@
+{
+  "kind": "scenarios",
+  "run": "run-e710b3",
+  "what": "The registered scenarios run through the runner, each in fresh private worlds made by the platform this process serves, its starting world made for it. Passed when every claim the blueprint declares has its scenario in the run, every scenario's run record passed, and every world it made was destroyed with nothing of it left in the accounts.",
+  "mode": "a world each",
+  "expect": "pass",
+  "owner": "pops",
+  "startedAt": "2026-11-13T15:48:14.100Z",
+  "outcome": "failed",
+  "failure": "36 claims had no scenario in this run: org.create claim 1, org.create claim 2, org.create claim 3, org.create claim 4, org.create claim 5, org.create claim 6, org.create claim 7, org.member.grant claim 1, org.member.grant claim 2, org.member.grant claim 3, org.member.grant claim 4, org.member.grant claim 5, org.member.grant claim 6, org.member.grant claim 7, doc.create claim 1, doc.create claim 2, doc.create claim 3, doc.create claim 4, doc.submit claim 1, doc.submit claim 2, doc.submit claim 3, doc.submit claim 4, approval.sign claim 1, approval.sign claim 2, approval.sign claim 3, approval.sign claim 4, approval.sign claim 5, report.run claim 1, report.run claim 2, report.run claim 3, world.clock.warp claim 1, world.clock.warp claim 2, record.export claim 1, record.export claim 2, record.export claim 3, record.export claim 4\nworld.create claim 2: the run failed: {\"_tag\":\"ExpectationFailed\",\"message\":\"the new world's chain head's timestamp is 2026-10-27T03:28:49.000Z; it must be 2026-10-27T03:28:49.510Z\"}\nworld.create claim 5: the run failed: StepTimedOut: the index step did not finish within its declared 180000 ms\nworld.show claim 1: the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}\nworld.show claim 3: the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}\nworld.snapshot.save claim 1: the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}\nworld.snapshot.save claim 2: the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}\nworld.snapshot.restore claim 1: the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}\nworld.snapshot.restore claim 2: the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}\nworld.snapshot.restore claim 3: the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}\nworld.snapshot.restore claim 4: the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}\nworld.snapshot.restore claim 5: the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}",
+  "count": {
+    "scenarios": 17,
+    "claims": 17,
+    "declaredClaims": 53,
+    "asExpected": 6
+  },
+  "byOperation": {
+    "world.create": 6,
+    "world.show": 3,
+    "world.snapshot.save": 3,
+    "world.snapshot.restore": 5
+  },
+  "scenarios": [
+    {
+      "name": "world.create claim 1",
+      "proves": {
+        "operation": "world.create",
+        "claim": 1
+      },
+      "stage": "run-e710b3-1",
+      "record": "run-e710b3/world-create-claim-1.json",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "succeeded",
+        "tag": null,
+        "detail": null
+      },
+      "calls": [
+        {
+          "operation": "world.create",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 112559.493,
+          "serverMs": 112219.885,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 561.762,
+          "serverMs": 357,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.create claim 2",
+      "proves": {
+        "operation": "world.create",
+        "claim": 2
+      },
+      "stage": "run-e710b3-2",
+      "record": "run-e710b3/world-create-claim-2.json",
+      "asExpected": false,
+      "why": "the run failed: {\"_tag\":\"ExpectationFailed\",\"message\":\"the new world's chain head's timestamp is 2026-10-27T03:28:49.000Z; it must be 2026-10-27T03:28:49.510Z\"}",
+      "ended": {
+        "as": "failed",
+        "tag": "ExpectationFailed",
+        "detail": "{\"_tag\":\"ExpectationFailed\",\"message\":\"the new world's chain head's timestamp is 2026-10-27T03:28:49.000Z; it must be 2026-10-27T03:28:49.510Z\"}"
+      },
+      "calls": [
+        {
+          "operation": "world.create",
+          "outcome": "refusal",
+          "refusal": "ClockBeforeSeed",
+          "callerMs": 126.134,
+          "serverMs": 0.654,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 455.455,
+          "serverMs": 331.687,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.create",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 121448.509,
+          "serverMs": 121256.473,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.create claim 3",
+      "proves": {
+        "operation": "world.create",
+        "claim": 3
+      },
+      "stage": "run-e710b3-3",
+      "record": "run-e710b3/world-create-claim-3.json",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "succeeded",
+        "tag": null,
+        "detail": null
+      },
+      "calls": [
+        {
+          "operation": "world.create",
+          "outcome": "refusal",
+          "refusal": "GradeNotOffered",
+          "callerMs": 125.775,
+          "serverMs": 0.524,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 252.156,
+          "serverMs": 131.014,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.create claim 4",
+      "proves": {
+        "operation": "world.create",
+        "claim": 4
+      },
+      "stage": "run-e710b3-4",
+      "record": "run-e710b3/world-create-claim-4.json",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "succeeded",
+        "tag": null,
+        "detail": null
+      },
+      "calls": [
+        {
+          "operation": "world.create",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 115088.123,
+          "serverMs": 114909.772,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1013.302,
+          "serverMs": 890.487,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.create",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 111275.604,
+          "serverMs": 111099.22,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.create claim 5",
+      "proves": {
+        "operation": "world.create",
+        "claim": 5
+      },
+      "stage": "run-e710b3-5",
+      "record": "run-e710b3/world-create-claim-5.json",
+      "asExpected": false,
+      "why": "the run failed: StepTimedOut: the index step did not finish within its declared 180000 ms",
+      "ended": {
+        "as": "died",
+        "tag": null,
+        "detail": "StepTimedOut: the index step did not finish within its declared 180000 ms"
+      },
+      "calls": [
+        {
+          "operation": "world.create",
+          "outcome": "defect",
+          "refusal": null,
+          "callerMs": 259338.055,
+          "serverMs": 259138.801,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.create claim 6",
+      "proves": {
+        "operation": "world.create",
+        "claim": 6
+      },
+      "stage": "run-e710b3-6",
+      "record": "run-e710b3/world-create-claim-6.json",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "succeeded",
+        "tag": null,
+        "detail": null
+      },
+      "calls": [
+        {
+          "operation": "world.create",
+          "outcome": "refusal",
+          "refusal": "WorldQuotaReached",
+          "callerMs": 732.756,
+          "serverMs": 617.425,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 199.658,
+          "serverMs": 86.763,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.show claim 1",
+      "proves": {
+        "operation": "world.show",
+        "claim": 1
+      },
+      "stage": "run-e710b3-7",
+      "record": "run-e710b3/world-show-claim-1.json",
+      "asExpected": false,
+      "why": "the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}",
+      "ended": null,
+      "calls": []
+    },
+    {
+      "name": "world.show claim 2",
+      "proves": {
+        "operation": "world.show",
+        "claim": 2
+      },
+      "stage": "run-e710b3-8",
+      "record": "run-e710b3/world-show-claim-2.json",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "succeeded",
+        "tag": null,
+        "detail": null
+      },
+      "calls": [
+        {
+          "operation": "world.create",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 104780.887,
+          "serverMs": 104622.084,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1075.232,
+          "serverMs": 960.643,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 217.859,
+          "serverMs": 105.035,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.show claim 3",
+      "proves": {
+        "operation": "world.show",
+        "claim": 3
+      },
+      "stage": "run-e710b3-9",
+      "record": "run-e710b3/world-show-claim-3.json",
+      "asExpected": false,
+      "why": "the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}",
+      "ended": null,
+      "calls": []
+    },
+    {
+      "name": "world.snapshot.save claim 1",
+      "proves": {
+        "operation": "world.snapshot.save",
+        "claim": 1
+      },
+      "stage": "run-e710b3-10",
+      "record": "run-e710b3/world-snapshot-save-claim-1.json",
+      "asExpected": false,
+      "why": "the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}",
+      "ended": null,
+      "calls": []
+    },
+    {
+      "name": "world.snapshot.save claim 2",
+      "proves": {
+        "operation": "world.snapshot.save",
+        "claim": 2
+      },
+      "stage": "run-e710b3-11",
+      "record": "run-e710b3/world-snapshot-save-claim-2.json",
+      "asExpected": false,
+      "why": "the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}",
+      "ended": null,
+      "calls": []
+    },
+    {
+      "name": "world.snapshot.save claim 3",
+      "proves": {
+        "operation": "world.snapshot.save",
+        "claim": 3
+      },
+      "stage": "w-s-2a60b6",
+      "record": "run-e710b3/world-snapshot-save-claim-3.json",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "succeeded",
+        "tag": null,
+        "detail": null
+      },
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 555.444,
+          "serverMs": 349,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.save",
+          "outcome": "refusal",
+          "refusal": "NotWorldOwner",
+          "callerMs": 1180.458,
+          "serverMs": 1055.329,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.save",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 211.283,
+          "serverMs": 98.735,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 446.458,
+          "serverMs": 286,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "world.snapshot.restore claim 1",
+      "proves": {
+        "operation": "world.snapshot.restore",
+        "claim": 1
+      },
+      "stage": "run-e710b3-13",
+      "record": "run-e710b3/world-snapshot-restore-claim-1.json",
+      "asExpected": false,
+      "why": "the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}",
+      "ended": null,
+      "calls": []
+    },
+    {
+      "name": "world.snapshot.restore claim 2",
+      "proves": {
+        "operation": "world.snapshot.restore",
+        "claim": 2
+      },
+      "stage": "run-e710b3-14",
+      "record": "run-e710b3/world-snapshot-restore-claim-2.json",
+      "asExpected": false,
+      "why": "the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}",
+      "ended": null,
+      "calls": []
+    },
+    {
+      "name": "world.snapshot.restore claim 3",
+      "proves": {
+        "operation": "world.snapshot.restore",
+        "claim": 3
+      },
+      "stage": "run-e710b3-15",
+      "record": "run-e710b3/world-snapshot-restore-claim-3.json",
+      "asExpected": false,
+      "why": "the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}",
+      "ended": null,
+      "calls": []
+    },
+    {
+      "name": "world.snapshot.restore claim 4",
+      "proves": {
+        "operation": "world.snapshot.restore",
+        "claim": 4
+      },
+      "stage": "run-e710b3-16",
+      "record": "run-e710b3/world-snapshot-restore-claim-4.json",
+      "asExpected": false,
+      "why": "the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}",
+      "ended": null,
+      "calls": []
+    },
+    {
+      "name": "world.snapshot.restore claim 5",
+      "proves": {
+        "operation": "world.snapshot.restore",
+        "claim": 5
+      },
+      "stage": "run-e710b3-17",
+      "record": "run-e710b3/world-snapshot-restore-claim-5.json",
+      "asExpected": false,
+      "why": "the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}",
+      "ended": null,
+      "calls": []
+    }
+  ],
+  "stages": [
+    {
+      "name": "run-e710b3-1",
+      "readiness": null,
+      "createMs": 0,
+      "destroyMs": 18778,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-e710b3-2",
+      "readiness": null,
+      "createMs": 0,
+      "destroyMs": 18950,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-e710b3-3",
+      "readiness": null,
+      "createMs": 0,
+      "destroyMs": 0,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-e710b3-4",
+      "readiness": null,
+      "createMs": 0,
+      "destroyMs": 34572,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-e710b3-5",
+      "readiness": null,
+      "createMs": 0,
+      "destroyMs": 87,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-e710b3-6",
+      "readiness": null,
+      "createMs": 324839,
+      "destroyMs": 95258,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-e710b3-7",
+      "readiness": null,
+      "createMs": 138133,
+      "destroyMs": 0,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-e710b3-8",
+      "readiness": null,
+      "createMs": 0,
+      "destroyMs": 20003,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-e710b3-9",
+      "readiness": null,
+      "createMs": 0,
+      "destroyMs": 0,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-e710b3-10",
+      "readiness": null,
+      "createMs": 0,
+      "destroyMs": 0,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-e710b3-11",
+      "readiness": null,
+      "createMs": 0,
+      "destroyMs": 0,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "w-s-2a60b6",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 10720
+      },
+      "createMs": 116127,
+      "destroyMs": 21318,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-e710b3-13",
+      "readiness": null,
+      "createMs": 0,
+      "destroyMs": 0,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-e710b3-14",
+      "readiness": null,
+      "createMs": 0,
+      "destroyMs": 0,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-e710b3-15",
+      "readiness": null,
+      "createMs": 0,
+      "destroyMs": 0,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-e710b3-16",
+      "readiness": null,
+      "createMs": 0,
+      "destroyMs": 0,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-e710b3-17",
+      "readiness": null,
+      "createMs": 0,
+      "destroyMs": 0,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    }
+  ]
+}

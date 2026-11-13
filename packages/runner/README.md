@@ -137,6 +137,7 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | `WORLD_SECOND_OWNER`, `CAPXUL_SECOND_PLATFORM_TOKEN` | `runner-2`, fresh from `run.sh` | The second operator the starting world `nothing` promises (blueprint decisions.md, 37). Until the platform accepts the token, its calls are refused `NotSignedIn`. |
 | `WORLD_CREATE_TIMEOUT` | `4 minutes` | Deploy, migrations and the wait for Core's answers. |
 | `WORLD_USE_TIMEOUT` | `3 minutes` | The calls and the checks. |
+| `WORLD_SCENARIO_TIMEOUT` | `20 minutes` | The same for a scenario in private worlds, whose calls may make worlds. |
 | `WORLD_DESTROY_TIMEOUT` | `4 minutes` | The destroy. |
 | `WORLD_READY_ANSWERS` | `20` | Answers in a row before a stage is ready. |
 | `WORLD_PROBE_EVERY` | `500 millis` | Between two probes, and between two sends of a call during the warm-up. |

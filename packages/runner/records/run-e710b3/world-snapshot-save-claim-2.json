@@ -1,0 +1,39 @@
+{
+  "kind": "scenario",
+  "name": "world.snapshot.save claim 2",
+  "proves": {
+    "operation": "world.snapshot.save",
+    "claim": 2
+  },
+  "given": "with-snapshot",
+  "stage": "run-e710b3-11",
+  "owner": "pops",
+  "startedAt": "2026-11-13T16:14:41.680Z",
+  "outcome": "failed",
+  "failure": "the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"starting world\",\"message\":\"the runner cannot make founded yet: its steps wait on org.create, approval.sign\"}",
+  "ended": null,
+  "readiness": null,
+  "calls": [],
+  "making": [],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    }
+  },
+  "ms": {
+    "create": 0,
+    "run": null,
+    "checks": null,
+    "destroy": 0
+  }
+}
