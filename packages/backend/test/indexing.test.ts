@@ -58,7 +58,8 @@ test("real Ponder projections retain initial execution nonce, provenance and exa
     assert.equal(budget.amount, "600000000");
     assert.equal(budget.committed, "0");
     assert.equal(budget.closed, false);
-    assert.equal((await sql.query("select count(*)::int as n from ponder.chain_hats where company_safe=$1", [safe])).rows[0].n, 4);
+    // Two top hats, the Director hat, the Finance officer hat and the seed's module-ruled hat.
+    assert.equal((await sql.query("select count(*)::int as n from ponder.chain_hats where company_safe=$1", [safe])).rows[0].n, 5);
     const mint = (await sql.query("select * from ponder.chain_logs where contract='hats' and event='TransferSingle' and args->>'id'=$1 and args->>'to'=$2", [fixture.hat, testKey("second").address.toLowerCase()])).rows[0];
     assert(mint);
     await sql.query("set local role capxul_worker");
