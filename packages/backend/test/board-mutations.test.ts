@@ -91,17 +91,16 @@ test("Board public adapter composes real auth/Seat/approval doors atomically", {
     for (const role of ["capxul_core", "capxul_worker"]) if (!(await db.query("select 1 from pg_roles where rolname=$1", [role])).rowCount) {
       await db.query(`create role ${role} nosuperuser nobypassrls`);
     }
-    await db.query(readFileSync(new URL("../src/schema.sql", import.meta.url), "utf8"));
-    await db.query("grant usage on schema app to capxul_core,capxul_worker");
-    await db.query(`alter table app.organizations enable row level security; alter table app.organizations force row level security;
-      create policy tenant on app.organizations to capxul_core,capxul_worker using(org_id=current_setting('app.org_id',true) or current_user='capxul_worker')
-      with check(org_id=current_setting('app.org_id',true) or current_user='capxul_worker');
-      grant select,insert,update on app.organizations to capxul_core,capxul_worker`);
-    await db.query(readFileSync(join(source, "access/schema.sql"), "utf8"));
-    await db.query(readFileSync(join(source, "parties/schema.sql"), "utf8"));
-    await organizations.migrate(db); await approvals.migrateApprovals(db); await migrateOutbox(db); await migrate(db);
-    await db.query(`with o as (insert into app.organizations(org_id,name,safe,site,admin_email,token) values($1,$1,$2,$1,'fixture@board.test',$2) returning org_id)
-      insert into app.parties(party_id,kind,state,handle,display_name,safe_address,owner_kind,owner_id,created_at,updated_at) select $1||'-party','organization','active',$1,$1,$2,'organization',org_id,$3,$3 from o`, [org, safe, now]); // its own live Party admits Seats
+    // The cut-over migration order (organizations.cutover-migrate-order): base, outbox, Access, Accounts, Parties, then
+    // Organizations, whose app.organizations Approvals and Board reference; the world's base comes from the peer tree.
+    await db.query(readFileSync(join(source, "schema.sql"), "utf8"));
+    await db.query("grant usage on schema app to capxul_core,capxul_worker"); await migrateOutbox(db);
+    for (const file of ["access", "accounts", "parties"]) await db.query(readFileSync(join(source, `${file}/schema.sql`), "utf8"));
+    await organizations.migrate(db); await approvals.migrateApprovals(db); await migrate(db);
+    await db.query(`with p as (insert into app.parties(party_id,kind,state,handle,display_name,safe_address,owner_kind,owner_id,created_at,updated_at)
+      values($1||'-party','organization','active',$1,$1,$2,'organization',$1,$3,$3) returning party_id) insert into app.organizations(org_id,party_id,name,
+      country,chain_id,safe_address,founder_party_id,founder_safe,seat_limit,abbr,default_currency,time_zone,fiscal_year_start,created_at,updated_at)
+      select $1,party_id,$1,'US',84532,$2,party_id,$2,10,'BRD','USD','UTC','01-01',$3,$3 from p`, [org, safe, now]); // its own live Party admits Seats
     for (const [id, addr] of [["director", director], ["second", second], ["outsider", outsider], ["agent", agent]] as const) {
       await db.query("insert into app.principals values($1,$2,$3,$4,$5,$6)", [id, id === "agent" ? "agent" : "person", id === "agent" ? null : `${id}@board.test`, addr, id === "agent" ? address(16) : null, new Date(now)]);
       await db.query(`insert into app.sessions(person_id,session_id,token_hash,method,status,client,created_at,expires_at)
