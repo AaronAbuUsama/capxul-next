@@ -29,8 +29,9 @@
   {
    "file": "packages/backend/src/platform/diagnostics.ts",
    "match": "then now() else app.indexer_observation.last_advance_at",
-   "label": "real-on-purpose",
-   "why": "indexer liveness: when the indexed block last advanced, an operational age"
+   "label": "owed",
+   "why": "indexer liveness is a legitimate host age, but time.no-direct-reads bans now() in SQL: Core writes it from TS through packages/runtime/src/time (RealTime)",
+   "owner": "Core"
   },
   {
    "file": "packages/backend/src/platform/diagnostics.ts",
@@ -141,8 +142,9 @@
   {
    "file": "packages/backend/src/schema.sql",
    "match": "last_advance_at timestamptz not null default now()",
-   "label": "real-on-purpose",
-   "why": "indexer liveness, operational"
+   "label": "owed",
+   "why": "indexer liveness is a legitimate host age, but time.no-direct-reads bans now() in SQL: Core writes it from TS through packages/runtime/src/time (RealTime)",
+   "owner": "Core"
   },
   {
    "file": "packages/backend/src/shared/service-signer.ts",
