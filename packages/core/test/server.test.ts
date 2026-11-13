@@ -27,6 +27,7 @@ import { CoreIdentity, CoreRpcs, Served, SpanSink, type KeptSpan } from "../src/
 const names: ReadonlyArray<OperationName> = Rec.keys(operations);
 const DOOR = "door-token";
 const PLATFORM = "platform-token";
+const SECOND = "second-platform-token";
 /** The credential each operation's door accepts. */
 const credentialOf = (name: OperationName) => ({
   [CREDENTIAL_HEADER]: `Bearer ${servedBy(name) === "platform" ? PLATFORM : DOOR}`,
@@ -44,6 +45,7 @@ const call = (name: OperationName, headers: Record<string, string>, credential =
       owner: "ci",
       doorToken: Redacted.make(DOOR),
       platformToken: Redacted.make(PLATFORM),
+      second: { operator: "ci-2", token: Redacted.make(SECOND) },
     });
     const exit = yield* Effect.scoped(
       Effect.gen(function* () {
@@ -120,4 +122,18 @@ test("a call without the credential, or with another door's, is refused at sign-
     assert.equal(error.reason, reason);
     assert.equal(kept.length, 1);
   }
+});
+
+test("the owner's operator token acts as the owner at the world's door; the second operator's does not", async () => {
+  const owner = await Effect.runPromise(call("record.export", { [CREDENTIAL_HEADER]: `Bearer ${PLATFORM}` }));
+  assert.ok(isNotImplemented(failureOf(owner.exit)), "the owner's token was not signed in at the world's door");
+  const other = await Effect.runPromise(call("record.export", { [CREDENTIAL_HEADER]: `Bearer ${SECOND}` }));
+  const error = failureOf(other.exit);
+  assert.ok(Schema.is(Errors.NotSignedIn)(error), "another operator's token was signed in at the world's door");
+  assert.equal(error.reason, "unknown_caller");
+});
+
+test("the second operator's platform token signs a platform call in", async () => {
+  const { exit } = await Effect.runPromise(call("world.show", { [CREDENTIAL_HEADER]: `Bearer ${SECOND}` }));
+  assert.ok(isNotImplemented(failureOf(exit)), "the second operator was not signed in at the platform");
 });

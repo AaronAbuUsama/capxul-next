@@ -1,54 +1,82 @@
 // Core: the Capxul server. A Cloudflare Worker, deployed by Alchemy, that serves every blueprint operation at its
-// group's door with Effect's Rpc server, and keeps every call's spans in its database, reached through Hyperdrive.
+// group's door with Effect's Rpc server, reads its world's chain at `CHAIN_PATH`, and keeps every call's spans in its
+// database, reached through Hyperdrive.
+//
+// What it binds is its deploy's (src/stack/deployment.ts): its own stage's database and facts, or a world's, handed
+// to it by packages/world. The running Worker reads every fact per request from its environment (src/env.ts).
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as SQL from "@alchemy.run/sql/Postgres";
-import { Values } from "@capxul/blueprint";
+import { CHAIN_PATH } from "@capxul/blueprint";
 import * as Alchemy from "alchemy";
-import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import * as Schema from "effect/Schema";
+import * as Option from "effect/Option";
+import * as Predicate from "effect/Predicate";
+import * as Redacted from "effect/Redacted";
+import * as Str from "effect/String";
+import * as FetchHttpClient from "effect/http/FetchHttpClient";
+import * as HttpServerRequest from "effect/http/HttpServerRequest";
+import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import * as RpcSerialization from "effect/rpc/RpcSerialization";
+import { chainRead } from "./chain.ts";
 import { serveDoors } from "./doors.ts";
+import { ENV, identityOf } from "./env.ts";
+import { HEALTH_PATH, PROBE_PATH, probeSite } from "./probe.ts";
 import { Served } from "./server.ts";
-import { CoreDatabase } from "./stack/database.ts";
+import { SiteDoor } from "./site/SiteDoor.ts";
+import { CoreDeployment, ownDeployment } from "./stack/deployment.ts";
 import { CoreIdentity } from "./telemetry/middleware.ts";
 import { SqlSpanSink } from "./telemetry/sink.ts";
 
-const Named = Schema.Struct({ world: Values.WorldName, owner: Values.OperatorName });
+/** The Hyperdrive binding as the running Worker holds it. */
+const connectionString = (env: Record<string, unknown>) =>
+  Effect.sync(() => {
+    const bound = env[ENV.database];
+    const text =
+      Predicate.hasProperty(bound, "connectionString") && Predicate.isString(bound.connectionString)
+        ? bound.connectionString
+        : "";
+    return Redacted.make(text);
+  });
+
+// The Postgres driver opens its socket through Node's `net` and `tls`.
+const props = () => ({ main: import.meta.url, compatibility: { flags: ["nodejs_compat"] } });
 
 export default class Core extends Cloudflare.Worker<Core>()(
   "Core",
-  {
-    main: import.meta.url,
-    // The Postgres driver opens its socket through Node's `net` and `tls`.
-    compatibility: { flags: ["nodejs_compat"] },
-  },
   Effect.gen(function* () {
-    // The world is the stage. Its owner and the two doors' tokens are read at deploy (`WORLD_OWNER`,
-    // `CAPXUL_DOOR_TOKEN`, `CAPXUL_PLATFORM_TOKEN`) and bound into the Worker's environment, the tokens as secrets;
-    // the running Worker reads them from there.
-    const { stage } = yield* Alchemy.Stack;
-    const owner = yield* Config.String("WORLD_OWNER");
-    const named = yield* Effect.orDie(Schema.decodeEffect(Named)({ world: stage, owner }));
-    const identity = {
-      ...named,
-      doorToken: yield* Config.Redacted("CAPXUL_DOOR_TOKEN"),
-      platformToken: yield* Config.Redacted("CAPXUL_PLATFORM_TOKEN"),
-    };
-    const hyperdrive = yield* Cloudflare.Hyperdrive.Connect(CoreDatabase);
-    // One pool per request, opened on the first query and closed when the request ends.
-    const database = SQL.PostgresLayer({ url: hyperdrive.connectionString });
-    const served = Served.pipe(
-      Layer.provideMerge(RpcSerialization.layerJson),
-      Layer.provide(SqlSpanSink),
-      Layer.provide(database),
-      Layer.provide(Layer.succeed(CoreIdentity, identity)),
-    );
-    return {
+    // Inside the running Worker the stack's files are evaluated again only to name bindings; nothing is read there.
+    if ((yield* Alchemy.ALCHEMY_PHASE) === "runtime") return props();
+    const given = yield* CoreDeployment;
+    const deployment = Option.isSome(given) ? given.value : yield* ownDeployment;
+    return { ...props(), env: { ...deployment.env, [ENV.database]: deployment.database } };
+  }),
+  Effect.succeed({
+    fetch: Effect.gen(function* () {
+      const env: Record<string, unknown> = yield* Cloudflare.WorkerEnvironment;
+      const request = yield* HttpServerRequest.HttpServerRequest;
+      const path = Option.match(HttpServerRequest.toURL(request), {
+        onNone: () => "",
+        onSome: (url) => Str.replace(/\/+$/, "")(url.pathname),
+      });
+      const identity = yield* identityOf(env);
+      const owners = [identity.doorToken, identity.platformToken];
+      if (path === HEALTH_PATH) return HttpServerResponse.jsonUnsafe({ core: "capxul", world: identity.world });
+      if (path === CHAIN_PATH) return yield* chainRead(env, owners);
+      if (path === PROBE_PATH)
+        // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: each request gets the site door its environment names
+        return yield* probeSite(identity.world, owners).pipe(
+          Effect.provide(SiteDoor.fromEnv(env).pipe(Layer.provide(FetchHttpClient.layer))),
+        );
+      // One pool per request, opened on the first query and closed when the request ends.
+      const served = Served.pipe(
+        Layer.provideMerge(RpcSerialization.layerJson),
+        Layer.provide(SqlSpanSink),
+        Layer.provide(SQL.PostgresLayer({ url: connectionString(env) })),
+        Layer.provide(Layer.succeed(CoreIdentity, identity)),
+      );
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: each request gets its own database pool
-      fetch: serveDoors.pipe(Effect.provide(served)),
-    };
-    // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's init is its entry point, as Alchemy documents
-  }).pipe(Effect.provide(Cloudflare.Hyperdrive.ConnectBinding)),
+      return yield* Effect.flatten(serveDoors).pipe(Effect.provide(served));
+    }),
+  }),
 ) {}
