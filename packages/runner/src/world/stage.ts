@@ -20,6 +20,7 @@ import * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import { describe, RunnerFailure } from "../failure.ts";
+import { bornAsWorld } from "./born.ts";
 import { migrate } from "./database.ts";
 import { inventory, type Accounts, type Inventory } from "./leftovers.ts";
 import { answersSteadily, type Readiness, type WarmUpPolicy } from "./warmup.ts";
@@ -95,6 +96,12 @@ const create = (spec: StageSpec) =>
     const directory = yield* Effect.orDie((yield* Path.Path).fromFileUrl(migrations));
     const applied = yield* migrate(database, directory);
     yield* Effect.log(`stage ${spec.name}: migrations applied (${Arr.join(applied, ", ")})`);
+    const { create: made, use, destroy } = spec.timeouts;
+    yield* bornAsWorld(database, {
+      name: spec.name,
+      owner: spec.owner,
+      lifetime: Duration.sum(made, Duration.sum(use, destroy)),
+    });
     const readiness = yield* answersSteadily(out.url, spec.warmUp);
     yield* Effect.log(`stage ${spec.name}: Core answered ${spec.warmUp.answers} probes in a row (${readiness.ms} ms)`);
     const warmUntil = (yield* Clock.currentTimeMillis) + Duration.toMillis(spec.warmUp.warmUp);

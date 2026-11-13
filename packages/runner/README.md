@@ -24,7 +24,9 @@ deploy and the SDK sends; they are never printed or recorded.
 ## What one run does
 
 1. **Creates a fresh stage** of the stack `CapxulCore` (`src/world/stage.ts`): deploys Core and its database, applies
-   Core's migrations over Neon's HTTPS SQL endpoint, and waits until Core has answered 20 `Ping`s in a row
+   Core's migrations over Neon's HTTPS SQL endpoint, keeps the stage's first record entry, a `world_created` of a
+   private world made from nothing (`src/world/born.ts`: a stage is not made by world.create, and record.export reads
+   a world's grade and lineage from that entry), and waits until Core has answered 20 `Ping`s in a row
    (`src/world/warmup.ts`). Each step has a declared timeout. Until `packages/world` lands (step 1.3), a stage is the
    runner's world.
 2. **Makes its calls through the SDK** (`src/client.ts`): `Sdk.layer(Capxul)` at the stage's two doors, with the
