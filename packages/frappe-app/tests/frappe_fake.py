@@ -44,14 +44,21 @@ class Flags(dict):
         self[k] = v
 
 
+class Callbacks(list):
+    """frappe.db.after_commit: collected, never run; tests that need commit effects run them."""
+    add = list.append
+
+
 class FakeDB:
     def __init__(self):
         self.rows = {}
         self.singles = {}
+        self.after_commit = Callbacks()
 
     def reset(self, **singles):
         self.rows = {}
         self.singles = dict(singles)
+        self.after_commit = Callbacks()
 
     def insert(self, doc):
         if doc["doctype"] == "Capxul Chain Event" and "name" not in doc:
@@ -159,6 +166,7 @@ def install():
     frappe.local = Flags(site="boundary.localhost", response=Flags(), form_dict=Flags())
     frappe.set_user = lambda user: setattr(frappe.session, "user", user)
     frappe.get_request_header = lambda key: None
+    frappe.generate_hash = lambda length=10, **kwargs: __import__("secrets").token_hex(length)[:length]
 
     def get_all(doctype, filters=None, fields=None, order_by=None, limit_page_length=100):
         rows = DB.find(doctype, filters or {})
@@ -169,6 +177,7 @@ def install():
 
     frappe.get_all = get_all
     frappe.publish_realtime = lambda *a, **k: None
+    frappe.cache = types.SimpleNamespace(get_keys=lambda key: [], delete_value=lambda keys, make_keys=True: None)
     utils = types.ModuleType("frappe.utils")
     utils.flt = lambda v, p=None: round(float(v or 0), p) if p is not None else float(v or 0)
     utils.getdate = lambda s: s

@@ -27,6 +27,8 @@ export function localRuntime(options: {
   bench: ReturnType<typeof composeBench>; processes: Processes; store: CoreStore;
   core(world: World): { url: string; secret: string };
   clock(world: World): Promise<Clock>;
+  /** devnet.one-world-clock's one door, for a restored world before it resumes. */
+  installClock(world: World, clock: Clock): Promise<void>;
 }): Runtime {
   const { bench, processes, store } = options;
   const admin = async (world: World, operation: "pause" | "resume") => {
@@ -66,6 +68,8 @@ export function localRuntime(options: {
       await store.rewrite(world, { worldId: world.id, epoch: world.epoch, clock,
         lineage: { snapshot: manifest.id, parentWorld: manifest.world, recordSeq: manifest.cut.recordSeq, recordHead: manifest.cut.recordHead },
         sites: Object.fromEntries(world.sites.map((s) => [s.company, s.name])) });
+      // The one door moves every follower, the bench-wide entry included even with no sites; each site then rejoins offline.
+      await options.installClock(world, clock);
       for (const site of world.sites) await bench.rewrite(site, world.id, manifest.cut);
     },
     async resume(world) {
