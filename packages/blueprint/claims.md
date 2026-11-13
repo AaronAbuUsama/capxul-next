@@ -15,7 +15,9 @@ These hold for every call of every scenario, so no claim repeats them:
    declaration computes from the call's payload and answer, and nothing more. A refused call emits none.
 2. A refusal is one the operation declares.
 3. The call's spans are recorded under the trace id the caller sent, the first named after the operation.
-4. The server's time for the call is within the operation's budget; the time is stored with the run.
+4. The call's time, as the caller saw it and as the server's span measured it, is stored with the run, with the
+   time of each step beneath it, next to the operation's budget. A budget is recorded, not enforced: nothing fails
+   on speed until a budget is set from measured runs.
 
 ## Count
 
@@ -52,7 +54,7 @@ Declared in `src/starting-worlds.ts`. Each is made through the door from the one
 ## 1. `world.create`
 
 - Served by: the platform group.
-- Refusals: `WorldExists`, `GradeNotOffered`, `WorldQuotaReached`, `ClockBeforeSeed`, and `NotSignedIn` from sign-in.
+- Refusals: `WorldExists`, `GradeNotOffered`, `WorldQuotaReached`, `ClockBeforeSeed`, `NotImplemented`, and `NotSignedIn` from sign-in.
 - Emits: `world_created`.
 - Budget: 90,000 ms, provisional. Basis: spikes/containers deployed a world with published images in 39 to 43 s and spikes/hosting made a Neon branch in 8 to 10 s; migrations, Core and the cast are not measured yet.
 
@@ -92,7 +94,7 @@ Old claims not kept:
 ## 2. `org.create`
 
 - Served by: the world group.
-- Refusals: `FounderNotReady`, `HandleTaken`, `FoundingChanged`, `SetupUnfinished`, `PersonNotFound`, `InsufficientBalance`, and `NotSignedIn` from sign-in.
+- Refusals: `FounderNotReady`, `HandleTaken`, `FoundingChanged`, `SetupUnfinished`, `PersonNotFound`, `InsufficientBalance`, `NotImplemented`, and `NotSignedIn` from sign-in.
 - Emits: `Founded`: `org_founded`; `Resumed`: none.
 - Budget: 8,000 ms, provisional, excluding waking a parked world. Basis: two service-key transactions (the company Safe's mint and its deploy) on the world's own chain, then opening the approvals.
 
@@ -136,7 +138,7 @@ Old claims not kept:
 ## 3. `org.member.grant`
 
 - Served by: the world group.
-- Refusals: `OrgNotFound`, `NotADirector`, `NotAMember`, `AlreadyHeld`, `ChangeWaiting`, `MemberHasNoSafe`, and `NotSignedIn` from sign-in.
+- Refusals: `OrgNotFound`, `NotADirector`, `NotAMember`, `AlreadyHeld`, `ChangeWaiting`, `MemberHasNoSafe`, `NotImplemented`, and `NotSignedIn` from sign-in.
 - Emits: `officer_change_proposed`, `proposal_opened`.
 - Budget: 4,000 ms, provisional, excluding waking a parked world. Basis: live reads of the Safe, Hats and the signer gate on the world's chain, then opening one approval per Director.
 
@@ -179,7 +181,7 @@ Old claims not kept:
 ## 4. `doc.create`
 
 - Served by: the world group.
-- Refusals: `OrgNotFound`, `NoSiteUser`, `SiteRefused`, `SiteUnavailable`, and `NotSignedIn` from sign-in.
+- Refusals: `OrgNotFound`, `NoSiteUser`, `SiteRefused`, `SiteUnavailable`, `NotImplemented`, and `NotSignedIn` from sign-in.
 - Emits: `doc_created`.
 - Budget: 1,500 ms, provisional, excluding waking a parked world. Basis: one call to the company's site on the world's bench; the bench is not measured yet.
 
@@ -206,7 +208,7 @@ Old claims not kept:
 ## 5. `doc.submit`
 
 - Served by: the world group.
-- Refusals: `OrgNotFound`, `NoSiteUser`, `SiteRefused`, `SiteUnavailable`, `NotADraft`, `InsufficientBalance`, and `NotSignedIn` from sign-in.
+- Refusals: `OrgNotFound`, `NoSiteUser`, `SiteRefused`, `SiteUnavailable`, `NotADraft`, `InsufficientBalance`, `NotImplemented`, and `NotSignedIn` from sign-in.
 - Emits: `Posted`: `doc_submitted`; `Held`: `payment_held`.
 - Budget: 3,000 ms, provisional, excluding waking a parked world. Basis: one call to the site; a held payment also reads the index and opens a sponsored approval on the world's chain.
 
@@ -232,7 +234,7 @@ Old claims not kept:
 ## 6. `approval.sign`
 
 - Served by: the world group.
-- Refusals: `ApprovalNotFound`, `NotYourApproval`, `SignatureInvalid`, `ApprovalExpired`, `ApprovalClosed`, `InsufficientBalance`, `TransactionReverted`, and `NotSignedIn` from sign-in.
+- Refusals: `ApprovalNotFound`, `NotYourApproval`, `SignatureInvalid`, `ApprovalExpired`, `ApprovalClosed`, `InsufficientBalance`, `TransactionReverted`, `NotImplemented`, and `NotSignedIn` from sign-in.
 - Emits: `Collected`: `approval_signed`; `Sent`: `approval_signed`, `approval_landed`; `AlreadySent`: none.
 - Budget: 4,000 ms, provisional, excluding waking a parked world and chain confirmation on a public chain. Basis: a sponsored UserOperation or Safe transaction on the world's own chain, which mines at once; it answers when the transaction is in a block.
 
@@ -270,7 +272,7 @@ Old claims not kept:
 ## 7. `report.run`
 
 - Served by: the world group.
-- Refusals: `OrgNotFound`, `NoSiteUser`, `SiteRefused`, `SiteUnavailable`, and `NotSignedIn` from sign-in.
+- Refusals: `OrgNotFound`, `NoSiteUser`, `SiteRefused`, `SiteUnavailable`, `NotImplemented`, and `NotSignedIn` from sign-in.
 - Emits: none.
 - Budget: 8,000 ms, provisional, excluding waking a parked world. Basis: no report has been timed; a report reads many rows on the site. The first green run replaces this.
 
@@ -292,7 +294,7 @@ Old claims not kept:
 ## 8. `world.clock.warp`
 
 - Served by: the world group.
-- Refusals: `NotWorldOwner`, `ClockBackwards`, and `NotSignedIn` from sign-in.
+- Refusals: `NotWorldOwner`, `ClockBackwards`, `NotImplemented`, and `NotSignedIn` from sign-in.
 - Emits: `clock_warped`.
 - Budget: 30,000 ms, provisional, excluding waking a parked world. Basis: a guess for a warp of up to a month that stops at every due instant; spikes/bench-clocks proved the sites follow but timed no warp.
 
@@ -310,7 +312,7 @@ Old claims not kept:
 ## 9. `record.export`
 
 - Served by: the world group.
-- Refusals: `NotWorldOwner`, `ExportNotAllowed`, and `NotSignedIn` from sign-in.
+- Refusals: `NotWorldOwner`, `ExportNotAllowed`, `NotImplemented`, and `NotSignedIn` from sign-in.
 - Emits: none.
 - Budget: 1,500 ms, provisional, excluding waking a parked world. Basis: one indexed read of the world's database; the pipeline spike's record.export read every entry within its 500 ms budget.
 
@@ -335,7 +337,7 @@ Old claims not kept:
 ## 10. `world.snapshot.save`
 
 - Served by: the platform group.
-- Refusals: `WorldNotFound`, `NotWorldOwner`, `SnapshotExists`, and `NotSignedIn` from sign-in.
+- Refusals: `WorldNotFound`, `NotWorldOwner`, `SnapshotExists`, `NotImplemented`, and `NotSignedIn` from sign-in.
 - Emits: `snapshot_saved`.
 - Budget: 30,000 ms, provisional, excluding waking a parked world. Basis: a Neon branch takes 8 to 10 s (spikes/hosting) and saving the chain 0.8 to 2.1 s (spikes/containers); a site's backup is not measured.
 
@@ -357,7 +359,7 @@ Old claims not kept:
 ## 11. `world.snapshot.restore`
 
 - Served by: the platform group.
-- Refusals: `WorldNotFound`, `SnapshotNotFound`, `NotWorldOwner`, `WorldExists`, `ExpiryBeyondSource`, `WorldQuotaReached`, `SnapshotIncompatible`, and `NotSignedIn` from sign-in.
+- Refusals: `WorldNotFound`, `SnapshotNotFound`, `NotWorldOwner`, `WorldExists`, `ExpiryBeyondSource`, `WorldQuotaReached`, `SnapshotIncompatible`, `NotImplemented`, and `NotSignedIn` from sign-in.
 - Emits: `world_created`.
 - Budget: 120,000 ms, provisional. Basis: a branch fork took 10 s (spikes/hosting) and a deploy 39 to 43 s (spikes/containers); restoring sites onto a bench is not measured.
 
@@ -392,7 +394,7 @@ Old claims not kept:
 ## 12. `world.show`
 
 - Served by: the platform group.
-- Refusals: `WorldNotFound`, and `NotSignedIn` from sign-in.
+- Refusals: `WorldNotFound`, `NotImplemented`, and `NotSignedIn` from sign-in.
 - Emits: none.
 - Budget: 2,000 ms, provisional. Basis: reads the registry and the world's database; spikes/hosting measured 350 to 450 ms for a query that wakes a Neon branch.
 

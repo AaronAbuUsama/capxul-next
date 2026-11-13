@@ -29,7 +29,9 @@ These hold for every call of every scenario, so no claim repeats them:
    declaration computes from the call's payload and answer, and nothing more. A refused call emits none.
 2. A refusal is one the operation declares.
 3. The call's spans are recorded under the trace id the caller sent, the first named after the operation.
-4. The server's time for the call is within the operation's budget; the time is stored with the run.
+4. The call's time, as the caller saw it and as the server's span measured it, is stored with the run, with the
+   time of each step beneath it, next to the operation's budget. A budget is recorded, not enforced: nothing fails
+   on speed until a budget is set from measured runs.
 `;
 
 const origin = (claim: Claim): ReadonlyArray<string> => {

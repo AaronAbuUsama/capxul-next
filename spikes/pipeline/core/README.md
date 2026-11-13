@@ -27,7 +27,7 @@ append came back without the new entry. With the cache off every statement reach
 past the cache, which cost two more round trips (`BEGIN` and `COMMIT`).
 
 Measured on 13 November 2026 from a Worker in the eastern United States to a branch in `aws-eu-west-2`, over 84
-calls (`../green-records/`): every statement is one round trip, median 87 ms. An accepted append is four (`BEGIN`,
+calls (`../../../packages/runner/records/spike/`): every statement is one round trip, median 87 ms. An accepted append is four (`BEGIN`,
 the insert, the event, `COMMIT`): 331 to 504 ms. An export is one: 83 to 144 ms. The first statement of a call
 takes 560 to 890 ms instead when no connection to Neon is open for it; that happens to most calls in a world's
 first 10 s, and afterwards to the first call of about half of all worlds (`../README.md`, "Speed").
@@ -54,7 +54,7 @@ core/handlers.ts(22,3): error TS2345: Argument of type 'Effect<{ "record.append"
   `Effect.withSpan`), is written to `app.spans` (trace id, span id, parent span id, name, outcome, duration ms, at)
   after the handler ends and before the answer leaves.
 
-Proven on 13 November 2026 by the five scenarios (`../green-records/`): an accepted append leaves one `app.events`
+Proven on 13 November 2026 by the five scenarios (`../../../packages/runner/records/spike/`): an accepted append leaves one `app.events`
 row; one refused with `DuplicateEntry` inside the transaction leaves none, and the caller receives the typed
 refusal. Both leave their spans (`BEGIN`, the insert, `COMMIT` or `ROLLBACK`, `sql.transaction`, `record.append`),
 and each run record lists them for every call as its `steps`.

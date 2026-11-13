@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        // A scenario's client is typed by the blueprint's Rpc declarations (effect/rpc, which Effect 4 marks unstable
+        // with no stable replacement). The catalog's exact pin of effect is the guard, as in packages/blueprint.
+        "allowedUnstableApis": ["effect/rpc"]
+      }
+    ]
+  },
+  "include": ["src", "test"]
+}
