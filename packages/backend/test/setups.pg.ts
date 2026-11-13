@@ -7,7 +7,7 @@ import { migrateOutbox } from "../src/platform/outbox.ts";
 import { companySafeAddress } from "../src/platform/safe.ts";
 import { readPrincipal } from "../src/access/door.ts";
 import { eligibility } from "../src/accounts/door.ts";
-import { addBoughtSeats, begin, get, migrate, readSetupFounder, resume, returnBoughtSeats, type SetupServices } from "../src/organizations/door.ts";
+import { addBoughtSeats, begin, get, migrate, readDeployment, readSetupFounder, resume, returnBoughtSeats, type SetupServices } from "../src/organizations/door.ts";
 
 // Standalone PG control on a dedicated loopback database, built from the concept migrations alone (no legacy schema).
 // Eligibility is the real Accounts door; the image and Board services are stand-ins, not Media or indexing proof.
@@ -127,6 +127,16 @@ test("get and resume answer the founder and refuse everyone else alike; RLS keep
   assert.deepEqual(await readSetupFounder(db.worker, orgId), { orgId, founderPrincipalId: "person_founder", founderSafe: people.founder!.safe,
     safe: companySafeAddress(config, "acme-labs", people.founder!.safe as `0x${string}`), status: "processing", steps: [] });
   assert.equal(await readSetupFounder(db.worker, "org_unknown"), null);
+  assert.equal(await readDeployment(db.worker, orgId), null, "no deployment before MoneyDeployed");
+  await admin.query(`insert into app.org_deployments values($1,$2,'11','12','13','14','15','16',$3,$4,$5,4417,$6)`,
+    [orgId, `0x${"5a".repeat(20)}`, `0x${"7a".repeat(20)}`, `0x${"9a".repeat(20)}`, `0x${"ee".repeat(32)}`, now]);
+  const deployed = await readDeployment(db.worker, orgId);
+  assert.deepEqual([deployed?.director_hat, deployed?.books_hat, deployed?.gate_address, deployed?.block_number], ["13", "14", `0x${"9a".repeat(20)}`, 4417]);
+  const tenantRead = (name: string) => db.transaction("", async (sql) => {
+    await sql.query("select set_config('app.person_id',$1,true)", [people[name]!.id]);
+    return readDeployment(sql, orgId);
+  });
+  assert.equal(await tenantRead("founder"), null, "the founder is not yet a member: the deployment stays hidden from tenants");
   for (const id of [orgId, "org_unknown"]) await assert.rejects(as("other", (sql) => get(sql, { orgId: id }, services)), /^Error: ROLE_PERMISSION_DENIED/);
   await assert.rejects(as("other", (sql) => resume(sql, { orgId }, services, now, trace)), /^Error: INVALID_INPUT/);
   assert.equal((await as("founder", (sql) => resume(sql, { orgId }, services, now + 1, trace))).setup, "processing");

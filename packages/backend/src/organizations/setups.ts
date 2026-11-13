@@ -184,6 +184,18 @@ export async function readSetupFounder(sql: Sql, orgId: string) {
     safe: row.safe_address as string, status: row.status as SetupStatus, steps: row.steps as SetupView["steps"] } : null;
 }
 
+export type Deployment = {
+  org_id: string; safe_address: string; board_top_hat: string; shareholders_top_hat: string; director_hat: string;
+  books_hat: string; invoicing_hat: string; people_hat: string; roles_address: string; gate_address: string;
+  deploy_tx_hash: string; block_number: number; created_at: number;
+};
+/** The org-deployments row: which hat is which, written once from MoneyDeployed at finality. Null until money is
+ * deployed. Tenants read it only as a current member (RLS); the worker reads any. Hat ids are decimal strings. */
+export async function readDeployment(sql: Sql, orgId: string): Promise<Deployment | null> {
+  const row = (await sql.query("select * from app.org_deployments where org_id=$1", [orgId])).rows[0];
+  return row ? { ...row, block_number: Number(row.block_number), created_at: Number(row.created_at) } : null;
+}
+
 /** A current member, or the setup's founder; anyone else, and an unknown id, read the same refusal. */
 export async function get(sql: Sql, input: { orgId: string }, services: Pick<SetupServices, "board">): Promise<SetupView> {
   const person = await principal(sql);
