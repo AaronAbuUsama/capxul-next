@@ -11,6 +11,6 @@
     "test": "node --experimental-strip-types --no-warnings --test test/site.test.ts test/accounts-claim.test.ts test/sponsorship.test.ts ../sdk/src/approvals/safe-op.test.ts test/board-transactions.test.ts",
     "test:integration": "node --experimental-strip-types --no-warnings --test --test-concurrency=1 test/*.test.ts"
   },
-  "dependencies": { "@capxul/site-service": "workspace:*", "effect": "catalog:", "pg": "8.16.3", "socket.io-client": "4.8.1", "viem": "catalog:" },
+  "dependencies": { "@capxul/runtime": "workspace:*", "@capxul/site-service": "workspace:*", "effect": "catalog:", "pg": "8.16.3", "socket.io-client": "4.8.1", "viem": "catalog:" },
   "devDependencies": { "socket.io": "4.8.1", "@types/pg": "8.15.5", "@types/node": "catalog:", "typescript": "catalog:" }
 }

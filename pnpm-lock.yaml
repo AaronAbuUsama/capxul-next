@@ -197,6 +197,9 @@ importers:
 
   packages/backend:
     dependencies:
+      '@capxul/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@capxul/site-service':
         specifier: workspace:*
         version: link:../site-service

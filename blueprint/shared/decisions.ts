@@ -67,6 +67,29 @@ export const decision_integrations_indexed_claim = defineDecision({
   affects: [x.integration_indexer, f.concept_accounts],
 });
 
+export const decision_integrations_indexer_bounded_reads = defineDecision({
+  id: "integrations.indexer-bounded-reads",
+  title: "Indexer reads are bounded in Postgres; finality is the facts' own block",
+  question: "How do awaitBlock and factsOf keep their time bounds on the caller's transaction, and which block must be final?",
+  options: [
+    { label: "savepoint-bound", text: "Each read runs in a savepoint on the caller's transaction with SET LOCAL statement_timeout, always rolled back; progress and facts are one statement; finality is judged on the later of the caller's block and the facts' own block." },
+    { label: "client-race", text: "Race each read against a timer in the client, read progress and facts separately, and judge finality on the caller's block." },
+  ],
+  chosen: "savepoint-bound",
+  why:
+    "A timer in the client answers on time but leaves the stuck statement, its retry and the caller's ROLLBACK queued on one connection, so the " +
+    "caller's transaction is not bounded at all. Postgres cancels its own statement (lock waits included), and rolling back to the savepoint " +
+    "undoes the SET LOCAL and leaves the caller's transaction usable, which a read loses nothing by. The reads therefore need the caller's " +
+    "transaction. factsOf makes two attempts of timeoutMs, 100 ms apart (backoff fixed); awaitBlock polls the head (500 ms each) until " +
+    "timeoutMs (10 s) has elapsed on a monotonic stopwatch, so a held table cannot stretch it. Progress and facts come from one statement, so " +
+    "a reindex between two reads cannot answer [] for a final transaction. A transaction re-included at a later block than the caller's " +
+    "receipt is judged final at the block it is in now, and facts that disagree on their block or block hash refuse. Both trust Ponder's view: " +
+    "`ready` is its backfill and lock state only, so a caller that acts on money also gates on diagnostics' indexer state (Ponder's /ready, " +
+    "the chain head and the indexed head's last advance).",
+  source: "Integrator review of #170, 13 November 2026; Core on #59's app.indexer_progress view, 13 November 2026",
+  affects: [x.integration_indexer],
+});
+
 export const decision_integrations_claim_signer = defineDecision({
   id: "integrations.claim-signer",
   title: "The personal-Safe service signer exposes only its configured claim role",
