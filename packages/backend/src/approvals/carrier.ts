@@ -73,7 +73,7 @@ async function step(sql: Sql, person: string, id: string, services: CarrierServi
         subject_kind: row.subject_kind, subject_id: row.subject_id, outcome: row.state as Parameters<Terminal>[1]["outcome"],
         chain_id: row.chain_id, sender: row.sender, nonce: row.nonce, user_op_hash: row.user_op_hash,
         transaction_hash: row.transaction_hash, block_number: row.block_number, observedAt: row.updated_at.toISOString(),
-        refusal: row.state === "refused" ? row.refusal : null,
+        refusal: row.state === "refused" ? row.refusal : null, trace_id: trace,
       });
     });
     return;
