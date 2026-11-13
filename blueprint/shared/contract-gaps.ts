@@ -74,56 +74,6 @@ export const decision_contracts_budgets_boundary = defineDecision({
   ],
 });
 
-export const decision_contracts_escrow_factory_v4_boundary = defineDecision({
-  id: "contracts.escrow-factory-v4-boundary", title: "The built v4 factory remains distinct from the general escrow design",
-  question: "Why has the built v4 factory no product caller?",
-  options: [{ label: "retain", text: "Retain the built ABI while product operations target the designed general factory (contracts.general-escrow-not-built)." }],
-  chosen: "retain", why: "Binding general-escrow operations to v4 would silently lose authority and surplus terms.",
-  source: "packages/contracts/src/money/EscrowFactory.sol; contracts.general-escrow-not-built",
-  affects: [x.contract_escrow_factory_v4],
-  stands: [
-    { record: "function:escrow-factory-v4.bootstrapOwner", rule: "uncalled-function", why: "Anyone may inspect bootstrapOwner for the v4 claim check after deployment. Product builds general-escrow terms instead; it does not discover claim authority from this legacy factory." },
-    { record: "function:escrow-factory-v4.deploy", rule: "uncalled-function", why: "Anyone may deploy exact v4 terms and salt, idempotently, before or after funding. Product workflows target the general factory with authority terms; this built factory remains for v4 compatibility, not those calls." },
-    { record: "function:escrow-factory-v4.payments", rule: "uncalled-function", why: "Anyone may inspect payments to audit which Payments contract newly created v4 escrows use. General-escrow product workflows do not discover wiring from the v4 factory." },
-    { record: "function:escrow-factory-v4.predictAddress", rule: "uncalled-function", why: "Anyone may call predictAddress with valid v4 terms/salt before funding to derive its CREATE2 address. Product funding uses the general factory's different terms and prediction, never this incompatible address." },
-    { record: "function:escrow-factory-v4.predictPaymentId", rule: "uncalled-function", why: "Anyone may call predictPaymentId before signing a v4 payment; a claim uses the predicted escrow as executor. Product predicts ids with the general factory instead, so it has no direct v4 prediction call." },
-    { record: "chainEvent:escrow-factory-v4.EscrowDeployed", rule: "unconsumed-chain-event", why: "The v4 factory emits EscrowDeployed when any caller first deploys its terms/salt. Product lifecycle waits reference the general escrow's events; no v4-specific deployment reaction is designed while that replacement remains unbuilt." },
-  ],
-});
-
-export const decision_contracts_escrow_v4_boundary = defineDecision({
-  id: "contracts.escrow-v4-boundary", title: "The built v4 escrow is retained, not substituted for the general design",
-  question: "Why do built v4 escrow members have no direct product callers or waits?",
-  options: [{ label: "retain", text: "Keep v4 compatibility visible. General-escrow product calls keep their own terms and event shapes until the replacement is built." }],
-  chosen: "retain", why: "v4 has payer-only refund and a different claim/surplus model; linking it to general escrow workflows would claim unsupported behaviour.",
-  source: "packages/contracts/src/money/Escrow.sol; contracts.general-escrow-not-built",
-  affects: [x.contract_escrow_v4],
-  stands: [
-    { record: "function:escrow-v4.CONDITION_INVOICE_AMOUNT_REACHED", rule: "uncalled-function", why: "Anyone may read CONDITION_INVOICE_AMOUNT_REACHED to inspect v4's condition-0 tag. Product builders use the general escrow vocabulary, not a v4 constant query." },
-    { record: "function:escrow-v4.CONDITION_PAYEE_CLAIMED", rule: "uncalled-function", why: "Anyone may read CONDITION_PAYEE_CLAIMED to inspect v4's condition-1 tag. General escrow product calls do not query this legacy claim-condition constant." },
-    { record: "function:escrow-v4.amount", rule: "uncalled-function", why: "Anyone may read amount after v4 deployment to inspect the fixed payout. Product escrow reads target general escrow/indexed terms rather than this v4 getter." },
-    { record: "function:escrow-v4.bootstrapOwner", rule: "uncalled-function", why: "Anyone may read bootstrapOwner after v4 deployment to identify the Companies House owner whose absence proves a claim. Product uses the general escrow's per-escrow bootstrap term instead of this legacy getter." },
-    { record: "function:escrow-v4.collect", rule: "uncalled-function", why: "Only payeeSafe may collect a funded open v4 condition-1 escrow after its owners exclude Companies House. Product payment-claim/setup calls target general Escrow.collect; v4 compatibility is retained but not used as its replacement." },
-    { record: "function:escrow-v4.condition", rule: "uncalled-function", why: "Anyone may inspect condition after v4 deployment to distinguish invoice and claim. Product general-escrow readers use their own indexed terms, not this v4 getter." },
-    { record: "function:escrow-v4.conditionMet", rule: "uncalled-function", why: "Anyone may call conditionMet before v4 payout/collect: invoice balance or an exact false isOwner(bootstrapOwner) answer. v4 payout uses it internally; product follows the general escrow design, not this legacy probe." },
-    { record: "function:escrow-v4.documentHash", rule: "uncalled-function", why: "Anyone may inspect documentHash after v4 deployment to identify its payment document. Product reads general escrow terms and payment records, not the legacy escrow getter." },
-    { record: "function:escrow-v4.jobNonce", rule: "uncalled-function", why: "Anyone may inspect jobNonce to audit a deployed v4 payment's identity. Product command identity is built for the general escrow; no operation reads this legacy nonce getter." },
-    { record: "function:escrow-v4.kind", rule: "uncalled-function", why: "Anyone may inspect kind after v4 deployment, including kind 8 for an exit-labelled payment. Product uses general terms; parked exit claims do not add a caller to this legacy getter." },
-    { record: "function:escrow-v4.ownerSafe", rule: "uncalled-function", why: "Anyone may inspect ownerSafe after v4 deployment to identify the payer/refund recipient. Product's general escrow calls name sender instead; they do not query this differently named v4 role." },
-    { record: "function:escrow-v4.payeeSafe", rule: "uncalled-function", why: "Anyone may inspect payeeSafe after v4 deployment to identify the recipient allowed to collect. Product general-escrow ownership reads do not query this legacy payee getter." },
-    { record: "function:escrow-v4.paymentId", rule: "uncalled-function", why: "Anyone may read paymentId after v4 deployment, and the v4 factory reads it internally for EscrowDeployed. Product predicts/tracks the general escrow's id instead, not a direct v4 read." },
-    { record: "function:escrow-v4.payments", rule: "uncalled-function", why: "Anyone may inspect payments after v4 deployment to audit its immutable payment router. Product uses the deployment's Payments and general escrow, so no legacy-router discovery call is designed." },
-    { record: "function:escrow-v4.payout", rule: "uncalled-function", why: "Anyone may payout an open v4 condition-0 invoice once funded; an already-paid id closes and returns the balance. Product invoice workflows target the general Escrow.payout, not this retained v4 entry point." },
-    { record: "function:escrow-v4.refund", rule: "uncalled-function", why: "Only ownerSafe may refund a v4 claim before collection, an open invoice while short, or a later deposit after closure. Product requires general escrow's sender/authority refund model, so no operation is linked to this payer-only fallback." },
-    { record: "function:escrow-v4.state", rule: "uncalled-function", why: "Anyone may inspect state after v4 deployment for Open/Paid/Refunded. Product status reads and waits follow the general escrow record instead of a v4 state query." },
-    { record: "function:escrow-v4.token", rule: "uncalled-function", why: "Anyone may inspect token after v4 deployment to identify what it holds. Product general-escrow terms/indexing provide the token without querying this legacy instance." },
-    { record: "chainEvent:escrow-v4.EscrowCreated", rule: "unconsumed-chain-event", why: "A v4 deployment by any factory caller emits EscrowCreated with eight term fields. Product workflows consume the general ten-field EscrowCreated with authority, not this incompatible legacy creation event." },
-    { record: "chainEvent:escrow-v4.EscrowPaid", rule: "unconsumed-chain-event", why: "Successful v4 payout by anyone or collect by payeeSafe emits EscrowPaid beside PaymentSent. Product escrow waits use the general event's owner/sender roles, not v4 payer/payee roles; no separate v4 workflow is designed." },
-    { record: "chainEvent:escrow-v4.EscrowRefunded", rule: "unconsumed-chain-event", why: "A v4 ownerSafe refund emits EscrowRefunded, including later-deposit recovery, without a by field or payee. Product waits require the general sender/by refund event; consuming this one would lose who exercised authority." },
-    { record: "chainEvent:escrow-v4.InvoicePaymentCompleted", rule: "unconsumed-chain-event", why: "Anyone calling v4 payout after the invoice id was already paid causes InvoicePaymentCompleted and returns the balance to ownerSafe. Product invoice completion follows PaymentSent and the general escrow design; no legacy duplicate-payment cleanup workflow is specified." },
-  ],
-});
-
 export const decision_contracts_installer_boundary = defineDecision({
   id: "contracts.installer-boundary", title: "Installer diagnostics and parked equity/elections do not add commands",
   question: "Who uses the Installer ABI outside the money-install product path?",
@@ -163,14 +113,45 @@ export const decision_contracts_installer_boundary = defineDecision({
   ],
 });
 
+export const decision_contracts_escrow_boundary = defineDecision({
+  id: "contracts.escrow-boundary", title: "The general escrow's getters and duplicate-payment event have no product caller",
+  question: "Which members of the built general escrow does no operation call or wait on, and why?",
+  options: [{ label: "index-and-act", text: "Product reads an escrow's terms from indexing's escrows table (EscrowDeployed, EscrowCreated) and acts through deploy, collect, payout, refund and canRefund; the getters stay for anyone auditing an address." }],
+  chosen: "index-and-act", why: "A chain read per escrow for terms the events already carry would duplicate indexing and slow every listing.",
+  source: "packages/contracts/src/money/Escrow.sol; contracts.general-escrow-built; indexing.tables-only",
+  affects: [x.contract_escrow, x.contract_escrow_factory],
+  stands: [
+    { record: "function:escrow.CONDITION_AMOUNT_REACHED", rule: "uncalled-function", why: "Anyone may read the constant 0 after deployment. Terms builders in payments and requests set condition 0 from the book's vocabulary; no operation asks a deployed escrow what its constant is." },
+    { record: "function:escrow.CONDITION_OWNER_COLLECTS", rule: "uncalled-function", why: "Anyone may read the constant 1 after deployment. Claim escrow builders set condition 1 from the book's vocabulary; no operation queries the constant from a deployed escrow." },
+    { record: "function:escrow.amount", rule: "uncalled-function", why: "Anyone may read the fixed amount once deployed. Indexing records it from EscrowCreated into the escrows table, and payments and accounts read that row, so no operation calls the getter." },
+    { record: "function:escrow.authority", rule: "uncalled-function", why: "Anyone may read the refund authority once deployed. EscrowDeployed and EscrowCreated carry it into indexing's escrows row, and payment cancel asks canRefund, so no operation reads the getter." },
+    { record: "function:escrow.authorityKey", rule: "uncalled-function", why: "Anyone may read the authority's key (a budget id) once deployed. Indexing records it from EscrowDeployed and canRefund applies it, so no operation reads the getter itself." },
+    { record: "function:escrow.bootstrapOwner", rule: "uncalled-function", why: "Anyone may read the term once deployed. Builders set it from EscrowFactory.bootstrapOwner or leave it zero, and setup and payment claim decide readiness from the owner Safe's own state, not from this getter." },
+    { record: "function:escrow.condition", rule: "uncalled-function", why: "Anyone may read the condition once deployed. EscrowCreated carries it into indexing (amount_reached or owner_collects), which every reader uses instead of a chain call." },
+    { record: "function:escrow.conditionMet", rule: "uncalled-function", why: "Anyone may ask before collect or payout whether the condition holds. collect and payout check it themselves and refuse with ConditionNotMet; setup collects right after the claim role makes the signer the Safe's only owner, so no operation probes it first." },
+    { record: "function:escrow.documentHash", rule: "uncalled-function", why: "Anyone may read the document hash once deployed. EscrowCreated carries it into indexing, and the Payment row already holds its document, so no operation calls the getter." },
+    { record: "function:escrow.jobNonce", rule: "uncalled-function", why: "Anyone may read the job nonce once deployed. It is the Payment's own nonce, set by the builder that prepared the terms, so no operation needs to read it back." },
+    { record: "function:escrow.kind", rule: "uncalled-function", why: "Anyone may read the payment kind once deployed. EscrowCreated carries it into indexing and the Payment holds it, so no operation calls the getter." },
+    { record: "function:escrow.owner", rule: "uncalled-function", why: "Anyone may read who collects once deployed. EscrowDeployed and EscrowCreated index it as `owner`, which setup and payment claim query, so no operation reads the getter." },
+    { record: "function:escrow.ownerTakesSurplus", rule: "uncalled-function", why: "Anyone may read the surplus routing once deployed. Only Exits (parked equity) sets it true; Capxul's builders always set false and no product reader needs it, so the escrows table omits it." },
+    { record: "function:escrow.paymentId", rule: "uncalled-function", why: "Anyone may read the payment id once deployed, and the factory reads it for EscrowDeployed. Payments predicts the same id with EscrowFactory.predictPaymentId before anything exists, so no operation reads it from the escrow." },
+    { record: "function:escrow.payments", rule: "uncalled-function", why: "Anyone may read the Payments router bound into the escrow. Capxul knows its deployment's Payments from the deployment file and the address binds it, so no operation discovers it from an escrow." },
+    { record: "function:escrow.sender", rule: "uncalled-function", why: "Anyone may read where a refund goes once deployed. Indexing records `sender` from both events and payment cancel reads canRefund, so no operation calls the getter." },
+    { record: "function:escrow.token", rule: "uncalled-function", why: "Anyone may read the token once deployed. EscrowCreated carries it into indexing, and the Payment holds its asset, so no operation calls the getter." },
+    { record: "function:escrow-factory.bootstrapOwner", rule: "uncalled-function", why: "Anyone may read the chain's Companies House from the factory. Exits reads it inside its terms builder; Capxul's builders take Companies House from the deployment file they already use for the claimer, so no operation calls it." },
+    { record: "function:escrow-factory.payments", rule: "uncalled-function", why: "Anyone may read the factory's Payments, which every escrow's address binds. Capxul uses its deployment's Payments address directly, so no operation discovers it from the factory." },
+    { record: "chainEvent:escrow.InvoicePaymentCompleted", rule: "unconsumed-chain-event", why: "Anyone calling payout on an invoice escrow whose payment id was already paid through Payments emits it as the escrow closes Paid and returns its balance to the sender. Indexing marks the escrows row paid from it (a table write); the Payment already settled on the earlier PaymentSent, so no workflow waits on it." },
+  ],
+});
+
 export const decision_contracts_general_factory_boundary = defineDecision({
   id: "contracts.general-factory-boundary", title: "General factory discovery is indexing, not a durable reaction",
   question: "Does general EscrowDeployed need its own workflow?",
   options: [{ label: "index", text: "Keep the deployment event for discovery; product lifecycles consume the escrow's terms and payment/refund events." }],
   chosen: "index", why: "Deploying counterfactual code is not itself a money movement or another long-lived business process.",
-  source: "contracts.general-escrow-not-built; packages/contracts/src/money/EscrowFactory.sol (v4 precursor); indexing.tables-only",
+  source: "contracts.general-escrow-built; packages/contracts/src/money/EscrowFactory.sol; indexing.tables-only",
   affects: [x.contract_escrow_factory],
-  stands: [{ record: "chainEvent:escrow-factory.EscrowDeployed", rule: "unconsumed-chain-event", why: "The designed general factory emits EscrowDeployed when anyone first deploys the terms/salt, before or after funding. It makes the address discoverable to indexing; payment/invoice workflows follow EscrowCreated and payment/refund facts, not a separate deployment-triggered process. The general factory is not built yet." }],
+  stands: [{ record: "chainEvent:escrow-factory.EscrowDeployed", rule: "unconsumed-chain-event", why: "The designed general factory emits EscrowDeployed when anyone first deploys the terms/salt, before or after funding. It makes the address discoverable to indexing; payment/invoice workflows follow EscrowCreated and payment/refund facts, not a separate deployment-triggered process." }],
 });
 
 export const decision_contracts_hats_boundary = defineDecision({

@@ -200,13 +200,16 @@ contract Settle_Exits_Unit_Concrete_Test is Exits_Test {
 
         assertGt(escrow.code.length, 0, "escrow deployed");
         IEscrow e = IEscrow(escrow);
-        assertEq(e.ownerSafe(), address(exits), "Exits owns it, so the Board cannot take it back (F5)");
-        assertEq(e.payeeSafe(), users.investor, "the shareholder is its payee");
+        assertEq(e.sender(), address(exits), "Exits sent it, so the Board cannot take it back (F5)");
+        assertEq(e.owner(), users.investor, "the shareholder is its owner");
+        assertEq(e.authority(), address(0), "no authority: only Exits takes it back");
+        assertEq(e.bootstrapOwner(), companiesHouse, "Companies House, read from the factory");
+        assertTrue(e.ownerTakesSurplus(), "the surplus goes to the shareholder");
         assertEq(e.token(), address(usdc), "token");
         assertEq(e.amount(), 4000e6, "amount");
         assertEq(e.kind(), EXIT_KIND, "kind 8");
         assertEq(e.documentHash(), TERMS, "the sale's terms");
-        assertEq(e.condition(), PAYEE_CLAIMED, "payee-claimed condition");
+        assertEq(e.condition(), OWNER_COLLECTS, "owner-collects condition");
 
         IExits.Claim memory c = exits.claimOf(SALE, 2);
         assertEq(c.payee, users.investor, "claim payee");

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.28;
 
-/// @dev A payee for D11's fail-closed read that answers every call, `isOwner` included, with exactly the
-/// bytes it was given (any length, empty too), or reverts with them. A contract that has no `isOwner` but a
-/// silent fallback is this payee with empty bytes.
-contract RawAnswerPayee {
+/// @dev An escrow owner or authority for the fail-closed reads (D11 and the authority term). It answers every
+/// call, `isOwner` and `authorised` included, with exactly the bytes it was given (any length, empty too), or
+/// reverts with them. A contract that has neither function but a silent fallback is this target with empty bytes.
+contract RawAnswerTarget {
     bytes internal _answer;
     bool internal _reverts;
 

@@ -6,7 +6,6 @@ import { Vm } from "forge-std/Vm.sol";
 import { IEscrow } from "../../../../../src/interfaces/IEscrow.sol";
 import { IExits } from "../../../../../src/interfaces/IExits.sol";
 import { IPayments } from "../../../../../src/interfaces/IPayments.sol";
-import { Exits } from "../../../../../src/equity/Exits.sol";
 import { Exits_Test } from "../../../../utils/Exits/Exits_Test.sol";
 import { MockExitSenderFeeToken } from "../../../../utils/Exits/ExitsMocks.sol";
 import { MockFeeOnTransferToken } from "../../../../mocks/MockFeeOnTransferToken.sol";
@@ -53,7 +52,6 @@ contract RedirectClaim_Exits_Unit_Concrete_Test is Exits_Test {
     function test_WhenTheClaimEscrowHasDonations() external {
         // it should carry the surplus to the new payee
         address oldEscrow = _settleWithInvestorClaim(address(usdc));
-        assertTrue(Exits(address(exits)).isExitClaimEscrow(oldEscrow), "old escrow registered");
         usdc.mint(oldEscrow, 7);
         usdc.mint(address(exits), 11);
 
@@ -132,8 +130,6 @@ contract RedirectClaim_Exits_Unit_Concrete_Test is Exits_Test {
 
         IExits.Claim memory c = exits.claimOf(SALE, 2);
         assertEq(c.payee, newPayee, "new payee");
-        assertFalse(Exits(address(exits)).isExitClaimEscrow(oldEscrow), "old escrow no longer registered");
-        assertTrue(Exits(address(exits)).isExitClaimEscrow(c.escrow), "new escrow registered");
         assertEq(c.amount, AMOUNT, "same amount");
         assertEq(c.token, address(usdc), "same token");
         assertTrue(c.escrow != oldEscrow && c.escrow.code.length != 0, "a new claim escrow");
@@ -141,12 +137,13 @@ contract RedirectClaim_Exits_Unit_Concrete_Test is Exits_Test {
         assertEq(usdc.balanceOf(oldEscrow), 0, "the old escrow is empty");
         assertEq(uint256(IEscrow(oldEscrow).state()), uint256(IEscrow.State.Refunded), "old escrow refunded");
         IEscrow e = IEscrow(c.escrow);
-        assertEq(e.ownerSafe(), address(exits), "owned by Exits");
-        assertEq(e.payeeSafe(), newPayee, "payee the new payee");
+        assertEq(e.sender(), address(exits), "sent by Exits");
+        assertEq(e.owner(), newPayee, "owner the new payee");
+        assertTrue(e.ownerTakesSurplus(), "the surplus goes to the payee");
         assertEq(e.amount(), AMOUNT, "amount");
         assertEq(e.kind(), EXIT_KIND, "kind 8");
         assertEq(e.documentHash(), TERMS, "the sale's terms");
-        assertEq(e.condition(), PAYEE_CLAIMED, "payee-claimed condition");
+        assertEq(e.condition(), OWNER_COLLECTS, "owner-collects condition");
         assertEq(usdc.balanceOf(address(exits)), 0, "Exits holds nothing (X3)");
 
         Vm.Log memory log = _lastLog(address(exits), IExits.ClaimRedirected.selector);

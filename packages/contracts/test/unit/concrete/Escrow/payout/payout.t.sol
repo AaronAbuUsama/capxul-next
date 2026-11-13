@@ -11,7 +11,7 @@ import { Escrow_Test } from "../../../../utils/Escrow/Escrow_Test.sol";
 contract Payout_Escrow_Unit_Concrete_Test is Escrow_Test {
     function test_WhenTheTokenIsAPrecompileWithoutCode() external {
         // it should reject a token without code
-        IEscrow.Terms memory terms = _terms(users.bob, INVOICE);
+        IEscrow.Terms memory terms = _terms(users.bob, AMOUNT_REACHED);
         terms.token = address(4); // identity precompile echoes balanceOf calldata
         IEscrow escrow = _escrow(terms);
         vm.expectRevert(abi.encodeWithSelector(IEscrow.TokenHasNoCode.selector, address(4)));
@@ -20,7 +20,7 @@ contract Payout_Escrow_Unit_Concrete_Test is Escrow_Test {
     }
 
     function test_WhenACallIsAlreadyRunning() external {
-        IEscrow.Terms memory terms = _terms(users.bob, INVOICE);
+        IEscrow.Terms memory terms = _terms(users.bob, AMOUNT_REACHED);
         terms.token = address(reentrantToken);
         IEscrow escrow = _escrow(terms);
         reentrantToken.mint(address(escrow), AMOUNT);
@@ -36,25 +36,25 @@ contract Payout_Escrow_Unit_Concrete_Test is Escrow_Test {
         assertEq(reentrantToken.balanceOf(users.bob) - payeeBefore, AMOUNT, "the outer payout still paid");
     }
 
-    function test_WhenTheConditionIsNotInvoiceAmountReached() external {
-        IEscrow escrow = _claimEscrow(claimedPayee);
+    function test_WhenTheConditionIsNotAmountReached() external {
+        IEscrow escrow = _claimEscrow(claimedOwner);
         usdc.mint(address(escrow), AMOUNT);
         // it should revert with InvalidCondition
-        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidCondition.selector, CLAIM));
+        vm.expectRevert(abi.encodeWithSelector(IEscrow.InvalidCondition.selector, OWNER_COLLECTS));
         escrow.payout();
     }
 
     function test_WhenTheEscrowIsNotOpen() external {
         IEscrow escrow = _invoiceEscrow();
         usdc.mint(address(escrow), AMOUNT - 1);
-        vm.prank(owner);
+        vm.prank(sender);
         escrow.refund();
         usdc.mint(address(escrow), AMOUNT);
         // it should revert with JobNotOpen
         vm.expectRevert(IEscrow.JobNotOpen.selector);
         escrow.payout();
 
-        IEscrow paidEscrow = _escrow(_terms(users.alice, INVOICE));
+        IEscrow paidEscrow = _escrow(_terms(users.alice, AMOUNT_REACHED));
         usdc.mint(address(paidEscrow), AMOUNT);
         paidEscrow.payout();
         usdc.mint(address(paidEscrow), AMOUNT);
@@ -63,24 +63,24 @@ contract Payout_Escrow_Unit_Concrete_Test is Escrow_Test {
     }
 
     function test_GivenThePaymentIdWasAlreadyPaidThroughPaymentsBySomeoneElse() external {
-        IEscrow.Terms memory terms = _terms(users.bob, INVOICE);
+        IEscrow.Terms memory terms = _terms(users.bob, AMOUNT_REACHED);
         IEscrow escrow = _escrow(terms);
         usdc.mint(address(escrow), AMOUNT / 2);
         _payDirectly(terms, address(escrow));
-        uint256 ownerBefore = usdc.balanceOf(owner);
+        uint256 senderBefore = usdc.balanceOf(sender);
         uint256 payeeBefore = usdc.balanceOf(users.bob);
 
         // it should emit InvoicePaymentCompleted with the surplus
         vm.expectEmit(true, true, true, true, address(escrow));
-        emit IEscrow.InvoicePaymentCompleted(owner, users.bob, escrow.paymentId(), AMOUNT / 2);
+        emit IEscrow.InvoicePaymentCompleted(users.bob, sender, escrow.paymentId(), AMOUNT / 2);
         escrow.payout();
 
         // it should mark the escrow paid
         assertEq(_state(escrow), uint256(IEscrow.State.Paid), "state");
-        // it should return any balance to the owner Safe
-        assertEq(usdc.balanceOf(owner) - ownerBefore, AMOUNT / 2, "owner got the balance");
+        // it should return any balance to the sender
+        assertEq(usdc.balanceOf(sender) - senderBefore, AMOUNT / 2, "sender got the balance");
         assertEq(usdc.balanceOf(address(escrow)), 0, "escrow empty");
-        assertEq(usdc.balanceOf(users.bob), payeeBefore, "payee not paid twice");
+        assertEq(usdc.balanceOf(users.bob), payeeBefore, "owner not paid twice");
     }
 
     function test_WhenTheEscrowHoldsLessThanTheAmount() external {
@@ -92,14 +92,14 @@ contract Payout_Escrow_Unit_Concrete_Test is Escrow_Test {
     }
 
     function test_WhenTheEscrowHoldsAtLeastTheAmount() external {
-        IEscrow.Terms memory terms = _terms(users.bob, INVOICE);
+        IEscrow.Terms memory terms = _terms(users.bob, AMOUNT_REACHED);
         terms.token = address(reentrantToken);
         IEscrow escrow = _escrow(terms);
         IPayments.PaymentItem memory item = _item(terms, address(escrow));
         reentrantToken.mint(address(escrow), AMOUNT + 7);
         // Reads the state from inside the token transfer that Payments makes.
         reentrantToken.arm(address(escrow), abi.encodeCall(IEscrow.state, ()));
-        uint256 ownerBefore = reentrantToken.balanceOf(owner);
+        uint256 senderBefore = reentrantToken.balanceOf(sender);
         uint256 payeeBefore = reentrantToken.balanceOf(users.bob);
 
         // it should approve Payments for the amount and send the fixed item
@@ -107,7 +107,7 @@ contract Payout_Escrow_Unit_Concrete_Test is Escrow_Test {
         vm.expectCall(address(payments), abi.encodeCall(IPayments.send, (item)));
         // it should emit EscrowPaid
         vm.expectEmit(true, true, true, true, address(escrow));
-        emit IEscrow.EscrowPaid(owner, users.bob, item.paymentId, AMOUNT);
+        emit IEscrow.EscrowPaid(users.bob, sender, item.paymentId, AMOUNT);
         vm.prank(users.eve); // anyone may pay out
         escrow.payout();
 
@@ -115,9 +115,9 @@ contract Payout_Escrow_Unit_Concrete_Test is Escrow_Test {
         assertTrue(reentrantToken.reentrySucceeded(), "state read during the transfer");
         assertEq(abi.decode(reentrantToken.reentryResult(), (uint256)), uint256(IEscrow.State.Paid), "paid first");
         assertEq(_state(escrow), uint256(IEscrow.State.Paid), "state");
-        assertEq(reentrantToken.balanceOf(users.bob) - payeeBefore, AMOUNT, "payee got exactly the amount");
-        // it should return any surplus to the owner Safe
-        assertEq(reentrantToken.balanceOf(owner) - ownerBefore, 7, "owner got the surplus");
+        assertEq(reentrantToken.balanceOf(users.bob) - payeeBefore, AMOUNT, "owner got exactly the amount");
+        // it should return any surplus to the sender
+        assertEq(reentrantToken.balanceOf(sender) - senderBefore, 7, "sender got the surplus");
         assertEq(reentrantToken.balanceOf(address(escrow)), 0, "escrow empty");
         assertEq(reentrantToken.allowance(address(escrow), address(payments)), 0, "no standing approval");
         assertTrue(payments.paid(item.paymentId), "id consumed");
@@ -126,7 +126,7 @@ contract Payout_Escrow_Unit_Concrete_Test is Escrow_Test {
     /// @dev Port of beta `CapxulEscrow.t.sol:342` (R2 ES14), beyond the tree: a token that returns false
     /// fails the payout whole, so the escrow stays open with its funds and the id stays unpaid.
     function test_WhenTheTokenReturnsFalse() external {
-        IEscrow.Terms memory terms = _terms(users.bob, INVOICE);
+        IEscrow.Terms memory terms = _terms(users.bob, AMOUNT_REACHED);
         terms.token = address(falseToken);
         IEscrow escrow = _escrow(terms);
         falseToken.mint(address(escrow), AMOUNT);
@@ -139,7 +139,7 @@ contract Payout_Escrow_Unit_Concrete_Test is Escrow_Test {
     /// @dev Port of beta `CapxulEscrow.t.sol:317` (R2 ES13), beyond the tree: an item that copies the
     /// escrow's id with other terms is refused by Payments and does not block the escrow's payout.
     function test_WhenACopiedIdWithChangedTermsIsSentFirst() external {
-        IEscrow.Terms memory terms = _terms(users.bob, INVOICE);
+        IEscrow.Terms memory terms = _terms(users.bob, AMOUNT_REACHED);
         IEscrow escrow = _escrow(terms);
         usdc.mint(address(escrow), AMOUNT);
         IPayments.PaymentItem memory attack = _item(terms, address(escrow));

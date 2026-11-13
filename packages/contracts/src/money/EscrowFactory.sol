@@ -9,7 +9,8 @@ import { IPayments } from "../interfaces/IPayments.sol";
 import { Escrow } from "./Escrow.sol";
 
 /// @title EscrowFactory
-/// @notice Deploys fixed-term escrows at deterministic addresses (spec/escrow.md). Ported from beta.
+/// @notice Deploys general escrows at deterministic addresses (aaron.escrow-general). v4's factory with the
+/// general escrow's terms; its constructor is unchanged, so the deploy manifest is too.
 contract EscrowFactory is IEscrowFactory {
     /// @inheritdoc IEscrowFactory
     IPayments public immutable payments;
@@ -28,9 +29,10 @@ contract EscrowFactory is IEscrowFactory {
     function deploy(IEscrow.Terms calldata terms, bytes32 salt) external returns (address escrow) {
         escrow = predictAddress(terms, salt);
         if (escrow.code.length != 0) return escrow;
-        escrow = address(new Escrow{ salt: salt }(terms, address(payments), bootstrapOwner));
+        escrow = address(new Escrow{ salt: salt }(terms, address(payments)));
+        bytes32 id = IEscrow(escrow).paymentId();
         // forge-lint: disable-next-line(reentrancy-events)
-        emit EscrowDeployed(escrow, terms.ownerSafe, terms.payeeSafe, IEscrow(escrow).paymentId(), salt);
+        emit EscrowDeployed(escrow, terms.owner, terms.sender, id, salt, terms.authority, terms.authorityKey);
     }
 
     /// @inheritdoc IEscrowFactory
@@ -38,7 +40,7 @@ contract EscrowFactory is IEscrowFactory {
         _validate(terms);
         bytes32 initCodeHash =
         // forge-lint: disable-next-line(encode-packed-collision)
-        keccak256(abi.encodePacked(type(Escrow).creationCode, abi.encode(terms, address(payments), bootstrapOwner)));
+        keccak256(abi.encodePacked(type(Escrow).creationCode, abi.encode(terms, address(payments))));
         return Create2.computeAddress(salt, initCodeHash);
     }
 
@@ -48,7 +50,7 @@ contract EscrowFactory is IEscrowFactory {
         return payments.paymentId(
             IPayments.PaymentItem({
                 paymentId: bytes32(uint256(1)),
-                recipient: terms.payeeSafe,
+                recipient: terms.owner,
                 token: terms.token,
                 amount: terms.amount,
                 kind: terms.kind,
@@ -60,7 +62,7 @@ contract EscrowFactory is IEscrowFactory {
     }
 
     function _validate(IEscrow.Terms calldata terms) private pure {
-        if (terms.ownerSafe == address(0) || terms.payeeSafe == address(0) || terms.token == address(0)) {
+        if (terms.owner == address(0) || terms.sender == address(0) || terms.token == address(0)) {
             revert ZeroAddress();
         }
         if (terms.amount == 0) revert ZeroAmount();

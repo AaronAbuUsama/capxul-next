@@ -32,7 +32,7 @@ abstract contract Exits_Test is Base_Test {
     uint16 internal constant SHARE_PURCHASE_KIND = 5;
     uint256 internal constant AMIRA_GRANT = 7;
     uint256 internal constant BEN_GRANT = 8;
-    uint8 internal constant PAYEE_CLAIMED = 1;
+    uint8 internal constant OWNER_COLLECTS = 1;
 
     Exits internal implementation;
     IExits internal exits;

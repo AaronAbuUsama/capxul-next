@@ -7,22 +7,27 @@ import { IEscrow } from "../interfaces/IEscrow.sol";
 import { IPayments } from "../interfaces/IPayments.sol";
 
 /// @title Escrow
-/// @notice Holds one fixed payment until its fixed release condition is met (spec/escrow.md). Ported from
-/// beta `CapxulEscrow` with the v4 renames and the D11 claim condition.
+/// @notice The general escrow (aaron.escrow-general): one fixed payment for an owner that may not exist yet,
+/// collected by the owner whenever it can act, or taken back to the sender until then. v4's escrow with its roles
+/// named for what they do (`ownerSafe` is `sender`, `payeeSafe` is `owner`), the authority term, the bootstrap
+/// owner as a term, `ownerTakesSurplus` in place of the exit-claim lookup, `canRefund`, and `by` on
+/// `EscrowRefunded`. It reads no clock: there is no expiry.
 contract Escrow is IEscrow {
-    error InsufficientGasForExitIdentity();
-
-    /// @dev Exit payouts use kind 8; the owner must also confirm that this escrow is an exit claim.
-    uint16 private constant KIND_EXIT = 8;
     /// @inheritdoc IEscrow
-    uint8 public constant CONDITION_INVOICE_AMOUNT_REACHED = 0;
+    uint8 public constant CONDITION_AMOUNT_REACHED = 0;
     /// @inheritdoc IEscrow
-    uint8 public constant CONDITION_PAYEE_CLAIMED = 1;
+    uint8 public constant CONDITION_OWNER_COLLECTS = 1;
 
     /// @inheritdoc IEscrow
-    address public immutable ownerSafe;
+    address public immutable owner;
     /// @inheritdoc IEscrow
-    address public immutable payeeSafe;
+    address public immutable sender;
+    /// @inheritdoc IEscrow
+    address public immutable authority;
+    /// @inheritdoc IEscrow
+    uint256 public immutable authorityKey;
+    /// @inheritdoc IEscrow
+    address public immutable bootstrapOwner;
     /// @inheritdoc IEscrow
     address public immutable token;
     /// @inheritdoc IEscrow
@@ -38,9 +43,9 @@ contract Escrow is IEscrow {
     /// @inheritdoc IEscrow
     uint8 public immutable condition;
     /// @inheritdoc IEscrow
-    IPayments public immutable payments;
+    bool public immutable ownerTakesSurplus;
     /// @inheritdoc IEscrow
-    address public immutable bootstrapOwner;
+    IPayments public immutable payments;
 
     /// @inheritdoc IEscrow
     State public state;
@@ -55,112 +60,119 @@ contract Escrow is IEscrow {
 
     /// @param terms The escrow's terms.
     /// @param payments_ The Payments contract.
-    /// @param bootstrapOwner_ The chain's Companies House Safe.
-    constructor(Terms memory terms, address payments_, address bootstrapOwner_) {
-        if (terms.ownerSafe == address(0) || terms.payeeSafe == address(0) || terms.token == address(0)) {
+    constructor(Terms memory terms, address payments_) {
+        if (terms.owner == address(0) || terms.sender == address(0) || terms.token == address(0)) {
             revert ZeroAddress();
         }
         if (terms.amount == 0) revert ZeroAmount();
         if (terms.jobNonce == bytes32(0)) revert ZeroJobNonce();
         if (terms.documentHash == bytes32(0)) revert ZeroDocumentHash();
-        if (terms.condition > CONDITION_PAYEE_CLAIMED) revert InvalidCondition(terms.condition);
-        if (payments_ == address(0) || bootstrapOwner_ == address(0)) revert ZeroAddress();
+        if (terms.condition > CONDITION_OWNER_COLLECTS) revert InvalidCondition(terms.condition);
+        if (payments_ == address(0)) revert ZeroAddress();
 
-        ownerSafe = terms.ownerSafe;
-        payeeSafe = terms.payeeSafe;
+        owner = terms.owner;
+        sender = terms.sender;
+        authority = terms.authority;
+        authorityKey = terms.authorityKey;
+        bootstrapOwner = terms.bootstrapOwner;
         token = terms.token;
         amount = terms.amount;
         jobNonce = terms.jobNonce;
         kind = terms.kind;
         documentHash = terms.documentHash;
         condition = terms.condition;
+        ownerTakesSurplus = terms.ownerTakesSurplus;
         payments = IPayments(payments_);
-        bootstrapOwner = bootstrapOwner_;
 
         // The id excludes `paymentId`, so any placeholder works; the immutable is not readable yet.
-        IPayments.PaymentItem memory item = _item(bytes32(uint256(1)), terms, address(this));
-        bytes32 id = IPayments(payments_).paymentId(item);
+        bytes32 id = IPayments(payments_).paymentId(_item(bytes32(uint256(1)), terms, address(this)));
         paymentId = id;
 
         emit EscrowCreated(
-            terms.ownerSafe,
-            terms.payeeSafe,
+            terms.owner,
+            terms.sender,
             id,
             terms.token,
             terms.amount,
             terms.kind,
             terms.documentHash,
-            terms.condition
+            terms.condition,
+            terms.authority,
+            terms.authorityKey
         );
     }
 
     /// @inheritdoc IEscrow
     function conditionMet() public view returns (bool) {
-        if (condition == CONDITION_INVOICE_AMOUNT_REACHED) {
+        if (condition == CONDITION_AMOUNT_REACHED) {
             return IERC20(token).balanceOf(address(this)) >= amount;
         }
-        if (payeeSafe.code.length == 0) return false;
-        (bool ok, bytes memory r) = payeeSafe.staticcall(abi.encodeWithSignature("isOwner(address)", bootstrapOwner));
-        if (!ok || r.length != 32) return false;
-        // Only an exact `false` counts as claimed; any other word fails closed.
-        return abi.decode(r, (uint256)) == 0;
+        if (bootstrapOwner == address(0)) return true;
+        (bool ok, uint256 word) =
+            _readWord(owner, abi.encodeWithSignature("isOwner(address)", bootstrapOwner));
+        // Only an exact `false` counts as "no longer an owner"; any other answer fails closed (D11).
+        return ok && word == 0;
+    }
+
+    /// @inheritdoc IEscrow
+    function canRefund(address who) public view returns (bool) {
+        if (who == sender) return true;
+        if (authority == address(0)) return false;
+        (bool ok, uint256 word) =
+            _readWord(authority, abi.encodeWithSignature("authorised(uint256,address)", authorityKey, who));
+        // Only an exact `true` admits; a revert or any other answer refuses.
+        return ok && word == 1;
     }
 
     /// @inheritdoc IEscrow
     function payout() external nonReentrant {
-        if (condition != CONDITION_INVOICE_AMOUNT_REACHED) revert InvalidCondition(condition);
-        _payout();
+        if (condition != CONDITION_AMOUNT_REACHED) revert InvalidCondition(condition);
+        if (state != State.Open) revert JobNotOpen();
+        if (payments.paid(paymentId)) {
+            // The invoice item was paid through Payments by someone else: close, and return what is here.
+            state = State.Paid;
+            uint256 balance = IERC20(token).balanceOf(address(this));
+            if (balance != 0) _callToken(abi.encodeCall(IERC20.transfer, (sender, balance)));
+            // forge-lint: disable-next-line(reentrancy-events)
+            emit InvoicePaymentCompleted(owner, sender, paymentId, balance);
+            return;
+        }
+        if (!conditionMet()) revert ConditionNotMet();
+        _pay(false);
     }
 
     /// @inheritdoc IEscrow
     function collect() external nonReentrant {
-        if (condition != CONDITION_PAYEE_CLAIMED) revert InvalidCondition(condition);
-        if (msg.sender != payeeSafe) revert NotPayee();
-        _payout();
+        if (condition != CONDITION_OWNER_COLLECTS) revert InvalidCondition(condition);
+        if (msg.sender != owner) revert NotOwner();
+        if (state != State.Open) revert JobNotOpen();
+        if (!conditionMet()) revert ConditionNotMet();
+        _pay(ownerTakesSurplus);
     }
 
-    function _payout() private {
-        if (state != State.Open) revert JobNotOpen();
-        if (condition == CONDITION_INVOICE_AMOUNT_REACHED && payments.paid(paymentId)) {
-            state = State.Paid;
-            uint256 surplus_ = IERC20(token).balanceOf(address(this));
-            if (surplus_ != 0) _callToken(abi.encodeCall(IERC20.transfer, (ownerSafe, surplus_)));
-            // forge-lint: disable-next-line(reentrancy-events)
-            emit InvoicePaymentCompleted(ownerSafe, payeeSafe, paymentId, surplus_);
-            return;
-        }
-        if (!conditionMet()) revert ConditionNotMet();
+    /// @dev Pays exactly `amount` to the owner through Payments, then the surplus to the sender, or to the owner
+    /// when `surplusToOwner`. The state is `Paid` before any token moves.
+    function _pay(bool surplusToOwner) private {
         uint256 funded = IERC20(token).balanceOf(address(this));
         if (funded < amount) revert InsufficientFunding();
 
         state = State.Paid;
         _callToken(abi.encodeCall(IERC20.approve, (address(payments), amount)));
-        IPayments.PaymentItem memory item = IPayments.PaymentItem({
-            paymentId: paymentId,
-            recipient: payeeSafe,
-            token: token,
-            amount: amount,
-            kind: kind,
-            documentHash: documentHash,
-            jobNonce: jobNonce,
-            executor: condition == CONDITION_PAYEE_CLAIMED ? address(this) : address(0)
-        });
         // forge-lint: disable-next-line(reentrancy-no-eth)
-        payments.send(item);
+        payments.send(_item(paymentId, _terms(), address(this)));
 
         uint256 surplus = IERC20(token).balanceOf(address(this));
-        bool exitClaim = condition == CONDITION_PAYEE_CLAIMED && kind == KIND_EXIT && (funded != amount || surplus != 0)
-            && _isExitClaim();
-        if (exitClaim) {
+        if (surplusToOwner && (funded != amount || surplus != 0)) {
+            // The owner's whole share must leave exactly: an inexact token cannot misroute it (v4's exit claim).
             uint256 spent = funded >= surplus ? funded - surplus : 0;
             if (spent != amount) revert IPayments.InexactTransfer(token, amount, spent);
         }
         if (surplus != 0) {
-            address surplusRecipient = exitClaim ? payeeSafe : ownerSafe;
-            uint256 before = exitClaim ? IERC20(token).balanceOf(surplusRecipient) : 0;
-            _callToken(abi.encodeCall(IERC20.transfer, (surplusRecipient, surplus)));
-            if (exitClaim) {
-                uint256 after_ = IERC20(token).balanceOf(surplusRecipient);
+            address to = surplusToOwner ? owner : sender;
+            uint256 before = surplusToOwner ? IERC20(token).balanceOf(to) : 0;
+            _callToken(abi.encodeCall(IERC20.transfer, (to, surplus)));
+            if (surplusToOwner) {
+                uint256 after_ = IERC20(token).balanceOf(to);
                 uint256 received = after_ >= before ? after_ - before : 0;
                 if (received != surplus) revert IPayments.InexactTransfer(token, surplus, received);
                 uint256 remaining = IERC20(token).balanceOf(address(this));
@@ -169,20 +181,20 @@ contract Escrow is IEscrow {
             }
         }
         // forge-lint: disable-next-line(reentrancy-events)
-        emit EscrowPaid(ownerSafe, payeeSafe, paymentId, amount);
+        emit EscrowPaid(owner, sender, paymentId, amount);
     }
 
     /// @inheritdoc IEscrow
     function refund() external nonReentrant {
-        if (msg.sender != ownerSafe) revert NotOwner();
+        if (!canRefund(msg.sender)) revert CannotRefund(msg.sender);
         if (state == State.Open) {
-            if (condition == CONDITION_INVOICE_AMOUNT_REACHED && conditionMet()) revert ConditionMet();
+            if (condition == CONDITION_AMOUNT_REACHED && conditionMet()) revert ConditionMet();
             state = State.Refunded;
         }
         uint256 balance = IERC20(token).balanceOf(address(this));
-        if (balance != 0) _callToken(abi.encodeCall(IERC20.transfer, (ownerSafe, balance)));
+        if (balance != 0) _callToken(abi.encodeCall(IERC20.transfer, (sender, balance)));
         // forge-lint: disable-next-line(reentrancy-events)
-        emit EscrowRefunded(ownerSafe, paymentId, balance, state);
+        emit EscrowRefunded(sender, msg.sender, paymentId, balance, state);
     }
 
     function _callToken(bytes memory data) private {
@@ -197,29 +209,41 @@ contract Escrow is IEscrow {
         if (result.length != 0 && !abi.decode(result, (bool))) revert TokenCallReturnedFalse(token);
     }
 
-    /// @dev An exit payout's label alone is not an identity: ordinary escrows can use any payment kind.
-    function _isExitClaim() private view returns (bool) {
-        bytes memory data = abi.encodeWithSignature("isExitClaimEscrow(address)", address(this));
-        address owner = ownerSafe;
-        // Do not treat a gas-starved lookup as an ordinary escrow and misroute the surplus.
-        if (gasleft() < 30_000) revert InsufficientGasForExitIdentity();
-        bool ok;
+    /// @dev A static call that counts only an answer of exactly one word. It copies at most one word, so a
+    /// target that answers with a huge return cannot make the caller run out of memory gas.
+    function _readWord(address target, bytes memory data) private view returns (bool ok, uint256 word) {
+        if (target.code.length == 0) return (false, 0);
         uint256 size;
-        uint256 value;
-        // Copy at most one word, even if the owner returns a large response.
         assembly ("memory-safe") {
             let output := mload(0x40)
-            ok := staticcall(15000, owner, add(data, 0x20), mload(data), output, 0x20)
+            ok := staticcall(gas(), target, add(data, 0x20), mload(data), output, 0x20)
             size := returndatasize()
-            value := mload(output)
+            word := mload(output)
         }
-        return ok && size == 32 && value == 1;
+        ok = ok && size == 32;
+    }
+
+    function _terms() private view returns (Terms memory) {
+        return Terms({
+            owner: owner,
+            sender: sender,
+            authority: authority,
+            authorityKey: authorityKey,
+            bootstrapOwner: bootstrapOwner,
+            token: token,
+            amount: amount,
+            jobNonce: jobNonce,
+            kind: kind,
+            documentHash: documentHash,
+            condition: condition,
+            ownerTakesSurplus: ownerTakesSurplus
+        });
     }
 
     function _item(
         bytes32 id,
         Terms memory t,
-        address executorIfClaim
+        address escrow
     )
         private
         pure
@@ -227,13 +251,13 @@ contract Escrow is IEscrow {
     {
         return IPayments.PaymentItem({
             paymentId: id,
-            recipient: t.payeeSafe,
+            recipient: t.owner,
             token: t.token,
             amount: t.amount,
             kind: t.kind,
             documentHash: t.documentHash,
             jobNonce: t.jobNonce,
-            executor: t.condition == CONDITION_PAYEE_CLAIMED ? executorIfClaim : address(0)
+            executor: t.condition == CONDITION_OWNER_COLLECTS ? escrow : address(0)
         });
     }
 }

@@ -5,6 +5,10 @@ Deploy_EscrowFactory_Unit_Concrete_Test
 │   └── it should revert with the same error the escrow would
 ├── when an escrow already exists at the predicted address
 │   └── it should return that address and deploy nothing
-└── when no escrow exists there
-    ├── it should deploy the escrow at the predicted address with CREATE2
-    └── it should emit EscrowDeployed with the payment id and the salt
+├── when no escrow exists there
+│   ├── it should deploy the escrow at the predicted address with CREATE2
+│   ├── it should keep money sent to the address before the deploy, and move none
+│   ├── it should bind the terms' bootstrap owner, not the factory's
+│   └── it should emit EscrowDeployed with the payment id, the salt, the authority and its key
+└── when someone else deploys first with the same terms
+    └── it should give the funder the same escrow

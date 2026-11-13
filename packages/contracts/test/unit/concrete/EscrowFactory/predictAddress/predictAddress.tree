@@ -3,5 +3,7 @@ PredictAddress_EscrowFactory_Unit_Concrete_Test
 │   └── it should revert
 └── when the terms are valid
     ├── it should return the CREATE2 address of the escrow for these terms and salt
-    └── when the salt or any term changes
+    ├── when the salt or any of the twelve terms changes
+    │   └── it should return a different address
+    └── when the factory's Payments differs
         └── it should return a different address
