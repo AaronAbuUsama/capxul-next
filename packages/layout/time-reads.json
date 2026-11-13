@@ -298,18 +298,6 @@
    "why": "signed envelope freshness check"
   },
   {
-   "file": "packages/sdk/src/sites/door.ts",
-   "match": "expiresAt: Date.now() + 60_000",
-   "label": "real-on-purpose",
-   "why": "signed request envelope expiry"
-  },
-  {
-   "file": "packages/site-service/src/sites/provisioning.ts",
-   "match": "input.expiresAt <= Date.now()",
-   "label": "real-on-purpose",
-   "why": "signed request envelope freshness check"
-  },
-  {
    "file": "packages/site-service/src/sites/documents.ts",
    "match": "const deadline = Date.now() + 30_000",
    "label": "real-on-purpose",
