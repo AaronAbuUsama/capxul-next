@@ -24,6 +24,7 @@ new_site() {   # new_site <site> <world>: the steps of packages/bench-image/bin/
   echo "joined world: $(capxul "$site" clock.join_world "{\"world\":\"$world\"}")"
   echo "site $site (world $world) created in $((SECONDS - t0)) s; capxul_world in its site_config.json: $(dc exec -T web python3 -c \
     'import json,sys; print(json.load(open(f"sites/{sys.argv[1]}/site_config.json")).get("capxul_world"))' "$site")"
+  echo "site $site encryption key print at creation (before anything served the site): $(keyprint "$site")"
 }
 
 sites() {
@@ -50,10 +51,10 @@ print(f"total: {total:.0f} MiB")'
 down() {
   say "remove everything this run started"
   dc down --volumes --remove-orphans
-  docker image rm bench-clocks:spike >/dev/null 2>&1 || true
-  echo "containers of this project left: $(docker ps -a --filter label=com.docker.compose.project=bench-clocks -q | wc -l)"
-  echo "volumes of this project left: $(docker volume ls --filter label=com.docker.compose.project=bench-clocks -q | wc -l)"
-  echo "networks of this project left: $(docker network ls --filter label=com.docker.compose.project=bench-clocks -q | wc -l)"
+  docker image rm "$BENCH_IMAGE" >/dev/null 2>&1 || true
+  echo "containers of this project left: $(docker ps -a --filter label=com.docker.compose.project=$BENCH_PROJECT -q | wc -l)"
+  echo "volumes of this project left: $(docker volume ls --filter label=com.docker.compose.project=$BENCH_PROJECT -q | wc -l)"
+  echo "networks of this project left: $(docker network ls --filter label=com.docker.compose.project=$BENCH_PROJECT -q | wc -l)"
 }
 
 all() {
