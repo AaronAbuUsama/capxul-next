@@ -21,6 +21,90 @@ import { flow_client_approvals_sign } from "./flows.ts";
 const OLD = "packages/backend/src";
 const t = machine_approval.t;
 
+export const decision_approvals_unsponsored_replacement = defineDecision({
+  id: "approvals.unsponsored-replacement-finality",
+  title: "An inherited nonce can displace a replacement before sponsorship",
+  question: "What ends an unsponsored replacement when the original approval has already consumed their shared nonce?",
+  options: [
+    { label: "finality", text: "A matching indexed final UserOperationEvent displaces the replacement even while it is sponsoring; chain wakes include sponsoring approvals with a persisted nonce." },
+    { label: "wait", text: "Ignore final facts before sponsorship and keep rescheduling after the deadline when the nonce has moved." },
+  ],
+  chosen: "finality",
+  why: "Opening a replacement already persists the original's nonce. If its first carrier run is late, a consumed nonce cannot become usable again, and waiting for sponsorship leaves its opener stuck forever. Another operation's finalized hash is displacement proof before or after sponsorship; a raw receipt or moved nonce alone is not. Without the indexed final fact it still waits. The terminal transition, opener callback and carrier deletion remain one transaction, so callback failure rolls back and retry applies the effect once without sponsoring or sending.",
+  source: "approvals.lifecycle.carry; approvals replacement nonce; PR55 mirror4554855744 and native red control, 12 November 2026",
+  affects: [t.displace, workflow_approvals_lifecycle_carry],
+});
+
+export const decision_approvals_carrier_isolation = defineDecision({
+  id: "approvals.carrier-isolation",
+  title: "One approval's failing step backs off alone",
+  question: "What happens to a carrier batch when one approval's step throws (an indexed reader, a provider, its opener's callback or SQL)?",
+  options: [
+    { label: "isolate", text: "Roll back that step, move only its wake 30 seconds later in its own transaction unless a wake committed since the batch read it, and carry on with the rest of the batch." },
+    { label: "abort", text: "Let the error end the batch; the approval keeps its wake and is tried first again next time." },
+  ],
+  chosen: "isolate",
+  why: "Due approvals are taken in wake order, so an approval that fails every time would head every later batch and stop every other signer's approval with it. Rolling the step back keeps the opener callback, transition and carrier deletion atomic; the conditional back-off never overwrites a chain or signer wake that arrived meanwhile, so a lost wake cannot follow. Bounded sponsorship retries and send lookups keep their own rules inside the step.",
+  source: "approvals.lifecycle.carry; PR55 integrator review P1 (carrier.ts carry), 13 November 2026",
+  affects: [workflow_approvals_lifecycle_carry],
+});
+
+export const decision_approvals_signing_intent = defineDecision({
+  id: "approvals.signing-intent",
+  title: "Expose immutable intent independently of the sponsored operation",
+  question: "Which public fields let a signer check the operation's nonce and window against the opener's intent?",
+  options: [
+    { label: "intent", text: "Expose the stored nonceKey, original deadline and replacement reference with the replaced approval's persisted nonce, separately from operation and expiresAt." },
+    { label: "operation", text: "Derive the expected nonce and deadline from the operation being checked." },
+  ],
+  chosen: "intent",
+  why: "Checking an operation against itself proves nothing. Ordinary approvals bind their stored lane without fixing a sequence; replacements bind the original approval's full nonce, not the new operation's nonce. Sponsor expiry may be shorter than the opener's deadline. Calls, sender, sendAfter and these immutable fields supply intent, while chain/module/EntryPoint/multiSend come from trusted deployment configuration and the actual client chain. This detects inconsistent builder output; the client's originally prepared intent is stronger than a view when the backend itself is malicious. The SDK transport remains wire-only until an independent canonical verifier and signer are composed.",
+  source: "approvals.signing-area; approvals replacement nonce contract; signing builder owner contract, 12 November 2026",
+  affects: [rpc_approvals_signing_get, flow_client_approvals_sign],
+});
+
+export const decision_approvals_public_transport = defineDecision({
+  id: "approvals.public-transport",
+  title: "Bearer-authenticated live signing releases SQL between frames",
+  question: "How do the four signing rpcs reach a public client without exposing the collector's service authority?",
+  options: [
+    { label: "bearer", text: "GET /approvals/signing/get?approvalId=… returns a snapshot, or SSE with Accept: text/event-stream; POST /approvals/signing/review, /sign and /decline take the declared JSON inputs. Resolve the raw Bearer through Access on the caller transaction and canonical world time." },
+    { label: "service", text: "Let a browser use the collector's private HMAC and identify its signer in the body." },
+  ],
+  chosen: "bearer",
+  why: "A service credential is not a person's session. Each live frame reauthenticates and checks signer ownership and any approval gate before reading, using a short transaction that releases its connection before waiting or writing to the socket. Disconnect cancels the wait. Mutations carry X-Capxul-Trace and X-Capxul-Call-Id; same-Sql signer-scoped call metadata refuses reuse with different input and preserves the original trace, but stores no second approval state. Replays invoke the idempotent signing door, not open. The SDK transport follows these frames and sends signatures only when supplied by its caller; it does not invent a SafeOp digest, sponsorship policy or signing authority.",
+  source: "approvals.signing-area; approvals.tenant-is-signer; integrator public transport contract, 12 November 2026",
+  affects: [rpc_approvals_signing_get, rpc_approvals_signing_review, rpc_approvals_signing_sign, rpc_approvals_signing_decline],
+});
+
+export const decision_approvals_transactional_carrier = defineDecision({
+  id: "approvals.transactional-carrier",
+  title: "The caller's transaction persists the carrier and its wake",
+  question: "How does a committed approval survive a crash before its process starts?",
+  options: [
+    { label: "transactional", text: "Persist the approval, transition event and durable wake on the caller's checked-out Sql connection; resolve the principal before opening and perform outside calls only after commit." },
+    { label: "after-commit", text: "Enqueue the carrier after committing the opener's intent." },
+  ],
+  chosen: "transactional",
+  why: "A crash must not leave an intent without its carrier or a carrier without its wake. A collector already holds a bounded-pool connection, so opening another transaction can deadlock. Principal context comes from the trusted access boundary, not client-supplied sender fields. Durable events and wakes are process infrastructure, not a second approval or send-attempt store.",
+  source: "rules.procedures; approvals.open; approvals.lifecycle.carry; Core and approvals integration contract, 12 November 2026",
+  affects: [procedure_approvals_open, workflow_approvals_lifecycle_carry, event_approval_transitioned],
+});
+
+export const decision_approvals_site_compatibility = defineDecision({
+  id: "approvals.site-compatibility",
+  title: "Preserve committed site payment answers while installing signer approvals",
+  question: "How does the declared signer store replace the narrow site's prepared-payment table without losing committed answers?",
+  options: [
+    { label: "rename", text: "Rename the narrow table to site_payment_approvals in the migration transaction, preserve its existing API and row policies, and install the declared principal approvals table. All legacy reads and settlement go through the approvals door." },
+    { label: "discard", text: "Discard the old prepared-payment rows and request answers." },
+  ],
+  chosen: "rename",
+  why: "Existing collector answers, originating traces and lost-ACK replay remain facts. The compatibility store does not carry a UserOperation or replace approvals.open; new chain-writing intents use the declared signer carrier. A committed answer lookup reads site_request_answers, never infers collection from an approval row, and binds requested_by to the authenticated caller. Shared migration composition serializes rename, grants and callers.",
+  source: "Core34 committed site-answer replay; approvals.tenant-is-signer; Core/Sites integration contract, 12 November 2026",
+  affects: [table_approvals, procedure_approvals_open],
+});
+
 export const decision_approvals_one_table = defineDecision({
   id: "approvals.one-table",
   title: "One approvals table holds the approval and its one UserOperation",
@@ -58,7 +142,11 @@ export const decision_approvals_tenant_is_signer = defineDecision({
     "other Directors follow a proposal, not each other's approvals. Access gives every principal, person or agent, one " +
     "`person_id`, so one tenant column covers both. An Organization tenant would let every member see each Director's " +
     "and payer's pending signatures. Three lookups must cross tenants and say why: by id alone (the process, the " +
-    "openers' workflows, the page's link) and by a Safe's nonce (the indexed event names only the Safe).",
+    "openers' workflows, the page's link) and by a Safe's nonce (the indexed event names only the Safe). " +
+    "A trusted worker replaying a stored command may read only approval_id, deadline, state, person_id and sender by " +
+    "its stored approval id, on the caller's Sql connection. The database worker role is required even when a person " +
+    "context exists; a later budget wearer must not reopen a terminal approval or impersonate its original signer. " +
+    "The opener authorizes its command before this internal read; the read grants no signing or mutation authority.",
   source: `${OLD}/accounts/approvals/guards.ts:13; blueprint/access/data.ts (principals: person_id for both kinds); P8`,
   affects: [table_approvals, rpc_approvals_signing_get],
 });

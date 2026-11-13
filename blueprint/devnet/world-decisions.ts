@@ -33,6 +33,16 @@ import * as r from "./world-rpcs.ts";
 import * as o from "./world-ops.ts";
 import * as w from "./world-processes.ts";
 
+export const decision_devnet_local_world_view = defineDecision({
+  id: "devnet.local-world-view", title: "A local world view reports stored facts and configured company addresses",
+  question: "Which authority supplies a stopped world's public view and complete company inventory?",
+  options: [{ label: "selected-world-facts", text: "world show [ID] --config FILE reads only the database selected by the private config; an explicit ID or --world must match. It does not compose services, acquire the mutation lock, migrate or require running processes. The WorldView fields and current-epoch recordHead come from the actual world catalogue, not config defaults or Core's financial record sequence. Companies come through Organizations' complete typed world-inventory door on an actual capxul_worker connection, including released companies and core-only companies with no site. A tenant-filtered inventory is not a complete world view. A company's non-null stored site hostname is projected to the existing supervisor route http://<hostname>:<publicBench>; a null site yields url:null. This is the configured native address, not DNS, listener or HTTP readiness and not a shareable Amp portal. Neither config.sites nor financial records may invent company identity, name or site. Reads return only declared WorldView fields and refuse absent catalogue or inventory evidence without migration or backfill." }],
+  chosen: "selected-world-facts",
+  why: "The world-show contract promises lineage, clock, company addresses and record head while the chain is stopped. Catalogue facts and a complete Organizations-owned inventory preserve that promise without turning a read into startup or presenting partial tenant visibility and configured URLs as live readiness.",
+  source: BY("aaron.one-cli; devnet.world-first-class; devnet.catalogue-storage"),
+  affects: [o.operation_world_show, r.rpc_devnet_worlds_show],
+});
+
 export const decision_devnet_local_catalogue_reads = defineDecision({
   id: "devnet.local-catalogue-reads", title: "Local record and snapshot reads do not start a world",
   question: "How do local catalogue reads remain available while the chain is stopped?",

@@ -3,8 +3,9 @@ import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import { cloneDatabase, psqlAdmin, migrateMailSink, devnetMail } from "./door.ts";
 import { migrateCatalogue, worldCatalogue, type Command, type WorldRow } from "./catalogue.ts";
 import { writeConfig, type Config } from "./supervisor.ts";
@@ -108,7 +109,7 @@ test("native catalogue preserves command history, atomic mutations and restricte
     await writeConfig(configFile, config);
     await mkdir(join(config.controlDir, ".operation"), { recursive: true });
     const cli = (args: string[], status = 0) => {
-      const result = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", resolve("packages/cli/src/main.ts"), ...args, "--config", configFile, "--json"], { encoding: "utf8", timeout: 15000 });
+      const result = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", fileURLToPath(new URL("../../../cli/src/main.ts", import.meta.url)), ...args, "--config", configFile, "--json"], { encoding: "utf8", timeout: 15000 });
       assert.equal(result.status, status, result.stderr);
       return JSON.parse(status === 0 ? result.stdout : result.stderr);
     };
@@ -132,10 +133,10 @@ test("native catalogue preserves command history, atomic mutations and restricte
     assert.equal(await readFile(out, "utf8"), exported.data); assert.equal((await stat(out)).mode & 0o077, 0);
     cli(["record", "export", "--out", out], 1); assert.equal(await readFile(out, "utf8"), exported.data, "existing export must not be overwritten");
     for (const args of [["record", "list", "--world", "town3"], ["record", "list", "--limit", "0"], ["record", "list", "--limit", "10001"],
-      ["record", "list", "--from", "2", "--to", "1"], ["record", "show", "--seq", "1.5"]]) assert.equal(cli(args, 1).error.code, "INVALID_INPUT");
+      ["record", "list", "--from", "2", "--to", "1"], ["record", "show", "--seq", "1.5"]]) assert.equal(cli(args, 2).error.code, "INVALID_INPUT");
     for (const args of [["record", "list", "--all"], ["record", "list", "--who"], ["record", "list", "--limit", "1", "--limit", "2"], ["record", "export"]]) assert.equal(cli(args, 2).error.code, "CLI_USAGE");
     const absentConfig = { ...config, world: { ...config.world, id: "absent" } }; await writeConfig(configFile, absentConfig);
-    assert.equal(cli(["record", "list"], 1).error.code, "INVALID_INPUT");
+    assert.equal(cli(["record", "list"], 2).error.code, "INVALID_INPUT");
     await writeConfig(configFile, config);
     assert.equal((await store.records("town1", { includeAbandoned: true })).length, 16, "reads must not append command entries");
     await stat(join(config.controlDir, ".operation"));

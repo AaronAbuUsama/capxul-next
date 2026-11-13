@@ -10,6 +10,14 @@ create table if not exists app.transition_acks (
   acked_at timestamptz not null default now(),
   primary key (consumer, event_id)
 );
+-- A failing event's latest leading error code and attempts only (runtime.outbox-poison-event); no clock read, message or event data.
+create table if not exists app.transition_failures (
+  consumer text not null check (consumer <> ''),
+  event_id text not null references app.transition_outbox(id),
+  attempts integer not null check (attempts > 0),
+  last_error text not null,
+  primary key (consumer, event_id)
+);
 
 alter table app.transition_outbox enable row level security;
 alter table app.transition_outbox force row level security;
@@ -28,3 +36,8 @@ create policy transition_worker on app.transition_acks to capxul_worker using (t
 grant select, insert on app.transition_outbox to capxul_core, capxul_worker;
 grant usage on sequence app.transition_outbox_seq_seq to capxul_core, capxul_worker;
 grant select, insert on app.transition_acks to capxul_worker;
+alter table app.transition_failures enable row level security;
+alter table app.transition_failures force row level security;
+drop policy if exists transition_failure_worker on app.transition_failures;
+create policy transition_failure_worker on app.transition_failures to capxul_worker using (true) with check (true);
+grant select, insert, update, delete on app.transition_failures to capxul_worker;

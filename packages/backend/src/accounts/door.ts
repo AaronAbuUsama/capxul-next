@@ -61,7 +61,8 @@ export async function admitWave(sql: Sql, input: { emails: unknown; by: unknown 
 Promise<{ admitted: string[]; already: string[]; invalid: string[] }> {
   if (!Array.isArray(input.emails) || input.emails.length > 200 || input.emails.some((e) => typeof e !== "string"))
     throw new Error("INVALID_INPUT: emails");
-  if (typeof input.by !== "string" || !input.by.trim()) throw new Error("INVALID_INPUT: by");
+  // accounts.operator-label: trimmed, nonblank, at most 64 characters.
+  if (typeof input.by !== "string" || !input.by.trim() || input.by.trim().length > 64) throw new Error("INVALID_INPUT: by");
   const by = input.by.trim(), invalid: string[] = [], valid = new Set<string>();
   for (const raw of input.emails as string[]) {
     try { valid.add(normalizeEmail(raw)); } catch { invalid.push(raw); }

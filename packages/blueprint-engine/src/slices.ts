@@ -66,11 +66,23 @@ const foundationKeys = (b: Blueprint): Set<string> => {
   return keys;
 };
 
-/** Full same-run gate consumed by both the board and slice-zero runtime; eval IDs remain opaque. */
+/** The environments slice zero runs on: the devnet stack and the hosted simulated worlds (portal.slice-zero-measured-gate). */
+const SLICE_ZERO_ENVIRONMENTS: readonly string[] = ["devnet", "worlds"];
+
+/** Full same-run gate consumed by both the board and slice-zero runtime; eval IDs remain opaque. Beyond the records' own
+ * claims at every level, it takes the invariants over them (or over no record), their concepts' import rules, the system's
+ * claims and its environments' boot and smoke claims (portal.slice-zero-measured-gate). */
 export const sliceZeroRequired = (b: Blueprint): readonly string[] => {
   const keys = foundationKeys(b);
-  return sorted([...SLICE_ZERO_REQUIRED, ...b.evals.filter((e) => e.subject === "journey:thin_line" ||
-    (keys.has(e.subject) && (e.level === "L1" || /^(scr|alr):/.test(e.id)))).map((e) => e.id)]);
+  const concepts = new Set([...keys].map((k) => sliceConcept(b, new Map(), k)));
+  const required = (subject: string, id: string): boolean => {
+    if (subject === "journey:thin_line" || keys.has(subject)) return true;
+    const r = b.records.get(subject);
+    if (r?._kind === "invariant") { const over = ((r.over ?? []) as AnyRecord[]).map(keyOf); return !over.length || over.some((k) => keys.has(k)); }
+    if (r?._kind === "concept") return id.startsWith("sys:imports/") && concepts.has(r.id);
+    return r?._kind === "system" || (r?._kind === "environment" && SLICE_ZERO_ENVIRONMENTS.includes(r.id));
+  };
+  return sorted([...SLICE_ZERO_REQUIRED, ...b.evals.filter((e) => required(e.subject, e.id)).map((e) => e.id)]);
 };
 
 /** Child records inherit their parent's source concept. Explicit concept references work in small fixtures too. */
@@ -80,6 +92,11 @@ export const sliceConcept = (b: Blueprint, owners: ReadonlyMap<string, string>, 
   return owners.get(key) ?? (parent ? sliceConcept(b, owners, `${parent}:${String(r?.[parent])}`) :
     (r?.concept as { id?: string } | undefined)?.id ?? "shared");
 };
+
+/** Requested screen `shows` claims with no source-equality capture for their screen in this receipt. */
+export const uncapturedScreens = (b: Pick<Blueprint, "evals">, ids: readonly string[], screens: RunReceipt["screens"]): string[] =>
+  b.evals.filter((e) => ids.includes(e.id) && e.subject.startsWith("screen:") && e.id.endsWith("/shows") &&
+    !screens.some((s) => `screen:${s.screen.replace(/^screen:/, "")}` === e.subject && s.path && s.source && s.assertion === "source-equality")).map((e) => e.id);
 
 /** No union of passes: all requested claims must pass, fresh, in the same complete selected-stack run. */
 export const sliceEvidence = (b: Blueprint, ids: readonly string[], runs: readonly SliceRun[]): SliceEvidence => {
@@ -91,8 +108,7 @@ export const sliceEvidence = (b: Blueprint, ids: readonly string[], runs: readon
     latest.requested.includes(id) && s.run === latest.id && s.commit === latest.commit)) }) : null;
   const passing = ids.filter((id) => status?.evals[id]?.verdict === "pass").length;
   const failed = ids.some((id) => status?.evals[id]?.verdict === "fail");
-  const screens = b.evals.filter((e) => ids.includes(e.id) && e.subject.startsWith("screen:") && e.id.endsWith("/shows"));
-  const captured = screens.every((e) => latest?.screens.some((s) => `screen:${s.screen.replace(/^screen:/, "")}` === e.subject && s.path && s.source && s.assertion === "source-equality"));
+  const captured = uncapturedScreens(b, ids, latest?.screens ?? []).length === 0;
   return {
     state: !latest || ids.length === 0 ? "unproved" : latest.state !== "complete" ? latest.state : failed ? "failing" : passing === ids.length && captured ? "proved" : "partial",
     passing, required: ids.length, run: latest?.id ?? null,
