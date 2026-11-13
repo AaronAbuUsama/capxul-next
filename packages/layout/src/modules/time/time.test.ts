@@ -4,65 +4,86 @@ import { test } from "node:test";
 
 import { checkTime, hostReads, inScope, type Allowlist } from "./service.ts";
 
-const reads = JSON.parse(readFileSync(new URL("../../../time-reads.json", import.meta.url), "utf8")) as Allowlist;
+const committed = JSON.parse(readFileSync(new URL("../../../time-reads.json", import.meta.url), "utf8")) as Allowlist;
 const allow: Allowlist = {
-  scope: ["packages/backend/src/", "packages/runtime/src/"], module: "packages/runtime/src/time/",
-  reads: [{ file: "packages/backend/src/a.ts", match: "const deadline = Date.now() + 60_000", label: "real-on-purpose", why: "a retry budget" }],
+  include: ["packages/*/src/", "packages/frappe-app/capxul/"], exclude: { "packages/evals/": "the harness" }, module: "packages/runtime/src/time/",
+  reads: [
+    { file: "packages/backend/src/a.ts", line: "const deadline = Date.now() + 60_000;", label: "real-on-purpose", why: "a retry budget" },
+    { file: "packages/backend/src/schema.sql", line: "at timestamptz not null default now()", label: "owed", why: "business time", owner: "Core" },
+  ],
 };
-const labelled = { path: "packages/backend/src/a.ts", text: "const deadline = Date.now() + 60_000;\n" };
+const labelled = [
+  { path: "packages/backend/src/a.ts", text: "const deadline = Date.now() + 60_000;\n" },
+  { path: "packages/backend/src/schema.sql", text: "create table r (\n  at timestamptz not null default now()\n);\n" },
+];
+const problems = (extra: { path: string; text: string }[], list = allow) => checkTime([...labelled, ...extra], list).problems;
 
-test("a labelled read passes", () => {
-  assert.deepEqual(checkTime([labelled], allow).problems, []);
+test("labelled reads pass", () => {
+  assert.deepEqual(problems([]), []);
 });
 
-test("an unlabelled host clock read in backend/src fails, in TypeScript, SQL and Python", () => {
+test("an unlabelled host clock read fails in TypeScript, JavaScript, SQL and Python, in every spelling", () => {
   for (const [path, line] of [
-    ["packages/backend/src/a.ts", "const at = Date.now();"],
-    ["packages/backend/src/a.ts", "const at = new Date();"],
-    ["packages/backend/src/a.ts", "await db.query(`update t set at=now()`)"],
-    ["packages/backend/src/a.sql", "create table t (at timestamptz not null default now());"],
-    ["packages/backend/src/a.sql", "select * from t where due < current_date;"],
-    ["packages/backend/src/a.py", "stamp = datetime.now()"],
+    ["packages/backend/src/b.ts", "const at = Date.now();"],
+    ["packages/backend/src/b.ts", "const at = new Date();"],
+    ["packages/backend/src/b.mjs", "export const at = Date.now();"],
+    ["packages/backend/src/b.ts", "await db.query(`update t set at=now()`)"],
+    ["packages/backend/src/b.ts", "await db.query(`select 1 where due<now()`)"],
+    ["packages/backend/src/b.sql", "create table t (due_at timestamptz not null default now());"],
+    ["packages/backend/src/b.sql", "select * from t where due < current_date;"],
+    ["packages/backend/src/b.sql", "insert into t values (transaction_timestamp());"],
+    ["packages/frappe-app/capxul/b.py", "stamp = datetime.now()"],
+    ["packages/frappe-app/capxul/b.py", "day = datetime.today()"],
+    ["packages/frappe-app/capxul/b.py", "frappe.db.sql(\"update t set modified=NOW() where name=%s\", name)"],
+    ["packages/frappe-app/capxul/b.py", "frappe.db.sql(\"select 1 where d <= CURDATE()\")"],
   ] as const) {
-    const { problems } = checkTime([labelled, { path, text: line }], allow);
-    assert.equal(problems.length, 1, `${path}: ${line}`);
-    assert.match(problems[0]!.why, /unlabelled host clock read/);
+    const found = problems([{ path, text: line }]);
+    assert.equal(found.length, 1, `${path}: ${line}`);
+    assert.match(found[0]!.why, /unlabelled host clock read/);
   }
 });
 
+test("an entry labels its whole line only: a new column cannot hide behind an owed one, nor a copied line behind its count", () => {
+  // The owed `at ... default now()` must not label `due_at ... default now()`, which contains it.
+  const hidden = problems([{ path: "packages/backend/src/schema.sql", text: "  at timestamptz not null default now()\n  due_at timestamptz not null default now()\n" }]);
+  assert.ok(hidden.some((p) => /unlabelled host clock read: due_at/.test(p.why)), JSON.stringify(hidden));
+  // The same line twice is one more read than labelled.
+  const copied = checkTime([labelled[0]!, { path: "packages/backend/src/schema.sql", text: "at timestamptz not null default now()\nat timestamptz not null default now()\n" }], allow).problems;
+  assert.match(copied.map((p) => p.why).join("\n"), /occurs on 2 lines, labelled for 1/);
+});
+
+test("scope is every package's src, so a new package is scanned; only named tooling is excluded", () => {
+  assert.equal(inScope("packages/newthing/src/a.ts", allow), true, "a package added later is scanned without editing the list");
+  assert.equal(inScope("packages/newthing/src/a.js", allow), true);
+  assert.equal(inScope("packages/evals/src/a.ts", allow), false);
+  assert.equal(inScope("packages/backend/src/a.test.ts", allow), false);
+  assert.equal(inScope("packages/backend/src/a.native.ts", allow), false, "opt-in native proofs are tests");
+  assert.equal(inScope("packages/backend/src/generated/a.ts", allow), false);
+  assert.deepEqual(hostReads("packages/backend/src/a.ts", "const at = await now();"), [], "an injected clock named now is the caller's clock");
+  assert.deepEqual(hostReads("packages/backend/src/a.ts", "const at = clock.now();"), [], "a member named now is not SQL's now()");
+});
+
 test("only the clock module reads a clock unlabelled; a label inside it is refused", () => {
-  assert.deepEqual(checkTime([labelled, { path: "packages/runtime/src/time/real-time.ts", text: "export const realNowMs = () => Date.now();" }], allow).problems, []);
-  const outside = checkTime([labelled, { path: "packages/runtime/src/other.ts", text: "export const at = Date.now();" }], allow).problems;
-  assert.match(outside[0]!.why, /unlabelled host clock read/);
-  const inside = { ...allow, reads: [...allow.reads, { file: "packages/runtime/src/time/real-time.ts", match: "Date.now()", label: "real-on-purpose" as const, why: "x" }] };
-  assert.match(checkTime([labelled, { path: "packages/runtime/src/time/real-time.ts", text: "Date.now()" }], inside).problems[0]!.why, /needs no labels/);
+  assert.deepEqual(problems([{ path: "packages/runtime/src/time/real-time.ts", text: "export const realNowMs = () => Date.now();" }]), []);
+  assert.match(problems([{ path: "packages/runtime/src/other.ts", text: "export const at = Date.now();" }])[0]!.why, /unlabelled host clock read/);
+  const inside = { ...allow, reads: [...allow.reads, { file: "packages/runtime/src/time/real-time.ts", line: "Date.now()", label: "real-on-purpose" as const, why: "x" }] };
+  assert.match(problems([{ path: "packages/runtime/src/time/real-time.ts", text: "Date.now()" }], inside).map((p) => p.why).join("\n"), /needs no labels/);
 });
 
-test("an allowlist entry that labels no read fails, so the list cannot go stale", () => {
+test("the list cannot go stale or vague: unused entries, owed reads or work without an owner, unexplained exclusions all fail", () => {
   assert.match(checkTime([], allow).problems[0]!.why, /labels no read/);
-});
-
-test("an owed read must name its owner, and every read needs a reason and a known label", () => {
-  const bad: Allowlist = { scope: [], module: "", reads: [
-    { file: "x.ts", match: "Date.now()", label: "owed", why: "business time" },
-    { file: "y.ts", match: "Date.now()", label: "real-on-purpose", why: " " },
-    { file: "z.ts", match: "Date.now()", label: "later" as never, why: "?" },
-  ] };
+  const bad: Allowlist = { include: [], exclude: { "packages/x/": " " }, module: "", reads: [
+    { file: "x.ts", line: "Date.now()", label: "owed", why: "business time" },
+    { file: "y.ts", line: "Date.now()", label: "real-on-purpose", why: " " },
+    { file: "z.ts", line: "Date.now()", label: "later" as never, why: "?" },
+  ], work: [{ id: "w", owner: "", what: "x" }] };
   const whys = checkTime([], bad).problems.map((p) => p.why).join("\n");
-  assert.match(whys, /names no owner/);
-  assert.match(whys, /has no reason/);
-  assert.match(whys, /is not one of/);
+  for (const expected of [/names no owner/, /has no reason/, /is not one of/, /owed work needs an owner/, /excluded path needs its reason/]) assert.match(whys, expected);
 });
 
-test("an injected clock named now is not a host read; tests and generated code are out of scope", () => {
-  assert.deepEqual(hostReads("packages/backend/src/a.ts", "const at = await now();"), []);
-  assert.equal(inScope("packages/backend/src/a.test.ts", allow.scope), false);
-  assert.equal(inScope("packages/backend/src/a.native.ts", allow.scope), false, "opt-in native proofs are tests");
-  assert.equal(inScope("packages/backend/src/generated/a.ts", allow.scope), false);
-  assert.equal(inScope("packages/backend/src/a.ts", allow.scope), true);
-});
-
-test("the committed allowlist is well formed, and every owed read names its owner", () => {
-  assert.deepEqual(checkTime([], { ...reads, reads: [] }).problems, []);
-  for (const read of reads.reads) if (read.label === "owed") assert.ok(read.owner, read.match);
+test("the committed list is well formed and reports its owed work", () => {
+  const { problems: found, owed } = checkTime([], { ...committed, reads: [] });
+  assert.deepEqual(found, []);
+  for (const read of committed.reads) if (read.label === "owed") assert.ok(read.owner, read.line);
+  assert.ok(owed.some((o) => "id" in o && o.id.startsWith("devnet.site-follows-world")), "unbuilt clock work in decisions is listed as owed");
 });

@@ -3,22 +3,33 @@
 /** rebound: replaced at runtime by the world clock. real-on-purpose: time.real-elapsed's measures and protections. world: reads the world clock.
  *  owed: business time still on the host, with its owner; it passes the scan but keeps inv:time.no-direct-reads false until none remain. */
 export type Label = "rebound" | "real-on-purpose" | "world" | "owed";
-export type Read = { file: string; match: string; label: Label; why: string; owner?: string };
-/** module: the one clock module (time.no-direct-reads); reads inside it are the door itself and need no label. */
-export type Allowlist = { scope: string[]; module: string; reads: Read[] };
+/** One labelled read: the whole trimmed source line, and how many lines of the file are exactly that line (default 1). */
+export type Read = { file: string; line: string; hits?: number; label: Label; why: string; owner?: string };
+/** Clock work a decision promises that no scanned line shows, such as a pinned app's read still to be pointed at the world. */
+export type OwedWork = { id: string; owner: string; what: string };
+/** include: path globs scanned (`*` is one path segment); exclude: prefixes of tooling that is not product code, each with its reason.
+ *  module: the one clock module (time.no-direct-reads); reads inside it are the door itself and take no label. */
+export type Allowlist = { include: string[]; exclude: Record<string, string>; module: string; reads: Read[]; work?: OwedWork[] };
 export type Problem = { at: string; why: string };
 
 const LABELS: readonly Label[] = ["rebound", "real-on-purpose", "world", "owed"];
-const TS = [/\bDate\.now\(/, /\bnew Date\(\)/, /\bperformance\.now\(/];
-const PY = [/\bdatetime\.now\(/, /\bdatetime\.utcnow\(/, /\btime\.time\(/, /\bdate\.today\(/];
-const SQL = [/(?:^|[\s=,(])now\(\)/i, /\bcurrent_timestamp\b/i, /\bcurrent_date\b/i, /\blocaltimestamp\b/i, /\bclock_timestamp\(/i];
+const JS = [/\bDate\.now\(/, /\bnew Date\(\s*\)/, /\bperformance\.now\(/];
+const PY = [/\bdatetime\.(now|utcnow|today)\(/, /\bdate\.today\(/, /\btime\.(time|time_ns)\(/];
+// SQL's clock, in Postgres and MariaDB spellings. `now()` counts unless it is a method or member (`x.now()`); `<now()` counts.
+const SQL = [/(?<![\w.$])now\(\s*\)/i, /\b(current_timestamp|current_date|current_time|localtimestamp|localtime)\b/i,
+  /\b(clock_timestamp|transaction_timestamp|statement_timestamp|timeofday|sysdate|utc_timestamp|utc_date|curdate|curtime)\s*\(/i];
+const CODE = /\.(ts|tsx|mts|cts|js|mjs|cjs|py|sql)$/;
 
-export const inScope = (file: string, scope: readonly string[]): boolean =>
-  scope.some((prefix) => file.startsWith(prefix)) && !/(^|\/)(node_modules|tests?|generated)\//.test(file) && !/\.(test|native)\.ts$/.test(file) && /\.(ts|py|sql)$/.test(file);
+const glob = (pattern: string, file: string): boolean =>
+  new RegExp(`^${pattern.split("*").map((part) => part.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join("[^/]+")}`).test(file);
 
-/** Every line of a scanned file that reads the host's clock. SQL patterns apply to .sql files and to SQL inside TypeScript. */
+export const inScope = (file: string, allow: Pick<Allowlist, "include" | "exclude">): boolean =>
+  allow.include.some((pattern) => glob(pattern, file)) && !Object.keys(allow.exclude).some((prefix) => file.startsWith(prefix)) &&
+  !/(^|\/)(node_modules|tests?|generated)\//.test(file) && !/\.(test|native)\.[cm]?[jt]sx?$/.test(file) && CODE.test(file);
+
+/** Every line of a scanned file that reads the host's clock. SQL patterns apply everywhere: SQL lives in .sql, TypeScript and Python strings. */
 export function hostReads(file: string, text: string): { line: number; text: string }[] {
-  const patterns = file.endsWith(".py") ? PY : file.endsWith(".sql") ? SQL : [...TS, ...SQL];
+  const patterns = file.endsWith(".py") ? [...PY, ...SQL] : file.endsWith(".sql") ? SQL : [...JS, ...SQL];
   return text.split("\n").flatMap((line, index) => {
     // An injected clock function named `now` (await now()) is the caller's clock, not a host read.
     const code = line.replace(/await now\(\)/g, "");
@@ -26,24 +37,29 @@ export function hostReads(file: string, text: string): { line: number; text: str
   });
 }
 
-/** Each host read must be labelled by one allowlist entry, and each entry must still label a read. */
-export function checkTime(files: { path: string; text: string }[], allow: Allowlist): { problems: Problem[]; owed: Read[] } {
-  const problems: Problem[] = [], used = new Set<Read>();
+/** Each host read must be labelled by an entry naming its whole line, and each entry must label exactly its count of lines. */
+export function checkTime(files: { path: string; text: string }[], allow: Allowlist): { problems: Problem[]; owed: (Read | OwedWork)[] } {
+  const problems: Problem[] = [], seen = new Map<Read, number>();
   for (const read of allow.reads) {
     if (!LABELS.includes(read.label)) problems.push({ at: read.file, why: `label ${read.label} is not one of ${LABELS.join(", ")}` });
-    if (!read.why?.trim()) problems.push({ at: read.file, why: `the read matching "${read.match}" has no reason` });
+    if (!read.why?.trim()) problems.push({ at: read.file, why: `the read "${read.line}" has no reason` });
     if (allow.module && read.file.startsWith(allow.module)) problems.push({ at: read.file, why: "the clock module needs no labels; remove the entry" });
-    if (read.label === "owed" && !read.owner) problems.push({ at: read.file, why: `owed read "${read.match}" names no owner` });
+    if (read.label === "owed" && !read.owner) problems.push({ at: read.file, why: `owed read "${read.line}" names no owner` });
   }
+  for (const work of allow.work ?? []) if (!work.owner?.trim() || !work.what?.trim()) problems.push({ at: work.id, why: "owed work needs an owner and what is owed" });
+  for (const [prefix, why] of Object.entries(allow.exclude)) if (!why?.trim()) problems.push({ at: prefix, why: "an excluded path needs its reason" });
   for (const { path, text } of files) {
     if (allow.module && path.startsWith(allow.module)) continue;
     for (const hit of hostReads(path, text)) {
-      // The longest matching entry labels the line, so a short match cannot shadow a longer, more specific one.
-      const entry = allow.reads.filter((read) => read.file === path && hit.text.includes(read.match)).sort((a, b) => b.match.length - a.match.length)[0];
-      if (entry) used.add(entry);
+      const entry = allow.reads.find((read) => read.file === path && read.line === hit.text);
+      if (entry) seen.set(entry, (seen.get(entry) ?? 0) + 1);
       else problems.push({ at: `${path}:${hit.line}`, why: `unlabelled host clock read: ${hit.text.slice(0, 120)}` });
     }
   }
-  for (const read of allow.reads) if (!used.has(read)) problems.push({ at: read.file, why: `allowlist entry "${read.match}" labels no read; remove it` });
-  return { problems, owed: allow.reads.filter((read) => read.label === "owed") };
+  for (const read of allow.reads) {
+    const count = seen.get(read) ?? 0, expected = read.hits ?? 1;
+    if (count === 0) problems.push({ at: read.file, why: `allowlist entry "${read.line.slice(0, 80)}" labels no read; remove it` });
+    else if (count !== expected) problems.push({ at: read.file, why: `"${read.line.slice(0, 80)}" occurs on ${count} lines, labelled for ${expected}; label each new read` });
+  }
+  return { problems, owed: [...allow.reads.filter((read) => read.label === "owed"), ...(allow.work ?? [])] };
 }

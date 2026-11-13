@@ -99,7 +99,7 @@ def bypass_attempts(email):
         out["has_role_direct_insert"] = f"refused: {type(e).__name__}"
     frappe.db.sql("delete from `tabHas Role` where parent=%s and role='Sales Manager'", email)
     # c) raw SQL
-    frappe.db.sql("insert into `tabHas Role` (name, parent, parenttype, parentfield, role, creation, modified) values (%s,%s,'User','roles','Sales Manager',now(),now())", (frappe.generate_hash(length=10), email))
+    frappe.db.sql("insert into `tabHas Role` (name, parent, parenttype, parentfield, role, creation, modified) values (%s,%s,'User','roles','Sales Manager',%s,%s)", (frappe.generate_hash(length=10), email, frappe.utils.now(), frappe.utils.now()))
     out["raw_sql"] = "Sales Manager" in roles()
     frappe.db.sql("delete from `tabHas Role` where parent=%s and role='Sales Manager'", email)
     # d) a Role Profile assigned to the user

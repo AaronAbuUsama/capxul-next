@@ -1,337 +1,380 @@
 {
- "scope": [
-  "packages/backend/src/",
-  "packages/devnet/src/",
+ "include": [
+  "packages/*/src/",
   "packages/devnet/orb/",
-  "packages/sdk/src/",
-  "packages/site-service/src/",
-  "packages/cli/src/",
-  "packages/indexer/src/",
-  "packages/indexer/ponder",
-  "packages/frappe-app/capxul/",
-  "packages/runtime/src/"
+  "packages/indexer/",
+  "packages/frappe-app/capxul/"
  ],
+ "exclude": {
+  "packages/blueprint-engine/": "builds the blueprint; runs at build time, never in a world",
+  "packages/layout/": "this check and the repository layout rules",
+  "packages/portal/": "builds the book from the blueprint",
+  "packages/plan/": "the coordinator's plan tooling",
+  "packages/evals/": "the eval harness: it times runs and stamps receipts in real time on purpose (time.real-elapsed)",
+  "packages/contracts/": "Solidity reads block.timestamp, which is chain time; its scripts are deploy tooling"
+ },
  "module": "packages/runtime/src/time/",
  "reads": [
   {
    "file": "packages/backend/src/parties/door.ts",
-   "match": "BigInt(Date.now()) << 80n",
+   "line": "let n = (BigInt(Date.now()) << 80n) | BigInt(`0x${randomBytes(10).toString(\"hex\")}`), result = \"\";",
    "label": "real-on-purpose",
    "why": "identifier entropy prefix for ordering and uniqueness; never read back as a date"
   },
   {
    "file": "packages/backend/src/platform/db.ts",
-   "match": "coalesce(to_timestamp($5::double precision / 1000), now())",
+   "line": "coalesce(to_timestamp($5::double precision / 1000), now())",
    "label": "owed",
    "why": "a record's business time falls back to the host when the caller passes none; every caller must pass worldNow",
    "owner": "Core"
   },
   {
    "file": "packages/backend/src/platform/diagnostics.ts",
-   "match": "then now() else app.indexer_observation.last_advance_at",
+   "line": "last_advance_at=case when app.indexer_observation.indexed_block<>excluded.indexed_block then now() else app.indexer_observation.last_advance_at end`, [chainId, head.indexed_block]);",
    "label": "owed",
    "why": "indexer liveness is a legitimate host age, but time.no-direct-reads bans now() in SQL: Core writes it from TS through packages/runtime/src/time (RealTime)",
    "owner": "Core"
   },
   {
    "file": "packages/backend/src/platform/diagnostics.ts",
-   "match": "Date.now() - new Date(observation.last_advance_at)",
+   "line": "const stale = head && observation && chainHead && BigInt(chainHead) > BigInt(head.indexed_block) && Date.now() - new Date(observation.last_advance_at).getTime() > 60_000;",
    "label": "real-on-purpose",
    "why": "indexer_unready alert age in real elapsed time"
   },
   {
    "file": "packages/backend/src/platform/diagnostics.ts",
-   "match": "observedAt: new Date().toISOString()",
+   "line": "indexedBlockHash: head?.indexed_block_hash ?? null, lastAdvanceAt: observation?.last_advance_at ?? null, observedAt: new Date().toISOString() };",
    "label": "real-on-purpose",
    "why": "when the diagnostic was observed; evidence stamp"
   },
   {
    "file": "packages/backend/src/platform/diagnostics.ts",
-   "match": "Date.now() - new Date(pending.oldest).getTime() > 300_000",
+   "line": "const stuck = pending.oldest && Date.now() - new Date(pending.oldest).getTime() > 300_000;",
    "label": "real-on-purpose",
    "why": "delivery_stuck alert age in real elapsed time"
   },
   {
    "file": "packages/backend/src/platform/outbox.sql",
-   "match": "acked_at timestamptz not null default now()",
+   "line": "acked_at timestamptz not null default now(),",
    "label": "real-on-purpose",
    "why": "when a consumer acknowledged; delivery measure, not business time"
   },
   {
    "file": "packages/backend/src/plugs/collector.ts",
-   "match": "collected_at=now()",
+   "line": "await lock.query(\"update app.organizations set request_cursor=$2,collected_at=now(),collector_error=null where org_id=$1\", [site.org_id, request.cursor]);",
    "label": "real-on-purpose",
    "why": "collector progress stamp; operational"
   },
   {
    "file": "packages/backend/src/plugs/door.ts",
-   "match": "set state='applied',last_error=null,applied_at=now()",
+   "line": "await sql.query(\"update app.site_events set state='applied',last_error=null,applied_at=now(),map_version=$3 where org_id=$1 and event_key=$2\", [org, key, ack.map_version ?? null]);",
    "label": "real-on-purpose",
    "why": "delivery applied stamp; operational"
   },
   {
    "file": "packages/backend/src/plugs/door.ts",
-   "match": "set attempts=attempts+1,last_attempt_at=now(),last_error=$3",
+   "line": "await sql.query(\"update app.site_events set attempts=attempts+1,last_attempt_at=now(),last_error=$3 where org_id=$1 and seq=$2\", [org, seq, message]);",
    "label": "real-on-purpose",
    "why": "delivery attempt stamp; operational"
   },
   {
    "file": "packages/backend/src/plugs/door.ts",
-   "match": "set failures=failures+1,retry_at=now() + least(8, power(2,least(failures,3))) * interval '1 second' where or",
+   "line": "await sql.query(\"update app.organizations set failures=failures+1,retry_at=now() + least(8, power(2,least(failures,3))) * interval '1 second' where org_id=$1\", [org]);",
+   "hits": 2,
    "label": "real-on-purpose",
    "why": "retry backoff runs on real time (time.real-elapsed)"
   },
   {
    "file": "packages/backend/src/plugs/door.ts",
-   "match": "new Date(company.retry_at).getTime() > Date.now()",
+   "line": "if (!company.released || company.retry_at && new Date(company.retry_at).getTime() > Date.now()) return;",
    "label": "real-on-purpose",
    "why": "retry backoff check on real time"
   },
   {
    "file": "packages/backend/src/plugs/door.ts",
-   "match": "set attempts=attempts+1,last_attempt_at=now() where org_id=$1 and seq=$2",
+   "line": "await sql.query(\"update app.site_events set attempts=attempts+1,last_attempt_at=now() where org_id=$1 and seq=$2\", [org, event.seq]);",
    "label": "real-on-purpose",
    "why": "delivery attempt stamp; operational"
   },
   {
    "file": "packages/backend/src/plugs/door.ts",
-   "match": "set state=$3,applied_at=now(),last_error=$4",
+   "line": "await sql.query(\"update app.site_events set state=$3,applied_at=now(),last_error=$4,map_version=$5 where org_id=$1 and seq=$2\", [org, event.seq, state, ack.parked ? ack.error : null, ack.map_version ?? null]);",
    "label": "real-on-purpose",
    "why": "delivery applied stamp; operational"
   },
   {
    "file": "packages/backend/src/plugs/site.ts",
-   "match": "exp: Math.floor(Date.now() / 1000) + 60",
+   "line": "const assertion = JSON.stringify({ u: user, s: input.site, exp: Math.floor(Date.now() / 1000) + 60, nonce: randomUUID() });",
    "label": "real-on-purpose",
    "why": "signed assertion envelope expiry, real on both sides"
   },
   {
    "file": "packages/backend/src/plugs/site.ts",
-   "match": "const now = Date.now() / 1000;",
+   "line": "const now = Date.now() / 1000;",
    "label": "real-on-purpose",
    "why": "signed envelope freshness check"
   },
   {
    "file": "packages/backend/src/schema.sql",
-   "match": "trace text not null, tx_hash text, created_at timestamptz not null default now()",
+   "line": "trace text not null, tx_hash text, created_at timestamptz not null default now(),",
    "label": "owed",
    "why": "approvals.created_at is business time; writers must pass worldNow",
    "owner": "Approvals"
   },
   {
    "file": "packages/backend/src/schema.sql",
-   "match": "created_at timestamptz not null default now(), map_version text",
+   "line": "created_at timestamptz not null default now(), map_version text,",
    "label": "owed",
    "why": "site_events.created_at is when the event happened in the world; writers must pass worldNow",
    "owner": "Frappe/Plugs"
   },
   {
    "file": "packages/backend/src/schema.sql",
-   "match": "at timestamptz not null default now(), primary key (org_id, id)",
+   "line": "at timestamptz not null default now(), primary key (org_id, id)",
    "label": "owed",
    "why": "records.at is business time; see platform/db.ts record()",
    "owner": "Core"
   },
   {
    "file": "packages/backend/src/schema.sql",
-   "match": "at timestamptz not null default now()",
+   "line": "at timestamptz not null default now()",
    "label": "owed",
    "why": "world_record.at stamps world lifecycle; restore and create must pass the world's now",
    "owner": "Runtime"
   },
   {
    "file": "packages/backend/src/schema.sql",
-   "match": "last_advance_at timestamptz not null default now()",
+   "line": "chain_id integer primary key, indexed_block numeric not null, last_advance_at timestamptz not null default now()",
    "label": "owed",
-   "why": "indexer liveness is a legitimate host age, but time.no-direct-reads bans now() in SQL: Core writes it from TS through packages/runtime/src/time (RealTime)",
-   "owner": "Core"
+   "why": "world_record.at stamps world lifecycle; restore and create must pass the world's now",
+   "owner": "Runtime"
   },
   {
    "file": "packages/backend/src/shared/service-signer.ts",
-   "match": "const deadline = Date.now() + 60_000;",
+   "line": "const deadline = Date.now() + 60_000;",
    "label": "real-on-purpose",
    "why": "receipt wait bound"
   },
   {
    "file": "packages/backend/src/shared/service-signer.ts",
-   "match": "while (Date.now() < deadline)",
+   "line": "while (Date.now() < deadline) {",
    "label": "real-on-purpose",
    "why": "receipt wait bound"
   },
   {
    "file": "packages/backend/src/shared/service-signer.ts",
-   "match": "Date.now() >= deadline) throw error",
+   "line": "if (!(error instanceof TransactionReceiptNotFoundError) && Date.now() >= deadline) throw error;",
    "label": "real-on-purpose",
    "why": "receipt wait bound"
   },
   {
    "file": "packages/backend/src/shared/service-signer.ts",
-   "match": "Math.max(0, deadline - Date.now())",
+   "line": "await new Promise((resolve) => setTimeout(resolve, Math.min(1_000, Math.max(0, deadline - Date.now()))));",
    "label": "real-on-purpose",
    "why": "poll interval within the wait bound"
   },
   {
    "file": "packages/devnet/src/devnet/bench-recovery.py",
-   "match": "clock.write_world(world=world, offset_ms=int(now_ms - time.time() * 1000)",
+   "line": "clock.write_world(world=world, offset_ms=int(now_ms - time.time() * 1000), frozen_at_ms=now_ms if frozen else None, rate=rate)",
    "label": "rebound",
    "why": "anchors a running world clock to the host; a frozen clock is judged by frozen_at_ms alone"
   },
   {
    "file": "packages/devnet/src/devnet/bench-recovery.py",
-   "match": "world_clock.write_world(world=world, offset_ms=int(now_ms - time.time() * 1000)",
+   "line": "world_clock.write_world(world=world, offset_ms=int(now_ms - time.time() * 1000), frozen_at_ms=now_ms if frozen else None, rate=rate)",
    "label": "rebound",
    "why": "anchors a running world clock to the host; a frozen clock is judged by frozen_at_ms alone"
   },
   {
    "file": "packages/devnet/src/devnet/catalogue.ts",
-   "match": "real_time: new Date(command.realTime ?? Date.now())",
+   "line": "real_time: new Date(command.realTime ?? Date.now()).toISOString(), duration_ms: command.durationMs ?? 0, outcome: command.outcome,",
    "label": "real-on-purpose",
    "why": "command records keep the real time beside the world time, by design"
   },
   {
    "file": "packages/devnet/src/devnet/catalogue.ts",
-   "match": "updated_at=${Date.now()}",
+   "line": "`UPDATE app.worlds SET state=${text(to)},updated_at=${Date.now()} WHERE world_id=${text(world)};`);",
    "label": "owed",
    "why": "app.worlds.updated_at should carry the world's now, as created_at does",
    "owner": "Recovery"
   },
   {
    "file": "packages/devnet/src/devnet/composition.ts",
-   "match": "observedAt: new Date().toISOString()",
+   "line": "return { version: 1, observedAt: new Date().toISOString(), codeVersion: c.codeVersion, stack: \"postgres-ponder-erpnext-v4\",",
    "label": "real-on-purpose",
    "why": "inspection observation stamp; evidence"
   },
   {
    "file": "packages/devnet/src/devnet/door.ts",
-   "match": "createdAt: new Date().toISOString()",
+   "line": "source: { database: world.database, stateDir: resolve(world.stateDir) }, createdAt: new Date().toISOString(), epoch: world.epoch, cut, database, sites: world.sites, files: await inventory(temp) };",
    "label": "real-on-purpose",
    "why": "snapshot file metadata; the cut carries the world's now"
   },
   {
    "file": "packages/devnet/src/devnet/faults.ts",
-   "match": "const unavailableAt = Date.now();",
+   "line": "const unavailableAt = Date.now();",
    "label": "real-on-purpose",
    "why": "delivery_stuck needs 300 real seconds of unavailable ingress"
   },
   {
    "file": "packages/devnet/src/devnet/faults.ts",
-   "match": "return Date.now() - unavailableAt > 300_000",
+   "line": "return Date.now() - unavailableAt > 300_000 && status.alerts?.some((alert: any) => alert.id === \"delivery_stuck\" && alert.active) === true;",
    "label": "real-on-purpose",
    "why": "delivery_stuck needs 300 real seconds of unavailable ingress"
   },
   {
    "file": "packages/devnet/src/devnet/fixture.ts",
-   "match": "exp: Math.floor(Date.now() / 1000) + 60",
+   "line": "const raw = JSON.stringify({ u: f.email, s: f.site, exp: Math.floor(Date.now() / 1000) + 60 });",
    "label": "real-on-purpose",
    "why": "signed assertion envelope expiry"
   },
   {
    "file": "packages/devnet/src/devnet/gate.ts",
-   "match": "const started = Date.now();",
+   "line": "const started = Date.now();",
    "label": "real-on-purpose",
    "why": "receipt freshness against this invocation, real time"
   },
   {
    "file": "packages/devnet/src/devnet/preparation.ts",
-   "match": "Date.parse(receipt.at) <= Date.now()",
+   "line": "assert(Date.parse(receipt.at) <= Date.now(), \"receipt starts in the future\");",
    "label": "real-on-purpose",
    "why": "the receipt's real start time precedes preparation"
   },
   {
    "file": "packages/devnet/src/devnet/preparation.ts",
-   "match": "startedAt: new Date().toISOString()",
+   "line": "const entry: typeof record.phases[number] = { name, startedAt: new Date().toISOString() };",
    "label": "real-on-purpose",
    "why": "preparation phase evidence stamp, real time"
   },
   {
    "file": "packages/devnet/src/devnet/preparation.ts",
-   "match": "entry.finishedAt = new Date().toISOString()",
+   "line": "entry.finishedAt = new Date().toISOString(); entry.sourcePath = `preparation/${name}.json`;",
    "label": "real-on-purpose",
    "why": "preparation phase evidence stamp, real time"
   },
   {
    "file": "packages/devnet/src/devnet/supervisor.ts",
-   "match": "const deadline = Date.now() + timeout;",
+   "line": "const deadline = Date.now() + timeout;",
    "label": "real-on-purpose",
    "why": "readiness wait bound"
   },
   {
    "file": "packages/devnet/src/devnet/supervisor.ts",
-   "match": "while (Date.now() < deadline)",
+   "line": "do { if (await check()) return; await delay(200); } while (Date.now() < deadline);",
    "label": "real-on-purpose",
    "why": "readiness wait bound"
   },
   {
    "file": "packages/frappe-app/capxul/api.py",
-   "match": "expiry = int(time.time()) + 60",
+   "line": "expiry = int(time.time()) + 60",
    "label": "real-on-purpose",
    "why": "signed assertion envelope expiry"
   },
   {
    "file": "packages/frappe-app/capxul/clock.py",
-   "match": "host = datetime.now(timezone.utc).timestamp() * 1000",
+   "line": "host = datetime.now(timezone.utc).timestamp() * 1000",
    "label": "rebound",
    "why": "the clock module derives the world's offset from the host"
   },
   {
    "file": "packages/frappe-app/capxul/clock.py",
-   "match": "host = datetime.now(timezone.utc)",
+   "line": "host = datetime.now(timezone.utc)",
    "label": "rebound",
    "why": "capxul.clock.now reports the host beside the world's now"
   },
   {
    "file": "packages/frappe-app/capxul/clock.py",
-   "match": "\"host_anchor_ms\": int(datetime.now(timezone.utc).timestamp() * 1000)",
+   "line": "\"rate\": rate, \"host_anchor_ms\": int(datetime.now(timezone.utc).timestamp() * 1000),",
    "label": "rebound",
    "why": "anchors a running world clock to the host"
   },
   {
    "file": "packages/frappe-app/capxul/door.py",
-   "match": "time.time() < float(p.get(\"exp\", 0)) <= time.time() + 60",
+   "line": "and p.get(\"aud\") == \"payment-request-listener\" and time.time() < float(p.get(\"exp\", 0)) <= time.time() + 60)",
    "label": "real-on-purpose",
    "why": "signed envelope freshness check"
   },
   {
    "file": "packages/frappe-app/capxul/door.py",
-   "match": "float(p.get(\"exp\", 0)) < time.time()",
+   "line": "if not ok or p.get(\"s\") != frappe.local.site or float(p.get(\"exp\", 0)) < time.time():",
    "label": "real-on-purpose",
    "why": "signed envelope freshness check"
   },
   {
    "file": "packages/sdk/src/sites/door.ts",
-   "match": "expiresAt: Date.now() + 60_000",
+   "line": "const raw = JSON.stringify({ org: input.org, caller: options.account.address, expiresAt: Date.now() + 60_000 });",
    "label": "real-on-purpose",
    "why": "signed request envelope expiry"
   },
   {
    "file": "packages/site-service/src/sites/provisioning.ts",
-   "match": "input.expiresAt <= Date.now()",
+   "line": "if (!input || !isAddress(input.caller ?? \"\") || !Number.isSafeInteger(input.expiresAt) || input.expiresAt <= Date.now() || input.expiresAt > Date.now() + 60_000 || typeof signature !== \"string\") {",
    "label": "real-on-purpose",
    "why": "signed request envelope freshness check"
   },
   {
    "file": "packages/site-service/src/sites/documents.ts",
-   "match": "const deadline = Date.now() + 30_000",
+   "line": "const deadline = Date.now() + 30_000;",
    "label": "real-on-purpose",
    "why": "a 30 s polling budget for the bench, an operational timeout"
   },
   {
    "file": "packages/site-service/src/sites/documents.ts",
-   "match": "while (Date.now() < deadline)",
+   "line": "} while (Date.now() < deadline);",
    "label": "real-on-purpose",
    "why": "the same polling budget's loop"
   },
   {
    "file": "packages/site-service/src/sites/lifecycle.ts",
-   "match": "const deadline = Date.now() + 30_000",
+   "line": "const deadline = Date.now() + 30_000;",
    "label": "real-on-purpose",
    "why": "a 30 s polling budget for the bench, an operational timeout"
   },
   {
    "file": "packages/site-service/src/sites/lifecycle.ts",
-   "match": "while (Date.now() < deadline)",
+   "line": "} while (Date.now() < deadline);",
    "label": "real-on-purpose",
    "why": "the same polling budget's loop"
+  },
+  {
+   "file": "packages/frappe-app/capxul/clock.py",
+   "line": "How Frappe reads time: `frappe.utils.data.now_datetime()` is the root. `nowdate()`, `today()`, `nowtime()` and `now()` (which stamps",
+   "label": "rebound",
+   "why": "the module docstring naming Frappe's now functions, which this module rebinds"
+  },
+  {
+   "file": "packages/frappe-app/capxul/clock.py",
+   "line": "def now():",
+   "label": "rebound",
+   "why": "capxul.clock's own world now: the whitelisted clock endpoint and its docstring, not a host read"
+  },
+  {
+   "file": "packages/frappe-app/capxul/clock.py",
+   "line": "return now()",
+   "label": "rebound",
+   "why": "capxul.clock's own world now: the whitelisted clock endpoint and its docstring, not a host read"
+  }
+ ],
+ "work": [
+  {
+   "id": "devnet.site-follows-world (1)",
+   "owner": "Runtime",
+   "what": "the scan over the pinned apps (Frappe, ERPNext, Frappe HR, CRM) in the bench image, failing an upgrade that adds an unlabelled direct clock read; this scan covers Capxul's own code only"
+  },
+  {
+   "id": "devnet.site-follows-world (2)",
+   "owner": "Frappe/Plugs",
+   "what": "point the pinned apps' deciding host reads at the world: ERPNext stock freeze by days (stock_ledger_entry.py:475), SLA time, bulk-transaction log dates; HR interview reminder; CRM deal status log; Frappe's unreplied-email window (email_account.py:972, 978)"
+  },
+  {
+   "id": "devnet.site-follows-world (3)",
+   "owner": "Frappe/Plugs",
+   "what": "replace the pinned apps' SQL CURRENT_DATE/NOW() compared with stored world dates (held invoices' release_date <= CURRENT_DATE, issue and opportunity auto-close) by world time"
+  },
+  {
+   "id": "devnet.site-follows-world (4)",
+   "owner": "Runtime",
+   "what": "turn the log clean-up jobs off inside worlds"
   }
  ]
 }

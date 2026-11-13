@@ -1329,7 +1329,10 @@ export const decision_devnet_site_follows_world = defineDecision({
     "He accepted the coordinator's recommendation without claiming to follow the options; the call stays the coordinator's design to defend, and it is open to him to change. " +
     "The study (docs/design/time-deep-dive.md; commit 691a0c6) found the mechanism sound for what people and the books see (dates, postings, periods, accruals, what is due) and not complete: about 20 of the 85 direct reads decide something. " +
     "Frappe ships about weekly, and new direct reads are the main risk, hence the scan. What the clock still cannot do right without a fork or a fake clock beneath Python is time in the database and in libraries (SQL NOW(), Redis expiry, the queue's timestamps, token libraries). " +
-    "Tests that make it right: devnet.time-is-right. Evidence in the spike: spikes/skeleton/FINDINGS.md, The door, the recorder and the clock, The clock.",
+    "Tests that make it right: devnet.time-is-right. Evidence in the spike: spikes/skeleton/FINDINGS.md, The door, the recorder and the clock, The clock. " +
+    "Status, 13 November 2026: point (5) is superseded by devnet.frappe-clock-subsystems (sessions follow the world's now; Redis, locks and the queue stay real). " +
+    "Point (1) is built for Capxul's own code only (pnpm layout, packages/layout/time-reads.json); the pinned-app scan and points (2) to (4) are not built and are " +
+    "listed there as owed work, each with its owner, so inv:time.no-direct-reads stays false until they are done.",
   source: "Aaron, 10 November 2026, in conversation with the coordinator: accepted the coordinator's recommendation (option A of docs/design/time-deep-dive.md, section 7); evidence: spikes/skeleton/FINDINGS.md, The clock; docs/design/time-deep-dive.md",
   affects: [component_frappe_app, integration_mail, table_mail_messages, component_devnet, environment_devnet, environment_shared_world],
 });
