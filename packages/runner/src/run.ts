@@ -1,9 +1,11 @@
 // Runs: for each one a fresh stage, the calls, the generic checks, a run record, and the stage's destruction. Nothing
 // here knows any operation or any scenario by name.
 import { operations, type OperationName } from "@capxul/blueprint";
-import type { ExpectationFailed, Failure, Scenario } from "@capxul/scenarios";
+import { Capxul, type ExpectationFailed, type Failure, type Scenario } from "@capxul/scenarios";
+import * as Sdk from "@capxul/sdk";
 import * as Arr from "effect/Array";
 import * as DateTime from "effect/DateTime";
+import * as Random from "effect/Random";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
@@ -13,7 +15,7 @@ import * as Ref from "effect/Ref";
 import * as Str from "effect/String";
 import type * as HttpClient from "effect/http/HttpClient";
 import { checkCall, failuresOf, type CheckedCall } from "./checks/checks.ts";
-import { capxulFor, sender, traceId, type Call, type Target } from "./client.ts";
+import { capxulFor, type Call, type Target } from "./client.ts";
 import { describe, RunnerFailure } from "./failure.ts";
 import { writeRecord, type RunRecord } from "./record.ts";
 import type { Settings } from "./settings.ts";
@@ -49,7 +51,13 @@ const millis = (took: Duration.Duration) => Math.round(Duration.toMillis(took));
 const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
   Effect.gen(function* () {
     const log = yield* Ref.make<ReadonlyArray<Call>>([]);
-    const target = { url: stage.url, warmUntil: stage.warmUntil, every: settings.probeEvery };
+    const target: Target = {
+      url: stage.url,
+      doorToken: settings.doorToken,
+      platformToken: settings.platformToken,
+      warmUntil: stage.warmUntil,
+      every: settings.probeEvery,
+    };
     const [runTook, run] = yield* plan.calls(target, log).pipe(Effect.exit, Effect.timed);
     const calls = yield* Ref.get(log);
     const [checksTook, kept] = yield* Effect.timed(
@@ -121,7 +129,7 @@ const recordOf = (plan: Plan, startedAt: string, lifecycle: Lifecycle<Used, Runn
 export const runPlan = (plan: Plan, settings: Settings) =>
   Effect.gen(function* () {
     const startedAt = DateTime.formatIso(yield* DateTime.now);
-    const name = `core-${Str.slice(0, 6)(yield* traceId)}`;
+    const name = `core-${Str.padStart(6, "0")((yield* Random.nextIntBetween(0, 0xffffff)).toString(16))}`;
     const lifecycle = yield* runInStage(
       {
         name,
@@ -148,12 +156,15 @@ export const door: Plan = {
   proves: null,
   given: null,
   calls: (target, log) =>
-    Effect.scoped(
+    // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the door run is its own program, handed its own stage's client
+    Effect.provide(
       Effect.gen(function* () {
-        const send = yield* sender(target, log);
+        const capxul = yield* Capxul;
         const names: ReadonlyArray<OperationName> = Rec.keys(operations);
         yield* Effect.forEach(names, (name) =>
-          Effect.ignore(send(name, Option.getOrUndefined(Arr.head(operations[name].examples))?.payload)),
+          Effect.exit(
+            Sdk.callByName(capxul, name, Option.getOrUndefined(Arr.head(operations[name].examples))?.payload),
+          ),
         );
         const calls = yield* Ref.get(log);
         const unanswered = Arr.filter(calls, (call) => call.outcome === "defect" || call.outcome === "unanswered");
@@ -169,6 +180,7 @@ export const door: Plan = {
               }),
             );
       }),
+      capxulFor(target, log),
     ),
 };
 

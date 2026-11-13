@@ -2,7 +2,15 @@
 // named after it, kept under the trace id the caller sent; and sign-in refuses a person it cannot name.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { Errors, operations, PERSON_HEADER, TRACE_HEADER, type OperationName } from "@capxul/blueprint";
+import {
+  CREDENTIAL_HEADER,
+  Errors,
+  operations,
+  PERSON_HEADER,
+  TRACE_HEADER,
+  servedBy,
+  type OperationName,
+} from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
@@ -10,21 +18,33 @@ import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
+import * as Redacted from "effect/Redacted";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import * as RpcTest from "effect/rpc/RpcTest";
 import { CoreIdentity, CoreRpcs, Served, SpanSink, type KeptSpan } from "../src/door.ts";
 
 const names: ReadonlyArray<OperationName> = Rec.keys(operations);
+const DOOR = "door-token";
+const PLATFORM = "platform-token";
+/** The credential each operation's door accepts. */
+const credentialOf = (name: OperationName) => ({
+  [CREDENTIAL_HEADER]: `Bearer ${servedBy(name) === "platform" ? PLATFORM : DOOR}`,
+});
 const trace = (n: number): string => Str.padStart(32, "0")(n.toString(16));
 type Refusal = InstanceType<(typeof Errors.refusals)[Errors.RefusalTag]>;
 
 /** Calls `name` with its first example, under `headers`, and returns how it ended and every span Core kept. */
-const call = (name: OperationName, headers: Record<string, string>) =>
+const call = (name: OperationName, headers: Record<string, string>, credential = true) =>
   Effect.gen(function* () {
     const kept: Array<KeptSpan> = [];
     const sink = Layer.succeed(SpanSink, SpanSink.of({ keep: (spans) => Effect.sync(() => kept.push(...spans)) }));
-    const identity = Layer.succeed(CoreIdentity, { world: "town", owner: "ci" });
+    const identity = Layer.succeed(CoreIdentity, {
+      world: "town",
+      owner: "ci",
+      doorToken: Redacted.make(DOOR),
+      platformToken: Redacted.make(PLATFORM),
+    });
     const exit = yield* Effect.scoped(
       Effect.gen(function* () {
         const client = yield* RpcTest.makeClient(CoreRpcs, { flatten: true });
@@ -34,9 +54,9 @@ const call = (name: OperationName, headers: Record<string, string>) =>
           payload: unknown,
           options: object,
         ) => Effect.Effect<unknown, Refusal>;
-        return yield* Effect.exit(send(name, operations[name].examples[0]?.payload, { headers }));
+        const sent = { ...(credential ? credentialOf(name) : {}), ...headers };
+        return yield* Effect.exit(send(name, operations[name].examples[0]?.payload, { headers: sent }));
       }),
-      // oxlint-disable-next-line effecttsgo/strict-effect-provide -- each call is its own program here, served afresh
     ).pipe(Effect.provide(Served.pipe(Layer.provide(Layer.merge(sink, identity)))));
     return { exit, kept };
   });
@@ -85,5 +105,19 @@ test("a platform operation and a world operation are both served, by their own g
     const { exit } = await Effect.runPromise(call(name, { [PERSON_HEADER]: "dana" }));
     const failure = failureOf(exit);
     assert.ok(isNotImplemented(failure), name);
+  }
+});
+
+test("a call without the credential, or with another door's, is refused at sign-in and still measured", async () => {
+  const none = await Effect.runPromise(call("record.export", {}, false));
+  const wrong = await Effect.runPromise(call("world.show", { [CREDENTIAL_HEADER]: `Bearer ${DOOR}` }));
+  for (const [{ exit, kept }, reason] of [
+    [none, "no_credential"],
+    [wrong, "unknown_caller"],
+  ] as const) {
+    const error = failureOf(exit);
+    assert.ok(Schema.is(Errors.NotSignedIn)(error), "sign-in did not refuse");
+    assert.equal(error.reason, reason);
+    assert.equal(kept.length, 1);
   }
 });

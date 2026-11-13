@@ -1,6 +1,8 @@
 // The package's door. The runner deploys `stack` (one stage per run), applies `migrations` to the stage's database
-// and calls `CoreRpcs` at the stage's address; a test serves `CoreRpcs` in memory with `Served`.
+// and calls the stage's two doors, at `PLATFORM_PATH` and `WORLD_PATH` of its address, through the SDK. A test
+// serves both groups in memory as `CoreRpcs`, with `Served`.
 export { default as stack } from "../alchemy.run.ts";
+export { PLATFORM_PATH, serveDoors, WORLD_PATH } from "./doors.ts";
 export { CoreRpcs, Served } from "./server.ts";
 export { CoreIdentity } from "./telemetry/middleware.ts";
 export { SpanSink, SqlSpanSink } from "./telemetry/sink.ts";

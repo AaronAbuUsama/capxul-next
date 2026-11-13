@@ -21,6 +21,7 @@ import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import type * as HttpClientResponse from "effect/http/HttpClientResponse";
 import { constPing, constPong } from "effect/rpc/RpcMessage";
+import { WORLD_PATH } from "@capxul/core";
 
 /** How a stage is judged ready, and for how long after that a call the edge answered is sent again. */
 export interface WarmUpPolicy {
@@ -43,7 +44,7 @@ export const Readiness = Schema.Struct({
 });
 export type Readiness = typeof Readiness.Type;
 
-/** Cloudflare's edge answered instead of the Worker. Core answers every path with 200 and JSON. */
+/** Cloudflare's edge answered instead of the Worker. Core answers every path with JSON (packages/core, doors.ts). */
 export const answeredByEdge = (response: HttpClientResponse.HttpClientResponse): boolean =>
   response.status === 404 && !Str.startsWith("application/json")(response.headers["content-type"] ?? "");
 
@@ -51,11 +52,14 @@ export const answeredByEdge = (response: HttpClientResponse.HttpClientResponse):
 const Pongs = Schema.Tuple([Schema.Struct({ _tag: Schema.Literal(constPong._tag) })]);
 const isPongs = Schema.is(Pongs);
 
-/** One probe: an Rpc `Ping`. Each asks a different URL, so no cache on the way can hand back an earlier answer. */
+/**
+ * One probe: an Rpc `Ping` to the world's door, which only the Rpc server answers, before any middleware. Each asks a
+ * different URL, so no cache on the way can hand back an earlier answer.
+ */
 const probe = (url: string, n: number) =>
   Effect.gen(function* () {
     const response = yield* HttpClient.execute(
-      HttpClientRequest.post(`${url}/?ready=${n}`).pipe(HttpClientRequest.bodyJsonUnsafe(constPing)),
+      HttpClientRequest.post(`${url}${WORLD_PATH}?ready=${n}`).pipe(HttpClientRequest.bodyJsonUnsafe(constPing)),
     );
     const body = yield* Effect.option(response.json);
     const pong = response.status === 200 && Option.exists(body, isPongs);

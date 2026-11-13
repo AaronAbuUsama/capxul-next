@@ -13,7 +13,9 @@ reads the blueprint (`@capxul/blueprint`), deploys Core (`@capxul/core`) and run
 ```
 
 Each run exits 1 if a run failed. `run.sh` runs `src/main.ts` under Bun and sets the two key variables to a
-placeholder: the session's network proxy adds the real Cloudflare and Neon keys, which never reach this machine.
+placeholder: the session's network proxy adds the real Cloudflare and Neon keys, which never reach this machine. It
+also makes a fresh pair of door tokens for the run (`CAPXUL_DOOR_TOKEN`, `CAPXUL_PLATFORM_TOKEN`), which Core reads at
+deploy and the SDK sends; they are never printed or recorded.
 
 ## What one run does
 
@@ -21,9 +23,10 @@ placeholder: the session's network proxy adds the real Cloudflare and Neon keys,
    Core's migrations over Neon's HTTPS SQL endpoint, and waits until Core has answered 20 `Ping`s in a row
    (`src/world/warmup.ts`). Each step has a declared timeout. Until `packages/world` lands (step 1.3), a stage is the
    runner's world.
-2. **Makes its calls** (`src/client.ts`), each under its own trace id in `traceparent` and logged with what was sent,
-   what came back and the caller's time. The door plan calls every operation with its first blueprint example, as the
-   world's owner. A scenario is handed `Capxul`, the same recording client, until the SDK supplies it.
+2. **Makes its calls through the SDK** (`src/client.ts`): `Sdk.layer(Capxul)` at the stage's two doors, with the
+   run's door tokens, every call recorded with what was sent, what came back and the caller's time. Each call runs in
+   a trace of its own, which the SDK sends in `traceparent`, so Core's server spans fall under it. The door plan
+   calls every operation with its first blueprint example, as the world's owner; a scenario is handed that `Capxul`.
 3. **Applies the generic checks** (`src/checks/`) to every call, reading what Core kept in `app.spans` and
    `app.events` under its trace id:
 
@@ -52,6 +55,7 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | Variable | Default | Meaning |
 |---|---|---|
 | `WORLD_OWNER` | `runner` | Who the stages belong to; Core reads it at deploy as the world's owner. |
+| `CAPXUL_DOOR_TOKEN`, `CAPXUL_PLATFORM_TOKEN` | fresh from `run.sh` | The tokens the stage's two doors accept. |
 | `WORLD_CREATE_TIMEOUT` | `4 minutes` | Deploy, migrations and the wait for Core's answers. |
 | `WORLD_USE_TIMEOUT` | `3 minutes` | The calls and the checks. |
 | `WORLD_DESTROY_TIMEOUT` | `4 minutes` | The destroy. |
@@ -73,7 +77,7 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 |---|---|
 | `src/main.ts` | The entry: arguments, the runs, the exit code. The only file that touches the process. |
 | `src/run.ts` | A run as a plan: the door, a scenario, and one stage from create to record. |
-| `src/client.ts` | The recording client, and `Capxul` for the scenarios. |
+| `src/client.ts` | `Capxul` for one stage: the SDK's client at its two doors, every call recorded. |
 | `src/checks/checks.ts`, `src/checks/events.ts` | The generic checks, the timings and the steps. A builder never changes these. |
 | `src/world/` | The stage's life, its database, the warm-up and the inventory: the runner's plumbing. |
 | `src/record.ts`, `src/failure.ts` | The run record, and how a failure is worded in it. |

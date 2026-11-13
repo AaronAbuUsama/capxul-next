@@ -9,6 +9,10 @@ set -euo pipefail
 cd "$(dirname "$0")"
 export CI=true CLOUDFLARE_API_TOKEN=proxy-injected NEON_API_KEY=proxy-injected
 export WORLD_OWNER="${WORLD_OWNER:-runner}"
+# A fresh pair of door tokens for this run's stages: Core reads them at deploy, the runner's SDK sends them. They are
+# test credentials of short-lived stages, never printed.
+token() { python3 -c "import secrets; print(secrets.token_hex(24))"; }
+export CAPXUL_DOOR_TOKEN="${CAPXUL_DOOR_TOKEN:-$(token)}" CAPXUL_PLATFORM_TOKEN="${CAPXUL_PLATFORM_TOKEN:-$(token)}"
 account() { curl -sS --max-time 20 "$1" | python3 -c "$2"; }
 export CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-$(account 'https://api.cloudflare.com/client/v4/accounts?per_page=5' "import json,sys; print(json.load(sys.stdin)['result'][0]['id'])")}"
 export NEON_ORG_ID="${NEON_ORG_ID:-$(account https://console.neon.tech/api/v2/users/me/organizations "import json,sys; print(json.load(sys.stdin)['organizations'][0]['id'])")}"

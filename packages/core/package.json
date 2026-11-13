@@ -18,6 +18,7 @@
     "effect": "catalog:"
   },
   "devDependencies": {
+    "@capxul/sdk": "workspace:*",
     "@cloudflare/workers-types": "catalog:",
     "@effect/tsgo": "catalog:",
     "@types/node": "catalog:",

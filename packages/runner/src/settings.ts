@@ -18,6 +18,12 @@ export const Settings = Config.all({
   warmUp: Config.Duration("WORLD_WARM_UP").pipe(Config.withDefault(Duration.seconds(30))),
   /** Where run records are written, outside any world. */
   records: Config.String("RUNNER_RECORDS").pipe(Config.withDefault("records")),
+  /**
+   * The tokens a stage's two doors accept: the world's door token and the operator's token. Core reads the same
+   * variables at deploy; run.sh makes a fresh pair for each run. Never logged or recorded.
+   */
+  doorToken: Config.Redacted("CAPXUL_DOOR_TOKEN"),
+  platformToken: Config.Redacted("CAPXUL_PLATFORM_TOKEN"),
   /** The accounts the inventory after a destroy reads. */
   cloudflareAccount: Config.String("CLOUDFLARE_ACCOUNT_ID"),
   neonOrg: Config.String("NEON_ORG_ID"),

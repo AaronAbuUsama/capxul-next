@@ -42,7 +42,6 @@ const program = Effect.gen(function* () {
 });
 
 program.pipe(
-  // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the command line is the entry point
   Effect.provide(Layer.mergeAll(Alchemist.layer(), BunFileSystem.layer, BunPath.layer, FetchHttpClient.layer)),
   BunRuntime.runMain,
 );
