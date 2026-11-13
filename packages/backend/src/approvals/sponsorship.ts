@@ -46,7 +46,10 @@ export function approvalSponsor(config: SponsorConfig): (a: SponsorshipRequest) 
       if (![now, a.deadline.getTime(), a.send_after?.getTime() ?? now].every(Number.isFinite)) throw new SponsorError("INVALID_INPUT", "Approval dates are invalid");
       const after = BigInt(Math.ceil(Math.max(now, a.send_after?.getTime() ?? now) / 1000));
       const until = BigInt(Math.floor(a.deadline.getTime() / 1000));
-      if (after <= 0n || until <= after || until >= 1n << 48n) throw new SponsorError("INVALID_INPUT", "Approval window has expired or is empty");
+      // Dates that cannot form a window are input; a deadline the canonical clock has reached is the approval's state.
+      const start = a.send_after === null ? 1n : BigInt(Math.ceil(a.send_after.getTime() / 1000));
+      if (start <= 0n || until <= start || until >= 1n << 48n) throw new SponsorError("INVALID_INPUT", "Approval window is empty");
+      if (until <= after) throw new SponsorError("WRONG_STATE", "Approval expired before sponsorship");
       const sender = address(a.sender), key = uint(a.nonce_key, 192);
       if (key === 0n) throw new SponsorError("INVALID_INPUT", "Approval nonce key must be nonzero");
       if (await client.getChainId() !== a.chain_id) throw invalid();
@@ -104,7 +107,8 @@ export function approvalSponsor(config: SponsorConfig): (a: SponsorshipRequest) 
       const mask = (1n << 48n) - 1n;
       if ((validation & ((1n << 160n) - 1n)) !== 0n || ((validation >> 160n) & mask) !== until || ((validation >> 208n) & mask) !== after) throw invalid();
       const completedAt = config.now().getTime();
-      if (!Number.isFinite(completedAt) || until * 1000n <= BigInt(completedAt)) throw invalid();
+      if (!Number.isFinite(completedAt)) throw invalid();
+      if (until * 1000n <= BigInt(completedAt)) throw new SponsorError("WRONG_STATE", "Approval expired during sponsorship");
       return { nonce: op.nonce, signer_address: address(owners[0]!), user_operation: op, digest, user_op_hash: userOpHash,
         valid_after: new Date(Number(after) * 1000), valid_until: new Date(Number(until) * 1000) };
     } catch (error) {

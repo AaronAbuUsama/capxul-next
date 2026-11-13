@@ -130,12 +130,12 @@ class SiteRequestBoundary(unittest.TestCase):
         self.frappe.flags.capxul_trace = None
         api.request_payment("PE-1")
         started = self.signed_call(api.collect_payment_requests, {"org": "boundary"})["requests"][0]["trace_id"]
-        self.assertRegex(started, trace.TRACE)
-        self.frappe.flags.capxul_trace = "tr_fromthecaller01"
+        self.assertRegex(started, r"^[0-9a-f]{32}\Z")  # a W3C trace id (plugs.trace-format)
+        self.frappe.flags.capxul_trace = "4bf92f3577b34da6a3ce929d0e0e4736"
         self.pe.hash = "0xsecond"
         api.request_payment("PE-1")
         page = self.signed_call(api.collect_payment_requests, {"org": "boundary"})
-        self.assertEqual(page["requests"][-1]["trace_id"], "tr_fromthecaller01")
+        self.assertEqual(page["requests"][-1]["trace_id"], "4bf92f3577b34da6a3ce929d0e0e4736")
 
     def test_edited_draft_has_a_new_request_and_old_answer_cannot_replace_it(self):
         old = api.request_payment("PE-1")["request"]

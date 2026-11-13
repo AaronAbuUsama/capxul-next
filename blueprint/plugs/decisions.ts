@@ -380,13 +380,28 @@ export const decision_plugs_request_starts_trace = dec({
   title: "A payment request starts the money trail's trace when no caller sent one",
   question: "A person who presses Submit in the desk sends no X-Capxul-Trace, so the request, its chain event and its ledger rows carry an empty trace. Where does the trace come from then?",
   options: [
-    { label: "request-starts", text: "request_payment keeps a caller's trace and otherwise starts one (tr_ plus 24 random lowercase hex characters) before writing the request row. The request body carries it to Core, the approval and PaymentSent bring it back, and the posted GL rows are stamped with it." },
+    { label: "request-starts", text: "request_payment keeps a caller's trace and otherwise starts one (a W3C trace id, plugs.trace-format) before writing the request row. The request body carries it to Core, the approval and PaymentSent bring it back, and the posted GL rows are stamped with it." },
     { label: "caller-only", text: "Only callers that send a trace get one; desk submissions post untraced ledger rows." },
   ],
   chosen: "request-starts",
   why: "plugs.ledger-trace-display requires the settled payment's GL rows to show one persisted trace, and the desk is the ordinary way a person requests a payment. On world scrz1 (run run-20261113054032098-f6e9c408) the hat holder's request carried no trace, both GL rows of the settled payment had a null capxul_trace and ACCEPT.money-reconciled failed. A trace started at the request is the earliest point both the site and Core share.",
   evidence: "Selected-stack run run-20261113054032098-f6e9c408 on world scrz1, 13 November 2026",
   affects: [f.component_frappe_app, d.table_payment_requests, doctype_gl_entry],
+});
+
+export const decision_plugs_trace_format = dec({
+  id: "plugs.trace-format",
+  title: "One trace id format everywhere: a W3C trace id, 32 lowercase hex characters",
+  question: "Core chooses a W3C trace id for every request (joined to traceparent and X-Capxul-Trace), but the site accepted only ids shaped tr_ plus 8 to 40 lowercase characters and silently dropped any other. What format may a trace id have, and what does the site do with one it does not accept?",
+  options: [
+    { label: "w3c-hex", text: "A trace id is exactly 32 lowercase hexadecimal characters (the W3C Trace Context trace-id), byte-identical in Core's request, its rpcs and spans, the transition outbox, the site event, the site's Comment stamps and GL Entry.capxul_trace. The site keeps an incoming X-Capxul-Trace only when it has that form and ignores any other value, as before; a command no caller traced starts its own with 32 random lowercase hex characters (plugs.request-starts-trace)." },
+    { label: "tr-prefixed", text: "Keep tr_ plus 8 to 40 lowercase characters, and make Core translate its W3C id into that form at every call to the site." },
+    { label: "accept-both", text: "The site accepts either form." },
+  ],
+  chosen: "w3c-hex",
+  why: "One id must join a command to its rows and its chain transaction (signals' one-trace rule), so it cannot change form between Core and the ledger. After Core chose W3C ids, the tr_ check would leave every Core-to-site call's GL rows untraced and stamp no Comment, so ACCEPT.money-reconciled and the plugs request eval would fail or check nothing. Translating at the boundary makes two ids for one trace; accepting both keeps two formats where one is required. tr_ is already the baseline's prefix for share-transfer ids, so a trace with that prefix also reads as the wrong kind of id.",
+  evidence: "Sites lane trace analysis and Shared PR #125 (Core picks a W3C trace for every request), 13 November 2026; capxul/trace.py TRACE before this change",
+  affects: [f.component_frappe_app, d.table_site_events, d.table_payment_requests, doctype_gl_entry, integration_frappe_site],
 });
 
 export const decision_plugs_later_deposits = dec({
