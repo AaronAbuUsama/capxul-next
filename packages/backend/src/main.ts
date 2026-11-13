@@ -19,14 +19,15 @@ const sink = process.env.CAPXUL_MAIL_SINK;
 if (sink !== undefined && sink !== "devnet") throw new Error("CAPXUL_MAIL_SINK supports only devnet");
 const devnet = sink ? await import("../../devnet/src/devnet/door.ts") : undefined;
 const core = createCore(config, provision, (db) => {
-  if (!devnet) return [];
   const worker = async <T>(run: (sql: pg.PoolClient) => Promise<T>) => {
     const client = await db.worker.connect();
     try { return await run(client); } finally { client.release(); }
   };
-  const mail = devnet.devnetMail((text) => worker(async (sql) => rows(await sql.query(text))), () => worker(worldNow));
-  return accessRoutes({ mail, secret: config.secret, coreUrl: config.url, rpc: config.rpc,
-    deploymentFile: required("DEPLOYMENT_FILE"), namespace: required("ACCESS_SAFE_NAMESPACE") });
+  // Access needs the Mail sink; routes that do not are appended unconditionally.
+  const access = devnet ? accessRoutes({ mail: devnet.devnetMail((text) => worker(async (sql) => rows(await sql.query(text))), () => worker(worldNow)),
+    secret: config.secret, coreUrl: config.url, rpc: config.rpc,
+    deploymentFile: required("DEPLOYMENT_FILE"), namespace: required("ACCESS_SAFE_NAMESPACE") }) : [];
+  return [...access];
 });
 await core.start();
 console.log("Core listening with durable Postgres app state and Ponder facts");
