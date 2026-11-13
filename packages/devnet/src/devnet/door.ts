@@ -59,6 +59,14 @@ export function checkFollowers(manifest: Manifest, followers: readonly string[] 
   const missing = followerNames(followers).filter((f) => !(manifest.followers ?? []).includes(f));
   if (missing.length) throw new Error(`WRONG_STATE: stateful follower ${missing.join(", ")} joined now is missing from snapshot ${manifest.id}`);
 }
+/** A replace that crashed between its two renames leaves the old snapshot only as `.<id>-replaced-*`. Call under the host lock. */
+async function recoverReplaced(root: string, id: string): Promise<void> {
+  const final = join(root, id);
+  if (await stat(join(final, "manifest.json")).then(() => true, () => false)) return;
+  const aside = (await readdir(root).catch(() => [] as string[])).filter((entry) => entry.startsWith(`.${id}-replaced-`));
+  if (aside.length > 1) throw new Error(`WRONG_STATE: snapshot ${id} has several interrupted replacements (${aside.join(", ")}); inspect before saving or restoring`);
+  if (aside.length === 1) { await rm(final, { recursive: true, force: true }); await rename(join(root, aside[0]!), final); }
+}
 const savedNames = async (root: string) => {
   const entries = await readdir(root).catch((error) => { if (error.code === "ENOENT") return []; throw error; });
   const names: string[] = [];
@@ -102,8 +110,15 @@ export async function saveSnapshot(options: Options, world: World, id: string, s
   return locked(options.root, async () => {
     const final = join(options.root, id), temp = join(options.root, `.${id}-${randomUUID()}`);
     // The host lock serializes saves; an existing name refuses before the world is touched.
+    await recoverReplaced(options.root, id);
     const previous = await stat(join(final, "manifest.json")).then(() => true, () => false);
     if (previous && !save.replace) throw new Error(`WRONG_STATE: a snapshot named ${id} exists; replace was not asked`);
+    if (previous) {
+      // Snapshot names are host-wide: one world never replaces (and drops the template of) another world's snapshot.
+      const old = await readFile(join(final, "manifest.json"), "utf8").then((text) => JSON.parse(text) as Manifest).catch(() => undefined);
+      if (!old || typeof old.world !== "string" || typeof old.database?.name !== "string") throw new Error(`WRONG_STATE: snapshot ${id} has an unreadable manifest; it is not replaced`);
+      if (old.world !== world.id) throw new Error(`WRONG_STATE: snapshot ${id} belongs to world ${old.world}; only that world may replace it`);
+    }
     if (!await options.runtime.running(world)) throw new Error("source world must be running to establish a snapshot cut");
     let database: Database | undefined, published = false, replaced: string | undefined;
     const errors: unknown[] = [];
@@ -143,10 +158,13 @@ export async function saveSnapshot(options: Options, world: World, id: string, s
       throw error;
     } finally {
       try {
-        if (!published) {
-          await rm(temp, { recursive: true, force: true });
-          if (replaced) await rename(replaced, final);
-          if (database) await dropDatabase(options.admin, database.name);
+        // Each rollback step runs on its own; restoring the previous snapshot comes first.
+        if (!published) for (const step of [
+          async () => { if (replaced) await rename(replaced, final); },
+          () => rm(temp, { recursive: true, force: true }),
+          async () => { if (database) await dropDatabase(options.admin, database.name); },
+        ]) {
+          try { await step(); } catch (error) { errors.push(error); }
         }
       } catch (error) {
         errors.push(error);
@@ -167,6 +185,8 @@ export async function readSnapshot(options: Options, id: string): Promise<Manife
   const directory = join(options.root, id);
   const text = /^[a-z0-9][a-z0-9_-]{0,62}$/.test(id) ? await readFile(join(directory, "manifest.json"), "utf8").catch((error) => { if (error.code === "ENOENT") return undefined; throw error; }) : undefined;
   if (text === undefined) {
+    const aside = (await readdir(options.root).catch(() => [] as string[])).filter((entry) => entry.startsWith(`.${id}-replaced-`));
+    if (aside.length) throw new Error(`WRONG_STATE: snapshot ${id} was interrupted while being replaced (${aside.join(", ")}); a save or restore under the host lock recovers it`);
     const saved = await savedNames(options.root);
     throw new Error(`INVALID_INPUT: no snapshot named ${JSON.stringify(id)}; saved here: ${saved.length ? saved.join(", ") : "none"}`);
   }
@@ -183,6 +203,7 @@ export async function readSnapshot(options: Options, id: string): Promise<Manife
 export async function restoreSnapshot(options: Options, id: string, target: World, restore: RestoreOptions = {}): Promise<Manifest> {
   checkWorld(target);
   return locked(options.root, async () => {
+    if (/^[a-z0-9][a-z0-9_-]{0,62}$/.test(id)) await recoverReplaced(options.root, id);
     const manifest = await readSnapshot(options, id);
     checkFollowers(manifest, restore.followers);
     const companies = manifest.sites.map((s) => s.company).sort();

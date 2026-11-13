@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -127,6 +127,17 @@ test("whole database cut restores independently, fences failures and retains aba
     assert.equal((await admin(`SELECT row_to_json(d) FROM (SELECT 1 FROM pg_database WHERE datname='${manifest.database.name}') d`)).length, 0, "replaced template dropped");
     assert.deepEqual((await readSnapshot(options, "paid")).followers, ["fde-namespace"]);
     assert.deepEqual((await readdir(options.root)).filter((f) => f !== ".snapshot-lock"), ["paid"]);
+    const other: World = { ...source, id: "other", database: `${prefix}_other`, stateDir: join(dir, "other") };
+    await assert.rejects(saveSnapshot(options, other, "paid", { replace: true }), /WRONG_STATE: snapshot paid belongs to world source/);
+    await mkdir(join(options.root, "junk")); await writeFile(join(options.root, "junk", "manifest.json"), "{");
+    await assert.rejects(saveSnapshot(options, source, "junk", { replace: true }), /WRONG_STATE: snapshot junk has an unreadable manifest/);
+    await rm(join(options.root, "junk"), { recursive: true });
+    assert.equal(quiesces, before + 1, "only the accepted replace touched a world");
+    // A crash between the replace's two renames: reads name it; the next locked save recovers the previous snapshot.
+    await rename(join(options.root, "paid"), join(options.root, ".paid-replaced-crash"));
+    await assert.rejects(readSnapshot(options, "paid"), /WRONG_STATE: snapshot paid was interrupted while being replaced/);
+    await assert.rejects(saveSnapshot(options, source, "paid"), /WRONG_STATE: a snapshot named paid exists/);
+    assert.equal((await readSnapshot(options, "paid")).database.name, replaced.database.name);
     sourceRunning = false;
     await assert.rejects(saveSnapshot(options, source, "stopped"), /source world must be running/);
     assert.equal(await runtime.running(source), false, "refused save must not activate a stopped world");
@@ -210,6 +221,8 @@ test("restore as refuses a taken or malformed new world id before reading the sn
     await assert.rejects(restoreAs(stack, await target("town1", "world_other"), "paid"), /INVALID_INPUT: world id town1 is taken/);
     await assert.rejects(restoreAs(stack, await target("town2", taken), "paid"), /INVALID_INPUT: world id town2 is taken/);
     await assert.rejects(restoreAs(stack, await target("Town-2", "world_town2"), "paid"), /INVALID_INPUT: a world id/);
+    const loose = await target("Town-3", "world_town3"); await chmod(loose, 0o644);
+    await assert.rejects(restoreAs(stack, loose, "paid"), /chmod 600/, "a readable config is a permission refusal, whatever its id");
     await mkdir(join(dir, "town2", "state"), { recursive: true });
     await assert.rejects(restoreAs(stack, await target("town2", "world_town2"), "paid"), /INVALID_INPUT: world id town2 is taken/);
     assert.deepEqual(await readdir(join(dir, "town2")), ["state"], "a refused restore never takes the target lock");

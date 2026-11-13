@@ -28,20 +28,26 @@ export async function withWorldLock<T>(c: Config, run: () => Promise<T>): Promis
 export async function restoreAs(stack: Stack, targetConfigFile: string, id: string, options: { followers?: readonly string[] } = {}) {
   const targetFile = resolve(targetConfigFile);
   const target = await readConfig(targetFile).catch(async (error) => {
-    // readConfig's own permission check runs first; only then is a malformed id named as the caller's input error.
+    // A permission refusal stays a permission refusal; only a private file's malformed id is the caller's input error.
+    if (((await stat(targetFile).catch(() => undefined))?.mode ?? 0) & 0o077) throw error;
     const named = await readFile(targetFile, "utf8").then((text) => JSON.parse(text)?.world?.id, () => undefined);
     if (typeof named === "string" && !/^[a-z][a-z0-9]{0,11}$/.test(named)) throw new Error("INVALID_INPUT: a world id is 1 to 12 lowercase letters and digits, starting with a letter");
     throw error;
   });
-  if (target.world.id === stack.c.world.id || target.world.database === stack.c.world.database) throw new Error(`INVALID_INPUT: world id ${target.world.id} is taken`);
-  const taken = await psqlAdmin(stack.c.database.admin)(`SELECT row_to_json(d) FROM (SELECT 1 FROM pg_database WHERE datname='${target.world.database.replaceAll("'", "''")}') d`);
-  if (taken.length || await stat(target.world.stateDir).then(() => true, () => false)) throw new Error(`INVALID_INPUT: world id ${target.world.id} is taken`);
+  const checkTaken = async () => {
+    if (target.world.id === stack.c.world.id || target.world.database === stack.c.world.database) throw new Error(`INVALID_INPUT: world id ${target.world.id} is taken`);
+    const taken = await psqlAdmin(stack.c.database.admin)(`SELECT row_to_json(d) FROM (SELECT 1 FROM pg_database WHERE datname='${target.world.database.replaceAll("'", "''")}') d`);
+    if (taken.length || await stat(target.world.stateDir).then(() => true, () => false)) throw new Error(`INVALID_INPUT: world id ${target.world.id} is taken`);
+  };
+  await checkTaken();
   if (target.controlDir === stack.c.controlDir) throw new Error("--as requires a distinct initialized target world");
   const manifest = await stack.read(id);
   checkFollowers(manifest, options.followers);
   if (target.snapshots !== stack.c.snapshots || target.codeVersion !== stack.c.codeVersion || new URL(target.database.admin).host !== new URL(stack.c.database.admin).host ||
       Object.values(target.ports).some((port) => Object.values(stack.c.ports).includes(port))) throw new Error("clone must share this host's snapshot/code version and use separate ports");
   return withWorldLock(target, async () => {
+    // Another restore may have taken the id between the early refusal and this lock.
+    await checkTaken();
     target.world.sites = manifest.sites.map((site) => ({ company: site.company, name: `${site.company}-${target.world.id}.${target.bench.baseDomain}` }));
     // Native site backups keep the source delivery secret and encryption key; implicit rekey is not recovery.
     target.secret = stack.c.secret;
