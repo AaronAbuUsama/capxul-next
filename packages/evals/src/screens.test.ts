@@ -29,7 +29,7 @@ test("a shows claim passes only with a fresh, non-empty, source-resolved capture
       "printf '@check\\tS1.done\\tpass\\t1\\tok\\n@check\\tS2.done\\tpass\\t1\\tok\\n'",
       'mkdir -p "$CAPXUL_EVAL_RUN_DIR/acceptance" "$CAPXUL_EVAL_RUN_DIR/sites"',
       `${png} > "$CAPXUL_EVAL_RUN_DIR/acceptance/shot.png"; ${png} > "$CAPXUL_EVAL_RUN_DIR/sites/shot.png"; printf text > "$CAPXUL_EVAL_RUN_DIR/acceptance/note.png"`,
-      `{ printf '\\211PNG\\r\\n\\032\\n'; head -c 40 /dev/zero; } > "$CAPXUL_EVAL_RUN_DIR/acceptance/magic.png"; ${jpg} | head -c -2 > "$CAPXUL_EVAL_RUN_DIR/acceptance/cut.jpg"; ${jpg} > "$CAPXUL_EVAL_RUN_DIR/acceptance/shot.jpg"; printf text > "$CAPXUL_EVAL_RUN_DIR/acceptance/notes.txt"`,
+      `{ printf '\\211PNG\\r\\n\\032\\n'; head -c 40 /dev/zero; } > "$CAPXUL_EVAL_RUN_DIR/acceptance/magic.png"; ${jpg} | head -c -2 > "$CAPXUL_EVAL_RUN_DIR/acceptance/cut.jpg"; ${png} | head -c -12 > "$CAPXUL_EVAL_RUN_DIR/acceptance/cut.png"; ${jpg} > "$CAPXUL_EVAL_RUN_DIR/acceptance/shot.jpg"; printf text > "$CAPXUL_EVAL_RUN_DIR/acceptance/notes.txt"`,
       `printf '{"invoice":{"supplier":"Acme"},"a/b~c":1,"tilde":{"~1":1},"slash":{"/":1},"rows":[]}' > "$CAPXUL_EVAL_RUN_DIR/acceptance/sources.json"`,
     ].join("\n");
     const manifest = (screen: string, assertion = "source-equality", source = "acceptance/sources.json#/invoice/supplier", path = "acceptance/shot.png") =>
@@ -68,6 +68,7 @@ test("a shows claim passes only with a fresh, non-empty, source-resolved capture
       [checks + manifest("supplier-invoice", "source-equality", "acceptance/shot.png"), undefined, "incomplete", 0, [shows]],
       [checks + manifest("supplier-invoice", "source-equality", "acceptance/sources.json#/invoice/supplier", "acceptance/magic.png"), undefined, "incomplete", 0, [shows]],
       [checks + manifest("supplier-invoice", "source-equality", "acceptance/sources.json#/invoice/supplier", "acceptance/cut.jpg"), undefined, "incomplete", 0, [shows]],
+      [checks + manifest("supplier-invoice", "source-equality", "acceptance/sources.json#/invoice/supplier", "acceptance/cut.png"), undefined, "incomplete", 0, [shows]],
       [checks + manifest("supplier-invoice", "source-equality", "acceptance/sources.json#/invoice/supplier", "acceptance/shot.jpg"), undefined, "complete", 2, []],
       [checks + manifest("supplier-invoice", "source-equality", "acceptance/notes.txt"), undefined, "incomplete", 0, [shows]],
       [checks + manifest("supplier-invoice", "source-equality", "acceptance/sources.json#/invoice/supplier", "sites/shot.png"), undefined, "incomplete", 0, [shows]],

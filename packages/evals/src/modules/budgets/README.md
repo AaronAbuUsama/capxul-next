@@ -16,8 +16,9 @@ emit(checkName, judgement.pass, judgement.detail);
   the sample's host-clock start in epoch ms. `waits: [{ name, ms }]` is time in named waits and is subtracted, but only
   names in `budgetOf(...).excludes` are accepted: a workflow's `wait.<name>` waits, its budget's `excludes` and
   `chain.confirm`; a flow's `wait.<step>` local wait steps and its `excludes`; an operation's or rpc's `excludes` (usually
-  none). An exclusion ending in `.*` names a prefix (`wait.*` covers `wait.person`). Any other name, or waits longer than the
-  sample, fails the check, and so does a sample whose `startedAt` is before the receipt's `at` or after now.
+  none). Exclusions are exact names, never prefixes. Any other name, or waits longer than the sample, fails the check, and
+  so does a sample whose `startedAt` is before the receipt's `at` or after now, or any sample when `runAt` or `now` is
+  missing or not a number.
 - **Warm:** a `kind` is one measured path in one process (`note-payment-open@worker-1`). The helper orders each kind by
   `startedAt`, so its earliest sample is cold and excluded whatever order you pass; a missing start or two samples of one
   kind with the same start fails. Every kind needs a warm sample, and at least 2 warm samples (N) are required, or the check fails.

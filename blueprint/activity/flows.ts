@@ -30,7 +30,7 @@ export const flow_client_activity_changes = defineFlow({
     "events, and the cursor to follow. With `wait`, while a read answers no events and is not truncated, it waits five " +
     "seconds and reads again from the same cursor, until something changes or `timeoutSeconds` (300 by default) has " +
     "passed, and then answers no events with the cursor it holds. A truncated read answers at once: the rest follows " +
-    "from its cursor. The wait is the host's (a `wait.*` span, never system time); every time it answers is the " +
+    "from its cursor. The wait is the host's (a `wait.wait` span, never system time); every time it answers is the " +
     "backend's. Serves the CLI's `activity events` and the MCP server's tool of the same name.",
   component: component_core_sdk,
   sdk: "client.activity.changes",
@@ -57,6 +57,6 @@ export const flow_client_activity_changes = defineFlow({
   errors: [],
   calls: [],
   spans: ["sdk.client.activity.changes"],
-  budget: { ...budget("read"), excludes: ["wait.*"] },
+  budget: { ...budget("read"), excludes: ["wait.wait"] },
   was: [`${CLI}:131`, `${CLI}:14`, "packages/sdk/src/activity/methods.ts:1"],
 });

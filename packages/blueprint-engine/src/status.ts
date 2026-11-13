@@ -42,7 +42,9 @@ export const pointerValue = (doc: unknown, pointer: string): unknown => {
  * is its signature followed by a 13-byte IHDR chunk, and a JPEG starts with SOI (FFD8FF) and ends with EOI (FFD9). */
 export const isScreenImage = (bytes: Uint8Array): boolean => {
   const at = (offset: number, expected: readonly number[]): boolean => expected.every((byte, i) => bytes[offset + i] === byte);
-  const png = bytes.length >= 33 && at(0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) && at(8, [0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52]);
+  // A PNG runs from its signature and IHDR to the IEND chunk that ends it, so a truncated capture is refused.
+  const png = bytes.length >= 45 && at(0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) && at(8, [0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52]) &&
+    at(bytes.length - 12, [0, 0, 0, 0, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82]);
   const jpeg = bytes.length >= 5 && at(0, [0xff, 0xd8, 0xff]) && at(bytes.length - 2, [0xff, 0xd9]);
   return png || jpeg;
 };

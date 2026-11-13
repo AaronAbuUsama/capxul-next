@@ -166,7 +166,7 @@ export const operation_activity_events = defineOperation({
     refused("A cursor an events read never returned", "capxul activity events --after nonsense --json", error_CLI_USAGE),
     refused("Signed out", "capxul activity events --json", error_NOT_AUTHENTICATED),
   ],
-  budget: { ...budget("read"), excludes: ["wait.*"] },
+  budget: { ...budget("read"), excludes: ["wait.wait"] },
 });
 
 // ── activity get ────────────────────────────────────────────────────────────────────────────

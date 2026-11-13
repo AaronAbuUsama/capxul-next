@@ -88,7 +88,7 @@ test("the budget and its exclusions come from the eval's blueprint record", asyn
   assert.throws(() => budgetOf(b, op.id.replace("bud:", "ret:").replace(/\/p95$/, "")), /not a budget eval/);
 });
 
-test("a sample must start inside the run, and an exclusion ending in .* names a prefix", () => {
+test("a sample must start inside a known run, and an exclusion is an exact name", () => {
   const at = Date.parse("2026-11-13T07:00:00Z"), now = at + 60_000;
   const sample = (ms: number, startedAt: number): Sample => ({ kind: "a", ms, clock: "host", startedAt });
   // A slow sample placed before the run would otherwise be the cold one and drop out.
@@ -96,9 +96,14 @@ test("a sample must start inside the run, and an exclusion ending in .* names a 
   assert.match(early.detail, /start outside this run/);
   assert.equal(judgeBudget(p95(1000), [sample(5000, at), sample(100, at + 1), sample(120, at + 2)], at, now).pass, true);
   assert.equal(judgeBudget(p95(1000), [sample(100, at), sample(100, at + 1), sample(120, now + 1)], at, now).pass, false);
+  // A missing run start (Date.parse of an absent receipt.at) or judgement time makes every window comparison false; it fails.
+  const placed = [sample(5000, at - 100_000), sample(100, at + 1), sample(120, at + 2)];
+  for (const [runAt, end] of [[Number.NaN, now], [at, Number.NaN], [undefined as unknown as number, now]] as const)
+    assert.match(judgeBudget(p95(1000), placed, runAt, end).detail, /no run start/, `${runAt} to ${end}`);
   const span = (name: string): Sample => ({ kind: "w", ms: 9000, clock: "span", startedAt: ++clock, waits: [{ name, ms: 8900 }] });
-  assert.equal(judge(p95(1000, undefined, ["wait.*"]), [...runs("w", 1), span("wait.person"), span("wait.chain")]).pass, true);
-  // The prefix is the part before "*": "wait." itself, or a name that merely begins "wait" or "waits.", is no wait.
-  for (const name of ["wait.", "waiting.person", "waits.x", "chain.confirm"])
-    assert.equal(judge(p95(1000, undefined, ["wait.*"]), [...runs("w", 1), span(name), span(name)]).pass, false, name);
+  assert.equal(judge(p95(1000, undefined, ["wait.wait"]), [...runs("w", 1), span("wait.wait"), span("wait.wait")]).pass, true);
+  // Only the exact name is subtracted: another wait, a longer name, or a pattern written as an exclusion is not.
+  for (const name of ["wait.db-lock-contention", "wait.slow-query", "wait.waiting", "wait.", "chain.confirm"])
+    assert.equal(judge(p95(1000, undefined, ["wait.wait"]), [...runs("w", 1), span(name), span(name)]).pass, false, name);
+  assert.equal(judge(p95(1000, undefined, ["wait.*"]), [...runs("w", 1), span("wait.person"), span("wait.person")]).pass, false);
 });
