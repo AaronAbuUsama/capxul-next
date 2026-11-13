@@ -96,7 +96,12 @@ export function supervised(c: Config, configFile: string): Host & Processes {
       await command(["docker", "compose", "--env-file", hostEnv, "-f", resolve(import.meta.dirname, "host.yaml"), "-p", "capxul-world-host", "up", "-d", "--wait"], c.root);
       await compose(["up", "-d", "--wait", "--wait-timeout", "300"]);
     },
-    async benchStop() { await compose(["stop", "--timeout", "120", "frontend", "backend", "websocket", "scheduler", "queue-short", "queue-long"]); },
+    async benchStop() {
+      // Writers first, then the world's own MariaDB and Redis, so a stopped world holds no memory. The host Postgres is shared by
+      // every world on this machine and stays up; up() starts all of them again (compose up --wait).
+      await compose(["stop", "--timeout", "120", "frontend", "backend", "websocket", "scheduler", "queue-short", "queue-long"]);
+      await compose(["stop", "--timeout", "120", "mariadb", "redis-cache", "redis-queue"]);
+    },
   };
   return host;
 }

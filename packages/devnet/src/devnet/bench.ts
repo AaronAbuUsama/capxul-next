@@ -20,6 +20,8 @@ export function composeBench(composeArgs: string[], benchDir = "/home/frappe/fra
   return {
     ownsPause: () => ownsPause,
     async pause() {
+      // A stopped world's MariaDB and Redis are down too; recovery drains and backs up through them. A no-op when they run.
+      await compose(["up", "-d", "--wait", "--no-deps", "mariadb", "redis-cache", "redis-queue"]);
       await python(["prepare"]);
       ownsPause = true; involved = true;
       await compose(["stop", "--timeout", "120", "frontend", "backend", "websocket", "scheduler"]);
