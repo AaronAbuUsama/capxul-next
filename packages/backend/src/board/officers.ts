@@ -37,6 +37,7 @@ export async function changeOfficer(sql: Sql, context: BoardContext, input: Offi
   const claimed = await context.facts.safe(sql, context.chainId, who.safe_address);
   if (!claimed?.deployed) throw new Error("WRONG_STATE: member has no claimed Safe");
   const id = state.deployment[({ "manage-books": "books_hat", "issue-invoices": "invoicing_hat", "manage-people": "people_hat" } as const)[input.permission]];
+  if (id === null) throw new Error("WRONG_STATE: the Organization's deployment binds no hat to this permission yet");
   if ((await sql.query(`select 1 from app.officer_changes where org_id=$1 and member_id=$2 and permission=$3 and waiting`, [input.orgId, who.member_id, input.permission])).rowCount) {
     throw new Error("WRONG_STATE: this member's permission change still waits");
   }

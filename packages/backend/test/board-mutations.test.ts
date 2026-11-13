@@ -188,10 +188,10 @@ test("Board public adapter composes real auth/Seat/approval doors atomically", {
       assert.equal(decoded.args![0], 4n); assert.equal(String(decoded.args![1]).toLowerCase(), agent);
       assert.deepEqual(decoded.args!.slice(2), [false, true]);
     });
-    await control("lapsed authority, missing deployment, office conflict and stale gate refuse without writes", async () => {
+    await control("lapsed authority, missing deployment or unbound hat, office conflict and stale gate refuse without writes", async () => {
       validOwners = [second]; await assert.rejects(grant(), /director_hat_lapsed/); await empty(); validOwners = [director, second];
-      await assert.rejects(call("/board/officers/grant", { member: "@agent", permission: "manage-people", note: null }, "director",
-        { ...world, facts: { ...facts, deployment: async () => null } }), /WRONG_STATE/); await empty();
+      for (const [deployment, why] of [[async () => null, /no deployment/], [async () => ({ ...(await facts.deployment(db, org, 84532))!, people_hat: null }), /binds no hat/]] as const) {
+        await assert.rejects(call("/board/officers/grant", { member: "@agent", permission: "manage-people", note: null }, "director", { ...world, facts: { ...facts, deployment } }), why); await empty(); }
       office = true; await assert.rejects(grant(), /ROLE_CONFLICT/); await empty(); office = false;
       await db.query("update app.feature_flags set checked_at=$1", [new Date(now - 600001)]);
       await assert.rejects(grant(), /FEATURE_NOT_AVAILABLE/); await empty();

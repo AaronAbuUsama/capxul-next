@@ -3,7 +3,8 @@ import type { Address } from "viem";
 import type { Call } from "./types.ts";
 
 export type Deployment = { safe_address: Address; gate_address: Address; director_hat: string;
-  books_hat: string; invoicing_hat: string; people_hat: string };
+  /** Null until the admitted deployment binds the permission's hat (board.officer-hat-unbound). */
+  books_hat: string | null; invoicing_hat: string | null; people_hat: string | null };
 export type SafeState = { safe_address: Address; owners: Address[]; threshold: number; nonce: number; deployed: boolean };
 
 /** Required same-Sql source reads. Composition must admit finalized installation facts, not editable app.hats.
