@@ -75,7 +75,8 @@ export function createSigningHandler(options: SigningTransport) {
         if (!principal.personId || scope?.person !== principal.personId || scope.safe !== principal.safeAddress ||
             scope.kind !== "person" || scope.owner !== principal.personId) throw new Error("NOT_AUTHENTICATED: principal scope required");
         const ctx: SigningContext = { person_id: principal.personId, sender: principal.safeAddress, site_url: options.site_url,
-          now: new Date(now), network: options.network, requireFeature: options.requireFeature, terminal: options.terminal };
+          now: new Date(now), network: options.network, requireFeature: options.requireFeature,
+          ...(options.terminal ? { terminal: options.terminal } : {}) };
         const row = await read(sql, ctx.person_id, input.approvalId, false);
         if (row.gate) await options.requireFeature(sql, row.gate, { personId: ctx.person_id, ...(row.org_id ? { orgId: row.org_id } : {}) });
         if (stop.signal.aborted) throw new Error("CANCELLED");
