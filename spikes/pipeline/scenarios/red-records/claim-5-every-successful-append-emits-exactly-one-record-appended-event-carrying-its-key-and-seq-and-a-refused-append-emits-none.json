@@ -1,0 +1,53 @@
+{
+  "scenario": "claim 5: every successful append emits exactly one record_appended event carrying its key and seq, and a refused append emits none",
+  "world": "pl-claim-5-ev-46fac5",
+  "owner": "pipeline",
+  "expiresAt": "2026-11-13T08:57:18.749Z",
+  "outcome": "failed",
+  "failure": "the scenario failed: NotImplemented: not implemented: record.append",
+  "calls": [
+    {
+      "operation": "record.append",
+      "traceId": "9498fc9607691234d35b04e90255ebf8",
+      "outcome": "defect",
+      "ms": 872,
+      "serverMs": 0,
+      "budgetMs": 500,
+      "failure": "NotImplemented: not implemented: record.append",
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw defect; the span says defect"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: none; declared for a defect: none"
+        },
+        {
+          "check": "budget",
+          "passed": true,
+          "gating": false,
+          "detail": "0 ms against a budget of 500 ms"
+        }
+      ]
+    }
+  ],
+  "worldAfterwards": "destroyed",
+  "ms": {
+    "create": 23128,
+    "scenario": 875,
+    "checks": 221,
+    "destroy": 8207
+  }
+}

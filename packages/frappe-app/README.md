@@ -18,6 +18,7 @@ whitelisted method names are the same (`capxul.api.chain_event`, `capxul.door.*`
 | `capxul/features.py` | feature switches (Capxul Feature rows) and the request guard that answers 403 for a part that is off |
 | `capxul/brand.py`, `capxul/privacy.py` | the names-only rename and nothing reporting usage outward; run after every migrate once setup is complete |
 | `capxul/clock.py`, `capxul/world.py` | the world clock on the site, and a site's names in a restored world |
+| `capxul/boot.py` | loads the clock in every Python process of the bench before Frappe can read the time (the image writes `capxul_world_clock.pth`) |
 
 Spike helpers still here: `testutil.py` and `feature_experiments.py`. The skeleton's fake `/prepare` and OAuth checks describe the superseded outbound boundary, not acceptance for the request outbox below.
 

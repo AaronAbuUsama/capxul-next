@@ -1,0 +1,53 @@
+{
+  "scenario": "claim 1: the first append in a fresh world returns seq 1 and each later append returns the previous seq plus one",
+  "world": "pl-claim-1-th-580230",
+  "owner": "pipeline",
+  "expiresAt": "2026-11-13T08:55:23.410Z",
+  "outcome": "failed",
+  "failure": "the scenario failed: NotImplemented: not implemented: record.append",
+  "calls": [
+    {
+      "operation": "record.append",
+      "traceId": "fba28e45eeeaea9027ab41df2a62b1fb",
+      "outcome": "defect",
+      "ms": 738,
+      "serverMs": 0,
+      "budgetMs": 500,
+      "failure": "NotImplemented: not implemented: record.append",
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw defect; the span says defect"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: none; declared for a defect: none"
+        },
+        {
+          "check": "budget",
+          "passed": true,
+          "gating": false,
+          "detail": "0 ms against a budget of 500 ms"
+        }
+      ]
+    }
+  ],
+  "worldAfterwards": "destroyed",
+  "ms": {
+    "create": 26153,
+    "scenario": 744,
+    "checks": 227,
+    "destroy": 9261
+  }
+}

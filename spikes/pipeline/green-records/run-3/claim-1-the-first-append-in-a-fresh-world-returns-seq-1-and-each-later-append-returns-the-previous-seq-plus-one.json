@@ -1,0 +1,377 @@
+{
+  "scenario": "claim 1: the first append in a fresh world returns seq 1 and each later append returns the previous seq plus one",
+  "world": "pl-claim-1-th-e20be9",
+  "owner": "pipeline",
+  "expiresAt": "2026-11-13T10:17:32.053Z",
+  "outcome": "passed",
+  "failure": null,
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 11706
+  },
+  "calls": [
+    {
+      "operation": "record.append",
+      "traceId": "a9436ad7979460aac751e26cb56ffb5b",
+      "outcome": "success",
+      "ms": 607,
+      "resent": 0,
+      "serverMs": 434,
+      "steps": [
+        {
+          "name": "sql.transaction",
+          "startMs": 0,
+          "ms": 434
+        },
+        {
+          "name": "RecordStore.append",
+          "startMs": 0,
+          "ms": 434
+        },
+        {
+          "name": "BEGIN postgres",
+          "startMs": 4,
+          "ms": 168
+        },
+        {
+          "name": "postgres",
+          "startMs": 172,
+          "ms": 91
+        },
+        {
+          "name": "postgres",
+          "startMs": 263,
+          "ms": 86
+        },
+        {
+          "name": "COMMIT postgres",
+          "startMs": 349,
+          "ms": 85
+        }
+      ],
+      "budgetMs": 500,
+      "failure": null,
+      "events": [
+        "record_appended"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 434 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: record_appended {\"key\":\"payment/2026-11-0007\",\"seq\":1}; declared for a success: record_appended {\"key\":\"payment/2026-11-0007\",\"seq\":1}"
+        },
+        {
+          "check": "budget",
+          "passed": true,
+          "gating": false,
+          "detail": "434 ms against a budget of 500 ms"
+        }
+      ]
+    },
+    {
+      "operation": "record.append",
+      "traceId": "d99addd9c81fe6a593cbe98899657a77",
+      "outcome": "success",
+      "ms": 504,
+      "resent": 0,
+      "serverMs": 359,
+      "steps": [
+        {
+          "name": "sql.transaction",
+          "startMs": 0,
+          "ms": 359
+        },
+        {
+          "name": "RecordStore.append",
+          "startMs": 0,
+          "ms": 359
+        },
+        {
+          "name": "BEGIN postgres",
+          "startMs": 2,
+          "ms": 109
+        },
+        {
+          "name": "postgres",
+          "startMs": 111,
+          "ms": 83
+        },
+        {
+          "name": "postgres",
+          "startMs": 194,
+          "ms": 82
+        },
+        {
+          "name": "COMMIT postgres",
+          "startMs": 276,
+          "ms": 83
+        }
+      ],
+      "budgetMs": 500,
+      "failure": null,
+      "events": [
+        "record_appended"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 359 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: record_appended {\"key\":\"budget/marketing\",\"seq\":2}; declared for a success: record_appended {\"key\":\"budget/marketing\",\"seq\":2}"
+        },
+        {
+          "check": "budget",
+          "passed": true,
+          "gating": false,
+          "detail": "359 ms against a budget of 500 ms"
+        }
+      ]
+    },
+    {
+      "operation": "record.append",
+      "traceId": "c6295aad3ad79b72ad9617e393a8c603",
+      "outcome": "success",
+      "ms": 471,
+      "resent": 0,
+      "serverMs": 334,
+      "steps": [
+        {
+          "name": "sql.transaction",
+          "startMs": 0,
+          "ms": 334
+        },
+        {
+          "name": "RecordStore.append",
+          "startMs": 0,
+          "ms": 334
+        },
+        {
+          "name": "BEGIN postgres",
+          "startMs": 4,
+          "ms": 85
+        },
+        {
+          "name": "postgres",
+          "startMs": 89,
+          "ms": 82
+        },
+        {
+          "name": "postgres",
+          "startMs": 171,
+          "ms": 81
+        },
+        {
+          "name": "COMMIT postgres",
+          "startMs": 252,
+          "ms": 82
+        }
+      ],
+      "budgetMs": 500,
+      "failure": null,
+      "events": [
+        "record_appended"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 334 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: record_appended {\"key\":\"approval/2026-11-0007/1\",\"seq\":3}; declared for a success: record_appended {\"key\":\"approval/2026-11-0007/1\",\"seq\":3}"
+        },
+        {
+          "check": "budget",
+          "passed": true,
+          "gating": false,
+          "detail": "334 ms against a budget of 500 ms"
+        }
+      ]
+    },
+    {
+      "operation": "record.append",
+      "traceId": "2401b63074cf55b293c40c56a868d8f9",
+      "outcome": "success",
+      "ms": 471,
+      "resent": 0,
+      "serverMs": 333,
+      "steps": [
+        {
+          "name": "sql.transaction",
+          "startMs": 0,
+          "ms": 333
+        },
+        {
+          "name": "RecordStore.append",
+          "startMs": 0,
+          "ms": 333
+        },
+        {
+          "name": "BEGIN postgres",
+          "startMs": 6,
+          "ms": 82
+        },
+        {
+          "name": "postgres",
+          "startMs": 88,
+          "ms": 83
+        },
+        {
+          "name": "postgres",
+          "startMs": 171,
+          "ms": 81
+        },
+        {
+          "name": "COMMIT postgres",
+          "startMs": 252,
+          "ms": 81
+        }
+      ],
+      "budgetMs": 500,
+      "failure": null,
+      "events": [
+        "record_appended"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 333 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: record_appended {\"key\":\"approval/2026-11-0007/2\",\"seq\":4}; declared for a success: record_appended {\"key\":\"approval/2026-11-0007/2\",\"seq\":4}"
+        },
+        {
+          "check": "budget",
+          "passed": true,
+          "gating": false,
+          "detail": "333 ms against a budget of 500 ms"
+        }
+      ]
+    },
+    {
+      "operation": "record.append",
+      "traceId": "18e726b57b7a66deca8dfef0e6c467e4",
+      "outcome": "success",
+      "ms": 528,
+      "resent": 0,
+      "serverMs": 384,
+      "steps": [
+        {
+          "name": "sql.transaction",
+          "startMs": 0,
+          "ms": 384
+        },
+        {
+          "name": "RecordStore.append",
+          "startMs": 0,
+          "ms": 384
+        },
+        {
+          "name": "BEGIN postgres",
+          "startMs": 4,
+          "ms": 128
+        },
+        {
+          "name": "postgres",
+          "startMs": 132,
+          "ms": 85
+        },
+        {
+          "name": "postgres",
+          "startMs": 217,
+          "ms": 83
+        },
+        {
+          "name": "COMMIT postgres",
+          "startMs": 300,
+          "ms": 84
+        }
+      ],
+      "budgetMs": 500,
+      "failure": null,
+      "events": [
+        "record_appended"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 384 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: record_appended {\"key\":\"Budget/Marketing\",\"seq\":5}; declared for a success: record_appended {\"key\":\"Budget/Marketing\",\"seq\":5}"
+        },
+        {
+          "check": "budget",
+          "passed": true,
+          "gating": false,
+          "detail": "384 ms against a budget of 500 ms"
+        }
+      ]
+    }
+  ],
+  "worldAfterwards": "destroyed",
+  "ms": {
+    "create": 31822,
+    "scenario": 2589,
+    "checks": 254,
+    "destroy": 8768
+  }
+}

@@ -39,6 +39,7 @@ step "app capxul from this repository"
 cp -r "$CAPXUL_SRC" apps/capxul
 find apps/capxul -name '__pycache__' -prune -exec rm -rf {} +
 uv pip install --quiet --python env/bin/python -e apps/capxul
+env/bin/python -c "import capxul.boot as b; print(b.write_pth())"   # every Python process of the bench reads world time (capxul/boot.py)
 
 printf '%s\n' frappe $(python3 -c 'import json,sys; print(" ".join(a["name"] for a in json.load(open(sys.argv[1]))["apps"]))' "$LOCK") capxul > sites/apps.txt
 echo '{}' > sites/common_site_config.json
