@@ -208,7 +208,8 @@ if (process.argv[2] === "crash-worker") {
           assert.equal(await relay(db, "activity.changes", names, note), 0);
           assert.deepEqual(await rows(), completed);
           const movement: TransitionEvent = { ...event("outbox-movement"), name: "movement_transitioned", machine: "movement",
-            entity_id: "84532:0xabc:17:out", props: { owner_kind: "person", owner_id: "same", transition: "record",
+            // Receipt-ordinal log id 2 while the block-global log index is 17: the row id is the event's, never rebuilt.
+            entity_id: "84532:0xabc:2:out", props: { owner_kind: "person", owner_id: "same", transition: "record",
               from: null, to: "recorded", chain_id: 84532, tx_hash: "0xabc", log_index: 17, side: "out" } };
           await publish(movement); assert.equal(await relay(db, "activity.changes", names, note), 1);
           const withMovement = await rows();

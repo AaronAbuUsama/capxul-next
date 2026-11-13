@@ -199,7 +199,7 @@ export const decision_activity_row_ids = defineDecision({
   title: "A Movement's id is its Transfer and side; a Payment's is payments' id",
   question: "What id does `activity get --kind movement --id` take, and what does an annotation name?",
   options: [
-    { label: "transfer-side", text: "`<chain id>:<tx hash>:<log index>:<side>`, the key of payments' Movement row without its owner." },
+    { label: "transfer-side", text: "`<log id>:<side>`, the key of payments' Movement row without its owner, and its `movement_transitioned` entity id." },
     { label: "minted", text: "A new `mov_` id stored on the row." },
   ],
   chosen: "transfer-side",
@@ -207,8 +207,13 @@ export const decision_activity_row_ids = defineDecision({
     "A Movement is one side of one indexed Transfer for one owner, and payments keys it so; the id repeats that key, so " +
     "no column or lookup is added, and both sides of an internal Transfer have different ids. Books' annotations name the " +
     "same string as their reference. Documents names a Movement's Memo by its Transfer alone (`<chain id>:<tx hash>:<log " +
-    "index>`, one Memo for both sides), so `activity get` drops the side to find it. A Payment keeps its `payment_` id." + " Review, 11 November 2026: The surviving rule (A Movement's id is its Transfer and side; a Payment's is payments' id) still applies. Removed subjects in its historical evidence are not restored; cut.principle; aaron.one-door; sites.door; portal.plan-page governs their replacement.",
-  source: by("blueprint/payments/data.ts (movements key); blueprint/books/data.ts (Reference); blueprint/documents/data.ts (by_subject)"),
+    "index>`, one Memo for both sides), so `activity get` drops the side to find it. A Payment keeps its `payment_` id." + " Review, 11 November 2026: The surviving rule (A Movement's id is its Transfer and side; a Payment's is payments' id) still applies. Removed subjects in its historical evidence are not restored; cut.principle; aaron.one-door; sites.door; portal.plan-page governs their replacement." +
+    " Review, 13 November 2026: payments now keys a Movement by indexing's receipt-ordinal log id (`<chain id>:<tx hash>:" +
+    "<ordinal in its receipt>`), because a block-global log index shifts when a transaction is re-included elsewhere. The " +
+    "rule is unchanged, so the id becomes `<log id>:<side>`: exactly the `entity_id` of the Movement's `movement_transitioned` " +
+    "event, which the change log copies rather than rebuilding from event props.",
+  source: by("blueprint/payments/data.ts (movements key); blueprint/books/data.ts (Reference); blueprint/documents/data.ts (by_subject); " +
+    "Activity lane review of Core's Movements, 13 November 2026"),
   affects: [rpc_activity_feed_get, table_activity_changes, table_movements, table_book_annotations, table_documents],
 });
 

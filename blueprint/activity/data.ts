@@ -59,7 +59,7 @@ export const table_activity_changes = defineTable({
     owner_kind: OwnerKind,
     seq: Int,
     row_kind: RowKind,
-    /** A Payment's `payment_` id, or a Movement's id (`<chain id>:<tx hash>:<log index>:<side>`, activity.row-ids). */
+    /** A Payment's `payment_` id, or a Movement's id (`<log id>:<side>`, its event's entity id; activity.row-ids). */
     row_id: S,
     change: Change,
     /** The transition that made the change: `open`, `settle`, `record`... */

@@ -83,7 +83,7 @@ export const PaymentItem = Schema.Struct({
 /** One Movement as a feed row: outside money in or out of one of the reader's Safes. */
 export const MovementItem = Schema.Struct({
   kind: Schema.Literal("movement"),
-  /** `<chain id>:<tx hash>:<log index>:<side>` (decision activity.row-ids). */
+  /** `<log id>:<side>`: indexing's receipt-ordinal log id and the side (decision activity.row-ids). */
   id: S,
   direction: Schema.Literals(["in", "out"]),
   amount: Amount,

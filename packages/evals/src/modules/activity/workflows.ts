@@ -155,7 +155,7 @@ export async function resumed(database: Database, dir: string, transition: strin
 
 /**
  * Real Movement transitions the relay acknowledged during this run. Each `record` was noted exactly once, in its side's
- * feed, as that Movement's id with the event's fields. A `remove` or `restore` was acknowledged without an append.
+ * feed, as the event's own `entity_id` (the Movement's id, activity.row-ids) with the event's fields. A `remove` or `restore` was acknowledged without an append.
  * A second delivery of any of them changes nothing. Every redelivery rolls back.
  */
 export async function movementsNoted(database: Database, dir: string, runStartedAt: string) {
@@ -164,7 +164,12 @@ export async function movementsNoted(database: Database, dir: string, runStarted
     join app.transition_acks a on a.consumer=$1 and a.event_id=o.id
     where o.event->>'name'='movement_transitioned' and o.event->>'machine'='movement' and a.acked_at>=$3::timestamptz
     order by o.seq desc limit $2`, [CONSUMER, SAMPLE, runStartedAt])).rows.map((r) => r.event as TransitionEvent);
-  assert(events.some((e) => e.props.transition === "record"), "no Movement record acknowledged in this run");
+  // Asked directly: the newest sample alone could be all removals and restorations.
+  const recorded = (await database.worker.query(`select 1 from app.transition_outbox o
+    join app.transition_acks a on a.consumer=$1 and a.event_id=o.id
+    where o.event->>'name'='movement_transitioned' and o.event->'props'->>'transition'='record' and a.acked_at>=$2::timestamptz limit 1`,
+  [CONSUMER, runStartedAt])).rowCount;
+  assert(recorded, "no Movement record acknowledged in this run");
   const evidence = [];
   for (const event of events) {
     const p = event.props as Record<string, string | number | null>;
@@ -176,7 +181,6 @@ export async function movementsNoted(database: Database, dir: string, runStarted
       await client.query("select pg_advisory_xact_lock(hashtextextended($1,0))", [JSON.stringify(["activity", ...feed])]);
       const noted = (await client.query("select * from app.activity_changes where event_id=$1", [event.id])).rows;
       if (p.transition === "record") {
-        assert.equal(event.entity_id, `${p.chain_id}:${p.tx_hash}:${p.log_index}:${p.side}`);
         assert.equal(noted.length, 1);
         const row = noted[0];
         assert.deepEqual([row.owner_kind, row.owner_id, row.row_kind, row.row_id, row.transition, row.from, row.to, row.changed_at],

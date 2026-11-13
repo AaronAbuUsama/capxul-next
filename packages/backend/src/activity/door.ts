@@ -35,11 +35,12 @@ export async function note(sql: Sql, event: TransitionEvent): Promise<void> {
   } else if (event.name === "movement_transitioned" && event.machine === "movement") {
     // Removal/restoration changes the live Movement read, not the append-only change log.
     if (p.transition === "remove" || p.transition === "restore") return;
-    if (p.transition !== "record" || !Number.isSafeInteger(p.chain_id) || !Number.isSafeInteger(p.log_index) ||
-        typeof p.tx_hash !== "string" || (p.side !== "in" && p.side !== "out")) {
+    // The row id is the Movement's own id, `<log id>:<side>`, as payments names it (activity.row-ids); never rebuilt here.
+    if (p.transition !== "record" || (p.side !== "in" && p.side !== "out") ||
+        !event.entity_id.endsWith(`:${p.side}`) || event.entity_id.length <= p.side.length + 1) {
       throw new Error("ACTIVITY_TRANSITION: invalid movement transition");
     }
-    rowId = `${p.chain_id}:${p.tx_hash}:${p.log_index}:${p.side}`;
+    rowId = event.entity_id;
     rowKind = "movement";
   } else {
     throw new Error("ACTIVITY_TRANSITION: unsupported source event");
