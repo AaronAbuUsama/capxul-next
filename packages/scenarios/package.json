@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@capxul/blueprint": "workspace:*",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "viem": "catalog:"
   },
   "devDependencies": {
     "@effect/tsgo": "catalog:",
