@@ -44,11 +44,19 @@ export type SignerKey = { worker: pg.Pool; rpcUrl: string; chain: Chain; account
 /** One job's transaction: `prepare` simulates it and names what the row keeps; a revert maps through `revert`. */
 export type SignerJob = { key: string; digest: Hex; to: Address; data: Hex; job: string;
   prepare(client: PublicClient): Promise<{ safe?: Address; signer?: Address; scheduledId?: string }>;
-  revert(name: string): ServiceSignerError };
+  revert(name: string): ServiceSignerError;
+  /** The job's receipt of a recorded send of this account, or null while it is not mined (a dropped send is rebroadcast). */
+  receipt(stored: Stored): Promise<unknown | null> };
 
 export function storedSend(sql: Sql, key: SignerKey, requestKey: string): Promise<Stored | undefined> {
   return sql.query("select * from app.service_signer_sends where account=$1 and chain_id=$2 and request_key=$3",
     [key.account.address.toLowerCase(), key.chain.id, requestKey]).then((r) => r.rows[0]);
+}
+/** waitForReceipt's mapping of a recorded claim receipt: a mined success that is not this claim is refused, never returned
+ * as a success. A reverted claim keeps its decoded refusal in errorCode, as before. */
+function claimed(receipt: ClaimReceipt): ClaimReceipt {
+  if (receipt.status === "success" && receipt.errorCode !== null) throw new ServiceSignerError("TRANSACTION_FAILED", receipt.hash);
+  return receipt;
 }
 export async function saveReceipt(key: SignerKey, requestKey: string, receipt: unknown): Promise<void> {
   // The first receipt kept is the receipt: a racing lookup and wait never overwrite each other's.
@@ -92,8 +100,14 @@ export async function durableSend(key: SignerKey, job: SignerJob): Promise<{ has
     let stored = await storedSend(client, key, job.key);
     if (stored && stored.request_digest !== job.digest) throw new ServiceSignerError("INVALID_INPUT");
     if (!stored) {
-      const busy = await client.query("select 1 from app.service_signer_sends where account=$1 and receipt is null limit 1", [accountId]);
-      if (busy.rowCount) throw new ServiceSignerError("WRONG_STATE");
+      // A pending send whose caller never looks it up again must not hold the lane forever: read each one's receipt now,
+      // keep the mined ones, and refuse only while one is still pending.
+      const busy = (await client.query("select * from app.service_signer_sends where account=$1 and chain_id=$2 and receipt is null", [accountId, chain.id])).rows as (Stored & { request_key: string })[];
+      for (const pending of busy) {
+        const receipt = await job.receipt(pending).catch(() => null);
+        if (receipt) await saveReceipt(key, pending.request_key, receipt);
+      }
+      if ((await client.query("select 1 from app.service_signer_sends where account=$1 and receipt is null limit 1", [accountId])).rowCount) throw new ServiceSignerError("WRONG_STATE");
       if (await publicClient.getChainId() !== chain.id) throw new ServiceSignerError("PROVIDER_ERROR");
       const kept = await job.prepare(publicClient as PublicClient);
       const prepared = await wallet.prepareTransactionRequest({ to: job.to, data: job.data, value: 0n });
@@ -139,6 +153,44 @@ export function claimServiceSigner(config: ClaimSignerConfig): ServiceSigner {
   if (!config.namespace || !/^0x[0-9a-fA-F]{64}$/.test(config.role) ||
       ![config.companiesHouse, config.roles, config.claimer].every((a) => isAddress(a))) throw new ServiceSignerError("INVALID_INPUT");
   const row = (sql: Sql, key: string) => storedSend(sql, config, key);
+  /** The claim receipt of a recorded send, or null while it is not mined; a dropped send is rebroadcast (integrations.signer-rebroadcast). */
+  const decode = async (publicClient: PublicClient, stored: Stored, signal?: AbortSignal): Promise<ClaimReceipt | null> => {
+    if (await publicClient.getChainId() !== chain.id) throw new ServiceSignerError("PROVIDER_ERROR");
+    let receipt;
+    try { receipt = await publicClient.getTransactionReceipt({ hash: stored.hash }); }
+    catch (error) {
+      if (!(error instanceof TransactionReceiptNotFoundError)) throw error;
+      await rebroadcastIfDropped(publicClient, stored, account.address).catch(() => {});
+      return null;
+    }
+    let safe: Address | null = null, matched = false;
+    if (receipt.status === "success") {
+      for (const log of receipt.logs.filter((l) => l.address.toLowerCase() === config.companiesHouse.toLowerCase())) {
+        try {
+          const decoded = decodeEventLog({ abi: CLAIMER, eventName: "CapxulSafeClaimed", data: log.data, topics: log.topics });
+          // The Safe the chain names is kept even when it is not this claim's, so the refusal shows what happened.
+          safe ??= decoded.args.safe;
+          if (decoded.args.safe.toLowerCase() === stored.safe?.toLowerCase() && decoded.args.signer.toLowerCase() === stored.signer?.toLowerCase()) { safe = decoded.args.safe; matched = true; }
+        } catch { /* An unrelated Companies House log is not a claim. */ }
+      }
+    }
+    // A mined success without this claim's event is a failed claim: kept like any receipt, so the lane is free, then refused.
+    let errorCode: ClaimReceipt["errorCode"] = receipt.status === "success" && matched ? null : "TRANSACTION_FAILED";
+    if (receipt.status === "reverted") {
+      // Optional exact-transaction trace only. Never replay eth_call at block-end and invent a refusal.
+      try {
+        const response = await fetch(config.rpcUrl, { method: "POST", headers: { "content-type": "application/json" }, signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(5_000)]) : AbortSignal.timeout(5_000),
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "debug_traceTransaction", params: [stored.hash, { disableStorage: true, disableStack: true, enableMemory: false }] }) });
+        const body = await response.json() as { result?: { returnValue?: string } };
+        const raw = body.result?.returnValue;
+        if (raw) errorCode = revertCode(decodeErrorResult({ abi: CLAIMER, data: (raw.startsWith("0x") ? raw : `0x${raw}`) as Hex }).errorName);
+      } catch { /* Trace unsupported or unknown revert: keep TRANSACTION_FAILED. */ }
+    }
+    const result: ClaimReceipt = { hash: stored.hash, chainId: chain.id, blockNumber: receipt.blockNumber.toString(), blockHash: receipt.blockHash,
+      status: receipt.status, safe, errorCode };
+    return result;
+  };
+  const client = () => createPublicClient({ chain, transport: http(config.rpcUrl, { retryCount: 0, timeout: 10_000 }) }) as PublicClient;
   return {
     async send(input) {
       if (!/^setup:[a-zA-Z0-9_-]+:[1-9][0-9]*$/.test(input.key) || input.key.length > 256 ||
@@ -151,6 +203,7 @@ export function claimServiceSigner(config: ClaimSignerConfig): ServiceSigner {
       const digest = keccak256(stringToHex(`${config.roles.toLowerCase()}:${config.companiesHouse.toLowerCase()}:${data.toLowerCase()}`));
       return durableSend(config, { key: input.key, digest, to: config.roles, data, job: "companies-house-claim",
         revert: (name) => new ServiceSignerError(revertCode(name), undefined, name),
+        receipt: (stored) => decode(client(), stored),
         async prepare(publicClient) {
           await publicClient.simulateContract({ account: account.address, address: config.roles, abi: [...ROLES, ...CLAIMER],
             functionName: "execTransactionWithRole", args: [config.claimer, 0n, claim, 1, config.role, true] });
@@ -165,43 +218,15 @@ export function claimServiceSigner(config: ClaimSignerConfig): ServiceSigner {
       try {
         const stored = await row(worker, input.key);
         if (!stored || stored.hash.toLowerCase() !== input.hash.toLowerCase()) throw new ServiceSignerError("INVALID_INPUT");
-        if (stored.receipt) return stored.receipt;
+        if (stored.receipt) return claimed(stored.receipt);
         while (!signal.aborted) {
-          let receipt;
-          try {
-            if (await publicClient.getChainId() !== chain.id) throw new ServiceSignerError("PROVIDER_ERROR");
-            receipt = await publicClient.getTransactionReceipt({ hash: stored.hash });
-          }
-          catch (error) {
-            if (!(error instanceof TransactionReceiptNotFoundError) && signal.aborted) throw error;
-          }
-          if (!receipt) await rebroadcastIfDropped(publicClient as PublicClient, stored, account.address).catch(() => {});
-          if (receipt) {
-            let safe: Address | null = null;
-            if (receipt.status === "success") {
-              for (const log of receipt.logs.filter((l) => l.address.toLowerCase() === config.companiesHouse.toLowerCase())) {
-                try {
-                  const decoded = decodeEventLog({ abi: CLAIMER, eventName: "CapxulSafeClaimed", data: log.data, topics: log.topics });
-                  if (decoded.args.safe.toLowerCase() === stored.safe?.toLowerCase() && decoded.args.signer.toLowerCase() === stored.signer?.toLowerCase()) safe = decoded.args.safe;
-                } catch { /* An unrelated Companies House log is not a claim. */ }
-              }
-            }
-            // A mined success without the claim event is a failed claim; it is kept like any receipt, so the lane is free.
-            let errorCode: ClaimReceipt["errorCode"] = receipt.status === "success" && safe ? null : "TRANSACTION_FAILED";
-            if (receipt.status === "reverted") {
-              // Optional exact-transaction trace only. Never replay eth_call at block-end and invent a refusal.
-              try {
-                const response = await fetch(config.rpcUrl, { method: "POST", headers: { "content-type": "application/json" }, signal: AbortSignal.any([signal, AbortSignal.timeout(5_000)]),
-                  body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "debug_traceTransaction", params: [stored.hash, { disableStorage: true, disableStack: true, enableMemory: false }] }) });
-                const body = await response.json() as { result?: { returnValue?: string } };
-                const raw = body.result?.returnValue;
-                if (raw) errorCode = revertCode(decodeErrorResult({ abi: CLAIMER, data: (raw.startsWith("0x") ? raw : `0x${raw}`) as Hex }).errorName);
-              } catch { /* Trace unsupported or unknown revert: keep TRANSACTION_FAILED. */ }
-            }
-            const result: ClaimReceipt = { hash: stored.hash, chainId: chain.id, blockNumber: receipt.blockNumber.toString(), blockHash: receipt.blockHash,
-              status: receipt.status, safe, errorCode };
+          const result = await decode(publicClient as PublicClient, stored, signal).catch((error) => {
+            if (signal.aborted) throw error;
+            return null;
+          });
+          if (result) {
             await saveReceipt(config, input.key, result);
-            return (await row(worker, input.key))?.receipt ?? result;
+            return claimed((await row(worker, input.key))?.receipt ?? result);
           }
           await new Promise((resolve) => setTimeout(resolve, 1_000));
         }

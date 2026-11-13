@@ -103,6 +103,7 @@ export const decision_integrations_budgets_executor = defineDecision({
     "lookup reads the recorded hash and, once mined, the receipt, without waiting: the payment process waits by its own durable wake, not by holding a worker for 60 seconds. It is one poll of waitForReceipt, with the same failures, not a separate call. " +
     "waitForReceipt records every mined receipt first, which frees the key's lane, then refuses a mined revert, or a success without this id's ScheduledPaid, as TRANSACTION_FAILED with the decoded reason; lookup returns that recorded receipt as it is. " +
     "A key does one job: an account with rows of another job is refused INVALID_INPUT, so a claim and an executor never share a lane. " +
+    "A send that finds the lane busy first reads each pending send's receipt and keeps the mined ones, and refuses WRONG_STATE only while one is still pending, so a caller that settles from the indexed fact and never looks its key up again cannot hold the lane forever. " +
     "The receipt names the scheduled id and the ScheduledPaid payment id only; settlement and the books read the indexed payment facts, never a signer receipt.",
   source: "integration service-signer (Budgets' executor); Core payments and Books consumer agreement, 13 November 2026",
   affects: [x.integration_service_signer, f.concept_payments, x.contract_budgets],
