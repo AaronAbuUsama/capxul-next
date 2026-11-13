@@ -6,12 +6,13 @@ ledger row has no timeline and is the one thing the money trail must reach.
 Where Frappe does not: child table rows (they belong to the parent's stamp); documents written straight to the database (db_set, raw SQL,
 which fire no hooks); the wizard and installs; the data a web page's own JavaScript writes. Log doctypes are skipped on purpose.
 Where the id comes from: the `X-Capxul-Trace` request header (the CLI, Core), or `frappe.flags.capxul_trace` (bench commands).
+Its form is a W3C trace id, 32 lowercase hex characters (plugs.trace-format); a header in any other form is ignored.
 """
 import re
 
 import frappe
 
-TRACE = re.compile(r"^tr_[0-9a-z]{8,40}$")
+TRACE = re.compile(r"[0-9a-f]{32}")  # a W3C trace id, the one format everywhere (plugs.trace-format)
 SKIP = {"Comment", "Version", "Capxul Chain Event", "GL Entry", "Stock Ledger Entry", "Scheduled Job Log", "Access Log", "Error Log",
         "Activity Log", "Route History", "Prepared Report", "Email Queue", "Notification Log", "Submission Queue", "Deleted Document",
         "Console Log", "Energy Point Log", "Bin", "Repost Item Valuation", "Repost Accounting Ledger", "File"}
@@ -19,14 +20,14 @@ SKIP = {"Comment", "Version", "Capxul Chain Event", "GL Entry", "Stock Ledger En
 
 def from_request():
     t = frappe.get_request_header("X-Capxul-Trace")
-    if t and TRACE.match(t):
+    if t and TRACE.fullmatch(t):  # fullmatch: `$` would also accept a trailing newline
         frappe.flags.capxul_trace = t
 
 
 def ensure():
     """This command's trace id; a command no caller traced (a person's desk Submit) starts its own (plugs.request-starts-trace)."""
     if not frappe.flags.get("capxul_trace"):
-        frappe.flags.capxul_trace = "tr_" + frappe.generate_hash(length=24).lower()
+        frappe.flags.capxul_trace = frappe.generate_hash(length=32)
     return frappe.flags.capxul_trace
 
 

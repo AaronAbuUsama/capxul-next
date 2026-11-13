@@ -50,7 +50,9 @@ export const workflow_approvals_lifecycle_carry = defineWorkflow({
     "day; then each need (a holder's balance of a token) and the gate are checked, and while one fails the send waits an " +
     "hour and checks again inside its window (K16). The end: the indexed UserOperationEvent at its sender and nonce, at " +
     "the deployment's finality depth, lands or reverts it (its hash) or displaces it (another hash); at the window's end " +
-    "plus two minutes' grace an unmoved nonce expires it (K6). Each end is one transition whose event its opener follows.",
+    "plus two minutes' grace an unmoved nonce expires it (K6). A replacement whose inherited nonce is consumed can be " +
+    "displaced by the indexed final fact while still sponsoring; a moved nonce without that fact still waits. Each end " +
+    "is one transition whose event its opener follows.",
   concept: concept_approvals,
   priority: "critical",
   trigger: { transition: t.open },
