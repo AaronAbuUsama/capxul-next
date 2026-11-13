@@ -40,7 +40,7 @@ for (const item of HATS.filter((x) => x.type === "event")) {
     }
     // As Hats does: an eligibility or toggle that answers its call rules wearers and status itself, with no Hats event.
     const answers = (address: string, functionName: string, args: unknown[]) => context.client.readContract({ address, abi: HATS_MODULE,
-      functionName, args }).then(() => true, () => false);
+      functionName, args, retryEmptyResponse: false }).then(() => true, () => false);
     const live = await answers(eligibility, "getWearerStatus", [zeroAddress, id]) || await answers(toggle, "getHatStatus", [id]);
     const state = { chain_id: context.chain.id, company_safe: tree.company_safe, tree: tree.tree, admin_hat_id: parent, level,
       details, max_supply: BigInt(maxSupply), supply: BigInt(supply), eligibility: lower(eligibility), toggle: lower(toggle), active, mutable,
