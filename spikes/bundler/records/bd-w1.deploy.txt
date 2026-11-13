@@ -1,0 +1,16 @@
+# The last lines of `time ./run.sh deploy --stage bd-w1 --yes`, the first deploy of this stack, which built and
+# pushed both images (the alto image's build-cache push is the first line). Copied from the terminal: this run was
+# not tee'd to a file.
+[10:50:31.025] INFO: [Alto] #10 DONE 13.4s
+[10:50:31.871] INFO: [Alto] Cloudflare Container create: creating application capxulspikebundler-alto-bd-w1-53ryqujtfg32nh7s
+[10:50:56.349] INFO: [Alto] Cloudflare Container reconcile: recreating capxulspikebundler-alto-bd-w1-53ryqujtfg32nh7s to attach durable object binding
+[10:51:00.410] INFO: [Anvil] created (68.8s)
+[10:51:00.410] INFO: [Door] created — Enabling workers.dev subdomain... (63.6s)
+[10:51:00.410] INFO: [Alto] created (68.8s)
+[10:51:00.411] INFO: Done: 4 succeeded (68.9s)
+{
+  world: 'bd-w1',
+  url: 'https://capxulspikebundler-door-bd-w1-nrwenxjotnjxlwpe.thedao.workers.dev'
+}
+
+real	1m11.791s

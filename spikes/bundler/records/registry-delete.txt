@@ -1,0 +1,14 @@
+registry: 6 repositories, 2 of this stack
+   capxulspikebundler-alto None
+     delete tag b0f15b642316442f -> 204 
+     delete tag buildcache -> 204 
+     delete tag sha256:10dfd6a70db810ba71e89cdd3c9e66597a06f9c05a835e01aaebde5947f50738 -> 204 
+     delete tag sha256:16d9c5be8a841f91dc4df8f71f639121bc72f9b363843788b83ed25314b84c77 -> 404 b'{"errors":[{"code":"MANIFEST_UNKNOWN","message":"manifest unknown","detail":{"Tag":"sha256:16d9c5be8a841f91dc4df8f71f639'
+     delete tag sha256:7488ba3c2795f9dd9c3ce386b0a06b6c0d59cae6f525b8179bf96ec3b74c65ae -> 204 
+   capxulspikebundler-anvil None
+     delete tag 8cb4b70cb2acc10a -> 204 
+     delete tag buildcache -> 204 
+     delete tag sha256:0ce8e8fe089e261fa7d156b9053b6c00879e71a4b81b08a4b836d39ca7a7dc0d -> 204 
+     delete tag sha256:b72336c1aea78fa4f4edc8e6875d69789fb4680d98db501b75edf678e1e93920 -> 404 b'{"errors":[{"code":"MANIFEST_UNKNOWN","message":"manifest unknown","detail":{"Tag":"sha256:b72336c1aea78fa4f4edc8e6875d6'
+     delete tag sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474 -> 204 
+garbage collect -> 200 b'{"deleted":[],"last":"sha256:fdd672a9d68a44a1fd5e8a8090f894e71179a317c3967a4f5d7a16e40a59af8b"}'
