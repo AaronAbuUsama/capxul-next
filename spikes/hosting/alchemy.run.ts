@@ -22,9 +22,18 @@ export default Alchemy.Stack(
     }
     const project = yield* Neon.Project.ref("worlds-db", { stage: "platform" });
     // A world may start as a copy of another world: its branch forks the parent world's branch (copy-on-write).
+    // Every world names its owner and the moment it expires; Neon deletes the branch itself at that moment, so a
+    // world nobody destroyed still goes away without anyone remembering to.
+    const owner = yield* Config.String("WORLD_OWNER");
+    const expiresAt = yield* Config.String("WORLD_EXPIRES_AT");
     const parent = yield* Config.String("WORLD_PARENT").pipe(Config.withDefault(""));
     const parentBranch = parent ? yield* Neon.Branch.ref("world", { stage: parent }) : undefined;
-    const world = yield* Neon.Branch("world", parentBranch ? { project, parentBranch } : { project });
-    return { world: stage, branchId: world.branchId, forkedFrom: parent || "empty" };
+    const world = yield* Neon.Branch("world", {
+      project,
+      name: `w-${owner}-${stage}`,
+      expiresAt,
+      ...(parentBranch ? { parentBranch } : {}),
+    });
+    return { world: stage, owner, expiresAt, forkedFrom: parent || "empty", database: world.connectionUri };
   }),
 );

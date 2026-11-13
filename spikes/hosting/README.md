@@ -14,6 +14,8 @@ Nothing here is product code.
 | Can a world start as a copy of another world? | Yes. `WORLD_PARENT=world-a` forked `world-c` from `world-a` in 10 s with its rows. A later write in `world-c` was not seen by `world-a`. |
 | Does destroy leave anything behind? | No. Worlds were destroyed in 2 to 8 s each, the project in 2 s; the account's own projects and Workers were untouched. |
 
+| Is a world destroyed whatever happens to its run? | Yes. `src/world.ts` creates a world, runs a step in it, writes the run's record outside the world and destroys it, as one unit. Three runs, one passing, one failing and one hitting its declared 3 s timeout, each ended with the world destroyed and a record with the duration of every step (create 8 to 10 s, destroy 6 s). Every world also carries an owner in its name and an expiry that Neon enforces by itself. |
+
 A query over Neon's HTTPS endpoint took 350 to 450 ms from this container, including waking the branch's compute.
 
 ## What was learned on the way
@@ -28,6 +30,9 @@ A query over Neon's HTTPS endpoint took 350 to 450 ms from this container, inclu
 
 ## Not yet proven
 
+- Keeping a failed world until its expiry (`keepOnFailure`) is written but has not been run.
+- Deleting expired Cloudflare resources. Neon expires a branch by itself; nothing yet does the same for a Worker.
+
 - Anvil, Ponder and Core as Cloudflare Containers that stop when a world is idle, with Anvil's state kept in R2.
 - Ponder indexing into a world's Neon branch.
 - Two worlds at different clocks on one Frappe bench.
@@ -36,6 +41,9 @@ A query over Neon's HTTPS endpoint took 350 to 450 ms from this container, inclu
 ## Run it
 
 `./run.sh deploy --stage platform --yes`, then `./run.sh deploy --stage <world> --yes` (add `WORLD_PARENT=<world>` to
-fork). `python3 sql.py <stage> "<sql>"` runs a statement on that stage's database. Finish with
+fork; world stages also need `WORLD_OWNER` and `WORLD_EXPIRES_AT`, an RFC 3339 time). `python3 sql.py <stage> "<sql>"` runs a statement on that stage's database. Finish with
 `./run.sh destroy --stage <stage> --yes` for every stage, worlds before `platform`. Never run `alchemy nuke`: it deletes
 every resource in the account, not only this stack's.
+
+Lifecycle: with `platform` deployed and the variables `run.sh` sets exported, `bun src/run-world.ts` runs the three
+cases and writes `records/<world>.json` for each.
