@@ -10,7 +10,7 @@
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../packages/blueprint-engine/src/index.ts";
 import { concept_board } from "../shared/foundation.ts";
-import { contract_hats, integration_chain_rpc } from "../shared/external.ts";
+import { contract_hats, contract_hats_signer_gate, contract_safe, integration_chain_rpc } from "../shared/external.ts";
 import {
   error_FEATURE_NOT_AVAILABLE,
   error_INVALID_INPUT,
@@ -65,7 +65,9 @@ export const OfficerChangeView = Schema.Struct({
 // ── shared rules ────────────────────────────────────────────────────────────────────────────
 
 const RULES =
-  "The caller must be a Director (`board.propose` refuses anyone else ROLE_PERMISSION_DENIED). The " +
+  "The caller must be a Director (`board.propose` refuses anyone else ROLE_PERMISSION_DENIED). Before opening the " +
+  "intent, the public mutation also pins one live block and verifies Safe ownership and the Gate's isValidSigner " +
+  "answer there; an indexed owner whose hat has lapsed cannot create a new grant or revoke (board.mutation-authority). The " +
   "`owner-safe-proposals` gate must be on for the Organization, and for `manage-books` the `books` gate too " +
   "(FEATURE_NOT_AVAILABLE). `member` must name a current member (INVALID_INPUT): a person by email, whose personal " +
   "Safe must be claimed (WRONG_STATE: there is nothing to give the hat to), or an agent's Seat by its `@handle`, whose " +
@@ -127,7 +129,8 @@ export const rpc_board_officers_grant = defineRpc({
   invokes: [procedure_board_propose],
   emits: [],
   calls: [integration_chain_rpc.c.readContract],
-  chain: [contract_hats.f.isWearerOfHat, contract_hats.f.changeHatMaxSupply, contract_hats.f.mintHat],
+  chain: [contract_hats.f.isWearerOfHat, contract_hats.f.changeHatMaxSupply, contract_hats.f.mintHat,
+    contract_safe.f.getOwners, contract_safe.f.getThreshold, contract_hats_signer_gate.f.isValidSigner, contract_hats_signer_gate.f.thresholdConfig],
   spans: ["rpc.board.officers.grant"],
   budget: budget("chain-read"),
 });
@@ -153,7 +156,8 @@ export const rpc_board_officers_revoke = defineRpc({
   invokes: [procedure_board_propose],
   emits: [],
   calls: [integration_chain_rpc.c.readContract],
-  chain: [contract_hats.f.isWearerOfHat, contract_hats.f.setHatWearerStatus],
+  chain: [contract_hats.f.isWearerOfHat, contract_hats.f.setHatWearerStatus,
+    contract_safe.f.getOwners, contract_safe.f.getThreshold, contract_hats_signer_gate.f.isValidSigner, contract_hats_signer_gate.f.thresholdConfig],
   spans: ["rpc.board.officers.revoke"],
   budget: budget("chain-read"),
 });

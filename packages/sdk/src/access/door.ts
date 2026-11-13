@@ -7,3 +7,4 @@ export { localPrivateKeyAccountProvider, eip1193AccountProvider } from "./signin
 export { devPrivateKeySigner, deriveDevPrivateKey, assertDevKeySignerIsTestnetOnly } from "./signing/dev-signer.ts";
 export { localPrivateKeySigner } from "./signing/local-key-signer.ts";
 export { createAccessClient, AccessClientError, type AccessSignIn, type PersonSignIn, type AgentSignIn, type AccessSession } from "./client.ts";
+export { signInByCode, signInByKey, type MailInbox } from "./actors.ts";
