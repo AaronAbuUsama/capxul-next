@@ -31,6 +31,7 @@
       "entries": {
         "packages/lint/src/shape.entry.ts": "the shape check's command line: reads git's file list and the disk, prints, sets the exit code",
         "packages/blueprint/src/claims/render.entry.ts": "writes claims.md: the one place the claims render touches the disk",
+        "packages/runner/src/main.ts": "the runner's command line under Bun: reads its arguments and sets the exit code",
         "packages/cli/src/bin.ts": "the capxul process: runs the command line on the process's arguments and sets its exit code",
         "packages/platform/src/run-drift.ts": "the drift check's command line: reads its arguments, prints and writes the report as JSON, sets the exit code",
         "packages/platform/src/run-inventory.ts": "lists what the shared state holds for the platform's stacks from the command line: reads its argument, prints",
@@ -39,6 +40,7 @@
       },
       // Places where JSON text is the format of the outside world, each with its reason.
       "jsonEdges": {
+        "packages/runner/src/record.ts": "run records are JSON files on disk, which the dashboard and the speed climb read",
         "packages/cli/src/input.ts": "the command line's input: a flag's JSON value and the --input file, decoded at once with the payload's schema",
         "packages/cli/src/output.ts": "the command line's output: one line of JSON per answer, encoded with the operation's own schemas"
       }
@@ -209,6 +211,7 @@
       "files": [
         "packages/lint/src/shape.entry.ts",
         "packages/blueprint/src/claims/render.entry.ts",
+        "packages/runner/src/main.ts",
         "packages/cli/src/bin.ts",
         "packages/platform/src/run-drift.ts",
         "packages/platform/src/run-inventory.ts",
@@ -256,11 +259,20 @@
       // Rpc's, HttpClient's and the CLI module's types. Effect 4 marks them unstable with no stable replacement; each
       // package's tsconfig.json allows them for the same reason, and the catalog's exact pin of effect is the guard.
       // A scenario's client (packages/scenarios) is typed by the blueprint's Rpc declarations, for the same reason.
+      // Core serves the blueprint's Rpc groups over HTTP as an Alchemy Worker and keeps spans through SQL, and the
+      // runner calls Core through the SDK, so their exports show Rpc's, HTTP's, SQL's and Alchemy's types, likewise.
       // Every export of the platform package that opens the state store or deploys shows Alchemy's and Effect's
       // platform services in its type (HttpClient, FileSystem, Path, ChildProcessSpawner and the rest), and the site
       // token shows Effect's WebCrypto services: a deploy and a mint need them, and Effect 4 marks them unstable with no
       // stable replacement. packages/platform/tsconfig.json allows the same modules for the same reason.
-      "files": ["packages/sdk/**", "packages/cli/**", "packages/scenarios/**", "packages/platform/**"],
+      "files": [
+        "packages/sdk/**",
+        "packages/cli/**",
+        "packages/scenarios/**",
+        "packages/platform/**",
+        "packages/core/**",
+        "packages/runner/**"
+      ],
       "rules": {
         "effecttsgo/api-stability-leak": "off"
       }

@@ -1,0 +1,463 @@
+{
+  "kind": "door",
+  "name": "every operation answers through the door",
+  "proves": null,
+  "given": null,
+  "stage": "core-5104bd",
+  "owner": "runner",
+  "startedAt": "2026-11-13T12:27:53.726Z",
+  "outcome": "passed",
+  "failure": null,
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 11576
+  },
+  "calls": [
+    {
+      "operation": "world.create",
+      "traceId": "f82eb698a4df3282f7bb29d7142502b6",
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"world.create\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 898.099,
+        "serverMs": 0,
+        "budgetMs": 90000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.create span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "org.create",
+      "traceId": "b360fd86815364ed10671877062304d3",
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"org.create\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 220.391,
+        "serverMs": 0,
+        "budgetMs": 8000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one org.create span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "org.member.grant",
+      "traceId": "b301d86cce2d2ea16682623d8517dec4",
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"org.member.grant\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 178.688,
+        "serverMs": 0,
+        "budgetMs": 4000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one org.member.grant span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "doc.create",
+      "traceId": "5001513ef11fae2500d63332fba2289f",
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"doc.create\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 195.538,
+        "serverMs": 0,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one doc.create span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "doc.submit",
+      "traceId": "e07bfb26b5a559275af0a44521f108ab",
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"doc.submit\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 174.244,
+        "serverMs": 0,
+        "budgetMs": 3000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one doc.submit span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "approval.sign",
+      "traceId": "62923b784c4e29b0a66da3464321b90f",
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"approval.sign\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 143.13,
+        "serverMs": 0,
+        "budgetMs": 4000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one approval.sign span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "report.run",
+      "traceId": "ab03517d167943f4aa8e8483bdffbf85",
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"report.run\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 162.326,
+        "serverMs": 0,
+        "budgetMs": 8000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one report.run span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.clock.warp",
+      "traceId": "313a7f94d20d6dba75a8fcd47e25ae48",
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"world.clock.warp\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 170.893,
+        "serverMs": 0,
+        "budgetMs": 30000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.clock.warp span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "d0be888df338cf40bc54532926b9b90a",
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 149.507,
+        "serverMs": 0,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.snapshot.save",
+      "traceId": "7f87e8454df0e224ab795f406ee4e52f",
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"world.snapshot.save\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 140.23,
+        "serverMs": 0,
+        "budgetMs": 30000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.snapshot.save span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.snapshot.restore",
+      "traceId": "24bc2d0b5b262c01db38325a7fada06a",
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"world.snapshot.restore\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 136.05,
+        "serverMs": 0,
+        "budgetMs": 120000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.snapshot.restore span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "dfd237559da850696773b9f4e28108f1",
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"world.show\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 153.518,
+        "serverMs": 0,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    }
+  ],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [
+        "capxulcore-core-core-5104bd-jmf2nnisc4ccthrx"
+      ],
+      "hyperdrives": [
+        "capxulcore-core-hyperdrive-core-5104bd-6k26rgmdw5aux76x"
+      ],
+      "neonProjects": [
+        "CapxulCore-core-db-core-5104bd-qeryouuatcm5jnnc"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": []
+    }
+  },
+  "ms": {
+    "create": 30011,
+    "run": 2734,
+    "checks": 219,
+    "destroy": 2950
+  }
+}

@@ -61,7 +61,7 @@ Run `pnpm check` before you open a pull request. It runs rungs 1 to 5 in order a
 | 3. Lint | `pnpm lint` | Any finding of `.oxlintrc.json`, every rule an error: oxlint's correctness and suspicious rules and a few more, all of Effect's rules from `@effect/tsgo` but two (each off with its reason), and ours from `packages/lint` (below) |
 | 4. Types | `pnpm types` | A type error in any TypeScript package, or an Effect language service error or warning (`effect-tsgo tsc`) |
 | 5. Tests | `pnpm test` | A failing unit test in any package (`pnpm frappe:test` and `pnpm status:test` included). Foundry's tests in `packages/contracts` are not in it: CI has no Foundry |
-| 6. Proof | `spikes/pipeline/run.sh scenarios` | A scenario that fails in a fresh world. Until the runner leaves the spike, this is the command. CI does not run it: CI has no Cloudflare or Neon keys yet (roadmap step 1.8) |
+| 6. Proof | `packages/runner/run.sh scenarios` | A scenario that fails in a fresh world. CI runs it in `.github/workflows/world.yml` once the bootstrap has given CI its Cloudflare and Neon keys (roadmap step 1.8) |
 
 Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
 

@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // The runner runs under Bun (run.sh), and type-checks Core's Worker, which it deploys.
+    "types": ["node", "bun", "@cloudflare/workers-types"],
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        // The runner calls the blueprint's Rpc groups over HTTP, and reads and writes files under Bun. Effect 4 ships
+        // Rpc, HTTP, the file system, paths and its Bun platform only as unstable modules, with no stable replacement.
+        // The catalog's exact pin of effect is the guard, as in packages/blueprint.
+        "allowedUnstableApis": ["effect/rpc", "effect/http", "effect/FileSystem", "effect/Path", "@effect/platform-bun"]
+      }
+    ]
+  },
+  "include": ["src", "test"]
+}
