@@ -1328,3 +1328,16 @@ export const decision_organizations_fde_guests = defineDecision({
 const SURFACE_PASS = "Claude, surface pass, 9 November 2026 (question 48)";
 const surfaceBy = (evidence: string) => `${SURFACE_PASS}; evidence: ${evidence}`;
 
+export const decision_organizations_world_company_reader = defineDecision({
+  id: "organizations.world-company-reader",
+  title: "World inventory reads actual companies, including those without sites",
+  question: "How does world.show enumerate companies without mistaking a tenant list or the site's routing configuration for the world's inventory?",
+  options: [
+    { label: "worker-reader", text: "Organizations exposes readWorldCompanies on the selected world's existing worker Sql: orgId, name and nullable verbatim site metadata, ordered by orgId, including released companies. Refuse other roles instead of returning a tenant-filtered partial list." },
+    { label: "site-inventory", text: "Enumerate configured sites and infer company identity and names from their routing entries." },
+  ],
+  chosen: "worker-reader",
+  why: "devnet.worlds.create admits core worlds with companies but no sites; WorldView still requires their identities and names. The Organizations table is the inventory, not the site's configuration or financial record heads. The existing capxul_worker RLS policy already admits world-scoped reads; the door checks that actual database role and neither changes RLS nor invents actor or tenant settings. Its caller must authorize the public world read and select the correct world's connection. Site metadata is nullable in the runtime adapter so a core-only company needs no placeholder; existing registration still requires a real site. The reader does not manufacture a URL: Runtime owns the separate public routing projection. It does not read private company configuration, migrate on read, mutate rows or emit events.",
+  source: "blueprint/devnet/world-rpcs.ts (WorldView, devnet.worlds.create); packages/backend/src/migrate.ts (restricted worker RLS policy); Wave0 Recovery world.show source contract, 12 November 2026",
+  affects: [concept_organizations, table_organizations],
+});

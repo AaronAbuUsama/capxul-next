@@ -1,4 +1,20 @@
+import { readFileSync } from "node:fs";
 import { record, type Sql } from "../platform/db.ts";
+
+export type WorldCompany = { orgId: string; name: string; site: string | null };
+
+/** Explicit privileged provisioning after the foundation schema; never run during a read. */
+export async function migrateWorldCompanies(sql: Sql): Promise<void> {
+  await sql.query(readFileSync(new URL("./world-companies.sql", import.meta.url), "utf8"));
+}
+
+/** World-scoped service inventory, not tenant admission. Caller authorizes and selects the world. */
+export async function readWorldCompanies(sql: Sql): Promise<WorldCompany[]> {
+  const role = (await sql.query<{ role: string }>("select current_user as role")).rows[0]!.role;
+  if (role !== "capxul_worker") throw new Error("FORBIDDEN: world company inventory requires capxul_worker");
+  // Existing worker RLS admits the whole DB. site is stored metadata, not a proven public URL.
+  return (await sql.query<WorldCompany>('select org_id as "orgId",name,site from app.organizations order by org_id')).rows;
+}
 
 export type Registration = {
   slug: string; name: string; safe: string; site: string; adminEmail: string; token: string;

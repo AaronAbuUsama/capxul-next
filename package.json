@@ -5,7 +5,7 @@
   "scripts": {
     "check": "tsc -b packages/blueprint-engine",
     "test": "pnpm --filter @capxul/blueprint-engine test && pnpm --filter @capxul/portal test && pnpm record:test && pnpm contracts:check-blueprint:test && pnpm frappe:check-blueprint:test && pnpm frappe:test && pnpm frappe:check-blueprint && pnpm core:check && pnpm sites:test && pnpm evals:test && pnpm plan:test && pnpm plan:check && pnpm tasks:check && pnpm evals:check && pnpm layout:test && pnpm layout",
-    "core:check": "pnpm --filter @capxul/backend check && pnpm --filter @capxul/indexer check",
+    "core:check": "pnpm --filter @capxul/backend check && pnpm --filter @capxul/backend test && pnpm --filter @capxul/indexer check",
     "record:test": "node --experimental-strip-types --test spikes/skeleton/core/test/record-schema.test.ts spikes/skeleton/core/test/record-runtime.test.ts spikes/skeleton/core/test/log-key.test.ts",
     "blueprint": "node --experimental-strip-types packages/blueprint-engine/src/main.ts blueprint/index.ts var/blueprint",
     "blueprint:slices": "node --experimental-strip-types --no-warnings packages/portal/src/slices.ts",
