@@ -8,6 +8,7 @@ import { info, register, release } from "./organizations/door.ts";
 import { consume } from "./payments/door.ts";
 import { deferDelivery, deliver, RequestCollector, resend, retryParked, signature, status } from "./plugs/door.ts";
 import { note } from "./activity/door.ts";
+import { tickMedia } from "./media/door.ts";
 import { settings } from "./platform/config.ts";
 import { Database, type Sql } from "./platform/db.ts";
 import { relay } from "./platform/outbox.ts";
@@ -138,6 +139,9 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
       // Activity's change log follows committed transitions; its failure must not stall per-organization work, nor theirs it.
       await relay(db, "activity.changes", ["payment_transitioned", "movement_transitioned"], note)
         .catch((error) => console.error(`Activity relay: ${error.message}`));
+      // Held identity files end at their 30-minute deadline on the world clock, in one worker transaction with their events.
+      await db.transaction("", (sql) => tickMedia(sql, worldNow), true)
+        .catch((error) => console.error(`Media expiry: ${error.message}`));
       const index = await indexerState(db, config.ponder, config.chainId, config.rpc, true);
       const orgs = (await db.worker.query("select org_id,site,released from app.organizations order by org_id")).rows;
       for (const company of orgs) {

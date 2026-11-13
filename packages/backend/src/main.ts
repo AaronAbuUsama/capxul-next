@@ -2,6 +2,8 @@ import { createProvisioningHandler } from "@capxul/site-service";
 import { required, settings } from "./platform/config.ts";
 import type pg from "pg";
 import { accessRoutes } from "./access/mount.ts";
+import { documentsRoutes } from "./documents/mount.ts";
+import { mediaRoutes } from "./media/mount.ts";
 import { worldNow } from "./devnet/door.ts";
 import { createCore } from "./server.ts";
 
@@ -27,7 +29,8 @@ const core = createCore(config, provision, (db) => {
   const access = devnet ? accessRoutes({ mail: devnet.devnetMail((text) => worker(async (sql) => rows(await sql.query(text))), () => worker(worldNow)),
     secret: config.secret, coreUrl: config.url, rpc: config.rpc,
     deploymentFile: required("DEPLOYMENT_FILE"), namespace: required("ACCESS_SAFE_NAMESPACE") }) : [];
-  return [...access];
+  // Documents and media need no Mail sink: kept images are public, and the rest authenticate with Access's bearer.
+  return [...access, ...documentsRoutes(), ...mediaRoutes()];
 });
 await core.start();
 console.log("Core listening with durable Postgres app state and Ponder facts");
