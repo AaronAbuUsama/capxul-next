@@ -18,6 +18,8 @@ change, and the change is written here with its date.
 | Hosting | Cloudflare for compute, one Neon branch per world for its one database (app data and the index together), one server for the Frappe bench only. |
 | Site creation on a shared bench | Each world holds a token minted when it is created, limited to that world, a site quota and its lifetime. A world whose change touches the Frappe app brings its own bench. |
 | Effect everywhere it can be | TypeScript is Effect, measured by two counts that may only fall: non-Effect constructs outside entry files, and non-Effect runtime dependencies. Frappe (Python) and the contracts (Solidity) are outside this. |
+| Spend cap | Agreed 13 November 2026: at most $10 a day across Cloudflare and Neon. A world is destroyed after its run, so normal use stays far below it. |
+| Hono | Accepted 13 November 2026 as a non-Effect dependency while Ponder is used, because Ponder's API file requires it. Looked at again when Ponder is. |
 | Convergence | The threads on `main` continue until phase 1 passes here. Then `master` becomes the trunk and they move over journey by journey. |
 
 ## World lifecycle rules, enforced by code
@@ -69,7 +71,7 @@ unblock it.
 | 1.5 | 1 | The thin line's scenarios are written by a separate agent and fail on empty handlers | 1.1, 1.2 | Not started | 0/12 | | | |
 | 1.6 | 1 | The thin line's scenarios pass in a fresh private world | 1.3, 1.4, 1.5 | Not started | 0/12 | | | |
 | 1.7 | 1 | CI fails when the two Effect counts rise |  | Done |  |  | 2026-11-13T07:58Z | `packages/effect-counts`, PR 160: the CI gate ran the check and passed; a rising count exits 1 |
-| 1.8 | 1 | CI on `master` creates a world, runs the thin line and destroys the world | 1.6 | Not started | | Aaron: Cloudflare and Neon keys as CI secrets | | |
+| 1.8 | 1 | CI on `master` creates a world, runs the thin line and destroys the world | 1.6 | Not started |  | Aaron: Cloudflare and Neon keys as CI secrets (not available yet; until then runs are proven from a clean agent container) |  |  |
 | 2.1 | 2 | A host for the Frappe bench and a domain on Cloudflare exist | | Not started | | Aaron: a host account and a domain | | |
 | 2.2 | 2 | The platform (bench, tunnel, shared state) is deployed by Alchemy | 2.1, 0.4 | Not started | | | | |
 | 2.3 | 2 | A shared world exists whose sites are created with a per-world token | 2.2, 1.6 | Not started | | | | |
