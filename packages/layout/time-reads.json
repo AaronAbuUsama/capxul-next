@@ -147,30 +147,6 @@
    "owner": "Core"
   },
   {
-   "file": "packages/backend/src/shared/service-signer.ts",
-   "match": "const deadline = Date.now() + 60_000;",
-   "label": "real-on-purpose",
-   "why": "receipt wait bound"
-  },
-  {
-   "file": "packages/backend/src/shared/service-signer.ts",
-   "match": "while (Date.now() < deadline)",
-   "label": "real-on-purpose",
-   "why": "receipt wait bound"
-  },
-  {
-   "file": "packages/backend/src/shared/service-signer.ts",
-   "match": "Date.now() >= deadline) throw error",
-   "label": "real-on-purpose",
-   "why": "receipt wait bound"
-  },
-  {
-   "file": "packages/backend/src/shared/service-signer.ts",
-   "match": "Math.max(0, deadline - Date.now())",
-   "label": "real-on-purpose",
-   "why": "poll interval within the wait bound"
-  },
-  {
    "file": "packages/devnet/src/devnet/bench-recovery.py",
    "match": "clock.write_world(world=world, offset_ms=int(now_ms - time.time() * 1000)",
    "label": "rebound",
