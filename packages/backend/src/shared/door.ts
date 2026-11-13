@@ -6,3 +6,5 @@ export { IndexerError, readIndexerHead, readPersonalSafeClaim } from "./indexer.
 export type { IndexerProgress, IndexedClaim, ClaimLookup } from "./indexer.ts";
 export { bundler, bundlerProvider, httpTransport, ProviderError } from "./bundler.ts";
 export type { Bundler, BundlerHeld, BundlerSend, Lookup, ProviderCode, RpcTransport, RpcUserOperation, SignedUserOperation, UserOpReceipt } from "./bundler.ts";
+export { ChainRpcError, chainRpc } from "./chain-rpc.ts";
+export type { ChainBlock, ChainLog, ChainNode, ChainRpc } from "./chain-rpc.ts";

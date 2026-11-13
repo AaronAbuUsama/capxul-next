@@ -1,0 +1,103 @@
+{
+  "area": "shared",
+  "script": "packages/evals/src/modules/shared/run.sh",
+  "worlds": [
+    "slice-zero"
+  ],
+  "secrets": [],
+  "bindings": [
+    {
+      "eval": "int:chain-rpc.readContract/PROVIDER_ERROR/c-5b1138b355fe6fd1",
+      "checks": [
+        "CHAIN.read-contract-unavailable"
+      ],
+      "why": "The production ChainRpc reads the selected token's decimals with three configured nodes in front of the world's Anvil: one down, one hung past the 1.5 s attempt timeout, one answering 429. It makes exactly one attempt per node, three in all, and refuses PROVIDER_ERROR. Control: with the first node down and the second passing to the real Anvil, the same read answers through the fallback."
+    },
+    {
+      "eval": "int:chain-rpc.readContract/PROVIDER_RESPONSE_INVALID/c-a0d82010cc9acf28",
+      "checks": [
+        "CHAIN.read-contract-unusable"
+      ],
+      "why": "Against the world's real Anvil: token decimals answer 6 (control); a view the deployed token lacks reverts, and a call to an address with no code answers 0x. Both are PROVIDER_RESPONSE_INVALID and each reaches the node once: a revert or empty answer is final, not retried."
+    },
+    {
+      "eval": "int:chain-rpc.getCode/PROVIDER_ERROR/c-5b1138b355fe6fd1",
+      "checks": [
+        "CHAIN.code-unavailable"
+      ],
+      "why": "The company Safe's code read meets three failing nodes (down, hung, throttled): one attempt each, then PROVIDER_ERROR. The fallback control reaches the world's Anvil through the second node."
+    },
+    {
+      "eval": "int:chain-rpc.getCode/PROVIDER_RESPONSE_INVALID/c-d75e78d0ebd0967c",
+      "checks": [
+        "CHAIN.code-unusable"
+      ],
+      "why": "The Safe's real code is read first (non-empty). Then the node's real answer is rewritten to a number: PROVIDER_RESPONSE_INVALID, and the second configured node is never tried."
+    },
+    {
+      "eval": "int:chain-rpc.getBlock/PROVIDER_ERROR/c-5b1138b355fe6fd1",
+      "checks": [
+        "CHAIN.block-unavailable"
+      ],
+      "why": "The chain head read meets three failing nodes: one attempt each, PROVIDER_ERROR; the fallback control reads the world's real head."
+    },
+    {
+      "eval": "int:chain-rpc.getBlock/PROVIDER_RESPONSE_INVALID/c-d75e78d0ebd0967c",
+      "checks": [
+        "CHAIN.block-unusable"
+      ],
+      "why": "The real head decodes (control); the same answer with a malformed block hash is PROVIDER_RESPONSE_INVALID, with no second node tried."
+    },
+    {
+      "eval": "int:chain-rpc.getLogs/PROVIDER_ERROR/c-6b6f281a415c2f9d",
+      "checks": [
+        "CHAIN.logs-unavailable"
+      ],
+      "why": "The selected payment's Transfer window is read on three wide-log nodes, down, hung past 5 s and throttled: three attempts with exponential backoff, then PROVIDER_ERROR. Control: the fallback reads the real Transfer from the company Safe in the payment transaction."
+    },
+    {
+      "eval": "int:chain-rpc.getLogs/PROVIDER_RESPONSE_INVALID/c-9f959dc83f857cf2",
+      "checks": [
+        "CHAIN.logs-outside-window",
+        "CHAIN.logs-undecodable"
+      ],
+      "why": "The real payment Transfer is read first. The node's real logs are then moved one block past the requested window, and separately stripped of their indexed topics so they no longer decode as Transfer. Both are PROVIDER_RESPONSE_INVALID."
+    },
+    {
+      "eval": "int:bundler.lookup/PROVIDER_ERROR/c-437d0065d83e6f2e",
+      "checks": [
+        "BUNDLER.lookup-unavailable"
+      ],
+      "why": "The production bundler provider finds the selected payment's mined UserOperation on the world's real Alto (control). With the gateway down, hung past 2 s and throttled in turn, each by-hash and receipt read is tried three times and the caller sees PROVIDER_ERROR."
+    },
+    {
+      "eval": "int:bundler.lookup/PROVIDER_RESPONSE_INVALID/c-48702d9f9a2ffbce",
+      "checks": [
+        "BUNDLER.lookup-unusable"
+      ],
+      "why": "Real Alto answers for the selected payment's operation are rewritten: a receipt naming another operation hash, and a held operation that does not decode. Both are PROVIDER_RESPONSE_INVALID."
+    },
+    {
+      "eval": "int:bundler.send/PROVIDER_ERROR/c-8d774b0369da3d1f",
+      "checks": [
+        "BUNDLER.send-unanswered"
+      ],
+      "why": "A UserOperation from the selected payment's own sender (the paying hat wearer's Safe) gets no answer to eth_sendUserOperation within 5 s. The provider sends it exactly once, never again, looks it up on the real Alto, finds nothing held and refuses PROVIDER_ERROR."
+    },
+    {
+      "eval": "int:bundler.send/PROVIDER_RESPONSE_INVALID/c-36bc80f685cee9fa",
+      "checks": [
+        "BUNDLER.send-wrong-hash"
+      ],
+      "why": "The gateway answers a send with a hash that is not the signed operation's: PROVIDER_RESPONSE_INVALID, after one send."
+    },
+    {
+      "eval": "int:bundler.send/TRANSACTION_FAILED/c-4176624d77600a33",
+      "checks": [
+        "BUNDLER.send-rejected"
+      ],
+      "why": "The world's real Alto validates an operation from the selected payment's own sender (the paying hat wearer's Safe) that no owner signed. It rejects it in account validation, with its own AA2x reason recorded, and the caller sees TRANSACTION_FAILED. The EntryPoint nonce is unchanged and the bundler holds nothing for the operation."
+    }
+  ],
+  "near": []
+}
