@@ -8,8 +8,10 @@
   "packages/cli/src/",
   "packages/indexer/src/",
   "packages/indexer/ponder",
-  "packages/frappe-app/capxul/"
+  "packages/frappe-app/capxul/",
+  "packages/runtime/src/"
  ],
+ "module": "packages/runtime/src/time/",
  "reads": [
   {
    "file": "packages/backend/src/parties/door.ts",
@@ -68,7 +70,7 @@
   },
   {
    "file": "packages/backend/src/plugs/door.ts",
-   "match": "set attempts=attempts+1,last_attempt_at=now(),last_error=$2",
+   "match": "set attempts=attempts+1,last_attempt_at=now(),last_error=$3",
    "label": "real-on-purpose",
    "why": "delivery attempt stamp; operational"
   },
@@ -304,6 +306,30 @@
    "match": "input.expiresAt <= Date.now()",
    "label": "real-on-purpose",
    "why": "signed request envelope freshness check"
+  },
+  {
+   "file": "packages/site-service/src/sites/documents.ts",
+   "match": "const deadline = Date.now() + 30_000",
+   "label": "real-on-purpose",
+   "why": "a 30 s polling budget for the bench, an operational timeout"
+  },
+  {
+   "file": "packages/site-service/src/sites/documents.ts",
+   "match": "while (Date.now() < deadline)",
+   "label": "real-on-purpose",
+   "why": "the same polling budget's loop"
+  },
+  {
+   "file": "packages/site-service/src/sites/lifecycle.ts",
+   "match": "const deadline = Date.now() + 30_000",
+   "label": "real-on-purpose",
+   "why": "a 30 s polling budget for the bench, an operational timeout"
+  },
+  {
+   "file": "packages/site-service/src/sites/lifecycle.ts",
+   "match": "while (Date.now() < deadline)",
+   "label": "real-on-purpose",
+   "why": "the same polling budget's loop"
   }
  ]
 }
