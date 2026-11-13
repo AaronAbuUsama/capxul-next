@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-for (const [concept, count] of [["books", 19], ["budgets", 4]] as const) {
+for (const [concept, count] of [["books", 24], ["budgets", 4]] as const) {
   test(`${concept} catalogue needs no fixture and execution cannot pass without a running selected world`, () => {
     const script = fileURLToPath(new URL(`../${concept}/run.sh`, import.meta.url));
     const env = { ...process.env };

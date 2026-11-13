@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { selected, runChecks } from "./door.ts";
-import { atomic } from "./procedures.ts";
+import { readFileSync } from "node:fs";
+import { appendOnly, committedProperty, committedWorld, rolledBack } from "./invariants.ts";
+import { atomic, sideOf } from "./procedures.ts";
 import { errorChecks, publicChecks, vendorChecks } from "./public.ts";
 import { assertSchema } from "./schema.ts";
 import { assertWriters } from "./source.ts";
@@ -10,7 +12,9 @@ const tables = ["book_annotations", "book_facts", "book_feeds"] as const;
 const transitions = ["assign", "queue", "recategorize", "requeue"] as const;
 const checks = ["BOOKS.selected-stack", "BOOKS.record-atomic", "BOOKS.reverse-atomic",
   ...tables.flatMap((table) => ["schema", "tenancy", "writers"].map((kind) => `BOOKS.${table}-${kind}`)),
-  ...transitions.map((transition) => `BOOKS.${transition}`), "BOOKS.rpc-budget", "BOOKS.rpc-errors", "BOOKS.rpc-spans"];
+  ...transitions.map((transition) => `BOOKS.${transition}`), "BOOKS.rpc-budget", "BOOKS.rpc-errors", "BOOKS.rpc-spans",
+  "BOOKS.facts-append-only", "BOOKS.committed-world", "BOOKS.rollback-interleavings",
+  "BOOKS.committed-feed-gap-free", "BOOKS.committed-one-live-money-fact"];
 
 if (process.argv.includes("--list")) {
   for (const check of checks) console.log(`${check}\tcheck`);
@@ -61,6 +65,33 @@ if (process.argv.includes("--list")) {
         saved.push(spans);
       }
       stack.save("spans", saved);
+    });
+    // The books invariants (#139). The live world and rolled-back interleavings are controls; the committed proof
+    // runs concurrent writers on a throwaway Organization the run founded through the public setup.
+    const settled = async () => {
+      const { worldNow } = await import("../../../../backend/src/devnet/door.ts");
+      const at = await stack.db.transaction(stack.fixture.slug, worldNow);
+      const fact = (await stack.db.transaction(stack.fixture.slug, (sql) => sql.query(`select * from app.book_facts where org_id=$1
+        and tx_hash=$2 and kind='payment_settled' order by seq limit 1`, [stack.fixture.slug, stack.fixture.txHash]))).rows[0];
+      assert(fact, "the run's settlement fact templates the invariant writers");
+      return { at, fact, template: sideOf(stack.fixture.slug, fact, stack.fixture.amountAtomic) };
+    };
+    await emit("BOOKS.facts-append-only", async () => stack.save("facts-append-only", await appendOnly(stack.db, stack.fixture.slug)));
+    await emit("BOOKS.committed-world", async () => stack.save("committed-world", await committedWorld(stack.db)));
+    await emit("BOOKS.rollback-interleavings", async () => {
+      const { at, fact, template } = await settled();
+      stack.save("rollback-interleavings", await rolledBack(stack.db, stack.fixture.slug, fact.money_key, template, at, Date.parse(stack.receipt.at)));
+    });
+    let property: Promise<unknown> | undefined;
+    for (const name of ["feed-gap-free", "one-live-money-fact"]) await emit(`BOOKS.committed-${name}`, async () => {
+      property ??= (async () => {
+        const raw = JSON.parse(readFileSync(process.env.CAPXUL_ACCEPTANCE_FIXTURE!, "utf8"));
+        const org = raw.throwaway?.orgId;
+        assert(typeof org === "string" && org && org !== stack.fixture.slug, "a throwaway Organization founded in this run is required");
+        const { at, template } = await settled();
+        return committedProperty(stack.db, org, template, at, Date.parse(stack.receipt.at));
+      })();
+      stack.save("committed-property", await property);
     });
   } finally { await stack.db.close(); }
 });
