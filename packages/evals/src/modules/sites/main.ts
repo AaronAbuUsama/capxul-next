@@ -122,6 +122,15 @@ if (process.argv.includes("--list")) {
       const value = JSON.parse(result.stderr); assert.deepEqual(Object.keys(value), ["error"]);
       assert.deepEqual(Object.keys(value.error).sort(), ["code", "message"]); assert.equal(value.error.code, code); assert(value.error.message);
     };
+    // The CLI refuses an empty session before sending; this request reaches Core's own Bearer check.
+    const unauthenticated = async (body: Record<string, unknown>) => {
+      const response = await fetch(new URL("/org/site/document", coreUrl), { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ orgId: slug, ...body }) });
+      const value = await response.json();
+      appendFileSync(join(dir, "invocations.jsonl"), JSON.stringify({ actor: "signed-out", raw: true, verb: body.verb, status: response.status, body: value }) + "\n");
+      assert.equal(response.status, 401); assert.deepEqual(Object.keys(value), ["error"]);
+      assert.deepEqual(Object.keys(value.error).sort(), ["code", "message"]); assert.equal(value.error.code, "NOT_AUTHENTICATED"); assert(value.error.message);
+    };
     const resource = async (type: string, name: string) => (await frappe(f, `/api/resource/${encodeURIComponent(type)}/${encodeURIComponent(name)}`)).data;
     const list = async (type: string, filters: unknown, fields: string[]) => {
       const result = await frappe(f, `/api/resource/${encodeURIComponent(type)}`, { filters: JSON.stringify(filters), fields: JSON.stringify(fields), limit_page_length: "1000" });
@@ -148,6 +157,7 @@ if (process.argv.includes("--list")) {
     });
     await emit("SITES.signed-out-create-refused", async () => {
       refusal(await command("signed-out", ["doc", "create", "Supplier", "--field", `supplier_name=${prefix}-guest`]), "NOT_AUTHENTICATED", 3);
+      await unauthenticated({ verb: "create", doctype: "Supplier", fields: { supplier_name: `${prefix}-guest` }, callId: `${prefix}-guest` });
       assert.deepEqual(await list("Supplier", { supplier_name: `${prefix}-guest` }, ["name"]), []);
     });
     await emit("SITES.create-return", async () => {
@@ -202,12 +212,14 @@ if (process.argv.includes("--list")) {
       const gl = await list("GL Entry", { voucher_no: f.invoice }, ["name", "debit", "credit"]);
       refusal(await command(actor, ["doc", "submit", "Purchase Invoice", f.invoice, "--call-id", `${prefix}-${actor}-submit`]),
         actor === "member" ? "ROLE_PERMISSION_DENIED" : "NOT_AUTHENTICATED", actor === "member" ? 4 : 3);
+      if (actor === "signed-out") await unauthenticated({ verb: "submit", doctype: "Purchase Invoice", name: f.invoice, callId: `${prefix}-${actor}-submit` });
       assert.deepEqual(await resource("Purchase Invoice", f.invoice), before);
       assert.deepEqual(await list("GL Entry", { voucher_no: f.invoice }, ["name", "debit", "credit"]), gl);
     });
     await emit("SITES.signed-out-report-refused", async () => {
       const gl = await list("GL Entry", { company: f.company }, ["name", "debit", "credit"]);
       refusal(await command("signed-out", ["report", "run", "General Ledger"]), "NOT_AUTHENTICATED", 3);
+      await unauthenticated({ verb: "report", report: "General Ledger", filters: null });
       assert.deepEqual(await list("GL Entry", { company: f.company }, ["name", "debit", "credit"]), gl);
     });
     await emit("SITES.submitted-submit-refused", async () => {
