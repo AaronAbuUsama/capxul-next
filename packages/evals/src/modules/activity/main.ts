@@ -6,10 +6,10 @@ import { parseRunReceipt } from "@capxul/blueprint-engine";
 import { Database } from "../../../../backend/src/devnet/door.ts";
 import { fixtureFrom } from "../acceptance/fixture.ts";
 import { constraints, crossOwner, schema, tenancy, writerAcl } from "./tables.ts";
-import { idempotent, idempotentChecks } from "./workflows.ts";
+import { driveResume, idempotent, idempotentChecks, resumed, resumeChecks } from "./workflows.ts";
 
 const checks = ["ACTIVITY.selected-stack", "ACTIVITY.schema", "ACTIVITY.constraints", "ACTIVITY.tenancy", "ACTIVITY.cross-owner",
-  "ACTIVITY.writer-acl", ...idempotentChecks.map(([, name]) => name)];
+  "ACTIVITY.writer-acl", ...resumeChecks.map(([, name]) => name), ...idempotentChecks.map(([, name]) => name)];
 if (process.argv.includes("--list")) {
   for (const name of checks) console.log(`${name}\tcheck`);
 } else {
@@ -69,6 +69,8 @@ if (process.argv.includes("--list")) {
     await emit("ACTIVITY.tenancy", async () => { feeds = await tenancy(database, dir); });
     await emit("ACTIVITY.cross-owner", async () => { assert(feeds); await crossOwner(database, dir, feeds); });
     await emit("ACTIVITY.writer-acl", () => writerAcl(database, dir));
+    // Resume first: each drives one more real in-run transition that the idempotency samples then include.
+    for (const [transition, name] of resumeChecks) await emit(name, () => resumed(database, dir, transition, driveResume(configPath, transition)));
     for (const [transition, name] of idempotentChecks) await emit(name, () => idempotent(database, dir, transition, receipt.at));
   } catch { failed = true; }
   finally { await db?.close(); }
