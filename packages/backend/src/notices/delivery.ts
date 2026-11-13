@@ -46,14 +46,21 @@ export async function recordOutcome(sql: Sql, recipient: string, notice: string,
 export async function deliverDue(db: Database, mail: Mail, now: WorldNow, emit: Emit) {
   const due = (await db.worker.query(`select recipient,notice_id,scheduled_attempts from app.notice_attempts
     where due_at<=$1 order by due_at,recipient,notice_id limit 100`, [await now(db.worker)])).rows;
-  let completed = 0;
+  let completed = 0, failure: unknown, pending = false;
   for (const key of due) {
+    // One unclassified failure must not starve the rows sorted after it; the first is rethrown after the batch.
+    try { completed += await deliverOne(key); } catch (error) { failure ??= error; }
+  }
+  if (failure !== undefined) throw failure;
+  return completed;
+
+  async function deliverOne(key: { recipient: string; notice_id: string; scheduled_attempts: number }): Promise<number> {
     const client = await db.worker.connect();
     const lock = `notice:${providerKey(key.recipient, key.notice_id)}`;
     let locked = false;
     try {
       locked = (await client.query("select pg_try_advisory_lock(hashtextextended($1,0)) as locked", [lock])).rows[0].locked;
-      if (!locked) continue;
+      if (!locked) return 0;
       const current = await transaction(client, "", async (sql) => {
         // Serialize with source wake and recipient checkpoint, never across the network call.
         await sql.query("select pg_advisory_xact_lock(hashtextextended('notices:dispatch-boundary',0))");
@@ -68,14 +75,15 @@ export async function deliverDue(db: Database, mail: Mail, now: WorldNow, emit: 
             return { ...row, canceled: true };
           }
           // A bounded relay batch can leave a committed stop (or its lock-busy ACK) unseen.
-          if (references.reminder && await hasPending(sql,"notices",["payment_transitioned"])) return { ...row, deferred: true };
+          // A yes holds for the rest of this tick; a no is rechecked, so a stop committed meanwhile is still seen.
+          if (references.reminder && (pending ||= await hasPending(sql,"notices",["payment_transitioned"]))) return { ...row, deferred: true };
         }
         // A crash after this commit may hide acceptance. Never cancel that identity's replay.
         await sql.query("update app.notice_attempts set dispatch_started=true where recipient=$1 and notice_id=$2", [key.recipient,key.notice_id]);
         return row;
       });
-      if (!current) continue;
-      if (current.canceled || current.deferred) { completed++; continue; }
+      if (!current) return 0;
+      if (current.canceled || current.deferred) return 1;
       const intent = current.intent as Intent;
       const message = { ...render(intent), template: intent.template };
       let outcome: Outcome;
@@ -90,11 +98,10 @@ export async function deliverDue(db: Database, mail: Mail, now: WorldNow, emit: 
       const at = await now(client);
       if (!Number.isSafeInteger(at) || at < 0) throw new Error("INVALID_CLOCK: world milliseconds required");
       const event = await transaction(client, "", (sql) => recordOutcome(sql, key.recipient, key.notice_id, key.scheduled_attempts, outcome, at, emit));
-      if (event) completed++;
+      return event ? 1 : 0;
     } finally {
       try { if (locked) await client.query("select pg_advisory_unlock(hashtextextended($1,0))", [lock]); }
       finally { client.release(); }
     }
   }
-  return completed;
 }
