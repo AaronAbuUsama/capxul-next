@@ -28,6 +28,8 @@ test("committed runtime outbox: rollback, crash retry, concurrency, exact identi
     trace_id: "trace-731", at: 1_234_567,
     props: { from: null, to: "open", transition: "issue", request_id: "req-731", owner_kind: "person", owner_id: "person-a", kind: "invoice", payer_kind: "none" },
   });
+  // A stopped world far from the host's clock, so a world ACK instant and a host stamp cannot be mistaken for each other.
+  const WORLD = Date.UTC(2031, 0, 2, 3, 4, 5), world = async () => WORLD, testStarted = Date.now();
   const effect = async (sql: Parameters<typeof consume>[0], e: TransitionEvent) => {
     await sql.query("insert into app.outbox_effect_probe values ('notices',$1)", [e.id]);
   };
@@ -52,26 +54,34 @@ test("committed runtime outbox: rollback, crash retry, concurrency, exact identi
       assert.deepEqual(await readEvent(admin, "committed"), event("committed"));
     });
     await t.test("consumer effect and ACK roll back on error, then retry once under concurrent relays", async () => {
-      assert.equal(await relay(db, "notices", ["request_transitioned"], async (sql, e) => { await effect(sql, e); throw new Error("handler failed"); }), 0);
+      assert.equal(await relay(db, "notices", ["request_transitioned"], async (sql, e) => { await effect(sql, e); throw new Error("handler failed"); }, world), 0);
       assert.equal((await admin.query("select * from app.outbox_effect_probe")).rowCount, 0);
       assert.equal((await admin.query("select * from app.transition_acks")).rowCount, 0);
       assert.deepEqual((await admin.query("select consumer,event_id,attempts,last_error from app.transition_failures")).rows,
         [{ consumer: "notices", event_id: "committed", attempts: 1, last_error: "Error" }]);
-      const counts = await Promise.all([relay(db, "notices", ["request_transitioned"], effect), relay(db, "notices", ["request_transitioned"], effect)]);
+      const counts = await Promise.all([relay(db, "notices", ["request_transitioned"], effect, world), relay(db, "notices", ["request_transitioned"], effect, world)]);
       assert.equal(counts.reduce((a, b) => a + b), 1);
       assert.equal((await admin.query("select * from app.outbox_effect_probe")).rowCount, 1);
       assert.equal((await admin.query("select * from app.transition_acks where consumer='notices'")).rowCount, 1);
-      assert.equal(await relay(db, "notices", ["request_transitioned"], effect), 0);
+      assert.equal(await relay(db, "notices", ["request_transitioned"], effect, world), 0);
       assert.equal((await admin.query("select * from app.transition_failures")).rowCount, 0, "a delivered event clears its failure");
+      // runtime.outbox-host-stamps: the ACK's acked_at is the relay's world instant; both host stamps are RealTime.
+      const stamps = (await admin.query(`select (extract(epoch from a.acked_at)*1000)::float8 as acked, a.host_acked_at::float8 as host_acked,
+        o.host_enqueued_at::float8 as host_enqueued from app.transition_acks a join app.transition_outbox o on o.id=a.event_id
+        where a.consumer='notices' and a.event_id='committed'`)).rows[0];
+      assert.equal(stamps.acked, WORLD, "acked_at is the world instant the relay read, not the database host clock");
+      assert(stamps.host_enqueued >= testStarted && stamps.host_enqueued <= stamps.host_acked && stamps.host_acked <= Date.now(),
+        "host stamps are the host clock, enqueue before ACK");
+      assert.notEqual(stamps.host_acked, stamps.acked);
       assert.equal(await relay(db, "activity", ["request_transitioned"], async (sql, e) => {
         await sql.query("insert into app.outbox_effect_probe values ('activity',$1)", [e.id]);
-      }), 1, "each consumer has its own ACK");
+      }, world), 1, "each consumer has its own ACK");
     });
     await t.test("process death after effect+ACK but before commit leaves both retryable", async () => {
       await db.transaction("", (sql) => emit(sql, event("crash")), true);
       const source = `import pg from 'pg'; import {consume} from ${JSON.stringify(new URL("../src/platform/outbox.ts", import.meta.url).href)};
         const client=new pg.Client({connectionString:process.env.OUTBOX_WORKER_URL}); await client.connect(); await client.query('begin');
-        await consume(client,'crash-consumer','crash',async(sql,e)=>{await sql.query("insert into app.outbox_effect_probe values ('crash-consumer',$1)",[e.id]);});
+        await consume(client,'crash-consumer','crash',async(sql,e)=>{await sql.query("insert into app.outbox_effect_probe values ('crash-consumer',$1)",[e.id]);},${WORLD});
         process.send('acked-before-commit'); await new Promise(()=>{});`;
       const child = spawn(process.execPath, ["--experimental-strip-types", "--no-warnings", "--input-type=module", "-e", source], {
         cwd: new URL("..", import.meta.url), env: { ...process.env, OUTBOX_WORKER_URL: roleUrl("capxul_worker") }, stdio: ["ignore", "pipe", "pipe", "ipc"],
@@ -82,8 +92,8 @@ test("committed runtime outbox: rollback, crash retry, concurrency, exact identi
       assert.equal((await admin.query("select * from app.transition_acks where consumer='crash-consumer'")).rowCount, 0);
       assert.equal(await db.transaction("", (sql) => consume(sql, "crash-consumer", "crash", async (s, e) => {
         await s.query("insert into app.outbox_effect_probe values ('crash-consumer',$1)", [e.id]);
-      }), true), true);
-      assert.equal(await db.transaction("", (sql) => consume(sql, "crash-consumer", "crash", async () => { throw new Error("replay invoked effect"); }), true), false);
+      }, WORLD), true), true);
+      assert.equal(await db.transaction("", (sql) => consume(sql, "crash-consumer", "crash", async () => { throw new Error("replay invoked effect"); }, WORLD), true), false);
     });
     await t.test("personal, organization and pre-principal events need no organization FK and stay scoped", async () => {
       await db.transaction("", async (sql) => {
@@ -110,7 +120,7 @@ test("committed runtime outbox: rollback, crash retry, concurrency, exact identi
         await assert.rejects(db.ownerTransaction({ kind: "person", id: "org-a" }, (sql) => emit(sql, event("wrong-kind", "organization", "org-a"))), /row-level security/);
         await assert.rejects(client.query("update app.transition_outbox set event=event"), /permission denied/);
         await assert.rejects(db.worker.query("delete from app.transition_outbox"), /permission denied/);
-        await assert.rejects(client.query("insert into app.transition_acks values ('forged','committed',now())"), /permission denied/);
+        await assert.rejects(client.query("insert into app.transition_acks values ('forged','committed',now(),1)"), /permission denied/);
       } finally { client.release(); }
     });
     await t.test("a poison event rolls back alone: later events deliver, only its code is kept, and it retries after fresh ones", async () => {
@@ -122,7 +132,7 @@ test("committed runtime outbox: rollback, crash retry, concurrency, exact identi
         await sql.query("insert into app.outbox_effect_probe values ('poison-reader',$1)", [e.id]);
         if (e.id === "poison") throw new Error("NOT_FOUND: payment row pay-731 for person-a@example.test");
       };
-      assert.equal(await relay(db, "poison-reader", [name], handler), 1);
+      assert.equal(await relay(db, "poison-reader", [name], handler, world), 1);
       assert.deepEqual(seen, ["poison", "healthy"], "the healthy event after the poison one is still delivered in the same batch");
       assert.deepEqual((await admin.query("select event_id from app.outbox_effect_probe where consumer='poison-reader'")).rows, [{ event_id: "healthy" }]);
       assert.deepEqual((await admin.query("select event_id from app.transition_acks where consumer='poison-reader'")).rows, [{ event_id: "healthy" }]);
@@ -130,7 +140,7 @@ test("committed runtime outbox: rollback, crash retry, concurrency, exact identi
         [{ event_id: "poison", attempts: 1, last_error: "NOT_FOUND" }], "the code only, not the message's data");
       await db.transaction("", (sql) => emit(sql, { ...event("fresh"), name }), true);
       seen.length = 0;
-      assert.equal(await relay(db, "poison-reader", [name], handler), 1);
+      assert.equal(await relay(db, "poison-reader", [name], handler, world), 1);
       assert.deepEqual(seen, ["fresh", "poison"], "a failed event is retried after fresher ones");
       assert.equal((await admin.query("select attempts from app.transition_failures where event_id='poison'")).rows[0].attempts, 2);
     });
@@ -144,7 +154,7 @@ test("committed runtime outbox: rollback, crash retry, concurrency, exact identi
         if (e.id.startsWith("stuck-")) throw new Error("NOT_FOUND: payment row");
         if (e.id === "late-row" && lateTries++ === 0) throw new Error("NOT_FOUND: payment row not committed yet");
       };
-      for (let i = 0; i < 6; i++) await relay(db, "starve-reader", [name], handler, 2);
+      for (let i = 0; i < 6; i++) await relay(db, "starve-reader", [name], handler, world, 2);
       assert.deepEqual((await admin.query("select event_id from app.transition_acks where consumer='starve-reader'")).rows, [{ event_id: "late-row" }],
         "the event that failed once is retried and delivered although three poison events outnumber the batch");
       assert.equal((await admin.query("select count(*)::int as n from app.transition_failures where consumer='starve-reader'")).rows[0].n, 3);
@@ -155,9 +165,9 @@ test("committed runtime outbox: rollback, crash retry, concurrency, exact identi
         await emit(late, { ...event("late"), name: "late_transitioned" });
         await db.transaction("", (sql) => emit(sql, { ...event("early"), name: "late_transitioned" }), true);
         const seen: string[] = [];
-        assert.equal(await relay(db, "late-reader", ["late_transitioned"], async (_sql, e) => { seen.push(e.id); }), 1);
+        assert.equal(await relay(db, "late-reader", ["late_transitioned"], async (_sql, e) => { seen.push(e.id); }, world), 1);
         await late.query("commit");
-        assert.equal(await relay(db, "late-reader", ["late_transitioned"], async (_sql, e) => { seen.push(e.id); }), 1);
+        assert.equal(await relay(db, "late-reader", ["late_transitioned"], async (_sql, e) => { seen.push(e.id); }, world), 1);
         assert.deepEqual(seen, ["early", "late"]);
       } finally { await late.query("rollback"); late.release(); }
     });
@@ -167,19 +177,19 @@ test("committed runtime outbox: rollback, crash retry, concurrency, exact identi
       await db.transaction("",async (sql) => {
         for (let n=0;n<101;n++) await emit(sql,{ ...event(`ready-${n}`), name: names[0]! });
       },true);
-      assert.equal(await relay(db,consumer,names,async () => {}),100);
+      assert.equal(await relay(db,consumer,names,async () => {},world),100);
       assert.equal(await hasPending(db.worker,consumer,names),true,"one full relay batch leaves the 101st envelope pending");
       const held = await db.worker.connect();
       try {
         await held.query("begin");
-        assert.equal(await consume(held,consumer,"ready-100",async () => {}),true);
+        assert.equal(await consume(held,consumer,"ready-100",async () => {},WORLD),true);
         assert.equal(await hasPending(held,consumer,names),false,"passed Sql sees its own uncommitted ACK");
-        assert.equal(await relay(db,consumer,names,async () => {}),0,"another relay skips the busy event");
+        assert.equal(await relay(db,consumer,names,async () => {},world),0,"another relay skips the busy event");
         assert.equal(await hasPending(db.worker,consumer,names),true,"readiness must not skip its busy uncommitted ACK");
         await held.query("rollback");
         assert.equal(await hasPending(db.worker,consumer,names),true,"rolled-back ACK leaves work pending");
         await held.query("begin");
-        await consume(held,consumer,"ready-100",async () => {});
+        await consume(held,consumer,"ready-100",async () => {},WORLD);
         await held.query("commit");
       } finally { await held.query("rollback"); held.release(); }
       assert.equal(await hasPending(db.worker,consumer,names),false,"only committed ACK closes readiness");

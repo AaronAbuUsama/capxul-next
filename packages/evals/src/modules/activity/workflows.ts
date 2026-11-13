@@ -22,13 +22,12 @@ const feedRows = (sql: Sql, feeds: [string, string][]) => sql.query(`select * fr
  * change log's `by-owner-event` key. Every redelivery rolls back.
  */
 export async function idempotent(database: Database, dir: string, transition: string, runStartedAt: string) {
-  // Scoped by the database clock's ACK time, not the event's `at`: world time can be stopped or warped, and a restored
-  // world's baseline events were acknowledged before this run started.
-  await hostAckClock(database.worker);
+  // Scoped by the ACK's host stamp (host_acked_at, runtime.outbox-host-stamps), not the event's `at` or the world
+  // acked_at: world time can be stopped or warped, and a restored world's baseline events were acknowledged before this run.
   const events = (await database.worker.query(`select o.event from app.transition_outbox o
     join app.transition_acks a on a.consumer=$1 and a.event_id=o.id
     where o.event->>'name'='payment_transitioned' and o.event->>'machine'='payment' and o.event->'props'->>'transition'=$2
-      and a.acked_at>=$4::timestamptz
+      and a.host_acked_at>=(extract(epoch from $4::timestamptz)*1000)
     order by o.seq desc limit $3`, [CONSUMER, transition, SAMPLE, runStartedAt])).rows.map((r) => r.event as TransitionEvent);
   assert(events.length > 0, `no ${transition} transition acknowledged in this run`);
   const evidence = [];
@@ -44,16 +43,6 @@ export async function idempotent(database: Database, dir: string, transition: st
     } finally { await client.query("rollback"); client.release(); }
   }
   writeFileSync(join(dir, `idempotent-${transition}.json`), JSON.stringify(evidence) + "\n");
-}
-
-/**
- * ACK times are compared with host times (the run start, the kill). That holds only while `acked_at` is the database
- * host's commit-side clock; if its source changes (to world time, say), fail loudly rather than pass on a warped clock.
- */
-async function hostAckClock(sql: Sql) {
-  const column = (await sql.query(`select column_default from information_schema.columns
-    where table_schema='app' and table_name='transition_acks' and column_name='acked_at'`)).rows[0];
-  assert.equal(column?.column_default, "now()", "transition_acks.acked_at is no longer the database host clock; this check must move to the host-stamped ACK column");
 }
 
 /** In the caller's transaction, holding the feeds' locks: the event was noted exactly once in each feed holding its Payment. */
@@ -118,7 +107,6 @@ export async function driveResume(database: Database, config: string, transition
  */
 export async function resumed(database: Database, dir: string, transition: string, { fault, after }: { fault: ResumeFault; after: number }) {
   assert.equal(fault.consumer, CONSUMER);
-  await hostAckClock(database.worker);
   // The restarted relay redelivers on its own schedule; wait for it within the workflow's 30 s timeout.
   for (const deadline = Date.now() + 30_000; ;) {
     if ((await database.worker.query("select 1 from app.transition_acks where consumer=$1 and event_id=$2", [CONSUMER, fault.eventId])).rowCount) break;
@@ -132,7 +120,7 @@ export async function resumed(database: Database, dir: string, transition: strin
     const event = row?.event as TransitionEvent | undefined;
     assert(event && event.name === "payment_transitioned" && event.machine === "payment", "faulted event is a payment transition");
     assert(Number(row.seq) > after, "the faulted event was emitted after the arm, by this drive");
-    const acks = (await client.query("select (extract(epoch from acked_at)*1000)::float8 as at from app.transition_acks where consumer=$1 and event_id=$2",
+    const acks = (await client.query("select host_acked_at::float8 as at from app.transition_acks where consumer=$1 and event_id=$2",
       [CONSUMER, fault.eventId])).rows;
     assert.equal(acks.length, 1);
     assert(acks[0].at > fault.killed.at, "the ACK committed after the kill, by the restarted relay");

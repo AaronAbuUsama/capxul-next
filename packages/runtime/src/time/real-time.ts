@@ -4,7 +4,7 @@
 // exception is a world with no authority clock (staging, production), whose own time is the host's (signals.world-rows).
 import { performance } from "node:perf_hooks";
 
-/** The host's wall clock in epoch milliseconds, for a vendor envelope's instant; never stored in a row or compared with a product time. */
+/** The host's wall clock in epoch milliseconds, for an envelope's instant (a vendor's, the outbox's host stamps); never compared with a product time. */
 export function realNowMs(): number {
   return Date.now();
 }

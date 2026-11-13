@@ -9,6 +9,8 @@ import { Database } from "../../src/platform/db.ts";
 import { consume, emit, migrateOutbox, readEvent, relay, type TransitionEvent } from "../../src/platform/outbox.ts";
 
 const url = process.env.ACTIVITY_TEST_ADMIN_URL;
+// The relay's world instant for ACKs (runtime.outbox-host-stamps); a fixed stopped clock.
+const WORLD = 1_900_000_000_000, world = async () => WORLD;
 if (!url || !["127.0.0.1", "localhost"].includes(new URL(url).hostname) || new URL(url).pathname !== "/activity_test") {
   throw new Error("ACTIVITY_TEST_ADMIN_URL must name a dedicated loopback activity_test database; this is component proof, not selected-stack acceptance");
 }
@@ -32,7 +34,7 @@ async function apply(e: TransitionEvent, rollback = false) {
 if (process.argv[2] === "crash-worker") {
   const c = await connect("capxul_worker"), e = JSON.parse(process.argv[3]!) as TransitionEvent;
   await c.query("begin");
-  if (process.argv[5] === "outbox") await consume(c, "activity.changes", e.id, note);
+  if (process.argv[5] === "outbox") await consume(c, "activity.changes", e.id, note, WORLD);
   else await note(c, e);
   if (process.argv[4] === "after-commit") await c.query("commit");
   process.send!("boundary"); // The parent kills this real process with its transaction/connection still live.
@@ -198,22 +200,22 @@ if (process.argv[2] === "crash-worker") {
           // A failing event rolls back alone and is recorded by its code (runtime.outbox-poison-event).
           assert.equal(await relay(db, "activity.changes", names, async (sql, source) => {
             await note(sql, source); throw new Error("WRONG_STATE: failed after both appends");
-          }), 0);
+          }, world), 0);
           assert.deepEqual(await rows(), before); assert.equal(await ack(e.id), 0);
           assert.deepEqual((await admin.query("select attempts,last_error from app.transition_failures where consumer='activity.changes' and event_id=$1", [e.id])).rows,
             [{ attempts: 1, last_error: "WRONG_STATE" }]);
           assert.deepEqual(await readEvent(admin, e.id), e, "consumer cannot change the source envelope");
-          const counts = await Promise.all([relay(db, "activity.changes", names, note), relay(db, "activity.changes", names, note)]);
+          const counts = await Promise.all([relay(db, "activity.changes", names, note, world), relay(db, "activity.changes", names, note, world)]);
           assert.equal(counts.reduce((a, b) => a + b), 1);
           const completed = await rows();
           assert.equal(completed.length, before.length + 2); assert.equal(await ack(e.id), 1);
           assert(completed.filter((r) => r.event_id === e.id).every((r) => r.changed_at === e.at));
-          assert.equal(await relay(db, "activity.changes", names, note), 0);
+          assert.equal(await relay(db, "activity.changes", names, note, world), 0);
           assert.deepEqual(await rows(), completed);
           const movement: TransitionEvent = { ...event("outbox-movement"), name: "movement_transitioned", machine: "movement",
             entity_id: "84532:0xabc:17:out", props: { owner_kind: "person", owner_id: "same", transition: "record",
               from: null, to: "recorded", chain_id: 84532, tx_hash: "0xabc", log_index: 17, side: "out" } };
-          await publish(movement); assert.equal(await relay(db, "activity.changes", names, note), 1);
+          await publish(movement); assert.equal(await relay(db, "activity.changes", names, note, world), 1);
           const withMovement = await rows();
           const change = withMovement.find((r) => r.event_id === movement.id)!;
           assert.equal(change.row_id, movement.entity_id); assert.equal(change.row_kind, "movement");
@@ -221,7 +223,7 @@ if (process.argv[2] === "crash-worker") {
           for (const transition of ["remove", "restore"]) {
             const source = { ...movement, id: `outbox-movement-${transition}`,
               props: { ...movement.props, transition, from: transition === "remove" ? "recorded" : "removed", to: transition === "remove" ? "removed" : "recorded" } };
-            await publish(source); assert.equal(await relay(db, "activity.changes", names, note), 1);
+            await publish(source); assert.equal(await relay(db, "activity.changes", names, note, world), 1);
             assert.equal(await ack(source.id), 1); assert.deepEqual(await rows(), withMovement);
           }
           for (const boundary of ["before-commit", "after-commit"]) {
@@ -233,14 +235,14 @@ if (process.argv[2] === "crash-worker") {
             finally { const exit = once(child, "exit"); child.kill("SIGKILL"); await exit; }
             if (boundary === "before-commit") {
               assert.deepEqual(await rows(), prior); assert.equal(await ack(source.id), 0);
-              assert.equal(await relay(db, "activity.changes", names, note), 1);
+              assert.equal(await relay(db, "activity.changes", names, note, world), 1);
             } else {
               assert.equal((await rows()).length, prior.length + 2); assert.equal(await ack(source.id), 1);
-              assert.equal(await relay(db, "activity.changes", names, note), 0);
+              assert.equal(await relay(db, "activity.changes", names, note, world), 0);
             }
             const finished = await rows();
             assert.equal(finished.length, prior.length + 2); assert.equal(await ack(source.id), 1);
-            assert.equal(await relay(db, "activity.changes", names, note), 0);
+            assert.equal(await relay(db, "activity.changes", names, note, world), 0);
             assert.deepEqual(await rows(), finished); assert.deepEqual(await readEvent(admin, source.id), source);
           }
           const prior = await rows();
@@ -253,7 +255,7 @@ if (process.argv[2] === "crash-worker") {
             { ...movement, id: "bad-movement", props: { ...movement.props, side: "both" } },
           ]) {
             await publish(bad);
-            await assert.rejects(db.transaction("", (sql) => consume(sql, "activity.changes", bad.id, note), true), /ACTIVITY_/);
+            await assert.rejects(db.transaction("", (sql) => consume(sql, "activity.changes", bad.id, note, WORLD), true), /ACTIVITY_/);
             assert.equal(await ack(bad.id), 0); assert.deepEqual(await rows(), prior);
           }
         } finally { await db.close(); }

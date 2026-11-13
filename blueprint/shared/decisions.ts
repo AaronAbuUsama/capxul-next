@@ -178,6 +178,26 @@ export const decision_runtime_outbox_poison_event = defineDecision({
   affects: [f.component_backend],
 });
 
+export const decision_runtime_outbox_host_stamps = defineDecision({
+  id: "runtime.outbox-host-stamps",
+  title: "The outbox stamps host times on its envelope, and an ACK keeps the world instant",
+  question: "Where do the outbox's operational times (how long an event waited for its consumer) come from, without a second clock in product data?",
+  options: [
+    { label: "envelope-columns", text: "Core stamps RealTime epoch ms into envelope columns, transition_outbox.host_enqueued_at on emit and transition_acks.host_acked_at on ACK, through packages/runtime/src/time/real-time.ts. transition_acks.acked_at is the world instant the relay reads for its batch and passes in; no column defaults to a clock." },
+    { label: "sql-now", text: "Keep acked_at default now() and measure with it, the database host's clock in a column default." },
+    { label: "event-at", text: "Measure from the event's world `at`, which a stopped, warped or fast devnet clock moves." },
+  ],
+  chosen: "envelope-columns",
+  why:
+    "Activity's eleven bud:activity.changes.*/p95 claims measure system time from trigger to done, which time.real-elapsed says is real time; on a stopped or warped world the event's `at` would read zero or years. " +
+    "time.no-direct-reads allows RealTime only in an integration layer's envelope code and forbids now() in a column default, so the outbox's envelope (the relay, an integration layer) stamps RealTime itself, " +
+    "and acked_at stops being a hidden database clock. The host stamps are measurements only: no product rule, ordering, predicate or rpc reads them (ACKs, not a cursor, carry delivery, runtime.transition-outbox), " +
+    "and an emit retry keeps the first stamp and never compares it. time.real-elapsed names these envelope columns as RealTime's stored use beside signals.world-rows, where RealTime is the time of a world with no authority clock. " +
+    "Check: on a stopped world far from the host's clock, a delivered event's acked_at equals the world instant the relay read and both host stamps lie between the test's start and its end, enqueue before ACK.",
+  source: "Integrator's ruling (option C) on Activity's bud:*/p95 timing, 13 November 2026; time.no-direct-reads; time.real-elapsed; runtime.transition-outbox",
+  affects: [f.component_backend],
+});
+
 export const decision_integrations_surface_gap_audit = defineDecision({
   id: "integrations.surface-gap-audit",
   title: "Remove outside calls with no surviving Core caller",

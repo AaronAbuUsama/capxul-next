@@ -223,7 +223,7 @@ test("role projections retain caller atomicity, exact occurrences, shared roles 
 
         await setup("ack-conflict");
         const id = JSON.stringify(["plugs.role-grant", "ack-conflict", JSON.stringify(["native-ack", "role:ack-conflict", "apply"])]);
-        await admin.query("insert into app.transition_outbox(id,event) values ($1,$2)", [id, { ...applied, id, owner_id: "ack-conflict", entity_id: "conflicting-source" }]);
+        await admin.query("insert into app.transition_outbox(id,event,host_enqueued_at) values ($1,$2,1)", [id, { ...applied, id, owner_id: "ack-conflict", entity_id: "conflicting-source" }]);
         const conflictBefore = await state("ack-conflict");
         await assert.rejects(deliver(db, "ack-conflict", origin, secret), /IDEMPOTENCY_CONFLICT/);
         assert.deepEqual(await state("ack-conflict"), conflictBefore, "semantic emission refusal after grant/ACK writes must escape retry catch");
