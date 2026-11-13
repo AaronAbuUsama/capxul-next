@@ -461,9 +461,11 @@
         "int:bundler.sponsor/INSUFFICIENT_BALANCE/c-78171b739d368a8b",
         "int:bundler.sponsor/PAYROLL_BUDGET_EXCEEDED/c-d1a43d9d58899e75",
         "int:bundler.sponsor/PROVIDER_ERROR/c-437d0065d83e6f2e",
-        "int:bundler.sponsor/PROVIDER_RESPONSE_INVALID/c-6632694f6bcfdb67",
+        "int:bundler.sponsor/PROVIDER_ERROR/c-8d18c9a8b7df66b2",
+        "int:bundler.sponsor/PROVIDER_RESPONSE_INVALID/c-353fb31e0f6cc38c",
         "int:bundler.sponsor/ROLE_PERMISSION_DENIED/c-7e03da09a1c379dc",
         "int:bundler.sponsor/TRANSACTION_FAILED/c-3aa5f3b8128448cf",
+        "int:bundler.sponsor/WRONG_STATE/c-412134189385189d",
         "int:bundler.sponsor/WRONG_STATE/c-90e4e654d343751f",
         "int:bundler/conformance"
       ],
