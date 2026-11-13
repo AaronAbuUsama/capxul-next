@@ -34,7 +34,8 @@ pin() { python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(eval(
 PIN_BUILD_IMAGE="$(pin 'd["base"]["build"]')"; PIN_FRAPPE_URL="$(pin 'd["frappe"]["url"]')"
 PIN_FRAPPE_TAG="$(pin 'd["frappe"]["tag"]')"; PIN_FRAPPE_COMMIT="$(pin 'd["frappe"]["commit"]')"
 PIN_ERPNEXT_URL="$(pin 'd["apps"][0]["url"]')"; PIN_ERPNEXT_COMMIT="$(pin 'd["apps"][0]["commit"]')"
-export PIN_BUILD_IMAGE PIN_FRAPPE_URL PIN_FRAPPE_TAG PIN_FRAPPE_COMMIT PIN_ERPNEXT_URL PIN_ERPNEXT_COMMIT
+PIN_HRMS_URL="$(pin 'd["apps"][1]["url"]')"; PIN_HRMS_COMMIT="$(pin 'd["apps"][1]["commit"]')"
+export PIN_BUILD_IMAGE PIN_FRAPPE_URL PIN_FRAPPE_TAG PIN_FRAPPE_COMMIT PIN_ERPNEXT_URL PIN_ERPNEXT_COMMIT PIN_HRMS_URL PIN_HRMS_COMMIT
 export PLATFORM_FRAPPE_APP_DIR="$ROOT/packages/frappe-app"
 
 # Behind a TLS-inspecting proxy the image build needs the proxy and its CA (a certificate, not a secret). On AWS the

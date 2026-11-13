@@ -16,13 +16,12 @@ import { checkCall, failuresOf } from "../checks/checks.ts";
 import type { Call } from "../client.ts";
 import { describe, endedOf } from "../failure.ts";
 import { passedOr, slugOf, writeJson, RunRecord } from "../record.ts";
-import { freshName, scenarioPlan, use } from "../run.ts";
+import { freshName, keptFor, scenarioPlan, use } from "../run.ts";
 import type { Settings } from "../settings.ts";
 import { summarize, Summary } from "../summary.ts";
 import type { Inventory } from "../world/leftovers.ts";
 import { answersSteadily } from "../world/warmup.ts";
 import type { Stage } from "../world/stage.ts";
-import { PlatformKept } from "./kept.ts";
 import { Platform } from "./platform.ts";
 import { startingWorldsOf, type StartingWorlds } from "./starting.ts";
 
@@ -73,8 +72,7 @@ export const destroyStrays = (stages: ReadonlyArray<string>, owners: ReadonlyArr
 /** The checked calls of `calls`, read from where each was kept. */
 const checked = (calls: ReadonlyArray<Call>) =>
   Effect.gen(function* () {
-    const platform = yield* PlatformKept;
-    const kept = yield* platform.kept(Arr.map(calls, (call) => call.traceId));
+    const kept = yield* keptFor(Option.none(), calls);
     return Arr.map(calls, (call) => checkCall(call, kept));
   });
 

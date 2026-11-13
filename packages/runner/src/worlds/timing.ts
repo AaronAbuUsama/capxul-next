@@ -9,15 +9,15 @@ import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
+import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import { checkCall, CheckedCall, failuresOf } from "../checks/checks.ts";
 import { describe } from "../failure.ts";
 import { Outcome, passedOr, writeJson } from "../record.ts";
-import { freshName } from "../run.ts";
+import { freshName, keptFor } from "../run.ts";
 import type { Settings } from "../settings.ts";
 import { Inventory } from "../world/leftovers.ts";
-import { PlatformKept } from "./kept.ts";
 import { waitsOn } from "./makers.ts";
 import { Platform } from "./platform.ts";
 import { coreLabel, destroyAll, leftOf } from "./run.ts";
@@ -58,7 +58,6 @@ const millis = (took: Duration.Duration) => Math.round(Duration.toMillis(took));
 export const timeStartingWorlds = (settings: Settings) =>
   Effect.gen(function* () {
     const platform = yield* Platform;
-    const kept = yield* PlatformKept;
     const startedAt = DateTime.formatIso(yield* DateTime.now);
     const run = yield* freshName("run");
     const starting = yield* startingWorldsOf(settings, platform.url);
@@ -68,7 +67,7 @@ export const timeStartingWorlds = (settings: Settings) =>
         const callsBefore = (yield* starting.made).length;
         const [took, exit] = yield* starting.forScenario(world).pipe(Effect.exit, Effect.timed);
         const calls = Arr.map(Arr.drop(yield* starting.made, callsBefore), (each) => each.call);
-        const found = yield* Effect.orElseSucceed(kept.kept(Arr.map(calls, (call) => call.traceId)), () => ({
+        const found = yield* Effect.orElseSucceed(keptFor(Option.none(), calls), () => ({
           spans: [],
           events: [],
         }));

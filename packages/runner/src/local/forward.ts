@@ -4,10 +4,12 @@
 // is one HTTP server on this machine's loopback, which carries each request to the door of the world whose token
 // starts its path, through the proxy, and hands back the door's answer as it is.
 import * as Arr from "effect/Array";
+import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
+import * as Schedule from "effect/Schedule";
 import type * as Scope from "effect/Scope";
 import * as Str from "effect/String";
 import * as HttpClient from "effect/http/HttpClient";
@@ -41,7 +43,12 @@ export const chainForwarder: Effect.Effect<ChainForwarder, RunnerFailure, Scope.
       const sent = HttpClientRequest.make(request.method === "GET" ? "GET" : "POST")(
         `${Redacted.value(door.value)}/${Arr.join(rest, "/")}`,
       ).pipe(HttpClientRequest.bodyUint8Array(body, request.headers["content-type"] ?? "application/json"));
-      const response = yield* http.execute(sent);
+      // A connection through the session's proxy is now and then reset before it carries the request (seen once in
+      // a rehearsal: ECONNRESET on the door's /rpc); it is sent again on a fresh connection. An answer, any status,
+      // is never sent again.
+      const response = yield* http.execute(sent).pipe(
+        Effect.retry({ times: 2, schedule: Schedule.spaced(Duration.millis(250)) }),
+      );
       return HttpServerResponse.fromClientResponse(response);
     }).pipe(
       Effect.catchCause((cause) =>

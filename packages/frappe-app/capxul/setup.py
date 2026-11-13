@@ -6,7 +6,9 @@ DEFAULT_HAT_ROLES = {
     "admin": ["System Manager", "Accounts Manager", "Accounts User", "HR Manager", "HR User", "Purchase Manager", "Purchase User", "Purchase Master Manager",
               # Frappe CRM (and its WhatsApp tab) need Sales User or Sales Manager; the other parts get their manager role
               "Sales Manager", "Sales User", "Projects Manager", "Stock Manager", "Manufacturing Manager"],
-    "budget-holder": ["Accounts User", "Purchase User", "Expense Approver"],
+    # Purchase Master Manager: ERPNext lets only it create a Supplier, which the person who keeps the books does
+    # (the starting world `payment-drafted`; rehearsed on a real bench, 13 November 2026: "No permission for Supplier").
+    "budget-holder": ["Accounts User", "Purchase User", "Purchase Master Manager", "Expense Approver"],
     "payroll-approver": ["HR Manager", "HR User"],
     "member": ["Employee"],
     # the door's test people (added with the door: the four hats above were too few for sales, HR and projects work)
@@ -45,6 +47,9 @@ def after_migrate():
     """The brand and the privacy settings, again after every migrate. Both save System Settings, which needs the time zone
     the setup wizard sets, so a site that has not run the wizard yet skips them (configure_site applies them after it)."""
     ensure_defaults()
+    from capxul import clock
+
+    clock.name_daily_job()
     if not frappe.is_setup_complete():
         return
     from capxul import brand, privacy, features

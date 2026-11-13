@@ -9,6 +9,7 @@
 import { Site, Values, startingWorlds } from "@capxul/blueprint";
 import { Capxul } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
+import * as Cause from "effect/Cause";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -17,7 +18,7 @@ import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import { mnemonicToAccount } from "viem/accounts";
-import { RunnerFailure } from "../failure.ts";
+import { describe, RunnerFailure } from "../failure.ts";
 import { encodeAnswer } from "./encode.ts";
 import type { Making, Steps } from "./makers.ts";
 
@@ -25,9 +26,7 @@ const failed = (message: string) => RunnerFailure.make({ step: "starting world",
 
 /** A call of a maker that must succeed; any refusal fails the making with what came back. */
 const must = <A, E, R>(what: string, call: Effect.Effect<A, E, R>) =>
-  Effect.mapError(call, (error) =>
-    failed(`${what} was refused: ${Predicate.hasProperty(error, "_tag") ? String(error._tag) : String(error)}`),
-  );
+  Effect.mapError(call, (error) => failed(`${what} was refused: ${describe(Cause.fail(error))}`));
 
 /** An answer of the tag a step expects, or a failed making. */
 const tagged = <A extends { readonly _tag: string }, T extends A["_tag"]>(what: string, answer: A, tag: T) =>

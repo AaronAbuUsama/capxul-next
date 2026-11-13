@@ -219,6 +219,22 @@ def run_due():
     return ran
 
 
+DAILY_JOB = "capxul.clock.daily"
+# The blueprint's name for the daily job's Scheduled Job Type (packages/blueprint Site.DAILY_JOB, decisions.md 44),
+# which a Scheduled Job Log row links to and report.run filters by.
+DAILY_JOB_TYPE = "clock.daily"
+
+
+def name_daily_job():
+    """Names the daily job's Scheduled Job Type `clock.daily`. The pinned Frappe (v16) names a new Scheduled Job Type by a
+    random hash, so its log rows link to that hash and a filter by the declared name finds none (rehearsed on a real
+    bench, 13 November 2026: a week's warp ran it 7 times, and the Scheduled Job Log filtered by `clock.daily` showed 0).
+    Renaming carries the log's links with it; Frappe finds the type by its method afterwards, so it stays named."""
+    current = frappe.db.get_value("Scheduled Job Type", {"method": DAILY_JOB}, "name")
+    if current and current != DAILY_JOB_TYPE:
+        frappe.rename_doc("Scheduled Job Type", current, DAILY_JOB_TYPE, force=True)
+
+
 def daily():
     """Capxul's daily job: a note on Capxul Settings naming the world day it ran for (world time). A warp's evidence that each day's jobs ran."""
     frappe.get_doc({"doctype": "Comment", "comment_type": "Info", "reference_doctype": "Capxul Settings", "reference_name": "Capxul Settings",

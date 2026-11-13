@@ -235,6 +235,10 @@ def report(org, user, report, filters=None):
             raise _site_refused(report, "not_found", f"no report {report}")
         from frappe.desk.query_report import run as run_report
 
+        # Who may open it comes before whether its part is on: a report the person's roles do not open is refused
+        # for permission, whatever its part (report.run 2: the payroll report as the person who keeps the books).
+        if not frappe.get_doc("Report", report).is_permitted():
+            raise _site_refused(report, "permission", f"{report} is not open to {frappe.session.user}")
         _part_on(frappe.db.get_value("Report", report, "ref_doctype"))
         data = run_report(report, filters=_filled(report, given), ignore_prepared_report=True)
         columns = [c if isinstance(c, dict) else {"fieldname": c.split(":")[0], "label": c.split(":")[0]} for c in data["columns"]]
@@ -255,8 +259,9 @@ def warp(from_ms, to_ms, frozen, write):
     from frappe.core.doctype.scheduled_job_type.scheduled_job_type import sync_jobs
 
     sync_jobs()
+    clock.name_daily_job()
     # A run of the daily job is a row of the Scheduled Job Log only when its type keeps a log.
-    frappe.db.set_value("Scheduled Job Type", {"method": "capxul.clock.daily"}, "create_log", 1)
+    frappe.db.set_value("Scheduled Job Type", {"method": clock.DAILY_JOB}, "create_log", 1)
     # What fell due is counted from the world's `from_ms`: a job that never ran, or that ran later by the site's own
     # clock, is due from there (as capxul.clock.rewind_jobs does), so a warp of n days runs a daily job n times.
     start = clock.site_time(int(from_ms))

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs inside the image build (Containerfile): `init <url> <tag> <commit>` makes the bench, `erpnext <url> <commit>`
-# adds ERPNext at its pinned commit, `app` installs the capxul app. No assets are built: the checks use the API only.
+# adds ERPNext at its pinned commit, `hrms <url> <commit>` HRMS at its, `app` installs the capxul app. No assets are built: the checks use the API only.
 set -euo pipefail
 if [ -s /run/secrets/build_ca ]; then
   export SSL_CERT_FILE=/run/secrets/build_ca REQUESTS_CA_BUNDLE=/run/secrets/build_ca CURL_CA_BUNDLE=/run/secrets/build_ca \
@@ -25,11 +25,20 @@ case "$1" in
     uv pip install --quiet --python env/bin/python -e apps/erpnext
     rm -rf apps/erpnext/.git "$HOME/.cache"
     ;;
+  hrms)
+    cd "$B"
+    git init -q apps/hrms
+    git -C apps/hrms fetch -q --depth 1 "$2" "$3"
+    git -C apps/hrms -c advice.detachedHead=false checkout -q FETCH_HEAD
+    [ "$(git -C apps/hrms rev-parse HEAD)" = "$3" ] || { echo "PIN MISMATCH: hrms" >&2; exit 1; }
+    uv pip install --quiet --python env/bin/python -e apps/hrms
+    rm -rf apps/hrms/.git "$HOME/.cache"
+    ;;
   app)
     cd "$B"
     find apps/capxul -name '__pycache__' -prune -exec rm -rf {} +
     uv pip install --quiet --python env/bin/python -e apps/capxul
-    printf '%s\n' frappe erpnext capxul > sites/apps.txt
+    printf '%s\n' frappe erpnext hrms capxul > sites/apps.txt
     echo '{}' > sites/common_site_config.json
     ;;
 esac

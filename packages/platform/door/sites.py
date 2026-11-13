@@ -142,6 +142,7 @@ def build(site, world, company, key, secret):
         ("new-site", ["new-site", site, "--mariadb-user-host-login-scope=%", "--db-root-password", DB_ROOT,
                       "--admin-password", secrets.token_hex(16)]),
         ("install erpnext", ["--site", site, "install-app", "erpnext"]),
+        ("install hrms", ["--site", site, "install-app", "hrms"]),
         ("install capxul", ["--site", site, "install-app", "capxul"]),
         ("setup wizard", ["--site", site, "execute", "capxul.setup.run_wizard", "--kwargs", json.dumps(wizard)]),
         ("migrate", ["--site", site, "migrate"]),

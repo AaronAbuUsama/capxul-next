@@ -29,6 +29,8 @@ const pins = Effect.all({
   FRAPPE_COMMIT: Config.String("PIN_FRAPPE_COMMIT"),
   ERPNEXT_URL: Config.String("PIN_ERPNEXT_URL"),
   ERPNEXT_COMMIT: Config.String("PIN_ERPNEXT_COMMIT"),
+  HRMS_URL: Config.String("PIN_HRMS_URL"),
+  HRMS_COMMIT: Config.String("PIN_HRMS_COMMIT"),
 });
 
 // Behind a TLS-inspecting proxy (an agent's container) the build uses the host network, the proxy variable and
