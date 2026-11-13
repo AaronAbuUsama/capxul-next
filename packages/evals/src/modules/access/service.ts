@@ -8,6 +8,8 @@ import { fixtureFrom } from "../acceptance/fixture.ts";
 export type SchemaSpec = {
   fields: Record<string, readonly [type: string, nullable: boolean]>;
   indexes: readonly { columns: string[]; unique: boolean; primary?: boolean }[];
+  /** The blueprint's literal sets, each enforced by a validated check constraint. */
+  enums: Record<string, readonly string[]>;
 };
 
 /** Read-only selected-world connection. No provisioning, admin fallback or actor fabrication. */
@@ -66,6 +68,14 @@ export async function inspectSchema(sql: Sql, table: string, expected: SchemaSpe
     canonical(expected.indexes.map((r) => ({ columns: r.columns, unique: r.unique, primary: r.primary ?? false, partial: false }))), `${table}: exact key/index semantics`);
   const rls = (await sql.query("select relrowsecurity,relforcerowsecurity from pg_class where oid=to_regclass($1)", [`app.${table}`])).rows[0];
   assert(rls.relrowsecurity && rls.relforcerowsecurity, `${table}: forced restricted-role RLS`);
+  const checks = (await sql.query("select pg_get_constraintdef(oid) as def from pg_constraint where conrelid=to_regclass($1) and contype='c' and convalidated",
+    [`app.${table}`])).rows.map((r) => r.def as string);
+  for (const [field, values] of Object.entries(expected.enums)) {
+    // Each declared literal set is one validated `field = ANY (ARRAY[...])` constraint with exactly these values.
+    const found = checks.flatMap((def) => [...def.matchAll(new RegExp(`\\(${field} = ANY \\(ARRAY\\[([^\\]]*)\\]\\)\\)`, "g"))].map((m) =>
+      [...m[1]!.matchAll(/'([^']*)'::text/g)].map((v) => v[1]).sort()));
+    assert.deepEqual(found, [[...values].sort()], `${table}.${field}: exactly one validated enum constraint with the declared values`);
+  }
 }
 
 export async function runSchemaChecks(checks: Record<string, { table: string; spec: SchemaSpec }>) {

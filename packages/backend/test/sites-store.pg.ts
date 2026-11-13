@@ -4,11 +4,11 @@ import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import pg from "pg";
 import { Effect } from "effect";
-import { Database, record, type Sql } from "../../../backend/src/platform/door.ts";
-import { migrateSites, readSiteHosts, rewriteSites, SitesStore } from "./store.ts";
-import { settleSite, type SiteObservation } from "./lifecycle.ts";
+import { migrateSites, readSiteHosts, rewriteSites, settleSite, SitesStore, type SiteObservation } from "@capxul/site-service";
+import { Database, record, type Sql } from "../src/platform/door.ts";
 
-test("Postgres sites survive retries, enforce RLS and retain atomic transition/call records", { skip: process.env.CAPXUL_SITES_PG_TEST !== "1" }, async (t) => {
+// Sites store on a disposable loopback Postgres. Backend depends on site-service, so this direction has no package cycle.
+test("Postgres sites survive retries, enforce RLS and retain atomic transition/call records", async (t) => {
   const adminUrl = process.env.PG_ADMIN_URL!;
   assert.ok(["localhost", "127.0.0.1"].includes(new URL(adminUrl).hostname), "only a disposable orb database may run this test");
   const admin = new pg.Client({ connectionString: adminUrl }); await admin.connect();
