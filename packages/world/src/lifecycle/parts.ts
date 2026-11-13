@@ -133,6 +133,21 @@ export const rpc = (world: Door, method: string, params: ReadonlyArray<unknown> 
     ),
   );
 
+/** One JSON-RPC call to the world's chain whose result may be null, as anvil's controls answer; fails on an error. */
+export const rpcControl = (world: Door, method: string, params: ReadonlyArray<unknown> = []) =>
+  doorCall(
+    world,
+    "chain",
+    HttpClientRequest.post("/rpc").pipe(HttpClientRequest.bodyJsonUnsafe({ jsonrpc: "2.0", id: 1, method, params })),
+    RpcAnswer,
+  ).pipe(
+    Effect.flatMap((answer) =>
+      Predicate.isNullish(answer.error)
+        ? Effect.succeed(answer.result ?? null)
+        : Effect.fail(WorldNotReady.make({ part: "chain", message: `${method}: ${describeFailure(answer.error)}` })),
+    ),
+  );
+
 /** A JSON-RPC result that must be hex text: a block number, a hash, a chain id. */
 export const rpcHex = (world: Door, method: string, params: ReadonlyArray<unknown> = []) =>
   rpc(world, method, params).pipe(

@@ -41,7 +41,7 @@ export const create = (spec: WorldSpec) =>
       return yield* Effect.failCause(up.cause);
     }
     return { world: up.value, ms: { ...(yield* watch.durations), create: (yield* Clock.currentTimeMillis) - began } };
-  }).pipe(Effect.withSpan("world.create", { attributes: { world: spec.name } }));
+  }).pipe(Effect.withSpan("world.lifecycle.create", { attributes: { world: spec.name } }));
 
 /** Destroys a world by name, from the shared state alone, and gives its name back. */
 export const destroy = (name: string) =>

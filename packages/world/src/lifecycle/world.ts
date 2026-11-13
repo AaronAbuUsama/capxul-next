@@ -21,7 +21,18 @@ import { dropSnapshots } from "../platform/branches.ts";
 import { liftBranchExpiry } from "./account.ts";
 import { claim, registry, release } from "./claim.ts";
 import { expiryOf, lifetimeAllowed } from "./expiry.ts";
-import { adoptChain, chainAnswers, coreAnswers, handle, indexReady, open, rpc, stop, WorldOutput } from "./parts.ts";
+import {
+  adoptChain,
+  chainAnswers,
+  coreAnswers,
+  handle,
+  indexReady,
+  open,
+  rpc,
+  rpcControl,
+  stop,
+  WorldOutput,
+} from "./parts.ts";
 import { Limits, type World, type WorldSpec } from "./spec.ts";
 import type { Stopwatch } from "./steps.ts";
 import { checkName, checkOwner } from "./validate.ts";
@@ -151,7 +162,8 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
     yield* Effect.logInfo(`world ${plan.stage}: the chain answers`);
     const call = (method: string, params: ReadonlyArray<unknown>) => rpc(world, method, params);
     // Everything that makes a world from nothing is sent just after the seed, before the world's own start.
-    if (spec.atSeed === true && Option.isNone(parent)) yield* call("evm_setTime", [SEED_HEAD.timestamp + 1]);
+    if (spec.atSeed === true && Option.isNone(parent))
+      yield* rpcControl(world, "evm_setTime", [SEED_HEAD.timestamp + 1]);
     const funded = yield* watch.step("fund", Effect.andThen(ensureToken(call), mintAll(call, spec.mint ?? [])));
     yield* Effect.logInfo(`world ${plan.stage}: test USDC at ${TEST_USDC}, minted to ${funded.length} addresses`);
     yield* watch.step("index", indexReady(world));

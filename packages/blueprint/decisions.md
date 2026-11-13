@@ -283,6 +283,36 @@ host time, so the claim needs no condition.
 door. Chosen: the refusal is removed. A restore of a snapshot whose migrations are not a prefix of the running
 code's still fails, as a fault (entry 10), and the templates are remade on every change to the code (entry 27).
 
+**47. Where the platform group runs (step 1.6).** A world takes about 95 s of Alchemy deploys, with the Cloudflare
+and Neon keys and, when an image changes, Docker: no Worker can host that, so a world's Core cannot serve
+`world.create`. Options: (a) Core's platform door forwards to a platform service; (b) a hosted platform service in the
+cloud (a Cloudflare Container running `packages/world`, or a process on the AWS bench host) holding the keys; (c) the
+platform group served by `packages/world` itself, in the process that holds the keys: the runner in an agent's
+container or in CI, or `world platform serve`, on the machine's loopback. Chosen: (c), the smallest sound design. It
+changes no hosting, runs no new service in the cloud and costs nothing, and entry 11 already says `packages/world`
+serves the group. Its handlers are `packages/world/src/platform`, its sign-in and spans Core's own middlewares (Core
+exports them); its spans are kept in the schema `platform` of the registry's branch, with the world each successful
+call acted on, and its events go into that world's record. A world's Core accepts its owner operator's own token
+(entry 36): the platform binds it into the Core it deploys, as a secret. Core's platform door keeps its empty handlers
+until it is removed: nothing calls it. What (c) cannot do: a caller on another machine (a shared world's people,
+phase 2) cannot reach a loopback platform. Hosting it, (b), changes hosting and adds a running service with the keys
+inside it, so it is a question for Aaron, not built here. With it:
+- a world's facts (grade, contracts, parent, clock, cast, companies) are rows of its own database
+  (`packages/core/migrations/0002_world.sql`), which its Core reads too; its owner and expiry stay the registry's;
+- the record is `app.events` in id order, an entry's position its rank, so a world restored from a snapshot holds its
+  source's entries up to the snapshot and then its own `world_created`;
+- a snapshot is a Neon branch of the world's branch with no compute, the chain's whole state saved in the world's own
+  R2 bucket under the snapshot's name, and the platform's row of it (`platform.snapshots`); all of it goes with the
+  world, whose destroy deletes the snapshot branches first. A company's site is not saved yet: saving or restoring a
+  world with companies is a fault until the bench can back a site up (step 1.4);
+- a world's chain is made with its clock just after the seed's last block, and its own start block is mined last, so
+  `ClockBeforeSeed.earliest` is the seed's last block plus an hour of room for the blocks that make the world;
+- the cast are test accounts 4 to 8 of `CAST_KEYS`' mnemonic (dana, eli, sam, pat, olga), clear of the faucet's
+  operator (0), Companies House's Directors (0 to 2), its claim service (3) and the bundler's keys (9, 10); each
+  Safe but pat's is claimed through Companies House's devnet claim role and minted 10,000 test USDC from the faucet;
+- world.create and world.snapshot.restore answer once the new world's Core has answered its health check ten times
+  in a row, so a caller's first call `at` it is not answered by Cloudflare's edge.
+
 ## Answered by Aaron, 13 November 2026
 
 **1. Founding a company in one step.** Yes: `org.create` takes the founding Directors, the approval threshold and the

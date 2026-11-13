@@ -9,6 +9,7 @@ import { fails, interrupted, interruptedRun, keeps, timesOut } from "./endings.t
 import { fresh } from "./fresh.ts";
 import { limits, race, sweeps } from "./shared.ts";
 import { site } from "./site.ts";
+import { snapshot } from "./snapshot.ts";
 
 export const PROOFS = {
   commands,
@@ -21,6 +22,7 @@ export const PROOFS = {
   limits,
   sweep: sweeps,
   site,
+  snapshot,
   // Not a proof by itself: the run that `interrupted` starts as its own process and interrupts.
   "interrupted-run": interruptedRun,
 };

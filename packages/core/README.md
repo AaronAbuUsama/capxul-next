@@ -34,7 +34,7 @@ of `src/handlers.ts` and `pnpm types` fails with `Property '"record.export"' is 
 | `src/failures.ts` | Core's own failures: `SiteDoorFailed` (`unset`, `unreachable`, `refused`). |
 | `src/stack/database.ts` | A stage's database: a Neon project of its own, and Hyperdrive in front of it with its query cache off. |
 | `alchemy.run.ts` | The stack `CapxulCore`. One stage is one Core and its database. |
-| `migrations/` | The `app` schema: `app.spans` and `app.events`. Applied by the runner when a stage is created. |
+| `migrations/` | The `app` schema: `app.spans` and `app.events` (the record), and the world's facts (`app.world`, `app.clock`, `app.cast`, `app.companies`). Applied when a stage or a world is created. |
 | `test/server.test.ts` | Core's groups in memory: all twelve answer `NotImplemented` under one span each, kept with the caller's trace id; sign-in refusals. |
 | `test/doors.test.ts` | The SDK's own client against `serveDoors` over HTTP in this process: all twelve at their doors, the server span under the SDK's trace, wrong tokens refused, other paths 404 in JSON. |
 
@@ -54,7 +54,10 @@ of `src/handlers.ts` and `pnpm types` fails with `Property '"record.export"' is 
   platform call acts as the owner, the operator that deployed the stage. Tokens are compared as strings.
 - **`CurrentCall`**: its trace id and operation, for the events a built handler will emit into `app.events`.
 
-Core serves the platform group too, until `packages/world` serves it (blueprint decisions.md, entry 11).
+`packages/world` serves the platform group (blueprint decisions.md, entries 11 and 47), with Core's own sign-in and
+span middlewares, which the door exports (`PlatformSignInLive`, `TelemetryLive`). Core's platform door keeps its
+empty handlers until it is removed; nothing calls it. A world's facts (grade, contracts, parent, clock, cast,
+companies) are tables of the `app` schema too (`migrations/0002_world.sql`), written by the platform and read by Core.
 
 ## A stage of `CapxulCore`
 

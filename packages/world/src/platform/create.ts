@@ -16,7 +16,7 @@ import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import { CHAIN_ID } from "../chain/Anvil.ts";
 import { CONTRACTS, SEED_HEAD, SETUP_ROOM_SECONDS } from "../chain/contracts.ts";
-import { rpc } from "../lifecycle/parts.ts";
+import { rpc, rpcControl } from "../lifecycle/parts.ts";
 import { create as createWorld, destroy } from "../lifecycle/operations.ts";
 import { mustExist } from "../lifecycle/world.ts";
 import { stageOf } from "../stack/names.ts";
@@ -96,7 +96,7 @@ export const create = Effect.fn("platform.world.create")(function* (payload: Cre
     Effect.gen(function* () {
       const call = (method: string, params: ReadonlyArray<unknown>) => rpc(made.world, method, params);
       const cast = yield* makeCast(call);
-      yield* mineStart(call, startMs);
+      yield* mineStart((method, params) => rpcControl(made.world, method, params), startMs);
       yield* writeBirth(made.world.database, {
         grade: payload.grade,
         chainId: CHAIN_ID,

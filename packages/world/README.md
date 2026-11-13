@@ -6,13 +6,14 @@ lives on the machine that made it. Built on `alchemy` 2.0.0-beta.85 and Effect 4
 
 | Part | What it is |
 |---|---|
-| Database | Its own copy-on-write branch of the platform's Neon project, with a Hyperdrive configuration in front of it for Core. App data and the index's `ponder` schema live in it together. |
+| Database | Its own copy-on-write branch of the platform's Neon project, with a Hyperdrive configuration in front of it for Core, its query cache off so a handler reads what it wrote. App data and the index's `ponder` schema live in it together. |
 | Chain | Anvil 1.9.0 with `packages/contracts/state/core.json`, started with `--no-request-size-limit`, as a Cloudflare Container owned by a Durable Object. Its state is saved to an R2 bucket every 20 s while it is used and when it stops; it stops after 10 idle minutes and wakes on the next call. |
 | Index | The real Ponder app of `packages/indexer` (its ABIs, schema and handlers, unchanged), as a Cloudflare Container, writing to the world's branch. |
 | Door | A Worker in front of the chain and the index. Every path starts with the world's token. |
 | Core | The real Core (`packages/core`): the blueprint's two groups at `/platform` and `/world` with their empty handlers, the chain's reads at `/chain`, `/health`, and a read-only site probe. It binds the world's branch through Hyperdrive and the world's door through a service binding. |
 | Sites | With `WORLD_BENCH` set and `--company` given, each company's Frappe site on that shared bench (`packages/platform`), made by the bench's site door with the world's own site token, at `<label>-<world>.<domain>`. |
 | Test USDC | The contracts package's `MockERC20`, put on the chain when the world is created. Its open `mint` is the faucet. |
+| Platform | `src/platform`: the blueprint's platform group (`world.create`, `world.show`, `world.snapshot.save`, `world.snapshot.restore`), served over HTTP by the process that holds the keys (below). |
 
 ## Commands
 
@@ -51,6 +52,26 @@ const { record, used } = yield* withWorld({ name: "run-1", owner: "ci", lifetime
 ```
 
 Provide `SharedState.layer` over `Alchemist.layer()`. `spec.migrations` names Core's migrations directory.
+
+### The platform (roadmap steps 1.6 and 1.12)
+
+`src/platform` serves the blueprint's platform group with Effect's Rpc server at `PLATFORM_PATH`, on the loopback of
+the machine that holds the Cloudflare and Neon keys (blueprint decisions.md, 47): in the runner's own process
+(`packages/runner`, `src/worlds/platform.ts`), or by `./run.sh platform serve [--port 8790]`. Its sign-in and its
+spans are Core's middlewares; the first operator is `WORLD_OWNER` with `CAPXUL_PLATFORM_TOKEN`, the second
+`WORLD_SECOND_OWNER` with `CAPXUL_SECOND_PLATFORM_TOKEN`.
+
+| Operation | What it does |
+|---|---|
+| `world.create` | Refuses a real grade and a start before the seed (with an hour of room) before anything exists; then this package's create, with the chain's clock just after the seed and the owner operator's own token bound into Core (decisions 36); then the cast on the chain (`cast.ts`: dana, eli, sam and olga get a Safe claimed through Companies House's devnet claim role and 10,000 test USDC from the faucet, pat none; test accounts 4 to 8), the world's start block at its clock, its facts in its database (`packages/core/migrations/0002_world.sql`) and `world_created` as its record's first entry. It answers once Core has answered its health check ten times in a row. A failure after the claim destroys the world. |
+| `world.show` | The shared state (owner, expiry, parked, door) and the world's database (grade, contracts, parent, clock, record head, cast, companies). |
+| `world.snapshot.save` | Owner only. A Neon branch of the world's branch with no compute (its expiry is lifted first: Neon will not fork a branch that has one), the chain's whole state saved in the world's R2 bucket under the snapshot's name (the door's `POST /chain/snapshot/<name>`), and a row in `platform.snapshots`; then `snapshot_saved`. A world with companies is a fault to save until a site can be backed up. |
+| `world.snapshot.restore` | A template's to anyone, any other snapshot's to its owner; never past the source's expiry. A new world whose branch forks the snapshot's and whose chain adopts the saved state (`GET /chain/snapshot/<name>` of the source's door); its parent and clock rewritten, then its own `world_created`. |
+
+What the platform keeps of its own is in the schema `platform` of the registry's branch: `platform.spans` (every
+platform call's spans), `platform.calls` (the world each successful call acted on, whose record holds its events) and
+`platform.snapshots`. A world's take-down deletes its snapshot branches before its own (`dropSnapshots`), so a world
+restored from a snapshot must go first, which its expiry makes so.
 
 ### Core's slot
 
@@ -132,6 +153,7 @@ records (`p-*.json`) are `withWorld`'s own, with every step's duration and decla
 | `race` | Two creates of one name at once: one world, one `WorldExists`, one world's resources in the accounts. | `race.proof.json` |
 | `limits` | 8 days is `LifetimeTooLong`, an owner's sixth world `WorldQuotaReached`, a bad name `InvalidWorldName`; nothing is made. | `limits.proof.json` |
 | `sweep` | The sweeper, run as the command line with an empty home directory, keeps three worlds before an expiry; after it, destroys the expired one and keeps the live one and the one with no recorded expiry. | `sweep.proof.json` |
+| `snapshot` | The platform's handlers make a world with its cast (four Safes of 10,000 USDC, pat with none), save it, refuse a second save of the name (`SnapshotExists`), a save by another operator (`NotWorldOwner`), a restore of a missing snapshot (`SnapshotNotFound`), one that outlives its source (`ExpiryBeyondSource`), another operator's restore of a snapshot that is not a template (`NotWorldOwner`) and a restore as a taken name (`WorldExists`); the first world then goes on (5 USDC more to dana's Safe); the restore names its parent, its record is the first world's birth and then its own, its chain holds what was saved and not what came after, and the first world is unchanged by it. Both destroyed, snapshot branch included, nothing left. | `snapshot.proof.json` |
 | `site` | Run with `WORLD_BENCH=pr-site`, a stand-in bench of `packages/platform` in this container (`PLATFORM_HOST=standin`, `PLATFORM_EDGE=none`). A world made with one company gets `acme-p-site.worlds.abuusama.dev`, ready in 93.5 s (new-site 21.3, ERPNext 42.8, capxul 3.0, wizard 16.5, migrate 5.8, scheduler 0.7, join the world 0.6, the API user 1.4). Through the door, on the site's own API user: the company's record (`Acme Ltd`), its Supplier list, `get_logged_user` answering `capxul-core@service.invalid` (never Administrator), and the site's clock reading world `p-site`. A second world, `p-site2`, made inside the first's run: its token is refused for the first world's site (`403 site-not-in-world`) and it sees no site. Both destroyed: the site removed in 1.8 s with its world, the door holding no site of either, the bench's folders, the door's registry and MariaDB's databases as before, and nothing of either world in either account. Core's probe at both worlds' doors answered the site door's typed failure `unreachable` (Cloudflare's own 403 for a loopback address): **Core reaching the site is recorded, not proven** (below). | `site.proof.json`, `p-site.json`, `p-site2.json`, `site-after.txt` (the bench's platform destroyed after, the zone at 66 records before and after) |
 
 ## Timings
@@ -185,8 +207,10 @@ publishes it.
   by `WORLD_BENCH=staging ./run.sh prove site` with the probe check turned to a read.
 - The sweeper's removal of an expired world's sites is the same `unsite` step as every take-down; no proof runs it on
   an expired world with a site.
-- `WorldDatabase` keeps Hyperdrive's query cache on; Core's own stage turns it off so a read sees the write before it.
-  No Core handler reads yet; turn it off here when one does.
+- A company's site is not in a snapshot yet: the site door has no backup and restore, and Core cannot reach a bench
+  from Cloudflare (step 1.4). Saving or restoring a world with companies is a fault until then.
+- The platform answers only on the machine that serves it. A caller elsewhere (a shared world's people) needs it hosted,
+  which is a question for Aaron (blueprint decisions.md, 47).
 - The index polls through the door, so a busy world makes about one Worker request a second for it. What an idle or a
   busy world costs was not measured.
 - Who the cast is and how a mint is booked is not here: `spec.mint` is only the hook.

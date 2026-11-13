@@ -10,8 +10,9 @@ reads the blueprint (`@capxul/blueprint`), deploys Core (`@capxul/core`) and run
 ```bash
 ./run.sh door                 # every blueprint operation called once through a fresh Core stage
 ./run.sh door --world=<name>  # the same, through the Core of a world `world create` made (packages/world)
-./run.sh scenarios [name...]  # the registered scenarios (or those named), each in its own fresh stage
-./run.sh scenarios --expect=not-implemented              # each must fail on the empty handlers' NotImplemented
+./run.sh scenarios [name...]  # the registered scenarios (or those named), each in fresh private worlds (below)
+./run.sh starting-worlds      # make every starting world the runner can make, timed, then destroy them all
+./run.sh scenarios --expect=not-implemented              # each in a fresh stage; must fail on NotImplemented
 ./run.sh scenarios --one-stage --expect=not-implemented  # the same, all in one fresh stage
 ```
 
@@ -65,6 +66,37 @@ has its telemetry read from the database of the world whose Core answers at that
 (`OtherWorlds`); a stage run has no other worlds, so such a call still finds nothing to check against there.
 `records/w-c1/door.json` is the first such run (`passed`), in a world made with `world create` and destroyed after.
 
+## A run in private worlds (step 1.6)
+
+`./run.sh scenarios` expecting `pass` (the default) runs every scenario in private worlds of `packages/world`
+(`src/worlds/`). This process serves the platform group itself, on its loopback (`platform.ts`, blueprint
+decisions.md 47), signed in by the run's two operators (`WORLD_OWNER`, `WORLD_SECOND_OWNER` and their tokens), and
+the scenarios' client calls it there; a world's own operations go to its Core on Cloudflare.
+
+For each scenario the runner makes its starting world (`starting.ts`, `makers.ts`, decisions 27 and 39) and hands it
+the facts its steps answered (decision 38), with every call made in making it as `calls`:
+
+| Starting world | How it is made |
+|---|---|
+| `nothing` | No world; its facts name the two operators. |
+| `fresh` to `paid` | Once per run, one after another in one template world (`tpl-<6 hex>`, 6 hours), each saved there as a template snapshot of its own name; each scenario gets a restore of it into a world of its own (`s-<6 hex>`, 90 minutes), whose `world` fact is the restore's answer. |
+| `quota-full`, `with-snapshot`, `restored` | By their steps for each scenario, from a world got the same way. |
+
+A starting world whose steps need an operation no maker here makes yet fails its scenario with the operations it
+waits on (`waitsOn`). Today the runner makes `nothing`, `quota-full` and `fresh`; `founded` to `paid` wait on
+`org.create`, `approval.sign`, `org.member.grant`, `doc.create`, `doc.submit` and `report.run`, and so do
+`with-snapshot` and `restored`, which are made from `paid`.
+
+The calls made in making the world get the generic checks too (`making` in the run record). The platform's own
+calls are checked against what it kept (`PlatformKept`: its spans, and the events each wrote into its world's record).
+After the scenario every world made while it ran is destroyed, the newest first, whatever happened, and the accounts
+are read for anything named after those worlds before and after (`afterwards.*.worlds`). The template worlds are
+destroyed when the run ends. Records go to `records/<run>/<scenario>.json`, the summary to `records/<run>/summary.json`.
+
+`./run.sh starting-worlds` makes each starting world in turn, as a scenario of it would get it, times each, checks
+every call, destroys each one's worlds before the next and the template at the end, and writes
+`records/<run>/starting-worlds.json`.
+
 ## A scenarios run and its summary
 
 `./run.sh scenarios` also writes a summary (`src/summary.ts`, `src/scenario-runs.ts`): one JSON file whose `outcome`
@@ -83,7 +115,8 @@ only some claims, so its summary fails; its exit code is still 0 when those scen
 
 | Mode | Stages | Records |
 |---|---|---|
-| a stage each (default) | one fresh stage per scenario | `records/<stage>/<scenario>.json` each; the summary at `records/run-<6 hex>/summary.json` |
+| a world each (`--expect=pass`, the default) | the worlds each scenario makes, and its starting world's | `records/<run>/<scenario>.json` each, and the summary beside them |
+| a stage each (`--expect=not-implemented`) | one fresh stage per scenario | `records/<stage>/<scenario>.json` each; the summary at `records/run-<6 hex>/summary.json` |
 | `--one-stage` | one fresh stage for all, created and destroyed once; each scenario still has the use timeout of one run | `records/<stage>/summary.json`, the only JSON file in its folder, and every scenario's record as one line of `records/<stage>/scenarios.jsonl` |
 
 One stage is sound only when no scenario changes the stage's state, which holds against the empty handlers, so
@@ -140,5 +173,5 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 
 - A stage has an owner but no expiry: if this process is killed outright (`kill -9`), nothing deletes the stage.
   `packages/world` gives worlds an expiry and a sweeper (step 1.3). Alchemy's state is local (`.alchemy/`, ignored).
-- Every scenario starts from a fresh, empty stage; starting worlds come with step 1.12.
+- The template worlds are made once per run, not once per change to the code (decision 46): a run pays for them.
 - Runs go one at a time, and so do the scenarios of a one-stage run.
