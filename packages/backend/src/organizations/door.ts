@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
 import { record, type Sql } from "../platform/db.ts";
 
+export { begin, get, resume, view, FUNDAMENTAL_APPS, HEAD_APPS, SEATS_AT_BIRTH,
+  type BeginInput, type Board, type SetupIssue, type SetupServices, type SetupStatus, type SetupView } from "./setups.ts";
+export { addBoughtSeats, returnBoughtSeats, type BoughtSeats } from "./procedures.ts";
+
 /** Explicit privileged world provisioning, after Access and Parties; never a route or restore hook. */
 export async function migrate(sql: Sql): Promise<void> {
   await sql.query(readFileSync(new URL("./schema.sql", import.meta.url), "utf8"));

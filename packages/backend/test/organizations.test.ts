@@ -33,10 +33,11 @@ test.before(async () => {
   // Source fixtures only, not public onboarding proof: seed immutable principals and opaque sessions with the worker.
   await db.transaction("", async sql => {
     for (const o of orgs) {
-      await sql.query(`insert into app.organizations(org_id,name,safe,site,admin_email,token)
-        values($1,$1,$2,$1,'fixture@example.test',$2)`, [o.id, o.safe]);
       await sql.query(`insert into app.parties(party_id,kind,state,safe_address,owner_kind,owner_id,created_at,updated_at)
         values($1,'organization','active',$2,'organization',$3,$4,$4)`, [o.party, o.safe, o.id, now]);
+      await sql.query(`insert into app.organizations(org_id,party_id,name,country,chain_id,safe_address,founder_party_id,founder_safe,
+        seat_limit,abbr,default_currency,time_zone,fiscal_year_start,created_at,updated_at)
+        values($1,$2,$1,'GH',84532,$3,$2,$3,10,'FX','USD','Africa/Accra','01-01',$4,$4)`, [o.id, o.party, o.safe, now]);
     }
     for (const p of people) {
       await sql.query(`insert into app.principals(person_id,kind,email,safe_address,signer_address,created_at)

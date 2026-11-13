@@ -1337,6 +1337,39 @@ export const decision_organizations_fde_guests = defineDecision({
   ],
 });
 
+export const decision_organizations_begin_gaps = defineDecision({
+  id: "organizations.begin-gaps",
+  title: "What begin does where the record and ERPNext's data are silent",
+  question:
+    "organizations.setups.begin takes the time zone from the country's first zone, needs the founder's claimed account and " +
+    "stores the name as ERPNext's Company. Frappe's country data has no zone for 38 countries, the record does not say " +
+    "which Party is the founder's, and ERPNext's Company name is a 140-character Data field. What does begin do?",
+  options: [
+    {
+      label: "refuse-before-write",
+      text:
+        "A country with no zone in Frappe 16.54's country data and no `timeZone` given is INVALID_INPUT naming `timeZone`. " +
+        "The founder's Party is their own active person Party at their claimed personal Safe; without one the account is not " +
+        "set up, WRONG_STATE like an unclaimed Safe. A name over 140 characters after trimming is INVALID_INPUT. All three are " +
+        "checked before the first write.",
+    },
+    {
+      label: "invent-defaults",
+      text: "Default a zoneless country to UTC, register a person Party for the founder inside begin, and truncate long names.",
+    },
+  ],
+  chosen: "refuse-before-write",
+  why:
+    "A default zone Capxul invents would date every voucher of that Company in a zone nobody chose, and ERPNext's setup wizard " +
+    "offers no default for these countries either. Registering the founder's Party belongs to parties' profile procedures, " +
+    "not to organizations, and a truncated name is not the name the founder gave. Each refusal leaves nothing written, as " +
+    "begin's other refusals do. A country with no currency in that data, or an unpriced one, starts in USD as begin already says.",
+  source:
+    "Amp Organizations lane, 13 November 2026; Frappe 16.54.0 frappe/geo/country_info.json and ERPNext 16.54.0 " +
+    "erpnext/public/js/setup_wizard.js in the capxul-bench image; blueprint/organizations/setups.ts (rpc_organizations_setups_begin)",
+  affects: [rpc_organizations_setups_begin, table_organizations, concept_organizations],
+});
+
 // ── the command surface (surface.tree, surface.head-group; Aaron, 9 November 2026) ──────────────────────────────
 
 const SURFACE_PASS = "Claude, surface pass, 9 November 2026 (question 48)";
