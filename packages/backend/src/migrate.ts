@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
 import pg from "pg";
+import { migrateActivity } from "./activity/door.ts";
+import { migrateApprovals } from "./approvals/migrate.ts";
+import { migratePayments } from "./payments/door.ts";
 import { required } from "./platform/config.ts";
+import { migrateOutbox } from "./platform/outbox.ts";
 
 const admin = new URL(required("PG_ADMIN_URL"));
 const connections = ["DATABASE_URL", "WORKER_DATABASE_URL", "PONDER_DATABASE_URL"].map((name) => new URL(required(name)));
@@ -48,6 +52,8 @@ try {
   await db.query("grant usage on schema ponder to capxul_worker");
   await db.query("alter default privileges for role capxul_ponder in schema ponder grant select on tables to capxul_worker");
   await db.query("grant select on all tables in schema ponder to capxul_worker");
+  // Concept schemas, in dependency order: payments emit through the outbox and read approvals; Activity follows payments.
+  await migrateApprovals(db); await migrateOutbox(db); await migratePayments(db); await migrateActivity(db);
   await db.query("COMMIT");
   console.log("Core schema v1 migrated; separate non-superuser tenant, worker and Ponder roles");
 } catch (error) { await db.query("ROLLBACK"); throw error; }

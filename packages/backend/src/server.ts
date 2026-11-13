@@ -6,8 +6,10 @@ import { readSnapshotCut } from "./devnet/door.ts";
 import { info, register, release } from "./organizations/door.ts";
 import { consume } from "./payments/door.ts";
 import { deliver, RequestCollector, resend, retryParked, signature, status } from "./plugs/door.ts";
+import { note } from "./activity/door.ts";
 import { settings } from "./platform/config.ts";
 import { Database } from "./platform/db.ts";
+import { relay } from "./platform/outbox.ts";
 import { alerts, indexerState } from "./platform/diagnostics.ts";
 
 type Config = ReturnType<typeof settings>;
@@ -96,6 +98,9 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
     if (paused || closing) return;
     activeDeliveries++;
     try {
+      // Activity's change log follows committed transitions; its failure must not stall per-organization work, nor theirs it.
+      await relay(db, "activity.changes", ["payment_transitioned", "movement_transitioned"], note)
+        .catch((error) => console.error(`Activity relay: ${error.message}`));
       const index = await indexerState(db, config.ponder, config.chainId, config.rpc, true);
       const orgs = (await db.worker.query("select org_id,site,released from app.organizations order by org_id")).rows;
       for (const company of orgs) {
