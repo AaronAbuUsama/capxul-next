@@ -53,8 +53,18 @@ export interface EntryLists {
   readonly override: ReadonlyArray<string>;
 }
 
+/**
+ * The files of `git ls-files -z` (NUL-separated paths relative to the root), less those deleted from the working tree
+ * and not yet from the index. Only what git tracks is listed: nothing is found by walking the disk.
+ */
+export const trackedFiles = (listing: string, exists: (file: string) => boolean): Array<string> =>
+  pipe(
+    Arr.dedupe(Str.split(listing, "\0")),
+    Arr.filter((file) => file !== "" && exists(file)),
+  );
+
 export interface ShapeInput {
-  /** Every file git tracks or would track, relative to the root, with forward slashes. */
+  /** Every file git tracks, relative to the root, with forward slashes. */
   readonly files: ReadonlyArray<string>;
   /** The number of lines of each file that is a source file. */
   readonly lines: (file: string) => number;
