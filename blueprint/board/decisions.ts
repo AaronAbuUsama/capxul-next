@@ -719,3 +719,55 @@ export const decision_board_agent_officer_hats = defineDecision({
   source: asmBy("blueprint/agents/decisions.ts (agents.fde-authority, agents.fde-people-hat); blueprint/payroll/employees.ts (WHO); blueprint/organizations/invitations.ts (handle grantees)"),
   affects: [rpc_board_officers_grant, rpc_board_officers_revoke, op.operation_org_member_grant, op.operation_org_member_revoke],
 });
+
+export const decision_board_officer_seat_identity = defineDecision({
+  id: "board.officer-seat-identity",
+  title: "An officer change keeps the Seat's nullable principal and authoritative Safe",
+  question: "How does an officer grant identify an active agent whose Seat predates its first sign-in?",
+  options: [
+    { label: "seat-identity", text: "Keep the Seat's member, Party and Safe; its principal is nullable exactly as on the Seat." },
+    { label: "require-sign-in", text: "Refuse a grant until the agent signs in and acquires a principal." },
+  ],
+  chosen: "seat-identity",
+  why:
+    "organizations.fde-seat deliberately leaves an FDE's principal null and authorizes agent sessions by verified Safe. " +
+    "board.agent-officer-hats already permits an active agent's Seat to receive a hat by handle. Requiring sign-in would " +
+    "reverse that contract; inventing a principal would forge identity. The change records its existing Seat and Safe " +
+    "without changing the proposing Director's actor or the privacy of officer_change_transitioned.",
+  source: "Amp, board implementation, 12 November 2026; blueprint/organizations/data.ts org-members; organizations.fde-seat; board.agent-officer-hats",
+  affects: [table_officer_changes, rpc_board_officers_grant, rpc_board_officers_revoke],
+});
+
+export const decision_board_mutation_authority = defineDecision({
+  id: "board.mutation-authority",
+  title: "Public Board writes check the Seat and live Director authority",
+  question: "May an indexed Director whose hat lapsed still open an officer change or rejection?",
+  options: [
+    { label: "live", text: "No. Authenticate the real principal, admit its Seat, then verify Safe ownership and Gate validity at one live block." },
+    { label: "index-only", text: "Allow writes until indexing observes a changed hat or owner." },
+  ],
+  chosen: "live",
+  why: "A term can end without an indexed event. Bearer identity, owner labels and stale hat rows cannot substitute for the live Gate. " +
+    "The composition supplies mandatory real Access, Organizations and Approvals doors; Board has no fallback actors or duplicate guards. " +
+    "Deployment and indexed planning facts likewise require source-owned doors, never assumed SQL projections or mutable hat names. " +
+    "The same-Sql procedure still checks its indexed Seat/Director authority; public writes retain their live plan when creating the proposal. " +
+    "Proposal reads remain indexed and never settle on read.",
+  source: "Aaron's resumed Wave0 implementation request, 12 November 2026; board.live-board-reads",
+  affects: [procedure_board_propose, rpc_board_officers_grant, rpc_board_officers_revoke, rpc_board_proposals_reject],
+});
+
+export const decision_board_cleanup_threshold = defineDecision({
+  id: "board.cleanup-threshold",
+  title: "Execute planning uses the Gate threshold after removing lapsed owners",
+  question: "Which threshold selects approveHash or execute when the execution batch first removes lapsed signers?",
+  options: [
+    { label: "remaining", text: "Read Gate thresholdConfig at the same live block and compute its threshold for the remaining valid owners." },
+    { label: "before", text: "Use the Safe's current threshold before the cleanup." },
+  ],
+  chosen: "remaining",
+  why: "removeSigner rewrites the Safe threshold. Using the old value can leave a proposal waiting despite enough valid signatures. " +
+    "Use the actual Gate configuration and the same calculation as InstallerMoney._required; refuse malformed configuration. " +
+    "These are live planning reads, never historical execution snapshots or settlement proof.",
+  source: "packages/contracts/src/authority/InstallerMoney.sol IInstallerReads.thresholdConfig and _required; Core source confirmation, 12 November 2026",
+  affects: [rpc_board_proposals_approve],
+});
