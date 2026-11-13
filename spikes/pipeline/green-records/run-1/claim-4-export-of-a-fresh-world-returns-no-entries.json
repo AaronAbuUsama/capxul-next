@@ -1,0 +1,120 @@
+{
+  "scenario": "claim 4: export of a fresh world returns no entries",
+  "world": "pl-claim-4-ex-8a67ff",
+  "owner": "pipeline",
+  "expiresAt": "2026-11-13T10:12:28.454Z",
+  "outcome": "passed",
+  "failure": null,
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 11270
+  },
+  "calls": [
+    {
+      "operation": "record.export",
+      "traceId": "dc9b9bb8b2636447b23241b2e8756898",
+      "outcome": "success",
+      "ms": 900,
+      "resent": 0,
+      "serverMs": 727,
+      "steps": [
+        {
+          "name": "postgres",
+          "startMs": 0,
+          "ms": 727
+        },
+        {
+          "name": "RecordStore.entries",
+          "startMs": 0,
+          "ms": 727
+        }
+      ],
+      "budgetMs": 500,
+      "failure": null,
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.export span, 727 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "budget",
+          "passed": false,
+          "gating": false,
+          "detail": "727 ms against a budget of 500 ms"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "b5a8e789e01f7169e0d2e1117c48666b",
+      "outcome": "success",
+      "ms": 240,
+      "resent": 0,
+      "serverMs": 94,
+      "steps": [
+        {
+          "name": "postgres",
+          "startMs": 0,
+          "ms": 94
+        },
+        {
+          "name": "RecordStore.entries",
+          "startMs": 0,
+          "ms": 94
+        }
+      ],
+      "budgetMs": 500,
+      "failure": null,
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.export span, 94 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "budget",
+          "passed": true,
+          "gating": false,
+          "detail": "94 ms against a budget of 500 ms"
+        }
+      ]
+    }
+  ],
+  "worldAfterwards": "destroyed",
+  "ms": {
+    "create": 27938,
+    "scenario": 1142,
+    "checks": 231,
+    "destroy": 10629
+  }
+}
