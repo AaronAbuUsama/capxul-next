@@ -9,8 +9,10 @@ const calls: { name: string; input: unknown }[] = [];
 let ruled: string | null = null;
 const refuse = (name: string) => { if (ruled) throw new Error(ruled === "module" ? "HISTORICAL_UNAVAILABLE: hat 7 is ruled by a module; read Hats live"
   : `HISTORICAL_UNAVAILABLE: ${name} changed after block 90`); };
-const chain: { functionName: string; args: readonly unknown[] }[] = [];
-const client = { readContract: async (c: { functionName: string; args: readonly unknown[] }) => { chain.push(c);
+const chain: { functionName: string; args: readonly unknown[]; blockNumber?: bigint }[] = [];
+let down = false;
+const client = { readContract: async (c: { functionName: string; args: readonly unknown[]; blockNumber?: bigint }) => {
+  if (down) throw new Error("rpc down"); chain.push(c);
   return c.functionName === "isWearerOfHat" ? c.args[0] === B : ["office:x", 9, 3, A, A, "", 0, true, true]; } };
 const live = { client: client as never, hats: "0x3bc1a0ad72417f2d411118085256fc53cbddd137" as const };
 const readers = (): BoardReaders => {
@@ -67,10 +69,17 @@ test("a module-ruled hat is read live from Hats; only unknown office hats are pr
   const f = boardFacts(readers(), live); ruled = "module"; chain.length = 0;
   assert.deepEqual(await f.wearers(sql, 84532, "7", [A, B] as never), [B.toLowerCase()], "live isWearerOfHat, not the indexed rows");
   assert.deepEqual(chain.map((c) => [c.functionName, c.args]), [["isWearerOfHat", [A, 7n]], ["isWearerOfHat", [B, 7n]]]);
-  assert.deepEqual(await f.hat(sql, 84532, "7", safe as never), { supply: 3n, max_supply: 9n });
-  chain.length = 0; assert.equal(await f.hasOffice(sql, 84532, safe as never, B as never), true, "a live-worn office");
+  assert.deepEqual(await f.hat(sql, 84532, "7", safe as never, 77n), { supply: 3n, max_supply: 9n });
+  assert.equal(chain.at(-1)!.blockNumber, 77n, "pinned to the mutation's block");
+  chain.length = 0; assert.equal(await f.hasOffice(sql, 84532, safe as never, B as never, 77n), true, "a live-worn office");
+  assert.equal(chain[0]!.blockNumber, 77n);
   assert.equal(await f.hasOffice(sql, 84532, safe as never, A as never), false, "an office not worn live");
   assert.deepEqual(chain.map((c) => [c.functionName, c.args]), [["isWearerOfHat", [B, 9n]], ["isWearerOfHat", [A, 9n]]], "allowance hats are never probed");
+  down = true;
+  for (const read of [() => f.wearers(sql, 84532, "7", [A] as never), () => f.hat(sql, 84532, "7", safe as never), () => f.hasOffice(sql, 84532, safe as never, B as never)]) {
+    await assert.rejects(read(), /^Error: PROVIDER_ERROR: could not read Hats live$/);
+  }
+  down = false;
   ruled = "changed"; chain.length = 0;
   await assert.rejects(f.wearers(sql, 84532, "7", [A] as never), /HISTORICAL_UNAVAILABLE: hat-wearers changed/);
   await assert.rejects(f.hat(sql, 84532, "7", safe as never), /HISTORICAL_UNAVAILABLE: chain-hats changed/);

@@ -276,8 +276,8 @@ test("Board public adapter composes real auth/Seat/approval doors atomically", {
       assert.deepEqual(new Map(settled.map((s) => [s.proposal_id, s.transition])), new Map([[p.proposal_id, "reject"], [rejection.proposalId, "execute"]]));
       assert.equal((await readOfficerChange(db, org, first.change.changeId))!.state, "ended"); for (const id of [p.proposal_id, rejection.proposalId]) assert.deepEqual((await readProposal(db, org, id))!.approved_by, [second], "no non-Director or other-hash sender");
       const foreign = await propose(db, context, input("foreign")), failing = await propose(db, context, input("failing"));
-      executed(foreign.nonce, `0x${"ab".repeat(32)}`).threshold = null; executed(failing.nonce, failing.safe_tx_hash, false);
-      assert.deepEqual(await carryNonce(db, carryWorld(), key(foreign.nonce), now + 1), [{ proposal_id: foreign.proposal_id, transition: "replace" }]); const f = (await readProposal(db, org, foreign.proposal_id))!; assert.equal(f.threshold, null); assert.deepEqual(f.approved_by, [second], "a Director executing another hash approved nothing here");
+      executed(foreign.nonce, `0x${"ab".repeat(32)}`).threshold = 3; executed(failing.nonce, failing.safe_tx_hash, false);
+      assert.deepEqual(await carryNonce(db, carryWorld(), key(foreign.nonce), now + 1), [{ proposal_id: foreign.proposal_id, transition: "replace" }]); const f = (await readProposal(db, org, foreign.proposal_id))!; assert.equal(f.threshold, 3); assert.deepEqual(f.approved_by, [second], "a Director executing another hash approved nothing here");
       assert.deepEqual(await carryNonce(db, carryWorld(), key(failing.nonce), now + 1), [{ proposal_id: failing.proposal_id, transition: "fail" }]);
       liveNonce = 5n; const again: any = await grant();
       const q = (await readProposal(db, org, (await readOfficerChange(db, org, again.change.changeId))!.proposal_id))!; executed(q.nonce, q.safe_tx_hash);

@@ -6,9 +6,9 @@ import type { ApprovalContext } from "./runtime.ts";
 import { integer, type Proposal, type ProposalStatus } from "./types.ts";
 
 /** The one indexed ExecutionSuccess/ExecutionFailure that used a Safe nonce, as of the deployment's finality depth.
- * sender and threshold are its SafeL2 msg.sender and the threshold it executed under, null when not indexed. */
+ * sender and threshold are its SafeL2 msg.sender and the threshold it executed under (additionalInfo). */
 export type Execution = { safe_tx_hash: Hex; success: boolean; tx_hash: Hex; user_op_hash: Hex | null;
-  block_number: number; sender: Address | null; threshold: number | null };
+  block_number: number; sender: Address; threshold: number };
 
 /** Historical, finalized source reads for settlement. Never live RPC and never current planning state. */
 export type SettlementFacts = {
@@ -64,8 +64,8 @@ export async function carryNonce(sql: Sql, world: CarryWorld, key: NonceKey, at:
   if (!waiting.length) return [];
   const exec = await world.facts.execution(sql, key.chainId, safe, key.nonce, world.finality);
   if (!exec) return [];
-  integer(exec.block_number); if (exec.sender !== null && !/^0x[\da-fA-F]{40}$/.test(exec.sender)) throw new Error("PROVIDER_RESPONSE_INVALID: sender");
-  if (exec.threshold !== null && integer(exec.threshold) < 1) throw new Error("PROVIDER_RESPONSE_INVALID: threshold");
+  integer(exec.block_number); if (!/^0x[\da-fA-F]{40}$/.test(exec.sender)) throw new Error("PROVIDER_RESPONSE_INVALID: sender");
+  if (integer(exec.threshold) < 1) throw new Error("PROVIDER_RESPONSE_INVALID: threshold");
   const used = exec.safe_tx_hash.toLowerCase();
   // Only a Capxul rejection whose own hash used the nonce rejects; any other foreign hash replaces.
   const rejection = (await sql.query(`select rejects from app.board_proposals where org_id=$1 and safe_address=$2 and nonce=$3
@@ -86,7 +86,7 @@ async function settle(sql: Sql, world: CarryWorld, p: Proposal, exec: Execution,
     .map((a) => a.toLowerCase()));
   // The executing Director signs v=1 as msg.sender, which emits no ApproveHash: count them when they ran this proposal's own
   // hash and are one of its Directors (never an outside relayer, never on another proposal's execution).
-  const sender = exec.sender?.toLowerCase();
+  const sender = exec.sender.toLowerCase();
   if ((transition === "execute" || transition === "fail") && sender && (await sql.query(`select 1 from app.proposal_approvals
     where org_id=$1 and proposal_id=$2 and lower(director_safe)=$3`, [p.org_id, p.proposal_id, sender])).rowCount) approved.add(sender);
   const status: ProposalStatus = target[transition];

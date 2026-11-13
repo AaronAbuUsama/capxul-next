@@ -14,8 +14,10 @@ export type BoardFacts = {
   safe(sql: Sql, chainId: number, address: Address): Promise<SafeState | null>;
   wearers(sql: Sql, chainId: number, hat: string, owners: Address[]): Promise<Address[]>;
   approvals(sql: Sql, chainId: number, safe: Address, hash: `0x${string}`, owners: Address[]): Promise<Address[]>;
-  hat(sql: Sql, chainId: number, hat: string, safe: Address): Promise<{ supply: bigint; max_supply: bigint } | null>;
-  hasOffice(sql: Sql, chainId: number, safe: Address, wearer: Address): Promise<boolean>;
+  /** `hat` is always one of the Organization's admitted deployment hats. `blockNumber` pins any live Hats read to the
+   * mutation's one RPC block. */
+  hat(sql: Sql, chainId: number, hat: string, safe: Address, blockNumber?: bigint): Promise<{ supply: bigint; max_supply: bigint } | null>;
+  hasOffice(sql: Sql, chainId: number, safe: Address, wearer: Address, blockNumber?: bigint): Promise<boolean>;
 };
 
 export type Summary = {

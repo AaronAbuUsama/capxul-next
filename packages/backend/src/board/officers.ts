@@ -46,13 +46,13 @@ export async function changeOfficer(sql: Sql, context: BoardContext, input: Offi
   catch { throw new Error("PROVIDER_ERROR: could not read current officer hat"); }
   if (wears === (change === "grant")) throw new Error(`WRONG_STATE: member ${wears ? "already wears" : "does not wear"} this hat`);
   if (change === "grant" && input.permission === "manage-people" &&
-      await context.facts.hasOffice(sql, context.chainId, state.safe.safe_address, who.safe_address)) {
+      await context.facts.hasOffice(sql, context.chainId, state.safe.safe_address, who.safe_address, state.blockNumber)) {
     throw new Error("ROLE_CONFLICT: member holds a department or team office");
   }
   const calls: Call[] = [];
   const call = (data: `0x${string}`) => calls.push({ to: hatsAddress, value: "0", data });
   if (change === "grant") {
-    const hat = await context.facts.hat(sql, context.chainId, id, state.safe.safe_address);
+    const hat = await context.facts.hat(sql, context.chainId, id, state.safe.safe_address, state.blockNumber);
     if (!hat) throw new Error("WRONG_STATE: officer hat is not indexed");
     const waiting = (await sql.query("select count(*) as n from app.officer_changes where org_id=$1 and hat_id=$2 and waiting and change='grant'", [input.orgId, id])).rows[0];
     const next = BigInt(hat.supply) + BigInt(waiting.n) + 1n;

@@ -28,8 +28,8 @@ const hatsAbi = parseAbi(["function isWearerOfHat(address wearer,uint256 hat) vi
 const moduleRuled = (error: unknown) => error instanceof Error && /^HISTORICAL_UNAVAILABLE: hat \d+ is ruled by a module/.test(error.message);
 /** Hats itself, read live, for exactly what Core cannot index. */
 export type LiveHats = { client: PublicClient; hats: Address };
-async function live<T>(read: () => Promise<T>): Promise<T> {
-  try { return await read(); } catch { throw new Error("PROVIDER_ERROR: could not read Hats live"); }
+async function live<T>(read: Promise<T>): Promise<T> {
+  try { return await read; } catch { throw new Error("PROVIDER_ERROR: could not read Hats live"); }
 }
 
 /**
@@ -54,7 +54,7 @@ export function boardFacts(r: BoardReaders, hats: LiveHats): BoardFacts {
       let indexed;
       try { indexed = await r.readHatWearersAt(sql, { chainId, hatId: hat, finality: 0 }); } catch (error) {
         if (!moduleRuled(error)) throw error;
-        const worn = await live(() => Promise.all(owners.map((o) => hats.client.readContract({ address: hats.hats, abi: hatsAbi,
+        const worn = await live(Promise.all(owners.map((o) => hats.client.readContract({ address: hats.hats, abi: hatsAbi,
           functionName: "isWearerOfHat", args: [o, BigInt(hat)] }))));
         return owners.map(low).filter((_, i) => worn[i]);
       }
@@ -65,23 +65,24 @@ export function boardFacts(r: BoardReaders, hats: LiveHats): BoardFacts {
       const approved = new Set((await r.readSafeApprovals(sql, { chainId, safe, safeTxHash: hash, finality: 0 })).map((a) => low(a.owner)));
       return owners.map(low).filter((o) => approved.has(o));
     },
-    hat: async (sql, chainId, hat, safe) => {
+    hat: async (sql, chainId, hat, safe, blockNumber) => {
       let h;
-      // The hat id comes from this Organization's admitted deployment, so a live read is of the company's own hat.
+      // BoardFacts.hat's invariant: the id is one of this Organization's admitted deployment hats, so the live read is the
+      // company's own hat although Hats' viewHat names no company.
       try { h = await r.readHatAt(sql, { chainId, hatId: hat, finality: 0 }); } catch (error) {
         if (!moduleRuled(error)) throw error;
-        const [, maxSupply, supply] = await live(() => hats.client.readContract({ address: hats.hats, abi: hatsAbi, functionName: "viewHat",
-          args: [BigInt(hat)] })) as readonly unknown[];
-        return { supply: BigInt(supply as number), max_supply: BigInt(maxSupply as number) };
+        const [, maxSupply, supply] = await live(hats.client.readContract({ address: hats.hats, abi: hatsAbi, functionName: "viewHat",
+          args: [BigInt(hat)], blockNumber }));
+        return { supply: BigInt(supply), max_supply: BigInt(maxSupply) };
       }
       return h && low(h.company_safe) === low(safe) ? { supply: BigInt(h.supply), max_supply: BigInt(h.max_supply) } : null;
     },
-    hasOffice: async (sql, chainId, safe, wearer) => {
+    hasOffice: async (sql, chainId, safe, wearer, blockNumber) => {
       const offices = (await r.readWearerHatsAt(sql, { chainId, wearer, companySafe: safe, finality: 0 })).filter((h) => h.details.startsWith("office:"));
       if (offices.some((h) => h.wearing === true)) return true;
       const unknown = offices.filter((h) => h.wearing === null);
-      const worn = await live(() => Promise.all(unknown.map((h) => hats.client.readContract({ address: hats.hats, abi: hatsAbi,
-        functionName: "isWearerOfHat", args: [wearer, BigInt(h.hat_id)] }))));
+      const worn = await live(Promise.all(unknown.map((h) => hats.client.readContract({ address: hats.hats, abi: hatsAbi,
+        functionName: "isWearerOfHat", args: [wearer, BigInt(h.hat_id)], blockNumber }))));
       return worn.some(Boolean);
     },
   };
