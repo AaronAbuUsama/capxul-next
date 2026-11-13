@@ -195,10 +195,13 @@ if (process.argv[2] === "crash-worker") {
           assert.equal(await readEvent(admin, "source-rollback"), null);
           await publish(e);
           assert.deepEqual(await rows(), before, "source commit is separate from Activity delivery");
-          await assert.rejects(relay(db, "activity.changes", names, async (sql, source) => {
-            await note(sql, source); throw new Error("failed after both appends");
-          }), /failed after both appends/);
+          // A failing event rolls back alone and is recorded by its code (runtime.outbox-poison-event).
+          assert.equal(await relay(db, "activity.changes", names, async (sql, source) => {
+            await note(sql, source); throw new Error("WRONG_STATE: failed after both appends");
+          }), 0);
           assert.deepEqual(await rows(), before); assert.equal(await ack(e.id), 0);
+          assert.deepEqual((await admin.query("select attempts,last_error from app.transition_failures where consumer='activity.changes' and event_id=$1", [e.id])).rows,
+            [{ attempts: 1, last_error: "WRONG_STATE" }]);
           assert.deepEqual(await readEvent(admin, e.id), e, "consumer cannot change the source envelope");
           const counts = await Promise.all([relay(db, "activity.changes", names, note), relay(db, "activity.changes", names, note)]);
           assert.equal(counts.reduce((a, b) => a + b), 1);
