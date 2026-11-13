@@ -283,6 +283,15 @@ host time, so the claim needs no condition.
 door. Chosen: the refusal is removed. A restore of a snapshot whose migrations are not a prefix of the running
 code's still fails, as a fault (entry 10), and the templates are remade on every change to the code (entry 27).
 
+**47. What a document's hash is, and who acts on a site.** Built with doc.create, doc.submit and report.run (13
+November 2026). A document's hash is keccak-256 of its canonical JSON on the site (packages/frappe-app,
+`capxul/canon.py`): for a Payment Entry, the canon that a payment's hold and its posting compare, so the hash
+doc.create answers, the hold carries and the chain's `PaymentSent` carries are one; for any other document, its stored
+fields without what changes on every save. A document or report call runs as the caller's own site user, the user of
+their cast email; the world's owner, an operator, has none, so its call is `NoSiteUser` naming the owner. Which site is
+the company's is the site's to say (its Capxul Settings `org_slug` is the org id), so Core asks the world's ready sites
+in turn.
+
 ## Answered by Aaron, 13 November 2026
 
 **1. Founding a company in one step.** Yes: `org.create` takes the founding Directors, the approval threshold and the
