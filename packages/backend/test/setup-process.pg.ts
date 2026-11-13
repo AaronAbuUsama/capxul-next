@@ -22,6 +22,7 @@ test("mint → FDE → deploy → install approval → signed → final install:
   assert.deepEqual(await step(orgId, services), { status: "processing", step: "host-fde", moved: true });
   const fde = await setup(orgId);
   assert.deepEqual([fde.fde_signer, fde.fde_safe, await state(fde.fde_party_id)], [hex(0xfde1), hex(0xfde5), "pending"]);
+  assert.deepEqual(w.fdeSafeOf, [[hex(0xfde1), org.safe_address]], "the FDE's Safe is AgentOwner's for the host's key and the company Safe");
   assert.equal((await admin.query("select handle from app.parties where party_id=$1", [fde.fde_party_id])).rows[0].handle, `acme-${n}-fde`);
   assert.deepEqual(await step(orgId, services), { status: "processing", step: "deploy", moved: true });
   const deploy = (await setup(orgId)).deploy_tx_hash;

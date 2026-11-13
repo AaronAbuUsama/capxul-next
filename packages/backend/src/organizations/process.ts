@@ -33,7 +33,9 @@ export type SetupProcessServices = {
   /** buildMoney's batch plus AgentOwner.create of the FDE's key, as the company Safe's execTransaction calls. */
   installCalls(input: { deployment: MoneyDeploymentFact; founderSafe: string; fdeSigner: string | null }): Promise<Call[]>;
   /** The FDE host makes or finds the Organization's FDE and keeps its key; the Safe is AgentOwner's for that key. */
-  fdeHost: { provision(input: { orgId: string }): Promise<{ agentId: string; signer: string; safe: string }> };
+  fdeHost: { provision(input: { orgId: string }): Promise<{ agentId: string; signer: string }> };
+  /** AgentOwner.safeAddressFor(the host's key, the company Safe): the FDE's Safe, which the install's create makes. */
+  fdeSafe(input: { signer: string; owner: string }): Promise<string>;
   /** Approvals.open bound to the founder as person and the founder's Safe as sender. */
   open(sql: Sql, founder: { personId: string; safe: string }, terms: {
     org_id: string; opener: "organizations"; subject_kind: "setup"; subject_id: string; chain_id: number; calls: Call[];
@@ -173,8 +175,12 @@ export async function advance(db: Database, orgId: string, s: SetupProcessServic
   // host-fde: the host keeps the key; one transaction records it, registers its Party pending and births its hosting.
   if (snapshot.with_fde && !snapshot.fde_party_id) {
     let fde: { agentId: string; signer: string; safe: string };
-    try { fde = await s.fdeHost.provision({ orgId }); } catch (error) { return onProvider("host-fde", error); }
-    if (![fde.signer, fde.safe].every((a) => /^0x[0-9a-fA-F]{40}$/.test(a)) || !fde.agentId) return onProvider("host-fde", invalid("FDE host answer"));
+    try {
+      const hosted = await s.fdeHost.provision({ orgId });
+      if (!/^0x[0-9a-fA-F]{40}$/.test(hosted?.signer) || !hosted.agentId) return onProvider("host-fde", invalid("FDE host answer"));
+      fde = { ...hosted, safe: await s.fdeSafe({ signer: hosted.signer, owner: snapshot.safe_address }) };
+    } catch (error) { return onProvider("host-fde", error); }
+    if (!/^0x[0-9a-fA-F]{40}$/.test(fde.safe)) return onProvider("host-fde", invalid("FDE Safe"));
     return tx(async (sql, row) => {
       if (row.status !== "processing" || row.fde_party_id) return { status: row.status, step: "host-fde", moved: false };
       const safe = fde.safe.toLowerCase(), signer = fde.signer.toLowerCase();

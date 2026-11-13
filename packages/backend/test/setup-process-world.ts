@@ -24,7 +24,7 @@ export function world() {
   const w = {
     sent: [] as string[], hashes: new Map<string, string>(), opened: [] as any[], landedAt: [] as any[], receipts: new Map<string, "success" | "reverted" | "lost" | null>(),
     minted: new Map<string, { safe: string; owner: string }>(), deployed: new Map<string, MoneyDeploymentFact>(),
-    installed: null as boolean | null, fail: {} as Record<string, string>, seq: 0,
+    installed: null as boolean | null, fail: {} as Record<string, string>, seq: 0, fdeSafeOf: [] as [string, string][],
   };
   const failing = (what: string) => { if (w.fail[what]) throw new Error(`${w.fail[what]}: ${what}`); };
   // Like shared/service-signer.ts: a key it has seen answers its stored hash and sends nothing.
@@ -43,7 +43,8 @@ export function world() {
       async installed(_sql, q) { w.landedAt.push([q.txHash, q.blockNumber]); return w.installed; },
     },
     async installCalls(i) { failing("buildMoney"); return [{ to: i.deployment.safe, value: "0", data: `0xbatch${i.fdeSigner ? "fde" : ""}` }]; },
-    fdeHost: { async provision({ orgId }) { failing("fde"); return { agentId: `fde:${orgId}`, signer: hex(0xfde1), safe: hex(0xfde5) }; } },
+    fdeHost: { async provision({ orgId }) { failing("fde"); return { agentId: `fde:${orgId}`, signer: hex(0xfde1) }; } },
+    async fdeSafe({ signer, owner }) { w.fdeSafeOf.push([signer, owner]); return hex(0xfde5); },
     async open(sql, who, terms, tr) {
       const approval_id = `apr_${w.opened.length + 1}`;
       // Same transaction as the setup's move: an approval row written here rolls back with it.

@@ -14,7 +14,8 @@ export type SetupChain = { rpcUrl: string; chain: Chain; finality: number; hats:
 const HATS = parseAbi(["function mintHat(uint256 hatId,address wearer) returns (bool)", "function isWearerOfHat(address user,uint256 hatId) view returns (bool)"]);
 const SAFE = parseAbi(["function isModuleEnabled(address module) view returns (bool)"]);
 const AGENT_OWNER = parseAbi(["struct Agent { address owner; address signer; bool frozen; bool removed; }",
-  "function create(address signer,address owner) returns (address safe)", "function agentOf(address safe) view returns (Agent)"]);
+  "function create(address signer,address owner) returns (address safe)", "function agentOf(address safe) view returns (Agent)",
+  "function safeAddressFor(address signer,address owner) view returns (address)"]);
 /** Safe's guard slot: keccak256("guard_manager.guard.address"). */
 const GUARD_SLOT = "0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8";
 const same = (a: string | null | undefined, b: string | null | undefined) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
@@ -26,9 +27,11 @@ async function finalBlock(sql: Sql, chainId: number, finality: number): Promise<
 }
 
 /** The process's chain facts and the install batch, on this world's chain and deployment. */
-export function setupFacts(c: SetupChain): Pick<SetupProcessServices, "facts" | "installCalls"> {
+export function setupFacts(c: SetupChain): Pick<SetupProcessServices, "facts" | "installCalls" | "fdeSafe"> {
   const client = createPublicClient({ chain: c.chain, transport: http(c.rpcUrl, { retryCount: 0, timeout: 10_000 }) });
   return {
+    fdeSafe: async ({ signer, owner }) => (await client.readContract({ address: c.agentOwner, abi: AGENT_OWNER, functionName: "safeAddressFor",
+      args: [signer as Address, owner as Address] })).toLowerCase(),
     facts: {
       async safeMinted(sql, q) {
         const log = (await sql.query(`select args from app.chain_logs where chain_id=$1 and tx_hash=$2 and contract='company-safe-minter'

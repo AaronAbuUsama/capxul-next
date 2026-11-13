@@ -1525,8 +1525,10 @@ export const decision_organizations_setup_composition = defineDecision({
         "Begin's eligibility reads the `beta-access` person gate from deployment code's catalogue. The founder has 7 days " +
         "to sign the install; an expired approval stalls and `org retry` reopens it. Approvals.open runs at the world's " +
         "instant with SITE_URL's approval page. The Board read is the company Safe's indexed owners, threshold and nonce " +
-        "with Board's waiting proposals when Board is migrated. With no FDE host composed in the world, provisioning " +
-        "fails closed (provider_unavailable after the retries).",
+        "with Board's waiting proposals when Board is migrated. The FDE host is FDE_HOST_URL with FDE_HOST_TOKEN: provision " +
+        "answers the agent id and the key's address, and the FDE's Safe is AgentOwner.safeAddressFor(that key, the company " +
+        "Safe), the account the install's create makes, never an address the host names. Without a host in the world's env, " +
+        "provisioning fails closed (provider_unavailable after the retries).",
     },
     {
       label: "own-timer",

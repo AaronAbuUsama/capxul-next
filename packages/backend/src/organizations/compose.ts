@@ -29,6 +29,26 @@ async function board(sql: Sql, chainId: number, safe: string): Promise<Board | n
   return { directors: s.owners.length, threshold: Number(s.threshold), nonce: Number(s.nonce), waitingProposals: waiting };
 }
 
+/** Capxul's FDE host (integration fde-host): `POST {url}/agents/provision {orgId}` with the host token answers the agent
+ * id and the key's address; the host keeps the key. Without a host in this world's env, provisioning fails closed, so a
+ * setup with its FDE stalls (provider_unavailable) after the retries instead of inventing a key. */
+function fdeHost(url: string | undefined, token: string | undefined): SetupProcessServices["fdeHost"] {
+  return {
+    async provision({ orgId }) {
+      if (!url || !token) throw new Error("PROVIDER_ERROR: no FDE host is composed in this world");
+      let response: Response;
+      try {
+        response = await fetch(`${new URL(url).origin}/agents/provision`, { method: "POST", redirect: "error",
+          headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify({ orgId }), signal: AbortSignal.timeout(10_000) });
+      } catch { throw new Error("PROVIDER_ERROR: FDE host unreachable"); }
+      if (!response.ok) throw new Error(`PROVIDER_ERROR: FDE host answered ${response.status}`);
+      const body = await response.json().catch(() => null) as { agentId?: unknown; signer?: unknown } | null;
+      if (body?.agentId !== `fde:${orgId}` || typeof body.signer !== "string") throw new Error("PROVIDER_RESPONSE_INVALID: FDE host answer");
+      return { agentId: body.agentId, signer: body.signer };
+    },
+  };
+}
+
 export function composeOrganizations(db: Database, chainId: number) {
   const deployment = JSON.parse(readFileSync(required("DEPLOYMENT_FILE"), "utf8")) as Record<string, string>;
   const companySafe = { companiesHouse: deployment.companiesHouse as `0x${string}`, namespace: required("COMPANY_SAFE_NAMESPACE") };
@@ -46,9 +66,7 @@ export function composeOrganizations(db: Database, chainId: number) {
     // Approvals.open with the founder as person and the founder's Safe as sender, at the world's instant.
     open: async (sql, founder, terms, trace) => open(sql, { person_id: founder.personId, sender: founder.safe, site_url: siteUrl,
       now: new Date(await worldNow(sql)) }, terms, trace),
-    // No FDE host is in this world's composition yet: provisioning fails closed, so a setup with its FDE stalls
-    // (provider_unavailable) after the workflow's retries instead of inventing a key.
-    fdeHost: { async provision() { throw new Error("PROVIDER_ERROR: no FDE host is composed in this world"); } },
+    fdeHost: fdeHost(process.env.FDE_HOST_URL, process.env.FDE_HOST_TOKEN),
   });
   const runner = setupRunner(db, processServices, { now: () => db.transaction("", worldNow, true),
     log: (orgId, error) => console.error(`Organizations setup ${orgId}: ${(error as Error)?.message ?? error}`) });
