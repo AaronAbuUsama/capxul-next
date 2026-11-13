@@ -1,45 +1,95 @@
 {
-  "proof": "two creates of one world name at once",
-  "results": [
-    "created",
-    "WorldAlreadyExists: a world called w-p-race already exists or is being created (owner racer-a, expires 2026-11-13T10:39:40.490Z)"
-  ],
-  "whatTheAccountsHeldAfterwards": {
-    "workers": [
-      "capxulworld-core-w-p-race-yv752i2glorkts22",
-      "capxulworld-door-w-p-race-7dacitg3qoc72ppd"
-    ],
-    "containerApplications": [
-      "capxulworld-ponder-w-p-race-skvedztikj46a7dj",
-      "capxulworld-anvil-w-p-race-awci2xcghn4lzbun"
-    ],
-    "r2Buckets": [
-      "capxulworld-chainstate-w-p-race-qeki3ya3rr56nwah"
-    ],
-    "hyperdriveConfigurations": [
-      "capxulworld-world-db-w-p-race-26ntss3w376lsbdz"
-    ],
-    "neonBranches": [
-      "CapxulWorld-worlds-db-platform-linmcg36ztdrzhwq/w-p-race"
-    ]
-  },
-  "inSharedState": [
+  "proof": "of two creates of one name at once, one creates the world and the other is refused before it makes anything",
+  "outcome": "passed",
+  "at": "2026-11-13T12:32:45.916Z",
+  "checks": [
     {
-      "world": "w-p-race",
-      "owner": "racer-a",
-      "expiresAt": "2026-11-13T10:39:40.490Z",
-      "status": "up",
-      "state": "live"
+      "check": "exactly one create succeeded",
+      "held": true
+    },
+    {
+      "check": "the other was refused with WorldExists",
+      "held": true
+    },
+    {
+      "check": "the shared state holds one world of that name",
+      "held": true
+    },
+    {
+      "check": "the accounts held one world's resources, not two",
+      "held": true
+    },
+    {
+      "check": "the destroy succeeded",
+      "held": true
+    },
+    {
+      "check": "nothing of the world is left in the accounts",
+      "held": true
+    },
+    {
+      "check": "the accounts hold what they held before",
+      "held": true
     }
   ],
-  "afterDestroy": {
-    "destroyed": true,
-    "left": {
-      "workers": [],
-      "containerApplications": [],
-      "r2Buckets": [],
-      "hyperdriveConfigurations": [],
-      "neonBranches": []
+  "observations": {
+    "results": [
+      "created",
+      "WorldExists: {\"world\":\"p-race\",\"owner\":\"racer-a\",\"expiresAt\":\"2026-11-13T13:10:36.063Z\"}"
+    ],
+    "whatTheAccountsHeld": [
+      "capxulworld-core-w-p-race-qiyuwoh5oq4l7hfn",
+      "capxulworld-door-w-p-race-jjyvzzy5ekjwaacm",
+      "capxulworld-ponder-w-p-race-u5xjqupn5u4jn3kg",
+      "capxulworld-anvil-w-p-race-5zu32d5dbjps5zwq",
+      "capxulworld-door-w-p-race-jjyvzzy5ekjwaacm",
+      "capxulworld-door-w-p-race-jjyvzzy5ekjwaacm",
+      "capxulworld-chainstate-w-p-race-xadg34abxb5ssm3w",
+      "capxulworld-world-db-w-p-race-aidknqvhnob7tzny",
+      "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-p-race"
+    ],
+    "inSharedState": [
+      {
+        "world": "w-p-race",
+        "owner": "racer-a",
+        "expiresAt": "2026-11-13T13:10:36.063Z",
+        "status": "up",
+        "state": "live"
+      }
+    ],
+    "inventory": {
+      "before": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "after": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "leftOfTheseWorlds": [],
+      "sameAsBefore": true
     }
   }
 }
