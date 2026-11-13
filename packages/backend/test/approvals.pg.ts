@@ -5,6 +5,7 @@ import pg from "pg";
 import { privateKeyToAccount } from "viem/accounts";
 import { Database } from "../src/platform/db.ts";
 import { migrateOutbox } from "../src/platform/outbox.ts";
+import { signingTransportControls } from "./approvals-http.ts";
 import { open, withdraw, prepare, get, submitted, settleSitePayment, migrateApprovals, signingGet, signingSign, signingDecline, carry, wakeChain, readApproval,
   type ApprovalContext, type Open, type SigningContext, type CarrierServices } from "../src/approvals/door.ts";
 
@@ -24,7 +25,8 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
   const admin = new pg.Client({ connectionString: url }); await admin.connect();
   const db = new Database(roleUrl("capxul_core"), roleUrl("capxul_worker"));
   const tenant = <T>(fn: (sql: pg.PoolClient) => Promise<T>, person = ctx.person_id) => db.transaction("approval-org", async (sql) => {
-    await sql.query("select set_config('app.person_id',$1,true)", [person]);
+    await sql.query(`select set_config('app.person_id',$1,true),set_config('app.owner_kind','person',true),
+      set_config('app.owner_id',$1,true),set_config('app.safe_address',$2,true)`, [person, sender]);
     return fn(sql as pg.PoolClient);
   });
   const legacy = { org: "approval-org", request_id: "legacy-request", site: "approval.test", doctype: "Purchase Invoice", name: "PINV-1",
@@ -95,11 +97,15 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
         now: async () => clock,
         sponsor: async (row) => {
           nonce = ((BigInt(row.nonce_key) << 64n) + 731n).toString();
-          return { nonce, signer_address: account.address.toLowerCase(), digest, user_op_hash: opHash, valid_after: null, valid_until: new Date(terms.deadline),
-            user_operation: { sender, nonce, callData: "0x1234", callGasLimit: "80000", verificationGasLimit: "90000", preVerificationGas: "40000", maxFeePerGas: "2", maxPriorityFeePerGas: "1", paymaster: recipient, paymasterVerificationGasLimit: "10000", paymasterPostOpGasLimit: "10000", paymasterData: "0x" } };
+          // A gateway answer may carry keys of its own; none may become a column name.
+          return Object.assign({ nonce, signer_address: account.address.toLowerCase(), digest, user_op_hash: opHash, valid_after: null, valid_until: new Date(terms.deadline),
+            user_operation: { sender, nonce, callData: "0x1234", callGasLimit: "80000", verificationGasLimit: "90000", preVerificationGas: "40000", maxFeePerGas: "2", maxPriorityFeePerGas: "1", paymaster: recipient, paymasterVerificationGasLimit: "10000", paymasterPostOpGasLimit: "10000", paymasterData: "0x" } },
+          { "state='landed',ended_at": "now()" });
         },
         send: async () => { sends++; held = true; throw new Error("lost gateway answer"); }, lookup: async () => ({ held }),
-        nonce: async () => nonce, needsAndGate: async () => true, fact: async () => null,
+        nonce: async () => nonce, needsAndGate: async () => true,
+        // Like the indexed reader, a lookup without a held decimal nonce is invalid input.
+        fact: async (_sql, row) => { if (!/^\d+$/.test(String(row.nonce))) throw new Error("INVALID_INPUT: indexed carrier identity"); return null; },
         terminal: async (sql) => { await sql.query("select 1"); terminal++; },
       };
       await carry(db, services); // finishes the withdrawn carrier before opening another
@@ -143,10 +149,13 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
       assert.deepEqual((await admin.query("select wake_at from app.approval_carriers where approval_id=$1", [next.approval_id])).rows[0].wake_at, clock,
         "a committed chain wake must not be replaced by the later window timer");
       services.terminal = async () => { throw new Error("opener effect failed"); };
-      await assert.rejects(carry(db, services), /opener effect failed/);
+      await carry(db, services);
       assert.equal((await tenant((sql) => signingGet(sql, signing, { approvalId: next.approval_id }))).state, "sent");
+      assert.deepEqual((await admin.query("select wake_at from app.approval_carriers where approval_id=$1", [next.approval_id])).rows[0].wake_at,
+        new Date(clock.getTime() + 30_000), "a failed callback rolls back and backs off only its own approval");
+      clock = new Date(clock.getTime() + 30_000);
       services.terminal = async (sql, event) => {
-        assert.equal(event.outcome, "landed"); assert.equal(event.observedAt, clock.toISOString());
+        assert.equal(event.outcome, "landed"); assert.equal(event.observedAt, clock.toISOString()); assert.equal(event.refusal, null);
         assert.equal((await sql.query("select state from app.approvals where approval_id=$1", [event.approval_id])).rows[0].state, "landed");
         terminal++;
       };
@@ -158,9 +167,12 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
       assert.equal(later.opened, true); assert.notEqual(later.approval_id, next.approval_id);
       assert.deepEqual(await tenant((sql) => open(sql, { ...ctx, now: clock }, { ...terms, subject_id: "payment-2" })), { ...later, opened: false });
       services.sponsor = async () => { throw new Error("sponsor unavailable"); };
-      services.terminal = async (_sql, event) => { assert.equal(event.outcome, "refused"); terminal++; };
+      services.terminal = async (_sql, event) => {
+        assert.equal(event.outcome, "refused"); assert.equal(event.refusal?.code, "PROVIDER_ERROR"); terminal++;
+      };
+      const base = clock.getTime();
       for (const elapsed of [0, 2000, 6000]) {
-        clock = new Date(now.getTime() + 1000 + elapsed);
+        clock = new Date(base + elapsed);
         await carry(db, services);
       }
       assert.equal((await tenant((sql) => signingGet(sql, signing, { approvalId: later.approval_id }))).state, "refused");
@@ -177,6 +189,72 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
       await tenant((sql) => signingDecline(sql, signing, { approvalId: next.approval_id }));
       assert.equal(completed, 1);
       assert.equal((await admin.query("select count(*)::int as n from app.approval_carriers where approval_id=$1", [next.approval_id])).rows[0].n, 0);
+    });
+    await t.test("overdue unsponsored replacement ends only on indexed finality with an atomic callback", async () => {
+      const original = await tenant((sql) => open(sql, ctx, { ...terms, subject_id: "late-original", send_after: new Date(now.getTime() + 60_000).toISOString() }));
+      const lane = (await admin.query("select nonce_key from app.approvals where approval_id=$1", [original.approval_id])).rows[0].nonce_key;
+      const nonce = ((BigInt(lane) << 64n) + 29n).toString();
+      const hash = `0x${"ad".repeat(32)}`, transaction = `0x${"be".repeat(32)}`;
+      await admin.query("update app.approvals set state='signed',nonce=$2,user_op_hash=$3 where approval_id=$1", [original.approval_id, nonce, hash]);
+      const replacement = await tenant((sql) => open(sql, ctx, { ...terms, subject_id: "late-replacement", replaces: original.approval_id }));
+      let clock = new Date(new Date(terms.deadline).getTime() + 120_001), failCallback = true, callbacks = 0, outsideCalls = 0;
+      const unexpected = async (): Promise<never> => { outsideCalls++; throw new Error("unsigned replacement must not sponsor or send"); };
+      const services: CarrierServices = {
+        now: async () => clock, sponsor: unexpected, send: unexpected, lookup: unexpected, needsAndGate: unexpected,
+        nonce: async () => (BigInt(nonce) + 1n).toString(),
+        // A committed finality fixture exercises the carrier contract, not Ponder adapter conformance.
+        fact: async (sql, row) => (await sql.query("select fact from app.test_approval_facts where approval_id=$1", [row.approval_id])).rows[0]?.fact ?? null,
+        terminal: async (sql, event) => {
+          if (event.approval_id !== replacement.approval_id) return;
+          assert.equal(event.outcome, "displaced"); assert.equal(event.nonce, nonce);
+          assert.equal(event.transaction_hash, transaction); assert.equal(event.block_number, 73);
+          assert.equal((await sql.query("select state from app.approvals where approval_id=$1", [replacement.approval_id])).rows[0].state, "displaced");
+          if (failCallback) throw new Error("late replacement opener failed");
+          callbacks++;
+        },
+      };
+      await carry(db, services);
+      assert.equal((await admin.query("select state from app.approvals where approval_id=$1", [replacement.approval_id])).rows[0].state, "sponsoring",
+        "a moved nonce without indexed finality is not terminal proof");
+      assert.equal(callbacks, 0); assert.equal(outsideCalls, 0);
+      const fact = { chain_id: terms.chain_id, sender, nonce, user_op_hash: hash, success: true, transaction_hash: transaction, block_number: 73 };
+      await admin.query("insert into app.test_approval_facts values ($1,$3),($2,$3)", [original.approval_id, replacement.approval_id, fact]);
+      await db.transaction("", (sql) => wakeChain(sql, { chain_id: terms.chain_id, sender, nonce }, clock), true);
+      const carrierOf = async (id: string) => (await admin.query("select wake_at from app.approval_carriers where approval_id=$1", [id])).rows[0];
+      const stateOf = async (id: string) => (await admin.query("select state from app.approvals where approval_id=$1", [id])).rows[0].state;
+      assert.deepEqual((await carrierOf(replacement.approval_id)).wake_at, clock, "chain wake reaches an unsponsored replacement with a persisted nonce");
+      // The failing replacement heads the batch; the original holding the same nonce is due behind it.
+      await admin.query("update app.approval_carriers set wake_at=wake_at-interval '1 second' where approval_id=$1", [replacement.approval_id]);
+      clock = new Date(clock.getTime() + 1000);
+      await carry(db, services);
+      assert.equal(await stateOf(replacement.approval_id), "sponsoring");
+      assert.deepEqual((await carrierOf(replacement.approval_id)).wake_at, new Date(clock.getTime() + 30_000), "only the failing approval backs off");
+      assert.equal(await stateOf(original.approval_id), "landed", "a failing opener callback must not stop the rest of the batch");
+      failCallback = false;
+      clock = new Date(clock.getTime() + 30_000);
+      await carry(db, services); await carry(db, services);
+      const ended = (await admin.query("select state,displaced_by,ended_at from app.approvals where approval_id=$1", [replacement.approval_id])).rows[0];
+      assert.equal(ended.state, "displaced"); assert.equal(ended.displaced_by, hash); assert.deepEqual(ended.ended_at, clock);
+      assert.equal(callbacks, 1); assert.equal(outsideCalls, 0);
+      assert.equal((await admin.query("select count(*)::int as n from app.approval_carriers where approval_id=$1", [replacement.approval_id])).rows[0].n, 0);
+    });
+    await t.test("signing intent does not inherit a builder's changed replacement nonce or expiry", async () => {
+      const signing: SigningContext = { ...ctx, network: { name: "Test", explorerUrl: "https://explorer.test" }, requireFeature: async () => {} };
+      const original = await tenant((sql) => open(sql, ctx, { ...terms, subject_id: "intent-original", send_after: new Date(now.getTime() + 60_000).toISOString() }));
+      const first = await tenant((sql) => signingGet(sql, signing, { approvalId: original.approval_id }));
+      assert.equal(first.deadline, terms.deadline); assert.equal(first.replacement, null);
+      const fixedNonce = ((BigInt(first.nonceKey) << 64n) + 17n).toString();
+      await admin.query("update app.approvals set state='signed',nonce=$2 where approval_id=$1", [original.approval_id, fixedNonce]);
+      const replacing = await tenant((sql) => open(sql, ctx, { ...terms, subject_id: "intent-replacement", replaces: original.approval_id }));
+      const shorterExpiry = new Date(now.getTime() + 120_000);
+      await admin.query("update app.approvals set nonce=$2,valid_until=$3 where approval_id=$1", [replacing.approval_id, (BigInt(fixedNonce) + 1n).toString(), shorterExpiry]);
+      const result = await tenant((sql) => signingGet(sql, signing, { approvalId: replacing.approval_id }));
+      assert.equal(result.nonceKey, first.nonceKey);
+      assert.equal(result.deadline, terms.deadline); assert.equal(result.expiresAt, shorterExpiry.toISOString());
+      assert.deepEqual(result.replacement, { approvalId: original.approval_id, nonce: fixedNonce });
+    });
+    await t.test("public signing HTTP/SDK auth, atomic replay and live revocation controls", async () => {
+      await signingTransportControls(db, admin, ctx, terms);
     });
   } finally { await db.close(); await admin.end(); }
 });
