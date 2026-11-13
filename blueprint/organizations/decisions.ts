@@ -1511,6 +1511,38 @@ export const decision_organizations_world_company_hosts = defineDecision({
   affects: [concept_organizations, table_organizations],
 });
 
+export const decision_organizations_setup_composition = defineDecision({
+  id: "organizations.setup-composition",
+  title: "Core composes the setups' routes and runs the setup runner in its worker tick",
+  question:
+    "Core's main must mount organizations.setups.* and run the setup process. Where does the runner run, and what does " +
+    "composition bind for the gate catalogue, the install window, the approval page, the Board read and the FDE host?",
+  options: [
+    {
+      label: "worker-tick",
+      text:
+        "The runner ticks inside Core's worker loop, so it never writes while Core is paused for a snapshot or closing. " +
+        "Begin's eligibility reads the `beta-access` person gate from deployment code's catalogue. The founder has 7 days " +
+        "to sign the install; an expired approval stalls and `org retry` reopens it. Approvals.open runs at the world's " +
+        "instant with SITE_URL's approval page. The Board read is the company Safe's indexed owners, threshold and nonce " +
+        "with Board's waiting proposals when Board is migrated. With no FDE host composed in the world, provisioning " +
+        "fails closed (provider_unavailable after the retries).",
+    },
+    {
+      label: "own-timer",
+      text: "Run the runner on its own timer beside Core, and stub the FDE host with a generated key.",
+    },
+  ],
+  chosen: "worker-tick",
+  why:
+    "A timer of its own would keep writing during a snapshot's pause and cut it inconsistently. A generated FDE key would " +
+    "be a key Capxul holds, which aaron.fde-hosted rules out: the host makes and keeps it. Seven days matches a person " +
+    "signing at their own pace and costs nothing to retry. Board's proposals are read only where Board's table exists, so " +
+    "a world without Board reads none rather than failing.",
+  source: "Amp Organizations lane, 13 November 2026, for the cut-over, at the integrator's direction (each lane composes itself)",
+  affects: [workflow_organizations_setups_set_up, rpc_organizations_setups_begin, rpc_organizations_setups_get],
+});
+
 export const decision_organizations_cutover_migrate_order = defineDecision({
   id: "organizations.cutover-migrate-order",
   title: "Core's schema splits around Organizations: base first, per-org tables after",

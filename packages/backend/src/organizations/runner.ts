@@ -97,8 +97,8 @@ export function setupServicesFromEnv(db: Database, bindings: SetupBindings): Set
 }
 
 export type SetupRunnerOptions = {
-  /** The world clock, for the setup's records and events. */
-  now(): number;
+  /** The world clock, for the setup's records and events (Core's worldNow). */
+  now(): number | Promise<number>;
   /** Real elapsed milliseconds, for retry backoff (time.real-elapsed). */
   elapsed?(): number;
   retries?: number; backoffMs?: number;
@@ -126,7 +126,7 @@ export function setupRunner(db: Database, services: SetupProcessServices, o: Set
           const t = await trace(orgId);
           if (!t) throw new Error("NOT_FOUND: the setup's trace");
           for (let step = 0; step < 10; step++) {
-            out[orgId] = await advance(db, orgId, services, o.now(), t, { lastTry: (failed?.tries ?? 0) + 1 >= retries });
+            out[orgId] = await advance(db, orgId, services, await o.now(), t, { lastTry: (failed?.tries ?? 0) + 1 >= retries });
             failing.delete(orgId);
             if (!(out[orgId] as Advanced).moved || (out[orgId] as Advanced).status !== "processing") break;
           }

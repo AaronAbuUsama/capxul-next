@@ -45,10 +45,12 @@ function json(res: ServerResponse, status: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 export function createCore(config: Config, provision?: (req: IncomingMessage, res: ServerResponse) => Promise<boolean>,
-  routes: (db: Database) => readonly BearerRoute[] = () => []) {
+  routes: (db: Database) => readonly BearerRoute[] = () => [],
+  /** Concepts' background work, run in Core's worker tick: never while paused for a snapshot or closing. */
+  work: (db: Database) => readonly { name: string; tick: () => Promise<unknown> }[] = () => []) {
   if (!Number.isSafeInteger(config.finality) || config.finality < 0) throw new Error("FINALITY_DEPTH must be a nonnegative integer");
   const db = new Database(config.database, config.workerDatabase);
-  const bearerRoutes = routes(db);
+  const bearerRoutes = routes(db), background = work(db);
   let paused = config.startPaused, closing = false, activeRequests = 0, activeDeliveries = 0;
   let activeLoop: Promise<void> = Promise.resolve(), timer: ReturnType<typeof setTimeout> | undefined;
   let pauseWork: Promise<Awaited<ReturnType<typeof readSnapshotCut>>> | undefined;
@@ -161,6 +163,10 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
       // Activity's change log follows committed transitions; its failure must not stall per-organization work, nor theirs it.
       await relay(db, "activity.changes", ["payment_transitioned", "movement_transitioned"], note)
         .catch((error) => console.error(`Activity relay: ${error.message}`));
+      for (const w of background) {
+        if (paused || closing) break;
+        await w.tick().catch((error) => console.error(`Core ${w.name}: ${error.message}`));
+      }
       const index = await indexerState(db, config.ponder, config.chainId, config.rpc, true);
       const orgs = (await db.worker.query("select org_id,site,released from app.organizations order by org_id")).rows;
       for (const company of orgs) {
