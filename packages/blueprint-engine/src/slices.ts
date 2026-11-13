@@ -66,11 +66,23 @@ const foundationKeys = (b: Blueprint): Set<string> => {
   return keys;
 };
 
-/** Full same-run gate consumed by both the board and slice-zero runtime; eval IDs remain opaque. */
+/** The environments slice zero runs on: the devnet stack and the hosted simulated worlds (portal.slice-zero-measured-gate). */
+const SLICE_ZERO_ENVIRONMENTS: readonly string[] = ["devnet", "worlds"];
+
+/** Full same-run gate consumed by both the board and slice-zero runtime; eval IDs remain opaque. Beyond the records' own
+ * claims at every level, it takes the invariants over them (or over no record), their concepts' import rules, the system's
+ * claims and its environments' boot and smoke claims (portal.slice-zero-measured-gate). */
 export const sliceZeroRequired = (b: Blueprint): readonly string[] => {
   const keys = foundationKeys(b);
-  return sorted([...SLICE_ZERO_REQUIRED, ...b.evals.filter((e) => e.subject === "journey:thin_line" ||
-    (keys.has(e.subject) && (e.level === "L1" || /^(scr|alr):/.test(e.id)))).map((e) => e.id)]);
+  const concepts = new Set([...keys].map((k) => sliceConcept(b, new Map(), k)));
+  const required = (subject: string, id: string): boolean => {
+    if (subject === "journey:thin_line" || keys.has(subject)) return true;
+    const r = b.records.get(subject);
+    if (r?._kind === "invariant") { const over = ((r.over ?? []) as AnyRecord[]).map(keyOf); return !over.length || over.some((k) => keys.has(k)); }
+    if (r?._kind === "concept") return id.startsWith("sys:imports/") && concepts.has(r.id);
+    return r?._kind === "system" || (r?._kind === "environment" && SLICE_ZERO_ENVIRONMENTS.includes(r.id));
+  };
+  return sorted([...SLICE_ZERO_REQUIRED, ...b.evals.filter((e) => required(e.subject, e.id)).map((e) => e.id)]);
 };
 
 /** Child records inherit their parent's source concept. Explicit concept references work in small fixtures too. */
