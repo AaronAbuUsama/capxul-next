@@ -260,6 +260,7 @@ test("same-Sql command birth, original terminal replay and exact v4 IDs/calldata
     await admin.query("delete from app.approval_carriers where approval_id in (select approval_id from app.approvals where org_id=$1 or person_id=$2)", [owner.id, person.id]);
     await admin.query("delete from app.approvals where org_id=$1 or person_id=$2", [owner.id, person.id]);
     await admin.query("delete from app.transition_outbox where event->>'owner_id'=any($1) or event->'props'->>'org_id'=$2", [[owner.id, person.id], owner.id]);
+    await admin.query("delete from app.payment_processes where owner_id=any($1)", [[owner.id, person.id]]);
     await admin.query("delete from app.payments where owner_id=any($1)", [[owner.id, person.id]]);
     await admin.query("delete from app.payment_commands where owner_id=any($1)", [[owner.id, person.id]]);
     await admin.query("delete from app.party_events where party_id=any($1)", [[owner.id, `${owner.id}-payee`, person.id]]);

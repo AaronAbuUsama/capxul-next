@@ -235,7 +235,13 @@ export const decision_payments_one_process_per_payment = defineDecision({
     "per-command process would hold N machines' worth of state; a per-dated-payment process would be a second owner of " +
     "the same machine. Each Payment process follows the shared approval, so a void still cancels every Payment of the " +
     "operation (K14), and the command keeps K1 without a process (payments.command-without-state). This drops the two " +
-    "listed processes in favour of one, as rules.durable-processes allows with a decision.",
+    "listed processes in favour of one, as rules.durable-processes allows with a decision. Implementation, 12 November " +
+    "2026: each Payment retains a worker-only durable wake and chain wait, committed with its birth or retry. Bounded " +
+    "enumeration only reads due identities; each resumed instance locks its Payment before its scheduling metadata, " +
+    "then reconciles source facts on that same transaction and world instant. Indexed progress and committed carrier " +
+    "events wake those waits; no periodic scan substitutes for a source event. Requests and Activity consume only " +
+    "after the source commit, each under its own outbox effect and ACK. Snapshot recovery copies these waits without " +
+    "migration, clock rebasing or network work in the source transaction.",
   source: by("A3; rules.durable-processes; payment.retry.yaml and payment.cancel.yaml (one payment id each)"),
   affects: [workflow_payments_lifecycle_payment, machine_payment, table_payments, table_payment_commands],
 });

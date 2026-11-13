@@ -3,12 +3,16 @@ import { readFile } from "node:fs/promises";
 import { setTimeout } from "node:timers/promises";
 import test from "node:test";
 import pg from "pg";
-import { decodeEventLog, encodeFunctionData, parseAbi, type Abi, type Hex } from "viem";
+import { concat, decodeEventLog, encodeFunctionData, pad, parseAbi, type Abi, type Hex } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { connect } from "../../devnet/src/modules/chain/service.ts";
 import { board } from "../../devnet/src/modules/company/service.ts";
+import { buildUserOp, ENTRY_POINT, ENTRY_POINT_V07, viaEntryPoint } from "../../devnet/src/modules/company/internal/user-op.ts";
+import { prepareBundler } from "../../devnet/src/modules/bundler/service.ts";
+import { THIRD_PARTY } from "../../devnet/src/modules/protocol/service.ts";
 import { testKey } from "../../devnet/src/modules/test-keys/service.ts";
 import { bindIndexer } from "../src/bind-indexer.ts";
-import { readHatTransfer } from "../src/indexing/door.ts";
+import { readChainFact, readHatTransfer, readMoneyDeployment } from "../src/indexing/door.ts";
 
 if (!process.env.CORE_PROOF_DIR || process.env.CAPXUL_DISPOSABLE !== "true" || !process.env.CAPXUL_WORLD || process.env.CAPXUL_WORLD === "main")
   throw new Error("indexing checks require a named disposable real Ponder/v4 world");
@@ -64,6 +68,25 @@ test("real Ponder projections retain initial execution nonce, provenance and exa
       company_safe: safe, hat_id: fixture.hat, operator: mint.args.operator, from: mint.args.from, to: mint.args.to, value: mint.args.value });
     assert.equal(await readHatTransfer(sql, { chainId: mint.chain_id, logId: mint.log_id, companySafe: founder, finality: 0 }), null);
     assert.equal(await readHatTransfer(sql, { chainId: mint.chain_id, logId: mint.log_id, companySafe: safe, finality: 1_000_000 }), null);
+    const deployed = (await sql.query("select * from app.chain_logs where contract='installer' and event='MoneyDeployed' and args->>'safe'=$1", [safe])).rows[0];
+    assert(deployed, "the actual admitted Installer receipt is retained");
+    const deploymentFact = await readMoneyDeployment(sql, { chainId: deployed.chain_id, logId: deployed.log_id, companySafe: safe, finality: 0 });
+    assert(deploymentFact);
+    assert.equal(deploymentFact.founder_safe, founder);
+    assert.equal(deploymentFact.officer_hats[0], fixture.hat);
+    assert.equal(deploymentFact.tx_hash, deployed.tx_hash);
+    assert.equal(deploymentFact.block_hash, deployed.block_hash);
+    assert.equal(deploymentFact.tx_log_ordinal, deployed.tx_log_ordinal);
+    const receipt = await (await connect(process.env.RPC_URL!)).client.getTransactionReceipt({ hash: deployed.tx_hash });
+    assert.equal(receipt.logs[deploymentFact.tx_log_ordinal]?.logIndex, deploymentFact.log_index);
+    const actual = decodeEventLog({ abi: parseAbi(["event MoneyDeployed(address indexed safe,address indexed founderSafe,(uint256 boardTopHat,uint256 shareholdersTopHat,uint256 directorHat,uint256[] officerHats,address roles,address gate) deployment)"]),
+      data: receipt.logs[deploymentFact.tx_log_ordinal]!.data, topics: receipt.logs[deploymentFact.tx_log_ordinal]!.topics }).args;
+    assert.deepEqual([deploymentFact.board_top_hat, deploymentFact.shareholders_top_hat, deploymentFact.director_hat],
+      [actual.deployment.boardTopHat, actual.deployment.shareholdersTopHat, actual.deployment.directorHat].map(String));
+    assert.equal(deploymentFact.roles, actual.deployment.roles.toLowerCase());
+    assert.equal(deploymentFact.gate, actual.deployment.gate.toLowerCase());
+    assert.equal(await readMoneyDeployment(sql, { chainId: deployed.chain_id, logId: deployed.log_id, companySafe: founder, finality: 0 }), null);
+    assert.equal(await readMoneyDeployment(sql, { chainId: deployed.chain_id, logId: deployed.log_id, companySafe: safe, finality: 1_000_000 }), null);
     await sql.query("reset role");
     for (const table of ["safe_owners", "chain_hats", "hat_wearers", "chain_budgets"]) {
       assert.equal((await sql.query(`select count(*)::int as n from ponder.${table} where created_log_id='' or last_log_id='' or updated_block<=0`)).rows[0].n, 0);
@@ -113,6 +136,43 @@ test("real Ponder projections retain initial execution nonce, provenance and exa
     await permission("delete from app.chain_budgets");
     await sql.query("reset role");
   } finally { await sql.query("rollback"); await sql.end(); }
+});
+
+test("carrier reader retains a real high-key nonce and foreign hash, gated by indexed finality", async () => {
+  const chain = await connect(process.env.RPC_URL!);
+  const artifact = JSON.parse(await readFile(new URL("../../contracts/out/MockPaymaster.sol/MockPaymaster.json", import.meta.url), "utf8"));
+  // Direct EntryPoint plus MockPaymaster is a component source control, never public Alto acceptance.
+  const { paymaster } = await prepareBundler({ chain, fundingKey: testKey("deployer").key, paymasterArtifact: artifact });
+  const op = await buildUserOp(chain, { safe: fixture.founderSafe, ownerKey: testKey("founder").key,
+    module: THIRD_PARTY.safe4337Module, paymaster, to: fixture.token,
+    data: encodeFunctionData({ abi: parseAbi(["function approve(address spender,uint256 amount) returns (bool)"]),
+      functionName: "approve", args: [testKey("payee").address, 47n] }) });
+  op.nonce = await chain.client.readContract({ address: ENTRY_POINT_V07, abi: ENTRY_POINT, functionName: "getNonce",
+    args: [fixture.founderSafe, (1n << 192n) - 1n] });
+  op.signature = pad("0x", { size: 12 });
+  const module = parseAbi(["function getOperationHash((address sender,uint256 nonce,bytes initCode,bytes callData,bytes32 accountGasLimits,uint256 preVerificationGas,bytes32 gasFees,bytes paymasterAndData,bytes signature) userOp) view returns (bytes32)"]);
+  const digest = await chain.client.readContract({ address: THIRD_PARTY.safe4337Module, abi: module, functionName: "getOperationHash", args: [op] });
+  op.signature = concat([op.signature, await privateKeyToAccount(testKey("founder").key).sign({ hash: digest })]);
+  const tx = await viaEntryPoint(chain, testKey("deployer").key)(op);
+  const receipt = await chain.client.getTransactionReceipt({ hash: tx });
+  const actual = receipt.logs.flatMap((log) => {
+    try { const e = decodeEventLog({ abi: ENTRY_POINT, topics: log.topics, data: log.data }); return e.eventName === "UserOperationEvent" ? [e.args] : []; }
+    catch { return []; }
+  })[0]!;
+  assert.equal(actual.nonce, op.nonce); assert.equal(actual.success, true);
+  const sql = new pg.Client({ connectionString: process.env.WORKER_DATABASE_URL! });
+  await sql.connect();
+  try {
+    const input = { chainId: chain.chainId, sender: op.sender, nonce: op.nonce.toString(), finality: 0 };
+    let fact;
+    for (let n = 0; n < 200; n++) { fact = await readChainFact(sql, input); if (fact) break; await setTimeout(100); }
+    assert(fact);
+    assert.equal(fact.nonce, actual.nonce.toString()); assert.equal(fact.user_op_hash, actual.userOpHash.toLowerCase());
+    assert.notEqual(fact.user_op_hash, `0x${"ab".repeat(32)}`, "lookup must expose the actual foreign hash, not filter by an expected one");
+    assert.equal(fact.transaction_hash, tx.toLowerCase());
+    assert.equal(await readChainFact(sql, { ...input, nonce: (op.nonce + 1n).toString() }), null);
+    assert.equal(await readChainFact(sql, { ...input, finality: 1_000_000 }), null);
+  } finally { await sql.end(); }
 });
 
 test("real same-Safe nested module starts and ends retain full receipt order without broader tenant history", async () => {

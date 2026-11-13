@@ -5,6 +5,7 @@ import type { TerminalEvent } from "../approvals/door.ts";
 import { recordMoneyFact, reverseMoneyFact, type MoneySide } from "../books/door.ts";
 import { lookupBySafe } from "../parties/door.ts";
 import type { Owner, Payment, PaymentStatus, PaymentTransitionProps } from "./types.ts";
+import { wakePayment } from "./work.ts";
 
 export interface PaymentContext { at: number; traceId: string }
 export interface PaymentFact {
@@ -36,7 +37,7 @@ const eligible: PaymentStatus[] = ["prepared", "scheduled", "due", "escrowed", "
 const lock = async (sql: Sql, owner: Owner, id: string) =>
   (await sql.query<Payment>("select * from app.payments where owner_kind=$1 and owner_id=$2 and id=$3 for update", [owner.kind, owner.id, id])).rows[0];
 
-async function change(sql: Sql, payment: Payment, transition: string, to: PaymentStatus, patch: Partial<Payment>, context: PaymentContext) {
+export async function change(sql: Sql, payment: Payment, transition: string, to: PaymentStatus, patch: Partial<Payment>, context: PaymentContext) {
   if (!Number.isSafeInteger(context.at) || context.at < 0) throw new Error("INVALID_INPUT: authoritative transition time required");
   const values = { ...patch, status: to, updated_at: context.at };
   const keys = Object.keys(values) as (keyof typeof values)[];
@@ -47,6 +48,7 @@ async function change(sql: Sql, payment: Payment, transition: string, to: Paymen
     owner_kind: payment.owner_kind, owner_id: payment.owner_id, command_id: payment.command_id, route: payment.route, outcome: next.outcome };
   await emit(sql, { id: randomUUID(), name: "payment_transitioned", machine: "payment", entity_id: payment.id,
     owner_kind: payment.owner_kind, owner_id: payment.owner_id, actor: null, trace_id: context.traceId, at: context.at, props: { ...props } });
+  await wakePayment(sql, next, context.at, context.traceId);
   return next;
 }
 
@@ -99,6 +101,11 @@ export async function approvalTerminal(sql: Sql, event: TerminalEvent, context: 
   [owner.kind, owner.id, event.approval_id, event.chain_id, event.subject_id, event.subject_kind])).rows;
   let changed = 0;
   for (const payment of rows) {
+    // A landed dated budget call may only reserve. Its indexed reservation, not its carrier, schedules it.
+    if (event.outcome === "landed" && payment.route === "budget" && payment.pay_at !== null) {
+      await wakePayment(sql, payment, context.at, context.traceId);
+      continue;
+    }
     if (event.outcome === "landed" && ["prepared", "scheduled", "due"].includes(payment.status)) {
       await change(sql, payment, "submit", "submitted", { outcome: null }, context);
       changed++;

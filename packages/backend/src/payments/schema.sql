@@ -70,3 +70,23 @@ drop policy if exists worker on app.movements;
 create policy worker on app.movements to capxul_worker using (true) with check (true);
 grant select on app.payment_commands,app.payments,app.movements to capxul_core;
 grant select,insert,update on app.payment_commands,app.payments,app.movements to capxul_worker;
+
+-- Scheduling metadata only. The Payment and its indexed/carrier facts remain the business authority.
+create table if not exists app.payment_processes (
+  owner_kind text not null, owner_id text not null, payment_id text not null,
+  chain_id integer not null, trace_id text not null, wake_at double precision, await_block numeric,
+  primary key(owner_kind,owner_id,payment_id),
+  foreign key(owner_id,owner_kind,payment_id) references app.payments(owner_id,owner_kind,id)
+);
+create index if not exists "payment-processes-due" on app.payment_processes(wake_at,owner_kind,owner_id,payment_id);
+create index if not exists "payment-processes-chain" on app.payment_processes(chain_id,await_block);
+alter table app.payment_processes enable row level security;
+alter table app.payment_processes force row level security;
+drop policy if exists worker on app.payment_processes;
+create policy worker on app.payment_processes to capxul_worker using (true) with check (true);
+revoke all on app.payment_processes from public,capxul_core;
+grant select,insert,update,delete on app.payment_processes to capxul_worker;
+-- Explicit upgrade only, not startup or restore. Original business times are retained.
+insert into app.payment_processes(owner_kind,owner_id,payment_id,chain_id,trace_id,wake_at)
+  select owner_kind,owner_id,id,chain_id,'',updated_at from app.payments where status<>'cancelled'
+  on conflict do nothing;

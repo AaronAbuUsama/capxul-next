@@ -6,6 +6,7 @@ import { emit } from "../platform/outbox.ts";
 import { lookup } from "../parties/door.ts";
 import { open, readApproval, type ApprovalContext } from "../approvals/door.ts";
 import type { Owner, Payment } from "./types.ts";
+import { wakePayment } from "./work.ts";
 
 export interface PreparedItem {
   payee_party_id: string; payee_safe: string; payee_label: string; payee_kind: "person" | "organization" | null; payee_id: string | null;
@@ -154,6 +155,7 @@ export async function prepareCommand(sql: Sql, input: PrepareCommand, context: P
       owner_kind: b.owner_kind, owner_id: b.owner_id, actor: b.requested_by, trace_id: context.traceId, at,
       props: { from: old ? "needs_retry" : null, to: "prepared", transition: old ? "retry" : "open", payment_id: paymentId,
         owner_kind: b.owner_kind, owner_id: b.owner_id, command_id: commandId, route: b.route, outcome: null } });
+    await wakePayment(sql, { owner_kind: b.owner_kind, owner_id: b.owner_id, id: paymentId, chain_id: b.chain_id }, at, context.traceId);
   }
   return { command_id: commandId, payment_ids: prepared.map((p) => p.id).sort(), approval_id: approval.approval_id, expires_at: new Date(approval.deadline).getTime(), replayed: false };
 }
