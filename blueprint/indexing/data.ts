@@ -559,8 +559,8 @@ export const table_chain_hats = defineTable({
     "now), eligibility, toggle and whether it is active, kept current by Hats' max supply, eligibility, toggle and " +
     "status change events. `live` when its eligibility or toggle answers Hats itself (a module, such as the Elections " +
     "clone on an elected Director hat, probed with Hats' own getWearerStatus/getHatStatus calls at each of its events): " +
-    "its wearers and status then change with no event, so readers of this index refuse that hat (HISTORICAL_UNAVAILABLE) " +
-    "and its callers read `isWearerOfHat` live (indexing.hats-indexed). Budgets plans a new office or allowance hat's id from its admin's children here, with " +
+    "its wearers and status then change with no event, so readers of this index refuse that hat (HISTORICAL_UNAVAILABLE), " +
+    "or list it with its wearing unknown, and its callers read `isWearerOfHat` live (indexing.hats-indexed). Budgets plans a new office or allowance hat's id from its admin's children here, with " +
     "Ponder at the chain head (Hats ids are positional, so the next child is the count of children so far); board names " +
     "the officer and Director hats from it. Hats of other trees are not indexed.",
   was: ["packages/protocol/src/evm/company-hats.ts:11"],

@@ -51,7 +51,8 @@ test("finalized Safe and hat readers return exact log facts and refuse a newer p
     const wearers = await readHatWearersAt(sql, { chainId, hatId: fixture.hat, finality: 0 });
     assert.equal(wearers.find((w) => w.wearer === second)?.wearing, true);
     const worn = await readWearerHatsAt(sql, { chainId, wearer: second, companySafe: safe, finality: 0 });
-    assert.deepEqual(worn.filter((w) => w.hat_id === BigInt(fixture.hat).toString()).map((w) => [w.details, w.wearing]), [[hat!.details, true]]);
+    assert.deepEqual(worn.map((w) => [w.hat_id, w.details, w.wearing]), [[BigInt(fixture.hat).toString(), hat!.details, true],
+      [fixture.moduleHat, fixture.moduleHatDetails, null]], "a module-ruled hat stays listed with its wearing unknown");
     assert.deepEqual(await readWearerHatsAt(sql, { chainId, wearer: second, companySafe: founder, finality: 0 }), [], "another company's hats stay out");
     await assert.rejects(readWearerHatsAt(sql, { chainId, wearer: second, companySafe: safe, atBlock: (BigInt(worn[0]!.updated_block) - 1n).toString(), finality: 0 }),
       /HISTORICAL_UNAVAILABLE/);
@@ -59,6 +60,7 @@ test("finalized Safe and hat readers return exact log facts and refuse a newer p
     // A module-ruled hat changes wearers and status with no Hats event: every indexed hat reader refuses it.
     const ruled = (await sql.query("select hat_id,live from app.chain_hats where company_safe=$1 and details=$2", [safe, fixture.moduleHatDetails])).rows[0];
     assert.equal(ruled?.live, true, "Ponder marks the hat whose eligibility answers Hats");
+    assert.equal(BigInt(ruled.hat_id).toString(), fixture.moduleHat);
     assert.equal((await sql.query("select live from app.chain_hats where company_safe=$1 and details=$2", [safe, hat!.details])).rows[0].live, false,
       "a hat whose eligibility and toggle are the company Safe stays evented");
     const ruledId = BigInt(ruled.hat_id).toString();
