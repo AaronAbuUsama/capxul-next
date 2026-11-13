@@ -12,7 +12,9 @@ export type ProvisioningOptions = {
 const OWNERS = [{ type: "function", name: "getOwners", stateMutability: "view", inputs: [], outputs: [{ type: "address[]" }] }] as const;
 
 /** Mount before Core consumes the request stream. False means this is not our route. */
-export function createProvisioningHandler(options: ProvisioningOptions): (req: IncomingMessage, res: ServerResponse) => Promise<boolean> {
+/** `admit`, when Core supplies it, is called once the caller is authorised as the company's founder, so Core records the call
+ * and an anonymous caller with a fresh key cannot fill its signal tables (signals.world-rows). */
+export function createProvisioningHandler(options: ProvisioningOptions): (req: IncomingMessage, res: ServerResponse, admit?: () => void) => Promise<boolean> {
   if (!options.coreSecret || !options.siteServiceToken) throw new Error("Private provisioning credentials are required");
   const client = createPublicClient({ transport: http(options.rpcUrl) });
   // A lookup made before the caller is authenticated is marked x-capxul-preauth, so Core answers it but writes no span or
@@ -26,7 +28,7 @@ export function createProvisioningHandler(options: ProvisioningOptions): (req: I
     if (!response.ok) throw new ServiceError(response.status === 404 ? 400 : 503, response.status === 404 ? "INVALID_INPUT" : "PROVIDER_ERROR", "Core registration or release was refused");
     return response.json();
   };
-  return async (req, res) => {
+  return async (req, res, admit = () => {}) => {
     if (req.url !== PROVISION_PATH) return false;
     const trace = requestTrace(req);
     let creating: string | undefined;
@@ -60,6 +62,7 @@ export function createProvisioningHandler(options: ProvisioningOptions): (req: I
         if (signers.some((signer) => signer.toLowerCase() === caller.toLowerCase())) { authorised = true; break; }
       }
       if (!authorised) throw new ServiceError(403, "ROLE_PERMISSION_DENIED", "Founder no longer owns the company's Safe");
+      admit();
       if (options.lifecycle) {
         await options.lifecycle.store.begin({ org: info.slug, world: options.lifecycle.world, host: info.site, bench: options.lifecycle.bench, trace });
         creating = info.slug;

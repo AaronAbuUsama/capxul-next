@@ -50,6 +50,27 @@ test("human Access principal with no wallet binding reaches the document door", 
   }
 });
 
+test("Core is told to record a document call only once its caller is authorized", async (t) => {
+  let admits = 0;
+  const handler = createDocumentHandler({
+    authorize: ({ bearer }) => bearer === "seated" ? Effect.succeed({ personId: "person-1", kind: "person", email: "director@example.invalid",
+      safeAddress: person.address, signerAddress: null }) : Effect.fail({ code: "ROLE_PERMISSION_DENIED", message: "current Seat required" }),
+    provider: { doorCall: () => Effect.succeed({ doctype: "Supplier", name: "S-1", docstatus: 0, fields: {} }),
+      doorReport: () => Effect.succeed({ columns: [], rows: [] }) },
+    store: { site: async () => ({ host: "acme-town1.localhost", state: "ready" }) as any, logCall: async () => {} },
+    requestAnswer: () => Effect.succeed({ status: "collecting" }),
+  });
+  const server = createServer((req, res) => void handler(req, res, () => { admits++; }));
+  t.after(() => new Promise<void>((resolve) => { server.closeAllConnections(); server.close(() => resolve()); }));
+  const url = await listen(server);
+  const get = (bearer?: string) => fetch(`${url}${DOCUMENT_PATH}`, { method: "POST", headers: bearer ? { Authorization: `Bearer ${bearer}` } : {},
+    body: JSON.stringify({ verb: "get", orgId: "acme", doctype: "Supplier", name: "S-1" }) }).then((r) => r.status);
+  assert.deepEqual([await get(), await get("unseated")], [401, 403]);
+  assert.equal(admits, 0);
+  assert.equal(await get("seated"), 200);
+  assert.equal(admits, 1);
+});
+
 test("Bearer public SDK/CLI resolves its principal and exact document/report/held results", async (t) => {
   const calls: unknown[] = [];
   const receipts = new Map<string, Record<string, unknown>>();

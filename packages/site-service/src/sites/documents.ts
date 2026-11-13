@@ -39,9 +39,10 @@ const status: Record<string, number> = { INVALID_INPUT: 400, NOT_AUTHENTICATED: 
 const refused = (code: string, message: string) => new ServiceError(status[code] ?? 503,
   code in status ? code : "PROVIDER_ERROR", code in status ? message : "The site refused the document call");
 
-/** Composed inside Core's pre-body pause/drain boundary, not a second HTTP listener. */
+/** Composed inside Core's pre-body pause/drain boundary, not a second HTTP listener. `admit`, when Core supplies it, is
+ * called once Core has authorized the caller, so Core records the call (signals.world-rows). */
 export function createDocumentHandler(options: DocumentOptions) {
-  return async (req: IncomingMessage, res: ServerResponse): Promise<boolean> => {
+  return async (req: IncomingMessage, res: ServerResponse, admit: () => void = () => {}): Promise<boolean> => {
     if (req.url !== DOCUMENT_PATH) return false;
     const trace = requestTrace(req);
     let input: DocumentInput | undefined, user: string | undefined, personId: string | undefined;
@@ -64,6 +65,7 @@ export function createDocumentHandler(options: DocumentOptions) {
       const admitted = await Effect.runPromise(Effect.result(options.authorize({ orgId: input.orgId, bearer, traceId: trace })));
       if (admitted._tag === "Failure") throw refused(admitted.failure.code, admitted.failure.message);
       const principal = admitted.success;
+      admit();
       if (principal.kind !== "person" || !text(principal.email) || !text(principal.personId))
         throw refused("ROLE_PERMISSION_DENIED", "This principal has no delegated native person capability");
       user = principal.email; personId = principal.personId;
