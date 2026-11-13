@@ -78,7 +78,9 @@ export default class Core extends Cloudflare.Worker<Core>()(
         ),
         Layer.provide(SqlSpanSink),
         Layer.provide(ChainOps.layer(env)),
-        Layer.provide(SQL.PostgresLayer({ url: connectionString(env) })),
+        // Hyperdrive pools connections by transaction, so a statement prepared on one connection may run on another:
+        // statements go unnamed (the first world run of approval.sign, w-cops2, failed on a named one).
+        Layer.provide(SQL.PostgresLayer({ url: connectionString(env), prepare: false })),
         Layer.provide(Layer.succeed(CoreIdentity, identity)),
       );
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: each request gets its own database pool
