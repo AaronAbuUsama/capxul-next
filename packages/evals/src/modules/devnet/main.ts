@@ -98,6 +98,11 @@ if (process.argv.includes("--list")) {
           for (const key of ["rate", "worldNow", "epoch", "chainId", "recordHead"]) assert(Number.isFinite(shown[key]), `${key} is not a number`);
           assert.deepEqual(shown, expected, "world show differs from the selected world's catalogue or Organizations inventory");
           assert.equal(shown.chainId, config.chainId);
+          // Anchor to the same-run live inspection, so a stale catalogue cannot pass by agreeing with itself.
+          assert.equal(shown.state, "running", "the inspected live world is not running in its catalogue");
+          assert.equal(shown.epoch, live.world.epoch);
+          assert.equal(shown.worldNow, live.clock.nowMs, "catalogue worldNow differs from the live authority clock");
+          assert.equal(shown.clockMode, live.clock.clockMode === "stopped" ? "frozen" : "running");
           await writeFile(join(dir, "world-show.json"), JSON.stringify({ shown, catalogue: w, inventory: orgs }, null, 2) + "\n");
           emit(name, true, Date.now() - start, "public world show prints exactly the declared WorldView of the same-run selected world's catalogue and complete company inventory");
           continue;
@@ -109,12 +114,14 @@ if (process.argv.includes("--list")) {
           // A refusal against an empty or foreign catalogue would prove nothing about this world.
           assert(Array.isArray(before?.worlds) && before.worlds.some((w: { world_id?: string }) => w.world_id === config.world.id), "selected world's catalogue row is missing");
           const unknown = config.world.id === "nosuchworld" ? "otherworld" : "nosuchworld";
+          assert(!before.worlds.some((w: { world_id?: string }) => w.world_id === unknown), "the unknown name exists in this catalogue");
           const refused = await cli(["world", "show", unknown]).then(() => assert.fail("unknown world was shown"), (e: { code?: number; stdout?: string; stderr?: string }) => e);
           assert.equal(refused.code, 2, "INVALID_INPUT exit code");
           assert.equal(refused.stdout, "");
           const printed = JSON.parse(refused.stderr ?? "");
           assert.deepEqual(Object.keys(printed), ["error"]); assert.deepEqual(Object.keys(printed.error).sort(), ["code", "message"]);
-          assert.equal(printed.error.code, "INVALID_INPUT"); assert.equal(typeof printed.error.message, "string");
+          assert.equal(printed.error.code, "INVALID_INPUT");
+          assert.match(printed.error.message, /no such world/, "refused for the selection, not for an absent world");
           const [after] = await query(state);
           assert.deepEqual(after, before, "a refused world show changed the catalogue");
           await writeFile(join(dir, "world-show-unknown.json"), JSON.stringify({ unknown, refusal: printed, before, after }, null, 2) + "\n");

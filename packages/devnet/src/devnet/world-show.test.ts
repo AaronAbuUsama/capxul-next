@@ -76,7 +76,9 @@ test("native world show reads stopped catalogue facts and Organizations' complet
     for (const args of [["world", "show"], ["world", "show", "town1"], ["world", "show", "--world", "town1"]]) assert.deepEqual(cli(args), expected);
     assert.equal((await store.records("town1", { includeAbandoned: true })).length, 6, "show must not append command entries");
     await stat(join(config.controlDir, ".operation"));
-    for (const args of [["world", "show", "tow"], ["world", "show", "--world", "town2"], ["world", "show", "town1", "--world", "tow"]]) assert.equal(cli(args, 2).error.code, "INVALID_INPUT");
+    for (const args of [["world", "show", "tow"], ["world", "show", "--world", "town2"], ["world", "show", "town1", "--world", "tow"]]) assert.match(cli(args, 2).error.message, /^INVALID_INPUT: no such world/);
+    // A world that exists in this catalogue but is not the configured one is a selection refusal, not "no such world".
+    assert.match(cli(["world", "show", "town3"], 2).error.message, /^INVALID_INPUT: world is not the one the private config selects/);
     for (const args of [["world", "show", "--epoch", "1"], ["world", "show", "--world"], ["world", "show", "town1", "extra"]]) assert.equal(cli(args, 2).error.code, "CLI_USAGE");
     await writeConfig(configFile, { ...config, world: { ...config.world, id: "absent" } });
     assert.equal(cli(["world", "show"], 2).error.code, "INVALID_INPUT");

@@ -15,6 +15,21 @@ export const decision_devnet_canary_alto = defineDecision({
   affects: [component_bundler_paymaster, component_devnet, environment_devnet],
 });
 
+export const decision_devnet_local_signed_sponsor = defineDecision({
+  id: "devnet.local-signed-sponsor",
+  title: "A test-only local signed ERC-7677 gateway proves dated sponsorship via Alto",
+  question: "How is the verified-sponsorship adapter proved against a signing paymaster and real bundler ingress without choosing a vendor, credentials or staging policy?",
+  options: [
+    { label: "test-only-local", text: "A loopback HTTP gateway that starts only with explicit admission 'test-only', on loopback chain 84532 against upstream SingletonPaymaster07 (pinned @pimlico/mock-paymaster 0.0.8 creation code), signed by a fresh disposable key that the deployed paymaster lists. It admits only configured Safes, the configured EntryPoint and chain, and no initCode. It signs exactly the requested validAfter/validUntil, which must equal the Safe signature's window, and the canonical world clock bounds it to at most the configured window. Final data signs the deployed contract's getHash over the final operation with its gas, within paymaster-gas and maximum-cost caps. Estimation is delegated to the configured real bundler. Refusals use bundler validation codes. An opt-in native proof composes it with the PR84 adapter and real Alto." },
+    { label: "upstream-relay", text: "Run @pimlico/mock-paymaster's relay, which signs validAfter 0 and host time plus 60,000 seconds and ignores the requested window." },
+    { label: "mock-only", text: "Keep only the accept-all MockPaymaster and leave signed windows unexercised." },
+  ],
+  chosen: "test-only-local",
+  why: "approvals.verified-sponsorship requires exact nonzero bounds from the deployed paymaster's validation, which the accept-all mock and the published relay cannot supply. A disposable local signer exercises signing, refusal, window enforcement and successful inclusion without a vendor choice, credentials, spend or deployment. The canary's default MockPaymaster path (devnet.canary-alto) is unchanged. Real Alto 0.0.21 admits validAfter/validUntil by its host wall clock while EntryPoint uses block time, and the seeded core.json chain starts weeks behind wall time, so the proof syncs its disposable chain to wall time and uses wall time as that world's canonical clock; a world whose canonical clock or chain time departs from wall time would have bounded windows refused by Alto. Admission is test policy only: it is not product or staging sponsorship policy conformance, and its proof is a component run, not same-run acceptance.",
+  source: "approvals.verified-sponsorship; ERC-7677; @pimlico/mock-paymaster 0.0.8 (npm shasum 96859c98ae10abf6759506e581c88b7e63d2b6c0) singletonPaymasters.ts and constants.ts; integrator assignment of the bounded test-only gateway, 12 November 2026",
+  affects: [component_bundler_paymaster, component_devnet, environment_devnet],
+});
+
 export const decision_devnet_create_sponsor = defineDecision({
   id: "devnet.create-sponsor",
   title: "Fresh local worlds persist their native sponsor before opening ingress",

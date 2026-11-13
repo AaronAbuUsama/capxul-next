@@ -31,9 +31,9 @@ export async function readCatalogue(c: Config, words: string[]): Promise<unknown
   const verb = snapshot ? "snapshots" : worldShow ? "world" : words[1];
   if (!snapshot && !worldShow && (words[0] !== "record" || !["list", "show", "export"].includes(verb!))) throw new Error("CLI_USAGE: expected record list|show|export");
   const rest = words.slice(snapshot ? 3 : 2);
-  if ((snapshot || worldShow) && rest[0] && !rest[0].startsWith("--")) {
-    if (rest.shift() !== c.world.id) throw new Error("INVALID_INPUT: world does not match the private config");
-  }
+  // A named world is looked up in the catalogue below, so an absent name refuses as "no such world".
+  const named = new Set<string>();
+  if ((snapshot || worldShow) && rest[0] && !rest[0].startsWith("--")) named.add(rest.shift()!);
   const allowed = verb === "list" ? ["world", "who", "kind", "from", "to", "trace", "epoch", "limit", "include-abandoned"] :
     verb === "show" ? ["world", "epoch", "seq"] : verb === "export" ? ["world", "from", "to", "out"] : ["world"];
   const flags = new Map<string, string>();
@@ -44,7 +44,7 @@ export async function readCatalogue(c: Config, words: string[]): Promise<unknown
     if (!value || value.startsWith("--")) throw new Error("CLI_USAGE: catalogue option requires a value");
     flags.set(name, value);
   }
-  if (flags.has("world") && flags.get("world") !== c.world.id) throw new Error("INVALID_INPUT: world does not match the private config");
+  if (flags.has("world")) named.add(flags.get("world")!);
   const filter: RecordFilter = {};
   for (const key of ["epoch", "from", "to", "limit"] as const) if (flags.has(key)) {
     const value = flags.get(key)!;
@@ -68,6 +68,10 @@ export async function readCatalogue(c: Config, words: string[]): Promise<unknown
     catch (cause) { throw new Error("Catalogue query failed; inspect private world diagnostics", { cause }); }
   }, []);
   const world = c.world.id;
+  for (const name of named) if (name !== world) {
+    await store.show(name);
+    throw new Error("INVALID_INPUT: world is not the one the private config selects");
+  }
   if (verb === "world") {
     const { world: w, cut } = await store.view(world);
     const companies = await worldCompanies(c);
