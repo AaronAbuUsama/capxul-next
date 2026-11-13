@@ -50,8 +50,10 @@ test("native storage runner refuses another incarnation of the same world", {
       });
     };
     const current = await execute(7);
-    assert.equal(current.code, 0, current.output);
-    assert.match(current.output, /MEDIA\.schema\tpass/);
+    // Without Runtime's actors file the session checks fail closed; the catalog checks still pass.
+    assert.match(current.output, /MEDIA\.schema\tpass/, current.output);
+    assert.match(current.output, /MEDIA\.closed-table-writes\tpass/);
+    assert.match(current.output, /MEDIA\.tenancy\tfail/);
     for (const epoch of [8, undefined, "7", 0, 7.5]) {
       const stale = await execute(epoch);
       assert.equal(stale.code, 1, `epoch ${String(epoch)}: ${stale.output}`);

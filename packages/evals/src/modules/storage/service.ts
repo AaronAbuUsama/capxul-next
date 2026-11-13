@@ -4,6 +4,13 @@ import { join } from "node:path";
 import { parseRunReceipt } from "@capxul/blueprint-engine";
 import { Database } from "../../../../backend/src/devnet/door.ts";
 
+/** What a session check gets once the schema check has matched the receipt's own selected world. */
+export type SelectedWorld = {
+  dir: string; coreUrl: string; db: Database;
+  run: { id: string; at: string; commit: string }; world: { id: string; epoch: number };
+};
+export type SessionCheck = { name: string; run(world: SelectedWorld): Promise<void> };
+
 export type TableContract = {
   table: "agents" | "documents" | "files";
   columns: readonly (readonly [string, string, boolean])[];
@@ -13,15 +20,15 @@ export type TableContract = {
 };
 
 /** Reads the selected world's actual catalog. It never migrates, seeds, sets caller labels or imports receipts. */
-export async function runStorage(area: string, contract: TableContract) {
+export async function runStorage(area: string, contract: TableContract, sessions: readonly SessionCheck[] = []) {
   const prefix = area.toUpperCase();
-  const names = [`${prefix}.schema`, `${prefix}.closed-table-writes`];
+  const names = [`${prefix}.schema`, `${prefix}.closed-table-writes`, ...sessions.map((s) => s.name)];
   if (process.argv.includes("--list")) {
     for (const name of names) console.log(`${name}\tcheck`);
     return;
   }
   let db: Database | undefined;
-  let ready = false;
+  let ready = false, selected: SelectedWorld | undefined;
   const emit = async (name: string, effect: () => Promise<void>) => {
     const start = performance.now();
     try {
@@ -88,6 +95,8 @@ export async function runStorage(area: string, contract: TableContract) {
         const rls = (await sql.query("select relrowsecurity,relforcerowsecurity from pg_class where oid=$1::regclass", [`app.${contract.table}`])).rows[0];
         assert.deepEqual(rls, { relrowsecurity: true, relforcerowsecurity: true });
         ready = true;
+        selected = { dir, coreUrl, db, run: { id: receipt.id, at: receipt.at, commit: receipt.commit },
+          world: { id: preparation.world.id, epoch: preparation.world.epoch } };
       } finally { sql.release(); }
     });
     await emit(names[1]!, async () => {
@@ -97,5 +106,6 @@ export async function runStorage(area: string, contract: TableContract) {
         assert.equal(rows[0]?.allowed, false);
       }
     });
+    for (const check of sessions) await emit(check.name, async () => { assert(ready && selected); await check.run(selected); });
   } finally { await db?.close(); }
 }

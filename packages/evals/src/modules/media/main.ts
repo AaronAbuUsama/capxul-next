@@ -1,4 +1,5 @@
 import { runStorage } from "../storage/service.ts";
+import { mediaSessions } from "./sessions.ts";
 
 await runStorage("media", {
   table: "files",
@@ -13,4 +14,4 @@ await runStorage("media", {
     content_type: ["image/jpeg", "image/png", "image/webp", "application/pdf"],
   },
   indexes: [["files_by_id", ["file_id"], true]],
-});
+}, mediaSessions);

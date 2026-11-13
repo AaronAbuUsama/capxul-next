@@ -50,7 +50,7 @@ test("native sessions: tenants and admissions on documents, files and agents fol
       assert(out.ok); return out.value;
     };
     const ann = await signIn("ann@sessions.test"), bob = await signIn("bob@sessions.test"), cy = await signIn("cy@sessions.test");
-    for (const p of [ann, bob]) await worker(() => resolveRecipient(sql, { _tag: "mailbox", mailbox: p.email }, config, now));
+    for (const p of [ann, bob]) await worker(() => resolveRecipient(sql, { _tag: "mailbox", mailbox: p.email }, config, now, "sessions-native"));
 
     // Documents: Ann owns two, one names Bob's Safe; the company owns one naming its own Safe.
     const doc = (id: string, safes: string[]): StoreInput => ({
@@ -63,7 +63,7 @@ test("native sessions: tenants and admissions on documents, files and agents fol
     const org = { id: "org_sessions", safe: `0x${"c".repeat(40)}` };
     await sql.query("set local role none");
     await sql.query("insert into app.organizations(org_id,name,safe,site,admin_email,token) values($1,'Sessions',$2,'sessions.site','a@sessions.test','t')", [org.id, org.safe]);
-    await worker(() => register(sql, { kind: "organization", handle: "sessions-co", display_name: "Sessions", safe_address: org.safe, owner_kind: "organization", owner_id: org.id }, now));
+    await worker(() => register(sql, { kind: "organization", handle: "sessions-co", display_name: "Sessions", safe_address: org.safe, owner_kind: "organization", owner_id: org.id }, now, "sessions-native"));
     await sql.query("set local role none");
     const bobParty = (await sql.query("select party_id from app.parties where safe_address=$1", [bob.safe])).rows[0].party_id;
     await sql.query(`insert into app.org_members(org_id,member_id,party_id,principal_id,kind,safe_address,seat_use,status,joined_at,updated_at)
