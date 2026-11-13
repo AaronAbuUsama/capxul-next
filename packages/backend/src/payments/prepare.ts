@@ -5,7 +5,7 @@ import type { Sql } from "../platform/db.ts";
 import { emit } from "../platform/outbox.ts";
 import { lookup } from "../parties/door.ts";
 import { open, readApproval, type ApprovalContext } from "../approvals/door.ts";
-import type { Owner, Payment } from "./types.ts";
+import { unmappedPayrollSources, type Owner, type Payment } from "./types.ts";
 import { wakePayment } from "./work.ts";
 
 export interface PreparedItem {
@@ -64,6 +64,9 @@ export async function prepareCommand(sql: Sql, input: PrepareCommand, context: P
         !Number.isInteger(item.decimals) || item.decimals < 0 || item.decimals > 255 || !Number.isInteger(item.kind) || item.kind < 0 || item.kind > 65535 ||
         item.token_address !== b.items[0]!.token_address || item.decimals !== b.items[0]!.decimals))
     throw new Error("INVALID_INPUT: payment item terms");
+  // Settlement could not book these, so refuse before any approval opens rather than after money leaves.
+  if (b.items.some((item) => item.source && unmappedPayrollSources.includes(String(item.source.kind))))
+    throw new Error("WRONG_STATE: payroll Books provenance mapping is not available");
   for (const item of b.items) item.amount_raw = BigInt(item.amount_raw).toString();
   const digest = keccak256(stringToHex(canonical({ ...b, funding: undefined, resume: undefined, requested_by: undefined })));
   await sql.query("select pg_advisory_xact_lock(hashtextextended($1, 8137))", [JSON.stringify([b.owner_kind, b.owner_id, b.request_key])]);

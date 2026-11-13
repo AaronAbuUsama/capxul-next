@@ -369,8 +369,8 @@ export const machine_personal_safe = defineMachine({
   about:
     "personal-safes.status, owned by the setup process (`accounts.setup.personal-safe`, one instance per row). `start` " +
     "(a birth) and `retry` come from the web app's setup start; `claim`, `fail` and `finish` from the process. `claim` " +
-    "needs chain proof: the claim's CapxulSafeClaimed for this Safe and signer, or the Safe already owned by exactly this " +
-    "signer. Only the claim can fail; a collection the person declines or lets lapse still finishes, and the escrows stay " +
+    "needs a real indexed CapxulSafeClaimed for this Safe and signer, current sole ownership and deployment finality, " +
+    "including adoption without a new send. Ownership alone stays pending. Only the claim can fail; a collection the person declines or lets lapse still finishes, and the escrows stay " +
     "theirs to claim later (`payment claim`) or their sender's to take back. The old row had no state column (deployedAt, claimLockId and claimedAt " +
     "stood for it) and a ten-minute claim lock; the process's single instance replaces the lock.",
   table: table_personal_safes,
@@ -400,8 +400,8 @@ export const machine_personal_safe = defineMachine({
     claim: {
       from: ["claiming"],
       to: "collecting",
-      about: "The process saw the claim on chain, or found the Safe already owned by exactly this signer.",
-      guard: "CapxulSafeClaimed names this Safe and signer, or getOwners() is exactly [signer].",
+      about: "The process reads the actual indexed claim occurrence and current sole signer in one SQL snapshot.",
+      guard: "Ready Ponder progress reaches CapxulSafeClaimed for this Safe and signer at deployment finality, with current deployed threshold-one sole ownership; a recorded transaction hash must match.",
       emits: [event_personal_safe_transitioned],
     },
     fail: {
