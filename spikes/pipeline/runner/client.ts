@@ -1,6 +1,7 @@
 // The client a scenario is handed. It is derived from the contract's Rpc group, sends every call under its own
 // trace id in the contract's trace header, and keeps a log of every call (with what was sent and what came back) so
-// the generic checks can find what the server kept about each one and compare it.
+// the generic checks can find what the server kept about each one and compare it. During the world's warm-up, and
+// only then, it sends a call again when Cloudflare's edge answered it instead of the Worker (warmup.ts).
 import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
 import * as Duration from "effect/Duration";
@@ -18,6 +19,7 @@ import * as RpcSerialization from "effect/rpc/RpcSerialization";
 import { CoreRpcs, isRefusal, operations, TRACE_HEADER, type OperationName } from "../contract/door.ts";
 import { describe } from "./failure.ts";
 import { Core, TraceIds, type CoreClient } from "./scenario.ts";
+import { resendingWhileWarm } from "./warmup.ts";
 
 /**
  * How a call ended, as the caller saw it: `success`; `refusal`, one of the operation's declared typed errors;
@@ -37,6 +39,11 @@ export interface Call {
   readonly success: Option.Option<unknown>;
   /** How long the call took from the caller's side, network included. */
   readonly ms: number;
+  /**
+   * How many times a send was repeated while this call was under way, because Cloudflare's edge answered instead
+   * of the Worker during the world's warm-up (warmup.ts). Nothing is resent once the warm-up is over.
+   */
+  readonly resent: number;
   readonly failure: string | null;
 }
 
@@ -60,39 +67,51 @@ type Send = (
   options: { readonly headers: Readonly<Record<string, string>> },
 ) => Effect.Effect<unknown, unknown>;
 
+/** What the client needs to know of a world: where its Core answers, and when its warm-up ends. */
+export interface Target {
+  readonly url: string;
+  /** Epoch milliseconds. Until then, a call Cloudflare's edge answered is sent again, `every` apart. */
+  readonly warmUntil: number;
+  readonly every: Duration.Duration;
+}
+
 /**
  * `Core` and `TraceIds` for one world. Every call made through this `Core` is appended to `log`, whatever its
  * outcome, and then returned to the scenario unchanged.
  */
-export const coreOf = (url: string, log: Ref.Ref<ReadonlyArray<Call>>): Layer.Layer<Core | TraceIds, never, HttpClient.HttpClient> =>
-  Layer.effect(
-    Core,
+export const coreOf = (target: Target, log: Ref.Ref<ReadonlyArray<Call>>): Layer.Layer<Core | TraceIds, never, HttpClient.HttpClient> =>
+  Layer.unwrap(
     Effect.gen(function* () {
-      const traces = yield* TraceIds;
-      const send = (yield* RpcClient.make(CoreRpcs, { flatten: true })) as unknown as Send;
-      const call = (operation: OperationName) => (payload: unknown, options?: { readonly traceId?: string }) =>
-        Effect.gen(function* () {
-          const traceId = options?.traceId ?? (yield* traces.next);
-          const headers = { [TRACE_HEADER]: `00-${traceId}-${yield* hex(16)}-01` };
-          const [took, exit] = yield* Effect.timed(Effect.exit(send(operation, payload, { headers })));
-          yield* Ref.update(log, (calls) => [
-            ...calls,
-            {
+      // One count for the world: a call's share is what was added while it was under way.
+      const resent = yield* Ref.make(0);
+      const core = Effect.gen(function* () {
+        const traces = yield* TraceIds;
+        const send = (yield* RpcClient.make(CoreRpcs, { flatten: true })) as unknown as Send;
+        const call = (operation: OperationName) => (payload: unknown, options?: { readonly traceId?: string }) =>
+          Effect.gen(function* () {
+            const traceId = options?.traceId ?? (yield* traces.next);
+            const headers = { [TRACE_HEADER]: `00-${traceId}-${yield* hex(16)}-01` };
+            const before = yield* Ref.get(resent);
+            const [took, exit] = yield* Effect.timed(Effect.exit(send(operation, payload, { headers })));
+            const entry: Call = {
               operation,
               traceId,
               outcome: outcomeOf(operation, exit),
               payload,
               success: Exit.isSuccess(exit) ? Option.some(exit.value) : Option.none(),
               ms: Math.round(Duration.toMillis(took)),
+              resent: (yield* Ref.get(resent)) - before,
               failure: Exit.isFailure(exit) ? describe(exit.cause) : null,
-            },
-          ]);
-          return yield* exit;
-        });
-      return Object.fromEntries(Object.keys(operations).map((name) => [name, call(name as OperationName)])) as unknown as CoreClient;
+            };
+            yield* Ref.update(log, (calls) => [...calls, entry]);
+            return yield* exit;
+          });
+        return Object.fromEntries(Object.keys(operations).map((name) => [name, call(name as OperationName)])) as unknown as CoreClient;
+      });
+      return Layer.effect(Core, core).pipe(
+        Layer.provide(RpcClient.layerProtocolHttp({ url: target.url, transformClient: resendingWhileWarm(target.warmUntil, target.every, resent) })),
+        Layer.provide(RpcSerialization.layerJson),
+        Layer.provideMerge(TraceIdsLive),
+      );
     }),
-  ).pipe(
-    Layer.provide(RpcClient.layerProtocolHttp({ url })),
-    Layer.provide(RpcSerialization.layerJson),
-    Layer.provideMerge(TraceIdsLive),
   );

@@ -66,6 +66,8 @@ export const SpanRow = Schema.Struct({
   name: Schema.String,
   outcome: Schema.String,
   duration_ms: Schema.Number,
+  /** When the span ended, in epoch milliseconds by the Worker's clock. */
+  ended_ms: Schema.Number,
 });
 export type SpanRow = typeof SpanRow.Type;
 
@@ -82,7 +84,7 @@ export type EventRow = typeof EventRow.Type;
 export const telemetryOf = (database: Redacted.Redacted<string>, traceIds: ReadonlyArray<string>) =>
   Effect.gen(function* () {
     if (traceIds.length === 0) return { spans: [] as ReadonlyArray<SpanRow>, events: [] as ReadonlyArray<EventRow> };
-    const spans = yield* query(database, "select trace_id, name, outcome, duration_ms from app.spans where trace_id = any($1) order by id", [traceIds]);
+    const spans = yield* query(database, "select trace_id, name, outcome, duration_ms, (extract(epoch from at) * 1000)::float8 as ended_ms from app.spans where trace_id = any($1) order by id", [traceIds]);
     const events = yield* query(database, "select trace_id, operation, event, payload from app.events where trace_id = any($1) order by id", [traceIds]);
     return {
       spans: yield* Schema.decodeUnknownEffect(Schema.Array(SpanRow))(spans),

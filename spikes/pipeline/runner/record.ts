@@ -13,6 +13,8 @@ export const RunRecord = Schema.Struct({
   /** Passed: the scenario's own expectations held and every gating generic check passed on every call. */
   outcome: Schema.Literals(["passed", "failed"]),
   failure: Schema.NullOr(Schema.String),
+  /** What the wait for the world's Core saw (warmup.ts); null when the create did not get that far. */
+  readiness: Schema.NullOr(Schema.Struct({ probes: Schema.Number, relapses: Schema.Number, ms: Schema.Number })),
   /** Every call the scenario made, in order, with what the generic checks found. */
   calls: Schema.Array(CheckedCall),
   worldAfterwards: Schema.Literals(["destroying", "destroyed", "destroy failed"]),

@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc -p .",
-    "scenarios": "./run.sh scenarios",
-    "smoke": "./run.sh smoke"
+    "scenarios": "./run.sh scenarios"
   },
   "dependencies": {
     "@alchemy.run/cloudflare": "2.0.0-beta.85",

@@ -49,8 +49,14 @@ export const WorldBranch = Effect.gen(function* () {
   return yield* Neon.Branch("world", { project, name: `w-${owner}-${stage}`, expiresAt });
 });
 
-/** Cloudflare's pooled way in to the world's branch. The Worker binds this; it never sees the connection string. */
+/**
+ * Cloudflare's pooled way in to the world's branch. The Worker binds this; it never sees the connection string.
+ *
+ * Hyperdrive's query cache is off. With it on (the default), a `select` outside a transaction is answered from a
+ * cache for up to 60 seconds, so a read just after a write could come back without the write: an export after
+ * eight appends returned no entries. A world's record must be read as it is, so every statement goes to the database.
+ */
 export const WorldDatabase = Effect.gen(function* () {
   const branch = yield* WorldBranch;
-  return yield* Cloudflare.Hyperdrive.Connection("world-db", { origin: branch.origin });
+  return yield* Cloudflare.Hyperdrive.Connection("world-db", { origin: branch.origin, caching: { disabled: true } });
 });

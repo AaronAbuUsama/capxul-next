@@ -23,6 +23,12 @@ export const Settings = Config.all({
   /** The scenario and the generic checks together. */
   useTimeout: Config.Duration("WORLD_USE_TIMEOUT").pipe(Config.withDefault(Duration.minutes(2))),
   destroyTimeout: Config.Duration("WORLD_DESTROY_TIMEOUT").pipe(Config.withDefault(Duration.minutes(3))),
+  /** A world is ready after this many answers in a row from its Core, within the create timeout (warmup.ts). */
+  readyAnswers: Config.Int("WORLD_READY_ANSWERS").pipe(Config.withDefault(20)),
+  /** The pause between two readiness probes, and between two sends of a call during the warm-up. */
+  probeEvery: Config.Duration("WORLD_PROBE_EVERY").pipe(Config.withDefault(Duration.millis(500))),
+  /** How long after a world is ready a call that Cloudflare's edge answered (not routed yet) is sent again. */
+  warmUp: Config.Duration("WORLD_WARM_UP").pipe(Config.withDefault(Duration.seconds(30))),
   /** Where run records are written, outside any world. */
   records: Config.String("PIPELINE_RECORDS").pipe(Config.withDefault("records")),
   /** The `.sql` files applied to a world's database when it is created. */
@@ -39,10 +45,11 @@ interface Used {
 const millis = (took: Duration.Duration) => Math.round(Duration.toMillis(took));
 
 /** The scenario, then the generic checks on every call it made, while the world still exists. */
-const use = (scenario: Scenario) => (world: World) =>
+const use = (scenario: Scenario, settings: Settings) => (world: World) =>
   Effect.gen(function* () {
     const log = yield* Ref.make<ReadonlyArray<Call>>([]);
-    const [scenarioTook, exit] = yield* Effect.timed(Effect.exit(Effect.provide(scenario.run, coreOf(world.url, log))));
+    const core = coreOf({ url: world.url, warmUntil: world.warmUntil, every: settings.probeEvery }, log);
+    const [scenarioTook, exit] = yield* Effect.timed(Effect.exit(Effect.provide(scenario.run, core)));
     const calls = yield* Ref.get(log);
     const [checksTook, kept] = yield* Effect.timed(telemetryOf(world.database, calls.map((call) => call.traceId)));
     return {
@@ -71,6 +78,7 @@ const recordOf = (scenario: Scenario, lifecycle: Lifecycle<Used, unknown>): RunR
     expiresAt: lifecycle.expiresAt,
     outcome: failures.length === 0 ? "passed" : "failed",
     failure: failures.length === 0 ? null : failures.join("\n"),
+    readiness: lifecycle.readiness,
     calls: used?.calls ?? [],
     worldAfterwards: lifecycle.worldAfterwards,
     ms: { create: lifecycle.ms.create, scenario: used?.ms.scenario ?? null, checks: used?.ms.checks ?? null, destroy: lifecycle.ms.destroy },
@@ -89,8 +97,9 @@ export const runScenario = (scenario: Scenario, settings: Settings) =>
         lifetime: settings.lifetime,
         timeouts: { create: settings.createTimeout, use: settings.useTimeout, destroy: settings.destroyTimeout },
         migrations: settings.migrations,
+        warmUp: { answers: settings.readyAnswers, every: settings.probeEvery, warmUp: settings.warmUp },
       },
-      use(scenario),
+      use(scenario, settings),
       (lifecycle) => Effect.orDie(writeRecord(settings.records, recordOf(scenario, lifecycle))),
     );
     return recordOf(scenario, lifecycle);

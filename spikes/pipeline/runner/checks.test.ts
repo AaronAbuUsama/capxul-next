@@ -17,10 +17,11 @@ const call = (outcome: Call["outcome"], operation: Call["operation"] = "record.a
   payload: operation === "record.append" ? sent : undefined,
   success: outcome !== "success" ? Option.none() : Option.some(operation === "record.append" ? answer : { entries: [] }),
   ms: 40,
+  resent: 0,
   failure: null,
   ...more,
 });
-const span = (outcome: string, more: Partial<SpanRow> = {}): SpanRow => ({ trace_id: "t1", name: "record.append", outcome, duration_ms: 12, ...more });
+const span = (outcome: string, more: Partial<SpanRow> = {}): SpanRow => ({ trace_id: "t1", name: "record.append", outcome, duration_ms: 12, ended_ms: 1_000, ...more });
 const appended = (more: Partial<EventRow> = {}): EventRow => ({ trace_id: "t1", operation: "record.append", event: "record_appended", payload: { key: "a", seq: 1 }, ...more });
 const failed = (checked: ReturnType<typeof checkCall>) => checked.checks.filter((check) => !check.passed).map((check) => check.check);
 /** The events check of a successful append whose one recorded event carries `payload`. */
@@ -73,6 +74,18 @@ describe("the generic checks", () => {
 
   test("a span that disagrees with what the caller saw fails the outcome check", () => {
     expect(failed(checkCall(call("success"), { spans: [span("defect")], events: [appended()] }))).toEqual(["outcome"]);
+  });
+
+  test("the spans beneath a call's own are listed in the order they started, on the call's clock", () => {
+    const beneath = [span("success", { name: "COMMIT", duration_ms: 80, ended_ms: 1_000 }), span("success", { name: "BEGIN", duration_ms: 600, ended_ms: 610 })];
+    const kept = { spans: [...beneath, span("success", { name: "elsewhere", trace_id: "t2" }), span("success", { duration_ms: 1_000 })], events: [appended()] };
+    expect(checkCall(call("success", "record.append", { resent: 2 }), kept)).toMatchObject({
+      resent: 2,
+      steps: [
+        { name: "BEGIN", startMs: 10, ms: 600 },
+        { name: "COMMIT", startMs: 920, ms: 80 },
+      ],
+    });
   });
 
   test("a call over its budget is recorded and does not gate", () => {

@@ -5,7 +5,6 @@
 #
 #   ./run.sh scenarios            run every scenario in scenarios/, each in its own fresh world
 #   ./run.sh scenarios <dir>      the same for the *.scenario.ts files under another directory
-#   ./run.sh smoke                run the runner's own smoke scenario (runner/smoke/)
 #   ./run.sh alchemy <args...>    an alchemy command for this stack, e.g. alchemy destroy --stage platform --yes
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -15,6 +14,5 @@ export NEON_ORG_ID="${NEON_ORG_ID:-$(curl -sS --max-time 20 https://console.neon
 case "${1:-}" in
   alchemy) shift; exec bun node_modules/alchemy/bin/cli.js "$@" ;;
   scenarios) shift; exec bun runner/main.ts "${1:-scenarios}" ;;
-  smoke) exec bun runner/main.ts runner/smoke ;;
-  *) echo "usage: ./run.sh scenarios [dir] | smoke | alchemy <args...>" >&2; exit 2 ;;
+  *) echo "usage: ./run.sh scenarios [dir] | alchemy <args...>" >&2; exit 2 ;;
 esac

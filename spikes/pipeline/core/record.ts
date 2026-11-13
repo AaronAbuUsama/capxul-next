@@ -103,10 +103,9 @@ export const RecordStoreLive = Layer.effect(
       execute: () => sql`select seq, key, kind, body from app.record_entries order by seq`,
     });
 
-    // Read inside a transaction, though it is one statement. The world reaches its database through Hyperdrive,
-    // which answers a bare `select` from its own cache for up to a minute: an export just after an append came
-    // back without the new entry. A statement inside a transaction always reaches the database.
-    const entries = sql.withTransaction(select()).pipe(
+    // One statement and no transaction, so one round trip. It always reaches the database: the world's Hyperdrive
+    // configuration has its query cache turned off (world.ts), so an export just after an append holds the new entry.
+    const entries = select().pipe(
       Effect.map(Arr.map((row) => new Record.Entry(row))),
       Effect.withSpan("RecordStore.entries"),
     );

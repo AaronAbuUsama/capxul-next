@@ -7,6 +7,7 @@
 //   5. A world never lives on this machine: it is a Worker and a Neon branch.
 //   6. Each step has a declared timeout, and how long each step took is reported.
 import * as Alchemist from "alchemy/Alchemist";
+import * as Clock from "effect/Clock";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -14,13 +15,12 @@ import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
-import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
-import * as HttpClient from "effect/http/HttpClient";
 import stack from "../alchemy.run.ts";
 import { PLATFORM, WorldSettings } from "../core/world.ts";
 import { migrate } from "./database.ts";
 import { describe } from "./failure.ts";
+import { answersSteadily, type Readiness, type WarmUpPolicy } from "./warmup.ts";
 
 export interface WorldSpec {
   /** The world's stage name. Starts with `pl-` so it cannot be mistaken for anyone else's. */
@@ -31,6 +31,8 @@ export interface WorldSpec {
   readonly timeouts: { readonly create: Duration.Duration; readonly use: Duration.Duration; readonly destroy: Duration.Duration };
   /** The directory of `.sql` files applied to the world's database when it is created. */
   readonly migrations: string;
+  /** When the world counts as ready, and how long after that its address may still be settling (warmup.ts). */
+  readonly warmUp: WarmUpPolicy;
 }
 
 export interface World {
@@ -40,17 +42,15 @@ export interface World {
   /** Where the world's Core answers. */
   readonly url: string;
   readonly database: Redacted.Redacted<string>;
+  /** What the wait for Core's answers saw. */
+  readonly readiness: Readiness;
+  /** The moment (epoch milliseconds) the warm-up ends: until then a call Cloudflare's edge answered is sent again. */
+  readonly warmUntil: number;
 }
 
 export class StepTimedOut extends Schema.TaggedError<StepTimedOut>()("StepTimedOut", {
   step: Schema.Literals(["create", "use", "destroy"]),
   afterMs: Schema.Number,
-  message: Schema.String,
-}) {}
-
-export class WorldNotReady extends Schema.TaggedError<WorldNotReady>()("WorldNotReady", {
-  url: Schema.String,
-  status: Schema.Number,
   message: Schema.String,
 }) {}
 
@@ -61,6 +61,8 @@ export interface Lifecycle<A, E> {
   readonly expiresAt: string;
   /** Why the world could not be created; null when it was. */
   readonly createFailure: string | null;
+  /** What the wait for Core's answers saw; null when the create did not get that far. */
+  readonly readiness: Readiness | null;
   /** Undefined when the use step never ended: the create failed, or the run was interrupted. */
   readonly used: Exit.Exit<A, E | StepTimedOut> | undefined;
   readonly worldAfterwards: "destroying" | "destroyed" | "destroy failed";
@@ -93,26 +95,6 @@ const deploy = (stage: string) => Effect.scoped(Effect.flatMap(Alchemist.plan({ 
 
 const remove = (stage: string) => Effect.scoped(Effect.flatMap(Alchemist.plan({ stack, operation: "destroy", stage }), Alchemist.apply));
 
-/**
- * Waits until the world's Core answers. A new Worker's address answers 404 until Cloudflare has routed it; each
- * attempt asks a different URL, so no cache between here and the Worker can keep handing back an early 404.
- */
-const answers = (url: string) =>
-  Effect.gen(function* () {
-    const attempt = yield* Ref.make(0);
-    const ask = Effect.gen(function* () {
-      const n = yield* Ref.updateAndGet(attempt, (was) => was + 1);
-      const response = yield* HttpClient.get(`${url}/?ready=${n}`);
-      if (response.status !== 200) return yield* new WorldNotReady({ url, status: response.status, message: `attempt ${n}: Core answered ${response.status}` });
-      return n;
-    });
-    return yield* ask.pipe(
-      Effect.scoped,
-      Effect.tapError((error) => Effect.logDebug(`not ready: ${"message" in error ? error.message : String(error)}`)),
-      Effect.retry(Schedule.spaced("1 second")),
-    );
-  });
-
 const create = (spec: WorldSpec, expiresAt: string) =>
   Effect.gen(function* () {
     // The world's owner and expiry reach the stack as a service, never through the process environment.
@@ -122,9 +104,10 @@ const create = (spec: WorldSpec, expiresAt: string) =>
     yield* Effect.log(`world ${spec.name}: deployed at ${out.url}`);
     const applied = yield* migrate(database, spec.migrations);
     yield* Effect.log(`world ${spec.name}: migrations applied (${applied.join(", ")})`);
-    yield* answers(out.url);
-    yield* Effect.log(`world ${spec.name}: Core answers`);
-    return { name: spec.name, owner: spec.owner, expiresAt, url: out.url, database } satisfies World;
+    const readiness = yield* answersSteadily(out.url, spec.warmUp);
+    yield* Effect.log(`world ${spec.name}: Core answered ${spec.warmUp.answers} probes in a row (${readiness.probes} probes, ${readiness.relapses} relapses, ${readiness.ms} ms)`);
+    const warmUntil = (yield* Clock.currentTimeMillis) + Duration.toMillis(spec.warmUp.warmUp);
+    return { name: spec.name, owner: spec.owner, expiresAt, url: out.url, database, readiness, warmUntil } satisfies World;
   });
 
 /** Makes sure the stage that owns what worlds share (the Neon project) exists. A deploy that changes nothing is quick. */
@@ -142,15 +125,16 @@ export const runInWorld = <A, E, R, R2>(
 ) =>
   Effect.gen(function* () {
     const expiresAt = DateTime.formatIso(DateTime.addDuration(yield* DateTime.now, spec.lifetime));
-    const progress = yield* Ref.make<Pick<Lifecycle<A, E>, "createFailure" | "used" | "ms">>({
+    const progress = yield* Ref.make<Pick<Lifecycle<A, E>, "createFailure" | "readiness" | "used" | "ms">>({
       createFailure: null,
+      readiness: null,
       used: undefined,
       ms: { create: null, use: null, destroy: null },
     });
     const run = Effect.gen(function* () {
       const created = yield* Effect.exit(step("create", spec.timeouts.create, create(spec, expiresAt)));
       if (Exit.isFailure(created)) return yield* Ref.update(progress, (was) => ({ ...was, createFailure: describe(created.cause) }));
-      yield* Ref.update(progress, (was) => ({ ...was, ms: { ...was.ms, create: created.value.ms } }));
+      yield* Ref.update(progress, (was) => ({ ...was, readiness: created.value.value.readiness, ms: { ...was.ms, create: created.value.ms } }));
       // The use step is timed whether it passes or not, so a failure or a timeout still says how long it ran.
       const [took, used] = yield* Effect.timed(Effect.exit(limited("use", spec.timeouts.use, use(created.value.value))));
       yield* Ref.update(progress, (was) => ({ ...was, used, ms: { ...was.ms, use: millis(took) } }));

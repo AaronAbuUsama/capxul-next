@@ -15,14 +15,27 @@ export const Check = Schema.Struct({
 });
 export type Check = typeof Check.Type;
 
+/** A server span beneath a call's own (a statement, a transaction, anything a handler wrapped): where the time went. */
+export const Step = Schema.Struct({
+  name: Schema.String,
+  /** When it started, in milliseconds after the operation's span started. */
+  startMs: Schema.Number,
+  ms: Schema.Number,
+});
+export type Step = typeof Step.Type;
+
 export const CheckedCall = Schema.Struct({
   operation: Schema.String,
   traceId: Schema.String,
   outcome: CallOutcome,
   /** The caller's time, network included. */
   ms: Schema.Number,
+  /** How many sends were repeated during the call because the world's address was not routed yet (warmup.ts). */
+  resent: Schema.Number,
   /** The duration of the operation's server span; null when no such span was kept. */
   serverMs: Schema.NullOr(Schema.Number),
+  /** The other server spans under the call's trace id, in the order they started. Empty when the call has no span of its own. */
+  steps: Schema.Array(Step),
   budgetMs: Schema.Number,
   failure: Schema.NullOr(Schema.String),
   /** The names of the events recorded for the call, in the order they were written. */
@@ -33,6 +46,15 @@ export type CheckedCall = typeof CheckedCall.Type;
 
 /** What the operation's server span must say for each outcome the caller can see. */
 const spanOutcomeFor = { success: "success", refusal: "failure", defect: "defect", unanswered: "none" } as const;
+
+/** The spans kept under the trace id of `span` other than `span` itself, placed on its clock. */
+const stepsOf = (span: SpanRow, kept: ReadonlyArray<SpanRow>): ReadonlyArray<Step> => {
+  const started = span.ended_ms - span.duration_ms;
+  return kept
+    .filter((other) => other.trace_id === span.trace_id && other !== span)
+    .map((other) => ({ name: other.name, startMs: Math.round(other.ended_ms - other.duration_ms - started), ms: Math.round(other.duration_ms) }))
+    .sort((a, b) => a.startMs - b.startMs);
+};
 
 /** Applies every generic check to one call, given all that Core kept. Pure. */
 export const checkCall = (call: Call, kept: { readonly spans: ReadonlyArray<SpanRow>; readonly events: ReadonlyArray<EventRow> }): CheckedCall => {
@@ -72,7 +94,9 @@ export const checkCall = (call: Call, kept: { readonly spans: ReadonlyArray<Span
     traceId: call.traceId,
     outcome: call.outcome,
     ms: call.ms,
+    resent: call.resent,
     serverMs: span?.duration_ms ?? null,
+    steps: span === undefined ? [] : stepsOf(span, kept.spans),
     budgetMs: operation.budgetMs,
     failure: call.failure,
     events: events.map((event) => event.event),
