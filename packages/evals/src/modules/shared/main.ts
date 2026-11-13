@@ -34,18 +34,23 @@ async function refused(code: string, run: () => Promise<unknown>): Promise<void>
 const count = (list: string[], method: string) => list.filter((m) => m === method).length;
 
 /** Every configured node down, hung or throttled: three attempts in node order, then PROVIDER_ERROR; a live second node answers. */
+/** Elapsed bounds for one down, one hung and one throttled attempt: the hung attempt's timeout plus the declared backoff. */
+const within = (ms: number, [low, high]: readonly [number, number], what: string) => assert(ms >= low && ms < high, `${what}: ${ms} ms outside [${low}, ${high})`);
+const NODE_READ_MS = [1_500, 2_500] as const, WIDE_LOGS_MS = [5_500, 7_000] as const;
 const unavailable = (method: string, call: (rpc: ReturnType<typeof chainRpc>, w: World) => Promise<unknown>, rpcMethod: string, wide = false): Check =>
   async (w, note) => gates([w.rpc, w.rpc, w.rpc], async ([a, b, c]) => {
     OUTAGES.forEach((mode, i) => [a, b, c][i]!.set({ "*": mode }));
     const nodes: ChainNode[] = [a!, b!, c!].map((g) => ({ url: g.url, wideLogs: wide }));
     const started = Date.now();
     await refused("PROVIDER_ERROR", () => call(chainRpc({ nodes }), w));
+    const elapsed = Date.now() - started;
+    within(elapsed, wide ? WIDE_LOGS_MS : NODE_READ_MS, "attempt timeout and backoff");
     assert.deepEqual([a, b, c].map((g) => count(g!.received, rpcMethod)), [1, 1, 1], "one attempt per node, three in all");
     assert.deepEqual([a, b, c].map((g) => g!.forwarded.length), [0, 0, 0]);
     a!.set({ "*": { kind: "down" } }); b!.set({ "*": { kind: "pass" } });
     await call(chainRpc({ nodes: [a!, b!].map((g) => ({ url: g.url, wideLogs: wide })) }), w);
     assert.equal(count(b!.forwarded, rpcMethod), 1, "the live node answered through to the world's chain");
-    note(method, { outages: OUTAGES.map((m) => m.kind), refusedAfterMs: Date.now() - started, fallbackAnswered: true });
+    note(method, { outages: OUTAGES.map((m) => m.kind), refusedAfterMs: elapsed, fallbackAnswered: true });
   });
 
 /** The world's chain answered, rewritten so it no longer decodes: PROVIDER_RESPONSE_INVALID, with no second attempt. */
@@ -126,47 +131,72 @@ const checks: Record<string, Check> = {
     const { hash } = await paymentOperation(w);
     const found = await bundlerProvider(httpTransport(g!.url)).lookup(hash);
     assert(found.receipt?.success && found.receipt.receipt.transactionHash.toLowerCase() === w.fixture.txHash.toLowerCase(), "the real bundler finds the selected payment");
+    const timings: Record<string, number> = {};
     for (const mode of OUTAGES) {
       g!.received.length = 0; g!.set({ "*": mode });
+      const started = Date.now();
       await refused("PROVIDER_ERROR", () => bundlerProvider(httpTransport(g!.url)).lookup(hash));
+      timings[mode.kind] = Date.now() - started;
       assert.deepEqual(["eth_getUserOperationByHash", "eth_getUserOperationReceipt"].map((m) => count(g!.received, m)), [3, 3], `${mode.kind}: three attempts per read`);
     }
-    note("lookup", { control: hash, outages: OUTAGES.map((m) => m.kind) });
+    // Three 2 s attempts with 100 ms and 200 ms backoff when hung; no attempt waits when refused at once.
+    within(timings.timeout!, [6_000, 7_500], "hung lookup"); within(timings.down!, [0, 1_500], "down lookup"); within(timings.throttle!, [0, 1_500], "throttled lookup");
+    note("lookup", { control: hash, outagesMs: timings });
   }),
   "BUNDLER.lookup-unusable": async (w, note) => gates([bundlerUrl(w)], async ([g]) => {
     const { hash } = await paymentOperation(w);
+    const found = await bundlerProvider(httpTransport(g!.url)).lookup(hash);
+    assert(found.receipt?.success && found.receipt.receipt.transactionHash.toLowerCase() === w.fixture.txHash.toLowerCase(), "the real bundler finds the selected payment");
     g!.set({ eth_getUserOperationReceipt: { kind: "rewrite", body: (_r, u) => ({ ...u, result: { ...u.result, userOpHash: toHex(1n, { size: 32 }) } }) } });
     await refused("PROVIDER_RESPONSE_INVALID", () => bundlerProvider(httpTransport(g!.url)).lookup(hash));
     g!.set({ eth_getUserOperationByHash: { kind: "rewrite", body: (_r, u) => ({ ...u, result: { ...u.result, userOperation: { sender: 5 } } }) } });
     await refused("PROVIDER_RESPONSE_INVALID", () => bundlerProvider(httpTransport(g!.url)).lookup(hash));
-    note("lookup", { rewritten: ["receipt names another operation", "held operation does not decode"] });
+    assert.equal(count(g!.forwarded, "eth_getUserOperationReceipt"), 3, "control and both faults reached the real bundler");
+    note("lookup", { control: hash, rewritten: ["receipt names another operation", "held operation does not decode"] });
   }),
-  "BUNDLER.send-rejected": async (w, note) => {
-    const provider = bundlerProvider(httpTransport(bundlerUrl(w)));
+  "BUNDLER.send-rejected": async (w, note) => gates([bundlerUrl(w)], async ([g]) => {
+    // Through a pass-through gate only to read the real bundler's own reasons; nothing is altered.
+    const provider = bundlerProvider(httpTransport(g!.url));
+    const reason = () => String(g!.answers.at(-1)?.body?.error?.message ?? "");
     const before = await unsignedOperation(w);
     await refused("TRANSACTION_FAILED", () => provider.send({ operation: before.operation, entryPoint: entryPoint07Address, expectedHash: before.expectedHash }));
+    const unsignedReason = reason();
+    assert(!/AA25/.test(unsignedReason) && /AA2[34]|signature/i.test(unsignedReason), `the current-nonce operation was refused for its signature: ${unsignedReason.slice(0, 120)}`);
     const used = await unsignedOperation(w, -1n);
     await refused("TRANSACTION_FAILED", () => provider.send({ operation: used.operation, entryPoint: entryPoint07Address, expectedHash: used.expectedHash }));
+    const nonceReason = reason();
+    // Alto checks the nonce before it validates the signature, so this refusal is the spent nonce alone.
+    assert(/AA25/.test(nonceReason), `the spent-nonce operation was refused for its nonce: ${nonceReason.slice(0, 120)}`);
+    assert.equal(count(g!.forwarded, "eth_sendUserOperation"), 2, "both refusals came from the real bundler");
     const after = await unsignedOperation(w);
     assert.equal(after.operation.nonce, before.operation.nonce, "nothing reached the chain");
-    assert.deepEqual(await provider.lookup(before.expectedHash), { operation: null, receipt: null });
-    note("send", { refusedByRealBundler: ["unsigned by any owner", "nonce already used"], nonce: before.operation.nonce });
-  },
+    assert.deepEqual(await bundlerProvider(httpTransport(bundlerUrl(w))).lookup(before.expectedHash), { operation: null, receipt: null });
+    note("send", { refusedByRealBundler: { signature: unsignedReason.slice(0, 120), spentNonce: nonceReason.slice(0, 120) }, nonce: before.operation.nonce });
+  }),
   "BUNDLER.send-unanswered": async (w, note) => gates([bundlerUrl(w)], async ([g]) => {
     const op = await unsignedOperation(w);
     g!.set({ eth_sendUserOperation: { kind: "timeout" } });
+    const started = Date.now();
     await refused("PROVIDER_ERROR", () => bundlerProvider(httpTransport(g!.url)).send({ ...op, entryPoint: entryPoint07Address }));
+    const elapsed = Date.now() - started;
+    within(elapsed, [5_000, 6_500], "send timeout then one lookup");
     assert.equal(count(g!.received, "eth_sendUserOperation"), 1, "sent once, never again");
     assert.equal(count(g!.forwarded, "eth_sendUserOperation"), 0);
-    assert(count(g!.forwarded, "eth_getUserOperationByHash") >= 1, "the unanswered send was looked up on the real bundler");
-    note("send", { sends: 1, lookedUp: true });
+    assert(count(g!.forwarded, "eth_getUserOperationByHash") >= 1 && count(g!.forwarded, "eth_getUserOperationReceipt") >= 1, "the real bundler answered the lookup of the unanswered send");
+    assert.deepEqual(await bundlerProvider(httpTransport(bundlerUrl(w))).lookup(op.expectedHash), { operation: null, receipt: null },
+      "the real bundler, asked directly, holds nothing for the operation");
+    note("send", { sends: 1, refusedAfterMs: elapsed, realLookup: "held nothing" });
   }),
   "BUNDLER.send-wrong-hash": async (w, note) => gates([bundlerUrl(w)], async ([g]) => {
     const op = await unsignedOperation(w);
+    // Control: the same unsigned operation reaches the real bundler through the gate and is refused there.
+    await refused("TRANSACTION_FAILED", () => bundlerProvider(httpTransport(g!.url)).send({ ...op, entryPoint: entryPoint07Address }));
+    assert.equal(count(g!.forwarded, "eth_sendUserOperation"), 1, "the control send reached the real bundler");
+    g!.received.length = 0;
     g!.set({ eth_sendUserOperation: { kind: "answer", body: (r) => ({ jsonrpc: "2.0", id: r.id, result: toHex(2n, { size: 32 }) }) } });
     await refused("PROVIDER_RESPONSE_INVALID", () => bundlerProvider(httpTransport(g!.url)).send({ ...op, entryPoint: entryPoint07Address }));
     assert.equal(count(g!.received, "eth_sendUserOperation"), 1);
-    note("send", { answeredHash: "not the signed operation's" });
+    note("send", { control: "real bundler refused the same operation", answeredHash: "not the signed operation's" });
   }),
 };
 
@@ -190,23 +220,28 @@ if (process.argv.includes("--list")) {
     const receipt = parsed.value;
     assert.equal(receipt.state, "running");
     assert.deepEqual([receipt.environment.world, receipt.environment.storage, receipt.environment.indexer, receipt.environment.stack], ["slice-zero", "postgres", "ponder", "postgres-ponder-erpnext-v4"]);
-    assert.equal(receipt.commit, config.codeVersion); assert.equal(resolve(config.root), process.cwd());
+    assert.equal(receipt.commit, config.codeVersion); assert.equal(receipt.environment.components.core, config.codeVersion);
+    assert.equal(resolve(config.root), process.cwd());
     const f = fixtureFrom(fixture, process.argv[2]!);
     assert.equal(f.world, "slice-zero");
     assert(config.world.sites.some((site: { name: string; company: string }) => site.name === f.site && site.company === f.slug), "fixture does not belong to this concrete world");
     const { stdout } = await promisify(execFile)(process.execPath, [join(config.root, "packages/cli/src/main.ts"), "world", "inspect", "--config", configPath, "--json"], { timeout: 60000, maxBuffer: 1024 * 1024 });
     const live = JSON.parse(stdout);
-    assert.equal(live.world.id, config.world.id); assert.equal(live.world.epoch, config.world.epoch); assert.equal(live.codeVersion, config.codeVersion);
-    assert.equal(live.stack, receipt.environment.stack); assert(live.core.ok && !live.core.paused, "Core is not ready");
+    assert.equal(live.version, 1); assert.equal(live.world.id, config.world.id); assert.equal(live.world.epoch, config.world.epoch);
+    assert.equal(live.codeVersion, config.codeVersion); assert.equal(live.stack, receipt.environment.stack);
+    assert.equal(live.core.world, config.world.id); assert.equal(live.core.storage, "postgres"); assert.equal(live.core.indexer, "ponder");
+    assert(live.core.ok && !live.core.paused, "Core is not ready");
     assert.equal(live.chain.chainId, config.chainId);
     assert(Math.abs(Date.now() - Date.parse(live.observedAt)) < 15000, "inspection is stale");
     const evidence = resolve(run, "shared", "checks"); await mkdir(evidence, { recursive: true });
     await writeFile(join(evidence, "..", "inspection.json"), JSON.stringify(live, null, 2) + "\n");
     world = { fixture: f, rpc: loopback(config.ports.anvil), bundler: live.bundlerConfigured && config.bundler?.url ? config.bundler.url : null, paymaster: config.bundler?.paymaster ?? null, chainId: config.chainId, evidence };
     emit("SHARED.selected-stack", true, 0, "private fixture, running receipt and live public inspection identify one selected stack");
-  } catch {
+  } catch (error) {
     failed = true;
-    emit("SHARED.selected-stack", false, 0, "selected-world prerequisite refused; no component proof or historical receipt accepted");
+    // Assertion text only: no config, fixture or secret values are interpolated into guard messages.
+    const why = error instanceof assert.AssertionError ? error.message.split("\n")[0] : error instanceof Error ? error.name : "unknown";
+    emit("SHARED.selected-stack", false, 0, `selected-world prerequisite refused (${why}); no component proof or historical receipt accepted`);
     for (const [name] of selected) emit(name, false, 0, "no verified selected-world observation in this run");
   }
   if (world) for (const [name, check] of selected) {

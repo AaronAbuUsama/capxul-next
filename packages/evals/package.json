@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "@capxul/blueprint-engine": "workspace:*",
-    "pg": "8.16.3",
     "viem": "catalog:"
   },
   "devDependencies": {

@@ -3,9 +3,10 @@ import {
   type Abi, type AbiEvent, type Address, type Hex,
 } from "viem";
 
-/** The blueprint's `chain-rpc` integration: ordered node fallback, bounded attempts, and two caller-visible failures. */
+/** The blueprint's `chain-rpc` integration: ordered node fallback, bounded attempts, and two caller-visible failures.
+ * A malformed call (bad address, ABI arguments or log window) is the caller's programming error and throws a plain error. */
 export class ChainRpcError extends Error {
-  readonly code: "PROVIDER_ERROR" | "PROVIDER_RESPONSE_INVALID" | "INVALID_INPUT";
+  readonly code: "PROVIDER_ERROR" | "PROVIDER_RESPONSE_INVALID";
   constructor(code: ChainRpcError["code"]) { super(`Chain RPC refused: ${code}`); this.name = "ChainRpcError"; this.code = code; }
 }
 export type ChainNode = { url: string; wideLogs?: boolean };
@@ -22,6 +23,7 @@ export interface ChainRpc {
 class Retryable extends Error {}
 class Verdict extends Error {}
 const unavailable = () => new ChainRpcError("PROVIDER_ERROR");
+const misuse = () => new TypeError("chain-rpc called with a malformed address, arguments or log window");
 const invalid = () => new ChainRpcError("PROVIDER_RESPONSE_INVALID");
 const object = (x: unknown): x is Record<string, unknown> => x !== null && typeof x === "object" && !Array.isArray(x);
 const quantity = (x: unknown): bigint => { if (typeof x !== "string" || !/^0x[0-9a-fA-F]+$/.test(x)) throw invalid(); return BigInt(x); };
@@ -56,7 +58,7 @@ const WIDE_LOGS: Policy = { timeoutMs: 5_000, attempts: 3, backoffMs: (attempt) 
 const MAX_LOG_WINDOW = 2_000n;
 
 export function chainRpc(config: { nodes: readonly ChainNode[] }): ChainRpc {
-  if (!config.nodes.length || config.nodes.some((n) => !/^https?:\/\//.test(n.url))) throw new ChainRpcError("INVALID_INPUT");
+  if (!config.nodes.length || config.nodes.some((n) => !/^https?:\/\//.test(n.url))) throw misuse();
   const request = async (nodes: readonly ChainNode[], policy: Policy, method: string, params: unknown[]) => {
     if (!nodes.length) throw unavailable();
     for (let attempt = 0; attempt < policy.attempts; attempt++) {
@@ -72,9 +74,9 @@ export function chainRpc(config: { nodes: readonly ChainNode[] }): ChainRpc {
   };
   return {
     async readContract({ address, abi, functionName, args = [], blockNumber }) {
-      if (!isAddress(address)) throw new ChainRpcError("INVALID_INPUT");
+      if (!isAddress(address)) throw misuse();
       let callData: Hex;
-      try { callData = encodeFunctionData({ abi, functionName, args } as never); } catch { throw new ChainRpcError("INVALID_INPUT"); }
+      try { callData = encodeFunctionData({ abi, functionName, args } as never); } catch { throw misuse(); }
       const tag = blockNumber === undefined ? "latest" : numberToHex(blockNumber);
       // A revert is the node's final verdict; `0x` means no code answered where an answer was expected.
       const result = data(await finalAsInvalid(() => read("eth_call", [{ to: address, data: callData }, tag])));
@@ -82,7 +84,7 @@ export function chainRpc(config: { nodes: readonly ChainNode[] }): ChainRpc {
       try { return decodeFunctionResult({ abi, functionName, data: result } as never); } catch { throw invalid(); }
     },
     async getCode(address) {
-      if (!isAddress(address)) throw new ChainRpcError("INVALID_INPUT");
+      if (!isAddress(address)) throw misuse();
       return data(await finalAsInvalid(() => read("eth_getCode", [address, "latest"])));
     },
     async getBlock(blockNumber) {
@@ -92,7 +94,7 @@ export function chainRpc(config: { nodes: readonly ChainNode[] }): ChainRpc {
         baseFeePerGas: block.baseFeePerGas === undefined || block.baseFeePerGas === null ? null : quantity(block.baseFeePerGas) };
     },
     async getLogs({ address, event, fromBlock, toBlock }) {
-      if (!isAddress(address) || fromBlock < 0n || toBlock < fromBlock || toBlock - fromBlock >= MAX_LOG_WINDOW) throw new ChainRpcError("INVALID_INPUT");
+      if (!isAddress(address) || fromBlock < 0n || toBlock < fromBlock || toBlock - fromBlock >= MAX_LOG_WINDOW) throw misuse();
       const topics = encodeEventTopics({ abi: [event], eventName: event.name } as never);
       const wide = config.nodes.filter((n) => n.wideLogs);
       const logs = await finalAsInvalid(() => request(wide, WIDE_LOGS, "eth_getLogs",

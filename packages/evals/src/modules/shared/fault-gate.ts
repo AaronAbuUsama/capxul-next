@@ -1,5 +1,4 @@
-import { createServer as createHttp, type IncomingMessage, type ServerResponse } from "node:http";
-import { connect, createServer as createTcp, type Socket } from "node:net";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 
 /**
@@ -18,8 +17,10 @@ export type HttpGate = {
   url: string;
   /** Per-method mode; `*` is the default. */
   set(modes: Record<string, HttpMode>): void;
-  /** Methods the gate received and, separately, the methods it forwarded to the real process. */
-  received: string[]; forwarded: string[];
+  /** Methods the gate received. */
+  received: string[];
+  /** Methods the real process answered, with its decoded answer (before any rewrite). */
+  forwarded: string[]; answers: { method: string; body: any }[];
   close(): Promise<void>;
 };
 
@@ -28,55 +29,40 @@ const readBody = (req: IncomingMessage) => new Promise<string>((done, fail) => {
 });
 
 export async function httpGate(target: string): Promise<HttpGate> {
+  const t = new URL(target);
+  if (t.protocol !== "http:" || t.hostname !== "127.0.0.1" || t.username || t.password) throw new Error("fault gate targets only a plain 127.0.0.1 endpoint");
   let modes: Record<string, HttpMode> = { "*": { kind: "pass" } };
   const held = new Set<ServerResponse>();
-  const gate = { received: [] as string[], forwarded: [] as string[] };
-  const server = createHttp(async (req, res) => {
-    const text = await readBody(req);
-    let request: JsonRpcBody;
-    try { request = JSON.parse(text); } catch { res.writeHead(400).end(); return; }
-    gate.received.push(request.method);
-    const mode = modes[request.method] ?? modes["*"]!;
-    const json = (status: number, body: unknown) => res.writeHead(status, { "content-type": "application/json" }).end(JSON.stringify(body));
-    if (mode.kind === "down") { req.socket.destroy(); return; }
-    if (mode.kind === "timeout") { held.add(res); res.on("close", () => held.delete(res)); return; }
-    if (mode.kind === "throttle") { json(429, { jsonrpc: "2.0", id: request.id, error: { code: 429, message: "rate limited" } }); return; }
-    if (mode.kind === "answer") { json(200, mode.body(request)); return; }
-    gate.forwarded.push(request.method);
-    let upstream: Response;
+  const received: string[] = [], forwarded: string[] = [], answers: { method: string; body: any }[] = [];
+  const server = createServer(async (req, res) => {
     try {
-      upstream = await fetch(target, { method: "POST", headers: { "content-type": "application/json" }, body: text, signal: AbortSignal.timeout(30_000) });
-    } catch { req.socket.destroy(); return; }
-    if (mode.kind === "rewrite") { json(upstream.status, mode.body(request, await upstream.json())); return; }
-    res.writeHead(upstream.status, { "content-type": upstream.headers.get("content-type") ?? "application/json" }).end(Buffer.from(await upstream.arrayBuffer()));
+      const text = await readBody(req);
+      let request: JsonRpcBody;
+      try { request = JSON.parse(text); } catch { res.writeHead(400).end(); return; }
+      received.push(request.method);
+      const mode = modes[request.method] ?? modes["*"]!;
+      const json = (status: number, body: unknown) => res.writeHead(status, { "content-type": "application/json" }).end(JSON.stringify(body));
+      if (mode.kind === "down") { req.socket.destroy(); return; }
+      if (mode.kind === "timeout") { held.add(res); res.on("close", () => held.delete(res)); return; }
+      if (mode.kind === "throttle") { json(429, { jsonrpc: "2.0", id: request.id, error: { code: 429, message: "rate limited" } }); return; }
+      if (mode.kind === "answer") { json(200, mode.body(request)); return; }
+      const upstream = await fetch(target, { method: "POST", headers: { "content-type": "application/json" }, body: text, signal: AbortSignal.timeout(30_000) });
+      const raw = Buffer.from(await upstream.arrayBuffer());
+      let decoded: any;
+      try { decoded = JSON.parse(raw.toString("utf8")); } catch { decoded = undefined; }
+      // Counted only once the real process has answered: an unreachable upstream is never "forwarded".
+      forwarded.push(request.method); answers.push({ method: request.method, body: decoded });
+      if (mode.kind === "rewrite") {
+        if (decoded === undefined) { req.socket.destroy(); return; }
+        json(upstream.status, mode.body(request, decoded)); return;
+      }
+      res.writeHead(upstream.status, { "content-type": upstream.headers.get("content-type") ?? "application/json" }).end(raw);
+    } catch { req.socket.destroy(); }
   });
   await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
-  return { received: gate.received, forwarded: gate.forwarded,
+  return { received, forwarded, answers,
     url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
     set(next) { modes = { "*": { kind: "pass" }, ...next }; },
     async close() { for (const r of held) r.destroy(); server.closeAllConnections(); await new Promise<void>((done) => server.close(() => done())); },
-  };
-}
-
-export type TcpMode = "pass" | "down" | "timeout";
-export type TcpGate = { host: string; port: number; set(mode: TcpMode): void; close(): Promise<void> };
-
-/** A byte relay for Postgres: `down` resets new and open connections, `timeout` accepts and never answers. */
-export async function tcpGate(host: string, port: number): Promise<TcpGate> {
-  let mode: TcpMode = "pass";
-  const open = new Set<Socket>();
-  const server = createTcp((client) => {
-    open.add(client); client.on("close", () => open.delete(client)); client.on("error", () => {});
-    if (mode === "down") { client.resetAndDestroy(); return; }
-    if (mode === "timeout") return;
-    const upstream = connect(port, host);
-    open.add(upstream); upstream.on("close", () => open.delete(upstream)); upstream.on("error", () => client.destroy());
-    client.pipe(upstream).pipe(client);
-    client.on("close", () => upstream.destroy());
-  });
-  await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
-  return { host: "127.0.0.1", port: (server.address() as AddressInfo).port,
-    set(next) { mode = next; if (next !== "pass") for (const s of open) s.destroy(); },
-    async close() { for (const s of open) s.destroy(); await new Promise<void>((done) => server.close(() => done())); },
   };
 }
