@@ -170,3 +170,7 @@ Every claim is now checked as written. These points go back to the blueprint:
    - org.create 3 compares the Safe's owners as a set.
    - world.create 6 expects `WorldQuotaReached.owner` to be the first operator.
    - approval.sign 1 takes Brightside's address from the `supplier` fact's `capxul_wallet_address`.
+5. **A start time with milliseconds.** An `Instant` carries milliseconds, but a block's timestamp is whole seconds,
+   and neither world.create 2 nor decision 45 says what happens to a start with milliseconds. The platform could
+   refuse it, round it and answer the rounded time, or keep the milliseconds in the clock but not on the chain.
+   world.create 2 now asks for a start already on a whole second, which avoids the question without settling it.
