@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { connect as connectSocket } from "node:net";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import pg from "pg";
@@ -52,11 +53,13 @@ test("Core mounts the signer's routes with the carrier, and the carrier, not the
         values ($1,$2,$3,'code','active','test',$4,$5)`, [person, `session-${person}`, digest(token), now, new Date(now.getTime() + 3_600_000)]);
     }
     const ctx: ApprovalContext = { person_id: "signer-a", sender, site_url: "https://site.test", now };
-    const opened = await db.transaction("org-a", async (sql) => {
+    const born = (subject: string, gate?: string) => db.transaction("org-a", async (sql) => {
       await sql.query(`select set_config('app.person_id',$1,true),set_config('app.owner_kind','person',true),
         set_config('app.owner_id',$1,true),set_config('app.safe_address',$2,true)`, [ctx.person_id, sender]);
-      return open(sql, ctx, terms, "open-trace");
+      return open(sql, ctx, { ...terms, subject_id: subject, ...(gate ? { gate } : {}) }, "open-trace");
     });
+    const opened = await born("payment-1");
+    const gated = await born("payment-gated", "beta-access"), unknown = await born("payment-unknown-gate", "no-such-gate");
 
     const address = await core.start(); started = true;
     assert(address && typeof address === "object");
@@ -74,9 +77,30 @@ test("Core mounts the signer's routes with the carrier, and the carrier, not the
     assert.equal((await fetch(`${base}/approvals/signing/get?approvalId=${opened.approval_id}`)).status, 401);
     assert.equal((await call(`/approvals/signing/get?approvalId=${opened.approval_id}`, {}, otherBearer)).status, 400);
 
-    // A paused world refuses the signer's writes but still answers reads.
+    // Access' catalogue gates the routes: off, and a key it does not name, are both FEATURE_NOT_AVAILABLE; on is readable.
+    const read = (id: string) => call(`/approvals/signing/get?approvalId=${id}`);
+    for (const id of [gated.approval_id, unknown.approval_id]) {
+      const refused = await read(id);
+      assert.equal(refused.status, 403); assert.equal(((await refused.json()) as any).error.code, "FEATURE_NOT_AVAILABLE");
+    }
+    await admin.query("insert into app.feature_flags(key,active,target,rules,checked_at) values ('beta-access',true,'person',$1,$2)",
+      [JSON.stringify([{ ids: ["signer-a"], rollout: 100 }]), now]);
+    assert.equal((await read(gated.approval_id)).status, 200);
+    assert.equal((await read(unknown.approval_id)).status, 403);
+
+    // A paused world refuses the signer's writes but still answers reads. A write counts toward the drain only inside its
+    // transaction: an unauthenticated caller trickling a body does not hold the pause open.
     const pause = "{}";
-    assert.equal((await fetch(`${base}/admin/snapshot/pause`, { method: "POST", body: pause, headers: { "x-capxul-signature": signature(pause, secret) } })).status, 200);
+    const trickle = connectSocket(address.port, "127.0.0.1");
+    await new Promise((done) => trickle.once("connect", done));
+    trickle.write(`POST /approvals/signing/decline HTTP/1.1\r\nHost: core\r\nAuthorization: Bearer ${"f".repeat(43)}\r\n` +
+      `x-capxul-trace: trickle\r\nx-capxul-call-id: trickle\r\ncontent-type: application/json\r\ncontent-length: 200\r\n\r\n{"appro`);
+    await new Promise((done) => setTimeout(done, 200));
+    const pausing = Date.now();
+    assert.equal((await fetch(`${base}/admin/snapshot/pause`, { method: "POST", body: pause, headers: { "x-capxul-signature": signature(pause, secret) },
+      signal: AbortSignal.timeout(5000) })).status, 200);
+    assert.ok(Date.now() - pausing < 1500, "pause answers while a body is still arriving");
+    trickle.destroy();
     assert.equal((await post("decline", opened.approval_id)).status, 503);
     assert.equal((await call(`/approvals/signing/get?approvalId=${opened.approval_id}`)).status, 200);
     assert.equal((await fetch(`${base}/admin/snapshot/resume`, { method: "POST", body: pause, headers: { "x-capxul-signature": signature(pause, secret) } })).status, 200);
@@ -93,8 +117,21 @@ test("Core mounts the signer's routes with the carrier, and the carrier, not the
       if (carried) await new Promise((done) => setTimeout(done, 100));
     }
     assert.equal(carried, false, "the carrier delivers the decline to its opener");
-    const events = (await admin.query("select event->'props'->>'to' as to from app.transition_outbox where event->>'name'='approval_transitioned' order by seq")).rows;
+    const events = (await admin.query(`select event->'props'->>'to' as to from app.transition_outbox
+      where event->>'name'='approval_transitioned' and event->'props'->>'approval_id'=$1 order by seq`, [opened.approval_id])).rows;
     assert.deepEqual(events.map((e) => e.to), ["sponsoring", "declined"]);
+
+    // stop() ends a live read that is still streaming, instead of waiting for its client.
+    const live = await call(`/approvals/signing/get?approvalId=${gated.approval_id}`, { headers: { accept: "text/event-stream" } });
+    assert.equal(live.status, 200);
+    const reader = live.body!.getReader();
+    assert.match(new TextDecoder().decode((await reader.read()).value), /event: approval/);
+    const stopping = Date.now();
+    started = false; await core.stop();
+    assert.ok(Date.now() - stopping < 3000, "stop does not wait on a live read");
+    // The stream ends: either cleanly or as a dropped connection, never by hanging.
+    const ended = await (async () => { try { while (!(await reader.read()).done); } catch { /* connection closed */ } return true; })();
+    assert.equal(ended, true);
   } finally {
     if (started) await core.stop();
     await db.close();

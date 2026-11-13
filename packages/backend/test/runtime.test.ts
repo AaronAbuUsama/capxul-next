@@ -10,6 +10,7 @@ import { Server } from "socket.io";
 import { encodeFunctionData } from "viem";
 import { signature } from "../src/plugs/door.ts";
 import { Database } from "../src/platform/db.ts";
+import { updateWorldClock } from "../src/devnet/door.ts";
 import { connect, send } from "../../devnet/src/modules/chain/service.ts";
 import { board, ERC20, HATS, pay, type Protocol } from "../../devnet/src/modules/company/service.ts";
 import { THIRD_PARTY } from "../../devnet/src/modules/protocol/service.ts";
@@ -21,6 +22,12 @@ const fixture = JSON.parse(await readFile(`${dir}/fixture.json`, "utf8"));
 const secret = "core-protocol-proof-only";
 const coreUrl = "http://127.0.0.1:18787";
 const db = new Database(process.env.DATABASE_URL!, process.env.WORKER_DATABASE_URL!);
+// A world built by migrate.ts alone has no authority clock, and /prepare writes world time: stop this disposable
+// proof's clock at the chain head, as a world's supervisor would.
+if (!(await db.worker.query("select clock ? 'nowMs' as set from app.world")).rows[0]?.set) {
+  const head = await (await connect(process.env.RPC_URL!)).client.getBlock();
+  await updateWorldClock(db, { nowMs: Number(head.timestamp) * 1000, clockMode: "stopped", rate: 1 });
+}
 async function until<T>(read: () => Promise<T>, accepts: (v: T) => boolean, label: string, timeout = 30_000): Promise<T> {
   const end = Date.now() + timeout;
   do { const v = await read(); if (accepts(v)) return v; await wait(100); } while (Date.now() < end);

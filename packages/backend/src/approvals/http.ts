@@ -16,7 +16,7 @@ export type SigningTransport = {
 };
 const paths = new Map(["get", "review", "sign", "decline"].map((name) => [`/approvals/signing/${name}`, name]));
 const identifier = /^[a-zA-Z0-9_.:+-]{1,200}$/;
-const statuses: Record<string, number> = { NOT_AUTHENTICATED: 401, INVALID_INPUT: 400, WRONG_STATE: 409, FEATURE_NOT_AVAILABLE: 403 };
+const statuses: Record<string, number> = { NOT_AUTHENTICATED: 401, INVALID_INPUT: 400, WRONG_STATE: 409, FEATURE_NOT_AVAILABLE: 403, SNAPSHOT_PAUSED: 503 };
 
 function failure(error: unknown) {
   const message = error instanceof Error ? error.message : "";

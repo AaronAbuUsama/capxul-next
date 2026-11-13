@@ -11,7 +11,7 @@ import { onPaymentTransition } from "./requests/door.ts";
 import { deferDelivery, deliver, RequestCollector, resend, retryParked, signature, status } from "./plugs/door.ts";
 import { note } from "./activity/door.ts";
 import { settings } from "./platform/config.ts";
-import { Database } from "./platform/db.ts";
+import { Database, type Sql } from "./platform/db.ts";
 import { relay } from "./platform/outbox.ts";
 import { alerts, indexerState } from "./platform/diagnostics.ts";
 
@@ -74,13 +74,6 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
       // Other openers' followers append here (Budgets: budgets.changes.follow).
     },
   };
-  // Mounted only with the carrier: without it nothing is sponsored, so nothing can be signed. The routes never call an
-  // opener: a decline commits as the signer and wakes the carrier, which delivers that ending on the worker role like
-  // every other (approvals.signing-composition).
-  const signingRoutes = carrier && signing && createSigningHandler({
-    db, site_url: signing.siteUrl, network: signing.network, now: worldNow, authenticate,
-    requireFeature: async (sql, key, actor) => requireFeature(sql, key, actor, gates, await worldNow(sql)),
-  });
   const consumeBackoff: ConsumeBackoff = new Map();
   let paused = config.startPaused, closing = false, activeRequests = 0, activeDeliveries = 0;
   let activeLoop: Promise<void> = Promise.resolve(), timer: ReturnType<typeof setTimeout> | undefined;
@@ -89,6 +82,27 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
   const drained: (() => void)[] = [];
   function notifyDrain() { if (!activeRequests && !activeDeliveries) for (const done of drained.splice(0)) done(); }
   const waitForDrain = () => activeRequests || activeDeliveries ? new Promise<void>((done) => drained.push(done)) : Promise.resolve();
+  // Mounted only with the carrier: without it nothing is sponsored, so nothing can be signed. The routes never call an
+  // opener: a decline commits as the signer and wakes the carrier, which delivers that ending on the worker role like
+  // every other (approvals.signing-composition).
+  const signingWith = (on: Pick<Database, "transaction">) => createSigningHandler({
+    db: on, site_url: signing!.siteUrl, network: signing!.network, now: worldNow, authenticate,
+    // A key the catalogue does not name is off, as the carrier reads it, not a caller's input error.
+    requireFeature: async (sql, key, actor) => {
+      if (!Object.hasOwn(gates, key)) throw new Error("FEATURE_NOT_AVAILABLE: feature is off");
+      await requireFeature(sql, key, actor, gates, await worldNow(sql));
+    },
+  });
+  // A signer's write counts toward the snapshot drain only while it holds its transaction, which opens after the body
+  // is read: a caller trickling a body cannot hold pause or stop open, and no write opens once paused.
+  const counted: Pick<Database, "transaction"> = {
+    async transaction<T>(org: string, run: (sql: Sql) => Promise<T>, system?: boolean, owner?: Parameters<Database["transaction"]>[3]) {
+      if (paused) throw new Error("SNAPSHOT_PAUSED: snapshot paused");
+      activeRequests++;
+      try { return await db.transaction(org, run, system, owner); } finally { activeRequests--; notifyDrain(); }
+    },
+  };
+  const signingReads = carrier && signing && signingWith(db), signingWrites = carrier && signing && signingWith(counted);
   async function ready() {
     if (!(await db.tenant.query("select version from app.schema_version where version=1")).rowCount) throw new Error("SCHEMA_VERSION: Core schema v1 required");
     const index = await indexerState(db, config.ponder, config.chainId, config.rpc);
@@ -108,14 +122,12 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
       finally { activeRequests--; notifyDrain(); }
     }
     // Before the service HMAC parser; the routes take only a bearer. A live read is not counted toward the snapshot
-    // drain (it only reads, and may stay open); a signer's write is, and none starts while paused.
-    if (signingRoutes && url.pathname.startsWith("/approvals/signing/")) {
-      if (req.method === "GET") { if (await signingRoutes(req, res)) return; }
+    // drain (it only reads, and may stay open); a signer's write counts while its transaction runs (`counted`).
+    if (signingReads && signingWrites && url.pathname.startsWith("/approvals/signing/")) {
+      if (req.method === "GET") { if (await signingReads(req, res)) return; }
       else {
         if (paused) return json(res, 503, { error: "SNAPSHOT_PAUSED" });
-        activeRequests++;
-        try { if (await signingRoutes(req, res)) return; }
-        finally { activeRequests--; notifyDrain(); }
+        if (await signingWrites(req, res)) return;
       }
     }
     if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });

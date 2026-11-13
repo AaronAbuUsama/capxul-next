@@ -15,7 +15,12 @@ const chain = process.env.BUNDLER_GATEWAY_URL ? carrierChain(worldChainConfig(
   { deploymentFile: required("DEPLOYMENT_FILE"), chainId: config.chainId, entryPoint: required("ENTRY_POINT_ADDRESS"), paymaster: required("PAYMASTER_ADDRESS") },
   { client: createPublicClient({ transport: http(config.rpc) }), gatewayUrl: required("BUNDLER_GATEWAY_URL") })) : undefined;
 // The signer's routes come with the carrier: the approval page's SITE_URL and the world's network name and explorer.
-const signing = chain && { siteUrl: required("SITE_URL"), network: { name: required("NETWORK_NAME"), explorerUrl: required("EXPLORER_URL") } };
+const origin = (name: string) => {
+  const value = required(name);
+  if (!URL.canParse(value)) throw new Error(`${name} must be an absolute URL`);
+  return value;
+};
+const signing = chain && { siteUrl: origin("SITE_URL"), network: { name: required("NETWORK_NAME"), explorerUrl: origin("EXPLORER_URL") } };
 const core = createCore(config, provision, chain, signing);
 await core.start();
 console.log("Core listening with durable Postgres app state and Ponder facts");
