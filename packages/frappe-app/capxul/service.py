@@ -6,6 +6,16 @@ from capxul.api import service_body
 
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
+def read_hat_map(**kwargs):
+    service_body()
+    from capxul.setup import DEFAULT_HAT_ROLES
+
+    roles = sorted({role for mapped in DEFAULT_HAT_ROLES.values() for role in mapped})
+    return {"map_version": hats.map_version(), "hats": DEFAULT_HAT_ROLES,
+            "available_roles": sorted(frappe.get_all("Role", filters={"name": ["in", roles]}, pluck="name"))}
+
+
+@frappe.whitelist(allow_guest=True, methods=["POST"])
 def read_site(**kwargs):
     service_body()
     return {"version": __version__, "apps": frappe.get_installed_apps(),

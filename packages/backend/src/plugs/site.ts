@@ -1,4 +1,4 @@
-import { createHmac, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomUUID } from "node:crypto";
 import { Context, Effect, Layer, Schedule, Schema } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import * as C from "./site-contracts.ts";
@@ -14,6 +14,7 @@ export class FrappeSite extends Context.Service<FrappeSite, {
   answerPaymentRequest(input: C.AnswerInput): Result<typeof C.AnswerAck.Type>;
   paymentRequestListener(input: C.SiteInput): Result<typeof C.Listener.Type>;
   readSite(input: C.SiteInput): Result<typeof C.SiteInfo.Type>;
+  readHatMap(input: C.SiteInput): Result<typeof C.HatMap.Type>;
   mintViewLink(input: C.SiteInput & { user: string }): Result<typeof C.ViewLink.Type>;
   resolveAccount(input: C.AccountInput): Result<typeof C.Document.Type>;
   doorCall(input: C.DoorInput): Result<typeof C.DocumentResult.Type>;
@@ -124,6 +125,14 @@ export function createFrappeSite(options: { baseUrl: string; secret: string }): 
       if (token.namespace !== `/${i.site}` || !token.authorization.startsWith("CapxulListener ") || token.expires_at <= now || token.expires_at > now + 60)
         return yield* new C.FrappeSiteError({ code: "PROVIDER_RESPONSE_INVALID", operation: "paymentRequestListener", message: "Invalid listener scope or expiry" });
       return token;
+    }),
+    readHatMap: Effect.fn("FrappeSite.readHatMap")(function*(i) {
+      const map = yield* call("readHatMap", "capxul.service.read_hat_map", i, {}, C.HatMap, 5000, 2);
+      const raw = JSON.stringify(Object.fromEntries(Object.entries(map.hats).sort(([a], [b]) => a.localeCompare(b))));
+      if (map.map_version !== "sha256:" + createHash("sha256").update(raw).digest("hex") ||
+          Object.values(map.hats).flat().some((role) => !map.available_roles.includes(role)))
+        return yield* new C.FrappeSiteError({ code: "PROVIDER_RESPONSE_INVALID", operation: "readHatMap", message: "The native role map or availability differs from the admitted release" });
+      return map;
     }),
     readSite: (i) => call("readSite", "capxul.service.read_site", i, {}, C.SiteInfo, 5000, 2),
     mintViewLink: (i) => call("mintViewLink", "capxul.service.mint_view_link", i, { user: i.user }, C.ViewLink, 10000, 2),

@@ -15,5 +15,6 @@ import * as watch from "./watch.ts";
 import * as screens from "./screens.ts";
 import * as provisioning from "./provisioning.ts";
 import * as acceptance from "./acceptance.ts";
+import * as productDoor from "./product-door.ts";
 
-export const modules = [stateGaps, data, sites, door, processes, operations, decisions, evidence, journeys, thinLine, features, watch, screens, provisioning, acceptance] as const;
+export const modules = [stateGaps, data, sites, door, processes, operations, decisions, evidence, journeys, thinLine, features, watch, screens, provisioning, acceptance, productDoor] as const;

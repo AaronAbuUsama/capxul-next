@@ -4,7 +4,7 @@ import { test } from "node:test";
 import pg from "pg";
 import { db, now, config, run, publicAccess } from "./access-fixture.ts";
 import { devnetMail, migrateMailSink } from "../../devnet/src/devnet/door.ts";
-import { createAccessClient, AccessClientError } from "../../sdk/src/access/door.ts";
+import { createAccessClient, AccessClientError, signInByCode } from "../../sdk/src/access/door.ts";
 
 test("public HTTP OTP uses the durable devnet Mail sink, commits spent tries, and obtains a fresh session after revocation", async () => {
   const admin = new pg.Client({ connectionString: process.env.ACCESS_TEST_ADMIN_URL });
@@ -43,5 +43,10 @@ test("public HTTP OTP uses the durable devnet Mail sink, commits spent tries, an
     const refreshed = await client.verifyCode({ email, code: await code(), client: `fresh-${randomUUID()}` });
     assert.notEqual(refreshed.token, session.token); assert.equal(refreshed.personId, session.personId); assert.equal(refreshed.safe, session.safe);
     assert.equal((await client.current(refreshed.token)).personId, session.personId);
+    // Stopped clock: a decoy message with the same sentAt must not be read as the new code.
+    const actor = `actor-${run}@example.test`;
+    await mail.send({ to: actor, subject: "decoy", text: "Old code 123456.", idempotencyKey: `decoy-${run}` });
+    const prepared = await signInByCode(client, mail, { email: actor, client: "actor-prep" });
+    assert.deepEqual([prepared.session.kind, prepared.session.email, prepared.session.personId], ["person", actor, prepared.signIn.personId]);
   } finally { await server.close(); await admin.end(); }
 });
