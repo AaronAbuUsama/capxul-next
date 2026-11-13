@@ -3,7 +3,6 @@ import { concept_sites } from "../shared/foundation.ts";
 import { doctype_user } from "../plugs/doctypes.ts";
 import { rpc_sites_door_create, rpc_sites_door_get, rpc_sites_door_reports_run, rpc_sites_door_submit } from "./door.ts";
 import { table_door_calls, table_site_features, table_sites } from "./data.ts";
-import { workflow_sites_create } from "./processes.ts";
 import { integration_frappe_site } from "../plugs/integrations.ts";
 
 export const doctype_capxul_door_call = defineDoctype({
@@ -28,19 +27,6 @@ export const decision_sites_door_retry_receipt = defineDecision({
   why: "aaron.one-door and aaron.frappe-native keep documents in ERPNext. A remote SQL transaction cannot roll back a committed Frappe insertion. The site-local receipt closes that crash window without placing document bodies in Core or replacing the asynchronous payment request outbox. Idempotency preserves the mutation, not historical authority to disclose its fields: Frappe's current field-level and masking rules apply to both fresh and replayed views.",
   source: "Slice-zero sites implementation assignment, 12 November 2026; packages/frappe-app/capxul/payments.py request_payment and answer_request; decision sites.door.",
   affects: [concept_sites, doctype_capxul_door_call, table_door_calls, rpc_sites_door_create, rpc_sites_door_submit],
-});
-
-export const decision_sites_assertion_readiness = defineDecision({
-  id: "sites.assertion-readiness", title: "Site creation verifies the native assertion door, not the removed OAuth client",
-  question: "What sign-in mechanism must site creation verify after the site stopped calling Core?",
-  options: [
-    { label: "native-assertion", text: "Read the actual site's assertion auth hook, app and immutable map versions, Company and default feature rows, with no legacy capxul Social Login Key. Mark ready only after Core retains applied acknowledgements for the initial events. This proves the configured programmatic door and hat-created users, not human browser OAuth." },
-    { label: "legacy-client", text: "Recreate the removed Social Login Key and register a callback client before marking ready, bringing back a site-to-Core dependency that the landed boundary removed." },
-  ],
-  chosen: "native-assertion",
-  why: "The landed Frappe boundary removes the legacy OAuth client on configure, migrate and restore, and the site never calls Core (plugs.service-calls-site). The CLI uses the native signed-person assertion. Keeping the old creation step would deliberately reintroduce that removed mechanism; browser sign-in remains outside slice-zero acceptance.",
-  source: "Landed Frappe PR35; capxul.setup.remove_legacy_oauth, capxul.door.validate_assertion; plugs.door-assertion and aaron.one-door.",
-  affects: [concept_sites, workflow_sites_create],
 });
 
 export const decision_sites_annotation_account = defineDecision({

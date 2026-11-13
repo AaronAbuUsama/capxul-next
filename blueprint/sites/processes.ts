@@ -6,6 +6,7 @@ import { budget, defineWorkflow } from "../../packages/blueprint-engine/src/inde
 import { concept_sites } from "../shared/foundation.ts";
 import { machine_org_setup, table_org_deployments, table_org_members } from "../organizations/data.ts";
 import { integration_frappe_site, integration_site_service } from "../plugs/integrations.ts";
+import { procedure_plugs_oauth_register_client } from "../plugs/signin.ts";
 import { procedure_plugs_events_enqueue } from "../plugs/events.ts";
 import { machine_site, machine_site_feature, table_site_features, table_sites } from "./data.ts";
 
@@ -16,7 +17,7 @@ export const workflow_sites_create = defineWorkflow({
   title: "Make an Organization's site when its setup completes, and bring it up to date",
   about:
     "Triggered when the Organization's setup completes (the chain's part is real). One process per site: it begins the site, asks the site service to create it on the world's bench (the site, every supported " +
-    "app, the Company, the Safe's bank account, the names, privacy and the hat-role map), verifies the site's signed-person assertion hook without a legacy Social Login Key, seeds the feature rows (accounts, people, " +
+    "app, the Company, the Safe's bank account, the names, privacy and the hat-role map), registers the sign-in client and configures the site's Social Login Key, seeds the feature rows (accounts, people, " +
     "projects and crm on; payroll installed but off; the rest off), and enqueues `org_created` so the Organization's events are delivered from number 1 (plugs.history-lives-in-core). The script is safe to repeat, so " +
     "a retry after a failure, or a second run for an Organization whose site was dropped, finishes the job. The site is ready only when its first events are applied. Measured: 143 s cold on a laptop, 7 s to repeat; a " +
     "bench in the cloud is not measured (docs/mission/cloud.md). The address is `<company>-<world>.<base>`.",
@@ -27,17 +28,17 @@ export const workflow_sites_create = defineWorkflow({
   steps: [
     { name: "begin", about: "Makes the site row creating." },
     { name: "create", about: "Asks the site service to create the site." },
+    { name: "sign-in", about: "Registers the OAuth client and configures the Social Login Key." },
     { name: "features", about: "Seeds the feature rows from the defaults." },
     { name: "events", about: "Enqueues org_created; delivery brings the site to the Organization's present." },
-    { name: "sign-in", about: "Reads the real site's configured assertion hook and absence of the removed legacy OAuth client; hat delivery created the native users. Human browser sign-in is outside slice zero, not inferred from this check." },
     { name: "ready", about: "Marks the site ready once the site answers and the first events are applied." },
   ],
   reads: [table_sites, table_site_features, table_org_members, table_org_deployments],
   writes: [table_sites, table_site_features],
   drives: [machine_site.t.begin, machine_site.t.ready, machine_site.t.fail, machine_site_feature.t.seed_on, machine_site_feature.t.seed_off],
-  invokes: [procedure_plugs_events_enqueue],
+  invokes: [procedure_plugs_oauth_register_client, procedure_plugs_events_enqueue],
   emits: [],
-  calls: [integration_site_service.c.createSite, integration_frappe_site.c.readSite],
+  calls: [integration_site_service.c.createSite, integration_site_service.c.configureSignIn],
   chain: [],
   idempotency: "One site per Organization (the unique key); the service's script is safe to repeat; events are keyed.",
   timeoutMs: 600_000,
