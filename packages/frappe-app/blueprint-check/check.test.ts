@@ -89,14 +89,15 @@ test("read_setup.py reads the hat map and the Custom Fields from source, dict() 
   assert.deepEqual(JSON.parse(py.stdout), { DEFAULT_HAT_ROLES: { member: ["Employee"] }, CUSTOM_FIELDS: { "GL Entry": [{ fieldname: "t", fieldtype: "Data", read_only: 1 }] } });
 });
 
-test("a feature's label, default, modules, apps, routes and needs are compared with the code's catalog, both ways", () => {
+test("a feature's label, default, modules, DocTypes, apps, routes and needs are compared with the code's catalog, both ways", () => {
   const crm: FeatureRecord = { id: "crm", label: "CRM", default: "on", apps: ["crm"], app: "crm" };
-  const wa: FeatureRecord = { id: "whatsapp", label: "WhatsApp", default: "off", needs: [crm] };
-  const catalog = { crm: { label: "CRM", apps: ["crm"], app: "crm", default: 1 }, whatsapp: { label: "WhatsApp", needs: ["crm"], default: 0 } };
+  const wa: FeatureRecord = { id: "whatsapp", label: "WhatsApp", default: "off", doctypes: ["WhatsApp Message"], needs: [crm] };
+  const catalog = { crm: { label: "CRM", apps: ["crm"], app: "crm", default: 1 }, whatsapp: { label: "WhatsApp", doctypes: ["WhatsApp Message"], needs: ["crm"], default: 0 } };
   assert.deepEqual(run([user, grant], [member], code({ features: catalog }), [crm, wa]), []);
-  assert.deepEqual(run([user, grant], [member], code({ features: { ...catalog, crm: { ...catalog.crm, default: 0, paths: ["/crm"] }, stock: { label: "Stock", default: 0 } } }), [crm, wa, { id: "gone", label: "Gone", default: "off" }]), [
+  assert.deepEqual(run([user, grant], [member], code({ features: { ...catalog, crm: { ...catalog.crm, default: 0, paths: ["/crm"] }, whatsapp: { ...catalog.whatsapp, doctypes: [] }, stock: { label: "Stock", default: 0 } } }), [crm, wa, { id: "gone", label: "Gone", default: "off" }]), [
     'feature crm: default is "on" in the blueprint and "off" in the code',
     'feature crm: paths is nothing in the blueprint and ["/crm"] in the code',
+    'feature whatsapp: doctypes is ["WhatsApp Message"] in the blueprint and [] in the code',
     "feature stock: the code's catalog has it; the blueprint has no feature record",
     "feature gone: the blueprint records it (feature:gone); the code's catalog does not",
   ]);
