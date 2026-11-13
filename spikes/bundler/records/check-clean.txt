@@ -1,0 +1,5 @@
+workers: 13 in the account, 0 of this stack []
+container applications: 2 in the account, 0 of this stack []
+durable object namespaces: 6 in the account, 0 of this stack []
+r2 buckets: 4 in the account, 0 of this stack []
+registry: 4 repositories, 0 of this stack

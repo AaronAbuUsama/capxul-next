@@ -1,0 +1,40 @@
+== world bd-w1 at https://capxulspikebundler-door-bd-w1-nrwenxjotnjxlwpe.thedao.workers.dev
+wrong token: HTTP 404
+waiting for the chain's first container instance
+  after 2.00 s
+eth_chainId     {"jsonrpc":"2.0","id":1,"result":"0x14a34"}
+eth_blockNumber {"jsonrpc":"2.0","id":1,"result":"0x2dacb0b"}   (the seed core.json ends at 47893259 = 0x2dacb0b)
+== 2. the test paymaster, a test token and a Safe go on the chain; the faucet funds them
+setup took 3.16 s
+{"world":{"paymaster":"0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6","token":"0x610178da211fef7d417bc0e6fed39f05609ad788","safe":"0xBc8a92868325E901a8b3783533B4E7F1022AfFF1","owner":"0x07766d25891bf72006132c9bD443429784559bf3"},"check":{"safeOwners":["0x07766d25891bf72006132c9bD443429784559bf3"],"module4337Enabled":true,"paymasterEntryPoint":"0x0000000071727De22E5E9d8BAf0edAc6f37da032","paymasterDepositWei":"1000000000000000000","safeTokenBalance":"1000000000","executorWei":"10000000000000000000"}}
+
+== 1. alto in a Cloudflare Container answers through the door, pointed at this world's chain
+eth_supportedEntryPoints {"jsonrpc":"2.0","id":1,"result":["0x0000000071727De22E5E9d8BAf0edAc6f37da032"]}   (bundler cold start, by the caller: 6.40 s)
+eth_chainId (bundler)    {"jsonrpc":"2.0","id":1,"result":"0x14a34"}
+bundler: running=True starts=[{'at': '2026-11-13T10:51:35.821Z', 'readyMs': 5887, 'startCalls': 1}]
+== 3. one UserOperation from the Safe, sponsored by the paymaster, sent through the bundler
+eth_sendUserOperation -> 0x2a35feece1441fdf5a0fdc012ccfd53bc6298371c61e973749f04820454cd553 (the hash computed before sending matches: True)
+  accepted after 184 ms; receipt after 917 ms
+eth_getUserOperationReceipt -> success True sender 0xBc8a92868325E901a8b3783533B4E7F1022AfFF1 paymaster 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6
+  actualGasCost 213845795811200 wei, in tx 0xa9d068687e17b4fd853ea0b20fdf6ef9c96b391c17143a68b95fff157b755bae block 47893269 status 0x1
+  the transaction was sent by 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720 to 0x0000000071727De22E5E9d8BAf0edAc6f37da032 (the bundler executor, to the EntryPoint)
+chain: Safe test USD -25000000 recipient 25000000 Safe ETH 0 paymaster deposit -213845795811200 wei
+== 4. the world stops when it is idle (30 s here), the bundler with it, and works again after waking
+last call through /rpc made; waiting for the chain to stop by itself
+  after 34.30 s
+chain:   running=False last stop {'at': '2026-11-13T10:52:24.348Z', 'why': 'idle', 'head': '0x2dacb15', 'savedBytes': 3133880, 'ms': 3030}
+bundler: running=False stops=[{'at': '2026-11-13T10:52:24.167Z', 'ms': 171}]
+chain after setIdle (no bundler call yet): running=False
+wake through the bundler: eth_supportedEntryPoints {"jsonrpc":"2.0","id":1,"result":["0x0000000071727De22E5E9d8BAf0edAc6f37da032"]}   (7.48 s)
+the Safe's nonce at the EntryPoint survived the stop: 1
+eth_sendUserOperation -> 0x25b9012ad5dcba4f85065034d6654dd96e4a53fc46f22cdc78ef0ef7acd5a907 (the hash computed before sending matches: True)
+  accepted after 179 ms; receipt after 927 ms
+eth_getUserOperationReceipt -> success True sender 0xBc8a92868325E901a8b3783533B4E7F1022AfFF1 paymaster 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6
+  actualGasCost 181192707424690 wei, in tx 0x97400ad6683f6d87463e88e7257284c86af40ac125fe1a76741da5c8b4f65ac8 block 47893270 status 0x1
+  the transaction was sent by 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720 to 0x0000000071727De22E5E9d8BAf0edAc6f37da032 (the bundler executor, to the EntryPoint)
+chain: Safe test USD -25000000 recipient 25000000 Safe ETH 0 paymaster deposit -181192707424690 wei
+== 5. timings the world recorded about itself (ms)
+chain starts: [('seed', False, 1065), ('saved state', False, 1528)]
+chain stops:  [('idle', 3030, 3133880)]
+bundler starts (ready ms, start calls): [(5887, 1), (5600, 1)]
+bundler stops (ms): [171]
