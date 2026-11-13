@@ -38,8 +38,9 @@ export async function readNotices(sql: Sql, options: { to?: string; template?: s
 
 const transitioned: Emit = async (sql, props, at, id, trace) => {
   await emit(sql, { id: `notice:${id}`, name: "notice_transitioned", machine: "notice", entity_id: props.notice_id,
-    owner_kind: props.org_id ? "organization" : props.person_id ? "person" : null,
-    owner_id: props.org_id ?? props.person_id, actor: null, trace_id: trace, at, props });
+    // notices.event-owner: the recipient person's scope first, never the payer Organization's for a payee's notice.
+    owner_kind: props.person_id ? "person" : props.org_id ? "organization" : null,
+    owner_id: props.person_id ?? props.org_id, actor: null, trace_id: trace, at, props });
 };
 
 export async function deliverNotices(db: Database, mail: Mail) {
@@ -56,8 +57,11 @@ export function noticesWorker(db: Database, mail: Mail, sources: Omit<Sources,"p
   return async () => {
     const scheduled = await relay(db, "notices", sourceNames, schedule);
     const prepared = await prepareDue(db, worldNow, resolve);
-    const delivered = await deliverNotices(db, mail);
+    // A failed delivery row is rethrown only after the workflows it does not block have advanced.
+    let failure: unknown;
+    const delivered = await deliverNotices(db, mail).catch((error: unknown) => { failure = error; return 0; });
     const finished = await finishDue(db, worldNow);
+    if (failure !== undefined) throw failure;
     return scheduled + prepared + delivered + finished;
   };
 }

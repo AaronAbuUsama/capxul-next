@@ -49,16 +49,20 @@ export async function prepareDue(db: Database, now: WorldNow, resolve: Resolve) 
   let prepared = 0;
   for (const key of due) {
     prepared += await db.transaction("", async (sql) => {
-      await sql.query("select pg_advisory_xact_lock(hashtextextended('notices:dispatch-boundary',0))");
+      // One preparer per job, but no row lock or dispatch boundary across source reads and chain RPC:
+      // schedule takes the boundary before updating workflow rows, so holding either here would stall or deadlock it.
+      if (!(await sql.query("select pg_try_advisory_xact_lock(hashtextextended($1,0)) as mine",
+        [JSON.stringify(["notices:prepare", key.workflow, key.event_id])])).rows[0].mine) return 0;
       const at = await now(sql);
       const job = (await sql.query(`select * from app.notice_workflows where workflow=$1 and event_id=$2
         and finished_at is null and failed_at is null and checkpoint is null and due_at<=$3
-        and coalesce(retry_at,due_at)<=$3 for update skip locked`, [key.workflow,key.event_id,at])).rows[0];
+        and coalesce(retry_at,due_at)<=$3`, [key.workflow,key.event_id,at])).rows[0];
       if (!job) return 0;
+      const unchanged = `workflow=$1 and event_id=$2 and finished_at is null and failed_at is null and checkpoint is null and failures=$3`;
       const event = job.event as TransitionEvent;
       const deadline = event.at + (job.workflow === reminders ? 31 * day : 300_000);
       if (at >= deadline) {
-        await sql.query("update app.notice_workflows set failed_at=$3,last_error='preparation deadline exceeded' where workflow=$1 and event_id=$2", [key.workflow,key.event_id,at]);
+        await sql.query(`update app.notice_workflows set failed_at=$4,last_error='preparation deadline exceeded' where ${unchanged}`, [key.workflow,key.event_id,job.failures,at]);
         return 1;
       }
       // Source-owned doors require the committed owner's canonical context on this same worker session.
@@ -69,6 +73,12 @@ export async function prepareDue(db: Database, now: WorldNow, resolve: Resolve) 
         const days = job.workflow === reminders ? Math.round((job.due_at - event.at) / day) : null;
         const plan = await resolve(sql, job.workflow, event, days);
         if (await now(sql) >= deadline) throw new Error("preparation deadline exceeded");
+        // Only now take the boundary, then recheck: a stop committed during resolution wins over this plan.
+        await sql.query("select pg_advisory_xact_lock(hashtextextended('notices:dispatch-boundary',0))");
+        if (!(await sql.query(`select 1 from app.notice_workflows where ${unchanged} for update`, [job.workflow,job.event_id,job.failures])).rowCount) {
+          await sql.query("rollback to savepoint notice_prepare");
+          return 0;
+        }
         if (plan.ended) {
           await sql.query("update app.notice_workflows set finished_at=$3 where workflow=$1 and event_id=$2", [job.workflow,job.event_id,at]);
         } else {
@@ -82,8 +92,8 @@ export async function prepareDue(db: Database, now: WorldNow, resolve: Resolve) 
         await sql.query("rollback to savepoint notice_prepare");
         const failedAt = await now(sql), failures = job.failures + 1;
         const stopped = failures > 5 || failedAt >= deadline;
-        await sql.query(`update app.notice_workflows set failures=$3,retry_at=$4,failed_at=$5,last_error=$6
-          where workflow=$1 and event_id=$2`, [key.workflow,key.event_id,failures,
+        await sql.query(`update app.notice_workflows set failures=$3+1,retry_at=$4,failed_at=$5,last_error=$6
+          where ${unchanged}`, [key.workflow,key.event_id,job.failures,
           stopped ? null : failedAt + 1000 * 2 ** (failures-1), stopped ? failedAt : null,
           failedAt >= deadline ? "preparation deadline exceeded" : "source preparation failed"]);
       }
