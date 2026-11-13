@@ -104,7 +104,8 @@ export function approvalSponsor(config: SponsorConfig): (a: SponsorshipRequest) 
       const mask = (1n << 48n) - 1n;
       if ((validation & ((1n << 160n) - 1n)) !== 0n || ((validation >> 160n) & mask) !== until || ((validation >> 208n) & mask) !== after) throw invalid();
       const completedAt = config.now().getTime();
-      if (!Number.isFinite(completedAt) || until * 1000n <= BigInt(completedAt)) throw invalid();
+      if (!Number.isFinite(completedAt)) throw invalid();
+      if (until * 1000n <= BigInt(completedAt)) throw new SponsorError("WRONG_STATE", "Approval expired during sponsorship");
       return { nonce: op.nonce, signer_address: address(owners[0]!), user_operation: op, digest, user_op_hash: userOpHash,
         valid_after: new Date(Number(after) * 1000), valid_until: new Date(Number(until) * 1000) };
     } catch (error) {
