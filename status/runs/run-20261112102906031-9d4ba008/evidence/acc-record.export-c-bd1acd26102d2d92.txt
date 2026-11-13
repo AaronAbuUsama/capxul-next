@@ -1,8 +1,0 @@
-eval     acc:record.export/c-bd1acd26102d2d92
-claim    An export carries the lineage and every entry once.
-verdict  not_run
-run      run-20261112102906031-9d4ba008  at 2026-11-12T10:29:06.031Z  commit 42e4def7d48a9262eae1e002db2f6b3da1e4dce2+dirty
-script     world slice-zero  company devnet-refresh
-why      no binding
-
-no check is bound to this eval, so nothing was run for it

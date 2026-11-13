@@ -34,37 +34,31 @@ downloads it once). No git submodules.
 
 ## Commands
 
-From the repository root: `pnpm contracts:test` (hermetic, 965 tests), `pnpm contracts:fork` (the fork and scenario tests from the
-seeded state, 67 tests), `pnpm contracts:prove` (the proof script). They are not part of the default `pnpm test`: a build is
-about 100 s and the fork run needs a chain. From this folder: `forge build`, `forge test`, `FOUNDRY_PROFILE=full forge test`
+From the repository root: `pnpm --filter @capxul/contracts test` (hermetic, 965 tests) and `pnpm --filter @capxul/contracts fork`
+(the fork and scenario tests from the seeded state, 67 tests). They are not part of the ladder in `AGENTS.md`: they need
+Foundry, a build is about 100 s and the fork run needs a chain. From this folder: `forge build`, `forge test`, `FOUNDRY_PROFILE=full forge test`
 (adds fuzz, invariant, symbolic and exhaustive tests; slow).
 
 ## The seeded chain state (`state/`)
 
 | File | What | Used by |
 |---|---|---|
-| `pin.genesis.json` | An Anvil `--init` genesis whose head is Base Sepolia block 47,893,251 and which holds the 25 third-party contracts (Safe 1.5.0 and 1.4.1 libraries, Hats, Hats Signer Gate, Roles, ModuleProxyFactory, USDC, ...) with the storage the tests touch: 10 non-zero slots | `bin/chain-up.sh pin`, `pnpm contracts:fork` |
-| `core.json` | That state plus Companies House and the 15 v4 contracts deployed (an `anvil_dumpState`), head at block 47,893,259 | `bin/chain-up.sh` (default), `pnpm contracts:prove` |
+| `pin.genesis.json` | An Anvil `--init` genesis whose head is Base Sepolia block 47,893,251 and which holds the 25 third-party contracts (Safe 1.5.0 and 1.4.1 libraries, Hats, Hats Signer Gate, Roles, ModuleProxyFactory, USDC, ...) with the storage the tests touch: 10 non-zero slots | `bin/chain-up.sh pin`, the `fork` script |
+| `core.json` | That state plus Companies House and the 15 v4 contracts deployed (an `anvil_dumpState`), head at block 47,893,259 | `bin/chain-up.sh` (default) |
 | `CHECKSUMS` | SHA-256 of both | rebuild check |
 
 `bin/chain-up.sh [core|pin]` starts Anvil from a state on `CHAIN_PORT` (default 18545), chain id 84532, reading the state and
-never writing it; `bin/chain-down.sh` stops it. `bin/seed-state.sh` rebuilds both files (it needs the network for its first two
-stages, which record what the deployment, the proof and the forge tests touch and read those at the pin; the last stage, the
-deployment onto the pin, is offline) and prints the checksums. Rebuild after any change to a contract: `core.json` holds their
-compiled code. `deployments/devnet.json` is the deployment record (addresses, salts, constructor arguments, code hashes).
+never writing it; `bin/chain-down.sh` stops it. Both files were built on `main` by `bin/seed-state.sh`, which drove
+`packages/devnet`; neither is on this line, so the state cannot be rebuilt here yet. A change to a contract makes
+`core.json` stale: it holds their compiled code. `deployments/devnet.json` is the deployment record (addresses, salts, constructor arguments, code hashes).
 
 Anvil's own test accounts have EIP-7702 delegations on the live chain, so the pin skips them and funds the nine test accounts
 fresh. Time moves with `evm_setNextBlockTimestamp` and `evm_increaseTime`, as on any Anvil.
 
-## The proof (`bin/prove-core.sh`)
+## The proof
 
-Starts the chain from `core.json`, runs `packages/devnet`'s `prove` against it (all signatures are keys', through
-`@capxul/sdk`'s `localPrivateKeySigner`), prints PASS or FAIL per step, stops the chain. 18 steps: the founder's personal Safe
-claimed and the company Safe minted through Companies House's Roles roles; authority installed (hats, Roles, Signer Gate, Budgets,
-a top budget); a department (a child budget) created, its hat granted to a second key, its amount set; a payment from the budget
-to a third address through Payments with a document hash; the refusals (no hat, over budget); an agent created through AgentOwner,
-refused with no hat, then granted the hat, paying, refused over budget, refused when it touches its own Safe or delegatecalls, and
-frozen. No bundler or paymaster is involved (see the last section).
+The 18-step proof (`bin/prove-core.sh`) ran `packages/devnet`'s `prove` through `@capxul/sdk`. Both packages stay on
+`main`, so the script was removed from this line. The thin line's scenarios will take its place.
 
 ## How an agent's authority to spend flows
 

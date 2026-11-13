@@ -1,5 +1,0 @@
-{
-  "extends": "../packages/blueprint-engine/tsconfig.json",
-  "compilerOptions": { "types": ["node"] },
-  "include": ["**/*.ts"]
-}

@@ -1,8 +1,0 @@
-## What
-This task is allowed and required to change packages/blueprint-engine, with tests. One: implement system.eval-identity as recorded, so the build reports a problem when an eval id is used twice, and fix the ids in the blueprint so the build has 0 problems (the task tool counts 41 duplicates today). Two: let a decision record say which gaps stand and why: an optional field stands, a list of { record, rule, why }. The build then reports a gap named there under standing, with the decision's id, and not under gaps; a stands entry that matches no gap is a problem, so reasons cannot go stale. findings.json carries both lists and the summary line prints both counts. Convert the decisions the gap tasks wrote on 10 November (the state-gaps.ts files and the reasons in shared/decisions.ts) to use the field. Update docs/blueprint.md where it describes gaps and decisions.
-## Why
-Two loop runs on 10 November stopped at the engine. m1-old-decisions blocked because giving every eval a unique id means implementing the recorded rule system.eval-identity in the engine, which a blueprint task may not touch. And the three gap tasks could only write reasons as decisions: the build still counts those gaps as open, so exit line g2 (every gap closed or with a recorded reason) cannot be read off the build.
-## Done when
-- pnpm blueprint reports 0 problems, no eval id is used twice, and the engine's tests cover both rules
-- The gaps the 10 November decisions account for are reported as standing with their decision, and a stale stands entry is a problem
-- pnpm frozen, pnpm contracts:check-blueprint, pnpm portal:check and pnpm test pass

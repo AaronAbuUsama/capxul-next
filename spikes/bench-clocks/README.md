@@ -93,7 +93,7 @@ Four full runs gave 611 to 688 s, 95 to 106 s for a site, and 673 to 713 MiB.
 - More than one worker container, `bench worker-pool`, or a second web container.
 - A clock with a rate above 1 on the bench (`tests/test_clock.py` covers the arithmetic), and `capxul.clock.advance`
   stepping one world while the other runs.
-- What still reads the host's time by design (`spikes/skeleton/FINDINGS.md`, "What follows the clock"): Redis
+- What still reads the host's time by design (`spikes/skeleton/FINDINGS.md` on `main`, "What follows the clock"): Redis
   lifetimes, the scheduler's own tick, the browser. A frozen world's jobs fall due only when the world is moved.
 - Core and the chain. This spike is the Frappe side only.
 

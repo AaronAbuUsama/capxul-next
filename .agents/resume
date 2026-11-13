@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-# Restore the systemd-owned daemon, not socket permissions or personal authentication.
-set -euo pipefail
-sudo -n systemctl start docker
-sudo -n /usr/bin/docker info >/dev/null

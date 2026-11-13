@@ -1,4 +1,4 @@
-# pnpm workspaces (decision tooling.package-manager: Aaron, 8 November 2026 — pnpm, not npm).
+# pnpm workspaces (decision tooling.package-manager: Aaron, 8 November 2026: pnpm, not npm).
 packages:
   - packages/*
 
@@ -16,12 +16,3 @@ onlyBuiltDependencies: []
 
 savePrefix: ""
 packageImportMethod: clone-or-copy
-
-# Install scripts of these are known and deliberately NOT run (pi-ai pulls them in; neither is needed at run time).
-allowBuilds:
-  "@google/genai": false
-  protobufjs: false
-  # alto (packages/devnet's bundler) pulls it in; msgpackr falls back to plain JavaScript without it.
-  msgpackr-extract: false
-patchedDependencies:
-  '@pimlico/alto@0.0.21': packages/devnet/patches/@pimlico__alto@0.0.21.patch

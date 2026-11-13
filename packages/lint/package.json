@@ -1,0 +1,15 @@
+{
+  "name": "@capxul/lint",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "shape": "node --experimental-strip-types --no-warnings src/shape.entry.ts",
+    "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts",
+    "check": "tsc -p ."
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

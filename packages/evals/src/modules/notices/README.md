@@ -1,7 +1,0 @@
-# Notices selected-world checks
-
-`bash run.sh --list` has no fixture dependency. Normal execution requires the supervisor's private `CAPXUL_WORLD_CONFIG`, `CAPXUL_ACCEPTANCE_FIXTURE`, and the harness-owned running `CAPXUL_EVAL_RUN_DIR`. `--only` accepts comma-separated check prefixes. The selected-world guard runs before any inspection. Restricted roles, live world/epoch, code version, Postgres, Ponder, ERPNext and v4 identity are checked through `world inspect`; sanitized evidence stays under that same run's `notices/` directory. The script never migrates or fabricates delivery rows.
-
-The sole `evals/bindings/notices.json` contains three **near-only** table checks: exact columns/key/indexes; same-cut mailbox RLS equality and session reset over at least two real recipients; and restricted writer/inspection ACLs. Constraint rejection, actual migration integration, authenticated/revoked sessions and every real source-driven writer remain required before activation. Native component fixtures, mock providers, direct scheduling and copied receipts cannot satisfy those missing parts.
-
-The other 49 notices claims (six transitions and workflow budget/idempotence/resume/wake) remain unbound until the real source lifecycle, canonical outbox, sink, stopped world clock and runtime drain are composed and exercised. No component result is relabeled as selected-stack acceptance, and a missing world or assertion emits failure, never a skip or pass.

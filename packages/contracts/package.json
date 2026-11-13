@@ -6,7 +6,6 @@
   "scripts": {
     "build": "forge build",
     "test": "forge test",
-    "fork": "bash bin/fork-test.sh",
-    "prove": "bash bin/prove-core.sh"
+    "fork": "bash bin/fork-test.sh"
   }
 }

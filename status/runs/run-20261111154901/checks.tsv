@@ -1,9 +1,0 @@
-B1.org-create	pass	298279	B1 org create exits 0 in 297 s
-B1.safe-on-chain-is-the-sites-safe	pass	2486	B1 chain: the Safe on the chain is the one the site was given (0x24c601A6EAF6AF820716E8DE829Ec150AB0D7198 holds 50000000000 units of test USDC)
-B1.company-safe-minted-for-founder	pass	82	B1 chain: CompanySafeMinted names the site's Safe, with the admin's personal Safe as founderSafe and sole owner (minted in tx 0xd8c0bcf8f136c0871bebaee6be6857358692644a3b2b7a74efd275513e2cae98)
-B1.org-show-prints-the-safe	pass	738	B1 read: org show prints the Safe CompanySafeMinted named
-B1.site-answers-by-name	pass	64	B1 the site answers (by name, cloudv4e.localhost:8000)
-B1.company-exists	pass	628	B1 the Company exists
-B1.safe-bank-account	pass	91	B1 the Safe bank account exists, tied to the Safe address (Capxul Safe (USDC) - ATL)
-B1.admin-hat-reaches-site	pass	132	B1 the admin hat reached the site: the admin's User exists with roles (['Accounts Manager', 'Accounts User', 'HR Manager', 'HR User...) 59ms after org create returned
-B1.admin-sign-in-chain	pass	987	B1 admin completes the sign-in chain against the Core stub: session user is the admin (953ms)

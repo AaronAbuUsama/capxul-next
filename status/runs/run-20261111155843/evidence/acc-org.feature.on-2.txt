@@ -1,9 +1,0 @@
-eval     acc:org.feature.on/2
-claim    WhatsApp cannot be turned on without CRM, and the reason is said first.
-verdict  pass
-run      run-20261111155843  at 2026-11-11T15:58:43Z  commit ff08276
-script   spikes/skeleton/run.sh  world main  company cloudv4f
-why      With crm off, `feature on whatsapp` exits non-zero, says it needs crm, and the check finds whatsapp still off: refused with the reason and nothing changed.
-
-PASS  B5.whatsapp-needs-crm  x1  10268 ms
-      B5 whatsapp on while crm is off is refused with the reason, nothing installed or changed

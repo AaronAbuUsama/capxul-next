@@ -1,8 +1,0 @@
-eval     wfl:plugs.events.deliver/idempotent
-claim    a second run with the same key (The site answers a repeated event key as already applied, and a transition already made is not made twice.) changes nothing
-verdict  not_run
-run      run-20261113053104850-cfaaee70  at 2026-11-13T05:31:04.850Z  commit 6734a8e784396d1bae4548fa7638096271c21b2e
-script     world main  company s2611130531
-why      no binding
-
-no check is bound to this eval, so nothing was run for it
