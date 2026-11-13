@@ -18,6 +18,7 @@ services:
     <<: *world-process
     volumes:
       - ${CAPXUL_APP_DIR:?set CAPXUL_APP_DIR}:/home/frappe/frappe-bench/apps/capxul:ro
+      - ../devnet/src/devnet/world-clock.pth:/home/frappe/frappe-bench/env/lib/python3.14/site-packages/zz-capxul-world-clock.pth:ro
   websocket:
     <<: *world-process
     ports: ["127.0.0.1:${CAPXUL_SOCKET_PORT:?set CAPXUL_SOCKET_PORT}:9000"]
@@ -25,14 +26,18 @@ services:
     <<: *world-process
     volumes:
       - ${CAPXUL_APP_DIR}:/home/frappe/frappe-bench/apps/capxul:ro
+      - ../devnet/src/devnet/world-clock.pth:/home/frappe/frappe-bench/env/lib/python3.14/site-packages/zz-capxul-world-clock.pth:ro
   queue-long:
     <<: *world-process
     volumes:
       - ${CAPXUL_APP_DIR}:/home/frappe/frappe-bench/apps/capxul:ro
+      - ../devnet/src/devnet/world-clock.pth:/home/frappe/frappe-bench/env/lib/python3.14/site-packages/zz-capxul-world-clock.pth:ro
   scheduler:
     <<: *world-process
     volumes:
       - ${CAPXUL_APP_DIR}:/home/frappe/frappe-bench/apps/capxul:ro
+      - ../devnet/src/devnet/world-clock.pth:/home/frappe/frappe-bench/env/lib/python3.14/site-packages/zz-capxul-world-clock.pth:ro
   site-admin:
     volumes:
       - ${CAPXUL_APP_DIR}:/home/frappe/frappe-bench/apps/capxul:ro
+      - ../devnet/src/devnet/world-clock.pth:/home/frappe/frappe-bench/env/lib/python3.14/site-packages/zz-capxul-world-clock.pth:ro

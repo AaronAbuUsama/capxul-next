@@ -52,14 +52,17 @@ test("committed runtime outbox: rollback, crash retry, concurrency, exact identi
       assert.deepEqual(await readEvent(admin, "committed"), event("committed"));
     });
     await t.test("consumer effect and ACK roll back on error, then retry once under concurrent relays", async () => {
-      await assert.rejects(relay(db, "notices", ["request_transitioned"], async (sql, e) => { await effect(sql, e); throw new Error("handler failed"); }), /handler failed/);
+      assert.equal(await relay(db, "notices", ["request_transitioned"], async (sql, e) => { await effect(sql, e); throw new Error("handler failed"); }), 0);
       assert.equal((await admin.query("select * from app.outbox_effect_probe")).rowCount, 0);
       assert.equal((await admin.query("select * from app.transition_acks")).rowCount, 0);
+      assert.deepEqual((await admin.query("select consumer,event_id,attempts,last_error from app.transition_failures")).rows,
+        [{ consumer: "notices", event_id: "committed", attempts: 1, last_error: "Error" }]);
       const counts = await Promise.all([relay(db, "notices", ["request_transitioned"], effect), relay(db, "notices", ["request_transitioned"], effect)]);
       assert.equal(counts.reduce((a, b) => a + b), 1);
       assert.equal((await admin.query("select * from app.outbox_effect_probe")).rowCount, 1);
       assert.equal((await admin.query("select * from app.transition_acks where consumer='notices'")).rowCount, 1);
       assert.equal(await relay(db, "notices", ["request_transitioned"], effect), 0);
+      assert.equal((await admin.query("select * from app.transition_failures")).rowCount, 0, "a delivered event clears its failure");
       assert.equal(await relay(db, "activity", ["request_transitioned"], async (sql, e) => {
         await sql.query("insert into app.outbox_effect_probe values ('activity',$1)", [e.id]);
       }), 1, "each consumer has its own ACK");
@@ -109,6 +112,42 @@ test("committed runtime outbox: rollback, crash retry, concurrency, exact identi
         await assert.rejects(db.worker.query("delete from app.transition_outbox"), /permission denied/);
         await assert.rejects(client.query("insert into app.transition_acks values ('forged','committed',now())"), /permission denied/);
       } finally { client.release(); }
+    });
+    await t.test("a poison event rolls back alone: later events deliver, only its code is kept, and it retries after fresh ones", async () => {
+      const name = "poison_transitioned";
+      await db.transaction("", async (sql) => { await emit(sql, { ...event("poison"), name }); await emit(sql, { ...event("healthy"), name }); }, true);
+      const seen: string[] = [];
+      const handler = async (sql: Parameters<typeof consume>[0], e: TransitionEvent) => {
+        seen.push(e.id);
+        await sql.query("insert into app.outbox_effect_probe values ('poison-reader',$1)", [e.id]);
+        if (e.id === "poison") throw new Error("NOT_FOUND: payment row pay-731 for person-a@example.test");
+      };
+      assert.equal(await relay(db, "poison-reader", [name], handler), 1);
+      assert.deepEqual(seen, ["poison", "healthy"], "the healthy event after the poison one is still delivered in the same batch");
+      assert.deepEqual((await admin.query("select event_id from app.outbox_effect_probe where consumer='poison-reader'")).rows, [{ event_id: "healthy" }]);
+      assert.deepEqual((await admin.query("select event_id from app.transition_acks where consumer='poison-reader'")).rows, [{ event_id: "healthy" }]);
+      assert.deepEqual((await admin.query("select event_id,attempts,last_error from app.transition_failures where consumer='poison-reader'")).rows,
+        [{ event_id: "poison", attempts: 1, last_error: "NOT_FOUND" }], "the code only, not the message's data");
+      await db.transaction("", (sql) => emit(sql, { ...event("fresh"), name }), true);
+      seen.length = 0;
+      assert.equal(await relay(db, "poison-reader", [name], handler), 1);
+      assert.deepEqual(seen, ["fresh", "poison"], "a failed event is retried after fresher ones");
+      assert.equal((await admin.query("select attempts from app.transition_failures where event_id='poison'")).rows[0].attempts, 2);
+    });
+    await t.test("permanent poison events beyond the batch limit never starve a later event that fails once", async () => {
+      const name = "starve_transitioned";
+      await db.transaction("", async (sql) => {
+        for (const id of ["stuck-1", "stuck-2", "stuck-3", "late-row"]) await emit(sql, { ...event(id), name });
+      }, true);
+      let lateTries = 0;
+      const handler = async (_sql: Parameters<typeof consume>[0], e: TransitionEvent) => {
+        if (e.id.startsWith("stuck-")) throw new Error("NOT_FOUND: payment row");
+        if (e.id === "late-row" && lateTries++ === 0) throw new Error("NOT_FOUND: payment row not committed yet");
+      };
+      for (let i = 0; i < 6; i++) await relay(db, "starve-reader", [name], handler, 2);
+      assert.deepEqual((await admin.query("select event_id from app.transition_acks where consumer='starve-reader'")).rows, [{ event_id: "late-row" }],
+        "the event that failed once is retried and delivered although three poison events outnumber the batch");
+      assert.equal((await admin.query("select count(*)::int as n from app.transition_failures where consumer='starve-reader'")).rows[0].n, 3);
     });
     await t.test("a source committing behind another delivered sequence is not lost", async () => {
       const late = await db.worker.connect(); await late.query("begin");
