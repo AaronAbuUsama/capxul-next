@@ -17,6 +17,8 @@
     "spikes/**",
     // Ponder's files: Ponder requires async handlers and a Hono API, so they are a different kind of code.
     "packages/indexer/**",
+    // The world's configuration of that Ponder app, built into the index's image: Ponder's own kind of file too.
+    "packages/world/ponder/**",
     // Solidity and its vendored libraries; oxlint reads no Solidity, but the folder also holds vendored JavaScript.
     "packages/contracts/**",
     // The Frappe app is Python plus two browser form scripts that Frappe loads with its own globals; like the
@@ -36,13 +38,15 @@
         "packages/platform/src/run-drift.ts": "the drift check's command line: reads its arguments, prints and writes the report as JSON, sets the exit code",
         "packages/platform/src/run-inventory.ts": "lists what the shared state holds for the platform's stacks from the command line: reads its argument, prints",
         "packages/platform/src/run-mint.ts": "mints a world's site token from the command line: reads its arguments, writes the token file, prints its print",
+        "packages/world/src/main.ts": "the world command line: reads the arguments, prints results to standard output and the log to standard error, sets the exit code",
         "packages/*/test/**/*.test.ts": "a test file is run by the test runner as its own program"
       },
       // Places where JSON text is the format of the outside world, each with its reason.
       "jsonEdges": {
         "packages/runner/src/record.ts": "run records are JSON files on disk, which the dashboard and the speed climb read",
         "packages/cli/src/input.ts": "the command line's input: a flag's JSON value and the --input file, decoded at once with the payload's schema",
-        "packages/cli/src/output.ts": "the command line's output: one line of JSON per answer, encoded with the operation's own schemas"
+        "packages/cli/src/output.ts": "the command line's output: one line of JSON per answer, encoded with the operation's own schemas",
+        "packages/world/src/lifecycle/record.ts": "run records and proof records are JSON files, written to be read by people and by scoring, and read back by the proofs; the command line prints its results as the same JSON text"
       }
     }
   },
@@ -216,6 +220,7 @@
         "packages/platform/src/run-drift.ts",
         "packages/platform/src/run-inventory.ts",
         "packages/platform/src/run-mint.ts",
+        "packages/world/src/main.ts",
         "packages/*/test/**/*.test.ts"
       ],
       "rules": {
@@ -265,7 +270,11 @@
       // platform services in its type (HttpClient, FileSystem, Path, ChildProcessSpawner and the rest), and the site
       // token shows Effect's WebCrypto services: a deploy and a mint need them, and Effect 4 marks them unstable with no
       // stable replacement. packages/platform/tsconfig.json allows the same modules for the same reason.
+      // Every export of the world package shows Alchemy's and Effect's platform services in its type (HttpClient,
+      // FileSystem, Path, ChildProcessSpawner and the rest): a deploy needs them, and Effect 4 marks them unstable
+      // with no stable replacement. packages/world/tsconfig.json allows the same modules for the same reason.
       "files": [
+        "packages/world/**",
         "packages/sdk/**",
         "packages/cli/**",
         "packages/scenarios/**",
@@ -275,6 +284,16 @@
       ],
       "rules": {
         "effecttsgo/api-stability-leak": "off"
+      }
+    },
+    {
+      // The world package's own failures: a step that timed out, a part that is not ready, a registry or an account
+      // that could not be read. They are faults of the infrastructure, not refusals of the contract, so the
+      // blueprint does not declare them. The contract's refusals (WorldExists, WorldQuotaReached, WorldNotFound)
+      // are imported from the blueprint. This one file is where the world's failures are declared.
+      "files": ["packages/world/src/failures.ts"],
+      "rules": {
+        "capxul/blueprint-owns-names": "off"
       }
     },
     {

@@ -3,7 +3,9 @@
 # adds them to requests for the Cloudflare and Neon API hosts, so the two key variables only need to be present.
 #
 #   ./run.sh door                 call every blueprint operation once through a fresh Core stage
-#   ./run.sh scenarios [name...]  run the registered scenarios (or those named), each in its own fresh stage
+#   ./run.sh scenarios [--one-stage] [--expect=pass|not-implemented] [name...]
+#                                 run the registered scenarios (or those named), each in its own fresh stage, or all
+#                                 in one fresh stage (only with --expect=not-implemented), and write their summary
 #   ./run.sh alchemy <args...>    an alchemy command for the CapxulCore stack, e.g. alchemy state list. Never nuke.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -19,5 +21,5 @@ export NEON_ORG_ID="${NEON_ORG_ID:-$(account https://console.neon.tech/api/v2/us
 case "${1:-}" in
   alchemy) shift; exec bun node_modules/alchemy/bin/cli.js "$@" ;;
   door|scenarios) exec bun src/main.ts "$@" ;;
-  *) echo "usage: ./run.sh door | scenarios [name...] | alchemy <args...>" >&2; exit 2 ;;
+  *) echo "usage: ./run.sh door | scenarios [--one-stage] [--expect=pass|not-implemented] [name...] | alchemy <args...>" >&2; exit 2 ;;
 esac
