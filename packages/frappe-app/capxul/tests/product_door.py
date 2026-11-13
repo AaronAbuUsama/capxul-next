@@ -79,6 +79,13 @@ def run():
         assert not frappe.db.exists("Capxul Door Call", hashlib.sha256(call_id.encode()).hexdigest())
     passed.append("invalid links and permission/control-field injection roll back receipt and document")
 
+    duplicate = prefix + "-duplicate"  # A new call id for an existing name: Frappe raises DuplicateEntryError.
+    error(call("create", "Supplier", fields={"supplier_name": prefix, "supplier_group": "All Supplier Groups"}, call_id=duplicate), "INVALID_INPUT")
+    assert frappe.local.response.http_status_code == 400
+    assert frappe.db.count("Supplier", {"supplier_name": prefix}) == 1
+    assert not frappe.db.exists("Capxul Door Call", hashlib.sha256(duplicate.encode()).hexdigest())
+    passed.append("a duplicate create refuses as caller input, not a retryable provider error")
+
     item = success(call("create", "Item", fields={"item_code": prefix, "item_name": prefix,
                         "item_group": "All Item Groups", "is_stock_item": 0, "stock_uom": "Nos"}, call_id=prefix + "-item"))
     invoice = success(call("create", "Purchase Invoice", fields={"supplier": supplier["name"], "company": company,
@@ -135,7 +142,7 @@ def run():
 def field_permissions():
     """Real native field/receipt regression on a disposable site, not selected-world evidence."""
     prefix = "Door Fields " + uuid.uuid4().hex[:10]
-    parent, child = prefix, prefix + " Row"
+    parent, child, report = prefix, prefix + " Row", prefix + " Report"
     user = prefix.replace(" ", "-").lower() + "@example.invalid"
     org = frappe.db.get_single_value("Capxul Settings", "org_slug")
     call_ids = [prefix + suffix for suffix in ("-create", "-submit", "-limited-create", "-limited-submit")]
@@ -175,11 +182,16 @@ def field_permissions():
                             {"fieldname": "restricted_rows", "label": "Restricted Rows", "fieldtype": "Table",
                              "options": child, "permlevel": 1},
                         ], "permissions": [
-                            {"role": "Sales User", "permlevel": 0, "read": 1, "write": 1, "create": 1, "submit": 1},
+                            {"role": "Sales User", "permlevel": 0, "read": 1, "write": 1, "create": 1, "submit": 1,
+                             "report": 1},
                             {"role": "Accounts Manager", "permlevel": 0, "read": 1, "write": 1,
-                             "create": 1, "submit": 1, "mask": 1},
+                             "create": 1, "submit": 1, "report": 1, "mask": 1},
                             {"role": "Accounts Manager", "permlevel": 1, "read": 1, "write": 1, "mask": 1},
                         ]}).insert()
+        # Native report masking reads the same per-user cache; no permlevel-1 column is selected.
+        frappe.get_doc({"doctype": "Report", "report_name": report, "ref_doctype": parent, "report_type": "Query Report",
+                        "is_standard": "No", "module": "Capxul", "roles": [{"role": "Sales User"}, {"role": "Accounts Manager"}],
+                        "query": f"select name, visible, masked, masked_number from `tab{parent}`"}).insert()
         for hat in ("admin", "sales"):
             hats.apply_hat_granted({"hat": hat, "person_email": user, "person_name": "Field Probe"})
         frappe.db.commit()
@@ -195,6 +207,15 @@ def field_permissions():
             and posted["fields"]["rows"][0]["restricted"] == "child-secret"
             and posted["fields"]["restricted_rows"][0]["masked_number"] == 73.25)
         frappe.db.commit()  # Replay must survive an actual committed lost response.
+
+        def report_row():
+            frappe.local.response = frappe._dict()
+            answer = product_door.report(org, report)
+            assert answer["ok"], answer
+            return answer["data"]["rows"][0]
+        authorized_row = report_row()  # Also caches this user's admin-era masks for the report's DocType.
+        checks["authorized report rows show unmasked values"] = (
+            authorized_row["masked"] == "parent-mask" and authorized_row["masked_number"] == 19.75)
         receipts = frappe.db.get_all("Capxul Door Call", filters={"name": ["in", keys[:2]]},
                                      fields=["name", "response_json"], order_by="name")
         frappe.set_user("Administrator")
@@ -203,6 +224,9 @@ def field_permissions():
         hats.apply_hat_revoked({"hat": "admin", "person_email": user})
         frappe.db.commit()
         frappe.set_user(user)
+        revoked_row = report_row()  # First call after revocation: nothing else has refreshed the cache yet.
+        checks["report masks rows with current permissions after revocation"] = (
+            revoked_row["visible"] == "after" and revoked_row["masked"] == revoked_row["masked_number"] == "XXXXXXXX")
         fresh = call("get", name=created["name"])
         create_replay = call("create", fields=fields, call_id=call_ids[0])
         submit_replay = call("submit", name=created["name"], call_id=call_ids[1])
@@ -229,6 +253,8 @@ def field_permissions():
             if frappe.db.exists("DocType", doctype):
                 frappe.db.delete(doctype)
         frappe.db.delete("Capxul Door Call", {"name": ["in", keys]})
+        if frappe.db.exists("Report", report):
+            frappe.delete_doc("Report", report, force=True, ignore_permissions=True)
         for hat in ("admin", "sales"):
             hats.apply_hat_revoked({"hat": hat, "person_email": user})
         if frappe.db.exists("User", user):

@@ -2,8 +2,8 @@
 // rules.procedures). The concept that births a document's subject stores the document in the same
 // transaction and puts the hash this returns on chain: payments (a Payment's note, prepare and
 // propose; a Movement's Memo, its record), requests (a request's Memo or Invoice, issue and checkout),
-// payroll (an agreement's terms, offer; a salary slip's payslip, a run's submit or import) and equity (its
-// offers, when it lands).
+// agreements' terms and equity's offers. Salary slips and their print/export authority belong to
+// Frappe HR; historical payslip read shapes are not a Core creation input.
 //
 // Reads of `documents` by the concepts above (a stored document's hash pair by its id, a Movement's
 // Memo by its subject) are plain reads their dependency allows: the door is for writes only. The old
@@ -15,7 +15,7 @@ import { defineProcedure } from "../../packages/blueprint-engine/src/index.ts";
 import { concept_documents } from "../shared/foundation.ts";
 import { error_INVALID_INPUT } from "../shared/vocabulary.ts";
 import { table_parties } from "../parties/data.ts";
-import { MediaType, OwnerKind, Participant, SubjectKind, table_documents } from "./data.ts";
+import { MediaType, OwnerKind, Participant, SUBJECT_KINDS, table_documents } from "./data.ts";
 
 const OLD = "packages/backend/src/documents";
 const PROTOCOL = "packages/protocol/src/documents";
@@ -77,7 +77,7 @@ export const TermsContent = Schema.Struct({
 export const PayslipRow = Schema.Struct({ component: S, abbr: S, amount_raw: S });
 
 /**
- * One Salary Slip's pay, as payroll stores it when the slip is submitted (documents.payslip-kind): who employs and who
+ * Historical Salary Slip wire shape, retained for readers, not a new Core store input: who employs and who
  * is employed (each by Party and Safe; render shows their public names, never an id), the period and its days, the
  * earnings, deductions and employer contributions, and the gross, total deduction and net in one token. Earnings less
  * deductions equal the net exactly; employer contributions are shown but are in neither. Its hash is the one the
@@ -116,13 +116,15 @@ export const ReceiptContent = Schema.Struct({
   filename: NullOr(S),
 });
 
-export const Content = Schema.Union([MemoContent, InvoiceContent, TermsContent, PayslipContent, ReceiptContent]);
+/** Retained historical shape above is not a new Core-store capability (documents.core-store-scope). */
+export const Content = Schema.Union([MemoContent, InvoiceContent, TermsContent, ReceiptContent]);
+export const StoreSubjectKind = Schema.Literals(SUBJECT_KINDS.filter((kind) => kind !== "salary-slip"));
 
 export const StoreInput = Schema.Struct({
   /** The tenant whose subject it is: a person's principal id, or an Organization's `org_<ulid>`. */
   owner_kind: OwnerKind,
   owner_id: S,
-  subject: Schema.Struct({ kind: SubjectKind, id: S }),
+  subject: Schema.Struct({ kind: StoreSubjectKind, id: S }),
   /** The chain the subject's payment or offer is on: the envelope's EIP-712 domain. */
   chain_id: Int,
   /** Epoch ms: the subject's birth; for a Movement, the Transfer's block time, so one Transfer always gives one Memo. */
@@ -150,15 +152,16 @@ export const procedure_documents_store = defineProcedure({
     "Money fact: a hash on chain with no content behind it is a money bug, so the concept that births a document's " +
     "subject stores the document in the same transaction and puts the hash this returns on chain (K2: a command, its " +
     "Payments and their documents are born together). It builds the canonical envelope from the facts given (a Memo, an " +
-    "Invoice with its lines, the terms of an offer, or a payslip), bound to its subject by an origin id (keccak-256 of the subject's " +
+    "Invoice with its lines, or the terms of an offer), bound to its subject by an origin id (keccak-256 of the subject's " +
     "kind and id) and to its chain by the EIP-712 domain, or takes a receipt file as supplied. It computes the content " +
     "hash (keccak-256 of the exact bytes) and the document hash (EIP-712 over the typed message; a receipt's is its " +
     "content hash), and writes one immutable `documents` row with its participants, the Safes and Parties who may read " +
     "it. The same pair for the same subject and participants is a replay: it returns the stored document and writes " +
     "nothing (a retried birth, a replayed Transfer's Memo). The same pair with another subject or other participants, " +
     "a participant whose Party is at another Safe (read from `parties`), no participant or more than 8, an Invoice whose " +
-    "lines do not add up to its amount exactly, a payslip whose earnings less deductions are not its net exactly, text over its limit, and a receipt over 128 KB or not of its media type " +
-    "are INVALID_INPUT, and nothing is written. Invoked once per document: a batch of Payments with one note each " +
+    "lines do not add up to its amount exactly, text over its limit, and a receipt over 128 KB or not of its media type " +
+    "are INVALID_INPUT, and nothing is written. New payslip or salary-slip stores are INVALID_INPUT: Frappe HR owns salary documents. " +
+    "Invoked once per document: a batch of Payments with one note each " +
     "invokes it once per Payment. It reads no subject and makes no outside call; the invoker gives everything.",
   concept: concept_documents,
   input: StoreInput,
