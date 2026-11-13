@@ -15,8 +15,12 @@ import { relay } from "./platform/outbox.ts";
 import { alerts, indexerState } from "./platform/diagnostics.ts";
 
 type Config = ReturnType<typeof settings>;
-/** The approval carrier's chain-facing half: sponsorship, the bundler's send and lookup, the Safe nonce, needs and gate. */
-export type CarrierChain = Pick<CarrierServices, "sponsor" | "send" | "lookup" | "nonce" | "needsAndGate">;
+/**
+ * Builds the approval carrier's chain-facing half (sponsorship, the bundler's send and lookup, the Safe nonce, needs and
+ * gate) against the world's authority clock, never host time. PR84's SponsorConfig.now is synchronous, so read `now`
+ * once per call: `sponsor: async (a) => { const at = await now(); return approvalSponsor({ ...config, now: () => at })(a); }`.
+ */
+export type CarrierChain = (now: () => Promise<Date>) => Pick<CarrierServices, "sponsor" | "send" | "lookup" | "nonce" | "needsAndGate">;
 function json(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" });
   res.end(JSON.stringify(body));
@@ -26,9 +30,10 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
   const db = new Database(config.database, config.workerDatabase);
   // Composed here: the world's authority clock, Core's final indexed fact at the approval's nonce, and each opener's
   // follower, which runs inside the terminal transition's transaction. Without a chain half the carrier does not run.
+  const now = async () => new Date(await worldNow(db.worker));
   const carrier: CarrierServices | undefined = chain && {
-    ...chain,
-    now: async () => new Date(await worldNow(db.worker)),
+    ...chain(now),
+    now,
     fact: (sql, approval) => readChainFact(sql, { chainId: approval.chain_id, sender: approval.sender, nonce: approval.nonce!, finality: config.finality }),
     terminal: async (sql, event) => {
       await approvalTerminal(sql, event, { at: Date.parse(event.observedAt), traceId: event.trace_id });
