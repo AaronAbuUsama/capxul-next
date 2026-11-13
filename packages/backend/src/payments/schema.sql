@@ -34,14 +34,24 @@ create unique index if not exists "payments-by-funding-payment-id" on app.paymen
 create unique index if not exists "payments-by-settled-log" on app.payments(chain_id,settled_tx_hash,settled_log_index);
 create table if not exists app.movements (
   owner_id text not null, owner_kind text not null check (owner_kind in ('person','organization')),
-  chain_id integer not null, tx_hash text not null, log_index integer not null, side text not null check (side in ('in','out')),
+  chain_id integer not null, log_id text not null, tx_hash text not null, log_index integer not null, side text not null check (side in ('in','out')),
   safe text not null, counterparty text not null, token_address text not null, amount_raw text not null,
   block_number integer not null, block_hash text not null, block_time double precision not null,
   status text not null check (status in ('recorded','removed')), created_at double precision not null, updated_at double precision not null,
-  primary key(owner_id,owner_kind,chain_id,tx_hash,log_index,side)
+  primary key(owner_id,owner_kind,log_id,side)
 );
+-- A table made before Movements were keyed by the receipt-ordinal log id: nothing has written it (no process ran), so it
+-- is re-keyed; a row there would fail the not-null column rather than be guessed.
+do $$ begin
+  if not exists (select 1 from information_schema.columns where table_schema='app' and table_name='movements' and column_name='log_id') then
+    alter table app.movements add column log_id text not null;
+    alter table app.movements drop constraint movements_pkey;
+    alter table app.movements add primary key (owner_id,owner_kind,log_id,side);
+    drop index if exists app."movements-by-log";
+  end if;
+end $$;
 create index if not exists "movements-by-owner-time" on app.movements(owner_id,owner_kind,block_time);
-create index if not exists "movements-by-log" on app.movements(chain_id,tx_hash,log_index);
+create index if not exists "movements-by-log" on app.movements(log_id,block_hash);
 
 alter table app.payment_commands enable row level security;
 alter table app.payment_commands force row level security;

@@ -301,8 +301,11 @@ export const table_movements = defineTable({
     "refunding its claim escrow) is never a Movement (K17). Each side is judged on its own Payments only, so an " +
     "Organization's direct transfer to a person is outside money for both sides (old M1). The Transfer itself is " +
     "Ponder's: this row holds the classification, the side's tenant and the block it was recorded at, and its book fact " +
-    "is written in the same transaction under books' money key `transfer:<chain id>:<tx hash>:<log index>`, the key a " +
-    "bank deposit's Transfer is booked under too, so books keeps one live fact for it whoever writes first.",
+    "is written in the same transaction under books' money key `transfer:<log id>`, the key a bank deposit's Transfer is " +
+    "booked under too, so books keeps one live fact for it whoever writes first. `log_id` is indexing's receipt-ordinal " +
+    "id `<chain id>:<tx hash>:<ordinal in its receipt>`, which survives the transaction's re-inclusion at another " +
+    "position; `log_index` is only where the Transfer sits in its current block. A Transfer between two Safes of the " +
+    "same owner gets its Movements but no book fact: the money neither arrives nor leaves.",
   concept: concept_payments,
   tenancy: "owner",
   tenantField: "owner_id",
@@ -310,6 +313,7 @@ export const table_movements = defineTable({
     owner_id: S,
     owner_kind: OwnerKind,
     chain_id: Int,
+    log_id: S,
     tx_hash: S,
     log_index: Int,
     side: Schema.Literals(["in", "out"]),
@@ -324,7 +328,7 @@ export const table_movements = defineTable({
     created_at: At,
     updated_at: At,
   }),
-  key: ["owner_id", "owner_kind", "chain_id", "tx_hash", "log_index", "side"],
+  key: ["owner_id", "owner_kind", "log_id", "side"],
   indexes: [
     {
       name: "by-owner-time",
@@ -333,7 +337,7 @@ export const table_movements = defineTable({
     },
     {
       name: "by-log",
-      fields: ["chain_id", "tx_hash", "log_index"],
+      fields: ["log_id", "block_hash"],
       crossTenant: true,
       for: "A Transfer's rows on both sides, for a replayed chain event and the finality check after a reorg.",
     },

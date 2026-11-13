@@ -215,9 +215,46 @@ export const decision_payments_movements_outside_money = defineDecision({
     "and amount (Payments pulls from its caller straight to the recipient) and that payment id is a Payment of that " +
     "side's owner, as payer for `out` and payee for `in`. The confirm wait is twice the finality depth past the block; a " +
     "lagging head never judges an occurrence gone. The Memo store is the composition's documents door, called on the " +
-    "same transaction.",
+    "same transaction (payments.movement-occurrence).",
   source: by(`${ASIS} (M1, K17, S10, D6); blueprint/books/procedures.ts (money_key)`),
   affects: [table_movements, machine_movement, event_movement_transitioned, workflow_payments_movements_record],
+});
+
+export const decision_payments_movement_occurrence = defineDecision({
+  id: "payments.movement-occurrence",
+  title: "Movements by receipt-ordinal occurrence; one PaymentSent, one Transfer",
+  question:
+    "Review of the Movements process, 13 November 2026: which row is a re-included Transfer's, which Transfer a " +
+    "PaymentSent explains when one transaction moves the same terms twice, and what an owner's transfer between its own " +
+    "Safes books?",
+  options: [
+    {
+      label: "receipt-ordinal",
+      text:
+        "Rows and the money key are the log id `<chain>:<tx>:<ordinal in its receipt>`; in receipt order each PaymentSent " +
+        "takes the latest earlier untaken Transfer with its terms; money between one owner's Safes has Movements and no " +
+        "book fact.",
+    },
+    {
+      label: "block-index",
+      text: "Keep the block-global log index and match any PaymentSent with the same terms in the transaction.",
+    },
+  ],
+  chosen: "receipt-ordinal",
+  why:
+    "A block-global log index shifts when a transaction is re-included at another position, so in a multi-Transfer " +
+    "transaction the new ordinal-1 occurrence took over the old ordinal-0 row: one Transfer was never booked, another " +
+    "twice. Indexing already names logs by receipt ordinal, so the same occurrence restores its own rows with their " +
+    "current terms; a row still recorded under the old block moves along only with unchanged terms, and otherwise waits " +
+    "for the old occurrence's removal, so its book fact is reversed before the new one. Payments pulls from its caller " +
+    "straight to the recipient and then emits PaymentSent, so the Transfer it carries is the latest earlier one with its " +
+    "terms; matching any PaymentSent set aside a plain transfer beside a Payment as well (K17 sets aside only a " +
+    "Payment's own Transfer). An owner's money moving between its own Safes neither arrives nor leaves, and books keeps " +
+    "one live fact per money key, so writing both sides booked half of it as outside money: both Movements stay for " +
+    "Activity, with no book fact. The Memo names every Capxul side of the Transfer, explained or not. A removal deeper " +
+    "than twice the finality depth is past the confirm wait and is not followed, as K12 bounds settlement.",
+  source: by(`${ASIS} (K12, K17); blueprint/indexing/data.ts (chain-logs log_id)`),
+  affects: [table_movements, workflow_payments_movements_record],
 });
 
 // ── time ────────────────────────────────────────────────────────────────────────────────────
