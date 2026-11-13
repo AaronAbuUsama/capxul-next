@@ -4,7 +4,7 @@ import test from "node:test";
 import { longFetch } from "./long-fetch.ts";
 
 // A raw peer, so it can send what an HTTP server library would refuse to send.
-test("longFetch rejects a malformed or silent peer instead of crashing, and keeps the idle cause's code", async (t) => {
+test("longFetch rejects a malformed or silent peer instead of crashing, and keeps the idle cause's code", { timeout: 10_000 }, async (t) => {
   const peer = createServer((socket) => socket.once("data", (data) => {
     const path = String(data).split(" ")[1];
     if (path === "/600") socket.end("HTTP/1.1 600 Odd\r\ncontent-length: 2\r\n\r\nhi");

@@ -27,7 +27,7 @@ export function failure(res: ServerResponse, error: unknown): void {
   json(res, e.status, { error: { code: e.code, message: e.message } });
 }
 
-/** Core's log of a failure its caller sees only as PROVIDER_ERROR: the error's class and its cause's code, never a message,
+/** Core's log of a failure with no declared code (a transport or runtime error): the error's class and its cause's code, never a message,
  * URL or header, so no secret reaches the log. `trace` is the request's, so the line joins its span and operation row. */
 export function logCause(route: string, trace: string, error: unknown): void {
   if (error instanceof ServiceError || error instanceof SyntaxError) return;
