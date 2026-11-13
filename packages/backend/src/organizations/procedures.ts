@@ -3,6 +3,7 @@
 // make no outside call.
 import type { Sql } from "../platform/db.ts";
 import { emit } from "../platform/outbox.ts";
+import { transitionId } from "./setups.ts";
 
 export type BoughtSeats = {
   org_id: string; payment_id: string; command_id: string; seats: number; chain_id: number; token_address: string;
@@ -14,7 +15,7 @@ async function locked(sql: Sql, orgId: string) {
 }
 async function transitioned(sql: Sql, p: { org_id: string; payment_id: string; seats: number }, from: string | null, to: string,
   transition: string, now: number, trace: string) {
-  await emit(sql, { id: `seat-purchase:${p.org_id}:${p.payment_id}:${transition}:${now}`, name: "seat_purchase_transitioned",
+  await emit(sql, { id: await transitionId(sql, `seat-purchase:${p.org_id}:${p.payment_id}:${transition}`), name: "seat_purchase_transitioned",
     machine: "seat-purchase", entity_id: `${p.org_id}:${p.payment_id}`, owner_kind: "organization", owner_id: p.org_id, actor: null,
     trace_id: trace, at: now, props: { from, to, transition, org_id: p.org_id, payment_id: p.payment_id, seats: p.seats } });
 }
@@ -27,7 +28,11 @@ export async function addBoughtSeats(sql: Sql, p: BoughtSeats, now: number, trac
     !p.asset || !p.bought_by_party_id || !/^0x[0-9a-fA-F]{64}$/.test(p.tx_hash)) throw new Error("INVALID_INPUT: seat purchase");
   const org = await locked(sql, p.org_id);
   if (!org) throw new Error("INVALID_INPUT: unknown Organization");
-  const row = (await sql.query("select status from app.org_seat_purchases where org_id=$1 and payment_id=$2", [p.org_id, p.payment_id])).rows[0];
+  const row = (await sql.query("select * from app.org_seat_purchases where org_id=$1 and payment_id=$2", [p.org_id, p.payment_id])).rows[0];
+  // One Payment is one purchase: counting it again must name the same seats, command, chain, token and amount.
+  if (row && (row.seats !== p.seats || row.command_id !== p.command_id || Number(row.chain_id) !== p.chain_id || row.asset !== p.asset ||
+    row.token_address !== p.token_address.toLowerCase() || row.amount_raw !== p.amount_raw || row.bought_by_party_id !== p.bought_by_party_id))
+    throw new Error("IDEMPOTENCY_CONFLICT: this Payment was counted with other terms");
   if (row?.status === "counted") return { org_id: p.org_id, payment_id: p.payment_id, seat_limit: org.seat_limit, added: false };
   const limit = org.seat_limit + p.seats;
   await sql.query("update app.organizations set seat_limit=$2,seat_limit_raised_by='purchase',seat_limit_raised_at=$3,updated_at=$3 where org_id=$1",

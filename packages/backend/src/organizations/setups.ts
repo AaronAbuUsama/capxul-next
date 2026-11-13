@@ -108,9 +108,14 @@ async function intent(sql: Sql, input: BeginInput, services: SetupServices) {
   return { ...choices, abbr: abbreviation(name), hash: createHash("sha256").update(JSON.stringify(choices)).digest("hex") };
 }
 
+/** A transition event's id: one per occurrence, even when the clock has not moved (app.org_transition_seq). */
+export async function transitionId(sql: Sql, prefix: string) {
+  return `${prefix}:${(await sql.query("select nextval('app.org_transition_seq') as n")).rows[0].n}`;
+}
+
 async function transitioned(sql: Sql, orgId: string, actor: string | null, trace: string, now: number,
   from: SetupStatus | null, to: SetupStatus, transition: string, personId: string, issue: string | null) {
-  await emit(sql, { id: `org-setup:${orgId}:${transition}:${now}`, name: "org_setup_transitioned", machine: "org-setup", entity_id: orgId,
+  await emit(sql, { id: await transitionId(sql, `org-setup:${orgId}:${transition}`), name: "org_setup_transitioned", machine: "org-setup", entity_id: orgId,
     owner_kind: "organization", owner_id: orgId, actor, trace_id: trace, at: now,
     props: { from, to, transition, org_id: orgId, person_id: personId, issue_reason: issue } });
 }

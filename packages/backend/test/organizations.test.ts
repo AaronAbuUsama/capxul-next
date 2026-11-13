@@ -162,11 +162,17 @@ test("tenant cannot write Seats, even after authentication and organization scop
   await as(human, sql => requireSeat(sql, orgs[0]!.id, actor(human)));
 });
 
-test("a provisioning owner without BYPASSRLS is refused rather than owning functions that admit nothing", async () => {
+test("a provisioning role or function owner without BYPASSRLS is refused rather than owning functions that admit nothing", async () => {
   const admin = new pg.Client({ connectionString: process.env.ORGANIZATIONS_TEST_ADMIN_URL });
   await admin.connect();
   try {
     await admin.query("begin; create role organizations_probe_owner nosuperuser nobypassrls; grant usage,create on schema app to organizations_probe_owner; set local role organizations_probe_owner");
     await assert.rejects(migrate(admin), /PROVISIONING_ROLE/);
+  } finally { await admin.query("rollback"); }
+  try {
+    // A superuser re-runs it, but `create or replace` keeps an existing owner that cannot read the forced-RLS tables.
+    await admin.query(`begin; create role organizations_probe_owner nosuperuser nobypassrls;
+      alter function app.current_member(text) owner to organizations_probe_owner`);
+    await assert.rejects(migrate(admin), /PROVISIONING_ROLE: app.current_member and app.caller_safes/);
   } finally { await admin.query("rollback"); await admin.end(); }
 });
