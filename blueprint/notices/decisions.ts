@@ -71,6 +71,90 @@ import { workflow_notices_delivery_retry, workflow_notices_payroll_daily } from 
 const by = (evidence: string) => `Claude, notices target design, 8 November 2026; evidence: ${evidence}`;
 const OLD = "packages/backend/src";
 
+export const decision_notices_worker_authority = defineDecision({
+  id: "notices.worker-authority",
+  title: "Bind the runtime worker to the canonical world clock and current Party names",
+  question: "Which authority supplies business time and personal display names when Core mounts the Notices worker?",
+  options: [
+    { label: "canonical-doors", text: "The runtime worker reads worldNow on its current worker Sql and resolves personal display names through the current principal Safe and Parties lookupBySafe on that same Sql. It accepts no replacement clock or Party-name provider." },
+    { label: "caller-providers", text: "Let the composition caller replace the runtime clock and Party-name reader along with the remaining source hooks." },
+  ],
+  chosen: "canonical-doors",
+  why: "A fixture-supplied instant cannot establish that reminder stops and retries follow the selected world's clock. The approved clock door fails closed for unsupported running clocks; Notices must not substitute host time. Personal names belong to the current unreleased Party, not a copied directory or a fixture label; a missing display name falls back to the existing principal mailbox. Lower-level delivery and resolver controls may still isolate their inputs, but they do not establish source or selected-stack acceptance. Other source doors remain composition dependencies until reviewed and landed.",
+  source: "Wave0 Notices implementation, 12 November 2026; reviewed wave60707fe; notices.postgres-execution; notices.recipients; time.world-channels",
+  affects: [table_notices, workflow_notices_accounts_welcome, workflow_notices_accounts_welcome_unlisted, workflow_notices_payments_money_reminders, workflow_notices_delivery_retry],
+});
+
+export const decision_notices_postgres_execution = defineDecision({
+  id: "notices.postgres-execution",
+  title: "Persist notice execution separately from the first delivery outcome",
+  question: "How does an outbox workflow survive death between provider acceptance and recording its first outcome?",
+  options: [
+    { label: "durable-execution", text: "Persist the workflow and its resolved recipient intents in Postgres. The delivery row is still born only after the first attempt. Serialize each recipient intent, replay its provider key after a crash, and commit the guarded outcome and privacy-safe transition event together." },
+    { label: "queued-delivery", text: "Add a queued delivery state before calling mail." },
+  ],
+  chosen: "durable-execution",
+  why: "A queued delivery state would contradict notices.first-attempt. Private workflow checkpoints are execution metadata, not delivery records or a new public notice procedure. A database session lock serializes attempts without keeping a transaction open across mail; a process death releases it. The provider key covers the accepted-send/lost-record window. Delivery mutation is available only through the guarded outcome function; ordinary mailbox sessions cannot write delivery rows. Retry deadlines and reminder stops use the supplied world clock, not host time.",
+  source: "Notices slice-zero implementation, 12 November 2026; notices.first-attempt; notices.delivery-record; notices.no-door; aaron.postgres-and-ponder",
+  affects: [table_notices, machine_notice, event_notice_transitioned, workflow_notices_delivery_retry, workflow_notices_payments_money_reminders],
+});
+
+export const decision_notices_provider_key_bound = defineDecision({
+  id: "notices.provider-key-bound",
+  title: "Bound oversized Mail identities without changing existing short replay keys",
+  question: "How does a valid long mailbox keep stable delivery replay within Mail's 256-character provider-key limit?",
+  options: [
+    { label: "bounded-identity", text: "Keep the serialized recipient/notice tuple unchanged through 256 characters; above that use notice: plus the SHA-256 hex digest of the entire serialized tuple." },
+    { label: "raw-identity", text: "Always send the complete serialized tuple and refuse mail whose identity exceeds the provider limit." },
+  ],
+  chosen: "bounded-identity",
+  why: "A valid 204-character mailbox with a beta-welcome UUID produces a 260-character serialized tuple, so the actual Mail adapter refuses it before transport. Hashing the full tuple bounds only oversized keys without truncating distinguishing suffixes. Existing in-limit keys remain byte-for-byte unchanged; retries and process restarts derive the same bounded identity. Delivery records retain the original mailbox and notice id, not the provider digest.",
+  source: "Notices PR68 mirror finding4549841194 reproduced through shared Mail, 12 November 2026; notices.delivery-record; notices.first-attempt; notices.postgres-execution",
+  affects: [table_notices, machine_notice, workflow_notices_delivery_retry],
+});
+
+export const decision_notices_reminder_dispatch = defineDecision({
+  id: "notices.reminder-dispatch",
+  title: "Ending a reminder stops unstarted sends, not ambiguous provider replay",
+  question: "What happens to a committed reminder intent when collection or refund ends its workflow before Mail?",
+  options: [
+    { label: "dispatch-boundary", text: "Serialize source wake, recipient checkpoint and a durable dispatch-start marker in short SQL transactions. Suppress a never-started intent whose reminder references have ended and no live workflow still needs it. Preserve the provider key and replay once dispatch may have reached Mail." },
+    { label: "checkpoint-is-send", text: "Always send checkpointed reminders even if the payment has left escrow before dispatch." },
+  ],
+  chosen: "dispatch-boundary",
+  why: "A recipient checkpoint alone is not a provider attempt. A crash before Mail must not send stale money-waiting reminders after a committed stop. A bounded source relay batch is not readiness: before a new reminder dispatch claim, the canonical outbox reader must report no unacknowledged payment envelopes, including those beyond the batch or busy in another consumer session. Otherwise defer unchanged work to a later bounded tick, reporting pending progress. Once dispatch is durably started, a lost response may hide provider acceptance, so cancellation cannot erase its replay or classified delivery retries. Shared payer/command targets remain required while any referencing workflow lives; a later live checkpoint can rearm a canceled never-started target. No lock or transaction spans Mail except the existing per-identity session lock, and the dispatch boundary is never held across source reads or chain RPC: preparation resolves recipients first, then takes the boundary and rechecks that the workflow is still unprepared. Within one delivery tick a pending-envelope answer of yes is reused (every later reminder defers anyway); no is never reused, because a stop committed after it must still be seen. The exact public delivery schema and outcome-only birth remain unchanged.",
+  source: "Notices PR68 mirror findings4549944806 and4550086500 reproduced on real Postgres worker resume, 12 November 2026; notices.money-waiting-reminders; notices.postgres-execution; notices.first-attempt",
+  affects: [workflow_notices_payments_money_reminders, workflow_notices_delivery_retry, table_notices],
+});
+
+export const decision_notices_event_owner = defineDecision({
+  id: "notices.event-owner",
+  title: "A notice's transition belongs to its recipient, not to the payer's Organization",
+  question: "Whose outbox scope carries `notice_transitioned` when a notice is about one owner's money but goes to another person?",
+  options: [
+    { label: "recipient-person", text: "Owner is the recipient person when `person_id` is known; otherwise no owner: a mailbox Capxul cannot attribute to a person (an outside payee or payer, a pre-sign-in grantee) belongs to no Organization's scope, and the Organization stays a fact in `org_id`." },
+    { label: "subject-organization", text: "Owner is the subject's Organization whenever there is one, so a payee's or outside payer's notice lands in the payer company's scope." },
+  ],
+  chosen: "recipient-person",
+  why: "The event names its recipient through `person_id` and never carries the mailbox. A payee's or invoice payer's notice placed in the paying Organization's scope would let that company read another person's delivery history. A Director's notice is that Director's; the Organization still appears in `org_id` as a fact. An outside mailbox has no Capxul owner, so the envelope carries none.",
+  source: "Notices PR68 independent review, 13 November 2026; event notice_transitioned; notices.postgres-execution",
+  affects: [event_notice_transitioned, machine_notice],
+});
+
+export const decision_notices_replay_window = defineDecision({
+  id: "notices.replay-window",
+  title: "A lost-outcome replay relies on the provider's idempotency window in host time",
+  question: "How long does a replayed provider key still deduplicate an accepted send, when world time can be stopped?",
+  options: [
+    { label: "provider-window", text: "Replay with the same provider key and accept that the provider deduplicates only for its own window (Resend: 24 hours of real time). A replay after that window, however little world time passed, may send a second copy." },
+    { label: "record-before-send", text: "Record a pending provider attempt before Mail and never replay it, giving up on lost-outcome delivery." },
+  ],
+  chosen: "provider-window",
+  why: "notices.first-attempt forbids a delivery row before the first outcome, and a lost answer must not drop the notice. The provider key closes the accepted-send/lost-record window only while the provider remembers it, measured in the provider's real time, not the world clock: a stopped or slowed world, or a Core held paused longer than a day, can outlast it. The devnet sink deduplicates by key indefinitely, so local worlds do not see this. A production replay older than a day is an at-least-once duplicate, never a silent loss.",
+  source: "Notices PR68 independent review, 13 November 2026; notices.provider-key-bound; notices.postgres-execution; integration Mail (Resend Idempotency-Key)",
+  affects: [table_notices, machine_notice, workflow_notices_delivery_retry],
+});
+
 /** The workflows that tell an Organization through its Directors. */
 const TO_DIRECTORS = [
   workflow_notices_board_threshold_changed,

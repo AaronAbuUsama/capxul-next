@@ -16,14 +16,18 @@ export async function runDevnet(args: string[]): Promise<number> {
     const configFile = resolve(args[index + 1]!);
     const words = args.filter((_, i) => i !== index && i !== index + 1 && args[i] !== "--json");
     const [world, commandName, ...rest] = words;
-    if (world !== "world") throw new Error("expected world command");
-    if (commandName === "init" && rest.length === 1) {
+    if (world !== "world" && world !== "record") throw new Error("expected world or record command");
+    if (world === "world" && commandName === "init" && rest.length === 1) {
       const config = await initializeConfig(configFile, rest[0]!, Number(process.env.CAPXUL_WORLD_PORT_BASE ?? 18000));
       console.log(JSON.stringify({ world: config.world.id, config: configFile })); return 0;
     }
     const config = await readConfig(configFile);
     diagnostics = join(config.controlDir, "last-error.log");
     await mkdir(config.controlDir, { recursive: true, mode: 0o700 });
+    if (world === "record" || commandName === "snapshot" && rest[0] === "list") {
+      const { readCatalogue } = await import("./catalogue-read.ts");
+      console.log(JSON.stringify(await readCatalogue(config, words))); return 0;
+    }
     const candidate = join(config.controlDir, ".operation");
     let nested = false;
     if (["fixture", "inspect", "prepare"].includes(commandName!) && process.env.CAPXUL_WORLD_RUN_TOKEN) {
@@ -91,7 +95,9 @@ export async function runDevnet(args: string[]): Promise<number> {
   } catch (error) {
     // Nested startup/cleanup failures must retain their causes privately, without leaking argv or credentials to stdout.
     if (diagnostics) await writeFile(diagnostics, inspect(error, { depth: 10 }), { mode: 0o600 });
-    console.error(JSON.stringify({ error: { code: "WORLD_RUNTIME_ERROR", message: (error as Error).message } }));
-    return 1;
+    const message = (error as Error).message;
+    const code = message.startsWith("CLI_USAGE:") ? "CLI_USAGE" : message.startsWith("INVALID_INPUT:") ? "INVALID_INPUT" : "WORLD_RUNTIME_ERROR";
+    console.error(JSON.stringify({ error: { code, message } }));
+    return code === "CLI_USAGE" ? 2 : 1;
   } finally { for (const lock of locks.reverse()) await rm(lock, { recursive: true }); }
 }

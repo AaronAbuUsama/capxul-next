@@ -11,7 +11,7 @@ from unittest.mock import patch
 from frappe_fake import DB, Doc, Flags, install
 
 install()
-from capxul import api, door, payments  # noqa: E402
+from capxul import api, door, payments, trace  # noqa: E402
 
 SAFE = "1100 - Safe"
 TX_A = "0x" + "a" * 64
@@ -124,6 +124,18 @@ class SiteRequestBoundary(unittest.TestCase):
         self.assertEqual((self.pe.docstatus, self.pe.capxul_status), (0, payments.WAITING))
         with self.assertRaisesRegex(RuntimeError, "Conflicting"):
             self.signed_call(api.answer_payment_request, dict(answer, approval_id="OTHER"))
+
+    def test_an_untraced_submit_starts_the_trace_its_request_carries_and_a_sent_trace_is_kept(self):
+        self.frappe.flags.capxul_trace = None
+        api.request_payment("PE-1")
+        started = self.signed_call(api.collect_payment_requests, {"org": "boundary"})["requests"][0]["trace_id"]
+        self.assertRegex(started, trace.TRACE)
+        self.frappe.flags.capxul_trace = "tr_fromthecaller01"
+        self.pe.hash = "0xsecond"
+        api.request_payment("PE-1")
+        page = self.signed_call(api.collect_payment_requests, {"org": "boundary"})
+        self.assertEqual(page["requests"][-1]["trace_id"], "tr_fromthecaller01")
+        self.frappe.flags.capxul_trace = None
 
     def test_edited_draft_has_a_new_request_and_old_answer_cannot_replace_it(self):
         old = api.request_payment("PE-1")["request"]

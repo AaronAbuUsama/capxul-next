@@ -1,0 +1,39 @@
+{
+  "area": "media",
+  "script": "packages/evals/src/modules/media/run.sh",
+  "worlds": [
+    "slice-zero"
+  ],
+  "bindings": [
+    {
+      "eval": "tbl:files/schema",
+      "checks": [
+        "MEDIA.schema"
+      ],
+      "why": "In the receipt's real selected world, inspect exact ordered Postgres column names/types/nullability, primary key, all secondary index keys/uniqueness and forced RLS, using the restricted Core role. The runner never migrates or seeds."
+    },
+    {
+      "eval": "tbl:files/tenancy",
+      "checks": [
+        "MEDIA.tenancy"
+      ],
+      "why": "In the receipt's selected world, Runtime's post-restore public sign-in bearers (person, outsider) each upload a held document through the public /media/files/upload route. Authenticated on the restricted Core role by Access.authenticate, each sees only their own row and anonymous sees neither; every session's direct UPDATE, DELETE and INSERT is refused; the held file is not served by id to the other person; an unsigned upload is refused."
+    },
+    {
+      "eval": "tbl:files/admits/c-86759f99594d4211",
+      "checks": [
+        "MEDIA.admits"
+      ],
+      "why": "In the receipt's selected world, the person actor uploads a kept image and a held document through the public route. The outsider's session and an anonymous caller read the image row and its exact bytes through /media/files/get, see none of the held document, and have UPDATE and DELETE on the image refused."
+    }
+  ],
+  "near": [
+    {
+      "eval": "tbl:files/writers",
+      "checks": [
+        "MEDIA.closed-table-writes"
+      ],
+      "missing": "Runtime direct DML is denied. Component storage/pixel/expiry checks do not establish composed bearer authentication, canonical worldNow, the actual shared transactional outbox or source-correlated lifetime transitions in the same full selected-stack receipt."
+    }
+  ]
+}
