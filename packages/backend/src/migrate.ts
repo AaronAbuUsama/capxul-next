@@ -58,8 +58,8 @@ try {
   // Access emits sign-in events through the outbox; Accounts references principals; later concepts read both.
   await migrateApprovals(db); await migrateOutbox(db); await migrateAccess(db); await migrateAccounts(db);
   await migratePayments(db); await migrateActivity(db);
-  // The world's durable sign-in Mail sink is created once, with the world; never on up or restore.
-  if (process.env.ACCESS_MAIL === "devnet-sink") {
+  // The world's one durable Mail sink (Access sign-in and Notices) is created here, once, with the world; never on up or restore.
+  if (process.env.CAPXUL_MAIL_SINK === "devnet") {
     const { migrateMailSink } = await import("../../devnet/src/devnet/door.ts");
     await migrateMailSink(async (text) => (([] as pg.QueryResult[]).concat(await db.query(text) as unknown as pg.QueryResult)).flatMap((r) => r.rows));
   }

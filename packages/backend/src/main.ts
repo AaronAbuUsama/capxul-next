@@ -14,10 +14,10 @@ const provision = createProvisioningHandler({
   publicOrigin: config.url, rpcUrl: config.rpc, coreUrl: `http://127.0.0.1:${config.port}`,
   coreSecret: config.secret, siteServiceUrl: required("SITE_SERVICE_URL"), siteServiceToken: required("SITE_SERVICE_TOKEN"),
 });
-// ACCESS_MAIL names the sign-in Mail. Only the world's durable devnet sink is wired today; without it Core mounts no Access routes.
-const accessMail = process.env.ACCESS_MAIL;
-if (accessMail !== undefined && accessMail !== "devnet-sink") throw new Error("ACCESS_MAIL supports only devnet-sink");
-const devnet = accessMail ? await import("../../devnet/src/devnet/door.ts") : undefined;
+// CAPXUL_MAIL_SINK=devnet names the world's durable devnet Mail sink, shared with Notices. Without it Core mounts no Access routes.
+const sink = process.env.CAPXUL_MAIL_SINK;
+if (sink !== undefined && sink !== "devnet") throw new Error("CAPXUL_MAIL_SINK supports only devnet");
+const devnet = sink ? await import("../../devnet/src/devnet/door.ts") : undefined;
 const core = createCore(config, provision, (db) => {
   if (!devnet) return [];
   const worker = async <T>(run: (sql: pg.PoolClient) => Promise<T>) => {
