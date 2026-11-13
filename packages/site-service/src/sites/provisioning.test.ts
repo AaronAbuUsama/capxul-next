@@ -66,7 +66,14 @@ async function setup() {
     assert.deepEqual(JSON.parse(raw), { slug: "acme" });
     if (req.url === "/admin/release") {
       const state = JSON.parse(await readFile(join(bench, info.site, "site.json"), "utf8"));
-      assert.equal(state.settings.safe_address, safe.toLowerCase()); assert.equal(state.world, "town1");
+      assert.equal(state.settings.safe_address, safe.toLowerCase()); assert.equal(state.capxul_world, "town1");
+      // The site joins the world clock before any app installs or setup stamps a date, never after.
+      const order = (await readFile(join(bench, "commands.jsonl"), "utf8")).trim().split("\n").map((line) => JSON.parse(line).join(" "));
+      const first = (prefix: string) => order.findIndex((command) => command.startsWith(prefix));
+      const joined = first(`--site ${info.site} set-config capxul_world town1`);
+      assert.ok(first(`new-site ${info.site}`) < joined && joined >= 0, "joins after the site exists");
+      assert.ok(joined < first(`--site ${info.site} install-app`) && joined < first(`--site ${info.site} execute capxul.setup.configure_site`),
+        "joins before installs and setup");
       info.released = true;
     }
     res.setHeader("content-type", "application/json"); res.end(JSON.stringify(info));
@@ -191,6 +198,6 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
     assert.deepEqual(await response, { status: 200, body: { org: "acme", safe: safe.toLowerCase(), site: "acme-town1.localhost", url: "http://acme-town1.localhost:8000", state: "provisioned" } });
     assert.deepEqual(await s.exited, { code: 0, signal: null });
     const site = JSON.parse(await readFile(join(s.bench, "acme-town1.localhost", "site.json"), "utf8"));
-    assert.equal(site.settings.safe_address, safe.toLowerCase()); assert.equal(site.world, "town1");
+    assert.equal(site.settings.safe_address, safe.toLowerCase()); assert.equal(site.capxul_world, "town1");
   });
 }

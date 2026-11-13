@@ -35,6 +35,9 @@ export function benchProvisioner(options: BenchOptions) {
         throw new ServiceError(409, "INVALID_INPUT", "Existing site belongs to a different company or Safe");
       }
     }
+    // Join the world before any app installs or setup stamps a date: the clock reads only this site config, and an unset
+    // world means host time (the Fiscal Year included).
+    await bench("--site", site, "set-config", "capxul_world", options.world);
     // The image contains these apps; provisioning never downloads or changes the image.
     for (const app of ["erpnext", "hrms", "crm", "frappe_whatsapp", "capxul"]) {
       if (!apps.includes(app)) await bench("--site", site, "install-app", app);
@@ -44,7 +47,6 @@ export function benchProvisioner(options: BenchOptions) {
       slug: identity.org, company_name: identity.name, safe_address: identity.safe, admin_email: identity.adminEmail,
       core_url: "", secret: options.secret,
     }));
-    await bench("--site", site, "execute", "capxul.clock.join_world", "--kwargs", JSON.stringify({ world: options.world }));
     await bench("--site", site, "enable-scheduler");
     await bench("--site", site, "clear-cache");
     const [org, safe] = await Promise.all([value(site, "org_slug"), value(site, "safe_address")]);
