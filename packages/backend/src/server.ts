@@ -13,17 +13,31 @@ import { createSignals, settleQueue, type Signals } from "./shared/door.ts";
 
 type Config = ReturnType<typeof settings>;
 
+const describe = (error: unknown) => error instanceof Error ? error.message : String(error);
+/** Per-organization consume backoff, counted in worker ticks rather than read from a clock (time.no-direct-reads):
+ *  after a failure that organization's consume sits out 5, 10, 20 then 40 ticks (about 1, 2, 4 and 8 s at the 200 ms tick). */
+export type ConsumeBackoff = Map<string, { failures: number; skip: number }>;
+
 /** One organization's turn of the worker. It never throws: one failing organization must not stall those sorted after it. */
 export async function serveOrganization(db: Database, config: Pick<Config, "chainId" | "finality" | "frappe" | "secret">, org: string, indexed: boolean,
-  run: Signals["processRun"] = async (_unit, work) => { await work(); }) {
-  try {
-    if (indexed) await run({ workflow: "plugs.payments.settle", concept: "plugs", trigger: "chain-event", key: org, org },
-      () => db.transaction(org, (sql) => consume(sql, org, config.chainId, config.finality), true));
-  } catch (error) { console.error(`Core consume ${org}: ${(error as Error).message}`); }
+  backoff: ConsumeBackoff, run: Signals["processRun"] = async (_unit, work) => { await work(); }) {
+  const held = backoff.get(org);
+  if (held && held.skip > 0) held.skip -= 1;
+  else if (indexed) {
+    try {
+      await run({ workflow: "plugs.payments.settle", concept: "plugs", trigger: "chain-event", key: org, org },
+        () => db.transaction(org, (sql) => consume(sql, org, config.chainId, config.finality), true));
+      backoff.delete(org);
+    } catch (error) {
+      const failures = (held?.failures ?? 0) + 1;
+      backoff.set(org, { failures, skip: 5 * 2 ** Math.min(failures - 1, 3) });
+      console.error(`Core consume ${org} (failure ${failures}): ${describe(error)}`);
+    }
+  }
   try { await run({ workflow: "plugs.events.deliver", concept: "plugs", trigger: "transition", key: org, org }, () => deliver(db, org, config.frappe, config.secret)); }
   catch (error) {
-    console.error(`Core delivery ${org}: ${(error as Error).message}`);
-    await deferDelivery(db, org, error).catch((e) => console.error(`Core delivery backoff ${org}: ${e.message}`));
+    console.error(`Core delivery ${org}: ${describe(error)}`);
+    await deferDelivery(db, org, error).catch((e) => console.error(`Core delivery backoff ${org}: ${describe(e)}`));
   }
 }
 function json(res: ServerResponse, status: number, body: unknown) {
@@ -35,6 +49,7 @@ type RawRoute = (req: IncomingMessage, res: ServerResponse, admit: () => void) =
 export function createCore(config: Config, provision?: RawRoute) {
   if (!Number.isSafeInteger(config.finality) || config.finality < 0) throw new Error("FINALITY_DEPTH must be a nonnegative integer");
   const db = new Database(config.database, config.workerDatabase);
+  const consumeBackoff: ConsumeBackoff = new Map();
   let paused = config.startPaused, closing = false, activeRequests = 0, activeDeliveries = 0;
   let activeLoop: Promise<void> = Promise.resolve(), timer: ReturnType<typeof setTimeout> | undefined;
   let pauseWork: Promise<Awaited<ReturnType<typeof readSnapshotCut>>> | undefined;
@@ -135,12 +150,12 @@ export function createCore(config: Config, provision?: RawRoute) {
         const { org_id } = company;
         if (paused || closing) break;
         if (company.released) collector.connect(company);
-        await serveOrganization(db, config, org_id, index.ready, signals.processRun);
+        await serveOrganization(db, config, org_id, index.ready, consumeBackoff, signals.processRun);
       }
     } finally { activeDeliveries--; notifyDrain(); }
   }
   function loop() {
-    activeLoop = tick().catch((error) => console.error(`Core worker: ${error.message}`));
+    activeLoop = tick().catch((error) => console.error(`Core worker: ${describe(error)}`));
     void activeLoop.finally(() => { if (!closing) timer = setTimeout(loop, 200); });
   }
   return {
