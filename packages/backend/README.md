@@ -83,6 +83,8 @@ in `src/organizations/install-approval.ts`. A landed install whose final facts d
 FDE host, buildMoney and Approvals are all injected; `test/setup-process.pg.ts` proves the process on real PG with
 scripted stand-ins, not chain proof.
 
+`src/organizations/mount.ts` gives `organizationsRoutes(services: (now) => SetupServices)` for Core's bearer dispatch: `/organizations/setups/begin`, `/get` and `/resume`, on the worker role, each after Access's `authenticate` on the request's transaction, with the request's `x-capxul-trace`. `organizationsError` renders only the code: INVALID_INPUT 400, NOT_AUTHENTICATED 401, FEATURE_NOT_AVAILABLE and ROLE_PERMISSION_DENIED 403, WRONG_STATE 409, provider codes 502, anything else 500 INTERNAL_ERROR. Composition binds `eligibility` (Accounts, for the authenticated principal), `requireImage` (Media), `board` (Indexing's Board read), `pricedCurrencies` and `companySafe` per request instant.
+
 `src/organizations/runner.ts` is its runner (organizations.setup-runner). `setupRunner(db, services, {now, elapsed?, retries?,
 backoffMs?, log?})` gives `tick()`, which advances every processing setup (step after step while it moves), and `start(ms)`,
 which ticks until its stop function is called; where it runs is composition's. Each setup's work carries the trace of the

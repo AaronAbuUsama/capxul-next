@@ -6,6 +6,7 @@ export { begin, get, readAdmittedDeployment, readSetupFounder, resume, view, typ
 export { addBoughtSeats, returnBoughtSeats, type BoughtSeats } from "./procedures.ts";
 export { advance, type Advanced, type MoneyDeploymentFact, type SetupProcessServices } from "./process.ts";
 export { onApprovalEnded, onApprovalTransitioned } from "./install-approval.ts";
+export { organizationsError, organizationsPaths, organizationsRoutes } from "./mount.ts";
 export { setupFacts, setupRunner, setupServicesFromEnv, type SetupBindings, type SetupChain, type SetupRunnerOptions } from "./runner.ts";
 
 export type WorldCompany = { orgId: string; name: string; site: string | null };
