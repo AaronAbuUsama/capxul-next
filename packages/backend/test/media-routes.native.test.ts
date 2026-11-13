@@ -28,7 +28,7 @@ test("native media hooks use canonical clock and real transactional outbox; auth
   try {
     await sql.query("begin");
     await migrateMedia(sql); await migrateOutbox(sql);
-    await sql.query("truncate app.files,app.transition_outbox,app.transition_acks");
+    await sql.query("truncate app.files,app.transition_outbox,app.transition_acks,app.transition_failures");
     await sql.query("create table if not exists app.world(clock jsonb); grant select on app.world to capxul_core,capxul_worker");
     if (!(await sql.query("select 1 from app.world")).rowCount) await sql.query("insert into app.world(clock) values('{}')");
     await clock(now); await scope();
