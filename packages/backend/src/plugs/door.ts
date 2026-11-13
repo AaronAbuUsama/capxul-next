@@ -4,6 +4,7 @@ import { record, type Database, type Sql } from "../platform/db.ts";
 import { createFrappeSite } from "./site.ts";
 export { RequestCollector } from "./collector.ts";
 export { FrappeSite, FrappeSiteError, createFrappeSite, frappeSiteLayer } from "./site.ts";
+export { consume } from "./follow.ts";
 export type { AccountInput, DoorInput, ReportInput, SiteInput } from "./site.ts";
 
 export async function enqueue(sql: Sql, org: string, key: string, kind: string, data: unknown, trace: string) {

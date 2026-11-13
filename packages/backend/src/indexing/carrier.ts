@@ -1,10 +1,14 @@
 import type { Sql } from "../platform/db.ts";
-import type { ChainFact } from "../approvals/door.ts";
 
+/** A final UserOperation by its sender and nonce. Approvals' carrier reads it as its ChainFact (the same shape); indexing
+ * does not depend on approvals, so the type is indexing's own. */
+export interface IndexedUserOperation {
+  chain_id: number; sender: string; nonce: string; user_op_hash: string; success: boolean; transaction_hash: string; block_number: number;
+}
 /** The nonce, not the expected hash, finds a final foreign operation that displaced the carrier. */
 export async function readChainFact(sql: Sql, input: {
   chainId: number; sender: string; nonce: string; finality: number;
-}): Promise<ChainFact | null> {
+}): Promise<IndexedUserOperation | null> {
   if (!Number.isSafeInteger(input.chainId) || input.chainId < 1 || !Number.isSafeInteger(input.finality) || input.finality < 0 ||
       !/^0x[0-9a-fA-F]{40}$/.test(input.sender) || !/^\d+$/.test(input.nonce) || BigInt(input.nonce) >= 1n << 256n)
     throw new Error("INVALID_INPUT: indexed carrier identity");
