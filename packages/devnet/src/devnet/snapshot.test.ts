@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { composeBench, localRuntime, psqlAdmin, readSnapshot, restoreSnapshot, saveSnapshot, type Options, type Runtime, type World } from "./door.ts";
+import { supervised } from "./processes.ts";
 
 test("snapshot save retains the fence failure alongside refusal to resume an unowned pause", async () => {
   const root = await mkdtemp(join(tmpdir(), "capxul-snapshot-errors-"));
@@ -217,4 +218,23 @@ test("native site backup crosses the host UID boundary without exposing archives
     if (bench.ownsPause()) await bench.resume();
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test("world stop takes the writers down before the world's MariaDB and Redis; recovery's pause brings those three up first", async () => {
+  const root = await mkdtemp(join(tmpdir(), "capxul-bench-order-")), calls = join(root, "calls.jsonl"), previous = process.env.PATH;
+  try {
+    await writeFile(join(root, "docker"), `#!${process.execPath}\nrequire("node:fs").appendFileSync(${JSON.stringify(calls)}, JSON.stringify(process.argv.slice(2)) + "\\n");\n`, { mode: 0o700 });
+    process.env.PATH = `${root}:${previous}`;
+    const c = { root, bench: { composeArgs: ["-p", "w"], env: {} } } as never;
+    await supervised(c, join(root, "config.json")).benchStop();
+    const stops = (await readFile(calls, "utf8")).trim().split("\n").map((line) => JSON.parse(line) as string[]);
+    const at = (service: string) => stops.findIndex((argv) => argv.includes("stop") && argv.includes(service));
+    for (const writer of ["frontend", "backend", "websocket", "scheduler", "queue-short", "queue-long"]) for (const data of ["mariadb", "redis-cache", "redis-queue"]) {
+      assert(at(writer) >= 0 && at(data) > at(writer), `${data} must stop after ${writer}: ${JSON.stringify(stops)}`);
+    }
+    await rm(calls);
+    await composeBench(["-p", "w"]).pause().catch(() => {}); // the fake bench answers nothing; only the first call matters
+    const first = JSON.parse((await readFile(calls, "utf8")).split("\n")[0]!) as string[];
+    assert.deepEqual(first, ["compose", "-p", "w", "up", "-d", "--wait", "--no-deps", "mariadb", "redis-cache", "redis-queue"]);
+  } finally { process.env.PATH = previous; await rm(root, { recursive: true, force: true }); }
 });
