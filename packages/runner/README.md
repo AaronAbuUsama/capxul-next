@@ -10,9 +10,12 @@ reads the blueprint (`@capxul/blueprint`), deploys Core (`@capxul/core`) and run
 ```bash
 ./run.sh door                 # every blueprint operation called once through a fresh Core stage
 ./run.sh scenarios [name...]  # the registered scenarios (or those named), each in its own fresh stage
+./run.sh scenarios --expect=not-implemented              # each must fail on the empty handlers' NotImplemented
+./run.sh scenarios --one-stage --expect=not-implemented  # the same, all in one fresh stage
 ```
 
-Each run exits 1 if a run failed. `run.sh` runs `src/main.ts` under Bun and sets the two key variables to a
+`door` exits 1 if its run failed; `scenarios` exits 1 if a scenario did not end as the run expected or a stage was
+left behind. `run.sh` runs `src/main.ts` under Bun and sets the two key variables to a
 placeholder: the session's network proxy adds the real Cloudflare and Neon keys, which never reach this machine. It
 also makes a fresh pair of door tokens for the run (`CAPXUL_DOOR_TOKEN`, `CAPXUL_PLATFORM_TOKEN`), which Core reads at
 deploy and the SDK sends; they are never printed or recorded.
@@ -47,6 +50,34 @@ deploy and the SDK sends; they are never printed or recorded.
 
 A run's `outcome` is `passed` when its own expectations held (for the door, every operation answered with a success
 or a declared refusal), every check passed on every call, the stage was destroyed and the accounts hold nothing of it.
+Its `ended` says how the run's own program ended before any check: `succeeded`, `failed` with a typed failure's tag
+(a refusal, a scenario's `ExpectationFailed`), or `died`.
+
+## A scenarios run and its summary
+
+`./run.sh scenarios` also writes a summary (`src/summary.ts`, `src/scenario-runs.ts`): one JSON file whose `outcome`
+is the run's, so a step's Proof can name it. It lists each scenario with how it ended, its calls (refusal, caller and
+server time, whether every check passed) and where its full record is, and each stage with its create and destroy
+times and what the accounts held of it afterwards. What the run expects is declared by a flag:
+
+| `--expect=` | A scenario is as expected when | For |
+|---|---|---|
+| `pass` (default) | its run record passed | step 1.6: the thin line passes |
+| `not-implemented` | it failed on `NotImplemented`, or on an `ExpectationFailed` that names it, never passed and never died; it made a call, every call was answered `NotImplemented`, and every generic check passed on every call | step 1.5: the scenarios fail on Core's empty handlers |
+
+The summary's `outcome` is `passed` exactly when every claim the blueprint declares has its scenario in the run, every
+scenario was as expected, and every stage was destroyed with nothing of it left. A run of named scenarios covers
+only some claims, so its summary fails; its exit code is still 0 when those scenarios were as expected.
+
+| Mode | Stages | Records |
+|---|---|---|
+| a stage each (default) | one fresh stage per scenario | `records/<stage>/<scenario>.json` each; the summary at `records/run-<6 hex>/summary.json` |
+| `--one-stage` | one fresh stage for all, created and destroyed once; each scenario still has the use timeout of one run | `records/<stage>/summary.json`, the only JSON file in its folder, and every scenario's record as one line of `records/<stage>/scenarios.jsonl` |
+
+One stage is sound only when no scenario changes the stage's state, which holds against the empty handlers, so
+`--one-stage` is refused without `--expect=not-implemented`. The generic checks are the same in both modes. A
+dashboard that reads every JSON file of a folder counts only the summary, since the scenarios' own records (whose
+`outcome` is `failed` against the empty handlers, by design) are JSON Lines.
 
 ## Settings
 
@@ -83,12 +114,14 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | `src/client.ts` | `Capxul` for one stage: the SDK's client at its two doors, every call recorded. |
 | `src/checks/checks.ts`, `src/checks/events.ts` | The generic checks, the timings and the steps. A builder never changes these. |
 | `src/world/` | The stage's life, its database, the warm-up and the inventory: the runner's plumbing. |
-| `src/record.ts`, `src/failure.ts` | The run record, and how a failure is worded in it. |
-| `test/` | The checks, the plumbing and the warm-up on made-up input. |
+| `src/scenario-runs.ts` | A scenarios run in either mode, ending in its summary. |
+| `src/summary.ts` | The summary: what each scenario was expected to do, the claims a run must cover, the stages it must leave. |
+| `src/record.ts`, `src/failure.ts` | The run record, the JSON writers, and how a run ended and a failure is worded. |
+| `test/` | The checks, the plumbing, the warm-up and the summary on made-up input. |
 
 ## Not done
 
 - A stage has an owner but no expiry: if this process is killed outright (`kill -9`), nothing deletes the stage.
   `packages/world` gives worlds an expiry and a sweeper (step 1.3). Alchemy's state is local (`.alchemy/`, ignored).
 - Every scenario starts from a fresh, empty stage; starting worlds come with step 1.12.
-- Runs go one at a time.
+- Runs go one at a time, and so do the scenarios of a one-stage run.
