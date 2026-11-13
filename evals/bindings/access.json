@@ -1,0 +1,10 @@
+{
+  "area": "access",
+  "script": "packages/evals/src/modules/access/run.sh",
+  "worlds": ["slice-zero"],
+  "bindings": [],
+  "near": [
+    { "eval": "tbl:feature-flags/schema", "checks": ["ACCESS.flags-shape"], "missing": "Read-only exact fields/types/nullability/key/index inspection and forced RLS do not independently prove every declared value constraint or migration provenance. Requires one actual selected-stack running receipt; component Postgres is not credit." },
+    { "eval": "tbl:principals/schema", "checks": ["ACCESS.principals-shape"], "missing": "Exact physical shape and forced RLS inspection does not independently prove every kind/identity value constraint or migration provenance. Public writer/tenant proof remains separate and unbound; no full-run credit." }
+  ]
+}

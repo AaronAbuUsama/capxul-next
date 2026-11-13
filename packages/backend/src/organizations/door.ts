@@ -16,6 +16,42 @@ export async function readWorldCompanies(sql: Sql): Promise<WorldCompany[]> {
   return (await sql.query<WorldCompany>('select org_id as "orgId",name,site from app.organizations order by org_id')).rows;
 }
 
+/** Explicit privileged world provisioning, after Access and Parties; never a route or restore hook. */
+export async function migrate(sql: Sql): Promise<void> {
+  await sql.query(readFileSync(new URL("./schema.sql", import.meta.url), "utf8"));
+}
+
+export type Actor = { principalId: string; kind: "human" | "agent"; safe: string };
+export type Seat = {
+  org_id: string; member_id: string; party_id: string; principal_id: string | null;
+  kind: "human" | "agent"; safe_address: string; invitation_id: string | null;
+  seat_use: "seat" | "owner-seat" | "organization"; covering_member_id: string | null;
+  status: "active" | "removed"; removed_reason: "agent_removed" | null;
+  joined_at: string; removed_at: string | null; updated_at: string;
+};
+
+/** Committed-source worker read, not actor authentication; the caller's existing RLS still applies. */
+export async function readSeatBySafe(sql: Sql, orgId: string, wearerSafe: string): Promise<Seat | null> {
+  return (await sql.query("select * from app.org_members where org_id=$1 and safe_address=$2 and status='active'",
+    [orgId, wearerSafe.toLowerCase()])).rows[0] ?? null;
+}
+
+/** Actor is mapped from Access.authenticate, not request fields; owner scope is not authentication. */
+export async function requireSeat(sql: Sql, orgId: string, actor: Actor): Promise<Seat> {
+  const row: Seat | undefined = (await sql.query(`select m.* from app.org_members m join app.principals p
+    on p.person_id=nullif(current_setting('app.person_id',true),'')
+    where m.org_id=$1 and m.status='active' and p.person_id=$2 and p.safe_address=$3
+    and (($4='human' and p.kind='person' and m.kind='human' and m.principal_id=p.person_id)
+      or ($4='agent' and p.kind='agent' and m.kind='agent' and m.safe_address=p.safe_address))`,
+  [orgId, actor.principalId, actor.safe.toLowerCase(), actor.kind])).rows[0];
+  if (!row) throw new Error("ROLE_PERMISSION_DENIED: current Seat required");
+  return row;
+}
+
+export async function callerSafes(sql: Sql): Promise<string[]> {
+  return (await sql.query("select app.caller_safes() as safes")).rows[0].safes;
+}
+
 export type Registration = {
   slug: string; name: string; safe: string; site: string; adminEmail: string; token: string;
   hats?: Record<string, { name: string; department?: string }>;
