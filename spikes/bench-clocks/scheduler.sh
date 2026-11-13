@@ -22,9 +22,8 @@ echo "beta rewound: $(capxul "$B1" clock.rewind_jobs '{}')"
 sleep 50
 notes "$B1"
 echo "beta: move its clock (the app's write) to 23:59:15 site time on 15 June, and wait for its midnight"
-# A running clock adds its offset to the host's wall time, so the site reads the UTC instant asked for as its own local
-# time (23:59:15, where Europe/London in June would say 00:59:15): finding 3 in the README.
-echo "beta written from $B1: $(set_running "$B1" beta "2026-06-15 23:59:15")"
+# A running clock is an instant read through the site's time zone: 22:59:15 UTC is 23:59:15 in London's summer.
+echo "beta written from $B1: $(set_running "$B1" beta "2026-06-15 22:59:15")"
 echo "beta now: $(probe "$B1" show)"
 wait_note "$B1" "2026-06-16"
 notes "$B1"

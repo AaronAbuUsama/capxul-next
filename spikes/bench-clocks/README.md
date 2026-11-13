@@ -7,7 +7,8 @@ product code, and `packages/frappe-app` is not changed.
 
 ## Verdict (13 November 2026, from a Claude cloud container)
 
-**Proven, with four things the shared bench does not have today** (next section). The design in
+**Proven, with four things the shared bench did not have** (next section); **all four are fixed** in the site app on
+branch `fix/bench-gaps` and proven by a second full run (`observed-fixes.txt`, rows F1 to F4 below). The design in
 `packages/frappe-app/capxul/clock.py` holds on a real bench: the clock is keyed by world, the wrapper reads the world of
 the site being served on every call, and two worlds stayed apart in bench commands, in the web process under 60
 requests at once, in the background worker and in the scheduler.
@@ -37,8 +38,12 @@ Every time was set with the app's own functions through `bench execute`: `capxul
 | 6a | Does a background job see its site's world? (one worker for all sites) | Holds | Six jobs, interleaved alpha1, beta1, alpha2, on a worker restarted just before: alpha jobs read `2027-04-30 11:00:00`, beta jobs `2026-06-15 12:0x`, each with `"capxul_loaded": true` before the job touched a document, and the ToDo each wrote has the same `creation` |
 | 6b | Does the scheduler decide what is due by the site's world? (one scheduler for all sites) | Holds | Alpha: `capxul daily job ran for 2027-04-30` on both sites, though by the host's clock the job was not due until the next day. Beta, after `rewind_jobs`: three ticks, `"all_job_logs_on_site": 0` (by the host's clock every job would have been five months overdue); then beta moved to 23:59:15 and at its midnight `capxul daily job ran for 2026-06-16`, stamped `2026-06-16 00:00:31` |
 | 7 | What does it cost? | Measured | See "Numbers" |
+| F1 | Finding 1 fixed: a just-started web process reads world time from its first request | **Fixed** | `capxul/boot.py`: the image writes `capxul_world_clock.pth` (`import capxul`), so every Python process of the bench arms the clock at start and installs it the moment `import frappe` finishes. gunicorn still serves `frappe.app:application`: `sign-in as the first request after the start stamps User.last_login 2026-06-16 00:00:57 (beta reads 2026-06-16 00:01:01)`; `first request after a restart, same cookie: {"message":"Administrator"}` |
+| F2 | Finding 2 fixed: a plain Python process on the bench reads world time | **Fixed** | The same `.pth`: `plain {"site": "alpha1.localhost", "world": "alpha", "now_datetime": "2027-03-31 11:00:00", ..., "capxul_loaded": true, "wrapper": true}`, beta `2026-06-15 13:00:15`, and its insert `"creation": "2027-03-31 11:00:00"`. If capxul cannot install the clock, `import frappe` fails, so host time is never read silently |
+| F3 | Finding 3 fixed: a running clock started in summer reads site-local time | **Fixed** | `clock.py` makes every clock a UTC instant (`world_ms`) and reads it through the site's time zone (`site_time`); `advance` counts its stops the same way. Beta, running from 12:00 UTC on 15 June, reads `"now_datetime": "2026-06-15 13:00:06"` in bench and `"world_local": "2026-06-15 13:00:06"` in web; set to 22:59:15 UTC it read `23:59:17` and its daily job ran at its midnight (`capxul daily job ran for 2026-06-16`) |
+| F4 | Finding 4 fixed: the encryption key, and how soon a world change reaches web | **Fixed** | `setup.after_install` writes the key when capxul is installed, before the site is served: key print `83f2b8f2` at creation, `83f2b8f2 after web served the site, 83f2b8f2 after a bench command stored its first secret, 83f2b8f2 after web used that secret twice (second request: accepted)`, on all three sites. `world_of_site` reads `capxul_world` from `site_config.json` by modification time instead of Frappe's 60 s copy: `web alpha2.localhost 2 s after the change: beta`, eight answers running as beta `3 s after the change` (was 60 s) |
 
-## What does not hold, and the smallest change for each
+## What did not hold, and the smallest change for each (all four now fixed: rows F1 to F4)
 
 1. **The web process reads the host's time until its first hook.** gunicorn serves `frappe.app:application`, which
    imports no app. The capxul app, and so its clock wrapper, is loaded by the first hook Frappe calls, and Frappe resumes
@@ -47,7 +52,7 @@ Every time was set with the app's own functions through `bench execute`: `capxul
    `2026-06-16 00:00`; and a person signed in before a restart was signed out by the first request after it
    (`{"session_expired":1,"exc_type":"SessionExpired"}`), because the session's last use (June) was compared with the
    host's November. `packages/bench-image/resources/start-web.sh` serves the same entry. *Smallest change:* serve an
-   entry that imports capxul first. `probe/webentry.py` is that change, two lines, tried here: with it the first
+   entry that imports capxul first. `probe/webentry.py` was that change, two lines, tried here (since replaced by F1): with it the first
    sign-in is stamped `2026-06-16 00:01:12` and the person stays signed in across the restart.
 2. **Only processes started by the `bench` CLI have the wrapper from the start.** The CLI imports every app of the
    bench to look for commands, which is why `bench execute`, `bench worker` and `bench schedule` are right from their
@@ -93,7 +98,7 @@ Four full runs gave 611 to 688 s, 95 to 106 s for a site, and 673 to 713 MiB.
 - More than one worker container, `bench worker-pool`, or a second web container.
 - A clock with a rate above 1 on the bench (`tests/test_clock.py` covers the arithmetic), and `capxul.clock.advance`
   stepping one world while the other runs.
-- What still reads the host's time by design (`spikes/skeleton/FINDINGS.md`, "What follows the clock"): Redis
+- What still reads the host's time by design (`spikes/skeleton/FINDINGS.md` on `main`, "What follows the clock"): Redis
   lifetimes, the scheduler's own tick, the browser. A frozen world's jobs fall due only when the world is moved.
 - Core and the chain. This spike is the Frappe side only.
 
@@ -104,7 +109,7 @@ spikes/bench-clocks/run.sh all        # build, start, three sites, every check, 
 spikes/bench-clocks/run.sh up         # or step by step: up, sites, checks [step], stats, down
 ```
 
-Docker must be running. Behind a TLS-inspecting proxy the build takes the proxy's CA from `CAPXUL_BUILD_CA` (default
+Docker must be running. `BENCH_PROJECT` and `BENCH_IMAGE` (default `bench-clocks` and `bench-clocks:spike`) name the compose project and image, so two runs on one Docker daemon stay apart. Behind a TLS-inspecting proxy the build takes the proxy's CA from `CAPXUL_BUILD_CA` (default
 `/root/.ccr/ca-bundle.crt`). MariaDB and Redis come from Amazon's public mirror of the official images, because Docker
 Hub answered `429 Too Many Requests` here. The transcript goes to `var/bench-clocks/run.log`.
 
@@ -115,5 +120,5 @@ Hub answered `429 Too Many Requests` here. The transcript goes to `var/bench-clo
 | `run.sh`, `lib.sh` | Start, create the sites, measure, remove |
 | `checks.sh`, `scheduler.sh` | The checks, in the order of the table |
 | `probe/clockprobe.py` | What a process reads as now; it never imports capxul, so it shows whether the process had |
-| `probe/webentry.py` | The web entry that loads capxul first (finding 1) |
-| `observed.txt` | The transcript of the last full run |
+| `observed.txt` | The transcript of the first full run, before the fixes (it shows `probe/webentry.py`, since removed) |
+| `observed-fixes.txt` | The transcript of the full run after the four fixes |

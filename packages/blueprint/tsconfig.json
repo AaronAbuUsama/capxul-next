@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        // Operations are Effect Rpc declarations, and Effect 4 ships Rpc only under effect/rpc, marked unstable, with
+        // no stable replacement. The catalog's exact pin of effect is the guard: a change to it fails this check.
+        "allowedUnstableApis": ["effect/rpc"]
+      }
+    ]
+  },
+  "include": ["src", "test"]
+}

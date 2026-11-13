@@ -7,10 +7,13 @@ How Frappe reads time: `frappe.utils.data.now_datetime()` is the root. `nowdate(
 What this does (keyed by WORLD, not by bench or site): each site names its world in its own `site_config.json` (`capxul_world`, default `main`), and the
 world's clock is one entry in `sites/capxul-world-clocks.json` on the bench: a legacy offset or a clock with mode/rate. One write moves every site of that world, and two worlds
 on one bench can run at different times (designed and read by the code below; proven only for a world that is not `main` by FINDINGS.md's measurements).
-`install()` (run when the app is imported, in every process that loads it) replaces that one function with a wrapper that
-adds the site's offset, and replaces every earlier `from frappe.utils import now_datetime` reference too. The offset is read
-from that file (cached by its modification time), or from `frappe.local.conf["capxul_clock_override_ms"]` while `advance` is stepping this site
-through its stops. A frozen clock holds an absolute UTC instant; a running clock advances at its saved rate.
+`install()` (run when the app is imported: every process of the bench imports it at start, capxul/boot.py) replaces that one
+function with a wrapper, and replaces every earlier `from frappe.utils import now_datetime` reference too. The wrapper works out
+the world's UTC instant (`world_ms`) and turns it into the site's local time through the site's time zone, as Frappe does with
+the host's instant, so a world reads right on either side of a daylight-saving change. The clock is read from that file (cached
+by its modification time), or from `frappe.local.conf["capxul_clock_override_ms"]` while `advance` is stepping this site through
+its stops; the site's world from its site_config.json (cached by modification time too, so a web process follows a change of
+world at once rather than after Frappe's 60 s). A frozen clock holds an absolute UTC instant; a running clock advances at its saved rate.
 
 Not followed (still the host's): see FINDINGS.md "What follows the clock".
 """
@@ -33,8 +36,25 @@ def _clocks_path():
     return os.path.join(frappe.local.sites_path, "capxul-world-clocks.json")
 
 
+_site_worlds = {}  # site_config.json path -> (its mtime, the world it names)
+
+
 def world_of_site():
-    return frappe.local.conf.get("capxul_world") or "main"
+    """The world the site's own site_config.json names, read from the file (cached by its modification time). A web process
+    keeps frappe.local.conf for up to 60 s (Frappe's site_cache), so reading the conf alone would leave a site that changed
+    world answering as its old world for a minute; this follows the change on the next reading."""
+    import os
+
+    try:
+        p = os.path.join(frappe.local.site_path, "site_config.json")
+        m = os.stat(p).st_mtime_ns
+        seen = _site_worlds.get(p)
+        if seen is None or seen[0] != m:
+            with open(p) as f:
+                seen = _site_worlds[p] = (m, json.load(f).get("capxul_world"))
+        return seen[1] or "main"
+    except Exception:  # no site path (tests, bench commands without a site) or a file being rewritten: the conf as loaded
+        return frappe.local.conf.get("capxul_world") or "main"
 
 
 def read_clocks():
@@ -51,18 +71,36 @@ def read_clocks():
     return _cache["data"]
 
 
+def _host_ms():
+    return datetime.now(timezone.utc).timestamp() * 1000
+
+
+def world_ms(host_ms):
+    """The world's UTC instant (ms since the epoch) when the host's is `host_ms`. Every kind of clock is an instant; the site's
+    local time is made from it through the site's time zone (site_time), so a frozen and a running world agree across a
+    daylight-saving change."""
+    o = frappe.local.conf.get(OVERRIDE)
+    if o is not None:
+        return host_ms + int(o)
+    c = read_clocks().get(world_of_site()) or 0
+    if isinstance(c, dict):
+        if c.get("frozen_at_ms") is not None:
+            return c["frozen_at_ms"]
+        return host_ms + c["offset_ms"] + (host_ms - c["host_anchor_ms"]) * (c["rate"] - 1)
+    return host_ms + int(c)
+
+
+def site_time(ms):
+    """A UTC instant (ms) as the site's naive local time, as Frappe's own now_datetime() makes it."""
+    from zoneinfo import ZoneInfo
+
+    return datetime.fromtimestamp(ms / 1000, ZoneInfo(frappe.utils.get_system_timezone())).replace(tzinfo=None)
+
+
 def offset_ms() -> int:
     try:
-        o = frappe.local.conf.get(OVERRIDE)
-        if o is not None:
-            return int(o)
-        c = read_clocks().get(world_of_site()) or 0
-        if isinstance(c, dict):
-            host = datetime.now(timezone.utc).timestamp() * 1000
-            if c.get("frozen_at_ms") is not None:
-                return int(c["frozen_at_ms"] - host)
-            return int(c["offset_ms"] + (host - c["host_anchor_ms"]) * (c["rate"] - 1))
-        return int(c)
+        host = _host_ms()
+        return int(world_ms(host) - host)
     except Exception:  # no site initialised yet (import time, bench commands without a site)
         return 0
 
@@ -81,18 +119,11 @@ def install():
 
     def now_datetime():
         try:
-            conf = frappe.local.conf
-        except (AttributeError, RuntimeError):  # commands may read time before frappe.init()
+            host = _host_ms()
+            w = world_ms(host)
+        except Exception:  # commands may read time before frappe.init(): the host's time
             return orig()
-        if conf and conf.get(OVERRIDE) is None:
-            c = read_clocks().get(world_of_site())
-            if isinstance(c, dict) and c.get("frozen_at_ms") is not None:
-                from zoneinfo import ZoneInfo
-
-                return datetime.fromtimestamp(c["frozen_at_ms"] / 1000, ZoneInfo(frappe.utils.get_system_timezone())).replace(tzinfo=None)
-        off = offset_ms()
-        t = orig()
-        return t + timedelta(milliseconds=off) if off else t
+        return orig() if w == host else site_time(w)
 
     now_datetime._capxul = True
     now_datetime._orig = orig
@@ -194,6 +225,24 @@ def daily():
                     "content": f"capxul daily job ran for {frappe.utils.nowdate()}"}).insert(ignore_permissions=True)
 
 
+def advance_stops(host_ms, from_offset_ms, to_offset_ms, step_days=1):
+    """advance's stops: 01:00 site time every `step_days` days after the start, then the target, each as (site time, offset
+    from `host_ms`). Counted in the site's own days and turned back into instants, so a stop is at 01:00 on either side of
+    a daylight-saving change."""
+    from zoneinfo import ZoneInfo
+
+    tz = ZoneInfo(frappe.utils.get_system_timezone())
+    target_ms = host_ms + to_offset_ms
+    stops, d = [], site_time(host_ms + from_offset_ms).replace(hour=1, minute=0, second=0, microsecond=0)
+    while True:
+        d += timedelta(days=step_days)
+        ms = d.replace(tzinfo=tz).timestamp() * 1000
+        if ms >= target_ms:
+            break
+        stops.append((d, int(ms - host_ms)))
+    return stops + [(site_time(target_ms), int(to_offset_ms))]
+
+
 @emit
 def advance(from_offset_ms, to_offset_ms, step_days=1, trace_id=None):
     """Move THIS site from one offset to another, stopping at every `step_days` midnight on the way and running what is due at each stop (so a
@@ -202,16 +251,7 @@ def advance(from_offset_ms, to_offset_ms, step_days=1, trace_id=None):
     _stamp(trace_id)
     frappe.set_user("Administrator")
     frappe.local.conf[OVERRIDE] = int(from_offset_ms)
-    start = frappe.utils.now_datetime()
-    host_now = start - timedelta(milliseconds=int(from_offset_ms))
-    target = host_now + timedelta(milliseconds=int(to_offset_ms))
-    stops, d = [], start.replace(hour=1, minute=0, second=0, microsecond=0)
-    while True:
-        d += timedelta(days=int(step_days))
-        if d >= target:
-            break
-        stops.append(d)
-    stops.append(target)
+    stops = advance_stops(_host_ms(), int(from_offset_ms), int(to_offset_ms), int(step_days))
     from frappe.core.doctype.scheduled_job_type.scheduled_job_type import sync_jobs
 
     frappe.cache.delete_value("app_hooks")  # the hooks are cached: read them fresh, so a job added to them is seen
@@ -225,8 +265,8 @@ def advance(from_offset_ms, to_offset_ms, step_days=1, trace_id=None):
     frappe.enqueue = lambda *a, **k: real_enqueue(*a, **{**k, "now": True})
     bj.enqueue = lambda *a, **k: real_bj(*a, **{**k, "now": True})
     try:
-        for s in stops:
-            frappe.local.conf[OVERRIDE] = int((s - host_now).total_seconds() * 1000)
+        for s, off in stops:
+            frappe.local.conf[OVERRIDE] = off
             ran = run_due()
             jobs += len(ran)
             frappe.db.commit()

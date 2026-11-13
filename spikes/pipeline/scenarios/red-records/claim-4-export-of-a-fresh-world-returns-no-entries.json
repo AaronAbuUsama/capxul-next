@@ -1,0 +1,53 @@
+{
+  "scenario": "claim 4: export of a fresh world returns no entries",
+  "world": "pl-claim-4-ex-17105b",
+  "owner": "pipeline",
+  "expiresAt": "2026-11-13T08:56:51.293Z",
+  "outcome": "failed",
+  "failure": "the scenario failed: NotImplemented: not implemented: record.export",
+  "calls": [
+    {
+      "operation": "record.export",
+      "traceId": "bdff8808814d3ed3b2fdc2bcdc79d5a5",
+      "outcome": "defect",
+      "ms": 880,
+      "serverMs": 0,
+      "budgetMs": 500,
+      "failure": "NotImplemented: not implemented: record.export",
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.export span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw defect; the span says defect"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: none; declared for a defect: none"
+        },
+        {
+          "check": "budget",
+          "passed": true,
+          "gating": false,
+          "detail": "0 ms against a budget of 500 ms"
+        }
+      ]
+    }
+  ],
+  "worldAfterwards": "destroyed",
+  "ms": {
+    "create": 18015,
+    "scenario": 882,
+    "checks": 222,
+    "destroy": 8331
+  }
+}

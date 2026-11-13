@@ -1,9 +1,0 @@
-eval     acc:doc.submit/1
-claim    An ordinary document posts to the ledger when submitted.
-verdict  pass
-run      run-20261112070054  at 2026-11-12T07:00:54Z  commit 0113712
-script   spikes/skeleton/run.sh  world main  company fcapb
-why      The door's `doc submit` is the operation. A sales person submits a Sales Invoice with it, and the check reads the document back as submitted and finds the Debtors account debited 900 in the General Ledger: an ordinary document posts when submitted.
-
-PASS  B6.sales-invoice-submitted-in-ledger  x1  1896 ms
-      B6 sales person made and submitted Sales Invoice ACC-SINV-2026-00001; it is in the ledger (Debtors debited 900)

@@ -3,7 +3,7 @@
 name: bench-clocks
 
 x-bench: &bench
-  image: bench-clocks:spike
+  image: ${BENCH_IMAGE:-bench-clocks:spike}
   pull_policy: never
   working_dir: /home/frappe/frappe-bench
   environment:
@@ -60,7 +60,7 @@ services:
       - --preload
       - --access-logfile=-
       - --access-logformat=ACCESS pid=%(p)s host=%({host}i)s %(m)s %(U)s %(s)s   # which worker process served which site
-      - ${WEB_APP:-frappe.app:application}   # run.sh sets WEB_APP=webentry:application to try the fix (probe/webentry.py)
+      - frappe.app:application   # as the hosted bench serves it; capxul is loaded at start by capxul_world_clock.pth
   worker:
     <<: *bench
     command: [bench, worker, --queue, "short,default,long"]

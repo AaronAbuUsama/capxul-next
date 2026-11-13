@@ -1,7 +1,7 @@
 """How chain payments land in the books, without a Frappe site: `frappe` is replaced by a small in-memory fake.
 
 Run: python3 -m unittest discover -s packages/frappe-app/tests   (pnpm frappe:test)
-The same flows run against a real site in spikes/skeleton/frappe/bin/test-frappe.sh and spikes/skeleton/run.sh.
+On main, the same flows ran against a real site in spikes/skeleton/frappe/bin/test-frappe.sh and spikes/skeleton/run.sh.
 """
 import json
 import sys

@@ -1,0 +1,363 @@
+{
+  "scenario": "claim 5: every successful append emits exactly one record_appended event carrying its key and seq, and a refused append emits none",
+  "world": "pl-claim-5-ev-926733",
+  "owner": "pipeline",
+  "expiresAt": "2026-11-13T10:20:18.399Z",
+  "outcome": "passed",
+  "failure": null,
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 11201
+  },
+  "calls": [
+    {
+      "operation": "record.append",
+      "traceId": "dfde04a76ee025b9e0ec83e5a9e52a06",
+      "outcome": "success",
+      "ms": 1517,
+      "resent": 0,
+      "serverMs": 1305,
+      "steps": [
+        {
+          "name": "sql.transaction",
+          "startMs": 0,
+          "ms": 1305
+        },
+        {
+          "name": "RecordStore.append",
+          "startMs": 0,
+          "ms": 1305
+        },
+        {
+          "name": "BEGIN postgres",
+          "startMs": 3,
+          "ms": 893
+        },
+        {
+          "name": "postgres",
+          "startMs": 896,
+          "ms": 139
+        },
+        {
+          "name": "postgres",
+          "startMs": 1035,
+          "ms": 135
+        },
+        {
+          "name": "COMMIT postgres",
+          "startMs": 1170,
+          "ms": 135
+        }
+      ],
+      "budgetMs": 500,
+      "failure": null,
+      "events": [
+        "record_appended"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 1305 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: record_appended {\"key\":\"account/operating\",\"seq\":1}; declared for a success: record_appended {\"key\":\"account/operating\",\"seq\":1}"
+        },
+        {
+          "check": "budget",
+          "passed": false,
+          "gating": false,
+          "detail": "1305 ms against a budget of 500 ms"
+        }
+      ]
+    },
+    {
+      "operation": "record.append",
+      "traceId": "7249b254d4b5637ef3abcbbba2fe9dc0",
+      "outcome": "success",
+      "ms": 514,
+      "resent": 0,
+      "serverMs": 378,
+      "steps": [
+        {
+          "name": "sql.transaction",
+          "startMs": 0,
+          "ms": 378
+        },
+        {
+          "name": "RecordStore.append",
+          "startMs": 0,
+          "ms": 378
+        },
+        {
+          "name": "BEGIN postgres",
+          "startMs": 2,
+          "ms": 125
+        },
+        {
+          "name": "postgres",
+          "startMs": 127,
+          "ms": 84
+        },
+        {
+          "name": "postgres",
+          "startMs": 211,
+          "ms": 82
+        },
+        {
+          "name": "COMMIT postgres",
+          "startMs": 293,
+          "ms": 85
+        }
+      ],
+      "budgetMs": 500,
+      "failure": null,
+      "events": [
+        "record_appended"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 378 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: record_appended {\"key\":\"transfer/0001\",\"seq\":2}; declared for a success: record_appended {\"key\":\"transfer/0001\",\"seq\":2}"
+        },
+        {
+          "check": "budget",
+          "passed": true,
+          "gating": false,
+          "detail": "378 ms against a budget of 500 ms"
+        }
+      ]
+    },
+    {
+      "operation": "record.append",
+      "traceId": "c78b9a4d1b5cc830337a8e0a0835ad7a",
+      "outcome": "refusal",
+      "ms": 441,
+      "resent": 0,
+      "serverMs": 285,
+      "steps": [
+        {
+          "name": "sql.transaction",
+          "startMs": 0,
+          "ms": 285
+        },
+        {
+          "name": "RecordStore.append",
+          "startMs": 0,
+          "ms": 285
+        },
+        {
+          "name": "BEGIN postgres",
+          "startMs": 2,
+          "ms": 117
+        },
+        {
+          "name": "postgres",
+          "startMs": 119,
+          "ms": 84
+        },
+        {
+          "name": "ROLLBACK postgres",
+          "startMs": 203,
+          "ms": 82
+        }
+      ],
+      "budgetMs": 500,
+      "failure": "DuplicateEntry:",
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 285 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        },
+        {
+          "check": "budget",
+          "passed": true,
+          "gating": false,
+          "detail": "285 ms against a budget of 500 ms"
+        }
+      ]
+    },
+    {
+      "operation": "record.append",
+      "traceId": "7551594656ad38586812ee76bb4d27ff",
+      "outcome": "success",
+      "ms": 542,
+      "resent": 0,
+      "serverMs": 404,
+      "steps": [
+        {
+          "name": "sql.transaction",
+          "startMs": 0,
+          "ms": 404
+        },
+        {
+          "name": "RecordStore.append",
+          "startMs": 0,
+          "ms": 404
+        },
+        {
+          "name": "BEGIN postgres",
+          "startMs": 2,
+          "ms": 131
+        },
+        {
+          "name": "postgres",
+          "startMs": 133,
+          "ms": 90
+        },
+        {
+          "name": "postgres",
+          "startMs": 223,
+          "ms": 90
+        },
+        {
+          "name": "COMMIT postgres",
+          "startMs": 313,
+          "ms": 91
+        }
+      ],
+      "budgetMs": 500,
+      "failure": null,
+      "events": [
+        "record_appended"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 404 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: record_appended {\"key\":\"transfer/0002\",\"seq\":3}; declared for a success: record_appended {\"key\":\"transfer/0002\",\"seq\":3}"
+        },
+        {
+          "check": "budget",
+          "passed": true,
+          "gating": false,
+          "detail": "404 ms against a budget of 500 ms"
+        }
+      ]
+    },
+    {
+      "operation": "record.append",
+      "traceId": "506129606df2f6a062bf4a5f96bb012d",
+      "outcome": "refusal",
+      "ms": 418,
+      "resent": 0,
+      "serverMs": 270,
+      "steps": [
+        {
+          "name": "sql.transaction",
+          "startMs": 0,
+          "ms": 270
+        },
+        {
+          "name": "RecordStore.append",
+          "startMs": 0,
+          "ms": 270
+        },
+        {
+          "name": "BEGIN postgres",
+          "startMs": 2,
+          "ms": 91
+        },
+        {
+          "name": "postgres",
+          "startMs": 93,
+          "ms": 88
+        },
+        {
+          "name": "ROLLBACK postgres",
+          "startMs": 181,
+          "ms": 89
+        }
+      ],
+      "budgetMs": 500,
+      "failure": "DuplicateEntry:",
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 270 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        },
+        {
+          "check": "budget",
+          "passed": true,
+          "gating": false,
+          "detail": "270 ms against a budget of 500 ms"
+        }
+      ]
+    }
+  ],
+  "worldAfterwards": "destroyed",
+  "ms": {
+    "create": 28646,
+    "scenario": 3436,
+    "checks": 232,
+    "destroy": 8677
+  }
+}

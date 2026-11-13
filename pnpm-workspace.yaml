@@ -1,4 +1,4 @@
-# pnpm workspaces (decision tooling.package-manager: Aaron, 8 November 2026 — pnpm, not npm).
+# pnpm workspaces (decision tooling.package-manager: Aaron, 8 November 2026: pnpm, not npm).
 packages:
   - packages/*
   # packages/world installs by itself (pnpm install --ignore-workspace): Alchemy's beta releases are younger than
@@ -11,6 +11,13 @@ catalog:
   typescript: 5.9.3
   "@types/node": 22.19.1
   viem: 2.55.18
+  # The ladder's tools, each published at least two weeks before 13 November 2026. @effect/tsgo 0.63.0 supports
+  # oxlint 1.88 to 1.90 and oxlint-tsgolint 7.0.2004 and 7.0.2005 (its README), so these move together.
+  oxlint: 1.90.0
+  oxlint-tsgolint: 7.0.2005
+  oxfmt: 0.75.0
+  "@oxlint/plugins": 1.90.0
+  "@effect/tsgo": 0.63.0
 
 # Supply chain: a version must be at least 3 days old, and no dependency runs an install script
 # unless it is listed here.
@@ -19,12 +26,3 @@ onlyBuiltDependencies: []
 
 savePrefix: ""
 packageImportMethod: clone-or-copy
-
-# Install scripts of these are known and deliberately NOT run (pi-ai pulls them in; neither is needed at run time).
-allowBuilds:
-  "@google/genai": false
-  protobufjs: false
-  # alto (packages/devnet's bundler) pulls it in; msgpackr falls back to plain JavaScript without it.
-  msgpackr-extract: false
-patchedDependencies:
-  '@pimlico/alto@0.0.21': packages/devnet/patches/@pimlico__alto@0.0.21.patch
