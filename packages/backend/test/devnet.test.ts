@@ -79,8 +79,8 @@ test("explicit restore rebases only mapped answer origins without changing appro
         values ($1,$1,$2,$3,'payer@core.test',$4,7,11)`, [slug, `0x${String(run + i).padStart(40, "0")}`, `${slug}.core.test`, fixture.token]);
       await database.worker.query("insert into app.site_request_answers (org_id,request_id,request,answer) values ($1,'restore-answer',$2,$3)", [slug, request, { ...answer, org: slug }]);
     }
-    await database.worker.query(`insert into app.site_payment_approvals (org_id,id,request_id,request,status,trace,tx_hash)
-      values ($1,'original','restore-answer',$2,'settled','restore-trace','0xsettled')`, [org, request]);
+    await database.worker.query(`insert into app.site_payment_approvals (org_id,id,request_id,request,status,trace,tx_hash,created_at)
+      values ($1,'original','restore-answer',$2,'settled','restore-trace','0xsettled',$3)`, [org, request, new Date(1000)]);
     await database.worker.query("insert into app.site_request_answers (org_id,request_id,request,answer) values ($1,'refused',$2,$3)", [org, request, { error: { code: "FORBIDDEN" }, approval_url: "" }]);
     const input = { worldId: `cloned-${run}`, epoch: 2, clock: { nowMs: 1000, clockMode: "stopped", rate: 1 },
       lineage: { snapshot: "fixture-cut", parentWorld: world.world_id, recordSeq: 0, recordHead: "fixture-head" }, sites: { [org]: "restored.core.test" } };

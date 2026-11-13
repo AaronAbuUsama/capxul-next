@@ -8,6 +8,8 @@ do $$ begin
     alter table app.site_payment_approvals rename constraint approvals_pkey to site_payment_approvals_pkey;
   end if;
 end $$;
+-- A site payment's created_at is world time, written by prepare; a world migrated before keeps no host-clock default.
+alter table if exists app.site_payment_approvals alter column created_at drop default;
 create table if not exists app.approvals (
   person_id text not null, approval_id text not null, state text not null check (state in
     ('sponsoring','pending','signed','sending','sent','landed','reverted','displaced','expired','declined','refused','withdrawn')),

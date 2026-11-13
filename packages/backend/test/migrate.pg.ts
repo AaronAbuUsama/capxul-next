@@ -38,9 +38,14 @@ test("the shared migration keeps site payments org-scoped and approvals signer-s
     // A world from before the rename: the org-scoped legacy table already holds a committed site payment.
     await admin.query(readFileSync(new URL("../src/schema.sql", import.meta.url), "utf8"));
     await admin.query("insert into app.organizations(org_id,name,safe,site,admin_email,token) values ('org-a','A','safe-a','a.test','signer@test','token-a')");
-    await admin.query("insert into app.approvals(org_id,id,request_id,request,trace) values ('org-a','apr_kept','legacy-request',$1,'legacy-trace')",
-      [{ ...legacy, to_address: recipient.toLowerCase() }]);
+    // Worlds created before the time item kept a host-clock default on created_at.
+    await admin.query("alter table app.approvals alter column created_at set default now()");
+    await admin.query("insert into app.approvals(org_id,id,request_id,request,trace,created_at) values ('org-a','apr_kept','legacy-request',$1,'legacy-trace',$2)",
+      [{ ...legacy, to_address: recipient.toLowerCase() }, now]);
     migrate(); migrate();
+    await admin.query("update app.world set clock=$1", [{ nowMs: now.getTime(), clockMode: "stopped", rate: 1 }]);
+    assert.equal((await admin.query(`select column_default from information_schema.columns
+      where table_schema='app' and table_name='site_payment_approvals' and column_name='created_at'`)).rows[0].column_default, null);
     const policies = (await admin.query(`select tablename,policyname,qual from pg_policies
       where schemaname='app' and tablename in ('approvals','site_payment_approvals') order by tablename,policyname`)).rows;
     assert.deepEqual(policies.map((p) => [p.tablename, p.policyname]), [["approvals", "tenant"], ["site_payment_approvals", "tenant"]]);

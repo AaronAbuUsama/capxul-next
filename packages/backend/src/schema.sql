@@ -23,7 +23,7 @@ create table if not exists app.hats (
 create table if not exists app.approvals (
   org_id text not null references app.organizations, id text not null, request_id text not null,
   request jsonb not null, status text not null default 'pending' check (status in ('pending','submitted','settled','failed')),
-  trace text not null, tx_hash text, created_at timestamptz not null default now(),
+  trace text not null, tx_hash text, created_at timestamptz not null,
   primary key (org_id, id), unique (org_id, request_id)
 );
 create table if not exists app.site_events (

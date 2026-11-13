@@ -42,7 +42,8 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
       grant usage on all sequences in schema app to capxul_core,capxul_worker`);
     await admin.query("insert into app.organizations(org_id,name,safe,site,admin_email,token) values ('approval-org','Approvals','safe-approvals','approval.test','signer@test','token-approvals')");
     await admin.query("insert into app.people(org_id,address,email,name) values ('approval-org',$1,'signer@test','Signer')", [account.address.toLowerCase()]);
-    await admin.query("insert into app.approvals(org_id,id,request_id,request,trace) values ('approval-org','apr_preserved','legacy-request',$1,'legacy-trace')", [legacy]);
+    await admin.query("insert into app.approvals(org_id,id,request_id,request,trace,created_at) values ('approval-org','apr_preserved','legacy-request',$1,'legacy-trace',$2)", [legacy, now]);
+    await admin.query("insert into app.world(world_id,clock) values ('approvals-test',$1)", [{ nowMs: now.getTime(), clockMode: "stopped", rate: 1 }]);
     await admin.query(`alter table app.approvals enable row level security; alter table app.approvals force row level security;
       create policy tenant on app.approvals to capxul_core,capxul_worker
       using (org_id=current_setting('app.org_id',true) or current_user='capxul_worker')

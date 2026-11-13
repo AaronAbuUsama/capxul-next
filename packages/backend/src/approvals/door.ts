@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { parseUnits } from "viem";
+import { worldNow } from "../devnet/door.ts";
 import { record, type Sql } from "../platform/db.ts";
 import type { Approval } from "./types.ts";
 
@@ -38,8 +39,8 @@ export async function prepare(sql: Sql, b: Prepare, trace: string) {
   const person = await sql.query("select address from app.people where org_id=$1 and email=$2", [b.org, b.requested_by]);
   if (!person.rowCount) throw new Error("FORBIDDEN: requester is not a company person");
   const normalized = { ...b, document_hash: b.document_hash.toLowerCase(), to_address: b.to_address.toLowerCase() };
-  await sql.query(`insert into app.site_payment_approvals (org_id,id,request_id,request,trace) values ($1,$2,$3,$4,$5)
-    on conflict (org_id,request_id) do nothing`, [b.org, `apr_${randomUUID().replaceAll("-", "")}`, b.request_id, normalized, trace]);
+  await sql.query(`insert into app.site_payment_approvals (org_id,id,request_id,request,trace,created_at) values ($1,$2,$3,$4,$5,$6)
+    on conflict (org_id,request_id) do nothing`, [b.org, `apr_${randomUUID().replaceAll("-", "")}`, b.request_id, normalized, trace, new Date(await worldNow(sql))]);
   const row = (await sql.query("select *, request=$3::jsonb as same from app.site_payment_approvals where org_id=$1 and request_id=$2 for update", [b.org, b.request_id, normalized])).rows[0]!;
   if (!row.same) throw new Error("IDEMPOTENCY_CONFLICT: request ID reused with different payment terms");
   // Recording only once is part of the same transaction as the approval.
