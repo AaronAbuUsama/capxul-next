@@ -40,9 +40,9 @@ test("runtime worker follows canonical clock boundaries and current Party names 
   await db.transaction("",async (sql) => {
     const input = { kind: "agent" as const, handle: `notice-${id.slice(0,8)}`, display_name: "Stale Party", safe_address: safe,
       owner_kind: "person" as const, owner_id: id };
-    const old = await register(sql,input,instant-10);
-    await release(sql,old.party_id,instant-5);
-    await register(sql,{ ...input, display_name: "Current Party" },instant);
+    const old = await register(sql,input,instant-10,id);
+    await release(sql,old.party_id,instant-5,id);
+    await register(sql,{ ...input, display_name: "Current Party" },instant,id);
     await emit(sql,{ id, name: "waitlist_entry_transitioned", machine: "waitlist-entry", entity_id: id,
       owner_kind: null, owner_id: null, actor: null, trace_id: id, at: instant,
       props: { from: null, to: "admitted", transition: "admit_unlisted", person_id: null } });

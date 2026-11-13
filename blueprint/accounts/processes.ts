@@ -44,7 +44,7 @@ export const workflow_accounts_setup_personal_safe = defineWorkflow({
   about:
     "One instance per personal Safe, run after each setup start commits: it must wait for the chain, for Ponder and for " +
     "the person, and survive a crash between the claim's broadcast and its receipt, so it cannot be a step of the start. " +
-    "First the chain decides: a Safe already owned by exactly the person's signer is adopted with no send; one owned by " +
+    "First the chain decides: a Safe already owned by exactly the person's signer is adopted with no send only after its original indexed claim meets readiness and deployment finality; one owned by " +
     "anyone but Companies House or that signer fails WRONG_STATE. Otherwise the claim key sends, once, Companies House's " +
     "`Roles.execTransactionWithRole`, whose claim role may only delegatecall `CompaniesHouseClaimer.claim(namespace, " +
     "email, signer)` with the tier's namespace pinned; it deploys the Safe if it has no code and swaps Companies House out " +
@@ -96,7 +96,7 @@ export const workflow_accounts_setup_personal_safe = defineWorkflow({
     },
   ],
   steps: [
-    { name: "owners", about: "Reads the Safe's code and owners: exactly [signer] adopts the claim; another owner but Companies House fails WRONG_STATE." },
+    { name: "owners", about: "Reads the Safe's code and owners: exactly [signer] avoids a new send but still requires its indexed claim occurrence; another owner but Companies House fails WRONG_STATE." },
     { name: "claim", about: "Sends the claim role's call to CompaniesHouseClaimer.claim with the claim key, once per attempt; the signed bytes are recorded first." },
     { name: "receipt", about: "A revert fails it: SwapRefused is WRONG_STATE, EmailNotNormalized or InvalidSigner INVALID_INPUT, any other TRANSACTION_FAILED." },
     { name: "claimed", about: "After Ponder has the block: drives `claim` with the hash, the block and its time." },
@@ -146,4 +146,3 @@ export const workflow_accounts_setup_personal_safe = defineWorkflow({
     "apps/docs/factory/operations/account.retry.yaml",
   ],
 });
-
