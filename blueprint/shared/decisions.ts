@@ -87,6 +87,25 @@ export const decision_integrations_claim_signer = defineDecision({
   affects: [x.integration_service_signer, f.concept_accounts, x.contract_companies_house_claimer],
 });
 
+export const decision_integrations_budgets_executor = defineDecision({
+  id: "integrations.budgets-executor",
+  title: "Budgets' executor key sends only Budgets.execute, on the durable lane",
+  question: "How does a dated payment's process ask Budgets to pay it without a second broadcast or a held worker?",
+  options: [
+    { label: "durable-execute", text: "One configured key that sends only Budgets.execute(scheduledId), on the same per-key durable lane as the claim signer; a non-blocking lookup is one poll of waitForReceipt." },
+    { label: "wallet", text: "Give payments a funded wallet and let each wake prepare and send its own transaction." },
+  ],
+  chosen: "durable-execute",
+  why:
+    "Budgets.execute may be called by anyone on the payment's day, so the key only pays gas; it never takes caller-supplied targets, data or value. " +
+    "Signed bytes and hash are committed before the single broadcast and the key's lane stays busy until a receipt is seen, so a lost answer is looked up and never sent again. " +
+    "A simulation revert records nothing and keeps its decoded Budgets error name (NotDue, NotPending, OverBudget), so the caller's hourly retry may simulate the same key again; a mined revert consumes the key and the caller retries under a new attempt key. " +
+    "lookup reads the recorded hash and, once mined, the receipt, without waiting: the payment process waits by its own durable wake, not by holding a worker for 60 seconds. It is one poll of waitForReceipt, with the same failures, not a separate call. " +
+    "The receipt names the scheduled id and the ScheduledPaid payment id only; settlement and the books read the indexed payment facts, never a signer receipt.",
+  source: "integration service-signer (Budgets' executor); Core payments and Books consumer agreement, 13 November 2026",
+  affects: [x.integration_service_signer, f.concept_payments, x.contract_budgets],
+});
+
 export const decision_runtime_record_business_instant = defineDecision({
   id: "runtime.record-business-instant",
   title: "Record a supplied business instant in the source transaction",

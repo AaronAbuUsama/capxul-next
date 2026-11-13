@@ -4,3 +4,5 @@ export { ServiceSignerError, claimServiceSigner, migrateServiceSigner } from "./
 export type { ClaimSend, ClaimReceipt, ClaimSignerConfig, ServiceSigner } from "./service-signer.ts";
 export { IndexerError, readIndexerHead, readPersonalSafeClaim } from "./indexer.ts";
 export type { IndexerProgress, IndexedClaim, ClaimLookup } from "./indexer.ts";
+export { budgetsExecutor } from "./budgets-executor.ts";
+export type { BudgetsExecutor, BudgetsExecutorConfig, ExecuteReceipt } from "./budgets-executor.ts";
