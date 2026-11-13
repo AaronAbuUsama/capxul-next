@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { sliceZeroRequired } from "@capxul/blueprint-engine";
 import { loadTarget } from "../../../../blueprint-engine/scripts/target.ts";
-import { eventChecks, judgeEvent, readInvocations, type Envelope, type Invocation } from "./service.ts";
+import { eventChecks, judgeEvent, readInvocations, runTracePrefix, type Envelope, type Invocation } from "./service.ts";
 
 const target = await loadTarget();
 assert.ok(target.ok);
@@ -39,10 +39,16 @@ test("an event passes only when a logged call sent it under its own trace and ev
     ["half an owner", [call("t1")], [sent("t1", { owner_kind: "organization" })], false],
     ["one bad envelope among good", [call("t1")], [sent("t1"), sent("t1", { at: -1 })], false],
     ["second call sent it", [call("t0"), call("t1")], [sent("t1")], true],
+    // One trace logged by two calls cannot say which sent the row, even when only the other call's event exists.
+    ["shared trace", [call("t1"), call("t1", true, "world.snapshot.restore")], [sent("t1")], false],
+    ["shared trace, failed twin", [call("t1"), call("t1", false)], [sent("t1")], false],
+    ["another machine", [call("t1")], [sent("t1", { machine: "payment" })], false],
   ] as const) {
     const j = judgeEvent(b, check, calls, outbox);
     assert.equal(j.pass, pass, `${label}: ${j.detail}`);
   }
+  // A malformed or foreign log line elsewhere fails the check, rather than being quietly skipped.
+  assert.equal(judgeEvent(b, check, [call("t1")], [sent("t1")], ["sites/operations.jsonl:2 is not JSON"]).pass, false);
 });
 
 test("only regular, fresh, well-formed operations.jsonl files in module directories count", () => {
@@ -50,16 +56,22 @@ test("only regular, fresh, well-formed operations.jsonl files in module director
   try {
     const since = Date.now() - 1000;
     for (const m of ["preparation", "sites", "old", "linked-src"]) mkdirSync(join(run, m));
-    writeFileSync(join(run, "preparation/operations.jsonl"), `${JSON.stringify({ operation: "world.create", trace_id: "t1", ok: true })}\nnot json\n`);
+    const id = "run-20261113000000000-abcdef12", mine = `${runTracePrefix(id)}00000000000000a1`;
+    // A trace must be a W3C trace id minted for this run; another run's could match a row it left on the same world.
+    writeFileSync(join(run, "preparation/operations.jsonl"), [{ operation: "world.create", trace_id: mine, ok: true },
+      { operation: "world.create", trace_id: `${runTracePrefix("run-earlier")}00000000000000a1`, ok: true }, { operation: "world.create", trace_id: `${id}:t1`, ok: true },
+      { operation: "world.create", trace_id: `${runTracePrefix(id)}:world.create`, ok: true }]
+      .map((l) => JSON.stringify(l)).join("\n") + "\nnot json\n");
     writeFileSync(join(run, "sites/operations.jsonl"), `${JSON.stringify({ operation: "doc.submit", trace_id: "", ok: true })}\n`);
     writeFileSync(join(run, "old/operations.jsonl"), `${JSON.stringify({ operation: "org.create", trace_id: "t9", ok: true })}\n`);
     utimesSync(join(run, "old/operations.jsonl"), new Date(since - 60_000), new Date(since - 60_000));
     writeFileSync(join(run, "linked-src/real.jsonl"), `${JSON.stringify({ operation: "org.create", trace_id: "t8", ok: true })}\n`);
     symlinkSync(join(run, "linked-src/real.jsonl"), join(run, "linked-src/operations.jsonl"));
     writeFileSync(join(run, "operations.jsonl"), `${JSON.stringify({ operation: "org.create", trace_id: "t7", ok: true })}\n`);
-    const { invocations, errors } = readInvocations(run, since);
-    assert.deepEqual(invocations.map((i) => i.trace_id), ["t1"]);
-    assert.equal(errors.length, 4, errors.join("\n"));
+    const { invocations, errors } = readInvocations(run, since, id);
+    assert.deepEqual(invocations.map((i) => i.trace_id), [mine]);
+    assert.equal(errors.length, 7, errors.join("\n"));
+    assert.equal(errors.filter((e) => /is not a W3C trace id of run/.test(e)).length, 3, errors.join("\n"));
   } finally { rmSync(run, { recursive: true, force: true }); }
 });
 

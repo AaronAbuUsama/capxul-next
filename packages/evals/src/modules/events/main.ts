@@ -45,17 +45,16 @@ if (process.argv.includes("--list")) {
     assert(identity?.world_id === c.world.id && Number(identity.epoch) === c.world.epoch, "the database is not this run's world");
     const role = (await db.worker.query("select rolsuper,rolbypassrls from pg_roles where rolname=current_user")).rows[0];
     assert(role && !role.rolsuper && !role.rolbypassrls, "the worker role must be restricted");
-    const { invocations, errors } = readInvocations(run, Date.parse(r.at));
+    const { invocations, errors } = readInvocations(run, Date.parse(r.at), r.id);
     const traces = [...new Set(invocations.map((i) => i.trace_id))];
     const outbox = (await db.worker.query("select event from app.transition_outbox where event->>'trace_id' = any($1::text[]) order by seq", [traces])).rows
       .map((row: { event: Envelope }) => row.event);
     const dir = resolve(run, "events"); mkdirSync(dir, { recursive: true });
     for (const check of wanted) {
-      const t = performance.now(), j = judgeEvent(blueprint, check, invocations, outbox);
+      const t = performance.now(), j = judgeEvent(blueprint, check, invocations, outbox, errors);
       writeFileSync(join(dir, `${check.operation}-${check.event}.json`), `${JSON.stringify({ eval: check.id, logErrors: errors, ...j }, null, 2)}\n`);
-      const detail = errors.length && !j.pass ? `${j.detail}; log errors: ${errors.join("; ")}` : j.detail;
       if (!j.pass) failed = true;
-      report(check.name, j.pass, performance.now() - t, detail.slice(0, 400));
+      report(check.name, j.pass, performance.now() - t, j.detail.slice(0, 400));
     }
   } catch (error) {
     // No connection URL or driver text: name the failed precondition only.
