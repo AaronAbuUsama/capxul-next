@@ -14,10 +14,15 @@ test("a module answers; a contract or account that does not implement the call i
   assert.equal(await probe(async () => "0x"), false, "an account or a contract without the function returns no data");
   assert.equal(await probe(async () => "0x01"), false, "data that does not decode");
   assert.equal(await probe(() => Promise.reject(Object.assign(new Error("execution reverted"), { code: 3, data: "0x" }))), false, "a revert");
+  assert.equal(await probe(() => Promise.reject(Object.assign(new Error("execution reverted"), { code: -32000 }))), false,
+    "a geth-family revert without data (-32000)");
+  assert.equal(await probe(() => Promise.reject(Object.assign(new Error("execution reverted: NotModule"), { code: -32603 }))), false,
+    "an internal-error code that names a revert");
 });
 
 test("a transport or provider failure rethrows instead of reading as not a module", async () => {
   for (const failure of [new Error("socket hang up"), Object.assign(new Error("header not found"), { code: -32000 }),
+    Object.assign(new Error("internal error"), { code: -32603 }),
     Object.assign(new Error("request timed out"), { name: "TimeoutError" })]) {
     await assert.rejects(probe(() => Promise.reject(failure)), Error, failure.message);
   }
