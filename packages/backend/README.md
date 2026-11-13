@@ -48,8 +48,11 @@ The migration includes `src/parties/schema.sql` before indexer binding. `app.par
 `advance(db, orgId, services, now, trace)` after `begin`, after `org retry` and whenever a wait may have moved. Each call runs
 the next unfinished step: mint, confirm-mint (activate or release the Party), host-fde, deploy, confirm-deploy with
 open-install in one transaction, then complete, which seats the founder and the FDE. Sends run outside transactions and
-are recorded only if the setup has not moved. Chain facts come from injected indexing reads at finality. Approvals calls
-`onApprovalTransitioned` (signed → authorize) and `onApprovalEnded` (organizations.approval-endings). The signer, indexing,
+are recorded only if the setup has not moved; each is keyed `org-setup:<org>:<mint|deploy>:<attempt>`, and only a final
+reverted receipt moves to the next attempt (organizations.setup-send-attempts). A provider outage is thrown back for the
+workflow's retries; the runner passes `{ lastTry: true }` on the last, which stalls it. Chain facts come from injected
+indexing reads at finality. Approvals calls `onApprovalTransitioned` (signed → authorize) and `onApprovalEnded`
+(organizations.approval-endings; landed records the install transaction and block that completion judges at finality). The signer, indexing,
 FDE host, buildMoney and Approvals are all injected; `test/setup-process.pg.ts` proves the process on real PG with
 scripted stand-ins, not chain proof.
 
