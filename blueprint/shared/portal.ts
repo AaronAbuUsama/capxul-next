@@ -890,7 +890,8 @@ export const decision_portal_product_slices = defineDecision({
       "together, with source-equality captures; zero-check slices remain unproved. Slice zero explicitly also " +
       "requires supplier-invoice, payment-entry, general-ledger and safe-trial-balance shows claims and " +
       "indexer_unready, delivery_stuck and money_event_parked quiet/fires/clears claims, even while their " +
-      "declarations are landing. Only merged, proved records are subtracted from remaining work; keep their " +
+      "declarations are landing, and its system, invariant, telemetry and environment claims " +
+      "(portal.slice-zero-measured-gate). Only merged, proved records are subtracted from remaining work; keep their " +
       "slice identities and prerequisites visible. Keep journey jrn/fun proof separate and list " +
       "empty journeys and coverage outside them. Sort breadth journeys by descending new reach, then id; " +
       "first-fit disjoint groups are provisional waves, not a runtime schedule. Wave 1 caps thirteen concepts " +
@@ -910,6 +911,34 @@ export const decision_portal_product_slices = defineDecision({
     "still owns priority and dispatch; neither the command nor the page writes plan or verdicts.",
   source: "Aaron's wave/slice request, 12 November 2026; docs/mission/breadth-fan-out-2026-11-11.md; delivery audit revision 3 at 8b9550f",
   affects: [f.system_capxul, decision_portal_product_only],
+});
+
+export const decision_portal_slice_zero_measured_gate = defineDecision({
+  id: "portal.slice-zero-measured-gate",
+  title: "Slice zero also requires its invariant, system, telemetry and environment claims",
+  question: "Which claims beyond its records' L1, screen and alert claims must pass in slice zero's one same-run receipt?",
+  options: [
+    {
+      label: "measured",
+      text:
+        "sliceZeroRequired keeps everything it required and adds, by rule: every eval on a foundation record at any level (its " +
+        "L2 log, metric and insight claims); every invariant's eval whose over names a foundation record (the books and " +
+        "payments invariants, the escrow ones included because they are over table:payments) or names no record at all " +
+        "(the time invariants, which hold for the whole world); sys:imports/<concept> for every concept that owns a " +
+        "foundation record; every eval on the system record (sys:generated); and the boot and smoke claims of the two " +
+        "environments slice zero runs on, devnet (its Postgres, Ponder and v4 stack) and worlds (the hosted simulated " +
+        "worlds its Sites and ERPNext half runs on). Environments are named because no record links a journey to one. " +
+        "shared-world, staging and production stay outside. No claim text changes, and nothing is retired.",
+    },
+    { label: "l1-only", text: "Keep L1, screen and alert claims only. The build's own import, generation, time and books rules, its telemetry and its boots would then pass slice zero unmeasured." },
+  ],
+  chosen: "measured",
+  why:
+    "The measurement audit (T-01a1cfb4) found that the gate left out every L3 invariant, the import and generation " +
+    "checks, the boot and smoke claims and the L2 telemetry on slice zero's own records, so slice zero could pass " +
+    "without its clock, books or imports being checked. Rules, not a list of ids, keep the gate following the records.",
+  source: "Aaron, 13 November 2026, 06:39 UTC, in the Space: \"yes, I understand now definitely yes do that, please\", approving the full widening from the measurement audit (T-01a1cfb4)",
+  affects: [f.system_capxul, decision_portal_product_slices],
 });
 
 export const decision_portal_questions_carry_out = defineDecision({

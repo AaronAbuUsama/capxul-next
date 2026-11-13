@@ -1,6 +1,7 @@
 import { defineDecision } from "../../packages/blueprint-engine/src/index.ts";
 import { table_admissions, table_referrals, table_personal_safes, machine_personal_safe } from "./data.ts";
 import { procedure_accounts_admit } from "./procedures.ts";
+import { rpc_accounts_admission_admit } from "./admission.ts";
 
 export const decision_accounts_admission_runtime = defineDecision({
   id: "accounts.admission-runtime",
@@ -28,4 +29,18 @@ export const decision_accounts_indexed_setup = defineDecision({
   why: "Ownership is necessary but not a claim occurrence. Adoption omits a new send, not indexed event proof. The provider checks readiness, exact occurrence, finality and current sole signer in one snapshot. Setup records that occurrence's transaction hash, block and chain time, never the latest head or worker time. An unavailable or malformed provider refuses without a transition. Deployment code supplies chain/finality; the HTTP caller cannot choose them.",
   source: "integrations.indexed-claim; integrator PR56 source review, 12 November 2026",
   affects: [table_personal_safes, machine_personal_safe],
+});
+
+export const decision_accounts_operator_label = defineDecision({
+  id: "accounts.operator-label",
+  title: "The operator's label is trimmed, nonblank and at most 64 characters",
+  question: "`accounts.admission.admit` records `operator:<by>` in every admission it makes. What may `by` be?",
+  options: [
+    { label: "bounded", text: "Trimmed; empty or longer than 64 characters is INVALID_INPUT (`by`) and nothing changes." },
+    { label: "any", text: "Any string, stored as given." },
+  ],
+  chosen: "bounded",
+  why: "`admitted_by` is permanent provenance that operators and notices read: a blank label names no one, and an unbounded one lets one call write arbitrary text into every admission of its wave. 64 characters is room for an operator's name or handle. The refusal uses the rpc's declared INVALID_INPUT, like more than 200 emails, so no new error is designed.",
+  source: "Access/accounts slice-zero implementation, 13 November 2026; integrator review of PR103; accounts.operator-surface",
+  affects: [rpc_accounts_admission_admit],
 });
