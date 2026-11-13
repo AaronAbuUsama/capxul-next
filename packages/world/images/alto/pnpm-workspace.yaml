@@ -1,0 +1,2 @@
+# Settings for the bundler image alone; it is not a package of the repository's workspace (install with --ignore-workspace).
+verifyDepsBeforeRun: false

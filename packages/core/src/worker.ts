@@ -23,6 +23,7 @@ import { serveDoors } from "./doors.ts";
 import { ENV, identityOf } from "./env.ts";
 import { HEALTH_PATH, PROBE_PATH, probeSite } from "./probe.ts";
 import { Served } from "./server.ts";
+import { siteOpsLive } from "./site-ops/door.ts";
 import { SiteDoor } from "./site/SiteDoor.ts";
 import { CoreDeployment, ownDeployment } from "./stack/deployment.ts";
 import { CoreIdentity } from "./telemetry/middleware.ts";
@@ -71,6 +72,9 @@ export default class Core extends Cloudflare.Worker<Core>()(
       // One pool per request, opened on the first query and closed when the request ends.
       const served = Served.pipe(
         Layer.provideMerge(RpcSerialization.layerJson),
+        Layer.provide(
+          siteOpsLive(env).pipe(Layer.provide(SiteDoor.fromEnv(env).pipe(Layer.provide(FetchHttpClient.layer)))),
+        ),
         Layer.provide(SqlSpanSink),
         Layer.provide(SQL.PostgresLayer({ url: connectionString(env) })),
         Layer.provide(Layer.succeed(CoreIdentity, identity)),

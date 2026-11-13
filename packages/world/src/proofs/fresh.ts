@@ -110,7 +110,7 @@ const useFirst = (world: World) =>
           holds.funded === OPENING - ONE_USDC && holds.paid === ONE_USDC,
         ),
         check("the index wrote the payment to the world's database", paid.row.amount === ONE_USDC.toString()),
-        check("Core answers its health check for this world", core.world === world.stage),
+        check("Core answers its health check for this world", core.world === world.name),
         ...fork.value.checks,
         check(
           "the forked world's run passed and its world was destroyed",

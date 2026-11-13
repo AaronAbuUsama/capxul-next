@@ -23,8 +23,12 @@ import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import * as RpcTest from "effect/rpc/RpcTest";
 import { CoreIdentity, CoreRpcs, Served, SpanSink, type KeptSpan } from "../src/door.ts";
+import { madeFromNothing, siteOps, siteOpsInMemory } from "../src/site-ops/door.ts";
 
 const names: ReadonlyArray<OperationName> = Rec.keys(operations);
+/** The operations that are built answer as they are built (test/site-ops.test.ts); the rest are still empty. */
+const built: ReadonlyArray<string> = Rec.keys(siteOps);
+const unbuilt = Arr.filter(names, (name) => !Arr.contains(built, name));
 const DOOR = "door-token";
 const PLATFORM = "platform-token";
 const SECOND = "second-platform-token";
@@ -59,7 +63,14 @@ const call = (name: OperationName, headers: Record<string, string>, credential =
         const sent = { ...(credential ? credentialOf(name) : {}), ...headers };
         return yield* Effect.exit(send(name, operations[name].examples[0]?.payload, { headers: sent }));
       }),
-    ).pipe(Effect.provide(Served.pipe(Layer.provide(Layer.merge(sink, identity)))));
+    ).pipe(
+      Effect.provide(
+        Served.pipe(
+          Layer.provide(siteOpsInMemory({ record: [madeFromNothing("town", "ci", 0)] })),
+          Layer.provide(Layer.merge(sink, identity)),
+        ),
+      ),
+    );
     return { exit, kept };
   });
 
@@ -68,9 +79,9 @@ const isNotImplemented = Schema.is(Errors.NotImplemented);
 const failureOf = (exit: Exit.Exit<unknown, unknown>): unknown =>
   Exit.isFailure(exit) ? exit.cause.pipe(Cause.findErrorOption, Option.getOrUndefined) : undefined;
 
-test("every operation answers NotImplemented, naming itself, under one span kept with the caller's trace id", async () => {
+test("every unbuilt operation answers NotImplemented, naming itself, under one span kept with the caller's trace id", async () => {
   assert.equal(names.length, 12);
-  for (const [index, name] of Arr.map(names, (each, i) => [i, each] as const)) {
+  for (const [index, name] of Arr.map(unbuilt, (each, i) => [i, each] as const)) {
     const traceId = trace(index + 1);
     const { exit, kept } = await Effect.runPromise(
       call(name, { [TRACE_HEADER]: `00-${traceId}-${Str.repeat(16)("1")}-01` }),
@@ -90,8 +101,8 @@ test("every operation answers NotImplemented, naming itself, under one span kept
 });
 
 test("a call with no trace header still gets its one span, under a new trace", async () => {
-  const { kept } = await Effect.runPromise(call("record.export", {}));
-  assert.equal(Arr.filter(kept, (span) => span.name === "record.export").length, 1);
+  const { kept } = await Effect.runPromise(call("world.show", {}));
+  assert.equal(Arr.filter(kept, (span) => span.name === "world.show").length, 1);
 });
 
 test("a person header that names no person is refused at sign-in, and the call is still measured", async () => {
@@ -108,6 +119,8 @@ test("a platform operation and a world operation are both served, by their own g
     const failure = failureOf(exit);
     assert.ok(isNotImplemented(failure), name);
   }
+  const { exit } = await Effect.runPromise(call("record.export", { [PERSON_HEADER]: "dana" }));
+  assert.ok(Schema.is(Errors.NotWorldOwner)(exit.pipe(failureOf)), "record.export as a person was not refused");
 });
 
 test("a call without the credential, or with another door's, is refused at sign-in and still measured", async () => {
@@ -126,7 +139,7 @@ test("a call without the credential, or with another door's, is refused at sign-
 
 test("the owner's operator token acts as the owner at the world's door; the second operator's does not", async () => {
   const owner = await Effect.runPromise(call("record.export", { [CREDENTIAL_HEADER]: `Bearer ${PLATFORM}` }));
-  assert.ok(isNotImplemented(owner.exit.pipe(failureOf)), "the owner's token was not signed in at the world's door");
+  assert.ok(Exit.isSuccess(owner.exit), "the owner's token was not signed in at the world's door");
   const other = await Effect.runPromise(call("record.export", { [CREDENTIAL_HEADER]: `Bearer ${SECOND}` }));
   const error = failureOf(other.exit);
   assert.ok(Schema.is(Errors.NotSignedIn)(error), "another operator's token was signed in at the world's door");

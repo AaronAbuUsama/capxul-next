@@ -1,5 +1,8 @@
 // The package's door: everything another package may import. A scenario runner calls `withWorld` in-process; a Core
-// binds `WorldDatabase` and is handed to the stack by providing `Core`.
+// binds `WorldDatabase` and is handed to the stack by providing `Core`. A world's bundler is reached through the
+// handle's `bundlerUrl` with `bundlerCall`; its EntryPoint and test paymaster are the same in every world.
+export { bundlerCall, bundlerStatus, servesEntryPoint } from "./bundler/client.ts";
+export { BUNDLER_PATH, ENTRY_POINT, TEST_PAYMASTER } from "./bundler/Keys.ts";
 export { balanceOf, type Funded, type Mint, TEST_USDC } from "./chain/faucet.ts";
 export { Core, CORE_MIGRATIONS, defaultCore } from "./core/Core.ts";
 export { CORE_HEALTH } from "./core/health.ts";

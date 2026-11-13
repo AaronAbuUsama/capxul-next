@@ -9,6 +9,7 @@ import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
+import { bringUpBundler } from "../bundler/setup.ts";
 import { SEED_HEAD } from "../chain/contracts.ts";
 import { ensureToken, mintAll, TEST_USDC } from "../chain/faucet.ts";
 import { CORE_MIGRATIONS } from "../core/Core.ts";
@@ -166,8 +167,15 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
       yield* rpcControl(world, "evm_setTime", [SEED_HEAD.timestamp + 1]);
     const funded = yield* watch.step("fund", Effect.andThen(ensureToken(call), mintAll(call, spec.mint ?? [])));
     yield* Effect.logInfo(`world ${plan.stage}: test USDC at ${TEST_USDC}, minted to ${funded.length} addresses`);
-    yield* watch.step("index", indexReady(world));
+    // The index and the bundler come up side by side: neither waits on the other, and each step has its own duration.
+    const [, bundler] = yield* Effect.all(
+      [watch.step("index", indexReady(world)), watch.step("bundler", bringUpBundler(world, call))],
+      { concurrency: 2 },
+    );
     yield* Effect.logInfo(`world ${plan.stage}: the index is ready`);
+    yield* Effect.logInfo(
+      `world ${plan.stage}: the bundler serves ${Arr.join(bundler.entryPoints, ", ")}, paymaster ${world.paymaster}`,
+    );
     yield* watch.step("core", coreAnswers(world));
     yield* Effect.logInfo(`world ${plan.stage}: Core answers`);
     const companies = spec.companies ?? [];

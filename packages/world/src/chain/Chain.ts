@@ -11,7 +11,7 @@
 //   snap:  a snapshot saves the state now under its own name (saveAs), and a world restored from it adopts that
 //
 // The chain carries the world's index with it: the index is stopped before the chain is saved and started again
-// after the chain wakes. The index's own polling is "quiet": it neither wakes the chain nor keeps it awake, or a
+// after the chain wakes. The bundler is stopped with it too, first; it starts again on its next call. The index's own polling is "quiet": it neither wakes the chain nor keeps it awake, or a
 // world with an index would never be idle.
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Alchemy from "alchemy";
@@ -25,6 +25,7 @@ import * as Schema from "effect/Schema";
 import * as Semaphore from "effect/Semaphore";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
+import Bundler from "../bundler/Bundler.ts";
 import { ChainFailed } from "../failures.ts";
 import Indexer from "../index/Indexer.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
@@ -95,6 +96,7 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
     const state = yield* Cloudflare.DurableObjectState;
     const saved = yield* Cloudflare.R2.ReadWriteBucket(ChainState);
     const indexers = yield* Indexer;
+    const bundlers = yield* Bundler;
 
     // Alchemy builds a Durable Object in two phases: this Effect binds, and the Effect it returns runs once for
     // each instance.
@@ -104,6 +106,7 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
       const port = yield* anvil.getTcpPort(RPC_PORT);
       const lock = yield* Semaphore.make(1);
       const indexer = indexers.getByName(WORLD);
+      const bundler = bundlers.getByName(WORLD);
       const pushedAt = yield* Ref.make(0);
       const savePending = yield* Ref.make(false);
 
@@ -174,6 +177,7 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
       const halt = (why: "asked" | "idle") =>
         Effect.gen(function* () {
           if (!(yield* running("stop"))) return { stopped: false as const };
+          yield* bundler.stop().pipe(Effect.mapError(failed("stop")));
           yield* indexer.stop().pipe(Effect.mapError(failed("stop")));
           const began = yield* Clock.currentTimeMillis;
           const { head, dump } = yield* save;
@@ -212,6 +216,8 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
       return {
         /** One JSON-RPC body in, anvil's answer out. Starts the chain when it is stopped. */
         rpc: (body: string) => wake.pipe(Effect.andThen(touch), Effect.andThen(forward(body))),
+        /** Wakes the chain and keeps it awake, as a call would: what the door does before a bundler call. */
+        awake: () => wake.pipe(Effect.andThen(touch)),
         /** The same for the index, which may neither wake the chain nor keep it awake. */
         quietRpc: (body: string) =>
           running("rpc").pipe(

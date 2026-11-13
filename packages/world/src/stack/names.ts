@@ -25,6 +25,7 @@ export const nameOf = (stage: string): string => (isWorldStage(stage) ? Str.slic
 export const IMAGE_PREFIX = `${Str.toLowerCase(STACK)}-`;
 export const CHAIN_IMAGE = `${IMAGE_PREFIX}anvil`;
 export const INDEX_IMAGE = `${IMAGE_PREFIX}ponder`;
+export const BUNDLER_IMAGE = `${IMAGE_PREFIX}alto`;
 
 /** The steps of a world's life. Each has a declared timeout, and each one that ran has its duration in the record. */
 export const STEPS = [
@@ -33,6 +34,7 @@ export const STEPS = [
   "migrate",
   "chain",
   "fund",
+  "bundler",
   "index",
   "core",
   "site",

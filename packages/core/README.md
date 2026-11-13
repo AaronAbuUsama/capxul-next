@@ -12,7 +12,8 @@ project), and a world's Core slot (`packages/world`, `src/core/Core.ts`), where 
 world's door and the world's bench. What a deploy binds is handed to it as a `Deployment` (`src/stack/deployment.ts`);
 the running Worker reads every fact from its environment per request, by the names in `src/env.ts`.
 
-**Every handler is empty.** Each operation fails with the blueprint's `NotImplemented`, naming itself
+**Five handlers are built** (`src/site-ops/`, below): `doc.create`, `doc.submit`, `report.run`, `world.clock.warp` and
+`record.export`. Every other handler is empty: it fails with the blueprint's `NotImplemented`, naming itself
 (`packages/blueprint/decisions.md`, entry 33). The server compiles only with one handler per operation: delete a line
 of `src/handlers.ts` and `pnpm types` fails with `Property '"record.export"' is missing`.
 
@@ -20,7 +21,8 @@ of `src/handlers.ts` and `pnpm types` fails with `Property '"record.export"' is 
 |---|---|
 | `src/door.ts` | The door: the stack, the two door paths, `serveDoors`, `Served`, `CoreRpcs`, the span types, and `migrations`. |
 | `src/doors.ts` | `serveDoors`: each request to the group its path names, `PLATFORM_PATH` or `WORLD_PATH`. |
-| `src/handlers.ts` | One handler per operation, in its blueprint group. All twelve are empty. |
+| `src/handlers.ts` | One handler per operation, in its blueprint group. Five are `src/site-ops/`'s; the rest are empty. |
+| `src/site-ops/` | The document, report, clock and record operations (below). `door.ts` is its door. |
 | `src/server.ts` | `Served`, the handlers and middlewares of both groups, and `CoreRpcs`, both groups merged for a test in memory. |
 | `src/telemetry/spans.ts` | One span per call, named after the operation, under the trace id of the caller's `traceparent`, with every span beneath it. |
 | `src/telemetry/sink.ts` | Where a call's spans go: `app.spans`, written after the call ends and before the answer leaves. |
@@ -34,8 +36,10 @@ of `src/handlers.ts` and `pnpm types` fails with `Property '"record.export"' is 
 | `src/failures.ts` | Core's own failures: `SiteDoorFailed` (`unset`, `unreachable`, `refused`). |
 | `src/stack/database.ts` | A stage's database: a Neon project of its own, and Hyperdrive in front of it with its query cache off. |
 | `alchemy.run.ts` | The stack `CapxulCore`. One stage is one Core and its database. |
-| `migrations/` | The `app` schema: `app.spans` and `app.events` (the record), and the world's facts (`app.world`, `app.clock`, `app.cast`, `app.companies`). Applied when a stage or a world is created. |
+| `migrations/` | The `app` schema: `app.spans` and `app.events` (0001); `app.clock` and `app.documents` (0002); the world's chain contracts, cast and companies (`app.world`, `app.cast`, `app.companies`, 0003). Applied by the runner when a stage is created, and by the world when it is made. |
 | `test/server.test.ts` | Core's groups in memory: all twelve answer `NotImplemented` under one span each, kept with the caller's trace id; sign-in refusals. |
+| `test/site-ops-documents.test.ts`, `test/site-ops-world.test.ts` | The five operations served in memory through Core's groups against a stand-in company site (`test/support/site-ops.ts`): what the site is asked, what Core answers, what the record keeps. |
+| `test/site-ops-sql.test.ts` | The clock, the record, the document hashes and the cast in Postgres with the migrations applied. Runs only with `CAPXUL_TEST_DATABASE` (a throwaway Postgres); skipped otherwise, as in CI. |
 | `test/doors.test.ts` | The SDK's own client against `serveDoors` over HTTP in this process: all twelve at their doors, the server span under the SDK's trace, wrong tokens refused, other paths 404 in JSON. |
 
 ## What every call gets
@@ -60,6 +64,32 @@ empty handlers until it is removed; nothing calls it. A world's facts (its chain
 signer and Safe of each person, its companies) are tables of the `app` schema too (`migrations/0003_world.sql`),
 written by the platform and read by Core; its clock is `app.clock`, its grade and parent its record's latest
 `world_created`.
+
+## The document, report, clock and record operations (`src/site-ops/`)
+
+| Operation | What it does |
+|---|---|
+| `doc.create` | Creates the document on the company's site as the caller's own site user (`capxul.core_api.create` in `packages/frappe-app`), answers it with its keccak-256 hash, keeps the hash in `app.documents`, and records `doc_created`. |
+| `doc.submit` | Submits it as the caller. An ordinary document posts (`doc_submitted`); a Payment Entry from the company Safe is held (decisions.md, 28): its payee, amount and asset from the entry, the payee's address from the Supplier, its hash from `app.documents`; the approval is opened by `PaymentApprovals` (below), then the site keeps the hold (`capxul.core_api.hold`, a Capxul Payment Request waiting for the signature) and Core records `payment_held`. `NotADraft` for a document that is not a draft. |
+| `report.run` | Runs the report as the caller, `company` and the period filled when left out (`capxul.core_api.report`); a doctype's name runs its list. |
+| `world.clock.warp` | The owner's only. Every ready site of the world steps through each day between, running what fell due (`capxul.core_api.warp`; the last site writes the world's clock on the bench), then the chain mines a block at the new time (Anvil, over the `CHAIN` binding), then `app.clock` moves; records `clock_warped`. A warp to now or before is `ClockBackwards`. |
+| `record.export` | The owner's only: the world's record, `app.events` in order, each entry's position its place (so no gap), its time the world's; the lineage and the grade from the latest `world_created` (`ExportNotAllowed` for a real world). |
+
+Every refusal of the site maps to the blueprint's: no user for the person is `NoSiteUser`, Frappe's own refusal is
+`SiteRefused` with its reason (`permission`, `validation`, `not_found`, `part_off`), no ready site of the company is
+`SiteUnavailable` (while one is being made) or `OrgNotFound`. Which site is the company's: Core asks each ready site of
+the world, and a site that is not the company's answers `org-not-here`. A successful call records exactly what its
+declaration computes from its payload and answer (`operation.expected`), at the world's time, under the call's trace.
+
+What it reads that other operations write, each a seam with its own file:
+
+| Seam | File | Who fills it |
+|---|---|---|
+| The world's clock, `app.clock` (one row; none is a running clock at host time) | `clock.ts` | `world.create` writes the clock a world begins with; `world.show` reads it |
+| The first `world_created` of the record | `record.ts` | `world.create` (and the runner, for a stage: `packages/runner/src/world/born.ts`) |
+| A person's site user, `app.cast (person, email)` | `cast.ts` | the world's cast (step 1.12); its users are made on the site by `org.create` and `org.member.grant` |
+| A company's site: `Capxul Settings.org_slug` is the org id | `sites.ts` | `org.create`, when it configures the site |
+| The approval of a held payment (`PaymentApprovals.open`) | `payments.ts` | `approval.sign`'s half; until it is merged, a Safe payment dies naming it (`PaymentApprovalsUnbuilt`) |
 
 ## A stage of `CapxulCore`
 

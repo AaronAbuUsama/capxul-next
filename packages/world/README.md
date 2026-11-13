@@ -1,7 +1,7 @@
 # @capxul/world
 
-One command creates and destroys a private world: its database, its chain, its index, its Core and its companies'
-sites ([roadmap](../../docs/roadmap.md) steps 1.3 and 1.4). A world is one stage of the Alchemy stack `CapxulWorld`; nothing of it
+One command creates and destroys a private world: its database, its chain, its index, its bundler, its Core and its
+companies' sites ([roadmap](../../docs/roadmap.md) steps 1.3, 1.4 and 1.11). A world is one stage of the Alchemy stack `CapxulWorld`; nothing of it
 lives on the machine that made it. Built on `alchemy` 2.0.0-beta.85 and Effect 4.1.2, run with Bun.
 
 | Part | What it is |
@@ -9,7 +9,9 @@ lives on the machine that made it. Built on `alchemy` 2.0.0-beta.85 and Effect 4
 | Database | Its own copy-on-write branch of the platform's Neon project, with a Hyperdrive configuration in front of it for Core, its query cache off so a handler reads what it wrote. App data and the index's `ponder` schema live in it together. |
 | Chain | Anvil 1.9.0 with `packages/contracts/state/core.json`, started with `--no-request-size-limit`, as a Cloudflare Container owned by a Durable Object. Its state is saved to an R2 bucket every 20 s while it is used and when it stops; it stops after 10 idle minutes and wakes on the next call. |
 | Index | The real Ponder app of `packages/indexer` (its ABIs, schema and handlers, unchanged), as a Cloudflare Container, writing to the world's branch. |
-| Door | A Worker in front of the chain and the index. Every path starts with the world's token. |
+| Bundler | Pimlico's alto 0.0.21, unpatched, as a Cloudflare Container owned by a Durable Object, serving the seeded EntryPoint v0.7 against the world's chain. It starts on its first call, stops with the chain (before the chain is saved) and starts again on the next call. Its executor and utility keys are Anvil's public test accounts 9 and 10 (`src/bundler/Keys.ts`), funded from the chain's faucet when the world is created. |
+| Test paymaster | The contracts package's `MockPaymaster`, which sponsors every UserOperation from its deposit at the EntryPoint. Put on the chain when the world is created, through the seed's CREATE2 deployer, so it is at `0xE2dE380E3e8281e2cc458675102c3FC2277fC5A8` in every world, with 1 ETH deposited. |
+| Door | A Worker in front of the chain, the index and the bundler. Every path starts with the world's token. |
 | Core | The real Core (`packages/core`): the blueprint's two groups at `/platform` and `/world` with their empty handlers, the chain's reads at `/chain`, `/health`, and a read-only site probe. It binds the world's branch through Hyperdrive and the world's door through a service binding. |
 | Sites | With `WORLD_BENCH` set and `--company` given, each company's Frappe site on that shared bench (`packages/platform`), made by the bench's site door with the world's own site token, at `<label>-<world>.<domain>`. |
 | Test USDC | The contracts package's `MockERC20`, put on the chain when the world is created. Its open `mint` is the faucet. |
@@ -47,7 +49,7 @@ In-process, a scenario runner imports the package's door (`@capxul/world`):
 
 ```ts
 const { record, used } = yield* withWorld({ name: "run-1", owner: "ci", lifetime: Duration.hours(1) }, (world) =>
-  world.sql("select 1"),          // world.coreUrl, world.rpcUrl (a secret), world.sql, world.funded
+  world.sql("select 1"),          // world.coreUrl, world.rpcUrl and world.bundlerUrl (secrets), world.sql, world.funded
 );
 ```
 
@@ -109,12 +111,30 @@ removing them are world steps; reaching a site is what Core's operations will do
 checks the token's world against the site's on every call and carries ERPNext's REST calls on the site's own API user.
 Until `org.create` makes a company's site, the world makes it at create; one credential serves the world's sites.
 
+### How Core reaches the bundler
+
+The bundler is reached exactly as the chain is: through the world's door, under the world's token. The chain is at
+`<door>/<token>/rpc` and the bundler beside it at `<door>/<token>/bundler` (`BUNDLER_PATH`), speaking ERC-4337
+JSON-RPC (`eth_sendUserOperation`, `eth_getUserOperationReceipt`, `eth_estimateUserOperationGas`,
+`pimlico_getUserOperationGasPrice` and the rest). The world's handle carries it as `world.bundlerUrl`, a `Redacted`
+like `world.rpcUrl`, with `world.entryPoint` and `world.paymaster` beside it; the command line prints all three
+(`show`, `create`), the token hidden unless `--reveal`. A Core that reaches its chain through the world's door, by a
+service binding to the door Worker and the door's token (`/<token>/rpc`), reaches the bundler over the same binding
+with the same token at `/<token>/bundler`: no new binding or secret. Once alto has started, a later start uses the
+chain address of its first start (the create's, through the door's public address), so a call that arrives over a
+service binding starts it correctly. Core needs nothing else: the EntryPoint (`ENTRY_POINT`) and the test paymaster
+(`TEST_PAYMASTER`) are the same in every world and exported by the package's door, with `bundlerCall`, one JSON-RPC
+call to a world's bundler. A UserOperation sponsored by the test paymaster names it in `paymaster` with
+`paymasterData` `0x`; the paymaster checks nothing. A call to the bundler wakes a stopped chain and starts alto if it
+is stopped (about 8 s, `records/spike-bundler`).
+
 ### Images
 
-`capxulworld-anvil` and `capxulworld-ponder` are shared by every world and belong to the platform. Alchemy tags each
+`capxulworld-anvil`, `capxulworld-ponder` and `capxulworld-alto` are shared by every world and belong to the platform. Alchemy tags each
 build with a hash of its inputs and reuses a tag the registry already lists, so a deploy needs Docker only when an
 image's inputs have changed. The index's image copies `ponder/node_modules`: after a change to `ponder/package.json`,
-run `pnpm install --ignore-workspace` in `ponder/`.
+run `pnpm install --ignore-workspace` in `ponder/`. The bundler's image copies `images/alto/node_modules` the same
+way: run `pnpm install --ignore-workspace` in `images/alto/` before a deploy whose bundler image must be built.
 
 In an agent's container the Docker daemon has no route out, so such a deploy builds the image and then fails at the
 push. `images/publish.sh <repository:tag>...`, with the tags the failed deploy's log names, pushes them through the
@@ -140,7 +160,10 @@ never printed. The connection string is also the index container's `DATABASE_URL
 
 Each proof is `./run.sh prove <case>`. It writes `records/<case>.proof.json`: its claim, its `outcome` (passed only
 when every check held), each check, its observations, and the inventory of both accounts before and after. The run
-records (`p-*.json`) are `withWorld`'s own, with every step's duration and declared timeout.
+records (`p-*.json`) are `withWorld`'s own, with every step's duration and declared timeout. The two accounts are
+shared with other builders, whose worlds may be made or destroyed while a proof runs, so "the accounts hold what they
+held before" compares everything except resources whose names carry another world's stage; the record keeps the
+comparison of everything (`sameAsBeforeAccountWide`) and names the worlds it set aside (`otherWorlds`).
 
 | Proof | What it shows | Records |
 |---|---|---|
@@ -152,35 +175,45 @@ records (`p-*.json`) are `withWorld`'s own, with every step's duration and decla
 | `keep` | A failed run kept for 3 minutes: parked with chain and index stopped, kept by a sweep before the keep ends, destroyed by a sweep after. | `keep.proof.json`, `p-keep.json` |
 | `race` | Two creates of one name at once: one world, one `WorldExists`, one world's resources in the accounts. | `race.proof.json` |
 | `limits` | 8 days is `LifetimeTooLong`, an owner's sixth world `WorldQuotaReached`, a bad name `InvalidWorldName`; nothing is made. | `limits.proof.json` |
+| `bundler` | A world made by `world create`, run as the pnpm command, with its bundler and test paymaster: a Safe owned by one of Anvil's public test keys sends one UserOperation, a 25 test USDC transfer signed through the Safe4337Module and sponsored by the paymaster, to the world's bundler. It lands as one transaction in its own block, sent by the bundler's executor to the EntryPoint, with one UserOperationEvent for it; the chain reads back the Safe's and the recipient's balances, the paymaster's deposit and the Safe's nonce; the index writes the transfer. Then `world destroy`, and the accounts hold what they held before. | `bundler.proof.json` |
 | `sweep` | The sweeper, run as the command line with an empty home directory, keeps three worlds before an expiry; after it, destroys the expired one and keeps the live one and the one with no recorded expiry. | `sweep.proof.json` |
 | `snapshot` | The platform's handlers make a world with its cast (four Safes of 10,000 USDC, pat with none), save it, refuse a second save of the name (`SnapshotExists`), a save by another operator (`NotWorldOwner`), a restore of a missing snapshot (`SnapshotNotFound`), one that outlives its source (`ExpiryBeyondSource`), another operator's restore of a snapshot that is not a template (`NotWorldOwner`) and a restore as a taken name (`WorldExists`); the first world then goes on (5 USDC more to dana's Safe); the restore names its parent, its record is the first world's birth and then its own, its chain holds what was saved and not what came after, and the first world is unchanged by it. Both destroyed, snapshot branch included, nothing left. | `snapshot.proof.json` |
 | `site` | Run with `WORLD_BENCH=pr-site`, a stand-in bench of `packages/platform` in this container (`PLATFORM_HOST=standin`, `PLATFORM_EDGE=none`). A world made with one company gets `acme-p-site.worlds.abuusama.dev`, ready in 93.5 s (new-site 21.3, ERPNext 42.8, capxul 3.0, wizard 16.5, migrate 5.8, scheduler 0.7, join the world 0.6, the API user 1.4). Through the door, on the site's own API user: the company's record (`Acme Ltd`), its Supplier list, `get_logged_user` answering `capxul-core@service.invalid` (never Administrator), and the site's clock reading world `p-site`. A second world, `p-site2`, made inside the first's run: its token is refused for the first world's site (`403 site-not-in-world`) and it sees no site. Both destroyed: the site removed in 1.8 s with its world, the door holding no site of either, the bench's folders, the door's registry and MariaDB's databases as before, and nothing of either world in either account. Core's probe at both worlds' doors answered the site door's typed failure `unreachable` (Cloudflare's own 403 for a loopback address): **Core reaching the site is recorded, not proven** (below). | `site.proof.json`, `p-site.json`, `p-site2.json`, `site-after.txt` (the bench's platform destroyed after, the zone at 66 records before and after) |
 
 ## Timings
 
-From the records above: ten creates (one through `world create`, six through `withWorld`, three at once in one
-process) and seven destroys whose duration was recorded, all on 13 November 2026 with the images already published.
+From the records above, all made on 13 November 2026 with the images already published, every world with its
+bundler: eight creates one at a time (`bundler`, `commands`, `fresh` and its fork on the line with the real Core and
+the site step; `fails`, `timeout`, `interrupted` and `keep` just before it, with the stand-in Core), three at once in
+one process (`sweep`, stand-in Core), and seven destroys. "Before" is the same table from the ten creates recorded
+before the bundler was added (the records at `1fd8698e`).
 
-| Step | Median s | Range s | Where the time goes |
-|---|---|---|---|
-| claim | 0.9 | 0.4 to 1.3 | One transaction on the registry branch, and the world's record in the shared state. |
-| deploy | 45.8 | 38.4 to 53.1 | Alchemy: the Neon branch and Hyperdrive, two Workers, and two container applications, each created and then created again to attach its Durable Object. |
-| migrate | 0.8 | 0.6 to 1.1 | Over Neon's HTTPS endpoint. |
-| chain | 2.4 | 2.0 to 4.8 | Anvil's first start from the seed; a fork first copies its parent's state. |
-| fund | 0.3 | 0.1 to 0.6 | The token's deployment and one transaction for each mint. |
-| index | 46.5 | 37.5 to 59.2 | The Ponder container's first start on 1/4 vCPU: the image pull, Ponder's own start, its tables and the backfill. |
-| core | 0.5 | 0.3 to 0.6 | Until Core's address answers `/health` (the stand-in's, in these runs; the real Core's took 0.5 to 0.6 s in `site`). |
-| site | 93.5 | one run | The site door making one company's site (`site` above). |
-| unsite | 1.8 | one run | `bench drop-site` of the world's site; 0.4 s for a world with no site. |
-| **create** | **95.3** | **87.9 to 116.4** | From the claim to a world whose every part answers. |
-| destroy | 13.5 | 12.8 to 17.2 | `alchemy destroy` of the stage and the stage's record. |
-| release | 0.2 | 0.2 to 0.6 | The name's row. |
-| park | 6.2 | one run | Saving the chain and stopping both containers. |
+| Step | Median s | Range s | Before | Where the time goes |
+|---|---|---|---|---|
+| claim | 0.9 | 0.6 to 1.0; 0.8 to 1.2 three at once | 0.9 | One transaction on the registry branch, and the world's record in the shared state. |
+| deploy | 60.5 | 53.7 to 63.6; 89 to 90 three at once | 45.8 | Alchemy: the Neon branch and Hyperdrive, two Workers, and three container applications, each created and then created again to attach its Durable Object. |
+| migrate | 0.8 | 0.5 to 1.3 | 0.8 | Over Neon's HTTPS endpoint. |
+| chain | 2.5 | 2.2 to 7.2; 2.1 to 2.5 three at once | 2.4 | Anvil's first start from the seed; a fork first copies its parent's state. |
+| fund | 0.5 | 0.1 to 1.3 | 0.3 | The token's deployment and one transaction for each mint. |
+| bundler | 16.7 | 11.7 to 44.6; 36 to 45 three at once | none | Beside the index step: the bundler's accounts funded, the paymaster deployed and funded (two transactions), then alto's first start on its new container application, which takes several start calls (2 to 13) and deploys alto's simulation contracts. A fork has the paymaster and the contracts already. |
+| index | 36.8 | 23.6 to 46.4; 27 to 128 three at once | 46.5 | The Ponder container's first start on 1/4 vCPU: the image pull, Ponder's own start, its tables and the backfill. |
+| core | 0.6 | 0.4 to 1.0 | 0.5 | Until Core's address answers `/health`: the real Core's 0.4 to 0.7 s, the stand-in's 0.5 to 1.0 s. |
+| site | 93.5 | one run | none | The site door making one company's site (`site` above). |
+| unsite | 1.8 | one run | none | `bench drop-site` of the world's site; 0.4 s or less for a world with no site. |
+| **create** | **102.6** | **91.7 to 111.7; 132 to 223 three at once** | **95.3** | From the claim to a world whose every part answers. |
+| destroy | 16.2 | 13.5 to 19.5 | 13.5 | `alchemy destroy` of the stage and the stage's record; 16 to 19.5 s with the real Core, which has more resources. |
+| release | 0.3 | 0.3 to 0.6 | 0.2 | The name's row. |
+| park | 5.1 | one run | 6.2 | Saving the chain and stopping the bundler and both containers. |
 
-So a create is about a minute and a half, and two steps are nearly all of it: Alchemy's deploy and the index's first
-start. Neither was attacked here; a larger instance for the index, or a world forked from a template that is
-already indexed (step 0.9), are the places to look. When an image must be rebuilt, the deploy also builds and
-publishes it.
+So the bundler adds about 15 s to a create, all of it in the deploy: one more container application, created and
+created again to attach its Durable Object. Its own step runs beside the index's and outlasted it in two of eleven
+creates, by 1.8 s and 9.1 s. A create is still nearly all Alchemy's deploy and the index's first start; neither was
+attacked here. When an image must be rebuilt, the deploy also builds and publishes it.
+
+From the bundler proof (`bundler.proof.json`): `eth_sendUserOperation` answered in 0.20 s and the operation's receipt
+came 1.04 s after the send; the index wrote its transfer 9.1 s after the receipt. Stopping the bundler with the
+chain took 0.39 s; after the stop, the next UserOperation woke the chain and alto (one start call, 5.8 s for alto)
+and had its receipt 9.5 s after it was begun.
 
 ## What was learned on the way
 
@@ -194,6 +227,25 @@ publishes it.
 - **A fork carries its parent's index.** Ponder resumes from the forked `ponder` schema; the chain's state is copied
   after the database is forked, so the chain is never behind the index. Fork a quiet world.
 - **The Docker daemon of an agent's container cannot push.** See Images above.
+- **anvil answers `null` to `anvil_setBalance`**, which the world's chain call takes for no answer, so the bundler's
+  setup judges the faucet by reading the balance back.
+- **The bundler's first start takes several start calls, as in the spike.** On a new container application a start
+  is refused or lost for a while after the deploy, and the Durable Object starts alto again every second, for up to
+  240 s, until it serves the EntryPoint. The committed record's first start took 2 start calls and 11.2 s; the
+  other runs of the bundler proof in this session took 4 to 13 (17.7 to 28.4 s).
+- **The bundler keeps the chain address of its first start.** The door gives alto the chain's quiet address built
+  from the request's host, which is right for a call through the door's public address (the create's) and wrong for
+  one over a service binding, so a later start uses the first one. It holds the door's token, so it is kept apart
+  from the record that `/bundler/status` gives out.
+- **The accounts are shared with other builders.** While these proofs ran, another builder's worlds were made and
+  destroyed in the same accounts, and failed the account-wide "same as before" check of six proof runs; see What is
+  proven. Two failures had nothing to do with the bundler, and the next run of each passed: one `commands` run's
+  deploy was refused by Cloudflare while creating the Core Worker (`WorkerNotFound`), and in one `sweep` run one of
+  its three simultaneous worlds' chains never answered within the chain step's 180 s. Each create removed what it had
+  made. On the line with the real Core, two runs of the bundler proof had the chain's container go away during the
+  proof's own use, just after the create, and Cloudflare then refused to start it again ("There is no container
+  instance that can be provided to this Durable Object, try again later"). The world's chain calls do not retry that
+  refusal, as the bundler's do; the proof's next run passed.
 
 ## Not done
 
@@ -214,7 +266,20 @@ publishes it.
 - The index polls through the door, so a busy world makes about one Worker request a second for it. What an idle or a
   busy world costs was not measured.
 - Who the cast is and how a mint is booked is not here: `spec.mint` is only the hook.
+- The bundler: a signed paymaster (a verifying paymaster with a key and a validity window) and ERC-7677's `pm_*`
+  methods; alto's safe mode (it runs with `ALTO_SAFE_MODE=false`: no ERC-7562 tracing, which anvil's tracer cannot
+  give, and no stake checks); a UserOperation in alto's mempool when the world stops, which is lost, because alto
+  keeps its mempool in memory; what alto's polling costs (about one `/quiet-rpc` Worker request a second while it
+  runs). A paymaster with a validity window would also meet alto's wall clock against the seeded chain's, which is
+  weeks behind.
+- The chain's Durable Object does not retry a refused start ("no container instance ... try again later") the way the
+  bundler's does, so a chain whose container goes away fails the next call instead of waiting (see What was learned).
+- The index records a UserOperationEvent only for a Safe claimed through Companies House (`known_safes`), so the
+  bundler proof's Safe, made directly through the factory, is seen in the index by its transfer, not in
+  `ponder.user_operations`.
 
-`src/stack` is the stack and the only code that drives Alchemy, `src/database`, `src/chain`, `src/index`, `src/door`
-and `src/core` are the world's parts, `src/lifecycle` is the rules, `src/failures.ts` the package's own failures,
-`src/cli` and `src/main.ts` the command line, `src/proofs` the proofs, `ponder/` and `images/` the two images.
+`src/stack` is the stack and the only code that drives Alchemy, `src/database`, `src/chain`, `src/index`,
+`src/bundler`, `src/door` and `src/core` are the world's parts, `src/lifecycle` is the rules, `src/failures.ts` the
+package's own failures, `src/cli` and `src/main.ts` the command line, `src/proofs` the proofs, `ponder/` and
+`images/` the three images. `records/spike-bundler/` is the record of `spikes/bundler`, the spike that proved the
+bundler before it moved here, with that spike's README.

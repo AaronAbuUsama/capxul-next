@@ -93,6 +93,11 @@ const addresses = (world: World, reveal: boolean) => ({
   rpcUrl: reveal
     ? Redacted.value(world.rpcUrl)
     : world.rpcUrl.pipe(Redacted.value, Str.replace(/\/[0-9a-f]{32}\//, "/<token: show --reveal>/")),
+  bundlerUrl: reveal
+    ? Redacted.value(world.bundlerUrl)
+    : world.bundlerUrl.pipe(Redacted.value, Str.replace(/\/[0-9a-f]{32}\//, "/<token: show --reveal>/")),
+  entryPoint: world.entryPoint,
+  paymaster: world.paymaster,
   database: "reached with `sql <world> <statement>`, or in-process through the world's handle; never printed",
 });
 
@@ -138,7 +143,9 @@ const createCommand = Command.make(
       });
       yield* report({ ...addresses(made.world, input.reveal), ms: made.ms });
     }),
-).pipe(Command.withDescription("Create a private world: database, chain, index, Core and its companies' sites"));
+).pipe(
+  Command.withDescription("Create a private world: database, chain, index, bundler, Core and its companies' sites"),
+);
 
 const destroyCommand = Command.make("destroy", { name }, (input) => Effect.flatMap(destroy(input.name), report)).pipe(
   Command.withDescription("Destroy a world and everything it created"),
