@@ -174,9 +174,18 @@ export const table_org_setups = defineTable({
     status: Schema.Literals(["processing", "awaiting_authorization", "needs_attention", "ready", "failed"]),
     steps: Schema.Array(SetupStep),
     mint_tx_hash: NullOr(S),
+    /** Which mint send this is: the signer's key is `org-setup:<orgId>:mint:<n>`, so a crash resends the same one and only a
+     * reverted mint moves to the next (organizations.setup-send-attempts). */
+    mint_attempt: N,
     deploy_tx_hash: NullOr(S),
+    /** Which deployMoney send this is, keyed `org-setup:<orgId>:deploy:<n>` like the mint's. */
+    deploy_attempt: N,
     /** The founder's install batch: an approval opened with `approvals.open` in this concept's transaction. */
     install_approval_id: NullOr(S),
+    /** The install transaction and its block, from approvals' landed ending: completion reads the install's facts at
+     * finality anchored to it. */
+    install_tx_hash: NullOr(S),
+    install_block: NullOr(N),
     issue: NullOr(SetupIssue),
     /**
      * The FDE's key (its address only), made and held by Capxul's FDE host when the setup asked it; null before then and
