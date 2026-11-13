@@ -28,6 +28,12 @@ A query over Neon's HTTPS endpoint took 350 to 450 ms from this container, inclu
   ends with a destroy. Shared state (`Cloudflare.state()`) is the next thing to try.
 - Alchemy asks for Node 24.11 or Bun; this container has Node 22, so `run.sh` uses Bun.
 
+## Known hazard
+
+A world stage's stack output carries the database connection string (`database`). The lifecycle code reads it without
+printing it, but `./run.sh deploy --stage <world>` prints every output in plain text. Do not deploy a world stage with
+the CLI; the one-command world of roadmap step 1.3 must not put the connection string in its outputs.
+
 ## Not yet proven
 
 - Keeping a failed world until its expiry (`keepOnFailure`) is written but has not been run.

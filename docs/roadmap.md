@@ -58,7 +58,7 @@ unblock it.
 | 0.3 | 0 | A world is created, used and destroyed as one unit, with an owner, an expiry and timed steps | 0.2 | Done | | | 2026-11-13T07:23Z | `spikes/hosting`, PR 142 |
 | 0.4 | 0 | Alchemy state is shared, so any container can see and destroy any world | 0.1 | Done |  |  | 2026-11-13T07:47Z | `spikes/state`: deployed from one copy, planned and destroyed from a fresh one. No lock: two deploys of one stage at once leave an orphan |
 | 0.5 | 0 | Expired worlds are deleted without anyone remembering to, Cloudflare resources included | 0.4 | Done |  |  | 2026-11-13T07:49Z | `spikes/state`: the sweeper destroyed an expired stage and kept the others. Nothing schedules it yet |
-| 0.6 | 0 | A world's chain and index run as Cloudflare Containers against its Neon branch and stop when idle | 0.2 | In progress | | | | |
+| 0.6 | 0 | A world's chain and index run as Cloudflare Containers against its Neon branch and stop when idle | 0.2 | Done |  |  | 2026-11-13T08:20Z | `spikes/containers`, `records/ct-w3.prove.txt`: Anvil with the seeded state and Ponder ran as containers against the world's Neon branch, state survived a stop through R2, both stopped when idle and woke in 1.6 s. Core and the real indexer package were not tried |
 | 0.7 | 0 | One operation goes from an Effect contract, to a scenario that fails on an empty handler, to a pass | 0.2 | In progress | | | | |
 | 0.8 | 0 | Two worlds at different clocks share one Frappe bench | | In progress | | | | |
 | 0.9 | 0 | A scenario run from a template world is timed end to end | 0.6, 0.7 | Not started | | | | |

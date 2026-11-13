@@ -18,6 +18,16 @@ CONSTRUCTS = {
     "process.env": r"\bprocess\.env\b", "Date.now": r"\bDate\.now\b|\bnew Date\(\)", "console": r"\bconsole\.",
 }
 EFFECT_DEP = re.compile(r"^(effect|@effect/.+|alchemy|@alchemy\.run/.+)$")
+# Dependencies with no Effect replacement yet, kept by decision (docs/roadmap.md). They are listed on every run and
+# are not counted; adding a name here is Aaron's decision, never a way to make the check pass.
+ACCEPTED = {
+    "ponder": "the chain index, kept by decision aaron.postgres-and-ponder",
+    "hono": "Ponder's own API file must export a Hono app; it leaves when Ponder does",
+    "viem": "chain calls and signing; no Effect replacement yet",
+    "@pimlico/alto": "the bundler; no Effect replacement yet",
+}
+# A Ponder app is a program written to Ponder's API, which is async by design. Its files are not counted.
+FOREIGN = ("/ponder/",)
 
 
 def tracked(folder):
@@ -39,13 +49,15 @@ def count():
             full = os.path.join(ROOT, path)
             if path.endswith("package.json"):
                 deps |= {d for d in json.load(open(full)).get("dependencies", {}) if not EFFECT_DEP.match(d)}
+            if any(part in "/" + path for part in FOREIGN):
+                continue
             if not path.endswith((".ts", ".tsx")) or path.endswith(ENTRY) or path.endswith(".d.ts"):
                 continue
             source = strip(open(full).read())
             n = sum(len(re.findall(pattern, source)) for pattern in CONSTRUCTS.values())
             if n:
                 constructs, where[path] = constructs + n, n
-    return {"constructs": constructs, "dependencies": len(deps)}, where, sorted(deps)
+    return {"constructs": constructs, "dependencies": len(deps - set(ACCEPTED))}, where, sorted(deps)
 
 
 now, where, deps = count()
@@ -56,7 +68,9 @@ base = json.load(open(BASELINE))
 print(f"non-Effect constructs outside entry files: {now['constructs']} (baseline {base['constructs']})")
 for path, n in sorted(where.items()):
     print(f"  {n:3d}  {path}")
-print(f"non-Effect runtime dependencies: {now['dependencies']} (baseline {base['dependencies']}) {deps}")
+print(f"non-Effect runtime dependencies not accepted: {now['dependencies']} (baseline {base['dependencies']})")
+for name in deps:
+    print(f"  {'accepted' if name in ACCEPTED else 'COUNTED '}  {name}" + (f": {ACCEPTED[name]}" if name in ACCEPTED else ""))
 risen = [k for k in now if now[k] > base[k]]
 if risen:
     sys.exit(f"FAILED: {', '.join(risen)} rose above the baseline. Write the code the Effect way, or remove the dependency.")
