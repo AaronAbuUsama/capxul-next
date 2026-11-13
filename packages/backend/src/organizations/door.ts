@@ -4,6 +4,7 @@ import { record, type Sql } from "../platform/db.ts";
 export { begin, get, readAdmittedDeployment, readSetupFounder, resume, view, type AdmittedDeployment, FUNDAMENTAL_APPS, HEAD_APPS, SEATS_AT_BIRTH,
   type BeginInput, type Board, type SetupIssue, type SetupServices, type SetupStatus, type SetupView } from "./setups.ts";
 export { addBoughtSeats, returnBoughtSeats, type BoughtSeats } from "./procedures.ts";
+export { advance, onApprovalEnded, onApprovalTransitioned, type Advanced, type MoneyDeploymentFact, type SetupProcessServices } from "./process.ts";
 
 /** Explicit privileged world provisioning, after Access and Parties; never a route or restore hook. */
 export async function migrate(sql: Sql): Promise<void> {
