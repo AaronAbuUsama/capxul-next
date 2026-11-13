@@ -68,7 +68,7 @@ unblock it.
 | 1.4 | 1 | A company's Frappe site in a private world is reached through the door | 0.8, 1.3 | Not started | | | | |
 | 1.5 | 1 | The thin line's scenarios are written by a separate agent and fail on empty handlers | 1.1, 1.2 | Not started | 0/12 | | | |
 | 1.6 | 1 | The thin line's scenarios pass in a fresh private world | 1.3, 1.4, 1.5 | Not started | 0/12 | | | |
-| 1.7 | 1 | CI fails when the two Effect counts rise | 1.1 | Not started | | | | |
+| 1.7 | 1 | CI fails when the two Effect counts rise | | In progress | | | | |
 | 1.8 | 1 | CI on `master` creates a world, runs the thin line and destroys the world | 1.6 | Not started | | Aaron: Cloudflare and Neon keys as CI secrets | | |
 | 2.1 | 2 | A host for the Frappe bench and a domain on Cloudflare exist | | Not started | | Aaron: a host account and a domain | | |
 | 2.2 | 2 | The platform (bench, tunnel, shared state) is deployed by Alchemy | 2.1, 0.4 | Not started | | | | |
