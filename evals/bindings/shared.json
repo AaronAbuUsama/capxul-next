@@ -96,7 +96,7 @@
       "checks": [
         "BUNDLER.send-rejected"
       ],
-      "why": "The world's real Alto validates two operations from the selected payment's own sender: one signed by no owner, and one reusing a nonce the selected payment spent. It rejects both, so the caller sees TRANSACTION_FAILED. The EntryPoint nonce is unchanged and neither operation is held."
+      "why": "The world's real Alto validates an operation from the selected payment's own sender (the paying hat wearer's Safe) that no owner signed. It rejects it in account validation, with its own AA2x reason recorded, and the caller sees TRANSACTION_FAILED. The EntryPoint nonce is unchanged and the bundler holds nothing for the operation."
     }
   ],
   "near": []

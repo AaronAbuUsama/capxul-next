@@ -155,23 +155,18 @@ const checks: Record<string, Check> = {
     note("lookup", { control: hash, rewritten: ["receipt names another operation", "held operation does not decode"] });
   }),
   "BUNDLER.send-rejected": async (w, note) => gates([bundlerUrl(w)], async ([g]) => {
-    // Through a pass-through gate only to read the real bundler's own reasons; nothing is altered.
+    // Through a pass-through gate only to read the real bundler's own reason; nothing is altered.
     const provider = bundlerProvider(httpTransport(g!.url));
-    const reason = () => String(g!.answers.at(-1)?.body?.error?.message ?? "");
     const before = await unsignedOperation(w);
     await refused("TRANSACTION_FAILED", () => provider.send({ operation: before.operation, entryPoint: entryPoint07Address, expectedHash: before.expectedHash }));
-    const unsignedReason = reason();
-    assert(!/AA25/.test(unsignedReason) && /AA2[34]|signature/i.test(unsignedReason), `the current-nonce operation was refused for its signature: ${unsignedReason.slice(0, 120)}`);
-    const used = await unsignedOperation(w, -1n);
-    await refused("TRANSACTION_FAILED", () => provider.send({ operation: used.operation, entryPoint: entryPoint07Address, expectedHash: used.expectedHash }));
-    const nonceReason = reason();
-    // Alto checks the nonce before it validates the signature, so this refusal is the spent nonce alone.
-    assert(/AA25/.test(nonceReason), `the spent-nonce operation was refused for its nonce: ${nonceReason.slice(0, 120)}`);
-    assert.equal(count(g!.forwarded, "eth_sendUserOperation"), 2, "both refusals came from the real bundler");
+    assert.equal(count(g!.forwarded, "eth_sendUserOperation"), 1, "the refusal came from the real bundler");
+    const reason = String(g!.answers.at(-1)?.body?.error?.message ?? "");
+    // AA2x is ERC-4337's account-validation family: the Safe refused a signature no owner made.
+    assert(/AA2[0-9]/.test(reason), `the real bundler refused in account validation: ${reason.slice(0, 120)}`);
     const after = await unsignedOperation(w);
     assert.equal(after.operation.nonce, before.operation.nonce, "nothing reached the chain");
     assert.deepEqual(await bundlerProvider(httpTransport(bundlerUrl(w))).lookup(before.expectedHash), { operation: null, receipt: null });
-    note("send", { refusedByRealBundler: { signature: unsignedReason.slice(0, 120), spentNonce: nonceReason.slice(0, 120) }, nonce: before.operation.nonce });
+    note("send", { refusedByRealBundler: reason.slice(0, 120), nonce: before.operation.nonce });
   }),
   "BUNDLER.send-unanswered": async (w, note) => gates([bundlerUrl(w)], async ([g]) => {
     const op = await unsignedOperation(w);
