@@ -166,6 +166,7 @@ def install():
     frappe.local = Flags(site="boundary.localhost", response=Flags(), form_dict=Flags())
     frappe.set_user = lambda user: setattr(frappe.session, "user", user)
     frappe.get_request_header = lambda key: None
+    frappe.generate_hash = lambda length=10, **kwargs: __import__("secrets").token_hex(length)[:length]
 
     def get_all(doctype, filters=None, fields=None, order_by=None, limit_page_length=100):
         rows = DB.find(doctype, filters or {})

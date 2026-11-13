@@ -59,13 +59,17 @@ def _snapshot(doc):
     return {"doctype": doc.doctype, "name": doc.name, "docstatus": doc.docstatus, "fields": doc.as_dict()}
 
 
-def _document(doc):
-    doc.check_permission("read")
+def _current_masks(doctype):
     # Frappe 16 caches each user's masked fields (meta.get_masked_fields) and never clears them when roles
     # change, so a revoked hat would keep its unmasked view. Drop this user's entries and recompute.
     user = frappe.session.user
-    frappe.cache.delete_value([f"masked_fields::{doc.doctype}::::{user}"] + [
-        f"masked_fields::{df.options}::{doc.doctype}::{user}" for df in doc.meta.get_table_fields()])
+    frappe.cache.delete_value([f"masked_fields::{doctype}::::{user}"] + [
+        f"masked_fields::{df.options}::{doctype}::{user}" for df in frappe.get_meta(doctype).get_table_fields()])
+
+
+def _document(doc):
+    doc.check_permission("read")
+    _current_masks(doc.doctype)
     doc.apply_fieldlevel_read_permissions()
     return _snapshot(doc)
 
@@ -84,7 +88,8 @@ def _envelope(action):
             code, message = "FEATURE_NOT_AVAILABLE", str(error)
         elif isinstance(error, frappe.PermissionError):
             code, message = "ROLE_PERMISSION_DENIED", str(error)
-        elif isinstance(error, (frappe.ValidationError, frappe.DoesNotExistError)):
+        elif isinstance(error, (frappe.ValidationError, frappe.DoesNotExistError, frappe.NameError)):
+            # NameError covers DuplicateEntryError: a duplicate is the caller's input, not a retryable outage.
             code, message = "INVALID_INPUT", str(error)
         else:
             # Do not return exception traces, SQL, document bodies or service credentials.
@@ -192,6 +197,8 @@ def report(org, report, filters=None):
         off = features.off_map()["doctypes"].get(reference)
         if off:
             raise DoorError("FEATURE_NOT_AVAILABLE", f"The {off} feature is off")
+        if reference:
+            _current_masks(reference)  # Frappe masks report rows with the reference DocType's cached masks.
         data = run_report(report, filters=_object(filters or {}), ignore_prepared_report=True)
         columns = [c if isinstance(c, dict) else {"fieldname": c.split(":")[0], "label": c.split(":")[0]} for c in data["columns"]]
         rows = [dict(zip((c["fieldname"] for c in columns), row)) if isinstance(row, (list, tuple)) else row for row in data["result"]]
