@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { Database, readSnapshotCut, rewriteRestoredWorld, updateWorldClock } from "@capxul/backend/devnet";
+import { Database, nextDue, openDue, readSnapshotCut, rewriteRestoredWorld, updateWorldClock } from "@capxul/backend/devnet";
 import { canaryBundlerKeys, prepareBundler, suppliedAlto } from "../modules/bundler/service.ts";
 import { composeBench } from "./bench.ts";
-import { installClock, readClocks } from "./clock.ts";
+import { installClock, moveChain, readClocks, readWorldClock } from "./clock.ts";
+import { bench as benchExecute } from "./fixture.ts";
+import { warpTarget, warpWorld } from "./warp.ts";
 import { migrateCatalogue, psqlAdmin, readSnapshot, restoreSnapshot, saveSnapshot, worldCatalogue,
   type CatalogueCut, type CatalogueHistory, type Command, type World, type WorldRow } from "./door.ts";
 import { localRuntime } from "./runtime.ts";
@@ -130,6 +132,24 @@ export async function composeWorld(configFile: string) {
         world_now: manifest.cut.nowMs, code_version: manifest.codeVersion, template: false, created_at: manifest.cut.nowMs,
       }, await recordedCommand(c, "world snapshot save", { snapshot: id }));
       return manifest;
+    },
+    /** world clock warp (devnet.supervisor-warp): a running world's frozen clock moves forward through every due stop, every follower with it. */
+    async warp(target: { by?: string; to?: string }) {
+      const row = await catalogue(c).show(c.world.id);
+      if (row.state !== "running") throw new Error("WRONG_STATE: only a running world's clock is warped; world up first");
+      const from = await readWorldClock(c), at = warpTarget(from.nowMs, target);
+      const result = await warpWorld(from, at, {
+        database: (clock) => store(c, c.world, (db) => updateWorldClock(db, clock)),
+        nextDue: (after, until) => store(c, c.world, (db) => nextDue(db, after, until)),
+        openDue: (now) => store(c, c.world, (db) => openDue(db, now)),
+        chain: (nowMs, depth) => moveChain(c, nowMs, depth),
+        // The bench steps a site by offsets from its own host clock, so this host read cancels out (real-on-purpose).
+        site: async (site, fromMs, toMs) => { const host = Date.now();
+          await benchExecute(c, site.name, "capxul.clock.advance", [], { from_offset_ms: fromMs - host, to_offset_ms: toMs - host, step_days: 1 }); },
+        bench: (clock) => bench.clock(c.world.id, clock),
+      }, { stateDir: c.world.stateDir, sites: c.world.sites, finality: c.finality });
+      await catalogue(c).clock(c.world.id, result.worldNow, await recordedCommand(c, "world clock warp", { ...target, stops: result.stops.length }));
+      return { worldId: c.world.id, clockMode: "frozen" as const, rate: result.rate, worldNow: result.worldNow };
     },
     read: (id: string) => readSnapshot(options, id),
     async restore(id: string) {

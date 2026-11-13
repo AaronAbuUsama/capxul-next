@@ -164,6 +164,11 @@ export function worldCatalogue(query: Admin, secrets: readonly string[]) {
       return atomic(world, `${requireWorld(world)} ${guard}`, command, { from: "w.state", to, transition },
         `UPDATE app.worlds SET state=${text(to)},updated_at=${Date.now()} WHERE world_id=${text(world)};`);
     },
+    /** A warp moved the frozen world's clock: the row's now follows it, with the command that moved it. */
+    async clock(world: string, nowMs: number, command: Command) {
+      if (!Number.isSafeInteger(nowMs)) throw new Error("INVALID_INPUT: invalid world now");
+      return atomic(world, "", command, undefined, `UPDATE app.worlds SET world_now=${nowMs},updated_at=${nowMs} WHERE world_id=${text(world)};`);
+    },
     async save(snapshot: SnapshotRow, command: Command) {
       return atomic(snapshot.world_id, `INSERT INTO app.world_snapshots SELECT * FROM ${rows("world_snapshots", snapshot)};`, command);
     },

@@ -53,3 +53,32 @@ export async function exportAbandonedBranch(db: Database) {
     records: (await sql.query("select * from app.records order by id")).rows,
   }), true);
 }
+
+/** devnet.warp-barrier: the instants Core's own due work falls at, each with what keeps a row open. A warp stops at every one of
+ *  them and moves on only when none at or before the stop is still open. A concept with new due work adds its table here. */
+const DUE = [
+  { table: "app.notice_workflows", at: "coalesce(retry_at,due_at)", open: "finished_at is null and failed_at is null and checkpoint is null" },
+  { table: "app.notice_attempts", at: "due_at", open: "due_at is not null" },
+] as const;
+async function dueTables(db: Database) {
+  const present = (await db.worker.query("select t from unnest($1::text[]) t where to_regclass(t) is not null", [DUE.map((d) => d.table)])).rows.map((r) => r.t);
+  return DUE.filter((d) => present.includes(d.table));
+}
+/** The earliest open due instant after `after` and not after `until`, or null. */
+export async function nextDue(db: Database, after: number, until: number): Promise<number | null> {
+  let next: number | null = null;
+  for (const d of await dueTables(db)) {
+    const at = (await db.worker.query(`select min(${d.at}) as at from ${d.table} where ${d.open} and ${d.at}>$1 and ${d.at}<=$2`, [after, until])).rows[0]?.at;
+    if (at !== null && at !== undefined && (next === null || Number(at) < next)) next = Math.ceil(Number(at));
+  }
+  return next;
+}
+/** How many rows of Core's due work at or before `at` are still open, by table: zero everywhere means Core has settled at `at`. */
+export async function openDue(db: Database, at: number): Promise<Record<string, number>> {
+  const open: Record<string, number> = {};
+  for (const d of await dueTables(db)) {
+    const n = Number((await db.worker.query(`select count(*) as n from ${d.table} where ${d.open} and ${d.at}<=$1`, [at])).rows[0].n);
+    if (n) open[d.table] = n;
+  }
+  return open;
+}

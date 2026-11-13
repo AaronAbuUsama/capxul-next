@@ -27,6 +27,16 @@ export async function pinChain(c: Config, clock: WorldClock): Promise<void> {
   await rpc(c, "anvil_setBlockTimestampInterval", [0]);
 }
 
+/** A warp's stop on the chain: the head dated at the stop, then `depth` more blocks at the same instant so the indexer finalizes it. */
+export async function moveChain(c: Config, nowMs: number, depth: number): Promise<void> {
+  const at = Math.floor(nowMs / 1000);
+  if (at > Number((await rpc(c, "eth_getBlockByNumber", ["latest", false])).timestamp)) await rpc(c, "evm_setNextBlockTimestamp", [at]);
+  await rpc(c, "anvil_setBlockTimestampInterval", [0]);
+  await rpc(c, "anvil_mine", [`0x${(depth + 1).toString(16)}`]);
+  const [latest, next] = await Promise.all([rpc(c, "eth_getBlockByNumber", ["latest", false]), rpc(c, "eth_getBlockByNumber", ["pending", false])]);
+  assert(Number(latest.timestamp) === at && Number(next.timestamp) === at, "the chain did not stop at the warp's instant");
+}
+
 /** (1) The one door: authority file, database row, bench entry and chain move together. Creation runs it before Ponder and
  *  before any site; restore runs it before resume, while Anvil is stopped, and every Anvil start pins the chain from clock.json. */
 export async function installClock(c: Config, bench: Pick<Bench, "clock">, clock: WorldClock, at: "birth" | "restore"): Promise<void> {

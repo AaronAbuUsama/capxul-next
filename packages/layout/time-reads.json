@@ -202,6 +202,12 @@
    "why": "inspection observation stamp; evidence"
   },
   {
+   "file": "packages/devnet/src/devnet/composition.ts",
+   "match": "site: async (site, fromMs, toMs) => { const host = Date.now();",
+   "label": "real-on-purpose",
+   "why": "a warp steps a site by offsets from the bench's host clock (capxul.clock.advance), so this host read cancels out; the stops themselves are world instants"
+  },
+  {
    "file": "packages/devnet/src/devnet/door.ts",
    "match": "createdAt: new Date().toISOString()",
    "label": "real-on-purpose",
@@ -262,6 +268,18 @@
    "why": "readiness wait bound"
   },
   {
+   "file": "packages/devnet/src/devnet/warp.ts",
+   "match": "const deadline = performance.now() + (options.settleMs ?? 60_000);",
+   "label": "real-on-purpose",
+   "why": "how long a warp waits for Core to settle at a stop, an operational timeout (time.real-elapsed)"
+  },
+  {
+   "file": "packages/devnet/src/devnet/warp.ts",
+   "match": "performance.now() < deadline",
+   "label": "real-on-purpose",
+   "why": "the same settle timeout's loop"
+  },
+  {
    "file": "packages/frappe-app/capxul/api.py",
    "match": "expiry = int(time.time()) + 60",
    "label": "real-on-purpose",
@@ -304,34 +322,34 @@
    "why": "signed request envelope expiry"
   },
   {
+   "file": "packages/site-service/src/sites/documents.ts",
+   "match": "const deadline = Date.now() + 30_000",
+   "label": "real-on-purpose",
+   "why": "a 30 s polling budget for the bench, an operational timeout"
+  },
+  {
+   "file": "packages/site-service/src/sites/documents.ts",
+   "match": "while (Date.now() < deadline)",
+   "label": "real-on-purpose",
+   "why": "the same polling budget's loop"
+  },
+  {
+   "file": "packages/site-service/src/sites/lifecycle.ts",
+   "match": "const deadline = Date.now() + 30_000",
+   "label": "real-on-purpose",
+   "why": "a 30 s polling budget for the bench, an operational timeout"
+  },
+  {
+   "file": "packages/site-service/src/sites/lifecycle.ts",
+   "match": "while (Date.now() < deadline)",
+   "label": "real-on-purpose",
+   "why": "the same polling budget's loop"
+  },
+  {
    "file": "packages/site-service/src/sites/provisioning.ts",
    "match": "input.expiresAt <= Date.now()",
    "label": "real-on-purpose",
    "why": "signed request envelope freshness check"
-  },
-  {
-   "file": "packages/site-service/src/sites/documents.ts",
-   "match": "const deadline = Date.now() + 30_000",
-   "label": "real-on-purpose",
-   "why": "a 30 s polling budget for the bench, an operational timeout"
-  },
-  {
-   "file": "packages/site-service/src/sites/documents.ts",
-   "match": "while (Date.now() < deadline)",
-   "label": "real-on-purpose",
-   "why": "the same polling budget's loop"
-  },
-  {
-   "file": "packages/site-service/src/sites/lifecycle.ts",
-   "match": "const deadline = Date.now() + 30_000",
-   "label": "real-on-purpose",
-   "why": "a 30 s polling budget for the bench, an operational timeout"
-  },
-  {
-   "file": "packages/site-service/src/sites/lifecycle.ts",
-   "match": "while (Date.now() < deadline)",
-   "label": "real-on-purpose",
-   "why": "the same polling budget's loop"
   }
  ]
 }

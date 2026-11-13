@@ -163,3 +163,17 @@ export const decision_devnet_composed_catalogue = defineDecision({
   source: "Integration composition ownership assignment, 12 November 2026; reviewed Recovery worldCatalogue doors; PR77 8144d0a fresh-create migration gap",
   affects: [component_devnet, concept_devnet],
 });
+
+export const decision_devnet_supervisor_warp = defineDecision({
+  id: "devnet.supervisor-warp",
+  title: "The supervisor warps through due stops, followers first, authority last",
+  question: "How much of devnet.warp-barrier does the selected supervisor's `world clock warp` implement before the versioned control protocol and its follower adapter exist, and what does it leave owed?",
+  options: [
+    { label: "due-stops-authority-last", text: "On a running world with a frozen clock, `world clock warp [WORLD] --by DURATION | --to DATE` refuses a target at or before now (INVALID_INPUT) and holds the world's operation lock, so a second move refuses WRONG_STATE. It stops at every open due instant of Core's own work up to the target (the backend devnet door lists those tables: notice workflows and attempts) and at the target. At each stop the followers move first: the chain dated at the stop and mined to the world's finality depth, each site stepped through its own midnights running what fell due (capxul.clock.advance), the bench clock entry. The authority moves last (clock file, database row), then the warp waits until Core has no open due work at or before the stop. A follower that fails leaves the authority at the last settled stop; Core still busy puts it back there; both refuse WORK_DIED naming the stop and the follower or open work. The catalogue's world row takes the new now with a command record. Owed to the full barrier: outbox delivery, pending chain transactions and reader wake routing in the settle test; jobs=false; the timeFollow site adapter with versioned setClock; a running clock." },
+    { label: "final-write", text: "Write the target into every follower once and run every cron once at the target." },
+  ],
+  chosen: "due-stops-authority-last",
+  why: "devnet.warp-barrier forbids the final write: a payment due on day 10 of a 28-day warp must run on day 10. The chain cannot move backwards, so the followers move before the authority, and a refusal keeps the authority where everything last agreed; a retried warp moves the followers again (the chain is already there; a site's due jobs run once each by their last execution). Core's due work reads the authority's now, so it moves before the settle wait. The world's sites step their own midnights because each site has its own timezone. devnet.time-is-right test 6 needs a one-day and an eleven-day warp of a world with a signed-in person: on fresh world w5warp (13 November 2026) a session read 200 after 1d and 401 after 11d.",
+  source: "devnet.warp-barrier; devnet.site-clock-follower; devnet.one-world-clock; devnet.time-is-right test 6; w5warp native proof and integrator assignment, 13 November 2026",
+  affects: [component_devnet, concept_devnet],
+});

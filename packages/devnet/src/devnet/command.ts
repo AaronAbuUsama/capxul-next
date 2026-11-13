@@ -35,7 +35,7 @@ export async function runDevnet(args: string[]): Promise<number> {
     }
     if (commandName === "prepare" && !nested) throw new Error("prepare is a nested eval-harness command, not standalone fixture setup");
     if (!nested) {
-      try { await mkdir(candidate); } catch { throw new Error("another world operation holds the lock; inspect before clearing a stale lock"); }
+      try { await mkdir(candidate); } catch { throw new Error("WRONG_STATE: another world operation holds the lock; inspect before clearing a stale lock"); }
       locks.push(candidate);
     }
     if (commandName !== "stop") await checkCodeVersion(config);
@@ -45,6 +45,12 @@ export async function runDevnet(args: string[]): Promise<number> {
     if (commandName === "up" && !rest.length) await up(stack.c, stack.host);
     else if (commandName === "stop" && !rest.length) await stop(stack.c, stack.host);
     else if (commandName === "inspect" && !rest.length) { console.log(JSON.stringify(await stack.inspect())); return 0; }
+    else if (commandName === "clock" && rest[0] === "warp") {
+      const flags = rest.slice(1), named = flags[0] && !flags[0].startsWith("--") ? flags.shift() : undefined;
+      if (named !== undefined && named !== stack.c.world.id) throw new Error(`INVALID_INPUT: no world named ${named} on this machine`);
+      if (flags.length !== 2 || !["--by", "--to"].includes(flags[0]!) || flags[1] === undefined) throw new Error("CLI_USAGE: world clock warp [WORLD] --by DURATION | --to DATE");
+      console.log(JSON.stringify(await stack.warp(flags[0] === "--by" ? { by: flags[1] } : { to: flags[1] }))); return 0;
+    }
     else if (commandName === "snapshot" && rest.length === 2 && ["save", "read", "restore"].includes(rest[0]!)) {
       const manifest = await stack[rest[0] as "save" | "read" | "restore"](rest[1]!);
       console.log(JSON.stringify({ id: manifest.id, world: manifest.world, epoch: manifest.epoch, cut: manifest.cut })); return 0;
@@ -82,16 +88,16 @@ export async function runDevnet(args: string[]): Promise<number> {
       await writeFile(join(candidate, "token"), token, { mode: 0o600 });
       const { runGate } = await import("./gate.ts");
       return await runGate(stack.c, rest[2] ?? "harbourline", token, configFile);
-    } else throw new Error("usage: world init <id>; world create|up|stop|inspect; world show [ID]; world provision <slug>; world snapshot save|read|restore <id> [--as CONFIG]; world run slice-zero [--slug SLUG] --config FILE [--json]");
+    } else throw new Error("usage: world init <id>; world create|up|stop|inspect; world show [ID]; world clock warp [WORLD] --by DURATION|--to DATE; world provision <slug>; world snapshot save|read|restore <id> [--as CONFIG]; world run slice-zero [--slug SLUG] --config FILE [--json]");
     console.log(JSON.stringify({ world: stack.c.world.id, state: commandName === "stop" ? "stopped" : "running" }));
     return 0;
   } catch (error) {
     // Nested startup/cleanup failures must retain their causes privately, without leaking argv or credentials to stdout.
     if (diagnostics) await writeFile(diagnostics, inspect(error, { depth: 10 }), { mode: 0o600 });
     const message = (error as Error).message;
-    const code = ["CLI_USAGE", "INVALID_INPUT", "WRONG_STATE"].find((declared) => message.startsWith(`${declared}:`)) ?? "WORLD_RUNTIME_ERROR";
+    const code = ["CLI_USAGE", "INVALID_INPUT", "WRONG_STATE", "WORK_DIED"].find((declared) => message.startsWith(`${declared}:`)) ?? "WORLD_RUNTIME_ERROR";
     console.error(JSON.stringify({ error: { code, message } }));
-    // Declared input refusals exit 2 (blueprint vocabulary); undeclared runtime failures exit 1.
-    return code === "WORLD_RUNTIME_ERROR" ? 1 : 2;
+    // Declared refusals exit with their error record's code (blueprint vocabulary: WORK_DIED 5, the others 2); undeclared failures exit 1.
+    return code === "WORLD_RUNTIME_ERROR" ? 1 : code === "WORK_DIED" ? 5 : 2;
   } finally { for (const lock of locks.reverse()) await rm(lock, { recursive: true }); }
 }
