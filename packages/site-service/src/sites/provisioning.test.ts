@@ -55,11 +55,13 @@ async function setup() {
     return Effect.succeed({ personId: "person-founder", kind: "person" as const, email: "founder@example.test", safeAddress: personal, signerAddress: null });
   };
   let handler: ReturnType<typeof createProvisioningHandler>;
+  const traces: string[] = [];
   const coreUrl = await listen(createServer(async (req, res) => {
     if (await handler(req, res)) return;
     let raw = ""; for await (const chunk of req) raw += chunk;
     assert.equal(req.headers["x-capxul-signature"], createHmac("sha256", options.secret).update(raw).digest("hex"));
-    assert.ok(req.headers["x-capxul-trace"]);
+    assert.match(String(req.headers["x-capxul-trace"]), /^[0-9a-f]{32}$/);
+    traces.push(`${req.url} ${req.headers["x-capxul-trace"]}`);
     assert.deepEqual(JSON.parse(raw), { slug: "acme" });
     if (req.url === "/admin/release") {
       const state = JSON.parse(await readFile(join(bench, info.site, "site.json"), "utf8"));
@@ -70,7 +72,7 @@ async function setup() {
   }));
   const mount = () => { handler = createProvisioningHandler({ coreUrl, coreSecret: options.secret, siteServiceUrl, siteServiceToken: options.token, authorize }); };
   mount();
-  return { root, bench, info, options, coreUrl, sites: createSitesClient({ coreUrl, bearer: () => founderSession }), authorized,
+  return { root, bench, info, options, coreUrl, sites: createSitesClient({ coreUrl, bearer: () => founderSession }), authorized, traces,
     siteUrl: () => siteServiceUrl, removeFounder: () => { founderAdmitted = false; },
     async restart() { await new Promise<void>((resolve) => siteService.close(() => resolve())); siteService = createSiteService(options); siteServiceUrl = await listen(siteService); mount(); },
   };
@@ -93,6 +95,13 @@ test("public SDK/CLI retries an interrupted bench creation and preserves identit
   assert.deepEqual(repeat, [expected, expected]);
   await s.restart();
   assert.deepEqual(await s.sites.provision({ org: "acme" }), expected);
+  // Core's request signal sets x-capxul-trace; the Core reads and the release join that trace.
+  const joined = "4bf92f3577b34da6a3ce929d0e0e4736";
+  s.traces.length = 0;
+  const traced = await fetch(`${s.coreUrl}${PROVISION_PATH}`, { method: "POST", body: JSON.stringify({ org: "acme" }), headers: {
+    authorization: `Bearer ${founderSession}`, "x-capxul-trace": joined } });
+  assert.deepEqual(await traced.json(), expected);
+  assert.deepEqual(s.traces, [`/admin/org-info ${joined}`, `/admin/release ${joined}`]);
   const data = JSON.parse(await readFile(join(s.bench, expected.site, "site.json"), "utf8"));
   assert.equal(data.company, s.info.name); assert.equal(data.core_url, "");
   assert.deepEqual(data.apps, ["frappe", "erpnext", "hrms", "crm", "frappe_whatsapp", "capxul"]);
