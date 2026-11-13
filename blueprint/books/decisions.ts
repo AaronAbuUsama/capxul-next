@@ -343,6 +343,20 @@ export const decision_books_births_are_transitions = defineDecision({
   affects: [machine_book_annotation, machine_book_asset],
 });
 
+export const decision_books_every_side_births = defineDecision({
+  id: "books.every-side-births",
+  title: "Every recorded money side births its annotation, waiting when nothing was said",
+  question: "A recorded money side with no `against` (a payment sent with no account, an outside deposit). Is its annotation row born?",
+  options: [
+    { label: "always-birth", text: "Yes: the procedure births the row `waiting` (`queue`, no account) when the side says nothing, and with the side's `against` otherwise." },
+    { label: "only-with-against", text: "No: a row is born only when the side carries an `against`; otherwise the first save births it." },
+  ],
+  chosen: "always-birth",
+  why: "The review queue is the rows waiting for an account, and the machine's initial state is `waiting`. Without a born row, unclassified money would sit in the facts but never in review, and payment.send would send book_annotation_transitioned only sometimes, while its eval claims it always does. The birth is still once per row: a replay, a re-recorded generation or an existing annotation writes nothing more. Raised by the Core payments lane on 13 November 2026 while binding evt:payment.send/book_annotation_transitioned.",
+  source: by("blueprint/books/data.ts (machine_book_annotation initial waiting; the review index); the Core payments lane, 13 November 2026"),
+  affects: [procedure_books_record_money_fact, machine_book_annotation, table_book_annotations, event_book_annotation_transitioned],
+});
+
 // ── authorization, assets, prices ───────────────────────────────────────────────────────────
 
 export const decision_books_guards = defineDecision({
