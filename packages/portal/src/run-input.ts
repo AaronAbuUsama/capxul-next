@@ -26,7 +26,8 @@ export const sliceRunsOf = (root: string, gitRoot = root): readonly SliceRun[] =
       const path = resolve(directory, s.path);
       return path.startsWith(resolve(directory) + sep) && existsSync(path) && statSync(path).isFile() && realpathSync(path).startsWith(realpathSync(directory) + sep) && s.assertion === "source-equality";
     });
-    return { ...r, screens, state: r.state === "complete" && (!r.finishedAt || !r.scripts.length || r.scripts.some((s) => s.exitCode !== 0 || s.signal !== null)) ? "incomplete" : r.state,
+    // The shared parser owns script completion, including new assertion exits and legacy zero-exit rules.
+    return { ...r, screens, state: r.state === "complete" && !r.scripts.length ? "incomplete" : r.state,
       status: snapshots, landed: ancestors.has(r.commit) };
   });
 };

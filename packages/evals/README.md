@@ -16,8 +16,9 @@ pnpm evals -- check | gaps | list
 
 `docs/blueprint.md`, "Evals run", has the rules: strict bindings, near-misses, the script contract, truthful states.
 
-Each attempt saves `receipt.json` before execution and a same-run `status.json` snapshot. Only a complete receipt supplies
-passes. Supply `--environment <json>` for non-skeleton runs; its world must match `--world`. The JSON skeleton is always
+Each attempt saves `receipt.json` before execution and a same-run `status.json` snapshot. Completed script plans retain
+their assertion verdicts even in a finalized incomplete attempt; only a complete receipt can satisfy slice acceptance.
+Supply `--environment <json>` for non-skeleton runs; its world must match `--world`. The JSON skeleton is always
 `{stack:"skeleton-json",storage:"json",indexer:"inline"}`, never selected-stack evidence. Children receive
 `CAPXUL_EVAL_RUN_DIR`; a child may write `screens.json` there as an array of `{screen,path,source,assertion}`. Paths must be
 existing run-relative files. `--screens <manifest>` imports an external manifest and its captures instead. For screen value
@@ -26,7 +27,7 @@ equality use `assertion:"source-equality"` and keep the source readback in the r
 `--json` sends script/recorder logs to stderr and prints one JSON result on stdout:
 `{version:1,run,runDir,state,passed,counts:{pass,fail,not_run},exitCode}`. `runDir` is repository-relative and contains
 `receipt.json` and `status.json`. `passed` is true (exit 0) only for a complete, nonempty selection with every requested eval
-passing; a complete run with unbound `not_run` evals exits 1. Validation failures before a run starts have no run directory
+passing. Unbound requests make new attempts incomplete; completed assertion failures also exit 1. Validation failures before a run starts have no run directory
 and print their diagnostic to stderr instead. With pnpm, use `pnpm --silent evals -- ... --json` to suppress pnpm's banner.
 
 `--prepare <argv-json-file>` optionally runs preparation inside the attempt, before binding scripts. The file contains a
@@ -50,5 +51,12 @@ An asked binding whose script does not support `--world` is recorded, not refuse
 contract and planned script remains in the receipt. After receipt-first preparation, skip a whole plan if any requested
 binding file for it excludes the world, or if it is the JSON skeleton against a non-skeleton environment. Never run that
 script or expand binding worlds. Its exit/signal stay null, with the reason in `run.log` and per-eval evidence. Compatible
-plans may run, but the attempt stays incomplete, exits 1 and supplies no passing verdicts; skipped requests are `not_run`.
+plans retain their completed assertions, but the attempt stays incomplete and exits 1; skipped requests are `not_run`.
 Invalid argv/environment and a mismatched environment world still fail preflight (`system.eval-unsupported-worlds`).
+
+New script receipts add `evals` (the bound requested IDs) and `completed` (initially false). A plan completes only with all
+its requested checks reported, no malformed output or signal, and exit 0, or exit 1 with an explicit failed eval. Crashes,
+missing checks and malformed output demote that plan's passes, not another completed plan's passes. Explicit failures and
+raw evidence remain. Unexpected harness/evidence errors suppress passes. Complete means every requested eval was bound
+and every plan completed, not that assertions passed. Historical receipts keep their existing rules and are never rescored
+(`system.eval-reporting`).

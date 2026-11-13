@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, symlinkSync, writ
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import type { RunReceipt } from "@capxul/blueprint-engine";
+import { mergeResults, sliceEvidence, sliceZeroRequired, type RunReceipt } from "@capxul/blueprint-engine";
 
 import { check, expect, passed } from "#src/modules/check/service.ts";
 
@@ -89,6 +89,7 @@ test("slice evidence reads the immutable matching run and only in-run capture fi
     writeFileSync(join(root, "status/status.json"), JSON.stringify({ version: 1, evals: { "scr:fixture/shows": verdict } }));
     assert.deepEqual(sliceRunsOf(root)[0]?.status.evals, {});
     status(receipt.id);
+    assert.equal(sliceRunsOf(root)[0]?.state, "complete");
     assert.equal(sliceRunsOf(root)[0]?.status.evals["scr:fixture/shows"]?.verdict, "pass");
     assert.equal(sliceRunsOf(root)[0]?.screens.length, 0);
     writeFileSync(join(directory, "capture.png"), "fixture capture");
@@ -96,6 +97,47 @@ test("slice evidence reads the immutable matching run and only in-run capture fi
     rmSync(join(directory, "capture.png"));
     symlinkSync(join(root, "status/status.json"), join(directory, "capture.png"));
     assert.equal(sliceRunsOf(root)[0]?.screens.length, 0, "an outside symlink is not an in-run capture");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("completed assertion failures reach slice reporting without accepting partial or legacy nonzero runs", async () => {
+  const loaded = await load(ROOT, "fixture");
+  assert.ok(loaded.ok);
+  const blueprint = loaded.value.blueprint;
+  const ids = ["ret:doc.create", "ret:doc.submit"];
+  const root = mkdtempSync(join(tmpdir(), "portal-assertions-"));
+  try {
+    const directory = join(root, "status/runs/fixture");
+    mkdirSync(directory, { recursive: true });
+    const receipt: RunReceipt = { version: 1, id: "fixture", state: "complete", commit: "fixture-only", at: "2026-11-12T10:00:00Z", finishedAt: "2026-11-12T10:00:01Z",
+      environment: { world: "slice-zero", storage: "postgres", indexer: "ponder", stack: "postgres-ponder-erpnext-v4", components: {} },
+      requested: ids, evals: blueprint.evals.filter((e) => ids.includes(e.id)).map(({ id, claim, observes }) => ({ id, claim, ...(observes ? { observes } : {}) })),
+      scripts: [{ script: "fixture", evals: ids, completed: true, exitCode: 1, signal: null }], screens: [] };
+    const save = (r: RunReceipt, second: "fail" | "not_run") => {
+      const status = mergeResults(blueprint, null, { receipt: r, commit: r.commit, at: r.at, run: r.id,
+        results: [{ id: ids[0]!, verdict: "pass" }, { id: ids[1]!, verdict: second }] });
+      assert.ok(status.ok);
+      writeFileSync(join(directory, "receipt.json"), JSON.stringify(r));
+      writeFileSync(join(directory, "status.json"), JSON.stringify(status.value));
+    };
+    save(receipt, "fail");
+    const runs = sliceRunsOf(root);
+    assert.equal(runs[0]?.state, "complete");
+    assert.equal(sliceEvidence(blueprint, ids, runs).state, "failing");
+    assert.equal(sliceEvidence(blueprint, [ids[0]!], runs).state, "proved");
+    assert.notEqual(sliceEvidence(blueprint, sliceZeroRequired(blueprint), runs).state, "proved");
+    const partial = { ...receipt, state: "incomplete" as const, scripts: [
+      { script: "one", evals: [ids[0]!], completed: true, exitCode: 0, signal: null },
+      { script: "two", evals: [ids[1]!], completed: false, exitCode: null, signal: null },
+    ] };
+    save(partial, "not_run");
+    assert.equal(sliceRunsOf(root)[0]?.status.evals[ids[0]!]?.verdict, "pass");
+    assert.equal(sliceEvidence(blueprint, [ids[0]!], sliceRunsOf(root)).state, "incomplete");
+    assert.equal(sliceEvidence(blueprint, ids, sliceRunsOf(root)).passing, 0);
+    writeFileSync(join(directory, "receipt.json"), JSON.stringify({ ...receipt, scripts: [{ script: "legacy", exitCode: 1, signal: null }] }));
+    assert.throws(() => sliceRunsOf(root), /complete run must finish/);
+    writeFileSync(join(directory, "receipt.json"), JSON.stringify({ ...receipt, scripts: [] }));
+    assert.equal(sliceRunsOf(root)[0]?.state, "incomplete", "a zero-script receipt still cannot prove a slice");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
