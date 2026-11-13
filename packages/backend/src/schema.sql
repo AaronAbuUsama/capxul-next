@@ -47,8 +47,10 @@ create table if not exists app.transaction_traces (
 create table if not exists app.records (
   org_id text not null references app.organizations, id bigint generated always as identity,
   kind text not null, trace text not null, data jsonb not null, previous_hash text not null, hash text not null,
-  at timestamptz not null default now(), primary key (org_id, id)
+  at timestamptz not null, primary key (org_id, id)
 );
+-- A record's time is the caller's world instant (platform/db.ts record()); worlds migrated before this keep no default.
+alter table app.records alter column at drop default;
 -- Indexer tables are rebuildable. App data deliberately has no FK into ponder.
 create table if not exists app.world (
   singleton boolean primary key default true check (singleton), world_id text not null,

@@ -6,7 +6,7 @@ import { settleSitePayment } from "../approvals/door.ts";
 import { enqueue } from "./events.ts";
 
 const amount = (v: string) => formatUnits(BigInt(v), 6);
-export async function consume(sql: Sql, org: string, chain: number, finality: number) {
+export async function consume(sql: Sql, org: string, chain: number, finality: number, now: number) {
   await sql.query("select pg_advisory_xact_lock(hashtextextended($1,0))", [org]);
   const company = (await sql.query("select * from app.organizations where org_id=$1", [org])).rows[0]!;
   const progress = (await sql.query("select indexed_block from ponder.indexer_progress where chain_id=$1", [chain])).rows[0];
@@ -41,7 +41,7 @@ export async function consume(sql: Sql, org: string, chain: number, finality: nu
       await enqueue(sql, org, row.log_id, "payment_sent", {
         payment_id: f.payment_id, document_hash: f.document_hash, from_safe: f.sender, to: f.recipient,
         amount: amount(f.amount), asset: "USDC", tx_hash: f.tx_hash, block_time: time,
-      }, trace);
+      }, trace, now);
     } else if (row.kind === "transfer_in") {
       const first = !(await sql.query("select 1 from app.site_events where org_id=$1 and kind in ('founder_capital','deposit_received')", [org])).rowCount;
       const founder = (await sql.query("select * from app.people where org_id=$1 and email=$2", [org, company.admin_email])).rows[0];
@@ -49,7 +49,7 @@ export async function consume(sql: Sql, org: string, chain: number, finality: nu
       await enqueue(sql, org, row.log_id, capital ? "founder_capital" : "deposit_received", {
         to: f.to_address, from: f.from_address, amount: amount(f.amount), asset: "USDC", tx_hash: f.tx_hash, block_time: time,
         ...(capital ? { founder_email: founder.email, founder_name: founder.name } : {}),
-      }, trace);
+      }, trace, now);
     } else {
       const a = f.args;
       const hat = (await sql.query("select * from app.hats where org_id=$1 and hat_id=$2", [org, a.id])).rows[0]!;
@@ -59,9 +59,9 @@ export async function consume(sql: Sql, org: string, chain: number, finality: nu
         await enqueue(sql, org, `${row.log_id}:${kind}`, kind, {
           hat: hat.name, person_email: person?.email ?? null, person_name: person?.name ?? null,
           address: wearer, department: hat.department, tx_hash: f.tx_hash,
-        }, trace);
+        }, trace, now);
       }
     }
-    await record(sql, org, "indexed_fact_consumed", trace, { log_id: row.log_id, kind: row.kind, cutoff: cutoff.toString() });
+    await record(sql, org, "indexed_fact_consumed", trace, { log_id: row.log_id, kind: row.kind, cutoff: cutoff.toString() }, now);
   }
 }

@@ -23,7 +23,7 @@ export async function serveOrganization(db: Database, config: Pick<Config, "chai
   if (held && held.skip > 0) held.skip -= 1;
   else if (indexed) {
     try {
-      await db.transaction(org, (sql) => consume(sql, org, config.chainId, config.finality), true);
+      await db.transaction(org, async (sql) => consume(sql, org, config.chainId, config.finality, await worldNow(sql)), true);
       backoff.delete(org);
     } catch (error) {
       const failures = (held?.failures ?? 0) + 1;
@@ -48,7 +48,7 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
   let paused = config.startPaused, closing = false, activeRequests = 0, activeDeliveries = 0;
   let activeLoop: Promise<void> = Promise.resolve(), timer: ReturnType<typeof setTimeout> | undefined;
   let pauseWork: Promise<Awaited<ReturnType<typeof readSnapshotCut>>> | undefined;
-  const collector = new RequestCollector(db, { ...config, running: () => !paused && !closing });
+  const collector = new RequestCollector(db, { ...config, worldNow, running: () => !paused && !closing });
   const drained: (() => void)[] = [];
   function notifyDrain() { if (!activeRequests && !activeDeliveries) for (const done of drained.splice(0)) done(); }
   const waitForDrain = () => activeRequests || activeDeliveries ? new Promise<void>((done) => drained.push(done)) : Promise.resolve();
@@ -92,18 +92,18 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
     try {
       const answer = await db.transaction(org, async (sql) => {
         switch (url.pathname) {
-          case "/admin/org": return register(sql, b, trace);
+          case "/admin/org": return register(sql, b, trace, await worldNow(sql));
           case "/admin/org-info": return info(sql, org);
           case "/admin/release": return release(sql, org);
           case "/admin/status": return status(sql, org);
           case "/admin/resend": return resend(sql, org, Number(b.from ?? 1));
           case "/admin/retry-parked": return retryParked(sql, org, b.event_key, config.frappe, config.secret, worldNow);
           case "/prepare": {
-            const a = await prepare(sql, b, trace);
+            const a = await prepare(sql, b, trace, await worldNow(sql));
             return { approval_id: a.id, approval_url: `${config.url}/approve/${a.id}`, requested_by: a.requested_by };
           }
           case "/approvals/get": return get(sql, org, b.id);
-          case "/approvals/submitted": return submitted(sql, org, b.id, b.txHash, b.signer);
+          case "/approvals/submitted": return submitted(sql, org, b.id, b.txHash, b.signer, await worldNow(sql));
           case "/admin/record": return (await sql.query("select * from app.records where org_id=$1 order by id", [org])).rows;
           case "/admin/alerts": return alerts(db, sql, org, config.ponder, config.chainId, config.rpc);
           default: throw new Error("NOT_FOUND: unknown route");

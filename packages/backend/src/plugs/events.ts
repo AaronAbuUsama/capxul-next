@@ -1,7 +1,7 @@
 import { record, type Sql } from "../platform/db.ts";
 
 /** Internal to plugs: the door and the role projections both enqueue here, so neither imports the other's module. */
-export async function enqueue(sql: Sql, org: string, key: string, kind: string, data: unknown, trace: string, at?: number) {
+export async function enqueue(sql: Sql, org: string, key: string, kind: string, data: unknown, trace: string, at: number) {
   await sql.query("select pg_advisory_xact_lock(hashtextextended($1,0))", [org]);
   const old = await sql.query("select seq from app.site_events where org_id=$1 and event_key=$2", [org, key]);
   if (old.rowCount) return old.rows[0]!.seq;

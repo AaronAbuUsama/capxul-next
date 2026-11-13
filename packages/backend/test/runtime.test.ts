@@ -86,6 +86,8 @@ test("real v4/Ponder payment survives Core death, lost site ACK and replay witho
     if (core?.exitCode === null) { const exited = new Promise<void>((done) => core!.once("exit", () => done())); core.kill("SIGKILL"); await exited; }
   }
   try {
+    // Records take the world instant with no host fallback, so this disposable world runs a stopped clock.
+    await db.worker.query("update app.world set clock=$1", [{ nowMs: 1767225600000, clockMode: "stopped", rate: 1 }]);
     await start();
     await post("/org/site/provision", {}, 401);
     const registration = { slug: fixture.slug, name: fixture.companyName, safe: fixture.safe, site: "core.test", adminEmail: "founder@core.test", token: fixture.token,

@@ -36,7 +36,7 @@ export async function retryParked(sql: Sql, org: string, key: string, frappe: st
   }));
   if (ack.parked || ack.last_seq < Number(event.seq)) throw new Error("REPAIR_FAILED: site has not applied parked money event");
   await sql.query("update app.site_events set state='applied',last_error=null,applied_at=now(),map_version=$3 where org_id=$1 and event_key=$2", [org, key, ack.map_version ?? null]);
-  const at = event.kind === "hat_granted" ? await settleRoleDelivery(sql, org, key, ack, worldNow) : undefined;
+  const at = (event.kind === "hat_granted" ? await settleRoleDelivery(sql, org, key, ack, worldNow) : undefined) ?? await worldNow(sql);
   await record(sql, org, "site_event_repaired", event.trace, { event_key: key, seq: event.seq }, at);
   return status(sql, org);
 }
@@ -101,6 +101,6 @@ async function offer(sql: Sql, org: string, company: any, event: any, frappe: st
   const state = ack.parked ? "parked" : "applied";
   await sql.query("update app.site_events set state=$3,applied_at=now(),last_error=$4,map_version=$5 where org_id=$1 and seq=$2", [org, event.seq, state, ack.parked ? ack.error : null, ack.map_version ?? null]);
   await sql.query("update app.organizations set last_ack=$2,retry_at=null,failures=0 where org_id=$1", [org, event.seq]);
-  const at = event.kind === "hat_granted" ? await settleRoleDelivery(sql, org, event.event_key, ack, worldNow) : undefined;
+  const at = (event.kind === "hat_granted" ? await settleRoleDelivery(sql, org, event.event_key, ack, worldNow) : undefined) ?? await worldNow(sql);
   await record(sql, org, "site_event_acknowledged", event.trace, { seq: event.seq, state, duplicate: !ack.applied, map_version: ack.map_version ?? null }, at);
 }

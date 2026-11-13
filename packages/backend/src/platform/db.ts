@@ -38,13 +38,15 @@ export async function transaction<T>(client: Sql, org: string, run: (sql: Sql) =
   }
 }
 
-export async function record(sql: Sql, org: string, kind: string, trace: string, data: unknown, at?: number) {
+/** `at` is the caller's world instant in ms (worldNow), never host time: there is no fallback. */
+export async function record(sql: Sql, org: string, kind: string, trace: string, data: unknown, at: number) {
+  if (!Number.isSafeInteger(at) || at < 0) throw new Error("INVALID_INPUT: a record needs the caller's world instant");
   // The organization lock makes record order, hash chain and delivery order survive concurrent instances.
   await sql.query("select pg_advisory_xact_lock(hashtextextended($1, 0))", [org]);
   await sql.query(`insert into app.records (org_id, kind, trace, data, previous_hash, hash, at)
     select $1, $2, $3, $4, coalesce(p.hash, ''),
       encode(sha256(convert_to(coalesce(p.hash, '') || $2 || $3 || $4::jsonb::text, 'UTF8')), 'hex'),
-      coalesce(to_timestamp($5::double precision / 1000), now())
+      to_timestamp($5::double precision / 1000)
     from (select (select hash from app.records where org_id=$1 order by id desc limit 1) as hash) p`,
-  [org, kind, trace, JSON.stringify(data), at ?? null]);
+  [org, kind, trace, JSON.stringify(data), at]);
 }

@@ -21,7 +21,7 @@ export type Prepare = {
   request_id: string; org: string; site: string; doctype: string; name: string; document_hash: string;
   requested_by: string; to_party: string; to_address: string; amount: string; asset: string; department?: string;
 };
-export async function prepare(sql: Sql, b: Prepare, trace: string) {
+export async function prepare(sql: Sql, b: Prepare, trace: string, now: number) {
   await sql.query("select pg_advisory_xact_lock(hashtextextended($1,0))", [b.org]);
   for (const key of ["request_id", "org", "site", "doctype", "name", "document_hash", "requested_by", "to_party", "to_address", "amount"] as const) {
     if (typeof b[key] !== "string" || !b[key]) throw new Error(`INVALID_INPUT: missing ${key}`);
@@ -41,7 +41,7 @@ export async function prepare(sql: Sql, b: Prepare, trace: string) {
   if (!row.same) throw new Error("IDEMPOTENCY_CONFLICT: request ID reused with different payment terms");
   // Recording only once is part of the same transaction as the approval.
   if (!(await sql.query("select 1 from app.records where org_id=$1 and kind='approval_prepared' and data->>'id'=$2", [b.org, row.id])).rowCount) {
-    await record(sql, b.org, "approval_prepared", trace, { id: row.id, request_id: b.request_id, document_hash: normalized.document_hash });
+    await record(sql, b.org, "approval_prepared", trace, { id: row.id, request_id: b.request_id, document_hash: normalized.document_hash }, now);
   }
   return view(row);
 }
@@ -53,7 +53,7 @@ export async function get(sql: Sql, org: string, id: string) {
   if (!row) throw new Error("NOT_FOUND: unknown approval");
   return view(row);
 }
-export async function submitted(sql: Sql, org: string, id: string, hash: string, signer: string) {
+export async function submitted(sql: Sql, org: string, id: string, hash: string, signer: string, now: number) {
   if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) throw new Error("INVALID_INPUT: transaction hash required");
   await sql.query("select pg_advisory_xact_lock(hashtextextended($1,0))", [org]);
   const row = (await sql.query("select * from app.site_payment_approvals where org_id=$1 and id=$2 for update", [org, id])).rows[0];
@@ -63,7 +63,7 @@ export async function submitted(sql: Sql, org: string, id: string, hash: string,
   if (row.status === "pending") {
     await sql.query("update app.site_payment_approvals set status='submitted',tx_hash=$3 where org_id=$1 and id=$2", [org, id, hash.toLowerCase()]);
     await sql.query(`insert into app.transaction_traces (org_id,tx_hash,trace) values ($1,$2,$3) on conflict do nothing`, [org, hash.toLowerCase(), row.trace]);
-    await record(sql, org, "approval_submitted", row.trace, { id, tx_hash: hash.toLowerCase(), signer });
+    await record(sql, org, "approval_submitted", row.trace, { id, tx_hash: hash.toLowerCase(), signer }, now);
   }
   // A caller's report does not settle money: only a matching indexed PaymentSent can do that.
   return get(sql, org, id);

@@ -90,8 +90,8 @@ test("plugs delivery on the real migrate path: legacy and role ACKs, guarded bac
       await t.test("legacy and role-keyed hat ACKs settle without the composed transition outbox", async () => {
         await org("real");
         await core.transaction("real", async (tx) => {
-          await enqueue(tx, "real", "84532:0xlegacy:1:hat_granted", "hat_granted", {}, "tr_legacy");
-          await enqueue(tx, "real", "role:projected-elsewhere", "hat_granted", {}, "tr_role");
+          await enqueue(tx, "real", "84532:0xlegacy:1:hat_granted", "hat_granted", {}, "tr_legacy", at);
+          await enqueue(tx, "real", "role:projected-elsewhere", "hat_granted", {}, "tr_role", at);
         }, true);
         await deliver(core, "real", origin, secret, worldNow); await deliver(core, "real", origin, secret, worldNow);
         assert.deepEqual((await events("real")).map((e) => e.state), ["applied", "applied"]);
@@ -101,7 +101,7 @@ test("plugs delivery on the real migrate path: legacy and role ACKs, guarded bac
       await t.test("backoff after a refusal is not charged once another instance delivered that event", async () => {
         await org("raced");
         await core.transaction("raced", async (tx) => {
-          await enqueue(tx, "raced", "raced-1", "hat_revoked", {}, "tr_r1"); await enqueue(tx, "raced", "raced-2", "hat_revoked", {}, "tr_r2");
+          await enqueue(tx, "raced", "raced-1", "hat_revoked", {}, "tr_r1", at); await enqueue(tx, "raced", "raced-2", "hat_revoked", {}, "tr_r2", at);
         }, true);
         refuse.add("raced");
         const error = await deliver(core, "raced", origin, secret, worldNow).then(() => null, (e) => e);
@@ -118,7 +118,7 @@ test("plugs delivery on the real migrate path: legacy and role ACKs, guarded bac
 
       await t.test("one organization's refused delivery does not throw out of the worker or stop the next organization", async () => {
         await org("a-bad"); await org("b-good");
-        for (const id of ["a-bad", "b-good"]) await core.transaction(id, (tx) => enqueue(tx, id, `${id}-1`, "hat_revoked", {}, `tr_${id}`), true);
+        for (const id of ["a-bad", "b-good"]) await core.transaction(id, (tx) => enqueue(tx, id, `${id}-1`, "hat_revoked", {}, `tr_${id}`, at), true);
         refuse.add("a-bad");
         const config = { chainId: 84532, finality: 0, frappe: origin, secret };
         const consumed: ConsumeBackoff = new Map();

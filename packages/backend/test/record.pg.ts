@@ -9,7 +9,7 @@ if (!url || new URL(url).pathname !== "/record_test" || !["localhost", "127.0.0.
   throw new Error("RECORD_TEST_ADMIN_URL must name a dedicated loopback record_test database");
 }
 
-test("records preserve supplied world instants, caller rollback, ordering and legacy database time", async () => {
+test("records preserve supplied world instants, caller rollback and ordering, with no database-time fallback", async () => {
   const sql = new pg.Client({ connectionString: url });
   await sql.connect();
   // The callback Sites requires: an older five-argument implementation is assignable but ignores its instant.
@@ -34,14 +34,12 @@ test("records preserve supplied world instants, caller rollback, ordering and le
     }), /abort-source/);
     assert.deepEqual(await rows(), before, "source rollback must also remove its dated event");
     assert.equal((await sql.query("select name from app.organizations where org_id='clock-org'")).rows[0].name, "before");
-    const databaseNow = await transaction(sql, "clock-org", async (tx) => {
-      const now = (await tx.query("select now() as at")).rows[0].at;
-      await record(tx, "clock-org", "clock_control", "legacy", {});
-      return now;
-    });
-    const after = await rows();
-    assert.equal(after.length, 5);
-    assert.equal(after[4].at.getTime(), databaseNow.getTime());
-    assert.equal(after[4].previous_hash, before[3].hash);
+    // No host-clock fallback (inv:time.no-direct-reads): a record without the caller's world instant is refused,
+    // and the column has no default for a writer that bypasses record().
+    await assert.rejects(transaction(sql, "clock-org", (tx) => record(tx, "clock-org", "clock_control", "missing", {}, undefined as unknown as number)),
+      /INVALID_INPUT/);
+    await assert.rejects(sql.query(`insert into app.records (org_id,kind,trace,data,previous_hash,hash)
+      values ('clock-org','clock_control','bypass','{}','','')`), /null value in column "at"/);
+    assert.deepEqual(await rows(), before);
   } finally { await sql.end(); }
 });

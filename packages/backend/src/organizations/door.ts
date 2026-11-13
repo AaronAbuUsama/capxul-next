@@ -60,7 +60,7 @@ export type Registration = {
   people?: { email: string; name: string; address: string; personalSafe?: string }[];
 };
 const address = /^0x[0-9a-fA-F]{40}$/;
-export async function register(sql: Sql, b: Registration, trace: string) {
+export async function register(sql: Sql, b: Registration, trace: string, now: number) {
   if (!/^[a-z][a-z0-9-]{1,30}$/.test(b.slug) || !address.test(b.safe) || !address.test(b.token) || !b.site || !b.name || !b.adminEmail) {
     throw new Error("INVALID_INPUT: company slug, Safe, token, site, name and founder are required");
   }
@@ -81,7 +81,7 @@ export async function register(sql: Sql, b: Registration, trace: string) {
     await sql.query(`insert into app.hats (org_id,hat_id,name,department) values ($1,$2,$3,$4)
       on conflict (org_id,hat_id) do update set name=excluded.name,department=excluded.department`, [b.slug, id, h.name, h.department ?? null]);
   }
-  if (!existing) await record(sql, b.slug, "company_registered", trace, { safe: b.safe.toLowerCase(), site: b.site });
+  if (!existing) await record(sql, b.slug, "company_registered", trace, { safe: b.safe.toLowerCase(), site: b.site }, now);
   return info(sql, b.slug);
 }
 export async function info(sql: Sql, org: string) {

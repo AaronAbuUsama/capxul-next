@@ -20,13 +20,6 @@
    "why": "identifier entropy prefix for ordering and uniqueness; never read back as a date"
   },
   {
-   "file": "packages/backend/src/platform/db.ts",
-   "match": "coalesce(to_timestamp($5::double precision / 1000), now())",
-   "label": "owed",
-   "why": "a record's business time falls back to the host when the caller passes none; every caller must pass worldNow",
-   "owner": "Core"
-  },
-  {
    "file": "packages/backend/src/platform/diagnostics.ts",
    "match": "then now() else app.indexer_observation.last_advance_at",
    "label": "owed",
@@ -124,13 +117,6 @@
    "label": "owed",
    "why": "site_events.created_at is when the event happened in the world; writers must pass worldNow",
    "owner": "Frappe/Plugs"
-  },
-  {
-   "file": "packages/backend/src/schema.sql",
-   "match": "at timestamptz not null default now(), primary key (org_id, id)",
-   "label": "owed",
-   "why": "records.at is business time; see platform/db.ts record()",
-   "owner": "Core"
   },
   {
    "file": "packages/backend/src/schema.sql",

@@ -31,8 +31,9 @@ export async function bindIndexer(sql: Sql) {
     await sql.query(`grant select on app.${table} to capxul_core,capxul_worker`);
   }
   // Ponder owns these status rows; do not manufacture readiness in a historical block handler. `ready` is Ponder's
-  // backfill/rebuild state only (table indexer-progress). No clock in a predicate (time.no-direct-reads): heartbeat
-  // liveness is elapsed transport time, judged from head_seen_at by diagnostics, never by world time.
+  // backfill/rebuild state only (table indexer-progress), so a Ponder killed while locked can still read ready here. No
+  // clock in a predicate (time.no-direct-reads): liveness is diagnostics' indexerState (Ponder's /ready, the chain head
+  // and indexer_observation.last_advance_at), elapsed transport time, never world time. Gate money work on that too.
   await sql.query(`create or replace view app.indexer_progress with (security_barrier=true) as
     select p.chain_id,p.indexed_block,p.indexed_block_hash,p.indexed_block_time,
       substring(c.latest_checkpoint,27,16)::numeric as head_block,

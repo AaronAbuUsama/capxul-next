@@ -49,12 +49,13 @@ test("real PG approvals migration, atomic birth, signer isolation and durable no
     await migrateApprovals(admin);
 
     await t.test("rename preserves committed prepare/get/submitted/settlement identity", async () => {
-      const prepared = await tenant((sql) => prepare(sql, legacy, "ignored-replay-trace"));
+      const instant = 1_700_000_000_000; // a world instant: records take no host time
+      const prepared = await tenant((sql) => prepare(sql, legacy, "ignored-replay-trace", instant));
       assert.equal(prepared.id, "apr_preserved"); assert.equal(prepared.trace, "legacy-trace");
       await assert.rejects(db.transaction("different-org", (sql) => get(sql, legacy.org, prepared.id)), /NOT_FOUND/);
-      await assert.rejects(tenant((sql) => prepare(sql, { ...legacy, amount: "12.35" }, "changed")), /IDEMPOTENCY_CONFLICT/);
+      await assert.rejects(tenant((sql) => prepare(sql, { ...legacy, amount: "12.35" }, "changed", instant)), /IDEMPOTENCY_CONFLICT/);
       const hash = `0x${"87".repeat(32)}`;
-      assert.equal((await tenant((sql) => submitted(sql, legacy.org, prepared.id, hash, "signer@test"))).status, "submitted");
+      assert.equal((await tenant((sql) => submitted(sql, legacy.org, prepared.id, hash, "signer@test", instant))).status, "submitted");
       assert.deepEqual(await tenant((sql) => settleSitePayment(sql, { org: legacy.org, document_hash: legacy.document_hash, recipient, amount_raw: "12340001", tx_hash: hash })), { matched: false });
       assert.deepEqual(await tenant((sql) => settleSitePayment(sql, { org: legacy.org, document_hash: legacy.document_hash, recipient: sender, amount_raw: "12340000", tx_hash: hash })), { matched: false });
       await assert.rejects(tenant(async (sql) => { await settleSitePayment(sql, { org: legacy.org, document_hash: legacy.document_hash, recipient, amount_raw: "12340000", tx_hash: hash }); throw new Error("abort settlement"); }), /abort settlement/);

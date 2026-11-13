@@ -261,9 +261,13 @@ test("role projections retain caller atomicity, exact occurrences, shared roles 
         assert.deepEqual((await admin.query("select event from app.transition_outbox where event->>'owner_id'='repair-history' order by id")).rows, saved);
 
         await admin.query("insert into app.organizations(org_id,name,safe,site,admin_email,token,released) values ('legacy-ack','Legacy','safe','legacy.test','legacy@test','asset',true)");
-        await db.transaction("legacy-ack", sql => enqueue(sql, "legacy-ack", "legacy", "hat_granted", {}, "legacy"), true);
+        await db.transaction("legacy-ack", sql => enqueue(sql, "legacy-ack", "legacy", "hat_granted", {}, "legacy", at + 99), true);
+        // A legacy hat ACK has no grant projection, but its record still takes the world instant, never host time.
         await admin.query("update app.world set clock='{}'");
+        await assert.rejects(deliver(db, "legacy-ack", origin, secret, worldNow), /INVALID_CLOCK/);
+        await admin.query("update app.world set clock=$1", [{ nowMs: at + 123, clockMode: "stopped", rate: 1 }]);
         await deliver(db, "legacy-ack", origin, secret, worldNow);
+        assert.equal((await admin.query("select at from app.records where org_id='legacy-ack' order by id desc limit 1")).rows[0].at.getTime(), at + 123);
         assert.equal((await admin.query("select state from app.site_events where org_id='legacy-ack'")).rows[0].state, "applied");
         assert.equal((await admin.query("select * from app.role_grants where org_id='legacy-ack'")).rowCount, 0);
 

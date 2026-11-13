@@ -2,10 +2,12 @@ import { io, type Socket } from "socket.io-client";
 import { Effect } from "effect";
 import { prepare, type Prepare } from "../approvals/door.ts";
 import { transaction, type Database } from "../platform/db.ts";
+import type { WorldNow } from "./roles.ts";
 import { createFrappeSite, type FrappeSite } from "./site.ts";
 
 type Site = { org_id: string; site: string };
-type Options = { frappe: string; socket: string; secret: string; url: string; running: () => boolean };
+/** Composition supplies the world clock read in the answer's transaction; a record takes no host time. */
+type Options = { frappe: string; socket: string; secret: string; url: string; running: () => boolean; worldNow: WorldNow };
 type Listener = { socket?: Socket; retry?: ReturnType<typeof setTimeout> | undefined; dirty: boolean;
   work?: Promise<void> | undefined; connecting?: Promise<void> | undefined };
 export class RequestCollector {
@@ -44,7 +46,7 @@ export class RequestCollector {
             await sql.query("savepoint prepare_request");
             let answer;
             try {
-              const a = await prepare(sql, body, trace);
+              const a = await prepare(sql, body, trace, await this.options.worldNow(sql));
               answer = { org: site.org_id, request_id: body.request_id, approval_id: a.id, approval_url: `${this.options.url}/approve/${a.id}`, requested_by: a.requested_by };
             } catch (error) {
               await sql.query("rollback to savepoint prepare_request");
