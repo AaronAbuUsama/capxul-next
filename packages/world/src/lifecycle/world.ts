@@ -15,6 +15,7 @@ import { ensureToken, mintAll, TEST_USDC } from "../chain/faucet.ts";
 import { CORE_MIGRATIONS } from "../core/Core.ts";
 import { migrate } from "../database/sql.ts";
 import { LifetimeTooLong, SiteFailed } from "../failures.ts";
+import { explained } from "../index/account.ts";
 import { BenchStage, grant, makeSites, removeSites } from "../site/Bench.ts";
 import { deployStage, destroyStage, forgetStage, recordOutput, recordedOutput } from "../stack/engine.ts";
 import { PLATFORM, stageOf } from "../stack/names.ts";
@@ -169,7 +170,7 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
     yield* Effect.logInfo(`world ${plan.stage}: test USDC at ${TEST_USDC}, minted to ${funded.length} addresses`);
     // The index and the bundler come up side by side: neither waits on the other, and each step has its own duration.
     const [, bundler] = yield* Effect.all(
-      [watch.step("index", indexReady(world)), watch.step("bundler", bringUpBundler(world, call))],
+      [explained(world, watch.step("index", indexReady(world))), watch.step("bundler", bringUpBundler(world, call))],
       { concurrency: 2 },
     );
     yield* Effect.logInfo(`world ${plan.stage}: the index is ready`);

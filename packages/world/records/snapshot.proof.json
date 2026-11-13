@@ -1,7 +1,7 @@
 {
   "proof": "the platform's four operations make, save and restore whole worlds",
   "outcome": "passed",
-  "at": "2026-11-13T14:44:12.378Z",
+  "at": "2026-11-13T18:35:18.650Z",
   "checks": [
     {
       "check": "the new world runs, frozen, with no parent and its birth as its record",
@@ -78,8 +78,8 @@
       "owner": "proof-snap",
       "grade": "private",
       "state": "running",
-      "expiresAt": "2026-11-13T15:19:19.931Z",
-      "door": "https://capxulworld-core-w-p-snap-7ezmtwl6ue53nyhm.thedao.workers.dev",
+      "expiresAt": "2026-11-13T19:10:32.450Z",
+      "door": "https://capxulworld-core-w-p-snap-ioxmzhlgkd4og5w6.thedao.workers.dev",
       "chainId": 84532,
       "contracts": {
         "usdc": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
@@ -92,7 +92,7 @@
       },
       "clock": {
         "mode": "frozen",
-        "now": "2026-11-13T14:39:19.928Z"
+        "now": "2026-11-13T18:30:32.448Z"
       },
       "recordHead": 1,
       "parent": null,
@@ -131,23 +131,23 @@
       "companies": []
     },
     "startBlock": {
-      "hash": "0xca86a828d3a2222323dd93425d12e864915c0f7dae95dcc6004871413796ec88",
-      "parentHash": "0x4dfcf93cbed1ecc37d44757d2ec43b99ebaf1b48dfee098fdfb2894004ffbfcb",
+      "hash": "0xea0d9438426c2f6b3259e8b56edbc225624bcae5ae3614ff7937ff2a033e89f1",
+      "parentHash": "0x6c55d4134f0d0b8d0cec32ccbab9b73daa67b88958c8a8ab27a91bf1b3f699a7",
       "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
       "miner": "0x4200000000000000000000000000000000000011",
-      "stateRoot": "0xffba325902ff50e61a2430a0dbe4271dcb0edddf2c289551758a738f1722b2fc",
+      "stateRoot": "0x2174af979737c0507ee97396e37354673dc98e5408c34d53ecf1af3be3051461",
       "transactionsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
       "receiptsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
       "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
       "difficulty": "0x0",
-      "number": "0x2dacb15",
+      "number": "0x2dacb1b",
       "gasLimit": "0x1c9c380",
       "gasUsed": "0x0",
-      "timestamp": "0x6af72117",
+      "timestamp": "0x6af75748",
       "extraData": "0x",
-      "mixHash": "0x41283cd29e18f7527c0734f111957afbce725c50104f39c500d6ed2288a64262",
+      "mixHash": "0x5ab9892f984eba148888633c0618ae1c836c5b6e467d5fa2f75488e18a033877",
       "nonce": "0x0000000000000000",
-      "baseFeePerGas": "0x4a030e",
+      "baseFeePerGas": "0x494beb",
       "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
       "blobGasUsed": "0x0",
       "excessBlobGas": "0x0",
@@ -165,12 +165,12 @@
       "recordSeq": 1,
       "clock": {
         "mode": "frozen",
-        "now": "2026-11-13T14:39:19.928Z"
+        "now": "2026-11-13T18:30:32.448Z"
       },
       "template": false,
-      "savedAt": "2026-11-13T14:41:16.018Z",
+      "savedAt": "2026-11-13T18:32:32.436Z",
       "companies": 0,
-      "migrations": "0003_world.sql"
+      "migrations": "0005_approvals.sql"
     },
     "refusals": {
       "again": "SnapshotExists",
@@ -185,8 +185,8 @@
       "owner": "proof-snap",
       "grade": "private",
       "state": "running",
-      "expiresAt": "2026-11-13T15:01:39.804Z",
-      "door": "https://capxulworld-core-w-p-snap2-lcqv7l3mkeufszvz.thedao.workers.dev",
+      "expiresAt": "2026-11-13T18:52:52.509Z",
+      "door": "https://capxulworld-core-w-p-snap2-4fs3kwwdvrgmpngd.thedao.workers.dev",
       "chainId": 84532,
       "contracts": {
         "usdc": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
@@ -199,7 +199,7 @@
       },
       "clock": {
         "mode": "frozen",
-        "now": "2026-11-13T14:39:19.928Z"
+        "now": "2026-11-13T18:30:32.448Z"
       },
       "recordHead": 2,
       "parent": {
@@ -250,7 +250,7 @@
             "owner": "proof-snap",
             "world": "p-snap",
             "parent": null,
-            "expiresAt": "2026-11-13T15:19:19.931Z"
+            "expiresAt": "2026-11-13T19:10:32.450Z"
           }
         },
         {
@@ -271,7 +271,7 @@
             "owner": "proof-snap",
             "world": "p-snap",
             "parent": null,
-            "expiresAt": "2026-11-13T15:19:19.931Z"
+            "expiresAt": "2026-11-13T19:10:32.450Z"
           }
         },
         {
@@ -285,7 +285,7 @@
               "snapshot": "s1",
               "recordSeq": 1
             },
-            "expiresAt": "2026-11-13T15:01:39.804Z"
+            "expiresAt": "2026-11-13T18:52:52.509Z"
           }
         }
       ]
@@ -296,29 +296,12 @@
     },
     "inventory": {
       "before": {
-        "workers": [
-          "capxulworld-core-w-p-fresh-rgzloebf33efe2rq",
-          "capxulworld-door-w-p-fresh-px5fl4du2gtfa2yg"
-        ],
-        "containerApplications": [
-          "capxulworld-alto-w-p-fresh-gouwwfqilijdapxy",
-          "capxulworld-ponder-w-p-fresh-3mvahsfnzqn3rjmm",
-          "capxulworld-anvil-w-p-fresh-ijej6stmo442ywhj"
-        ],
-        "durableObjectNamespaces": [
-          "capxulworld-door-w-p-fresh-px5fl4du2gtfa2yg",
-          "capxulworld-door-w-p-fresh-px5fl4du2gtfa2yg",
-          "capxulworld-door-w-p-fresh-px5fl4du2gtfa2yg"
-        ],
-        "r2Buckets": [
-          "capxulworld-chainstate-w-p-fork-dzlgmtnn5dlqn3qt",
-          "capxulworld-chainstate-w-p-fresh-nfmulc76swqgfsxg"
-        ],
-        "hyperdriveConfigurations": [
-          "capxulworld-world-db-w-p-fresh-ohm6v5agsmyk7nvl"
-        ],
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
         "neonBranches": [
-          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-p-fresh",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
@@ -329,26 +312,12 @@
         ]
       },
       "after": {
-        "workers": [
-          "capxulworld-door-w-wc4-m8yq098n-bh5pocdhe5dimdbk"
-        ],
-        "containerApplications": [
-          "capxulworld-anvil-w-wc4-m8yq098n-axt6tsc25e7z5g23"
-        ],
-        "durableObjectNamespaces": [
-          "capxulworld-door-w-wc4-m8yq098n-bh5pocdhe5dimdbk",
-          "capxulworld-door-w-wc4-m8yq098n-bh5pocdhe5dimdbk"
-        ],
-        "r2Buckets": [
-          "capxulworld-chainstate-w-p-cli-myunuf6w5t3yhwdw",
-          "capxulworld-chainstate-w-wc4-m8yq098n-ygldz3av2adloa2p"
-        ],
-        "hyperdriveConfigurations": [
-          "capxulworld-world-db-w-wc4-m8yq098n-zij5i6ncjsdnmtxb"
-        ],
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
         "neonBranches": [
-          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-wc4-m8yq098n",
-          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-p-cli",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
         ],
@@ -359,7 +328,9 @@
         ]
       },
       "leftOfTheseWorlds": [],
-      "sameAsBefore": false
+      "sameAsBefore": true,
+      "sameAsBeforeAccountWide": true,
+      "otherWorlds": []
     }
   }
 }

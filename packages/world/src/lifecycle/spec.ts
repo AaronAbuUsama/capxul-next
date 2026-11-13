@@ -118,16 +118,21 @@ const limit = (step: StepName, fallback: Duration.Duration) =>
   Config.Duration(`WORLD_TIMEOUT_${Str.toUpperCase(step)}`).pipe(Config.withDefault(fallback));
 
 /** The declared timeout of every step. Each can be set in the environment, as WORLD_TIMEOUT_<STEP>. */
+// A step that waits on a container holds its Durable Object's patience with a refused start (src/containers/patience.ts)
+// and the time the part takes once started; test/patience.test.ts checks that each step's default holds both.
 export const Timeouts = Config.all({
   claim: limit("claim", Duration.seconds(45)),
   deploy: limit("deploy", Duration.minutes(4)),
   migrate: limit("migrate", Duration.seconds(45)),
+  // CHAIN_START, 2 minutes, and a minute for a fork or a restore to copy its source's chain state (up to 46.7 s seen).
   chain: limit("chain", Duration.minutes(3)),
   fund: limit("fund", Duration.minutes(1)),
-  // A new container application refuses starts for a while (records/spike-bundler): alto has 4 minutes inside its
-  // Durable Object, and the paymaster's setup comes before.
+  // A new container application refuses starts for a while (records/spike-bundler): alto has BUNDLER_START, 4 minutes,
+  // inside its Durable Object, and the paymaster's setup comes before.
   bundler: limit("bundler", Duration.minutes(5)),
-  index: limit("index", Duration.minutes(3)),
+  // INDEX_START, 4 minutes, for Cloudflare to accept Ponder's start, then a minute for Ponder's own start, twice the
+  // slowest of nineteen measured (29.8 s from the accepted start to ready). Was 3 minutes: see README, Timings.
+  index: limit("index", Duration.minutes(5)),
   core: limit("core", Duration.minutes(1)),
   site: limit("site", Duration.minutes(8)),
   use: limit("use", Duration.minutes(10)),
