@@ -3,7 +3,7 @@
 // span under the trace the SDK sent; a wrong token is refused; another path is a 404 in JSON.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { Errors, operations, type OperationName } from "@capxul/blueprint";
+import { Errors, isRefusal, operations, type OperationName } from "@capxul/blueprint";
 import * as Sdk from "@capxul/sdk";
 import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
@@ -11,6 +11,7 @@ import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
+import * as Rec from "effect/Record";
 import * as Redacted from "effect/Redacted";
 import * as Schema from "effect/Schema";
 import * as Scope from "effect/Scope";
@@ -20,6 +21,10 @@ import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import * as HttpEffect from "effect/http/HttpEffect";
 import * as RpcSerialization from "effect/rpc/RpcSerialization";
 import { CoreIdentity, PLATFORM_PATH, Served, serveDoors, SpanSink, WORLD_PATH, type KeptSpan } from "../src/door.ts";
+import { madeFromNothing, siteOps, siteOpsInMemory } from "../src/site-ops/door.ts";
+
+/** The operations that are built answer as they are built (test/site-ops.test.ts); the rest are still empty. */
+const built: ReadonlyArray<string> = Rec.keys(siteOps);
 
 const BASE = "https://core.test";
 const DOOR = Redacted.make("door-token");
@@ -38,6 +43,7 @@ const core = (kept: Array<KeptSpan>) => {
   });
   const served = Served.pipe(
     Layer.provideMerge(RpcSerialization.layerJson),
+    Layer.provide(siteOpsInMemory({ record: [madeFromNothing("town", "ci", 0)] })),
     Layer.provide(Layer.merge(sink, identity)),
   );
   // The doors' Rpc servers start once, in a scope that lives as long as the test; each request is then handled.
@@ -82,16 +88,23 @@ const callAll = (tokens: { readonly door: Redacted.Redacted; readonly platform: 
 const errorOf = (exit: Exit.Exit<unknown, unknown>): unknown =>
   Exit.isFailure(exit) ? exit.cause.pipe(Cause.findErrorOption, Option.getOrUndefined) : undefined;
 
-test("through the SDK, each of the twelve answers NotImplemented at its door, under the trace the SDK sent", async () => {
+test("through the SDK, each of the twelve answers at its door, the unbuilt NotImplemented, under the trace the SDK sent", async () => {
   const { calls, kept } = await Effect.runPromise(callAll({ door: DOOR, platform: PLATFORM }));
   assert.equal(calls.length, 12);
   for (const { name, exit, traceId } of calls) {
     const error = errorOf(exit);
-    assert.ok(
-      Schema.is(Errors.NotImplemented)(error),
-      `${name} did not answer NotImplemented: ${Exit.isFailure(exit) ? Cause.pretty(exit.cause) : "success"}`,
-    );
-    assert.equal(error.operation, name);
+    if (Arr.contains(built, name))
+      assert.ok(
+        Exit.isSuccess(exit) || isRefusal(operations[name], error),
+        `${name} did not answer a success or a declared refusal: ${Exit.isFailure(exit) ? Cause.pretty(exit.cause) : ""}`,
+      );
+    else {
+      assert.ok(
+        Schema.is(Errors.NotImplemented)(error),
+        `${name} did not answer NotImplemented: ${Exit.isFailure(exit) ? Cause.pretty(exit.cause) : "success"}`,
+      );
+      assert.equal(error.operation, name);
+    }
     const own = Arr.filter(kept, (span) => span.name === name);
     assert.equal(own.length, 1, `${name}: ${own.length} server spans`);
     assert.equal(own[0]?.traceId, traceId, `${name}: the server span is not under the caller's trace`);
