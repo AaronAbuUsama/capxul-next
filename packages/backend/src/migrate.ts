@@ -3,7 +3,10 @@ import pg from "pg";
 import { migrateAccess } from "./access/door.ts";
 import { migrateAccounts } from "./accounts/door.ts";
 import { migrateActivity } from "./activity/door.ts";
+import { migrateAgents } from "./agents/door.ts";
 import { migrateApprovals } from "./approvals/migrate.ts";
+import { migrateDocuments } from "./documents/door.ts";
+import { migrateMedia } from "./media/door.ts";
 import { migrate as migrateOrganizations } from "./organizations/door.ts";
 import { migratePayments } from "./payments/door.ts";
 import { required } from "./platform/config.ts";
@@ -48,6 +51,8 @@ try {
   await migrateOutbox(db); await migrateAccess(db); await migrateAccounts(db);
   await db.query(readFileSync(new URL("./parties/schema.sql", import.meta.url), "utf8"));
   await migrateOrganizations(db);
+  // Agents and documents policies call Organizations' current_member/caller_safes; agents reads Access's principals.
+  await migrateAgents(db); await migrateDocuments(db); await migrateMedia(db);
   await db.query(readFileSync(new URL("./schema-per-org.sql", import.meta.url), "utf8"));
   // Organizations keeps its own policies and grants (organizations/schema.sql); the per-organization tables take this one.
   const tables = ["people", "hats", "approvals", "site_events", "consumed_facts", "site_request_answers", "transaction_traces", "records"];

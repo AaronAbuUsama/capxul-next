@@ -61,9 +61,11 @@ test("native sessions: tenants and admissions on documents, files and agents fol
     const shared = await as(ann.token, () => store(sql, doc("shared", [ann.safe, bob.safe]), async () => now));
     const own = await as(ann.token, () => store(sql, doc("own", [ann.safe]), async () => now));
     const org = { id: "org_sessions", safe: `0x${"c".repeat(40)}` };
+    const orgParty = await worker(() => register(sql, { kind: "organization", handle: "sessions-co", display_name: "Sessions", safe_address: org.safe, owner_kind: "organization", owner_id: org.id }, now, "sessions-native"));
     await sql.query("set local role none");
-    await sql.query("insert into app.organizations(org_id,name,safe,site,admin_email,token) values($1,'Sessions',$2,'sessions.site','a@sessions.test','t')", [org.id, org.safe]);
-    await worker(() => register(sql, { kind: "organization", handle: "sessions-co", display_name: "Sessions", safe_address: org.safe, owner_kind: "organization", owner_id: org.id }, now, "sessions-native"));
+    await sql.query(`insert into app.organizations(org_id,party_id,name,country,chain_id,safe_address,founder_party_id,founder_safe,
+      seat_limit,abbr,default_currency,time_zone,fiscal_year_start,created_at,updated_at)
+      values($1,$2,'Sessions','GH',84532,$3,$2,$3,10,'SX','USD','Africa/Accra','01-01',$4,$4)`, [org.id, orgParty.party_id, org.safe, now]);
     await sql.query("set local role none");
     const bobParty = (await sql.query("select party_id from app.parties where safe_address=$1", [bob.safe])).rows[0].party_id;
     await sql.query(`insert into app.org_members(org_id,member_id,party_id,principal_id,kind,safe_address,seat_use,status,joined_at,updated_at)
