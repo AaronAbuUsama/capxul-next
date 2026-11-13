@@ -64,7 +64,7 @@ test("accounts.admission.admit refuses unsigned, wrongly signed and session-only
     // Refused before the body is read: Core may answer while the client still sends, which fetch reports as a reset.
     const early = (headers: Record<string, string> = {}, path = "/test/large/upload") =>
       post(path, big, headers).then((r) => r.status, () => "reset");
-    for (const headers of [{}, { authorization: "Bearer not-a-session-token" }, { authorization: `Bearer ${"A".repeat(43)}` }])
+    for (const headers of [{}, { authorization: "Bearer not-a-session-token" }, { authorization: `Bearer ${"A".repeat(43)}` }] as Record<string, string>[])
       assert([401, "reset"].includes(await early(headers)));
     assert.equal(reached, 0, "no unauthenticated large body reaches the route");
     const shaped = await post("/test/large/upload", big, { authorization: `Bearer ${session.token}` });

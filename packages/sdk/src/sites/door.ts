@@ -1,5 +1,7 @@
 import type { Address, Hex, LocalAccount } from "viem";
 
+export * from "./documents.ts";
+
 export const PROVISION_PATH = "/org/site/provision";
 export const provisioningMessage = (origin: string, raw: string): string =>
   `Capxul site provisioning\n${new URL(origin).origin}\nPOST ${PROVISION_PATH}\n${raw}`;
