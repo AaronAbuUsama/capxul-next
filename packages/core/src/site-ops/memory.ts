@@ -27,6 +27,15 @@ export const testSiteDoor = (sites: ReadonlyArray<TestSite>) =>
     SiteDoor,
     SiteDoor.of({
       sites: Effect.succeed({ world: "town", sites: Arr.map(sites, ({ site, state }) => ({ site, state })) }),
+      clock: () => Effect.succeed({ status: 200, body: {} }),
+      make: (label) => Effect.succeed({ site: `${label}-town.test`, state: "creating" }),
+      site: (site) =>
+        Effect.succeed(
+          Option.match(
+            Arr.findFirst(sites, (each) => each.site === site),
+            { onNone: () => ({ site, state: "failed" }), onSome: (found) => ({ site, state: found.state }) },
+          ),
+        ),
       call: (site: string, call: SiteCall) => {
         const method = Str.replace("/api/method/capxul.core_api.", "")(call.path);
         return Option.match(

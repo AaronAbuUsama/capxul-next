@@ -22,9 +22,10 @@ import * as HttpEffect from "effect/http/HttpEffect";
 import * as RpcSerialization from "effect/rpc/RpcSerialization";
 import { CoreIdentity, PLATFORM_PATH, Served, serveDoors, SpanSink, WORLD_PATH, type KeptSpan } from "../src/door.ts";
 import { madeFromNothing, siteOps, siteOpsInMemory } from "../src/site-ops/door.ts";
+import { absent, BUILT } from "./support/built.ts";
 
 /** The operations that are built answer as they are built (test/site-ops.test.ts); the rest are still empty. */
-const built: ReadonlyArray<string> = Rec.keys(siteOps);
+const built: ReadonlyArray<string> = [...Rec.keys(siteOps), ...BUILT];
 
 const BASE = "https://core.test";
 const DOOR = Redacted.make("door-token");
@@ -44,7 +45,7 @@ const core = (kept: Array<KeptSpan>) => {
   const served = Served.pipe(
     Layer.provideMerge(RpcSerialization.layerJson),
     Layer.provide(siteOpsInMemory({ record: [madeFromNothing("town", "ci", 0)] })),
-    Layer.provide(Layer.merge(sink, identity)),
+    Layer.provide(Layer.mergeAll(sink, identity, absent)),
   );
   // The doors' Rpc servers start once, in a scope that lives as long as the test; each request is then handled.
   const handler = Effect.runSync(Effect.provide(serveDoors, Layer.merge(served, Layer.succeed(Scope.Scope, scope))));
@@ -93,7 +94,9 @@ test("through the SDK, each of the twelve answers at its door, the unbuilt NotIm
   assert.equal(calls.length, 12);
   for (const { name, exit, traceId } of calls) {
     const error = errorOf(exit);
-    if (Arr.contains(built, name))
+    // The chain operations' handlers need a chain and a database, which a test in memory has not (test/chain).
+    if (BUILT.has(name)) assert.ok(Exit.isFailure(exit), `${name} answered with no chain`);
+    else if (Arr.contains(built, name))
       assert.ok(
         Exit.isSuccess(exit) || isRefusal(operations[name], error),
         `${name} did not answer a success or a declared refusal: ${Exit.isFailure(exit) ? Cause.pretty(exit.cause) : ""}`,

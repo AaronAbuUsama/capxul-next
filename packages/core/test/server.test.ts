@@ -24,10 +24,11 @@ import * as Str from "effect/String";
 import * as RpcTest from "effect/rpc/RpcTest";
 import { CoreIdentity, CoreRpcs, Served, SpanSink, type KeptSpan } from "../src/door.ts";
 import { madeFromNothing, siteOps, siteOpsInMemory } from "../src/site-ops/door.ts";
+import { absent, BUILT } from "./support/built.ts";
 
 const names: ReadonlyArray<OperationName> = Rec.keys(operations);
 /** The operations that are built answer as they are built (test/site-ops.test.ts); the rest are still empty. */
-const built: ReadonlyArray<string> = Rec.keys(siteOps);
+const built: ReadonlyArray<string> = [...Rec.keys(siteOps), ...BUILT];
 const unbuilt = Arr.filter(names, (name) => !Arr.contains(built, name));
 const DOOR = "door-token";
 const PLATFORM = "platform-token";
@@ -67,7 +68,7 @@ const call = (name: OperationName, headers: Record<string, string>, credential =
       Effect.provide(
         Served.pipe(
           Layer.provide(siteOpsInMemory({ record: [madeFromNothing("town", "ci", 0)] })),
-          Layer.provide(Layer.merge(sink, identity)),
+          Layer.provide(Layer.mergeAll(sink, identity, absent)),
         ),
       ),
     );
@@ -114,11 +115,11 @@ test("a person header that names no person is refused at sign-in, and the call i
 });
 
 test("a platform operation and a world operation are both served, by their own groups", async () => {
-  for (const name of ["world.show", "org.create"] as const) {
-    const { exit } = await Effect.runPromise(call(name, { [PERSON_HEADER]: "dana" }));
-    const failure = failureOf(exit);
-    assert.ok(isNotImplemented(failure), name);
-  }
+  const shown = await Effect.runPromise(call("world.show", { [PERSON_HEADER]: "dana" }));
+  assert.ok(isNotImplemented(shown.exit.pipe(failureOf)), "world.show");
+  // A world with no cast: org.create is served, and refuses a founder who is no person of it.
+  const founded = await Effect.runPromise(call("org.create", { [PERSON_HEADER]: "dana" }));
+  assert.ok(Schema.is(Errors.PersonNotFound)(founded.exit.pipe(failureOf)), "org.create");
   const { exit } = await Effect.runPromise(call("record.export", { [PERSON_HEADER]: "dana" }));
   assert.ok(Schema.is(Errors.NotWorldOwner)(exit.pipe(failureOf)), "record.export as a person was not refused");
 });

@@ -4,6 +4,7 @@
 #
 #   ./run.sh door                 call every blueprint operation once through a fresh Core stage
 #   ./run.sh door --world=<name>  the same, through the Core of a world `world create` made (packages/world)
+#   ./run.sh chain --world=<name> the chain operations' journey through that world's Core (src/chain-journey.ts)
 #   ./run.sh scenarios [--one-stage] [--expect=pass|not-implemented] [name...]
 #                                 run the registered scenarios (or those named), each in its own fresh stage, or all
 #                                 in one fresh stage (only with --expect=not-implemented), and write their summary
@@ -25,6 +26,6 @@ export CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-$(account 'https://api.cl
 export NEON_ORG_ID="${NEON_ORG_ID:-$(account https://console.neon.tech/api/v2/users/me/organizations "import json,sys; print(json.load(sys.stdin)['organizations'][0]['id'])")}"
 case "${1:-}" in
   alchemy) shift; exec bun node_modules/alchemy/bin/cli.js "$@" ;;
-  door|scenarios) exec bun src/main.ts "$@" ;;
+  door|chain|scenarios) exec bun src/main.ts "$@" ;;
   *) echo "usage: ./run.sh door | scenarios [--one-stage] [--expect=pass|not-implemented] [name...] | alchemy <args...>" >&2; exit 2 ;;
 esac

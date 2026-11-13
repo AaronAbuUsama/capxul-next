@@ -94,7 +94,6 @@ export const SqlWorldRecord = Layer.effect(
   WorldRecord,
   Effect.gen(function* () {
     // The record's `carried` is a JSON value, kept as jsonb with Postgres's own JSON parameter, never as JSON text.
-    // @effect-diagnostics-next-line unstableApiUsage:off
     const sql = yield* PgClient.PgClient;
     const clock = yield* WorldClock;
     return WorldRecord.of({

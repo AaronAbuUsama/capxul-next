@@ -6,7 +6,7 @@ import { SqlCast } from "./cast.ts";
 import { SqlWorldClock } from "./clock.ts";
 import { docCreate, docSubmit, reportRun } from "./documents.ts";
 import { SqlDocumentHashes } from "./hashes.ts";
-import { PaymentApprovalsUnbuilt } from "./payments.ts";
+import { PaymentApprovalsLive } from "../organizations/handlers.ts";
 import { SqlWorldRecord } from "./record.ts";
 import { CompanySitesLive } from "./sites.ts";
 import { clockWarp, recordExport } from "./world.ts";
@@ -22,14 +22,14 @@ export const siteOps = {
 
 /**
  * What they run on in a deployed Core, from its environment. Needs a `SiteDoor`, Postgres (`PgClient`) and the
- * world's `CoreIdentity`. Payment approvals are approval.sign's (payments.ts); until that lands they are unbuilt.
+ * world's `CoreIdentity`. Payment approvals are approval.sign's (payments.ts), and need what it needs (`ChainOps`).
  */
 export const siteOpsLive = (env: Record<string, unknown>) =>
   SqlCast.pipe(
     Layer.merge(SqlDocumentHashes),
     Layer.merge(CompanySitesLive),
     Layer.merge(chainTimeFromEnv(env)),
-    Layer.merge(PaymentApprovalsUnbuilt),
+    Layer.merge(PaymentApprovalsLive),
     Layer.provideMerge(SqlWorldRecord),
     Layer.provideMerge(SqlWorldClock),
   );

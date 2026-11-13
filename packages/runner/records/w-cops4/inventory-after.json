@@ -1,0 +1,46 @@
+{
+  "workers": {
+    "inAccount": 13,
+    "ofThisStack": []
+  },
+  "containerApplications": {
+    "inAccount": 2,
+    "ofThisStack": []
+  },
+  "durableObjectNamespaces": {
+    "inAccount": 6,
+    "ofThisStack": []
+  },
+  "r2Buckets": {
+    "inAccount": 5,
+    "ofThisStack": [
+      "capxulworld-chainstate-w-wc4-gfv6sqt6-a3fshwqcjuj326gv"
+    ]
+  },
+  "hyperdriveConfigurations": {
+    "inAccount": 0,
+    "ofThisStack": []
+  },
+  "neonProjects": {
+    "inAccount": 8,
+    "ofThisStack": [
+      "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq"
+    ]
+  },
+  "neonBranches": {
+    "inThisStacksProjects": 3,
+    "names": [
+      "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-wc4-gfv6sqt6",
+      "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+      "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+    ]
+  },
+  "imageRepositories": {
+    "inAccount": 6,
+    "ofThisStack": [
+      "capxulworld-alto",
+      "capxulworld-anvil",
+      "capxulworld-ponder"
+    ]
+  }
+}
