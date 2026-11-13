@@ -285,7 +285,8 @@ export const table_officer_changes = defineTable({
     change_id: S,
     member_id: S,
     party_id: S,
-    principal_id: S,
+    /** A pre-sign-in agent's Seat has no principal; its Party and Safe are its identity. */
+    principal_id: NullOr(S),
     member_safe: S,
     email: NullOr(S),
     name: NullOr(S),
