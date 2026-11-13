@@ -100,6 +100,11 @@ test("completed assertions differ from crashes and missing output; every attempt
     const unbound = parseStatus(JSON.parse(readFileSync(join(root, "status/status.json"), "utf8")));
     assert.ok(unbound.ok);
     assert.equal(unbound.value.evals["ret:record.export"]?.verdict, "not_run");
+    // A receipt holding a not_run can never say complete.
+    const unboundRun = join(root, "status/runs", readdirSync(join(root, "status/runs")).sort().at(-1)!);
+    const unboundReceipt = parseRunReceipt(JSON.parse(readFileSync(join(unboundRun, "receipt.json"), "utf8")));
+    assert.ok(unboundReceipt.ok);
+    assert.deepEqual([unboundReceipt.value.requested, unboundReceipt.value.state], [["ret:record.export"], "incomplete"]);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

@@ -239,6 +239,22 @@ test("slice acceptance requires the full fresh same-run contract and every sourc
     receipt.commit = "another-build"; await save();
     await assert.rejects(verifyRun(root, summary, required, environment, started), /running Core/);
     receipt.commit = "fixture"; await save();
+    // Each acceptance assertion has its own failing case, so none is masked by another.
+    const verify = (s: typeof summary = summary) => verifyRun(root, s, required, environment, started);
+    receipt.state = "incomplete"; await save();
+    await assert.rejects(verify({ ...summary, state: "incomplete" }), /must be complete/);
+    receipt.state = "complete"; await save();
+    for (const [counts, why] of [[{ not_run: 1 }, /no not_run/], [{ fail: 1 }, /no fails/], [{ pass: required.length - 1 }, /equal the required count/]] as const)
+      await assert.rejects(verify({ ...summary, counts: { ...summary.counts, ...counts } }), why);
+    await assert.rejects(verify({ ...summary, exitCode: 1 }), /exits 0/);
+    status.evals["opaque-a"]!.verdict = "fail"; await save();
+    await assert.rejects(verify(), /opaque-a verdict is not a pass/);
+    status.evals["opaque-a"]!.verdict = "pass"; status.evals["opaque-a"]!.at = new Date(started - 1000).toISOString(); await save();
+    await assert.rejects(verify(), /fresh/);
+    status.evals["opaque-a"]!.at = at; receipt.requested = [...required, "extra"]; receipt.evals.push({ id: "extra", claim: "claim extra" }); await save();
+    await assert.rejects(verify(), /requested differs/);
+    receipt.requested = required; receipt.evals.pop(); await save();
+    assert.equal(await verify(), true);
     status.evals["opaque-a"]!.run = "previous-run"; await save();
     await assert.rejects(verifyRun(root, summary, required, environment, started), /fresh/);
     status.evals["opaque-a"]!.run = receipt.id; receipt.screens.pop(); await save();

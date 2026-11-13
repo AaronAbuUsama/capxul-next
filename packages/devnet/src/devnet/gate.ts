@@ -18,12 +18,12 @@ export async function verifyRun(root: string, summary: any, required: string[], 
   const parsed = parseRunReceipt(raw);
   assert(parsed.ok, "invalid eval run receipt");
   const receipt = parsed.value;
-  assert.equal(receipt.id, summary.run); assert.equal(receipt.state, summary.state);
+  assert.equal(receipt.id, summary.run); assert.equal(receipt.state, summary.state, "receipt state differs from the summary");
   assert.equal(typeof summary.passed, "boolean");
   assert(Date.parse(receipt.at) >= started, "receipt predates this invocation");
   assert.deepEqual(receipt.environment, environment);
   assert.equal(receipt.commit, environment.components.core, "receipt commit differs from running Core");
-  assert.deepEqual([...receipt.requested].sort(), [...required].sort());
+  assert.deepEqual([...receipt.requested].sort(), [...required].sort(), "receipt requested differs from slice-0.required");
   const status = parseStatus(JSON.parse(await readFile(join(directory, "status.json"), "utf8")));
   assert(status.ok, "invalid same-run status");
   for (const id of required) {
@@ -31,11 +31,12 @@ export async function verifyRun(root: string, summary: any, required: string[], 
     assert(verdict && verdict.run === receipt.id && verdict.at === receipt.at && verdict.commit === receipt.commit, "verdict is not fresh from this run");
     const contract = receipt.evals.find((entry) => entry.id === id)!;
     assert.equal(verdict.claim, contract.claim); assert.equal(verdict.observes, contract.observes);
-    if (summary.passed) assert.equal(verdict.verdict, "pass");
+    if (summary.passed) assert.equal(verdict.verdict, "pass", `${id} verdict is not a pass`);
   }
   if (!summary.passed) return false;
-  assert.equal(receipt.state, "complete"); assert.equal(summary.exitCode, 0);
-  assert.equal(summary.counts.pass, required.length); assert.equal(summary.counts.fail, 0); assert.equal(summary.counts.not_run, 0);
+  assert.equal(receipt.state, "complete", "a passing run's receipt must be complete"); assert.equal(summary.exitCode, 0, "a passing run exits 0");
+  assert.equal(summary.counts.pass, required.length, "passes must equal the required count");
+  assert.equal(summary.counts.fail, 0, "a passing run has no fails"); assert.equal(summary.counts.not_run, 0, "a passing run has no not_run");
   assert(raw.prepare && Array.isArray(raw.prepare.argv) && raw.prepare.argv.length && raw.prepare.exitCode === 0 && raw.prepare.signal === null,
     "successful receipt-first preparation is missing");
   assert.equal(raw.prepare.log, "prepare.log");
