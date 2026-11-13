@@ -443,7 +443,10 @@ export const decision_indexing_hats_indexed = defineDecision({
     "with its wearing unknown, so the caller reads only that hat live. Only a revert, no data or undecodable data reads as " +
     "no module; an RPC failure rethrows so Ponder retries. Budgets' current wearers and a budget payment's authority refuse " +
     "a module-ruled hat too. The company hat readers name the company Safe and admit only the worker or the session of " +
-    "the Organization whose non-released Party is that Safe: any other session would read row-filtered rows as complete.",
+    "the Organization whose non-released Party is that Safe: any other session would read row-filtered rows as complete. " +
+    "Accepted limits: a module that reverts for the zero-address probe, or one deployed after the hat's last event, " +
+    "reads live false until its next event. Refusing every non-Safe contract would refuse hats other Capxul contracts " +
+    "rule; Board's live fallback and the hat mapping stay fail-closed. Module eligibility on budget or officer hats reopens this.",
   source: by("packages/contracts/v4/src/authority/InstallerMoney.sol:130; packages/contracts/v4/src/interfaces/IInstaller.sol:291; packages/backend/src/permissions/tables/permissions.ts:57"),
   affects: [table_chain_hats, table_hat_wearers, contract_hats, decision_concepts_permissions, decision_responsibilities_keepers],
 });
