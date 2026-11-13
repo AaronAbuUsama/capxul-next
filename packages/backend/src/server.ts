@@ -5,7 +5,6 @@ import { digest } from "./access/door.ts";
 import { admitWave } from "./accounts/door.ts";
 import { get, prepare, submitted } from "./approvals/door.ts";
 import { readSnapshotCut, worldNow } from "./devnet/door.ts";
-import { info, register, release } from "./organizations/door.ts";
 import { consume } from "./payments/door.ts";
 import { deferDelivery, deliver, RequestCollector, resend, retryParked, signature, status } from "./plugs/door.ts";
 import { note } from "./activity/door.ts";
@@ -122,7 +121,7 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
       return json(res, 200, { ...await pauseWork, paused: true, activeRequests: 0, activeDeliveries: 0 });
     }
     if (url.pathname === "/admin/snapshot/resume") { await pauseWork; pauseWork = undefined; paused = false; return json(res, 200, { paused: false }); }
-    const reads = ["/admin/org-info", "/admin/status", "/admin/alerts", "/approvals/get", "/admin/record"];
+    const reads = ["/admin/status", "/admin/alerts", "/approvals/get", "/admin/record"];
     if (paused && !reads.includes(url.pathname)) return json(res, 503, { error: "SNAPSHOT_PAUSED" });
     activeRequests++;
     try {
@@ -131,9 +130,6 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
         return json(res, 200, await db.transaction("", async (sql) => admitWave(sql, b, trace, await worldNow(sql)), true));
       const answer = await db.transaction(org, async (sql) => {
         switch (url.pathname) {
-          case "/admin/org": return register(sql, b, trace);
-          case "/admin/org-info": return info(sql, org);
-          case "/admin/release": return release(sql, org);
           case "/admin/status": return status(sql, org);
           case "/admin/resend": return resend(sql, org, Number(b.from ?? 1));
           case "/admin/retry-parked": return retryParked(sql, org, b.event_key, config.frappe, config.secret);

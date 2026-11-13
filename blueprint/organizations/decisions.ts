@@ -1481,6 +1481,36 @@ export const decision_organizations_setup_runner = defineDecision({
   affects: [workflow_organizations_setups_set_up, table_org_setups],
 });
 
+export const decision_organizations_world_company_hosts = defineDecision({
+  id: "organizations.world-company-hosts",
+  title: "World inventory reads each site host from Sites, in that Organization's scope",
+  question:
+    "The target app.organizations has no site column: Sites keeps each Organization's host in app.sites, whose policy " +
+    "admits one Organization at a time, even to the worker. Where does readWorldCompanies get a company's site?",
+  options: [
+    {
+      label: "scoped-sites-read",
+      text:
+        "readWorldCompanies(db, hosts) reads every Organization's id and name as the worker, then each one's host in that " +
+        "Organization's own scoped worker transaction, through `hosts` (Sites' readSiteHosts), taking only that " +
+        "Organization's entry; null when it has no site. A non-worker connection is still refused.",
+    },
+    {
+      label: "cross-tenant-sites-function",
+      text: "Sites declares a cross-tenant read of every host, like app.site_by_host, and the reader calls it once.",
+    },
+  ],
+  chosen: "scoped-sites-read",
+  why:
+    "It keeps Sites' policy as it is and needs no new cross-tenant function; a world has few companies, so one short " +
+    "transaction each is cheap. It refines organizations.world-company-reader, whose site was the legacy column: the " +
+    "inventory still includes companies with no site, and still never invents a URL.",
+  source:
+    "Amp Organizations lane, 13 November 2026, for the cut-over, agreed with Sites (readSiteHosts on sites-provision-bearer; " +
+    "app.sites RLS org_id = app.org_id for capxul_core and capxul_worker)",
+  affects: [concept_organizations, table_organizations],
+});
+
 export const decision_organizations_cutover_migrate_order = defineDecision({
   id: "organizations.cutover-migrate-order",
   title: "Core's schema splits around Organizations: base first, per-org tables after",
