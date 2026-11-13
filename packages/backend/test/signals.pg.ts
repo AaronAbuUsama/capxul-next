@@ -76,6 +76,11 @@ test("wide rows, rpc spans and the two operator alerts, in the world's own time"
       assert.equal(await call("/books/annotations/refuse", { "x-capxul-trace": bare }), 400);
       assert.equal(await call("/books/annotations/list"), 500);
       assert.match(seen["/books/annotations/list"]!, /^[0-9a-f]{32}$/, "an untraced call still gets a trace");
+      for (const other of ["tr_0123456789abcdef", "A".repeat(32), "0".repeat(32), `00-${"0".repeat(32)}-${"b".repeat(16)}-01`]) {
+        await call("/books/annotations/list", other.startsWith("00-") ? { traceparent: other } : { "x-capxul-trace": other });
+        const got = seen["/books/annotations/list"]!;
+        assert(/^[0-9a-f]{32}$/.test(got) && got !== other.toLowerCase() && !/^0+$/.test(got), `${other} is replaced by a fresh 32-hex trace`);
+      }
       const [, refused, failed] = await rows("operation_row");
       assert.deepEqual([refused.attributes.outcome, refused.attributes.failure.code, refused.trace_id], ["refused", "INVALID_INPUT", bare]);
       assert.deepEqual([failed.attributes.outcome, failed.attributes.failure.code], ["failed", "INTERNAL_ERROR"]);

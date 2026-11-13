@@ -47,12 +47,13 @@ export function childSpan<T>(name: string, run: () => Promise<T>): Promise<T> {
     .pipe(Effect.withSpan(name, { parent: c.span }), Effect.withTracer(c.tracer)));
 }
 
-/** The caller's trace: W3C traceparent first, then the blueprint's x-capxul-trace, else a new one. */
+/** The caller's trace: W3C traceparent first, then the blueprint's x-capxul-trace, else a new one. One format everywhere:
+ * 32 lowercase hex, never all zeros; anything else (a tr_ id, upper case) is replaced, never passed on. */
 export function traceOf(headers: IncomingMessage["headers"]): { traceId: string; parentSpanId: string | null } {
   const parent = /^00-([0-9a-f]{32})-([0-9a-f]{16})-[0-9a-f]{2}$/.exec(String(headers["traceparent"] ?? ""));
   if (parent && !/^0+$/.test(parent[1]!) && !/^0+$/.test(parent[2]!)) return { traceId: parent[1]!, parentSpanId: parent[2]! };
   const own = String(headers["x-capxul-trace"] ?? "");
-  return { traceId: /^[0-9a-f]{32}$/.test(own) ? own : randomBytes(16).toString("hex"), parentSpanId: null };
+  return { traceId: /^[0-9a-f]{32}$/.test(own) && !/^0+$/.test(own) ? own : randomBytes(16).toString("hex"), parentSpanId: null };
 }
 
 /** A path's rpc id: /organizations/setups/begin is organizations.setups.begin; its first segment is the concept. */
