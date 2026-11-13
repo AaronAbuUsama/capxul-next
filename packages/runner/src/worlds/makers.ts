@@ -85,23 +85,38 @@ const must = <A, E, R>(what: string, call: Effect.Effect<A, E, R>) =>
 const frozenNow = { mode: "frozen", startAt: null } as const;
 
 /** `quota-full`: the operator creates private worlds until the platform refuses one for the quota. */
+/** A create that died, not refused: a fault of the infrastructure under the world, tried again a few times. */
+const DEATHS_ALLOWED = 3;
+
+const refused = (exits: ReadonlyArray<Exit.Exit<unknown, unknown>>) =>
+  Arr.some(exits, (exit) => Exit.isFailure(exit) && Exit.hasFails(exit));
+const died = (exits: ReadonlyArray<Exit.Exit<unknown, unknown>>) =>
+  Arr.filter(exits, (exit) => Exit.isFailure(exit) && !Exit.hasFails(exit)).length;
+
+/**
+ * `quota-full`: the operator creates private worlds until the platform refuses one for the quota. As many as the
+ * limit are asked for at once, three at a time; then, unless one was refused, one more at a time until one is. A
+ * create that dies is tried again, up to `DEATHS_ALLOWED` times in all.
+ */
 const quotaFull: Steps = (making) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    const attempts = World.WORLD_LIMITS.liveWorldsPerOwner;
-    const tried = yield* Effect.forEach(
-      Arr.makeBy(attempts, () => null),
-      () =>
-        Effect.flatMap(freshName("qf"), (world) =>
-          Effect.exit(
-            capxul["world.create"]({ world, grade: "private", lifetimeMinutes: SCENARIO_MINUTES, clock: frozenNow }),
-          ),
-        ),
-      { concurrency: 3 },
+    const once = Effect.flatMap(freshName("qf"), (world) =>
+      Effect.exit(
+        capxul["world.create"]({ world, grade: "private", lifetimeMinutes: SCENARIO_MINUTES, clock: frozenNow }),
+      ),
     );
+    const first = yield* Effect.forEach(
+      Arr.makeBy(World.WORLD_LIMITS.liveWorldsPerOwner, () => null),
+      () => once,
+      {
+        concurrency: 3,
+      },
+    );
+    let tried = first;
+    while (!refused(tried) && died(tried) <= DEATHS_ALLOWED) tried = [...tried, yield* once];
+    if (!refused(tried)) return yield* failed(`no create was refused for the quota; ${died(tried)} of them died`);
     const filled = Arr.flatMap(tried, (exit) => (Exit.isSuccess(exit) ? [exit.value] : []));
-    const odd = Arr.filter(tried, (exit) => Exit.isFailure(exit) && !Exit.hasFails(exit));
-    if (odd.length > 0) return yield* failed(`${odd.length} of the creates died`);
     const views = yield* Effect.forEach(filled, (view) => encodeAnswer("world.create", view));
     return { facts: { ...making.facts, filled: views }, own: null };
   });
