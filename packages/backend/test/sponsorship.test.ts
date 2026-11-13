@@ -162,6 +162,23 @@ test("actual sponsor HTTP preserves custom-revert codes without leaking gateway 
   } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
 });
 
+test("carrier sponsor maps the approval row and windows it on one reading of the world clock, never host time", async () => {
+  const { config } = fixture();
+  const { now: _hostless, ...deployment } = config;
+  let readings = 0;
+  // The world clock is a day behind host time, which is already past the deadline.
+  assert.ok(Date.now() > request.deadline.getTime());
+  const sponsor: CarrierServices["sponsor"] = carrierSponsor(deployment, async () => { readings++; return now; });
+  const row = { ...request, approval_id: "approval-1", person_id: "person-1", state: "sponsoring" } as unknown as Approval;
+  const result = await sponsor(row);
+  assert.ok("user_operation" in result, JSON.stringify(result));
+  assert.equal(readings, 1);
+  assert.equal(result.nonce, nonce.toString());
+  assert.equal(result.valid_after?.toISOString(), "2026-11-12T12:01:01.000Z");
+  assert.equal(result.valid_until.toISOString(), "2026-11-12T12:05:00.000Z");
+  assert.equal(result.user_operation.callData, packCalls(request.calls, multiSend));
+});
+
 test("chain reverts from viem reads are final refusals; only an outage is retried", async () => {
   const errorAbi = parseAbi(["error Error(string)", "error NoMembership()"]);
   const notEntryPoint = encodeErrorResult({ abi: errorAbi, errorName: "Error", args: ["Sender not EntryPoint"] });
@@ -187,21 +204,4 @@ test("chain reverts from viem reads are final refusals; only an outage is retrie
     const result = await sponsor(request);
     assert.ok("code" in result, name); assert.equal(result.code, code, name);
   }
-});
-
-test("carrier sponsor maps the approval row and windows it on one reading of the world clock, never host time", async () => {
-  const { config } = fixture();
-  const { now: _hostless, ...deployment } = config;
-  let readings = 0;
-  // The world clock is a day behind host time, which is already past the deadline.
-  assert.ok(Date.now() > request.deadline.getTime());
-  const sponsor: CarrierServices["sponsor"] = carrierSponsor(deployment, async () => { readings++; return now; });
-  const row = { ...request, approval_id: "approval-1", person_id: "person-1", state: "sponsoring" } as unknown as Approval;
-  const result = await sponsor(row);
-  assert.ok("user_operation" in result, JSON.stringify(result));
-  assert.equal(readings, 1);
-  assert.equal(result.nonce, nonce.toString());
-  assert.equal(result.valid_after?.toISOString(), "2026-11-12T12:01:01.000Z");
-  assert.equal(result.valid_until.toISOString(), "2026-11-12T12:05:00.000Z");
-  assert.equal(result.user_operation.callData, packCalls(request.calls, multiSend));
 });

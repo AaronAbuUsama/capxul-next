@@ -1,3 +1,12 @@
+-- The security-definer functions in this file run as their owner and read RLS-forced tables (principals, org_members,
+-- parties, organizations) whose policies name only the runtime roles: an owner without BYPASSRLS would make
+-- them admit nothing, silently. Refuse such an owner here instead.
+do $$ begin
+  if not exists (select 1 from pg_roles where rolname=current_user and (rolsuper or rolbypassrls)) then
+    raise exception 'PROVISIONING_ROLE: Organizations must be migrated by a superuser or BYPASSRLS role';
+  end if;
+end $$;
+
 -- Seat source only. Access and Parties migrations must precede this explicit privileged migration.
 create table if not exists app.org_members (
   org_id text not null references app.organizations, member_id text not null,
@@ -21,8 +30,14 @@ create index if not exists org_members_by_safe on app.org_members(safe_address);
 -- This avoids policy recursion; neither an owner label nor an org selector proves an actor.
 create or replace function app.current_member(p_org text) returns boolean
 language sql stable security definer set search_path=pg_catalog,app as $$
+  -- The one Seat admission rule (requireSeat and RLS use it; caller_safes builds on it): an active Seat of a live
+  -- Party, in a live Organization that has its own live Party. A released Party or Organization admits nothing.
   select exists(select 1 from app.org_members m join app.principals p
     on p.person_id=nullif(current_setting('app.person_id',true),'')
+    join app.parties mp on mp.party_id=m.party_id and mp.state<>'released'
+    join app.organizations o on o.org_id=m.org_id and not o.released
+    join app.parties op on op.kind='organization' and op.owner_kind='organization' and op.owner_id=o.org_id
+      and op.safe_address=o.safe and op.state<>'released'
     where m.org_id=p_org and m.status='active'
     and ((m.kind='human' and p.kind='person' and m.principal_id=p.person_id)
       or (m.kind='agent' and p.kind='agent' and m.safe_address=p.safe_address)))
@@ -46,6 +61,14 @@ language sql stable security definer set search_path=pg_catalog,app as $$
 $$;
 revoke all on function app.caller_safes() from public;
 grant execute on function app.caller_safes() to capxul_core,capxul_worker;
+-- `create or replace` keeps an existing function's owner, so the check above covers only who runs this migration.
+-- Check the owners the functions actually run as.
+do $$ begin
+  if exists (select 1 from pg_proc p join pg_roles r on r.oid=p.proowner
+    where p.oid in ('app.current_member(text)'::regprocedure, 'app.caller_safes()'::regprocedure) and not (r.rolsuper or r.rolbypassrls)) then
+    raise exception 'PROVISIONING_ROLE: app.current_member and app.caller_safes must be owned by a superuser or BYPASSRLS role';
+  end if;
+end $$;
 
 alter table app.org_members enable row level security;
 alter table app.org_members force row level security;

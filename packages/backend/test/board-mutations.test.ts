@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import test from "node:test";
 import pg from "pg";
-import { decodeFunctionData, parseAbi, type Address, type PublicClient } from "viem";
+import { decodeFunctionData, getAddress, parseAbi, type Address, type PublicClient } from "viem";
 import { migrate, propose, readOfficerChange, readProposal, routeBoard, type BoardContext, type BoardDoors, type BoardFacts, type BoardWorld, type Propose } from "../src/board/door.ts";
 import { migrateOutbox, readEvent } from "../src/platform/outbox.ts";
 import { THIRD_PARTY } from "../../devnet/src/modules/protocol/service.ts";
@@ -37,7 +37,8 @@ test("Board public adapter composes real auth/Seat/approval doors atomically", {
     deployment: async () => ({ safe_address: safe, gate_address: address(23), director_hat: "1", books_hat: "2", invoicing_hat: "3", people_hat: "4" }),
     safe: async (_sql, _chain, requested) => ({ safe_address: requested, owners: currentOwners, threshold: indexedThreshold, nonce: 0, deployed: true }),
     wearers: async () => currentOwners,
-    approvals: async (_sql, _chain, _safe, _hash, owners) => approved.filter((a) => owners.includes(a)),
+    // A provider may answer checksummed; Board must compare Safes in one case.
+    approvals: async (_sql, _chain, _safe, _hash, owners) => approved.filter((a) => owners.some((o) => o.toLowerCase() === a.toLowerCase())),
     hat: async () => ({ supply: 1n, max_supply: 1n }), hasOffice: async () => office,
   };
   const client = {
@@ -128,6 +129,18 @@ test("Board public adapter composes real auth/Seat/approval doors atomically", {
       approved = [second];
       const next: any = await call("/board/proposals/approve", { proposalId: p.proposal_id });
       assert.equal(next.step, "execute"); assert.notEqual(next.approvalId, p.approval_id);
+    });
+    await control("checksummed indexed owners and approvals neither refuse a Director nor count one twice", async () => {
+      currentOwners = [getAddress(director), getAddress(second)]; assert.notEqual(currentOwners[1], second, "fixture must checksum");
+      await doors.authenticate(db, tokens.second!, now);
+      const p = await propose(db, { ...context, principalId: "second", safe: second }, input("case"));
+      await db.query("update app.approvals set state='landed' where approval_id=$1", [p.approval_id]);
+      approved = [getAddress(second)];
+      await assert.rejects(call("/board/proposals/approve", { proposalId: p.proposal_id }, "second"), /WRONG_STATE: Director already approved/);
+      approved = [getAddress(director)];
+      const next: any = await call("/board/proposals/approve", { proposalId: p.proposal_id }, "second");
+      assert.equal(next.step, "execute");
+      assert.equal((await db.query("select director_safe from app.proposal_approvals where approval_id=$1", [next.approvalId])).rows[0].director_safe, second);
     });
     await control("live grant retains live nonce and post-cleanup threshold, exact Hats calls and private event", async () => {
       liveNonce = 7n; liveOwners = [director, second, lapsed]; liveThreshold = 3n; approved = [second];
