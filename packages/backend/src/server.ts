@@ -6,7 +6,7 @@ import { get, prepare, submitted } from "./approvals/door.ts";
 import { readSnapshotCut, worldNow } from "./devnet/door.ts";
 import { info, register, release } from "./organizations/door.ts";
 import { consume } from "./payments/door.ts";
-import { deliver, RequestCollector, resend, retryParked, signature, status } from "./plugs/door.ts";
+import { deferDelivery, deliver, RequestCollector, resend, retryParked, signature, status } from "./plugs/door.ts";
 import { note } from "./activity/door.ts";
 import { settings } from "./platform/config.ts";
 import { Database, type Sql } from "./platform/db.ts";
@@ -144,8 +144,15 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
         const { org_id } = company;
         if (paused || closing) break;
         if (company.released) collector.connect(company);
-        if (index.ready) await db.transaction(org_id, (sql) => consume(sql, org_id, config.chainId, config.finality), true);
-        await deliver(db, org_id, config.frappe, config.secret);
+        // One organization's failure must not stall the organizations sorted after it.
+        try {
+          if (index.ready) await db.transaction(org_id, (sql) => consume(sql, org_id, config.chainId, config.finality), true);
+        } catch (error) { console.error(`Core consume ${org_id}: ${(error as Error).message}`); }
+        try { await deliver(db, org_id, config.frappe, config.secret); }
+        catch (error) {
+          console.error(`Core delivery ${org_id}: ${(error as Error).message}`);
+          await deferDelivery(db, org_id, error).catch((e) => console.error(`Core delivery backoff ${org_id}: ${e.message}`));
+        }
       }
     } finally { activeDeliveries--; notifyDrain(); }
   }
