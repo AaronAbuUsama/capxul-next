@@ -9,6 +9,7 @@ export { followPayment, approvalTerminal, type PaymentContext, type PaymentFact 
 export { prepareCommand, type PrepareCommand, type PrepareContext, type PreparedCommand, type PreparedItem } from "./prepare.ts";
 export { listPaymentWork, wakePaymentChain, onApprovalTransition, type PaymentWork } from "./work.ts";
 export { reconcilePayment, type ReconcileContext, type ReconciledPayment } from "./reconcile.ts";
+export { listTransferWork, followTransfer, type MovementContext, type MovementMemo, type MovementToken, type TransferWork, type FollowedTransfer } from "./movements.ts";
 
 /** Called by the admin migrator inside its existing transaction, never during resume. */
 export async function migratePayments(sql: Sql) {

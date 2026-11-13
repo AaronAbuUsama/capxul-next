@@ -95,3 +95,18 @@ insert into app.payment_processes(owner_kind,owner_id,payment_id,chain_id,trace_
   where status<>'cancelled' and (select fresh from payment_processes_fresh)
   on conflict do nothing;
 drop table payment_processes_fresh;
+
+-- One worker-only instance per indexed Transfer occurrence (chain, receipt-ordinal log id, block hash): the
+-- payments.movements.record process. Instance state only; the Transfer stays Ponder's.
+create table if not exists app.movement_processes (
+  chain_id integer not null, log_id text not null, block_hash text not null, block_number numeric not null,
+  tx_hash text not null, log_index integer not null, trace_id text not null, await_block numeric,
+  primary key(chain_id,log_id,block_hash)
+);
+create index if not exists "movement-processes-wait" on app.movement_processes(chain_id,await_block);
+alter table app.movement_processes enable row level security;
+alter table app.movement_processes force row level security;
+drop policy if exists worker on app.movement_processes;
+create policy worker on app.movement_processes to capxul_worker using (true) with check (true);
+revoke all on app.movement_processes from public,capxul_core;
+grant select,insert,update on app.movement_processes to capxul_worker;

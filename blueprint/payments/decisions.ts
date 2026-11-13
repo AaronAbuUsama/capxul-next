@@ -207,7 +207,15 @@ export const decision_payments_movements_outside_money = defineDecision({
     "Organization's direct transfer look explained. Deposit Payments were Payments born for inbound Transfers with no " +
     "command, the same fact as the Movement; dropping them leaves one record per money fact. The book key is books' " +
     "`transfer:<chain>:<tx>:<log>`, which banking's deposits use too, so books keeps one live fact whoever writes first. " +
-    "The old `observed` and `finalized` states had no reader (old S10).",
+    "The old `observed` and `finalized` states had no reader (old S10). Implementation, 13 November 2026: each indexed " +
+    "Transfer occurrence (chain, receipt-ordinal log id, block hash) touching a Party Safe gets one worker-only process " +
+    "row, committed with its Movements, book facts, Memo and events, so a replay or a re-included occurrence is its own " +
+    "instance and an examined Transfer is never examined twice; this is instance state, not a copy of the Transfer or a " +
+    "scan cursor. A side is explained when the same transaction's PaymentSent has the Transfer's sender, recipient, token " +
+    "and amount (Payments pulls from its caller straight to the recipient) and that payment id is a Payment of that " +
+    "side's owner, as payer for `out` and payee for `in`. The confirm wait is twice the finality depth past the block; a " +
+    "lagging head never judges an occurrence gone. The Memo store is the composition's documents door, called on the " +
+    "same transaction.",
   source: by(`${ASIS} (M1, K17, S10, D6); blueprint/books/procedures.ts (money_key)`),
   affects: [table_movements, machine_movement, event_movement_transitioned, workflow_payments_movements_record],
 });
