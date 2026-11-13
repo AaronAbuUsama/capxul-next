@@ -54,7 +54,7 @@ export function noticesWorker(db: Database, mail: Mail, sources: Omit<Sources,"p
     return safe ? (await lookupBySafe(sql,safe))?.display_name ?? null : null;
   } }, links);
   return async () => {
-    const scheduled = await relay(db, "notices", sourceNames, schedule);
+    const scheduled = await relay(db, "notices", sourceNames, schedule, worldNow);
     const prepared = await prepareDue(db, worldNow, resolve);
     // A failed delivery row is rethrown only after the workflows it does not block have advanced.
     let failure: unknown;

@@ -1,13 +1,17 @@
 create table if not exists app.transition_outbox (
   seq bigint generated always as identity unique,
   id text primary key check (id <> ''),
-  event jsonb not null check (jsonb_typeof(event) = 'object' and event->>'id' = id)
+  event jsonb not null check (jsonb_typeof(event) = 'object' and event->>'id' = id),
+  -- Host envelope stamps (runtime.outbox-host-stamps): RealTime epoch ms, written by Core, never read by a product rule.
+  host_enqueued_at bigint not null check (host_enqueued_at > 0)
 );
 create index if not exists transition_outbox_name_seq on app.transition_outbox ((event->>'name'), seq);
 create table if not exists app.transition_acks (
   consumer text not null check (consumer <> ''),
   event_id text not null references app.transition_outbox(id),
-  acked_at timestamptz not null default now(),
+  -- The world instant the relay read for its batch; no column default reads a clock (time.no-direct-reads).
+  acked_at timestamptz not null,
+  host_acked_at bigint not null check (host_acked_at > 0),
   primary key (consumer, event_id)
 );
 -- A failing event's latest leading error code and attempts only (runtime.outbox-poison-event); no clock read, message or event data.

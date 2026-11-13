@@ -95,8 +95,8 @@ export const decision_time_real_elapsed = defineDecision({
         "real; a bound on how long an object may live in the story (an approval ends within 370 days) is not a run " +
         "timeout but a `timer` wait on now. A vendor envelope's instant (a webhook's signed timestamp checked for " +
         "freshness, a timestamp Capxul signs into a vendor's request) is read from `RealTime`, beside Now in " +
-        "packages/runtime/src/time/: only integration layers call it, and its value is never stored in a row or compared " +
-        "with a product time.",
+        "packages/runtime/src/time/: only integration layers call it, and its value is never compared with a product time; " +
+        "the one row that keeps it is the outbox's envelope (runtime.outbox-host-stamps), a measurement no product rule reads.",
     },
     {
       label: "wall-for-auth",
