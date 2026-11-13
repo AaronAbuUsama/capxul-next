@@ -1,0 +1,53 @@
+{
+  "scenario": "claim 3: export returns every appended entry exactly once, in seq order, with its key, kind and body as appended",
+  "world": "pl-claim-3-ex-35a635",
+  "owner": "pipeline",
+  "expiresAt": "2026-11-13T08:56:29.375Z",
+  "outcome": "failed",
+  "failure": "the scenario failed: NotImplemented: not implemented: record.append",
+  "calls": [
+    {
+      "operation": "record.append",
+      "traceId": "206165a3578326ab37ebc3bbe6b4d396",
+      "outcome": "defect",
+      "ms": 867,
+      "serverMs": 0,
+      "budgetMs": 500,
+      "failure": "NotImplemented: not implemented: record.append",
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw defect; the span says defect"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: none; declared for a defect: none"
+        },
+        {
+          "check": "budget",
+          "passed": true,
+          "gating": false,
+          "detail": "0 ms against a budget of 500 ms"
+        }
+      ]
+    }
+  ],
+  "worldAfterwards": "destroyed",
+  "ms": {
+    "create": 17220,
+    "scenario": 870,
+    "checks": 221,
+    "destroy": 3604
+  }
+}

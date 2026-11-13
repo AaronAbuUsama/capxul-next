@@ -1,0 +1,53 @@
+{
+  "scenario": "claim 2: appending a key that was already appended is refused with DuplicateEntry naming the key, and the record is unchanged",
+  "world": "pl-claim-2-ap-895a56",
+  "owner": "pipeline",
+  "expiresAt": "2026-11-13T08:55:59.803Z",
+  "outcome": "failed",
+  "failure": "the scenario failed: NotImplemented: not implemented: record.append",
+  "calls": [
+    {
+      "operation": "record.append",
+      "traceId": "dce4d6ba51248595d133f2babc8f10d7",
+      "outcome": "defect",
+      "ms": 882,
+      "serverMs": 0,
+      "budgetMs": 500,
+      "failure": "NotImplemented: not implemented: record.append",
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "gating": true,
+          "detail": "one record.append span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "gating": true,
+          "detail": "the caller saw defect; the span says defect"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "gating": true,
+          "detail": "recorded: none; declared for a defect: none"
+        },
+        {
+          "check": "budget",
+          "passed": true,
+          "gating": false,
+          "detail": "0 ms against a budget of 500 ms"
+        }
+      ]
+    }
+  ],
+  "worldAfterwards": "destroyed",
+  "ms": {
+    "create": 19864,
+    "scenario": 884,
+    "checks": 242,
+    "destroy": 8578
+  }
+}
