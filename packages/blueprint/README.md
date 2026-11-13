@@ -49,14 +49,14 @@ Core, through its door. Each group's `toLayer` does not compile until every oper
    member of a success union. Give one example per kind of success.
 3. Add it to `operations` and to one Rpc group in `src/door.ts`, and its claims to its concept's `claims.ts` and to
    `src/claims/all.ts`.
-4. Run `pnpm claims` to render claims.md, then `pnpm check` and `pnpm test`.
+4. Run `pnpm claims` to render claims.md, then `pnpm types` and `pnpm test`.
 
 A budget is provisional until a green run measures the operation. That run's p95 then replaces `ms` and `basis` in
 the declaration, and `provisional` becomes false.
 
 ## Checks
 
-Install with `pnpm install --ignore-workspace` here (the root workspace excludes this package). `pnpm check` type-checks
+It is a member of the root workspace: `pnpm install` at the root installs it. `pnpm types` type-checks
 the package, including `test/types.ts`, whose lines marked `@ts-expect-error` prove the compiler refuses a `carries`
 that does not fit. `pnpm test` runs `test/contract.test.ts`: twelve operations, each example's events carrying
 exactly their event's fields, nothing declared twice, claims that name only declared refusals and starting worlds,

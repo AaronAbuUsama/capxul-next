@@ -1,9 +1,0 @@
-eval     acc:world.show/1
-claim    A world restored into another names its parent.
-verdict  pass
-run      run-20261112083710  at 2026-11-12T08:37:10Z  commit 2201e8d
-script   spikes/skeleton/run.sh  world main  company uopd
-why      After `world snapshot restore <snapshot> --into w2`, `world show w2 --json` prints parentWorld main, parentSnapshot the snapshot's id and parentSeq the record position it was saved at.
-
-PASS  TL.world-show-names-parent  x1  814 ms
-      TL world show w2 names its parent world, the snapshot and the record position it was restored from

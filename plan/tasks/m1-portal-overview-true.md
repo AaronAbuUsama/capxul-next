@@ -1,7 +1,0 @@
-## What
-Read docs/mission/research-2026-11-11.md, section 'What stands between the portal and Aaron accepting it', first. The Overview (/) contradicts itself: it says "the whole design before any code" and "no page can go stale", Build and Prove say "Not started" while 8 evals pass, and Decide says "Nothing waits for you" while the same page shows a question waiting (Decide counts waiting decisions only; the Questions page also counts plan needs for Aaron). Make every status on the Overview computed from the data it sits beside, never hand-written: Decide counts the same inbox the Questions page lists; Build and Prove say what the counts say. Rewrite the stale lines of packages/portal/content/direction.ts (including its line on where answers are saved, which must say what happens on static hosting). Add a portal check that fails when a climb card's status contradicts its count. Touch packages/portal/content/direction.ts, packages/portal/src/modules/site/internal/overview.ts, packages/portal/src/modules/render/internal/overview.ts and the check module only; not questions.ts, site.js, evals.ts, operation.ts, lists.ts or locate.ts (other runs have them). No visual design change: words and numbers only.
-## Why
-Exit g7: Aaron reads the portal and accepts it. Its first page says things that are no longer true.
-## Done when
-- The built Overview has no status that contradicts its count, and the new check fails on a contradiction (with a test)
-- pnpm portal:check and the portal's tests pass

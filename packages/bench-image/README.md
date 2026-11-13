@@ -1,7 +1,7 @@
 # bench-image
 
 The image the hosted bench runs, and the proof that it serves a production site (task `m3b-bench-image`, decision
-`sites.bench-image`). It replaces, for hosting, the development bench the test sites use (`spikes/skeleton/frappe`):
+`sites.bench-image`). It replaces, for hosting, the development bench the test sites used on `main` (`spikes/skeleton/frappe`):
 same apps, but pinned, built once, and run as separate production processes.
 
 ```bash
@@ -10,7 +10,7 @@ packages/bench-image/bin/check.sh                       # start the bench, creat
 packages/bench-image/bin/down.sh --wipe                 # stop, and delete the local data and secrets under var/
 ```
 
-In a Claude cloud container start Docker first (`packages/devnet/cloud/setup.sh` does it, or `sudo dockerd`) and build
+In a Claude cloud container start Docker first (`sudo dockerd`) and build
 with `CAPXUL_BUILD_CA=/root/.ccr/ca-bundle.crt`: the proxy inspects TLS, so the build must trust its CA. The CA is a
 build secret and never enters the image. The running bench needs no outbound network at all. A cold build needs about 20 GB of free disk
 (the base images, the build cache and the 6.4 GB image); a full disk mid-build fails the build, and `bin/env.sh` treats

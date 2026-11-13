@@ -1,11 +1,10 @@
 # frappe-app
 
-The Capxul app that lives on every hosted Frappe site (component `frappe-app`, `blueprint/shared/foundation.ts`). A Frappe
+The Capxul app that lives on every hosted Frappe site . A Frappe
 v16 app named `capxul`: no fork of Frappe, ERPNext, Frappe HR or Frappe CRM, every join is a hook.
 
-Moved here from `spikes/skeleton/frappe/capxul` (plan task `m2-graduate-spike`, first slice) without a change of
-behaviour; its Python import path and whitelisted method names are the same (`capxul.api.chain_event`, `capxul.door.*`).
-The test stack mounts it from here (`spikes/skeleton/frappe/compose.yml`); the production image copies it
+Moved here from `spikes/skeleton/frappe/capxul` on `main` without a change of behaviour; its Python import path and
+whitelisted method names are the same (`capxul.api.chain_event`, `capxul.door.*`). The production image copies it
 (`packages/bench-image`).
 
 | Module | What it does |
@@ -48,4 +47,4 @@ Purchase Invoice and Payment Entry show their Company even on one-company sites.
 Native setup seeds eleven feature switches: accounts, people, projects and CRM on; payroll, WhatsApp, attendance, recruitment, reviews, stock and manufacturing off. Configure/migrate/restore preserve existing feature choices, including explicitly enabled payroll. Migration refreshes caches and user module blocks. The three split HR features also name their DocTypes explicitly because pinned HRMS keeps them in the shared HR module; their document RPCs and lists close without closing Employee, leave, expenses, shared skills or project timesheets. Signed `capxul.service.read_site` reports actual native features, apps, Company, map version and assertion/OAuth configuration, never substitutes expected defaults.
 
 `tests/` holds fast unit tests of the money path that need no site: `frappe` is replaced by a small in-memory fake
-(`pnpm frappe:test`, run by `pnpm test`). They cover once-per-payment posting, batch unmatched lines, late approvals, stable collection, idempotent/conflicting answers, tenant/signature refusals and listener scope. A real-stack payment/restart/recovery run is still required to accept slice zero.
+(`pnpm frappe:test`, run by `pnpm test`, the unit-test rung). They cover once-per-payment posting, batch unmatched lines, late approvals, stable collection, idempotent/conflicting answers, tenant/signature refusals and listener scope. A real-stack payment/restart/recovery run is still required to accept slice zero.

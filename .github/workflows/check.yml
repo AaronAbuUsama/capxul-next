@@ -1,0 +1,25 @@
+# The ladder (AGENTS.md): rungs 1 to 5 on every pull request and on every push to master. Rung 6, the scenarios in a
+# fresh world, is not here: CI has no Cloudflare or Neon keys yet. The job keeps the name `gate`, so the branch's
+# history of checks stays readable.
+name: check
+on:
+  pull_request:
+  push:
+    branches: [master]
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm shape
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm types
+      - run: pnpm test

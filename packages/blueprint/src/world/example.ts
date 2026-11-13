@@ -1,8 +1,9 @@
 // One world as `world.show` answers it, used by the declarations' examples. Not a starting world: those are in
 // ../starting-worlds.ts.
+import * as Str from "effect/String";
 import type { WorldView } from "../values.ts";
 
-const address = (n: number) => `0x${n.toString(16).padStart(40, "0")}`;
+const address = (n: number) => `0x${Str.padStart(40, "0")(n.toString(16))}`;
 
 export const exampleWorld: typeof WorldView.Type = {
   world: "town",

@@ -1,6 +1,6 @@
 # Grounding: Aaron's strategy
 
-This is the strategy stated by Aaron on 9 November 2026, restated for the current direction. The original is preserved at [archive/GROUNDING.md](archive/GROUNDING.md). For live scope and sequence use [START-HERE.md](START-HERE.md), the plan and the blueprint's current rulings; this document does not override them.
+This is the strategy stated by Aaron on 9 November 2026, restated for the current direction. For live scope and sequence use [docs/roadmap.md](docs/roadmap.md); this document does not override it.
 
 ## The honest starting point
 

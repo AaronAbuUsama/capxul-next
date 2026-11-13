@@ -8,7 +8,7 @@
 13 November 2026, at Aaron's request, to rethink the blueprint and the build pipeline without
 disturbing the product work in flight on those two branches.
 
-- Rebuild work goes by pull request into `master`. Where the rules below say `integration/build`, read `master`.
+- Rebuild work goes by pull request into `master`.
 - Never merge `master` into `main` or `integration/build`, and never open a pull request from this line into them,
   unless Aaron asks for it in writing.
 - Work that belongs to the in-flight product line stays on `main` and `integration/build`. Do not base it on `master`.
@@ -18,71 +18,63 @@ If your task was written for `main` or `integration/build` and you are on this b
 
 The plan this line follows is [docs/roadmap.md](docs/roadmap.md).
 
-This repository holds the Capxul rebuild: a typed **blueprint** (`blueprint/`, built by `packages/blueprint-engine`) and
-the product code it describes. Capxul is hosted, re-skinned Frappe with Capxul Core's on-chain authority, budgets,
-payments and banking built in ([GROUNDING.md](GROUNDING.md)).
+## Three sources, one owner for every fact
 
-**Picking the work up cold? Read [docs/handoff-amp.md](docs/handoff-amp.md).** It says where the product stands, how to
-bring the stack up in an orb, what is waiting on Aaron and what to do next. Then [docs/philosophy.md](docs/philosophy.md)
-(how we work) and [README.md](README.md) (the map).
+- **The blueprint** (`packages/blueprint`) says what Capxul does: its operations, refusals, events and starting worlds,
+  as Effect declarations the product imports.
+- **The world** (`packages/world`) says what runs where: the Alchemy stacks that create and destroy a world.
+- **Run records**, made by checks and scenario runs, say what is proven. Nobody writes one by hand.
 
-## Roles
+Every fact has one owner in code. Everything else that needs it imports it, generates it from it, or is checked
+against it, so two places cannot disagree (`docs/roadmap.md`, "One source for every fact"). Nothing checks this as a
+whole yet.
 
-- **The coordinator** is one Amp thread at a time (the lead). It hill-climbs the plan with the `coordinate` skill:
-  keeps the critical path true, starts one orb thread per ready task (`dispatch`), merges green pull requests, and
-  batches what only Aaron can answer (`ask-aaron`). Skills are in `.agents/skills/` (`.claude/skills` links there).
-- **A worker** is an Amp orb thread (or a Claude cloud thread) on one task. It never merges, never marks its own task
-  done and never writes the path.
+## Worlds
+
+A world is created, used and destroyed as one unit, with an owner and an expiry. The rules are in
+[docs/roadmap.md](docs/roadmap.md), "World lifecycle rules, enforced by code". They belong in `packages/world`; until it lands, nothing checks them.
 
 ## How work flows
 
-- **One task, one Amp thread, one branch, one pull request** into `integration/build`. Branch from the latest
-  `integration/build`. Never push to `main` and never force-push anywhere.
-- **Do not use Amp's default "Ship"**: it pushes to the base branch. Use "Push to Branch" and open a pull request
-  (`gh pr create --base integration/build`).
-- **CI decides merge-readiness** (`.github/workflows/blueprint.yml` runs the checks below on every pull request). The
-  coordinator or Aaron merges; a worker never merges its own pull request and never says its own task is done.
-- **Done means evals pass in a run** (below), not an agent's claim.
-- `main` moves only by a pull request from `integration/build` that Aaron approves.
+- One piece of work, one branch, one pull request into `master`. The lead merges it when CI is green. Nothing in
+  the repository checks this.
+- Never push to, merge into or open a pull request against `main` or `integration/build`. Never force-push. Nothing
+  checks this; it is on you.
+- A builder must not change the scenarios or the runner's generic checks: those judge its work. It may change
+  everything else it needs, the world and the runner's plumbing included (readiness, caching, connections), and every
+  such change shows in its diff. Nothing checks this yet; the reviewer reads the diff.
+- Measure first. Every run record holds every operation's timings, caller and server, with the spans of each step. A
+  budget stays provisional and is never enforced until it is set from measured runs, so nothing fails on speed until
+  then. Nothing checks this yet.
+- CI (`.github/workflows/check.yml`, job `gate`) runs rungs 1 to 5 of the ladder on every pull request and every
+  push to `master`.
 
-## Rules for every change
+## The ladder
 
-- **The blueprint changes first.** When code needs to differ from the blueprint: change the record and add a decision
-  record; rebuild to zero problems; then change the code. Read `docs/blueprint.md` before you add or change a record.
-  Never edit `blueprint/baseline/` or any file under a `src/generated/` folder. For the contracts in
-  `packages/contracts`, the code is the truth for what exists: change a contract's source, run
-  `pnpm contracts:export-abi`, and reconcile the contract records until `pnpm contracts:check-blueprint` passes.
-- **What is fixed is behaviour, not spelling** (`system.frozen-behaviour`). Each of the 215 old operations is either
-  booked in the blueprint or classified by the cut (`blueprint/shared/cut.ts`), never both and never neither. A booked
-  operation's acceptance claims are the evals. Commands, flags, `--json` shapes, refusal codes and wording are the
-  blueprint's to design; a change to them goes into the blueprint first, with a decision.
-- **Every change passes these checks before it merges** (CI runs them too):
+Run `pnpm check` before you open a pull request. It runs rungs 1 to 5 in order and stops at the first that fails.
+`pnpm format` rewrites the code into shape; run it before `pnpm check`.
 
-  ```bash
-  pnpm exec tsc -p packages/blueprint-engine && pnpm test
-  pnpm exec tsc -p blueprint
-  pnpm blueprint                  # 0 problems
-  pnpm frozen                     # 0 breaches
-  pnpm contracts:check-blueprint  # 0 undeclared differences
-  pnpm frappe:check-blueprint     # the Frappe app agrees with the blueprint
-  pnpm portal:check
-  pnpm layout                     # the top level, file sizes and package READMEs
-  ```
+| Rung | Command | What fails it |
+|---|---|---|
+| 1. Shape | `pnpm shape` | An entry at the top level, a package or a file under `docs/` that `packages/lint/src/shape.ts` does not list; a package or spike with no `README.md`; a source file under `packages/` over 300 lines; the two lists of entry files in `.oxlintrc.json` naming different paths |
+| 2. Format | `pnpm format:check` | TypeScript or JavaScript under `packages/` that oxfmt would change (config: `packages/lint/oxfmt.json`) |
+| 3. Lint | `pnpm lint` | Any finding of `.oxlintrc.json`, every rule an error: oxlint's correctness and suspicious rules and a few more, all of Effect's rules from `@effect/tsgo` but two (each off with its reason), and ours from `packages/lint` (below) |
+| 4. Types | `pnpm types` | A type error in any TypeScript package, or an Effect language service error or warning (`effect-tsgo tsc`) |
+| 5. Tests | `pnpm test` | A failing unit test in any package (`pnpm frappe:test` included). Foundry's tests in `packages/contracts` are not in it: CI has no Foundry |
+| 6. Proof | `spikes/pipeline/run.sh scenarios` | A scenario that fails in a fresh world. Until the runner leaves the spike, this is the command. CI does not run it: CI has no Cloudflare or Neon keys yet (roadmap step 1.8) |
 
-- **Done means evals pass in a run.** `pnpm evals -- <ids | all | --journey id | --milestone id>` is the only thing that
-  writes `status/status.json`. Never edit that file or a verdict by hand. A claim with no check is `not_run`.
-- **Where things go.** The top level is closed (`packages/layout/src/main.ts` lists what may be there, each with a
-  reason). Dead material is deleted; git history keeps it. Working data goes under the git-ignored `var/`. A new
-  script belongs in the package it serves. Code layout follows decision `system.layout`: one package per component;
-  `src/<concept>/` mirrors `blueprint/<concept>/`; another concept's code is imported only through its `door.ts`.
-- **The plan.** `pnpm plan show` gives the goal, the milestones, the critical path and each task. `plan/plan.json`
-  changes only through `pnpm plan …`, never by hand, and every change is logged in `plan/log.jsonl`. Only the
-  coordinator writes the goal, milestones, path and notes, adds or drops tasks, and applies Aaron's answers
-  (`plan/answers.jsonl`, from the book's Questions page). A worker reports with `pnpm plan task start|block`.
-- **Decisions.** Every judgment is a decision record. Bring Aaron only what is truly his: product or architecture
-  choices, money, credentials and accounts, irreversible steps, and accepting a milestone. Ask as one decision with two
-  to four options and a recommendation, in plain words. Never hand him a terminal command to run.
-- **Old system.** `Xelmar-tech/infrastructure` is a reference for behaviour only: read its code for edge cases (contract
-  reverts, money paths, permissions), never port it, and never run the evals against it. Its Linear workflow,
-  `docs/rules` and skills do not apply here.
-- **Never** touch production, deploy anything, or create cloud credentials without Aaron's explicit go-ahead in writing.
+Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
+
+- `capxul/blueprint-owns-names`: an operation, a refusal (a tagged error), an event or a starting world is declared
+  only in `packages/blueprint`.
+- `capxul/effect-only`: no `async`, `await`, `new Promise`, `try`, `throw`, `process.env`, `Date.now`, `new Date()`
+  or `console` in TypeScript outside entry files. Entry files are listed in `.oxlintrc.json` under
+  `settings.capxul.entries`, each with its reason.
+- `capxul/import-door`: another package is imported only through its door, `src/door.ts`, or by its bare name.
+- `capxul/no-json-text`: no `JSON.parse`, `JSON.stringify`, `Schema.parseJson` or string schema documented as JSON
+  outside entry files and the edges listed under `settings.capxul.jsonEdges`.
+
+What the ladder does not cover: `spikes/` (temporary code, deleted when its step graduates it; only its README is
+checked), Ponder's files in `packages/indexer` (type-checked only), the Solidity in `packages/contracts`, and the
+Frappe app's Python and form scripts (unit tests and formatting only). An override of a rule names its reason next
+to it, in `.oxlintrc.json` or on the line it excuses.

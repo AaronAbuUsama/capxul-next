@@ -1,8 +1,0 @@
-eval     jrn:thin_line
-claim    the journey's scenario runs end to end on a devnet
-verdict  not_run
-run      run-20261110165450  at 2026-11-10T16:54:50Z  commit f5907ef+dirty
-script     world main  company s2611101654
-why      no check is bound to this eval
-
-no check is bound to this eval, so nothing was run for it

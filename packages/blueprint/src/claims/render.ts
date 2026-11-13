@@ -1,5 +1,8 @@
 // Renders claims.md from the declarations: the claims, the starting worlds and each operation's refusals, events
 // and budget. Pure: `render.entry.ts` writes the file, and a test compares it with this.
+import * as Arr from "effect/Array";
+import { pipe } from "effect/Function";
+import * as Rec from "effect/Record";
 import { operations, servedBy, type OperationName } from "../door.ts";
 import { refusalsOf, type Operation } from "../operation.ts";
 import { startingWorlds } from "../starting-worlds.ts";
@@ -7,7 +10,7 @@ import { allClaims } from "./all.ts";
 import type { Claim, ClaimsOf } from "./claim.ts";
 
 const code = (text: string) => `\`${text}\``;
-const list = (items: ReadonlyArray<string>) => (items.length === 0 ? "none" : items.join(", "));
+const list = (items: ReadonlyArray<string>) => (items.length === 0 ? "none" : Arr.join(items, ", "));
 
 const header = `# Acceptance claims of the thin line
 
@@ -37,13 +40,18 @@ const origin = (claim: Claim): ReadonlyArray<string> => {
 
 const budget = (operation: Operation) =>
   `${operation.budget.ms.toLocaleString("en-GB")} ms, ${operation.budget.provisional ? "provisional" : "measured"}` +
-  (operation.budget.excludes.length > 0 ? `, excluding ${operation.budget.excludes.join(" and ")}` : "") +
+  (operation.budget.excludes.length > 0 ? `, excluding ${Arr.join(operation.budget.excludes, " and ")}` : "") +
   `. Basis: ${operation.budget.basis}.`;
 
 const emits = (operation: Operation) =>
-  operation.outcomes
-    .map((outcome) => `${outcome.tag === null ? "" : `${code(outcome.tag)}: `}${list(outcome.emits.map((event) => code(event.identifier)))}`)
-    .join("; ");
+  pipe(
+    operation.outcomes,
+    Arr.map(
+      (outcome) =>
+        `${outcome.tag === null ? "" : `${code(outcome.tag)}: `}${list(Arr.map(outcome.emits, (event) => code(event.identifier)))}`,
+    ),
+    Arr.join("; "),
+  );
 
 const section = (name: OperationName, index: number, of: ClaimsOf): string => {
   const operation: Operation = operations[name];
@@ -51,15 +59,17 @@ const section = (name: OperationName, index: number, of: ClaimsOf): string => {
     `## ${index + 1}. ${code(name)}`,
     "",
     `- Served by: the ${servedBy(name)} group.`,
-    `- Refusals: ${list(refusalsOf(operation).map((refusal) => code(refusal.identifier)))}, and ${code("NotSignedIn")} from sign-in.`,
+    `- Refusals: ${list(Arr.map(refusalsOf(operation), (refusal) => code(refusal.identifier)))}, and ${code("NotSignedIn")} from sign-in.`,
     `- Emits: ${emits(operation)}.`,
     `- Budget: ${budget(operation)}`,
     "",
-    ...of.claims.flatMap((claim, n) => [
+    ...Arr.flatMap(of.claims, (claim, n) => [
       `${n + 1}. ${claim.says}${claim.thinLine ? " *(thin line)*" : ""}`,
       `   - Given: ${code(claim.given.name)}.`,
       `   - Observes: ${claim.observes}`,
-      ...(claim.refusals.length > 0 ? [`   - Refusals: ${list(claim.refusals.map((refusal) => code(refusal.identifier)))}.`] : []),
+      ...(claim.refusals.length > 0
+        ? [`   - Refusals: ${list(Arr.map(claim.refusals, (refusal) => code(refusal.identifier)))}.`]
+        : []),
       ...origin(claim),
     ]),
   ];
@@ -67,39 +77,54 @@ const section = (name: OperationName, index: number, of: ClaimsOf): string => {
     lines.push("", "Old claims not kept:", "");
     for (const each of of.dropped) lines.push(`- ${code(each.id)}: "${each.was}" Why: ${each.why}`);
   }
-  return lines.join("\n");
+  return Arr.join(lines, "\n");
 };
 
 const summary = (): string => {
-  const rows = (Object.keys(allClaims) as Array<OperationName>).map((name) => {
+  const rows = Arr.map(Rec.keys(allClaims), (name) => {
     const { claims, dropped } = allClaims[name];
-    const by = (kind: string | null) => claims.filter((claim) => (claim.origin?.kept ?? null) === kind).length;
+    const by = (kind: string | null) => Arr.filter(claims, (claim) => (claim.origin?.kept ?? null) === kind).length;
     return `| ${code(name)} | ${claims.length} | ${by("word for word")} | ${by("rewritten")} | ${by(null)} | ${dropped.length} |`;
   });
-  return ["| Operation | Claims | Old, word for word | Old, rewritten | New | Old, not kept |", "|---|---|---|---|---|---|", ...rows].join("\n");
+  return Arr.join(
+    [
+      "| Operation | Claims | Old, word for word | Old, rewritten | New | Old, not kept |",
+      "|---|---|---|---|---|---|",
+      ...rows,
+    ],
+    "\n",
+  );
 };
 
 const worlds = (): string =>
-  Object.values(startingWorlds)
-    .map((world) => {
+  pipe(
+    Rec.values(startingWorlds),
+    Arr.map((world) => {
       const from = world.from === null ? "" : ` Made from ${code(world.from.name)}.`;
-      const steps = world.steps.map((step) => `${step.operation === "wait" ? "wait" : code(step.operation)} as ${step.as}: ${step.does}`);
-      return `- ${code(world.name)}.${from} ${world.holds}${steps.length > 0 ? ` Steps: ${steps.join("; ")}.` : ""}`;
-    })
-    .join("\n");
+      const steps = Arr.map(
+        world.steps,
+        (step) => `${step.operation === "wait" ? "wait" : code(step.operation)} as ${step.as}: ${step.does}`,
+      );
+      return `- ${code(world.name)}.${from} ${world.holds}${steps.length > 0 ? ` Steps: ${Arr.join(steps, "; ")}.` : ""}`;
+    }),
+    Arr.join("\n"),
+  );
 
 export const renderClaims = (): string =>
-  [
-    header,
-    "## Count",
-    "",
-    summary(),
-    "",
-    "## Starting worlds",
-    "",
-    "Declared in `src/starting-worlds.ts`. Each is made through the door from the one before it.",
-    "",
-    worlds(),
-    "",
-    ...(Object.keys(allClaims) as Array<OperationName>).map((name, index) => `${section(name, index, allClaims[name])}\n`),
-  ].join("\n");
+  Arr.join(
+    [
+      header,
+      "## Count",
+      "",
+      summary(),
+      "",
+      "## Starting worlds",
+      "",
+      "Declared in `src/starting-worlds.ts`. Each is made through the door from the one before it.",
+      "",
+      worlds(),
+      "",
+      ...Arr.map(Rec.keys(allClaims), (name, index) => `${section(name, index, allClaims[name])}\n`),
+    ],
+    "\n",
+  );

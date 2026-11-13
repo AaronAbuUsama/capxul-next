@@ -1,8 +1,16 @@
 // The acceptance claims of the world operations. Rendered into claims.md.
 import { claim, dropped, kept, rewritten, type ClaimsOf } from "../claims/claim.ts";
 import {
-  ClockBackwards, ClockBeforeSeed, ExpiryBeyondSource, GradeNotOffered, NotWorldOwner, SnapshotExists, SnapshotNotFound, WorldExists,
-  WorldNotFound, WorldQuotaReached,
+  ClockBackwards,
+  ClockBeforeSeed,
+  ExpiryBeyondSource,
+  GradeNotOffered,
+  NotWorldOwner,
+  SnapshotExists,
+  SnapshotNotFound,
+  WorldExists,
+  WorldNotFound,
+  WorldQuotaReached,
 } from "../errors.ts";
 import { startingWorlds as w } from "../starting-worlds.ts";
 import * as World from "./operations.ts";

@@ -52,7 +52,11 @@ const founded: StartingWorld = {
   holds:
     "Northwind (handle `northwind`), founded by dana: Directors dana and eli, 2 of 2; members sam and pat with no permission; 1,000 USDC of dana's capital in the company Safe; its site ready, with users for dana and eli.",
   steps: [
-    step("org.create", "dana", "founds northwind with eli as a Director, threshold 2, members sam and pat, and 1,000 USDC of capital"),
+    step(
+      "org.create",
+      "dana",
+      "founds northwind with eli as a Director, threshold 2, members sam and pat, and 1,000 USDC of capital",
+    ),
     step("approval.sign", "dana", "signs her setup approval"),
     step("approval.sign", "eli", "signs his setup approval, which sends the setup"),
     step("wait", "operator", "until world.show lists northwind's site as ready"),
@@ -94,7 +98,8 @@ const paymentHeld: StartingWorld = {
 const paid: StartingWorld = {
   name: "paid",
   from: paymentHeld,
-  holds: "sam signed: Brightside was paid 125.50 USDC from the company Safe, the Payment Entry posted and the invoice has nothing outstanding.",
+  holds:
+    "sam signed: Brightside was paid 125.50 USDC from the company Safe, the Payment Entry posted and the invoice has nothing outstanding.",
   steps: [
     step("approval.sign", "sam", "signs the held payment, which sends it"),
     step("wait", "sam", "until report.run's General Ledger shows the Payment Entry"),
@@ -114,11 +119,21 @@ const withSnapshot: StartingWorld = {
 const restored: StartingWorld = {
   name: "restored",
   from: withSnapshot,
-  holds: "A second private world, made from `m3` by the same operator, which names the first world, `m3` and its record position as its parent.",
+  holds:
+    "A second private world, made from `m3` by the same operator, which names the first world, `m3` and its record position as its parent.",
   steps: [step("world.snapshot.restore", "operator", "restores m3 into a new world with a lifetime of 60 minutes")],
 };
 
 /** Every starting world, by the name its claims and order.md use. */
 export const startingWorlds = {
-  nothing, quotaFull, fresh, founded, officeHolder, paymentDrafted, paymentHeld, paid, withSnapshot, restored,
+  nothing,
+  quotaFull,
+  fresh,
+  founded,
+  officeHolder,
+  paymentDrafted,
+  paymentHeld,
+  paid,
+  withSnapshot,
+  restored,
 } as const;

@@ -37,7 +37,9 @@ export class PlatformRpcs extends RpcGroup.make(
   World.show.rpc,
   World.snapshotSave.rpc,
   World.snapshotRestore.rpc,
-).middleware(Telemetry).middleware(PlatformSignIn) {}
+)
+  .middleware(Telemetry)
+  .middleware(PlatformSignIn) {}
 
 /**
  * Served by a world's Core, through the world's door: everything that acts inside one running world. Its caller is
@@ -52,13 +54,28 @@ export class WorldRpcs extends RpcGroup.make(
   Reports.run.rpc,
   World.clockWarp.rpc,
   Record.exportRecord.rpc,
-).middleware(Telemetry).middleware(WorldSignIn) {}
+)
+  .middleware(Telemetry)
+  .middleware(WorldSignIn) {}
 
 /** Which server serves an operation, read from the two groups above. */
-export const servedBy = (name: OperationName): "platform" | "world" => (PlatformRpcs.requests.has(name) ? "platform" : "world");
+export const servedBy = (name: OperationName): "platform" | "world" =>
+  PlatformRpcs.requests.has(name) ? "platform" : "world";
 
 export * from "./telemetry.ts";
-export { declare, declareOutcomes, eventNamesOf, isRefusal, outcome, refusalsOf, type Budget, type EventClass, type EventOf, type Expected, type Operation } from "./operation.ts";
+export {
+  declare,
+  declareOutcomes,
+  eventNamesOf,
+  isRefusal,
+  outcome,
+  refusalsOf,
+  type Budget,
+  type EventClass,
+  type EventOf,
+  type Expected,
+  type Operation,
+} from "./operation.ts";
 export * as Errors from "./errors.ts";
 export * as Values from "./values.ts";
 export { startingWorlds, type StartingWorld } from "./starting-worlds.ts";

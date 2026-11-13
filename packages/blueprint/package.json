@@ -4,15 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "tsc -p .",
+    "types": "effect-tsgo tsc -p .",
     "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts",
     "claims": "node --experimental-strip-types --no-warnings src/claims/render.entry.ts"
   },
   "dependencies": {
-    "effect": "4.1.2"
+    "effect": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "22.19.1",
-    "typescript": "5.9.3"
+    "@effect/tsgo": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
   }
 }

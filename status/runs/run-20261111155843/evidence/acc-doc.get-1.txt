@@ -1,9 +1,0 @@
-eval     acc:doc.get/1
-claim    A document is read as the caller, with its status.
-verdict  pass
-run      run-20261111155843  at 2026-11-11T15:58:43Z  commit ff08276
-script   spikes/skeleton/run.sh  world main  company cloudv4f
-why      The HR person reads the Leave Application back through the door's `doc get --as` and the check finds its docstatus and status: a document read as the caller, with its status.
-
-PASS  B6.hr-employee-and-approved-leave  x1  9575 ms
-      B6 HR person made employee HR-EMP-00004 and leave application HR-LAP-2026-00001, approved it (submitted, status Approved)

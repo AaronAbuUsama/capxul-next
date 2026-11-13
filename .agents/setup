@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-# Reusable tools and images only; each orb owns its runtime databases and credentials.
-set -euo pipefail
-cd "$(dirname "$0")/.."
-exec packages/devnet/orb/setup.sh

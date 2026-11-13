@@ -13,15 +13,20 @@ import { OperatorName, PersonId, WorldName } from "./values.ts";
 export const TRACE_HEADER = "traceparent";
 
 /** What the server knows about the call a handler is serving. Events are recorded against it. */
-export class CurrentCall extends Context.Service<CurrentCall, { readonly traceId: string; readonly operation: string }>()(
-  "capxul/contract/CurrentCall",
-) {}
+// oxlint-disable effecttsgo/deterministic-keys -- the key is shared with spikes/pipeline/contract/telemetry.ts; renaming it is the blueprint owner's call, not a lint fix.
+export class CurrentCall extends Context.Service<
+  CurrentCall,
+  { readonly traceId: string; readonly operation: string }
+>()("capxul/contract/CurrentCall") {}
+// oxlint-enable effecttsgo/deterministic-keys
 
 /**
  * Wraps every operation: runs the handler in a span named after the operation, under the caller's trace id, keeps
  * the spans of the call, and gives the handler its `CurrentCall`.
  */
-export class Telemetry extends RpcMiddleware.Service<Telemetry, { provides: CurrentCall }>()("capxul/contract/Telemetry") {}
+export class Telemetry extends RpcMiddleware.Service<Telemetry, { provides: CurrentCall }>()(
+  "capxul/contract/Telemetry",
+) {}
 
 /**
  * The header naming the person a call acts as, inside one world. In private and shared worlds it is honoured only
@@ -36,19 +41,32 @@ export const Caller = Schema.Union([
   Schema.TaggedStruct("person", { person: PersonId, world: WorldName }),
 ]);
 
-export class CurrentCaller extends Context.Service<CurrentCaller, typeof Caller.Type>()("capxul/contract/CurrentCaller") {}
+export class CurrentCaller extends Context.Service<CurrentCaller, typeof Caller.Type>()(
+  // oxlint-disable-next-line effecttsgo/deterministic-keys -- the key is shared with spikes/pipeline/contract/telemetry.ts; renaming it is the blueprint owner's call, not a lint fix.
+  "capxul/contract/CurrentCaller",
+) {}
 
 /** Establishes the caller of every operation served through a world's door, or refuses with `NotSignedIn`. */
-export class WorldSignIn extends RpcMiddleware.Service<WorldSignIn, { provides: CurrentCaller }>()("capxul/contract/WorldSignIn", {
-  error: NotSignedIn,
-}) {}
+export class WorldSignIn extends RpcMiddleware.Service<WorldSignIn, { provides: CurrentCaller }>()(
+  "capxul/contract/WorldSignIn",
+  {
+    error: NotSignedIn,
+  },
+) {}
 
 /** Who a call to the platform's world service acts as: always an operator. */
-export class CurrentOperator extends Context.Service<CurrentOperator, { readonly operator: typeof OperatorName.Type }>()(
+export class CurrentOperator extends Context.Service<
+  CurrentOperator,
+  { readonly operator: typeof OperatorName.Type }
+>()(
+  // oxlint-disable-next-line effecttsgo/deterministic-keys -- the key is shared with spikes/pipeline/contract/telemetry.ts; renaming it is the blueprint owner's call, not a lint fix.
   "capxul/contract/CurrentOperator",
 ) {}
 
 /** Establishes the operator of every platform operation, or refuses with `NotSignedIn`. */
-export class PlatformSignIn extends RpcMiddleware.Service<PlatformSignIn, { provides: CurrentOperator }>()("capxul/contract/PlatformSignIn", {
-  error: NotSignedIn,
-}) {}
+export class PlatformSignIn extends RpcMiddleware.Service<PlatformSignIn, { provides: CurrentOperator }>()(
+  "capxul/contract/PlatformSignIn",
+  {
+    error: NotSignedIn,
+  },
+) {}

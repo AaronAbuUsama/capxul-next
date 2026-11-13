@@ -1,0 +1,249 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // The lint rung (AGENTS.md). Three sources of rules, every one an error: oxlint's built-in rules, Effect's rules
+  // from @effect/tsgo (run through `effect-tsgo oxlint`, which adds them to oxlint), and ours from packages/lint.
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "effecttsgo"],
+  "jsPlugins": ["./packages/lint/src/plugin.ts"],
+  "options": {
+    "typeAware": true,
+    "reportUnusedDisableDirectives": "deny"
+  },
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error"
+  },
+  "ignorePatterns": [
+    // Temporary code, deleted when its step graduates it.
+    "spikes/**",
+    // Ponder's files: Ponder requires async handlers and a Hono API, so they are a different kind of code.
+    "packages/indexer/**",
+    // Solidity and its vendored libraries; oxlint reads no Solidity, but the folder also holds vendored JavaScript.
+    "packages/contracts/**",
+    // The Frappe app is Python plus two browser form scripts that Frappe loads with its own globals; like the
+    // Python, it is outside Effect (docs/roadmap.md, "Effect everywhere it can be"). Oxfmt still formats them.
+    "packages/frappe-app/**",
+    "**/node_modules/**"
+  ],
+  "settings": {
+    "capxul": {
+      // Entry files may use promises, exceptions, the console and ambient reads: they are where a program meets the
+      // process. Each with its reason.
+      "entries": {
+        "packages/lint/src/shape.entry.ts": "the shape check's command line: reads git's file list and the disk, prints, sets the exit code",
+        "packages/blueprint/src/claims/render.entry.ts": "writes claims.md: the one place the claims render touches the disk",
+        "packages/*/test/**/*.test.ts": "a test file is run by the test runner as its own program"
+      },
+      // Places where JSON text is the format of the outside world, each with its reason.
+      "jsonEdges": {}
+    }
+  },
+  "rules": {
+    "max-lines": ["error", { "max": 300 }],
+    // Effect's tagged values carry `_tag`; every other leading underscore is refused.
+    "no-underscore-dangle": ["error", { "allow": ["_tag"] }],
+    "no-console": "error",
+    "no-restricted-globals": [
+      "error",
+      { "name": "process", "message": "Read the environment through Effect's Config, in an entry file." },
+      { "name": "Date", "message": "Read the time through Effect's Clock or DateTime." },
+      { "name": "performance", "message": "Measure through Effect's Clock or a span." },
+      { "name": "fetch", "message": "Call out through Effect's HttpClient." },
+      { "name": "setTimeout", "message": "Wait with Effect.sleep or a Schedule." },
+      { "name": "setInterval", "message": "Repeat with a Schedule." }
+    ],
+    "capxul/blueprint-owns-names": "error",
+    "capxul/effect-only": "error",
+    "capxul/import-door": "error",
+    "capxul/no-json-text": "error",
+    "effecttsgo/abort-controller-in-effect": "error",
+    "effecttsgo/acquire-release-disposable": "error",
+    "effecttsgo/all-of-map-to-for-each": "error",
+    "effecttsgo/any-unknown-in-error-context": "error",
+    "effecttsgo/api-stability-leak": "error",
+    "effecttsgo/async-function": "error",
+    "effecttsgo/catch-all-tag-dispatch-to-catch-tag": "error",
+    "effecttsgo/catch-all-to-map-error": "error",
+    "effecttsgo/catch-chain-to-first-success-of": "error",
+    "effecttsgo/catch-conditional-refail-to-catch-if": "error",
+    "effecttsgo/catch-die-to-or-die": "error",
+    "effecttsgo/catch-if-tag-to-catch-tag": "error",
+    "effecttsgo/catch-refail-to-tap-error": "error",
+    "effecttsgo/catch-tag-to-catch-reason": "error",
+    "effecttsgo/catch-to-ignore": "error",
+    "effecttsgo/catch-to-or-else-succeed": "error",
+    "effecttsgo/catch-unfailable-effect": "error",
+    "effecttsgo/class-self-mismatch": "error",
+    "effecttsgo/crypto-random-uuid": "error",
+    "effecttsgo/crypto-random-uuid-in-effect": "error",
+    "effecttsgo/deterministic-keys": "error",
+    "effecttsgo/duplicate-package": "error",
+    "effecttsgo/effect-do-notation": "error",
+    "effecttsgo/effect-fn-iife": "error",
+    "effecttsgo/effect-fn-implicit-any": "error",
+    "effecttsgo/effect-fn-opportunity": "error",
+    "effecttsgo/effect-gen-uses-adapter": "error",
+    "effecttsgo/effect-in-failure": "error",
+    "effecttsgo/effect-in-void-success": "error",
+    "effecttsgo/effect-map-flatten": "error",
+    "effecttsgo/effect-map-void": "error",
+    "effecttsgo/effect-sleep-zero-to-yield-now": "error",
+    "effecttsgo/effect-succeed-with-void": "error",
+    "effecttsgo/error-payload-shadows-name": "error",
+    "effecttsgo/experimental-api-usage": "error",
+    "effecttsgo/extends-native-error": "error",
+    "effecttsgo/fail-cause-to-constructor": "error",
+    "effecttsgo/flat-map-conditional-to-filter-or-fail": "error",
+    "effecttsgo/flat-map-identity-to-flatten": "error",
+    "effecttsgo/flat-map-ignored-param-to-and-then": "error",
+    "effecttsgo/flat-map-to-map": "error",
+    "effecttsgo/flat-map-to-tap": "error",
+    "effecttsgo/floating-effect": "error",
+    "effecttsgo/floating-effect-in-vitest": "error",
+    "effecttsgo/generic-effect-services": "error",
+    "effecttsgo/global-console": "error",
+    "effecttsgo/global-console-in-effect": "error",
+    "effecttsgo/global-date": "error",
+    "effecttsgo/global-date-in-effect": "error",
+    "effecttsgo/global-error-in-effect-catch": "error",
+    "effecttsgo/global-error-in-effect-failure": "error",
+    "effecttsgo/global-fetch": "error",
+    "effecttsgo/global-fetch-in-effect": "error",
+    "effecttsgo/global-random": "error",
+    "effecttsgo/global-random-in-effect": "error",
+    "effecttsgo/global-timers": "error",
+    "effecttsgo/global-timers-in-effect": "error",
+    "effecttsgo/instance-of-schema": "error",
+    "effecttsgo/layer-merge-all-with-dependencies": "error",
+    "effecttsgo/lazy-effect": "error",
+    "effecttsgo/lazy-promise-in-effect-sync": "error",
+    "effecttsgo/leaking-requirements": "error",
+    "effecttsgo/manual-metric-tap-to-track": "error",
+    "effecttsgo/map-const-to-as": "error",
+    "effecttsgo/map-map-error-to-map-both": "error",
+    "effecttsgo/map-some-to-as-some": "error",
+    "effecttsgo/match-effect-to-map-both": "error",
+    "effecttsgo/match-effect-to-match": "error",
+    "effecttsgo/missed-pipeable-opportunity": "error",
+    "effecttsgo/missing-effect-context": "error",
+    "effecttsgo/missing-effect-error": "error",
+    "effecttsgo/missing-effect-service-dependency": "error",
+    "effecttsgo/missing-layer-context": "error",
+    // Off: it asks every exported function for a data-last overload, the convention of Effect's own modules. Our
+    // functions are called directly, and a second signature on each would be code nobody calls.
+    "effecttsgo/missing-pipeable-signature": "off",
+    "effecttsgo/missing-return-yield-star": "error",
+    "effecttsgo/missing-star-in-yield-effect-gen": "error",
+    "effecttsgo/multiple-catch-tag": "error",
+    "effecttsgo/multiple-effect-provide": "error",
+    "effecttsgo/nested-effect-gen-yield": "error",
+    "effecttsgo/new-promise": "error",
+    "effecttsgo/new-schema-class": "error",
+    "effecttsgo/node-builtin-import": "error",
+    "effecttsgo/non-object-effect-service-type": "error",
+    "effecttsgo/obsolete-match-import": "error",
+    "effecttsgo/obsolete-schema-import": "error",
+    "effecttsgo/option-match-to-from-option": "error",
+    "effecttsgo/outdated-api": "error",
+    "effecttsgo/overridden-schema-constructor": "error",
+    // Off: it asks for `import { Schema } from "effect"`, the opposite of prefer-namespace-import, which is on. The
+    // code imports Effect's modules by namespace (`import * as Schema from "effect/Schema"`).
+    "effecttsgo/prefer-barrel-import": "off",
+    "effecttsgo/prefer-effect-array": "error",
+    "effecttsgo/prefer-effect-record": "error",
+    "effecttsgo/prefer-effect-string": "error",
+    "effecttsgo/prefer-namespace-import": "error",
+    "effecttsgo/prefer-schema-over-json": "error",
+    "effecttsgo/prefer-schema-tagged-error": "error",
+    "effecttsgo/prefer-schema-type-property": "error",
+    "effecttsgo/prefer-succeed-some-or-none": "error",
+    "effecttsgo/prefer-typed-schema-decoder": "error",
+    "effecttsgo/prefer-unsafe-constructor": "error",
+    "effecttsgo/process-env": "error",
+    "effecttsgo/process-env-in-effect": "error",
+    "effecttsgo/promise-in-effect-success": "error",
+    "effecttsgo/provide-layer-succeed-to-provide-service": "error",
+    "effecttsgo/race-first-with-sleep-to-timeout": "error",
+    "effecttsgo/redundant-map-error": "error",
+    "effecttsgo/redundant-or-die": "error",
+    "effecttsgo/redundant-schema-tag-identifier": "error",
+    "effecttsgo/return-effect-in-gen": "error",
+    "effecttsgo/run-effect-inside-effect": "error",
+    "effecttsgo/run-of-exit-to-run-exit": "error",
+    "effecttsgo/schema-class-missing-brand": "error",
+    "effecttsgo/schema-class-object-literal": "error",
+    "effecttsgo/schema-literal-non-finite": "error",
+    "effecttsgo/schema-number": "error",
+    "effecttsgo/schema-opaque-instance-member": "error",
+    "effecttsgo/schema-struct-with-tag": "error",
+    "effecttsgo/schema-sync": "error",
+    "effecttsgo/schema-sync-in-effect": "error",
+    "effecttsgo/schema-union-of-literals": "error",
+    "effecttsgo/scope-in-layer-effect": "error",
+    "effecttsgo/service-not-as-class": "error",
+    "effecttsgo/strict-boolean-expressions": "error",
+    "effecttsgo/strict-effect-provide": "error",
+    "effecttsgo/sync-to-succeed": "error",
+    "effecttsgo/timeout-catch-tag-to-timeout-or-else": "error",
+    "effecttsgo/try-catch-in-effect-gen": "error",
+    "effecttsgo/unknown-in-effect-catch": "error",
+    "effecttsgo/unnecessary-arrow-block": "error",
+    "effecttsgo/unnecessary-effect-gen": "error",
+    "effecttsgo/unnecessary-fail-yieldable-error": "error",
+    "effecttsgo/unnecessary-pipe": "error",
+    "effecttsgo/unnecessary-pipe-chain": "error",
+    "effecttsgo/unnecessary-typeof-type": "error",
+    "effecttsgo/unsafe-effect-type-assertion": "error",
+    "effecttsgo/unstable-api-usage": "error"
+  },
+  "overrides": [
+    {
+      // Entry files: where a program meets the process. The same paths as settings.capxul.entries, which gives each
+      // its reason; `pnpm shape` fails when the two lists differ.
+      "files": [
+        "packages/lint/src/shape.entry.ts",
+        "packages/blueprint/src/claims/render.entry.ts",
+        "packages/*/test/**/*.test.ts"
+      ],
+      "rules": {
+        "capxul/effect-only": "off",
+        "capxul/no-json-text": "off",
+        "no-console": "off",
+        "no-restricted-globals": "off",
+        "effecttsgo/node-builtin-import": "off",
+        "effecttsgo/global-console": "off",
+        "effecttsgo/global-console-in-effect": "off",
+        "effecttsgo/global-date": "off",
+        "effecttsgo/global-date-in-effect": "off",
+        "effecttsgo/global-timers": "off",
+        "effecttsgo/global-timers-in-effect": "off",
+        "effecttsgo/global-fetch": "off",
+        "effecttsgo/global-fetch-in-effect": "off",
+        "effecttsgo/global-random": "off",
+        "effecttsgo/global-random-in-effect": "off",
+        "effecttsgo/process-env": "off",
+        "effecttsgo/process-env-in-effect": "off",
+        "effecttsgo/async-function": "off",
+        "effecttsgo/new-promise": "off",
+        "effecttsgo/crypto-random-uuid": "off",
+        "effecttsgo/crypto-random-uuid-in-effect": "off",
+        "effecttsgo/prefer-schema-over-json": "off"
+      }
+    },
+    {
+      // The blueprint's purpose is to export its operations, which are Effect Rpc declarations, so its exports show
+      // Rpc's types. Effect 4 marks Rpc unstable with no stable replacement; packages/blueprint/tsconfig.json allows
+      // effect/rpc for the same reason, and the catalog's exact pin of effect is the guard.
+      "files": ["packages/blueprint/**"],
+      "rules": {
+        "effecttsgo/api-stability-leak": "off"
+      }
+    },
+    {
+      // node:test's test() and describe() return a promise that the runner itself awaits.
+      "files": ["packages/*/test/**"],
+      "rules": {
+        "typescript/no-floating-promises": "off"
+      }
+    }
+  ]
+}

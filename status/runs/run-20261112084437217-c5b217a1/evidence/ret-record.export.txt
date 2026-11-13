@@ -1,8 +1,0 @@
-eval     ret:record.export
-claim    a success prints exactly the returns schema with --json
-verdict  not_run
-run      run-20261112084437217-c5b217a1  at 2026-11-12T08:44:37.217Z  commit 5567b4c+dirty
-script     world main  company s2611120844
-why      no binding
-
-no check is bound to this eval, so nothing was run for it
