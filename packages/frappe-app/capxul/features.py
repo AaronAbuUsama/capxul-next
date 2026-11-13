@@ -10,6 +10,7 @@ Not closed: bench console / bench execute, raw SQL, the database, Server Scripts
 import frappe
 from frappe import _
 
+from capxul import trace
 from capxul.locks import applying
 
 SHARED_MASTERS = {  # DocTypes other parts need to exist, so they stay reachable when the part that owns them is off
@@ -242,8 +243,7 @@ def precheck(feature, on):
 
 
 def switch(feature, on, trace_id=None):
-    if trace_id:
-        frappe.flags.capxul_trace = trace_id
+    trace.adopt(trace_id)
     r = precheck(feature, on)
     if not r["ok"]:
         return r

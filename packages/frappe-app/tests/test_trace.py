@@ -31,9 +31,23 @@ class TraceFormat(unittest.TestCase):
 
     def test_any_other_form_is_ignored(self):
         for header in ("tr_0123456789abcdefghij", "4BF92F3577B34DA6A3CE929D0E0E4736", "4bf92f3577b34da6a3ce929d0e0e473",
-                       "4bf92f3577b34da6a3ce929d0e0e47360", "4bf92f3577b34da6a3ce929d0e0e4736\n", ""):
+                       "4bf92f3577b34da6a3ce929d0e0e47360", "4bf92f3577b34da6a3ce929d0e0e4736\n", "0" * 32, ""):
             with self.subTest(header=header):
                 self.assertIsNone(self.arrive(header))
+
+    def test_bench_command_trace_arguments_are_checked_like_the_header(self):
+        from capxul import clock, features
+
+        def switch(t):  # the switch itself, stopped right after it adopts the trace
+            with patch.object(features, "precheck", lambda feature, on: {"ok": False}):
+                features.switch("crm", True, trace_id=t)
+
+        for adopt in (clock._stamp, switch):
+            for value, kept in (("4bf92f3577b34da6a3ce929d0e0e4736", True), ("tr_0123456789abcdefghij", False), ("0" * 32, False)):
+                with self.subTest(adopt=adopt, value=value):
+                    frappe.flags.capxul_trace = None
+                    adopt(value)
+                    self.assertEqual(frappe.flags.get("capxul_trace"), value if kept else None)
 
     def test_an_untraced_command_mints_a_w3c_trace_and_keeps_it(self):
         minted = trace.ensure()

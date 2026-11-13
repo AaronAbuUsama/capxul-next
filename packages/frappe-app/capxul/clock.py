@@ -105,8 +105,9 @@ def install():
 
 # ---- what the CLI calls (bench execute) ------------------------------------------------------------------------------------
 def _stamp(trace_id):
-    if trace_id:
-        frappe.flags.capxul_trace = trace_id
+    from capxul import trace
+
+    trace.adopt(trace_id)
 
 
 @frappe.whitelist(allow_guest=True)

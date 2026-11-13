@@ -5,23 +5,28 @@ a person opening the document sees it and a query finds it. Ledger rows (GL Entr
 ledger row has no timeline and is the one thing the money trail must reach.
 Where Frappe does not: child table rows (they belong to the parent's stamp); documents written straight to the database (db_set, raw SQL,
 which fire no hooks); the wizard and installs; the data a web page's own JavaScript writes. Log doctypes are skipped on purpose.
-Where the id comes from: the `X-Capxul-Trace` request header (the CLI, Core), or `frappe.flags.capxul_trace` (bench commands).
-Its form is a W3C trace id, 32 lowercase hex characters (plugs.trace-format); a header in any other form is ignored.
+Where the id comes from: the `X-Capxul-Trace` request header (Core), or the `trace_id` argument of a bench command (clock.advance,
+features.switch); `ensure()` starts one when neither sent it. Its form is a W3C trace id, 32 lowercase hex characters, never all zeros
+(plugs.trace-format); a value in any other form is ignored.
 """
 import re
 
 import frappe
 
-TRACE = re.compile(r"[0-9a-f]{32}")  # a W3C trace id, the one format everywhere (plugs.trace-format)
+TRACE = re.compile(r"(?!0{32})[0-9a-f]{32}")  # a W3C trace id, the one format everywhere; all zeros is invalid (plugs.trace-format)
 SKIP = {"Comment", "Version", "Capxul Chain Event", "GL Entry", "Stock Ledger Entry", "Scheduled Job Log", "Access Log", "Error Log",
         "Activity Log", "Route History", "Prepared Report", "Email Queue", "Notification Log", "Submission Queue", "Deleted Document",
         "Console Log", "Energy Point Log", "Bin", "Repost Item Valuation", "Repost Accounting Ledger", "File"}
 
 
-def from_request():
-    t = frappe.get_request_header("X-Capxul-Trace")
-    if t and TRACE.fullmatch(t):  # fullmatch: `$` would also accept a trailing newline
+def adopt(t):
+    """Make `t` this command's trace when it is a W3C trace id; ignore any other value."""
+    if isinstance(t, str) and TRACE.fullmatch(t):  # fullmatch: `$` would also accept a trailing newline
         frappe.flags.capxul_trace = t
+
+
+def from_request():
+    adopt(frappe.get_request_header("X-Capxul-Trace"))
 
 
 def ensure():
