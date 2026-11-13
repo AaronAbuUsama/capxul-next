@@ -1,0 +1,337 @@
+{
+ "scope": [
+  "packages/backend/src/",
+  "packages/devnet/src/",
+  "packages/devnet/orb/",
+  "packages/sdk/src/",
+  "packages/site-service/src/",
+  "packages/cli/src/",
+  "packages/indexer/src/",
+  "packages/indexer/ponder",
+  "packages/frappe-app/capxul/",
+  "packages/runtime/src/"
+ ],
+ "module": "packages/runtime/src/time/",
+ "reads": [
+  {
+   "file": "packages/backend/src/parties/door.ts",
+   "match": "BigInt(Date.now()) << 80n",
+   "label": "real-on-purpose",
+   "why": "identifier entropy prefix for ordering and uniqueness; never read back as a date"
+  },
+  {
+   "file": "packages/backend/src/platform/db.ts",
+   "match": "coalesce(to_timestamp($5::double precision / 1000), now())",
+   "label": "owed",
+   "why": "a record's business time falls back to the host when the caller passes none; every caller must pass worldNow",
+   "owner": "Core"
+  },
+  {
+   "file": "packages/backend/src/platform/diagnostics.ts",
+   "match": "then now() else app.indexer_observation.last_advance_at",
+   "label": "owed",
+   "why": "indexer liveness is a legitimate host age, but time.no-direct-reads bans now() in SQL: Core writes it from TS through packages/runtime/src/time (RealTime)",
+   "owner": "Core"
+  },
+  {
+   "file": "packages/backend/src/platform/diagnostics.ts",
+   "match": "Date.now() - new Date(observation.last_advance_at)",
+   "label": "real-on-purpose",
+   "why": "indexer_unready alert age in real elapsed time"
+  },
+  {
+   "file": "packages/backend/src/platform/diagnostics.ts",
+   "match": "observedAt: new Date().toISOString()",
+   "label": "real-on-purpose",
+   "why": "when the diagnostic was observed; evidence stamp"
+  },
+  {
+   "file": "packages/backend/src/platform/diagnostics.ts",
+   "match": "Date.now() - new Date(pending.oldest).getTime() > 300_000",
+   "label": "real-on-purpose",
+   "why": "delivery_stuck alert age in real elapsed time"
+  },
+  {
+   "file": "packages/backend/src/platform/outbox.sql",
+   "match": "acked_at timestamptz not null default now()",
+   "label": "real-on-purpose",
+   "why": "when a consumer acknowledged; delivery measure, not business time"
+  },
+  {
+   "file": "packages/backend/src/plugs/collector.ts",
+   "match": "collected_at=now()",
+   "label": "real-on-purpose",
+   "why": "collector progress stamp; operational"
+  },
+  {
+   "file": "packages/backend/src/plugs/door.ts",
+   "match": "set state='applied',last_error=null,applied_at=now()",
+   "label": "real-on-purpose",
+   "why": "delivery applied stamp; operational"
+  },
+  {
+   "file": "packages/backend/src/plugs/door.ts",
+   "match": "set attempts=attempts+1,last_attempt_at=now(),last_error=$3",
+   "label": "real-on-purpose",
+   "why": "delivery attempt stamp; operational"
+  },
+  {
+   "file": "packages/backend/src/plugs/door.ts",
+   "match": "set failures=failures+1,retry_at=now() + least(8, power(2,least(failures,3))) * interval '1 second' where or",
+   "label": "real-on-purpose",
+   "why": "retry backoff runs on real time (time.real-elapsed)"
+  },
+  {
+   "file": "packages/backend/src/plugs/door.ts",
+   "match": "new Date(company.retry_at).getTime() > Date.now()",
+   "label": "real-on-purpose",
+   "why": "retry backoff check on real time"
+  },
+  {
+   "file": "packages/backend/src/plugs/door.ts",
+   "match": "set attempts=attempts+1,last_attempt_at=now() where org_id=$1 and seq=$2",
+   "label": "real-on-purpose",
+   "why": "delivery attempt stamp; operational"
+  },
+  {
+   "file": "packages/backend/src/plugs/door.ts",
+   "match": "set state=$3,applied_at=now(),last_error=$4",
+   "label": "real-on-purpose",
+   "why": "delivery applied stamp; operational"
+  },
+  {
+   "file": "packages/backend/src/plugs/site.ts",
+   "match": "exp: Math.floor(Date.now() / 1000) + 60",
+   "label": "real-on-purpose",
+   "why": "signed assertion envelope expiry, real on both sides"
+  },
+  {
+   "file": "packages/backend/src/plugs/site.ts",
+   "match": "const now = Date.now() / 1000;",
+   "label": "real-on-purpose",
+   "why": "signed envelope freshness check"
+  },
+  {
+   "file": "packages/backend/src/schema.sql",
+   "match": "trace text not null, tx_hash text, created_at timestamptz not null default now()",
+   "label": "owed",
+   "why": "approvals.created_at is business time; writers must pass worldNow",
+   "owner": "Approvals"
+  },
+  {
+   "file": "packages/backend/src/schema.sql",
+   "match": "created_at timestamptz not null default now(), map_version text",
+   "label": "owed",
+   "why": "site_events.created_at is when the event happened in the world; writers must pass worldNow",
+   "owner": "Frappe/Plugs"
+  },
+  {
+   "file": "packages/backend/src/schema.sql",
+   "match": "at timestamptz not null default now(), primary key (org_id, id)",
+   "label": "owed",
+   "why": "records.at is business time; see platform/db.ts record()",
+   "owner": "Core"
+  },
+  {
+   "file": "packages/backend/src/schema.sql",
+   "match": "at timestamptz not null default now()",
+   "label": "owed",
+   "why": "world_record.at stamps world lifecycle; restore and create must pass the world's now",
+   "owner": "Runtime"
+  },
+  {
+   "file": "packages/backend/src/schema.sql",
+   "match": "last_advance_at timestamptz not null default now()",
+   "label": "owed",
+   "why": "indexer liveness is a legitimate host age, but time.no-direct-reads bans now() in SQL: Core writes it from TS through packages/runtime/src/time (RealTime)",
+   "owner": "Core"
+  },
+  {
+   "file": "packages/backend/src/shared/service-signer.ts",
+   "match": "const deadline = Date.now() + 60_000;",
+   "label": "real-on-purpose",
+   "why": "receipt wait bound"
+  },
+  {
+   "file": "packages/backend/src/shared/service-signer.ts",
+   "match": "while (Date.now() < deadline)",
+   "label": "real-on-purpose",
+   "why": "receipt wait bound"
+  },
+  {
+   "file": "packages/backend/src/shared/service-signer.ts",
+   "match": "Date.now() >= deadline) throw error",
+   "label": "real-on-purpose",
+   "why": "receipt wait bound"
+  },
+  {
+   "file": "packages/backend/src/shared/service-signer.ts",
+   "match": "Math.max(0, deadline - Date.now())",
+   "label": "real-on-purpose",
+   "why": "poll interval within the wait bound"
+  },
+  {
+   "file": "packages/devnet/src/devnet/bench-recovery.py",
+   "match": "clock.write_world(world=world, offset_ms=int(now_ms - time.time() * 1000)",
+   "label": "rebound",
+   "why": "anchors a running world clock to the host; a frozen clock is judged by frozen_at_ms alone"
+  },
+  {
+   "file": "packages/devnet/src/devnet/bench-recovery.py",
+   "match": "world_clock.write_world(world=world, offset_ms=int(now_ms - time.time() * 1000)",
+   "label": "rebound",
+   "why": "anchors a running world clock to the host; a frozen clock is judged by frozen_at_ms alone"
+  },
+  {
+   "file": "packages/devnet/src/devnet/catalogue.ts",
+   "match": "real_time: new Date(command.realTime ?? Date.now())",
+   "label": "real-on-purpose",
+   "why": "command records keep the real time beside the world time, by design"
+  },
+  {
+   "file": "packages/devnet/src/devnet/catalogue.ts",
+   "match": "updated_at=${Date.now()}",
+   "label": "owed",
+   "why": "app.worlds.updated_at should carry the world's now, as created_at does",
+   "owner": "Recovery"
+  },
+  {
+   "file": "packages/devnet/src/devnet/composition.ts",
+   "match": "observedAt: new Date().toISOString()",
+   "label": "real-on-purpose",
+   "why": "inspection observation stamp; evidence"
+  },
+  {
+   "file": "packages/devnet/src/devnet/door.ts",
+   "match": "createdAt: new Date().toISOString()",
+   "label": "real-on-purpose",
+   "why": "snapshot file metadata; the cut carries the world's now"
+  },
+  {
+   "file": "packages/devnet/src/devnet/faults.ts",
+   "match": "const unavailableAt = Date.now();",
+   "label": "real-on-purpose",
+   "why": "delivery_stuck needs 300 real seconds of unavailable ingress"
+  },
+  {
+   "file": "packages/devnet/src/devnet/faults.ts",
+   "match": "return Date.now() - unavailableAt > 300_000",
+   "label": "real-on-purpose",
+   "why": "delivery_stuck needs 300 real seconds of unavailable ingress"
+  },
+  {
+   "file": "packages/devnet/src/devnet/fixture.ts",
+   "match": "exp: Math.floor(Date.now() / 1000) + 60",
+   "label": "real-on-purpose",
+   "why": "signed assertion envelope expiry"
+  },
+  {
+   "file": "packages/devnet/src/devnet/gate.ts",
+   "match": "const started = Date.now();",
+   "label": "real-on-purpose",
+   "why": "receipt freshness against this invocation, real time"
+  },
+  {
+   "file": "packages/devnet/src/devnet/preparation.ts",
+   "match": "Date.parse(receipt.at) <= Date.now()",
+   "label": "real-on-purpose",
+   "why": "the receipt's real start time precedes preparation"
+  },
+  {
+   "file": "packages/devnet/src/devnet/preparation.ts",
+   "match": "startedAt: new Date().toISOString()",
+   "label": "real-on-purpose",
+   "why": "preparation phase evidence stamp, real time"
+  },
+  {
+   "file": "packages/devnet/src/devnet/preparation.ts",
+   "match": "entry.finishedAt = new Date().toISOString()",
+   "label": "real-on-purpose",
+   "why": "preparation phase evidence stamp, real time"
+  },
+  {
+   "file": "packages/devnet/src/devnet/supervisor.ts",
+   "match": "const deadline = Date.now() + timeout;",
+   "label": "real-on-purpose",
+   "why": "readiness wait bound"
+  },
+  {
+   "file": "packages/devnet/src/devnet/supervisor.ts",
+   "match": "while (Date.now() < deadline)",
+   "label": "real-on-purpose",
+   "why": "readiness wait bound"
+  },
+  {
+   "file": "packages/frappe-app/capxul/api.py",
+   "match": "expiry = int(time.time()) + 60",
+   "label": "real-on-purpose",
+   "why": "signed assertion envelope expiry"
+  },
+  {
+   "file": "packages/frappe-app/capxul/clock.py",
+   "match": "host = datetime.now(timezone.utc).timestamp() * 1000",
+   "label": "rebound",
+   "why": "the clock module derives the world's offset from the host"
+  },
+  {
+   "file": "packages/frappe-app/capxul/clock.py",
+   "match": "host = datetime.now(timezone.utc)",
+   "label": "rebound",
+   "why": "capxul.clock.now reports the host beside the world's now"
+  },
+  {
+   "file": "packages/frappe-app/capxul/clock.py",
+   "match": "\"host_anchor_ms\": int(datetime.now(timezone.utc).timestamp() * 1000)",
+   "label": "rebound",
+   "why": "anchors a running world clock to the host"
+  },
+  {
+   "file": "packages/frappe-app/capxul/door.py",
+   "match": "time.time() < float(p.get(\"exp\", 0)) <= time.time() + 60",
+   "label": "real-on-purpose",
+   "why": "signed envelope freshness check"
+  },
+  {
+   "file": "packages/frappe-app/capxul/door.py",
+   "match": "float(p.get(\"exp\", 0)) < time.time()",
+   "label": "real-on-purpose",
+   "why": "signed envelope freshness check"
+  },
+  {
+   "file": "packages/sdk/src/sites/door.ts",
+   "match": "expiresAt: Date.now() + 60_000",
+   "label": "real-on-purpose",
+   "why": "signed request envelope expiry"
+  },
+  {
+   "file": "packages/site-service/src/sites/provisioning.ts",
+   "match": "input.expiresAt <= Date.now()",
+   "label": "real-on-purpose",
+   "why": "signed request envelope freshness check"
+  },
+  {
+   "file": "packages/site-service/src/sites/documents.ts",
+   "match": "const deadline = Date.now() + 30_000",
+   "label": "real-on-purpose",
+   "why": "a 30 s polling budget for the bench, an operational timeout"
+  },
+  {
+   "file": "packages/site-service/src/sites/documents.ts",
+   "match": "while (Date.now() < deadline)",
+   "label": "real-on-purpose",
+   "why": "the same polling budget's loop"
+  },
+  {
+   "file": "packages/site-service/src/sites/lifecycle.ts",
+   "match": "const deadline = Date.now() + 30_000",
+   "label": "real-on-purpose",
+   "why": "a 30 s polling budget for the bench, an operational timeout"
+  },
+  {
+   "file": "packages/site-service/src/sites/lifecycle.ts",
+   "match": "while (Date.now() < deadline)",
+   "label": "real-on-purpose",
+   "why": "the same polling budget's loop"
+  }
+ ]
+}
