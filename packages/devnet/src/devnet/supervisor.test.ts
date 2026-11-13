@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createServer, request, type Server } from "node:http";
 import { createHmac } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
@@ -192,11 +192,12 @@ test("slice acceptance requires the full fresh same-run contract and every sourc
   const status = { version: 1, evals: Object.fromEntries(required.map((id) => [id, { verdict: "pass", commit: "fixture", at, run: receipt.id, claim: `claim ${id}` }])) };
   const save = async () => { await writeFile(join(directory, "receipt.json"), JSON.stringify(receipt)); await writeFile(join(directory, "status.json"), JSON.stringify(status)); };
   try {
-    for (const screen of receipt.screens) await writeFile(join(directory, screen.path), "capture");
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]);
+    for (const screen of receipt.screens) await writeFile(join(directory, screen.path), png);
     await writeFile(join(directory, "prepare.log"), "prepared");
     const preparation = { run: { id: receipt.id, at, commit: "fixture" } };
     await writeFile(join(directory, "preparation.json"), JSON.stringify(preparation));
-    const sources = JSON.stringify(Object.fromEntries(shows.map((screen) => [screen, { value: 1 }])));
+    const sources = JSON.stringify({ ...Object.fromEntries(shows.map((screen) => [screen, { value: 1 }])), tilde: { "~1": 1 }, slash: { "/": 1 }, rows: [] });
     await writeFile(join(directory, "source.json"), sources);
     await save(); assert.equal(await verifyRun(root, summary, required, environment, started), true);
     receipt.prepare.exitCode = 1; await save();
@@ -209,6 +210,25 @@ test("slice acceptance requires the full fresh same-run contract and every sourc
     await assert.rejects(verifyRun(root, summary, required, environment, started), /belong to this run/);
     receipt.screens[0]!.source = "source.json#/supplier-invoice/missing"; await save();
     await assert.rejects(verifyRun(root, summary, required, environment, started), /names no value/);
+    // RFC 6901: ~01 decodes to "~1", never "/"; a pointer starts with "/"; it follows only own keys and canonical array indexes.
+    receipt.screens[0]!.source = "source.json#/tilde/~01"; await save();
+    assert.equal(await verifyRun(root, summary, required, environment, started), true);
+    for (const pointer of ["supplier-invoice", "xsupplier-invoice/value", "/constructor", "/slash/~01", "/rows/length"]) {
+      receipt.screens[0]!.source = `source.json#${pointer}`; await save();
+      await assert.rejects(verifyRun(root, summary, required, environment, started), /names no value/, pointer);
+    }
+    receipt.screens[0]!.source = "source.json#/supplier-invoice/value";
+    // A capture behind a linked directory lies outside the run; a JSON file is not an image.
+    const outside = join(root, "outside"); await mkdir(outside);
+    await writeFile(join(outside, "shot.png"), png); await symlink(outside, join(directory, "ext"));
+    receipt.screens[0]!.path = "ext/shot.png"; await save();
+    await assert.rejects(verifyRun(root, summary, required, environment, started), /inside this run/);
+    await writeFile(join(directory, "note.png"), "text");
+    for (const path of ["source.json", "note.png"]) {
+      receipt.screens[0]!.path = path; await save();
+      await assert.rejects(verifyRun(root, summary, required, environment, started), /not a PNG or JPEG/, path);
+    }
+    receipt.screens[0]!.path = "supplier-invoice.png";
     receipt.screens[0]!.source = "source.json#/supplier-invoice/value"; await save();
     await writeFile(join(directory, "source.json"), "");
     await assert.rejects(verifyRun(root, summary, required, environment, started), /source evidence/);

@@ -1,12 +1,11 @@
-// The four frozen operations documents owns (OPERATION_OWNERS): `document get`, `verify`, `render` and
-// `export`. Text comes from the frozen book through frozenText, never retyped. Every acceptance claim is
-// the frozen one word for word, `document render` #1 included now that payroll stores payslips again
-// (decisions documents.acceptance-rewrites, documents.payslip-kind).
+// Core retains `document get` and `verify`. Rendering and Salary Slip export are site operations under
+// cut.documents and documents.rpcs-and-flows, not renewed Core payroll acceptance. Text comes from the frozen
+// book through frozenText, never retyped; this reconciliation changes no retained acceptance claim.
 //
 // The CLI checks both hashes before it calls anything: two 32-byte 0x hex values in any case, else
 // CLI_USAGE. Then it calls one SDK method: the rpc for `get` and `verify`, the flow for `render` and
-// `export` (A4). Worlds (decision documents.worlds): `org-with-documents` holds a document of every kind
-// with its readers and a stranger; `org-with-tampered-note` holds one stored note whose bytes were
+// `export` (A4). Worlds (decision documents.worlds): `org-with-documents` holds supported Core documents
+// with their readers and a stranger; `org-with-tampered-note` holds one stored note whose bytes were
 // altered after it was stored; `signed-out` is the shared world with no session.
 
 import { Schema } from "effect";
@@ -27,7 +26,7 @@ const CLI = "apps/cli/src/commands/document";
 const S18 = "packages/scenarios/src/acme/s18-dana-reads-her-payment-surface.scenario.ts";
 const page = (id: FrozenId) => `apps/docs/factory/operations/${id}.yaml:1`;
 
-/** The world holding a document of every kind, its readers, a later member, a removed creator and a stranger. */
+/** Supported Core documents, their readers, a later member, a removed creator and a stranger; HR cases run on the site. */
 export const WORLD_DOCUMENTS = "org-with-documents";
 /** The world holding one stored note whose bytes were altered after it was stored. */
 export const WORLD_TAMPERED = "org-with-tampered-note";
@@ -188,4 +187,3 @@ export const operation_document_verify = defineOperation({
 // ── document render ─────────────────────────────────────────────────────────────────────────
 
 // ── document export ─────────────────────────────────────────────────────────────────────────
-
