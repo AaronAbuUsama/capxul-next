@@ -49,6 +49,29 @@ export const decision_approvals_carrier_isolation = defineDecision({
   affects: [workflow_approvals_lifecycle_carry],
 });
 
+export const decision_approvals_signing_composition = defineDecision({
+  id: "approvals.signing-composition",
+  title: "The signer's routes ride with the carrier, and the carrier tells the opener",
+  question:
+    "Core mounts approvals.signing.* on its public transport. A decline ends the approval in the signer's own transaction, " +
+    "on the tenant role, but some openers' follow-ups (an Organization's setup) are writable only by the worker. Who calls " +
+    "the opener, and when are the routes mounted?",
+  options: [
+    { label: "carrier-delivers", text: "The routes call no opener: a decline commits with its event and wakes the carrier, which hands that ending to the opener on the worker role, in one transaction with deleting its carrier row, as for every chain ending. The routes mount only when the carrier is composed." },
+    { label: "inline", text: "Call the opener inside the decline's transaction, and grant every opener's follow-up tables to the tenant role." },
+  ],
+  chosen: "carrier-delivers",
+  why:
+    "One delivery path means one role and one exactly-once guard (the carrier row's deletion) for every ending, so an opener " +
+    "writes its follow-up as the worker whatever ended the approval, and a failing callback backs off alone " +
+    "(approvals.carrier-isolation) instead of refusing the signer's no. The opener hears a decline a tick later; the decline " +
+    "itself and its approval_transitioned commit at once. Without the carrier nothing is ever sponsored, so there is nothing " +
+    "to sign and no route to mount. The view's link is SITE_URL's approval page, and the network's name and explorer are " +
+    "the world's (NETWORK_NAME, EXPLORER_URL), since a devnet forks a public chain's id.",
+  source: "approvals.signing-area; Organizations' install approval (organizations.approval-endings); integrator composition brief, 13 November 2026",
+  affects: [rpc_approvals_signing_decline, rpc_approvals_signing_get, workflow_approvals_lifecycle_carry],
+});
+
 export const decision_approvals_signing_intent = defineDecision({
   id: "approvals.signing-intent",
   title: "Expose immutable intent independently of the sponsored operation",

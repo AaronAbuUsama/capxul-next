@@ -1,8 +1,8 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { timingSafeEqual } from "node:crypto";
 import { Effect } from "effect";
-import { gatedNeeds } from "./access/door.ts";
-import { carry, get, prepare, submitted, type CarrierServices } from "./approvals/door.ts";
+import { authenticate, gatedNeeds, gates, requireFeature } from "./access/door.ts";
+import { carry, createSigningHandler, get, prepare, submitted, type CarrierServices, type SigningTransport } from "./approvals/door.ts";
 import { readSnapshotCut, worldNow } from "./devnet/door.ts";
 import { readChainFact } from "./indexing/door.ts";
 import { info, register, release } from "./organizations/door.ts";
@@ -22,6 +22,8 @@ type Config = ReturnType<typeof settings>;
  * clock once per call for PR84's synchronous SponsorConfig.now.
  */
 export type CarrierChain = (now: () => Promise<Date>) => Pick<CarrierServices, "sponsor" | "send" | "lookup" | "nonce" | "needsAndGate">;
+/** The signer's public routes (approvals.signing.*): SITE_URL's approval page and the world's network as the view names it. */
+export type Signing = { siteUrl: string; network: SigningTransport["network"] };
 
 /** One organization's turn of the worker. It never throws: one failing organization must not stall those sorted after it. */
 export async function serveOrganization(db: Database, config: Pick<Config, "chainId" | "finality" | "frappe" | "secret">, org: string, indexed: boolean) {
@@ -38,7 +40,8 @@ function json(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" });
   res.end(JSON.stringify(body));
 }
-export function createCore(config: Config, provision?: (req: IncomingMessage, res: ServerResponse) => Promise<boolean>, chain?: CarrierChain) {
+export function createCore(config: Config, provision?: (req: IncomingMessage, res: ServerResponse) => Promise<boolean>, chain?: CarrierChain,
+  signing?: Signing) {
   if (!Number.isSafeInteger(config.finality) || config.finality < 0) throw new Error("FINALITY_DEPTH must be a nonnegative integer");
   const db = new Database(config.database, config.workerDatabase);
   // Composed here: the world's authority clock, Core's final indexed fact at the approval's nonce, and each opener's
@@ -56,6 +59,13 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
       // Other openers' followers append here (Budgets: budgets.changes.follow).
     },
   };
+  // Mounted only with the carrier: without it nothing is sponsored, so nothing can be signed. The routes never call an
+  // opener: a decline commits as the signer and wakes the carrier, which delivers that ending on the worker role like
+  // every other (approvals.signing-composition).
+  const signingRoutes = carrier && signing && createSigningHandler({
+    db, site_url: signing.siteUrl, network: signing.network, now: worldNow, authenticate,
+    requireFeature: async (sql, key, actor) => requireFeature(sql, key, actor, gates, await worldNow(sql)),
+  });
   let paused = config.startPaused, closing = false, activeRequests = 0, activeDeliveries = 0;
   let activeLoop: Promise<void> = Promise.resolve(), timer: ReturnType<typeof setTimeout> | undefined;
   let pauseWork: Promise<Awaited<ReturnType<typeof readSnapshotCut>>> | undefined;
@@ -80,6 +90,17 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
       activeRequests++;
       try { if (await provision(req, res)) return; }
       finally { activeRequests--; notifyDrain(); }
+    }
+    // Before the service HMAC parser; the routes take only a bearer. A live read is not counted toward the snapshot
+    // drain (it only reads, and may stay open); a signer's write is, and none starts while paused.
+    if (signingRoutes && url.pathname.startsWith("/approvals/signing/")) {
+      if (req.method === "GET") { if (await signingRoutes(req, res)) return; }
+      else {
+        if (paused) return json(res, 503, { error: "SNAPSHOT_PAUSED" });
+        activeRequests++;
+        try { if (await signingRoutes(req, res)) return; }
+        finally { activeRequests--; notifyDrain(); }
+      }
     }
     if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
     const chunks: Buffer[] = []; let size = 0;
@@ -173,8 +194,11 @@ export function createCore(config: Config, provision?: (req: IncomingMessage, re
     async stop() {
       closing = true; paused = true; clearTimeout(timer);
       await collector.pause();
-      await new Promise<void>((done) => server.close(() => done()));
-      await activeLoop; await waitForDrain(); await db.close();
+      const closed = new Promise<void>((done) => server.close(() => done()));
+      await activeLoop; await waitForDrain();
+      // Live approval reads keep their sockets open; counted work has drained, so end them for close to finish.
+      server.closeAllConnections();
+      await closed; await db.close();
     },
   };
 }
