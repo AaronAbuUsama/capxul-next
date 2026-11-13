@@ -63,9 +63,12 @@ export const doorKeyId = Effect.map(
   (generation) => `DoorKey-g${generation}`,
 );
 
-// The door writes the bench's common config before it serves; the other bench processes wait for that config.
+// The door writes the bench's common config before it serves; the other bench processes wait for that config. The
+// sites folder is a volume that outlives an image, so the image's list of apps is copied into it first (the first
+// rehearsal with HRMS added failed with "App hrms not in apps.txt").
 const configure = Arr.join(
   [
+    "cp apps.txt sites/apps.txt",
     "bench set-config -g db_host mariadb",
     "bench set-config -g redis_cache redis://redis:6379/0",
     "bench set-config -g redis_queue redis://redis:6379/1",

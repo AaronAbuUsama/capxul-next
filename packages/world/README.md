@@ -67,15 +67,23 @@ spans are Core's middlewares; the first operator is `WORLD_OWNER` with `CAPXUL_P
 |---|---|
 | `world.create` | Refuses a real grade and a start before the seed (with an hour of room) before anything exists; then this package's create, with the chain's clock just after the seed and the owner operator's own token bound into Core (decisions 36); then the cast on the chain (`cast.ts`: dana, eli, sam and olga get a Safe claimed through Companies House's devnet claim role and 10,000 test USDC from the faucet, pat none; test accounts 4 to 8), the world's start block at its clock, its facts in its database (`packages/core/migrations/0003_world.sql`) and `world_created` as its record's first entry. It answers once Core has answered its health check ten times in a row. A failure after the claim destroys the world. |
 | `world.show` | The shared state (owner, expiry, parked, door) and the world's database (contracts, clock, record head, cast; grade and parent from the record's latest `world_created`); its companies as its Core reads them (`GET /companies`, Core's `companiesOf`, which moves each site on towards ready). |
-| `world.snapshot.save` | Owner only. A Neon branch of the world's branch with no compute (its expiry is lifted first: Neon will not fork a branch that has one), the chain's whole state saved in the world's R2 bucket under the snapshot's name (the door's `POST /chain/snapshot/<name>`), and a row in `platform.snapshots`; then `snapshot_saved`. A world with companies is a fault to save until a site can be backed up. |
-| `world.snapshot.restore` | A template's to anyone, any other snapshot's to its owner; never past the source's expiry. A new world whose branch forks the snapshot's and whose chain adopts the saved state (`GET /chain/snapshot/<name>` of the source's door); its parent and clock rewritten, then its own `world_created`. |
+| `world.snapshot.save` | Owner only. Each of the world's company sites backed up on its bench under the snapshot's name (`src/site/Saved.ts`, the site door's `POST /world/backup`), a Neon branch of the world's branch with no compute (its expiry is lifted first: Neon will not fork a branch that has one), the chain's whole state saved in the world's R2 bucket under the snapshot's name (the door's `POST /chain/snapshot/<name>`), and a row in `platform.snapshots`; then `snapshot_saved`. A world with companies and no bench is a fault to save. |
+| `world.snapshot.restore` | A template's to anyone, any other snapshot's to its owner; never past the source's expiry. A new world whose branch forks the snapshot's and whose chain adopts the saved state (`GET /chain/snapshot/<name>` of the source's door); its parent and clock rewritten; each site the snapshot saved made again in it from its backup, under its own label, on the new world's clock and with its site credential (the site door's `POST /world/restore`, with the source world's token shown too), and its companies pointed at their new sites; then its own `world_created`. |
 
 What the platform keeps of its own is in the schema `platform` of the registry's branch: `platform.spans` (every
 platform call's spans), `platform.calls` (the world each successful call acted on, whose record holds its events) and
 `platform.snapshots`. A world's take-down deletes its snapshot branches before its own (`dropSnapshots`), so a world
 restored from a snapshot must go first, which its expiry makes so.
 
-### Core's slot
+### Core's slot, or a host of Core
+
+A caller may run every world's Core itself instead (`src/core/host.ts`, `CoreHost`, provided around the platform):
+the stack then deploys no Core Worker but keeps Core's secrets (`operator-token`, `site-key`, `site-secret`), the
+world's door is where the host says its Core will answer, the `core` step starts it there before waiting for its
+health, and every take-down stops it. The runner's `--core=local` rehearsal is the one host (`packages/runner`,
+`src/local/`); a world made with it says so in every record the runner writes.
+
+
 
 `src/core/Core.ts` is the one place that says what runs as Core: `packages/core`'s Worker, handed the world's own
 facts through Core's `CoreDeployment` (never its own stage's): the world's branch through `WorldDatabase`, the
@@ -341,8 +349,9 @@ slower than the median. The bundler's and the chain's timeouts are unchanged.
   by `WORLD_BENCH=staging ./run.sh prove site` with the probe check turned to a read.
 - The sweeper's removal of an expired world's sites is the same `unsite` step as every take-down; no proof runs it on
   an expired world with a site.
-- A company's site is not in a snapshot yet: the site door has no backup and restore, and Core cannot reach a bench
-  from Cloudflare (step 1.4). Saving or restoring a world with companies is a fault until then.
+- A company's site is saved with a snapshot and made again by a restore (blueprint decisions 52), rehearsed only on a
+  stand-in bench with Core run locally (`packages/runner`, `--core=local`): Core on Cloudflare cannot reach a bench
+  yet (step 1.4).
 - The platform answers only on the machine that serves it. A caller elsewhere (a shared world's people) needs it hosted,
   which is a question for Aaron (blueprint decisions.md, 51).
 - The index polls through the door, so a busy world makes about one Worker request a second for it. What an idle or a

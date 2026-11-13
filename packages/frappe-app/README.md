@@ -18,7 +18,15 @@ whitelisted method names are the same (`capxul.api.chain_event`, `capxul.door.*`
 | `capxul/features.py` | feature switches (Capxul Feature rows) and the request guard that answers 403 for a part that is off |
 | `capxul/brand.py`, `capxul/privacy.py` | the names-only rename and nothing reporting usage outward; run after every migrate once setup is complete |
 | `capxul/clock.py`, `capxul/world.py` | the world clock on the site, and a site's names in a restored world |
+| `capxul/books.py` | a Purchase Invoice line with no item and no account books to the company's default expense account, as ERPNext does for an Item with none |
+| `capxul/core_api.py`, `capxul/core_company.py` | what Core asks of a company's site (documents, reports, the clock) and tells it (the company, hats, capital, a payment), through the bench's site door as the site's own API user |
 | `capxul/boot.py` | loads the clock in every Python process of the bench before Frappe can read the time (the image writes `capxul_world_clock.pth`) |
+
+Found by rehearsing the thin line on a real bench (13 November 2026, packages/runner `--core=local`): the Books hat
+(`budget-holder`) carries `Purchase Master Manager`, the only role ERPNext lets create a Supplier; the daily job's
+Scheduled Job Type is named `clock.daily` (`clock.name_daily_job`, after every migrate and before a warp), since the
+pinned Frappe names a new one by a hash and the blueprint's vocabulary filters the Scheduled Job Log by that name; and a
+report the person's roles do not open is refused for permission before its part is looked at.
 
 Spike helpers still here: `testutil.py` and `feature_experiments.py`. The skeleton's fake `/prepare` and OAuth checks describe the superseded outbound boundary, not acceptance for the request outbox below.
 

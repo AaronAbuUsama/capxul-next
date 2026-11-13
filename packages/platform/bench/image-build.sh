@@ -38,7 +38,10 @@ case "$1" in
     cd "$B"
     find apps/capxul -name '__pycache__' -prune -exec rm -rf {} +
     uv pip install --quiet --python env/bin/python -e apps/capxul
-    printf '%s\n' frappe erpnext hrms capxul > sites/apps.txt
+    # The bench's apps, in install order. sites/ is a volume that outlives the image, so the list is also kept outside
+    # it, and the door copies it in before it serves (src/bench.ts): a bench whose image gains an app sees it.
+    printf '%s\n' frappe erpnext hrms capxul > apps.txt
+    cp apps.txt sites/apps.txt
     echo '{}' > sites/common_site_config.json
     ;;
 esac
