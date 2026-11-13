@@ -18,7 +18,7 @@ export type BoardReaders = {
   readSafeExecution(sql: Sql, input: { chainId: number; safe: string; nonce: string; finality: number }): Promise<(Log & {
     safe_tx_hash: string; success: boolean; msg_sender: string; threshold: number }) | null>;
   readHatTransfersInTx(sql: Sql, input: { chainId: number; txHash: string; hatId: string; finality: number }): Promise<{ from: string; to: string; value: string }[]>;
-  readWearerHatsAt(sql: Sql, input: { chainId: number; wearer: string; companySafe: string; atBlock?: string; finality: number }): Promise<{ details: string; wearing: boolean }[]>;
+  readWearerHatsAt(sql: Sql, input: { chainId: number; wearer: string; companySafe: string; atBlock?: string; finality: number }): Promise<{ hat_id: string; details: string; wearing: boolean | null }[]>;
 };
 
 const low = (a: string) => a.toLowerCase() as Address;
@@ -37,7 +37,7 @@ async function live<T>(read: () => Promise<T>): Promise<T> {
  * Gate validity at one RPC block anyway. Officer hats stay null until the admitted deployment binds them
  * (board.officer-hat-unbound); no install order or Hat details are read as a permission. An office is a worn company hat
  * whose details begin `office:`, which budgets writes into department and team hats (board.people-hat-role-conflict).
- * A module-ruled hat (Core refuses it) is read live from Hats; offices cannot be, so that refusal fails closed.
+ * A module-ruled hat (Core refuses it, or answers wearing null) is read live from Hats.
  */
 export function boardFacts(r: BoardReaders, hats: LiveHats): BoardFacts {
   return {
@@ -77,12 +77,12 @@ export function boardFacts(r: BoardReaders, hats: LiveHats): BoardFacts {
       return h && low(h.company_safe) === low(safe) ? { supply: BigInt(h.supply), max_supply: BigInt(h.max_supply) } : null;
     },
     hasOffice: async (sql, chainId, safe, wearer) => {
-      try {
-        return (await r.readWearerHatsAt(sql, { chainId, wearer, companySafe: safe, finality: 0 })).some((h) => h.wearing && h.details.startsWith("office:"));
-      } catch (error) {
-        if (moduleRuled(error)) throw new Error("PROVIDER_ERROR: the member's company hats include a module-ruled hat; offices cannot be read");
-        throw error;
-      }
+      const offices = (await r.readWearerHatsAt(sql, { chainId, wearer, companySafe: safe, finality: 0 })).filter((h) => h.details.startsWith("office:"));
+      if (offices.some((h) => h.wearing === true)) return true;
+      const unknown = offices.filter((h) => h.wearing === null);
+      const worn = await live(() => Promise.all(unknown.map((h) => hats.client.readContract({ address: hats.hats, abi: hatsAbi,
+        functionName: "isWearerOfHat", args: [wearer, BigInt(h.hat_id)] }))));
+      return worn.some(Boolean);
     },
   };
 }
