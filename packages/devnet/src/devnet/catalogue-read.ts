@@ -14,6 +14,16 @@ const entryView = (r: Record<string, unknown>) => ({
   causeSeq: r.cause_seq, branchAbandoned: r.branch_abandoned,
 });
 
+const snapshotViews = (rows: Record<string, unknown>[]) => rows.map((s) => ({
+  name: s.name, worldId: s.world_id, epoch: s.epoch, recordSeq: s.record_seq, clockMode: s.clock_mode,
+  rate: s.rate, worldNow: s.world_now, template: s.template, createdAt: s.created_at, sites: (s.site_backups as unknown[]).length,
+}));
+
+/** The selected world's snapshots, newest first, as declared SnapshotViews. Read-only: no lock, composition or running process. */
+export async function listSnapshots(c: Config) {
+  return (await readCatalogue(c, ["world", "snapshot", "list"]) as { snapshots: ReturnType<typeof snapshotViews> }).snapshots;
+}
+
 /** Does not compose, migrate, acquire a mutation lock, or require any world process to be running. */
 export async function readCatalogue(c: Config, words: string[]): Promise<unknown> {
   const snapshot = words.slice(0, 3).join(" ") === "world snapshot list";
@@ -70,10 +80,7 @@ export async function readCatalogue(c: Config, words: string[]): Promise<unknown
   }
   // An absent world must not become an empty successful list or a synthetic birth.
   const row = await store.show(world);
-  if (verb === "snapshots") return { snapshots: (await store.snapshots(world)).map((s) => ({
-    name: s.name, worldId: s.world_id, epoch: s.epoch, recordSeq: s.record_seq, clockMode: s.clock_mode,
-    rate: s.rate, worldNow: s.world_now, template: s.template, createdAt: s.created_at, sites: (s.site_backups as unknown[]).length,
-  })) };
+  if (verb === "snapshots") return { snapshots: snapshotViews(await store.snapshots(world)) };
   if (verb === "list") return { entries: (await store.records(world, filter)).map(entryView) };
   if (verb === "show") {
     const r = await store.record(world, filter.epoch ?? row.epoch, Number(sequence));

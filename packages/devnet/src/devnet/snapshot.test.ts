@@ -5,7 +5,8 @@ import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { composeBench, localRuntime, psqlAdmin, readSnapshot, restoreSnapshot, saveSnapshot, type Options, type Runtime, type World } from "./door.ts";
+import { composeBench, localRuntime, psqlAdmin, readSnapshot, restoreAs, restoreSnapshot, saveSnapshot, type Options, type Runtime, type World } from "./door.ts";
+import { writeConfig, type Config } from "./supervisor.ts";
 
 test("snapshot save retains the fence failure alongside refusal to resume an unowned pause", async () => {
   const root = await mkdtemp(join(tmpdir(), "capxul-snapshot-errors-"));
@@ -59,10 +60,10 @@ test("whole database cut restores independently, fences failures and retains aba
   const target: World = { ...source, id: "restored", database: restoredDb, stateDir: join(dir, "restored"), epoch: 1,
     sites: [{ company: "harbourline", name: "harbourline-restored.localhost" }] };
   const paused = new Set<string>(), resumed = new Map<string, number>();
-  let failBackup = false, failRestore = false, sourceRunning = true;
+  let failBackup = false, failRestore = false, sourceRunning = true, quiesces = 0;
   const runtime: Runtime = {
     async running() { return sourceRunning; },
-    async quiesce(w) { paused.add(w.id); if (!sourceRunning) return;
+    async quiesce(w) { quiesces++; paused.add(w.id); if (!sourceRunning) return;
       return { nowMs: 1772442000000, clockMode: "stopped", rate: 1, recordSeq: 8, recordHead: "a".repeat(64), heads: [{ org_id: "harbourline", id: 8, hash: "b".repeat(64) }] }; },
     async backup(site, directory) {
       assert(paused.has("source"));
@@ -117,7 +118,15 @@ test("whole database cut restores independently, fences failures and retains aba
     const manifest = await saveSnapshot(options, source, "paid");
     assert.equal(manifest.files["state/anvil-state.json"]!.bytes, 12582912);
     assert.equal(paused.size, 0);
-    await assert.rejects(saveSnapshot(options, source, "paid"));
+    const before = quiesces;
+    await assert.rejects(saveSnapshot(options, source, "paid"), /WRONG_STATE: a snapshot named paid exists/);
+    for (const bad of ["Paid", "a".repeat(41), "under_score", "", "-paid"]) await assert.rejects(saveSnapshot(options, source, bad), /INVALID_INPUT: a snapshot name/);
+    assert.equal(quiesces, before, "refused saves never touch the world");
+    const replaced = await saveSnapshot(options, source, "paid", { replace: true, followers: ["fde-namespace"] });
+    assert.notEqual(replaced.database.name, manifest.database.name);
+    assert.equal((await admin(`SELECT row_to_json(d) FROM (SELECT 1 FROM pg_database WHERE datname='${manifest.database.name}') d`)).length, 0, "replaced template dropped");
+    assert.deepEqual((await readSnapshot(options, "paid")).followers, ["fde-namespace"]);
+    assert.deepEqual((await readdir(options.root)).filter((f) => f !== ".snapshot-lock"), ["paid"]);
     sourceRunning = false;
     await assert.rejects(saveSnapshot(options, source, "stopped"), /source world must be running/);
     assert.equal(await runtime.running(source), false, "refused save must not activate a stopped world");
@@ -149,14 +158,20 @@ test("whole database cut restores independently, fences failures and retains aba
     assert.equal((await query(sourceDb, "SELECT row_to_json(p) FROM app.payment p WHERE company='harbourline'"))[0]!.amount, 125.5);
     assert.deepEqual(await readdir(join(source.stateDir, "site-service")), [`${intent.site}.json`]);
     assert.deepEqual(JSON.parse(await readFile(join(source.stateDir, "site-service", `${intent.site}.json`), "utf8")), intent);
-    assert.equal(resumed.get("source"), 2);
+    assert.equal(resumed.get("source"), 3, "save, replace and in-place restore each resume the source once");
 
     failBackup = true;
     await assert.rejects(saveSnapshot(options, source, "broken"), /seeded backup fault/);
+    await assert.rejects(saveSnapshot(options, source, "paid", { replace: true }), /seeded backup fault/);
+    assert.equal((await readSnapshot(options, "paid")).database.name, replaced.database.name, "a failed replace keeps the previous snapshot");
     assert.equal(paused.size, 0, "failed save resumes source");
     assert(!(await readdir(options.root)).includes("broken"));
     failBackup = false;
-    await assert.rejects(readSnapshot({ ...options, codeVersion: "changed" }, "paid"), /version/);
+    await assert.rejects(readSnapshot({ ...options, codeVersion: "changed" }, "paid"), /WRONG_STATE: snapshot paid was saved with other backend code/);
+    await assert.rejects(restoreSnapshot(options, "nosuch", target), /INVALID_INPUT: no snapshot named "nosuch"; saved here: paid/);
+    const restoredStarts = resumed.get("restored");
+    await assert.rejects(restoreSnapshot(options, "paid", target, { followers: ["fde-namespace", "mail-sink"] }), /WRONG_STATE: stateful follower mail-sink joined now is missing from snapshot paid/);
+    assert.equal(resumed.get("restored"), restoredStarts, "a missing follower refuses before any restore step");
     await assert.rejects(restoreSnapshot(options, "paid", { ...target, sites: [] }), /every company/);
     await assert.rejects(restoreSnapshot(options, "paid", { ...target, stateDir: source.stateDir }), /own database, directory and sites/);
     await assert.rejects(restoreSnapshot(options, "paid", { ...target, sites: source.sites }), /own database, directory and sites/);
@@ -175,6 +190,31 @@ test("whole database cut restores independently, fences failures and retains aba
     for (const db of owned) await admin(`DROP DATABASE "${db}" WITH (FORCE)`);
     await admin(`DROP ROLE IF EXISTS "${role}"`);
     await admin(`DROP ROLE IF EXISTS "${ponder}"`);
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("restore as refuses a taken or malformed new world id before reading the snapshot", { skip: !maintenance }, async () => {
+  const dir = await mkdtemp(join(tmpdir(), "capxul-restore-as-")), taken = `world_${randomUUID().replaceAll("-", "").slice(0, 12)}`;
+  const config = (id: string, database: string, port: number): Config => ({ version: 1, root: dir, controlDir: join(dir, id, "control"), snapshots: join(dir, "snapshots"), codeVersion: "fixture",
+    world: { id, kind: "local", database, stateDir: join(dir, id, "state"), sites: [], epoch: 1 },
+    database: Object.fromEntries(["admin", "tenant", "worker", "ponder"].map((key, i) => { const u = new URL(maintenance!);
+      if (i) { u.username = ["capxul_core", "capxul_worker", "capxul_ponder"][i - 1]!; u.password = "fixture"; } return [key, u.href]; })) as Config["database"],
+    ports: Object.fromEntries(["anvil", "ponder", "core", "siteService", "bench", "socket", "publicCore", "publicRpc", "publicBench", "publicBundler"].map((k, i) => [k, port + i])) as Config["ports"],
+    secret: "s", siteToken: "t", finality: 0, chainId: 84532, bench: { composeArgs: [], env: {}, dbPassword: "d", adminPassword: "a", baseDomain: "localhost" } });
+  const source = config("town1", "world_town1", 21000);
+  const stack = { c: source, read: async () => { throw new Error("unexpected snapshot read"); } } as never;
+  const target = async (id: string, database: string) => { const file = join(dir, `${id}.json`); await writeConfig(file, { ...config("town2", database, 21100), world: { ...config("town2", database, 21100).world, id } }); return file; };
+  try {
+    await psqlAdmin(maintenance!)(`CREATE DATABASE "${taken}"`);
+    await assert.rejects(restoreAs(stack, await target("town1", "world_other"), "paid"), /INVALID_INPUT: world id town1 is taken/);
+    await assert.rejects(restoreAs(stack, await target("town2", taken), "paid"), /INVALID_INPUT: world id town2 is taken/);
+    await assert.rejects(restoreAs(stack, await target("Town-2", "world_town2"), "paid"), /INVALID_INPUT: a world id/);
+    await mkdir(join(dir, "town2", "state"), { recursive: true });
+    await assert.rejects(restoreAs(stack, await target("town2", "world_town2"), "paid"), /INVALID_INPUT: world id town2 is taken/);
+    assert.deepEqual(await readdir(join(dir, "town2")), ["state"], "a refused restore never takes the target lock");
+  } finally {
+    await psqlAdmin(maintenance!)(`DROP DATABASE IF EXISTS "${taken}"`);
     await rm(dir, { recursive: true, force: true });
   }
 });

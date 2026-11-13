@@ -70,7 +70,8 @@ export async function prepareSlice(stack: Awaited<ReturnType<typeof composeWorld
         fields: ["name", "account", "debit", "credit", "voucher_no"], order_by: "name" }) };
   };
   const before = await phase("settled-payment", readPayment);
-  const snapshot = `slicezero_${receipt.id.replaceAll("-", "_")}`;
+  // Control-protocol snapshot names: 1-40 of a-z, 0-9 and hyphen; run ids are lowercase run-<17 digits>-<8 hex>.
+  const snapshot = `sz-${receipt.id}`;
   await phase("snapshot-save", () => stack.save(snapshot));
   await phase("snapshot-integrity", () => stack.read(snapshot));
   await phase("snapshot-restore", () => stack.restore(snapshot));

@@ -38,6 +38,8 @@ CAPXUL_WORLD_PORT_BASE=18100 pnpm capxul world init clone --config var/worlds/cl
 pnpm capxul world snapshot restore checkpoint --as var/worlds/clone/config.json --config var/worlds/slicezero/config.json
 ```
 
+Snapshot names are 1 to 40 lowercase letters, digits and hyphens (`INVALID_INPUT:` otherwise). Saving an existing name refuses `WRONG_STATE:` before the world is touched unless `saveSnapshot(…, { replace: true })`; a replace publishes the new snapshot before dropping the old template, and a failed replace keeps the old one. Reading an unknown name refuses `INVALID_INPUT:` listing the names saved here; another backend code version refuses `WRONG_STATE:`. `followers` given at save are listed in the manifest, and a restore given a joined follower the manifest lacks refuses `WRONG_STATE:` before any step. The control server uses the same doors: `withWorldLock(config, fn)` (the CLI's `.operation` lock), `listSnapshots(config)` (read-only) and `restoreAs(stack, targetConfig, id)`, which refuses a taken or malformed target id with `INVALID_INPUT:`.
+
 The target must share the source snapshot root, code version and Postgres host. World ids, database names, ports, site names and state directories remain distinct. Snapshots are host-local database templates, not portable exports. A failed restore stays fenced with its marker and abandoned database retained for inspection; there is no automatic destructive reset.
 
 ## Slice-zero execution and supplied bundler

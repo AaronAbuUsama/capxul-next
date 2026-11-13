@@ -1,10 +1,58 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { inspect } from "node:util";
 import { initializeConfig } from "./local-config.ts";
 import { checkCodeVersion } from "./processes.ts";
-import { readConfig, stop, up, writeConfig } from "./supervisor.ts";
+import { readConfig, stop, up, writeConfig, type Config } from "./supervisor.ts";
+import { checkFollowers } from "./door.ts";
+import { psqlAdmin } from "./postgres.ts";
+import type { composeWorld } from "./composition.ts";
+
+type Stack = Awaited<ReturnType<typeof composeWorld>>;
+async function acquire(lock: string) {
+  try { await mkdir(lock); } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    throw new Error("another world operation holds the lock; inspect before clearing a stale lock");
+  }
+}
+
+/** The same exclusive `.operation` lock the CLI takes, so the control server and the CLI serialize mutations. Reads never take it. */
+export async function withWorldLock<T>(c: Config, run: () => Promise<T>): Promise<T> {
+  const lock = join(c.controlDir, ".operation");
+  await acquire(lock);
+  try { return await run(); } finally { await rm(lock, { recursive: true }); }
+}
+
+/** Restores snapshot `id` of the caller's (source-locked) stack into a distinct initialized target world. */
+export async function restoreAs(stack: Stack, targetConfigFile: string, id: string, options: { followers?: readonly string[] } = {}) {
+  const targetFile = resolve(targetConfigFile);
+  const target = await readConfig(targetFile).catch(async (error) => {
+    // readConfig's own permission check runs first; only then is a malformed id named as the caller's input error.
+    const named = await readFile(targetFile, "utf8").then((text) => JSON.parse(text)?.world?.id, () => undefined);
+    if (typeof named === "string" && !/^[a-z][a-z0-9]{0,11}$/.test(named)) throw new Error("INVALID_INPUT: a world id is 1 to 12 lowercase letters and digits, starting with a letter");
+    throw error;
+  });
+  if (target.world.id === stack.c.world.id || target.world.database === stack.c.world.database) throw new Error(`INVALID_INPUT: world id ${target.world.id} is taken`);
+  const taken = await psqlAdmin(stack.c.database.admin)(`SELECT row_to_json(d) FROM (SELECT 1 FROM pg_database WHERE datname='${target.world.database.replaceAll("'", "''")}') d`);
+  if (taken.length || await stat(target.world.stateDir).then(() => true, () => false)) throw new Error(`INVALID_INPUT: world id ${target.world.id} is taken`);
+  if (target.controlDir === stack.c.controlDir) throw new Error("--as requires a distinct initialized target world");
+  const manifest = await stack.read(id);
+  checkFollowers(manifest, options.followers);
+  if (target.snapshots !== stack.c.snapshots || target.codeVersion !== stack.c.codeVersion || new URL(target.database.admin).host !== new URL(stack.c.database.admin).host ||
+      Object.values(target.ports).some((port) => Object.values(stack.c.ports).includes(port))) throw new Error("clone must share this host's snapshot/code version and use separate ports");
+  return withWorldLock(target, async () => {
+    target.world.sites = manifest.sites.map((site) => ({ company: site.company, name: `${site.company}-${target.world.id}.${target.bench.baseDomain}` }));
+    // Native site backups keep the source delivery secret and encryption key; implicit rekey is not recovery.
+    target.secret = stack.c.secret;
+    await writeConfig(targetFile, target);
+    const { composeWorld } = await import("./composition.ts");
+    const clone = await composeWorld(targetFile);
+    await clone.host.benchUp();
+    await clone.restore(id);
+    return { snapshot: manifest.id, world: clone.c.world.id, epoch: clone.c.world.epoch };
+  });
+}
 
 /** World composition only; product provisioning remains the site's signed SDK command. */
 export async function runDevnet(args: string[]): Promise<number> {
@@ -34,10 +82,7 @@ export async function runDevnet(args: string[]): Promise<number> {
       nested = await readFile(join(candidate, "token"), "utf8").then((token) => token === process.env.CAPXUL_WORLD_RUN_TOKEN, () => false);
     }
     if (commandName === "prepare" && !nested) throw new Error("prepare is a nested eval-harness command, not standalone fixture setup");
-    if (!nested) {
-      try { await mkdir(candidate); } catch { throw new Error("another world operation holds the lock; inspect before clearing a stale lock"); }
-      locks.push(candidate);
-    }
+    if (!nested) { await acquire(candidate); locks.push(candidate); }
     if (commandName !== "stop") await checkCodeVersion(config);
     const { composeWorld, createWorld } = await import("./composition.ts");
     if (commandName === "create" && !rest.length) { await createWorld(configFile); console.log(JSON.stringify({ state: "running" })); return 0; }
@@ -49,20 +94,7 @@ export async function runDevnet(args: string[]): Promise<number> {
       const manifest = await stack[rest[0] as "save" | "read" | "restore"](rest[1]!);
       console.log(JSON.stringify({ id: manifest.id, world: manifest.world, epoch: manifest.epoch, cut: manifest.cut })); return 0;
     } else if (commandName === "snapshot" && rest.length === 4 && rest[0] === "restore" && rest[2] === "--as") {
-      const targetFile = resolve(rest[3]!), target = await readConfig(targetFile), manifest = await stack.read(rest[1]!);
-      if (target.world.id === stack.c.world.id || target.controlDir === stack.c.controlDir) throw new Error("--as requires a distinct initialized target world");
-      if (target.snapshots !== stack.c.snapshots || target.codeVersion !== stack.c.codeVersion || new URL(target.database.admin).host !== new URL(stack.c.database.admin).host ||
-          Object.values(target.ports).some((port) => Object.values(stack.c.ports).includes(port))) throw new Error("clone must share this host's snapshot/code version and use separate ports");
-      const targetLock = join(target.controlDir, ".operation");
-      await mkdir(targetLock); locks.push(targetLock);
-      target.world.sites = manifest.sites.map((site) => ({ company: site.company, name: `${site.company}-${target.world.id}.${target.bench.baseDomain}` }));
-      // Native site backups keep the source delivery secret and encryption key; implicit rekey is not recovery.
-      target.secret = stack.c.secret;
-      await writeConfig(targetFile, target);
-      const clone = await composeWorld(targetFile);
-      await clone.host.benchUp();
-      await clone.restore(rest[1]!);
-      console.log(JSON.stringify({ snapshot: manifest.id, world: clone.c.world.id, epoch: clone.c.world.epoch })); return 0;
+      console.log(JSON.stringify(await restoreAs(stack, rest[3]!, rest[1]!))); return 0;
     } else if (commandName === "fixture" && rest.length === 2) {
       const { fixtureOperation } = await import("./faults.ts");
       await fixtureOperation(stack, rest[0]!, rest[1]!);

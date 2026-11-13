@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { copyFile, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { checkFiles, inventory, type FileDigest } from "./bundle.ts";
 import { checkTemplate, cloneDatabase, connections, dropDatabase, renameDatabase, type Admin, type Database } from "./postgres.ts";
@@ -7,7 +7,8 @@ import { checkTemplate, cloneDatabase, connections, dropDatabase, renameDatabase
 export { cloneDatabase, dropDatabase, psqlAdmin, type Admin } from "./postgres.ts";
 export { composeBench } from "./bench.ts";
 export { localRuntime, type Processes, type CoreStore } from "./runtime.ts";
-export { runDevnet } from "./command.ts";
+export { restoreAs, runDevnet, withWorldLock } from "./command.ts";
+export { listSnapshots } from "./catalogue-read.ts";
 export { readConfig, databaseUrl, type Config } from "./supervisor.ts";
 export { readFixture, sitesEnvironment, type FixtureState } from "./fixture.ts";
 export { migrateCatalogue, worldCatalogue, type WorldCatalogue, type WorldRow, type Command, type SnapshotRow, type CatalogueCut, type CatalogueHistory, type RestoreCatalogue } from "./catalogue.ts";
@@ -19,7 +20,11 @@ export type Cut = { nowMs: number; clockMode: "stopped" | "running"; rate: numbe
 export type Manifest = {
   schema: "capxul-world-snapshot/2"; id: string; world: string; codeVersion: string; createdAt: string;
   source: { database: string; stateDir: string }; epoch: number; cut: Cut; database: Database; sites: Site[]; files: Record<string, FileDigest>;
+  /** Stateful followers that saved their own state under this name (devnet.stateful-followers); absent on older manifests. */
+  followers?: string[];
 };
+export type SaveOptions = { replace?: boolean; followers?: readonly string[] };
+export type RestoreOptions = { followers?: readonly string[] };
 /** Lifecycle hooks are owned by the host supervisor, not by the product backend. */
 export type Runtime = {
   /** Read-only save precondition: never activate a stopped world. */
@@ -40,6 +45,26 @@ export type Runtime = {
 export type Options = { root: string; codeVersion: string; admin: Admin; runtime: Runtime };
 const stateFiles = ["anvil-state.json", "deployment.json"];
 const name = (s: string) => { if (!/^[a-z][a-z0-9_-]{0,62}$/.test(s)) throw new Error("invalid world/snapshot name"); return s; };
+/** The control protocol's snapshot name: lowercase letters, digits and hyphens, up to 40 characters. */
+const snapshotName = (s: string) => {
+  if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(s)) throw new Error("INVALID_INPUT: a snapshot name is lowercase letters, digits and hyphens, up to 40 characters");
+  return s;
+};
+const followerNames = (followers: readonly string[] = []) => {
+  if (followers.some((f) => typeof f !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/.test(f))) throw new Error("INVALID_INPUT: invalid stateful follower name");
+  return [...new Set(followers)].sort();
+};
+/** Refuses before any restore step when a follower joined now did not save its state with this snapshot. */
+export function checkFollowers(manifest: Manifest, followers: readonly string[] = []): void {
+  const missing = followerNames(followers).filter((f) => !(manifest.followers ?? []).includes(f));
+  if (missing.length) throw new Error(`WRONG_STATE: stateful follower ${missing.join(", ")} joined now is missing from snapshot ${manifest.id}`);
+}
+const savedNames = async (root: string) => {
+  const entries = await readdir(root).catch((error) => { if (error.code === "ENOENT") return []; throw error; });
+  const names: string[] = [];
+  for (const entry of entries.sort()) if (!entry.startsWith(".") && await stat(join(root, entry, "manifest.json")).then(() => true, () => false)) names.push(entry);
+  return names;
+};
 const checkCut = (c: Cut) => {
   if (!Number.isSafeInteger(c.nowMs) || !["stopped", "running"].includes(c.clockMode) || !(c.rate >= 1 && c.rate <= 60) ||
     !Number.isSafeInteger(c.recordSeq) || c.recordSeq < 0 || !/^[0-9a-f]{64}$/.test(c.recordHead) || !Array.isArray(c.heads)) throw new Error("snapshot clock/record cut is invalid");
@@ -71,14 +96,16 @@ async function locked<T>(root: string, fn: () => Promise<T>): Promise<T> {
   try { return await fn(); } finally { await rm(lock, { recursive: true }); }
 }
 
-export async function saveSnapshot(options: Options, world: World, id: string): Promise<Manifest> {
-  checkWorld(world); name(id);
+export async function saveSnapshot(options: Options, world: World, id: string, save: SaveOptions = {}): Promise<Manifest> {
+  checkWorld(world); snapshotName(id);
+  const followers = followerNames(save.followers);
   return locked(options.root, async () => {
-    if (!await options.runtime.running(world)) throw new Error("source world must be running to establish a snapshot cut");
     const final = join(options.root, id), temp = join(options.root, `.${id}-${randomUUID()}`);
-    // Reserve the name without ever replacing an existing snapshot.
-    await mkdir(final, { mode: 0o700 });
-    let database: Database | undefined, published = false;
+    // The host lock serializes saves; an existing name refuses before the world is touched.
+    const previous = await stat(join(final, "manifest.json")).then(() => true, () => false);
+    if (previous && !save.replace) throw new Error(`WRONG_STATE: a snapshot named ${id} exists; replace was not asked`);
+    if (!await options.runtime.running(world)) throw new Error("source world must be running to establish a snapshot cut");
+    let database: Database | undefined, published = false, replaced: string | undefined;
     const errors: unknown[] = [];
     try {
       await mkdir(temp, { mode: 0o700 });
@@ -95,10 +122,21 @@ export async function saveSnapshot(options: Options, world: World, id: string): 
         await options.runtime.backup(site, directory);
       }
       const manifest: Manifest = { schema: "capxul-world-snapshot/2", id, world: world.id, codeVersion: options.codeVersion,
-        source: { database: world.database, stateDir: resolve(world.stateDir) }, createdAt: new Date().toISOString(), epoch: world.epoch, cut, database, sites: world.sites, files: await inventory(temp) };
+        source: { database: world.database, stateDir: resolve(world.stateDir) }, createdAt: new Date().toISOString(), epoch: world.epoch, cut, database, sites: world.sites,
+        files: await inventory(temp), ...(followers.length ? { followers } : {}) };
       await writeFile(join(temp, "manifest.json"), JSON.stringify(manifest, null, 2), { mode: 0o600 });
-      await rm(final, { recursive: true });
+      // Rename never overwrites a non-empty directory; a replaced snapshot moves aside before the new one is published.
+      if (previous) { replaced = join(options.root, `.${id}-replaced-${randomUUID()}`); await rename(final, replaced); }
       await rename(temp, final); published = true;
+      if (replaced) {
+        // The new snapshot is published. A cleanup failure must not report it failed; the moved-aside
+        // previous snapshot keeps its manifest naming its template for operator cleanup.
+        try {
+          const old = JSON.parse(await readFile(join(replaced, "manifest.json"), "utf8")) as Manifest;
+          await dropDatabase(options.admin, old.database.name);
+          await rm(replaced, { recursive: true });
+        } catch { /* retained under .<id>-replaced-* */ }
+      }
       return manifest;
     } catch (error) {
       errors.push(error);
@@ -107,7 +145,7 @@ export async function saveSnapshot(options: Options, world: World, id: string): 
       try {
         if (!published) {
           await rm(temp, { recursive: true, force: true });
-          await rm(final, { recursive: true, force: true });
+          if (replaced) await rename(replaced, final);
           if (database) await dropDatabase(options.admin, database.name);
         }
       } catch (error) {
@@ -126,9 +164,15 @@ export async function saveSnapshot(options: Options, world: World, id: string): 
 }
 
 export async function readSnapshot(options: Options, id: string): Promise<Manifest> {
-  name(id);
-  const directory = join(options.root, id), manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8")) as Manifest;
-  if (manifest.schema !== "capxul-world-snapshot/2" || manifest.id !== id || manifest.codeVersion !== options.codeVersion) throw new Error("snapshot schema/code version mismatch");
+  const directory = join(options.root, id);
+  const text = /^[a-z0-9][a-z0-9_-]{0,62}$/.test(id) ? await readFile(join(directory, "manifest.json"), "utf8").catch((error) => { if (error.code === "ENOENT") return undefined; throw error; }) : undefined;
+  if (text === undefined) {
+    const saved = await savedNames(options.root);
+    throw new Error(`INVALID_INPUT: no snapshot named ${JSON.stringify(id)}; saved here: ${saved.length ? saved.join(", ") : "none"}`);
+  }
+  const manifest = JSON.parse(text) as Manifest;
+  if (manifest.schema !== "capxul-world-snapshot/2" || manifest.id !== id) throw new Error("snapshot schema/identity mismatch");
+  if (manifest.codeVersion !== options.codeVersion) throw new Error(`WRONG_STATE: snapshot ${id} was saved with other backend code (${manifest.codeVersion}), not ${options.codeVersion}`);
   checkCut(manifest.cut);
   await checkFiles(directory, manifest.files);
   for (const file of stateFiles) if (!manifest.files[`state/${file}`]) throw new Error(`snapshot is missing ${file}`);
@@ -136,10 +180,11 @@ export async function readSnapshot(options: Options, id: string): Promise<Manife
   return manifest;
 }
 
-export async function restoreSnapshot(options: Options, id: string, target: World): Promise<Manifest> {
+export async function restoreSnapshot(options: Options, id: string, target: World, restore: RestoreOptions = {}): Promise<Manifest> {
   checkWorld(target);
   return locked(options.root, async () => {
     const manifest = await readSnapshot(options, id);
+    checkFollowers(manifest, restore.followers);
     const companies = manifest.sites.map((s) => s.company).sort();
     if (JSON.stringify(target.sites.map((s) => s.company).sort()) !== JSON.stringify(companies)) throw new Error("a restore must include every company of the snapshot");
     if (target.database === manifest.database.name) throw new Error("cannot restore over the snapshot template");
