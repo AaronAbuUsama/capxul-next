@@ -25,9 +25,10 @@ existing run-relative files. `--screens <manifest>` imports an external manifest
 equality use `assertion:"source-equality"` and keep the source readback in the run too. The engine exports `parseRunReceipt`.
 
 `--json` sends script/recorder logs to stderr and prints one JSON result on stdout:
-`{version:1,run,runDir,state,passed,counts:{pass,fail,not_run},exitCode}`. `runDir` is repository-relative and contains
+`{version:1,run,runDir,state,passed,counts:{pass,fail,not_run},uncaptured,exitCode}`. `runDir` is repository-relative and contains
 `receipt.json` and `status.json`. `passed` is true (exit 0) only for a complete, nonempty selection with every requested eval
-passing. Unbound requests make new attempts incomplete; completed assertion failures also exit 1. Validation failures before a run starts have no run directory
+passing and a source-equality capture in the receipt for every requested screen `/shows` claim; `uncaptured` lists the
+requested `/shows` IDs without one (`system.eval-screen-captures`). Unbound requests make new attempts incomplete; completed assertion failures also exit 1. Validation failures before a run starts have no run directory
 and print their diagnostic to stderr instead. With pnpm, use `pnpm --silent evals -- ... --json` to suppress pnpm's banner.
 
 `--prepare <argv-json-file>` optionally runs preparation inside the attempt, before binding scripts. The file contains a

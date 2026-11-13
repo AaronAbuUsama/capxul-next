@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { mergeResults, parseRunReceipt, type Blueprint, type RunEnvironment, type RunReceipt } from "@capxul/blueprint-engine";
+import { mergeResults, parseRunReceipt, uncapturedScreens, type Blueprint, type RunEnvironment, type RunReceipt } from "@capxul/blueprint-engine";
 import type { Bindings } from "./modules/bindings/service.ts";
 import { cap, evidenceText, fileNameOf, foldChecks, parseCheckLines, redact, resultsFile, scoreEvals, type CheckLine, type Row, type RunInfo } from "./modules/runs/service.ts";
 
@@ -68,10 +68,12 @@ export const executeRun = async (root: string, blueprint: Blueprint, bindings: B
   const finish = (rows: readonly Row[], recorded: boolean): number => {
     const count = (v: string) => rows.filter((r) => r.verdict === v).length;
     const counts = { pass: count("pass"), fail: count("fail"), not_run: count("not_run") };
-    const passed = recorded && receipt.state === "complete" && asked.length > 0 && counts.pass === asked.length;
+    // A screen's shows claim passes only with its source-equality capture retained in this run (system.eval-screen-captures).
+    const uncaptured = uncapturedScreens(blueprint, asked, receipt.screens);
+    const passed = recorded && receipt.state === "complete" && asked.length > 0 && counts.pass === asked.length && uncaptured.length === 0;
     const exitCode = passed ? 0 : 1;
-    if (options.json) console.log(JSON.stringify({ version: 1, run: info.run, runDir: out, state: receipt.state, passed, counts, exitCode }));
-    else log(`run ${info.run}: ${receipt.state}; ${counts.pass} pass, ${counts.fail} fail, ${counts.not_run} not_run`);
+    if (options.json) console.log(JSON.stringify({ version: 1, run: info.run, runDir: out, state: receipt.state, passed, counts, uncaptured, exitCode }));
+    else log(`run ${info.run}: ${receipt.state}; ${counts.pass} pass, ${counts.fail} fail, ${counts.not_run} not_run${uncaptured.length ? `; no source-equality capture for ${uncaptured.join(", ")}` : ""}`);
     return exitCode;
   };
   const pending = asked.map((id) => ({ id, verdict: "not_run" as const, checks: [] }));

@@ -74,6 +74,18 @@ export const decision_system_eval_reporting = defineDecision({
   affects: [f.system_capxul],
 });
 
+export const decision_system_eval_screen_captures = defineDecision({
+  id: "system.eval-screen-captures", title: "A run that asks for a screen's shows claim succeeds only with its capture",
+  question: "Can `passed` be true when a requested screen shows claim has no source-equality capture in the run?",
+  options: [
+    { label: "capture-required", text: "Run success additionally requires, for every requested eval on a screen: subject whose ID ends in /shows, a receipt screens entry for that screen with a path, a source and assertion source-equality. The engine's uncapturedScreens is the one rule, used by both the run result and slice evidence. The --json result adds uncaptured: the requested shows IDs without one. Verdicts, completion and historical receipts are unchanged." },
+    { label: "verdicts-only", text: "Keep success as every requested verdict passing. A run can then report passed:true while slice zero stays partial for the same receipt, so the harness and the slice disagree about one attempt." },
+  ],
+  chosen: "capture-required", why: "Slice evidence already required source-equality captures for shows claims (portal.product-slices); the run result did not, so a full-gate attempt could exit 0 without the screens acceptance needs. One shared rule keeps the run's own answer and the slice's answer the same.",
+  source: "Receipt-first harness lane audit of the Wave Zero gate, 13 November 2026; packages/evals/src/execute.ts finish and packages/blueprint-engine/src/slices.ts sliceEvidence",
+  affects: [f.system_capxul],
+});
+
 export const decision_system_standing_gaps = defineDecision({
   id: "system.standing-gaps", title: "A standing gap carries a decision and a current reason",
   question: "How can the build distinguish an open gap from an explicitly retained boundary?",
