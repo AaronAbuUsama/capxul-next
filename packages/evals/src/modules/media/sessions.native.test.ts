@@ -7,7 +7,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { Database, worldNow } from "../../../../backend/src/devnet/door.ts";
-import { migrateMedia, routeMedia } from "../../../../backend/src/media/door.ts";
+import { migrateMedia } from "../../../../backend/src/media/door.ts";
 import { migrateOutbox } from "../../../../backend/src/platform/outbox.ts";
 
 // Access by URL, as in ../storage/actors.ts: evals' stricter compile must not traverse backend internals.
@@ -17,6 +17,9 @@ const { authenticate, sendCode, verifyCode } = await import(new URL("../../../..
   verifyCode(sql: unknown, input: { email: string; code: string; client: string }, config: unknown, now: number):
     Promise<{ ok: true; value: { personId: string; token: string; safe: string } } | { ok: false }>;
 };
+type Entry = { bodyLimit: number; route(sql: unknown, path: string, input: Record<string, unknown>, bearer: string, now: number): Promise<{ status: number; body: unknown } | null>;
+  render(error: unknown): { status: number; body: unknown } };
+const { mediaRoutes } = await import(new URL("../../../../backend/src/media/mount.ts", import.meta.url).href) as { mediaRoutes(): Entry[] };
 
 // Runner regression with a component HTTP/receipt/actors fixture; never selected-stack or acceptance evidence.
 test("native media runner proves files tenancy and kept-image admission through real bearers and the public route", {
@@ -33,16 +36,17 @@ test("native media runner proves files tenancy and kept-image admission through 
   const now = Date.UTC(2026, 10, 13, 12);
   const prior = (await admin.tenant.query("select world_id,epoch,clock from app.world")).rows[0];
   const access = await readFile(new URL("../../../../backend/src/access/schema.sql", import.meta.url), "utf8");
-  // Stands in for the composed Core mount: the real router, Access.authenticate and worldNow on one tenant transaction.
+  // Stands in for Core's shared bearer dispatch: media's real mount entry on one tenant transaction, now = worldNow.
+  const [entry] = mediaRoutes();
   const server = createServer(async (request, response) => {
     response.setHeader("content-type", "application/json");
     if (request.method === "GET") return response.end(JSON.stringify({ world: prior.world_id, storage: "postgres", indexer: "ponder" }));
     const chunks: Buffer[] = []; for await (const chunk of request) chunks.push(chunk);
     const bearer = String(request.headers.authorization ?? "").replace(/^Bearer /, "");
     try {
-      const out = await db.transaction("", (sql) => routeMedia(sql, request.url!, JSON.parse(Buffer.concat(chunks).toString()), bearer, { authenticate, now: worldNow }));
+      const out = await db.transaction("", async (sql) => entry!.route(sql, request.url!, JSON.parse(Buffer.concat(chunks).toString()), bearer, await worldNow(sql)));
       response.statusCode = out?.status ?? 404; response.end(JSON.stringify(out?.body ?? null));
-    } catch (error) { response.statusCode = /NOT_AUTHENTICATED/.test(String(error)) ? 401 : 400; response.end(JSON.stringify({ error: "refused" })); }
+    } catch (error) { const rendered = entry!.render(error); response.statusCode = rendered.status; response.end(JSON.stringify(rendered.body)); }
   });
   try {
     await admin.tenant.query("begin");

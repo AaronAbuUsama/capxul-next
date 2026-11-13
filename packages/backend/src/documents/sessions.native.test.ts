@@ -9,6 +9,7 @@ import { migrate as migrateSeats } from "../organizations/door.ts";
 import { register, resolveRecipient } from "../parties/door.ts";
 import { migrateOutbox } from "../platform/outbox.ts";
 import { get as getDocument, migrateDocuments, store, type StoreInput } from "./door.ts";
+import { documentsRoutes } from "./mount.ts";
 
 // Component proof with Access's real sign-in/authenticate and Seat's real caller_safes/current_member.
 // Seat and agent rows are superuser fixtures: no Seat or agent writer exists yet. Not selected-stack acceptance.
@@ -81,6 +82,14 @@ test("native sessions: tenants and admissions on documents, files and agents fol
     assert.deepEqual(await as(cy.token, async () => { await labelled("organization", org.id); return docs(); }), [], "org selector is not a Seat");
     assert.equal((await as(bob.token, () => getDocument(sql, { documentHash: shared.document_hash, contentHash: shared.content_hash }))).ref.documentHash, shared.document_hash);
     await assert.rejects(as(bob.token, () => getDocument(sql, { documentHash: own.document_hash, contentHash: own.content_hash })), /not found/);
+    // Core's dispatch entry: the bearer is the only authority; its renderer maps refusals.
+    const [mount] = documentsRoutes();
+    const pair = { documentHash: shared.document_hash, contentHash: shared.content_hash };
+    assert.equal((await as(null, () => mount!.route(sql, "/documents/reading/verify", pair, bob.token, now)))?.status, 200);
+    const refusal = await as(null, () => mount!.route(sql, "/documents/reading/verify", pair, cy.token, now)).catch((e) => mount!.render(e));
+    assert.equal(refusal?.status, 400);
+    const anonymous = await as(null, () => mount!.route(sql, "/documents/reading/verify", pair, "", now)).catch((e) => mount!.render(e));
+    assert.equal(anonymous?.status, 401);
     for (const token of [ann.token, bob.token]) for (const query of ["update app.documents set subject_id='x'", "delete from app.documents"])
       await assert.rejects(as(token, () => sql.query(query)), /permission denied/);
     await sql.query("set local role none");
