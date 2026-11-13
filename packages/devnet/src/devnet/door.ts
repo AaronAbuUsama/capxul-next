@@ -59,12 +59,13 @@ export function checkFollowers(manifest: Manifest, followers: readonly string[] 
   const missing = followerNames(followers).filter((f) => !(manifest.followers ?? []).includes(f));
   if (missing.length) throw new Error(`WRONG_STATE: stateful follower ${missing.join(", ")} joined now is missing from snapshot ${manifest.id}`);
 }
-/** Exactly `.<id>-replaced-<uuid>`: a prefix match would also take hyphenated names' asides and temps (`.x-replaced-1-…`). */
+/** Exactly `.<id>.replaced-<uuid>`. Names never contain a dot, so no other name's aside or temp can match; an invalid name has none. */
 const asidesOf = async (root: string, id: string) => {
-  const exact = new RegExp(`^\\.${id}-replaced-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`);
+  if (!/^[a-z0-9][a-z0-9_-]{0,62}$/.test(id)) return [];
+  const exact = new RegExp(`^\\.${id}\\.replaced-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`);
   return (await readdir(root).catch(() => [] as string[])).filter((entry) => exact.test(entry));
 };
-/** A replace that crashed between its two renames leaves the old snapshot only as `.<id>-replaced-<uuid>`. Call under the host lock. */
+/** A replace that crashed between its two renames leaves the old snapshot only as `.<id>.replaced-<uuid>`. Call under the host lock. */
 async function recoverReplaced(root: string, id: string): Promise<void> {
   const final = join(root, id);
   if (await stat(join(final, "manifest.json")).then(() => true, () => false)) return;
@@ -151,7 +152,7 @@ export async function saveSnapshot(options: Options, world: World, id: string, s
         files: await inventory(temp), ...(followers.length ? { followers } : {}) };
       await writeFile(join(temp, "manifest.json"), JSON.stringify(manifest, null, 2), { mode: 0o600 });
       // Rename never overwrites a non-empty directory; a replaced snapshot moves aside before the new one is published.
-      if (previous) { replaced = join(options.root, `.${id}-replaced-${randomUUID()}`); await rename(final, replaced); }
+      if (previous) { replaced = join(options.root, `.${id}.replaced-${randomUUID()}`); await rename(final, replaced); }
       await rename(temp, final); published = true;
       if (replaced) {
         // The new snapshot is published. A cleanup failure must not report it failed; the moved-aside
@@ -162,7 +163,7 @@ export async function saveSnapshot(options: Options, world: World, id: string, s
           await checkTemplate(options.admin, old.database);
           await dropDatabase(options.admin, old.database.name);
           await rm(replaced, { recursive: true });
-        } catch { /* retained under .<id>-replaced-* */ }
+        } catch { /* retained under .<id>.replaced-* */ }
       }
       return manifest;
     } catch (error) {

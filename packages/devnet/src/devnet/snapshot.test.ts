@@ -134,10 +134,10 @@ test("whole database cut restores independently, fences failures and retains aba
     await rm(join(options.root, "junk"), { recursive: true });
     assert.equal(quiesces, before + 1, "only the accepted replace touched a world");
     // A crash between the replace's two renames: reads name it; the next locked save recovers the previous snapshot.
-    const crashed = `.paid-replaced-${randomUUID()}`;
+    const crashed = `.paid.replaced-${randomUUID()}`;
     await rename(join(options.root, "paid"), join(options.root, crashed));
-    // Hyphenated neighbours (another snapshot's aside and a crashed save's temp) must not be taken for paid's aside.
-    const decoys = [`.paid-replaced-1-replaced-${randomUUID()}`, `.paid-replaced-1-${randomUUID()}`];
+    // Neighbours (another snapshot's aside, and crashed saves' temps of `paid-replaced-1` and `paid-replaced`) are never paid's aside.
+    const decoys = [`.paid-replaced-1.replaced-${randomUUID()}`, `.paid-replaced-1-${randomUUID()}`, `.paid-replaced-${randomUUID()}`];
     for (const decoy of decoys) { await mkdir(join(options.root, decoy)); await writeFile(join(options.root, decoy, "manifest.json"), JSON.stringify({ id: "paid-replaced-1" })); }
     await assert.rejects(readSnapshot(options, "paid"), (error: Error) => error.message === `WRONG_STATE: snapshot paid was interrupted while being replaced (${crashed}); the next save of paid recovers it`);
     await assert.rejects(saveSnapshot(options, source, "paid"), /WRONG_STATE: a snapshot named paid exists/);
@@ -186,6 +186,7 @@ test("whole database cut restores independently, fences failures and retains aba
     failBackup = false;
     await assert.rejects(readSnapshot({ ...options, codeVersion: "changed" }, "paid"), /WRONG_STATE: snapshot paid was saved with other backend code/);
     await assert.rejects(restoreSnapshot(options, "nosuch", target), /INVALID_INPUT: no snapshot named "nosuch"; saved here: paid/);
+    for (const bad of ["(", ".*", "../paid"]) await assert.rejects(readSnapshot(options, bad), (error: Error) => error.message.startsWith(`INVALID_INPUT: no snapshot named ${JSON.stringify(bad)}`));
     const restoredStarts = resumed.get("restored");
     await assert.rejects(restoreSnapshot(options, "paid", target, { followers: ["fde-namespace", "mail-sink"] }), /WRONG_STATE: stateful follower mail-sink joined now is missing from snapshot paid/);
     assert.equal(resumed.get("restored"), restoredStarts, "a missing follower refuses before any restore step");
