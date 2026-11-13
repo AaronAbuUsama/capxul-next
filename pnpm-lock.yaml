@@ -292,6 +292,9 @@ importers:
       '@capxul/blueprint-engine':
         specifier: workspace:*
         version: link:../blueprint-engine
+      viem:
+        specifier: 'catalog:'
+        version: 2.55.18(typescript@5.9.3)(zod@3.25.76)
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

@@ -34,7 +34,9 @@ Completion reads `status/runs/<id>/receipt.json` and its sibling immutable `stat
 passes. All required claims must pass together on `postgres-ponder-erpnext-v4`, with successful scripts and existing
 run-relative source-equality screen captures. Interrupted, stale, JSON-only and receipt-less historical runs cannot
 complete a slice. A tested commit must be an ancestor of `origin/integration/wave-0` to display **Landed · proved**.
-`sliceZeroRequired(blueprint)` in engine `slices.ts` is the full computed acceptance gate. `SLICE_ZERO_REQUIRED` is only
+`sliceZeroRequired(blueprint)` in engine `slices.ts` is the full computed acceptance gate: every claim on slice zero's
+records at every level, the invariants over them (or over no record), their concepts' `sys:imports`, `sys:generated` and
+the devnet and worlds boot and smoke claims (`portal.slice-zero-measured-gate`). `SLICE_ZERO_REQUIRED` is only
 its thirteen explicit screen/alert additions; absent declarations stay missing. Runtime callers use the function or
 the CLI's `slice-0.required` array, never only the additions and never a copied ID list.
 
