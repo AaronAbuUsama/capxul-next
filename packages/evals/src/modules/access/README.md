@@ -1,0 +1,5 @@
+# Access schema inspection
+
+`run.sh --list` lists checks without a live fixture. A real invocation requires the current running receipt in `CAPXUL_EVAL_RUN_DIR`, private `CAPXUL_WORLD_CONFIG` and actual `CAPXUL_ACCEPTANCE_FIXTURE`. Receipt stack/storage/indexer and Core commit must match; live readiness and restricted world database identity/epoch must agree. No admin connection, provisioning, session insertion or GUC actor fabrication occurs. Errors emit safe failing check lines, never credentials.
+
+The two checks compare independently declared exact physical fields/types/nullability, primary and secondary index semantics and forced RLS through Postgres catalogs. They remain **near-only**: migration provenance and every value constraint are not covered, and writer/tenancy claims require the actual public flows. The schema-inspection engine is reused by Accounts through this module's `service.ts` door. Component validation and missing-receipt negative controls do not score the selected gate.
