@@ -10,21 +10,6 @@
   ],
   "bindings": [
     {
-      "eval": "acc:doc.create/c-4a88a94b435451b9",
-      "checks": [
-        "B6.created-document-is-draft",
-        "B7.closed-month-invoice-refused"
-      ],
-      "why": "The sales person creates a Sales Invoice through the door's `doc create`, then reads that same new document through `doc get` before submitting it: docstatus 0 establishes it is a draft. Creating an invoice in a closed month is refused, establishing that Frappe's validations apply. Together the checks prove the whole claim."
-    },
-    {
-      "eval": "acc:doc.submit/c-74a45893884b5bef",
-      "checks": [
-        "B6.sales-invoice-submitted-in-ledger"
-      ],
-      "why": "The door's `doc submit` is the operation. A sales person submits a Sales Invoice with it, and the check reads the document back as submitted and finds the Debtors account debited 900 in the General Ledger: an ordinary document posts when submitted."
-    },
-    {
       "eval": "acc:org.feature.off/c-062588150192503e",
       "checks": [
         "B5.off-project-unreachable-over-rest",
@@ -57,24 +42,6 @@
         "B6.hr-employee-and-approved-leave"
       ],
       "why": "The HR person reads the Leave Application back through the door's `doc get --as` and the check finds its docstatus and status: a document read as the caller, with its status."
-    },
-    {
-      "eval": "acc:doc.submit/c-df3c0c51cdf3899b",
-      "checks": [
-        "TL.doc-submit-safe-payment-held-signer-named",
-        "TL.held-payment-posts-no-ledger-line",
-        "TL.signed-payment-posts-once"
-      ],
-      "why": "The budget holder submits a Payment Entry from the Safe through the door's `doc submit --json`: the answer says held true, gives an approval id and names whom it awaits (the budget holder, as Core's approval does). The entry is still a draft with no ledger line; after `approval sign` lands it is submitted and the Safe account is credited once."
-    },
-    {
-      "eval": "acc:report.run/c-6c39c42c744b8c91",
-      "checks": [
-        "B6.reports-run",
-        "TL.books-agree-with-chain",
-        "B6.off-part-report-refused"
-      ],
-      "why": "The admin runs General Ledger and Trial Balance through the door and rows come back. Right after the thin line's payment (before B4 moves money with no document), the General Ledger of the Safe account, run through the door, equals the Safe's USDC balance on chain: the funding at birth is booked as the founder's capital (books.founder-funding, workflow plugs.books.founder-capital) and the payment as its Payment Entry. With projects off, `report run \"Project Summary\"` (a report on Project) exits FEATURE_NOT_AVAILABLE."
     }
   ],
   "near": [
@@ -99,13 +66,6 @@
         "B5.feature-list-state"
       ],
       "missing": "The list is read, but the check sets the features first, so the defaults of a new company are not what it reads."
-    },
-    {
-      "eval": "ref:doc.create/ROLE_PERMISSION_DENIED/c-67ac0c9fd209c2f1",
-      "checks": [
-        "B6.refusals-with-reason"
-      ],
-      "missing": "A person without the role is refused through the door, but under the spike's code FORBIDDEN, and the exit code, the shape and 'changes nothing' are not checked."
     },
     {
       "eval": "ref:doc.create/FEATURE_NOT_AVAILABLE/c-67593fa541de6720",

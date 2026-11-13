@@ -4,7 +4,8 @@
 //
 // - something is at the top level that is not in ALLOWED below (tracked, or untracked and not git-ignored);
 // - a source file is over LIMIT lines, unless it is in packages/layout/oversize.json, and those may not grow;
-// - a top-level directory or a package has no README.md.
+// - a top-level directory or a package has no README.md;
+// - product code reads the host clock without a label in packages/layout/time-reads.json (inv:time.no-direct-reads).
 //
 // This file is the entry and holds the policy; the rules are pure and live in src/modules/layout.
 
@@ -14,6 +15,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { checkLayout, type Allowlist, type Oversize, type Policy, type Tree } from "./modules/layout/service.ts";
+import { checkTime, inScope, type Allowlist as TimeReads } from "./modules/time/service.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -69,9 +71,14 @@ const main = (): number => {
     packages: [...new Set(files.filter((p) => p.startsWith("packages/") && p.split("/").length > 2).map((p) => p.split("/")[1]!))],
   };
   const oversize = JSON.parse(readFileSync(join(ROOT, "packages/layout/oversize.json"), "utf8")) as Oversize;
-  const problems = checkLayout(tree, policyOf(oversize));
+  const problems: { rule: string; at: string; why: string }[] = [...checkLayout(tree, policyOf(oversize))];
+  const reads = JSON.parse(readFileSync(join(ROOT, "packages/layout/time-reads.json"), "utf8")) as TimeReads;
+  const scanned = files.filter((path) => inScope(path, reads.scope) && linesOf(path) > 0);
+  const time = checkTime(scanned.map((path) => ({ path, text: readFileSync(join(ROOT, path), "utf8") })), reads);
+  problems.push(...time.problems.map((p) => ({ rule: "time", ...p })));
   for (const p of problems) console.error(`${p.rule}  ${p.at}: ${p.why}`);
   if (problems.length > 0) { console.error(`check-layout: ${problems.length} problem${problems.length === 1 ? "" : "s"}`); return 1; }
+  console.log(`check-time: ${scanned.length} product files scanned; ${reads.reads.length} host clock reads, each labelled; ${time.owed.length} owed to the world clock (${[...new Set(time.owed.map((r) => r.owner))].join(", ")})`);
   console.log(`check-layout: ${topLevel.length} top-level entries, all allowed; no source file over ${LIMIT} lines beyond the ${Object.keys(oversize).length} recorded; every directory and package has a README`);
   return 0;
 };
