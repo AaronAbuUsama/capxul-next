@@ -1,0 +1,11 @@
+{
+  "area": "accounts",
+  "script": "packages/evals/src/modules/accounts/run.sh",
+  "worlds": ["slice-zero"],
+  "bindings": [],
+  "near": [
+    { "eval": "tbl:admissions/schema", "checks": ["ACCOUNTS.admissions-shape"], "missing": "Physical fields/types/nullability/key/indexes and forced RLS do not prove every admission state/value constraint or migration provenance. Writer, tenancy, atomicity and public transition claims remain unbound until their real same-attempt flow." },
+    { "eval": "tbl:personal-safes/schema", "checks": ["ACCOUNTS.safes-shape"], "missing": "Physical fields/types/nullability/key/indexes and forced RLS do not prove every count/state/value constraint or actual durable claim workflow. No selected/full-run pass follows from component setup controls." },
+    { "eval": "tbl:referrals/schema", "checks": ["ACCOUNTS.referrals-shape"], "missing": "Physical fields/types/nullability/key/indexes and forced RLS do not prove every stage/reward constraint or migration provenance. The parked attribution/reward public paths are not reopened or credited; retained admission transition still requires an actual public authority source." }
+  ]
+}

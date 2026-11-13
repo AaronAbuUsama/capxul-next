@@ -181,12 +181,14 @@ test("slice acceptance requires the full fresh same-run contract and every sourc
   await mkdir(directory, { recursive: true });
   const at = new Date().toISOString(), started = Date.parse(at);
   const environment = { world: "slice-zero", stack: "postgres-ponder-erpnext-v4", storage: "postgres", indexer: "ponder", components: { core: "fixture" } } as const;
-  const required = ["opaque-b", "opaque-a"];
+  // The gate's screen list comes from the requested shows claims, not a fixed list.
+  const shows = ["supplier-invoice", "payment-entry", "general-ledger", "safe-trial-balance"];
+  const required = ["opaque-b", "opaque-a", ...shows.map((screen) => `scr:${screen}/shows`), "scr:payment-entry/refuses"];
   const receipt = { version: 1, id: "run-test", state: "complete", commit: "fixture", at, finishedAt: at, environment,
     requested: required, evals: required.map((id) => ({ id, claim: `claim ${id}` })), scripts: [],
     prepare: { argv: ["actual-prepare"], exitCode: 0, signal: null, log: "prepare.log" },
-    screens: ["supplier-invoice", "payment-entry", "general-ledger", "trial-balance"].map((screen) => ({ screen, path: `${screen}.png`, source: "source.json", assertion: "source-equality" })) };
-  const summary = { version: 1, run: receipt.id, runDir: "status/runs/run-test", state: "complete", passed: true, counts: { pass: 2, fail: 0, not_run: 0 }, exitCode: 0 };
+    screens: shows.map((screen, i) => ({ screen: i === 0 ? `screen:${screen}` : screen, path: `${screen}.png`, source: `source.json#/${screen}/value`, assertion: "source-equality" })) };
+  const summary = { version: 1, run: receipt.id, runDir: "status/runs/run-test", state: "complete", passed: true, counts: { pass: required.length, fail: 0, not_run: 0 }, exitCode: 0 };
   const status = { version: 1, evals: Object.fromEntries(required.map((id) => [id, { verdict: "pass", commit: "fixture", at, run: receipt.id, claim: `claim ${id}` }])) };
   const save = async () => { await writeFile(join(directory, "receipt.json"), JSON.stringify(receipt)); await writeFile(join(directory, "status.json"), JSON.stringify(status)); };
   try {
@@ -194,7 +196,8 @@ test("slice acceptance requires the full fresh same-run contract and every sourc
     await writeFile(join(directory, "prepare.log"), "prepared");
     const preparation = { run: { id: receipt.id, at, commit: "fixture" } };
     await writeFile(join(directory, "preparation.json"), JSON.stringify(preparation));
-    await writeFile(join(directory, "source.json"), "{}");
+    const sources = JSON.stringify(Object.fromEntries(shows.map((screen) => [screen, { value: 1 }])));
+    await writeFile(join(directory, "source.json"), sources);
     await save(); assert.equal(await verifyRun(root, summary, required, environment, started), true);
     receipt.prepare.exitCode = 1; await save();
     await assert.rejects(verifyRun(root, summary, required, environment, started), /preparation|invalid/);
@@ -204,10 +207,12 @@ test("slice acceptance requires the full fresh same-run contract and every sourc
     preparation.run.id = receipt.id; await writeFile(join(directory, "preparation.json"), JSON.stringify(preparation));
     receipt.screens[0]!.source = "../older-source.json"; await save();
     await assert.rejects(verifyRun(root, summary, required, environment, started), /belong to this run/);
-    receipt.screens[0]!.source = "source.json"; await save();
+    receipt.screens[0]!.source = "source.json#/supplier-invoice/missing"; await save();
+    await assert.rejects(verifyRun(root, summary, required, environment, started), /names no value/);
+    receipt.screens[0]!.source = "source.json#/supplier-invoice/value"; await save();
     await writeFile(join(directory, "source.json"), "");
     await assert.rejects(verifyRun(root, summary, required, environment, started), /source evidence/);
-    await writeFile(join(directory, "source.json"), "{}");
+    await writeFile(join(directory, "source.json"), sources);
     await assert.rejects(verifyRun(root, summary, required.slice(0, 1), environment, started));
     await assert.rejects(verifyRun(root, summary, required, { ...environment, storage: "json" }, started));
     await assert.rejects(verifyRun(root, summary, required, environment, started + 1), /predates/);
@@ -217,7 +222,7 @@ test("slice acceptance requires the full fresh same-run contract and every sourc
     status.evals["opaque-a"]!.run = "previous-run"; await save();
     await assert.rejects(verifyRun(root, summary, required, environment, started), /fresh/);
     status.evals["opaque-a"]!.run = receipt.id; receipt.screens.pop(); await save();
-    await assert.rejects(verifyRun(root, summary, required, environment, started), /trial-balance/);
+    await assert.rejects(verifyRun(root, summary, required, environment, started), /safe-trial-balance/);
     status.evals["opaque-a"]!.verdict = "not_run"; await save();
     assert.equal(await verifyRun(root, { ...summary, passed: false, exitCode: 1 }, required, environment, started), false);
   } finally { await rm(root, { recursive: true }); }

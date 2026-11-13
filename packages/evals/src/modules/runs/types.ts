@@ -34,7 +34,7 @@ export interface Row {
 export interface Scored {
   /** The verdicts to record: a pass, a fail, or an explicit `not_run` for an asked-for eval with no check. */
   readonly rows: readonly Row[];
-  /** Bound evals whose checks did not all run, even if a check failed. The run cannot supply passing evidence. */
+  /** Bound evals whose checks did not all run, even if a check failed. Their script plan cannot supply passing evidence. */
   readonly unfinished: readonly { readonly id: string; readonly missing: readonly string[] }[];
 }
 
