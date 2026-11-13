@@ -287,9 +287,13 @@ export const decision_payments_dated = defineDecision({
     "is Capxul's (service-signer), so its timer is the Payment's. 'No retry window ends a dated budget payment: only the " +
     "chain does' (payment send notes): the process retries hourly until PaymentSent or ScheduleCancelled. The day-ahead " +
     "check stays the opener's, as `come_due`, so notices has a transition to warn the payer from. The old due-job cron " +
-    "(every 5 minutes, 25 schedules under a lease) becomes one timer per Payment (P3).",
+    "(every 5 minutes, 25 schedules under a lease) becomes one timer per Payment (P3). A lapsed command resumed after " +
+    "its original date but before not_after keeps its Payment ids, nonces, digest and recorded date; the replacement " +
+    "approval pays immediately (Budgets.spend, or no personal send_after), never schedules an elapsed date. A future " +
+    "date stays scheduled. Review, 12 November 2026: preparation checks the entire indexed budget path for closure, " +
+    "even if authority is on the child, matching Budgets._walk(id,true); a closed ancestor is WRONG_STATE.",
   source: by(`${ASIS} (K16, R4, R5, R7); payment.send.yaml notes (CAP-1238, CAP-1252); approvals.held-sends`),
-  affects: [workflow_payments_lifecycle_payment, P.come_due, P.schedule, rpc_payments_commands_prepare],
+  affects: [workflow_payments_lifecycle_payment, P.come_due, P.schedule, rpc_payments_commands_prepare, procedure_payments_prepare_command],
 });
 
 // ── settlement ──────────────────────────────────────────────────────────────────────────────
@@ -1247,7 +1251,8 @@ export const decision_payments_payroll_door = defineDecision({
   title: "Payroll pays a run through the door; settled_at is the block's time",
   question:
     "Payroll asked the door for purpose payroll, an optional source on each item (the slip, its run, its Employee) kept " +
-    "on the Payment and its book fact, and a mailbox for a payee with no account; and for `settled_at` to be the " +
+    "on the Payment, posting provenance carried to books through `against` with source=Payment, and a mailbox for a " +
+    "payee with no account; and for `settled_at` to be the " +
     "settling block's time, with the settled transaction and block readable by the payer's tenant (C6). Which does " +
     "payments take?",
   options: [
