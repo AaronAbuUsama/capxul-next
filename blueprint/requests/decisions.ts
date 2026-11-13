@@ -579,3 +579,16 @@ export const decision_requests_bill_time_currency = defineDecision({
 const SURFACE = (evidence: string) =>
   `Claude, money group, applying the command surface, 9 November 2026, on Aaron's answer to question 48; evidence: ${evidence}`;
 
+export const decision_requests_committed_followers = defineDecision({
+  id: "requests.committed-followers",
+  title: "Payment followers and notices share committed transition identity",
+  question: "How do personal and company requests publish transitions without losing a wake or delivering before commit?",
+  options: [
+    { label: "outbox", text: "Write the request transition and common transactional outbox entry on the same Sql connection, using authoritative numeric world time. Schedule each consumer and acknowledge its source in one transaction; send externally after commit." },
+    { label: "org-record", text: "Use organization records for every request, including personal owners." },
+  ],
+  chosen: "outbox",
+  why: "An organization foreign key cannot represent a personal request. Notices reads the authoritative request through its source door, never a copied invoice store or arbitrary notify endpoint. Payment followers guard both the current payment identity and source state; replay causes no second transition. The common outbox carries only declared transition properties, not private invoice amounts or mailboxes.",
+  source: "requests.lifecycle.follow-settled; requests.lifecycle.follow-unsettled; requests.lifecycle.follow-cancelled; request_transitioned; integrator and Notices contract, 12 November 2026",
+  affects: [d.table_requests, d.event_request_transitioned, ...FOLLOWERS],
+});
