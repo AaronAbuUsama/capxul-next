@@ -1,6 +1,8 @@
 import type { Sql } from "../platform/db.ts";
 export { readChainFact } from "./carrier.ts";
 export { readMoneyDeployment, type MoneyDeploymentFact } from "./deployment.ts";
+export { readSafeExecution, readSafeApprovals, readSafeOwnersAt, type SafeExecutionFact, type SafeApprovalFact, type SafeOwnersFact } from "./safes.ts";
+export { readHatAt, readHatWearersAt, readHatTransfersInTx, type HatFact, type HatWearerFact, type HatTransferInTx } from "./hats.ts";
 
 /** Chain provenance only. Org/person/department labels come from their authoritative directories. */
 export interface HatTransferFact {
