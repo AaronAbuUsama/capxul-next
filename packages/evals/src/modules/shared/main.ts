@@ -3,7 +3,7 @@ import { execFile } from "node:child_process";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
-import { concat, createPublicClient, decodeEventLog, http, pad, parseAbi, parseAbiItem, toHex, type Address, type Hex } from "viem";
+import { concat, createPublicClient, decodeEventLog, encodeFunctionData, http, pad, parseAbi, parseAbiItem, toHex, type Address, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { entryPoint07Address, getUserOperationHash } from "viem/account-abstraction";
 import { parseRunReceipt } from "@capxul/blueprint-engine";
@@ -87,7 +87,12 @@ async function paymentOperation(w: World): Promise<{ hash: Hex; sender: Address 
   return { hash: events[0]!.args.userOpHash, sender: events[0]!.args.sender };
 }
 
-/** An operation from the payment's own sender (the paying hat wearer's Safe) that no owner signed; the real bundler must refuse it. */
+/**
+ * An operation from the payment's own sender (the paying hat wearer's Safe) that no owner signed; the real bundler must refuse
+ * it. Its callData is a well-formed Safe4337Module executeUserOp (a zero-value call to itself), so the module reaches its
+ * signature check instead of reverting on an unsupported selector, and the world's sponsor accepts any paymaster data, so the
+ * only thing left to refuse is the signature.
+ */
 async function unsignedOperation(w: World, nonceOffset = 0n): Promise<{ operation: RpcUserOperation; expectedHash: Hex }> {
   const { sender } = await paymentOperation(w);
   const client = createPublicClient({ transport: http(w.rpc, { retryCount: 0 }) });
@@ -95,7 +100,9 @@ async function unsignedOperation(w: World, nonceOffset = 0n): Promise<{ operatio
   assert(nonce + nonceOffset >= 0n, "a used nonce needs an earlier operation");
   const fees = await client.estimateFeesPerGas();
   assert(w.paymaster, "the selected world has no saved sponsor");
-  const base = { sender, nonce: nonce + nonceOffset, callData: "0x" as Hex, callGasLimit: 100_000n, verificationGasLimit: 600_000n,
+  const callData = encodeFunctionData({ abi: parseAbi(["function executeUserOp(address to, uint256 value, bytes data, uint8 operation)"]),
+    functionName: "executeUserOp", args: [sender, 0n, "0x", 0] });
+  const base = { sender, nonce: nonce + nonceOffset, callData, callGasLimit: 100_000n, verificationGasLimit: 600_000n,
     preVerificationGas: 100_000n, maxFeePerGas: fees.maxFeePerGas * 2n, maxPriorityFeePerGas: fees.maxPriorityFeePerGas * 2n,
     paymaster: w.paymaster, paymasterVerificationGasLimit: 100_000n, paymasterPostOpGasLimit: 50_000n, paymasterData: "0x" as Hex };
   const validity = pad("0x", { size: 12 });
@@ -160,14 +167,16 @@ const checks: Record<string, Check> = {
     const before = await unsignedOperation(w);
     await refused("TRANSACTION_FAILED", () => provider.send({ operation: before.operation, entryPoint: entryPoint07Address, expectedHash: before.expectedHash }));
     assert.equal(count(g!.forwarded, "eth_sendUserOperation"), 1, "the refusal came from the real bundler");
-    const reason = String(g!.answers.at(-1)?.body?.error?.message ?? "");
-    // AA23 (the account reverted in validation) or AA24 (signature error): the Safe refused a signature no owner made. Not
-    // AA20-22 (account not deployed, funded or expired) or AA25 (nonce), which would say nothing about the signature.
-    assert(/AA2[34]/.test(reason), `the real bundler refused the signature in account validation: ${reason.slice(0, 120)}`);
+    const answer = g!.answers.at(-1)?.body?.error ?? {}, reason = String(answer.message ?? "");
+    // Safe4337Module answers a signature no owner made with SIG_VALIDATION_FAILED, not a revert, and Alto 0.0.21's v0.7
+    // validator refuses that as -32507 "Invalid UserOp signature". A revert (AA23, an unsupported selector say), a
+    // paymaster refusal (AA3x) or a nonce (AA25) would say nothing about the signature, and fail this check.
+    assert(answer.code === -32507 || /Invalid UserOp signature/.test(reason),
+      `the real bundler refused the signature: code ${String(answer.code)}, ${reason.slice(0, 120)}`);
     const after = await unsignedOperation(w);
     assert.equal(after.operation.nonce, before.operation.nonce, "nothing reached the chain");
     assert.deepEqual(await bundlerProvider(httpTransport(bundlerUrl(w))).lookup(before.expectedHash), { operation: null, receipt: null });
-    note("send", { refusedByRealBundler: reason.slice(0, 120), nonce: before.operation.nonce });
+    note("send", { refusedByRealBundler: { code: answer.code, reason: reason.slice(0, 120) }, nonce: before.operation.nonce });
   }),
   "BUNDLER.send-unanswered": async (w, note) => gates([bundlerUrl(w)], async ([g]) => {
     const op = await unsignedOperation(w);
@@ -225,7 +234,13 @@ if (process.argv.includes("--list")) {
     assert.equal(receipt.commit, config.codeVersion, "the run receipt's commit is not the world's code version");
     assert.equal(receipt.environment.components.core, config.codeVersion, "the run receipt's Core is not the world's code version");
     assert.equal(resolve(config.root), process.cwd(), "the world's root is not this checkout");
-    const f = fixtureFrom(fixture, process.argv[2]!);
+    // The fixture's own refusals are fixed texts naming a field, never its value; report them as the guard's reason.
+    // A JSON or file error is named by its class and code only: JSON.parse quotes the input, which can carry fixture values.
+    const f = (() => { try { return fixtureFrom(fixture, process.argv[2]!); } catch (error) {
+      if (error instanceof SyntaxError) throw new assert.AssertionError({ message: "fixture refused: not JSON" });
+      if (typeof (error as { code?: unknown }).code === "string") throw error;
+      throw new assert.AssertionError({ message: `fixture refused: ${(error as Error).message}` });
+    } })();
     assert.equal(f.world, "slice-zero", "the fixture is not slice-zero's");
     assert(config.world.sites.some((site: { name: string; company: string }) => site.name === f.site && site.company === f.slug), "fixture does not belong to this concrete world");
     const { stdout } = await promisify(execFile)(process.execPath, [join(config.root, "packages/cli/src/main.ts"), "world", "inspect", "--config", configPath, "--json"], { timeout: 60000, maxBuffer: 1024 * 1024 });
