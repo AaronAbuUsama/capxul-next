@@ -1,0 +1,4 @@
+
+== 0. the zone before anything is created (12:19:49Z)
+zone abuusama.dev: 66 records; under worlds.abuusama.dev: 0 []
+zone abuusama.dev: the other 66 records print 00b6780dc2951888

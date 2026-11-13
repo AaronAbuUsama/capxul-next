@@ -15,6 +15,15 @@ catalog:
   oxfmt: 0.75.0
   "@oxlint/plugins": 1.90.0
   "@effect/tsgo": 0.63.0
+  # packages/world and packages/platform: Alchemy and the Effect platform packages it runs on, pinned together
+  # (alchemy 2.0.0-beta.85 is built on effect 4.1.2).
+  alchemy: 2.0.0-beta.85
+  "@alchemy.run/aws": 2.0.0-beta.85
+  "@alchemy.run/cloudflare": 2.0.0-beta.85
+  "@alchemy.run/docker": 2.0.0-beta.85
+  "@alchemy.run/github": 2.0.0-beta.85
+  "@alchemy.run/neon": 2.0.0-beta.85
+  "@effect/platform-bun": 4.1.2
   # The CLI's process (stdin, stdout, exit code) and the SDK's tests' HTTP server: Effect's own Node platform, at
   # effect's version.
   "@effect/platform-node": 4.1.2
@@ -26,3 +35,8 @@ onlyBuiltDependencies: []
 
 savePrefix: ""
 packageImportMethod: clone-or-copy
+
+# Install scripts that are known and deliberately not run.
+allowBuilds:
+  # Alchemy's Cloudflare package brings workerd for its local emulator, which a deploy never starts.
+  workerd: false

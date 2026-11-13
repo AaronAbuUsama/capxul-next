@@ -30,6 +30,7 @@ export const PACKAGES: Readonly<Record<string, string>> = {
   contracts: "the Solidity contracts, their Foundry tests and the seeded chain state",
   "frappe-app": "the Capxul app on every hosted Frappe site",
   "bench-image": "the hosted Frappe bench's image and its check",
+  platform: "the shared platform: the bench host on AWS, the Frappe bench, the tunnel, site tokens and the drift check",
   indexer: "the Ponder app that indexes the chain into the world's database",
   "status-feed": "the data files behind the status dashboard",
   lint: "the ladder's own rules and this shape check",

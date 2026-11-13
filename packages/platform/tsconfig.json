@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        // Effect 4 ships these only as unstable modules, with no stable replacement: child processes (`docker diff` in
+        // the drift check), the file system (run records, token files), WebCrypto's HMAC and digest (the site token)
+        // and Bun's runtime, which Alchemy needs. The catalog's exact pin of effect is the guard.
+        "allowedUnstableApis": ["effect/process", "effect/FileSystem", "effect/crypto", "@effect/platform-bun"]
+      }
+    ]
+  },
+  "include": ["alchemy.run.ts", "host.run.ts", "src", "bootstrap", "test"]
+}
