@@ -119,23 +119,29 @@ export const imageRepositories = Effect.gen(function* () {
   return { inAccount: names.length, ofThisStack: names.filter((name) => name.startsWith(IMAGE_PREFIX)) };
 }).pipe(Effect.withSpan("world.account.images"));
 
-/** Deletes every tag of the named repositories and asks the registry to collect what they held. */
+/** How many times a repository's references are listed and deleted before it is given up on. */
+const ROUNDS = 5;
+
+/**
+ * Empties the named repositories and asks the registry to collect what they held. Deleting a tag can leave the
+ * manifests it pointed at, which the registry then lists by digest, so each repository is listed and emptied again
+ * until it lists nothing. Whether a repository is really gone is for the caller to read back.
+ */
 export const removeImageRepositories = Effect.fn("world.account.removeImages")(function* (repositories: ReadonlyArray<string>) {
-  if (repositories.length === 0) return [];
+  if (repositories.length === 0) return;
   const { account } = yield* settings;
   const auth = yield* registryAuth;
-  const removed = yield* Effect.forEach(repositories, (repository) =>
+  const empty = (path: string, round: number): Effect.Effect<void, AccountUnreadable, HttpClient.HttpClient> =>
     Effect.gen(function* () {
-      const path = `/v2/${account}/${repository}`;
-      const { tags } = yield* registryCall(auth, "GET", `${path}/tags/list`).pipe(Effect.flatMap(decodeBody("registry tags", Tags)));
-      const results = yield* Effect.forEach(tags ?? [], (tag) =>
-        Effect.map(registryCall(auth, "DELETE", `${path}/manifests/${tag}`), ({ status }) => ({ tag, status })),
-      );
-      return { repository, tags: results };
-    }),
-  );
+      const listed = yield* registryCall(auth, "GET", `${path}/tags/list`);
+      if (listed.status !== 200) return;
+      const { tags } = yield* decodeBody("registry tags", Tags)(listed);
+      if (tags === undefined || tags === null || tags.length === 0 || round >= ROUNDS) return;
+      yield* Effect.forEach(tags, (reference) => registryCall(auth, "DELETE", `${path}/manifests/${reference}`));
+      yield* empty(path, round + 1);
+    });
+  yield* Effect.forEach(repositories, (repository) => empty(`/v2/${account}/${repository}`, 0));
   yield* registryCall(auth, "PUT", "/v2/gc/layers");
-  return removed;
 });
 
 /** Everything of the kinds a world creates, counted in the two accounts, with what belongs to this stack named. */

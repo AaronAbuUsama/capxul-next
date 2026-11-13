@@ -30,5 +30,6 @@ export const platformDown = Effect.gen(function* () {
   }
   const removed = yield* destroyStage(PLATFORM);
   yield* forgetStage(PLATFORM);
-  return { resourcesDestroyed: removed, imagesRemoved: yield* removeLeftoverImages([], false) };
+  const images = yield* removeLeftoverImages([], false);
+  return { resourcesDestroyed: removed, imagesRemoved: images.removed, imagesLeft: images.left };
 }).pipe(Effect.withSpan("world.platform.down"));

@@ -1,0 +1,52 @@
+{
+  "proof": "after the sweep: the expired world is gone, the live one and the one with no recorded expiry are not",
+  "inSharedState": [
+    "w-p-live: live",
+    "w-p-undated: no-expiry"
+  ],
+  "leftOfTheExpiredWorld": {
+    "workers": [],
+    "containerApplications": [],
+    "r2Buckets": [],
+    "hyperdriveConfigurations": [],
+    "neonBranches": []
+  },
+  "theLiveWorld": {
+    "workers": [
+      "capxulworld-core-w-p-live-kwavzb6jtpeq3qxq",
+      "capxulworld-door-w-p-live-4wzu4m4ob34ee4tv"
+    ],
+    "containerApplications": [
+      "capxulworld-ponder-w-p-live-raz35knosdjehyqd",
+      "capxulworld-anvil-w-p-live-hnygm7v54e3kvchc"
+    ],
+    "r2Buckets": [
+      "capxulworld-chainstate-w-p-live-rr6hog5mkfdgyruw"
+    ],
+    "hyperdriveConfigurations": [
+      "capxulworld-world-db-w-p-live-3gpt62ccsno2htbb"
+    ],
+    "neonBranches": [
+      "CapxulWorld-worlds-db-platform-linmcg36ztdrzhwq/w-p-live"
+    ]
+  },
+  "theWorldWithNoExpiry": {
+    "workers": [
+      "capxulworld-core-w-p-undated-fuexvzs7caw2lpzo",
+      "capxulworld-door-w-p-undated-onggjadrnckvkuc6"
+    ],
+    "containerApplications": [
+      "capxulworld-ponder-w-p-undated-rngjngld2lbo7x7e",
+      "capxulworld-anvil-w-p-undated-b6uwzm5vs2bcrufy"
+    ],
+    "r2Buckets": [
+      "capxulworld-chainstate-w-p-undated-pbkztsyumy5if5wu"
+    ],
+    "hyperdriveConfigurations": [
+      "capxulworld-world-db-w-p-undated-2u3mqsfqhzp3mxux"
+    ],
+    "neonBranches": [
+      "CapxulWorld-worlds-db-platform-linmcg36ztdrzhwq/w-p-undated"
+    ]
+  }
+}

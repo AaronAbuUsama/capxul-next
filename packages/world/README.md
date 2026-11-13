@@ -81,18 +81,19 @@ Every line is from a run; the records are in `records/`.
 
 ## Timings
 
-Creating a world took 80 to 105 s over fourteen creates; destroying one took 12 to 18 s.
+Creating a world took 76 to 114 s over sixteen creates (the longest three were made at once in one process);
+destroying one took 12 to 25 s.
 
 | Step | Seconds | Where the time goes |
 |---|---|---|
-| claim | 0.4 to 1.0 | One transaction on the registry branch, and the record in the shared state. |
-| deploy | 41 to 51 | Alchemy: opening the state store (3.5 s), the Neon branch, two Workers, and two container applications, each created and then created again to attach its Durable Object. |
+| claim | 0.3 to 1.0 | One transaction on the registry branch, and the record in the shared state. |
+| deploy | 41 to 60 | Alchemy: opening the state store (3.5 s), the Neon branch, two Workers, and two container applications, each created and then created again to attach its Durable Object. With a changed image to build and push, 60. |
 | migrate | 0.5 to 0.9 | Over Neon's HTTPS endpoint. |
-| chain | 2 (6 for a fork) | First start from the seed; a fork first copies its parent's state (2.5 MB). |
-| fund | about 1 | The token's deployment and one transaction for each mint. |
-| index | 28 to 57 | The Ponder container's first start on 1/4 vCPU: the image pull, Ponder's own start, its tables and the backfill. |
-| core | 0.3 to 0.6 | |
-| destroy, release | 12 to 18, 0.3 | |
+| chain | 2 (5 to 6 for a fork) | First start from the seed; a fork first copies its parent's state (2.5 MB). |
+| fund | 0.1 to 0.5 | The token's deployment and one transaction for each mint. |
+| index | 18 to 57 | The Ponder container's first start on 1/4 vCPU: the image pull, Ponder's own start, its tables and the backfill. |
+| core | 0.3 to 2.3 | |
+| destroy, release | 12 to 25, 0.3 | |
 
 So a create is over a minute, and two things are the time: Alchemy's deploy and the index's first start. Neither was
 attacked here. A larger instance for the index, or a world that is forked from a template that is already indexed,

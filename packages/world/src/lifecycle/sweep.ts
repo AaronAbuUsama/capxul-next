@@ -37,8 +37,10 @@ export const SweepReport = Schema.Struct({
   worlds: Schema.Array(WorldReport),
   /** Names given back because their world no longer exists and their claim has expired. */
   namesReleased: Schema.Array(Schema.String),
-  /** Image repositories removed because nothing accounts for them any more. */
+  /** Image repositories removed because nothing accounts for them any more: the registry no longer lists them. */
   imagesRemoved: Schema.Array(Schema.String),
+  /** Image repositories that should have gone and are still listed. */
+  imagesLeft: Schema.Array(Schema.String),
 });
 export type SweepReport = typeof SweepReport.Type;
 
@@ -86,8 +88,11 @@ export const removeLeftoverImages = (stages: ReadonlyArray<string>, dryRun: bool
   Effect.gen(function* () {
     const { ofThisStack } = yield* imageRepositories;
     const leftovers = leftoverRepositories(ofThisStack, stages, { prefix: IMAGE_PREFIX, shared: [CHAIN_IMAGE, INDEX_IMAGE], platform: PLATFORM });
-    if (!dryRun) yield* removeImageRepositories(leftovers);
-    return leftovers;
+    if (dryRun) return { removed: leftovers, left: [] as ReadonlyArray<string> };
+    yield* removeImageRepositories(leftovers);
+    // What is reported as removed is what the registry no longer lists, not what was asked for.
+    const still = (yield* imageRepositories).ofThisStack;
+    return { removed: leftovers.filter((name) => !still.includes(name)), left: leftovers.filter((name) => still.includes(name)) };
   });
 
 /**
@@ -101,10 +106,10 @@ export const sweep = Effect.fn("world.sweep")(function* (options: { readonly dry
   const worlds = yield* Effect.forEach(stages.filter(({ stage }) => isWorldStage(stage)), sweepWorld(now, dryRun));
   const remaining = stages.map(({ stage }) => stage).filter((stage) => !worlds.some((world) => world.world === stage && world.verdict === "destroyed"));
   const namesReleased = yield* releaseStaleNames(now, remaining, dryRun);
-  const imagesRemoved = yield* removeLeftoverImages(remaining, dryRun);
-  const report: SweepReport = { at: DateTime.formatIso(now), dryRun, worlds, namesReleased, imagesRemoved };
-  if (worlds.some((world) => world.verdict === "destroy failed")) {
-    return yield* new SweepIncomplete({ report, message: "at least one expired world could not be destroyed" });
+  const images = yield* removeLeftoverImages(remaining, dryRun);
+  const report: SweepReport = { at: DateTime.formatIso(now), dryRun, worlds, namesReleased, imagesRemoved: images.removed, imagesLeft: images.left };
+  if (worlds.some((world) => world.verdict === "destroy failed") || images.left.length > 0) {
+    return yield* new SweepIncomplete({ report, message: "an expired world or a leftover image repository could not be removed" });
   }
   return report;
 });

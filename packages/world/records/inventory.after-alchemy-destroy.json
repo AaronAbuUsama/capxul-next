@@ -1,0 +1,37 @@
+{
+  "workers": {
+    "inAccount": 13,
+    "ofThisStack": []
+  },
+  "containerApplications": {
+    "inAccount": 2,
+    "ofThisStack": []
+  },
+  "durableObjectNamespaces": {
+    "inAccount": 6,
+    "ofThisStack": []
+  },
+  "r2Buckets": {
+    "inAccount": 4,
+    "ofThisStack": []
+  },
+  "hyperdriveConfigurations": {
+    "inAccount": 0,
+    "ofThisStack": []
+  },
+  "neonProjects": {
+    "inAccount": 7,
+    "ofThisStack": []
+  },
+  "neonBranches": {
+    "inThisStacksProjects": 0,
+    "names": []
+  },
+  "imageRepositories": {
+    "inAccount": 5,
+    "ofThisStack": [
+      "capxulworld-anvil",
+      "capxulworld-ponder"
+    ]
+  }
+}
