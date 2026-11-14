@@ -13,7 +13,10 @@ export const Recorded = Schema.Struct({
   owner: Schema.optionalKey(Schema.String),
   expiresAt: Schema.optionalKey(Schema.DateTimeUtcFromString),
   forkedFrom: Schema.optionalKey(Schema.String),
-  /** "creating" from the moment a world is claimed until its deploy has ended; "parked" for a world kept after a failure. */
+  /**
+   * "creating" from the moment a world is claimed until its deploy has ended; "parked" for a world kept after a failure;
+   * "unsite failed" or "destroy failed" for the remains of a take-down that did not finish (src/lifecycle/world.ts).
+   */
   status: Schema.optionalKey(Schema.String),
 });
 

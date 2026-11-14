@@ -37,7 +37,7 @@ import { encodeAnswer } from "../worlds/encode.ts";
 import type { Making, Steps } from "../worlds/makers.ts";
 import { nothingOf, recorder, targetOf, type MakingCall } from "../worlds/making.ts";
 import { Platform } from "../worlds/platform.ts";
-import { destroyAll } from "../worlds/stages.ts";
+import { destroyAll } from "../worlds/teardown.ts";
 import { stepsOf } from "../worlds/starting.ts";
 import { keepFacts, keptNames } from "./facts.ts";
 import { templateOf } from "./starting.ts";

@@ -217,7 +217,7 @@ JSON-RPC's -32601 (run by hand, not recorded).
 | claim | With `WORLD_BENCH=<platform stage>`, the world's site token is minted under that platform's door key (read from the shared state with the world's own store, `@capxul/platform`'s `doorKeyIn` and `mint`), for this world, `WORLD_MAX_SITES` (3) sites and the world's expiry. The bench is written into the world's record before anything exists, and into its outputs. |
 | deploy | Core is deployed with the token and the site door's address (src/core/Core.ts). |
 | `site`, after `core` | Each company of `spec.companies` (`--company label=Name,...`): the door makes the site with the world's token and the world's site credential, and the step waits until every site is ready (declared timeout 8 minutes). |
-| `unsite`, before `destroy` | Every take-down (a destroy, a failed or interrupted run, a failed create, the sweeper) removes every site of the world from the bench its record names, with a token minted anew (quota 0, 15 minutes: the world's own may have expired), and checks the door holds none. If that fails, the world's Cloudflare and Neon resources are still destroyed, but its record and name are kept, so the next sweep removes the sites. |
+| `unsite`, before `destroy` | Every take-down (a destroy, a failed or interrupted run, a failed create, the sweeper) removes every site of the world from the bench its record names, with a token minted anew (quota 0, 15 minutes: the world's own may have expired), and checks the door holds none. If that fails, the world's Cloudflare and Neon resources are still destroyed, but its name is kept and its record is written again, since Alchemy's destroy deletes it with the resources: its owner and bench, status `unsite failed` and an expiry of now, so `list` shows it and the next sweep removes the sites and then the record. A destroy that fails is recorded the same way, as `destroy failed`, with its hub, whether or not Alchemy had deleted the record yet (`keepRemains`; `test/remains.test.ts` runs both against an in-memory state store and a bench door that answers 530, then a sweep once it is back). |
 
 Why here: the world owns what runs where and is the only thing that lives and dies with its sites, so making and
 removing them are world steps; reaching a site is what Core's operations will do, so that is a Core service
@@ -519,7 +519,7 @@ slower than the median. The bundler's and the chain's timeouts are unchanged.
   failure is typed; it is proven once the AWS bench and its Cloudflare Tunnel are up (roadmap 2.1, Aaron's bootstrap),
   by `WORLD_BENCH=staging ./run.sh prove site` with the probe check turned to a read.
 - The sweeper's removal of an expired world's sites is the same `unsite` step as every take-down; no proof runs it on
-  an expired world with a site.
+  an expired world with a site on a real bench. `test/remains.test.ts` runs it against a stand-in door.
 - A company's site is saved with a snapshot and made again by a restore (blueprint decisions 52), rehearsed only on a
   stand-in bench with Core run locally (`packages/runner`, `--core=local`): Core on Cloudflare cannot reach a bench
   yet (step 1.4).

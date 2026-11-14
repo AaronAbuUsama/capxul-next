@@ -91,6 +91,8 @@ const OneWorld = Schema.Struct({
   /** Whether the run brought the hub up, and so took it down at its end. */
   hubBroughtUp: Schema.Boolean,
   left: Schema.NullOr(Inventory),
+  /** What the run's take-down could not do, a line each with why (worlds/teardown.ts); `left` reads only the accounts. */
+  notTakenDown: Schema.Array(Schema.String),
   timings: Schema.Array(Timing),
   /**
    * What failed outside the journeys: a starting world that was not made (the part that failed, the world it acted
@@ -271,6 +273,7 @@ export const summarize = (input: SummaryInput): Summary => {
     ...(input.oneWorld === undefined || (input.oneWorld.left !== null && isEmpty(input.oneWorld.left))
       ? []
       : [`the run's worlds are not all gone: ${leftWords(input.oneWorld.left)}`]),
+    ...Arr.map(input.oneWorld?.notTakenDown ?? [], (what) => `the run's take-down failed: ${what}`),
   ];
   return {
     kind: "journeys",
