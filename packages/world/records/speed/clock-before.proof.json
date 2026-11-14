@@ -1,0 +1,124 @@
+{
+  "proof": "a world restored from a snapshot keeps one clock: its chain reads Core's world time within a second",
+  "outcome": "failed",
+  "at": "2026-11-14T00:50:06.741Z",
+  "checks": [
+    {
+      "check": "the first world runs on a running clock two weeks behind the host",
+      "held": true
+    },
+    {
+      "check": "the restored world runs on the snapshot's clock",
+      "held": true
+    },
+    {
+      "check": "the restored world's chain reads Core's clock within a second",
+      "held": false
+    },
+    {
+      "check": "so does the first world's chain",
+      "held": true
+    },
+    {
+      "check": "nothing of either world is left in the accounts, snapshot branches included",
+      "held": true
+    }
+  ],
+  "observations": {
+    "startAt": "2026-10-31T00:45:36.776Z",
+    "saved": {
+      "world": "p-clk",
+      "snapshot": "c1",
+      "recordSeq": 1,
+      "clock": {
+        "mode": "running",
+        "now": "2026-10-31T00:46:25.091Z"
+      },
+      "template": false,
+      "savedAt": "2026-11-14T00:47:27.814Z",
+      "companies": 0,
+      "migrations": "0005_approvals.sql"
+    },
+    "restored": {
+      "clock": {
+        "mode": "running",
+        "now": "2026-10-31T00:46:25.839Z"
+      },
+      "parent": {
+        "world": "p-clk",
+        "snapshot": "c1",
+        "recordSeq": 1
+      }
+    },
+    "second": {
+      "world": "p-clk2",
+      "headBefore": {
+        "number": 47893275,
+        "at": "2026-10-31T00:45:36.000Z"
+      },
+      "mined": {
+        "number": 47893276,
+        "at": "2026-10-31T00:46:13.000Z"
+      },
+      "core": {
+        "from": "2026-10-31T00:46:32.684Z",
+        "to": "2026-10-31T00:46:32.836Z"
+      },
+      "apartMs": 19684
+    },
+    "first": {
+      "world": "p-clk",
+      "headBefore": {
+        "number": 47893275,
+        "at": "2026-10-31T00:45:36.000Z"
+      },
+      "mined": {
+        "number": 47893276,
+        "at": "2026-10-31T00:48:26.000Z"
+      },
+      "core": {
+        "from": "2026-10-31T00:48:26.507Z",
+        "to": "2026-10-31T00:48:26.596Z"
+      },
+      "apartMs": 507
+    },
+    "inventory": {
+      "before": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-alto",
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "after": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-alto",
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "leftOfTheseWorlds": [],
+      "sameAsBefore": true,
+      "sameAsBeforeAccountWide": true,
+      "otherWorlds": []
+    }
+  }
+}

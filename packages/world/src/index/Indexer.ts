@@ -1,5 +1,5 @@
 // One world's index. The Durable Object starts the Ponder container with the chain's address, answers for it, and
-// stops it. Nothing is saved on stop: everything Ponder knows is in the world's database, and a start with the same
+// stops it with SIGTERM, so Ponder lets go of its schema lock. Nothing is saved on stop: everything Ponder knows is in the world's database, and a start with the same
 // schema carries on from there.
 //
 // A start Cloudflare refuses is tried again within INDEX_START (src/containers/patience.ts), and every try is
@@ -17,6 +17,7 @@ import * as Semaphore from "effect/Semaphore";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import { gaveUpMessage, INDEX_START, type StartReport, startPatiently } from "../containers/patience.ts";
 import { remembered, stamp } from "../containers/record.ts";
+import { stopGently } from "../containers/stop.ts";
 import { IndexerFailed } from "../failures.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
 import { PONDER_PORT, Ponder } from "./Ponder.ts";
@@ -48,7 +49,8 @@ export interface IndexerRecord {
   readonly starts: ReadonlyArray<Start>;
   /** Starts that were never accepted within the index's patience, with every try. */
   readonly gaveUp?: ReadonlyArray<StartReport & { readonly at: string }>;
-  readonly stops: ReadonlyArray<{ readonly at: string; readonly ms: number }>;
+  /** Each stop, and whether Ponder exited on SIGTERM or had to be killed (older records do not say). */
+  readonly stops: ReadonlyArray<{ readonly at: string; readonly ms: number; readonly ended?: "exited" | "killed" }>;
 }
 
 const empty: IndexerRecord = { rpcUrl: null, wanted: false, starts: [], gaveUp: [], stops: [] };
@@ -203,8 +205,13 @@ export default class Indexer extends Cloudflare.DurableObject<Indexer>()(
             return yield* Effect.gen(function* () {
               if (!(yield* running)) return { stopped: false as const };
               const began = yield* Clock.currentTimeMillis;
-              yield* ponder.destroy().pipe(Effect.mapError(failed("stop")));
-              const stop = { at: stamp(began), ms: (yield* Clock.currentTimeMillis) - began };
+              // SIGTERM, so Ponder releases its schema lock and the next start resumes at once (src/containers/stop.ts).
+              const { ended } = yield* stopGently({
+                running: ponder.running,
+                signal: (signo) => ponder.signal(signo),
+                destroy: ponder.destroy(),
+              }).pipe(Effect.mapError(failed("stop")));
+              const stop = { at: stamp(began), ms: (yield* Clock.currentTimeMillis) - began, ended };
               yield* remember((old) => ({ ...old, stops: remembered(old.stops, stop) }));
               return { stopped: true as const, ...stop };
             }).pipe(lock.withPermits(1));

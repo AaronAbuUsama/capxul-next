@@ -7,6 +7,7 @@ import * as BunServices from "@effect/platform-bun/BunServices";
 import * as Alchemist from "alchemy/Alchemist";
 import * as Interaction from "alchemy/Interaction";
 import * as Console from "effect/Console";
+import * as Digest from "effect/crypto/Digest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Command from "effect/cli/Command";
@@ -30,6 +31,8 @@ const Services = SharedState.layer.pipe(
   Layer.provideMerge(Alchemy),
   Layer.provideMerge(ReportToStandardOutput),
   Layer.provideMerge(BunServices.layer),
+  // The image fingerprints of `images` (src/stack/images.ts) hash with WebCrypto.
+  Layer.provideMerge(Digest.layerWebCrypto),
   Layer.provideMerge(ToStandardError),
 );
 

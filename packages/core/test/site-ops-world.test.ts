@@ -8,6 +8,7 @@ import * as Effect from "effect/Effect";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import { madeFromNothing, memoryChainTime } from "../src/site-ops/door.ts";
+import { WARP_STEP_MS, warpSteps } from "../src/site-ops/world.ts";
 import { fields, ORG, refusal, run, site, START, value, world, type Asked } from "./support/site-ops.ts";
 
 /** What a site answers a warp of a week. */
@@ -57,6 +58,50 @@ test("world.clock.warp moves every site, then the chain, then the clock; backwar
       assert.equal(exported.entries[1]?.at, "2026-11-20T09:00:00.000Z");
     }),
   ));
+
+test("a long warp moves the sites in stretches of at most 14 days, the clock written once at the very end", () =>
+  run(
+    Effect.gen(function* () {
+      const asked: Array<Asked> = [];
+      const chain = yield* memoryChainTime(Math.floor(START / 1000) - 60);
+      const { call } = yield* world({
+        chain: chain.layer,
+        record: [madeFromNothing("town", "ci", START)],
+        sites: [site("a-town.w", ORG, asked, { warp }), site("b-town.w", "org_b00001", asked, { warp })],
+      });
+      // 180 days took 147.8 s on one site in one call (spikes/site-speed), past the site door's 120 s.
+      const days = 180;
+      const warped = value(yield* call("world.clock.warp", { target: { _tag: "by", seconds: days * 24 * 3600 } }));
+      assert.equal(warped.sites, 2);
+      const end = START + days * 24 * 3600 * 1000;
+      const bodies: ReadonlyArray<Record<string, unknown>> = Arr.map(asked, (each) => ({
+        site: each.site,
+        ...each.body,
+      }));
+      assert.equal(bodies.length, 2 * 13, "13 stretches, each through both sites");
+      for (const [step, [from, to]] of warpSteps(START, end).entries()) {
+        assert.ok(to - from <= WARP_STEP_MS);
+        assert.deepEqual(bodies.slice(step * 2, step * 2 + 2), [
+          { site: "a-town.w", from_ms: from, to_ms: to, frozen: true, write: false },
+          { site: "b-town.w", from_ms: from, to_ms: to, frozen: true, write: step === 12 },
+        ]);
+      }
+      assert.equal(bodies[0]?.from_ms, START);
+      assert.equal(bodies[bodies.length - 1]?.to_ms, end);
+      assert.equal(yield* Ref.get(chain.head), end / 1000);
+    }),
+  ));
+
+test("a warp's stretches follow one another from its start to its end", () => {
+  const day = 24 * 3600 * 1000;
+  assert.deepEqual(warpSteps(0, 7 * day), [[0, 7 * day]]);
+  assert.deepEqual(warpSteps(0, 14 * day), [[0, 14 * day]]);
+  assert.deepEqual(warpSteps(0, 15 * day), [
+    [0, 14 * day],
+    [14 * day, 15 * day],
+  ]);
+  assert.deepEqual(warpSteps(5, 6), [[5, 6]]);
+});
 
 test("record.export answers ranges, the lineage of a restored world, refuses a person and a real world", () =>
   run(
