@@ -12,16 +12,16 @@ project), and a world's Core slot (`packages/world`, `src/core/Core.ts`), where 
 world's door and the world's bench. What a deploy binds is handed to it as a `Deployment` (`src/stack/deployment.ts`);
 the running Worker reads every fact from its environment per request, by the names in `src/env.ts`.
 
-**Five handlers are built** (`src/site-ops/`, below): `doc.create`, `doc.submit`, `report.run`, `world.clock.warp` and
-`record.export`. Every other handler is empty: it fails with the blueprint's `NotImplemented`, naming itself
-(`packages/blueprint/decisions.md`, entry 33). The server compiles only with one handler per operation: delete a line
+**All twelve handlers are built.** Core builds the world group's eight (`src/site-ops/` and `src/organizations/`,
+below); the platform group's four are `packages/world`'s (`src/platform`, blueprint decisions.md 51), so Core's own
+platform handlers are empty: each fails with the blueprint's `NotImplemented`, naming itself (entry 33). The server compiles only with one handler per operation: delete a line
 of `src/handlers.ts` and `pnpm types` fails with `Property '"record.export"' is missing`.
 
 | File | What it is |
 |---|---|
 | `src/door.ts` | The door: the stack, the two door paths, `serveDoors`, `Served`, `CoreRpcs`, the span types, and `migrations`. |
 | `src/doors.ts` | `serveDoors`: each request to the group its path names, `PLATFORM_PATH` or `WORLD_PATH`. |
-| `src/handlers.ts` | One handler per operation, in its blueprint group. Five are `src/site-ops/`'s; the rest are empty. |
+| `src/handlers.ts` | One handler per operation, in its blueprint group: the world group's from `src/site-ops/` and `src/organizations/`; the platform group's are empty. |
 | `src/empty-handlers.ts` | Core's empty-handler mode: every operation of both groups answers `NotImplemented`, whatever is built. A stage deployed with `CAPXUL_HANDLERS=empty` (`src/env.ts`) serves it, so the scenario author can show every journey fails against handlers that do nothing (`./run.sh scenarios --expect=not-implemented` in packages/runner, roadmap step 1.14). A world's Core never binds it. |
 | `src/site-ops/` | The document, report, clock and record operations (below). `door.ts` is its door. |
 | `src/organizations/`, `src/approvals/`, `src/chain/`, `src/cast/` | The chain operations, org.create, org.member.grant and approval.sign (below). `organizations/handlers.ts` is what `handlers.ts` and the Worker use. |

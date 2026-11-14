@@ -17,13 +17,17 @@ const header = `# Acceptance claims of the thin line
 Rendered from \`src/<concept>/claims.ts\` and the declarations by \`pnpm claims\`. Do not edit it by hand: a test fails
 when this file and its sources differ.
 
-Each claim is proved black-box by a scenario: from its starting world, through the door, reading only what the
-operations answer and what the world's door shows of its chain. "Old" names the claim of the old blueprint
-(\`docs/thin-line/operations.json\`, its \`evalId\`) it keeps, word for word or rewritten.
+Each claim is checked black-box by the journeys (\`packages/scenarios\`; docs/roadmap.md, "Scenarios are journeys"):
+through the door, reading only what the operations answer and what the world's door shows of its chain. No claim has
+a scenario of its own. Its operation's checks run on every call of that operation in every journey, and the journeys'
+steps call it as the claim says; \`packages/scenarios/src/coverage.ts\` names, for each claim, the checks and the
+steps. "In" names the starting world whose state a claim speaks of: a journey checks it in that state, whether it
+starts from that world or starts earlier and brings its world there by its own steps. "Old" names the claim of the old
+blueprint (\`docs/thin-line/operations.json\`, its \`evalId\`) it keeps, word for word or rewritten.
 
 ## What the runner checks on every call
 
-These hold for every call of every scenario, so no claim repeats them:
+These hold for every call of every journey, so no claim repeats them:
 
 1. A successful call emits exactly the events its outcome declares, each once, each carrying exactly what the
    declaration computes from the call's payload and answer, and nothing more. A refused call emits none.
@@ -67,7 +71,7 @@ const section = (name: OperationName, index: number, of: ClaimsOf): string => {
     "",
     ...Arr.flatMap(of.claims, (claim, n) => [
       `${n + 1}. ${claim.says}${claim.thinLine ? " *(thin line)*" : ""}`,
-      `   - Given: ${code(claim.given.name)}.`,
+      `   - In: ${code(claim.state.name)}.`,
       `   - Observes: ${claim.observes}`,
       ...(claim.refusals.length > 0
         ? [`   - Refusals: ${list(Arr.map(claim.refusals, (refusal) => code(refusal.identifier)))}.`]
@@ -122,7 +126,7 @@ const worlds = (): string =>
       const added = Arr.filter(fieldsOf(world.facts), (field) => !fieldsOf(world.from?.facts).includes(field));
       return (
         `- ${code(world.name)}.${from} ${world.holds}${steps.length > 0 ? ` Steps: ${Arr.join(steps, "; ")}.` : ""}` +
-        ` A scenario gets it ${world.made === "from its template" ? "restored from its template" : "made by its steps"}.` +
+        ` A journey from it gets it ${world.made === "from its template" ? "from its template" : "made by its steps"}.` +
         (added.length > 0 ? ` Facts it adds: ${Arr.join(Arr.map(added, code), ", ")}.` : "")
       );
     }),
@@ -139,7 +143,7 @@ export const renderClaims = (): string =>
       "",
       "## Starting worlds",
       "",
-      "Declared in `src/starting-worlds.ts`. Each is made through the door from the one before it, then either saved as a template that each scenario gets a restore of, or made by its steps for each scenario. A scenario reads the facts of its world, and of every world it is made from, with `given` (decisions.md, 38).",
+      "Declared in `src/starting-worlds.ts`. Each is made through the door from the one before it, then either saved as a template that a journey starting from it gets (the runner's one world reset in place to it), or made by its steps for each journey. A journey reads the facts of its world, and of every world it is made from, with `given` (decisions.md, 38).",
       "",
       worlds(),
       "",

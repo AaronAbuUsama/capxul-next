@@ -100,8 +100,10 @@ export const orgCreate = checks<"org.create", Before>({
         Effect.gen(function* () {
           const capxul = yield* Capxul;
           const contracts = before.world.contracts;
+          // Companies House runs the minter's `mint` by delegatecall (CompanySafeMinter.sol refuses a plain call), so
+          // the log is Companies House's own, not the minter's.
           const logs = yield* capxul.chain.logs(
-            { log: "CompanySafeMinted", address: contracts.companySafeMinter, fromBlock: null, toBlock: null },
+            { log: "CompanySafeMinted", address: contracts.companiesHouse, fromBlock: null, toBlock: null },
             where,
           );
           const minted = Arr.filter(logsOf(logs, "CompanySafeMinted"), (log) => isAddress(log.safe, founded.safe));

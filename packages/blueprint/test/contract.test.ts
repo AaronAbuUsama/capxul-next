@@ -166,7 +166,7 @@ test("starting worlds are declared once, and every claim and step names only dec
     );
     const refuses = new Set<unknown>(refusalsOf(operation));
     for (const claim of claims) {
-      assert.ok(worlds.includes(claim.given), `${name}: "${claim.says}" starts from an undeclared world`);
+      assert.ok(worlds.includes(claim.state), `${name}: "${claim.says}" is in an undeclared starting world`);
       for (const refusal of claim.refusals)
         assert.ok(
           refuses.has(refusal),

@@ -1,8 +1,9 @@
-// The starting worlds the thin line's scenarios begin from, each declared here once and named by its claims by
-// import. Every one is made through the door, by the thin line's own operations, from the one before it. Most are
-// then saved as a template snapshot in a kept template world, and a scenario gets one restored into a fresh private
-// world; the rest are made by their steps for each scenario (decisions.md, 27 and 39). Either way the scenario is
-// handed the world's facts, which it reads with `given` (decisions.md, 38).
+// The starting worlds the thin line's journeys begin from, each declared here once and named by the claims whose
+// state it is, by import. Every one is made through the door, by the thin line's own operations, from the one before
+// it. Most are then saved as a template snapshot in the runner's one world, which is reset in place to it before a
+// journey that starts there; the rest are made by their steps for each journey (decisions.md, 27 and 39;
+// docs/roadmap.md, "One runner, one world"). Either way the journey is handed the world's facts, which it reads with
+// `given` (decisions.md, 38).
 import type * as Schema from "effect/Schema";
 import type { OperationName } from "./door.ts";
 import { BRIGHTSIDE, INVOICE_AMOUNT, REPORTS } from "./documents/site.ts";
@@ -26,14 +27,14 @@ export interface StartingWorld<Facts extends Schema.Codec<unknown, unknown> = Sc
   readonly holds: string;
   readonly steps: ReadonlyArray<Step>;
   /**
-   * How a scenario gets it. `from its template`: the world was made once per change to the code and saved as a
-   * template snapshot, and each scenario gets a restore of it, which names the template world as its parent.
-   * `by its steps`: the steps run for each scenario, from a world of `from` got as that world is got.
+   * How a journey gets it. `from its template`: the world was made once and saved as a template snapshot, and a
+   * journey gets it by the world being reset in place to that snapshot. `by its steps`: the steps run for each
+   * journey, from a world of `from` got as that world is got.
    */
   readonly made: "from its template" | "by its steps";
-  /** Every fact a scenario from this world is handed: its ancestors' and its own steps'. */
+  /** Every fact a journey from this world is handed: its ancestors' and its own steps'. */
   readonly facts: Facts;
-  /** One example of the facts, which the tests and the run against empty handlers hand to a scenario. */
+  /** One example of the facts, which the tests and the run against empty handlers hand to a journey. */
   readonly example: unknown;
 }
 
@@ -48,7 +49,7 @@ const nothing: StartingWorld<typeof facts.nothing> = {
   name: "nothing",
   from: null,
   holds:
-    "The platform is deployed. No world has the name the scenario uses. The scenario's operator owns fewer live worlds than the limit, and a second operator exists. The facts name both operators.",
+    "The platform is deployed. No world has the name the journey uses. The journey's operator owns fewer live worlds than the limit, and a second operator exists. The facts name both operators.",
   steps: [],
   made: "by its steps",
   facts: facts.nothing,
@@ -58,7 +59,7 @@ const nothing: StartingWorld<typeof facts.nothing> = {
 const quotaFull: StartingWorld<typeof facts.quotaFull> = {
   name: "quota-full",
   from: nothing,
-  holds: "The scenario's operator owns as many live private worlds as one owner may have.",
+  holds: "The journey's operator owns as many live private worlds as one owner may have.",
   steps: [step("world.create", "operator", "creates private worlds until the limit is reached", "filled")],
   made: "by its steps",
   facts: facts.quotaFull,
@@ -69,7 +70,7 @@ const fresh: StartingWorld<typeof facts.fresh> = {
   name: "fresh",
   from: nothing,
   holds:
-    "A private world owned by the scenario's operator, its clock frozen. Its cast: dana, eli, sam and olga, each with a claimed personal Safe holding 10,000 USDC, and pat, who has not finished signing up and has no Safe. No company.",
+    "A private world owned by the journey's operator, its clock frozen. Its cast: dana, eli, sam and olga, each with a claimed personal Safe holding 10,000 USDC, and pat, who has not finished signing up and has no Safe. No company.",
   steps: [
     step(
       "world.create",
@@ -191,7 +192,7 @@ const restored: StartingWorld<typeof facts.restored> = {
   name: "restored",
   from: withSnapshot,
   holds:
-    "A second private world, made from `m3` by the same operator, which names the first world, `m3` and its record position as its parent. The scenario runs in the second world.",
+    "A second private world, made from `m3` by the same operator, which names the first world, `m3` and its record position as its parent. A journey from it runs in the second world.",
   steps: [
     step(
       "world.snapshot.restore",
@@ -219,6 +220,6 @@ export const startingWorlds = {
   restored,
 } as const;
 
-/** True when `world` is `ancestor` or is made from it, so a scenario of `world` holds `ancestor`'s facts. */
+/** True when `world` is `ancestor` or is made from it, so a journey from `world` holds `ancestor`'s facts. */
 export const holdsFactsOf = (world: StartingWorld, ancestor: StartingWorld): boolean =>
   world === ancestor || (world.from !== null && holdsFactsOf(world.from, ancestor));
