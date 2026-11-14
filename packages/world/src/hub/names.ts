@@ -11,10 +11,27 @@ export const DEFAULT_HUB = "fleet";
 export const ADMIN_TOKEN_ID = "admin-token";
 
 /**
- * How many containers of each kind may run at once on one hub: one chain, one index and one bundler per running
- * world. Cloudflare bills a container only while it runs; this caps what a hub can spend at once.
+ * How many worlds one hub admits at once (src/lifecycle/claim.ts, `admit`): each holds at most one chain, one index
+ * and one bundler, so this many of each kind can run. A world created on a full hub waits for room, within its
+ * declared `admit` timeout, rather than meeting Cloudflare's "Maximum number of running container instances" half-way.
+ * 24 is four CI runs at once, each peaking at six worlds (its own, four more of its first operator up to the quota
+ * of five, and its second operator's). Cloudflare bills a container only while it runs: a full hub costs at most
+ * about $2.62 an hour (README, "Capacity"), and only while every world on it is in use.
  */
-export const HUB_CAPACITY = 10;
+export const HUB_CAPACITY = 24;
+
+/**
+ * The containers of each kind a hub's application allows beyond its worlds: Cloudflare counts a container as running
+ * for some seconds after its world is destroyed (16.4 s measured, records/hub.proof.json), when the next world may
+ * already be starting its own. Never billed unless running.
+ */
+export const HUB_SPARE = 2;
+
+/** Each container application's `maxInstances`. */
+export const HUB_INSTANCES = HUB_CAPACITY + HUB_SPARE;
+
+/** What a hub whose record says no capacity (deployed before it was recorded) admits: its applications' old cap. */
+export const LEGACY_HUB_CAPACITY = 10;
 
 /**
  * Where every world's objects and containers are placed: western Europe, next to the worlds' Neon project

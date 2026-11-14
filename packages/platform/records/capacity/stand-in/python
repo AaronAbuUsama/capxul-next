@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# A stand-in for the bench's Python in the capacity proof (../prove.py): a site's API user and a claim's join answer
+# after JOIN_SECONDS, as on a bench whose two CPUs are busy making other worlds' sites, with the one JSON line the door
+# reads.
+sleep "${JOIN_SECONDS:-0.3}"
+echo '{"stand-in": true}'

@@ -1,0 +1,56 @@
+{
+ "processes": {
+  "a": {
+   "admitted": 10,
+   "waitedMs": [
+    141,
+    106,
+    1381,
+    1360,
+    1376,
+    109,
+    548,
+    526,
+    537,
+    109
+   ],
+   "waitsLogged": 39,
+   "quota": {
+    "sixth": "Cause([Fail(WorldQuotaReached)])",
+    "tookMs": 22
+   }
+  },
+  "b": {
+   "admitted": 10,
+   "waitedMs": [
+    801,
+    1596,
+    795,
+    756,
+    1668,
+    1179,
+    1674,
+    767,
+    1660,
+    340
+   ],
+   "waitsLogged": 86,
+   "quota": null
+  }
+ },
+ "rowsLeft": 0,
+ "registryColumnsAfter": [
+  "name",
+  "owner",
+  "expires_at",
+  "holder",
+  "claimed_at",
+  "hub"
+ ],
+ "monitor": {
+  "hub": "proof-hub",
+  "capacity": 4,
+  "readings": 53,
+  "mostHeld": 4
+ }
+}
