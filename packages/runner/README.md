@@ -94,20 +94,24 @@ world's own operations go to its Core.
    made "from its template" that a journey starts from, and those it is made from, is made in it once, by its declared
    steps, in the blueprint's order; each one a journey starts from is saved as a snapshot of its own name
    (`world.snapshot.save`, with its sites' backup and a point on the bench), and one with a company also keeps its
-   sites as the bench's template of that name (`POST /templates`, with a pool of ready copies).
+   sites as a bench template (`POST /templates`, with a pool of ready copies) named `<starting world>-<code>-<world>`:
+   `code` fingerprints `CODE` in `starting.ts` (the blueprint's, Core's, packages/world's and these makers' sources)
+   and the bench's apps, and `world` is the one world, whose company facts the sites hold (packages/world,
+   "Bench templates never change"). No other run asks for it, the bench never changes it, and no run drops it.
 3. **Before each journey** the world is reset in place to its starting world's snapshot (`World.reset`: index,
    database, chain, Core's clock, the chain mined at it, the sites, then everything waited for), the nearest
    template ancestor for a starting world made by its steps (`fresh` for `quota-full`, whose operator's other worlds
    are then made by its steps). The sites go back in place to the point; a snapshot with no company removes the
    world's sites (a site left there would refuse the company's founding as `site-exists`); a point that lost its
-   sites (removed by an earlier reset) gets them by claim from the bench template, ready in about a second, and is
-   saved again (packages/world, `src/site/Points.ts`).
+   sites (removed by an earlier reset) gets them by claim from the bench template the world kept of it, ready in
+   about a second, and is saved again (packages/world, `src/site/Points.ts`).
 4. **The journey** runs with its starting world's facts (decision 38): `world` is the one world's `world.create`
    answer, and `calls` every call made in making it, the saves included. Every world the journey made, and those its
    starting world made by its steps, is destroyed after it, the newest first, whatever happened; the accounts are
    read for anything of them before and after (`afterwards.*.worlds`).
-5. **The end**: the bench templates dropped, the one world destroyed, the hub taken down, and the accounts read for
-   every world the run made (`oneWorld.left`).
+5. **The end**: the one world destroyed, the hub taken down, and the accounts read for every world the run made
+   (`oneWorld.left`). The bench templates stay: packages/world's `sweep` removes them once unused for 6 hours, which
+   `world.yml` runs after every run.
 
 The summary is written however the run ends, but by interruption (`src/worlds/ending.ts`): a starting world that was
 not made fails the journeys that start from it, each with why, while the others still run, and the summary's
@@ -116,9 +120,10 @@ died says so there too (`the run did not finish: …`). Either fails the run (`o
 defect in making the starting worlds (a door that answered Cloudflare's 524 page) ended the run with no record at all.
 
 Every part is timed into the summary's `oneWorld.timings`, in order (`src/timings.ts`): `hub up`, `world create`,
-`make <starting world>`, `save <…>`, `bench template <…>`, each `reset` with its own parts and how it put the sites
-back, `starting world` (what is made by its steps), `journey` with each step's time, `checks`, `destroy the journey's
-own worlds`, `drop bench template <…>`, `world destroy`, `hub down`. Each has when it began since the run began, how
+`make <starting world>`, `save <…>`, `bench template <…>` (its note names the template), each `reset` with its own
+parts and how it put the sites back, `starting world` (what is made by its steps), `journey` with each step's time,
+`checks`, `destroy the journey's own worlds`, `world destroy`, `hub down`. Runs before 14 November 2026's "Bench
+templates never change" also timed `drop bench template <…>`. Each has when it began since the run began, how
 long it took and whether it failed, with why.
 
 A starting world with no maker here fails its journey naming the operations its steps call (`waitsOn`). The company
@@ -279,7 +284,7 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | `src/given.ts` | `Given`: the facts of a scenario's starting world. `nothing`'s are the run's operators; for any other world, the declared example facts in a run that expects `not-implemented`, and a defect otherwise, until the runner makes starting worlds (step 1.12). |
 | `src/checks/checks.ts`, `src/checks/events.ts` | The generic checks, the timings and the steps. A builder never changes these. |
 | `src/world/` | The stage's life, its database, the warm-up and the inventory: the runner's plumbing. |
-| `src/worlds/` | A run in private worlds: the platform this process serves (`platform.ts`), the starting worlds (`starting.ts`), their makers (`makers.ts`; those with a company in `company.ts`), how a fact is encoded (`encode.ts`), the run, its summary however it ended (`ending.ts`) and its timing, and its take-down (`teardown.ts`): the bench templates dropped and the worlds destroyed, each failure timed `ok: false` and listed in the summary's `oneWorld.notTakenDown`, which fails the run. |
+| `src/worlds/` | A run in private worlds: the platform this process serves (`platform.ts`), the starting worlds (`starting.ts`), their makers (`makers.ts`; those with a company in `company.ts`), how a fact is encoded (`encode.ts`), the run, its summary however it ended (`ending.ts`) and its timing, and its take-down (`teardown.ts`): the worlds destroyed, a failure timed `ok: false` and listed in the summary's `oneWorld.notTakenDown`, which fails the run; the bench templates the run kept stay for the sweep. |
 | `src/shared/` | A run on the shared world: making or renewing it (`make.ts`), its starting worlds restored from its templates (`starting.ts`), and the makers' facts it keeps (`facts.ts`). |
 | `src/local/` | `--core=local`: Core's bundle, its workerd, its database bridge, its chain forwarder and the host that runs one per world (above). |
 | `src/scenario-runs.ts` | A run of the journeys in stages, in either mode, ending in its summary. |
@@ -299,11 +304,16 @@ port 80. It is not in the repository. CI needs nothing of this kind.
 
 - A stage has an owner but no expiry: if this process is killed outright (`kill -9`), nothing deletes the stage.
   `packages/world` gives worlds an expiry and a sweeper (step 1.3). Alchemy's state is local (`.alchemy/`, ignored).
-- The template worlds are made once per run, not once per change to the code (decision 46): a run pays for them.
+- The template worlds are made once per run, not once per change to the code (decision 46): a run pays for them. A
+  bench template is the run's alone, since its sites hold the run's world's company facts (random org id, the Safe
+  minted under it); a run that found another's would still found its own company through Core, building its site.
 - A local Core's database connection is not pooled: each request opens one over its own WebSocket, which Hyperdrive
   on Cloudflare would pool. Its server times are therefore not Core's on Cloudflare.
 - Runs go one at a time, and so do the journeys of a one-stage run.
-- Runs of one world are one at a time, and so are its journeys; several runners would each make their own world.
+- Runs of one world are one at a time, and so are its journeys; several runners each make their own world, and may
+  run at once on one bench and one hub: nothing of one run's is named so another's could take it. Only making a site
+  from nothing still waits, one at a time across the bench (the door's `BENCH_LOCK`), so concurrent runs queue there
+  for about two to three minutes each. How many runs at once the staging bench (2 vCPU, 8 GiB) holds is not measured.
 - The snapshots a journey saves in the one world (`m3`, `draft`) stay with it for the run; a later journey that saved
   the same name would be refused `SnapshotExists`. None does today.
 - A reset does not pause the bench's scheduler for the world's sites (packages/platform, "Sites from a pool").

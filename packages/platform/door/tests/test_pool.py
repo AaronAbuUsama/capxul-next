@@ -11,6 +11,7 @@ import door_env  # noqa: F401 -- sets the door's environment before its modules 
 import claim
 import pool
 import sites
+import templates
 from sites import Refused
 
 
@@ -19,7 +20,7 @@ def token(world="w1", quota=1):
 
 
 def template(name="founded", label="northwind"):
-    home = f"{pool.TEMPLATES}/{name}/{label}"
+    home = f"{templates.TEMPLATES}/{name}/{label}"
     os.makedirs(f"{home}/site", exist_ok=True)
     with open(f"{home}/meta.json", "w") as f:
         json.dump({"template": name, "label": label, "company": "Northwind Ltd", "db": "_0123456789abcdef"}, f)
@@ -32,10 +33,10 @@ class PoolTest(unittest.TestCase):
 
     def test_a_template_is_named_like_a_starting_world(self):
         for good in ("founded", "office-holder", "payment-drafted"):
-            self.assertEqual(pool._name(good), good)
+            self.assertEqual(templates.name_of(good), good)
         for bad in ("", "Founded", "-founded", "a/b", "x" * 41, None):
             with self.assertRaises(Refused) as r:
-                pool._name(bad)
+                templates.name_of(bad)
             self.assertEqual(r.exception.code, "template-invalid")
 
     def test_a_claim_takes_only_a_ready_copy(self):
@@ -79,11 +80,11 @@ class PoolTest(unittest.TestCase):
 
     def test_a_template_needs_a_source_of_the_world(self):
         with self.assertRaises(Refused) as r:
-            pool.make_template(token(), {"template": "founded"})
+            templates.make_template(token(), {"template": "founded"})
         self.assertEqual(r.exception.code, "template-source-missing")
         sites.write_entry({"site": "northwind-w2.pool.test", "world": "w2", "state": "ready"})
         with self.assertRaises(Refused) as r:
-            pool.make_template(token(), {"template": "founded", "site": "northwind-w2.pool.test"})
+            templates.make_template(token(), {"template": "founded", "site": "northwind-w2.pool.test"})
         self.assertEqual(r.exception.code, "site-not-in-world")
 
 

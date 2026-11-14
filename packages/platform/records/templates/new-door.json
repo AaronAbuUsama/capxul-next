@@ -1,0 +1,168 @@
+{
+ "mode": "new",
+ "door": "http://127.0.0.1:18182",
+ "steps": [
+  {
+   "at_ms": 2840,
+   "who": "A",
+   "step": "founded: its site made from nothing (POST /sites, then until ready)",
+   "status": 202
+  },
+  {
+   "at_ms": 2847,
+   "who": "A",
+   "step": "payment-drafted saved: its site kept as template payment-drafted-3f9a0c1d-wa",
+   "status": 200,
+   "ms": 3,
+   "made": true,
+   "made_by": "wa"
+  },
+  {
+   "at_ms": 3860,
+   "who": "A",
+   "step": "reset to fresh: its site removed",
+   "status": 200,
+   "ms": 1014
+  },
+  {
+   "at_ms": 5663,
+   "who": "B",
+   "step": "founded: its site made from nothing (POST /sites, then until ready)",
+   "status": 202
+  },
+  {
+   "at_ms": 6168,
+   "who": "B",
+   "step": "payment-drafted saved: its site kept as template payment-drafted-3f9a0c1d-wb",
+   "status": 200,
+   "ms": 3,
+   "made": true,
+   "made_by": "wb"
+  },
+  {
+   "at_ms": 6484,
+   "who": "A",
+   "step": "reset to payment-drafted: its site claimed from payment-drafted-3f9a0c1d-wa",
+   "status": 200,
+   "ms": 312,
+   "refused": null,
+   "state": "ready",
+   "copy_of_world": "wa",
+   "its_own_company_facts": true
+  },
+  {
+   "at_ms": 6484,
+   "who": "A",
+   "step": "the run's end: template payment-drafted-3f9a0c1d-wa left for the sweep"
+  },
+  {
+   "at_ms": 7184,
+   "who": "B",
+   "step": "reset to fresh: its site removed",
+   "status": 200,
+   "ms": 1015
+  },
+  {
+   "at_ms": 7496,
+   "who": "B",
+   "step": "reset to payment-drafted: its site claimed from payment-drafted-3f9a0c1d-wb",
+   "status": 200,
+   "ms": 310,
+   "refused": null,
+   "state": "ready",
+   "copy_of_world": "wb",
+   "its_own_company_facts": true
+  },
+  {
+   "at_ms": 10337,
+   "who": "C",
+   "step": "two makes of template payment-drafted-3f9a0c1d-wc at once",
+   "made": [
+    false,
+    true
+   ],
+   "statuses": [
+    200,
+    200
+   ],
+   "same_database": true
+  },
+  {
+   "at_ms": 10339,
+   "who": "B",
+   "step": "another world asks for template payment-drafted-3f9a0c1d-wc with its own site",
+   "status": 200,
+   "made": false,
+   "made_by": "wc",
+   "refused": null
+  },
+  {
+   "at_ms": 10340,
+   "who": "sweep",
+   "step": "idle_s under the door's floor (2 s for this proof, an hour by default)",
+   "status": 400,
+   "refused": "sweep-idle-invalid"
+  },
+  {
+   "at_ms": 10342,
+   "who": "sweep",
+   "step": "idle over 30 s: every template was used within it",
+   "status": 200,
+   "removed": [],
+   "kept": [
+    "payment-drafted-3f9a0c1d-wa",
+    "payment-drafted-3f9a0c1d-wb"
+   ],
+   "busy": [
+    "payment-drafted-3f9a0c1d-wc"
+   ]
+  },
+  {
+   "at_ms": 14864,
+   "who": "C",
+   "step": "claims from payment-drafted-3f9a0c1d-wc again: it is used",
+   "status": 200
+  },
+  {
+   "at_ms": 14868,
+   "who": "sweep",
+   "step": "dry run, idle over 3 s",
+   "removed": [
+    "payment-drafted-3f9a0c1d-wa",
+    "payment-drafted-3f9a0c1d-wb"
+   ],
+   "kept": [
+    "payment-drafted-3f9a0c1d-wc"
+   ]
+  },
+  {
+   "at_ms": 14874,
+   "who": "sweep",
+   "step": "idle over 3 s: the two runs' templates go, the one just claimed from stays",
+   "status": 200,
+   "removed": [
+    "payment-drafted-3f9a0c1d-wa",
+    "payment-drafted-3f9a0c1d-wb"
+   ],
+   "kept": [
+    "payment-drafted-3f9a0c1d-wc"
+   ],
+   "ms": 6
+  },
+  {
+   "at_ms": 18081,
+   "who": "sweep",
+   "step": "idle over 3 s, 3 s later",
+   "status": 200,
+   "removed": [
+    "payment-drafted-3f9a0c1d-wc"
+   ],
+   "kept": []
+  }
+ ],
+ "health": {
+  "ok": true,
+  "app": "70995114dc0bf6d5"
+ },
+ "templatesLeft": []
+}
