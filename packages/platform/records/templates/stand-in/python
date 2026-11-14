@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# A stand-in for the bench's Python in the door's proof on a stand-in bench: a site's API user and a claim's join
+# answer at once, the join with the one JSON line the door reads.
+sleep 0.3
+echo '{"stand-in": true}'

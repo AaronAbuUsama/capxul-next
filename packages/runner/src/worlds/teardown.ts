@@ -1,12 +1,12 @@
 // What a run in private worlds takes down, and what it reads of the accounts afterwards: the worlds it made, destroyed
-// the newest first, and the bench templates it kept, dropped before its one world goes. A take-down that fails is never
-// ignored: each part is timed `ok: false` with why, and its failures are handed back for the run's record to fail on.
+// the newest first. The bench templates it kept are not its to take down: they are the bench's, never dropped by a run,
+// and the sweep removes them by age (docs/roadmap.md, "Bench templates never change"). A take-down that fails is never
+// ignored: it is timed `ok: false` with why, and its failures are handed back for the run's record to fail on.
 import * as World from "@capxul/world";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
-import * as Option from "effect/Option";
 import { describe, RunnerFailure } from "../failure.ts";
 import type { Timings } from "../timings.ts";
 import type { Inventory } from "../world/leftovers.ts";
@@ -76,35 +76,17 @@ const failedAs = <A, E, R>(what: string, effect: Effect.Effect<A, E, R>) =>
   );
 
 /**
- * Drops the bench templates `templates` as world `one`, then destroys `stages` (the one world among them), each part
- * timed. Never fails: what could not be done (a template still on the bench, a world not destroyed, its sites'
- * removal included) is handed back, one line each, with how long the destroy took.
+ * Destroys `stages` (the one world among them), timed. Never fails: what could not be done (a world not destroyed, its
+ * sites' removal included) is handed back, one line each, with how long the destroy took.
  */
-export const takeDownWorlds = (
-  one: Option.Option<string>,
-  templates: ReadonlyArray<string>,
-  stages: ReadonlyArray<string>,
-  timings: Timings,
-) =>
+export const takeDownWorlds = (stages: ReadonlyArray<string>, timings: Timings) =>
   Effect.gen(function* () {
-    const dropped = Option.isNone(one)
-      ? []
-      : yield* Effect.forEach(templates, (template) =>
-          failedAs(
-            `bench template ${template} not dropped`,
-            timings.timed(
-              `drop bench template ${template}`,
-              { of: one.value },
-              World.dropSitesTemplate(one.value, template),
-            ),
-          ),
-        );
     const began = yield* Clock.currentTimeMillis;
-    const destroyed = Arr.isReadonlyArrayEmpty(stages)
+    const failed = Arr.isReadonlyArrayEmpty(stages)
       ? []
       : yield* failedAs(
           "world destroy failed",
           timings.timed("world destroy", { of: Arr.join(stages, ", ") }, destroyEach(stages)),
         );
-    return { failed: [...Arr.flatten(dropped), ...destroyed], destroyMs: (yield* Clock.currentTimeMillis) - began };
+    return { failed, destroyMs: (yield* Clock.currentTimeMillis) - began };
   });

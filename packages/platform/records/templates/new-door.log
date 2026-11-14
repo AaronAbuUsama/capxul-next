@@ -1,0 +1,187 @@
+door: the bench's apps hash to 70995114dc0bf6d5
+door: serving on 18182 for pool.test
+door: "GET /health HTTP/1.1" 200 -
+door: "POST /sites HTTP/1.1" 202 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "POST /sites HTTP/1.1" 202 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test new-site 1008 ms
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test install erpnext 205 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test install hrms 206 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test install capxul 205 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test setup wizard 206 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test migrate 205 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test enable scheduler 206 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test join world 206 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test ready
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: template payment-drafted-3f9a0c1d-wa made from northwind-wa.pool.test in 2 ms
+door: "POST /templates HTTP/1.1" 200 -
+door: "GET /templates HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-wa/northwind +1 in 3 ms
+door: pool payment-drafted-3f9a0c1d-wa/northwind +1 in 1 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test new-site 1008 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test removed in 1009 ms
+door: "DELETE /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test install erpnext 206 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test install hrms 205 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test install capxul 205 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test setup wizard 207 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test migrate 205 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test enable scheduler 206 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test join world 206 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test ready
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: template payment-drafted-3f9a0c1d-wb made from northwind-wb.pool.test in 1 ms
+door: "POST /templates HTTP/1.1" 200 -
+door: "GET /templates HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-wb/northwind +1 in 2 ms
+door: "GET /templates HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-wb/northwind +1 in 6 ms
+door: northwind-wa.pool.test claimed from payment-drafted-3f9a0c1d-wa (pool) in 308 ms
+door: "POST /world/claim HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-wa/northwind +1 in 1 ms
+door: northwind-wb.pool.test removed in 1010 ms
+door: "DELETE /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /templates HTTP/1.1" 200 -
+door: northwind-wb.pool.test claimed from payment-drafted-3f9a0c1d-wb (pool) in 307 ms
+door: "POST /world/claim HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-wb/northwind +1 in 1 ms
+door: "POST /sites HTTP/1.1" 202 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test new-site 1007 ms
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test install erpnext 206 ms
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test install hrms 205 ms
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test install capxul 205 ms
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test setup wizard 205 ms
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test migrate 205 ms
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test enable scheduler 206 ms
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test join world 206 ms
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test ready
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: template payment-drafted-3f9a0c1d-wc made from northwind-wc.pool.test in 2 ms
+door: "POST /templates HTTP/1.1" 200 -
+door: template payment-drafted-3f9a0c1d-wc exists (made by wc); left as it is
+door: "POST /templates HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-wc/northwind +1 in 2 ms
+door: template payment-drafted-3f9a0c1d-wc exists (made by wc); left as it is
+door: "POST /templates HTTP/1.1" 200 -
+door: refused POST /templates/sweep sweep-idle-invalid idle_s: whole seconds, at least 2
+door: "POST /templates/sweep HTTP/1.1" 400 -
+door: sweep of templates idle over 30 s: removed 0, kept 2, busy 1
+door: "POST /templates/sweep HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-wc/northwind +1 in 3 ms
+door: northwind-wc.pool.test removed in 1007 ms
+door: "DELETE /world HTTP/1.1" 200 -
+door: northwind-wc.pool.test claimed from payment-drafted-3f9a0c1d-wc (pool) in 306 ms
+door: "POST /world/claim HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-wc/northwind +1 in 1 ms
+door: sweep of templates idle over 3 s: removed 2, kept 1, busy 0
+door: "POST /templates/sweep HTTP/1.1" 200 -
+door: sweep of templates idle over 3 s: removed 2, kept 1, busy 0
+door: "POST /templates/sweep HTTP/1.1" 200 -
+door: sweep of templates idle over 3 s: removed 1, kept 0, busy 0
+door: "POST /templates/sweep HTTP/1.1" 200 -
+door: "GET /health HTTP/1.1" 200 -
+door: northwind-wa.pool.test removed in 1008 ms
+door: "DELETE /world HTTP/1.1" 200 -
+door: northwind-wb.pool.test removed in 1007 ms
+door: "DELETE /world HTTP/1.1" 200 -
+door: northwind-wc.pool.test removed in 1010 ms
+door: "DELETE /world HTTP/1.1" 200 -
+door: "GET /templates HTTP/1.1" 200 -
+door: "POST /sites HTTP/1.1" 202 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wd.pool.test new-site 1008 ms
+door: northwind-wd.pool.test install erpnext 205 ms
+door: northwind-wd.pool.test install hrms 205 ms
+door: northwind-wd.pool.test install capxul 205 ms
+door: northwind-wd.pool.test setup wizard 206 ms
+door: northwind-wd.pool.test migrate 205 ms
+door: northwind-wd.pool.test enable scheduler 205 ms
+door: northwind-wd.pool.test join world 206 ms
+door: northwind-wd.pool.test ready
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "POST /sites HTTP/1.1" 202 -
+door: "GET /sites/northwind-we.pool.test HTTP/1.1" 200 -
+door: northwind-we.pool.test new-site 1008 ms
+door: northwind-we.pool.test install erpnext 207 ms
+door: northwind-we.pool.test install hrms 206 ms
+door: northwind-we.pool.test install capxul 206 ms
+door: northwind-we.pool.test setup wizard 206 ms
+door: northwind-we.pool.test migrate 206 ms
+door: northwind-we.pool.test enable scheduler 206 ms
+door: northwind-we.pool.test join world 206 ms
+door: northwind-we.pool.test ready
+door: "GET /sites/northwind-we.pool.test HTTP/1.1" 200 -
+door: "GET /health HTTP/1.1" 200 -
+door: "GET /world HTTP/1.1" 200 -
+door: template payment-drafted-e78e3c64-wd made from northwind-wd.pool.test in 1 ms
+door: "POST /templates HTTP/1.1" 200 -
+door: pool payment-drafted-e78e3c64-wd/northwind +1 in 1 ms
+door: pool payment-drafted-e78e3c64-wd/northwind +1 in 0 ms
+door: "GET /world HTTP/1.1" 200 -
+door: template payment-drafted-e78e3c64-wd exists (made by wd); left as it is
+door: "POST /templates HTTP/1.1" 200 -
+door: "GET /world HTTP/1.1" 200 -
+door: template payment-drafted-e78e3c64-wd exists (made by wd); left as it is
+door: "POST /templates HTTP/1.1" 200 -
+door: sweep of templates idle over 2 s: removed 0, kept 1, busy 0
+door: "POST /templates/sweep HTTP/1.1" 200 -
+door: sweep of templates idle over 2 s: removed 1, kept 0, busy 0
+door: "POST /templates/sweep HTTP/1.1" 200 -
+door: northwind-wd.pool.test removed in 1008 ms
+door: "DELETE /world HTTP/1.1" 200 -
+door: northwind-we.pool.test removed in 1007 ms
+door: "DELETE /world HTTP/1.1" 200 -

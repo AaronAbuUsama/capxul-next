@@ -2,10 +2,13 @@
 // 27 as amended by 39). The run's one world is the kept template world: `fresh`'s maker creates it, and every starting
 // world made "from its template" is made once in it, by its steps, from the one before, in the blueprint's order.
 // Each one a journey starts from is saved there as a snapshot of its own name, and a world with a company also keeps
-// its sites as the bench's template of that name (with a pool of ready copies), so a reset whose point lost its sites
-// claims them instead of building them. Before each journey the world is reset in place to its starting world's
-// snapshot (`resetFor`), and a starting world made "by its steps" (`quota-full`, `with-snapshot`, `restored`) is then
-// made from there. Every call made on the way is a fact of the world (`calls`) and is kept for the checks.
+// its sites as a bench template (with a pool of ready copies), so a reset whose point lost its sites claims them
+// instead of building them. The template is named by the starting world, the code that made it (`CODE`) and the one
+// world, whose company facts it holds (packages/world, src/site/Templates.ts): no other run asks for it, the bench
+// never changes it, and no run drops it; the sweep removes it by age (docs/roadmap.md, "Bench templates never
+// change"). Before each journey the world is reset in place to its starting world's snapshot (`resetFor`), and a
+// starting world made "by its steps" (`quota-full`, `with-snapshot`, `restored`) is then made from there. Every call
+// made on the way is a fact of the world (`calls`) and is kept for the checks.
 import { holdsFactsOf, startingWorlds, type StartingWorld } from "@capxul/blueprint";
 import { Capxul } from "@capxul/scenarios";
 import * as World from "@capxul/world";
@@ -19,6 +22,16 @@ import type { Settings } from "../settings.ts";
 import type { Timings } from "../timings.ts";
 import { nothingOf, recorder, targetOf, type MakingCall, type Needs } from "./making.ts";
 import { makers, waitsOn, type Making } from "./makers.ts";
+
+/** Where the packages are, from this file (src/worlds). */
+const PACKAGES = `${import.meta.dirname}/../../..`;
+
+/**
+ * The code that makes a starting world's sites, fingerprinted into its template's name: the starting worlds' definitions
+ * (the blueprint), Core, which founds the company and writes it to its site, the world, and these makers. The bench's
+ * apps are read from its door.
+ */
+export const CODE = ["blueprint/src", "core/src", "world/src", "runner/src/worlds"] as const;
 
 const fromNothing = (world: StartingWorld) => world.from === null || world.from === startingWorlds.nothing;
 
@@ -47,7 +60,7 @@ export const anchorOf = (world: StartingWorld): StartingWorld =>
 
 /**
  * What makes the starting worlds of one run in its one world. `templateWorlds` is the one world, by stage, which the
- * run destroys at its end; `kept` the bench templates it made, which the run drops before that.
+ * run destroys at its end; `kept` the bench template it kept of each starting world, which outlives the run.
  */
 export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (
   settings: Settings,
@@ -63,13 +76,19 @@ export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (
   // try would meet what the first left there. Every later journey of it fails with the first failure.
   const unmade = yield* Ref.make(new Map<string, RunnerFailure>());
   const one = yield* Ref.make<Option.Option<string>>(Option.none());
-  const kept = yield* Ref.make<ReadonlyArray<string>>([]);
+  const kept = yield* Ref.make<ReadonlyMap<string, string>>(new Map());
+  // Fingerprinted once a run, when the first template is kept.
+  const code = yield* Effect.cached(
+    World.templateCode(PACKAGES, CODE).pipe(
+      Effect.mapError((error) => RunnerFailure.make({ step: "template", message: describe(Cause.fail(error)) })),
+    ),
+  );
   const toSave = yield* Ref.make<ReadonlyArray<string>>([]);
   const made = yield* Ref.make<ReadonlyArray<MakingCall>>([]);
   const run = recorder(targetOf(settings, platformUrl), made);
   const nothing = nothingOf(settings);
 
-  /** Saves the one world as the snapshot `world.name`, and keeps its sites as the bench's template of that name. */
+  /** Saves the one world as the snapshot `world.name`, and keeps its sites as a bench template of that starting world. */
   const save = (world: StartingWorld, after: Making) =>
     Effect.gen(function* () {
       const name = after.own?.world ?? "";
@@ -93,15 +112,23 @@ export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (
         ),
       );
       if (holdsFactsOf(world, startingWorlds.founded)) {
-        yield* timings.timed(
+        const fingerprint = yield* code;
+        const template = yield* timings.timed(
           `bench template ${world.name}`,
           { of: name },
-          World.keepSitesAsTemplate(name, world.name).pipe(
+          World.keepSitesAsTemplate(name, world.name, fingerprint).pipe(
             Effect.mapError((error) => RunnerFailure.make({ step: "template", message: describe(Cause.fail(error)) })),
           ),
-          (answer) => (Option.isSome(answer) ? { parts: { door: answer.value.ms } } : {}),
+          (answer) =>
+            Option.isSome(answer)
+              ? {
+                  parts: { door: answer.value.ms },
+                  note: `${answer.value.template}${answer.value.made ? "" : " (kept already)"}`,
+                }
+              : {},
         );
-        yield* Ref.update(kept, (all) => Arr.dedupe([...all, world.name]));
+        if (Option.isSome(template))
+          yield* Ref.update(kept, (all) => new Map([...all, [world.name, template.value.template]]));
       }
       return saved;
     });
@@ -170,10 +197,11 @@ export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (
     Effect.gen(function* () {
       const to = anchorOf(world).name;
       const name = yield* oneWorld;
+      const template = (yield* Ref.get(kept)).get(to);
       return yield* timings.timed(
         "reset",
         { journey, of: to },
-        World.reset(name, to).pipe(
+        World.reset(name, to, template).pipe(
           Effect.mapError((error) => RunnerFailure.make({ step: "reset", message: describe(Cause.fail(error)) })),
         ),
         (answer) => ({
