@@ -1,0 +1,238 @@
+{
+ "mode": "pool2",
+ "door": "http://127.0.0.1:18203",
+ "companies": {
+  "wa": {
+   "post_status": 202,
+   "post_ms": 6,
+   "time_to_ready_ms": 3034,
+   "state": "ready",
+   "made_from": {
+    "template": "blank-70995114dc0bf6d5",
+    "how": "pool"
+   },
+   "door_ms": 2832,
+   "steps": [
+    {
+     "step": "blank copy taken from the pool",
+     "ms": 0
+    },
+    {
+     "step": "blank's encryption key kept",
+     "ms": 0
+    },
+    {
+     "step": "frappe started",
+     "ms": 6
+    },
+    {
+     "step": "setup wizard",
+     "ms": 1697
+    },
+    {
+     "step": "after_migrate hooks",
+     "ms": 820
+    },
+    {
+     "step": "join world",
+     "ms": 84
+    },
+    {
+     "step": "core user",
+     "ms": 134
+    },
+    {
+     "step": "enable scheduler",
+     "ms": 71
+    }
+   ],
+   "error": null
+  },
+  "wb": {
+   "post_status": 202,
+   "post_ms": 4,
+   "time_to_ready_ms": 3034,
+   "state": "ready",
+   "made_from": {
+    "template": "blank-70995114dc0bf6d5",
+    "how": "pool"
+   },
+   "door_ms": 2832,
+   "steps": [
+    {
+     "step": "blank copy taken from the pool",
+     "ms": 1
+    },
+    {
+     "step": "blank's encryption key kept",
+     "ms": 2
+    },
+    {
+     "step": "frappe started",
+     "ms": 5
+    },
+    {
+     "step": "setup wizard",
+     "ms": 1698
+    },
+    {
+     "step": "after_migrate hooks",
+     "ms": 820
+    },
+    {
+     "step": "join world",
+     "ms": 83
+    },
+    {
+     "step": "core user",
+     "ms": 131
+    },
+    {
+     "step": "enable scheduler",
+     "ms": 70
+    }
+   ],
+   "error": null
+  },
+  "wc": {
+   "post_status": 202,
+   "post_ms": 9,
+   "time_to_ready_ms": 5820,
+   "state": "ready",
+   "made_from": {
+    "template": "blank-70995114dc0bf6d5",
+    "how": "copy"
+   },
+   "door_ms": 5665,
+   "steps": [
+    {
+     "step": "copied from the blank (pool empty)",
+     "ms": 331
+    },
+    {
+     "step": "blank's encryption key kept",
+     "ms": 0
+    },
+    {
+     "step": "frappe started",
+     "ms": 4
+    },
+    {
+     "step": "setup wizard",
+     "ms": 1698
+    },
+    {
+     "step": "after_migrate hooks",
+     "ms": 821
+    },
+    {
+     "step": "join world",
+     "ms": 84
+    },
+    {
+     "step": "core user",
+     "ms": 132
+    },
+    {
+     "step": "enable scheduler",
+     "ms": 70
+    }
+   ],
+   "error": null
+  },
+  "wd": {
+   "post_status": 202,
+   "post_ms": 12,
+   "time_to_ready_ms": 5820,
+   "state": "ready",
+   "made_from": {
+    "template": "blank-70995114dc0bf6d5",
+    "how": "copy"
+   },
+   "door_ms": 5667,
+   "steps": [
+    {
+     "step": "copied from the blank (pool empty)",
+     "ms": 661
+    },
+    {
+     "step": "blank's encryption key kept",
+     "ms": 0
+    },
+    {
+     "step": "frappe started",
+     "ms": 4
+    },
+    {
+     "step": "setup wizard",
+     "ms": 1698
+    },
+    {
+     "step": "after_migrate hooks",
+     "ms": 821
+    },
+    {
+     "step": "join world",
+     "ms": 84
+    },
+    {
+     "step": "core user",
+     "ms": 132
+    },
+    {
+     "step": "enable scheduler",
+     "ms": 70
+    }
+   ],
+   "error": null
+  }
+ },
+ "warm_up": {
+  "ms_from_door_start": 12369,
+  "blank": {
+   "template": "blank-70995114dc0bf6d5",
+   "made_ms": 11811,
+   "steps": [
+    {
+     "step": "new-site",
+     "ms": 2234
+    },
+    {
+     "step": "install erpnext",
+     "ms": 5019
+    },
+    {
+     "step": "install hrms",
+     "ms": 3386
+    },
+    {
+     "step": "install capxul",
+     "ms": 347
+    },
+    {
+     "step": "migrate",
+     "ms": 823
+    }
+   ]
+  },
+  "pool_ready": 2
+ },
+ "verdict": {
+  "every_company_ready": true,
+  "time_to_ready_ms": [
+   3034,
+   3034,
+   5820,
+   5820
+  ],
+  "slowest_ms": 5820,
+  "mean_ms": 4427,
+  "all_four_ms": 5822,
+  "how": [
+   "copy",
+   "copy",
+   "pool",
+   "pool"
+  ]
+ }
+}

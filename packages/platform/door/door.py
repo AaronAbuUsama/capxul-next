@@ -19,9 +19,11 @@ for a world that has expired.
 The token travels in `X-Capxul-Site-Token` (or `Authorization: Bearer`, except on a call to a site, where
 `Authorization` is the site's own credential).
 
-POST   /sites {"label", "company", "api_key", "api_secret"}   starts making the site (about 100 s) and answers 202:
-       the site joins the token's world and gets its own API user, `capxul-core@service.invalid`, with the roles in
-       CORE_ROLES and the key and secret the world sent. Never the bench's Administrator.
+POST   /sites {"label", "company", "api_key", "api_secret"}   starts making the site and answers 202: a copy of the
+       bench's blank company site with the company's wizard run (blank.py; about 20 s), or, with no blank, a site made
+       from nothing (2 to 4 minutes, one at a time). The site joins the token's world and gets its own API user,
+       `capxul-core@service.invalid`, with the roles in CORE_ROLES and the key and secret the world sent. Never the
+       bench's Administrator.
 GET    /sites/<site>                  the site's state: creating, ready or failed, with each step's time
 DELETE /sites/<site>                  removes the site: its database, its user and its folder
 DELETE /world                         removes every site of the token's world
@@ -38,8 +40,8 @@ POST   /world/restore {"snapshot", "api_key", "api_secret", "clock"}   with the 
 POST   /templates {"template", "site"} or {"template", "snapshot"}   makes a template from a ready site of the
        token's world, or from a snapshot it saved, and fills its pool (templates.py, pool.py); a template never
        changes, so one that exists is answered as it is (`made: false`)
-GET    /templates                     every template, its sites, how many ready copies each has, and when it was
-                                      last used
+GET    /templates                     every template (the door's blank too), its sites, how many ready copies each
+                                      has, when it was last used, and the blank's state
 POST   /templates/sweep {"idle_s", "dry_run"?}   removes every template last used more than idle_s ago (at least
                                       DOOR_TEMPLATE_MIN_IDLE_S) whose lock is free; no run removes one by name
 DELETE /templates/<template>          removes a template and its pool: for a person, never a run
@@ -70,6 +72,7 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import blank
 import jobs
 import points
 import pool
@@ -219,7 +222,7 @@ class Door(BaseHTTPRequestHandler):
                     return self.answer(200, public(entry))
                 return self.done(c, lambda: remove_one(c, entry))
             if route == ("GET", "/templates"):
-                return self.answer(200, pool.list_templates())
+                return self.answer(200, {**pool.list_templates(), "blank": blank.state()})
             if method == "DELETE" and self.path.startswith("/templates/"):
                 return self.answer(200, templates.drop_template(self.path[len("/templates/"):]))
             if method == "GET" and self.path.startswith("/world/backup/"):
@@ -274,6 +277,7 @@ if __name__ == "__main__":
             update_entry(stale["site"], state="failed", error="the door restarted while it was being made or removed")
     pool.tidy()
     print(f"door: the bench's apps hash to {templates.app_version()}", flush=True)
+    blank.tidy()  # the blank of these apps, made in the background once the bench is idle; others removed
     tidy_backups()
     print(f"door: serving on {PORT} for {DOMAIN}", flush=True)
     ThreadingHTTPServer(("0.0.0.0", PORT), Door).serve_forever()
