@@ -8,6 +8,7 @@
 // Every IAM name starts `capxul-bench-<stage>`: the CI role may create, change and pass IAM objects with that prefix
 // only (bootstrap/src/aws-policy.ts).
 import * as AWS from "@alchemy.run/aws";
+import * as Alchemy from "alchemy";
 import * as Output from "alchemy/Output";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
@@ -90,7 +91,9 @@ export const BenchHost = Effect.gen(function* () {
     volumeType: "gp3",
     encrypted: true,
     tags: { ...tags, Name: `${n.aws}-data` },
-  });
+    // Retained: the disk holds MariaDB and every site. A change that replaces it (a smaller size, another zone) or a
+    // destroy of the stack keeps the old disk instead of deleting it; deleting it is a deliberate step by hand.
+  }).pipe(Alchemy.RemovalPolicy.retain());
   const machine = yield* typed(
     AWS.EC2.Instance("Machine", {
       imageId: settings.amiId,
