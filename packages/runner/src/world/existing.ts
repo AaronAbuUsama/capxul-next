@@ -18,6 +18,7 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import type * as Redacted from "effect/Redacted";
 import * as Str from "effect/String";
+import * as HttpClient from "effect/http/HttpClient";
 import { describe } from "../failure.ts";
 import type { RunRecord } from "../record.ts";
 import { writeRecord } from "../record.ts";
@@ -38,7 +39,8 @@ export class OtherWorlds extends Context.Service<
   static readonly fromSharedState = Layer.effect(
     OtherWorlds,
     Effect.gen(function* () {
-      const context = yield* Effect.context<World.SharedState>();
+      // Opening a world asks Neon for its database's connection string (packages/world, src/lifecycle/parts.ts).
+      const context = yield* Effect.context<World.SharedState | HttpClient.HttpClient>();
       return {
         databaseAt: (door: string) =>
           Effect.gen(function* () {

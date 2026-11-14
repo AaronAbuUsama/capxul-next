@@ -19,7 +19,8 @@ import { describe, tagOf } from "./describe.ts";
 import { DEFAULT_RECORDS, noDurations, type Outcome, type RunRecord, writeRecord } from "./record.ts";
 import { Limits, Timeouts, type World, type WorldSpec } from "./spec.ts";
 import { makeStopwatch, timeoutsInMillis } from "./steps.ts";
-import { bringUp, keptUntil, park, planOf, takeDown } from "./world.ts";
+import { bringUp } from "./up.ts";
+import { keptUntil, park, planOf, takeDown } from "./world.ts";
 
 /** How a use ended, as the record says it. */
 const outcomeOf = <A, E>(created: boolean, used: Option.Option<Exit.Exit<A, E>>): Outcome => {

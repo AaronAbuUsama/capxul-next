@@ -50,6 +50,12 @@ export class WorldsStillExist extends Schema.TaggedError<WorldsStillExist, { rea
   { worlds: Schema.Array(Schema.String), message: Schema.String },
 ) {}
 
+/** The fleet hub a world is made on does not answer: never brought up, expired, or refused a call (src/hub). */
+export class HubMissing extends Schema.TaggedError<HubMissing, { readonly brand: unique symbol }>()("HubMissing", {
+  hub: Schema.String,
+  message: Schema.String,
+}) {}
+
 export class StateUnreadable extends Schema.TaggedError<StateUnreadable, { readonly brand: unique symbol }>()(
   "StateUnreadable",
   { stage: Schema.String, what: Schema.String, message: Schema.String },
@@ -122,7 +128,19 @@ export class PlatformFailed extends Schema.TaggedError<PlatformFailed, { readonl
 // Inside a world's Durable Objects.
 
 export class ChainFailed extends Schema.TaggedError<ChainFailed, { readonly brand: unique symbol }>()("ChainFailed", {
-  step: Schema.Literals(["start", "rpc", "save", "restore", "stop", "asleep", "adopt", "snapshot"]),
+  step: Schema.Literals([
+    "start",
+    "rpc",
+    "save",
+    "restore",
+    "stop",
+    "asleep",
+    "adopt",
+    "snapshot",
+    "world",
+    "reset",
+    "forget",
+  ]),
   message: Schema.String,
 }) {}
 
@@ -130,12 +148,12 @@ export class ChainFailed extends Schema.TaggedError<ChainFailed, { readonly bran
 export class BundlerFailed extends Schema.TaggedError<BundlerFailed, { readonly brand: unique symbol }>()(
   "BundlerFailed",
   {
-    step: Schema.Literals(["start", "ready", "rpc", "stop", "status", "setup", "call"]),
+    step: Schema.Literals(["start", "ready", "rpc", "stop", "status", "setup", "call", "forget"]),
     message: Schema.String,
   },
 ) {}
 
 export class IndexerFailed extends Schema.TaggedError<IndexerFailed, { readonly brand: unique symbol }>()(
   "IndexerFailed",
-  { step: Schema.Literals(["start", "stop", "status"]), message: Schema.String },
+  { step: Schema.Literals(["start", "stop", "status", "forget"]), message: Schema.String },
 ) {}

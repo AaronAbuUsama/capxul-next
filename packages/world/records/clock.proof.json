@@ -1,7 +1,7 @@
 {
   "proof": "a world restored from a snapshot keeps one clock: its chain reads Core's world time within a second",
   "outcome": "passed",
-  "at": "2026-11-14T01:07:35.142Z",
+  "at": "2026-11-14T06:02:41.543Z",
   "checks": [
     {
       "check": "the first world runs on a running clock two weeks behind the host",
@@ -29,24 +29,24 @@
     }
   ],
   "observations": {
-    "startAt": "2026-10-31T01:02:21.637Z",
+    "startAt": "2026-10-31T05:54:46.391Z",
     "saved": {
       "world": "p-clk",
       "snapshot": "c1",
       "recordSeq": 1,
       "clock": {
         "mode": "running",
-        "now": "2026-10-31T01:03:10.304Z"
+        "now": "2026-10-31T05:55:28.952Z"
       },
       "template": false,
-      "savedAt": "2026-11-14T01:04:14.232Z",
+      "savedAt": "2026-11-14T05:55:49.440Z",
       "companies": 0,
       "migrations": "0005_approvals.sql"
     },
     "restored": {
       "clock": {
         "mode": "running",
-        "now": "2026-10-31T01:03:11.401Z"
+        "now": "2026-10-31T05:55:30.656Z"
       },
       "parent": {
         "world": "p-clk",
@@ -58,33 +58,33 @@
       "world": "p-clk2",
       "headBefore": {
         "number": 47893276,
-        "at": "2026-10-31T01:03:11.000Z"
+        "at": "2026-10-31T05:55:30.000Z"
       },
       "mined": {
         "number": 47893277,
-        "at": "2026-10-31T01:03:19.000Z"
+        "at": "2026-10-31T05:55:36.000Z"
       },
       "core": {
-        "from": "2026-10-31T01:03:18.111Z",
-        "to": "2026-10-31T01:03:18.220Z"
+        "from": "2026-10-31T05:55:34.931Z",
+        "to": "2026-10-31T05:55:35.173Z"
       },
-      "apartMs": 780
+      "apartMs": 827
     },
     "woken": {
       "world": "p-clk2",
       "headBefore": {
         "number": 47893277,
-        "at": "2026-10-31T01:03:19.000Z"
+        "at": "2026-10-31T05:55:36.000Z"
       },
       "mined": {
         "number": 47893278,
-        "at": "2026-10-31T01:03:55.000Z"
+        "at": "2026-10-31T05:56:14.000Z"
       },
       "core": {
-        "from": "2026-10-31T01:03:55.122Z",
-        "to": "2026-10-31T01:03:55.206Z"
+        "from": "2026-10-31T05:56:13.478Z",
+        "to": "2026-10-31T05:56:13.740Z"
       },
-      "apartMs": 122
+      "apartMs": 260
     },
     "chainRecord": {
       "running": true,
@@ -94,45 +94,38 @@
         "adopted": true,
         "starts": [
           {
-            "at": "2026-11-14T01:05:40.554Z",
+            "at": "2026-11-14T05:56:45.868Z",
             "from": "saved state",
             "afterUnsavedStop": false,
-            "wakeMs": 3172,
+            "wakeMs": 964,
             "attempts": [
               {
-                "at": "2026-11-14T01:05:40.688Z",
-                "ms": 821,
-                "started": true,
-                "outcome": "refused",
-                "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-              },
-              {
-                "at": "2026-11-14T01:05:42.509Z",
-                "ms": 944,
+                "at": "2026-11-14T05:56:46.164Z",
+                "ms": 484,
                 "started": true,
                 "outcome": "ready",
                 "message": null
               }
             ],
-            "ms": 2765,
-            "startCalls": 2,
-            "refusals": 1
+            "ms": 484,
+            "startCalls": 1,
+            "refusals": 0
           },
           {
-            "at": "2026-11-14T01:06:55.302Z",
+            "at": "2026-11-14T05:57:48.283Z",
             "from": "saved state",
             "afterUnsavedStop": false,
-            "wakeMs": 1411,
+            "wakeMs": 1070,
             "attempts": [
               {
-                "at": "2026-11-14T01:06:55.405Z",
-                "ms": 1098,
+                "at": "2026-11-14T05:57:48.548Z",
+                "ms": 617,
                 "started": true,
                 "outcome": "ready",
                 "message": null
               }
             ],
-            "ms": 1098,
+            "ms": 617,
             "startCalls": 1,
             "refusals": 0
           }
@@ -140,43 +133,55 @@
         "gaveUp": [],
         "stops": [
           {
-            "at": "2026-11-14T01:06:21.559Z",
+            "at": "2026-11-14T05:57:13.562Z",
             "why": "asked",
             "head": "0x2dacb1d",
-            "savedBytes": 3434942,
-            "ms": 2865
+            "savedBytes": 3438028,
+            "ms": 3547
           }
         ],
         "lastSave": {
-          "at": "2026-11-14T01:06:04.158Z",
-          "head": "0x2dacb1b",
-          "ms": 3189
+          "at": "2026-11-14T05:57:07.245Z",
+          "head": "0x2dacb1c",
+          "ms": 3649
         },
-        "clockOffset": -1209781
+        "clockOffset": -1209695
       }
     },
     "first": {
       "world": "p-clk",
       "headBefore": {
         "number": 47893275,
-        "at": "2026-10-31T01:02:21.000Z"
+        "at": "2026-10-31T05:54:46.000Z"
       },
       "mined": {
         "number": 47893276,
-        "at": "2026-10-31T01:05:54.000Z"
+        "at": "2026-10-31T05:57:32.000Z"
       },
       "core": {
-        "from": "2026-10-31T01:05:54.611Z",
-        "to": "2026-10-31T01:05:54.699Z"
+        "from": "2026-10-31T05:57:31.632Z",
+        "to": "2026-10-31T05:57:31.915Z"
       },
-      "apartMs": 611
+      "apartMs": 85
     },
     "inventory": {
       "before": {
-        "workers": [],
-        "containerApplications": [],
-        "durableObjectNamespaces": [],
-        "r2Buckets": [],
+        "workers": [
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle"
+        ],
+        "containerApplications": [
+          "capxulworldhub-anvil-fleet-kznndnhw2qxvuw62",
+          "capxulworldhub-alto-fleet-3i3bpj2sn5h6amaq",
+          "capxulworldhub-ponder-fleet-idz5swsjqhioqybc"
+        ],
+        "durableObjectNamespaces": [
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle",
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle",
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle"
+        ],
+        "r2Buckets": [
+          "capxulworldhub-chainstate-fleet-czutnea2cmlfjtjp"
+        ],
         "hyperdriveConfigurations": [],
         "neonBranches": [
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
@@ -189,10 +194,22 @@
         ]
       },
       "after": {
-        "workers": [],
-        "containerApplications": [],
-        "durableObjectNamespaces": [],
-        "r2Buckets": [],
+        "workers": [
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle"
+        ],
+        "containerApplications": [
+          "capxulworldhub-anvil-fleet-kznndnhw2qxvuw62",
+          "capxulworldhub-alto-fleet-3i3bpj2sn5h6amaq",
+          "capxulworldhub-ponder-fleet-idz5swsjqhioqybc"
+        ],
+        "durableObjectNamespaces": [
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle",
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle",
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle"
+        ],
+        "r2Buckets": [
+          "capxulworldhub-chainstate-fleet-czutnea2cmlfjtjp"
+        ],
         "hyperdriveConfigurations": [],
         "neonBranches": [
           "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",

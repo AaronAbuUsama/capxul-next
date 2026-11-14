@@ -30,6 +30,8 @@ export const RunRecord = Schema.Struct({
   /** How long each step took, in milliseconds; null for a step that did not run. */
   ms: Schema.Struct({
     claim: Ms,
+    register: Ms,
+    branch: Ms,
     deploy: Ms,
     migrate: Ms,
     chain: Ms,
@@ -51,6 +53,8 @@ export const RunRecord = Schema.Struct({
   /** The declared timeout of each step, in milliseconds. */
   timeouts: Schema.Struct({
     claim: Schema.Finite,
+    register: Schema.Finite,
+    branch: Schema.Finite,
     deploy: Schema.Finite,
     migrate: Schema.Finite,
     chain: Schema.Finite,
@@ -70,6 +74,8 @@ export type RunRecord = typeof RunRecord.Type;
 
 export const noDurations: RunRecord["ms"] = {
   claim: null,
+  register: null,
+  branch: null,
   deploy: null,
   migrate: null,
   chain: null,

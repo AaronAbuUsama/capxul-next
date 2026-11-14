@@ -11,7 +11,9 @@ import { CORE_HEALTH } from "../core/health.ts";
 import { PlatformFailed } from "../failures.ts";
 
 const ANSWERS = 10;
-const EVERY = "500 millis";
+// Ten answers over about 2.5 s: the create waits on it after Core's deploy (src/lifecycle/up.ts), and the runner
+// sends a call the edge answered again while a stage warms up (packages/runner, src/world/warmup.ts).
+const EVERY = "250 millis";
 const AT_MOST = "2 minutes";
 
 const answered = (door: string) =>

@@ -36,7 +36,15 @@ export interface ChainRecord {
   }>;
   /** How many seconds anvil's clock ran ahead of the host's at the last save (behind, when negative); set again after
    * a wake from that save. None before the first save, and for a state adopted from another world. */
-  readonly clockOffset?: number;
+  readonly clockOffset?: number | undefined;
+  /** Each rewind to a snapshot's state (src/lifecycle/reset.ts): in place when anvil ran, or as its saved state. */
+  readonly resets?: ReadonlyArray<{
+    readonly at: string;
+    readonly snapshot: string;
+    readonly inPlace: boolean;
+    readonly bytes: number;
+    readonly ms: number;
+  }>;
   /** The last save made while the chain kept running. */
   readonly lastSave: { readonly at: string; readonly head: string; readonly ms: number } | null;
 }

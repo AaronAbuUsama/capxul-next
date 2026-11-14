@@ -2,6 +2,7 @@
 // The class is all a Durable Object needs to bind it; nothing here runs inside the container.
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Effect from "effect/Effect";
+import { HUB_CAPACITY, REGIONS } from "../hub/names.ts";
 import { imageSource } from "../stack/images.ts";
 
 export const CHAIN_ID = 84532;
@@ -26,7 +27,9 @@ export class Anvil extends Cloudflare.Container<Anvil>()(
       // The image every world shares, pinned by digest while its inputs are unchanged (src/stack/images.ts).
       ...(yield* imageSource("chain")),
       instanceType: "lite" as const,
-      maxInstances: 2,
+      maxInstances: HUB_CAPACITY,
+      // With every world's chain object, its index and the worlds' database (src/hub/names.ts).
+      constraints: { regions: REGIONS },
       observability: { logs: { enabled: true } },
     };
   }),

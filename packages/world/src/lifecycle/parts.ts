@@ -15,9 +15,9 @@ import { BUNDLER_PATH, ENTRY_POINT, TEST_PAYMASTER } from "../bundler/Keys.ts";
 import { TEST_USDC } from "../chain/faucet.ts";
 import { OPERATOR_TOKEN_ID } from "../core/Core.ts";
 import { CORE_HEALTH } from "../core/health.ts";
-import { BRANCH_ID } from "../database/Db.ts";
+import { connectionOf, projectId } from "../database/neon.ts";
 import { query } from "../database/sql.ts";
-import { DOOR_TOKEN_ID } from "../door/Door.ts";
+import { openHub, worldToken } from "../hub/hub.ts";
 import { WorldNotReady } from "../failures.ts";
 import { recordedOutput, secretOf } from "../stack/engine.ts";
 import { nameOf, stageOf } from "../stack/names.ts";
@@ -36,13 +36,35 @@ export const WorldOutput = Schema.Struct({
   branch: Schema.String,
   /** The platform stage whose bench holds the world's sites, or `none`. */
   bench: Schema.optional(Schema.String),
+  /** The fleet hub its chain, index and bundler live on (src/hub), and the expiry its token there was made for. */
+  hub: Schema.String,
+  registeredUntil: Schema.String,
 });
 export type WorldOutput = typeof WorldOutput.Type;
 
-/** The world's handle, built from its outputs and from the two secrets kept in its resources' state. */
-export const handle = Effect.fn("world.handle")(function* (output: WorldOutput) {
-  const token = yield* secretOf(output.world, DOOR_TOKEN_ID, "text");
-  const database = yield* secretOf(output.world, BRANCH_ID, "connectionUri");
+/** The world's two secrets: its token on its hub and its database's connection string. */
+export interface Secrets {
+  readonly token: Redacted.Redacted;
+  readonly database: Redacted.Redacted;
+}
+
+/**
+ * The world's handle, built from its outputs and its secrets: the token worked out again under its hub's admin token
+ * (src/hub/hub.ts) and the connection string asked of Neon, unless the caller already holds both (its create).
+ */
+export const handle = Effect.fn("world.handle")(function* (output: WorldOutput, known?: Secrets) {
+  const secrets: Secrets =
+    known ??
+    (yield* Effect.all(
+      {
+        token: Effect.flatMap(openHub(output.hub), (hub) =>
+          worldToken(hub, { stage: output.world, owner: output.owner, expiresAt: output.registeredUntil }),
+        ),
+        database: Effect.flatMap(projectId, (project) => connectionOf(project, output.branch)),
+      },
+      { concurrency: 2 },
+    ));
+  const { token, database } = secrets;
   const door = `${output.doorUrl}/${Redacted.value(token)}`;
   const operatorToken = yield* secretOf(output.world, OPERATOR_TOKEN_ID, "text");
   const world: World = {
@@ -91,7 +113,7 @@ const toDoor = (world: Door, request: HttpClientRequest.HttpClientRequest) =>
   );
 
 /** One call to the world's door, its answer decoded with `schema`. A door that does not answer so is not ready. */
-const doorCall = <S extends Schema.Constraint>(
+export const doorCall = <S extends Schema.Constraint>(
   world: Door,
   part: WorldNotReady["part"],
   request: HttpClientRequest.HttpClientRequest,
@@ -230,11 +252,15 @@ export const partStatus = (world: Door, part: "chain" | "index") =>
  * Starts the index and waits until Ponder says its backfill is done. The index's Durable Object tries a refused start
  * again within its patience (src/containers/patience.ts); a start that did not hold is made again from here.
  */
-export const indexReady = (world: Door) =>
+export const indexReady = (world: Pick<World, "door" | "database">) =>
   patient(
     Effect.gen(function* () {
       const status = yield* indexStatus(world);
-      if (!status.running) yield* doorCall(world, "index", HttpClientRequest.post("/index/start"), Schema.Unknown);
+      // The index is told the world's database with its start: one Ponder application serves every world on the hub.
+      const start = HttpClientRequest.post("/index/start").pipe(
+        HttpClientRequest.bodyText(Redacted.value(world.database), "text/plain"),
+      );
+      if (!status.running) yield* doorCall(world, "index", start, Schema.Unknown);
       if (status.ready !== 200)
         return yield* WorldNotReady.make({
           part: "index",

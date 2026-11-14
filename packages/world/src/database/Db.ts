@@ -1,19 +1,17 @@
-// A world's one database: its own copy-on-write branch of the Neon project the platform stage owns, and the
-// Hyperdrive configuration through which the world's Core reaches it. Declared here so the stack, the index and a
-// caller's Core name the same resources.
+// A world's one database: its own copy-on-write branch of the Neon project the platform stage owns (made through
+// Neon's API, src/database/neon.ts), and the Hyperdrive configuration through which the world's Core reaches it.
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Neon from "@alchemy.run/neon";
 import * as Alchemy from "alchemy";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
-import * as Option from "effect/Option";
+import * as Redacted from "effect/Redacted";
 import { PLATFORM } from "../stack/names.ts";
 import { worldSettings } from "../stack/settings.ts";
 
 /** Logical ids, as the state store keys them. */
 export const PROJECT_ID = "worlds-db";
 export const REGISTRY_ID = "registry";
-export const BRANCH_ID = "world";
 export const HYPERDRIVE_ID = "world-db";
 
 /** The Neon project every world's branch belongs to. Created only in the platform stage. */
@@ -35,26 +33,15 @@ export const Registry = Effect.gen(function* () {
 });
 
 /**
- * The world's branch. It forks another world's branch when the world is made from one, or a snapshot's when it is
- * restored from one, and Neon deletes it by itself the moment the world expires.
+ * Cloudflare's pooled way in to the world's branch. A Core Worker binds this; it never sees the connection string. The
+ * branch itself is made by the world's create through Neon's API (src/database/neon.ts), not by the stack: Alchemy's
+ * Neon provider looks at a new branch every 5 s, which cost 6 to 9 s of every create. Its take-down deletes it.
  */
-export const WorldBranch = Effect.gen(function* () {
-  const { stage } = yield* Alchemy.Stack;
-  const project = yield* WorldsProject;
-  const { expiresAt, forkedFrom, parentBranch } = yield* worldSettings;
-  const parent = Option.isSome(parentBranch)
-    ? { parentBranch: { branchId: parentBranch.value } }
-    : Option.isSome(forkedFrom)
-      ? { parentBranch: yield* Neon.Branch.ref(BRANCH_ID, { stage: forkedFrom.value }) }
-      : {};
-  return yield* Neon.Branch(BRANCH_ID, { project, name: stage, expiresAt, ...parent });
-});
-
-/** Cloudflare's pooled way in to the world's branch. A Core Worker binds this; it never sees the connection string. */
 export const WorldDatabase = Effect.gen(function* () {
-  const branch = yield* WorldBranch;
+  const { branch } = yield* worldSettings;
   // Its query cache is off, as Core's own stage's is (packages/core, src/stack/database.ts): a read just after a write
   // must see it. With the cache on, approval.sign read a subject's approvals as they were before the last signature
   // (the chain journey in w-cops3).
-  return yield* Cloudflare.Hyperdrive.Connection(HYPERDRIVE_ID, { origin: branch.origin, caching: { disabled: true } });
+  const origin = branch.connectionUri.pipe(Redacted.value, Neon.parsePostgresOrigin);
+  return yield* Cloudflare.Hyperdrive.Connection(HYPERDRIVE_ID, { origin, caching: { disabled: true } });
 });

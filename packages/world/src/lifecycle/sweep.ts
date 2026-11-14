@@ -6,13 +6,16 @@
 // behind: image repositories of this stack that nothing accounts for any more, and names still held in the
 // registry by worlds that no longer exist.
 import * as Arr from "effect/Array";
+import * as Clock from "effect/Clock";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { SweepIncomplete } from "../failures.ts";
-import { recordedStages } from "../stack/engine.ts";
+import { HUB_STACK } from "../hub/names.ts";
+import { hubDown, worldsOn } from "../hub/hub.ts";
+import { recordedStages, recordedStagesOf } from "../stack/engine.ts";
 import { BUNDLER_IMAGE, CHAIN_IMAGE, IMAGE_PREFIX, INDEX_IMAGE, isWorldStage, PLATFORM } from "../stack/names.ts";
 import { imageRepositories, removeImageRepositories } from "./account.ts";
 import { claims, registry, release } from "./claim.ts";
@@ -44,6 +47,8 @@ export const SweepReport = Schema.Struct({
   imagesRemoved: Schema.Array(Schema.String),
   /** Image repositories that should have gone and are still listed. */
   imagesLeft: Schema.Array(Schema.String),
+  /** Each fleet hub (src/hub): kept while it lives or a world is on it, destroyed once it has expired and none is. */
+  hubs: Schema.Array(WorldReport),
 });
 export type SweepReport = typeof SweepReport.Type;
 
@@ -114,6 +119,38 @@ export const removeLeftoverImages = (stages: ReadonlyArray<string>, dryRun: bool
     };
   });
 
+/**
+ * Decides about one hub and, when it has expired and no world names it any more or is in its ledger, destroys it. A
+ * hub's worlds never outlive it (src/lifecycle/up.ts), so by then they have expired too and were swept just before.
+ */
+const sweepHub =
+  (now: DateTime.Utc, dryRun: boolean) => (recorded: { readonly stage: string; readonly output: unknown }) =>
+    Effect.gen(function* () {
+      const finding = yield* classify(now, recorded.output);
+      const decision = decide(finding, dryRun);
+      const known = knownOf(finding);
+      if (decision !== "destroy") return { world: recorded.stage, ...known, verdict: decision } satisfies WorldReport;
+      const worlds = yield* worldsOn(recorded.stage);
+      if (Arr.isReadonlyArrayNonEmpty(worlds))
+        return {
+          world: recorded.stage,
+          ...known,
+          verdict: "destroy failed",
+          detail: `worlds are still on it: ${Arr.join(worlds, ", ")}`,
+        } satisfies WorldReport;
+      const began = yield* Clock.currentTimeMillis;
+      const gone = yield* Effect.exit(hubDown(recorded.stage));
+      const destroyMs = (yield* Clock.currentTimeMillis) - began;
+      return Exit.isSuccess(gone)
+        ? ({ world: recorded.stage, ...known, verdict: "destroyed", destroyMs } satisfies WorldReport)
+        : ({
+            world: recorded.stage,
+            ...known,
+            verdict: "destroy failed",
+            detail: describe(gone.cause),
+          } satisfies WorldReport);
+    });
+
 /** Sweeps once, and reports what it found and did. It never fails because a destroy failed: the report says so. */
 export const sweep = Effect.fn("world.sweep")(function* (options: { readonly dryRun?: boolean } = {}) {
   const dryRun = options.dryRun === true;
@@ -128,7 +165,13 @@ export const sweep = Effect.fn("world.sweep")(function* (options: { readonly dry
     (stage) => !Arr.some(worlds, (world) => world.world === stage && world.verdict === "destroyed"),
   );
   const namesReleased = yield* releaseStaleNames(now, remaining, dryRun);
-  const images = yield* removeLeftoverImages(remaining, dryRun);
+  const hubs = yield* Effect.forEach(yield* recordedStagesOf(HUB_STACK), sweepHub(now, dryRun));
+  const hubsLeft = Arr.filter(hubs, (hub) => hub.verdict !== "destroyed");
+  // The images are the platform's and every hub's: kept while either is.
+  const images = yield* removeLeftoverImages(
+    Arr.isReadonlyArrayNonEmpty(hubsLeft) ? [...remaining, PLATFORM] : remaining,
+    dryRun,
+  );
   return {
     at: DateTime.formatIso(now),
     dryRun,
@@ -136,13 +179,14 @@ export const sweep = Effect.fn("world.sweep")(function* (options: { readonly dry
     namesReleased,
     imagesRemoved: images.removed,
     imagesLeft: images.left,
+    hubs,
   } satisfies SweepReport;
 });
 
 /** Fails with `SweepIncomplete` when an expired world or a leftover image is still there, so a schedule can alert. */
 export const requireComplete = (report: SweepReport) => {
   const failed = Arr.map(
-    Arr.filter(report.worlds, (world) => world.verdict === "destroy failed"),
+    Arr.filter([...report.worlds, ...report.hubs], (world) => world.verdict === "destroy failed"),
     (world) => world.world,
   );
   return Arr.isReadonlyArrayEmpty(failed) && Arr.isReadonlyArrayEmpty(report.imagesLeft)
