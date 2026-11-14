@@ -57,7 +57,9 @@ test("every field of every payload has its own flag, and none takes a reserved n
     const flags = Arr.map(fields, (field) => field.flag);
     assert.equal(Arr.dedupe(flags).length, flags.length, `${name}: two fields share a flag`);
     const reserved: ReadonlyArray<string> =
-      servedBy(name) === "platform" ? [Cli.RESERVED.input] : [Cli.RESERVED.input, Cli.RESERVED.as];
+      servedBy(name) === "platform"
+        ? [Cli.RESERVED.input, Cli.RESERVED.operator]
+        : [Cli.RESERVED.input, Cli.RESERVED.as, Cli.RESERVED.operator, Cli.RESERVED.at];
     for (const flag of flags) assert.ok(!reserved.includes(flag), `${name}: --${flag} is reserved`);
   }
 });

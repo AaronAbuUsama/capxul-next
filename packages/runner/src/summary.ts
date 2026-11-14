@@ -113,6 +113,8 @@ export const Summary = Schema.Struct({
   outcome: Outcome,
   /** Where Core ran, when not on Cloudflare: a local-Core rehearsal, whose outcome is at best `rehearsed`. */
   core: Schema.optional(Schema.String),
+  /** `cli`: the journeys' calls went through the command line (`--via=cli`), not the SDK. */
+  via: Schema.optional(Schema.Literal("cli")),
   failure: Schema.NullOr(Schema.String),
   count: Schema.Struct({
     journeys: Schema.Finite,
@@ -279,6 +281,7 @@ export const summarize = (input: SummaryInput): Summary => {
     startedAt: input.startedAt,
     outcome: failures.length === 0 ? passedOr(input.core) : "failed",
     ...(input.core === undefined ? {} : { core: input.core }),
+    ...(Arr.some(input.records, (record) => record.via === "cli") ? { via: "cli" as const } : {}),
     failure: failures.length === 0 ? null : Arr.join(failures, "\n"),
     count: {
       journeys: input.records.length,

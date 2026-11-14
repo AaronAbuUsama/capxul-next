@@ -1,5 +1,5 @@
 // Entry: `bun src/main.ts door [--world=<name>]` or `bun src/main.ts scenarios [--one-stage] [--expect=pass|not-implemented]
-// [name...]`, through ../run.sh, which sets the environment. The door runs in its own fresh stage; the journeys (the
+// [--via=sdk|cli] [name...]`, through ../run.sh, which sets the environment. The door runs in its own fresh stage; the journeys (the
 // scenarios, since 14 November 2026) run as scenario-runs.ts says, one at a time. `door --world=<name>` runs the door in a world `world create` made
 // (packages/world), which it neither creates nor destroys. Exits 1 when the door failed, or when a journey did not end as the run
 // expected or a stage was left. This is the only file of the runner that touches the process: its arguments, its exit
@@ -31,16 +31,23 @@ import { Settings } from "./settings.ts";
 import { ranAsExpected, type Expectation, type Mode } from "./summary.ts";
 
 const USAGE =
-  "usage: door [--world=<name>] | chain --world=<name> | scenarios [--one-stage] [--expect=pass|not-implemented] [--core=local] [name...] | starting-worlds [--core=local]";
+  "usage: door [--world=<name>] | chain --world=<name> | scenarios [--one-stage] [--expect=pass|not-implemented] [--core=local] [--via=sdk|cli] [name...] | starting-worlds [--core=local]";
 const [command, ...rest] = process.argv.slice(2);
 const WORLD_FLAG = "--world=";
 const world = Arr.findFirst(rest, Str.startsWith(WORLD_FLAG)).pipe(Option.map(Str.slice(WORLD_FLAG.length)));
 const LOCAL_CORE = "--core=local";
 /** `--core=local`: every world's Core runs here in workerd, next to a stand-in bench (src/local/host.ts). */
 const localCore = Arr.contains(rest, LOCAL_CORE);
+const VIA_FLAG = "--via=";
+/** `--via=cli`: the journeys' calls go through the command line, each the `capxul` command that makes it (client.ts). */
+const via = Arr.findFirst(rest, Str.startsWith(VIA_FLAG)).pipe(Option.map(Str.slice(VIA_FLAG.length)));
 const flags = Arr.filter(
   rest,
-  (each) => Str.startsWith("--")(each) && !Str.startsWith(WORLD_FLAG)(each) && each !== LOCAL_CORE,
+  (each) =>
+    Str.startsWith("--")(each) &&
+    !Str.startsWith(WORLD_FLAG)(each) &&
+    !Str.startsWith(VIA_FLAG)(each) &&
+    each !== LOCAL_CORE,
 );
 const names = Arr.filter(rest, (each) => !Str.startsWith("--")(each));
 /** The journeys to run, by the names given; all of them when none is. */
@@ -117,7 +124,10 @@ const theScenarios = (settings: Settings, chosen: ReadonlyArray<Plan>) =>
     const { mode, expect } = yield* options();
     const inPrivateWorlds = expect === "pass";
     const shown = inPrivateWorlds ? "one world, reset before each journey" : mode;
-    yield* Effect.log(`${chosen.length} journey${chosen.length === 1 ? "" : "s"}, ${shown}, expecting ${expect}`);
+    const through = settings.via === "cli" ? "through the command line" : "through the SDK";
+    yield* Effect.log(
+      `${chosen.length} journey${chosen.length === 1 ? "" : "s"}, ${shown}, ${through}, expecting ${expect}`,
+    );
     const summary = inPrivateWorlds
       ? yield* inWorlds(settings, runInWorlds(chosenJourneys, settings))
       : yield* runScenarios(chosen, settings, mode, expect);
@@ -146,8 +156,16 @@ const theStartingWorlds = (settings: Settings) =>
     if (record.outcome === "failed") process.exitCode = 1;
   });
 
+/** The settings, with `--via`'s over `RUNNER_VIA`'s; `--via` is for the journeys only. */
+const withVia = (settings: Settings): Effect.Effect<Settings, RunnerFailure> => {
+  if (Option.isNone(via)) return Effect.succeed(settings);
+  if (command !== "scenarios") return usage(`--via is for the journeys: scenarios; ${USAGE}`);
+  if (via.value === "sdk" || via.value === "cli") return Effect.succeed({ ...settings, via: via.value });
+  return usage(`--via is sdk or cli, not ${via.value}; ${USAGE}`);
+};
+
 const program = Effect.gen(function* () {
-  const settings = yield* Settings;
+  const settings = yield* Effect.flatMap(Settings, withVia);
   const chosen = yield* plans(settings);
   if (Option.isSome(world) && (command === "scenarios" || command === "starting-worlds"))
     return yield* usage(`--world is for the door and the chain journey only; ${USAGE}`);

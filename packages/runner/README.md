@@ -17,6 +17,7 @@ Built from `spikes/pipeline/runner`.
 ./run.sh starting-worlds      # make every starting world the runner can make, timed, then destroy them all
 WORLD_BENCH=<platform stage> ./run.sh scenarios --core=local [name...]   # a rehearsal: Core in workerd here (below)
 WORLD_BENCH=local POOL_SECRETS=<file> ./run.sh scenarios --core=local    # the same beside packages/platform's bin/pool-bench.sh bench
+./run.sh scenarios --via=cli [name...]                   # the same, every operation through the command line (below)
 ./run.sh scenarios --expect=not-implemented              # each in a fresh stage of Core's empty handlers; must fail at step 1
 ./run.sh scenarios --one-stage --expect=not-implemented  # the same, all in one fresh stage
 ```
@@ -280,3 +281,15 @@ port 80. It is not in the repository. CI needs nothing of this kind.
 - A reset does not pause the bench's scheduler for the world's sites (packages/platform, "Sites from a pool").
 - A company founded in a journey (`org.create` from `fresh`) still builds its site from nothing (about two minutes):
   the bench pools templates of starting worlds, not of a bare company site.
+
+## Through the command line (step 1.10)
+
+`./run.sh scenarios --via=cli` (or `RUNNER_VIA=cli`) runs the journeys exactly as above, but every operation a journey
+calls goes through the command line (`src/client.ts`, packages/cli `callVia`): the `capxul` command that makes the
+call, run in this process at the same doors with the same credentials and the same HTTP client, and its one printed
+line read back with the operation's own schemas. The recording, the generic checks and the operations' checks are the
+same, so a run through the command line passes exactly when its journeys get the same answers as through the SDK.
+Each run record and the summary say `via: "cli"`; a run through the SDK names no `via`. The chain reads, which are not
+operations and have no command, still go through the SDK, and so does the making of the starting worlds, which is
+not a journey. `test/via-cli.test.ts` runs the three journeys through both against the SDK's TestDoor in this process
+and finds the same calls, answers and steps, and every call the door saw under the trace the runner recorded.
