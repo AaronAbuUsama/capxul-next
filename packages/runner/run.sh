@@ -6,12 +6,14 @@
 #   ./run.sh door --world=<name>  the same, through the Core of a world `world create` made (packages/world)
 #   ./run.sh chain --world=<name> the chain operations' journey through that world's Core (src/chain-journey.ts)
 #   ./run.sh scenarios [--one-stage] [--expect=pass|not-implemented] [name...]
-#                                 run the registered journeys (or those named): in private worlds, one world per journey;
+#                                 run the registered journeys (or those named): in one world on the run's fleet hub
+#                                 (WORLD_HUB, a fresh one by default, brought up and taken down), reset before each;
 #                                 or, with --expect=not-implemented, each in its own fresh stage of Core deployed with its
 #                                 empty handlers (or all in one, --one-stage), and write their summary
 #   ./run.sh scenarios --core=local [name...]
-#                                 the same in private worlds, with every world's Core run here in workerd next to a
-#                                 stand-in bench (WORLD_BENCH=<platform stage>): a rehearsal, labelled so in every record
+#                                 the same, with every world's Core run here in workerd next to a stand-in bench
+#                                 (WORLD_BENCH=<platform stage>, or WORLD_BENCH=local with POOL_SECRETS for
+#                                 packages/platform's bin/pool-bench.sh bench): a rehearsal, labelled so in every record
 #   ./run.sh alchemy <args...>    an alchemy command for the CapxulCore stack, e.g. alchemy state list. Never nuke.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -30,6 +32,16 @@ export CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-$(account 'https://api.cl
 export NEON_ORG_ID="${NEON_ORG_ID:-$(account https://console.neon.tech/api/v2/users/me/organizations "import json,sys; print(json.load(sys.stdin)['organizations'][0]['id'])")}"
 # A local Core (--core=local) is served by the workerd Alchemy's local runtime pins.
 export CAPXUL_WORKERD="${CAPXUL_WORKERD:-$(bun -e 'import w from "workerd"; console.log(w)')}"
+# A run in private worlds lives on its own fleet hub (src/worlds/hub.ts): a fresh one per run unless WORLD_HUB names
+# one; a hub the run brings up it also takes down.
+export WORLD_HUB="${WORLD_HUB:-rh-$(python3 -c "import secrets; print(secrets.token_hex(3))")}"
+# WORLD_BENCH=local: packages/platform's bin/pool-bench.sh bench on this machine, not a platform stage. Its door's
+# address and key (from its secrets file, never printed) are handed to packages/world (src/site/Bench.ts).
+if [ "${WORLD_BENCH:-}" = local ]; then
+  [ -s "${POOL_SECRETS:-}" ] || { echo "run.sh: WORLD_BENCH=local needs POOL_SECRETS, the pool bench's secrets file" >&2; exit 2; }
+  export WORLD_BENCH_DOOR="${WORLD_BENCH_DOOR:-http://127.0.0.1:${POOL_DOOR_PORT:-18170}}"
+  WORLD_BENCH_KEY="$(sed -n 's/^DOOR_KEY=//p' "$POOL_SECRETS")"; export WORLD_BENCH_KEY
+fi
 # The disk guard: a run in private worlds with a bench fills the disk with sites and their backups; stop before it is
 # full (RUNNER_MIN_FREE_GB, default 4).
 free_gb() { df -Pk . | awk 'NR==2 { print int($4 / 1048576) }'; }

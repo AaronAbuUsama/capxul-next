@@ -153,8 +153,11 @@ const restored: Steps = (making) =>
     };
   });
 
-/** How long the template world lives: long enough for every scenario of a run to restore from it. */
-export const TEMPLATE_MINUTES = 6 * 60;
+/**
+ * How long the run's one world lives (the template world, made by `fresh`'s maker): long enough for every journey of
+ * a run, and less than the hub it lives on (`RUNNER_HUB_LIFETIME`, 4 hours by default).
+ */
+export const TEMPLATE_MINUTES = 150;
 
 /** Every starting world the runner can make, by its name, with its steps. */
 export const makers: Readonly<Record<string, Steps>> = {

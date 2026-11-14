@@ -101,10 +101,11 @@ export class FaucetFailed extends Schema.TaggedError<FaucetFailed, { readonly br
 
 /**
  * A world's company sites: none can be asked for without a bench (`WORLD_BENCH`), the site door refused or did
- * not answer, a site could not be made, or a take-down left one on the bench.
+ * not answer, a site could not be made, a reset found no template to claim its sites from, or a take-down left one
+ * on the bench.
  */
 export class SiteFailed extends Schema.TaggedError<SiteFailed, { readonly brand: unique symbol }>()("SiteFailed", {
-  step: Schema.Literals(["plan", "door", "waiting", "make", "remove"]),
+  step: Schema.Literals(["plan", "door", "waiting", "make", "remove", "claim"]),
   message: Schema.String,
 }) {}
 
