@@ -13,33 +13,17 @@ import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
-import * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
-import type * as HttpClient from "effect/http/HttpClient";
-import { capxulFor, type Call, type Target } from "../client.ts";
 import { describe, RunnerFailure } from "../failure.ts";
 import type { Settings } from "../settings.ts";
 import type { Timings } from "../timings.ts";
-import { madeCallOf, makers, waitsOn, type Facts, type Making } from "./makers.ts";
-
-/** What making a starting world needs: the client's HTTP, and the shared state the bench template is found by. */
-type Needs = HttpClient.HttpClient | World.SharedState;
-
-/** One call made in making a starting world, with the world it was made for: what the starting worlds' record keeps. */
-export interface MakingCall {
-  readonly world: string;
-  readonly call: Call;
-}
-
-const callsOf = (facts: Facts): ReadonlyArray<unknown> => {
-  const calls = facts["calls"];
-  return Arr.isArray(calls) ? calls : [];
-};
+import { nothingOf, recorder, targetOf, type MakingCall, type Needs } from "./making.ts";
+import { makers, waitsOn, type Making } from "./makers.ts";
 
 const fromNothing = (world: StartingWorld) => world.from === null || world.from === startingWorlds.nothing;
 
 /** A starting world's steps, or why the runner cannot make it yet: the operations its steps wait on. */
-const stepsOf = (world: StartingWorld) =>
+export const stepsOf = (world: StartingWorld) =>
   Effect.fromOption(Option.fromNullishOr(makers[world.name])).pipe(
     Effect.mapError(() =>
       RunnerFailure.make({
@@ -82,40 +66,8 @@ export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (
   const kept = yield* Ref.make<ReadonlyArray<string>>([]);
   const toSave = yield* Ref.make<ReadonlyArray<string>>([]);
   const made = yield* Ref.make<ReadonlyArray<MakingCall>>([]);
-  const target: Target = {
-    // A maker calls a world's operations `at` that world's door; this client's own world is never called.
-    url: "http://127.0.0.1:9",
-    platformUrl,
-    doorToken: Redacted.make("none"),
-    platformToken: settings.platformToken,
-    secondPlatformToken: Option.getOrNull(settings.secondPlatformToken),
-    warmUntil: 0,
-    every: settings.probeEvery,
-  };
-
-  /** Runs `steps` of `world` from `making`, recording each call, and appends them to the world's `calls`. */
-  const run = (
-    world: StartingWorld,
-    steps: (making: Making) => Effect.Effect<Making, RunnerFailure, Capxul>,
-    making: Making,
-  ) =>
-    Effect.gen(function* () {
-      const log = yield* Ref.make<ReadonlyArray<Call>>([]);
-      // Each making is its own program, handed a client of its own, so its calls are recorded apart from any other's.
-      // oxlint-disable-next-line effecttsgo/strict-effect-provide -- a maker's client is built for its one making and closed with it
-      const exit = yield* Effect.exit(steps(making).pipe(Effect.provide(capxulFor(target, log))));
-      const calls = yield* Ref.get(log);
-      yield* Ref.update(made, (all) => [...all, ...Arr.map(calls, (call) => ({ world: world.name, call }))]);
-      const after = yield* exit;
-      const entries = yield* Effect.forEach(calls, (call) => madeCallOf(call, making.own ?? after.own));
-      const facts: Facts = { ...after.facts, calls: [...callsOf(after.facts), ...entries] };
-      return { own: after.own, facts } satisfies Making;
-    });
-
-  const nothing: Making = {
-    facts: { operators: { first: settings.owner, second: settings.secondOwner }, calls: [] },
-    own: null,
-  };
+  const run = recorder(targetOf(settings, platformUrl), made);
+  const nothing = nothingOf(settings);
 
   /** Saves the one world as the snapshot `world.name`, and keeps its sites as the bench's template of that name. */
   const save = (world: StartingWorld, after: Making) =>
