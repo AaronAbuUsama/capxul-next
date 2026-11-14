@@ -1,0 +1,213 @@
+{
+  "proof": "a world restored from a snapshot keeps one clock: its chain reads Core's world time within a second",
+  "outcome": "passed",
+  "at": "2026-11-14T01:07:35.142Z",
+  "checks": [
+    {
+      "check": "the first world runs on a running clock two weeks behind the host",
+      "held": true
+    },
+    {
+      "check": "the restored world runs on the snapshot's clock",
+      "held": true
+    },
+    {
+      "check": "the restored world's chain reads Core's clock within a second",
+      "held": true
+    },
+    {
+      "check": "and still does after its chain was stopped and woken from its saved state",
+      "held": true
+    },
+    {
+      "check": "so does the first world's chain",
+      "held": true
+    },
+    {
+      "check": "nothing of either world is left in the accounts, snapshot branches included",
+      "held": true
+    }
+  ],
+  "observations": {
+    "startAt": "2026-10-31T01:02:21.637Z",
+    "saved": {
+      "world": "p-clk",
+      "snapshot": "c1",
+      "recordSeq": 1,
+      "clock": {
+        "mode": "running",
+        "now": "2026-10-31T01:03:10.304Z"
+      },
+      "template": false,
+      "savedAt": "2026-11-14T01:04:14.232Z",
+      "companies": 0,
+      "migrations": "0005_approvals.sql"
+    },
+    "restored": {
+      "clock": {
+        "mode": "running",
+        "now": "2026-10-31T01:03:11.401Z"
+      },
+      "parent": {
+        "world": "p-clk",
+        "snapshot": "c1",
+        "recordSeq": 1
+      }
+    },
+    "second": {
+      "world": "p-clk2",
+      "headBefore": {
+        "number": 47893276,
+        "at": "2026-10-31T01:03:11.000Z"
+      },
+      "mined": {
+        "number": 47893277,
+        "at": "2026-10-31T01:03:19.000Z"
+      },
+      "core": {
+        "from": "2026-10-31T01:03:18.111Z",
+        "to": "2026-10-31T01:03:18.220Z"
+      },
+      "apartMs": 780
+    },
+    "woken": {
+      "world": "p-clk2",
+      "headBefore": {
+        "number": 47893277,
+        "at": "2026-10-31T01:03:19.000Z"
+      },
+      "mined": {
+        "number": 47893278,
+        "at": "2026-10-31T01:03:55.000Z"
+      },
+      "core": {
+        "from": "2026-10-31T01:03:55.122Z",
+        "to": "2026-10-31T01:03:55.206Z"
+      },
+      "apartMs": 122
+    },
+    "chainRecord": {
+      "running": true,
+      "record": {
+        "idleSeconds": 600,
+        "up": true,
+        "adopted": true,
+        "starts": [
+          {
+            "at": "2026-11-14T01:05:40.554Z",
+            "from": "saved state",
+            "afterUnsavedStop": false,
+            "wakeMs": 3172,
+            "attempts": [
+              {
+                "at": "2026-11-14T01:05:40.688Z",
+                "ms": 821,
+                "started": true,
+                "outcome": "refused",
+                "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
+              },
+              {
+                "at": "2026-11-14T01:05:42.509Z",
+                "ms": 944,
+                "started": true,
+                "outcome": "ready",
+                "message": null
+              }
+            ],
+            "ms": 2765,
+            "startCalls": 2,
+            "refusals": 1
+          },
+          {
+            "at": "2026-11-14T01:06:55.302Z",
+            "from": "saved state",
+            "afterUnsavedStop": false,
+            "wakeMs": 1411,
+            "attempts": [
+              {
+                "at": "2026-11-14T01:06:55.405Z",
+                "ms": 1098,
+                "started": true,
+                "outcome": "ready",
+                "message": null
+              }
+            ],
+            "ms": 1098,
+            "startCalls": 1,
+            "refusals": 0
+          }
+        ],
+        "gaveUp": [],
+        "stops": [
+          {
+            "at": "2026-11-14T01:06:21.559Z",
+            "why": "asked",
+            "head": "0x2dacb1d",
+            "savedBytes": 3434942,
+            "ms": 2865
+          }
+        ],
+        "lastSave": {
+          "at": "2026-11-14T01:06:04.158Z",
+          "head": "0x2dacb1b",
+          "ms": 3189
+        },
+        "clockOffset": -1209781
+      }
+    },
+    "first": {
+      "world": "p-clk",
+      "headBefore": {
+        "number": 47893275,
+        "at": "2026-10-31T01:02:21.000Z"
+      },
+      "mined": {
+        "number": 47893276,
+        "at": "2026-10-31T01:05:54.000Z"
+      },
+      "core": {
+        "from": "2026-10-31T01:05:54.611Z",
+        "to": "2026-10-31T01:05:54.699Z"
+      },
+      "apartMs": 611
+    },
+    "inventory": {
+      "before": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-alto",
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "after": {
+        "workers": [],
+        "containerApplications": [],
+        "durableObjectNamespaces": [],
+        "r2Buckets": [],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-alto",
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "leftOfTheseWorlds": [],
+      "sameAsBefore": true,
+      "sameAsBeforeAccountWide": true,
+      "otherWorlds": []
+    }
+  }
+}

@@ -4,7 +4,9 @@
 //   wake:  nothing saved  -> start anvil from the seed in the image
 //          state saved    -> start anvil empty, then anvil_loadState with what was saved
 //          a refused start is tried again, with backoff, within CHAIN_START (src/containers/patience.ts)
-//   stop:  anvil_dumpState -> R2 -> destroy the container
+//   stop:  anvil_dumpState -> R2 -> destroy the container; how far anvil's clock runs from the host's is kept too
+//   clock: anvil_loadState restarts anvil's clock at the saved head, so a wake sets it back to the host's time plus
+//          the kept offset (evm_setTime): the chain's time runs on through a stop as the world's running clock does
 //   idle:  every call pushes a durable callback forward; when it fires, the chain is stopped the same way
 //   save:  while calls arrive the state is also saved every SAVE_EVERY, so a container that goes away without
 //          being stopped (a crash, the platform replacing it) costs at most that much of the chain
@@ -45,6 +47,8 @@ export const WORLD = "world";
 
 /** anvil's answer to one call. A result that is a string is all the chain itself ever asks for. */
 const RpcAnswer = Schema.Struct({ result: Schema.optional(Schema.Unknown), error: Schema.optional(Schema.Unknown) });
+/** A block as the chain reads its time from it. */
+const Pending = Schema.Struct({ timestamp: Schema.String });
 
 const failed =
   (step: ChainFailed["step"]) =>
@@ -86,8 +90,8 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
             Effect.mapError(failed("rpc")),
           );
 
-      /** Calls one method for the chain's own needs and insists on a string result. */
-      const call = (step: ChainFailed["step"], method: string, params: ReadonlyArray<unknown> = []) =>
+      /** Calls one of anvil's methods for the chain's own needs and gives back its result, whatever it is. */
+      const ask = (step: ChainFailed["step"], method: string, params: ReadonlyArray<unknown> = []) =>
         port
           .fetch(
             HttpClientRequest.post("http://container/").pipe(
@@ -98,11 +102,31 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
             Effect.flatMap(HttpClientResponse.schemaBodyJson(RpcAnswer)),
             Effect.mapError(failed(step)),
             Effect.flatMap((answer) =>
-              Predicate.isString(answer.result) || answer.result === true
-                ? Effect.succeed(Predicate.isString(answer.result) ? answer.result : "true")
-                : Effect.fail(failed(step)(answer.error ?? `${method} gave no result`)),
+              answer.error === undefined ? Effect.succeed(answer.result) : Effect.fail(failed(step)(answer.error)),
             ),
           );
+
+      /** The same, insisting on a string result. */
+      const call = (step: ChainFailed["step"], method: string, params: ReadonlyArray<unknown> = []) =>
+        ask(step, method, params).pipe(
+          Effect.flatMap((result) =>
+            Predicate.isString(result) || result === true
+              ? Effect.succeed(Predicate.isString(result) ? result : "true")
+              : Effect.fail(failed(step)(`${method} gave no result`)),
+          ),
+        );
+
+      /**
+       * How many seconds anvil's clock runs ahead of the host's (behind, when negative): anvil gives its pending block
+       * its own time now. A warp, a world's start block or a restore moves that clock (evm_setNextBlockTimestamp).
+       */
+      const clockOffset = Effect.gen(function* () {
+        const pending = yield* Effect.flatMap(
+          ask("save", "eth_getBlockByNumber", ["pending", false]),
+          Schema.decodeUnknownEffect(Pending),
+        ).pipe(Effect.mapError(failed("save")));
+        return Number(BigInt(pending.timestamp)) - Math.floor((yield* Clock.currentTimeMillis) / 1000);
+      });
 
       // Cloudflare can refuse to start the container ("no container instance ... try again later"), most often just
       // after the world is made or after its container went away, so the start is tried again within CHAIN_START
@@ -110,7 +134,7 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
       const wake = Effect.gen(function* () {
         if (yield* running("start")) return;
         const began = yield* Clock.currentTimeMillis;
-        const { up: afterUnsavedStop, idleSeconds } = yield* record;
+        const { up: afterUnsavedStop, idleSeconds, clockOffset: offset } = yield* record;
         const object = yield* saved.get(key).pipe(Effect.mapError(failed("restore")));
         const restoring = Predicate.isNotNull(object);
         // Cloudflare stops a container by itself once its Durable Object has been quiet for a while, and that stop
@@ -139,6 +163,10 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
         if (Predicate.isNotNull(object)) {
           const dump = yield* object.text().pipe(Effect.mapError(failed("restore")));
           yield* call("restore", "anvil_loadState", [dump]);
+          // anvil now runs on from the saved head; its own state's clock runs from where it was, as if never stopped.
+          // A state adopted from another world has no offset here: the world that adopts it sets its clock itself.
+          if (Predicate.isNumber(offset))
+            yield* ask("restore", "evm_setTime", [Math.floor((yield* Clock.currentTimeMillis) / 1000) + offset]);
         }
         yield* call("start", "eth_chainId");
         const wakeMs = (yield* Clock.currentTimeMillis) - began;
@@ -149,11 +177,13 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
         yield* remember((old) => ({ ...old, up: true, starts: remembered(old.starts, start) }));
       }).pipe(lock.withPermits(1));
 
-      /** Writes the chain's whole state to R2 and says which block it was at. */
+      /** Writes the chain's whole state to R2, keeps how far anvil's clock runs from the host's, and says which block it was at. */
       const save = Effect.gen(function* () {
         const head = yield* call("save", "eth_blockNumber");
+        const offset = yield* clockOffset;
         const dump = yield* call("save", "anvil_dumpState");
         yield* saved.put(key, dump).pipe(Effect.mapError(failed("save")));
+        yield* remember((old) => ({ ...old, clockOffset: offset }));
         return { head, dump };
       });
 
