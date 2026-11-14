@@ -14,6 +14,7 @@ import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import { AccountUnreadable } from "../failures.ts";
+import { projectId as worldsProjectId } from "../database/neon.ts";
 import { IMAGE_PREFIX, STACK } from "../stack/names.ts";
 import { describeFailure } from "./describe.ts";
 
@@ -59,7 +60,7 @@ const Items = Schema.Struct({ result: Schema.Array(Schema.Record(Schema.String, 
 const Buckets = Schema.Struct({
   result: Schema.Struct({ buckets: Schema.Array(Schema.Struct({ name: Schema.String })) }),
 });
-const Projects = Schema.Struct({ projects: Schema.Array(Schema.Struct({ id: Schema.String, name: Schema.String })) });
+const Project = Schema.Struct({ project: Schema.Struct({ id: Schema.String, name: Schema.String }) });
 const Branches = Schema.Struct({ branches: Schema.Array(Schema.Struct({ name: Schema.String })) });
 const Catalog = Schema.Struct({ repositories: Schema.String.pipe(Schema.Array, Schema.optional) });
 const Tags = Schema.Struct({ tags: Schema.String.pipe(Schema.Array, Schema.NullOr, Schema.optional) });
@@ -164,7 +165,7 @@ export const removeImageRepositories = Effect.fn("world.account.removeImages")(f
 
 /** Everything of the kinds a world creates, counted in the two accounts, with what belongs to this stack named. */
 export const inventory = Effect.gen(function* () {
-  const { account, cloudflare, neon, org } = yield* settings;
+  const { account, cloudflare, neon } = yield* settings;
   const cf = (what: string, path: string, key: string) =>
     send(
       what,
@@ -179,7 +180,13 @@ export const inventory = Effect.gen(function* () {
       HttpClientRequest.get(`${NEON}${path}`).pipe(HttpClientRequest.bearerToken(Redacted.value(neon))),
       schema,
     );
-  const projects = (yield* neonGet("neon projects", `/projects?org_id=${org}&limit=400`, Projects)).projects;
+  // Every world's branch is in the one worlds project the platform stage recorded (database/neon.ts, projectId), so
+  // that project is read by its id, never by listing the organization: CI's key is scoped to that project and may not
+  // list the others (bootstrap.run.ts). With no platform stage there is no project, and nothing of this stack in Neon.
+  const recorded = yield* Effect.option(worldsProjectId);
+  const projects = Option.isNone(recorded)
+    ? []
+    : [(yield* neonGet("neon project", `/projects/${recorded.value}`, Project)).project];
   const ours = Arr.filter(projects, (project) => ofThisStack(project.name));
   const branches = Arr.flatten(
     yield* Effect.forEach(ours, (project) =>

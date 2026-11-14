@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Runs the runner from an agent's container, under Bun. The real keys are never here: the session's network proxy
-# adds them to requests for the Cloudflare and Neon API hosts, so the two key variables only need to be present.
+# Runs the runner under Bun, from an agent's container (whose network proxy adds the Cloudflare and Neon keys to
+# requests, so the two key variables only need to be present) or from CI (which sets them).
 #
 #   ./run.sh door                 call every blueprint operation once through a fresh Core stage
 #   ./run.sh door --world=<name>  the same, through the Core of a world `world create` made (packages/world)
@@ -17,7 +17,10 @@
 #   ./run.sh alchemy <args...>    an alchemy command for the CapxulCore stack, e.g. alchemy state list. Never nuke.
 set -euo pipefail
 cd "$(dirname "$0")"
-export CI=true CLOUDFLARE_API_TOKEN=proxy-injected NEON_API_KEY=proxy-injected
+# CI hands in the real keys (.github/workflows/world.yml); an agent's container has its proxy add them, so only
+# placeholders are needed there. Same as packages/world/run.sh.
+export CI=true
+export CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN:-proxy-injected}" NEON_API_KEY="${NEON_API_KEY:-proxy-injected}"
 export WORLD_OWNER="${WORLD_OWNER:-runner}"
 # A fresh pair of door tokens for this run's stages: Core reads them at deploy, the runner's SDK sends them. They are
 # test credentials of short-lived stages, never printed.
