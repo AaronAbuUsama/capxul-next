@@ -8,6 +8,9 @@
 //    container read reports the image a container was made from, not what is in it now, so code replaced inside a
 //    running container is invisible to step 1, as Worker code replaced by hand was in spikes/state.
 //
+// Alchemy's verdicts in step 1 are judged by src/drift-policy.ts: values a resource changes by itself are forgiven
+// (an EBS volume's available/in-use), and a deploy that did not finish counts as drift.
+//
 // The check is clean only when both are. The pinned `alchemy drift` exits 0 even when it finds drift and misses the
 // code half (records/spike/04-drift.txt); the entry, src/run-drift.ts, exits 2 on drift.
 import * as Alchemist from "alchemy/Alchemist";
@@ -19,8 +22,9 @@ import * as Stream from "effect/Stream";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import { codeChanges } from "./code-drift.ts";
+import { type Attributes, onlySettlingDiffers, unfinished } from "./drift-policy.ts";
 import { STACK } from "./names.ts";
-import { recordedOutputs } from "./state.ts";
+import { recordedOutputs, type StateStore, withState } from "./state.ts";
 
 /** A stack file and the stack it declares; the drift check scans each. */
 export interface Scanned {
@@ -63,17 +67,46 @@ const changedIn = (context: string, container: string) =>
 
 // A stack that does not load, or a resource that cannot be read, is a check that failed, not drift: the check stops
 // and its entry exits 1. Alchemy types both failures as `any`, so they are taken as defects here.
+/** What the drift check reads of one row of Alchemy's scan (Alchemist.Drift.DriftedResource). */
+interface Row {
+  readonly fqn: string;
+  readonly resourceType: string;
+  readonly status: string;
+  readonly reason?: string | undefined;
+  readonly actual?: unknown;
+}
+const isAttributes = (value: unknown): value is Attributes => typeof value === "object" && value !== null;
+
+/**
+ * One row of Alchemy's scan, judged by src/drift-policy.ts: a resource "drifted" only in values that settle is in
+ * sync, and one skipped because a deploy did not finish is "unfinished", which counts as drift.
+ */
+const judge = (state: StateStore, stack: string, stage: string, row: Row) =>
+  Effect.gen(function* () {
+    if (row.status === "skipped" && unfinished(row.reason)) return { ...row, status: "unfinished" as const };
+    if (row.status !== "drifted" || !isAttributes(row.actual)) return row;
+    const recorded = yield* state.get({ stack, stage, fqn: row.fqn });
+    const attributes = recorded !== undefined && "attr" in recorded ? recorded.attr : undefined;
+    return isAttributes(attributes) && onlySettlingDiffers(row.resourceType, attributes, row.actual)
+      ? { ...row, status: "in-sync" as const }
+      : row;
+  });
+
 const scanOne = (stage: string, scanned: Scanned) =>
   Effect.gen(function* () {
     const stack = yield* Alchemist.importStack(scanned.entrypoint);
     // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context -- Alchemy's scan fails with `any`; the orDie below takes it as a defect.
     const scan = yield* Alchemist.Drift.scan({ stack, stage });
+    const rows = yield* withState(scanned.entrypoint, (state) =>
+      Effect.forEach(scan.resources, (row) => judge(state, scanned.stack, stage, row)),
+    );
     return {
-      // As Alchemist.Drift.hasDrift decides it: a resource changed or gone. "skipped" is one the provider cannot read.
-      drifted: Arr.some(scan.resources, (r) => r.status === "drifted" || r.status === "missing"),
-      resources: scan.resources.length,
+      // A resource changed or gone, as Alchemist.Drift.hasDrift decides it, or a deploy that did not finish.
+      // "skipped" is otherwise one the provider cannot read.
+      drifted: Arr.some(rows, (r) => r.status === "drifted" || r.status === "missing" || r.status === "unfinished"),
+      resources: rows.length,
       settings: Arr.map(
-        Arr.filter(scan.resources, (r) => r.status !== "in-sync"),
+        Arr.filter(rows, (r) => r.status !== "in-sync"),
         ({ fqn, status, reason }) => ({ stack: scanned.stack, fqn, status, reason }),
       ),
     };
