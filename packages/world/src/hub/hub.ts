@@ -31,7 +31,7 @@ import { checkOwner } from "../lifecycle/validate.ts";
 import { forgetStage, recordedOutput, recordedStages, recordOutput, secretOf, SharedState } from "../stack/engine.ts";
 import { openedState } from "../stack/stack.ts";
 import { isWorldStage } from "../stack/names.ts";
-import { ADMIN_TOKEN_ID, DEFAULT_HUB, HUB_STACK } from "./names.ts";
+import { ADMIN_TOKEN_ID, DEFAULT_HUB, HUB_STACK, LEGACY_HUB_CAPACITY } from "./names.ts";
 import { type Registration, tokenOf } from "./registration.ts";
 import { HubSettings, hubStack } from "./stack.ts";
 
@@ -42,6 +42,8 @@ export const HubOutput = Schema.Struct({
   expiresAt: Schema.String,
   doorUrl: Schema.optional(Schema.String),
   status: Schema.optional(Schema.String),
+  /** How many worlds the hub admits at once; a hub deployed before it was recorded admits LEGACY_HUB_CAPACITY. */
+  capacity: Schema.optional(Schema.Finite),
 });
 export type HubOutput = typeof HubOutput.Type;
 
@@ -58,6 +60,8 @@ export interface Hub {
   readonly expiresAt: string;
   readonly doorUrl: string;
   readonly admin: Redacted.Redacted;
+  /** How many worlds it admits at once (src/lifecycle/claim.ts, `admit`). */
+  readonly capacity: number;
 }
 
 const cryptoLayer = Mac.layerWebCrypto.pipe(Layer.provide(SecureRandom.layerWebCrypto));
@@ -93,6 +97,7 @@ export const openHub = Effect.fn("world.hub.open")(function* (stage: string) {
     expiresAt: output.expiresAt,
     doorUrl: output.doorUrl,
     admin,
+    capacity: output.capacity ?? LEGACY_HUB_CAPACITY,
   } satisfies Hub;
 });
 

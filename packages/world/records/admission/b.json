@@ -1,0 +1,82 @@
+{
+ "process": "b",
+ "hub": {
+  "stage": "proof-hub",
+  "capacity": 4
+ },
+ "holdMs": 400,
+ "admitted": [
+  {
+   "world": "w-b0",
+   "askedAtMs": 0,
+   "waitedMs": 801,
+   "heldAtMs": 801,
+   "releasedAtMs": 1201
+  },
+  {
+   "world": "w-b1",
+   "askedAtMs": 8,
+   "waitedMs": 1596,
+   "heldAtMs": 1604,
+   "releasedAtMs": 2005
+  },
+  {
+   "world": "w-b2",
+   "askedAtMs": 10,
+   "waitedMs": 795,
+   "heldAtMs": 805,
+   "releasedAtMs": 1205
+  },
+  {
+   "world": "w-b3",
+   "askedAtMs": 11,
+   "waitedMs": 756,
+   "heldAtMs": 767,
+   "releasedAtMs": 1167
+  },
+  {
+   "world": "w-b4",
+   "askedAtMs": 12,
+   "waitedMs": 1668,
+   "heldAtMs": 1680,
+   "releasedAtMs": 2081
+  },
+  {
+   "world": "w-b5",
+   "askedAtMs": 13,
+   "waitedMs": 1179,
+   "heldAtMs": 1192,
+   "releasedAtMs": 1593
+  },
+  {
+   "world": "w-b6",
+   "askedAtMs": 14,
+   "waitedMs": 1674,
+   "heldAtMs": 1688,
+   "releasedAtMs": 2088
+  },
+  {
+   "world": "w-b7",
+   "askedAtMs": 15,
+   "waitedMs": 767,
+   "heldAtMs": 782,
+   "releasedAtMs": 1182
+  },
+  {
+   "world": "w-b8",
+   "askedAtMs": 16,
+   "waitedMs": 1660,
+   "heldAtMs": 1676,
+   "releasedAtMs": 2076
+  },
+  {
+   "world": "w-b9",
+   "askedAtMs": 17,
+   "waitedMs": 340,
+   "heldAtMs": 357,
+   "releasedAtMs": 758
+  }
+ ],
+ "quota": null,
+ "waitsLogged": 86
+}
