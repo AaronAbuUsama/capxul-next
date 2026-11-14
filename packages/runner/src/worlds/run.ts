@@ -29,7 +29,11 @@ import { answersSteadily } from "../world/warmup.ts";
 import type { Stage } from "../world/stage.ts";
 import { onHub } from "./hub.ts";
 import { Platform } from "./platform.ts";
+import { sharedStartingWorldsOf, type SharedStartingWorlds } from "../shared/starting.ts";
 import { startingWorldsOf, type StartingWorlds } from "./starting.ts";
+
+/** The starting worlds of a run: made in its one world, or restored from a shared world (shared/starting.ts). */
+type Starting = StartingWorlds | SharedStartingWorlds;
 
 const now = Effect.map(DateTime.now, DateTime.formatIso);
 
@@ -83,7 +87,7 @@ const checked = (calls: ReadonlyArray<Call>) =>
   });
 
 /** The one world reset to the journey's starting world, what it makes by its steps made, and the journey run. */
-const work = (scenario: Journey, settings: Settings, starting: StartingWorlds, timings: Timings, name: string) =>
+const work = (scenario: Journey, settings: Settings, starting: Starting, timings: Timings, name: string) =>
   Effect.gen(function* () {
     const platform = yield* Platform;
     const callsBefore = (yield* starting.made).length;
@@ -143,7 +147,7 @@ const work = (scenario: Journey, settings: Settings, starting: StartingWorlds, t
 const runOne = (
   scenario: Journey,
   settings: Settings,
-  starting: StartingWorlds,
+  starting: Starting,
   timings: Timings,
   run: string,
   index: number,
@@ -232,7 +236,7 @@ const runOne = (
  * Drops the bench templates the run kept and destroys its one world, timing both; true when the world is gone.
  * Whatever ends the run, this runs.
  */
-const takeDown = (starting: StartingWorlds, timings: Timings) =>
+const takeDown = (starting: Starting, timings: Timings) =>
   Effect.gen(function* () {
     const one = yield* Effect.option(starting.oneWorld);
     if (Option.isSome(one))
@@ -246,8 +250,15 @@ const takeDown = (starting: StartingWorlds, timings: Timings) =>
     return yield* timings.timed("world destroy", { of: Arr.join(stages, ", ") }, destroyAll(stages));
   });
 
-/** Every journey in the run's one world, one at a time, and the run's summary at `<run>/summary.json`. */
-export const runInWorlds = (scenarios: ReadonlyArray<Journey>, settings: Settings) =>
+/**
+ * Every journey in the run's one world, or, given a shared world, each in a world restored from its templates, one at
+ * a time; and the run's summary at `<run>/summary.json`.
+ */
+export const runInWorlds = (
+  scenarios: ReadonlyArray<Journey>,
+  settings: Settings,
+  shared: Option.Option<string> = Option.none(),
+) =>
   Effect.gen(function* () {
     const platform = yield* Platform;
     const startedAt = yield* now;
@@ -255,7 +266,9 @@ export const runInWorlds = (scenarios: ReadonlyArray<Journey>, settings: Setting
     const timings = yield* makeTimings;
     const [records, world, hub] = yield* onHub(settings, timings, (used) =>
       Effect.gen(function* () {
-        const starting = yield* startingWorldsOf(settings, platform.url, timings);
+        const starting: Starting = Option.isSome(shared)
+          ? yield* sharedStartingWorldsOf(settings, platform.url, timings, shared.value)
+          : yield* startingWorldsOf(settings, platform.url, timings);
         const outcome = yield* Effect.gen(function* () {
           // A starting world that could not be made fails the journeys of it, each with why; the rest still run.
           yield* Effect.ignore(starting.prepare(Arr.map(scenarios, (scenario) => scenario.given)));
@@ -271,7 +284,7 @@ export const runInWorlds = (scenarios: ReadonlyArray<Journey>, settings: Setting
     const summary = summarize({
       core: yield* coreLabel,
       run,
-      mode: "one world",
+      mode: Option.isSome(shared) ? "shared world" : "one world",
       expect: "pass",
       owner: settings.owner,
       startedAt,

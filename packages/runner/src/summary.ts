@@ -29,7 +29,7 @@ export type Expectation = typeof Expectation.Type;
  * each`: every journey in fresh private worlds, its starting world made for it. `one world`: every journey in the
  * run's one world on its hub, reset in place to its starting world before it (worlds/run.ts, roadmap step 1.18).
  */
-export const Mode = Schema.Literals(["a stage each", "one stage", "a world each", "one world"]);
+export const Mode = Schema.Literals(["a stage each", "one stage", "a world each", "one world", "shared world"]);
 export type Mode = typeof Mode.Type;
 
 const NOT_IMPLEMENTED: Errors.NotImplemented["_tag"] = "NotImplemented";
@@ -129,6 +129,9 @@ export type Summary = typeof Summary.Type;
 
 const ONE_WORLD =
   "The registered journeys run through the runner in one world, made on a fleet hub by the platform this process serves, its starting worlds made in it once and saved, and the world reset in place to each journey's starting world before the journey. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world the run made, the one world included, was destroyed with nothing of it left in the accounts.";
+
+const SHARED_WORLD =
+  "The registered journeys run through the runner on a shared world that lives on (roadmap steps 2.3 and 2.4), which the run never resets or changes: before each journey whose starting world is made from a template, the shared world's template snapshot of it is restored into a new world of the run, and a starting world made by its steps is made by them. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world the run made was destroyed with nothing of it left in the accounts; the shared world is left as it was.";
 
 const WHAT: { readonly [E in Expectation]: string } = {
   pass: "The registered journeys run through the runner, each in fresh private worlds made by the platform this process serves, its starting world made for it. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world it made was destroyed with nothing of it left in the accounts.",
@@ -264,7 +267,7 @@ export const summarize = (input: SummaryInput): Summary => {
   return {
     kind: "journeys",
     run: input.run,
-    what: input.mode === "one world" ? ONE_WORLD : WHAT[input.expect],
+    what: input.mode === "one world" ? ONE_WORLD : input.mode === "shared world" ? SHARED_WORLD : WHAT[input.expect],
     mode: input.mode,
     expect: input.expect,
     owner: input.owner,
