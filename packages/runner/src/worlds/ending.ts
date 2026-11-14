@@ -35,6 +35,8 @@ const notMadeWhy = (timings: Timings, cause: Cause.Cause<unknown>) =>
 /** What a run in one world hands its summary, however it ended. */
 export interface Ending {
   readonly run: string;
+  /** "shared world" when the journeys ran in worlds restored from a shared world (src/shared). */
+  readonly mode?: "one world" | "shared world" | undefined;
   readonly startedAt: string;
   readonly owner: string;
   /** Where records are written. */
@@ -70,7 +72,7 @@ export const summaryOf = (ending: Ending) =>
     const summary = summarize({
       core: ending.core,
       run,
-      mode: "one world",
+      mode: ending.mode ?? "one world",
       expect: "pass",
       owner: ending.owner,
       startedAt: ending.startedAt,

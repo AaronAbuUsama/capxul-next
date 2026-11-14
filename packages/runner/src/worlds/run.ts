@@ -24,57 +24,22 @@ import { freshName, journeyPlan, keptFor, stepsFor, use } from "../run.ts";
 import { stepsOf } from "../steps.ts";
 import type { Settings } from "../settings.ts";
 import { makeTimings, type Timings } from "../timings.ts";
-import type { Inventory } from "../world/leftovers.ts";
 import { answersSteadily } from "../world/warmup.ts";
 import type { Stage } from "../world/stage.ts";
 import { noteNotMade, summaryOf } from "./ending.ts";
+import { coreLabel, destroyAll, destroyStrays, leftOf } from "./stages.ts";
 import { onHub, type HubUse } from "./hub.ts";
 import { Platform } from "./platform.ts";
+import { sharedStartingWorldsOf, type SharedStartingWorlds } from "../shared/starting.ts";
 import { startingWorldsOf, type StartingWorlds } from "./starting.ts";
+
+/** The starting worlds of a run: made in its one world, or restored from a shared world (shared/starting.ts). */
+type Starting = StartingWorlds | SharedStartingWorlds;
 
 const now = Effect.map(DateTime.now, DateTime.formatIso);
 
-/** The label of where Core ran, when a host runs it off Cloudflare (src/local/host.ts); undefined on Cloudflare. */
-export const coreLabel = Effect.map(World.CoreHost, (host) => Option.getOrUndefined(Option.map(host, (h) => h.label)));
 const millis = (took: Duration.Duration) => Math.round(Duration.toMillis(took));
 const NOWHERE = "http://127.0.0.1:9";
-
-/** What the accounts hold of `stages`, by name, or null when they could not be read. */
-export const leftOf = (stages: ReadonlyArray<string>) =>
-  World.inventory.pipe(
-    Effect.map((listing): Inventory | null => ({
-      workers: [],
-      hyperdrives: [],
-      neonProjects: [],
-      worlds: World.namesOfWorlds(World.ofThisStackOnly(listing), stages),
-    })),
-    Effect.catchCause((cause) => Effect.as(Effect.logWarning(`inventory not read: ${describe(cause)}`), null)),
-  );
-
-/** Destroys `stages`, the newest first, so a world restored from a snapshot goes before the world it came from. */
-export const destroyAll = (stages: ReadonlyArray<string>) =>
-  Effect.forEach(Arr.reverse(stages), (stage) =>
-    World.destroy(stage).pipe(
-      Effect.exit,
-      Effect.tap((gone) =>
-        Exit.isFailure(gone) ? Effect.logError(`world ${stage}: destroy failed: ${describe(gone.cause)}`) : Effect.void,
-      ),
-      Effect.map(Exit.isSuccess),
-    ),
-  ).pipe(Effect.map(Arr.every((gone) => gone)));
-
-/**
- * Destroys what is left of the worlds the platform tried to make but never handed over: a create that failed after
- * its claim takes its world down itself, and when that take-down fails too the world is left. Only a world one of the
- * run's operators owns is touched; one already gone is no failure.
- */
-export const destroyStrays = (stages: ReadonlyArray<string>, owners: ReadonlyArray<string>) =>
-  Effect.forEach(stages, (stage) =>
-    World.open(stage).pipe(
-      Effect.flatMap((world) => (Arr.contains(owners, world.owner) ? destroyAll([stage]) : Effect.succeed(true))),
-      Effect.orElseSucceed(() => true),
-    ),
-  ).pipe(Effect.map(Arr.every((gone) => gone)));
 
 /** The checked calls of `calls`, read from where each was kept. */
 const checked = (calls: ReadonlyArray<Call>) =>
@@ -84,7 +49,7 @@ const checked = (calls: ReadonlyArray<Call>) =>
   });
 
 /** The one world reset to the journey's starting world, what it makes by its steps made, and the journey run. */
-const work = (scenario: Journey, settings: Settings, starting: StartingWorlds, timings: Timings, name: string) =>
+const work = (scenario: Journey, settings: Settings, starting: Starting, timings: Timings, name: string) =>
   Effect.gen(function* () {
     const platform = yield* Platform;
     const callsBefore = (yield* starting.made).length;
@@ -144,7 +109,7 @@ const work = (scenario: Journey, settings: Settings, starting: StartingWorlds, t
 const runOne = (
   scenario: Journey,
   settings: Settings,
-  starting: StartingWorlds,
+  starting: Starting,
   timings: Timings,
   run: string,
   index: number,
@@ -233,7 +198,7 @@ const runOne = (
  * Drops the bench templates the run kept and destroys its one world, timing both; true when the world is gone.
  * Whatever ends the run, this runs.
  */
-const takeDown = (starting: StartingWorlds, timings: Timings) =>
+const takeDown = (starting: Starting, timings: Timings) =>
   Effect.gen(function* () {
     const one = yield* Effect.option(starting.oneWorld);
     if (Option.isSome(one))
@@ -248,11 +213,16 @@ const takeDown = (starting: StartingWorlds, timings: Timings) =>
   });
 
 /**
- * Every journey in the run's one world, one at a time, and the run's summary at `<run>/summary.json`. The summary is
- * written however the run ends but by interruption: a starting world that was not made, or a run that died, is named
- * in it with why, and its outcome is `failed`.
+ * Every journey in the run's one world, or, given a shared world, each in a world restored from its templates, one at
+ * a time; and the run's summary at `<run>/summary.json`. The summary is written however the run ends but by
+ * interruption: a starting world that was not made, or a run that died, is named in it with why, and its outcome is
+ * `failed`.
  */
-export const runInWorlds = (scenarios: ReadonlyArray<Journey>, settings: Settings) =>
+export const runInWorlds = (
+  scenarios: ReadonlyArray<Journey>,
+  settings: Settings,
+  shared: Option.Option<string> = Option.none(),
+) =>
   Effect.gen(function* () {
     const platform = yield* Platform;
     const startedAt = yield* now;
@@ -265,7 +235,9 @@ export const runInWorlds = (scenarios: ReadonlyArray<Journey>, settings: Setting
       onHub(settings, timings, (used) =>
         Effect.gen(function* () {
           yield* Ref.set(hubUsed, used);
-          const starting = yield* startingWorldsOf(settings, platform.url, timings);
+          const starting: Starting = Option.isSome(shared)
+            ? yield* sharedStartingWorldsOf(settings, platform.url, timings, shared.value)
+            : yield* startingWorldsOf(settings, platform.url, timings);
           return yield* Effect.gen(function* () {
             // A starting world that could not be made fails the journeys of it, each with why; the rest still run.
             // The summary names it too, a defect included (a door that answered an error page, say).
@@ -282,6 +254,7 @@ export const runInWorlds = (scenarios: ReadonlyArray<Journey>, settings: Setting
     );
     const summary = yield* summaryOf({
       run,
+      mode: Option.isSome(shared) ? "shared world" : "one world",
       startedAt,
       owner: settings.owner,
       records: settings.records,

@@ -40,6 +40,12 @@ export const Settings = Config.all({
    */
   secondOwner: Config.String("WORLD_SECOND_OWNER").pipe(Config.withDefault("runner-2")),
   secondPlatformToken: Config.option(Config.Redacted("CAPXUL_SECOND_PLATFORM_TOKEN")),
+  /** The shared world a run on it uses, and `./run.sh shared` makes or renews (src/shared/). */
+  shared: Config.String("WORLD_SHARED").pipe(Config.withDefault("shared")),
+  /** How long from now each renewal gives the shared world: the most a world may live. */
+  sharedLifetime: Config.Duration("WORLD_SHARED_LIFETIME").pipe(Config.withDefault(Duration.days(7))),
+  /** How long the shared world's own hub lives when it is brought up, or up again: the most a hub may live. */
+  sharedHubLifetime: Config.Duration("SHARED_HUB_LIFETIME").pipe(Config.withDefault(Duration.days(30))),
   /** The accounts the inventory after a destroy reads. */
   cloudflareAccount: Config.String("CLOUDFLARE_ACCOUNT_ID"),
   neonOrg: Config.String("NEON_ORG_ID"),

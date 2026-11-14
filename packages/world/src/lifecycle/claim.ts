@@ -110,3 +110,10 @@ export const release = (database: Redacted.Redacted, world: string, holder: Opti
     onNone: () => query(database, "delete from worlds where name = $1", [world]),
     onSome: (token) => query(database, "delete from worlds where name = $1 and holder = $2", [world, token]),
   }).pipe(Effect.asVoid, Effect.withSpan("world.release"));
+
+/** Moves a held name's expiry, so the owner's count of live worlds reads the world's renewed expiry. */
+export const extendClaim = (database: Redacted.Redacted, world: string, expiresAt: string) =>
+  query(database, "update worlds set expires_at = $2 where name = $1 returning name", [world, expiresAt]).pipe(
+    Effect.map((rows) => rows.length === 1),
+    Effect.withSpan("world.extendClaim"),
+  );

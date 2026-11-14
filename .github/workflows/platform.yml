@@ -1,6 +1,8 @@
 # Deploys the shared platform, stage `staging`, on the bench host in AWS (roadmap step 2.2), then checks it for drift
 # (step 2.5): first the machine (packages/platform/host.run.ts), then, through an SSM port forward to the machine's
-# Docker engine, the bench, the site door, the tunnel and its connector, and the DNS names (alchemy.run.ts).
+# Docker engine, the bench, the site door, the tunnel and its connector, and the DNS names (alchemy.run.ts). After a
+# deploy with a clean drift check, the job `shared` makes or renews the shared world and runs the thin line's journeys
+# on it (roadmap steps 2.3 and 2.4).
 #
 # Runs on demand, and on a push to master that touches packages/platform. It signs in to AWS through GitHub's OIDC
 # as the CI role (no AWS key exists anywhere) and uses the scoped Cloudflare token; both are made by
@@ -82,3 +84,60 @@ jobs:
           name: platform-${{ github.run_id }}
           path: ${{ runner.temp }}/records/
           if-no-files-found: ignore
+  # Roadmap steps 2.3 and 2.4: after the deploy and its clean drift check, the shared world `shared` on the staging
+  # bench is made, or renewed (a later expiry and Core deployed again with this commit's code), on its own hub
+  # `shared`; then the thin line's journeys run on it, each starting world restored from the shared world's template
+  # into a world of the run, which the run destroys. The shared world stays up: that is its point. A deploy that does
+  # not come within a week lets it expire, the sweeper removes it, and the next deploy makes it anew.
+  # The job needs no AWS: Core on Cloudflare and this job reach the bench through its tunnel.
+  shared:
+    needs: deploy
+    if: inputs.action != 'plan'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    # The shared world's owner is one operator for every run, so its runs go one at a time.
+    concurrency:
+      group: world-staging
+      cancel-in-progress: false
+    env:
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_ORG_ID: ${{ vars.NEON_ORG_ID }}
+      WORLD_BENCH: staging
+      WORLD_SHARED: shared
+      WORLD_HUB: shared
+      WORLD_OWNER: staging
+      WORLD_SECOND_OWNER: staging-2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require the cloud secrets and variables
+        run: >-
+          packages/platform/bin/require.sh CLOUDFLARE_API_TOKEN NEON_API_KEY CLOUDFLARE_ACCOUNT_ID NEON_ORG_ID
+          PLATFORM_DOMAIN
+      - uses: ./.github/actions/platform-setup
+      - name: Require the staging bench
+        run: |
+          curl -fsS --retry 3 --retry-all-errors --max-time 20 "http://$WORLD_BENCH-door.$PLATFORM_DOMAIN/health" >/dev/null || {
+            echo "::error title=No staging bench::The site door of platform stage $WORLD_BENCH does not answer."
+            exit 1
+          }
+      - name: Make or renew the shared world
+        run: RUNNER_RECORDS="$RUNNER_TEMP/records" packages/runner/run.sh shared
+      - name: Run the thin line's journeys on the shared world
+        run: RUNNER_RECORDS="$RUNNER_TEMP/records" packages/runner/run.sh scenarios --shared
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shared-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/records/
+          if-no-files-found: warn
+      - name: Destroy every other world the shared world's operators own
+        if: always()
+        run: |
+          packages/world/run.sh list >"$RUNNER_TEMP/worlds.json"
+          left=$(python3 -c 'import json, os, sys; owners = {os.environ["WORLD_OWNER"], os.environ["WORLD_SECOND_OWNER"]}; keep = "w-" + os.environ["WORLD_SHARED"]; print(" ".join(w["world"] for w in json.load(open(sys.argv[1])) if w["owner"] in owners and w["world"] != keep))' "$RUNNER_TEMP/worlds.json")
+          status=0
+          for world in $left; do packages/world/run.sh destroy "$world" || status=1; done
+          exit "$status"
+      - name: Sweep worlds that outlived their expiry
+        if: always()
+        run: packages/world/run.sh sweep
