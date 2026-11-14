@@ -20,7 +20,7 @@ import { checkCall, failuresOf } from "../checks/checks.ts";
 import type { Call } from "../client.ts";
 import { describe, endedOf } from "../failure.ts";
 import { passedOr, slugOf, writeJson, RunRecord } from "../record.ts";
-import { freshName, journeyPlan, keptFor, stepsFor, use } from "../run.ts";
+import { freshName, journeyPlan, keptFor, stepsFor, use, viaOf } from "../run.ts";
 import { stepsOf } from "../steps.ts";
 import type { Settings } from "../settings.ts";
 import { makeTimings, type Timings } from "../timings.ts";
@@ -208,6 +208,7 @@ const runOne = (
         startedAt,
         outcome: failures.length === 0 ? passedOr(core) : "failed",
         ...(core === undefined ? {} : { core }),
+        ...viaOf(settings.via),
         failure: failures.length === 0 ? null : Arr.join(failures, "\n"),
         ended: value === undefined ? null : endedOf(value.run),
         readiness: got?.readiness ?? null,

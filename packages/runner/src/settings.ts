@@ -26,6 +26,11 @@ export const Settings = Config.all({
   probeEvery: Config.Duration("WORLD_PROBE_EVERY").pipe(Config.withDefault(Duration.millis(500))),
   /** How long after a stage is ready a call that Cloudflare's edge answered (not routed yet) is sent again. */
   warmUp: Config.Duration("WORLD_WARM_UP").pipe(Config.withDefault(Duration.seconds(30))),
+  /**
+   * How a journey's calls reach Core: `sdk`, through the SDK's client; `cli`, through the command line (`--via=cli`),
+   * each call the `capxul` command that makes it, run in this process (packages/cli, src/call.ts).
+   */
+  via: Config.Literals(["sdk", "cli"], "RUNNER_VIA").pipe(Config.withDefault("sdk")),
   /** Where run records are written, outside any world. */
   records: Config.String("RUNNER_RECORDS").pipe(Config.withDefault("records")),
   /**

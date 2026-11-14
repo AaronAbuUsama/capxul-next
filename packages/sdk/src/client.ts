@@ -43,8 +43,11 @@ const doorFor = (name: OperationName, own: Door, reach: Reach | null, options?: 
 /** The door of a call that asks for a door the client cannot reach: it has no credential for it. */
 const unreached: Door = { send: () => Effect.fail(Errors.NotSignedIn.make({ reason: "no_credential" })) };
 
-/** The payload, checked against its operation's schema before anything is sent (decisions.md, 43). */
-const checked = (name: OperationName, payload: unknown): Effect.Effect<void, Errors.PayloadRejected> =>
+/**
+ * The payload, checked against its operation's schema before anything is sent (decisions.md, 43). The command line
+ * runs the same check on a call before it writes the call's arguments (packages/cli, `argsOf`).
+ */
+export const checkPayload = (name: OperationName, payload: unknown): Effect.Effect<void, Errors.PayloadRejected> =>
   Effect.mapError(Effect.asVoid(Schema.encodeUnknownEffect(operations[name].rpc.payloadSchema)(payload)), (error) =>
     Errors.PayloadRejected.make({ operation: name, issue: error.message }),
   );
@@ -54,7 +57,7 @@ const callOf = (name: OperationName, own: Door, reach: Reach | null) =>
     kind: "client",
     attributes: { "rpc.method": name, "capxul.served_by": servedBy(name) },
   })(function* (payload: unknown, options?: CallOptions) {
-    yield* checked(name, payload);
+    yield* checkPayload(name, payload);
     const span = yield* Effect.orDie(Effect.currentSpan);
     const headers = {
       [TRACE_HEADER]: traceparent(span),
