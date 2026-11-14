@@ -1,0 +1,146 @@
+{
+  "kind": "journeys",
+  "run": "run-ea66b6",
+  "what": "The registered journeys run through the runner against Core's deployed empty handlers (a stage deployed with CAPXUL_HANDLERS=empty). Passed when every registered journey was in the run, every journey failed at its first step on the NotImplemented its first step's operation was answered (never passed, never died, no later step reached), every call was answered NotImplemented and passed every generic check, and every stage was destroyed with nothing of it left in the accounts.",
+  "mode": "a stage each",
+  "expect": "not-implemented",
+  "owner": "runner",
+  "startedAt": "2026-11-14T07:24:43.415Z",
+  "outcome": "failed",
+  "failure": "2 registered journeys were not in this run: two operators and their worlds; pay Brightside and branch the books",
+  "count": {
+    "journeys": 1,
+    "registered": 3,
+    "asExpected": 1,
+    "claims": 53
+  },
+  "journeys": [
+    {
+      "name": "found Northwind and give sam the books",
+      "given": "fresh",
+      "stage": "core-591c5d",
+      "record": "core-591c5d/found-northwind-and-give-sam-the-books.json",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"org.create\"}"
+      },
+      "failedStep": {
+        "step": 1,
+        "operation": "org.create",
+        "does": "founders who cannot found, and payloads org.create's schema does not take, are refused, and nothing is made",
+        "why": "{\"_tag\":\"NotImplemented\",\"operation\":\"org.create\"}"
+      },
+      "steps": [
+        {
+          "step": 1,
+          "operation": "org.create",
+          "outcome": "failed",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 2,
+          "operation": "org.create",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 3,
+          "operation": "approval.sign",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 4,
+          "operation": "world.show",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 5,
+          "operation": "org.member.grant",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 6,
+          "operation": "approval.sign",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 7,
+          "operation": "doc.create",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 8,
+          "operation": "report.run",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 9,
+          "operation": "org.member.grant",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 10,
+          "operation": "approval.sign",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        }
+      ],
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 223.518,
+          "serverMs": 0,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 146.952,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    }
+  ],
+  "stages": [
+    {
+      "name": "core-591c5d",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 11215
+      },
+      "createMs": 31925,
+      "destroyMs": 2753,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    }
+  ]
+}

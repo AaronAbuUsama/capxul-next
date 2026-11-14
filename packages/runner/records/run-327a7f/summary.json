@@ -1,0 +1,569 @@
+{
+  "kind": "journeys",
+  "run": "run-327a7f",
+  "what": "The registered journeys run through the runner in one world, made on a fleet hub by the platform this process serves, its starting worlds made in it once and saved, and the world reset in place to each journey's starting world before the journey. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world the run made, the one world included, was destroyed with nothing of it left in the accounts.",
+  "mode": "one world",
+  "expect": "pass",
+  "owner": "runner",
+  "startedAt": "2026-11-14T07:26:26.968Z",
+  "outcome": "failed",
+  "core": "local-Core rehearsal: Core ran in workerd on the runner's machine, next to a stand-in bench, against the world's database, chain, index and bundler on Cloudflare and Neon. Not the proof that the scenarios pass with Core on Cloudflare (roadmap step 1.6).",
+  "failure": "2 registered journeys were not in this run: two operators and their worlds; pay Brightside and branch the books\nfound Northwind and give sam the books: the run failed: {\"_tag\":\"ExpectationFailed\",\"message\":\"org.create: its Safe is Companies House's company Safe for this founder: {\\\"_tag\\\":\\\"ExpectationFailed\\\",\\\"message\\\":\\\"the CompanySafeMinted logs naming the company Safe is []; it must be [[\\\\\\\"0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c\\\\\\\",\\\\\\\"org_1aikvzt7cho2\\\\\\\"]]\\\"}\"}",
+  "count": {
+    "journeys": 1,
+    "registered": 3,
+    "asExpected": 0,
+    "claims": 53
+  },
+  "journeys": [
+    {
+      "name": "found Northwind and give sam the books",
+      "given": "fresh",
+      "stage": "w-tpl-9cd9d1",
+      "record": "run-327a7f/found-northwind-and-give-sam-the-books.json",
+      "asExpected": false,
+      "why": "the run failed: {\"_tag\":\"ExpectationFailed\",\"message\":\"org.create: its Safe is Companies House's company Safe for this founder: {\\\"_tag\\\":\\\"ExpectationFailed\\\",\\\"message\\\":\\\"the CompanySafeMinted logs naming the company Safe is []; it must be [[\\\\\\\"0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c\\\\\\\",\\\\\\\"org_1aikvzt7cho2\\\\\\\"]]\\\"}\"}",
+      "ended": {
+        "as": "failed",
+        "tag": "ExpectationFailed",
+        "detail": "{\"_tag\":\"ExpectationFailed\",\"message\":\"org.create: its Safe is Companies House's company Safe for this founder: {\\\"_tag\\\":\\\"ExpectationFailed\\\",\\\"message\\\":\\\"the CompanySafeMinted logs naming the company Safe is []; it must be [[\\\\\\\"0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c\\\\\\\",\\\\\\\"org_1aikvzt7cho2\\\\\\\"]]\\\"}\"}"
+      },
+      "failedStep": {
+        "step": 2,
+        "operation": "org.create",
+        "does": "dana founds Northwind as she typed it, its bio and size trimmed; the same founding resumes it, and nobody founds it twice",
+        "why": "{\"_tag\":\"ExpectationFailed\",\"message\":\"org.create: its Safe is Companies House's company Safe for this founder: {\\\"_tag\\\":\\\"ExpectationFailed\\\",\\\"message\\\":\\\"the CompanySafeMinted logs naming the company Safe is []; it must be [[\\\\\\\"0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c\\\\\\\",\\\\\\\"org_1aikvzt7cho2\\\\\\\"]]\\\"}\"}"
+      },
+      "steps": [
+        {
+          "step": 1,
+          "operation": "org.create",
+          "outcome": "passed",
+          "checks": 19,
+          "checksHeld": 19
+        },
+        {
+          "step": 2,
+          "operation": "org.create",
+          "outcome": "failed",
+          "checks": 5,
+          "checksHeld": 4
+        },
+        {
+          "step": 3,
+          "operation": "approval.sign",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 4,
+          "operation": "world.show",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 5,
+          "operation": "org.member.grant",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 6,
+          "operation": "approval.sign",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 7,
+          "operation": "doc.create",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 8,
+          "operation": "report.run",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 9,
+          "operation": "org.member.grant",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 10,
+          "operation": "approval.sign",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        }
+      ],
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1204.793,
+          "serverMs": 1053,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 979.148,
+          "serverMs": 852.172,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "refusal",
+          "refusal": "FounderNotReady",
+          "callerMs": 839.219,
+          "serverMs": 714,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1273.452,
+          "serverMs": 1153,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1119.097,
+          "serverMs": 1000.923,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1077.917,
+          "serverMs": 953,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1046.296,
+          "serverMs": 928.444,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "refusal",
+          "refusal": "PersonNotFound",
+          "callerMs": 1020.767,
+          "serverMs": 903,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1026.726,
+          "serverMs": 910,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 931.346,
+          "serverMs": 811.942,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1066.993,
+          "serverMs": 952,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1105.893,
+          "serverMs": 982.422,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "refusal",
+          "refusal": "PersonNotFound",
+          "callerMs": 1288.48,
+          "serverMs": 1170,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1085.801,
+          "serverMs": 969,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1069.736,
+          "serverMs": 952.074,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1036.814,
+          "serverMs": 917,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 935.975,
+          "serverMs": 814.302,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "refusal",
+          "refusal": "InsufficientBalance",
+          "callerMs": 1666.703,
+          "serverMs": 1546,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 995.573,
+          "serverMs": 879,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1139.63,
+          "serverMs": 1021.069,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1111.203,
+          "serverMs": 994,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 932.244,
+          "serverMs": 813.638,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "rejected",
+          "refusal": "PayloadRejected",
+          "callerMs": 1.568,
+          "serverMs": null,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1076.156,
+          "serverMs": 954,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 938.649,
+          "serverMs": 811.005,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 997.453,
+          "serverMs": 881,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 940.317,
+          "serverMs": 822.493,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "rejected",
+          "refusal": "PayloadRejected",
+          "callerMs": 0.383,
+          "serverMs": null,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1009.189,
+          "serverMs": 892,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 923.3,
+          "serverMs": 805.591,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1039.056,
+          "serverMs": 922,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1046.399,
+          "serverMs": 928.842,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 7142.284,
+          "serverMs": 6990,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 2039.251,
+          "serverMs": 1917.648,
+          "checksPassed": true
+        }
+      ]
+    }
+  ],
+  "stages": [
+    {
+      "name": "w-tpl-9cd9d1",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 9760
+      },
+      "createMs": 20020,
+      "destroyMs": 0,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    }
+  ],
+  "oneWorld": {
+    "world": "tpl-9cd9d1",
+    "hub": "rh-f23c5e",
+    "hubBroughtUp": true,
+    "left": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    },
+    "timings": [
+      {
+        "part": "hub up",
+        "of": "rh-f23c5e",
+        "atMs": 191,
+        "ms": 16830,
+        "ok": true
+      },
+      {
+        "part": "world create",
+        "of": "fresh",
+        "atMs": 17023,
+        "ms": 31753,
+        "ok": true
+      },
+      {
+        "part": "save fresh",
+        "of": "tpl-9cd9d1",
+        "atMs": 48777,
+        "ms": 11520,
+        "ok": true
+      },
+      {
+        "part": "reset",
+        "journey": "found Northwind and give sam the books",
+        "of": "fresh",
+        "atMs": 60299,
+        "ms": 20019,
+        "ok": true,
+        "parts": {
+          "index stopped": 3161,
+          "database restored": 1815,
+          "chain reset": 2603,
+          "index resumed": 247,
+          "clock": 1284,
+          "chain mined at the world's time": 366,
+          "sites": 6,
+          "core answers": 3,
+          "preserved branch dropped": 206,
+          "bundler answers": 4877,
+          "index caught up": 9350,
+          "reset": 18835
+        },
+        "note": "sites none"
+      },
+      {
+        "part": "starting world",
+        "journey": "found Northwind and give sam the books",
+        "of": "fresh",
+        "atMs": 80319,
+        "ms": 0,
+        "ok": true
+      },
+      {
+        "part": "journey",
+        "journey": "found Northwind and give sam the books",
+        "of": "w-tpl-9cd9d1",
+        "atMs": 91570,
+        "ms": 50179,
+        "ok": true,
+        "steps": [
+          {
+            "step": 1,
+            "operation": "org.create",
+            "outcome": "passed",
+            "ms": 30395
+          },
+          {
+            "step": 2,
+            "operation": "org.create",
+            "outcome": "failed",
+            "ms": 19782
+          },
+          {
+            "step": 3,
+            "operation": "approval.sign",
+            "outcome": "not reached",
+            "ms": null
+          },
+          {
+            "step": 4,
+            "operation": "world.show",
+            "outcome": "not reached",
+            "ms": null
+          },
+          {
+            "step": 5,
+            "operation": "org.member.grant",
+            "outcome": "not reached",
+            "ms": null
+          },
+          {
+            "step": 6,
+            "operation": "approval.sign",
+            "outcome": "not reached",
+            "ms": null
+          },
+          {
+            "step": 7,
+            "operation": "doc.create",
+            "outcome": "not reached",
+            "ms": null
+          },
+          {
+            "step": 8,
+            "operation": "report.run",
+            "outcome": "not reached",
+            "ms": null
+          },
+          {
+            "step": 9,
+            "operation": "org.member.grant",
+            "outcome": "not reached",
+            "ms": null
+          },
+          {
+            "step": 10,
+            "operation": "approval.sign",
+            "outcome": "not reached",
+            "ms": null
+          }
+        ]
+      },
+      {
+        "part": "checks",
+        "journey": "found Northwind and give sam the books",
+        "of": "w-tpl-9cd9d1",
+        "atMs": 140915,
+        "ms": 834,
+        "ok": true
+      },
+      {
+        "part": "destroy the journey's own worlds",
+        "journey": "found Northwind and give sam the books",
+        "atMs": 146097,
+        "ms": 0,
+        "ok": true,
+        "note": "none"
+      },
+      {
+        "part": "world destroy",
+        "of": "w-tpl-9cd9d1",
+        "atMs": 150587,
+        "ms": 51709,
+        "ok": true
+      },
+      {
+        "part": "hub down",
+        "of": "rh-f23c5e",
+        "atMs": 202297,
+        "ms": 4523,
+        "ok": true
+      }
+    ]
+  }
+}
