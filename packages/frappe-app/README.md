@@ -28,6 +28,12 @@ Scheduled Job Type is named `clock.daily` (`clock.name_daily_job`, after every m
 pinned Frappe names a new one by a hash and the blueprint's vocabulary filters the Scheduled Job Log by that name; and a
 report the person's roles do not open is refused for permission before its part is looked at.
 
+A new site's scheduled jobs fall due on their cadence from the site's now (`clock.settle_jobs`, run by the setup wizard
+and by joining a world): install makes the Scheduled Job Types before the wizard sets the site's time zone, stamped in
+Frappe's default Asia/Kolkata, so a site in UTC or London found every job 5 h 30 min in its future and ran none until
+then (spikes/site-speed); a world behind the host found them further still. Every stamp ahead of now is brought back
+to now (`tests/test_scheduler.py`).
+
 Spike helpers still here: `testutil.py` and `feature_experiments.py`. The skeleton's fake `/prepare` and OAuth checks describe the superseded outbound boundary, not acceptance for the request outbox below.
 
 ## Core boundary
