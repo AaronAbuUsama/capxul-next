@@ -32,7 +32,25 @@ env:
   CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
   NEON_ORG_ID: ${{ vars.NEON_ORG_ID }}
 jobs:
+  # Every world lives on the fleet hub (packages/world/README.md, "How a stage gets its hub"). `hub up` makes it when
+  # it is missing and, on a live hub, only moves its expiry (about 10 s), so CI's worlds never find it gone or expired.
+  # One run at a time deploys it: the state store has no lock.
+  hub:
+    if: github.event_name == 'workflow_dispatch' || vars.CAPXUL_CLOUD_READY == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: world-hub-fleet
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require the cloud secrets and variables
+        run: packages/platform/bin/require.sh CLOUDFLARE_API_TOKEN NEON_API_KEY CLOUDFLARE_ACCOUNT_ID NEON_ORG_ID
+      - uses: ./.github/actions/platform-setup
+      - name: Bring up the fleet hub, or move its expiry
+        run: packages/world/run.sh hub up --owner ci --lifetime "7 days"
   thin-line:
+    needs: hub
     if: github.event_name == 'workflow_dispatch' || vars.CAPXUL_CLOUD_READY == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
