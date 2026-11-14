@@ -22,7 +22,7 @@ import * as Stream from "effect/Stream";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import { codeChanges } from "./code-drift.ts";
-import { type Attributes, onlySettlingDiffers, unfinished } from "./drift-policy.ts";
+import { type Attributes, differingFields, unfinished } from "./drift-policy.ts";
 import { STACK } from "./names.ts";
 import { recordedOutputs, type StateStore, withState } from "./state.ts";
 
@@ -44,6 +44,8 @@ export interface DriftReport {
     readonly fqn: string;
     readonly status: string;
     readonly reason?: string | undefined;
+    /** For a drifted resource, the fields that differ from what its last deploy recorded: names only. */
+    readonly fields?: ReadonlyArray<string> | undefined;
   }>;
   readonly code: ReadonlyArray<{ readonly container: string; readonly changed: ReadonlyArray<string> }>;
 }
@@ -74,6 +76,7 @@ interface Row {
   readonly status: string;
   readonly reason?: string | undefined;
   readonly actual?: unknown;
+  readonly fields?: ReadonlyArray<string>;
 }
 const isAttributes = (value: unknown): value is Attributes => typeof value === "object" && value !== null;
 
@@ -87,9 +90,9 @@ const judge = (state: StateStore, stack: string, stage: string, row: Row) =>
     if (row.status !== "drifted" || !isAttributes(row.actual)) return row;
     const recorded = yield* state.get({ stack, stage, fqn: row.fqn });
     const attributes = recorded !== undefined && "attr" in recorded ? recorded.attr : undefined;
-    return isAttributes(attributes) && onlySettlingDiffers(row.resourceType, attributes, row.actual)
-      ? { ...row, status: "in-sync" as const }
-      : row;
+    if (!isAttributes(attributes)) return row;
+    const fields = differingFields(row.resourceType, attributes, row.actual);
+    return fields.length === 0 ? { ...row, status: "in-sync" as const } : { ...row, fields };
   });
 
 const scanOne = (stage: string, scanned: Scanned) =>
@@ -107,7 +110,7 @@ const scanOne = (stage: string, scanned: Scanned) =>
       resources: rows.length,
       settings: Arr.map(
         Arr.filter(rows, (r) => r.status !== "in-sync"),
-        ({ fqn, status, reason }) => ({ stack: scanned.stack, fqn, status, reason }),
+        ({ fqn, status, reason, fields }) => ({ stack: scanned.stack, fqn, status, reason, fields }),
       ),
     };
   }).pipe(Effect.orDie);

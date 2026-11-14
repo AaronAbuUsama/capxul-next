@@ -2,7 +2,10 @@
 // did not finish counts as drift.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { onlySettlingDiffers, unfinished } from "../src/drift-policy.ts";
+import { differingFields, unfinished } from "../src/drift-policy.ts";
+
+const onlySettlingDiffers = (type: string, a: Record<string, unknown>, b: Record<string, unknown>) =>
+  differingFields(type, a, b).length === 0;
 
 const VOLUME = "AWS.EC2.Volume";
 const recorded = { volumeId: "vol-1", size: 60, volumeType: "gp3", encrypted: true, state: "available" };
@@ -17,6 +20,13 @@ test("a volume in another state, or changed in any other field, has drifted", ()
   assert.ok(!onlySettlingDiffers(VOLUME, recorded, { ...recorded, state: "deleting" }));
   assert.ok(!onlySettlingDiffers(VOLUME, recorded, { ...recorded, state: "in-use", size: 120 }));
   assert.ok(!onlySettlingDiffers(VOLUME, recorded, { ...recorded, encrypted: false }));
+});
+
+test("a drifted resource names the fields that differ, and no value", () => {
+  assert.deepEqual(differingFields(VOLUME, recorded, { ...recorded, state: "in-use", size: 120, iops: 3000 }), [
+    "size",
+    "iops",
+  ]);
 });
 
 test("a field forgiven for one resource type is not forgiven for another", () => {
