@@ -89,9 +89,9 @@ const callAll = (tokens: { readonly door: Redacted.Redacted; readonly platform: 
 const errorOf = (exit: Exit.Exit<unknown, unknown>): unknown =>
   Exit.isFailure(exit) ? exit.cause.pipe(Cause.findErrorOption, Option.getOrUndefined) : undefined;
 
-test("through the SDK, each of the twelve answers at its door, the unbuilt NotImplemented, under the trace the SDK sent", async () => {
+test("through the SDK, each operation answers at its door, the unbuilt NotImplemented, under the trace the SDK sent", async () => {
   const { calls, kept } = await Effect.runPromise(callAll({ door: DOOR, platform: PLATFORM }));
-  assert.equal(calls.length, 12);
+  assert.equal(calls.length, Rec.keys(operations).length);
   for (const { name, exit, traceId } of calls) {
     const error = errorOf(exit);
     // The chain operations' handlers need a chain and a database, which a test in memory has not (test/chain).

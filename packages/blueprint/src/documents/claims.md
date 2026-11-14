@@ -1,0 +1,65 @@
+# Acceptance claims of the domain `documents`
+
+Rendered from `claims.ts` here and the declarations by `pnpm claims`. Do not edit it by hand: a test fails when
+this file and its sources differ. What the runner checks on every call, and the starting worlds a claim is in,
+are in [claims.md](../../claims.md).
+
+## Count
+
+| Operation | Claims | Old, word for word | Old, rewritten | New | Old, not kept |
+|---|---|---|---|---|---|
+| `doc.create` | 4 | 1 | 0 | 3 | 0 |
+| `doc.submit` | 4 | 2 | 0 | 2 | 0 |
+
+## 1. `doc.create`
+
+- Served by: the world group.
+- Refusals: `OrgNotFound`, `NoSiteUser`, `SiteRefused`, `SiteUnavailable`, `NotImplemented`, and `NotSignedIn` from sign-in.
+- Emits: `doc_created`.
+- Budget: 1,500 ms, provisional, excluding waking a parked world. Basis: one call to the company's site on the world's bench; the bench is not measured yet.
+
+1. A document is created as a draft and Frappe's validations apply. *(thin line)*
+   - In: `office-holder`.
+   - Observes: doc.create as sam of a Supplier named Brightside Cleaning Ltd answers its name and docstatus 0. A Supplier with no name is refused with SiteRefused for validation, and report.run of the Supplier list (Site.REPORTS.supplierList, the Supplier doctype's list) shows only Brightside.
+   - Refusals: `SiteRefused`.
+   - Old: `acc:doc.create/c-4a88a94b435451b9`, kept word for word.
+2. A caller with no user on the company's site is refused, and nothing is made.
+   - In: `office-holder`.
+   - Observes: doc.create as pat is refused with NoSiteUser; record.export shows no new entry.
+   - Refusals: `NoSiteUser`.
+   - Old: none; this claim is new.
+3. A member whose roles do not allow the document is refused by the site, and nothing is made.
+   - In: `office-holder`.
+   - Observes: doc.create as sam of an Employee is refused with SiteRefused for permission; record.export shows no new entry.
+   - Refusals: `SiteRefused`.
+   - Old: none; this claim is new.
+4. The answer carries the document's hash, and a payment held for the document names the same hash.
+   - In: `payment-drafted`.
+   - Observes: The hash doc.create answered for the Payment Entry (the `payment` fact) equals `payment.documentHash` in doc.submit's Held answer for it.
+   - Old: none; this claim is new.
+
+## 2. `doc.submit`
+
+- Served by: the world group.
+- Refusals: `OrgNotFound`, `NoSiteUser`, `SiteRefused`, `SiteUnavailable`, `NotADraft`, `InsufficientBalance`, `NotImplemented`, and `NotSignedIn` from sign-in.
+- Emits: `Posted`: `doc_submitted`; `Held`: `payment_held`.
+- Budget: 3,000 ms, provisional, excluding waking a parked world. Basis: one call to the site; a held payment also reads the index and opens a sponsored approval on the world's chain.
+
+1. A Payment Entry from the Safe is held, not posted, and the signer is named. *(thin line)*
+   - In: `payment-drafted`.
+   - Observes: doc.submit as sam of the Payment Entry answers Held with docstatus 0, the amount 125.50 USDC, Brightside's address (the payment address the `supplier` fact's fields hold) and an approval whose signer is sam at his signer address. report.run's General Ledger shows no line for it yet.
+   - Old: `acc:doc.submit/c-df3c0c51cdf3899b`, kept word for word.
+2. An ordinary document posts to the ledger when submitted.
+   - In: `office-holder`.
+   - Observes: doc.submit as sam of a draft Purchase Invoice answers Posted with docstatus 1; report.run's General Ledger shows its lines.
+   - Old: `acc:doc.submit/c-74a45893884b5bef`, kept word for word.
+3. A document that is not a draft is refused, and nothing changes.
+   - In: `payment-held`.
+   - Observes: doc.submit of the posted Purchase Invoice is refused with NotADraft naming docstatus 1; record.export shows no new entry.
+   - Refusals: `NotADraft`.
+   - Old: none; this claim is new.
+4. A payment from the Safe of more than the Safe holds is refused before anything is held.
+   - In: `office-holder`.
+   - Observes: doc.submit of a Payment Entry of 5,000 USDC from the Capxul Safe account is refused with InsufficientBalance naming the company Safe (the `founded` fact's Safe), its balance and the amount; no approval is opened and record.export shows no new entry.
+   - Refusals: `InsufficientBalance`.
+   - Old: none; this claim is new.
