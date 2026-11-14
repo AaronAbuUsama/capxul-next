@@ -5,7 +5,9 @@ import type { StartingWorld } from "@capxul/blueprint";
 import type { Capxul } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
+import type * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
+import type * as Path from "effect/Path";
 import * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
 import type * as HttpClient from "effect/http/HttpClient";
@@ -15,8 +17,11 @@ import type { RunnerFailure } from "../failure.ts";
 import type { Settings } from "../settings.ts";
 import { madeCallOf, type Facts, type Making } from "./makers.ts";
 
-/** What making a starting world needs: the client's HTTP, and the shared state the bench template is found by. */
-export type Needs = HttpClient.HttpClient | World.SharedState;
+/**
+ * What making a starting world needs: the client's HTTP, the shared state the bench is found by, and the files its
+ * template's code is fingerprinted from.
+ */
+export type Needs = HttpClient.HttpClient | World.SharedState | FileSystem.FileSystem | Path.Path;
 
 /** One call made in making a starting world, with the world it was made for: what the starting worlds' record keeps. */
 export interface MakingCall {

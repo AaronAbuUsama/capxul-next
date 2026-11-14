@@ -195,13 +195,13 @@ const runOne = (
   ).pipe(Effect.withSpan("runner.world.scenario", { attributes: { scenario: scenario.name } }));
 
 /**
- * Drops the bench templates the run kept and destroys its one world, timing both; what could not be done, one line
- * each. Whatever ends the run, this runs.
+ * Destroys the run's one world, timed; what could not be done, one line each. Whatever ends the run, this runs. The
+ * bench templates the run kept stay: they are the bench's, never dropped by a run, and the sweep removes them by age
+ * (docs/roadmap.md, "Bench templates never change").
  */
 const takeDown = (starting: Starting, timings: Timings) =>
   Effect.gen(function* () {
-    const one = yield* Effect.option(starting.oneWorld);
-    const done = yield* takeDownWorlds(one, yield* starting.kept, yield* starting.templateWorlds, timings);
+    const done = yield* takeDownWorlds(yield* starting.templateWorlds, timings);
     return done.failed;
   });
 

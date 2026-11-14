@@ -109,9 +109,9 @@ export const timeStartingWorlds = (settings: Settings) =>
             Exit.isSuccess(ended) ? Effect.void : Effect.flatMap(starting.templateWorlds, destroyAll),
           ),
         );
+        // The bench templates kept stay for the sweep (docs/roadmap.md, "Bench templates never change").
         const ones = yield* starting.templateWorlds;
-        const one = yield* Effect.option(starting.oneWorld);
-        const done = yield* takeDownWorlds(one, yield* starting.kept, ones, timings);
+        const done = yield* takeDownWorlds(ones, timings);
         return [made, ones, done.destroyMs, done.failed] as const;
       }),
     );

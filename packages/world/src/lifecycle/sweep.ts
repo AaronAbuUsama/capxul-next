@@ -4,7 +4,8 @@
 // that created a world is gone. A world that recorded no expiry, or one it cannot read, is never deleted: it is
 // left in place and reported, so a person can decide. After the worlds, it removes what `alchemy destroy` leaves
 // behind: image repositories of this stack that nothing accounts for any more, and names still held in the
-// registry by worlds that no longer exist.
+// registry by worlds that no longer exist. Last, it asks the bench `WORLD_BENCH` names to remove the templates no one
+// has used for `WORLD_TEMPLATE_IDLE` (src/site/Templates.ts; no run removes one itself).
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
 import * as DateTime from "effect/DateTime";
@@ -14,6 +15,7 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { SweepIncomplete } from "../failures.ts";
 import { HUB_STACK } from "../hub/names.ts";
+import { sweepTemplates, TemplatesSwept } from "../site/Templates.ts";
 import { hubDown, worldsOn } from "../hub/hub.ts";
 import { recordedStages, recordedStagesOf } from "../stack/engine.ts";
 import { BUNDLER_IMAGE, CHAIN_IMAGE, IMAGE_PREFIX, INDEX_IMAGE, isWorldStage, PLATFORM } from "../stack/names.ts";
@@ -49,6 +51,8 @@ export const SweepReport = Schema.Struct({
   imagesLeft: Schema.Array(Schema.String),
   /** Each fleet hub (src/hub): kept while it lives or a world is on it, destroyed once it has expired and none is. */
   hubs: Schema.Array(WorldReport),
+  /** The bench's templates: those removed for age, those kept, and those in use; `detail` when none were looked at. */
+  templates: TemplatesSwept,
 });
 export type SweepReport = typeof SweepReport.Type;
 
@@ -180,6 +184,7 @@ export const sweep = Effect.fn("world.sweep")(function* (options: { readonly dry
     imagesRemoved: images.removed,
     imagesLeft: images.left,
     hubs,
+    templates: yield* sweepTemplates(dryRun),
   } satisfies SweepReport;
 });
 
