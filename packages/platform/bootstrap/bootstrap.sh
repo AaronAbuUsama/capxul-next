@@ -48,8 +48,18 @@ CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-$ZONE_ACCOUNT}"
 [ "$CLOUDFLARE_ACCOUNT_ID" = "$ZONE_ACCOUNT" ] \
   || die "CLOUDFLARE_ACCOUNT_ID $CLOUDFLARE_ACCOUNT_ID is not the account of $PLATFORM_ZONE_NAME ($ZONE_ACCOUNT)"
 info "Cloudflare account $CLOUDFLARE_ACCOUNT_ID, zone $PLATFORM_ZONE_NAME = $PLATFORM_ZONE_ID"
-NEON_ORG_ID="${NEON_ORG_ID:-$(neon users/me/organizations | py 'import json,sys; o=json.load(sys.stdin)["organizations"]; print(o[0]["id"] if len(o) == 1 else "")')}"
-[ -n "$NEON_ORG_ID" ] || NEON_ORG_ID="$(ask "The Neon key sees several organizations; which org id:")"
+# A personal key may see several organizations: the one that holds a *worlds-db* project is the worlds'.
+if [ -z "${NEON_ORG_ID:-}" ]; then
+  ORGS="$(neon users/me/organizations | py 'import json,sys; print(" ".join(o["id"] for o in json.load(sys.stdin)["organizations"]))')"
+  WITH_WORLDS=""
+  for o in $ORGS; do
+    neon "projects?org_id=$o&limit=100" | py 'import json,sys; sys.exit(0 if any("worlds-db" in p["name"] for p in json.load(sys.stdin)["projects"]) else 1)' \
+      && WITH_WORLDS="$WITH_WORLDS $o"
+  done
+  set -- $WITH_WORLDS
+  if [ "$#" = 1 ]; then NEON_ORG_ID="$1"; elif [ "$(set -- $ORGS; echo $#)" = 1 ]; then NEON_ORG_ID="$ORGS"; fi
+fi
+[ -n "${NEON_ORG_ID:-}" ] || NEON_ORG_ID="$(ask "The Neon key sees several organizations ($ORGS); which org id:")"
 PROJECTS="$(neon "projects?org_id=$NEON_ORG_ID&limit=100" | py 'import json,sys; print("\n".join(p["id"]+" "+p["name"] for p in json.load(sys.stdin)["projects"] if "worlds-db" in p["name"]))')"
 if [ -z "${NEON_WORLDS_PROJECT_ID:-}" ]; then
   if [ "$(printf '%s' "$PROJECTS" | grep -c .)" = 1 ]; then NEON_WORLDS_PROJECT_ID="${PROJECTS%% *}"
