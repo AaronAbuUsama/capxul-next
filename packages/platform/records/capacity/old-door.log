@@ -1,0 +1,393 @@
+door: the bench's apps hash to 70995114dc0bf6d5
+door: serving on 18191 for pool.test
+door: "GET /health HTTP/1.1" 200 -
+door: "POST /sites HTTP/1.1" 202 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "POST /sites HTTP/1.1" 202 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "POST /sites HTTP/1.1" 202 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "POST /sites HTTP/1.1" 202 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test new-site 1008 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test install erpnext 205 ms
+door: northwind-wa.pool.test install hrms 206 ms
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test install capxul 205 ms
+door:door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+ "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test setup wizard 205 ms
+door: northwind-wa.pool.test migrate 205 ms
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door:door:  "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+"GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test enable scheduler 205 ms
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+
+door: northwind-wa.pool.test join world 205 ms
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door:door:  "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -"GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door:door:  "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+"GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door:door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+ "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: door:"GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+ "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door:door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+ "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test ready
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+"GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test new-site 1007 ms
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test install erpnext 205 ms
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test install hrms 205 ms
+door: northwind-wb.pool.test install capxul 206 ms
+door: door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+"GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test setup wizard 205 ms
+door:door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+ "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test migrate 205 ms
+door: northwind-wb.pool.test enable scheduler 205 ms
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test join world 206 ms
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door:door:  "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -"GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: door:"GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+ "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door:door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+ "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test ready
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test new-site 1007 ms
+door: northwind-wc.pool.test install erpnext 205 ms
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test install hrms 205 ms
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test install capxul 205 ms
+door: northwind-wc.pool.test setup wizard 205 ms
+door:door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+ "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test migrate 205 ms
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test enable scheduler 204 ms
+door: northwind-wc.pool.test join world 206 ms
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door:door:  "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+"GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: door:"GET /sites/northwind-wc.pool.test HTTP/1.1" 200 - "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door:door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+ "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door:door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 - "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+"GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -door:
+ "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test ready
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wd.pool.test new-site 1009 ms
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wd.pool.test install erpnext 205 ms
+door: northwind-wd.pool.test install hrms 206 ms
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wd.pool.test install capxul 206 ms
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wd.pool.test setup wizard 205 ms
+door: northwind-wd.pool.test migrate 206 ms
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wd.pool.test enable scheduler 206 ms
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wd.pool.test join world 206 ms
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wd.pool.test ready
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: template payment-drafted-3f9a0c1d-wc made from northwind-wc.pool.test in 7 ms
+door: "POST /templates HTTP/1.1" 200 -
+door: template payment-drafted-3f9a0c1d-wb made from northwind-wb.pool.test in 9 ms
+door: "POST /templates HTTP/1.1" 200 -
+door: template payment-drafted-3f9a0c1d-wa made from northwind-wa.pool.test in 13 ms
+door: "POST /templates HTTP/1.1" 200 -
+door: template payment-drafted-3f9a0c1d-wd made from northwind-wd.pool.test in 16 ms
+door: "POST /templates HTTP/1.1" 200 -
+door: wc saved 1 sites as point p1 in 7 ms
+door: "POST /world/save HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-wc/northwind +1 in 14 ms
+door: wb saved 1 sites as point p1 in 9 ms
+door: "POST /world/save HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-wb/northwind +1 in 4 ms
+door: wa saved 1 sites as point p1 in 12 ms
+door: "POST /world/save HTTP/1.1" 200 -
+door: wd saved 1 sites as point p1 in 10 ms
+door: "POST /world/save HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-wa/northwind +1 in 5 ms
+door: pool payment-drafted-3f9a0c1d-wd/northwind +1 in 2 ms
+door: pool payment-drafted-3f9a0c1d-wc/northwind +1 in 1 ms
+door: pool payment-drafted-3f9a0c1d-wb/northwind +1 in 1 ms
+door: pool payment-drafted-3f9a0c1d-wa/northwind +1 in 1 ms
+door: pool payment-drafted-3f9a0c1d-wd/northwind +1 in 1 ms
+door: northwind-wc.pool.test removed in 1010 ms
+door: "DELETE /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test removed in 2014 ms
+door: "DELETE /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test removed in 3017 ms
+door: "DELETE /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: northwind-wd.pool.test removed in 4021 ms
+door: "DELETE /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test claimed from payment-drafted-3f9a0c1d-wc (pool) in 7024 ms
+door: "POST /world/claim HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-wc/northwind +1 in 1 ms
+door: northwind-wb.pool.test claimed from payment-drafted-3f9a0c1d-wb (pool) in 10025 ms
+door: "POST /world/claim HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-wb/northwind +1 in 1 ms
+door: northwind-wa.pool.test claimed from payment-drafted-3f9a0c1d-wa (pool) in 13026 ms
+door: "POST /world/claim HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-wa/northwind +1 in 2 ms
+door: northwind-wd.pool.test claimed from payment-drafted-3f9a0c1d-wd (pool) in 16026 ms
+door: "POST /world/claim HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-wd/northwind +1 in 2 ms
+door: wc saved 1 sites as point p1 in 12027 ms
+door: "POST /world/save HTTP/1.1" 200 -
+door: wb saved 1 sites as point p1 in 8020 ms
+door: "POST /world/save HTTP/1.1" 200 -
+door: wa saved 1 sites as point p1 in 4017 ms
+door: "POST /world/save HTTP/1.1" 200 -
+door: wc reset to point p1 in 5 ms
+door: "POST /world/reset HTTP/1.1" 200 -
+door: wd saved 1 sites as point p1 in 10 ms
+door: "POST /world/save HTTP/1.1" 200 -
+door: wb reset to point p1 in 12 ms
+door: "POST /world/reset HTTP/1.1" 200 -
+door: wa reset to point p1 in 8 ms
+door: "POST /world/reset HTTP/1.1" 200 -
+door: wd reset to point p1 in 7 ms
+door: "POST /world/reset HTTP/1.1" 200 -
+door: "POST /clock HTTP/1.1" 200 -
+door: "POST /clock HTTP/1.1" 200 -
+door: "POST /clock HTTP/1.1" 200 -
+door: "POST /clock HTTP/1.1" 200 -
+door: northwind-wc.pool.test removed in 1008 ms
+door: "DELETE /world HTTP/1.1" 200 -
+door: northwind-wb.pool.test removed in 2009 ms
+door: "DELETE /world HTTP/1.1" 200 -
+door: northwind-wa.pool.test removed in 3013 ms
+door: "DELETE /world HTTP/1.1" 200 -
+door: northwind-wd.pool.test removed in 4019 ms
+door: "DELETE /world HTTP/1.1" 200 -
+door: "POST /sites HTTP/1.1" 202 -
+door: "POST /sites HTTP/1.1" 202 -
+door: "GET /sites/northwind-cd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-cc.pool.test HTTP/1.1" 200 -
+door: northwind-cc.pool.test new-site 1010 ms
+door: northwind-cc.pool.test install erpnext 205 ms
+door: northwind-cc.pool.test install hrms 206 ms
+door: northwind-cc.pool.test install capxul 206 ms
+door: northwind-cc.pool.test setup wizard 207 ms
+door: northwind-cc.pool.test migrate 206 ms
+door: northwind-cc.pool.test enable scheduler 205 ms
+door: northwind-cc.pool.test join world 205 ms
+door: "GET /sites/northwind-cc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-cd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-cc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-cd.pool.test HTTP/1.1" 200 -
+door: northwind-cc.pool.test ready
+door: northwind-cd.pool.test new-site 1007 ms
+door: northwind-cd.pool.test install erpnext 206 ms
+door: northwind-cd.pool.test install hrms 205 ms
+door: northwind-cd.pool.test install capxul 205 ms
+door: northwind-cd.pool.test setup wizard 210 ms
+door: northwind-cd.pool.test migrate 205 ms
+door: northwind-cd.pool.test enable scheduler 206 ms
+door: northwind-cd.pool.test join world 205 ms
+door: "GET /sites/northwind-cc.pool.test HTTP/1.1" 200 -
+door: template payment-drafted-3f9a0c1d-cc made from northwind-cc.pool.test in 2 ms
+door: "POST /templates HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-cc/northwind +1 in 1 ms
+door: pool payment-drafted-3f9a0c1d-cc/northwind +1 in 0 ms
+door: cc saved 1 sites as point p1 in 1 ms
+door: "POST /world/save HTTP/1.1" 200 -
+door: "GET /sites/northwind-cd.pool.test HTTP/1.1" 200 -
+door: northwind-cc.pool.test removed in 1006 ms
+door: "DELETE /sites/northwind-cc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-cd.pool.test HTTP/1.1" 200 -
+door: northwind-cd.pool.test ready
+door: northwind-cc.pool.test claimed from payment-drafted-3f9a0c1d-cc (pool) in 4006 ms
+door: "POST /world/claim HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-cc/northwind +1 in 1 ms
+door: cc saved 1 sites as point p1 in 1 ms
+door: "POST /world/save HTTP/1.1" 200 -
+door: cc reset to point p1 in 1 ms
+door: "POST /world/reset HTTP/1.1" 200 -
+door: "GET /sites/northwind-cd.pool.test HTTP/1.1" 200 -
+door: northwind-cc.pool.test removed in 1007 ms
+door: "DELETE /world HTTP/1.1" 200 -
+door: template payment-drafted-3f9a0c1d-cd made from northwind-cd.pool.test in 1 ms
+door: "POST /templates HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-cd/northwind +1 in 0 ms
+door: pool payment-drafted-3f9a0c1d-cd/northwind +1 in 0 ms
+door: cd saved 1 sites as point p1 in 0 ms
+door: "POST /world/save HTTP/1.1" 200 -
+door: northwind-cd.pool.test removed in 1007 ms
+door: "DELETE /sites/northwind-cd.pool.test HTTP/1.1" 200 -
+door: northwind-cd.pool.test claimed from payment-drafted-3f9a0c1d-cd (pool) in 4006 ms
+door: "POST /world/claim HTTP/1.1" 200 -
+door: pool payment-drafted-3f9a0c1d-cd/northwind +1 in 0 ms
+door: cd saved 1 sites as point p1 in 1 ms
+door: "POST /world/save HTTP/1.1" 200 -
+door: cd reset to point p1 in 1 ms
+door: "POST /world/reset HTTP/1.1" 200 -
+door: northwind-cd.pool.test removed in 1007 ms
+door: "DELETE /world HTTP/1.1" 200 -

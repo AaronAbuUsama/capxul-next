@@ -1,0 +1,402 @@
+{
+ "mode": "old",
+ "door": "http://127.0.0.1:18191",
+ "edge_s": 10.0,
+ "runs": {
+  "wc": {
+   "started_at_ms": 602,
+   "steps": [
+    {
+     "step": "make its site from nothing (POST /sites)",
+     "status": 202,
+     "ms": 2,
+     "requests_ms": [
+      2
+     ],
+     "refused": null
+    },
+    {
+     "step": "until it is ready (GET /sites/<site>)",
+     "ms": 19071,
+     "requests_ms": [
+      10
+     ],
+     "polls": 64
+    },
+    {
+     "step": "keep it as a template (POST /templates)",
+     "status": 200,
+     "ms": 10,
+     "requests_ms": [
+      10
+     ],
+     "refused": null
+    },
+    {
+     "step": "save a point (POST /world/save)",
+     "status": 200,
+     "ms": 15,
+     "requests_ms": [
+      15
+     ],
+     "refused": null
+    },
+    {
+     "step": "reset to fresh: remove its site (DELETE /sites/<site>)",
+     "status": 200,
+     "ms": 1020,
+     "requests_ms": [
+      1020
+     ],
+     "refused": null
+    },
+    {
+     "step": "reset to payment-drafted: claim (POST /world/claim)",
+     "status": 200,
+     "ms": 7028,
+     "requests_ms": [
+      7028
+     ],
+     "refused": null
+    },
+    {
+     "step": "save the point again (POST /world/save)",
+     "status": 200,
+     "ms": 12029,
+     "requests_ms": [
+      12028
+     ],
+     "refused": null
+    },
+    {
+     "step": "reset in place (POST /world/reset)",
+     "status": 200,
+     "ms": 8,
+     "requests_ms": [
+      8
+     ],
+     "refused": null
+    },
+    {
+     "step": "set its clock (POST /clock)",
+     "status": 200,
+     "ms": 210,
+     "requests_ms": [
+      210
+     ],
+     "refused": null
+    },
+    {
+     "step": "take it down (DELETE /world)",
+     "status": 200,
+     "ms": 1011,
+     "requests_ms": [
+      1011
+     ],
+     "refused": null
+    }
+   ],
+   "longest_request_ms": 12028,
+   "every_call_ended_well": true
+  },
+  "wb": {
+   "started_at_ms": 301,
+   "steps": [
+    {
+     "step": "make its site from nothing (POST /sites)",
+     "status": 202,
+     "ms": 2,
+     "requests_ms": [
+      2
+     ],
+     "refused": null
+    },
+    {
+     "step": "until it is ready (GET /sites/<site>)",
+     "ms": 12715,
+     "requests_ms": [
+      6
+     ],
+     "polls": 43
+    },
+    {
+     "step": "keep it as a template (POST /templates)",
+     "status": 200,
+     "ms": 12,
+     "requests_ms": [
+      12
+     ],
+     "refused": null
+    },
+    {
+     "step": "save a point (POST /world/save)",
+     "status": 200,
+     "ms": 17,
+     "requests_ms": [
+      17
+     ],
+     "refused": null
+    },
+    {
+     "step": "reset to fresh: remove its site (DELETE /sites/<site>)",
+     "status": 200,
+     "ms": 2023,
+     "requests_ms": [
+      2023
+     ],
+     "refused": null
+    },
+    {
+     "step": "reset to payment-drafted: claim (POST /world/claim)",
+     "status": 200,
+     "ms": 10028,
+     "requests_ms": [
+      10028
+     ],
+     "refused": null
+    },
+    {
+     "step": "save the point again (POST /world/save)",
+     "status": 200,
+     "ms": 8023,
+     "requests_ms": [
+      8023
+     ],
+     "refused": null
+    },
+    {
+     "step": "reset in place (POST /world/reset)",
+     "status": 200,
+     "ms": 15,
+     "requests_ms": [
+      15
+     ],
+     "refused": null
+    },
+    {
+     "step": "set its clock (POST /clock)",
+     "status": 200,
+     "ms": 209,
+     "requests_ms": [
+      209
+     ],
+     "refused": null
+    },
+    {
+     "step": "take it down (DELETE /world)",
+     "status": 200,
+     "ms": 2012,
+     "requests_ms": [
+      2012
+     ],
+     "refused": null
+    }
+   ],
+   "longest_request_ms": 10028,
+   "every_call_ended_well": true
+  },
+  "wa": {
+   "started_at_ms": 0,
+   "steps": [
+    {
+     "step": "make its site from nothing (POST /sites)",
+     "status": 202,
+     "ms": 11,
+     "requests_ms": [
+      11
+     ],
+     "refused": null
+    },
+    {
+     "step": "until it is ready (GET /sites/<site>)",
+     "ms": 6657,
+     "requests_ms": [
+      4
+     ],
+     "polls": 23
+    },
+    {
+     "step": "keep it as a template (POST /templates)",
+     "status": 200,
+     "ms": 16,
+     "requests_ms": [
+      15
+     ],
+     "refused": null
+    },
+    {
+     "step": "save a point (POST /world/save)",
+     "status": 200,
+     "ms": 19,
+     "requests_ms": [
+      19
+     ],
+     "refused": null
+    },
+    {
+     "step": "reset to fresh: remove its site (DELETE /sites/<site>)",
+     "status": 200,
+     "ms": 3025,
+     "requests_ms": [
+      3025
+     ],
+     "refused": null
+    },
+    {
+     "step": "reset to payment-drafted: claim (POST /world/claim)",
+     "status": 200,
+     "ms": 13030,
+     "requests_ms": [
+      13029
+     ],
+     "refused": null
+    },
+    {
+     "step": "save the point again (POST /world/save)",
+     "status": 200,
+     "ms": 4019,
+     "requests_ms": [
+      4019
+     ],
+     "refused": null
+    },
+    {
+     "step": "reset in place (POST /world/reset)",
+     "status": 200,
+     "ms": 11,
+     "requests_ms": [
+      11
+     ],
+     "refused": null
+    },
+    {
+     "step": "set its clock (POST /clock)",
+     "status": 200,
+     "ms": 209,
+     "requests_ms": [
+      209
+     ],
+     "refused": null
+    },
+    {
+     "step": "take it down (DELETE /world)",
+     "status": 200,
+     "ms": 3017,
+     "requests_ms": [
+      3017
+     ],
+     "refused": null
+    }
+   ],
+   "longest_request_ms": 13029,
+   "every_call_ended_well": true
+  },
+  "wd": {
+   "started_at_ms": 903,
+   "steps": [
+    {
+     "step": "make its site from nothing (POST /sites)",
+     "status": 202,
+     "ms": 2,
+     "requests_ms": [
+      2
+     ],
+     "refused": null
+    },
+    {
+     "step": "until it is ready (GET /sites/<site>)",
+     "ms": 25117,
+     "requests_ms": [
+      5
+     ],
+     "polls": 84
+    },
+    {
+     "step": "keep it as a template (POST /templates)",
+     "status": 200,
+     "ms": 19,
+     "requests_ms": [
+      19
+     ],
+     "refused": null
+    },
+    {
+     "step": "save a point (POST /world/save)",
+     "status": 200,
+     "ms": 20,
+     "requests_ms": [
+      20
+     ],
+     "refused": null
+    },
+    {
+     "step": "reset to fresh: remove its site (DELETE /sites/<site>)",
+     "status": 200,
+     "ms": 4028,
+     "requests_ms": [
+      4027
+     ],
+     "refused": null
+    },
+    {
+     "step": "reset to payment-drafted: claim (POST /world/claim)",
+     "status": 200,
+     "ms": 16032,
+     "requests_ms": [
+      16032
+     ],
+     "refused": null
+    },
+    {
+     "step": "save the point again (POST /world/save)",
+     "status": 200,
+     "ms": 14,
+     "requests_ms": [
+      14
+     ],
+     "refused": null
+    },
+    {
+     "step": "reset in place (POST /world/reset)",
+     "status": 200,
+     "ms": 10,
+     "requests_ms": [
+      10
+     ],
+     "refused": null
+    },
+    {
+     "step": "set its clock (POST /clock)",
+     "status": 200,
+     "ms": 206,
+     "requests_ms": [
+      206
+     ],
+     "refused": null
+    },
+    {
+     "step": "take it down (DELETE /world)",
+     "status": 200,
+     "ms": 4023,
+     "requests_ms": [
+      4023
+     ],
+     "refused": null
+    }
+   ],
+   "longest_request_ms": 16032,
+   "every_call_ended_well": true
+  }
+ },
+ "verdict": {
+  "longest_request_ms": 16032,
+  "edge_ms": 10000.0,
+  "within_the_edge": false,
+  "calls_whose_request_outlasted_the_edge (a 524 through Cloudflare)": [
+   "reset to payment-drafted: claim (POST /world/claim)",
+   "save the point again (POST /world/save)"
+  ],
+  "every_call_ended_well": true,
+  "whole_ms": 50374
+ }
+}

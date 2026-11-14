@@ -51,6 +51,13 @@ POST   /world/reset {"point"}         resets every site the point saved, in plac
 GET    /world/points                  the world's points
 DELETE /world/points/<point>          removes a point
 GET    /health                        {"ok": true, "app": <a hash of the apps the bench makes sites with>}
+GET    /world/jobs/<job>              a call run as a job: waits up to DOOR_JOB_WAIT_S, then the call's own answer, or
+                                      202 while it runs (jobs.py)
+
+Every call above that answers when its work is done (`POST /templates`, `/templates/sweep`, `/world/claim`,
+`/world/save`, `/world/reset`, `/clock`, `DELETE /world`, `DELETE /sites/<site>`) may wait on locks other worlds hold
+while the bench is busy. With `Prefer: respond-async` it runs as a job (jobs.py), so no request outlasts the 100 s
+Cloudflare's edge allows; without it, it answers when done, as it always has.
 """
 
 import glob
@@ -63,6 +70,7 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import jobs
 import points
 import pool
 import templates
@@ -128,6 +136,18 @@ def set_clock(c, body):
     return {"world": c["world"], "via": held[0], "ms": ms, "result": out.strip()[-300:]}
 
 
+def remove_world(c):
+    gone = [remove_site(e["site"]) for e in entries_of(c["world"])]
+    remove_backups(c["world"])
+    points.drop_world_points(c["world"])
+    return {"world": c["world"], "removed": gone}
+
+
+def remove_one(c, entry):
+    points.drop_world_points(c["world"], entry["site"])
+    return remove_site(entry["site"])
+
+
 FAST_ROUTES = {
     ("POST", "/templates"): templates.make_template,
     ("POST", "/templates/sweep"): templates.sweep,
@@ -171,6 +191,13 @@ class Door(BaseHTTPRequestHandler):
         finally:
             connection.close()
 
+    def done(self, c, work):
+        """Answers `work()` when it is done; a caller that prefers it gets a job instead of a request held open."""
+        if not jobs.wanted(self.headers):
+            return self.answer(200, work())
+        what = f"{self.command} {self.path.split('/api/')[0]}"
+        return self.answer(*jobs.answer(jobs.start(c["world"], what, work)))
+
     def handle_one(self, method):
         route = (method, self.path)
         try:
@@ -182,17 +209,15 @@ class Door(BaseHTTPRequestHandler):
             c = claims(self.headers)
             if route == ("GET", "/world"):
                 return self.answer(200, {**c, "sites": [public(e) for e in entries_of(c["world"])]})
+            if method == "GET" and self.path.startswith("/world/jobs/"):
+                return self.answer(*jobs.answer(jobs.of(c["world"], self.path[len("/world/jobs/"):])))
             if route == ("DELETE", "/world"):
-                gone = [remove_site(e["site"]) for e in entries_of(c["world"])]
-                remove_backups(c["world"])
-                points.drop_world_points(c["world"])
-                return self.answer(200, {"world": c["world"], "removed": gone})
+                return self.done(c, lambda: remove_world(c))
             if method in ("GET", "DELETE") and self.path.startswith("/sites/"):
                 entry = site_of(c, self.path[len("/sites/"):])
                 if method == "GET":
                     return self.answer(200, public(entry))
-                points.drop_world_points(c["world"], entry["site"])
-                return self.answer(200, remove_site(entry["site"]))
+                return self.done(c, lambda: remove_one(c, entry))
             if route == ("GET", "/templates"):
                 return self.answer(200, pool.list_templates())
             if method == "DELETE" and self.path.startswith("/templates/"):
@@ -207,14 +232,14 @@ class Door(BaseHTTPRequestHandler):
             if route == ("POST", "/sites"):
                 return self.answer(202, create_site(c, body))
             if route == ("POST", "/clock"):
-                return self.answer(200, set_clock(c, body))
+                return self.done(c, lambda: set_clock(c, body))
             if route == ("POST", "/world/backup"):
                 return self.answer(202, start_backup(c, body))
             if route == ("POST", "/world/restore"):
                 source = claims(self.headers, header="X-Capxul-Source-Token")
                 return self.answer(202, restore_world(c, source, body))
             if route in FAST_ROUTES:
-                return self.answer(200, FAST_ROUTES[route](c, body))
+                return self.done(c, lambda: FAST_ROUTES[route](c, body))
             raise Refused(404, "no-such-route")
         except Refused as r:
             print(f"door: refused {method} {self.path.split('/api/')[0]} {r.code} {r.detail[:200]}", flush=True)

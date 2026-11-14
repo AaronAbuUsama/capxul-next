@@ -68,6 +68,8 @@ from the shared state by whoever holds the Cloudflare key (`src/state.ts`), neve
 | `POST /world/claim {template, api_key, api_secret, clock?, browser_core_url?}` | Gives the token's world a ready copy of every site of the template, each `<label>-<world>.<domain>`, within its quota, and **answers 200 when they are ready** (about 1.4 s a site from the pool; about 4 s when the pool is empty and the copy is made from the template on the claim's path). Each copy is joined to the world (`capxul.world.rewrite`: its world, its host name, its jobs settled on the world's time), the world's clock set when `clock` (`{frozen_at_ms}` or `{offset_ms}`) is given, its API user given the world's credential, its scheduler on, all in one process (`door/claim.py`). The site then is a site of the world like one made by `POST /sites`: Core reaches it the same way. It holds the template world's company facts (org, Safe address, hats), so the world must hold the matching chain state (a restore of the same snapshot). |
 | `POST /world/save {point}` | Saves every site of the world (each must be ready) to a **point**: a copy of its database inside MariaDB with each table's checksum, its files (`public/files`, `private/files`), its site config, and once the world's entry in the bench's world clocks. About 3 s a site. A second save of the name replaces it. (`door/points.py`) |
 | `POST /world/reset {point}` | Resets every site the point saved **in place** (same name, database and credential): only the tables whose checksum differs are emptied and refilled from the saved copy in one transaction, a table made since is dropped and one dropped since made again, the files put back if any differ, the site config if it differs, the site's queued jobs removed and its cache keys in Redis cleared; then the world's clock entry put back (a frozen clock reads the saved instant again). Answers 200 with each site's steps, the tables put back and `sites_not_in_point` (sites made since, left alone). Well under a second for a small site. Refuses `point-not-found`, or `point-site-missing` if a saved site is gone or not ready. |
+| `Prefer: respond-async` on any call above that answers when done (`POST /templates`, `/templates/sweep`, `/world/claim`, `/world/save`, `/world/reset`, `/clock`; `DELETE /world`, `/sites/<site>`) | The call runs as a **job** (`door/jobs.py`): the door waits up to `DOOR_JOB_WAIT_S` (20 s) and then answers as the call always has (200 and its result, or its refusal and status), or **202** `{job, state: running, what, running_ms}` while it still runs. Without the header the call answers when done, as before. packages/world asks for every one of them (`src/site/call.ts`, `doorJob`). |
+| `GET /world/jobs/<job>` | That job, with the same world's token: waits up to `DOOR_JOB_WAIT_S` again, then the call's own answer, or 202 while it runs. Another world's job, or one a restarted door forgot (jobs live in its memory, a finished one an hour, `DOOR_JOB_KEEP_S`), is `job-not-found`. |
 | `GET /world/points`, `DELETE /world/points/<point>` | The world's points; removes one and its saved databases. `DELETE /world` removes every point of the world, `DELETE /sites/<site>` what the points saved of that site. |
 
 The platform records `doorUrl`, where a world reaches the door: `http://<stage>-door.<domain>` through the tunnel, or,
@@ -148,6 +150,26 @@ for 130 s), with packages/world's own client saving the world (`save.ts.txt`):
 Not run on `staging`: the door changes there only when `platform.yml` deploys it. Until then packages/world's save
 still takes the old door's answer.
 
+### No call holds a request past Cloudflare's edge (14 November 2026)
+
+Four `world` runs at once on `staging` met HTTP 524 on a reset's claim: with four runs building, claiming, saving and
+resetting, a claim, a save or a reset waits for one of `DOOR_FAST_SLOTS` and behind joins slowed by a busy machine,
+on the request's path. Every such call can now run as a job (above): no request is held longer than the door's
+20 s wait, and the work takes as long as it did. The door's unit tests (`door/tests/test_jobs.py`) drive the real
+door over HTTP. `records/capacity/` measured the door before and this one on a stand-in bench as busy as `staging` was,
+every time a tenth of the bench's (one FAST slot for four runs, a claim's join 4 s, Cloudflare's 100 s as 10 s, the
+door's 20 s wait as 2 s), four runs at once, each making its site, keeping a template, saving, removing, claiming,
+saving, resetting, setting its clock and taking its world down (`prove.py`):
+
+| | Door before, asked as before | This door, `Prefer: respond-async` | This door, asked as before (an old client) |
+|---|---|---|---|
+| Longest request | 16.0 s: a claim, and 12.0 s a save, past the edge (524 through Cloudflare) | 2.0 s | 4.0 s (one run) |
+| Every call ended well | yes, on this machine; not through Cloudflare | yes | yes |
+| The four runs, whole | 50.4 s | 50.4 s | |
+
+packages/world's own client (`client.ts.txt`) ran two worlds at once against each door: every call ended well on
+both, a claim taking 5.0 s through a job on this door and 4.0 s held open on the old one (`client.json`).
+
 ### Bench templates never change (14 November 2026)
 
 Two CI `world` runs at once broke each other on `staging`: templates were named after their starting world
@@ -221,6 +243,11 @@ were not timed apart. Resets are faster than the spike's 0.5 s, with MariaDB's c
 
 ### Not done
 
+- **Jobs are not on `staging` until `platform.yml` deploys the door**; until then packages/world's long calls get the
+  old door's answer, held open as before. Not measured: how long claims, saves and resets wait on `staging` with four
+  runs at once, and the bench itself: sites made from nothing are still one at a time (`BENCH_LOCK`, 2 to 4 minutes
+  each), so four runs' first builds queue for up to about 15 minutes, which a run's `site` step (8 minutes) and the
+  runner's 10-minute wait for a site can still exceed.
 - A deploy of the platform with these door calls, and the AWS bench host: the door image is built by
   `CapxulPlatform` (`door/Containerfile` copies every module), not rehearsed here; the proof mounted the code into
   the existing images.
@@ -316,13 +343,13 @@ no AWS keys, may not create a Cloudflare credential (a tunnel's token is one), a
 | `alchemy.run.ts`, `host.run.ts` | The platform's stack and the bench host's |
 | `src/names.ts`, `src/stage.ts` | Every name, from the stage |
 | `src/host.ts`, `src/aws.ts`, `src/user-data.ts` | The machine: the Docker context, the AWS resources, the first boot |
-| `src/bench.ts`, `src/mariadb.ts`, `bench/`, `door/`, `src/edge.ts` | The bench, its MariaDB's settings, its image, the site door (`door.py`; `sites.py`, `snapshots.py`, `templates.py`, `pool.py`, `claim.py`, `points.py`, `db.py`; unit tests in `door/tests/`, `pnpm door:test`), the tunnel and DNS |
+| `src/bench.ts`, `src/mariadb.ts`, `bench/`, `door/`, `src/edge.ts` | The bench, its MariaDB's settings, its image, the site door (`door.py`; `sites.py`, `snapshots.py`, `templates.py`, `pool.py`, `claim.py`, `points.py`, `db.py`, `jobs.py`; unit tests in `door/tests/`, `pnpm door:test`), the tunnel and DNS |
 | `src/token.ts`, `src/state.ts`, `src/door.ts`, `src/run-mint.ts` | Site tokens, the door key from the state, the package's door |
 | `src/drift.ts`, `src/code-drift.ts`, `src/run-drift.ts`, `src/run-inventory.ts` | The drift check and the state inventory |
 | `bin/` | `run.sh` (settings), `forward.sh` (SSM), `require.sh` (CI), `rehearse.sh` and `rehearse-drift.sh`, `zone.sh`, `pool-bench.sh` |
 | `bootstrap/` | CI's access: `bootstrap.sh`, `bootstrap.run.ts`, `src/aws-policy.ts`, `src/cloudflare-policy.ts`, `BOOTSTRAP.md` |
 | `proof/`, `bin/pool-bench.sh`, `records/site-pool/` | The site pool's proof on a local bench, and its records |
-| `records/backup-async/`, `records/templates/` | Proofs on a stand-in bench (the real door, `bench` and MariaDB stood in): the background backup, and two runs at once sharing the bench's templates |
+| `records/backup-async/`, `records/templates/`, `records/capacity/` | Proofs on a stand-in bench (the real door, `bench` and MariaDB stood in): the background backup, two runs at once sharing the bench's templates, and four runs at once with long calls as jobs |
 | `records/rehearsal/` | The stand-in rehearsal of this package: transcripts, drift reports, `summary.json` |
 | `records/aws/` | The AWS path from here: the platform's plan for `staging`, and the host's plan stopping at AWS's sign-in |
 | `records/spike/` | The spike's run, moved here when the spike was deleted |

@@ -1,0 +1,127 @@
+{
+ "this checkout's door, two worlds at once (calls past 2 s ran as jobs)": {
+  "ca": [
+   {
+    "step": "POST /templates",
+    "ms": 7
+   },
+   {
+    "step": "POST /world/save",
+    "ms": 49
+   },
+   {
+    "step": "DELETE /sites/<site>",
+    "ms": 1012
+   },
+   {
+    "step": "POST /world/claim",
+    "ms": 5013
+   },
+   {
+    "step": "POST /world/save again",
+    "ms": 5
+   },
+   {
+    "step": "POST /world/reset",
+    "ms": 45
+   },
+   {
+    "step": "DELETE /world",
+    "ms": 1014
+   }
+  ],
+  "cb": [
+   {
+    "step": "POST /templates",
+    "ms": 48
+   },
+   {
+    "step": "POST /world/save",
+    "ms": 936
+   },
+   {
+    "step": "DELETE /sites/<site>",
+    "ms": 1011
+   },
+   {
+    "step": "POST /world/claim",
+    "ms": 5009
+   },
+   {
+    "step": "POST /world/save again",
+    "ms": 4
+   },
+   {
+    "step": "POST /world/reset",
+    "ms": 52
+   },
+   {
+    "step": "DELETE /world",
+    "ms": 1014
+   }
+  ]
+ },
+ "the door before jobs, two worlds at once (it ignores Prefer and answers when done)": {
+  "cc": [
+   {
+    "step": "POST /templates",
+    "ms": 5
+   },
+   {
+    "step": "POST /world/save",
+    "ms": 46
+   },
+   {
+    "step": "DELETE /sites/<site>",
+    "ms": 1016
+   },
+   {
+    "step": "POST /world/claim",
+    "ms": 4010
+   },
+   {
+    "step": "POST /world/save again",
+    "ms": 3
+   },
+   {
+    "step": "POST /world/reset",
+    "ms": 47
+   },
+   {
+    "step": "DELETE /world",
+    "ms": 1013
+   }
+  ],
+  "cd": [
+   {
+    "step": "POST /templates",
+    "ms": 5
+   },
+   {
+    "step": "POST /world/save",
+    "ms": 49
+   },
+   {
+    "step": "DELETE /sites/<site>",
+    "ms": 1011
+   },
+   {
+    "step": "POST /world/claim",
+    "ms": 4009
+   },
+   {
+    "step": "POST /world/save again",
+    "ms": 4
+   },
+   {
+    "step": "POST /world/reset",
+    "ms": 44
+   },
+   {
+    "step": "DELETE /world",
+    "ms": 1012
+   }
+  ]
+ },
+ "every": "every call above ended well; a failure would have ended this program with its cause"
+}

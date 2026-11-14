@@ -29,6 +29,7 @@ export const BUNDLER_IMAGE = `${IMAGE_PREFIX}alto`;
 
 /** The steps of a world's life. Each has a declared timeout, and each one that ran has its duration in the record. */
 export const STEPS = [
+  "admit",
   "claim",
   "register",
   "branch",

@@ -27,7 +27,8 @@ import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import { SiteFailed } from "../failures.ts";
 import { describe, describeFailure } from "../lifecycle/describe.ts";
-import { BenchStage, doorCall, doorOf, soon, tokenFor } from "./Bench.ts";
+import { BenchStage, doorOf, soon, tokenFor } from "./Bench.ts";
+import { doorJob } from "./call.ts";
 
 /** The door's rule for a template's name (door/templates.py, TEMPLATE). */
 const TEMPLATE = /^[a-z][a-z0-9-]{0,39}$/;
@@ -131,7 +132,7 @@ export const sweepTemplates = (dryRun: boolean) =>
     if (Option.isNone(bench)) return { removed: [], kept: [], busy: [], detail: "no bench (WORLD_BENCH unset)" };
     const idle = yield* TemplateIdle;
     const { door, token } = yield* tokenFor(bench.value, SWEEPER, 0, yield* soon);
-    const swept = yield* doorCall(
+    const swept = yield* doorJob(
       door,
       token,
       HttpClientRequest.post("/templates/sweep").pipe(

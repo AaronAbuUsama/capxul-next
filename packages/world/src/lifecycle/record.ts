@@ -29,6 +29,8 @@ export const RunRecord = Schema.Struct({
   keptUntil: Schema.NullOr(Schema.String),
   /** How long each step took, in milliseconds; null for a step that did not run. */
   ms: Schema.Struct({
+    /** The wait for a place on the hub, with the claim of the name (absent in a record made before admission). */
+    admit: Schema.optionalKey(Ms),
     claim: Ms,
     register: Ms,
     branch: Ms,
@@ -52,6 +54,7 @@ export const RunRecord = Schema.Struct({
   }),
   /** The declared timeout of each step, in milliseconds. */
   timeouts: Schema.Struct({
+    admit: Schema.optionalKey(Schema.Finite),
     claim: Schema.Finite,
     register: Schema.Finite,
     branch: Schema.Finite,
@@ -73,6 +76,7 @@ export const RunRecord = Schema.Struct({
 export type RunRecord = typeof RunRecord.Type;
 
 export const noDurations: RunRecord["ms"] = {
+  admit: null,
   claim: null,
   register: null,
   branch: null,

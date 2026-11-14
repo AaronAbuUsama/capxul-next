@@ -26,9 +26,9 @@ import { grant, makeSites } from "../site/Bench.ts";
 import type { BenchGrant } from "../stack/settings.ts";
 import { deployStage, recordOutput, recordedOutput, secretOf } from "../stack/engine.ts";
 import { liftBranchExpiry } from "./account.ts";
-import { claim, registry } from "./claim.ts";
+import { admit, registry } from "./claim.ts";
 import { adoptChain, chainAnswers, handle, indexReady, open, rpc, rpcControl, WorldOutput } from "./parts.ts";
-import { Limits, type World, type WorldSpec } from "./spec.ts";
+import { AdmitEvery, Limits, type World, type WorldSpec } from "./spec.ts";
 import type { Stopwatch } from "./steps.ts";
 import type { Plan } from "./world.ts";
 
@@ -55,12 +55,13 @@ const makeForkable = Effect.fn("world.makeForkable")(function* (parent: string, 
 });
 
 /**
- * Brings the world up on its fleet hub. The name is claimed first, and `held` is set the moment the claim holds, so
- * whoever runs this knows whether there is anything of theirs to take down. Owner and expiry are written to the
- * shared state before anything exists, so a world whose creation dies half-way is still found, and deleted, by the
- * sweeper. Then the world is registered on its hub, and two lanes run side by side: the chain's (its chain, the
- * faucet, the bundler and whatever the caller does on the chain, `spec.onChain`) and the database's (the deploy of
- * its branch and Core, the migrations, the index once the chain answers, and Core).
+ * Brings the world up on its fleet hub. The name is claimed first, with a place on the hub (waiting for one while the
+ * hub is full), and `held` is set the moment the claim holds, so whoever runs this knows whether there is anything of
+ * theirs to take down. Owner and expiry are written to the shared state before anything exists, so a world whose
+ * creation dies half-way is still found, and deleted, by the sweeper. Then the world is registered on its hub, and
+ * two lanes run side by side: the chain's (its chain, the faucet, the bundler and whatever the caller does on the
+ * chain, `spec.onChain`) and the database's (the deploy of its branch and Core, the migrations, the index once the
+ * chain answers, and Core).
  */
 export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref.Ref<Option.Option<string>>) =>
   Effect.gen(function* () {
@@ -71,17 +72,23 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
         hub: hub.stage,
         message: `the world would expire at ${plan.expiresAt}, after its hub (${hub.expiresAt}); bring the hub up again`,
       });
+    // The name and a place on the hub, held together, waiting while the hub is full (src/lifecycle/claim.ts): the
+    // wait is the `admit` step's, under its own declared timeout, so a world never starts containers the hub has no
+    // room for. A refusal of the name or the quota comes at once.
+    const names = yield* registry;
+    const { maxPerOwner, maxSites } = yield* Limits;
+    const room = { stage: hub.stage, capacity: hub.capacity };
+    yield* watch.step(
+      "admit",
+      admit(names, plan.stage, plan.owner, plan.expiresAt, maxPerOwner, room, yield* AdmitEvery, (holder) =>
+        Ref.set(held, Option.some(holder)),
+      ),
+    );
     const bench = yield* watch.step(
       "claim",
       Effect.gen(function* () {
-        const names = yield* registry;
-        const { maxPerOwner, maxSites } = yield* Limits;
-        // The site token is minted first: it is a signature, and nothing exists until the name is held.
+        // The site token, minted once the name is held, and the world's first record.
         const granted = yield* grant(plan.stage, plan.expiresAt, maxSites);
-        yield* claim(names, plan.stage, plan.owner, plan.expiresAt, maxPerOwner).pipe(
-          Effect.tap((holder) => Ref.set(held, Option.some(holder))),
-          Effect.uninterruptible,
-        );
         const named = Option.match(granted, { onNone: () => "none", onSome: (one) => one.stage });
         yield* recordOutput(plan.stage, recordOf(plan, "creating", named, hub.stage));
         return granted;

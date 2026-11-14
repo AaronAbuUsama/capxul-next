@@ -1,0 +1,111 @@
+{
+ "mode": "old-client",
+ "door": "http://127.0.0.1:18192",
+ "edge_s": 10.0,
+ "runs": {
+  "we": {
+   "started_at_ms": 0,
+   "steps": [
+    {
+     "step": "make its site from nothing (POST /sites)",
+     "status": 202,
+     "ms": 10,
+     "requests_ms": [
+      10
+     ],
+     "refused": null
+    },
+    {
+     "step": "until it is ready (GET /sites/<site>)",
+     "ms": 6653,
+     "requests_ms": [
+      6
+     ],
+     "polls": 23
+    },
+    {
+     "step": "keep it as a template (POST /templates)",
+     "status": 200,
+     "ms": 2,
+     "requests_ms": [
+      2
+     ],
+     "refused": null
+    },
+    {
+     "step": "save a point (POST /world/save)",
+     "status": 200,
+     "ms": 3,
+     "requests_ms": [
+      3
+     ],
+     "refused": null
+    },
+    {
+     "step": "reset to fresh: remove its site (DELETE /sites/<site>)",
+     "status": 200,
+     "ms": 1008,
+     "requests_ms": [
+      1007
+     ],
+     "refused": null
+    },
+    {
+     "step": "reset to payment-drafted: claim (POST /world/claim)",
+     "status": 200,
+     "ms": 4007,
+     "requests_ms": [
+      4007
+     ],
+     "refused": null
+    },
+    {
+     "step": "save the point again (POST /world/save)",
+     "status": 200,
+     "ms": 4,
+     "requests_ms": [
+      4
+     ],
+     "refused": null
+    },
+    {
+     "step": "reset in place (POST /world/reset)",
+     "status": 200,
+     "ms": 2,
+     "requests_ms": [
+      2
+     ],
+     "refused": null
+    },
+    {
+     "step": "set its clock (POST /clock)",
+     "status": 200,
+     "ms": 208,
+     "requests_ms": [
+      208
+     ],
+     "refused": null
+    },
+    {
+     "step": "take it down (DELETE /world)",
+     "status": 200,
+     "ms": 1012,
+     "requests_ms": [
+      1012
+     ],
+     "refused": null
+    }
+   ],
+   "longest_request_ms": 4007,
+   "every_call_ended_well": true
+  }
+ },
+ "verdict": {
+  "longest_request_ms": 4007,
+  "edge_ms": 10000.0,
+  "within_the_edge": true,
+  "calls_whose_request_outlasted_the_edge (a 524 through Cloudflare)": [],
+  "every_call_ended_well": true,
+  "whole_ms": 12911
+ }
+}
