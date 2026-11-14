@@ -1,14 +1,16 @@
 // Reading a world's record against the blueprint: every entry names a declared event and carries exactly that
-// event's fields, and the positions run from 1 to the head, each once, in order.
-import { MadeCall, operations, type EventClass, type Operation } from "@capxul/blueprint";
+// event's fields, and the entries a call must have left are what its declaration computes from its payload and answer.
+import { MadeCall, operations, type EventClass, type Expected, type Operation } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
+import * as Equal from "effect/Equal";
 import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Order from "effect/Order";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
-import { ExpectationFailed, expect } from "../scenario.ts";
+import { ExpectationFailed, expect } from "../expectation.ts";
+import type { Made } from "../journal.ts";
 import { same, show } from "./expect.ts";
 import { objectOf, type Entry, type Json } from "./world.ts";
 
@@ -51,14 +53,20 @@ export const inOrder = (entries: ReadonlyArray<Entry>, from: number) =>
     Arr.makeBy(entries.length, (index) => from + index),
   );
 
-/** `names` occur in `entries` in this order, other entries between them allowed. */
-export const holdsInOrder = (entries: ReadonlyArray<Entry>, names: ReadonlyArray<string>) => {
-  const left = Arr.reduce(entries, names, (wanted, entry) =>
-    Arr.isReadonlyArrayNonEmpty(wanted) && wanted[0] === entry.event ? Arr.drop(wanted, 1) : wanted,
+/** One entry as a call's declaration says it must be: its event and what it carries, encoded as the record keeps it. */
+export interface Due {
+  readonly event: string;
+  readonly carried: unknown;
+}
+
+/** `wanted` occur in `entries` in this order, other entries between them allowed. */
+export const holdsInOrder = (entries: ReadonlyArray<Due>, wanted: ReadonlyArray<Due>) => {
+  const left = Arr.reduce(entries, wanted, (rest, entry) =>
+    Arr.isReadonlyArrayNonEmpty(rest) && Equal.equals(rest[0], entry) ? Arr.drop(rest, 1) : rest,
   );
   return expect(
     left.length === 0,
-    `the record does not hold, in order, ${show(names)}; missing from ${show(left[0])}: ${show(Arr.map(entries, (e) => e.event))}`,
+    `the record does not hold, in order, ${show(wanted)}; missing from ${show(left[0])}: ${show(Arr.map(entries, (e) => e.event))}`,
   );
 };
 
@@ -90,12 +98,25 @@ export const entriesOfCall = (call: MadeCall) =>
     const expected = yield* Effect.fromOption(operation.expected({ payload, success })).pipe(
       Effect.mapError(() => failed(`the ${call.operation} call ${call.trace} is no successful call of it`)),
     );
-    return yield* Effect.forEach(expected, (each) =>
-      Schema.encodeUnknownEffect(Schema.Struct(Rec.remove(each.event.fields, "_tag")))(each.carried).pipe(
-        Effect.mapBoth({
-          onSuccess: (carried) => ({ event: each.event.identifier, carried }),
-          onFailure: () => failed(`${each.event.identifier} of ${call.trace} cannot be encoded`),
-        }),
-      ),
-    );
+    return yield* encodedAll(`${call.operation} ${call.trace}`, expected);
+  });
+
+const encodedAll = (operation: string, expected: ReadonlyArray<Expected>) =>
+  Effect.forEach(expected, (each) =>
+    Schema.encodeUnknownEffect(Schema.Struct(Rec.remove(each.event.fields, "_tag")))(each.carried).pipe(
+      Effect.mapBoth({
+        onSuccess: (carried): Due => ({ event: each.event.identifier, carried }),
+        onFailure: () => failed(`${each.event.identifier} of ${operation} cannot be encoded`),
+      }),
+    ),
+  );
+
+/** The entries a successful call of a journey's step must have left in its world's record, encoded as it keeps them. */
+export const expectedOf = (made: Made) =>
+  Effect.gen(function* () {
+    const operation: Operation = operations[made.operation];
+    const expected = yield* Effect.fromOption(
+      operation.expected({ payload: made.payload, success: made.success }),
+    ).pipe(Effect.mapError(() => failed(`the journey's ${made.operation} call is no successful call of it`)));
+    return yield* encodedAll(made.operation, expected);
   });

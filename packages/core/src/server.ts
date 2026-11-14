@@ -2,6 +2,7 @@
 // (`worker.ts`) serves each group at its own door (`doors.ts`) and provides a database; a test provides a sink.
 import { PlatformRpcs, WorldRpcs } from "@capxul/blueprint";
 import * as Layer from "effect/Layer";
+import { EmptyHandlers } from "./empty-handlers.ts";
 import { PlatformHandlers, WorldHandlers } from "./handlers.ts";
 import { PlatformSignInLive, TelemetryLive, WorldSignInLive } from "./telemetry/middleware.ts";
 
@@ -12,6 +13,9 @@ import { PlatformSignInLive, TelemetryLive, WorldSignInLive } from "./telemetry/
 export const CoreRpcs = PlatformRpcs.merge(WorldRpcs);
 
 /** The handlers and middlewares of both groups. Needs a `SpanSink` and the `CoreIdentity` of the deploy. */
-export const Served = Layer.merge(PlatformHandlers, WorldHandlers).pipe(
-  Layer.provideMerge(Layer.merge(TelemetryLive, Layer.merge(WorldSignInLive, PlatformSignInLive))),
-);
+const middlewares = Layer.merge(TelemetryLive, Layer.merge(WorldSignInLive, PlatformSignInLive));
+
+export const Served = Layer.merge(PlatformHandlers, WorldHandlers).pipe(Layer.provideMerge(middlewares));
+
+/** The same with every handler empty (src/empty-handlers.ts): what a stage deployed with `CAPXUL_HANDLERS=empty` serves. */
+export const ServedEmpty: typeof Served = EmptyHandlers.pipe(Layer.provideMerge(middlewares));

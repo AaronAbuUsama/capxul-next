@@ -6,8 +6,9 @@
 #   ./run.sh door --world=<name>  the same, through the Core of a world `world create` made (packages/world)
 #   ./run.sh chain --world=<name> the chain operations' journey through that world's Core (src/chain-journey.ts)
 #   ./run.sh scenarios [--one-stage] [--expect=pass|not-implemented] [name...]
-#                                 run the registered scenarios (or those named), each in its own fresh stage, or all
-#                                 in one fresh stage (only with --expect=not-implemented), and write their summary
+#                                 run the registered journeys (or those named): in private worlds, one world per journey;
+#                                 or, with --expect=not-implemented, each in its own fresh stage of Core deployed with its
+#                                 empty handlers (or all in one, --one-stage), and write their summary
 #   ./run.sh scenarios --core=local [name...]
 #                                 the same in private worlds, with every world's Core run here in workerd next to a
 #                                 stand-in bench (WORLD_BENCH=<platform stage>): a rehearsal, labelled so in every record
@@ -35,6 +36,9 @@ free_gb() { df -Pk . | awk 'NR==2 { print int($4 / 1048576) }'; }
 if [ "${1:-}" = scenarios ] || [ "${1:-}" = starting-worlds ]; then
   [ "$(free_gb)" -ge "${RUNNER_MIN_FREE_GB:-4}" ] || { echo "run.sh: only $(free_gb) GB free; at least ${RUNNER_MIN_FREE_GB:-4} needed" >&2; exit 2; }
 fi
+# A run that expects Core's empty handlers deploys its stages in Core's empty-handler mode (packages/core,
+# src/empty-handlers.ts): every operation answers NotImplemented, whatever is built.
+for arg in "$@"; do [ "$arg" = --expect=not-implemented ] && export CAPXUL_HANDLERS=empty; done
 case "${1:-}" in
   alchemy) shift; exec bun node_modules/alchemy/bin/cli.js "$@" ;;
   door|chain|scenarios|starting-worlds) exec bun src/main.ts "$@" ;;

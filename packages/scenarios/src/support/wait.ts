@@ -4,7 +4,7 @@
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Schedule from "effect/Schedule";
-import { ExpectationFailed } from "../scenario.ts";
+import { ExpectationFailed } from "../expectation.ts";
 
 /** One poll every two seconds, for at most five minutes: a site's creation is the slowest wait of the thin line. */
 export const WAIT = { every: Duration.seconds(2), attempts: 150 } as const;
