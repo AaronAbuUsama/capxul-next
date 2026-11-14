@@ -18,6 +18,7 @@ import { Ended } from "./failure.ts";
 import { Outcome, passedOr, RunRecord } from "./record.ts";
 import { Inventory, isEmpty } from "./world/leftovers.ts";
 import { FailedStep } from "./steps.ts";
+import { Timing } from "./timings.ts";
 import { Readiness } from "./world/warmup.ts";
 
 export const Expectation = Schema.Literals(["pass", "not-implemented"]);
@@ -25,9 +26,10 @@ export type Expectation = typeof Expectation.Type;
 
 /**
  * `a stage each`: every journey in a fresh stage of its own. `one stage`: all of them in one fresh stage. `a world
- * each`: every journey in fresh private worlds, its starting world made for it (worlds/run.ts).
+ * each`: every journey in fresh private worlds, its starting world made for it. `one world`: every journey in the
+ * run's one world on its hub, reset in place to its starting world before it (worlds/run.ts, roadmap step 1.18).
  */
-export const Mode = Schema.Literals(["a stage each", "one stage", "a world each"]);
+export const Mode = Schema.Literals(["a stage each", "one stage", "a world each", "one world"]);
 export type Mode = typeof Mode.Type;
 
 const NOT_IMPLEMENTED: Errors.NotImplemented["_tag"] = "NotImplemented";
@@ -83,6 +85,15 @@ const StageLine = Schema.Struct({
 });
 type StageLine = typeof StageLine.Type;
 
+const OneWorld = Schema.Struct({
+  world: Schema.NullOr(Schema.String),
+  hub: Schema.String,
+  /** Whether the run brought the hub up, and so took it down at its end. */
+  hubBroughtUp: Schema.Boolean,
+  left: Schema.NullOr(Inventory),
+  timings: Schema.Array(Timing),
+});
+
 export const Summary = Schema.Struct({
   kind: Schema.Literal("journeys"),
   /** The run's id: its one stage's name, or `run-<6 hex>` when each journey had a stage or worlds of its own. */
@@ -108,8 +119,16 @@ export const Summary = Schema.Struct({
   }),
   journeys: Schema.Array(JourneyLine),
   stages: Schema.Array(StageLine),
+  /**
+   * A run in one world: the world and its hub, what the accounts held afterwards of every world the run made (empty
+   * when nothing is left), and every part of the run timed in order (src/timings.ts).
+   */
+  oneWorld: Schema.optional(OneWorld),
 });
 export type Summary = typeof Summary.Type;
+
+const ONE_WORLD =
+  "The registered journeys run through the runner in one world, made on a fleet hub by the platform this process serves, its starting worlds made in it once and saved, and the world reset in place to each journey's starting world before the journey. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world the run made, the one world included, was destroyed with nothing of it left in the accounts.";
 
 const WHAT: { readonly [E in Expectation]: string } = {
   pass: "The registered journeys run through the runner, each in fresh private worlds made by the platform this process serves, its starting world made for it. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world it made was destroyed with nothing of it left in the accounts.",
@@ -221,6 +240,8 @@ export interface SummaryInput {
   readonly core?: string | undefined;
   /** Where each record is, under the records folder. */
   readonly pathOf: (record: RunRecord, index: number) => string;
+  /** A run in one world: its world, its hub, what was left and its timings. */
+  readonly oneWorld?: typeof OneWorld.Type;
 }
 
 /** The summary of a run of the journeys, from their run records. Pure. */
@@ -236,11 +257,14 @@ export const summarize = (input: SummaryInput): Summary => {
       : [`${missing.length} registered journeys were not in this run: ${Arr.join(missing, "; ")}`]),
     ...Arr.map(wrong, (line) => `${line.name}: ${line.why ?? ""}`),
     ...Arr.map(left, (stage) => `stage ${stage.name} is not gone: ${stage.afterwards}, ${leftWords(stage.after)}`),
+    ...(input.oneWorld === undefined || (input.oneWorld.left !== null && isEmpty(input.oneWorld.left))
+      ? []
+      : [`the run's worlds are not all gone: ${leftWords(input.oneWorld.left)}`]),
   ];
   return {
     kind: "journeys",
     run: input.run,
-    what: WHAT[input.expect],
+    what: input.mode === "one world" ? ONE_WORLD : WHAT[input.expect],
     mode: input.mode,
     expect: input.expect,
     owner: input.owner,
@@ -256,5 +280,6 @@ export const summarize = (input: SummaryInput): Summary => {
     },
     journeys: lines,
     stages,
+    ...(input.oneWorld === undefined ? {} : { oneWorld: input.oneWorld }),
   };
 };

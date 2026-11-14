@@ -58,17 +58,38 @@ const unix = (iso: string) => Math.floor(DateTime.toEpochMillis(DateTime.makeUns
 /** A quarter of an hour from now, in Unix seconds: the life of a token minted to read or remove a world's sites. */
 export const soon = Effect.map(DateTime.now, (now) => Math.floor(DateTime.toEpochMillis(now) / 1000) + 15 * 60);
 
-/** A token for `world` on `bench`, minted under the platform's door key, read from the shared state. */
+/**
+ * The bench a runner serves on its own machine for a rehearsal, named so in `WORLD_BENCH`: not a platform stage, so
+ * neither its door nor its key is in the shared state. Its door's address and key are given beside it
+ * (`WORLD_BENCH_DOOR`, `WORLD_BENCH_KEY`): packages/platform's `bin/pool-bench.sh` bench, whose key the runner's
+ * run.sh reads from that bench's secrets file and never prints. Only this machine reaches it, as with a stand-in.
+ */
+export const LOCAL_BENCH = "local";
+
+const LocalBench = Config.all({
+  door: Config.String("WORLD_BENCH_DOOR"),
+  key: Config.Redacted("WORLD_BENCH_KEY"),
+});
+
+/** Where `bench`'s door answers and its key: from the shared state for a platform stage, else the local bench's. */
+const doorOf = (bench: string) =>
+  bench === LOCAL_BENCH
+    ? Effect.map(LocalBench, (local) => ({ door: local.door, key: local.key }))
+    : withState((state) =>
+        Effect.gen(function* () {
+          const outputs = yield* Platform.platformOutputsIn(state, bench);
+          return { door: outputs.doorUrl, key: yield* Platform.doorKeyIn(state, bench) };
+        }),
+      );
+
+/** A token for `world` on `bench`, minted under the bench's door key. */
 export const tokenFor = (bench: string, world: string, quota: number, expires: number) =>
-  withState((state) =>
-    Effect.gen(function* () {
-      const outputs = yield* Platform.platformOutputsIn(state, bench);
-      const key = yield* Platform.doorKeyIn(state, bench);
-      // oxlint-disable-next-line effecttsgo/strict-effect-provide -- WebCrypto's HMAC is the platform's own layer, used for this one signature
-      const token = yield* Platform.mint(key, { world, quota, expires }).pipe(Effect.provide(Platform.cryptoLayer));
-      return { door: outputs.doorUrl, token };
-    }),
-  );
+  Effect.gen(function* () {
+    const { door, key } = yield* doorOf(bench);
+    // oxlint-disable-next-line effecttsgo/strict-effect-provide -- WebCrypto's HMAC is the platform's own layer, used for this one signature
+    const token = yield* Platform.mint(key, { world, quota, expires }).pipe(Effect.provide(Platform.cryptoLayer));
+    return { door, token };
+  });
 
 /** What a world is given on its bench when it is created; none when `WORLD_BENCH` is unset. */
 export const grant = Effect.fn("world.site.grant")(function* (stage: string, expiresAt: string, quota: number) {

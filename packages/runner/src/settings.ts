@@ -14,6 +14,11 @@ export const Settings = Config.all({
    * checks read several worlds' databases.
    */
   worldUseTimeout: Config.Duration("WORLD_SCENARIO_TIMEOUT").pipe(Config.withDefault(Duration.minutes(20))),
+  /**
+   * How long the fleet hub a run brings up lives (src/worlds/hub.ts): longer than the run's one world (2.5 hours) and
+   * the worlds its journeys make, which may not outlive it. The run takes it down at its end.
+   */
+  hubLifetime: Config.Duration("RUNNER_HUB_LIFETIME").pipe(Config.withDefault(Duration.hours(4))),
   destroyTimeout: Config.Duration("WORLD_DESTROY_TIMEOUT").pipe(Config.withDefault(Duration.minutes(4))),
   /** A stage is ready after this many answers in a row from its Core (warmup.ts). */
   readyAnswers: Config.Int("WORLD_READY_ANSWERS").pipe(Config.withDefault(20)),

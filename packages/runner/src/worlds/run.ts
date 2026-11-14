@@ -1,8 +1,10 @@
-// A run of the journeys in private worlds (`./run.sh scenarios`, expecting `pass`): the platform served by this
-// process (platform.ts), every journey's starting world made for it (starting.ts), one world per journey for now
-// (docs/roadmap.md, "One runner, one world"), the journey run through the door with its operations' checks and the
-// generic checks on every call, and every world it made destroyed afterwards, whatever happened, with the accounts
-// read before and after for anything of those worlds. The template worlds are destroyed when the run ends.
+// A run of the journeys in one world (`./run.sh scenarios`, expecting `pass`; roadmap step 1.18 and the decision "One
+// runner, one world"): the platform served by this process (platform.ts), the run's hub brought up (hub.ts), its one
+// world created on it and every starting world the journeys name made in it once and saved (starting.ts); then for
+// each journey the world reset in place to its starting world, what that world makes by its steps made, the journey
+// run through the door with its operations' checks and the generic checks on every call, and every other world it
+// made destroyed after it, whatever happened, with the accounts read before and after for anything of them. The one
+// world and the hub go when the run ends, however it ends. Every part is timed into the summary (`timings`).
 import type { Journey } from "@capxul/scenarios";
 import * as World from "@capxul/world";
 import * as Arr from "effect/Array";
@@ -21,9 +23,11 @@ import { freshName, journeyPlan, keptFor, stepsFor, use } from "../run.ts";
 import { stepsOf } from "../steps.ts";
 import type { Settings } from "../settings.ts";
 import { summarize, Summary } from "../summary.ts";
+import { makeTimings, type Timings } from "../timings.ts";
 import type { Inventory } from "../world/leftovers.ts";
 import { answersSteadily } from "../world/warmup.ts";
 import type { Stage } from "../world/stage.ts";
+import { onHub } from "./hub.ts";
 import { Platform } from "./platform.ts";
 import { startingWorldsOf, type StartingWorlds } from "./starting.ts";
 
@@ -78,12 +82,19 @@ const checked = (calls: ReadonlyArray<Call>) =>
     return Arr.map(calls, (call) => checkCall(call, kept));
   });
 
-/** The scenario's starting world made for it, its world opened and waited for, and the scenario run there. */
-const work = (scenario: Journey, settings: Settings, starting: StartingWorlds, name: string) =>
+/** The one world reset to the journey's starting world, what it makes by its steps made, and the journey run. */
+const work = (scenario: Journey, settings: Settings, starting: StartingWorlds, timings: Timings, name: string) =>
   Effect.gen(function* () {
     const platform = yield* Platform;
     const callsBefore = (yield* starting.made).length;
-    const [makeTook, making] = yield* starting.forScenario(scenario.given).pipe(Effect.exit, Effect.timed);
+    const [makeTook, making] = yield* Effect.andThen(
+      starting.resetFor(scenario.given, scenario.name),
+      timings.timed(
+        "starting world",
+        { journey: scenario.name, of: scenario.given.name },
+        starting.forScenario(scenario.given),
+      ),
+    ).pipe(Effect.exit, Effect.timed);
     const makingCalls = Arr.map(Arr.drop(yield* starting.made, callsBefore), (each) => each.call);
     const madeChecked = yield* Effect.orElseSucceed(checked(makingCalls), () => []);
     if (Exit.isFailure(making))
@@ -109,14 +120,34 @@ const work = (scenario: Journey, settings: Settings, starting: StartingWorlds, n
     const plan = journeyPlan(settings, { made: making.value.facts })(scenario);
     const inWorld = { ...settings, doorToken: world?.doorToken ?? Redacted.make("none") };
     const used = yield* Effect.exit(Effect.timeout(use(plan, inWorld)(stage), settings.worldUseTimeout));
+    if (Exit.isSuccess(used))
+      yield* timings.record("journey", used.value.ms.run, {
+        journey: scenario.name,
+        of: stage.name,
+        steps: Arr.map(used.value.steps, (step) => ({
+          step: step.step,
+          operation: step.operation,
+          outcome: step.outcome,
+          ms: step.ms,
+        })),
+      });
+    if (Exit.isSuccess(used))
+      yield* timings.record("checks", used.value.ms.checks, { journey: scenario.name, of: stage.name });
     return { makeMs: millis(makeTook), making, madeChecked, readiness, stage: stage.name, used };
   });
 
 /**
- * One scenario in worlds made for it; its run record, which is also on disk by then. Every world made while it ran,
- * but the template worlds, is destroyed afterwards, also when it failed, died or was interrupted.
+ * One journey in the run's one world; its run record, which is also on disk by then. Every world made while it ran,
+ * but the one world, is destroyed afterwards, also when it failed, died or was interrupted.
  */
-const runOne = (scenario: Journey, settings: Settings, starting: StartingWorlds, run: string, index: number) =>
+const runOne = (
+  scenario: Journey,
+  settings: Settings,
+  starting: StartingWorlds,
+  timings: Timings,
+  run: string,
+  index: number,
+) =>
   Effect.uninterruptibleMask((restore) =>
     Effect.gen(function* () {
       const platform = yield* Platform;
@@ -124,13 +155,13 @@ const runOne = (scenario: Journey, settings: Settings, starting: StartingWorlds,
       const startedAt = yield* now;
       const before = yield* platform.made;
       const triedBefore = (yield* platform.tried).length;
-      const done = yield* Effect.exit(restore(work(scenario, settings, starting, `${run}-${index + 1}`)));
+      const done = yield* Effect.exit(restore(work(scenario, settings, starting, timings, `${run}-${index + 1}`)));
       const templates = yield* starting.templateWorlds;
       const mine = Arr.filter(
         Arr.drop(yield* platform.made, before.length),
         (stage) => !Arr.contains(templates, stage),
       );
-      // The template worlds live on until the run ends; everything else the platform made or tried is this scenario's.
+      // The one world lives on until the run ends; everything else the platform made or tried is this journey's.
       const looked = Arr.filter(
         Arr.dedupe([...mine, ...Arr.drop(yield* platform.tried, triedBefore)]),
         (stage) => !Arr.contains(templates, stage),
@@ -144,6 +175,10 @@ const runOne = (scenario: Journey, settings: Settings, starting: StartingWorlds,
           (a, b) => a && b,
         ),
       );
+      yield* timings.record("destroy the journey's own worlds", millis(destroyTook), {
+        journey: scenario.name,
+        note: mine.length === 0 ? "none" : Arr.join(mine, ", "),
+      });
       const leftAfter = yield* leftOf(looked);
       const got = Exit.isSuccess(done) ? done.value : undefined;
       const used = got?.used;
@@ -187,34 +222,62 @@ const runOne = (scenario: Journey, settings: Settings, starting: StartingWorlds,
         },
       };
       yield* Effect.orDie(writeJson(`${settings.records}/${run}/${slugOf(scenario.name)}.json`, RunRecord, record));
-      yield* Effect.log(`${record.outcome}: ${scenario.name} (${mine.length} worlds, made in ${record.ms.create} ms)`);
+      yield* Effect.log(`${record.outcome}: ${scenario.name} (reset and made in ${record.ms.create} ms)`);
       if (Exit.isFailure(done) && Exit.hasInterrupts(done)) return yield* Effect.interrupt;
       return record;
     }),
   ).pipe(Effect.withSpan("runner.world.scenario", { attributes: { scenario: scenario.name } }));
 
-/** Every scenario in worlds of its own, one at a time, and the run's summary at `<run>/summary.json`. */
+/**
+ * Drops the bench templates the run kept and destroys its one world, timing both; true when the world is gone.
+ * Whatever ends the run, this runs.
+ */
+const takeDown = (starting: StartingWorlds, timings: Timings) =>
+  Effect.gen(function* () {
+    const one = yield* Effect.option(starting.oneWorld);
+    if (Option.isSome(one))
+      yield* Effect.forEach(yield* starting.kept, (template) =>
+        timings
+          .timed(`drop bench template ${template}`, { of: one.value }, World.dropSitesTemplate(one.value, template))
+          .pipe(Effect.ignore),
+      );
+    const stages = yield* starting.templateWorlds;
+    if (stages.length === 0) return true;
+    return yield* timings.timed("world destroy", { of: Arr.join(stages, ", ") }, destroyAll(stages));
+  });
+
+/** Every journey in the run's one world, one at a time, and the run's summary at `<run>/summary.json`. */
 export const runInWorlds = (scenarios: ReadonlyArray<Journey>, settings: Settings) =>
   Effect.gen(function* () {
     const platform = yield* Platform;
     const startedAt = yield* now;
     const run = yield* freshName("run");
-    const starting = yield* startingWorldsOf(settings, platform.url);
-    const records = yield* Effect.forEach(scenarios, (scenario, index) =>
-      runOne(scenario, settings, starting, run, index),
-    ).pipe(
-      // The template worlds go when the run ends, however it ends; each scenario's own worlds went after it.
-      Effect.ensuring(Effect.flatMap(starting.templateWorlds, destroyAll)),
+    const timings = yield* makeTimings;
+    const [records, world, hub] = yield* onHub(settings, timings, (used) =>
+      Effect.gen(function* () {
+        const starting = yield* startingWorldsOf(settings, platform.url, timings);
+        const outcome = yield* Effect.gen(function* () {
+          // A starting world that could not be made fails the journeys of it, each with why; the rest still run.
+          yield* Effect.ignore(starting.prepare(Arr.map(scenarios, (scenario) => scenario.given)));
+          return yield* Effect.forEach(scenarios, (scenario, index) =>
+            runOne(scenario, settings, starting, timings, run, index),
+          );
+        }).pipe(Effect.ensuring(Effect.ignore(takeDown(starting, timings))));
+        const one = yield* Effect.option(starting.oneWorld);
+        return [outcome, Option.getOrNull(one), used] as const;
+      }),
     );
+    const left = yield* leftOf(Arr.dedupe([...(yield* platform.made), ...(yield* platform.tried)]));
     const summary = summarize({
       core: yield* coreLabel,
       run,
-      mode: "a world each",
+      mode: "one world",
       expect: "pass",
       owner: settings.owner,
       startedAt,
       records,
       pathOf: (record) => `${run}/${slugOf(record.name)}.json`,
+      oneWorld: { world, hub: hub.stage, hubBroughtUp: hub.broughtUp, left, timings: yield* timings.all },
     });
     yield* Effect.orDie(writeJson(`${settings.records}/${run}/summary.json`, Summary, summary));
     return summary;

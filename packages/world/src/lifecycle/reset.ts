@@ -11,7 +11,9 @@
 //   chain     anvil reset and loaded with the snapshot's state, in place (src/chain/Chain.ts, `reset`)
 //   clock     Core's clock set to read the snapshot's time now, and the chain's next block mined at that time, as a
 //             restore and a warp do (`mineAtWorldTime`); the bench's clock entry set to it too (src/site/Points.ts)
-//   sites     each company site put back to the snapshot's point on the bench, in place (src/site/Points.ts)
+//   sites     each company site put back to the snapshot's point on the bench, in place, or claimed from the bench's
+//             template of the snapshot's name when the point lost its sites; a snapshot of no company removes the
+//             world's sites (src/site/Points.ts)
 //   then      Ponder started again on the restored schema (as soon as the chain is back) and waited for until it has
 //             the chain's head; alto and Core waited for beside it
 //
@@ -34,7 +36,7 @@ import { PlatformFailed } from "../failures.ts";
 import { preservedPrefix } from "../platform/branches.ts";
 import { writeRestored } from "../platform/facts.ts";
 import { prepareStore, snapshotOf } from "../platform/store.ts";
-import { resetPoint } from "../site/Points.ts";
+import { resetSites, type SitesReset } from "../site/Points.ts";
 import { recordedOutput } from "../stack/engine.ts";
 import { describeFailure } from "./describe.ts";
 import { mineAtWorld, resetChain, resumeIndex, stopIndex } from "./controls.ts";
@@ -104,16 +106,21 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
       "chain mined at the world's time",
       mineAtWorld(world, saved.clock_ms, saved.clock_mode === "frozen" ? null : clockAt),
     );
-    if (saved.companies > 0)
-      yield* timed(
-        "sites",
-        resetPoint(
-          stage,
-          bench,
-          snapshot,
-          saved.clock_mode === "frozen" ? { frozen_at_ms: saved.clock_ms } : { offset_ms: saved.clock_ms - clockAt },
-        ),
-      );
+    const sites: SitesReset | null =
+      bench === "none"
+        ? null
+        : yield* timed(
+            "sites",
+            resetSites(
+              stage,
+              bench,
+              snapshot,
+              saved.companies,
+              saved.clock_mode === "frozen"
+                ? { frozen_at_ms: saved.clock_ms }
+                : { offset_ms: saved.clock_ms - clockAt },
+            ),
+          );
     const [indexedBlock] = yield* Effect.all(
       [
         timed("index caught up", Effect.andThen(indexReady(world), caughtUp(world))),
@@ -123,7 +130,7 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
       ],
       { concurrency: 4 },
     );
-    return { chain, minedAt: mined.minedAt, indexedBlock };
+    return { chain, minedAt: mined.minedAt, indexedBlock, sites };
   }).pipe(
     Effect.timeoutOrElse({
       duration: timeout,
@@ -131,7 +138,15 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
     }),
   );
   const ms = { ...(yield* Ref.get(taken)), reset: (yield* Clock.currentTimeMillis) - began };
-  return { world: world.name, snapshot, ms, chain: done.chain, minedAt: done.minedAt, indexedBlock: done.indexedBlock };
+  return {
+    world: world.name,
+    snapshot,
+    ms,
+    chain: done.chain,
+    minedAt: done.minedAt,
+    indexedBlock: done.indexedBlock,
+    sites: done.sites,
+  };
 });
 
 /** Deletes the branch Neon kept of the world as it was, unless a snapshot of the world hangs from it. */

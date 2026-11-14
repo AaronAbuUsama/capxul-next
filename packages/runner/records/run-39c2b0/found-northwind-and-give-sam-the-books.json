@@ -1,0 +1,3718 @@
+{
+  "kind": "journey",
+  "name": "found Northwind and give sam the books",
+  "proves": null,
+  "given": "fresh",
+  "stage": "w-tpl-750ac8",
+  "owner": "runner",
+  "startedAt": "2026-11-14T07:02:36.244Z",
+  "outcome": "failed",
+  "core": "local-Core rehearsal: Core ran in workerd on the runner's machine, next to a stand-in bench, against the world's database, chain, index and bundler on Cloudflare and Neon. Not the proof that the scenarios pass with Core on Cloudflare (roadmap step 1.6).",
+  "failure": "the run failed: {\"_tag\":\"ExpectationFailed\",\"message\":\"org.create as dana answered refused PayloadRejected ({\\\"_tag\\\":\\\"PayloadRejected\\\",\\\"operation\\\":\\\"org.create\\\",\\\"issue\\\":\\\"Expected a string with no leading or trailing whitespace\\\\n  at [\\\\\\\"profile\\\\\\\"][\\\\\\\"bio\\\\\\\"]\\\"}); the step expects Founded\"}",
+  "ended": {
+    "as": "failed",
+    "tag": "ExpectationFailed",
+    "detail": "{\"_tag\":\"ExpectationFailed\",\"message\":\"org.create as dana answered refused PayloadRejected ({\\\"_tag\\\":\\\"PayloadRejected\\\",\\\"operation\\\":\\\"org.create\\\",\\\"issue\\\":\\\"Expected a string with no leading or trailing whitespace\\\\n  at [\\\\\\\"profile\\\\\\\"][\\\\\\\"bio\\\\\\\"]\\\"}); the step expects Founded\"}"
+  },
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 9705
+  },
+  "calls": [
+    {
+      "operation": "record.export",
+      "traceId": "0986fa82cf8157f20255886433b02a3c",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1096.806,
+        "serverMs": 965,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 745,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 745,
+          "ms": 108,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 853,
+          "ms": 112,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 965 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "0ed60bba52d4607de6411b415377ffc8",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1346.858,
+        "serverMs": 1227.008,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": -0.303,
+          "ms": 64.311,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.113,
+          "ms": 1226.894,
+          "outcome": "success"
+        },
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": 0.117,
+          "ms": 64.89,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 64.672,
+          "ms": 53.335,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 65.138,
+          "ms": 1161.87,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 119.06,
+          "ms": 560.948,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 119.113,
+          "ms": 169.895,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 119.126,
+          "ms": 373.882,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 119.331,
+          "ms": 58.677,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 178.264,
+          "ms": 390.743,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 179.11,
+          "ms": 389.898,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 289.317,
+          "ms": 57.69,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 289.574,
+          "ms": 203.433,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 347.648,
+          "ms": 144.36,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 492.526,
+          "ms": 0.481,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 569.276,
+          "ms": 110.732,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 569.465,
+          "ms": 54.543,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 623.81,
+          "ms": 55.198,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 679.701,
+          "ms": 127.307,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 679.772,
+          "ms": 546.236,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 679.962,
+          "ms": 408.046,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 680.005,
+          "ms": 546.003,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 680.092,
+          "ms": 546.916,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 680.118,
+          "ms": 126.89,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 680.34,
+          "ms": 407.668,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 1227.008 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "org.create",
+      "traceId": "638b6388d23a4aceb135dd5af717203a",
+      "at": null,
+      "outcome": "refusal",
+      "refusal": "FounderNotReady",
+      "failure": "{\"_tag\":\"FounderNotReady\",\"person\":\"pat\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 1127.625,
+        "serverMs": 1000,
+        "budgetMs": 8000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "org.create.found",
+          "parent": "org.create",
+          "startMs": 0,
+          "ms": 1000,
+          "outcome": "failure"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 1,
+          "ms": 998,
+          "outcome": "success"
+        },
+        {
+          "name": "org.create.check",
+          "parent": "org.create.found",
+          "startMs": 1,
+          "ms": 999,
+          "outcome": "failure"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one org.create span, 1000 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "03f3176eeeb6e75220a021820657c6b2",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1228.133,
+        "serverMs": 1108,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 1,
+          "ms": 894,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 896,
+          "ms": 105,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 1002,
+          "ms": 106,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 1108 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "8b7e80d21109bce0f7bb53e1562addb8",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 957.404,
+        "serverMs": 843.886,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": -0.24,
+          "ms": 60.126,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.082,
+          "ms": 843.804,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.096,
+          "ms": 59.79,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 60.285,
+          "ms": 783.601,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 60.889,
+          "ms": 56.997,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 117.535,
+          "ms": 170.351,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 117.622,
+          "ms": 57.264,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 117.859,
+          "ms": 610.027,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 118.195,
+          "ms": 55.691,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 174.374,
+          "ms": 442.513,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 175.325,
+          "ms": 112.561,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 175.376,
+          "ms": 441.51,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 175.501,
+          "ms": 56.385,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 232.794,
+          "ms": 55.092,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 288.399,
+          "ms": 0.487,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 616.866,
+          "ms": 111.02,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 616.935,
+          "ms": 55.951,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 673.802,
+          "ms": 54.084,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 727.66,
+          "ms": 109.226,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 727.759,
+          "ms": 106.127,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 727.85,
+          "ms": 116.036,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 727.976,
+          "ms": 108.91,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 728.404,
+          "ms": 106.482,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 728.468,
+          "ms": 115.418,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 728.654,
+          "ms": 115.232,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 843.886 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "69217bc9f0d9d27fa37efa37f35fcbd7",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1063.533,
+        "serverMs": 948,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 1,
+          "ms": 730,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 732,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 840,
+          "ms": 108,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 948 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "0ddb1c0a8e77db357a6ce1d66052d6a5",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 920.014,
+        "serverMs": 806.15,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.052,
+          "ms": 806.098,
+          "outcome": "success"
+        },
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": 0.584,
+          "ms": 58.566,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.979,
+          "ms": 58.172,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 58.685,
+          "ms": 747.465,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 59.414,
+          "ms": 55.737,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 115.323,
+          "ms": 578.828,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 115.513,
+          "ms": 58.637,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 115.533,
+          "ms": 54.617,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 115.656,
+          "ms": 177.495,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 170.442,
+          "ms": 403.708,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 171.067,
+          "ms": 403.084,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 174.746,
+          "ms": 118.404,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 174.759,
+          "ms": 57.391,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 233.395,
+          "ms": 58.755,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 292.612,
+          "ms": 0.539,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 574.463,
+          "ms": 119.687,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 574.493,
+          "ms": 58.657,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 633.169,
+          "ms": 59.981,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 693.842,
+          "ms": 112.308,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 694.133,
+          "ms": 107.017,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 694.33,
+          "ms": 106.82,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 694.413,
+          "ms": 111.737,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 694.604,
+          "ms": 111.546,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 694.626,
+          "ms": 106.524,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 694.911,
+          "ms": 106.239,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 806.15 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "org.create",
+      "traceId": "a8d0f8a60b2ffeb1f6d889cba0cf92f6",
+      "at": null,
+      "outcome": "refusal",
+      "refusal": "PersonNotFound",
+      "failure": "{\"_tag\":\"PersonNotFound\",\"person\":\"zed\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 1024.243,
+        "serverMs": 905,
+        "budgetMs": 8000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "org.create.check",
+          "parent": "org.create.found",
+          "startMs": 0,
+          "ms": 905,
+          "outcome": "failure"
+        },
+        {
+          "name": "org.create.found",
+          "parent": "org.create",
+          "startMs": 0,
+          "ms": 905,
+          "outcome": "failure"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 1,
+          "ms": 684,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.byHandle",
+          "startMs": 685,
+          "ms": 112,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.byHandle",
+          "parent": "org.create.check",
+          "startMs": 685,
+          "ms": 112,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 797,
+          "ms": 107,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one org.create span, 905 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "21078794d37f65a27e1f6034d990ab23",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1109.629,
+        "serverMs": 983,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 1,
+          "ms": 745,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 747,
+          "ms": 117,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 865,
+          "ms": 117,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 983 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "b91fc8480c06f7d6356f055523c62578",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 980.848,
+        "serverMs": 867.108,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": -0.449,
+          "ms": 64.557,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": -0.031,
+          "ms": 64.139,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.059,
+          "ms": 867.049,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 64.71,
+          "ms": 802.397,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 64.713,
+          "ms": 63.394,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 128.601,
+          "ms": 171.506,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 128.743,
+          "ms": 625.364,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 129.118,
+          "ms": 56.989,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 129.334,
+          "ms": 54.773,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 183.862,
+          "ms": 460.246,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 184.55,
+          "ms": 459.558,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 186.038,
+          "ms": 114.069,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 186.637,
+          "ms": 54.471,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 241.431,
+          "ms": 58.677,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 300.583,
+          "ms": 0.524,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 644.601,
+          "ms": 109.507,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 644.918,
+          "ms": 54.189,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 699.934,
+          "ms": 54.174,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 753.679,
+          "ms": 112.429,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 753.911,
+          "ms": 109.197,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 754.006,
+          "ms": 106.102,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 754.159,
+          "ms": 112.949,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 754.386,
+          "ms": 112.722,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 754.712,
+          "ms": 106.396,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 754.73,
+          "ms": 109.377,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 867.108 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "1f735b503c3652c2775786d7dcb4558f",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1106.779,
+        "serverMs": 980,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 744,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 744,
+          "ms": 118,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 862,
+          "ms": 118,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 980 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "aaf15bddc64764102e67159802d2f073",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 962.372,
+        "serverMs": 832.126,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.049,
+          "ms": 832.077,
+          "outcome": "success"
+        },
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": 0.454,
+          "ms": 54.672,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.848,
+          "ms": 54.277,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 54.767,
+          "ms": 56.359,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 54.792,
+          "ms": 777.333,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 111.441,
+          "ms": 604.685,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 111.981,
+          "ms": 54.145,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 112.049,
+          "ms": 227.077,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 112.255,
+          "ms": 55.871,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 166.635,
+          "ms": 172.49,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 166.74,
+          "ms": 55.386,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 168.594,
+          "ms": 432.531,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 168.843,
+          "ms": 433.283,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 223.084,
+          "ms": 116.042,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 338.678,
+          "ms": 0.447,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 601.38,
+          "ms": 114.746,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 602.072,
+          "ms": 56.054,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 658.609,
+          "ms": 57.517,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 716.519,
+          "ms": 115.607,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 716.743,
+          "ms": 115.383,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 716.842,
+          "ms": 106.284,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 717.042,
+          "ms": 115.084,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 717.053,
+          "ms": 106.073,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 717.271,
+          "ms": 109.855,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 717.491,
+          "ms": 109.635,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 832.126 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "org.create",
+      "traceId": "9212318629886ea25b4c3b91a67e75ad",
+      "at": null,
+      "outcome": "refusal",
+      "refusal": "PersonNotFound",
+      "failure": "{\"_tag\":\"PersonNotFound\",\"person\":\"zed\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 1400.572,
+        "serverMs": 1276,
+        "budgetMs": 8000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "org.create.check",
+          "parent": "org.create.found",
+          "startMs": 0,
+          "ms": 1276,
+          "outcome": "failure"
+        },
+        {
+          "name": "org.create.found",
+          "parent": "org.create",
+          "startMs": 0,
+          "ms": 1276,
+          "outcome": "failure"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 1,
+          "ms": 759,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.byHandle",
+          "startMs": 761,
+          "ms": 167,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.byHandle",
+          "parent": "org.create.check",
+          "startMs": 761,
+          "ms": 167,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 928,
+          "ms": 116,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 1044,
+          "ms": 115,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 1159,
+          "ms": 116,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one org.create span, 1276 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "d69b3671a631f150a5323835a798802f",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1012.049,
+        "serverMs": 887,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 673,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 673,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 780,
+          "ms": 106,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 887 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "fa40a2f7c555f87f4526169cbd9cf076",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 934.764,
+        "serverMs": 812.032,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": -0.33,
+          "ms": 59.362,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.058,
+          "ms": 811.974,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.157,
+          "ms": 58.875,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 59.538,
+          "ms": 62.494,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 59.552,
+          "ms": 752.481,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 122.272,
+          "ms": 176.76,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 122.894,
+          "ms": 54.138,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 122.933,
+          "ms": 564.099,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 122.987,
+          "ms": 61.045,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 177.306,
+          "ms": 395.726,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 177.935,
+          "ms": 395.097,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 183.68,
+          "ms": 115.352,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 184.122,
+          "ms": 53.911,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 238.368,
+          "ms": 60.665,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 299.548,
+          "ms": 0.485,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 573.781,
+          "ms": 113.252,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 573.802,
+          "ms": 56.23,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 629.984,
+          "ms": 56.048,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 686.696,
+          "ms": 107.337,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 686.704,
+          "ms": 108.329,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 686.832,
+          "ms": 125.2,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 687.233,
+          "ms": 107.799,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 687.408,
+          "ms": 124.624,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 687.424,
+          "ms": 108.608,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 687.553,
+          "ms": 124.479,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 812.032 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "94e313bba6881cab71b31b3f0ddc05b6",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 990.691,
+        "serverMs": 876,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 1,
+          "ms": 662,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 663,
+          "ms": 106,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 769,
+          "ms": 107,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 876 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "765dfba056ab8d0d1104f92830ff6857",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 920.477,
+        "serverMs": 805.93,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.056,
+          "ms": 805.873,
+          "outcome": "success"
+        },
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": 0.327,
+          "ms": 52.603,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.658,
+          "ms": 52.272,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 52.741,
+          "ms": 753.188,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 52.898,
+          "ms": 89.031,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 142.511,
+          "ms": 171.419,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 142.531,
+          "ms": 56.399,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 142.633,
+          "ms": 54.297,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 142.638,
+          "ms": 554.292,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 196.792,
+          "ms": 387.138,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 197.379,
+          "ms": 386.55,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 199.342,
+          "ms": 114.588,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 199.744,
+          "ms": 56.186,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 255.44,
+          "ms": 57.49,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 314.122,
+          "ms": 0.808,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 584.928,
+          "ms": 112.002,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 584.952,
+          "ms": 54.978,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 639.979,
+          "ms": 55.951,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 696.156,
+          "ms": 106.773,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 696.412,
+          "ms": 108.517,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 696.425,
+          "ms": 106.505,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 696.667,
+          "ms": 109.262,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 696.897,
+          "ms": 106.033,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 697.138,
+          "ms": 105.792,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 697.176,
+          "ms": 108.754,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 805.93 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "org.create",
+      "traceId": "fa08044cab60daa5e9bc0b98a3793edb",
+      "at": null,
+      "outcome": "refusal",
+      "refusal": "InsufficientBalance",
+      "failure": "{\"_tag\":\"InsufficientBalance\",\"safe\":\"0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c\",\"asset\":\"USDC\",\"balance\":\"10000\",\"amount\":\"20000\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 1589.173,
+        "serverMs": 1472,
+        "budgetMs": 8000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "org.create.check",
+          "parent": "org.create.found",
+          "startMs": 0,
+          "ms": 1472,
+          "outcome": "failure"
+        },
+        {
+          "name": "org.create.found",
+          "parent": "org.create",
+          "startMs": 0,
+          "ms": 1472,
+          "outcome": "failure"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 1,
+          "ms": 677,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.byHandle",
+          "startMs": 679,
+          "ms": 105,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.byHandle",
+          "parent": "org.create.check",
+          "startMs": 679,
+          "ms": 106,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 785,
+          "ms": 106,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 891,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "org.create.check",
+          "startMs": 998,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.unfinished",
+          "parent": "org.create.check",
+          "startMs": 1105,
+          "ms": 108,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.unfinished",
+          "startMs": 1106,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "org.create.check",
+          "startMs": 1213,
+          "ms": 258,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 1214,
+          "ms": 256,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one org.create span, 1472 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "083cfdf707ea313a04ac4b455834ba8c",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 987.396,
+        "serverMs": 873,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 1,
+          "ms": 660,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 661,
+          "ms": 106,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 767,
+          "ms": 106,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 873 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "25901e5abf6cad5beb96dd40ddbcc654",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 902.478,
+        "serverMs": 788.3,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.051,
+          "ms": 788.249,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.316,
+          "ms": 54.984,
+          "outcome": "success"
+        },
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": 0.888,
+          "ms": 55.411,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 55.563,
+          "ms": 732.737,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 56.289,
+          "ms": 58.011,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 114.511,
+          "ms": 56.789,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 114.849,
+          "ms": 559.451,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 114.929,
+          "ms": 168.37,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 115.02,
+          "ms": 56.28,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 171.653,
+          "ms": 111.647,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 171.747,
+          "ms": 389.552,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 171.839,
+          "ms": 55.461,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 172.317,
+          "ms": 388.983,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 227.161,
+          "ms": 55.139,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 282.667,
+          "ms": 0.633,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 561.441,
+          "ms": 55.858,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 561.762,
+          "ms": 112.537,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 617.726,
+          "ms": 55.574,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 673.643,
+          "ms": 112.657,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 673.644,
+          "ms": 114.656,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 674.037,
+          "ms": 112.263,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 674.051,
+          "ms": 112.248,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 674.432,
+          "ms": 113.868,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 674.603,
+          "ms": 113.697,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 674.85,
+          "ms": 112.449,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 788.3 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "84171dee3a12dae3bdee34dc11b88391",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1029.974,
+        "serverMs": 914,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 697,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 698,
+          "ms": 107,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 805,
+          "ms": 108,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 914 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "f19da9cd575fdc22cfdadcb94908f2cc",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 894.093,
+        "serverMs": 779.455,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": -0.293,
+          "ms": 55.748,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.058,
+          "ms": 55.397,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.095,
+          "ms": 779.36,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 55.923,
+          "ms": 723.532,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 56.105,
+          "ms": 55.35,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 112.029,
+          "ms": 168.426,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 112.063,
+          "ms": 56.392,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 112.192,
+          "ms": 558.263,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 112.288,
+          "ms": 55.167,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 167.301,
+          "ms": 392.154,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 167.958,
+          "ms": 391.498,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 168.281,
+          "ms": 55.174,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 168.817,
+          "ms": 111.638,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 223.881,
+          "ms": 55.574,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 279.955,
+          "ms": 0.5,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 559.693,
+          "ms": 55.762,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 560.305,
+          "ms": 110.15,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 616.371,
+          "ms": 53.084,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 670.176,
+          "ms": 109.279,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 670.264,
+          "ms": 106.191,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 670.266,
+          "ms": 107.19,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 670.485,
+          "ms": 106.97,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 670.926,
+          "ms": 106.529,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 670.943,
+          "ms": 108.512,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 671.02,
+          "ms": 108.435,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 779.455 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "org.create",
+      "traceId": "8d16566532e8ca49c6cab8d68074e2fd",
+      "at": null,
+      "outcome": "rejected",
+      "refusal": "PayloadRejected",
+      "failure": "{\"_tag\":\"PayloadRejected\",\"operation\":\"org.create\",\"issue\":\"Expected a value with a length of at most 280\\n  at [\\\"profile\\\"][\\\"bio\\\"]\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 1.536,
+        "serverMs": null,
+        "budgetMs": 8000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": null
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "0 org.create spans under the trace id of a call that was never sent, expected none"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw rejected; the span says nothing"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a rejected: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "4fb16b5db22c8b4dcfd43171763b63ee",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 984.299,
+        "serverMs": 870,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 1,
+          "ms": 658,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 660,
+          "ms": 104,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 765,
+          "ms": 105,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 870 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "62c51b517eaad030747823f4ccf63cb3",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 936.238,
+        "serverMs": 821.587,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": -0.024,
+          "ms": 56.611,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.071,
+          "ms": 821.516,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.456,
+          "ms": 56.131,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 56.768,
+          "ms": 764.818,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 57.098,
+          "ms": 55.489,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 112.309,
+          "ms": 589.278,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 113.025,
+          "ms": 184.562,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 113.23,
+          "ms": 54.357,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 113.358,
+          "ms": 56.228,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 167.759,
+          "ms": 393.828,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 168.365,
+          "ms": 393.221,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 169.619,
+          "ms": 69.967,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 169.627,
+          "ms": 127.959,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 240.084,
+          "ms": 56.503,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 296.938,
+          "ms": 0.648,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 561.267,
+          "ms": 140.32,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 561.798,
+          "ms": 81.789,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 644.073,
+          "ms": 57.513,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 701.635,
+          "ms": 106.951,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 701.892,
+          "ms": 106.695,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 702.007,
+          "ms": 106.58,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 702.057,
+          "ms": 119.53,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 702.639,
+          "ms": 118.947,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 702.829,
+          "ms": 106.758,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 702.831,
+          "ms": 118.755,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 821.587 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "84810b5bcf52edd501841a9d45c4e0b1",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1004.298,
+        "serverMs": 887,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 1,
+          "ms": 673,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 674,
+          "ms": 106,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 781,
+          "ms": 106,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 887 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "b6df1edf641080405b2f500b1872b539",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 894.985,
+        "serverMs": 778.465,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": -0.149,
+          "ms": 56.614,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.051,
+          "ms": 778.414,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.256,
+          "ms": 56.209,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 56.742,
+          "ms": 721.723,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 56.764,
+          "ms": 61.701,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 118.962,
+          "ms": 55.503,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 119.028,
+          "ms": 168.436,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 119.107,
+          "ms": 549.358,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 119.579,
+          "ms": 53.886,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 173.562,
+          "ms": 383.903,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 174.344,
+          "ms": 383.121,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 175.074,
+          "ms": 112.391,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 175.584,
+          "ms": 56.881,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 232.837,
+          "ms": 54.628,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 287.063,
+          "ms": 0.402,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 557.915,
+          "ms": 110.55,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 558.183,
+          "ms": 52.282,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 610.261,
+          "ms": 57.204,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 667.902,
+          "ms": 107.563,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 668.099,
+          "ms": 107.366,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 668.3,
+          "ms": 109.165,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 668.342,
+          "ms": 107.123,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 668.472,
+          "ms": 109.993,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 668.609,
+          "ms": 106.856,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 669.094,
+          "ms": 109.371,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 778.465 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "org.create",
+      "traceId": "dce96a89d674d01d35c4c7b66f686f8b",
+      "at": null,
+      "outcome": "rejected",
+      "refusal": "PayloadRejected",
+      "failure": "{\"_tag\":\"PayloadRejected\",\"operation\":\"org.create\",\"issue\":\"Expected a string with no leading or trailing whitespace\\n  at [\\\"profile\\\"][\\\"bio\\\"]\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 0.658,
+        "serverMs": null,
+        "budgetMs": 8000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": null
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "0 org.create spans under the trace id of a call that was never sent, expected none"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw rejected; the span says nothing"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a rejected: none"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "operation": "org.create",
+      "does": "founders who cannot found are refused, and nothing is made",
+      "outcome": "passed",
+      "failure": null,
+      "tries": [
+        {
+          "operation": "org.create",
+          "as": "pat",
+          "operator": "first",
+          "at": null,
+          "expected": "refused FounderNotReady",
+          "answered": "refused FounderNotReady",
+          "checks": [
+            {
+              "says": "FounderNotReady names the caller",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the founder has no claimed personal Safe",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the refused founding leaves the record as it was",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the refused founding makes no company",
+              "passed": true,
+              "detail": ""
+            }
+          ]
+        },
+        {
+          "operation": "org.create",
+          "as": "dana",
+          "operator": "first",
+          "at": null,
+          "expected": "refused PersonNotFound",
+          "answered": "refused PersonNotFound",
+          "checks": [
+            {
+              "says": "PersonNotFound names a person the founding names who is not of the world",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the refused founding leaves the record as it was",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the refused founding makes no company",
+              "passed": true,
+              "detail": ""
+            }
+          ]
+        },
+        {
+          "operation": "org.create",
+          "as": "dana",
+          "operator": "first",
+          "at": null,
+          "expected": "refused PersonNotFound",
+          "answered": "refused PersonNotFound",
+          "checks": [
+            {
+              "says": "PersonNotFound names a person the founding names who is not of the world",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the refused founding leaves the record as it was",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the refused founding makes no company",
+              "passed": true,
+              "detail": ""
+            }
+          ]
+        },
+        {
+          "operation": "org.create",
+          "as": "dana",
+          "operator": "first",
+          "at": null,
+          "expected": "refused InsufficientBalance",
+          "answered": "refused InsufficientBalance",
+          "checks": [
+            {
+              "says": "InsufficientBalance names the founder's Safe, what it holds and the capital asked, which is more",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the refused founding leaves the record as it was",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the refused founding makes no company",
+              "passed": true,
+              "detail": ""
+            }
+          ]
+        },
+        {
+          "operation": "org.create",
+          "as": "dana",
+          "operator": "first",
+          "at": null,
+          "expected": "refused PayloadRejected",
+          "answered": "refused PayloadRejected",
+          "checks": [
+            {
+              "says": "PayloadRejected names the operation",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the rejected founding leaves the record as it was",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the rejected founding makes no company",
+              "passed": true,
+              "detail": ""
+            }
+          ]
+        }
+      ],
+      "calls": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "ms": 25966
+    },
+    {
+      "step": 2,
+      "operation": "org.create",
+      "does": "dana founds Northwind; the same founding resumes it, and nobody founds it twice",
+      "outcome": "failed",
+      "failure": "{\"_tag\":\"ExpectationFailed\",\"message\":\"org.create as dana answered refused PayloadRejected ({\\\"_tag\\\":\\\"PayloadRejected\\\",\\\"operation\\\":\\\"org.create\\\",\\\"issue\\\":\\\"Expected a string with no leading or trailing whitespace\\\\n  at [\\\\\\\"profile\\\\\\\"][\\\\\\\"bio\\\\\\\"]\\\"}); the step expects Founded\"}",
+      "tries": [
+        {
+          "operation": "org.create",
+          "as": "dana",
+          "operator": "first",
+          "at": null,
+          "expected": "Founded",
+          "answered": "refused PayloadRejected",
+          "checks": []
+        }
+      ],
+      "calls": [
+        26,
+        27,
+        28
+      ],
+      "ms": 1902
+    },
+    {
+      "step": 3,
+      "operation": "approval.sign",
+      "does": "dana's signature of the setup is kept and eli's sends it: the board and its capital are on the chain",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 4,
+      "operation": "world.show",
+      "does": "Northwind's site becomes ready, and the world shows everything it was made with",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 5,
+      "operation": "org.member.grant",
+      "does": "dana proposes that sam keep the books; who may not ask, or be given it, is refused, and a second change waits",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 6,
+      "operation": "approval.sign",
+      "does": "dana's signature is kept and eli's executes the grant: sam's Safe wears the Books hat",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 7,
+      "operation": "doc.create",
+      "does": "sam's user reaches the site and he makes Brightside; pat, a nameless Supplier and an Employee are refused",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 8,
+      "operation": "report.run",
+      "does": "sam lists the Suppliers, only Brightside; pat, a payroll report and one that does not exist are refused",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 9,
+      "operation": "org.member.grant",
+      "does": "sam already keeps the books; dana proposes that he also manage people",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 10,
+      "operation": "approval.sign",
+      "does": "dana and eli sign: sam's Safe wears the People hat",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    }
+  ],
+  "failedStep": {
+    "step": 2,
+    "operation": "org.create",
+    "does": "dana founds Northwind; the same founding resumes it, and nobody founds it twice",
+    "why": "{\"_tag\":\"ExpectationFailed\",\"message\":\"org.create as dana answered refused PayloadRejected ({\\\"_tag\\\":\\\"PayloadRejected\\\",\\\"operation\\\":\\\"org.create\\\",\\\"issue\\\":\\\"Expected a string with no leading or trailing whitespace\\\\n  at [\\\\\\\"profile\\\\\\\"][\\\\\\\"bio\\\\\\\"]\\\"}); the step expects Founded\"}"
+  },
+  "making": [],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    }
+  },
+  "ms": {
+    "create": 15504,
+    "run": 27872,
+    "checks": 809,
+    "destroy": 0
+  }
+}

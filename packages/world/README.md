@@ -55,7 +55,7 @@ world's own command, for a runner that keeps one world for its run (roadmap, "On
 | index resumed | Ponder started again on the restored schema and chain, not waited for here | 239, 242 |
 | clock | Core's clock set to read the snapshot's time from now on (`app.clock`) | 1801, 1436 |
 | chain mined at the world's time | the next block mined at that time by the chain's object itself, next to anvil (`POST /chain/mine-at`) | 278, 1738 |
-| sites | each company site put back to the snapshot's point on the bench, then the bench's clock entry set to the world's (`src/site/Points.ts`) | none: no bench is reachable here |
+| sites | each company site put back to the snapshot's point on the bench, or claimed from its template, then the bench's clock entry set to the world's (`src/site/Points.ts`, below) | none: no bench in this proof (see packages/runner's one-world records) |
 | index caught up, bundler, Core | side by side: Ponder has the chain's head; alto names the EntryPoint; Core answers | 8694, 6670 (index) |
 | **reset** | | **14836, 13690** |
 
@@ -76,10 +76,26 @@ deletes that branch at once when nothing hangs from it; a take-down deletes ever
 read from the branches themselves, and treats one Neon is already deleting as gone (`dropBranches`). The proof's world,
 reset twice, was destroyed in 4.5 s with nothing left.
 
-**Company sites.** The bench's door has `POST /world/save` and `POST /world/reset` (packages/platform, `door/points.py`,
-step 1.17); `world.snapshot.save` of a world with companies saves a point beside the backup, and the reset puts the
-sites back to it and sets the bench's clock entry to the world's clock (`POST /clock`), since the door puts back the
-entry as it was saved. Not yet run against a bench: none is reachable from this container (step 1.4).
+**Company sites** (`src/site/Points.ts`). The bench's door has `POST /world/save` and `POST /world/reset`
+(packages/platform, `door/points.py`, step 1.17); `world.snapshot.save` of a world with companies saves a point beside
+the backup. A reset of a world with a bench puts its sites where the snapshot had them, then sets the bench's clock
+entry to the world's clock (`POST /clock`), since the door puts back the entry as it was saved:
+
+| The snapshot, and the world now | What the reset does |
+|---|---|
+| no company | removes every site the world holds, so a company founded again makes its own (`site-exists` otherwise) |
+| its point holds every one of its sites | puts them back in place (`POST /world/reset`) and removes any site made since |
+| its point lost its sites (a site removed by an earlier reset is dropped from every point by the door), or one was made again since (`point-site-missing`, `point-site-changed`) | removes the world's sites, claims them ready from the bench's template of the snapshot's name (`POST /world/claim`), and saves the point again, so the next reset is in place |
+
+The bench's template is kept by `keepSitesAsTemplate(world, snapshot)` (`src/lifecycle/templates.ts`, `POST
+/templates`, with a pool of ready copies) and dropped by `dropSitesTemplate`; a template is the bench's, so a world's
+destroy leaves it. The reset answers how it put the sites back (`sites`: `none`, `in place` or `claimed`, with what it
+removed and claimed). Run by the runner's one-world rehearsal against a local bench (packages/runner, step 1.18).
+
+**A local bench.** `WORLD_BENCH=local` names a bench this machine serves itself, not a platform stage: packages/platform's
+`bin/pool-bench.sh`, from the images already built. Its door's address and key are given as `WORLD_BENCH_DOOR` and
+`WORLD_BENCH_KEY` (the runner's `run.sh` reads the key from the bench's secrets file and never prints it); every site
+call of the world is otherwise the same (`src/site/Bench.ts`, `tokenFor`). Only this machine reaches it.
 
 ## Commands
 

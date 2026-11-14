@@ -116,7 +116,7 @@ const theScenarios = (settings: Settings, chosen: ReadonlyArray<Plan>) =>
   Effect.gen(function* () {
     const { mode, expect } = yield* options();
     const inPrivateWorlds = expect === "pass";
-    const shown = inPrivateWorlds ? "a world each" : mode;
+    const shown = inPrivateWorlds ? "one world, reset before each journey" : mode;
     yield* Effect.log(`${chosen.length} journey${chosen.length === 1 ? "" : "s"}, ${shown}, expecting ${expect}`);
     const summary = inPrivateWorlds
       ? yield* inWorlds(settings, runInWorlds(chosenJourneys, settings))
