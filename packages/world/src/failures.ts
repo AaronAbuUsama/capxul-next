@@ -105,7 +105,7 @@ export class FaucetFailed extends Schema.TaggedError<FaucetFailed, { readonly br
  * on the bench.
  */
 export class SiteFailed extends Schema.TaggedError<SiteFailed, { readonly brand: unique symbol }>()("SiteFailed", {
-  step: Schema.Literals(["plan", "door", "waiting", "make", "remove", "claim"]),
+  step: Schema.Literals(["plan", "door", "waiting", "make", "backup", "remove", "claim"]),
   message: Schema.String,
 }) {}
 

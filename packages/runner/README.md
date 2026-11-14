@@ -106,6 +106,12 @@ world's own operations go to its Core.
 5. **The end**: the bench templates dropped, the one world destroyed, the hub taken down, and the accounts read for
    every world the run made (`oneWorld.left`).
 
+The summary is written however the run ends, but by interruption (`src/worlds/ending.ts`): a starting world that was
+not made fails the journeys that start from it, each with why, while the others still run, and the summary's
+`oneWorld.failure` names the first timed part that failed (`save payment-drafted (w-tpl-…) failed: …`); a run that
+died says so there too (`the run did not finish: …`). Either fails the run (`outcome: "failed"`, exit 1). Before, a
+defect in making the starting worlds (a door that answered Cloudflare's 524 page) ended the run with no record at all.
+
 Every part is timed into the summary's `oneWorld.timings`, in order (`src/timings.ts`): `hub up`, `world create`,
 `make <starting world>`, `save <…>`, `bench template <…>`, each `reset` with its own parts and how it put the sites
 back, `starting world` (what is made by its steps), `journey` with each step's time, `checks`, `destroy the journey's
@@ -244,7 +250,7 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | `src/given.ts` | `Given`: the facts of a scenario's starting world. `nothing`'s are the run's operators; for any other world, the declared example facts in a run that expects `not-implemented`, and a defect otherwise, until the runner makes starting worlds (step 1.12). |
 | `src/checks/checks.ts`, `src/checks/events.ts` | The generic checks, the timings and the steps. A builder never changes these. |
 | `src/world/` | The stage's life, its database, the warm-up and the inventory: the runner's plumbing. |
-| `src/worlds/` | A run in private worlds: the platform this process serves, the starting worlds (`starting.ts`), their makers (`makers.ts`; those with a company in `company.ts`), how a fact is encoded (`encode.ts`), the run and its timing. |
+| `src/worlds/` | A run in private worlds: the platform this process serves, the starting worlds (`starting.ts`), their makers (`makers.ts`; those with a company in `company.ts`), how a fact is encoded (`encode.ts`), the run, its summary however it ended (`ending.ts`) and its timing. |
 | `src/local/` | `--core=local`: Core's bundle, its workerd, its database bridge, its chain forwarder and the host that runs one per world (above). |
 | `src/scenario-runs.ts` | A run of the journeys in stages, in either mode, ending in its summary. |
 | `src/summary.ts` | The summary: what each journey was expected to do, the journeys a run must hold, the stages it must leave. |

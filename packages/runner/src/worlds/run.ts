@@ -15,6 +15,7 @@ import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
+import * as Ref from "effect/Ref";
 import { checkCall, failuresOf } from "../checks/checks.ts";
 import type { Call } from "../client.ts";
 import { describe, endedOf } from "../failure.ts";
@@ -22,12 +23,12 @@ import { passedOr, slugOf, writeJson, RunRecord } from "../record.ts";
 import { freshName, journeyPlan, keptFor, stepsFor, use } from "../run.ts";
 import { stepsOf } from "../steps.ts";
 import type { Settings } from "../settings.ts";
-import { summarize, Summary } from "../summary.ts";
 import { makeTimings, type Timings } from "../timings.ts";
 import type { Inventory } from "../world/leftovers.ts";
 import { answersSteadily } from "../world/warmup.ts";
 import type { Stage } from "../world/stage.ts";
-import { onHub } from "./hub.ts";
+import { noteNotMade, summaryOf } from "./ending.ts";
+import { onHub, type HubUse } from "./hub.ts";
 import { Platform } from "./platform.ts";
 import { startingWorldsOf, type StartingWorlds } from "./starting.ts";
 
@@ -246,39 +247,52 @@ const takeDown = (starting: StartingWorlds, timings: Timings) =>
     return yield* timings.timed("world destroy", { of: Arr.join(stages, ", ") }, destroyAll(stages));
   });
 
-/** Every journey in the run's one world, one at a time, and the run's summary at `<run>/summary.json`. */
+/**
+ * Every journey in the run's one world, one at a time, and the run's summary at `<run>/summary.json`. The summary is
+ * written however the run ends but by interruption: a starting world that was not made, or a run that died, is named
+ * in it with why, and its outcome is `failed`.
+ */
 export const runInWorlds = (scenarios: ReadonlyArray<Journey>, settings: Settings) =>
   Effect.gen(function* () {
     const platform = yield* Platform;
     const startedAt = yield* now;
     const run = yield* freshName("run");
     const timings = yield* makeTimings;
-    const [records, world, hub] = yield* onHub(settings, timings, (used) =>
-      Effect.gen(function* () {
-        const starting = yield* startingWorldsOf(settings, platform.url, timings);
-        const outcome = yield* Effect.gen(function* () {
-          // A starting world that could not be made fails the journeys of it, each with why; the rest still run.
-          yield* Effect.ignore(starting.prepare(Arr.map(scenarios, (scenario) => scenario.given)));
-          return yield* Effect.forEach(scenarios, (scenario, index) =>
-            runOne(scenario, settings, starting, timings, run, index),
-          );
-        }).pipe(Effect.ensuring(Effect.ignore(takeDown(starting, timings))));
-        const one = yield* Effect.option(starting.oneWorld);
-        return [outcome, Option.getOrNull(one), used] as const;
-      }),
+    const notMade = yield* Ref.make<string | null>(null);
+    const oneWorld = yield* Ref.make<string | null>(null);
+    const hubUsed = yield* Ref.make<HubUse | null>(null);
+    const ran = yield* Effect.exit(
+      onHub(settings, timings, (used) =>
+        Effect.gen(function* () {
+          yield* Ref.set(hubUsed, used);
+          const starting = yield* startingWorldsOf(settings, platform.url, timings);
+          return yield* Effect.gen(function* () {
+            // A starting world that could not be made fails the journeys of it, each with why; the rest still run.
+            // The summary names it too, a defect included (a door that answered an error page, say).
+            yield* starting
+              .prepare(Arr.map(scenarios, (scenario) => scenario.given))
+              .pipe(Effect.catchCause(noteNotMade(timings, notMade)));
+            yield* Ref.set(oneWorld, Option.getOrNull(yield* Effect.option(starting.oneWorld)));
+            return yield* Effect.forEach(scenarios, (scenario, index) =>
+              runOne(scenario, settings, starting, timings, run, index),
+            );
+          }).pipe(Effect.ensuring(Effect.ignore(takeDown(starting, timings))));
+        }),
+      ),
     );
-    const left = yield* leftOf(Arr.dedupe([...(yield* platform.made), ...(yield* platform.tried)]));
-    const summary = summarize({
-      core: yield* coreLabel,
+    const summary = yield* summaryOf({
       run,
-      mode: "one world",
-      expect: "pass",
-      owner: settings.owner,
       startedAt,
-      records,
-      pathOf: (record) => `${run}/${slugOf(record.name)}.json`,
-      oneWorld: { world, hub: hub.stage, hubBroughtUp: hub.broughtUp, left, timings: yield* timings.all },
+      owner: settings.owner,
+      records: settings.records,
+      core: yield* coreLabel,
+      ran,
+      notMade: yield* Ref.get(notMade),
+      world: yield* Ref.get(oneWorld),
+      used: yield* Ref.get(hubUsed),
+      left: yield* leftOf(Arr.dedupe([...(yield* platform.made), ...(yield* platform.tried)])),
+      timings: yield* timings.all,
     });
-    yield* Effect.orDie(writeJson(`${settings.records}/${run}/summary.json`, Summary, summary));
+    if (Exit.isFailure(ran) && Exit.hasInterrupts(ran)) return yield* Effect.interrupt;
     return summary;
   });

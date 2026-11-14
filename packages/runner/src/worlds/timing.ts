@@ -71,7 +71,8 @@ export const timeStartingWorlds = (settings: Settings) =>
       Effect.gen(function* () {
         const starting = yield* startingWorldsOf(settings, platform.url, timings);
         const all = Rec.values(startingWorlds);
-        yield* Effect.ignore(starting.prepare(Arr.filter(all, (world) => waitsOn(world).length === 0)));
+        // A starting world that was not made, a defect included, is each line's `why` below.
+        yield* Effect.ignoreCause(starting.prepare(Arr.filter(all, (world) => waitsOn(world).length === 0)));
         const made = yield* Effect.forEach(all, (world) =>
           Effect.gen(function* () {
             const before = yield* platform.made;

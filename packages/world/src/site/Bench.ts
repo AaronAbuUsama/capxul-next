@@ -99,6 +99,15 @@ export const grant = Effect.fn("world.site.grant")(function* (stage: string, exp
   return Option.some<BenchGrant>({ stage: bench.value, door: made.door, token: made.token });
 });
 
+/**
+ * A refusal's body in words: the door's own answer as it is, or an HTML error page (Cloudflare's, before the door,
+ * such as 524 when the door took over 100 s) by its title.
+ */
+const wordsOf = (body: string) => {
+  const title = /<title>([^<]*)<\/title>/i.exec(body)?.[1];
+  return title === undefined ? Str.slice(0, 300)(body) : `${Str.trim(title)} (an error page before the door)`;
+};
+
 /** One call to the site door with `token`, its answer decoded with `schema`. */
 export const doorCall = <S extends Schema.Constraint>(
   door: string,
@@ -115,10 +124,7 @@ export const doorCall = <S extends Schema.Constraint>(
     );
     if (response.status >= 400) {
       const refused = yield* response.text;
-      return yield* SiteFailed.make({
-        step: "door",
-        message: `HTTP ${response.status}: ${Str.slice(0, 300)(refused)}`,
-      });
+      return yield* SiteFailed.make({ step: "door", message: `HTTP ${response.status}: ${wordsOf(refused)}` });
     }
     return yield* HttpClientResponse.schemaBodyJson(schema)(response);
   }).pipe(
