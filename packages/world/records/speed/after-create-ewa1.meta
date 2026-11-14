@@ -1,0 +1,5 @@
+2026-11-14T00:31:50.736Z
+exit 0
+2026-11-14T00:33:17.567Z
+wall 86.830942616 s
+command: create ewa1 --owner builder --lifetime 1 hour
