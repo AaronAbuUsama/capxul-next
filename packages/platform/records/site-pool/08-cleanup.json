@@ -1,0 +1,49 @@
+{
+ "record": "08-cleanup",
+ "at_utc": "2026-11-14T05:06:21Z",
+ "removed": {
+  "tpl-founded": [
+   {
+    "site": "northwind-tpl-founded.pool.test",
+    "removed": true,
+    "ms": 2296
+   }
+  ],
+  "w1": [
+   {
+    "site": "northwind-w1.pool.test",
+    "removed": true,
+    "ms": 1970
+   }
+  ],
+  "w2": [
+   {
+    "site": "northwind-w2.pool.test",
+    "removed": true,
+    "ms": 2024
+   }
+  ],
+  "w3": [
+   {
+    "site": "northwind-w3.pool.test",
+    "removed": true,
+    "ms": 1851
+   }
+  ],
+  "w4": [
+   {
+    "site": "northwind-w4.pool.test",
+    "removed": true,
+    "ms": 2076
+   }
+  ]
+ },
+ "template": {
+  "template": "founded",
+  "removed": [
+   "northwind"
+  ]
+ },
+ "site_folders_left": [],
+ "databases_left": []
+}

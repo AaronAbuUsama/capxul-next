@@ -1,0 +1,94 @@
+{
+ "record": "03-claim",
+ "at_utc": "2026-11-14T05:05:04Z",
+ "at_once": [
+  {
+   "world": "w1",
+   "client_ms": 1539,
+   "door_ms": 1534,
+   "how": "pool",
+   "state": "ready",
+   "steps": [
+    {
+     "step": "pooled copy taken",
+     "ms": 0
+    },
+    {
+     "step": "joined: world, clock, API user, scheduler (one process)",
+     "ms": 1534,
+     "inside": {
+      "frappe started": 40,
+      "joined": 978
+     }
+    }
+   ],
+   "error": null
+  },
+  {
+   "world": "w2",
+   "client_ms": 1557,
+   "door_ms": 1552,
+   "how": "pool",
+   "state": "ready",
+   "steps": [
+    {
+     "step": "pooled copy taken",
+     "ms": 0
+    },
+    {
+     "step": "joined: world, clock, API user, scheduler (one process)",
+     "ms": 1551,
+     "inside": {
+      "frappe started": 39,
+      "joined": 965
+     }
+    }
+   ],
+   "error": null
+  },
+  {
+   "world": "w3",
+   "client_ms": 4903,
+   "door_ms": 4897,
+   "how": "clone",
+   "state": "ready",
+   "steps": [
+    {
+     "step": "copied from the template (pool empty)",
+     "ms": 3209
+    },
+    {
+     "step": "joined: world, clock, API user, scheduler (one process)",
+     "ms": 1688,
+     "inside": {
+      "frappe started": 36,
+      "joined": 1078
+     }
+    }
+   ],
+   "error": null
+  }
+ ],
+ "alone_after_refill": {
+  "world": "w4",
+  "client_ms": 1308,
+  "door_ms": 1305,
+  "how": "pool",
+  "state": "ready",
+  "steps": [
+   {
+    "step": "pooled copy taken",
+    "ms": 0
+   },
+   {
+    "step": "joined: world, clock, API user, scheduler (one process)",
+    "ms": 1305,
+    "inside": {
+     "frappe started": 31,
+     "joined": 857
+    }
+   }
+  ],
+  "error": null
+ }
+}
