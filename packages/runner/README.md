@@ -13,9 +13,10 @@ Built from `spikes/pipeline/runner`.
 ./run.sh door                 # every blueprint operation called once through a fresh Core stage
 ./run.sh door --world=<name>  # the same, through the Core of a world `world create` made (packages/world)
 ./run.sh chain --world=<name> # the chain operations' journey (src/chain-journey.ts) through a world's Core
-./run.sh scenarios [name...]  # the registered journeys (or those named), each in fresh private worlds (below)
+./run.sh scenarios [name...]  # the registered journeys (or those named), in one world on the run's hub, reset before each (below)
 ./run.sh starting-worlds      # make every starting world the runner can make, timed, then destroy them all
 WORLD_BENCH=<platform stage> ./run.sh scenarios --core=local [name...]   # a rehearsal: Core in workerd here (below)
+WORLD_BENCH=local POOL_SECRETS=<file> ./run.sh scenarios --core=local    # the same beside packages/platform's bin/pool-bench.sh bench
 ./run.sh scenarios --expect=not-implemented              # each in a fresh stage of Core's empty handlers; must fail at step 1
 ./run.sh scenarios --one-stage --expect=not-implemented  # the same, all in one fresh stage
 ```
@@ -72,45 +73,66 @@ has its telemetry read from the database of the world whose Core answers at that
 (`OtherWorlds`); a stage run has no other worlds, so such a call still finds nothing to check against there.
 `records/w-c1/door.json` is the first such run (`passed`), in a world made with `world create` and destroyed after.
 
-## A run in private worlds (step 1.6)
+## A run in one world (steps 1.6 and 1.18)
 
-`./run.sh scenarios` expecting `pass` (the default) runs every scenario in private worlds of `packages/world`
-(`src/worlds/`). This process serves the platform group itself, on its loopback (`platform.ts`, blueprint
-decisions.md 51), signed in by the run's two operators (`WORLD_OWNER`, `WORLD_SECOND_OWNER` and their tokens), and
-the scenarios' client calls it there; a world's own operations go to its Core on Cloudflare.
+`./run.sh scenarios` expecting `pass` (the default) runs every journey in ONE private world of `packages/world`, kept
+for the run and reset in place before each journey (`src/worlds/`; docs/roadmap.md, "One runner, one world"). This
+process serves the platform group itself, on its loopback (`platform.ts`, blueprint decisions.md 51), signed in by the
+run's two operators (`WORLD_OWNER`, `WORLD_SECOND_OWNER` and their tokens), and the journeys' client calls it there; a
+world's own operations go to its Core.
 
-For each scenario the runner makes its starting world (`starting.ts`, `makers.ts`, decisions 27 and 39) and hands it
-the facts its steps answered (decision 38), with every call made in making it as `calls`:
+1. **The hub** (`hub.ts`). The world lives on the fleet hub `WORLD_HUB` names; `run.sh` gives each run a fresh one
+   (`rh-<6 hex>`) unless it is set. A hub that does not exist is brought up with the run's owner and
+   `RUNNER_HUB_LIFETIME` (4 hours) and taken down at the end, whatever happened, once every world on it is gone; one
+   that exists is used and left up.
+2. **The one world and its starting worlds** (`starting.ts`, `makers.ts`, decisions 27 and 39). `fresh`'s maker
+   creates the world (`world.create`, `tpl-<6 hex>`, 150 minutes): it is the kept template world. Every starting world
+   made "from its template" that a journey starts from, and those it is made from, is made in it once, by its declared
+   steps, in the blueprint's order; each one a journey starts from is saved as a snapshot of its own name
+   (`world.snapshot.save`, with its sites' backup and a point on the bench), and one with a company also keeps its
+   sites as the bench's template of that name (`POST /templates`, with a pool of ready copies).
+3. **Before each journey** the world is reset in place to its starting world's snapshot (`World.reset`: index,
+   database, chain, Core's clock, the chain mined at it, the sites, then everything waited for), the nearest
+   template ancestor for a starting world made by its steps (`fresh` for `quota-full`, whose operator's other worlds
+   are then made by its steps). The sites go back in place to the point; a snapshot with no company removes the
+   world's sites (a site left there would refuse the company's founding as `site-exists`); a point that lost its
+   sites (removed by an earlier reset) gets them by claim from the bench template, ready in about a second, and is
+   saved again (packages/world, `src/site/Points.ts`).
+4. **The journey** runs with its starting world's facts (decision 38): `world` is the one world's `world.create`
+   answer, and `calls` every call made in making it, the saves included. Every world the journey made, and those its
+   starting world made by its steps, is destroyed after it, the newest first, whatever happened; the accounts are
+   read for anything of them before and after (`afterwards.*.worlds`).
+5. **The end**: the bench templates dropped, the one world destroyed, the hub taken down, and the accounts read for
+   every world the run made (`oneWorld.left`).
 
-| Starting world | How it is made |
-|---|---|
-| `nothing` | No world; its facts name the two operators. |
-| `fresh` to `paid` | Once per run, one after another in one template world (`tpl-<6 hex>`, 6 hours), each saved there as a template snapshot of its own name; each scenario gets a restore of it into a world of its own (`s-<6 hex>`, 90 minutes), whose `world` fact is the restore's answer. |
-| `quota-full`, `with-snapshot`, `restored` | By their steps for each scenario, from a world got the same way. |
+Every part is timed into the summary's `oneWorld.timings`, in order (`src/timings.ts`): `hub up`, `world create`,
+`make <starting world>`, `save <…>`, `bench template <…>`, each `reset` with its own parts and how it put the sites
+back, `starting world` (what is made by its steps), `journey` with each step's time, `checks`, `destroy the journey's
+own worlds`, `drop bench template <…>`, `world destroy`, `hub down`. Each has when it began since the run began, how
+long it took and whether it failed, with why.
 
-A starting world with no maker here fails its scenario naming the operations its steps call (`waitsOn`). The runner
-makes every one: `founded` to `paid` by their declared steps in `src/worlds/company.ts`, each approval signed with the
-cast's keys (`CAST_KEYS`, through viem, blueprint decisions 34 and 42), each wait polling an operation until it answers
-differently (decision 27). A template of a world with a company saves its site with it, and a restore makes the site
-again in the new world (decision 52). With Core on Cloudflare they need a bench Cloudflare can reach (roadmap steps
-1.4 and 2.1); until it exists they are rehearsed with `--core=local`.
+A starting world with no maker here fails its journey naming the operations its steps call (`waitsOn`). The company
+starting worlds (`founded` to `paid`) are made by their declared steps in `src/worlds/company.ts`, each approval
+signed with the cast's keys (`CAST_KEYS`, through viem, blueprint decisions 34 and 42), each wait polling an
+operation until it answers differently (decision 27). With Core on Cloudflare they need a bench Cloudflare can reach
+(roadmap steps 1.4 and 2.1); until it exists they are rehearsed with `--core=local`.
 
-The calls made in making the world get the generic checks too (`making` in the run record). The platform's own
-calls are checked against what it kept (`PlatformKept`: its spans, and the events each wrote into its world's record).
-After the scenario every world made while it ran is destroyed, the newest first, whatever happened, and the accounts
-are read for anything named after those worlds before and after (`afterwards.*.worlds`). The template worlds are
-destroyed when the run ends. Records go to `records/<run>/<scenario>.json`, the summary to `records/<run>/summary.json`.
+The calls made in making a journey's starting world get the generic checks too (`making` in the run record). The
+platform's own calls are checked against what it kept (`PlatformKept`: its spans, and the events each wrote into its
+world's record). Records go to `records/<run>/<journey>.json`, the summary to `records/<run>/summary.json`.
 
-`./run.sh starting-worlds` makes each starting world in turn, as a scenario of it would get it, times each, checks
-every call, destroys each one's worlds before the next and the template at the end, and writes
-`records/<run>/starting-worlds.json`.
+`./run.sh starting-worlds` makes each starting world in turn the same way, in one world on the run's hub (reset to
+each, then its steps), times each, checks every call, destroys each one's other worlds before the next and the one
+world at the end, and writes `records/<run>/starting-worlds.json` with its `timings`.
 
 ## A rehearsal with Core run locally (`--core=local`)
 
 `WORLD_BENCH=<stage> ./run.sh scenarios --core=local [name...]` (and `starting-worlds --core=local`) runs every
 scenario as above, except that each world's Core runs in this process's machine instead of on Cloudflare, next to a
 stand-in bench of `packages/platform` (`PLATFORM_HOST=standin`, `PLATFORM_EDGE=none`), which nothing on Cloudflare can
-reach. Everything else of a world is unchanged: its database (a Neon branch), chain, index, bundler and door are on
+reach, or beside the local bench `packages/platform`'s `bin/pool-bench.sh` runs from the images already on the machine
+(`WORLD_BENCH=local`, with `POOL_SECRETS` naming its secrets file: `run.sh` hands its door and key to `packages/world`,
+`src/site/Bench.ts`, and never prints the key). Everything else of a world is unchanged: its database (a Neon branch), chain, index, bundler and door are on
 Cloudflare and Neon, and the platform makes and destroys it as always. It is runner plumbing (`src/local/`), plugged
 into `packages/world` through its `CoreHost` seam (`src/core/host.ts` there):
 
@@ -158,7 +180,7 @@ operation's checks hold is `@capxul/scenarios`' `coverage.ts`; the summary count
 
 | Mode | Stages | Records |
 |---|---|---|
-| a world each (`--expect=pass`, the default) | the worlds each journey makes, and its starting world's: one world per journey for now (docs/roadmap.md, "One runner, one world"; step 1.18 makes it one world, reset in place) | `records/<run>/<journey>.json` each, and the summary beside them |
+| one world (`--expect=pass`, the default) | the run's one world on its hub, reset in place before each journey, and the worlds each journey makes (docs/roadmap.md, "One runner, one world"; step 1.18) | `records/<run>/<journey>.json` each, and the summary beside them with `oneWorld.timings` |
 | a stage each (`--expect=not-implemented`) | one fresh stage per journey | `records/<stage>/<journey>.json` each; the summary at `records/run-<6 hex>/summary.json` |
 | `--one-stage` | one fresh stage for all, created and destroyed once; each journey still has the use timeout of one run | `records/<stage>/summary.json`, the only JSON file in its folder, and every journey's record as one line of `records/<stage>/journeys.jsonl` |
 
@@ -228,4 +250,9 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 - A local Core's database connection is not pooled: each request opens one over its own WebSocket, which Hyperdrive
   on Cloudflare would pool. Its server times are therefore not Core's on Cloudflare.
 - Runs go one at a time, and so do the journeys of a one-stage run.
-- One world per journey: a builder swaps in one world per runner, reset in place before each journey (step 1.18).
+- Runs of one world are one at a time, and so are its journeys; several runners would each make their own world.
+- The snapshots a journey saves in the one world (`m3`, `draft`) stay with it for the run; a later journey that saved
+  the same name would be refused `SnapshotExists`. None does today.
+- A reset does not pause the bench's scheduler for the world's sites (packages/platform, "Sites from a pool").
+- A company founded in a journey (`org.create` from `fresh`) still builds its site from nothing (about two minutes):
+  the bench pools templates of starting worlds, not of a bare company site.
