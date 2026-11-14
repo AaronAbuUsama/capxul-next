@@ -32,7 +32,7 @@ test("with GitHub's immutable subjects the role trusts the id form of the reposi
   const [statement] = trustPolicy(PROVIDER, ids).Statement;
   const trusted = statement?.Condition?.["StringEquals"]?.["token.actions.githubusercontent.com:sub"];
   assert.ok(Arr.contains(trusted ?? [], `repo:${ids}:pull_request:base_ref:master`));
-  assert.ok(Arr.contains(trusted ?? [], `repo:${ids}:ref:refs/heads/master:base_ref:`));
+  assert.ok(Arr.contains(trusted ?? [], `repo:${ids}:ref:refs/heads/master:base_ref`));
   for (const s of trusted ?? []) assert.ok(!Str.startsWith(`repo:${REPO}:`)(s), s);
 });
 
