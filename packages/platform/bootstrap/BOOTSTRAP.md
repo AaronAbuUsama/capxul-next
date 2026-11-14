@@ -16,7 +16,8 @@ anything; it never prints a key.
 - **Cloudflare:** a token that may create account tokens. In the dashboard: My Profile, API Tokens, Create Token,
   Custom: Account: *Account API Tokens: Edit*, *Account Settings: Read*, *Workers Scripts: Edit*, *Secrets Store:
   Edit*; Zone: *Zone: Read* for `abuusama.dev`. Give it a one-day expiry; you can delete it when this is done.
-- **Neon:** an API key of an admin of the organization that holds the worlds project (Account settings, API keys).
+- **Neon:** a *personal* API key (Account settings, API keys) of an admin of the organization that holds the worlds
+  project. Not an organization key: Neon makes organization keys only from a personal key.
   The worlds project must exist: `packages/world/run.sh platform up` makes it.
 
 ## Run it

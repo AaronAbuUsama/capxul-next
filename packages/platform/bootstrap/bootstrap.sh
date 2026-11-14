@@ -36,7 +36,7 @@ AWS_REGION="${AWS_REGION:-$(ask "AWS region for the bench host [eu-west-2]:")}";
 PLATFORM_ZONE_NAME="${PLATFORM_ZONE_NAME:-abuusama.dev}" PLATFORM_DOMAIN="${PLATFORM_DOMAIN:-worlds.abuusama.dev}"
 info "repository $BOOTSTRAP_REPO, region $AWS_REGION, zone $PLATFORM_ZONE_NAME, sites under $PLATFORM_DOMAIN"
 [ -n "${CLOUDFLARE_API_TOKEN:-}" ] || CLOUDFLARE_API_TOKEN="$(secret "Cloudflare token that may create account tokens:")"
-[ -n "${NEON_API_KEY:-}" ] || NEON_API_KEY="$(secret "Neon API key of an organization admin:")"
+[ -n "${NEON_API_KEY:-}" ] || NEON_API_KEY="$(secret "Neon personal API key (not an organization key) of an org admin:")"
 export CLOUDFLARE_API_TOKEN NEON_API_KEY
 
 bold "3. Looking things up (nothing is changed)"
