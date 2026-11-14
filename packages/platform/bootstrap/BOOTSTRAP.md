@@ -15,8 +15,9 @@ anything; it never prints a key.
   subject template).
 - **Cloudflare:** a token that may create account tokens. In the dashboard: My Profile, API Tokens, Create Token,
   Custom: Account: *Account API Tokens: Edit*, *Account Settings: Read*, *Workers Scripts: Edit*, *Secrets Store:
-  Read*; Zone: *Zone: Read* for `abuusama.dev`. Give it a one-day expiry; you can delete it when this is done.
-- **Neon:** an API key of an admin of the organization that holds the worlds project (Account settings, API keys).
+  Edit*; Zone: *Zone: Read* for `abuusama.dev`. Give it a one-day expiry; you can delete it when this is done.
+- **Neon:** a *personal* API key (Account settings, API keys) of an admin of the organization that holds the worlds
+  project. Not an organization key: Neon makes organization keys only from a personal key.
   The worlds project must exist: `packages/world/run.sh platform up` makes it.
 
 ## Run it
@@ -38,8 +39,8 @@ and worlds project, and today's Amazon Linux 2023 image, and prints the list bel
 |---|---|---|
 | AWS IAM | OIDC provider `token.actions.githubusercontent.com` (adopted if it exists; kept on revoke) | GitHub Actions sign in to AWS with a short-lived token, so no AWS key exists anywhere |
 | AWS IAM | Role `capxul-ci-platform` | Taken on only by this repository's workflows on `master` and pull requests into `master`. It may run the bench host: EC2 (machine, disk, network, security group) in one region, IAM objects named `capxul-bench-*` with only the SSM policy attached, SSM sessions and commands on machines named `capxul-bench-*`. No inline policies, so it cannot widen itself. `src/aws-policy.ts` |
-| GitHub | OIDC subject template `repo, context, base_ref` | GitHub's default token for a pull request does not say which branch it goes into; with this it does, and the role trusts only `base_ref:master` |
-| Cloudflare | Account token `capxul-ci-worlds-g1` | Workers, Containers, R2, KV, Hyperdrive, Tunnel, Secrets Store read, Account Settings read; DNS and Zone read on `abuusama.dev` only. It cannot make tokens. `src/cloudflare-policy.ts` |
+| GitHub | OIDC subject template `repo, context, base_ref` | GitHub's default token for a pull request does not say which branch it goes into; with this it does, and the role trusts only `base_ref:master`. With GitHub's immutable subjects on (every repository made or renamed after 15 July 2026, this one included), the subject names the repository as `owner@id/name@id`; the script reads which form GitHub issues and the role trusts exactly that |
+| Cloudflare | Account token `capxul-ci-worlds-g1` | Workers, Containers, R2, KV, Hyperdrive, Tunnel, Secrets Store edit, Account Settings read; DNS and Zone read on `abuusama.dev` only. It cannot make tokens. `src/cloudflare-policy.ts` |
 | Neon | API key `capxul-ci-worlds-g1`, limited to the worlds project | Worlds are branches of that project |
 | GitHub | Secrets `CLOUDFLARE_API_TOKEN`, `NEON_API_KEY` | The two keys, written straight from the program that made them |
 | GitHub | Variables `AWS_ROLE_ARN`, `AWS_REGION`, `CLOUDFLARE_ACCOUNT_ID`, `NEON_ORG_ID`, `PLATFORM_ZONE_ID`, `PLATFORM_ZONE_NAME`, `PLATFORM_DOMAIN`, `PLATFORM_AMI_ID`, `CAPXUL_KEY_GENERATION` | What the workflows read; none is secret |

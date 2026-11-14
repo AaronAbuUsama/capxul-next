@@ -24,7 +24,7 @@ case "$MODE" in apply | rotate | revoke) ;; *) die "usage: bootstrap.sh [rotate 
 bold "1. The tools on this laptop"
 for t in aws gh bun pnpm python3 curl; do command -v "$t" >/dev/null || die "$t is not installed (BOOTSTRAP.md, 'What you need')"; done
 info "aws $(aws --version 2>&1 | cut -d' ' -f1 | cut -d/ -f2), gh $(gh --version | head -1 | cut -d' ' -f3), bun $(bun --version)"
-gh auth status >/dev/null 2>&1 || die "gh is not signed in: run 'gh auth login'"
+gh auth status --active >/dev/null 2>&1 || die "gh's active account is not signed in: run 'gh auth login'"   # --active: a stale second account must not fail it
 AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text 2>/dev/null)" || die "aws is not signed in: run 'aws sso login' or 'aws configure'"
 info "AWS account $AWS_ACCOUNT_ID, as $(aws sts get-caller-identity --query Arn --output text)"
 (cd "$ROOT" && pnpm install --frozen-lockfile >/dev/null) || die "pnpm install failed in $ROOT"
@@ -36,17 +36,30 @@ AWS_REGION="${AWS_REGION:-$(ask "AWS region for the bench host [eu-west-2]:")}";
 PLATFORM_ZONE_NAME="${PLATFORM_ZONE_NAME:-abuusama.dev}" PLATFORM_DOMAIN="${PLATFORM_DOMAIN:-worlds.abuusama.dev}"
 info "repository $BOOTSTRAP_REPO, region $AWS_REGION, zone $PLATFORM_ZONE_NAME, sites under $PLATFORM_DOMAIN"
 [ -n "${CLOUDFLARE_API_TOKEN:-}" ] || CLOUDFLARE_API_TOKEN="$(secret "Cloudflare token that may create account tokens:")"
-[ -n "${NEON_API_KEY:-}" ] || NEON_API_KEY="$(secret "Neon API key of an organization admin:")"
+[ -n "${NEON_API_KEY:-}" ] || NEON_API_KEY="$(secret "Neon personal API key (not an organization key) of an org admin:")"
 export CLOUDFLARE_API_TOKEN NEON_API_KEY
 
 bold "3. Looking things up (nothing is changed)"
-CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-$(cf 'accounts?per_page=50' | py 'import json,sys; r=json.load(sys.stdin)["result"]; print(r[0]["id"] if len(r) == 1 else "")')}"
-[ -n "$CLOUDFLARE_ACCOUNT_ID" ] || CLOUDFLARE_ACCOUNT_ID="$(ask "The token sees several Cloudflare accounts; which account id:")"
-PLATFORM_ZONE_ID="$(cf "zones?name=$PLATFORM_ZONE_NAME" | py 'import json,sys; r=json.load(sys.stdin)["result"]; print(r[0]["id"] if r else "")')"
-[ -n "$PLATFORM_ZONE_ID" ] || die "the Cloudflare token cannot see the zone $PLATFORM_ZONE_NAME"
+# The zone says which account it belongs to, so the account is the zone's, not a guess among the token's accounts.
+ZONE="$(cf "zones?name=$PLATFORM_ZONE_NAME" | py 'import json,sys; r=json.load(sys.stdin)["result"]; print(r[0]["id"]+" "+r[0]["account"]["id"] if r else "")')"
+[ -n "$ZONE" ] || die "the Cloudflare token cannot see the zone $PLATFORM_ZONE_NAME"
+PLATFORM_ZONE_ID="${ZONE%% *}"; ZONE_ACCOUNT="${ZONE##* }"
+CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-$ZONE_ACCOUNT}"
+[ "$CLOUDFLARE_ACCOUNT_ID" = "$ZONE_ACCOUNT" ] \
+  || die "CLOUDFLARE_ACCOUNT_ID $CLOUDFLARE_ACCOUNT_ID is not the account of $PLATFORM_ZONE_NAME ($ZONE_ACCOUNT)"
 info "Cloudflare account $CLOUDFLARE_ACCOUNT_ID, zone $PLATFORM_ZONE_NAME = $PLATFORM_ZONE_ID"
-NEON_ORG_ID="${NEON_ORG_ID:-$(neon users/me/organizations | py 'import json,sys; o=json.load(sys.stdin)["organizations"]; print(o[0]["id"] if len(o) == 1 else "")')}"
-[ -n "$NEON_ORG_ID" ] || NEON_ORG_ID="$(ask "The Neon key sees several organizations; which org id:")"
+# A personal key may see several organizations: the one that holds a *worlds-db* project is the worlds'.
+if [ -z "${NEON_ORG_ID:-}" ]; then
+  ORGS="$(neon users/me/organizations | py 'import json,sys; print(" ".join(o["id"] for o in json.load(sys.stdin)["organizations"]))')"
+  WITH_WORLDS=""
+  for o in $ORGS; do
+    neon "projects?org_id=$o&limit=100" | py 'import json,sys; sys.exit(0 if any("worlds-db" in p["name"] for p in json.load(sys.stdin)["projects"]) else 1)' \
+      && WITH_WORLDS="$WITH_WORLDS $o"
+  done
+  set -- $WITH_WORLDS
+  if [ "$#" = 1 ]; then NEON_ORG_ID="$1"; elif [ "$(set -- $ORGS; echo $#)" = 1 ]; then NEON_ORG_ID="$ORGS"; fi
+fi
+[ -n "${NEON_ORG_ID:-}" ] || NEON_ORG_ID="$(ask "The Neon key sees several organizations ($ORGS); which org id:")"
 PROJECTS="$(neon "projects?org_id=$NEON_ORG_ID&limit=100" | py 'import json,sys; print("\n".join(p["id"]+" "+p["name"] for p in json.load(sys.stdin)["projects"] if "worlds-db" in p["name"]))')"
 if [ -z "${NEON_WORLDS_PROJECT_ID:-}" ]; then
   if [ "$(printf '%s' "$PROJECTS" | grep -c .)" = 1 ]; then NEON_WORLDS_PROJECT_ID="${PROJECTS%% *}"
@@ -71,8 +84,21 @@ GEN="$(var CAPXUL_KEY_GENERATION)"; GEN="${GEN:-1}"
 OIDC="$(aws iam list-open-id-connect-providers --query 'OpenIDConnectProviderList[].Arn' --output text | tr '\t' '\n' | grep token.actions.githubusercontent.com || true)"
 SUB="$(gh api "repos/$BOOTSTRAP_REPO/actions/oidc/customization/sub" 2>/dev/null || echo '{}')"
 SUB_OK="$(printf '%s' "$SUB" | py 'import json,sys; d=json.load(sys.stdin); print("yes" if d.get("use_default") is False and d.get("include_claim_keys") == ["repo","context","base_ref"] else "no")')"
+# With GitHub's immutable subjects on (always, for a repository made or renamed after 15 July 2026), the subject's
+# repository part carries the ids, `owner@id/name@id`, whatever the template; the CI role must trust that exact form.
+IMMUTABLE="$(printf '%s' "$SUB" | py 'import json,sys; print("yes" if json.load(sys.stdin).get("use_immutable_subject") is True else "no")')"
+if [ "$IMMUTABLE" = yes ]; then
+  BOOTSTRAP_SUBJECT_REPO="$(gh api "repos/$BOOTSTRAP_REPO" --jq '"\(.owner.login)@\(.owner.id)/\(.name)@\(.id)"')"
+  PREFIX="$(printf '%s' "$SUB" | py 'import json,sys; print(json.load(sys.stdin).get("sub_claim_prefix") or "")')"
+  [ -z "$PREFIX" ] || [ "$PREFIX" = "repo:$BOOTSTRAP_SUBJECT_REPO" ] \
+    || die "GitHub's subject prefix $PREFIX is not repo:$BOOTSTRAP_SUBJECT_REPO; the CI role would not match it"
+  SUB_BODY='{"use_default":false,"use_immutable_subject":true,"include_claim_keys":["repo","context","base_ref"]}'
+else
+  BOOTSTRAP_SUBJECT_REPO="$BOOTSTRAP_REPO"
+  SUB_BODY='{"use_default":false,"include_claim_keys":["repo","context","base_ref"]}'
+fi
 
-export BOOTSTRAP_REPO AWS_REGION AWS_ACCOUNT_ID CLOUDFLARE_ACCOUNT_ID PLATFORM_ZONE_ID PLATFORM_ZONE_NAME PLATFORM_DOMAIN \
+export BOOTSTRAP_REPO BOOTSTRAP_SUBJECT_REPO AWS_REGION AWS_ACCOUNT_ID CLOUDFLARE_ACCOUNT_ID PLATFORM_ZONE_ID PLATFORM_ZONE_NAME PLATFORM_DOMAIN \
   NEON_ORG_ID NEON_WORLDS_PROJECT_ID PLATFORM_AMI_ID CAPXUL_KEY_GENERATION="$GEN" CI=true
 eval "$(aws configure export-credentials --format env)"   # this session's AWS keys, for Alchemy; never printed
 GITHUB_TOKEN="$(gh auth token)"; export GITHUB_TOKEN
@@ -96,6 +122,7 @@ info "  - IAM OIDC provider token.actions.githubusercontent.com, audience sts.am
 info "  - IAM role capxul-ci-platform: taken on only by $BOOTSTRAP_REPO on master and pull requests into master;"
 info "    may run the bench host (EC2, its disk, network and security group in $AWS_REGION; IAM names capxul-bench-*;"
 info "    SSM sessions and commands on machines named capxul-bench-*). Policy: packages/platform/bootstrap/src/aws-policy.ts"
+info "    It trusts OIDC subjects starting repo:$BOOTSTRAP_SUBJECT_REPO:"
 info "GitHub $BOOTSTRAP_REPO:"
 [ "$SUB_OK" = yes ] && info "  - OIDC subject template already repo, context, base_ref" \
   || info "  - OIDC subject template set to repo, context, base_ref (now: $SUB), so a token says which branch a PR goes into"
@@ -103,7 +130,7 @@ info "  - secrets CLOUDFLARE_API_TOKEN, NEON_API_KEY"
 info "  - variables AWS_ROLE_ARN AWS_REGION CLOUDFLARE_ACCOUNT_ID NEON_ORG_ID PLATFORM_ZONE_ID PLATFORM_ZONE_NAME"
 info "    PLATFORM_DOMAIN PLATFORM_AMI_ID CAPXUL_KEY_GENERATION, and CAPXUL_CLOUD_READY=true last"
 info "Cloudflare account $CLOUDFLARE_ACCOUNT_ID: account token capxul-ci-worlds-g$GEN (Workers, Containers, R2, KV,"
-info "  Hyperdrive, Tunnel, Secrets Store read, Account Settings read; DNS and Zone read on $PLATFORM_ZONE_NAME only)"
+info "  Hyperdrive, Tunnel, Secrets Store edit, Account Settings read; DNS and Zone read on $PLATFORM_ZONE_NAME only)"
 info "Neon organization $NEON_ORG_ID: API key capxul-ci-worlds-g$GEN, limited to project $NEON_WORLDS_PROJECT_ID"
 [ "$MODE" = rotate ] && info "Rotation: generation $((GEN - 1)) keys are deleted once the secrets hold generation $GEN."
 info "None of this costs money. The bench host costs from the first platform deploy (BOOTSTRAP.md, 'Cost')."
@@ -111,8 +138,7 @@ confirm "Create or update all of the above?"
 
 bold "5. GitHub's OIDC subject template"
 if [ "$SUB_OK" = yes ]; then info "already set"; else
-  printf '{"use_default":false,"include_claim_keys":["repo","context","base_ref"]}' \
-    | gh api -X PUT "repos/$BOOTSTRAP_REPO/actions/oidc/customization/sub" --input - >/dev/null
+  printf '%s' "$SUB_BODY" | gh api -X PUT "repos/$BOOTSTRAP_REPO/actions/oidc/customization/sub" --input - >/dev/null
   info "set"
 fi
 

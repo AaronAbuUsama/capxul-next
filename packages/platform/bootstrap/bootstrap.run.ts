@@ -44,6 +44,8 @@ export const VARIABLES = [
 
 const settings = Effect.all({
   repo: Config.String("BOOTSTRAP_REPO"),
+  // The repository part of the OIDC subject GitHub issues: `owner/name`, or `owner@id/name@id` (src/aws-policy.ts).
+  subjectRepo: Config.String("BOOTSTRAP_SUBJECT_REPO"),
   awsAccount: Config.String("AWS_ACCOUNT_ID"),
   awsRegion: Config.String("AWS_REGION"),
   cfAccount: Config.String("CLOUDFLARE_ACCOUNT_ID"),
@@ -81,7 +83,9 @@ export default Alchemy.Stack(
     const role = yield* AWS.IAM.Role("CiRole", {
       roleName: CI_ROLE,
       description: `GitHub Actions of ${s.repo} on master and pull requests into master: the bench host`,
-      assumeRolePolicyDocument: oidc.openIDConnectProviderArn.pipe(Output.map((arn) => trustPolicy(arn, s.repo))),
+      assumeRolePolicyDocument: oidc.openIDConnectProviderArn.pipe(
+        Output.map((arn) => trustPolicy(arn, s.subjectRepo)),
+      ),
       inlinePolicies: { "bench-host": permissionsPolicy(s.awsAccount, s.awsRegion) },
       maxSessionDuration: "2 hours",
     });
