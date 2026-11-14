@@ -138,6 +138,7 @@ no AWS keys, may not create a Cloudflare credential (a tunnel's token is one), a
 | `amazonLinux2023()` resolves the newest image on every plan | The image is pinned (`PLATFORM_AMI_ID`, resolved once by the bootstrap): a new one replaces the machine. Replacing the machine was not rehearsed: the new attachment needs the data disk detached from the old machine first |
 | Changing the machine's user data replaces it (EC2 runs user data once) | `src/user-data.ts` does only what Docker cannot do later |
 | The bench is the light image (Frappe, ERPNext, HRMS, capxul), not the hosted six-app image of `packages/bench-image` | HRMS was added for the thin line's payroll report (report.run 2), each pinned in `packages/bench-image/apps.lock.json`; moving to the hosted image is a change of `src/bench.ts` and `bench/` |
+| MariaDB on its defaults keeps 400 table definitions and 421 open tables, against 926 tables a site, so its caches churn with a few sites (spikes/site-speed) | `src/mariadb.ts` starts it with 20,000 definitions, 10,000 open tables and a 1 GiB buffer pool, each with its reason (`test/mariadb.test.ts`); a deploy with the new flags recreates the MariaDB container on its same volume. Not yet measured on a bench |
 | Sites under `worlds.abuusama.dev` are two levels under the zone, outside the free certificate | HTTP only until real worlds move to `capxul.com` (roadmap, "Test addresses"); a token sent to the door through the tunnel travels in clear until then |
 
 | File | What |
@@ -145,7 +146,7 @@ no AWS keys, may not create a Cloudflare credential (a tunnel's token is one), a
 | `alchemy.run.ts`, `host.run.ts` | The platform's stack and the bench host's |
 | `src/names.ts`, `src/stage.ts` | Every name, from the stage |
 | `src/host.ts`, `src/aws.ts`, `src/user-data.ts` | The machine: the Docker context, the AWS resources, the first boot |
-| `src/bench.ts`, `bench/`, `door/`, `src/edge.ts` | The bench, its image, the site door, the tunnel and DNS |
+| `src/bench.ts`, `src/mariadb.ts`, `bench/`, `door/`, `src/edge.ts` | The bench, its MariaDB's settings, its image, the site door, the tunnel and DNS |
 | `src/token.ts`, `src/state.ts`, `src/door.ts`, `src/run-mint.ts` | Site tokens, the door key from the state, the package's door |
 | `src/drift.ts`, `src/code-drift.ts`, `src/run-drift.ts`, `src/run-inventory.ts` | The drift check and the state inventory |
 | `bin/` | `run.sh` (settings), `forward.sh` (SSM), `require.sh` (CI), `rehearse.sh` and `rehearse-drift.sh`, `zone.sh` |

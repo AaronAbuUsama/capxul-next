@@ -13,6 +13,7 @@ import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Str from "effect/String";
+import { MARIADB_COMMAND } from "./mariadb.ts";
 import { names } from "./stage.ts";
 
 const MARIADB = "public.ecr.aws/docker/library/mariadb:11.8"; // Amazon's mirror of the official image (Docker Hub rate-limits)
@@ -126,11 +127,8 @@ export const Bench = (context: Docker.Context) =>
       context,
       name: n.container("mariadb"),
       image: MARIADB,
-      command: [
-        "--character-set-server=utf8mb4",
-        "--collation-server=utf8mb4_unicode_ci",
-        "--skip-character-set-client-handshake",
-      ],
+      // Its character set, and caches sized for many sites (src/mariadb.ts, with the reason for each).
+      command: [...MARIADB_COMMAND],
       environment: { MARIADB_ROOT_PASSWORD: dbRoot.text },
       volumes: [{ hostPath: db.name, containerPath: "/var/lib/mysql" }],
       networks: on("mariadb"),
