@@ -10,14 +10,20 @@ import { given } from "../expectation.ts";
 import { journey, outline } from "../journey.ts";
 import { usdc } from "../support/chain.ts";
 import { refusal, same, sameAmount, sameInstant } from "../support/expect.ts";
-import { NORTHWIND_FOUNDING, type Founding } from "../support/founding.ts";
+import { decodedAsTyped, NORTHWIND_FOUNDING, type Founding, type TypedFounding } from "../support/founding.ts";
 import { nowWears } from "../support/hats.ts";
 import { castMember, company, NORTHWIND, recordOf, textOf } from "../support/world.ts";
 import { approvalOf, sign, signedByBoard } from "./signatures.ts";
 
 const steps = outline({
-  cannot: ["org.create", "founders who cannot found are refused, and nothing is made"],
-  found: ["org.create", "dana founds Northwind; the same founding resumes it, and nobody founds it twice"],
+  cannot: [
+    "org.create",
+    "founders who cannot found, and payloads org.create's schema does not take, are refused, and nothing is made",
+  ],
+  found: [
+    "org.create",
+    "dana founds Northwind as she typed it, its bio and size trimmed; the same founding resumes it, and nobody founds it twice",
+  ],
   setup: [
     "approval.sign",
     "dana's signature of the setup is kept and eli's sends it: the board and its capital are on the chain",
@@ -42,10 +48,11 @@ const steps = outline({
 
 const dana = { as: "dana" } as const;
 const sam = { as: "sam" } as const;
-const PADDED: Founding = {
-  ...NORTHWIND_FOUNDING,
-  profile: { ...NORTHWIND_FOUNDING.profile, bio: "  We keep offices clean.  ", size: "  2-10  " },
-};
+const PADDED_PROFILE = { ...NORTHWIND_FOUNDING.profile, bio: "  We keep offices clean.  ", size: "  2-10  " };
+/** dana's founding as she types it, its bio and size padded with spaces: org.create's schema trims them as it decodes. */
+const TYPED: TypedFounding = { ...NORTHWIND_FOUNDING, profile: PADDED_PROFILE };
+/** The same spaces in a typed payload, which org.create's schema does not take: its typed side is trimmed text. */
+const UNTRIMMED: Founding = { ...NORTHWIND_FOUNDING, profile: PADDED_PROFILE };
 
 type Fields = typeof Values.Fields.Type;
 const EMPLOYEE: Fields = {
@@ -82,27 +89,31 @@ export const foundNorthwind = journey(
         yield* sameAmount("dana's balance", poor.balance, 10_000);
         const long = { ...NORTHWIND_FOUNDING, profile: { ...NORTHWIND_FOUNDING.profile, bio: Str.repeat(281)("b") } };
         yield* op.refused("PayloadRejected", long, dana);
+        yield* op.refused("PayloadRejected", UNTRIMMED, dana);
       }),
     );
 
     const founded = yield* steps.found.run((op) =>
       Effect.gen(function* () {
-        const made = yield* op.answers("Founded", PADDED, dana);
+        // Decoded by org.create's payload schema, as the command line decodes what a person types (claims.md,
+        // org.create 6): the spaces never reach a typed payload, and what is sent is what must be stored.
+        const typed = yield* decodedAsTyped(TYPED);
+        const made = yield* op.answers("Founded", typed, dana);
         yield* same(
           "the stored bio and size",
           [made.profile.bio, made.profile.size],
           ["We keep offices clean.", "2-10"],
         );
-        const resumed = yield* op.answers("Resumed", PADDED, dana);
+        const resumed = yield* op.answers("Resumed", typed, dana);
         yield* same(
           "the resumed founding",
           [resumed.org, resumed.setup, Arr.map(resumed.approvals, (each) => each.id)],
           [made.org, "awaiting_signatures", Arr.map(made.approvals, (each) => each.id)],
         );
-        const renamed = { ...PADDED, profile: { ...PADDED.profile, name: "Northwind Holdings" } };
+        const renamed = { ...typed, profile: { ...typed.profile, name: "Northwind Holdings" } };
         yield* op.refused("FoundingChanged", renamed, dana);
-        yield* op.refused("HandleTaken", { ...PADDED, directors: ["dana"] }, { as: "eli" });
-        const unfinished = yield* op.refused("SetupUnfinished", { ...PADDED, handle: "southwind" }, dana);
+        yield* op.refused("HandleTaken", { ...typed, directors: ["dana"] }, { as: "eli" });
+        const unfinished = yield* op.refused("SetupUnfinished", { ...typed, handle: "southwind" }, dana);
         yield* same("the founding unfinished", [unfinished.org, unfinished.handle], [made.org, NORTHWIND]);
         return made;
       }),
