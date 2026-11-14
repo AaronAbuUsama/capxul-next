@@ -33,6 +33,17 @@ POST   /world/backup {"snapshot"}     saves every site of the world under the sn
 POST   /world/restore {"snapshot", "api_key", "api_secret", "clock"}   with the source world's token in
        `X-Capxul-Source-Token`: starts restoring every site that world saved as the snapshot into the token's world,
        each under its own label, and answers 202; each is then a site of this world like any other
+POST   /templates {"template", "site"} or {"template", "snapshot"}   makes (or replaces) a starting world's template
+       from a ready site of the token's world, or from a snapshot it saved, and fills its pool (pool.py)
+GET    /templates                     every template, its sites and how many ready copies each has
+DELETE /templates/<template>          removes a template and its pool
+POST   /world/claim {"template", "api_key", "api_secret", "clock"?, "browser_core_url"?}   gives the token's world a
+       ready copy of every site of the template, each `<label>-<world>.<domain>`, and answers when they are ready
+       (about 1.1 s a site; about 4 s with the pool empty) (claim.py)
+POST   /world/save {"point"}          saves every site of the world to a point, in MariaDB (points.py)
+POST   /world/reset {"point"}         resets every site the point saved, in place, and the world's clock entry
+GET    /world/points                  the world's points
+DELETE /world/points/<point>          removes a point
 GET    /health
 """
 
@@ -46,8 +57,11 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import points
+import pool
+from claim import claim_world
 from snapshots import backup_world, remove_backups, restore_world
-from sites import (BENCH, DOMAIN, FORWARDED, KEY, LABEL, PORT, REGISTRY, REGISTRY_LOCK, SECRET, SITE_CALL, TOKEN, WEB,
+from sites import (BENCH, DB_ROOT, DOMAIN, FORWARDED, KEY, LABEL, PORT, REGISTRY, REGISTRY_LOCK, SECRET, SITE_CALL, TOKEN, WEB,
                    Refused,
                    bench, build, entries_of, entry_path, public, read_entry, remove_site, site_of, update_entry,
                    write_entry)
@@ -107,6 +121,14 @@ def set_clock(c, body):
     return {"world": c["world"], "via": held[0], "ms": ms, "result": out.strip()[-300:]}
 
 
+FAST_ROUTES = {
+    ("POST", "/templates"): pool.make_template,
+    ("POST", "/world/claim"): claim_world,
+    ("POST", "/world/save"): points.save_world,
+    ("POST", "/world/reset"): points.reset_world,
+}
+
+
 class Door(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -155,10 +177,22 @@ class Door(BaseHTTPRequestHandler):
             if route == ("DELETE", "/world"):
                 gone = [remove_site(e["site"]) for e in entries_of(c["world"])]
                 remove_backups(c["world"])
+                points.drop_world_points(c["world"])
                 return self.answer(200, {"world": c["world"], "removed": gone})
             if method in ("GET", "DELETE") and self.path.startswith("/sites/"):
                 entry = site_of(c, self.path[len("/sites/"):])
-                return self.answer(200, public(entry) if method == "GET" else remove_site(entry["site"]))
+                if method == "GET":
+                    return self.answer(200, public(entry))
+                points.drop_world_points(c["world"], entry["site"])
+                return self.answer(200, remove_site(entry["site"]))
+            if route == ("GET", "/templates"):
+                return self.answer(200, pool.list_templates())
+            if method == "DELETE" and self.path.startswith("/templates/"):
+                return self.answer(200, pool.drop_template(self.path[len("/templates/"):]))
+            if route == ("GET", "/world/points"):
+                return self.answer(200, points.list_points(c))
+            if method == "DELETE" and self.path.startswith("/world/points/"):
+                return self.answer(200, points.drop_point(c, self.path[len("/world/points/"):]))
             body = json.loads(self.body() or b"{}")
             if route == ("POST", "/sites"):
                 return self.answer(202, create_site(c, body))
@@ -169,10 +203,16 @@ class Door(BaseHTTPRequestHandler):
             if route == ("POST", "/world/restore"):
                 source = claims(self.headers, header="X-Capxul-Source-Token")
                 return self.answer(202, restore_world(c, source, body))
+            if route in FAST_ROUTES:
+                return self.answer(200, FAST_ROUTES[route](c, body))
             raise Refused(404, "no-such-route")
         except Refused as r:
             print(f"door: refused {method} {self.path.split('/api/')[0]} {r.code} {r.detail[:200]}", flush=True)
             return self.answer(r.status, {"refused": r.code, "detail": r.detail})
+        except Exception as e:  # noqa: BLE001 -- an unforeseen failure answers 500 with its kind, never a secret
+            detail = repr(e)[-300:].replace(DB_ROOT, "<root>")
+            print(f"door: failed {method} {self.path.split('/api/')[0]} {detail}", flush=True)
+            return self.answer(500, {"refused": "door-failed", "detail": detail})
 
     def do_GET(self):
         self.handle_one("GET")
@@ -197,5 +237,6 @@ if __name__ == "__main__":
             stale = json.load(f)
         if stale.get("state") in ("creating", "removing"):
             update_entry(stale["site"], state="failed", error="the door restarted while it was being made or removed")
+    pool.tidy()
     print(f"door: serving on {PORT} for {DOMAIN}", flush=True)
     ThreadingHTTPServer(("0.0.0.0", PORT), Door).serve_forever()

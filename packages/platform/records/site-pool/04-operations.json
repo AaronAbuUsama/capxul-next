@@ -1,0 +1,87 @@
+{
+ "record": "04-operations",
+ "at_utc": "2026-11-14T05:05:08Z",
+ "through": "the door, as each site's own API user (Core's route)",
+ "sites": {
+  "w1": {
+   "calls_ms": {
+    "doc.create": [
+     131,
+     29,
+     33
+    ],
+    "doc.submit": [
+     296,
+     55,
+     65
+    ],
+    "report.run": [
+     393,
+     15,
+     37
+    ]
+   },
+   "general_ledger_rows": 11
+  },
+  "w2": {
+   "calls_ms": {
+    "doc.create": [
+     184,
+     35,
+     25
+    ],
+    "doc.submit": [
+     162,
+     52,
+     61
+    ],
+    "report.run": [
+     152,
+     18,
+     72
+    ]
+   },
+   "general_ledger_rows": 11
+  },
+  "w3": {
+   "calls_ms": {
+    "doc.create": [
+     160,
+     27,
+     25
+    ],
+    "doc.submit": [
+     197,
+     55,
+     54
+    ],
+    "report.run": [
+     155,
+     22,
+     31
+    ]
+   },
+   "general_ledger_rows": 11
+  },
+  "w4": {
+   "calls_ms": {
+    "doc.create": [
+     157,
+     26,
+     34
+    ],
+    "doc.submit": [
+     186,
+     49,
+     50
+    ],
+    "report.run": [
+     126,
+     40,
+     18
+    ]
+   },
+   "general_ledger_rows": 11
+  }
+ }
+}

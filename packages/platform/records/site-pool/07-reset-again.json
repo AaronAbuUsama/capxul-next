@@ -1,0 +1,52 @@
+{
+ "record": "07-reset-again",
+ "at_utc": "2026-11-14T05:06:01Z",
+ "world": "w1",
+ "client_ms": 118,
+ "door_ms": 116,
+ "site_ms": 115,
+ "clock_ms": 1,
+ "steps": [
+  {
+   "step": "changed tables put back",
+   "ms": 105,
+   "tables_changed": [
+    "tabFile",
+    "tabGL Entry",
+    "tabJournal Entry",
+    "tabJournal Entry Account",
+    "tabSeries",
+    "tabUser",
+    "tabVersion"
+   ],
+   "tables_dropped": [],
+   "tables_made": []
+  },
+  {
+   "step": "files and site config",
+   "ms": 1,
+   "files_put_back": [
+    "private/files"
+   ],
+   "site_config_put_back": false
+  },
+  {
+   "step": "queued jobs removed, cache cleared",
+   "ms": 8,
+   "jobs_removed": 1,
+   "cache_keys_cleared": 549
+  }
+ ],
+ "changed_before_reset": true,
+ "equal_after_reset": true,
+ "saved_digest": "c6ff9e87592325ea",
+ "after_digest": "c6ff9e87592325ea",
+ "clock_after": {
+  "world": "w1",
+  "world_local": "2026-12-23 04:26:40",
+  "nowdate": "2026-12-23"
+ },
+ "files_on_disk_after": [],
+ "jobs_removed": 1,
+ "differs": {}
+}

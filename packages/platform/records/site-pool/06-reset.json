@@ -1,0 +1,208 @@
+{
+ "record": "06-reset",
+ "at_utc": "2026-11-14T05:05:56Z",
+ "one_at_a_time": [
+  {
+   "world": "w1",
+   "client_ms": 251,
+   "door_ms": 250,
+   "site_ms": 248,
+   "clock_ms": 1,
+   "steps": [
+    {
+     "step": "changed tables put back",
+     "ms": 75,
+     "tables_changed": [
+      "tabFile",
+      "tabGL Entry",
+      "tabJournal Entry",
+      "tabJournal Entry Account",
+      "tabSeries",
+      "tabUser",
+      "tabVersion"
+     ],
+     "tables_dropped": [],
+     "tables_made": []
+    },
+    {
+     "step": "files and site config",
+     "ms": 1,
+     "files_put_back": [
+      "private/files"
+     ],
+     "site_config_put_back": false
+    },
+    {
+     "step": "queued jobs removed, cache cleared",
+     "ms": 171,
+     "jobs_removed": 1,
+     "cache_keys_cleared": 584
+    }
+   ],
+   "changed_before_reset": true,
+   "equal_after_reset": true,
+   "saved_digest": "c6ff9e87592325ea",
+   "after_digest": "c6ff9e87592325ea",
+   "clock_after": {
+    "world": "w1",
+    "world_local": "2026-12-23 04:26:40",
+    "nowdate": "2026-12-23"
+   },
+   "files_on_disk_after": [],
+   "jobs_removed": 1,
+   "differs": {}
+  },
+  {
+   "world": "w2",
+   "client_ms": 84,
+   "door_ms": 83,
+   "site_ms": 81,
+   "clock_ms": 1,
+   "steps": [
+    {
+     "step": "changed tables put back",
+     "ms": 73,
+     "tables_changed": [
+      "tabFile",
+      "tabGL Entry",
+      "tabJournal Entry",
+      "tabJournal Entry Account",
+      "tabSeries",
+      "tabUser",
+      "tabVersion"
+     ],
+     "tables_dropped": [],
+     "tables_made": []
+    },
+    {
+     "step": "files and site config",
+     "ms": 1,
+     "files_put_back": [
+      "private/files"
+     ],
+     "site_config_put_back": false
+    },
+    {
+     "step": "queued jobs removed, cache cleared",
+     "ms": 7,
+     "jobs_removed": 1,
+     "cache_keys_cleared": 584
+    }
+   ],
+   "changed_before_reset": true,
+   "equal_after_reset": true,
+   "saved_digest": "5b219cb0e6df07c8",
+   "after_digest": "5b219cb0e6df07c8",
+   "clock_after": {
+    "world": "w2",
+    "world_local": "2026-12-23 04:26:40",
+    "nowdate": "2026-12-23"
+   },
+   "files_on_disk_after": [],
+   "jobs_removed": 1,
+   "differs": {}
+  }
+ ],
+ "two_at_once": [
+  {
+   "world": "w3",
+   "client_ms": 252,
+   "door_ms": 249,
+   "site_ms": 245,
+   "clock_ms": 2,
+   "steps": [
+    {
+     "step": "changed tables put back",
+     "ms": 226,
+     "tables_changed": [
+      "tabFile",
+      "tabGL Entry",
+      "tabJournal Entry",
+      "tabJournal Entry Account",
+      "tabSeries",
+      "tabUser",
+      "tabVersion"
+     ],
+     "tables_dropped": [],
+     "tables_made": []
+    },
+    {
+     "step": "files and site config",
+     "ms": 3,
+     "files_put_back": [
+      "private/files"
+     ],
+     "site_config_put_back": false
+    },
+    {
+     "step": "queued jobs removed, cache cleared",
+     "ms": 15,
+     "jobs_removed": 1,
+     "cache_keys_cleared": 584
+    }
+   ],
+   "changed_before_reset": true,
+   "equal_after_reset": true,
+   "saved_digest": "0e8bb395431f40b2",
+   "after_digest": "0e8bb395431f40b2",
+   "clock_after": {
+    "world": "w3",
+    "world_local": "2026-12-23 04:26:40",
+    "nowdate": "2026-12-23"
+   },
+   "files_on_disk_after": [],
+   "jobs_removed": 1,
+   "differs": {}
+  },
+  {
+   "world": "w4",
+   "client_ms": 254,
+   "door_ms": 249,
+   "site_ms": 246,
+   "clock_ms": 3,
+   "steps": [
+    {
+     "step": "changed tables put back",
+     "ms": 225,
+     "tables_changed": [
+      "tabFile",
+      "tabGL Entry",
+      "tabJournal Entry",
+      "tabJournal Entry Account",
+      "tabSeries",
+      "tabUser",
+      "tabVersion"
+     ],
+     "tables_dropped": [],
+     "tables_made": []
+    },
+    {
+     "step": "files and site config",
+     "ms": 3,
+     "files_put_back": [
+      "private/files"
+     ],
+     "site_config_put_back": false
+    },
+    {
+     "step": "queued jobs removed, cache cleared",
+     "ms": 17,
+     "jobs_removed": 1,
+     "cache_keys_cleared": 584
+    }
+   ],
+   "changed_before_reset": true,
+   "equal_after_reset": true,
+   "saved_digest": "10c2e2ac6a106051",
+   "after_digest": "10c2e2ac6a106051",
+   "clock_after": {
+    "world": "w4",
+    "world_local": "2026-12-23 04:26:40",
+    "nowdate": "2026-12-23"
+   },
+   "files_on_disk_after": [],
+   "jobs_removed": 1,
+   "differs": {}
+  }
+ ]
+}

@@ -19,7 +19,7 @@ DB_ROOT = os.environ["DB_ROOT_PASSWORD"]
 DOMAIN = os.environ["PLATFORM_DOMAIN"]
 PORT = int(os.environ.get("DOOR_PORT", "8100"))
 WEB = urlsplit(os.environ.get("WEB_URL", "http://web:8000"))
-BENCH = "/home/frappe/frappe-bench"
+BENCH = os.environ.get("FRAPPE_BENCH", "/home/frappe/frappe-bench")  # another only in the door's unit tests
 REGISTRY = f"{BENCH}/sites/.capxul-door"
 # The blueprint's WorldName (packages/blueprint/src/values.ts), which src/token.ts checks too.
 WORLD = r"[a-z][a-z0-9-]{0,13}[a-z0-9]"
@@ -31,10 +31,20 @@ CORE_USER = "capxul-core@service.invalid"
 CORE_ROLES = ["Accounts User", "Purchase User", "Sales User"]
 FORWARDED = ("Authorization", "Content-Type", "Accept", "X-Capxul-Trace", "Traceparent")
 
-# One lock for the registry (so two requests cannot both pass a quota) and one for the bench (one site is made or
-# removed at a time: each is a minute of the machine's CPU).
+# One lock for the registry (so two requests cannot both pass a quota) and one for the bench's own commands (one
+# site is made from nothing, restored from a backup, backed up or removed at a time: each is up to a minute of the
+# machine's CPU). A claim, a save and a reset run no bench command: they hold their site's own lock and one of
+# FAST's slots (each is MariaDB's work plus at most one Python process), so different sites' run at once.
 REGISTRY_LOCK = threading.Lock()
 BENCH_LOCK = threading.Lock()
+FAST = threading.BoundedSemaphore(int(os.environ.get("DOOR_FAST_SLOTS", "4")))
+_site_locks, _site_locks_guard = {}, threading.Lock()
+
+
+def site_lock(site):
+    """The lock one site's claim, save, reset and removal each hold, so two never touch the same site at once."""
+    with _site_locks_guard:
+        return _site_locks.setdefault(site, threading.Lock())
 
 
 class Refused(Exception):
@@ -92,7 +102,7 @@ def site_of(c, site):
 
 
 def public(entry):
-    return {k: entry.get(k) for k in ("site", "world", "company", "state", "ms", "steps", "error")}
+    return {k: entry.get(k) for k in ("site", "world", "company", "state", "ms", "steps", "error", "claimed_from")}
 
 
 def bench(*args, env=None):
@@ -186,7 +196,7 @@ def drop_database(site):
 def remove_site(site):
     update_entry(site, state="removing")
     t0 = time.monotonic()
-    with BENCH_LOCK:
+    with site_lock(site), BENCH_LOCK:
         if os.path.exists(f"{BENCH}/sites/{site}"):
             archive = tempfile.mkdtemp(prefix="dropped-", dir=f"{BENCH}/sites/.capxul-door")
             try:

@@ -1,0 +1,68 @@
+{
+ "record": "01-template-source",
+ "at_utc": "2026-11-14T05:04:41Z",
+ "world": "tpl-founded",
+ "site": "northwind-tpl-founded.pool.test",
+ "built_ms": 138134,
+ "door_ms": 137355,
+ "door_steps": [
+  {
+   "step": "new-site",
+   "ms": 22226
+  },
+  {
+   "step": "install erpnext",
+   "ms": 50118
+  },
+  {
+   "step": "install hrms",
+   "ms": 33794
+  },
+  {
+   "step": "install capxul",
+   "ms": 3396
+  },
+  {
+   "step": "setup wizard",
+   "ms": 16934
+  },
+  {
+   "step": "migrate",
+   "ms": 8161
+  },
+  {
+   "step": "enable scheduler",
+   "ms": 653
+  },
+  {
+   "step": "join world",
+   "ms": 799
+  },
+  {
+   "step": "core user",
+   "ms": 1267
+  }
+ ],
+ "company_setup": [
+  {
+   "step": "configure",
+   "ms": 829
+  },
+  {
+   "step": "grant admin to Dana",
+   "ms": 449
+  },
+  {
+   "step": "grant admin to Eli",
+   "ms": 57
+  },
+  {
+   "step": "grant member to Sam",
+   "ms": 697
+  },
+  {
+   "step": "capital",
+   "ms": 1170
+  }
+ ]
+}

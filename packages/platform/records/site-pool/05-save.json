@@ -1,0 +1,87 @@
+{
+ "record": "05-save",
+ "at_utc": "2026-11-14T05:05:40Z",
+ "point": "p1",
+ "worlds": {
+  "w1": {
+   "client_ms": 3738,
+   "door_ms": 3736,
+   "steps": [
+    {
+     "step": "saved copy in MariaDB",
+     "ms": 3671,
+     "tables": 926
+    },
+    {
+     "step": "checksums of the saved copy",
+     "ms": 63
+    },
+    {
+     "step": "files and site config",
+     "ms": 1
+    }
+   ],
+   "state_digest": "c6ff9e87592325ea"
+  },
+  "w2": {
+   "client_ms": 3432,
+   "door_ms": 3431,
+   "steps": [
+    {
+     "step": "saved copy in MariaDB",
+     "ms": 3371,
+     "tables": 926
+    },
+    {
+     "step": "checksums of the saved copy",
+     "ms": 57
+    },
+    {
+     "step": "files and site config",
+     "ms": 1
+    }
+   ],
+   "state_digest": "5b219cb0e6df07c8"
+  },
+  "w3": {
+   "client_ms": 3241,
+   "door_ms": 3240,
+   "steps": [
+    {
+     "step": "saved copy in MariaDB",
+     "ms": 3170,
+     "tables": 926
+    },
+    {
+     "step": "checksums of the saved copy",
+     "ms": 68
+    },
+    {
+     "step": "files and site config",
+     "ms": 1
+    }
+   ],
+   "state_digest": "0e8bb395431f40b2"
+  },
+  "w4": {
+   "client_ms": 3018,
+   "door_ms": 3017,
+   "steps": [
+    {
+     "step": "saved copy in MariaDB",
+     "ms": 2946,
+     "tables": 926
+    },
+    {
+     "step": "checksums of the saved copy",
+     "ms": 68
+    },
+    {
+     "step": "files and site config",
+     "ms": 1
+    }
+   ],
+   "state_digest": "10c2e2ac6a106051"
+  }
+ }
+}
