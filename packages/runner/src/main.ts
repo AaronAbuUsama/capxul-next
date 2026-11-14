@@ -182,8 +182,16 @@ const theStartingWorlds = (settings: Settings) =>
     if (record.outcome === "failed") process.exitCode = 1;
   });
 
-const theSharedWorld = (settings: Settings) =>
+/** `./run.sh shared`: a shared world already there is reached as its owner with its own operator token. */
+const theSharedWorld = (given: Settings) =>
   Effect.gen(function* () {
+    const there = yield* Effect.option(World.open(given.shared)).pipe(
+      Effect.provide(Layer.provideMerge(SharedState.layer, BunServices.layer)),
+    );
+    const settings =
+      Option.isSome(there) && there.value.owner === given.owner
+        ? { ...given, platformToken: there.value.operatorToken }
+        : given;
     const record = yield* inWorlds(settings, makeOrRenew(settings, journeys));
     yield* Effect.log(
       `${record.outcome}: ${record.world} ${record.how}, owned by ${record.owner}, until ${record.expiresAt ?? "?"} on hub ${record.hub.stage}; templates ${Arr.join(record.templates, ", ")} -> ${settings.records}/${record.run}/shared.json${record.failure === null ? "" : `\n${record.failure}`}`,

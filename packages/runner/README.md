@@ -15,6 +15,8 @@ Built from `spikes/pipeline/runner`.
 ./run.sh chain --world=<name> # the chain operations' journey (src/chain-journey.ts) through a world's Core
 ./run.sh scenarios [name...]  # the registered journeys (or those named), in one world on the run's hub, reset before each (below)
 ./run.sh starting-worlds      # make every starting world the runner can make, timed, then destroy them all
+./run.sh shared               # make the shared world on its own hub, or renew it (below)
+./run.sh scenarios --shared [name...]   # the journeys on the shared world, each from its templates (below)
 WORLD_BENCH=<platform stage> ./run.sh scenarios --core=local [name...]   # a rehearsal: Core in workerd here (below)
 WORLD_BENCH=local POOL_SECRETS=<file> ./run.sh scenarios --core=local    # the same beside packages/platform's bin/pool-bench.sh bench
 ./run.sh scenarios --expect=not-implemented              # each in a fresh stage of Core's empty handlers; must fail at step 1
@@ -125,6 +127,24 @@ world's record). Records go to `records/<run>/<journey>.json`, the summary to `r
 `./run.sh starting-worlds` makes each starting world in turn the same way, in one world on the run's hub (reset to
 each, then its steps), times each, checks every call, destroys each one's other worlds before the next and the one
 world at the end, and writes `records/<run>/starting-worlds.json` with its `timings`.
+
+## A run on the shared world (steps 2.3 and 2.4)
+
+A shared world is a world of grade `shared` that lives on for many callers and many runs (docs/roadmap.md, "The world
+is the unit"). A run must never reset it or change it, since others use it; so a run on it does not reset it in
+place, as a run in its one world does, but restores each journey's starting world from the shared world's template
+snapshot of it into a world of the run (`world.snapshot.restore`, blueprint decisions 17, 18 and 27), and destroys
+that world after the journey. The journeys and the checks are the same; only where the starting world comes from
+differs (`src/shared/`).
+
+| Command | What |
+|---|---|
+| `./run.sh shared` | The shared world `WORLD_SHARED` (`shared`), owned by `WORLD_OWNER` (`staging`), on its own hub `WORLD_HUB` (`shared`), its sites on the bench `WORLD_BENCH` names. Its hub is brought up, or up again (`SHARED_HUB_LIFETIME`, 30 days), unless it outlives the world's next expiry by a day. Missing, the world is made through the platform: `world.create` with grade `shared` and `WORLD_SHARED_LIFETIME` (7 days, the most a world may live), then every starting world the registered journeys start from a template of, by its steps, in order (`fresh`, `founded`, `office-holder`, `payment-drafted`), each saved as a template snapshot, with its maker's facts kept in the world's own database just before the save (`src/shared/facts.ts`, `runner.starting_worlds`), so each snapshot and every world restored from it carries them. A making that fails takes the half-made world down. Made or found, it is then renewed (packages/world, `renew`): its expiry moved to its lifetime from now and Core deployed again with the running code. Its record is `records/<run>/shared.json`: every call with the generic checks, `world.show` of it, the templates it holds and every part's time. |
+| `./run.sh scenarios --shared` | The registered journeys on it. The run signs its first operator in as the shared world's owner with the world's own operator token, read from the shared state, so a check may read the world a restore came from as its owner. Before each journey whose starting world is made from a template, the template is restored into a world of the run (`sj-<6 hex>`, at most 90 minutes and never past the shared world's expiry); its facts are the kept facts with the run's operators, the restore's answer as `world` (decisions 39) and the restore after the calls that made the template. A starting world made by its steps from nothing (`quota-full`) is made by its steps. Every world the run made is destroyed after its journey; the shared world and its hub are left as they were. The summary's `mode` is `shared world`. |
+
+CI runs both after every deploy of the platform (`.github/workflows/platform.yml`, job `shared`), so the shared world
+is renewed with each deploy; a week with no deploy lets it expire, the sweeper removes it, and the next deploy makes
+it anew.
 
 ## A rehearsal with Core run locally (`--core=local`)
 
@@ -244,6 +264,7 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | `src/given.ts` | `Given`: the facts of a scenario's starting world. `nothing`'s are the run's operators; for any other world, the declared example facts in a run that expects `not-implemented`, and a defect otherwise, until the runner makes starting worlds (step 1.12). |
 | `src/checks/checks.ts`, `src/checks/events.ts` | The generic checks, the timings and the steps. A builder never changes these. |
 | `src/world/` | The stage's life, its database, the warm-up and the inventory: the runner's plumbing. |
+| `src/shared/` | A run on the shared world: making or renewing it (`make.ts`), its starting worlds restored from its templates (`starting.ts`), and the makers' facts it keeps (`facts.ts`). |
 | `src/worlds/` | A run in private worlds: the platform this process serves, the starting worlds (`starting.ts`), their makers (`makers.ts`; those with a company in `company.ts`), how a fact is encoded (`encode.ts`), the run and its timing. |
 | `src/local/` | `--core=local`: Core's bundle, its workerd, its database bridge, its chain forwarder and the host that runs one per world (above). |
 | `src/scenario-runs.ts` | A run of the journeys in stages, in either mode, ending in its summary. |

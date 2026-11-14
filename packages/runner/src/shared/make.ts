@@ -46,7 +46,10 @@ export const SharedRecord = Schema.Struct({
   kind: Schema.Literal("shared world"),
   run: Schema.String,
   startedAt: Schema.String,
-  /** `passed` when the world was made or found, renewed, answers `world.show`, and every call passed every check. */
+  /**
+   * `passed` when the world was made or found, renewed, answers `world.show`, every site the bench lists for it is
+   * ready, and every call passed every check.
+   */
   outcome: Outcome,
   failure: Schema.NullOr(Schema.String),
   world: Schema.String,
@@ -59,6 +62,18 @@ export const SharedRecord = Schema.Struct({
   expiresAt: Schema.NullOr(Schema.String),
   /** The starting worlds it holds a template snapshot and facts of, oldest first. */
   templates: Schema.Array(Schema.String),
+  /**
+   * Its sites as the bench's site door lists them to a token minted for this world alone (`GET /world`): each names
+   * the world it was made for. Empty for a world with no bench.
+   */
+  sites: Schema.Array(
+    Schema.Struct({
+      site: Schema.String,
+      world: Schema.String,
+      state: Schema.String,
+      ms: Schema.NullOr(Schema.Finite),
+    }),
+  ),
   /** `world.show` of it after the renewal, as the blueprint encodes it. */
   shown: Schema.Unknown,
   calls: Schema.Array(CheckedCall),
@@ -200,6 +215,13 @@ export const makeOrRenew = (settings: Settings, journeys: ReadonlyArray<Journey>
       timings.timed("world.show", { of: name }, record(startingWorlds.nothing, showOf(name), nothing)),
     );
 
+    const bench = yield* World.BenchStage.pipe(Effect.orDie);
+    const listed = yield* Effect.exit(
+      Option.isNone(bench)
+        ? Effect.succeed([])
+        : timings.timed("bench sites", { of: name }, World.sitesOn(World.stageOf(name), bench.value)),
+    );
+    const sites = Exit.isSuccess(listed) ? listed.value : [];
     const calls = Arr.map(yield* Ref.get(made), (each) => each.call);
     const kept = yield* Effect.orElseSucceed(keptFor(Option.none(), calls), () => ({ spans: [], events: [] }));
     const checked = Arr.map(calls, (call) => checkCall(call, kept));
@@ -218,6 +240,8 @@ export const makeOrRenew = (settings: Settings, journeys: ReadonlyArray<Journey>
           ]),
       ...(Exit.isFailure(renewed) ? [`the renewal failed: ${describe(renewed.cause)}`] : []),
       ...(Exit.isFailure(shown) ? [`world.show failed: ${describe(shown.cause)}`] : []),
+      ...(Exit.isFailure(listed) ? [`its sites were not read from the bench: ${describe(listed.cause)}`] : []),
+      ...Arr.flatMap(sites, (site) => (site.state === "ready" ? [] : [`${site.site} is ${site.state}`])),
       ...failuresOf(checked),
     ];
     const done: SharedRecord = {
@@ -233,6 +257,7 @@ export const makeOrRenew = (settings: Settings, journeys: ReadonlyArray<Journey>
       was: Option.isSome(found) ? found.value.expiresAt : null,
       expiresAt: Exit.isSuccess(renewed) ? renewed.value.expiresAt : null,
       templates,
+      sites: Arr.map(sites, (site) => ({ site: site.site, world: site.world, state: site.state, ms: site.ms })),
       shown: Exit.isSuccess(shown) ? (shown.value.facts["shown"] ?? null) : null,
       calls: checked,
       timings: yield* timings.all,
