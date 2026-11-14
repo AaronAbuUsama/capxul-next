@@ -17,17 +17,20 @@ never changes this package.
 | `src/journey.ts` | The format: `outline` (a journey's steps) and `journey`. |
 | `src/tries.ts` | How a step calls its operation: `succeeds`, `answers`, `refused`, `until`, `whileRefused`. Each try reads what the checks need, calls, holds the answer against what the step expects, then runs every check of the operation. |
 | `src/journal.ts` | `Steps`, the runner's ear (each step's beginning, each try with its checks' outcomes, each end), and `Journal`, what a journey keeps while it runs. |
-| `src/checks/` | One file per operation: its checks, on its successes and on each of its refusals. `format.ts` is the format, `all.ts` the set of all twelve, which the compiler holds complete. |
-| `src/journeys/` | The three journeys, and what they share (`signatures.ts`, `books.ts`). |
-| `src/registry.ts` | `journeys`, every journey the runner runs, in order. |
-| `src/coverage.ts` | Where each claim of claims.md is checked: by which operations' checks and which journeys' steps. |
+| `src/checks/` | One file per operation: its checks, on its successes and on each of its refusals. `format.ts` is the format and `OperationChecks`, the service a step's tries read them from; `all.ts` gathers every domain's, which the compiler holds complete. |
+| `src/journeys/` | One file per journey, and what journeys share (`signatures.ts`, `books.ts`). |
+| `src/domain.ts` | The format of one domain's scenarios: its operations' checks, the journeys it leads and its claims' places (`at`). |
+| `src/domains/` | One file per domain of the blueprint (`world.ts`, `organizations.ts`, `documents.ts`, `approvals.ts`, `reports.ts`, `record.ts`), in that format. |
+| `src/domains.ts` | Every domain's file, once, by the blueprint's name for it. The compiler asks for an entry for each domain of the blueprint. |
+| `src/registry.ts` | `journeys`, every journey the runner runs, in order: each domain's, domain by domain, each given every operation's checks. |
+| `src/coverage.ts` | Where each claim of claims.md is checked, by which operations' checks and which journeys' steps: each domain's places, gathered. |
 | `src/client.ts` | `Capxul`, the one client a journey and a check call through, and `Given`, its starting world's facts. |
 | `src/expectation.ts` | `ExpectationFailed`, `expect` and `given`. |
 | `src/support/` | Reads of a world shared by checks and journeys: its view and record (`world.ts`), its chain (`chain.ts`, `hats.ts`), its books (`site.ts`), signing with the cast's keys (`signing.ts`), waits (`wait.ts`). |
-| `test/registry.test.ts` | Unique names; two or three journeys of 5 to 10 steps each, from declared starting worlds; between them every operation. |
+| `test/registry.test.ts` | Unique names; at least two journeys, each of 5 to 10 steps, from declared starting worlds; between them every operation. |
 | `test/coverage.test.ts` | Every claim of every operation has its place, and every step it names exists. |
-| `test/empty-handlers.test.ts` | Every journey fails at its first step against a Capxul whose every operation answers `NotImplemented`, on the `NotImplemented` its own operation answered, and none passes or dies. It checks `records/empty-handlers.json` against the run. |
-| `records/empty-handlers.json` | The record of that run in memory. Written by `pnpm record`, never by hand. The deployed run is the runner's (`packages/runner/records/`). |
+| `test/empty-handlers.test.ts` | Every journey fails at its first step against a Capxul whose every operation answers `NotImplemented`, on the `NotImplemented` its own operation answered, and none passes or dies. It checks `records/empty-handlers/` against the run: one file per registered journey, no other. |
+| `records/empty-handlers/` | The record of that run in memory, one file per journey (`<journey name>.json`), so slices adding journeys write different files. Written by `pnpm record`, never by hand. The deployed run is the runner's (`packages/runner/records/`). |
 
 ## The journeys
 
@@ -54,7 +57,8 @@ export const founding = journey(
 );
 ```
 
-Register it in `src/registry.ts`, and place the claims it checks in `src/coverage.ts`.
+List it in its domain's `journeys` (`src/domains/<domain>.ts`), and place the claims it checks in that domain's
+`coverage`: see "Adding a journey".
 
 - A step calls one operation, once or a few times; each call says what it expects: `op.succeeds`, `op.answers(kind)`,
   `op.refused(tag)`, or a wait (`op.until`, `op.whileRefused`). Anything else fails the step: a `NotImplemented` as
@@ -71,7 +75,42 @@ Register it in `src/registry.ts`, and place the claims it checks in `src/coverag
 the checks of a success and of each refusal, each a sentence and the Effect that fails when it does not hold. A
 claim about a refusal is a step of a journey that is refused, and the check of that refusal lives here.
 
+## Adding a journey
+
+Every list of this package is kept per domain of the blueprint, so several slices can add journeys and operations at
+once without editing the same file. Each domain of the blueprint has one file, `src/domains/<domain>.ts`, holding
+`checks` (each of its operations' checks), `journeys` (the journeys it leads, in the order they run) and `coverage`
+(the place of each claim of each of its operations, in claims.md's order). `checks/all.ts`, `registry.ts` and
+`coverage.ts` gather them; none of them names a journey or an operation.
+
+**A new journey** of a domain touches:
+
+1. `src/journeys/<journey>.ts`, a new file declaring it (above). What several journeys share goes in a file of its own
+   beside them, or in `src/support/`.
+2. `src/domains/<domain>.ts`: the journey in `journeys`, and in `coverage` the steps that check the claims of the
+   domain's operations.
+3. `records/empty-handlers/<journey name>.json`, a new file written by `pnpm record` (below).
+
+**A new operation's checks**, in an existing domain, touch:
+
+1. `src/checks/<operation>.ts`, a new file (above, "Writing an operation's checks").
+2. `src/domains/<domain>.ts`: the checks in `checks`, and one place per claim in `coverage`. The compiler fails until
+   both have the operation, once the blueprint declares it.
+
+**A new domain** is a new file `src/domains/<domain>.ts` with the three exports, `Domain<typeof Blueprint.<Domain>>`,
+and one import and one entry in `src/domains.ts`. The compiler asks for that entry as soon as the blueprint declares the
+domain. The journeys run domain by domain, in the order of `src/domains.ts`.
+
+Nothing is found by walking the disk. A typed list per domain keeps what the registry always held: a journey or a
+check that is not listed does not run, the compiler sees every one, and it holds that every operation has its checks
+and its claims' places. Discovery would need the disk at run time and a dynamic import, and would find only files,
+not whether each operation has its checks.
+
+A journey's file never imports an operation's checks: a step's tries read them from `OperationChecks`, which the
+registry provides to each journey it registers. So a domain's file can list both its checks and its journeys without
+the two importing each other.
+
 ## Checks
 
-`pnpm types` and `pnpm test`. `pnpm record` rewrites `records/empty-handlers.json` from a run; `pnpm test` fails
-when the committed record and a run differ.
+`pnpm types` and `pnpm test`. `pnpm record` rewrites `records/empty-handlers/` from a run, one file per journey, and
+removes the files of journeys no longer registered; `pnpm test` fails when the committed files and a run differ.
