@@ -9,8 +9,9 @@
 //            again makes its own (a site left there would be refused as `site-exists`)
 //   in place the point's sites are put back by the door, and a site made after the save is removed
 //   claimed  the point holds none of its sites any more (a site removed by an earlier reset is dropped from every
-//            point by the door): the world's sites are removed and claimed, ready, from the bench's template named
-//            after the snapshot (`keepTemplate`), then saved again as the point, so the next reset is in place
+//            point by the door): the world's sites are removed and claimed, ready, from the bench template the world
+//            kept of the snapshot (`keepTemplate`, named by src/site/Templates.ts), which the caller names, then saved
+//            again as the point, so the next reset is in place
 //
 // The door's reset puts the world's clock entry back as it was saved (a running clock at its saved offset), while a
 // reset world's clock reads the snapshot's time at the reset (src/lifecycle/reset.ts), so the entry is set to the
@@ -41,7 +42,13 @@ const Reset = Schema.Struct({
 const LOST = ["point-site-missing", "point-site-changed", "point-not-found"];
 const Templates = Schema.Struct({ templates: Schema.Array(Schema.Struct({ template: Schema.String })) });
 const Claimed = Schema.Struct({ sites: Schema.Array(Schema.Struct({ site: Schema.String })), ms: Schema.Finite });
-const Made = Schema.Struct({ template: Schema.String, ms: Schema.Finite });
+const Made = Schema.Struct({
+  template: Schema.String,
+  ms: Schema.Finite,
+  /** False when the template already existed: the door never changes one (door/templates.py). */
+  made: Schema.optional(Schema.Boolean),
+  sites: Schema.Array(Schema.Struct({ made_by: Schema.optional(Schema.String) })),
+});
 
 /** How a reset put the world's sites back, and which it removed or claimed. */
 export interface SitesReset {
@@ -80,7 +87,7 @@ const claimFrom = (stage: string, bench: string, template: string, clock: BenchC
     if (!Arr.some(listed.templates, (each) => each.template === template))
       return yield* SiteFailed.make({
         step: "claim",
-        message: `the point ${template} holds none of the world's sites, and the bench keeps no template ${template} to claim them from`,
+        message: `the point holds none of the world's sites, and the bench keeps no template ${template} to claim them from`,
       });
     const key = yield* secretOf(stage, SITE_KEY_ID, "text");
     const secret = yield* secretOf(stage, SITE_SECRET_ID, "text");
@@ -114,8 +121,8 @@ const setClock = (stage: string, bench: string, clock: BenchClock) =>
 
 /**
  * Puts world `stage`'s sites on `bench` where its snapshot `snapshot` had them (`companies` of them), in place where
- * the point still holds them and by claim from the bench's template of that name where it does not; then its clock
- * entry to `clock`.
+ * the point still holds them and by claim from the bench template `template` (the one the world kept of the
+ * snapshot) where it does not; then its clock entry to `clock`.
  */
 export const resetSites = Effect.fn("world.site.reset")(function* (
   stage: string,
@@ -123,6 +130,7 @@ export const resetSites = Effect.fn("world.site.reset")(function* (
   snapshot: string,
   companies: number,
   clock: BenchClock,
+  template: Option.Option<string>,
 ) {
   const now = Arr.map(yield* sitesOn(stage, bench), (each) => each.site);
   if (companies === 0)
@@ -146,41 +154,46 @@ export const resetSites = Effect.fn("world.site.reset")(function* (
     yield* setClock(stage, bench, clock);
     return { how: "in place", removed, claimed: [] } satisfies SitesReset;
   }
+  if (Option.isNone(template))
+    return yield* SiteFailed.make({
+      step: "claim",
+      message: `the point ${snapshot} holds none of the world's sites, and no bench template was named to claim them from`,
+    });
   const removed = yield* removeEach(stage, bench, now);
-  const claimed = yield* claimFrom(stage, bench, snapshot, clock);
+  const claimed = yield* claimFrom(stage, bench, template.value, clock);
   yield* savePoint(stage, bench, snapshot);
   yield* setClock(stage, bench, clock);
   return { how: "claimed", removed, claimed } satisfies SitesReset;
 });
 
 /**
- * Keeps world `stage`'s sites on `bench` as the bench's template `template` (a starting world's name), with a pool of
- * ready copies the bench refills: what a reset claims from when its point lost its sites, and what a world that holds
- * the same chain state could claim. A world with one site hands it over as it is; one with more, from the backup
- * `world.snapshot.save` made under `template`.
+ * Keeps world `stage`'s sites on `bench` as the bench template `template` (src/site/Templates.ts names it), with a
+ * pool of ready copies the bench refills: what a reset claims from when its point lost its sites. A world with one site
+ * hands it over as it is; one with more, from the backup `world.snapshot.save` made under `snapshot`. The door never
+ * changes a template that exists; one that exists already must be this world's, since its sites hold this world's
+ * company facts and no other's.
  */
 export const keepTemplate = Effect.fn("world.site.keepTemplate")(function* (
   stage: string,
   bench: string,
   template: string,
+  snapshot: string,
 ) {
   const sites = Arr.map(yield* sitesOn(stage, bench), (each) => each.site);
-  const { door, token } = yield* tokenFor(bench, nameOf(stage), 0, yield* soon);
-  const source = sites.length === 1 ? { site: sites[0] } : { snapshot: template };
-  return yield* doorCall(
+  const world = nameOf(stage);
+  const { door, token } = yield* tokenFor(bench, world, 0, yield* soon);
+  const source = sites.length === 1 ? { site: sites[0] } : { snapshot };
+  const kept = yield* doorCall(
     door,
     token,
     HttpClientRequest.post("/templates").pipe(HttpClientRequest.bodyJsonUnsafe({ template, ...source })),
     Made,
   );
-});
-
-/** Removes the bench's template `template` and its pool, as world `stage` (any valid token may). */
-export const dropTemplate = Effect.fn("world.site.dropTemplate")(function* (
-  stage: string,
-  bench: string,
-  template: string,
-) {
-  const { door, token } = yield* tokenFor(bench, nameOf(stage), 0, yield* soon);
-  return yield* doorCall(door, token, HttpClientRequest.delete(`/templates/${template}`), Schema.Unknown);
+  const others = Arr.filter(kept.sites, (site) => site.made_by !== undefined && site.made_by !== world);
+  if (Arr.isReadonlyArrayNonEmpty(others))
+    return yield* SiteFailed.make({
+      step: "template",
+      message: `the bench template ${template} was made by world ${others[0].made_by ?? "?"}, not ${world}`,
+    });
+  return { template: kept.template, ms: kept.ms, made: kept.made ?? true };
 });

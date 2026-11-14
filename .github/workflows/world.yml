@@ -1,11 +1,13 @@
 # Roadmap step 1.8: CI on master runs the thin line's journeys in one private world, with Core on Cloudflare and the
 # company sites on the shared platform's bench (stage `staging`), keeps the run's records and destroys every world it
-# made, every time, even when a journey fails or the job is cancelled (world lifecycle rule 1).
+# made, every time, even when a journey fails or the job is cancelled (world lifecycle rule 1). Runs of different
+# branches run at once.
 #
 # The run is the runner's own (packages/runner/README.md, "A run in one world"; step 1.18): `run.sh scenarios` makes
 # one world on the fleet hub, makes and saves the starting worlds, resets the world in place before each journey,
 # records everything, and takes down at its end what it made. The steps after it are the guarantee for when it could
-# not: they destroy every world this run's operators own, take down a hub of the run's own, and sweep the expired.
+# not: they destroy every world this run's operators own, take down a hub of the run's own, and sweep the expired
+# (worlds, hubs and the bench's long-unused templates).
 #
 # The bench is reached through its Cloudflare Tunnel: Core on Cloudflare calls the sites and this job calls the site
 # door at their public names under PLATFORM_DOMAIN, and the door's address and key are read from the shared state with
@@ -24,11 +26,12 @@ on:
     branches: [master]
 permissions:
   contents: read
-# One run at a time across every branch: every run uses the one staging bench, whose site templates are named after
-# the starting worlds and are any world's to replace or drop (packages/platform/README.md, "Sites from a pool"), so
-# two runs at once would take each other's. GitHub keeps one run waiting; a newer one replaces it.
+# Runs of different branches share the staging bench at once (docs/roadmap.md, "Bench templates never change"): a
+# run's bench templates are named by its starting world, its code and its own world (packages/world,
+# src/site/Templates.ts), never changed and never dropped by a run, and the sweep below removes them by age. So no run
+# takes another's. Runs of one branch still go one at a time, a newer one waiting and replacing an older waiting one.
 concurrency:
-  group: world-staging
+  group: world-${{ github.ref }}
   cancel-in-progress: false
 env:
   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -99,6 +102,6 @@ jobs:
           if packages/world/run.sh hub show --hub "${{ steps.hub.outputs.stage }}" >/dev/null 2>&1; then
             packages/world/run.sh hub down --hub "${{ steps.hub.outputs.stage }}"
           fi
-      - name: Sweep worlds that outlived their expiry
+      - name: Sweep worlds that outlived their expiry, and bench templates unused for 6 hours
         if: always()
         run: packages/world/run.sh sweep

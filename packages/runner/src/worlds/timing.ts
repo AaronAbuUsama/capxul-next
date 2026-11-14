@@ -5,7 +5,6 @@
 // the end, and the accounts are read for anything of them afterwards. A starting world the runner cannot make yet
 // says which operations its steps wait on. Every part's time is in `timings`.
 import { startingWorlds } from "@capxul/blueprint";
-import * as World from "@capxul/world";
 import * as Arr from "effect/Array";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
@@ -110,10 +109,8 @@ export const timeStartingWorlds = (settings: Settings) =>
             Exit.isSuccess(ended) ? Effect.void : Effect.flatMap(starting.templateWorlds, destroyAll),
           ),
         );
+        // The bench templates kept stay for the sweep (docs/roadmap.md, "Bench templates never change").
         const ones = yield* starting.templateWorlds;
-        yield* Effect.forEach(yield* starting.kept, (template) =>
-          Effect.ignore(Effect.flatMap(starting.oneWorld, (one) => World.dropSitesTemplate(one, template))),
-        );
         const [took, gone] = yield* Effect.timed(destroyAll(ones));
         return [made, ones, took, gone] as const;
       }),
