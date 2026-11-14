@@ -11,7 +11,8 @@ import { isWorldStage } from "../stack/names.ts";
 import { classify, type Finding } from "./expiry.ts";
 import { Timeouts, type WorldSpec } from "./spec.ts";
 import { makeStopwatch } from "./steps.ts";
-import { bringUp, mustExist, planOf, takeDown } from "./world.ts";
+import { bringUp } from "./up.ts";
+import { mustExist, planOf, takeDown } from "./world.ts";
 
 /**
  * Creates a world and leaves it up, for its owner to use until it expires or is destroyed. A create that fails

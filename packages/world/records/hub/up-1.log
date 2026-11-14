@@ -1,0 +1,46 @@
+[04:53:32.614] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[04:53:36.436] INFO: image capxulworld-anvil: inputs as pinned, deploying sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474
+[04:53:36.446] INFO: image capxulworld-ponder: inputs as pinned, deploying sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9
+[04:53:36.451] INFO: image capxulworld-alto: inputs as pinned, deploying sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916
+[04:53:36.462] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[04:53:39.995] INFO: Cloudflare Container read: looking up capxulworldhub-ponder-fleet-6jsdlwgmryl62clf
+[04:53:40.002] INFO: Cloudflare Container read: looking up capxulworldhub-anvil-fleet-7u7t3mhnd2yt2aes
+[04:53:40.007] INFO: Cloudflare Container read: looking up capxulworldhub-alto-fleet-zsvgw2bb7wrzjygn
+[04:53:41.142] INFO: Cloudflare Container read: capxulworldhub-ponder-fleet-6jsdlwgmryl62clf not found
+[04:53:41.144] INFO: Cloudflare Container read: capxulworldhub-anvil-fleet-7u7t3mhnd2yt2aes not found
+[04:53:41.263] INFO: Cloudflare Container read: capxulworldhub-alto-fleet-zsvgw2bb7wrzjygn not found
+[04:53:41.564] INFO: [Ponder] Cloudflare Container precreate: starting capxulworldhub-ponder-fleet-idz5swsjqhioqybc
+[04:53:41.573] INFO: [Ponder] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9
+[04:53:41.690] INFO: [Anvil] Cloudflare Container precreate: starting capxulworldhub-anvil-fleet-kznndnhw2qxvuw62
+[04:53:41.691] INFO: [Anvil] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-anvil@sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474
+[04:53:41.924] INFO: [Alto] Cloudflare Container precreate: starting capxulworldhub-alto-fleet-3i3bpj2sn5h6amaq
+[04:53:41.925] INFO: [Alto] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-alto@sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916
+[04:53:42.365] INFO: [Ponder] Cloudflare Container create: creating application capxulworldhub-ponder-fleet-idz5swsjqhioqybc
+[04:53:42.479] INFO: [Anvil] Cloudflare Container create: creating application capxulworldhub-anvil-fleet-kznndnhw2qxvuw62
+[04:53:42.908] INFO: [Alto] Cloudflare Container create: creating application capxulworldhub-alto-fleet-3i3bpj2sn5h6amaq
+[04:53:45.527] INFO: [Door] Cloudflare Worker precreate: starting capxulworldhub-door-fleet-jr5dpupgqdw5hvle
+[04:53:45.528] INFO: [Door] Cloudflare Worker precreate: durable objects [{"logicalId":"Indexer","bindingName":"Indexer","className":"Indexer"},{"logicalId":"Bundler","bindingName":"Bundler","className":"Bundler"},{"logicalId":"Chain","bindingName":"Chain","className":"Chain"}]
+[04:53:47.357] INFO: [Anvil] Cloudflare Container reconcile: starting capxulworldhub-anvil-fleet-kznndnhw2qxvuw62
+[04:53:47.359] INFO: [Ponder] Cloudflare Container reconcile: starting capxulworldhub-ponder-fleet-idz5swsjqhioqybc
+[04:53:47.361] INFO: [Alto] Cloudflare Container reconcile: starting capxulworldhub-alto-fleet-3i3bpj2sn5h6amaq
+[04:53:47.364] INFO: [Door] Cloudflare Worker reconcile: starting capxulworldhub-door-fleet-jr5dpupgqdw5hvle
+[04:53:47.364] INFO: [Door] Cloudflare Worker reconcile: durable objects [{"logicalId":"Bundler","className":"Bundler"},{"logicalId":"Chain","className":"Chain"},{"logicalId":"Indexer","className":"Indexer"}]
+[04:53:47.600] INFO: [Door] Cloudflare Worker reconcile: existing durable object tags ["alchemy:dos:Bundler;Chain;Indexer"]
+[04:53:47.601] INFO: [Door] Cloudflare Worker reconcile: previous durable object tags ["alchemy:dos:Bundler;Chain;Indexer"]
+[04:53:47.607] INFO: [Door] Cloudflare Worker create: preparing bundle for capxulworldhub-door-fleet-jr5dpupgqdw5hvle
+[04:53:49.772] INFO: [Anvil] Cloudflare Container reconcile: recreating capxulworldhub-anvil-fleet-kznndnhw2qxvuw62 to attach durable object binding
+[04:53:49.832] INFO: [Alto] Cloudflare Container reconcile: recreating capxulworldhub-alto-fleet-3i3bpj2sn5h6amaq to attach durable object binding
+[04:53:49.833] INFO: [Ponder] Cloudflare Container reconcile: recreating capxulworldhub-ponder-fleet-idz5swsjqhioqybc to attach durable object binding
+[04:53:50.428] INFO: [Door] Cloudflare Worker create: uploading script for capxulworldhub-door-fleet-jr5dpupgqdw5hvle
+[04:53:50.800] INFO: [Door] Cloudflare Worker put: durable object reconciliation {"oldDoClassNameByLogicalId":{"Bundler":"Bundler","Chain":"Chain","Indexer":"Indexer"},"currentDoClassNameByLogicalId":{"Bundler":"Bundler","Chain":"Chain","Indexer":"Indexer"},"deletedClasses":[],"renamedClasses":[],"transferredClasses":[],"newSqliteClasses":[]}
+[04:53:52.600] INFO: [Ponder] Cloudflare Container create: creating application capxulworldhub-ponder-fleet-idz5swsjqhioqybc
+[04:53:52.615] INFO: [Alto] Cloudflare Container create: creating application capxulworldhub-alto-fleet-3i3bpj2sn5h6amaq
+[04:53:53.117] INFO: [Anvil] Cloudflare Container create: creating application capxulworldhub-anvil-fleet-kznndnhw2qxvuw62
+
+real	0m24.936s
+user	0m6.159s
+sys	0m1.264s

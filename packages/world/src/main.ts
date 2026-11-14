@@ -10,6 +10,8 @@ import * as Console from "effect/Console";
 import * as Digest from "effect/crypto/Digest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Tracer from "effect/Tracer";
+import { appendFileSync } from "node:fs";
 import * as Command from "effect/cli/Command";
 import { Report, world } from "./cli/commands.ts";
 import { asJsonText } from "./lifecycle/record.ts";
@@ -36,11 +38,41 @@ const Services = SharedState.layer.pipe(
   Layer.provideMerge(ToStandardError),
 );
 
+// With WORLD_SPANS=<file>, every span that ends is appended to that file as one line of JSON: its name, its parent's,
+// when it began and how long it took, in milliseconds. How a command's time is split, Alchemy's own steps included.
+const spansFile = process.env["WORLD_SPANS"];
+const nowMs = (nanos: bigint) => Number(nanos / 1_000_000n);
+const SpansToFile = Layer.succeed(
+  Tracer.Tracer,
+  Tracer.make({
+    span(options) {
+      const span = new Tracer.NativeSpan({ ...options });
+      const end = span.end.bind(span);
+      span.end = (endTime, exit) => {
+        end(endTime, exit);
+        const parent = options.parent._tag === "Some" ? options.parent.value : undefined;
+        const line = {
+          name: options.name,
+          id: span.spanId,
+          parent: parent?.spanId ?? null,
+          parentName: parent !== undefined && "name" in parent ? parent.name : null,
+          startMs: nowMs(options.startTime),
+          ms: nowMs(endTime - options.startTime),
+          ok: exit._tag === "Success",
+        };
+        if (spansFile !== undefined) appendFileSync(spansFile, `${JSON.stringify(line)}\n`);
+      };
+      return span;
+    },
+  }),
+);
+
 Command.run(world, { version: "0.0.0" }).pipe(
   // This is the entry point: the one place every layer is provided.
   Effect.provide(Services),
   // A failure, also one from opening the shared state, is reported on standard error and the process exits non-zero.
   Effect.tapCause((cause) => Effect.logError(cause)),
   Effect.provide(ToStandardError),
+  spansFile === undefined ? (effect) => effect : Effect.provide(SpansToFile),
   BunRuntime.runMain({ disableErrorReporting: true }),
 );

@@ -18,6 +18,7 @@ import * as Struct from "effect/Struct";
 import { PlatformFailed } from "../failures.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
 import { handle, WorldOutput } from "../lifecycle/parts.ts";
+import type { World } from "../lifecycle/spec.ts";
 import { recordedOutput } from "../stack/engine.ts";
 import { nameOf } from "../stack/names.ts";
 import { emit, readFacts, type JsonValue } from "./facts.ts";
@@ -30,10 +31,10 @@ const failed = (step: PlatformFailed["step"]) => (cause: unknown) =>
 const Recorded = Schema.Struct({ ...WorldOutput.fields, status: Schema.optional(Schema.String) });
 
 /** A world's handle and what its stage recorded, from the shared state. */
-export const opened = (stage: string) =>
+export const opened = (stage: string, known?: World) =>
   Effect.gen(function* () {
     const output = yield* Schema.decodeUnknownEffect(Recorded)(yield* recordedOutput(stage));
-    return { output, world: yield* handle(output) };
+    return { output, world: known ?? (yield* handle(output)) };
   }).pipe(Effect.mapError(failed("facts")));
 
 /** How a world was made, as its record's latest `world_created` says, or as the call making it now will say. */
@@ -70,8 +71,8 @@ const companiesThroughCore = (door: string, owner: string, held: ReadonlyArray<t
  * A world as world.show answers it, its clock read now. Its grade and parent are what its record's latest
  * `world_created` carried; `making` gives them for a world whose `world_created` is still to be written.
  */
-export const viewOf = Effect.fn("platform.view")(function* (stage: string, making: Partial<Born> = {}) {
-  const { output, world } = yield* opened(stage);
+export const viewOf = Effect.fn("platform.view")(function* (stage: string, making: Partial<Born> = {}, known?: World) {
+  const { output, world } = yield* opened(stage, known);
   const facts = yield* readFacts(world.database, yield* Clock.currentTimeMillis);
   const grade = making.grade ?? facts.born?.grade;
   const parent = making.parent === undefined ? (facts.born?.parent ?? null) : making.parent;

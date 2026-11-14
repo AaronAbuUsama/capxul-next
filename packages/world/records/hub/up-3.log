@@ -1,0 +1,21 @@
+[05:15:15.007] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[05:15:18.695] INFO: image capxulworld-anvil: inputs as pinned, deploying sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474
+[05:15:18.711] INFO: image capxulworld-ponder: inputs as pinned, deploying sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9
+[05:15:18.726] INFO: image capxulworld-alto: inputs as pinned, deploying sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916
+[05:15:19.322] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+[05:15:20.938] INFO: [Door] Cloudflare Worker reconcile: starting capxulworldhub-door-fleet-jr5dpupgqdw5hvle
+[05:15:20.938] INFO: [Door] Cloudflare Worker reconcile: durable objects [{"logicalId":"Bundler","className":"Bundler"},{"logicalId":"Chain","className":"Chain"},{"logicalId":"Indexer","className":"Indexer"}]
+[05:15:20.951] INFO: [Ponder] Cloudflare Container reconcile: starting capxulworldhub-ponder-fleet-idz5swsjqhioqybc
+[05:15:21.255] INFO: [Door] Cloudflare Worker reconcile: existing durable object tags ["alchemy:dos:Bundler;Chain;Indexer"]
+[05:15:21.255] INFO: [Door] Cloudflare Worker reconcile: previous durable object tags ["alchemy:dos:Bundler;Chain;Indexer"]
+[05:15:21.261] INFO: [Door] Cloudflare Worker update: preparing bundle for capxulworldhub-door-fleet-jr5dpupgqdw5hvle
+[05:15:21.942] INFO: [Ponder] Cloudflare Container update: preparing capxulworldhub-ponder-fleet-idz5swsjqhioqybc
+[05:15:23.405] INFO: [Ponder] Cloudflare Container update: creating rollout for capxulworldhub-ponder-fleet-idz5swsjqhioqybc
+[05:15:24.082] INFO: [Door] Cloudflare Worker update: uploading script for capxulworldhub-door-fleet-jr5dpupgqdw5hvle
+[05:15:24.412] INFO: [Door] Cloudflare Worker put: durable object reconciliation {"oldDoClassNameByLogicalId":{"Bundler":"Bundler","Chain":"Chain","Indexer":"Indexer"},"currentDoClassNameByLogicalId":{"Bundler":"Bundler","Chain":"Chain","Indexer":"Indexer"},"deletedClasses":[],"renamedClasses":[],"transferredClasses":[],"newSqliteClasses":[]}
+
+real	1m4.545s
+user	0m5.943s
+sys	0m1.290s

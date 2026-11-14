@@ -8,6 +8,8 @@ import { STEPS } from "../src/stack/names.ts";
 
 const timeouts = {
   claim: 1,
+  register: 14,
+  branch: 15,
   deploy: 2,
   migrate: 3,
   chain: 4,

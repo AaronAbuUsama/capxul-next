@@ -137,6 +137,13 @@ export default class Bundler extends Cloudflare.DurableObject<Bundler>()(
             yield* remember((old) => ({ ...old, stops: remembered(old.stops, stop) }));
             return { stopped: true as const, ...stop };
           }).pipe(lock.withPermits(1)),
+        /** Removes the container and everything this object keeps: the world is being forgotten (src/hub). */
+        forget: () =>
+          Effect.gen(function* () {
+            if (yield* running) yield* alto.destroy().pipe(Effect.mapError(failed("forget")));
+            yield* state.storage.deleteAll();
+            return { forgot: true as const };
+          }).pipe(lock.withPermits(1)),
         /** Whether the container is up, and every start and stop so far. Never starts alto. */
         status: () => Effect.all({ running, record }),
       };

@@ -16,7 +16,7 @@ import { Core, defaultCore } from "../core/Core.ts";
 import { StateUnreadable } from "../failures.ts";
 import { STACK } from "./names.ts";
 import { WorldSettings } from "./settings.ts";
-import { worldStack } from "./stack.ts";
+import { openedState, worldStack } from "./stack.ts";
 
 /** The stack file, for opening the state store without running the stack's program. */
 const ENTRYPOINT = `${import.meta.dirname}/../../alchemy.run.ts`;
@@ -26,7 +26,8 @@ export const deployStage = Effect.fn("world.engine.deploy")(function* (
   stage: string,
   settings: Option.Option<WorldSettings>,
 ) {
-  const stack = worldStack(yield* Core);
+  const { store } = yield* SharedState;
+  const stack = worldStack(yield* Core, openedState(store));
   return yield* Alchemist.plan({ stack, operation: "deploy", stage }).pipe(
     Effect.flatMap(Alchemist.apply),
     Effect.provideService(WorldSettings, settings),
@@ -36,7 +37,8 @@ export const deployStage = Effect.fn("world.engine.deploy")(function* (
 
 /** Destroys one stage from its state alone: the stack's program is not run, so it needs none of the stage's settings. */
 export const destroyStage = Effect.fn("world.engine.destroy")(function* (stage: string) {
-  const stack = worldStack(defaultCore);
+  const { store } = yield* SharedState;
+  const stack = worldStack(defaultCore, openedState(store));
   const plan = yield* Alchemist.plan({ stack, operation: "destroy", stage });
   yield* Alchemist.apply(plan);
   return plan.summary.delete;
@@ -68,27 +70,33 @@ export const withState = <A, E, R>(use: (state: StateStore) => Effect.Effect<A, 
     return yield* use(store);
   });
 
-/** Every stage the shared store holds for the stack, with the outputs each one recorded. */
-export const recordedStages = withState((state) =>
-  Effect.gen(function* () {
-    const stages = yield* state.listStages(STACK);
-    return yield* Effect.forEach(
-      stages,
-      (stage) => Effect.map(state.getOutput({ stack: STACK, stage }), (output) => ({ stage, output })),
-      { concurrency: 4 },
-    );
-  }),
-).pipe(Effect.withSpan("world.engine.stages"));
+/** Every stage the shared store holds for one stack of this package, with the outputs each one recorded. */
+export const recordedStagesOf = (stack: string) =>
+  withState((state) =>
+    Effect.gen(function* () {
+      const stages = yield* state.listStages(stack);
+      return yield* Effect.forEach(
+        stages,
+        (stage) => Effect.map(state.getOutput({ stack, stage }), (output) => ({ stage, output })),
+        { concurrency: 4 },
+      );
+    }),
+  );
+
+/** Every world stage (and the platform's) the shared store holds, with its outputs. */
+export const recordedStages = recordedStagesOf(STACK).pipe(Effect.withSpan("world.engine.stages"));
 
 /** What one stage recorded as its outputs; undefined when the stage was never deployed. */
-export const recordedOutput = (stage: string) => withState((state) => state.getOutput({ stack: STACK, stage }));
+export const recordedOutput = (stage: string, stack: string = STACK) =>
+  withState((state) => state.getOutput({ stack, stage }));
 
 /** Records a stage's outputs before its deploy, so a world that dies half-way still says who owns it and when it expires. */
-export const recordOutput = (stage: string, value: unknown) =>
-  withState((state) => state.setOutput({ stack: STACK, stage, value })).pipe(Effect.asVoid);
+export const recordOutput = (stage: string, value: unknown, stack: string = STACK) =>
+  withState((state) => state.setOutput({ stack, stage, value })).pipe(Effect.asVoid);
 
 /** Removes whatever the store still holds for a stage once its resources are gone. */
-export const forgetStage = (stage: string) => withState((state) => state.deleteStack({ stack: STACK, stage }));
+export const forgetStage = (stage: string, stack: string = STACK) =>
+  withState((state) => state.deleteStack({ stack, stage }));
 
 const asSecret = (value: unknown): Option.Option<Redacted.Redacted> => {
   const inner = Redacted.isRedacted(value) ? Redacted.value(value) : value;
@@ -103,11 +111,12 @@ export const secretOf = Effect.fn("world.engine.secret")(function* (
   stage: string,
   logicalId: string,
   attribute: string,
+  stack: string = STACK,
 ) {
   const missing = (message: string) => StateUnreadable.make({ stage, what: `${logicalId}.${attribute}`, message });
   return yield* withState((state) =>
     Effect.gen(function* () {
-      const fqns = yield* state.list({ stack: STACK, stage });
+      const fqns = yield* state.list({ stack, stage });
       const fqn = yield* Arr.findFirst(
         fqns,
         (candidate) => candidate === logicalId || Str.endsWith(`/${logicalId}`)(candidate),
@@ -115,7 +124,7 @@ export const secretOf = Effect.fn("world.engine.secret")(function* (
         Effect.fromOption,
         Effect.mapError(() => missing(`the stage holds no resource called ${logicalId}`)),
       );
-      const found = yield* state.get({ stack: STACK, stage, fqn });
+      const found = yield* state.get({ stack, stage, fqn });
       const attributes: Record<string, unknown> =
         found !== undefined && "attr" in found && found.attr !== undefined ? found.attr : {};
       return yield* Effect.fromOption(asSecret(attributes[attribute])).pipe(

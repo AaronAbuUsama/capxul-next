@@ -27,6 +27,8 @@ import { type Timeline, timelineOf } from "./timeline.ts";
 const PONDER_INACTIVITY_MS = 3600 * 1000;
 /** The durable callback that starts the index again after the chain woke, and its one job. */
 const RESUME = "resume";
+/** Where the world's connection string is kept, apart from the record that `status` gives out. */
+const DATABASE = "database";
 
 interface Start extends StartReport {
   readonly at: string;
@@ -100,13 +102,16 @@ export default class Indexer extends Cloudflare.DurableObject<Indexer>()(
         Effect.gen(function* () {
           yield* remember((old) => ({ ...old, rpcUrl, wanted: true }));
           if (yield* running) return { started: false as const };
+          const database = yield* state.storage.get<string>(DATABASE);
+          if (database === undefined)
+            return yield* IndexerFailed.make({ step: "start", message: "the index was never told its database" });
           const began = yield* Clock.currentTimeMillis;
           // Cloudflare can accept a start and then fail the first call to the container ("no container instance")
           // or let it go within seconds, so a start holds only once Ponder's own server answers.
           const report = yield* startPatiently({
             running: ponder.running,
             start: ponder
-              .start({ enableInternet: true, env: { RPC_URL: rpcUrl } })
+              .start({ enableInternet: true, env: { RPC_URL: rpcUrl, DATABASE_URL: database } })
               .pipe(Effect.andThen(ponder.setInactivityTimeout(PONDER_INACTIVITY_MS))),
             ready: port.fetch(HttpClientRequest.get("http://container/health")).pipe(
               Effect.filterOrFail(
@@ -186,8 +191,14 @@ export default class Indexer extends Cloudflare.DurableObject<Indexer>()(
         });
 
       return {
-        /** Starts Ponder against a chain address, and remembers the address for the next resume. */
-        start: (rpcUrl: string) => begin(rpcUrl),
+        /**
+         * Starts Ponder against a chain address and the world's database (once told, kept for every later start), and
+         * remembers the address for the next resume.
+         */
+        start: (rpcUrl: string, database?: string) =>
+          (database === undefined ? Effect.void : state.storage.put(DATABASE, database)).pipe(
+            Effect.andThen(begin(rpcUrl)),
+          ),
         /** Asks for Ponder to be started again with what it was last started with; never waits for it. */
         resume: () =>
           Effect.gen(function* () {
@@ -216,6 +227,15 @@ export default class Indexer extends Cloudflare.DurableObject<Indexer>()(
               return { stopped: true as const, ...stop };
             }).pipe(lock.withPermits(1));
           }),
+        /** Removes the container and everything this object keeps: the world is being forgotten (src/hub). */
+        forget: () =>
+          Effect.gen(function* () {
+            yield* onResume.cancel(RESUME).pipe(Effect.ignore);
+            if (yield* running) yield* ponder.destroy().pipe(Effect.mapError(failed("forget")));
+            yield* state.storage.deleteAlarm();
+            yield* state.storage.deleteAll();
+            return { forgot: true as const };
+          }).pipe(lock.withPermits(1)),
         /** Whether the container is up, what Ponder says about itself, and its starts and stops. */
         status: () =>
           Effect.gen(function* () {

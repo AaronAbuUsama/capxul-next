@@ -1,0 +1,465 @@
+{
+  "proof": "a world is reset in place to its snapshot: world.show reads the snapshot, one clock, then it is destroyed cleanly",
+  "outcome": "passed",
+  "at": "2026-11-14T05:51:49.041Z",
+  "checks": [
+    {
+      "check": "after the reset world.show reads what it read at s0, its clock aside",
+      "held": true
+    },
+    {
+      "check": "and not what it read after the world moved on",
+      "held": true
+    },
+    {
+      "check": "its clock reads s0's time since the reset, within the reset's own span",
+      "held": true
+    },
+    {
+      "check": "the chain and the index read s0's balance and transfers",
+      "held": true
+    },
+    {
+      "check": "the chain's time reads Core's clock within a second",
+      "held": true
+    },
+    {
+      "check": "a second reset to s0 does the same",
+      "held": true
+    },
+    {
+      "check": "the world is destroyed with nothing of it left, its branches included",
+      "held": true
+    }
+  ],
+  "observations": {
+    "createMs": 20185,
+    "saveMs": 10414,
+    "resets": [
+      {
+        "world": "p-rst",
+        "snapshot": "s0",
+        "ms": {
+          "index stopped": 359,
+          "database restored": 1297,
+          "chain reset": 2165,
+          "index resumed": 239,
+          "clock": 1801,
+          "chain mined at the world's time": 278,
+          "core answers": 40,
+          "preserved branch dropped": 225,
+          "bundler answers": 4818,
+          "index caught up": 8694,
+          "reset": 14836
+        },
+        "chain": {
+          "snapshot": "s0",
+          "inPlace": true,
+          "bytes": 3440572,
+          "ms": 1903
+        },
+        "minedAt": 1794376200,
+        "indexedBlock": 47893276
+      },
+      {
+        "world": "p-rst",
+        "snapshot": "s0",
+        "ms": {
+          "index stopped": 432,
+          "database restored": 1356,
+          "chain reset": 1814,
+          "index resumed": 242,
+          "clock": 1436,
+          "chain mined at the world's time": 1738,
+          "core answers": 42,
+          "preserved branch dropped": 1230,
+          "bundler answers": 4134,
+          "index caught up": 6670,
+          "reset": 13690
+        },
+        "chain": {
+          "snapshot": "s0",
+          "inPlace": true,
+          "bytes": 3440572,
+          "ms": 1570
+        },
+        "minedAt": 1794376201,
+        "indexedBlock": 47893276
+      }
+    ],
+    "destroyMs": 4535,
+    "destroySteps": {
+      "unsite": 0,
+      "destroy": 4193,
+      "release": 224
+    },
+    "views": {
+      "atSave": {
+        "world": "p-rst",
+        "owner": "proof-reset",
+        "grade": "private",
+        "state": "running",
+        "expiresAt": "2026-11-14T06:29:52.009Z",
+        "door": "https://capxulworld-core-w-p-rst-c7whu6f2h2aksq3b.thedao.workers.dev",
+        "chainId": 84532,
+        "contracts": {
+          "usdc": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+          "hats": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+          "payments": "0x468241C0CFaB01eD410D8f9A281Ace9b8D4E30e3",
+          "entryPoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+          "companySafeMinter": "0x27e3faE904527BcA73C39683D2a1239020915c71",
+          "companiesHouse": "0x38d9772b87a52Ed4615E2c804414f0cDD4854F2F",
+          "companyNamespace": "capxul:devnet:company:v1"
+        },
+        "clock": {
+          "mode": "running",
+          "now": "2026-11-11T05:49:54.106Z"
+        },
+        "recordHead": 1,
+        "parent": null,
+        "cast": [
+          {
+            "person": "dana",
+            "email": "dana@cast.test",
+            "signer": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+            "safe": "0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c"
+          },
+          {
+            "person": "eli",
+            "email": "eli@cast.test",
+            "signer": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
+            "safe": "0x90c388a1d9bf2218204d6a5de9654b3260369be8"
+          },
+          {
+            "person": "sam",
+            "email": "sam@cast.test",
+            "signer": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
+            "safe": "0xf6aeafa0dab7b6d9fc54537ceb1550ce956a11cc"
+          },
+          {
+            "person": "pat",
+            "email": "pat@cast.test",
+            "signer": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+            "safe": null
+          },
+          {
+            "person": "olga",
+            "email": "olga@cast.test",
+            "signer": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+            "safe": "0x532a1193802e3bbab0597f713c61639f7285f2bb"
+          }
+        ],
+        "companies": []
+      },
+      "afterMove": {
+        "world": "p-rst",
+        "owner": "proof-reset",
+        "grade": "private",
+        "state": "running",
+        "expiresAt": "2026-11-14T06:29:52.009Z",
+        "door": "https://capxulworld-core-w-p-rst-c7whu6f2h2aksq3b.thedao.workers.dev",
+        "chainId": 84532,
+        "contracts": {
+          "usdc": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+          "hats": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+          "payments": "0x468241C0CFaB01eD410D8f9A281Ace9b8D4E30e3",
+          "entryPoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+          "companySafeMinter": "0x27e3faE904527BcA73C39683D2a1239020915c71",
+          "companiesHouse": "0x38d9772b87a52Ed4615E2c804414f0cDD4854F2F",
+          "companyNamespace": "capxul:devnet:company:v1"
+        },
+        "clock": {
+          "mode": "running",
+          "now": "2026-11-11T05:50:21.396Z"
+        },
+        "recordHead": 3,
+        "parent": null,
+        "cast": [
+          {
+            "person": "dana",
+            "email": "dana@cast.test",
+            "signer": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+            "safe": "0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c"
+          },
+          {
+            "person": "eli",
+            "email": "eli@cast.test",
+            "signer": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
+            "safe": "0x90c388a1d9bf2218204d6a5de9654b3260369be8"
+          },
+          {
+            "person": "sam",
+            "email": "sam@cast.test",
+            "signer": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
+            "safe": "0xf6aeafa0dab7b6d9fc54537ceb1550ce956a11cc"
+          },
+          {
+            "person": "pat",
+            "email": "pat@cast.test",
+            "signer": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+            "safe": null
+          },
+          {
+            "person": "olga",
+            "email": "olga@cast.test",
+            "signer": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+            "safe": "0x532a1193802e3bbab0597f713c61639f7285f2bb"
+          }
+        ],
+        "companies": []
+      },
+      "afterReset": {
+        "world": "p-rst",
+        "owner": "proof-reset",
+        "grade": "private",
+        "state": "running",
+        "expiresAt": "2026-11-14T06:29:52.009Z",
+        "door": "https://capxulworld-core-w-p-rst-c7whu6f2h2aksq3b.thedao.workers.dev",
+        "chainId": 84532,
+        "contracts": {
+          "usdc": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+          "hats": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+          "payments": "0x468241C0CFaB01eD410D8f9A281Ace9b8D4E30e3",
+          "entryPoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+          "companySafeMinter": "0x27e3faE904527BcA73C39683D2a1239020915c71",
+          "companiesHouse": "0x38d9772b87a52Ed4615E2c804414f0cDD4854F2F",
+          "companyNamespace": "capxul:devnet:company:v1"
+        },
+        "clock": {
+          "mode": "running",
+          "now": "2026-11-11T05:50:08.839Z"
+        },
+        "recordHead": 1,
+        "parent": null,
+        "cast": [
+          {
+            "person": "dana",
+            "email": "dana@cast.test",
+            "signer": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+            "safe": "0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c"
+          },
+          {
+            "person": "eli",
+            "email": "eli@cast.test",
+            "signer": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
+            "safe": "0x90c388a1d9bf2218204d6a5de9654b3260369be8"
+          },
+          {
+            "person": "sam",
+            "email": "sam@cast.test",
+            "signer": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
+            "safe": "0xf6aeafa0dab7b6d9fc54537ceb1550ce956a11cc"
+          },
+          {
+            "person": "pat",
+            "email": "pat@cast.test",
+            "signer": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+            "safe": null
+          },
+          {
+            "person": "olga",
+            "email": "olga@cast.test",
+            "signer": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+            "safe": "0x532a1193802e3bbab0597f713c61639f7285f2bb"
+          }
+        ],
+        "companies": []
+      },
+      "afterSecond": {
+        "world": "p-rst",
+        "owner": "proof-reset",
+        "grade": "private",
+        "state": "running",
+        "expiresAt": "2026-11-14T06:29:52.009Z",
+        "door": "https://capxulworld-core-w-p-rst-c7whu6f2h2aksq3b.thedao.workers.dev",
+        "chainId": 84532,
+        "contracts": {
+          "usdc": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+          "hats": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+          "payments": "0x468241C0CFaB01eD410D8f9A281Ace9b8D4E30e3",
+          "entryPoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+          "companySafeMinter": "0x27e3faE904527BcA73C39683D2a1239020915c71",
+          "companiesHouse": "0x38d9772b87a52Ed4615E2c804414f0cDD4854F2F",
+          "companyNamespace": "capxul:devnet:company:v1"
+        },
+        "clock": {
+          "mode": "running",
+          "now": "2026-11-11T05:50:07.923Z"
+        },
+        "recordHead": 1,
+        "parent": null,
+        "cast": [
+          {
+            "person": "dana",
+            "email": "dana@cast.test",
+            "signer": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+            "safe": "0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c"
+          },
+          {
+            "person": "eli",
+            "email": "eli@cast.test",
+            "signer": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
+            "safe": "0x90c388a1d9bf2218204d6a5de9654b3260369be8"
+          },
+          {
+            "person": "sam",
+            "email": "sam@cast.test",
+            "signer": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
+            "safe": "0xf6aeafa0dab7b6d9fc54537ceb1550ce956a11cc"
+          },
+          {
+            "person": "pat",
+            "email": "pat@cast.test",
+            "signer": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+            "safe": null
+          },
+          {
+            "person": "olga",
+            "email": "olga@cast.test",
+            "signer": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+            "safe": "0x532a1193802e3bbab0597f713c61639f7285f2bb"
+          }
+        ],
+        "companies": []
+      }
+    },
+    "fingerprints": {
+      "atSave": {
+        "head": 47893275,
+        "danaUsdc": "10000000000",
+        "transfersIndexed": 4
+      },
+      "moved": {
+        "head": 47893276,
+        "danaUsdc": "10005000000",
+        "transfersIndexed": 5
+      },
+      "afterReset": {
+        "head": 47893276,
+        "danaUsdc": "10000000000",
+        "transfersIndexed": 4
+      }
+    },
+    "clock": {
+      "s0": {
+        "mode": "running",
+        "now": "2026-11-11T05:49:57.387Z"
+      },
+      "shownAfterReset": {
+        "mode": "running",
+        "now": "2026-11-11T05:50:08.839Z"
+      },
+      "expected": "2026-11-11T05:49:58.206Z",
+      "clockOffBy": 10633
+    },
+    "clocks": {
+      "afterFirst": {
+        "chain": "2026-11-11T05:50:13.000Z",
+        "core": "2026-11-11T05:50:12.652Z",
+        "apartMs": 348
+      },
+      "afterSecond": {
+        "chain": "2026-11-11T05:50:11.000Z",
+        "core": "2026-11-11T05:50:10.514Z",
+        "apartMs": 486
+      }
+    },
+    "minedAgainstCore": {
+      "afterFirst": {
+        "world": "p-rst",
+        "headBefore": {
+          "number": 47893276,
+          "at": "2026-11-11T05:50:00.000Z"
+        },
+        "mined": {
+          "number": 47893277,
+          "at": "2026-11-11T05:50:11.000Z"
+        },
+        "core": {
+          "from": "2026-11-11T05:50:11.097Z",
+          "to": "2026-11-11T05:50:11.336Z"
+        },
+        "apartMs": 97
+      },
+      "afterSecond": {
+        "world": "p-rst",
+        "headBefore": {
+          "number": 47893276,
+          "at": "2026-11-11T05:50:01.000Z"
+        },
+        "mined": {
+          "number": 47893277,
+          "at": "2026-11-11T05:50:10.000Z"
+        },
+        "core": {
+          "from": "2026-11-11T05:50:08.984Z",
+          "to": "2026-11-11T05:50:09.221Z"
+        },
+        "apartMs": 779
+      }
+    },
+    "sites": "none: the world has no company (no bench is reachable from this container, roadmap 1.4)",
+    "inventory": {
+      "before": {
+        "workers": [
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle"
+        ],
+        "containerApplications": [
+          "capxulworldhub-anvil-fleet-kznndnhw2qxvuw62",
+          "capxulworldhub-alto-fleet-3i3bpj2sn5h6amaq",
+          "capxulworldhub-ponder-fleet-idz5swsjqhioqybc"
+        ],
+        "durableObjectNamespaces": [
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle",
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle",
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle"
+        ],
+        "r2Buckets": [
+          "capxulworldhub-chainstate-fleet-czutnea2cmlfjtjp"
+        ],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-alto",
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "after": {
+        "workers": [
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle"
+        ],
+        "containerApplications": [
+          "capxulworldhub-anvil-fleet-kznndnhw2qxvuw62",
+          "capxulworldhub-alto-fleet-3i3bpj2sn5h6amaq",
+          "capxulworldhub-ponder-fleet-idz5swsjqhioqybc"
+        ],
+        "durableObjectNamespaces": [
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle",
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle",
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle"
+        ],
+        "r2Buckets": [
+          "capxulworldhub-chainstate-fleet-czutnea2cmlfjtjp"
+        ],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-alto",
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "leftOfTheseWorlds": [],
+      "sameAsBefore": true,
+      "sameAsBeforeAccountWide": true,
+      "otherWorlds": []
+    }
+  }
+}

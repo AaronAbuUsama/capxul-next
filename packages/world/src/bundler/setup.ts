@@ -67,17 +67,20 @@ const depositOf = <E, R>(call: Call<E, R>) =>
 
 /** Gives each bundler account BUNDLER_FUNDS from the chain's faucet, unless it holds that much already. */
 const fundAccounts = <E, R>(call: Call<E, R>) =>
-  Effect.forEach(Rec.values(BUNDLER_ACCOUNTS), (account) =>
-    Effect.gen(function* () {
-      const held = yield* weiOf(call, account);
-      if (held >= BUNDLER_FUNDS) return { account, wei: held.toString(), funded: false };
-      // anvil answers null to anvil_setBalance, which a world's chain call takes for no answer, so what it did is
-      // judged by the balance read back.
-      yield* Effect.ignore(call("anvil_setBalance", [account, `0x${BUNDLER_FUNDS.toString(16)}`]));
-      const now = yield* weiOf(call, account);
-      if (now < BUNDLER_FUNDS) return yield* setupFailed(`anvil_setBalance left ${account} with ${now} wei`);
-      return { account, wei: now.toString(), funded: true };
-    }),
+  Effect.forEach(
+    Rec.values(BUNDLER_ACCOUNTS),
+    (account) =>
+      Effect.gen(function* () {
+        const held = yield* weiOf(call, account);
+        if (held >= BUNDLER_FUNDS) return { account, wei: held.toString(), funded: false };
+        // anvil answers null to anvil_setBalance, which a world's chain call takes for no answer, so what it did is
+        // judged by the balance read back.
+        yield* Effect.ignore(call("anvil_setBalance", [account, `0x${BUNDLER_FUNDS.toString(16)}`]));
+        const now = yield* weiOf(call, account);
+        if (now < BUNDLER_FUNDS) return yield* setupFailed(`anvil_setBalance left ${account} with ${now} wei`);
+        return { account, wei: now.toString(), funded: true };
+      }),
+    { concurrency: 2 },
   );
 
 /** Puts the paymaster on the chain through the CREATE2 deployer, unless it is there, and funds its deposit. */
@@ -120,4 +123,18 @@ export const bringUpBundler = Effect.fn("world.bundler.up")(function* <E, R>(
   const entryPoints = yield* bundlerAnswers(world);
   const status = yield* bundlerStatus(world);
   return { accounts, paymaster, entryPoints, alto: status.record.starts };
+}, Effect.mapError(asSetupFailed));
+
+/** The bundler's transactions alone: its accounts funded and the paymaster deployed and funded. */
+export const setUpBundler = Effect.fn("world.bundler.setUp")(function* <E, R>(call: Call<E, R>) {
+  // The accounts and the paymaster do not depend on each other: each call crosses to the chain's object in western
+  // Europe, so side by side they take half as long.
+  return yield* Effect.all({ accounts: fundAccounts(call), paymaster: ensurePaymaster(call) }, { concurrency: 2 });
+}, Effect.mapError(asSetupFailed));
+
+/** alto's first start, once the bundler's transactions are on the chain; how it started. */
+export const startBundler = Effect.fn("world.bundler.start")(function* (world: Pick<World, "bundlerUrl">) {
+  const entryPoints = yield* bundlerAnswers(world);
+  const status = yield* bundlerStatus(world);
+  return { entryPoints, alto: status.record.starts };
 }, Effect.mapError(asSetupFailed));

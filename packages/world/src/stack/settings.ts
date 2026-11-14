@@ -5,27 +5,33 @@ import * as Alchemy from "alchemy";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
-import type * as Redacted from "effect/Redacted";
+import * as Redacted from "effect/Redacted";
 import { WorldSettingsMissing } from "../failures.ts";
 
 export interface WorldSettings {
   readonly owner: string;
   /** RFC 3339. Neon deletes the world's branch by itself at this moment; the sweeper deletes the rest. */
   readonly expiresAt: string;
-  /** The stage of the world this one's database is forked from; none for a world made from nothing. */
+  /** The stage of the world this one is made from; none for a world made from nothing. */
   readonly forkedFrom: Option.Option<string>;
   /** The shared bench the world's company sites are on, and its site token there (src/site/Bench.ts); none for a world with no bench. */
   readonly bench: Option.Option<BenchGrant>;
-  /**
-   * The branch a world restored from a snapshot forks: the snapshot's own (src/platform/branches.ts). It takes the
-   * place of `forkedFrom`'s branch.
-   */
-  readonly parentBranch: Option.Option<string>;
   /**
    * The token of the operator who owns the world, which its Core accepts as the owner's at both doors (decisions.md,
    * 36). Left out, the world mints one of its own (`operator-token`).
    */
   readonly operatorToken: Option.Option<Redacted.Redacted>;
+  /** The fleet hub the world's chain, index and bundler live on (src/hub), and the world's door token there. */
+  readonly hub: HubGrant;
+  readonly doorToken: Redacted.Redacted;
+  /** The world's branch, made by its create through Neon's API (src/database/neon.ts): its id and connection string. */
+  readonly branch: { readonly id: string; readonly connectionUri: Redacted.Redacted };
+}
+
+/** Where a world lives on the fleet hub: the hub's stage and its door's address. */
+export interface HubGrant {
+  readonly stage: string;
+  readonly doorUrl: string;
 }
 
 /** What a world is given on a bench when it is created: where its site door is, and its token there. */
@@ -45,8 +51,10 @@ const blank: WorldSettings = {
   expiresAt: "",
   forkedFrom: Option.none(),
   bench: Option.none(),
-  parentBranch: Option.none(),
   operatorToken: Option.none(),
+  hub: { stage: "", doorUrl: "" },
+  doorToken: Redacted.make(""),
+  branch: { id: "", connectionUri: Redacted.make("postgresql://runtime:runtime@runtime/runtime") },
 };
 
 /**
