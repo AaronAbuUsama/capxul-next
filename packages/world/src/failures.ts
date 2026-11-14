@@ -56,6 +56,15 @@ export class HubMissing extends Schema.TaggedError<HubMissing, { readonly brand:
   message: Schema.String,
 }) {}
 
+/** A world is not renewed: the lifetime asked for would shorten it, outlive its hub, or exceed the most allowed. */
+export class RenewRefused extends Schema.TaggedError<RenewRefused, { readonly brand: unique symbol }>()(
+  "RenewRefused",
+  {
+    world: Schema.String,
+    message: Schema.String,
+  },
+) {}
+
 export class StateUnreadable extends Schema.TaggedError<StateUnreadable, { readonly brand: unique symbol }>()(
   "StateUnreadable",
   { stage: Schema.String, what: Schema.String, message: Schema.String },

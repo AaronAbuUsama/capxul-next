@@ -18,9 +18,10 @@ export { chainAnswers, indexStatus, open, rpc, rpcHex } from "./lifecycle/parts.
 export { platformDown, platformUp } from "./lifecycle/platform.ts";
 export { readRecord, RunRecord } from "./lifecycle/record.ts";
 export { reset } from "./lifecycle/reset.ts";
+export { renew } from "./lifecycle/renew.ts";
 export { dropSitesTemplate, keepSitesAsTemplate } from "./lifecycle/templates.ts";
 export { HubStage, hubDown, hubUp, openHub } from "./hub/hub.ts";
-export { LOCAL_BENCH } from "./site/Bench.ts";
+export { BenchStage, LOCAL_BENCH, sitesOn } from "./site/Bench.ts";
 export { withWorld } from "./lifecycle/run.ts";
 export { Limits, Timeouts, type World, type WorldSpec } from "./lifecycle/spec.ts";
 export { requireComplete, sweep, SweepReport } from "./lifecycle/sweep.ts";

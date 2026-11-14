@@ -24,7 +24,7 @@ import { waitsOn } from "./makers.ts";
 import { Platform } from "./platform.ts";
 import { Timing, makeTimings } from "../timings.ts";
 import { onHub } from "./hub.ts";
-import { coreLabel, destroyAll, leftOf } from "./run.ts";
+import { coreLabel, destroyAll, leftOf } from "./stages.ts";
 import { startingWorldsOf } from "./starting.ts";
 
 const Line = Schema.Struct({

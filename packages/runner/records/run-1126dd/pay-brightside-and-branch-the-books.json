@@ -1,0 +1,6059 @@
+{
+  "kind": "journey",
+  "name": "pay Brightside and branch the books",
+  "proves": null,
+  "given": "payment-drafted",
+  "stage": "w-sj-42cca7",
+  "owner": "staging",
+  "startedAt": "2026-11-14T14:19:13.998Z",
+  "outcome": "failed",
+  "failure": "the run failed: SiteFailed: SchemaError: Missing key",
+  "ended": {
+    "as": "died",
+    "tag": null,
+    "detail": "SiteFailed: SchemaError: Missing key"
+  },
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 10439
+  },
+  "calls": [
+    {
+      "operation": "record.export",
+      "traceId": "d9668b8d47a9505835a898849328ab5c",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 443.169,
+        "serverMs": 278,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 111,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 111,
+          "ms": 81,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 192,
+          "ms": 86,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 278 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "e28a01d621d03b95296112dbd3275ade",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1416.728,
+        "serverMs": 1300.538,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.056,
+          "ms": 1300.482,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.208,
+          "ms": 61.33,
+          "outcome": "success"
+        },
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": 0.603,
+          "ms": 61.936,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 62.087,
+          "ms": 1238.451,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 62.949,
+          "ms": 60.589,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 123.561,
+          "ms": 804.978,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 123.722,
+          "ms": 68.817,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 123.897,
+          "ms": 181.642,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 124.15,
+          "ms": 55.389,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 179.604,
+          "ms": 632.934,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 180.141,
+          "ms": 632.397,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 193.377,
+          "ms": 112.162,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 193.974,
+          "ms": 55.564,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 250.056,
+          "ms": 55.483,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 305.108,
+          "ms": 0.431,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 812.941,
+          "ms": 115.597,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 813.872,
+          "ms": 53.666,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 867.99,
+          "ms": 60.549,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 928.772,
+          "ms": 115.766,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 929.102,
+          "ms": 109.436,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 929.162,
+          "ms": 108.376,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 929.361,
+          "ms": 109.177,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 929.518,
+          "ms": 108.02,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 929.861,
+          "ms": 114.677,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 929.965,
+          "ms": 114.573,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 1044.813,
+          "ms": 255.725,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 1300.538 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "doc.create",
+      "traceId": "fc07adbc39c9abb99fb47d2fc7e7e247",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1978.785,
+        "serverMs": 1838,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": true
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "doc.create",
+          "startMs": 0,
+          "ms": 135,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "doc.create",
+          "startMs": 135,
+          "ms": 259,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "doc.create",
+          "startMs": 394,
+          "ms": 1164,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "doc.create",
+          "startMs": 1558,
+          "ms": 99,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "doc.create",
+          "startMs": 1657,
+          "ms": 90,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "doc.create",
+          "startMs": 1747,
+          "ms": 91,
+          "outcome": "success"
+        }
+      ],
+      "events": [
+        "doc_created"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one doc.create span, 1838 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: doc_created {\"org\":\"org_ck4tb63berwj\",\"name\":\"ACC-PINV-2026-00002\",\"doctype\":\"Purchase Invoice\"}; declared for a success: doc_created {\"org\":\"org_ck4tb63berwj\",\"doctype\":\"Purchase Invoice\",\"name\":\"ACC-PINV-2026-00002\"}"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "36b787b8264d85d3d39b220444dcd4a2",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 385.779,
+        "serverMs": 251,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 86,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 86,
+          "ms": 82,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 168,
+          "ms": 83,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 251 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "report.run",
+      "traceId": "98f2eef98e72b496dd53355e8a52ef3e",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 736.902,
+        "serverMs": 601,
+        "budgetMs": 8000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "report.run",
+          "startMs": 0,
+          "ms": 86,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "report.run",
+          "startMs": 86,
+          "ms": 242,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "report.run",
+          "startMs": 328,
+          "ms": 273,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one report.run span, 601 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "71dc660031a2d9e9bd22e227968499a1",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 388.305,
+        "serverMs": 253,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 88,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 88,
+          "ms": 82,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 170,
+          "ms": 83,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 253 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "16fa90330186fde1ce66cf24b951cb66",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1202.902,
+        "serverMs": 1076.252,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": -0.907,
+          "ms": 1076.16,
+          "outcome": "success"
+        },
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": -0.485,
+          "ms": 63.737,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.056,
+          "ms": 63.196,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 62.914,
+          "ms": 1012.338,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 63.797,
+          "ms": 60.455,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 123.951,
+          "ms": 212.301,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 124.302,
+          "ms": 57.95,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 124.335,
+          "ms": 604.917,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 124.71,
+          "ms": 62.542,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 182.351,
+          "ms": 153.901,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 183.046,
+          "ms": 85.206,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 187.347,
+          "ms": 415.904,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 187.896,
+          "ms": 415.356,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 268.363,
+          "ms": 67.889,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 336.834,
+          "ms": 0.418,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 603.435,
+          "ms": 125.817,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 604.107,
+          "ms": 60.145,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 664.633,
+          "ms": 64.619,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 729.28,
+          "ms": 119.972,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 729.543,
+          "ms": 120.709,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 729.569,
+          "ms": 107.683,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 729.769,
+          "ms": 107.483,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 729.858,
+          "ms": 107.394,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 729.917,
+          "ms": 107.335,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 730.088,
+          "ms": 120.164,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 850.005,
+          "ms": 225.247,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 1076.252 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "doc.create",
+      "traceId": "3acdc96628abdbaf8b65003399032d9c",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 968.412,
+        "serverMs": 837,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "doc.create",
+          "startMs": 0,
+          "ms": 88,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "doc.create",
+          "startMs": 88,
+          "ms": 264,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "doc.create",
+          "startMs": 352,
+          "ms": 237,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "doc.create",
+          "startMs": 589,
+          "ms": 83,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "doc.create",
+          "startMs": 672,
+          "ms": 82,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "doc.create",
+          "startMs": 754,
+          "ms": 83,
+          "outcome": "success"
+        }
+      ],
+      "events": [
+        "doc_created"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one doc.create span, 837 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: doc_created {\"org\":\"org_ck4tb63berwj\",\"name\":\"ACC-PAY-2026-00002\",\"doctype\":\"Payment Entry\"}; declared for a success: doc_created {\"org\":\"org_ck4tb63berwj\",\"doctype\":\"Payment Entry\",\"name\":\"ACC-PAY-2026-00002\"}"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "1dd54a96e4e5ad372cce05b2ed0c0918",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 413.863,
+        "serverMs": 284,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 117,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 117,
+          "ms": 84,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 201,
+          "ms": 83,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 284 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "424d7727c0600442ecee10e74bf81174",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 386.902,
+        "serverMs": 252,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 87,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 87,
+          "ms": 82,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 169,
+          "ms": 83,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 252 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "ea3bee31b502903ae2c0cc514acc894d",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1141.834,
+        "serverMs": 1026.56,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.054,
+          "ms": 1026.506,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.104,
+          "ms": 59.455,
+          "outcome": "success"
+        },
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": 0.635,
+          "ms": 59.925,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 59.987,
+          "ms": 60.573,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 60.07,
+          "ms": 966.49,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 120.952,
+          "ms": 189.608,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 121.103,
+          "ms": 577.457,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 121.511,
+          "ms": 60.049,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 121.748,
+          "ms": 56.812,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 178.633,
+          "ms": 396.927,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 179.216,
+          "ms": 396.344,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 181.464,
+          "ms": 129.096,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 182.293,
+          "ms": 63.266,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 245.759,
+          "ms": 64.801,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 311.126,
+          "ms": 0.434,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 575.678,
+          "ms": 122.882,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 575.732,
+          "ms": 62.828,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 639.68,
+          "ms": 58.88,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 698.536,
+          "ms": 107.024,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 698.759,
+          "ms": 107.801,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 699.152,
+          "ms": 107.408,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 699.426,
+          "ms": 107.134,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 699.472,
+          "ms": 107.088,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 699.496,
+          "ms": 107.064,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 699.515,
+          "ms": 107.045,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 806.966,
+          "ms": 219.594,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 1026.56 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "doc.submit",
+      "traceId": "683c5b45579c6e028d62f87f36719d46",
+      "at": null,
+      "outcome": "refusal",
+      "refusal": "InsufficientBalance",
+      "failure": "{\"_tag\":\"InsufficientBalance\",\"safe\":\"0x110249586Ce475B43Cc1C8fB145300674A01eA2e\",\"asset\":\"USDC\",\"balance\":\"1000\",\"amount\":\"5000.00\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 866.353,
+        "serverMs": 723,
+        "budgetMs": 3000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "doc.submit",
+          "startMs": 0,
+          "ms": 88,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "doc.submit",
+          "startMs": 88,
+          "ms": 85,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "doc.submit",
+          "startMs": 173,
+          "ms": 120,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "doc.submit",
+          "startMs": 293,
+          "ms": 85,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 378,
+          "ms": 345,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "payment.open",
+          "startMs": 378,
+          "ms": 345,
+          "outcome": "success"
+        },
+        {
+          "name": "payment.open",
+          "parent": "doc.submit",
+          "startMs": 378,
+          "ms": 345,
+          "outcome": "failure"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one doc.submit span, 723 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "c1d77cc0bf153abd9c66e29841a71d2f",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 387.174,
+        "serverMs": 258,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 90,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 90,
+          "ms": 83,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 173,
+          "ms": 85,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 258 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "278e117dfcce033d13b965c7762644f0",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 399.964,
+        "serverMs": 267,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 91,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 91,
+          "ms": 87,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 178,
+          "ms": 89,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 267 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "6cbd948f42d774b1fe2b49e7611a976b",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1176.804,
+        "serverMs": 1060.885,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": -0.753,
+          "ms": 59.638,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": -0.299,
+          "ms": 59.184,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.059,
+          "ms": 1060.826,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 59.885,
+          "ms": 1001.001,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 59.949,
+          "ms": 83.936,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 143.698,
+          "ms": 591.187,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 143.867,
+          "ms": 181.019,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 144.738,
+          "ms": 57.147,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 144.756,
+          "ms": 61.129,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 201.526,
+          "ms": 123.359,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 201.849,
+          "ms": 58.037,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 205.771,
+          "ms": 406.114,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 206.315,
+          "ms": 405.57,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 260.525,
+          "ms": 64.361,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 325.455,
+          "ms": 0.43,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 611.692,
+          "ms": 123.193,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 611.968,
+          "ms": 62.917,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 675.722,
+          "ms": 59.163,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 735.055,
+          "ms": 106.83,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 735.104,
+          "ms": 109.782,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 735.584,
+          "ms": 107.301,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 735.66,
+          "ms": 109.225,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 735.746,
+          "ms": 109.14,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 735.845,
+          "ms": 109.04,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 736.044,
+          "ms": 108.841,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 844.858,
+          "ms": 215.027,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 1060.885 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "doc.submit",
+      "traceId": "815e439629fc4b12763e7625bed07413",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 952.879,
+        "serverMs": 827,
+        "budgetMs": 3000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "doc.submit",
+          "startMs": 0,
+          "ms": 87,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "doc.submit",
+          "startMs": 87,
+          "ms": 83,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "doc.submit",
+          "startMs": 170,
+          "ms": 492,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "doc.submit",
+          "startMs": 662,
+          "ms": 81,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "doc.submit",
+          "startMs": 743,
+          "ms": 84,
+          "outcome": "success"
+        }
+      ],
+      "events": [
+        "doc_submitted"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one doc.submit span, 827 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: doc_submitted {\"org\":\"org_ck4tb63berwj\",\"name\":\"ACC-PINV-2026-00002\",\"doctype\":\"Purchase Invoice\"}; declared for a success: doc_submitted {\"org\":\"org_ck4tb63berwj\",\"doctype\":\"Purchase Invoice\",\"name\":\"ACC-PINV-2026-00002\"}"
+        }
+      ]
+    },
+    {
+      "operation": "report.run",
+      "traceId": "658e178d95a1695f568b29ac4e338f1f",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 425.33,
+        "serverMs": 288,
+        "budgetMs": 8000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "report.run",
+          "startMs": 0,
+          "ms": 87,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "report.run",
+          "startMs": 87,
+          "ms": 84,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "report.run",
+          "startMs": 171,
+          "ms": 115,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one report.run span, 288 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "367c1350012a5a0624b940bc27e499b6",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 387.299,
+        "serverMs": 258,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 88,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 88,
+          "ms": 86,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 174,
+          "ms": 84,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 258 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "eeaed87855abf2e8b9e16461f4ab132a",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 389.704,
+        "serverMs": 251,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 87,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 87,
+          "ms": 82,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 169,
+          "ms": 82,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 251 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "1ca29c3e88c4f8f74ead2386408aa103",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1212.657,
+        "serverMs": 1095.919,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": -0.025,
+          "ms": 86.943,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.052,
+          "ms": 1095.867,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.361,
+          "ms": 86.558,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 87.091,
+          "ms": 1008.828,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 87.517,
+          "ms": 58.401,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 146.362,
+          "ms": 582.557,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 146.68,
+          "ms": 61.239,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 146.891,
+          "ms": 57.028,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 146.926,
+          "ms": 174.993,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 204.611,
+          "ms": 407.308,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 204.94,
+          "ms": 407.979,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 208.49,
+          "ms": 56.429,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 208.756,
+          "ms": 113.163,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 265.235,
+          "ms": 55.684,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 321.354,
+          "ms": 0.564,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 612.407,
+          "ms": 116.511,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 612.422,
+          "ms": 57.497,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 671.009,
+          "ms": 57.91,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 728.962,
+          "ms": 109.957,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 729.252,
+          "ms": 108.666,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 729.521,
+          "ms": 108.398,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 729.616,
+          "ms": 108.303,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 729.728,
+          "ms": 108.191,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 729.917,
+          "ms": 109.002,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 730.046,
+          "ms": 108.873,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 839.258,
+          "ms": 256.661,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 1095.919 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "doc.submit",
+      "traceId": "551d93971cf50360f73db51d492a4a2c",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 2942.085,
+        "serverMs": 2808,
+        "budgetMs": 3000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "doc.submit",
+          "startMs": 0,
+          "ms": 85,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "doc.submit",
+          "startMs": 85,
+          "ms": 86,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "doc.submit",
+          "startMs": 171,
+          "ms": 114,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "doc.submit",
+          "startMs": 285,
+          "ms": 81,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 366,
+          "ms": 218,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "payment.open",
+          "startMs": 366,
+          "ms": 218,
+          "outcome": "success"
+        },
+        {
+          "name": "payment.open",
+          "parent": "doc.submit",
+          "startMs": 366,
+          "ms": 2053,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "organizations.byOrg",
+          "startMs": 584,
+          "ms": 89,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.byOrg",
+          "parent": "payment.open",
+          "startMs": 584,
+          "ms": 89,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "payment.open",
+          "startMs": 673,
+          "ms": 84,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 757,
+          "ms": 201,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "payment.open",
+          "startMs": 757,
+          "ms": 201,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 958,
+          "ms": 204,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "userop.prepare",
+          "startMs": 958,
+          "ms": 204,
+          "outcome": "success"
+        },
+        {
+          "name": "userop.prepare",
+          "parent": "payment.open",
+          "startMs": 958,
+          "ms": 1016,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "bundler pimlico_getUserOperationGasPrice",
+          "startMs": 1162,
+          "ms": 615,
+          "outcome": "success"
+        },
+        {
+          "name": "bundler pimlico_getUserOperationGasPrice",
+          "parent": "userop.prepare",
+          "startMs": 1162,
+          "ms": 615,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "rpc eth_call",
+          "startMs": 1777,
+          "ms": 197,
+          "outcome": "success"
+        },
+        {
+          "name": "rpc eth_call",
+          "parent": "userop.prepare",
+          "startMs": 1777,
+          "ms": 197,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "payment.open",
+          "startMs": 1974,
+          "ms": 84,
+          "outcome": "success"
+        },
+        {
+          "name": "BEGIN postgres",
+          "parent": "sql.transaction",
+          "startMs": 2058,
+          "ms": 88,
+          "outcome": "success"
+        },
+        {
+          "name": "sql.transaction",
+          "parent": "payment.open",
+          "startMs": 2058,
+          "ms": 361,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.open",
+          "startMs": 2146,
+          "ms": 92,
+          "outcome": "success"
+        },
+        {
+          "name": "approvals.open",
+          "parent": "sql.transaction",
+          "startMs": 2146,
+          "ms": 185,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "approvals.open",
+          "startMs": 2238,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "COMMIT postgres",
+          "parent": "sql.transaction",
+          "startMs": 2331,
+          "ms": 88,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "doc.submit",
+          "startMs": 2419,
+          "ms": 95,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "doc.submit",
+          "startMs": 2514,
+          "ms": 128,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "doc.submit",
+          "startMs": 2642,
+          "ms": 82,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "doc.submit",
+          "startMs": 2724,
+          "ms": 84,
+          "outcome": "success"
+        }
+      ],
+      "events": [
+        "payment_held"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one doc.submit span, 2808 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: payment_held {\"org\":\"org_ck4tb63berwj\",\"name\":\"ACC-PAY-2026-00001\",\"amount\":{\"asset\":\"USDC\",\"amount\":\"125.50\"},\"doctype\":\"Payment Entry\",\"request\":\"req_0gu0hc4o4t7l\",\"approval\":\"apr_k6kut1gz1h00\"}; declared for a success: payment_held {\"org\":\"org_ck4tb63berwj\",\"doctype\":\"Payment Entry\",\"name\":\"ACC-PAY-2026-00001\",\"request\":\"req_0gu0hc4o4t7l\",\"approval\":\"apr_k6kut1gz1h00\",\"amount\":{\"asset\":\"USDC\",\"amount\":\"125.50\"}}"
+        }
+      ]
+    },
+    {
+      "operation": "report.run",
+      "traceId": "749a2456ef25f879a540d56475b715c3",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 506.438,
+        "serverMs": 289,
+        "budgetMs": 8000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "report.run",
+          "startMs": 0,
+          "ms": 86,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "report.run",
+          "startMs": 86,
+          "ms": 84,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "report.run",
+          "startMs": 170,
+          "ms": 117,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one report.run span, 289 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "6a1c468b260fb06e88d54ac31aabdc64",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 404.906,
+        "serverMs": 272,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 94,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 94,
+          "ms": 88,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 182,
+          "ms": 90,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 272 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "26bf5795520a2cb5f4491284f7023537",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 398.535,
+        "serverMs": 257,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 86,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 86,
+          "ms": 86,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 172,
+          "ms": 85,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 257 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "e229ea830ec1aa6fe682ca5f8e7a7cc6",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1146.111,
+        "serverMs": 1028.745,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": -0.275,
+          "ms": 60.02,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.049,
+          "ms": 1028.696,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.18,
+          "ms": 59.565,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 59.951,
+          "ms": 59.794,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 60.158,
+          "ms": 968.587,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 120.125,
+          "ms": 57.621,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 120.364,
+          "ms": 60.381,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 120.527,
+          "ms": 590.219,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 120.536,
+          "ms": 174.209,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 178.503,
+          "ms": 57.242,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 178.596,
+          "ms": 116.149,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 180.736,
+          "ms": 398.009,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 181.413,
+          "ms": 397.332,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 235.807,
+          "ms": 57.938,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 294.188,
+          "ms": 0.557,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 579.271,
+          "ms": 65.474,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 579.593,
+          "ms": 131.152,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 645.231,
+          "ms": 64.514,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 710.18,
+          "ms": 107.565,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 710.306,
+          "ms": 109.439,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 710.429,
+          "ms": 107.316,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 710.499,
+          "ms": 107.246,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 710.581,
+          "ms": 107.164,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 710.961,
+          "ms": 108.784,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 711.168,
+          "ms": 108.577,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 820.586,
+          "ms": 208.159,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 1028.745 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "doc.submit",
+      "traceId": "ca0a2ff8570dced29f2db77321e0bd4b",
+      "at": null,
+      "outcome": "refusal",
+      "refusal": "NotADraft",
+      "failure": "{\"_tag\":\"NotADraft\",\"doctype\":\"Purchase Invoice\",\"name\":\"ACC-PINV-2026-00001\",\"docstatus\":1}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 405.544,
+        "serverMs": 278,
+        "budgetMs": 3000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "doc.submit",
+          "startMs": 0,
+          "ms": 84,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "doc.submit",
+          "startMs": 84,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "doc.submit",
+          "startMs": 177,
+          "ms": 101,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one doc.submit span, 278 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "4a409fc2b048e3eb47335da39f05f607",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 407.043,
+        "serverMs": 269,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 92,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 92,
+          "ms": 88,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 180,
+          "ms": 89,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 269 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "b7a0f8246c59e2e0c5d78470881e3bad",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 413.039,
+        "serverMs": 272,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 92,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 92,
+          "ms": 89,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 181,
+          "ms": 91,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 272 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "report.run",
+      "traceId": "c6a5b0cdd5eda01e72cacd57aca4d821",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 488.628,
+        "serverMs": 340,
+        "budgetMs": 8000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "report.run",
+          "startMs": 0,
+          "ms": 93,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "report.run",
+          "startMs": 93,
+          "ms": 83,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "report.run",
+          "startMs": 176,
+          "ms": 163,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one report.run span, 340 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "11c8fca66f58fce3edb51bd4ed17dff6",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 1145.117,
+        "serverMs": 1027.978,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": -0.498,
+          "ms": 60.476,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.045,
+          "ms": 1027.933,
+          "outcome": "success"
+        },
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": 0.1,
+          "ms": 60.879,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 60.337,
+          "ms": 57.641,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 60.991,
+          "ms": 966.987,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 118.62,
+          "ms": 590.358,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 118.709,
+          "ms": 170.269,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 118.823,
+          "ms": 58.155,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 119.21,
+          "ms": 56.768,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 176.356,
+          "ms": 416.623,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 176.591,
+          "ms": 417.388,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 177.251,
+          "ms": 111.728,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 177.287,
+          "ms": 54.691,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 232.865,
+          "ms": 56.114,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 289.325,
+          "ms": 0.653,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 593.616,
+          "ms": 115.362,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 594.403,
+          "ms": 54.575,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 649.645,
+          "ms": 59.334,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 709.152,
+          "ms": 108.826,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 709.246,
+          "ms": 107.732,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 709.429,
+          "ms": 108.55,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 709.53,
+          "ms": 107.448,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 709.601,
+          "ms": 108.377,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 710.045,
+          "ms": 107.933,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 710.113,
+          "ms": 107.866,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 817.727,
+          "ms": 209.252,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 1027.978 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "48630b301117958f53d98459f8bc3fe7",
+      "at": "https://capxulworld-core-w-sj-42cca7-f4aaijxnefxkuqzu.thedao.workers.dev",
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 387.23,
+        "serverMs": 255,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 87,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 87,
+          "ms": 83,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 170,
+          "ms": 85,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 255 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.snapshot.save",
+      "traceId": "6cdcc92097f4f1fe797ac9dee421aedf",
+      "at": null,
+      "outcome": "defect",
+      "refusal": null,
+      "failure": "SiteFailed: SchemaError: Missing key",
+      "resent": 0,
+      "timing": {
+        "callerMs": 2237.874,
+        "serverMs": 2116.827,
+        "budgetMs": 30000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "platform.world.snapshot.save",
+          "parent": "world.snapshot.save",
+          "startMs": 0.059,
+          "ms": 2116.768,
+          "outcome": "defect"
+        },
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.snapshot.save",
+          "startMs": 0.379,
+          "ms": 58.448,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.784,
+          "ms": 58.043,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.world.snapshot.save",
+          "startMs": 59.694,
+          "ms": 59.133,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.world.snapshot.save",
+          "startMs": 118.869,
+          "ms": 576.958,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 119.256,
+          "ms": 180.571,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 119.46,
+          "ms": 61.367,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 119.583,
+          "ms": 62.244,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 180.871,
+          "ms": 53.956,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 181.103,
+          "ms": 118.724,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 181.628,
+          "ms": 394.198,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 182.076,
+          "ms": 394.751,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 235.535,
+          "ms": 63.292,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 299.024,
+          "ms": 0.803,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 576.594,
+          "ms": 119.233,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 576.974,
+          "ms": 56.853,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 634.62,
+          "ms": 61.207,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 695.712,
+          "ms": 60.115,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "platform.world.snapshot.save",
+          "startMs": 695.723,
+          "ms": 151.104,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 757.05,
+          "ms": 89.777,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.world.snapshot.save",
+          "startMs": 846.934,
+          "ms": 123.893,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 847.31,
+          "ms": 123.517,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "platform.world.snapshot.save",
+          "startMs": 971.535,
+          "ms": 119.292,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 971.585,
+          "ms": 61.242,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 1032.986,
+          "ms": 56.841,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.world.snapshot.save",
+          "startMs": 1090.184,
+          "ms": 111.643,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 1090.584,
+          "ms": 111.243,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.world.snapshot.save",
+          "startMs": 1202.476,
+          "ms": 117.351,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 1202.767,
+          "ms": 117.06,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 1203.053,
+          "ms": 108.774,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 1203.115,
+          "ms": 116.712,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 1203.199,
+          "ms": 108.627,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 1203.288,
+          "ms": 108.539,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 1203.553,
+          "ms": 108.273,
+          "outcome": "success"
+        },
+        {
+          "name": "world.site.save",
+          "parent": "platform.world.snapshot.save",
+          "startMs": 1319.864,
+          "ms": 796.963,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "world.site.save",
+          "startMs": 1320.655,
+          "ms": 182.172,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.doorKeyIn",
+          "parent": "world.site.save",
+          "startMs": 1503.214,
+          "ms": 182.613,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.doorKeyIn",
+          "startMs": 1503.95,
+          "ms": 63.877,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.doorKeyIn",
+          "startMs": 1567.975,
+          "ms": 56.852,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.doorKeyIn",
+          "startMs": 1625.473,
+          "ms": 60.354,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.token.mint",
+          "parent": "world.site.save",
+          "startMs": 1686.223,
+          "ms": 0.604,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.site.save",
+          "startMs": 1687.074,
+          "ms": 428.753,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.snapshot.save span, 2116.827 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw defect; the span says defect"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a defect: none"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "operation": "doc.create",
+      "does": "sam drafts a second invoice from Brightside, and a payment of 5,000 USDC from the company Safe",
+      "outcome": "passed",
+      "failure": null,
+      "tries": [
+        {
+          "operation": "doc.create",
+          "as": "sam",
+          "operator": "first",
+          "at": null,
+          "expected": "a success",
+          "answered": "a success",
+          "checks": [
+            {
+              "says": "it is a named draft of the doctype asked",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "it keeps the text fields asked as they were given",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the record gains its doc_created",
+              "passed": true,
+              "detail": ""
+            }
+          ]
+        },
+        {
+          "operation": "doc.create",
+          "as": "sam",
+          "operator": "first",
+          "at": null,
+          "expected": "a success",
+          "answered": "a success",
+          "checks": [
+            {
+              "says": "it is a named draft of the doctype asked",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "it keeps the text fields asked as they were given",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the record gains its doc_created",
+              "passed": true,
+              "detail": ""
+            }
+          ]
+        }
+      ],
+      "calls": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "ms": 7939
+    },
+    {
+      "step": 2,
+      "operation": "doc.submit",
+      "does": "the second invoice posts and the drafted payment is held for sam; 5,000 USDC, and an invoice already posted, are refused",
+      "outcome": "passed",
+      "failure": null,
+      "tries": [
+        {
+          "operation": "doc.submit",
+          "as": "sam",
+          "operator": "first",
+          "at": null,
+          "expected": "refused InsufficientBalance",
+          "answered": "refused InsufficientBalance",
+          "checks": [
+            {
+              "says": "InsufficientBalance names a Safe, what it holds of USDC, and an amount of more",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the refused payment leaves the record as it was",
+              "passed": true,
+              "detail": ""
+            }
+          ]
+        },
+        {
+          "operation": "doc.submit",
+          "as": "sam",
+          "operator": "first",
+          "at": null,
+          "expected": "Posted",
+          "answered": "Posted",
+          "checks": [
+            {
+              "says": "it answers the document asked",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "it posts: the General Ledger shows its lines, which balance",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the record gains its doc_submitted",
+              "passed": true,
+              "detail": ""
+            }
+          ]
+        },
+        {
+          "operation": "doc.submit",
+          "as": "sam",
+          "operator": "first",
+          "at": null,
+          "expected": "Held",
+          "answered": "Held",
+          "checks": [
+            {
+              "says": "it answers the document asked",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "it is held for the caller, who signs at their own signer address",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "it carries the hash doc.create gave the document",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "nothing is posted for it yet",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the record gains its payment_held",
+              "passed": true,
+              "detail": ""
+            }
+          ]
+        },
+        {
+          "operation": "doc.submit",
+          "as": "sam",
+          "operator": "first",
+          "at": null,
+          "expected": "refused NotADraft",
+          "answered": "refused NotADraft",
+          "checks": [
+            {
+              "says": "NotADraft names the document asked, which is not a draft",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the refused submit leaves the record as it was",
+              "passed": true,
+              "detail": ""
+            }
+          ]
+        }
+      ],
+      "calls": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27
+      ],
+      "ms": 14461
+    },
+    {
+      "step": 3,
+      "operation": "world.snapshot.save",
+      "does": "the operator saves m3, a template, and draft while the payment is held: the world is untouched",
+      "outcome": "failed",
+      "failure": "SiteFailed: SchemaError: Missing key",
+      "tries": [
+        {
+          "operation": "world.snapshot.save",
+          "as": null,
+          "operator": "first",
+          "at": null,
+          "expected": "a success",
+          "answered": "died",
+          "checks": []
+        }
+      ],
+      "calls": [
+        28,
+        29,
+        30,
+        31,
+        32
+      ],
+      "ms": 9250
+    },
+    {
+      "step": 4,
+      "operation": "world.snapshot.restore",
+      "does": "the second operator may not restore draft, but restores m3 into a world of their own, holding what m3 saved",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 5,
+      "operation": "approval.sign",
+      "does": "sam pays Brightside once in the first world; wrong signatures are refused, a replay sends nothing more, and the branch does not see it",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 6,
+      "operation": "report.run",
+      "does": "the first world's books agree with its chain: the payment posted once, and the invoice is paid",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 7,
+      "operation": "doc.create",
+      "does": "sam drafts a Supplier in the branch, which the first world never sees",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 8,
+      "operation": "world.clock.warp",
+      "does": "the branch's owner warps it a week and past the held approval's expiry: its chain and site follow, its daily job runs each day, and its clock never goes back",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 9,
+      "operation": "approval.sign",
+      "does": "sam's held approval in the branch has expired: it is refused, and nothing is sent",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 10,
+      "operation": "record.export",
+      "does": "each world's record holds every event once, in order, and a range answers only what it asks",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    }
+  ],
+  "failedStep": {
+    "step": 3,
+    "operation": "world.snapshot.save",
+    "does": "the operator saves m3, a template, and draft while the payment is held: the world is untouched",
+    "why": "SiteFailed: SchemaError: Missing key"
+  },
+  "making": [
+    {
+      "operation": "world.snapshot.restore",
+      "traceId": "3fc486d7d18ede48056e174907cf42fd",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 74437.355,
+        "serverMs": 74254.927,
+        "budgetMs": 120000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [
+        {
+          "name": "platform.world.snapshot.restore",
+          "parent": "world.snapshot.restore",
+          "startMs": 0.053,
+          "ms": 74254.874,
+          "outcome": "success"
+        },
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.snapshot.restore",
+          "startMs": 0.778,
+          "ms": 53.149,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 1.145,
+          "ms": 52.782,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.world.snapshot.restore",
+          "startMs": 53.999,
+          "ms": 56.928,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.world.snapshot.restore",
+          "startMs": 110.914,
+          "ms": 717.013,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 111.421,
+          "ms": 197.506,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 111.478,
+          "ms": 56.449,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 111.646,
+          "ms": 171.281,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 168.399,
+          "ms": 58.528,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 168.561,
+          "ms": 114.366,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 227.241,
+          "ms": 54.686,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 282.346,
+          "ms": 0.581,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 309.34,
+          "ms": 403.587,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 309.749,
+          "ms": 404.178,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 713.383,
+          "ms": 114.544,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 713.873,
+          "ms": 58.054,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 772.488,
+          "ms": 55.439,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "platform.world.snapshot.restore",
+          "startMs": 828.641,
+          "ms": 114.286,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 828.827,
+          "ms": 55.1,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 884.275,
+          "ms": 57.652,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 942.376,
+          "ms": 125.551,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.world.snapshot.restore",
+          "startMs": 943.039,
+          "ms": 125.888,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "platform.world.snapshot.restore",
+          "startMs": 1068.75,
+          "ms": 111.177,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 1069.343,
+          "ms": 54.584,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 1124.423,
+          "ms": 55.504,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.world.snapshot.restore",
+          "startMs": 1179.656,
+          "ms": 111.271,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 1180.029,
+          "ms": 110.898,
+          "outcome": "success"
+        },
+        {
+          "name": "world.lifecycle.create",
+          "parent": "platform.world.snapshot.restore",
+          "startMs": 1291.303,
+          "ms": 27805.623,
+          "outcome": "success"
+        },
+        {
+          "name": "world.plan",
+          "parent": "world.lifecycle.create",
+          "startMs": 1292.186,
+          "ms": 0.741,
+          "outcome": "success"
+        },
+        {
+          "name": "world.stopwatch",
+          "parent": "world.lifecycle.create",
+          "startMs": 1292.859,
+          "ms": 0.068,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.open",
+          "startMs": 1293.229,
+          "ms": 59.698,
+          "outcome": "success"
+        },
+        {
+          "name": "world.open",
+          "parent": "world.lifecycle.create",
+          "startMs": 1293.446,
+          "ms": 653.482,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 1353.544,
+          "ms": 60.383,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "world.open",
+          "startMs": 1353.596,
+          "ms": 593.331,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 1353.609,
+          "ms": 133.318,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 1353.94,
+          "ms": 251.987,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 1414.625,
+          "ms": 417.302,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 1415.478,
+          "ms": 416.449,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 1487.398,
+          "ms": 56.529,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 1487.948,
+          "ms": 117.979,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 1544.708,
+          "ms": 60.219,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 1605.31,
+          "ms": 0.617,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 1832.119,
+          "ms": 114.808,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 1832.468,
+          "ms": 58.459,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 1891.672,
+          "ms": 55.255,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.lifecycle.create",
+          "startMs": 1947.113,
+          "ms": 175.815,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 1947.619,
+          "ms": 58.308,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 2005.93,
+          "ms": 116.997,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 2006.478,
+          "ms": 58.449,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 2064.653,
+          "ms": 57.274,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.claim",
+          "startMs": 2123.111,
+          "ms": 117.816,
+          "outcome": "success"
+        },
+        {
+          "name": "world.claim",
+          "parent": "world.lifecycle.create",
+          "startMs": 2123.379,
+          "ms": 586.548,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 2123.846,
+          "ms": 58.081,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 2182.451,
+          "ms": 58.476,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.site.grant",
+          "startMs": 2241.772,
+          "ms": 68.155,
+          "outcome": "success"
+        },
+        {
+          "name": "world.site.grant",
+          "parent": "world.claim",
+          "startMs": 2242.001,
+          "ms": 254.926,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.doorKeyIn",
+          "parent": "world.site.grant",
+          "startMs": 2310.339,
+          "ms": 184.588,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.doorKeyIn",
+          "startMs": 2310.677,
+          "ms": 58.25,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.doorKeyIn",
+          "startMs": 2370.08,
+          "ms": 61.847,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.doorKeyIn",
+          "startMs": 2432.408,
+          "ms": 62.519,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.token.mint",
+          "parent": "world.site.grant",
+          "startMs": 2495.289,
+          "ms": 0.638,
+          "outcome": "success"
+        },
+        {
+          "name": "world.claim",
+          "parent": "world.claim",
+          "startMs": 2496.346,
+          "ms": 116.581,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "world.claim",
+          "startMs": 2496.574,
+          "ms": 116.353,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 2497.033,
+          "ms": 115.894,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "world.claim",
+          "startMs": 2613.604,
+          "ms": 95.323,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.lifecycle.create",
+          "startMs": 2710.389,
+          "ms": 0.538,
+          "outcome": "success"
+        },
+        {
+          "name": "world.register",
+          "parent": "world.lifecycle.create",
+          "startMs": 2711.046,
+          "ms": 929.881,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.branch",
+          "startMs": 2711.427,
+          "ms": 59.5,
+          "outcome": "success"
+        },
+        {
+          "name": "world.branch",
+          "parent": "world.lifecycle.create",
+          "startMs": 2711.438,
+          "ms": 2063.489,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.register",
+          "startMs": 2711.708,
+          "ms": 929.219,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.branch",
+          "startMs": 2771.552,
+          "ms": 65.374,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.neon.makeBranch",
+          "startMs": 2837.447,
+          "ms": 510.48,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.makeBranch",
+          "parent": "world.branch",
+          "startMs": 2837.808,
+          "ms": 1937.119,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.makeBranch",
+          "startMs": 3349.089,
+          "ms": 205.838,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.makeBranch",
+          "startMs": 3349.243,
+          "ms": 209.683,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.makeBranch",
+          "startMs": 3349.6,
+          "ms": 501.327,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.makeBranch",
+          "startMs": 3350.181,
+          "ms": 465.746,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.chain",
+          "startMs": 3640.953,
+          "ms": 1071.974,
+          "outcome": "success"
+        },
+        {
+          "name": "world.chain",
+          "parent": "world.lifecycle.create",
+          "startMs": 3641.379,
+          "ms": 4980.548,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.makeBranch",
+          "startMs": 3810.265,
+          "ms": 238.662,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.makeBranch",
+          "startMs": 3813.365,
+          "ms": 217.562,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.makeBranch",
+          "startMs": 4066.773,
+          "ms": 194.154,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.makeBranch",
+          "startMs": 4102.817,
+          "ms": 208.11,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.makeBranch",
+          "startMs": 4515.342,
+          "ms": 241.585,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.makeBranch",
+          "startMs": 4560.997,
+          "ms": 212.93,
+          "outcome": "success"
+        },
+        {
+          "name": "world.deploy",
+          "parent": "world.lifecycle.create",
+          "startMs": 4774.779,
+          "ms": 10830.148,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.deploy",
+          "parent": "world.deploy",
+          "startMs": 4775.277,
+          "ms": 10829.65,
+          "outcome": "success"
+        },
+        {
+          "name": "Alchemist.plan",
+          "parent": "world.engine.deploy",
+          "startMs": 4775.719,
+          "ms": 608.208,
+          "outcome": "success"
+        },
+        {
+          "name": "Alchemist.buildServices",
+          "parent": "Alchemist.build",
+          "startMs": 4775.736,
+          "ms": 2.191,
+          "outcome": "success"
+        },
+        {
+          "name": "Alchemist.build",
+          "parent": "Alchemist.plan",
+          "startMs": 4775.798,
+          "ms": 14.129,
+          "outcome": "success"
+        },
+        {
+          "name": "world.migrate",
+          "parent": "world.lifecycle.create",
+          "startMs": 4776.084,
+          "ms": 618.843,
+          "outcome": "success"
+        },
+        {
+          "name": "Alchemist.configServices",
+          "parent": "Alchemist.buildServices",
+          "startMs": 4776.147,
+          "ms": 1.78,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 4776.198,
+          "ms": 499.73,
+          "outcome": "success"
+        },
+        {
+          "name": "loadConfigProvider",
+          "parent": "Alchemist.configServices",
+          "startMs": 4776.278,
+          "ms": 1.649,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.migrate",
+          "parent": "world.migrate",
+          "startMs": 4776.319,
+          "ms": 618.608,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "world.database.migrate",
+          "startMs": 4776.9,
+          "ms": 500.027,
+          "outcome": "success"
+        },
+        {
+          "name": "lazyCredentials",
+          "parent": "Alchemist.build",
+          "startMs": 4778.695,
+          "ms": 0.232,
+          "outcome": "success"
+        },
+        {
+          "name": "lazyCredentials",
+          "parent": "Alchemist.build",
+          "startMs": 4780.661,
+          "ms": 0.266,
+          "outcome": "success"
+        },
+        {
+          "name": "lazyCredentials",
+          "parent": "Alchemist.build",
+          "startMs": 4780.75,
+          "ms": 0.176,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.make",
+          "parent": "Alchemist.plan",
+          "startMs": 4790.351,
+          "ms": 593.576,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.make",
+          "startMs": 4790.56,
+          "ms": 56.367,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.diff.resource",
+          "parent": "plan.make",
+          "startMs": 4849.548,
+          "ms": 443.379,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.diff.resource",
+          "parent": "plan.make",
+          "startMs": 4850.489,
+          "ms": 69.438,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 4850.957,
+          "ms": 67.97,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 4851.051,
+          "ms": 69.876,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.diff.resource",
+          "parent": "plan.make",
+          "startMs": 4851.271,
+          "ms": 86.655,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.diff.resource",
+          "parent": "plan.make",
+          "startMs": 4851.717,
+          "ms": 89.21,
+          "outcome": "success"
+        },
+        {
+          "name": "plan.diff.resource",
+          "parent": "plan.make",
+          "startMs": 4852.004,
+          "ms": 474.923,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 4852.182,
+          "ms": 85.745,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 4852.515,
+          "ms": 88.412,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 4853.313,
+          "ms": 82.614,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 4854.938,
+          "ms": 358.989,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 4855.048,
+          "ms": 112.879,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 4855.848,
+          "ms": 191.079,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.chain",
+          "startMs": 4889.76,
+          "ms": 1807.167,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.ListConfigs",
+          "parent": "plan.diff.resource",
+          "startMs": 4922.542,
+          "ms": 369.385,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5215.482,
+          "ms": 56.444,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.diff.resource",
+          "startMs": 5273.275,
+          "ms": 53.652,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "world.database.migrate",
+          "startMs": 5276.215,
+          "ms": 116.712,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 5276.489,
+          "ms": 116.438,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "plan.make",
+          "startMs": 5328.034,
+          "ms": 54.893,
+          "outcome": "success"
+        },
+        {
+          "name": "Alchemist.apply",
+          "parent": "world.engine.deploy",
+          "startMs": 5383.506,
+          "ms": 10220.421,
+          "outcome": "success"
+        },
+        {
+          "name": "Alchemist.describeStackPlan",
+          "parent": "Alchemist.plan",
+          "startMs": 5383.618,
+          "ms": 0.309,
+          "outcome": "success"
+        },
+        {
+          "name": "apply",
+          "parent": "Alchemist.apply",
+          "startMs": 5383.644,
+          "ms": 10220.283,
+          "outcome": "success"
+        },
+        {
+          "name": "apply.resource",
+          "parent": "apply",
+          "startMs": 5384.199,
+          "ms": 2338.728,
+          "outcome": "success"
+        },
+        {
+          "name": "apply.resource",
+          "parent": "apply",
+          "startMs": 5385.295,
+          "ms": 289.632,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 5385.742,
+          "ms": 98.185,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 5385.975,
+          "ms": 98.952,
+          "outcome": "success"
+        },
+        {
+          "name": "apply.resource",
+          "parent": "apply",
+          "startMs": 5386.038,
+          "ms": 327.889,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 5386.127,
+          "ms": 102.8,
+          "outcome": "success"
+        },
+        {
+          "name": "apply.resource",
+          "parent": "apply",
+          "startMs": 5386.264,
+          "ms": 10057.663,
+          "outcome": "success"
+        },
+        {
+          "name": "apply.resource",
+          "parent": "apply",
+          "startMs": 5386.312,
+          "ms": 320.615,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 5386.48,
+          "ms": 99.447,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 5387.333,
+          "ms": 100.594,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 5484.313,
+          "ms": 91.614,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 5485.662,
+          "ms": 123.265,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 5485.809,
+          "ms": 94.118,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 5488.946,
+          "ms": 96.982,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 5489.832,
+          "ms": 124.095,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.create",
+          "parent": "apply.resource",
+          "startMs": 5577.084,
+          "ms": 2043.843,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.CreateConfig",
+          "parent": "provider.create",
+          "startMs": 5578.431,
+          "ms": 2042.495,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.create",
+          "parent": "apply.resource",
+          "startMs": 5580.477,
+          "ms": 0.45,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 5581.378,
+          "ms": 93.549,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.create",
+          "parent": "apply.resource",
+          "startMs": 5609.519,
+          "ms": 0.408,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 5610.238,
+          "ms": 95.689,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.create",
+          "parent": "apply.resource",
+          "startMs": 5614.594,
+          "ms": 0.333,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 5614.842,
+          "ms": 99.085,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.chain",
+          "startMs": 6697.61,
+          "ms": 1923.317,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7622.042,
+          "ms": 97.885,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 7722.917,
+          "ms": 97.01,
+          "outcome": "success"
+        },
+        {
+          "name": "provider.read",
+          "parent": "apply.resource",
+          "startMs": 7820.804,
+          "ms": 320.123,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetScriptSubdomain",
+          "parent": "provider.read",
+          "startMs": 7823.077,
+          "ms": 317.85,
+          "outcome": "failure"
+        },
+        {
+          "name": "provider.create",
+          "parent": "apply.resource",
+          "startMs": 8140.863,
+          "ms": 7202.064,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetScriptScriptAndVersionSetting",
+          "parent": "provider.create",
+          "startMs": 8143.042,
+          "ms": 394.885,
+          "outcome": "failure"
+        },
+        {
+          "name": "world.index",
+          "parent": "world.lifecycle.create",
+          "startMs": 8621.375,
+          "ms": 13370.552,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.index",
+          "startMs": 8621.496,
+          "ms": 353.431,
+          "outcome": "success"
+        },
+        {
+          "name": "world.fund",
+          "parent": "world.lifecycle.create",
+          "startMs": 8621.615,
+          "ms": 769.312,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.fund",
+          "startMs": 8622.459,
+          "ms": 768.468,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.index",
+          "startMs": 8975.327,
+          "ms": 10477.6,
+          "outcome": "success"
+        },
+        {
+          "name": "world.bundler",
+          "parent": "world.lifecycle.create",
+          "startMs": 9391.698,
+          "ms": 13743.23,
+          "outcome": "success"
+        },
+        {
+          "name": "world.bundler.setUp",
+          "parent": "world.bundler",
+          "startMs": 9391.93,
+          "ms": 2167.997,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.setUp",
+          "startMs": 9392.314,
+          "ms": 697.612,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.setUp",
+          "startMs": 9393.214,
+          "ms": 798.713,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.setUp",
+          "startMs": 9393.579,
+          "ms": 799.348,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.setUp",
+          "startMs": 10192.3,
+          "ms": 289.627,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.setUp",
+          "startMs": 10192.623,
+          "ms": 281.304,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.setUp",
+          "startMs": 10474.952,
+          "ms": 276.975,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.setUp",
+          "startMs": 10482.862,
+          "ms": 285.065,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.setUp",
+          "startMs": 10753.519,
+          "ms": 245.408,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.setUp",
+          "startMs": 10999.582,
+          "ms": 272.345,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.setUp",
+          "startMs": 11272.17,
+          "ms": 286.757,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetScriptScriptAndVersionSetting",
+          "parent": "provider.create",
+          "startMs": 11422.976,
+          "ms": 480.951,
+          "outcome": "failure"
+        },
+        {
+          "name": "world.bundler.start",
+          "parent": "world.bundler",
+          "startMs": 11560.124,
+          "ms": 11574.803,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.bundler.start",
+          "startMs": 11560.406,
+          "ms": 11297.521,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.PutScript",
+          "parent": "provider.create",
+          "startMs": 11904.952,
+          "ms": 1725.975,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetScriptScriptAndVersionSetting",
+          "parent": "provider.create",
+          "startMs": 13632.376,
+          "ms": 316.551,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetScriptSubdomain",
+          "parent": "provider.create",
+          "startMs": 13948.969,
+          "ms": 220.958,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.CreateScriptSubdomain",
+          "parent": "provider.create",
+          "startMs": 14170.135,
+          "ms": 587.792,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.GetSubdomain",
+          "parent": "provider.create",
+          "startMs": 14759.452,
+          "ms": 281.475,
+          "outcome": "success"
+        },
+        {
+          "name": "Cloudflare.ListScriptDeployments",
+          "parent": "provider.create",
+          "startMs": 15041.069,
+          "ms": 301.858,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply.resource",
+          "startMs": 15344.448,
+          "ms": 99.479,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "apply",
+          "startMs": 15444.424,
+          "ms": 62.503,
+          "outcome": "success"
+        },
+        {
+          "name": "PUT",
+          "parent": "apply",
+          "startMs": 15511.093,
+          "ms": 92.834,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "world.lifecycle.create",
+          "startMs": 15605.083,
+          "ms": 124.844,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 15605.253,
+          "ms": 124.674,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 15606.362,
+          "ms": 58.565,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 15664.994,
+          "ms": 64.933,
+          "outcome": "success"
+        },
+        {
+          "name": "world.core",
+          "parent": "world.lifecycle.create",
+          "startMs": 15730.634,
+          "ms": 13366.294,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 15730.675,
+          "ms": 209.252,
+          "outcome": "failure"
+        },
+        {
+          "name": "platform.steady",
+          "parent": "world.core",
+          "startMs": 15730.845,
+          "ms": 13366.082,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 16191.375,
+          "ms": 37.552,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 16479.463,
+          "ms": 66.464,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 16796.816,
+          "ms": 417.111,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 17465.088,
+          "ms": 66.839,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 17781.959,
+          "ms": 333.968,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 18367.175,
+          "ms": 46.752,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 18664.181,
+          "ms": 61.746,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 18977.145,
+          "ms": 36.782,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 19264.106,
+          "ms": 40.821,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 19555.709,
+          "ms": 395.218,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 20205.71,
+          "ms": 40.217,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 20497.01,
+          "ms": 53.917,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 20801.655,
+          "ms": 39.272,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 21091.322,
+          "ms": 36.605,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 21379,
+          "ms": 35.927,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "world.index",
+          "startMs": 21455.108,
+          "ms": 536.819,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 21665.469,
+          "ms": 39.458,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 21955.14,
+          "ms": 60.787,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 22267.198,
+          "ms": 39.729,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 22557.639,
+          "ms": 279.288,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.bundler.start",
+          "startMs": 22857.95,
+          "ms": 275.977,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 23087.267,
+          "ms": 37.661,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 23375.827,
+          "ms": 38.1,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 23663.892,
+          "ms": 65.035,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 23979.572,
+          "ms": 71.355,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 24301.742,
+          "ms": 57.185,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 24610.264,
+          "ms": 37.663,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 24898.204,
+          "ms": 36.723,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 25186.321,
+          "ms": 39.606,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 25476.77,
+          "ms": 39.157,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 25766.067,
+          "ms": 54.86,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 26071.97,
+          "ms": 35.957,
+          "outcome": "failure"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 26358.712,
+          "ms": 41.215,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 26650.494,
+          "ms": 39.433,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 26940.201,
+          "ms": 97.726,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 27288.749,
+          "ms": 41.178,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 27580.869,
+          "ms": 52.058,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 27884.199,
+          "ms": 40.728,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 28174.991,
+          "ms": 36.936,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 28462.349,
+          "ms": 38.578,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 28752.654,
+          "ms": 38.273,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.steady",
+          "startMs": 29040.654,
+          "ms": 55.273,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 29097.323,
+          "ms": 120.603,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.world.snapshot.restore",
+          "startMs": 29097.941,
+          "ms": 120.986,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.world.snapshot.restore",
+          "startMs": 29219.233,
+          "ms": 5519.694,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.world.snapshot.restore",
+          "startMs": 34739.54,
+          "ms": 255.387,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "platform.world.snapshot.restore",
+          "startMs": 34994.786,
+          "ms": 241.141,
+          "outcome": "success"
+        },
+        {
+          "name": "world.site.restore",
+          "parent": "platform.world.snapshot.restore",
+          "startMs": 35236.474,
+          "ms": 36568.453,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.site.restore",
+          "startMs": 35238.655,
+          "ms": 69.272,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.doorKeyIn",
+          "parent": "world.site.restore",
+          "startMs": 35307.886,
+          "ms": 180.04,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.doorKeyIn",
+          "startMs": 35308.302,
+          "ms": 61.625,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.doorKeyIn",
+          "startMs": 35371.152,
+          "ms": 58.775,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.doorKeyIn",
+          "startMs": 35430.294,
+          "ms": 57.633,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.token.mint",
+          "parent": "world.site.restore",
+          "startMs": 35489.174,
+          "ms": 0.753,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.site.restore",
+          "startMs": 35489.948,
+          "ms": 56.98,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.doorKeyIn",
+          "parent": "world.site.restore",
+          "startMs": 35547.702,
+          "ms": 183.225,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.doorKeyIn",
+          "startMs": 35548.118,
+          "ms": 57.809,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.doorKeyIn",
+          "startMs": 35606.461,
+          "ms": 64.466,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.doorKeyIn",
+          "startMs": 35670.756,
+          "ms": 59.171,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.token.mint",
+          "parent": "world.site.restore",
+          "startMs": 35731.297,
+          "ms": 0.63,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 35731.517,
+          "ms": 57.41,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.site.restore",
+          "startMs": 35731.536,
+          "ms": 115.391,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 35790.083,
+          "ms": 56.844,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.site.restore",
+          "startMs": 35846.698,
+          "ms": 117.229,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 35847.523,
+          "ms": 59.404,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 35907.108,
+          "ms": 56.819,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.site.restore",
+          "startMs": 35964.813,
+          "ms": 591.114,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.site.restore",
+          "startMs": 36568.195,
+          "ms": 182.732,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.site.restore",
+          "startMs": 39756.883,
+          "ms": 149.044,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.site.restore",
+          "startMs": 42924.707,
+          "ms": 189.22,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.site.restore",
+          "startMs": 46115.765,
+          "ms": 171.162,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.site.restore",
+          "startMs": 49305.833,
+          "ms": 190.094,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.site.restore",
+          "startMs": 52496.636,
+          "ms": 173.291,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.site.restore",
+          "startMs": 55672.191,
+          "ms": 148.736,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.site.restore",
+          "startMs": 58821.718,
+          "ms": 172.209,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.site.restore",
+          "startMs": 62013.678,
+          "ms": 149.249,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.site.restore",
+          "startMs": 65164.567,
+          "ms": 185.36,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.site.restore",
+          "startMs": 68351.491,
+          "ms": 256.436,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.site.restore",
+          "startMs": 71608.891,
+          "ms": 196.036,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.world.snapshot.restore",
+          "startMs": 71805.633,
+          "ms": 120.294,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 71806.097,
+          "ms": 119.83,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.world.snapshot.restore",
+          "startMs": 71925.741,
+          "ms": 114.185,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 71926.086,
+          "ms": 113.841,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.snapshot.restore",
+          "startMs": 72040.272,
+          "ms": 1861.654,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 72040.791,
+          "ms": 61.136,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 72102.293,
+          "ms": 185.634,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 72102.433,
+          "ms": 61.494,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 72102.623,
+          "ms": 775.305,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 72103.274,
+          "ms": 195.653,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 72164.509,
+          "ms": 123.418,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 72165.346,
+          "ms": 60.581,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 72226.521,
+          "ms": 61.406,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 72288.254,
+          "ms": 0.673,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 72299.403,
+          "ms": 458.524,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 72299.494,
+          "ms": 459.433,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 72758.605,
+          "ms": 61.322,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 72759.012,
+          "ms": 118.915,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 72820.417,
+          "ms": 56.51,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 72877.687,
+          "ms": 728.24,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 72877.692,
+          "ms": 729.235,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 72877.717,
+          "ms": 698.21,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 72877.814,
+          "ms": 421.113,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 72878.216,
+          "ms": 420.711,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 72878.459,
+          "ms": 698.468,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 72878.488,
+          "ms": 728.439,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 73607.258,
+          "ms": 294.669,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.emit",
+          "parent": "platform.world.snapshot.restore",
+          "startMs": 73901.75,
+          "ms": 353.177,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.emit",
+          "startMs": 73903.126,
+          "ms": 115.801,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 73903.424,
+          "ms": 115.503,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 74019.016,
+          "ms": 57.911,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "platform.emit",
+          "startMs": 74019.081,
+          "ms": 119.846,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 74077.278,
+          "ms": 60.649,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.emit",
+          "startMs": 74138.564,
+          "ms": 116.363,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 74138.89,
+          "ms": 116.037,
+          "outcome": "success"
+        }
+      ],
+      "events": [
+        "world_created"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.snapshot.restore span, 74254.927 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: world_created {\"grade\":\"shared\",\"owner\":\"staging\",\"world\":\"sj-42cca7\",\"parent\":{\"world\":\"shared\",\"snapshot\":\"payment-drafted\",\"recordSeq\":17},\"expiresAt\":\"2026-11-14T15:49:15.933Z\"}; declared for a success: world_created {\"world\":\"sj-42cca7\",\"owner\":\"staging\",\"grade\":\"shared\",\"expiresAt\":\"2026-11-14T15:49:15.933Z\",\"parent\":{\"world\":\"shared\",\"snapshot\":\"payment-drafted\",\"recordSeq\":17}}"
+        }
+      ]
+    }
+  ],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": [
+        "capxulworld-core-w-sj-42cca7-f4aaijxnefxkuqzu",
+        "capxulworld-world-db-w-sj-42cca7-6av3kodyfvaoehjs",
+        "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/w-sj-42cca7"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    }
+  },
+  "ms": {
+    "create": 76461,
+    "run": 31654,
+    "checks": 2609,
+    "destroy": 10117
+  }
+}

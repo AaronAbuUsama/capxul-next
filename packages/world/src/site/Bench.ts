@@ -91,6 +91,17 @@ export const tokenFor = (bench: string, world: string, quota: number, expires: n
     return { door, token };
   });
 
+/** A world's grant on `bench` until `expiresAt`: a fresh site token, as its create mints one, for a renewal. */
+export const grantOn = Effect.fn("world.site.grantOn")(function* (
+  bench: string,
+  stage: string,
+  expiresAt: string,
+  quota: number,
+) {
+  const made = yield* tokenFor(bench, nameOf(stage), quota, unix(expiresAt));
+  return { stage: bench, door: made.door, token: made.token } satisfies BenchGrant;
+});
+
 /** What a world is given on its bench when it is created; none when `WORLD_BENCH` is unset. */
 export const grant = Effect.fn("world.site.grant")(function* (stage: string, expiresAt: string, quota: number) {
   const bench = yield* BenchStage;
