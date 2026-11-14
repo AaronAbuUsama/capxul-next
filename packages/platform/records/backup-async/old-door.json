@@ -1,0 +1,65 @@
+{
+ "label": "o2",
+ "door": "http://127.0.0.1:18172",
+ "steps": [
+  {
+   "step": "pao2: site made (stand-in, 1 s)",
+   "status": 202,
+   "ms": 11
+  },
+  {
+   "step": "pco2: site made (stand-in, 1 s)",
+   "status": 202,
+   "ms": 2
+  },
+  {
+   "step": "pbo2: another world's site asked, made from nothing for 130 s under the bench lock",
+   "status": 202,
+   "ms": 2
+  },
+  {
+   "step": "DELETE /sites/<ready site> while the bench is busy",
+   "status": 200,
+   "ms": 130471,
+   "answer": {
+    "site": "northwind-pco2.pool.test",
+    "removed": true,
+    "ms": 130467
+   }
+  },
+  {
+   "step": "POST /world/backup {founded} while the bench is busy: the request alone",
+   "status": 200,
+   "ms": 132180,
+   "answer": {
+    "world": "pao2",
+    "snapshot": "founded",
+    "sites": [
+     {
+      "site": "northwind-pao2.pool.test",
+      "label": "northwind",
+      "ms": 2010,
+      "bytes": 25
+     }
+    ]
+   }
+  },
+  {
+   "step": "world.site.save's backUp through the door (POST /world/backup, then GET until saved)",
+   "exit": 0,
+   "ms": 133925,
+   "out": "{\"saveMs\":131363,\"sites\":[{\"site\":\"northwind-pao2.pool.test\",\"label\":\"northwind\",\"ms\":2009}]}",
+   "err": ""
+  },
+  {
+   "step": "GET /world/backup/payment-drafted afterwards",
+   "status": 404,
+   "ms": 2,
+   "answer": {
+    "refused": "no-such-route",
+    "detail": ""
+   }
+  }
+ ],
+ "slowSiteHeldTheBenchForMs": 134530
+}

@@ -1,0 +1,426 @@
+{
+  "kind": "journeys",
+  "run": "run-f2e169",
+  "what": "The registered journeys run through the runner in one world, made on a fleet hub by the platform this process serves, its starting worlds made in it once and saved, and the world reset in place to each journey's starting world before the journey. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world the run made, the one world included, was destroyed with nothing of it left in the accounts.",
+  "mode": "one world",
+  "expect": "pass",
+  "owner": "runner",
+  "startedAt": "2026-11-14T13:45:50.258Z",
+  "outcome": "failed",
+  "failure": "two operators and their worlds: the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"reset\",\"message\":\"{\\\"_tag\\\":\\\"SiteFailed\\\",\\\"step\\\":\\\"door\\\",\\\"message\\\":\\\"HTTP 502: upstream request failed\\\"}\"}\nfound Northwind and give sam the books: the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"reset\",\"message\":\"{\\\"_tag\\\":\\\"SiteFailed\\\",\\\"step\\\":\\\"door\\\",\\\"message\\\":\\\"HTTP 502: upstream request failed\\\"}\"}\npay Brightside and branch the books: the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"reset\",\"message\":\"{\\\"_tag\\\":\\\"SiteFailed\\\",\\\"step\\\":\\\"door\\\",\\\"message\\\":\\\"HTTP 502: upstream request failed\\\"}\"}",
+  "count": {
+    "journeys": 3,
+    "registered": 3,
+    "asExpected": 0,
+    "claims": 53
+  },
+  "journeys": [
+    {
+      "name": "two operators and their worlds",
+      "given": "quota-full",
+      "stage": "run-f2e169-1",
+      "record": "run-f2e169/two-operators-and-their-worlds.json",
+      "asExpected": false,
+      "why": "the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"reset\",\"message\":\"{\\\"_tag\\\":\\\"SiteFailed\\\",\\\"step\\\":\\\"door\\\",\\\"message\\\":\\\"HTTP 502: upstream request failed\\\"}\"}",
+      "ended": null,
+      "failedStep": null,
+      "steps": [
+        {
+          "step": 1,
+          "operation": "world.create",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 2,
+          "operation": "world.create",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 3,
+          "operation": "world.create",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 4,
+          "operation": "world.show",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 5,
+          "operation": "record.export",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 6,
+          "operation": "world.clock.warp",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 7,
+          "operation": "world.snapshot.save",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 8,
+          "operation": "world.snapshot.restore",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        }
+      ],
+      "calls": []
+    },
+    {
+      "name": "found Northwind and give sam the books",
+      "given": "fresh",
+      "stage": "run-f2e169-2",
+      "record": "run-f2e169/found-northwind-and-give-sam-the-books.json",
+      "asExpected": false,
+      "why": "the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"reset\",\"message\":\"{\\\"_tag\\\":\\\"SiteFailed\\\",\\\"step\\\":\\\"door\\\",\\\"message\\\":\\\"HTTP 502: upstream request failed\\\"}\"}",
+      "ended": null,
+      "failedStep": null,
+      "steps": [
+        {
+          "step": 1,
+          "operation": "org.create",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 2,
+          "operation": "org.create",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 3,
+          "operation": "approval.sign",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 4,
+          "operation": "world.show",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 5,
+          "operation": "org.member.grant",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 6,
+          "operation": "approval.sign",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 7,
+          "operation": "doc.create",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 8,
+          "operation": "report.run",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 9,
+          "operation": "org.member.grant",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 10,
+          "operation": "approval.sign",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        }
+      ],
+      "calls": []
+    },
+    {
+      "name": "pay Brightside and branch the books",
+      "given": "payment-drafted",
+      "stage": "run-f2e169-3",
+      "record": "run-f2e169/pay-brightside-and-branch-the-books.json",
+      "asExpected": false,
+      "why": "the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"reset\",\"message\":\"{\\\"_tag\\\":\\\"SiteFailed\\\",\\\"step\\\":\\\"door\\\",\\\"message\\\":\\\"HTTP 502: upstream request failed\\\"}\"}",
+      "ended": null,
+      "failedStep": null,
+      "steps": [
+        {
+          "step": 1,
+          "operation": "doc.create",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 2,
+          "operation": "doc.submit",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 3,
+          "operation": "world.snapshot.save",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 4,
+          "operation": "world.snapshot.restore",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 5,
+          "operation": "approval.sign",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 6,
+          "operation": "report.run",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 7,
+          "operation": "doc.create",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 8,
+          "operation": "world.clock.warp",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 9,
+          "operation": "approval.sign",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 10,
+          "operation": "record.export",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        }
+      ],
+      "calls": []
+    }
+  ],
+  "stages": [
+    {
+      "name": "run-f2e169-1",
+      "readiness": null,
+      "createMs": 42499,
+      "destroyMs": 0,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-f2e169-2",
+      "readiness": null,
+      "createMs": 38959,
+      "destroyMs": 0,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-f2e169-3",
+      "readiness": null,
+      "createMs": 40726,
+      "destroyMs": 0,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    }
+  ],
+  "oneWorld": {
+    "world": "tpl-e5025e",
+    "hub": "fleet",
+    "hubBroughtUp": false,
+    "left": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    },
+    "timings": [
+      {
+        "part": "world create",
+        "of": "fresh",
+        "atMs": 220,
+        "ms": 21162,
+        "ok": true
+      },
+      {
+        "part": "save fresh",
+        "of": "tpl-e5025e",
+        "atMs": 21383,
+        "ms": 18803,
+        "ok": true
+      },
+      {
+        "part": "make founded",
+        "of": "founded",
+        "atMs": 40187,
+        "ms": 227876,
+        "ok": true
+      },
+      {
+        "part": "make office-holder",
+        "of": "office-holder",
+        "atMs": 268063,
+        "ms": 10097,
+        "ok": true
+      },
+      {
+        "part": "make payment-drafted",
+        "of": "payment-drafted",
+        "atMs": 278160,
+        "ms": 3957,
+        "ok": true
+      },
+      {
+        "part": "save payment-drafted",
+        "of": "tpl-e5025e",
+        "atMs": 282117,
+        "ms": 31632,
+        "ok": true
+      },
+      {
+        "part": "bench template payment-drafted",
+        "of": "tpl-e5025e",
+        "atMs": 313749,
+        "ms": 12502,
+        "ok": true,
+        "parts": {
+          "door": 11345
+        }
+      },
+      {
+        "part": "reset",
+        "journey": "two operators and their worlds",
+        "of": "fresh",
+        "atMs": 326255,
+        "ms": 42498,
+        "ok": false,
+        "why": "{\"_tag\":\"RunnerFailure\",\"step\":\"reset\",\"message\":\"{\\\"_tag\\\":\\\"SiteFailed\\\",\\\"step\\\":\\\"door\\\",\\\"message\\\":\\\"HTTP 502: upstream request failed\\\"}\"}"
+      },
+      {
+        "part": "destroy the journey's own worlds",
+        "journey": "two operators and their worlds",
+        "atMs": 373625,
+        "ms": 0,
+        "ok": true,
+        "note": "none"
+      },
+      {
+        "part": "reset",
+        "journey": "found Northwind and give sam the books",
+        "of": "fresh",
+        "atMs": 378143,
+        "ms": 38959,
+        "ok": false,
+        "why": "{\"_tag\":\"RunnerFailure\",\"step\":\"reset\",\"message\":\"{\\\"_tag\\\":\\\"SiteFailed\\\",\\\"step\\\":\\\"door\\\",\\\"message\\\":\\\"HTTP 502: upstream request failed\\\"}\"}"
+      },
+      {
+        "part": "destroy the journey's own worlds",
+        "journey": "found Northwind and give sam the books",
+        "atMs": 420414,
+        "ms": 0,
+        "ok": true,
+        "note": "none"
+      },
+      {
+        "part": "reset",
+        "journey": "pay Brightside and branch the books",
+        "of": "payment-drafted",
+        "atMs": 423397,
+        "ms": 40726,
+        "ok": false,
+        "why": "{\"_tag\":\"RunnerFailure\",\"step\":\"reset\",\"message\":\"{\\\"_tag\\\":\\\"SiteFailed\\\",\\\"step\\\":\\\"door\\\",\\\"message\\\":\\\"HTTP 502: upstream request failed\\\"}\"}"
+      },
+      {
+        "part": "destroy the journey's own worlds",
+        "journey": "pay Brightside and branch the books",
+        "atMs": 467932,
+        "ms": 0,
+        "ok": true,
+        "note": "none"
+      },
+      {
+        "part": "drop bench template payment-drafted",
+        "of": "tpl-e5025e",
+        "atMs": 471281,
+        "ms": 14162,
+        "ok": true
+      },
+      {
+        "part": "world destroy",
+        "of": "w-tpl-e5025e",
+        "atMs": 485443,
+        "ms": 36380,
+        "ok": true
+      }
+    ],
+    "failure": null
+  }
+}

@@ -126,6 +126,25 @@ The decision "Sites from a pool" (14 November 2026) as `spikes/site-speed` measu
 Three claims at once took 1.5, 1.6 and 4.9 s (two from the pool, one copied with the pool empty), and two resets at
 once 0.25 s each. Removing a site still goes through `bench drop-site` (about 2 s).
 
+### A backup and a removal never hold a call through Cloudflare's edge (14 November 2026)
+
+PR #227's CI run 43599082569 failed with HTTP 524 on `world.snapshot.save`: a second `world.yml` run built its
+template world's site from nothing on `staging` at the same time, and `POST /world/backup` waited on the request's path
+for `BENCH_LOCK` past Cloudflare's 100 s (the CI run 43599154936 beside it failed the same way). The backup now runs in
+the background (`GET /world/backup/<snapshot>` for its state) and a ready site's removal no longer takes `BENCH_LOCK`.
+`records/backup-async/` measured both doors, this one and the one before, on a stand-in bench (`prove.py`: the real
+`door/door.py`, `bench` replaced by `bench-stand-in.sh`, whose `new-site` of another world's site holds the bench lock
+for 130 s), with packages/world's own client saving the world (`save.ts.txt`):
+
+| Call, while another world's site is made from nothing | Door before | This door |
+|---|---|---|
+| `POST /world/backup` | 200 after 132.2 s (Cloudflare answers 524 at 100 s) | 202 `saving` after 2 ms |
+| `DELETE /sites/<ready site>` | 200 after 130.5 s | 200 after 1.0 s |
+| packages/world's save (`backUp`: the POST, then `GET` until saved) | 131.4 s, one call held throughout | 130.3 s, no call over a second |
+
+Not run on `staging`: the door changes there only when `platform.yml` deploys it. Until then packages/world's save
+still takes the old door's answer.
+
 ### What is proven, on a local bench
 
 `proof/prove.py`, against `bin/pool-bench.sh`'s bench (the containers `src/bench.ts` declares, MariaDB with

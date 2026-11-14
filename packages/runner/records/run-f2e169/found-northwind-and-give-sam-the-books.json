@@ -1,0 +1,139 @@
+{
+  "kind": "journey",
+  "name": "found Northwind and give sam the books",
+  "proves": null,
+  "given": "fresh",
+  "stage": "run-f2e169-2",
+  "owner": "runner",
+  "startedAt": "2026-11-14T13:52:08.402Z",
+  "outcome": "failed",
+  "failure": "the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"reset\",\"message\":\"{\\\"_tag\\\":\\\"SiteFailed\\\",\\\"step\\\":\\\"door\\\",\\\"message\\\":\\\"HTTP 502: upstream request failed\\\"}\"}",
+  "ended": null,
+  "readiness": null,
+  "calls": [],
+  "steps": [
+    {
+      "step": 1,
+      "operation": "org.create",
+      "does": "founders who cannot found, and payloads org.create's schema does not take, are refused, and nothing is made",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 2,
+      "operation": "org.create",
+      "does": "dana founds Northwind as she typed it, its bio and size trimmed; the same founding resumes it, and nobody founds it twice",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 3,
+      "operation": "approval.sign",
+      "does": "dana's signature of the setup is kept and eli's sends it: the board and its capital are on the chain",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 4,
+      "operation": "world.show",
+      "does": "Northwind's site becomes ready, and the world shows everything it was made with",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 5,
+      "operation": "org.member.grant",
+      "does": "dana proposes that sam keep the books; who may not ask, or be given it, is refused, and a second change waits",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 6,
+      "operation": "approval.sign",
+      "does": "dana's signature is kept and eli's executes the grant: sam's Safe wears the Books hat",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 7,
+      "operation": "doc.create",
+      "does": "sam's user reaches the site and he makes Brightside; pat, a nameless Supplier and an Employee are refused",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 8,
+      "operation": "report.run",
+      "does": "sam lists the Suppliers, only Brightside; pat, a payroll report and one that does not exist are refused",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 9,
+      "operation": "org.member.grant",
+      "does": "sam already keeps the books; dana proposes that he also manage people",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 10,
+      "operation": "approval.sign",
+      "does": "dana and eli sign: sam's Safe wears the People hat",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    }
+  ],
+  "failedStep": null,
+  "making": [],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    }
+  },
+  "ms": {
+    "create": 38959,
+    "run": null,
+    "checks": null,
+    "destroy": 0
+  }
+}
