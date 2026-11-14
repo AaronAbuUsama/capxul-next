@@ -1,0 +1,1398 @@
+{
+  "claim": "a world as Durable Object names on one hub plus a Neon branch: time until chain, index and bundler answer",
+  "hub": "native-std1",
+  "parallel": false,
+  "instance": "standard-1",
+  "at": "2026-11-14T00:04:23Z",
+  "totalMs": 57945.30078125,
+  "worlds": [
+    {
+      "world": "native-std1-14605-0",
+      "began": "2026-11-14T00:03:25Z",
+      "chain": {
+        "status": 200,
+        "clientMs": 2965.777099609375,
+        "kind": "chain",
+        "inspected": {
+          "labels": {},
+          "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-anvil@sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474"
+        },
+        "native": true,
+        "began": "2026-11-14T00:03:26.388Z",
+        "readyMs": 2484,
+        "startCalls": 1,
+        "refusals": 0,
+        "attempts": [
+          {
+            "at": 0,
+            "startCalled": true,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:8545",
+            "ms": 1979
+          },
+          {
+            "at": 2479,
+            "startCalled": false,
+            "outcome": "ready",
+            "ms": 5
+          }
+        ],
+        "lastDetail": "200 {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x14a34\"}",
+        "monitorEvents": [],
+        "workerMs": 2704
+      },
+      "chainReadyAtMs": 2966.78466796875,
+      "branch": {
+        "apiMs": 706.033935546875,
+        "operationsMs": 2151.807373046875
+      },
+      "branchReadyAtMs": 2966.7998046875,
+      "index": {
+        "status": 200,
+        "clientMs": 5210.676513671875,
+        "kind": "index",
+        "inspected": {
+          "labels": {},
+          "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9"
+        },
+        "native": true,
+        "began": "2026-11-14T00:03:29.804Z",
+        "readyMs": 4733,
+        "startCalls": 1,
+        "refusals": 0,
+        "attempts": [
+          {
+            "at": 0,
+            "startCalled": true,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 202
+          },
+          {
+            "at": 702,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 2
+          },
+          {
+            "at": 1204,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 3
+          },
+          {
+            "at": 1707,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 2
+          },
+          {
+            "at": 2209,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 3
+          },
+          {
+            "at": 2712,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 3
+          },
+          {
+            "at": 3215,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 3
+          },
+          {
+            "at": 3718,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 2
+          },
+          {
+            "at": 4220,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 3
+          },
+          {
+            "at": 4723,
+            "startCalled": false,
+            "outcome": "ready",
+            "ms": 10
+          }
+        ],
+        "lastDetail": "200",
+        "monitorEvents": [],
+        "workerMs": 5000
+      },
+      "indexHealthyAtMs": 8665.857421875,
+      "indexReadyAfterHealthyMs": 2824.972412109375,
+      "indexReadyAtMs": 11490.834716796875,
+      "indexMetrics": [
+        "ponder_historical_concurrency_group_duration{group=\"extract\"} 490.00460700000167",
+        "ponder_historical_concurrency_group_duration{group=\"transform\"} 555.2077340000005",
+        "ponder_historical_extract_duration{step=\"build\"} 1.1655399999981455",
+        "ponder_historical_extract_duration{step=\"decode\"} 0.4934819999998581",
+        "ponder_historical_transform_duration{step=\"prefetch\"} 1.2363609999983964",
+        "ponder_historical_transform_duration{step=\"begin\"} 92.09064699999908",
+        "ponder_historical_transform_duration{step=\"index\"} 4.629273000000467",
+        "ponder_historical_transform_duration{step=\"load\"} 275.0522150000006",
+        "ponder_historical_transform_duration{step=\"finalize\"} 91.02521699999943",
+        "ponder_historical_transform_duration{step=\"commit\"} 88.81116500000189",
+        "ponder_historical_start_timestamp_seconds{chain=\"world\"} 1794614614",
+        "ponder_historical_end_timestamp_seconds{chain=\"world\"} 1794614615",
+        "ponder_historical_total_indexing_seconds{chain=\"world\"} 29",
+        "ponder_historical_cached_indexing_seconds{chain=\"world\"} 0",
+        "ponder_historical_completed_indexing_seconds{chain=\"world\"} 29",
+        "ponder_indexing_function_duration_bucket{le=\"0.001\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.005\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.01\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.05\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.1\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.5\",event=\"Head:block\"} 6",
+        "ponder_indexing_function_duration_bucket{le=\"1\",event=\"Head:block\"} 7",
+        "ponder_indexing_function_duration_bucket{le=\"5\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"10\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"50\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"100\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"500\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"1000\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"5000\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"10000\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"50000\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"100000\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"+Inf\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_sum{event=\"Head:block\"} 3.084912999998778",
+        "ponder_indexing_function_duration_count{event=\"Head:block\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"1\",table=\"indexer_progress\",method=\"flush\"} 0",
+        "ponder_indexing_cache_query_duration_bucket{le=\"5\",table=\"indexer_progress\",method=\"flush\"} 0",
+        "ponder_indexing_cache_query_duration_bucket{le=\"10\",table=\"indexer_progress\",method=\"flush\"} 0",
+        "ponder_indexing_cache_query_duration_bucket{le=\"50\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"100\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"500\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"1000\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"5000\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"10000\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"50000\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"100000\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"500000\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"+Inf\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_sum{table=\"indexer_progress\",method=\"flush\"} 99.05046400000083",
+        "ponder_indexing_cache_query_duration_count{table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_requests_total{table=\"chain_logs\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_logs\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_logs\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_logs\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"transfers\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"transfers\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"transfers\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"transfers\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_payments\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_payments\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_payments\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_payments\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"user_operations\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"user_operations\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"user_operations\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"user_operations\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"indexer_progress\",type=\"complete\"} 8",
+        "ponder_indexing_cache_requests_total{table=\"indexer_progress\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"indexer_progress\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"indexer_progress\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"known_safes\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"known_safes\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"known_safes\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"known_safes\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"hat_trees\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"hat_trees\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"hat_trees\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"hat_trees\",type=\"prefetch\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_logs\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_logs\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_logs\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_logs\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"transfers\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"transfers\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"transfers\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"transfers\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_payments\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_payments\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_payments\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_payments\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"user_operations\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"user_operations\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"user_operations\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"user_operations\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"indexer_progress\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"indexer_progress\",method=\"insert\"} 8",
+        "ponder_indexing_store_queries_total{table=\"indexer_progress\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"indexer_progress\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"known_safes\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"known_safes\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"known_safes\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"known_safes\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"hat_trees\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"hat_trees\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"hat_trees\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"hat_trees\",method=\"delete\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"1\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"5\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"10\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"50\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"100\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"500\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"1000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"5000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"10000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"50000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"100000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"500000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"+Inf\"} 0",
+        "ponder_indexing_store_raw_sql_duration_sum 0",
+        "ponder_indexing_store_raw_sql_duration_count 0",
+        "ponder_historical_total_blocks{chain=\"world\"} 8",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"migrate\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"migrate\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"migrate\"} 0",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"migrate\"} 26",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"migrate\"} 27",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"migrate\"} 27",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_sum{method=\"migrate\"} 1023.0980020000006",
+        "ponder_database_method_duration_count{method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_sum{method=\"migrate_sync\"} 191.16731299999992",
+        "ponder_database_method_duration_count{method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"update_checkpoints\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"update_checkpoints\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"update_checkpoints\"} 0",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_sum{method=\"update_checkpoints\"} 107.45139299999846",
+        "ponder_database_method_duration_count{method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"select_ready\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"select_ready\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"select_ready\"} 0",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"select_ready\"} 2",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"select_ready\"} 3",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"select_ready\"} 4",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"select_ready\"} 4",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"select_ready\"} 4",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"select_ready\"} 4",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"select_ready\"} 4",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"select_ready\"} 4",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"select_ready\"} 4",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"select_ready\"} 4",
+        "ponder_database_method_duration_sum{method=\"select_ready\"} 217.60958599999867",
+        "ponder_database_method_duration_count{method=\"select_ready\"} 4",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"create_indexes\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"create_indexes\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"create_indexes\"} 2",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_sum{method=\"create_indexes\"} 187.248751000001",
+        "ponder_database_method_duration_count{method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"create_trigger\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"create_trigger\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"create_trigger\"} 0"
+      ],
+      "bundler": {
+        "status": 200,
+        "clientMs": 12661.689453125,
+        "kind": "bundler",
+        "inspected": {
+          "labels": {},
+          "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-alto@sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916"
+        },
+        "native": true,
+        "began": "2026-11-14T00:03:30.293Z",
+        "readyMs": 12292,
+        "startCalls": 1,
+        "refusals": 0,
+        "attempts": [
+          {
+            "at": 0,
+            "startCalled": true,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 7202
+          },
+          {
+            "at": 7702,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 5
+          },
+          {
+            "at": 8207,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 4
+          },
+          {
+            "at": 8711,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 3
+          },
+          {
+            "at": 9214,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 6
+          },
+          {
+            "at": 9720,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 4
+          },
+          {
+            "at": 10224,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 4
+          },
+          {
+            "at": 10728,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 19
+          },
+          {
+            "at": 11247,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 5
+          },
+          {
+            "at": 11752,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 5
+          },
+          {
+            "at": 12257,
+            "startCalled": false,
+            "outcome": "ready",
+            "ms": 35
+          }
+        ],
+        "lastDetail": "200 {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":[\"0x0000000071727De22E5E9d8BAf0edAc6f37da032\"]}",
+        "monitorEvents": [],
+        "workerMs": 12470
+      },
+      "bundlerReadyAtMs": 16686.560546875,
+      "worldAnswersAtMs": 16686.687255859375,
+      "head": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": "0x2dacb0f"
+      },
+      "stopped": {
+        "bundler": {
+          "status": 200,
+          "answer": {
+            "forgotten": true
+          },
+          "ms": 631.21240234375
+        },
+        "index": {
+          "status": 200,
+          "answer": {
+            "forgotten": true
+          },
+          "ms": 756.56396484375
+        },
+        "chain": {
+          "status": 200,
+          "answer": {
+            "forgotten": true
+          },
+          "ms": 1226.347900390625
+        }
+      },
+      "branchDeleted": {
+        "status": 200,
+        "apiMs": 303.46923828125,
+        "operationsMs": 1225.281005859375
+      }
+    },
+    {
+      "world": "native-std1-14605-1",
+      "began": "2026-11-14T00:03:47Z",
+      "chain": {
+        "status": 200,
+        "clientMs": 1043.296630859375,
+        "kind": "chain",
+        "inspected": {
+          "labels": {},
+          "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-anvil@sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474"
+        },
+        "native": true,
+        "began": "2026-11-14T00:03:47.368Z",
+        "readyMs": 643,
+        "startCalls": 1,
+        "refusals": 0,
+        "attempts": [
+          {
+            "at": 0,
+            "startCalled": true,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:8545",
+            "ms": 135
+          },
+          {
+            "at": 635,
+            "startCalled": false,
+            "outcome": "ready",
+            "ms": 8
+          }
+        ],
+        "lastDetail": "200 {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x14a34\"}",
+        "monitorEvents": [],
+        "workerMs": 865
+      },
+      "chainReadyAtMs": 1044.36767578125,
+      "branch": {
+        "apiMs": 441.477294921875,
+        "operationsMs": 1849.35986328125
+      },
+      "branchReadyAtMs": 2291.895751953125,
+      "index": {
+        "status": 200,
+        "clientMs": 5290.94921875,
+        "kind": "index",
+        "inspected": {
+          "labels": {},
+          "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9"
+        },
+        "native": true,
+        "began": "2026-11-14T00:03:50.160Z",
+        "readyMs": 4739,
+        "startCalls": 1,
+        "refusals": 0,
+        "attempts": [
+          {
+            "at": 0,
+            "startCalled": true,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 177
+          },
+          {
+            "at": 677,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 6
+          },
+          {
+            "at": 1183,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 5
+          },
+          {
+            "at": 1688,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 6
+          },
+          {
+            "at": 2194,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 6
+          },
+          {
+            "at": 2700,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 7
+          },
+          {
+            "at": 3207,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 5
+          },
+          {
+            "at": 3712,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 6
+          },
+          {
+            "at": 4218,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 7
+          },
+          {
+            "at": 4725,
+            "startCalled": false,
+            "outcome": "ready",
+            "ms": 14
+          }
+        ],
+        "lastDetail": "200",
+        "monitorEvents": [],
+        "workerMs": 5078
+      },
+      "indexHealthyAtMs": 7962.572021484375,
+      "bundler": {
+        "status": 200,
+        "clientMs": 5147.716552734375,
+        "kind": "bundler",
+        "inspected": {
+          "labels": {},
+          "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-alto@sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916"
+        },
+        "native": true,
+        "began": "2026-11-14T00:03:50.454Z",
+        "readyMs": 4731,
+        "startCalls": 1,
+        "refusals": 0,
+        "attempts": [
+          {
+            "at": 0,
+            "startCalled": true,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 165
+          },
+          {
+            "at": 665,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 4
+          },
+          {
+            "at": 1169,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 4
+          },
+          {
+            "at": 1673,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 4
+          },
+          {
+            "at": 2177,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 4
+          },
+          {
+            "at": 2681,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 4
+          },
+          {
+            "at": 3185,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 4
+          },
+          {
+            "at": 3689,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 14
+          },
+          {
+            "at": 4203,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 3
+          },
+          {
+            "at": 4706,
+            "startCalled": false,
+            "outcome": "ready",
+            "ms": 25
+          }
+        ],
+        "lastDetail": "200 {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":[\"0x0000000071727De22E5E9d8BAf0edAc6f37da032\"]}",
+        "monitorEvents": [],
+        "workerMs": 4942
+      },
+      "bundlerReadyAtMs": 8231.75830078125,
+      "indexReadyAfterHealthyMs": 2940.329345703125,
+      "indexReadyAtMs": 10902.904541015625,
+      "indexMetrics": [
+        "ponder_historical_concurrency_group_duration{group=\"extract\"} 357.0483639999975",
+        "ponder_historical_concurrency_group_duration{group=\"transform\"} 464.3226360000008",
+        "ponder_historical_extract_duration{step=\"build\"} 1.3006109999996625",
+        "ponder_historical_extract_duration{step=\"decode\"} 0.4425309999996898",
+        "ponder_historical_transform_duration{step=\"prefetch\"} 1.216881999999714",
+        "ponder_historical_transform_duration{step=\"begin\"} 75.63581500000055",
+        "ponder_historical_transform_duration{step=\"index\"} 4.427413999998862",
+        "ponder_historical_transform_duration{step=\"load\"} 229.6046640000004",
+        "ponder_historical_transform_duration{step=\"finalize\"} 77.49099700000079",
+        "ponder_historical_transform_duration{step=\"commit\"} 73.23419300000205",
+        "ponder_historical_start_timestamp_seconds{chain=\"world\"} 1794614635",
+        "ponder_historical_end_timestamp_seconds{chain=\"world\"} 1794614636",
+        "ponder_historical_total_indexing_seconds{chain=\"world\"} 29",
+        "ponder_historical_cached_indexing_seconds{chain=\"world\"} 0",
+        "ponder_historical_completed_indexing_seconds{chain=\"world\"} 29",
+        "ponder_indexing_function_duration_bucket{le=\"0.001\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.005\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.01\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.05\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.1\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.5\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"1\",event=\"Head:block\"} 9",
+        "ponder_indexing_function_duration_bucket{le=\"5\",event=\"Head:block\"} 10",
+        "ponder_indexing_function_duration_bucket{le=\"10\",event=\"Head:block\"} 10",
+        "ponder_indexing_function_duration_bucket{le=\"50\",event=\"Head:block\"} 10",
+        "ponder_indexing_function_duration_bucket{le=\"100\",event=\"Head:block\"} 10",
+        "ponder_indexing_function_duration_bucket{le=\"500\",event=\"Head:block\"} 10",
+        "ponder_indexing_function_duration_bucket{le=\"1000\",event=\"Head:block\"} 10",
+        "ponder_indexing_function_duration_bucket{le=\"5000\",event=\"Head:block\"} 10",
+        "ponder_indexing_function_duration_bucket{le=\"10000\",event=\"Head:block\"} 10",
+        "ponder_indexing_function_duration_bucket{le=\"50000\",event=\"Head:block\"} 10",
+        "ponder_indexing_function_duration_bucket{le=\"100000\",event=\"Head:block\"} 10",
+        "ponder_indexing_function_duration_bucket{le=\"+Inf\",event=\"Head:block\"} 10",
+        "ponder_indexing_function_duration_sum{event=\"Head:block\"} 3.6000929999981963",
+        "ponder_indexing_function_duration_count{event=\"Head:block\"} 10",
+        "ponder_indexing_cache_query_duration_bucket{le=\"1\",table=\"indexer_progress\",method=\"flush\"} 0",
+        "ponder_indexing_cache_query_duration_bucket{le=\"5\",table=\"indexer_progress\",method=\"flush\"} 0",
+        "ponder_indexing_cache_query_duration_bucket{le=\"10\",table=\"indexer_progress\",method=\"flush\"} 6",
+        "ponder_indexing_cache_query_duration_bucket{le=\"50\",table=\"indexer_progress\",method=\"flush\"} 10",
+        "ponder_indexing_cache_query_duration_bucket{le=\"100\",table=\"indexer_progress\",method=\"flush\"} 10",
+        "ponder_indexing_cache_query_duration_bucket{le=\"500\",table=\"indexer_progress\",method=\"flush\"} 10",
+        "ponder_indexing_cache_query_duration_bucket{le=\"1000\",table=\"indexer_progress\",method=\"flush\"} 10",
+        "ponder_indexing_cache_query_duration_bucket{le=\"5000\",table=\"indexer_progress\",method=\"flush\"} 10",
+        "ponder_indexing_cache_query_duration_bucket{le=\"10000\",table=\"indexer_progress\",method=\"flush\"} 10",
+        "ponder_indexing_cache_query_duration_bucket{le=\"50000\",table=\"indexer_progress\",method=\"flush\"} 10",
+        "ponder_indexing_cache_query_duration_bucket{le=\"100000\",table=\"indexer_progress\",method=\"flush\"} 10",
+        "ponder_indexing_cache_query_duration_bucket{le=\"500000\",table=\"indexer_progress\",method=\"flush\"} 10",
+        "ponder_indexing_cache_query_duration_bucket{le=\"+Inf\",table=\"indexer_progress\",method=\"flush\"} 10",
+        "ponder_indexing_cache_query_duration_sum{table=\"indexer_progress\",method=\"flush\"} 100.9922860000006",
+        "ponder_indexing_cache_query_duration_count{table=\"indexer_progress\",method=\"flush\"} 10",
+        "ponder_indexing_cache_query_duration_bucket{le=\"1\",table=\"indexer_progress\",method=\"load\"} 0",
+        "ponder_indexing_cache_query_duration_bucket{le=\"5\",table=\"indexer_progress\",method=\"load\"} 0",
+        "ponder_indexing_cache_query_duration_bucket{le=\"10\",table=\"indexer_progress\",method=\"load\"} 0",
+        "ponder_indexing_cache_query_duration_bucket{le=\"50\",table=\"indexer_progress\",method=\"load\"} 1",
+        "ponder_indexing_cache_query_duration_bucket{le=\"100\",table=\"indexer_progress\",method=\"load\"} 1",
+        "ponder_indexing_cache_query_duration_bucket{le=\"500\",table=\"indexer_progress\",method=\"load\"} 1",
+        "ponder_indexing_cache_query_duration_bucket{le=\"1000\",table=\"indexer_progress\",method=\"load\"} 1",
+        "ponder_indexing_cache_query_duration_bucket{le=\"5000\",table=\"indexer_progress\",method=\"load\"} 1",
+        "ponder_indexing_cache_query_duration_bucket{le=\"10000\",table=\"indexer_progress\",method=\"load\"} 1",
+        "ponder_indexing_cache_query_duration_bucket{le=\"50000\",table=\"indexer_progress\",method=\"load\"} 1",
+        "ponder_indexing_cache_query_duration_bucket{le=\"100000\",table=\"indexer_progress\",method=\"load\"} 1",
+        "ponder_indexing_cache_query_duration_bucket{le=\"500000\",table=\"indexer_progress\",method=\"load\"} 1",
+        "ponder_indexing_cache_query_duration_bucket{le=\"+Inf\",table=\"indexer_progress\",method=\"load\"} 1",
+        "ponder_indexing_cache_query_duration_sum{table=\"indexer_progress\",method=\"load\"} 11.317509999999857",
+        "ponder_indexing_cache_query_duration_count{table=\"indexer_progress\",method=\"load\"} 1",
+        "ponder_indexing_cache_requests_total{table=\"chain_logs\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_logs\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_logs\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_logs\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"transfers\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"transfers\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"transfers\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"transfers\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_payments\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_payments\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_payments\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_payments\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"user_operations\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"user_operations\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"user_operations\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"user_operations\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"indexer_progress\",type=\"complete\"} 8",
+        "ponder_indexing_cache_requests_total{table=\"indexer_progress\",type=\"hit\"} 2",
+        "ponder_indexing_cache_requests_total{table=\"indexer_progress\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"indexer_progress\",type=\"prefetch\"} 1",
+        "ponder_indexing_cache_requests_total{table=\"known_safes\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"known_safes\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"known_safes\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"known_safes\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"hat_trees\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"hat_trees\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"hat_trees\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"hat_trees\",type=\"prefetch\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_logs\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_logs\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_logs\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_logs\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"transfers\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"transfers\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"transfers\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"transfers\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_payments\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_payments\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_payments\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_payments\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"user_operations\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"user_operations\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"user_operations\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"user_operations\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"indexer_progress\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"indexer_progress\",method=\"insert\"} 10",
+        "ponder_indexing_store_queries_total{table=\"indexer_progress\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"indexer_progress\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"known_safes\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"known_safes\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"known_safes\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"known_safes\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"hat_trees\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"hat_trees\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"hat_trees\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"hat_trees\",method=\"delete\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"1\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"5\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"10\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"50\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"100\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"500\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"1000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"5000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"10000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"50000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"100000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"500000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"+Inf\"} 0",
+        "ponder_indexing_store_raw_sql_duration_sum 0",
+        "ponder_indexing_store_raw_sql_duration_count 0",
+        "ponder_historical_total_blocks{chain=\"world\"} 8",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"migrate\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"migrate\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"migrate\"} 5",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"migrate\"} 26",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"migrate\"} 27",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"migrate\"} 27",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_sum{method=\"migrate\"} 972.210457000001",
+        "ponder_database_method_duration_count{method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_sum{method=\"migrate_sync\"} 209.40711799999963",
+        "ponder_database_method_duration_count{method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"update_checkpoints\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"update_checkpoints\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"update_checkpoints\"} 7",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"update_checkpoints\"} 10",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"update_checkpoints\"} 10",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"update_checkpoints\"} 10",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"update_checkpoints\"} 10",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"update_checkpoints\"} 10",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"update_checkpoints\"} 10",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"update_checkpoints\"} 10",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"update_checkpoints\"} 10",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"update_checkpoints\"} 10",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"update_checkpoints\"} 10",
+        "ponder_database_method_duration_sum{method=\"update_checkpoints\"} 129.5711500000025",
+        "ponder_database_method_duration_count{method=\"update_checkpoints\"} 10",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"select_ready\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"select_ready\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"select_ready\"} 0",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"select_ready\"} 2",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"select_ready\"} 4",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"select_ready\"} 4",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"select_ready\"} 4",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"select_ready\"} 4",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"select_ready\"} 4",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"select_ready\"} 4",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"select_ready\"} 4",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"select_ready\"} 4",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"select_ready\"} 4",
+        "ponder_database_method_duration_sum{method=\"select_ready\"} 210.70370899999944",
+        "ponder_database_method_duration_count{method=\"select_ready\"} 4",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"create_indexes\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"create_indexes\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"create_indexes\"} 3"
+      ],
+      "worldAnswersAtMs": 11257.33837890625,
+      "head": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": "0x2dacb0f"
+      },
+      "stopped": {
+        "bundler": {
+          "status": 200,
+          "answer": {
+            "forgotten": true
+          },
+          "ms": 493.736328125
+        },
+        "index": {
+          "status": 200,
+          "answer": {
+            "forgotten": true
+          },
+          "ms": 498.300537109375
+        },
+        "chain": {
+          "status": 200,
+          "answer": {
+            "forgotten": true
+          },
+          "ms": 1039.698974609375
+        }
+      },
+      "branchDeleted": {
+        "status": 200,
+        "apiMs": 259.998046875,
+        "operationsMs": 1053.123779296875
+      }
+    },
+    {
+      "world": "native-std1-14605-2",
+      "began": "2026-11-14T00:04:01Z",
+      "chain": {
+        "status": 200,
+        "clientMs": 2755.884765625,
+        "kind": "chain",
+        "inspected": {
+          "labels": {},
+          "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-anvil@sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474"
+        },
+        "native": true,
+        "began": "2026-11-14T00:04:02.260Z",
+        "readyMs": 2246,
+        "startCalls": 1,
+        "refusals": 0,
+        "attempts": [
+          {
+            "at": 0,
+            "startCalled": true,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:8545",
+            "ms": 1738
+          },
+          {
+            "at": 2238,
+            "startCalled": false,
+            "outcome": "ready",
+            "ms": 8
+          }
+        ],
+        "lastDetail": "200 {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x14a34\"}",
+        "monitorEvents": [],
+        "workerMs": 2454
+      },
+      "chainReadyAtMs": 2756.620361328125,
+      "branch": {
+        "apiMs": 457.30517578125,
+        "operationsMs": 2142.11279296875
+      },
+      "branchReadyAtMs": 2756.628662109375,
+      "bundler": {
+        "status": 200,
+        "clientMs": 6238.907958984375,
+        "kind": "bundler",
+        "inspected": {
+          "labels": {},
+          "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-alto@sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916"
+        },
+        "native": true,
+        "began": "2026-11-14T00:04:05.742Z",
+        "readyMs": 5872,
+        "startCalls": 1,
+        "refusals": 0,
+        "attempts": [
+          {
+            "at": 0,
+            "startCalled": true,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 236
+          },
+          {
+            "at": 736,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 6
+          },
+          {
+            "at": 1242,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 8
+          },
+          {
+            "at": 1750,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 15
+          },
+          {
+            "at": 2265,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 10
+          },
+          {
+            "at": 2775,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 7
+          },
+          {
+            "at": 3282,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 9
+          },
+          {
+            "at": 3791,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 8
+          },
+          {
+            "at": 4299,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 8
+          },
+          {
+            "at": 4807,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 9
+          },
+          {
+            "at": 5316,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:4337",
+            "ms": 8
+          },
+          {
+            "at": 5824,
+            "startCalled": false,
+            "outcome": "ready",
+            "ms": 48
+          }
+        ],
+        "lastDetail": "200 {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":[\"0x0000000071727De22E5E9d8BAf0edAc6f37da032\"]}",
+        "monitorEvents": [],
+        "workerMs": 6058
+      },
+      "bundlerReadyAtMs": 9863.16259765625,
+      "index": {
+        "status": 200,
+        "clientMs": 12996.33984375,
+        "kind": "index",
+        "inspected": {
+          "labels": {},
+          "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9"
+        },
+        "native": true,
+        "began": "2026-11-14T00:04:05.366Z",
+        "readyMs": 12519,
+        "startCalls": 1,
+        "refusals": 0,
+        "attempts": [
+          {
+            "at": 0,
+            "startCalled": true,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 6953
+          },
+          {
+            "at": 7453,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 4
+          },
+          {
+            "at": 7957,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 3
+          },
+          {
+            "at": 8460,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 4
+          },
+          {
+            "at": 8964,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 3
+          },
+          {
+            "at": 9467,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 6
+          },
+          {
+            "at": 9973,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 4
+          },
+          {
+            "at": 10477,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 5
+          },
+          {
+            "at": 10982,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 4
+          },
+          {
+            "at": 11486,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 3
+          },
+          {
+            "at": 11989,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 3
+          },
+          {
+            "at": 12492,
+            "startCalled": false,
+            "outcome": "ready",
+            "ms": 27
+          }
+        ],
+        "lastDetail": "200",
+        "monitorEvents": [],
+        "workerMs": 12810
+      },
+      "indexHealthyAtMs": 16164.28125,
+      "indexReadyAfterHealthyMs": 1093.685546875,
+      "indexReadyAtMs": 17257.96923828125,
+      "indexMetrics": [
+        "ponder_historical_concurrency_group_duration{group=\"extract\"} 647.4135780000033",
+        "ponder_historical_concurrency_group_duration{group=\"transform\"} 242.69174100000055",
+        "ponder_historical_extract_duration{step=\"build\"} 2.1256849999972474",
+        "ponder_historical_extract_duration{step=\"decode\"} 0.7996830000010959",
+        "ponder_historical_transform_duration{step=\"prefetch\"} 2.196552999999767",
+        "ponder_historical_transform_duration{step=\"begin\"} 37.70718300000135",
+        "ponder_historical_transform_duration{step=\"index\"} 8.272144999999",
+        "ponder_historical_transform_duration{step=\"load\"} 113.00299600000108",
+        "ponder_historical_transform_duration{step=\"finalize\"} 41.359347999999954",
+        "ponder_historical_transform_duration{step=\"commit\"} 33.777648000001136",
+        "ponder_historical_start_timestamp_seconds{chain=\"world\"} 1794614658",
+        "ponder_historical_end_timestamp_seconds{chain=\"world\"} 1794614659",
+        "ponder_historical_total_indexing_seconds{chain=\"world\"} 38",
+        "ponder_historical_cached_indexing_seconds{chain=\"world\"} 0",
+        "ponder_historical_completed_indexing_seconds{chain=\"world\"} 38",
+        "ponder_indexing_function_duration_bucket{le=\"0.001\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.005\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.01\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.05\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.1\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.5\",event=\"Head:block\"} 9",
+        "ponder_indexing_function_duration_bucket{le=\"1\",event=\"Head:block\"} 10",
+        "ponder_indexing_function_duration_bucket{le=\"5\",event=\"Head:block\"} 12",
+        "ponder_indexing_function_duration_bucket{le=\"10\",event=\"Head:block\"} 12",
+        "ponder_indexing_function_duration_bucket{le=\"50\",event=\"Head:block\"} 12",
+        "ponder_indexing_function_duration_bucket{le=\"100\",event=\"Head:block\"} 12",
+        "ponder_indexing_function_duration_bucket{le=\"500\",event=\"Head:block\"} 12",
+        "ponder_indexing_function_duration_bucket{le=\"1000\",event=\"Head:block\"} 12",
+        "ponder_indexing_function_duration_bucket{le=\"5000\",event=\"Head:block\"} 12",
+        "ponder_indexing_function_duration_bucket{le=\"10000\",event=\"Head:block\"} 12",
+        "ponder_indexing_function_duration_bucket{le=\"50000\",event=\"Head:block\"} 12",
+        "ponder_indexing_function_duration_bucket{le=\"100000\",event=\"Head:block\"} 12",
+        "ponder_indexing_function_duration_bucket{le=\"+Inf\",event=\"Head:block\"} 12",
+        "ponder_indexing_function_duration_sum{event=\"Head:block\"} 5.409729999999399",
+        "ponder_indexing_function_duration_count{event=\"Head:block\"} 12",
+        "ponder_indexing_cache_query_duration_bucket{le=\"1\",table=\"indexer_progress\",method=\"flush\"} 0",
+        "ponder_indexing_cache_query_duration_bucket{le=\"5\",table=\"indexer_progress\",method=\"flush\"} 12",
+        "ponder_indexing_cache_query_duration_bucket{le=\"10\",table=\"indexer_progress\",method=\"flush\"} 12",
+        "ponder_indexing_cache_query_duration_bucket{le=\"50\",table=\"indexer_progress\",method=\"flush\"} 12",
+        "ponder_indexing_cache_query_duration_bucket{le=\"100\",table=\"indexer_progress\",method=\"flush\"} 12",
+        "ponder_indexing_cache_query_duration_bucket{le=\"500\",table=\"indexer_progress\",method=\"flush\"} 12",
+        "ponder_indexing_cache_query_duration_bucket{le=\"1000\",table=\"indexer_progress\",method=\"flush\"} 12",
+        "ponder_indexing_cache_query_duration_bucket{le=\"5000\",table=\"indexer_progress\",method=\"flush\"} 12",
+        "ponder_indexing_cache_query_duration_bucket{le=\"10000\",table=\"indexer_progress\",method=\"flush\"} 12",
+        "ponder_indexing_cache_query_duration_bucket{le=\"50000\",table=\"indexer_progress\",method=\"flush\"} 12",
+        "ponder_indexing_cache_query_duration_bucket{le=\"100000\",table=\"indexer_progress\",method=\"flush\"} 12",
+        "ponder_indexing_cache_query_duration_bucket{le=\"500000\",table=\"indexer_progress\",method=\"flush\"} 12",
+        "ponder_indexing_cache_query_duration_bucket{le=\"+Inf\",table=\"indexer_progress\",method=\"flush\"} 12",
+        "ponder_indexing_cache_query_duration_sum{table=\"indexer_progress\",method=\"flush\"} 43.573411999998825",
+        "ponder_indexing_cache_query_duration_count{table=\"indexer_progress\",method=\"flush\"} 12",
+        "ponder_indexing_cache_requests_total{table=\"chain_logs\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_logs\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_logs\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_logs\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"transfers\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"transfers\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"transfers\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"transfers\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_payments\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_payments\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_payments\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_payments\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"user_operations\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"user_operations\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"user_operations\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"user_operations\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"indexer_progress\",type=\"complete\"} 12",
+        "ponder_indexing_cache_requests_total{table=\"indexer_progress\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"indexer_progress\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"indexer_progress\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"known_safes\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"known_safes\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"known_safes\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"known_safes\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"hat_trees\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"hat_trees\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"hat_trees\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"hat_trees\",type=\"prefetch\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_logs\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_logs\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_logs\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_logs\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"transfers\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"transfers\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"transfers\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"transfers\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_payments\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_payments\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_payments\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_payments\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"user_operations\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"user_operations\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"user_operations\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"user_operations\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"indexer_progress\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"indexer_progress\",method=\"insert\"} 12",
+        "ponder_indexing_store_queries_total{table=\"indexer_progress\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"indexer_progress\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"known_safes\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"known_safes\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"known_safes\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"known_safes\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"hat_trees\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"hat_trees\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"hat_trees\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"hat_trees\",method=\"delete\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"1\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"5\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"10\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"50\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"100\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"500\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"1000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"5000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"10000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"50000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"100000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"500000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"+Inf\"} 0",
+        "ponder_indexing_store_raw_sql_duration_sum 0",
+        "ponder_indexing_store_raw_sql_duration_count 0",
+        "ponder_historical_total_blocks{chain=\"world\"} 12",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"migrate\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"migrate\"} 1",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"migrate\"} 24",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"migrate\"} 26",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"migrate\"} 27",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_sum{method=\"migrate\"} 671.7953030000035",
+        "ponder_database_method_duration_count{method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_sum{method=\"migrate_sync\"} 114.91244900000038",
+        "ponder_database_method_duration_count{method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"update_checkpoints\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"update_checkpoints\"} 12",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"update_checkpoints\"} 13",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"update_checkpoints\"} 13",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"update_checkpoints\"} 13",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"update_checkpoints\"} 13",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"update_checkpoints\"} 13",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"update_checkpoints\"} 13",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"update_checkpoints\"} 13",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"update_checkpoints\"} 13",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"update_checkpoints\"} 13",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"update_checkpoints\"} 13",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"update_checkpoints\"} 13",
+        "ponder_database_method_duration_sum{method=\"update_checkpoints\"} 49.987552999999025",
+        "ponder_database_method_duration_count{method=\"update_checkpoints\"} 13",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"select_ready\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"select_ready\"} 1",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"select_ready\"} 1",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"select_ready\"} 1",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"select_ready\"} 2",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"select_ready\"} 2",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"select_ready\"} 2",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"select_ready\"} 2",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"select_ready\"} 2",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"select_ready\"} 2",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"select_ready\"} 2",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"select_ready\"} 2",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"select_ready\"} 2",
+        "ponder_database_method_duration_sum{method=\"select_ready\"} 56.92649900000015",
+        "ponder_database_method_duration_count{method=\"select_ready\"} 2",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"create_indexes\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"create_indexes\"} 2",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"create_indexes\"} 6",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_sum{method=\"create_indexes\"} 108.24965699999939",
+        "ponder_database_method_duration_count{method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"create_trigger\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"create_trigger\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"create_trigger\"} 1"
+      ],
+      "worldAnswersAtMs": 17612.289794921875,
+      "head": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": "0x2dacb0f"
+      },
+      "stopped": {
+        "bundler": {
+          "status": 200,
+          "answer": {
+            "forgotten": true
+          },
+          "ms": 1102.421630859375
+        },
+        "index": {
+          "status": 200,
+          "answer": {
+            "forgotten": true
+          },
+          "ms": 611.635498046875
+        },
+        "chain": {
+          "status": 200,
+          "answer": {
+            "forgotten": true
+          },
+          "ms": 1062.0341796875
+        }
+      },
+      "branchDeleted": {
+        "status": 200,
+        "apiMs": 349.2568359375,
+        "operationsMs": 1124.84521484375
+      }
+    }
+  ],
+  "summary": [
+    {
+      "world": "native-std1-14605-0",
+      "chainReadyAtMs": 2966.78466796875,
+      "branchReadyAtMs": 2966.7998046875,
+      "indexHealthyAtMs": 8665.857421875,
+      "indexReadyAtMs": 11490.834716796875,
+      "bundlerReadyAtMs": 16686.560546875,
+      "worldAnswersAtMs": 16686.687255859375,
+      "error": null,
+      "chainRefusals": 0,
+      "indexRefusals": 0,
+      "bundlerRefusals": 0
+    },
+    {
+      "world": "native-std1-14605-1",
+      "chainReadyAtMs": 1044.36767578125,
+      "branchReadyAtMs": 2291.895751953125,
+      "indexHealthyAtMs": 7962.572021484375,
+      "indexReadyAtMs": 10902.904541015625,
+      "bundlerReadyAtMs": 8231.75830078125,
+      "worldAnswersAtMs": 11257.33837890625,
+      "error": null,
+      "chainRefusals": 0,
+      "indexRefusals": 0,
+      "bundlerRefusals": 0
+    },
+    {
+      "world": "native-std1-14605-2",
+      "chainReadyAtMs": 2756.620361328125,
+      "branchReadyAtMs": 2756.628662109375,
+      "indexHealthyAtMs": 16164.28125,
+      "indexReadyAtMs": 17257.96923828125,
+      "bundlerReadyAtMs": 9863.16259765625,
+      "worldAnswersAtMs": 17612.289794921875,
+      "error": null,
+      "chainRefusals": 0,
+      "indexRefusals": 0,
+      "bundlerRefusals": 0
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+ "record": "q4-ops-before-changed",
+ "started_utc": "2026-11-13T23:21:22Z",
+ "script": "harness/ops.py",
+ "args": "northwind-wb.sitespeed.test 5",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "site": "northwind-wb.sitespeed.test",
+ "rounds": 5,
+ "wall_ms": 1033,
+ "calls": {
+  "doc.create": {
+   "n": 5,
+   "median_ms": 29,
+   "max_ms": 299,
+   "min_ms": 23
+  },
+  "doc.submit": {
+   "n": 5,
+   "median_ms": 48,
+   "max_ms": 209,
+   "min_ms": 47
+  },
+  "report.run": {
+   "n": 5,
+   "median_ms": 23,
+   "max_ms": 125,
+   "min_ms": 19
+  }
+ },
+ "raw_ms": {
+  "doc.create": [
+   299,
+   41,
+   26,
+   29,
+   23
+  ],
+  "doc.submit": [
+   209,
+   47,
+   47,
+   49,
+   48
+  ],
+  "report.run": [
+   125,
+   26,
+   20,
+   23,
+   19
+  ]
+ }
+}

@@ -1,0 +1,117 @@
+{
+ "record": "q5-warp-profile-7",
+ "started_utc": "2026-11-13T23:27:29Z",
+ "script": "harness/warp_profile.py",
+ "args": "northwind-wb.sitespeed.test 7",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q5 where a warp's time goes (one bench process, rolled back)",
+ "site": "northwind-wb.sitespeed.test",
+ "days": 7,
+ "process_ms": 7949,
+ "advance_s": 7.4,
+ "stops": 8,
+ "jobs_run": 713,
+ "job_types": 104,
+ "seconds_by_frequency": {
+  "Daily Maintenance": 2.87,
+  "Hourly Maintenance": 1.21,
+  "Daily": 1.06,
+  "Cron": 0.53,
+  "Hourly": 0.25,
+  "Hourly Long": 0.23,
+  "Daily Long": 0.2,
+  "All": 0.15,
+  "Weekly": 0.04,
+  "Weekly Long": 0.01
+ },
+ "runs_by_frequency": {
+  "Daily": 77,
+  "Hourly Long": 24,
+  "Daily Long": 21,
+  "Hourly": 32,
+  "All": 40,
+  "Daily Maintenance": 259,
+  "Hourly Maintenance": 136,
+  "Cron": 119,
+  "Weekly": 3,
+  "Weekly Long": 2
+ },
+ "top_jobs": [
+  {
+   "method": "capxul.clock.daily",
+   "frequency": "Daily",
+   "runs": 7,
+   "s": 0.4
+  },
+  {
+   "method": "frappe.core.doctype.log_settings.log_settings.run_log_clean_up",
+   "frequency": "Daily Maintenance",
+   "runs": 7,
+   "s": 0.39
+  },
+  {
+   "method": "erpnext.setup.doctype.company.company.cache_companies_monthly_sales_history",
+   "frequency": "Daily Maintenance",
+   "runs": 7,
+   "s": 0.13
+  },
+  {
+   "method": "erpnext.assets.doctype.asset.depreciation.post_depreciation_entries",
+   "frequency": "Daily Maintenance",
+   "runs": 7,
+   "s": 0.12
+  },
+  {
+   "method": "frappe.email.doctype.notification.notification.trigger_daily_alerts",
+   "frequency": "Daily",
+   "runs": 7,
+   "s": 0.1
+  },
+  {
+   "method": "erpnext.accounts.doctype.process_subscription.process_subscription.create_subscription_process",
+   "frequency": "Daily Maintenance",
+   "runs": 7,
+   "s": 0.1
+  },
+  {
+   "method": "hrms.controllers.employee_reminders.send_work_anniversary_reminders",
+   "frequency": "Daily",
+   "runs": 7,
+   "s": 0.1
+  },
+  {
+   "method": "erpnext.crm.doctype.appointment.appointment.handle_expired_unverified_appointments",
+   "frequency": "Hourly Maintenance",
+   "runs": 8,
+   "s": 0.1
+  },
+  {
+   "method": "erpnext.accounts.doctype.process_statement_of_accounts.process_statement_of_accounts.send_auto_email",
+   "frequency": "Daily Maintenance",
+   "runs": 7,
+   "s": 0.1
+  },
+  {
+   "method": "erpnext.stock.reorder_item.reorder_item",
+   "frequency": "Daily Maintenance",
+   "runs": 7,
+   "s": 0.1
+  },
+  {
+   "method": "erpnext.projects.doctype.project.project.project_status_update_reminder",
+   "frequency": "Hourly Maintenance",
+   "runs": 8,
+   "s": 0.09
+  },
+  {
+   "method": "hrms.hr.doctype.shift_type.shift_type.process_auto_attendance_for_all_shifts",
+   "frequency": "Hourly Long",
+   "runs": 8,
+   "s": 0.09
+  }
+ ]
+}

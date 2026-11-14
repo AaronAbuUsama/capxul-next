@@ -1,0 +1,28 @@
+{
+ "record": "q4-save",
+ "started_utc": "2026-11-13T23:21:04Z",
+ "script": "harness/reset.py",
+ "args": "northwind-wb.sitespeed.test save",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q4 reset in place: save",
+ "site": "northwind-wb.sitespeed.test",
+ "steps": [
+  {
+   "step": "saved copy inside MariaDB",
+   "ms": 3051
+  },
+  {
+   "step": "spare copy for the next reset",
+   "ms": 3100
+  },
+  {
+   "step": "bench backup (gzipped dump)",
+   "ms": 2543
+  }
+ ],
+ "journal_entries_after": 4
+}

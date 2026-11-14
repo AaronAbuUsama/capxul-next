@@ -1,0 +1,67 @@
+{
+ "record": "q3b-pool-claim-2-label-only",
+ "started_utc": "2026-11-13T23:20:33Z",
+ "script": "harness/pool_claim.py",
+ "args": "p2-pool.sitespeed.test northwind-wb.sitespeed.test wb Northwind Traders Ltd --label-only",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q3b claim a pooled blank site",
+ "label_only": true,
+ "pool_site": "p2-pool.sitespeed.test",
+ "site": "northwind-wb.sitespeed.test",
+ "world": "wb",
+ "steps": [
+  {
+   "step": "site folder renamed",
+   "ms": 0
+  },
+  {
+   "step": "one process: company renamed, joined, clock, credential, scheduler",
+   "ms": 1221,
+   "inside": {
+    "company renamed (company_name only)": 135,
+    "joined, clock, credential, scheduler": 583
+   }
+  },
+  {
+   "step": "configure",
+   "ms": 190,
+   "phase": "company setup (world, over HTTP)"
+  },
+  {
+   "step": "grant admin",
+   "ms": 145,
+   "phase": "company setup (world, over HTTP)"
+  },
+  {
+   "step": "grant budget-holder",
+   "ms": 60,
+   "phase": "company setup (world, over HTTP)"
+  },
+  {
+   "step": "grant member",
+   "ms": 437,
+   "phase": "company setup (world, over HTTP)"
+  },
+  {
+   "step": "capital",
+   "ms": 270,
+   "phase": "company setup (world, over HTTP)"
+  }
+ ],
+ "claim_ms": 1221,
+ "total_ms": 2324,
+ "loadavg_before": [
+  "0.97",
+  "1.09",
+  "1.16"
+ ],
+ "loadavg_after": [
+  "0.97",
+  "1.09",
+  "1.16"
+ ]
+}

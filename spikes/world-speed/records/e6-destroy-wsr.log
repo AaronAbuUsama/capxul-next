@@ -1,0 +1,20 @@
+[23:47:18.878] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[23:47:24.352] ERROR (#1): PlatformFailed: {"status":422,"body":"{\"request_id\":\"e47b5a27-8389-4786-b2da-786f43d08f4a\",\"code\":\"\",\"message\":\"cannot delete branch that has children: br-winter-forest-zainigdn; child_branch_ids:\\\"[br-winter-forest-zainigdn]\\\"\"}"}
+    at makeClassTrusted (/home/user/capxul-next/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/Schema.js:10469:14)
+    at makeClassSync (/home/user/capxul-next/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/SchemaParser.js:998:12)
+    at <anonymous> (/home/user/capxul-next/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:152:23)
+    at map (native:1:11)
+    at <anonymous> (/home/user/capxul-next/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:149:33)
+    at <anonymous> (/home/user/capxul-next/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:1527:95)
+    at runLoop (/home/user/capxul-next/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:486:88)
+    at evaluate (/home/user/capxul-next/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:425:23)
+    at runInAsyncScope (node:async_hooks:207:23)
+    at evaluate (/home/user/capxul-next/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:414:29)
+    at platform.dropBranch (/home/user/capxul-next/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:486:88)
+    at platform.dropBranch (definition) (/home/user/wt/world-speed/packages/world/src/platform/branches.ts:97:34)
+    at platform.dropSnapshots (/home/user/wt/world-speed/packages/world/src/lifecycle/world.ts:232:7)
+    at platform.dropSnapshots (definition) (/home/user/wt/world-speed/packages/world/src/platform/branches.ts:106:37)
+    at world.destroy (/home/user/wt/world-speed/packages/world/src/lifecycle/steps.ts:45:20)
+    at world.destroy (/home/user/wt/world-speed/packages/world/src/lifecycle/operations.ts:53:18)

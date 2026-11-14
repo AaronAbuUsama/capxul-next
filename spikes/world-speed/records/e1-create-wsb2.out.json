@@ -1,0 +1,26 @@
+{
+  "world": "wsb2",
+  "owner": "spike",
+  "expiresAt": "2026-11-14T01:03:43.190Z",
+  "forkedFrom": "nothing",
+  "coreUrl": "https://capxulworld-core-w-wsb2-aiyzcppquqxdo3ew.thedao.workers.dev",
+  "testUsdc": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+  "funded": [],
+  "sites": [],
+  "rpcUrl": "https://capxulworld-door-w-wsb2-ro6lbavdinjuoljz.thedao.workers.dev/<token: show --reveal>/rpc",
+  "bundlerUrl": "https://capxulworld-door-w-wsb2-ro6lbavdinjuoljz.thedao.workers.dev/<token: show --reveal>/bundler",
+  "entryPoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+  "paymaster": "0xE2dE380E3e8281e2cc458675102c3FC2277fC5A8",
+  "database": "reached with `sql <world> <statement>`, or in-process through the world's handle; never printed",
+  "ms": {
+    "claim": 807,
+    "deploy": 60605,
+    "migrate": 761,
+    "chain": 3000,
+    "fund": 442,
+    "index": 25705,
+    "bundler": 28340,
+    "core": 924,
+    "create": 95377
+  }
+}

@@ -1,0 +1,54 @@
+[23:38:16.583] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[23:38:22.055] INFO: world w-wsp1: claimed for spike until 2026-11-14T01:38:20.127Z
+[23:38:22.102] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[23:38:25.829] INFO: Neon: using environment variables (NEON_API_KEY).
+[23:38:26.329] INFO: Cloudflare Container read: looking up capxulworld-anvil-w-wsp1-vcchp2cz6agitq52
+[23:38:26.353] INFO: Cloudflare Container read: looking up capxulworld-alto-w-wsp1-slz7odoehlfvorwr
+[23:38:27.468] INFO: Cloudflare Container read: capxulworld-anvil-w-wsp1-vcchp2cz6agitq52 not found
+[23:38:27.509] INFO: Cloudflare Container read: capxulworld-alto-w-wsp1-slz7odoehlfvorwr not found
+[23:38:27.817] INFO: [Alto] Cloudflare Container precreate: starting capxulworld-alto-w-wsp1-623ml7js3gvpjlt5
+[23:38:27.821] INFO: [Alto] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-alto@sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916
+[23:38:27.841] INFO: [Anvil] Cloudflare Container precreate: starting capxulworld-anvil-w-wsp1-yd6iehtvxzjyl4we
+[23:38:27.842] INFO: [Anvil] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-anvil@sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474
+[23:38:28.784] INFO: [Anvil] Cloudflare Container create: creating application capxulworld-anvil-w-wsp1-yd6iehtvxzjyl4we
+[23:38:28.866] INFO: [Alto] Cloudflare Container create: creating application capxulworld-alto-w-wsp1-623ml7js3gvpjlt5
+[23:38:32.340] INFO: [Door] Cloudflare Worker precreate: starting capxulworld-door-w-wsp1-yvzgml3xeqrh35s3
+[23:38:32.340] INFO: [Door] Cloudflare Worker precreate: durable objects [{"logicalId":"Indexer","bindingName":"Indexer","className":"Indexer"},{"logicalId":"Bundler","bindingName":"Bundler","className":"Bundler"},{"logicalId":"Chain","bindingName":"Chain","className":"Chain"}]
+[23:38:34.008] INFO: [Anvil] Cloudflare Container reconcile: starting capxulworld-anvil-w-wsp1-yd6iehtvxzjyl4we
+[23:38:34.010] INFO: [Alto] Cloudflare Container reconcile: starting capxulworld-alto-w-wsp1-623ml7js3gvpjlt5
+[23:38:35.413] INFO: [Alto] Cloudflare Container reconcile: recreating capxulworld-alto-w-wsp1-623ml7js3gvpjlt5 to attach durable object binding
+[23:38:35.762] INFO: [Anvil] Cloudflare Container reconcile: recreating capxulworld-anvil-w-wsp1-yd6iehtvxzjyl4we to attach durable object binding
+[23:38:37.367] INFO: [Ponder] Cloudflare Container precreate: starting capxulworld-ponder-w-wsp1-ii7fsztygscmkayu
+[23:38:37.368] INFO: [Ponder] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9
+[23:38:37.958] INFO: [Alto] Cloudflare Container create: creating application capxulworld-alto-w-wsp1-623ml7js3gvpjlt5
+[23:38:38.161] INFO: [Ponder] Cloudflare Container create: creating application capxulworld-ponder-w-wsp1-ii7fsztygscmkayu
+[23:38:38.492] INFO: [Anvil] Cloudflare Container create: creating application capxulworld-anvil-w-wsp1-yd6iehtvxzjyl4we
+[23:38:40.715] INFO: [Door] Cloudflare Worker reconcile: starting capxulworld-door-w-wsp1-yvzgml3xeqrh35s3
+[23:38:40.716] INFO: [Door] Cloudflare Worker reconcile: durable objects [{"logicalId":"Bundler","className":"Bundler"},{"logicalId":"Chain","className":"Chain"},{"logicalId":"Indexer","className":"Indexer"}]
+[23:38:40.717] INFO: [Ponder] Cloudflare Container reconcile: starting capxulworld-ponder-w-wsp1-ii7fsztygscmkayu
+[23:38:41.014] INFO: [Door] Cloudflare Worker reconcile: existing durable object tags ["alchemy:dos:Bundler;Chain;Indexer"]
+[23:38:41.015] INFO: [Door] Cloudflare Worker reconcile: previous durable object tags ["alchemy:dos:Bundler;Chain;Indexer"]
+[23:38:41.025] INFO: [Door] Cloudflare Worker create: preparing bundle for capxulworld-door-w-wsp1-yvzgml3xeqrh35s3
+[23:38:43.881] INFO: [Ponder] Cloudflare Container reconcile: recreating capxulworld-ponder-w-wsp1-ii7fsztygscmkayu to attach durable object binding
+[23:38:44.905] INFO: [Door] Cloudflare Worker create: uploading script for capxulworld-door-w-wsp1-yvzgml3xeqrh35s3
+[23:38:45.249] INFO: [Door] Cloudflare Worker put: durable object reconciliation {"oldDoClassNameByLogicalId":{"Bundler":"Bundler","Chain":"Chain","Indexer":"Indexer"},"currentDoClassNameByLogicalId":{"Bundler":"Bundler","Chain":"Chain","Indexer":"Indexer"},"deletedClasses":[],"renamedClasses":[],"transferredClasses":[],"newSqliteClasses":[]}
+[23:38:46.552] INFO: [Ponder] Cloudflare Container create: creating application capxulworld-ponder-w-wsp1-ii7fsztygscmkayu
+[23:38:48.591] INFO: [Core] Cloudflare Worker read: checking capxulworld-core-w-wsp1-a6lx3tjpsuqy4nkt
+[23:38:48.819] INFO: [Core] Cloudflare Worker reconcile: starting capxulworld-core-w-wsp1-a6lx3tjpsuqy4nkt
+[23:38:48.819] INFO: [Core] Cloudflare Worker reconcile: durable objects []
+[23:38:49.056] INFO: [Core] Cloudflare Worker reconcile: existing durable object tags []
+[23:38:49.056] INFO: [Core] Cloudflare Worker reconcile: previous durable object tags []
+[23:38:49.056] INFO: [Core] Cloudflare Worker create: preparing bundle for capxulworld-core-w-wsp1-a6lx3tjpsuqy4nkt
+[23:38:51.354] INFO: [Core] Cloudflare Worker create: uploading script for capxulworld-core-w-wsp1-a6lx3tjpsuqy4nkt
+[23:38:51.749] INFO: [Core] Cloudflare Worker put: durable object reconciliation {"oldDoClassNameByLogicalId":{},"currentDoClassNameByLogicalId":{},"deletedClasses":[],"renamedClasses":[],"transferredClasses":[],"newSqliteClasses":[]}
+[23:38:55.452] INFO: world w-wsp1: deployed
+[23:38:56.249] INFO: world w-wsp1: migrations applied (0001_telemetry.sql, 0002_site_ops.sql, 0003_world.sql, 0004_organizations.sql, 0005_approvals.sql)
+[23:38:57.971] INFO: world w-wsp1: the chain answers
+[23:38:58.250] INFO: world w-wsp1: test USDC at 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6, minted to 0 addresses
+[23:39:12.176] INFO: world w-wsp1: the index is ready
+[23:39:12.176] INFO: world w-wsp1: the bundler serves 0x0000000071727De22E5E9d8BAf0edAc6f37da032, paymaster 0xE2dE380E3e8281e2cc458675102c3FC2277fC5A8
+[23:39:12.849] INFO: world w-wsp1: Core answers

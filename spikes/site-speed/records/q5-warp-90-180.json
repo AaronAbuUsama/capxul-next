@@ -1,0 +1,39 @@
+{
+ "record": "q5-warp-90-180",
+ "started_utc": "2026-11-13T23:23:33Z",
+ "script": "harness/warp.py",
+ "args": "northwind-wa.sitespeed.test 90 180",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q5 warp on one site (capxul.core_api.warp over HTTP)",
+ "site": "northwind-wa.sitespeed.test",
+ "warps": [
+  {
+   "days": 90,
+   "status": 200,
+   "ms": 71391,
+   "stops": 91,
+   "jobs_run": 8670,
+   "error": null
+  },
+  {
+   "days": 180,
+   "status": 200,
+   "ms": 147801,
+   "stops": 181,
+   "jobs_run": 17348,
+   "error": null
+  }
+ ],
+ "clock_after": {
+  "world": "wa",
+  "offset_ms": 26697339348,
+  "host_utc": "2026-11-13T23:27:12.690846+00:00",
+  "world_local": "2027-09-19 00:22:52.039000",
+  "nowdate": "2027-09-19",
+  "tz": "Europe/London"
+ }
+}

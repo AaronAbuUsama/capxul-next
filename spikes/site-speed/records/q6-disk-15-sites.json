@@ -1,0 +1,21 @@
+{
+ "record": "q6-disk-15-sites",
+ "started_utc": "2026-11-13T23:28:21Z",
+ "script": "capacity.py",
+ "args": "sizes",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q6 disk per site",
+ "sites": 15,
+ "databases": 19,
+ "db_mib_each": {
+  "min": 108,
+  "median": 119,
+  "max": 208
+ },
+ "mariadb_datadir_mib": 2708,
+ "sites_folder_mib": 6
+}

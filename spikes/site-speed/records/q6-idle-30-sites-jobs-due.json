@@ -1,0 +1,49 @@
+{
+ "record": "q6-idle-30-sites-jobs-due",
+ "started_utc": "2026-11-13T23:46:15Z",
+ "script": "capacity.py",
+ "args": "idle 600",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q6 idle bench",
+ "sites": 30,
+ "seconds": 600.0,
+ "containers": {
+  "mariadb": {
+   "cpu_s": 1.59,
+   "cpu_pct_of_one_cpu": 0.27,
+   "rss_mib": 636.8,
+   "cache_mib": 612.3
+  },
+  "redis": {
+   "cpu_s": 3.72,
+   "cpu_pct_of_one_cpu": 0.62,
+   "rss_mib": 55.8,
+   "cache_mib": 2.3
+  },
+  "web": {
+   "cpu_s": 0.08,
+   "cpu_pct_of_one_cpu": 0.01,
+   "rss_mib": 231.3,
+   "cache_mib": 36.6
+  },
+  "worker": {
+   "cpu_s": 105.93,
+   "cpu_pct_of_one_cpu": 17.66,
+   "rss_mib": 84.3,
+   "cache_mib": 28.3
+  },
+  "scheduler": {
+   "cpu_s": 1.54,
+   "cpu_pct_of_one_cpu": 0.26,
+   "rss_mib": 85.7,
+   "cache_mib": 13.3
+  }
+ },
+ "cpu_s_total": 112.86,
+ "cpu_pct_of_one_cpu_total": 18.81,
+ "rss_mib_total": 1093.9
+}

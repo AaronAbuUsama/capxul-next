@@ -1,0 +1,57 @@
+{
+ "record": "q2-restore-base-2",
+ "started_utc": "2026-11-13T23:09:29Z",
+ "script": "harness/restore.py",
+ "args": "acme-w3.sitespeed.test r2-w5.sitespeed.test w5 --no-backup /home/frappe/frappe-bench/sites/.spike-backups/acme-w3.sitespeed.test/20261113_230908-acme-w3_sitespeed_test-database.sql.gz",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q2 site from a template (door's restore path)",
+ "template": "acme-w3.sitespeed.test",
+ "site": "r2-w5.sitespeed.test",
+ "size": {
+  "dump_gz_bytes": 1183594,
+  "tables": 926,
+  "rows_estimate": 27625,
+  "data_index_mb": 57.9
+ },
+ "steps": [
+  {
+   "step": "new-site from backup",
+   "ms": 5752
+  },
+  {
+   "step": "encryption key",
+   "ms": 0
+  },
+  {
+   "step": "join world",
+   "ms": 818
+  },
+  {
+   "step": "world clock",
+   "ms": 626
+  },
+  {
+   "step": "core user",
+   "ms": 1242
+  },
+  {
+   "step": "enable scheduler",
+   "ms": 855
+  }
+ ],
+ "restore_ms": 9293,
+ "loadavg_before": [
+  "1.11",
+  "1.29",
+  "1.27"
+ ],
+ "loadavg_after": [
+  "1.01",
+  "1.27",
+  "1.26"
+ ]
+}

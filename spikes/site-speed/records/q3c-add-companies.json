@@ -1,0 +1,39 @@
+{
+ "record": "q3c-add-companies",
+ "started_utc": "2026-11-13T23:20:51Z",
+ "script": "harness/add_company.py",
+ "args": "northwind-wa.sitespeed.test Second Co Ltd Third Co Ltd Fourth Co Ltd",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q3c more companies on one site",
+ "site": "northwind-wa.sitespeed.test",
+ "added": [
+  {
+   "company": "Second Co Ltd",
+   "company_ms": 1630,
+   "safe_account_ms": 83,
+   "companies_on_site": 2,
+   "accounts_on_site": 194,
+   "process_ms": 2327
+  },
+  {
+   "company": "Third Co Ltd",
+   "company_ms": 1618,
+   "safe_account_ms": 57,
+   "companies_on_site": 3,
+   "accounts_on_site": 291,
+   "process_ms": 2261
+  },
+  {
+   "company": "Fourth Co Ltd",
+   "company_ms": 1789,
+   "safe_account_ms": 64,
+   "companies_on_site": 4,
+   "accounts_on_site": 388,
+   "process_ms": 2370
+  }
+ ]
+}

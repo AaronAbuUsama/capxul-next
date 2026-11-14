@@ -1,0 +1,43 @@
+{
+ "record": "q3a-clone-tablespace-oneproc-x100",
+ "started_utc": "2026-11-13T23:17:00Z",
+ "script": "clone_ts.py (host) then harness/clone.py copied",
+ "args": "c4-w13.sitespeed.test c8-w17.sitespeed.test w17 --one-process",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.6,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q3a clone at the storage level (InnoDB transportable tablespaces)",
+ "template": "c4-w13.sitespeed.test",
+ "site": "c8-w17.sitespeed.test",
+ "one_process": true,
+ "steps": [
+  {
+   "step": "database: transportable tablespaces (create like, discard, flush for export, cp, import)",
+   "ms": 8867,
+   "innodb_tables": 923,
+   "other_tables_by_insert": 3,
+   "tables_in_copy": 926
+  },
+  {
+   "step": "site folder, config and db user",
+   "ms": 23
+  },
+  {
+   "step": "join world + clock + core credential + scheduler (one process)",
+   "ms": 1390
+  }
+ ],
+ "total_ms": 10281,
+ "loadavg_before": [
+  "1.23",
+  "1.09",
+  "1.16"
+ ],
+ "loadavg_after": [
+  "1.23",
+  "1.09",
+  "1.16"
+ ]
+}

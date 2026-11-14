@@ -1,0 +1,34 @@
+{
+ "record": "q4-reset-rename-x10",
+ "started_utc": "2026-11-13T23:22:17Z",
+ "script": "harness/reset.py",
+ "args": "g2-w8.sitespeed.test rename",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q4 reset in place: rename",
+ "site": "g2-w8.sitespeed.test",
+ "steps": [
+  {
+   "step": "rename table: live to trash, spare to live (one statement)",
+   "ms": 2998
+  },
+  {
+   "step": "site cache cleared (Redis keys of the site)",
+   "ms": 42,
+   "keys_cleared": 190
+  },
+  {
+   "step": "off the path: old tables dropped",
+   "ms": 1199
+  },
+  {
+   "step": "off the path: new spare copied from the saved point",
+   "ms": 3759
+  }
+ ],
+ "journal_entries_after": 10010,
+ "reset_ms": 3040
+}

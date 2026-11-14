@@ -1,0 +1,102 @@
+{
+ "record": "q4-ops-before-changed-x10",
+ "started_utc": "2026-11-13T23:21:52Z",
+ "script": "harness/ops.py",
+ "args": "g2-w8.sitespeed.test 20",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "site": "g2-w8.sitespeed.test",
+ "rounds": 20,
+ "wall_ms": 10692,
+ "calls": {
+  "doc.create": {
+   "n": 20,
+   "median_ms": 24,
+   "max_ms": 92,
+   "min_ms": 17
+  },
+  "doc.submit": {
+   "n": 20,
+   "median_ms": 47,
+   "max_ms": 150,
+   "min_ms": 32
+  },
+  "report.run": {
+   "n": 20,
+   "median_ms": 427,
+   "max_ms": 632,
+   "min_ms": 385
+  }
+ },
+ "raw_ms": {
+  "doc.create": [
+   92,
+   29,
+   24,
+   25,
+   25,
+   22,
+   19,
+   24,
+   20,
+   35,
+   25,
+   28,
+   19,
+   24,
+   17,
+   19,
+   20,
+   24,
+   26,
+   20
+  ],
+  "doc.submit": [
+   150,
+   66,
+   51,
+   47,
+   60,
+   50,
+   39,
+   49,
+   38,
+   50,
+   35,
+   55,
+   52,
+   41,
+   38,
+   37,
+   32,
+   35,
+   36,
+   40
+  ],
+  "report.run": [
+   622,
+   438,
+   505,
+   438,
+   412,
+   404,
+   532,
+   397,
+   427,
+   399,
+   455,
+   632,
+   448,
+   395,
+   400,
+   452,
+   385,
+   401,
+   408,
+   393
+  ]
+ }
+}

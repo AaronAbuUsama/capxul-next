@@ -1,0 +1,98 @@
+{
+ "record": "q1-new-site-2",
+ "started_utc": "2026-11-13T23:05:15Z",
+ "script": "harness/new_site.py",
+ "args": "acme-w2.sitespeed.test w2 Acme Two Ltd",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q1 new company site from nothing",
+ "site": "acme-w2.sitespeed.test",
+ "world": "w2",
+ "steps": [
+  {
+   "step": "new-site",
+   "phase": "door",
+   "ms": 16020
+  },
+  {
+   "step": "install erpnext",
+   "phase": "door",
+   "ms": 36953
+  },
+  {
+   "step": "install hrms",
+   "phase": "door",
+   "ms": 26943
+  },
+  {
+   "step": "install capxul",
+   "phase": "door",
+   "ms": 2871
+  },
+  {
+   "step": "setup wizard",
+   "phase": "door",
+   "ms": 13516
+  },
+  {
+   "step": "migrate",
+   "phase": "door",
+   "ms": 6967
+  },
+  {
+   "step": "enable scheduler",
+   "phase": "door",
+   "ms": 743
+  },
+  {
+   "step": "join world",
+   "phase": "door",
+   "ms": 572
+  },
+  {
+   "step": "core user",
+   "phase": "door",
+   "ms": 1333
+  },
+  {
+   "step": "configure",
+   "ms": 244,
+   "phase": "company setup (world, over HTTP)"
+  },
+  {
+   "step": "grant admin",
+   "ms": 163,
+   "phase": "company setup (world, over HTTP)"
+  },
+  {
+   "step": "grant budget-holder",
+   "ms": 55,
+   "phase": "company setup (world, over HTTP)"
+  },
+  {
+   "step": "grant member",
+   "ms": 647,
+   "phase": "company setup (world, over HTTP)"
+  },
+  {
+   "step": "capital",
+   "ms": 323,
+   "phase": "company setup (world, over HTTP)"
+  }
+ ],
+ "door_ms": 105918,
+ "total_ms": 107349,
+ "loadavg_before": [
+  "1.99",
+  "1.35",
+  "1.29"
+ ],
+ "loadavg_after": [
+  "1.61",
+  "1.36",
+  "1.29"
+ ]
+}

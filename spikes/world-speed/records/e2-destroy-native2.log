@@ -1,0 +1,41 @@
+[23:20:53.176] WARN: alchemy 2.0.0-beta.87 is available (you're on 2.0.0-beta.85). Run `bun add alchemy@2.0.0-beta.87` to upgrade.
+[23:20:53.183] INFO: Destroy · ws-native2
+[23:20:53.184] INFO: Importing stack module
+[23:20:53.525] INFO: Resolving stack services
+[23:20:53.553] INFO: Loading stack state
+[23:20:53.553] INFO: Computing plan
+[23:20:53.553] INFO: Plan ready (370ms)
+[23:20:53.555] INFO: Plan: 7 to delete, 7 binding changes
+[23:20:53.555] INFO: [Alto] delete
+[23:20:53.555] INFO: [Anvil] delete
+[23:20:53.555] INFO: [Hub/BundlerBox-Containers] delete
+[23:20:53.555] INFO: [Hub/BundlerBox-Containers/Alto] unbind
+[23:20:53.555] INFO: [Hub/ChainBox-Containers] delete
+[23:20:53.555] INFO: [Hub/ChainBox-Containers/Anvil] unbind
+[23:20:53.555] INFO: [Hub] delete
+[23:20:53.556] INFO: [Hub/BundlerBox] unbind
+[23:20:53.556] INFO: [Hub/ChainBox] unbind
+[23:20:53.556] INFO: [Hub/HUB_TOKEN] unbind
+[23:20:53.556] INFO: [Hub/IndexBox] unbind
+[23:20:53.556] INFO: [Hub/IndexBox-Containers] delete
+[23:20:53.556] INFO: [Hub/IndexBox-Containers/Ponder] unbind
+[23:20:53.556] INFO: [Ponder] delete
+[23:20:53.556] INFO: 
+[23:20:53.564] INFO: [Hub/ChainBox-Containers] deleting
+[23:20:53.564] INFO: [Hub] deleting
+[23:20:53.564] INFO: [Hub/BundlerBox-Containers] deleting
+[23:20:53.564] INFO: [Hub/IndexBox-Containers] deleting
+[23:20:53.567] INFO: [Hub/ChainBox-Containers] Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+[23:20:53.572] INFO: [Hub] Cloudflare Worker delete: deleting capxulspikeworldspeed-hub-ws-native2-psfmj4b7e7rqhmcs
+[23:20:54.519] INFO: [Hub] deleted (955ms)
+[23:20:54.519] INFO: [Ponder] deleting
+[23:20:54.519] INFO: [Anvil] deleting
+[23:20:54.519] INFO: [Alto] deleting
+[23:20:54.523] INFO: [Ponder] deleted (4ms)
+[23:20:54.523] INFO: [Alto] deleted (4ms)
+[23:20:54.523] INFO: [Anvil] deleted (4ms)
+[23:20:55.206] INFO: [Hub/BundlerBox-Containers] deleted (1.6s)
+[23:20:55.282] INFO: [Hub/IndexBox-Containers] deleted (1.7s)
+[23:20:55.282] INFO: [Hub/ChainBox-Containers] deleted (1.7s)
+[23:20:55.286] INFO: 
+[23:20:55.286] INFO: Done: 7 succeeded (1.7s)

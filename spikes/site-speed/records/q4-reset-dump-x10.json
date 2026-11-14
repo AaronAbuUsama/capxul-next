@@ -1,0 +1,26 @@
+{
+ "record": "q4-reset-dump-x10",
+ "started_utc": "2026-11-13T23:22:36Z",
+ "script": "harness/reset.py",
+ "args": "g2-w8.sitespeed.test dump",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q4 reset in place: dump",
+ "site": "g2-w8.sitespeed.test",
+ "steps": [
+  {
+   "step": "database dropped and loaded from the saved dump",
+   "ms": 8065
+  },
+  {
+   "step": "site cache cleared (Redis keys of the site)",
+   "ms": 27,
+   "keys_cleared": 186
+  }
+ ],
+ "journal_entries_after": 10010,
+ "reset_ms": 8092
+}

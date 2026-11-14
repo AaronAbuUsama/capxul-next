@@ -1,0 +1,72 @@
+{
+ "record": "ops-restored-r1",
+ "started_utc": "2026-11-13T23:09:55Z",
+ "script": "harness/ops.py",
+ "args": "r1-w4.sitespeed.test 10",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "site": "r1-w4.sitespeed.test",
+ "rounds": 10,
+ "wall_ms": 1583,
+ "calls": {
+  "doc.create": {
+   "n": 10,
+   "median_ms": 26,
+   "max_ms": 129,
+   "min_ms": 19
+  },
+  "doc.submit": {
+   "n": 10,
+   "median_ms": 44,
+   "max_ms": 170,
+   "min_ms": 35
+  },
+  "report.run": {
+   "n": 10,
+   "median_ms": 18,
+   "max_ms": 376,
+   "min_ms": 15
+  }
+ },
+ "raw_ms": {
+  "doc.create": [
+   129,
+   28,
+   27,
+   22,
+   19,
+   21,
+   26,
+   23,
+   28,
+   23
+  ],
+  "doc.submit": [
+   170,
+   159,
+   44,
+   36,
+   35,
+   44,
+   36,
+   44,
+   42,
+   42
+  ],
+  "report.run": [
+   376,
+   16,
+   65,
+   18,
+   16,
+   17,
+   15,
+   23,
+   18,
+   15
+  ]
+ }
+}

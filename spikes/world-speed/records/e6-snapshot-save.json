@@ -1,0 +1,1 @@
+{"operation":"world.snapshot.save","outcome":"success","success":{"world":"wsr","snapshot":"s1","recordSeq":1,"clock":{"mode":"running","now":"2026-11-13T23:42:34.813Z"},"template":false,"savedAt":"2026-11-13T23:44:07.737Z","companies":0,"migrations":"0005_approvals.sql"}}

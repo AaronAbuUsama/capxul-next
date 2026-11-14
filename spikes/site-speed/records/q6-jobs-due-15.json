@@ -1,0 +1,73 @@
+{
+ "record": "q6-jobs-due-15",
+ "started_utc": "2026-11-13T23:34:20Z",
+ "script": "harness/jobs_due.py",
+ "args": "acme-w1.sitespeed.test acme-w1b.sitespeed.test acme-w2.sitespeed.test acme-w3.sitespeed.test blank-pool.sitespeed.test c1-w10.sitespeed.test c2-w11.sitespeed.test c3-w12.sitespeed.test c5-w14.sitespeed.test g2-w8.sitespeed.test northwind-wa.sitespeed.test northwind-wb.sitespeed.test r1-w4.sitespeed.test r2-w5.sitespeed.test r3-w6.sitespeed.test",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "sites": [
+  {
+   "site": "acme-w1.sitespeed.test",
+   "job_types_created_ahead_of_now": 104
+  },
+  {
+   "site": "acme-w1b.sitespeed.test",
+   "job_types_created_ahead_of_now": 104
+  },
+  {
+   "site": "acme-w2.sitespeed.test",
+   "job_types_created_ahead_of_now": 104
+  },
+  {
+   "site": "acme-w3.sitespeed.test",
+   "job_types_created_ahead_of_now": 104
+  },
+  {
+   "site": "blank-pool.sitespeed.test",
+   "job_types_created_ahead_of_now": 104
+  },
+  {
+   "site": "c1-w10.sitespeed.test",
+   "job_types_created_ahead_of_now": 104
+  },
+  {
+   "site": "c2-w11.sitespeed.test",
+   "job_types_created_ahead_of_now": 104
+  },
+  {
+   "site": "c3-w12.sitespeed.test",
+   "job_types_created_ahead_of_now": 104
+  },
+  {
+   "site": "c5-w14.sitespeed.test",
+   "job_types_created_ahead_of_now": 104
+  },
+  {
+   "site": "g2-w8.sitespeed.test",
+   "job_types_created_ahead_of_now": 104
+  },
+  {
+   "site": "northwind-wa.sitespeed.test",
+   "job_types_created_ahead_of_now": 0
+  },
+  {
+   "site": "northwind-wb.sitespeed.test",
+   "job_types_created_ahead_of_now": 104
+  },
+  {
+   "site": "r1-w4.sitespeed.test",
+   "job_types_created_ahead_of_now": 104
+  },
+  {
+   "site": "r2-w5.sitespeed.test",
+   "job_types_created_ahead_of_now": 104
+  },
+  {
+   "site": "r3-w6.sitespeed.test",
+   "job_types_created_ahead_of_now": 104
+  }
+ ]
+}

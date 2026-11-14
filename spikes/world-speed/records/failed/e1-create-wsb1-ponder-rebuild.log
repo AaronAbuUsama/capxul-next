@@ -1,0 +1,101 @@
+[23:01:26.679] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[23:01:31.321] INFO: world w-wsb1: claimed for spike until 2026-11-14T01:01:30.414Z
+[23:01:31.362] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[23:01:34.900] INFO: Neon: using environment variables (NEON_API_KEY).
+[23:01:35.463] INFO: Cloudflare Container read: looking up capxulworld-alto-w-wsb1-uc4mio6wldnqzu7l
+[23:01:35.471] INFO: Cloudflare Container read: looking up capxulworld-anvil-w-wsb1-67difsdxjud6343q
+[23:01:36.353] INFO: Cloudflare Container read: capxulworld-alto-w-wsb1-uc4mio6wldnqzu7l not found
+[23:01:36.397] INFO: Cloudflare Container read: capxulworld-anvil-w-wsb1-67difsdxjud6343q not found
+[23:01:36.780] INFO: [Anvil] Cloudflare Container precreate: starting capxulworld-anvil-w-wsb1-oafnkqou2r436zbs
+[23:01:36.978] INFO: [Alto] Cloudflare Container precreate: starting capxulworld-alto-w-wsb1-skkzy2evhg6cppeb
+[23:01:38.271] INFO: [Alto] Cloudflare Container image: registry cache hit registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-alto@sha256:116a39607b28d22e399b34d1e04bef14952a2222729e9f1ba0747f558b6b1486
+[23:01:38.273] INFO: [Anvil] Cloudflare Container image: registry cache hit registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-anvil@sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474
+[23:01:39.165] INFO: [Anvil] Cloudflare Container create: creating application capxulworld-anvil-w-wsb1-oafnkqou2r436zbs
+[23:01:39.199] INFO: [Alto] Cloudflare Container create: creating application capxulworld-alto-w-wsb1-skkzy2evhg6cppeb
+[23:01:41.911] INFO: [Door] Cloudflare Worker precreate: starting capxulworld-door-w-wsb1-3dvqdltg6w2jjztw
+[23:01:41.911] INFO: [Door] Cloudflare Worker precreate: durable objects [{"logicalId":"Indexer","bindingName":"Indexer","className":"Indexer"},{"logicalId":"Bundler","bindingName":"Bundler","className":"Bundler"},{"logicalId":"Chain","bindingName":"Chain","className":"Chain"}]
+[23:01:43.624] INFO: [Alto] Cloudflare Container reconcile: starting capxulworld-alto-w-wsb1-skkzy2evhg6cppeb
+[23:01:43.626] INFO: [Anvil] Cloudflare Container reconcile: starting capxulworld-anvil-w-wsb1-oafnkqou2r436zbs
+[23:01:45.137] INFO: [Alto] Cloudflare Container reconcile: recreating capxulworld-alto-w-wsb1-skkzy2evhg6cppeb to attach durable object binding
+[23:01:45.368] INFO: [Anvil] Cloudflare Container reconcile: recreating capxulworld-anvil-w-wsb1-oafnkqou2r436zbs to attach durable object binding
+[23:01:47.203] INFO: [Ponder] Cloudflare Container precreate: starting capxulworld-ponder-w-wsb1-6h3qjvv6nxasahdq
+[23:01:48.195] INFO: [Ponder] Cloudflare Container image: building registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder:4a698a5c35a4d598
+[23:01:48.295] INFO: [Alto] Cloudflare Container create: creating application capxulworld-alto-w-wsb1-skkzy2evhg6cppeb
+[23:01:48.303] INFO: [Anvil] Cloudflare Container create: creating application capxulworld-anvil-w-wsb1-oafnkqou2r436zbs
+[23:01:51.924] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[23:01:56.868] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-wsb1-oafnkqou2r436zbs
+[23:01:56.872] INFO: [Alto] Cloudflare Container delete: deleting capxulworld-alto-w-wsb1-skkzy2evhg6cppeb
+[23:01:57.085] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-wsb1-3dvqdltg6w2jjztw
+[23:01:58.258] INFO: [world] Neon: using environment variables (NEON_API_KEY).
+[23:02:05.431] INFO: world w-wsb1: destroyed (12 resources) and its name released
+[23:02:05.432] ERROR: world w-wsb1: not created; what the create had made is destroyed
+[23:02:05.433] ERROR (#1): PlatformError: NotFound: Docker.buildx.build (buildx build --push /home/user/capxul-next/packages --cache-from type=registry,ref=registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder:buildcache --cache-to type=inline --tag registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder:4a698a5c35a4d598 --tag registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder:buildcache --platform linux/amd64 --file /home/user/capxul-next/packages/world/ponder/Dockerfile): #0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.29kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/node:22-slim
+#2 DONE 0.4s
+
+#3 importing cache manifest from registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder:buildcache
+#3 ERROR: failed to configure registry cache importer: failed to do request: Head "https://registry.cloudflare.com/v2/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder/manifests/buildcache": dial tcp: lookup registry.cloudflare.com on 8.8.8.8:53: no such host
+
+#4 [1/8] FROM docker.io/library/node:22-slim@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee
+#4 resolve docker.io/library/node:22-slim@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee 0.0s done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 29B
+#5 transferring context: 19.57kB 2.3s done
+#5 DONE 2.3s
+
+#6 [3/8] COPY world/ponder/package.json ./package.json
+#6 CACHED
+
+#7 [2/8] WORKDIR /app
+#7 CACHED
+
+#8 [4/8] COPY world/ponder/node_modules ./node_modules
+#8 ERROR: failed to calculate checksum of ref xnzixjloizeeb8qd1epux86j1::i84onn0a43cpnvuz91stvus6y: "/world/ponder/node_modules": not found
+------
+ > importing cache manifest from registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder:buildcache:
+------
+------
+ > [4/8] COPY world/ponder/node_modules ./node_modules:
+------
+Dockerfile:9
+--------------------
+   7 |     ENV NODE_ENV=production
+   8 |     COPY world/ponder/package.json ./package.json
+   9 | >>> COPY world/ponder/node_modules ./node_modules
+  10 |     COPY indexer/abis.ts indexer/ponder.schema.ts indexer/ponder-env.d.ts ./
+  11 |     COPY indexer/src ./src
+--------------------
+ERROR: failed to build: failed to solve: failed to compute cache key: failed to calculate checksum of ref xnzixjloizeeb8qd1epux86j1::i84onn0a43cpnvuz91stvus6y: "/world/ponder/node_modules": not found
+    at systemError (/home/user/capxul-next/node_modules/.pnpm/@alchemy.run+docker@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__alchemy@2.0._58c11f97989e5571a75c7caab6236bb5/node_modules/@alchemy.run/docker/src/Docker.ts:1116:7)
+    at tapCont (/home/user/capxul-next/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:1107:23)
+    at runLoop (/home/user/capxul-next/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:486:88)
+    at evaluate (/home/user/capxul-next/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:425:23)
+    at runInAsyncScope (node:async_hooks:207:23)
+    at evaluate (/home/user/capxul-next/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:414:29)
+    at <anonymous> (/home/user/capxul-next/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:846:17)
+    at <anonymous> (/home/user/capxul-next/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:2348:17)
+    at evaluate (/home/user/capxul-next/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:446:19)
+    at runInAsyncScope (node:async_hooks:207:23)
+    at Effect.fn (/home/user/capxul-next/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/Pipeable.js:60:27)
+    at Effect.fn (definition) (/home/user/capxul-next/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:139:11)
+    at provider.precreate (/home/user/capxul-next/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:166:14)
+    at apply.resource (/home/user/capxul-next/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:1546:12)
+    at Effect.fn (/home/user/capxul-next/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:357:12)
+    at Effect.fn (definition) (/home/user/capxul-next/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:448:28)
+    at apply (/home/user/capxul-next/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:433:12)
+    at Alchemist.build (/home/user/capxul-next/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Alchemist/Operations.ts:280:24)
+    at Alchemist.build (definition) (/home/user/capxul-next/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Alchemist/Operations.ts:110:34)
+    at Alchemist.plan (/home/user/capxul-next/packages/world/src/stack/engine.ts:30:27)

@@ -1,0 +1,13 @@
+[23:48:08.483] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[23:48:13.362] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[23:48:19.243] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-wsr-kn5xbzz53dbozb7w
+[23:48:19.264] INFO: [Core] Cloudflare Worker delete: deleting capxulworld-core-w-wsr-ppenm4drymuwx425
+[23:48:19.268] INFO: [Alto] Cloudflare Container delete: deleting capxulworld-alto-w-wsr-qkkxw6cnwbcj2c7d
+[23:48:19.273] INFO: [Ponder] Cloudflare Container delete: deleting capxulworld-ponder-w-wsr-wlyhukdsc2veg45z
+[23:48:20.509] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-wsr-fdl6wt4zt6o3orew
+[23:48:21.702] INFO: [world] Neon: using environment variables (NEON_API_KEY).
+[23:48:24.664] INFO: world w-wsr: destroyed (12 resources) and its name released

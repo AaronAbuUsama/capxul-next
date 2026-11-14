@@ -1,0 +1,52 @@
+{
+ "record": "q3a-clone-dump",
+ "started_utc": "2026-11-13T23:12:21Z",
+ "script": "harness/clone.py",
+ "args": "acme-w3.sitespeed.test c1-w10.sitespeed.test w10 dump",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q3a clone by dump",
+ "template": "acme-w3.sitespeed.test",
+ "site": "c1-w10.sitespeed.test",
+ "one_process": false,
+ "steps": [
+  {
+   "step": "database: mariadb-dump | mariadb",
+   "ms": 5415
+  },
+  {
+   "step": "site folder, config and db user",
+   "ms": 33
+  },
+  {
+   "step": "join world",
+   "ms": 915
+  },
+  {
+   "step": "world clock",
+   "ms": 774
+  },
+  {
+   "step": "core user",
+   "ms": 1290
+  },
+  {
+   "step": "enable scheduler",
+   "ms": 713
+  }
+ ],
+ "total_ms": 9139,
+ "loadavg_before": [
+  "1.28",
+  "1.21",
+  "1.24"
+ ],
+ "loadavg_after": [
+  "1.24",
+  "1.20",
+  "1.23"
+ ]
+}
