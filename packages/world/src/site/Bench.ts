@@ -22,8 +22,6 @@ import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
-import * as HttpClientResponse from "effect/http/HttpClientResponse";
-import * as Str from "effect/String";
 import { SITE_KEY_ID, SITE_SECRET_ID } from "../core/Core.ts";
 import { SiteFailed } from "../failures.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
@@ -31,11 +29,12 @@ import type { Company } from "../lifecycle/spec.ts";
 import { secretOf, withState } from "../stack/engine.ts";
 import { nameOf } from "../stack/names.ts";
 import type { BenchGrant } from "../stack/settings.ts";
+import { doorCall, doorJob, TOKEN_HEADER } from "./call.ts";
+
+export { doorCall, TOKEN_HEADER } from "./call.ts";
 
 /** The platform stage whose bench a new world's sites go on; unset, worlds have no bench and no sites. */
 export const BenchStage = Config.option(Config.String("WORLD_BENCH"));
-
-export const TOKEN_HEADER = "x-capxul-site-token";
 
 export const SiteState = Schema.Struct({
   site: Schema.String,
@@ -110,41 +109,6 @@ export const grant = Effect.fn("world.site.grant")(function* (stage: string, exp
   return Option.some<BenchGrant>({ stage: bench.value, door: made.door, token: made.token });
 });
 
-/**
- * A refusal's body in words: the door's own answer as it is, or an HTML error page (Cloudflare's, before the door,
- * such as 524 when the door took over 100 s) by its title.
- */
-const wordsOf = (body: string) => {
-  const title = /<title>([^<]*)<\/title>/i.exec(body)?.[1];
-  return title === undefined ? Str.slice(0, 300)(body) : `${Str.trim(title)} (an error page before the door)`;
-};
-
-/** One call to the site door with `token`, its answer decoded with `schema`. */
-export const doorCall = <S extends Schema.Constraint>(
-  door: string,
-  token: Redacted.Redacted,
-  request: HttpClientRequest.HttpClientRequest,
-  schema: S,
-) =>
-  Effect.gen(function* () {
-    const response = yield* HttpClient.execute(
-      request.pipe(
-        HttpClientRequest.prependUrl(door),
-        HttpClientRequest.setHeader(TOKEN_HEADER, Redacted.value(token)),
-      ),
-    );
-    if (response.status >= 400) {
-      const refused = yield* response.text;
-      return yield* SiteFailed.make({ step: "door", message: `HTTP ${response.status}: ${wordsOf(refused)}` });
-    }
-    return yield* HttpClientResponse.schemaBodyJson(schema)(response);
-  }).pipe(
-    Effect.scoped,
-    Effect.mapError((error) =>
-      Schema.is(SiteFailed)(error) ? error : SiteFailed.make({ step: "door", message: describeFailure(error) }),
-    ),
-  );
-
 /** Makes each company's site with the world's token and waits until every one is ready. */
 export const makeSites = Effect.fn("world.site.make")(function* (
   stage: string,
@@ -205,7 +169,7 @@ export const removeSites = Effect.fn("world.site.remove")(function* (stage: stri
   if (Option.isNone(bench)) return [];
   const expires = yield* soon;
   const { door, token } = yield* tokenFor(bench.value, nameOf(stage), 0, expires);
-  const gone = yield* doorCall(door, token, HttpClientRequest.delete("/world"), Removed);
+  const gone = yield* doorJob(door, token, HttpClientRequest.delete("/world"), Removed);
   const left = (yield* doorCall(door, token, HttpClientRequest.get("/world"), WorldSites)).sites;
   if (Arr.isReadonlyArrayNonEmpty(left))
     return yield* SiteFailed.make({

@@ -17,7 +17,8 @@ import { SiteFailed } from "../failures.ts";
 import { Limits } from "../lifecycle/spec.ts";
 import { secretOf } from "../stack/engine.ts";
 import { nameOf } from "../stack/names.ts";
-import { doorCall, readyOn, soon, tokenFor } from "./Bench.ts";
+import { readyOn, soon, tokenFor } from "./Bench.ts";
+import { doorCall } from "./call.ts";
 
 const SavedSites = Schema.Array(Schema.Struct({ site: Schema.String, label: Schema.String, ms: Schema.Finite }));
 /** A door from before the background backup answers the saved sites at once. */

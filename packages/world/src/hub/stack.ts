@@ -15,7 +15,7 @@ import * as Option from "effect/Option";
 import Door from "../door/Door.ts";
 import { WorldSettingsMissing } from "../failures.ts";
 import { type StateLayer } from "../stack/stack.ts";
-import { HUB_STACK } from "./names.ts";
+import { HUB_CAPACITY, HUB_STACK } from "./names.ts";
 
 /** What the caller decides about a hub: whose it is and until when. */
 export interface HubSettings {
@@ -49,6 +49,13 @@ export const hubStack = (state: StateLayer) =>
       const { stage } = yield* Alchemy.Stack;
       const settings = yield* hubSettings;
       const door = yield* Door;
-      return { hub: stage, owner: settings.owner, expiresAt: settings.expiresAt, doorUrl: door.url };
+      // How many worlds the hub admits, recorded so that admission reads what the hub was deployed with.
+      return {
+        hub: stage,
+        owner: settings.owner,
+        expiresAt: settings.expiresAt,
+        doorUrl: door.url,
+        capacity: HUB_CAPACITY,
+      };
     }),
   );
