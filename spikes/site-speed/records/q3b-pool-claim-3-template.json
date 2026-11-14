@@ -1,0 +1,43 @@
+{
+ "record": "q3b-pool-claim-3-template",
+ "started_utc": "2026-11-13T23:57:42Z",
+ "script": "harness/pool_claim.py",
+ "args": "p3-pool.sitespeed.test northwind-wc.sitespeed.test wc Northwind Traders Ltd --as-template",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q3b claim a pooled site",
+ "label_only": false,
+ "as_template": true,
+ "pool_site": "p3-pool.sitespeed.test",
+ "site": "northwind-wc.sitespeed.test",
+ "world": "wc",
+ "steps": [
+  {
+   "step": "site folder renamed",
+   "ms": 0
+  },
+  {
+   "step": "one process: company renamed, joined, clock, credential, scheduler",
+   "ms": 1087,
+   "inside": {
+    "company renamed": 105,
+    "joined, clock, credential, scheduler": 490
+   }
+  }
+ ],
+ "claim_ms": 1087,
+ "total_ms": 1087,
+ "loadavg_before": [
+  "1.95",
+  "0.86",
+  "0.68"
+ ],
+ "loadavg_after": [
+  "1.95",
+  "0.86",
+  "0.68"
+ ]
+}

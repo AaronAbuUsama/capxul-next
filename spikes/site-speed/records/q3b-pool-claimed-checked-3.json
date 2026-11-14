@@ -1,0 +1,22 @@
+{
+ "record": "q3b-pool-claimed-checked-3",
+ "started_utc": "2026-11-13T23:57:43Z",
+ "script": "harness/check_sites.py",
+ "args": "northwind-wb.sitespeed.test northwind-wc.sitespeed.test",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "made sites work",
+ "sites": [
+  {
+   "site": "northwind-wc.sitespeed.test",
+   "world": "wc",
+   "tables": 926,
+   "template_tables": 926,
+   "ops_ok": true,
+   "ops_error": null
+  }
+ ]
+}

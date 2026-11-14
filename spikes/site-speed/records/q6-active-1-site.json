@@ -1,0 +1,68 @@
+{
+ "record": "q6-active-1-site",
+ "started_utc": "2026-11-13T23:56:44Z",
+ "script": "capacity.py",
+ "args": "active 40 idle1-x1.sitespeed.test",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q6 active sites",
+ "sites_active": 1,
+ "rounds_per_site": 40,
+ "calls": 120,
+ "seconds": 3.5,
+ "calls_per_s": 34.7,
+ "cpu_s_total": 6.71,
+ "cpu_ms_per_call": 55.9,
+ "latency_ms": {
+  "doc.create": {
+   "median": 17,
+   "p90": 25,
+   "max": 140
+  },
+  "doc.submit": {
+   "median": 32,
+   "p90": 38,
+   "max": 139
+  },
+  "report.run": {
+   "median": 15,
+   "p90": 18,
+   "max": 186
+  }
+ },
+ "containers": {
+  "mariadb": {
+   "cpu_s": 0.65,
+   "cpu_pct_of_one_cpu": 18.83,
+   "rss_mib": 636.8,
+   "cache_mib": 612.3
+  },
+  "redis": {
+   "cpu_s": 0.15,
+   "cpu_pct_of_one_cpu": 4.36,
+   "rss_mib": 56.9,
+   "cache_mib": 2.3
+  },
+  "web": {
+   "cpu_s": 2.53,
+   "cpu_pct_of_one_cpu": 73.13,
+   "rss_mib": 288.8,
+   "cache_mib": 36.6
+  },
+  "worker": {
+   "cpu_s": 3.38,
+   "cpu_pct_of_one_cpu": 97.49,
+   "rss_mib": 82.6,
+   "cache_mib": 28.3
+  },
+  "scheduler": {
+   "cpu_s": 0.0,
+   "cpu_pct_of_one_cpu": 0.0,
+   "rss_mib": 85.7,
+   "cache_mib": 13.3
+  }
+ }
+}

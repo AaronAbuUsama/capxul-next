@@ -1,0 +1,40 @@
+{
+ "record": "q3b-pool-refill-2",
+ "started_utc": "2026-11-13T23:20:29Z",
+ "script": "harness/clone.py",
+ "args": "blank-pool.sitespeed.test p2-pool.sitespeed.test pool sql --one-process",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q3a clone by sql",
+ "template": "blank-pool.sitespeed.test",
+ "site": "p2-pool.sitespeed.test",
+ "one_process": true,
+ "steps": [
+  {
+   "step": "database: create like + insert select",
+   "ms": 2992
+  },
+  {
+   "step": "site folder, config and db user",
+   "ms": 22
+  },
+  {
+   "step": "join world + clock + core credential + scheduler (one process)",
+   "ms": 1312
+  }
+ ],
+ "total_ms": 4326,
+ "loadavg_before": [
+  "0.96",
+  "1.09",
+  "1.16"
+ ],
+ "loadavg_after": [
+  "0.97",
+  "1.09",
+  "1.16"
+ ]
+}

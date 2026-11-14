@@ -1,0 +1,40 @@
+{
+ "record": "q3a-clone-sql-oneproc",
+ "started_utc": "2026-11-13T23:14:49Z",
+ "script": "harness/clone.py",
+ "args": "acme-w3.sitespeed.test c3-w12.sitespeed.test w12 sql --one-process",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q3a clone by sql",
+ "template": "acme-w3.sitespeed.test",
+ "site": "c3-w12.sitespeed.test",
+ "one_process": true,
+ "steps": [
+  {
+   "step": "database: create like + insert select",
+   "ms": 2853
+  },
+  {
+   "step": "site folder, config and db user",
+   "ms": 24
+  },
+  {
+   "step": "join world + clock + core credential + scheduler (one process)",
+   "ms": 1165
+  }
+ ],
+ "total_ms": 4042,
+ "loadavg_before": [
+  "0.70",
+  "1.00",
+  "1.15"
+ ],
+ "loadavg_after": [
+  "0.72",
+  "1.00",
+  "1.15"
+ ]
+}

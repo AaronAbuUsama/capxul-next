@@ -1,0 +1,40 @@
+{
+ "record": "q3a-clone-dump-oneproc",
+ "started_utc": "2026-11-13T23:12:36Z",
+ "script": "harness/clone.py",
+ "args": "acme-w3.sitespeed.test c4-w13.sitespeed.test w13 dump --one-process",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q3a clone by dump",
+ "template": "acme-w3.sitespeed.test",
+ "site": "c4-w13.sitespeed.test",
+ "one_process": true,
+ "steps": [
+  {
+   "step": "database: mariadb-dump | mariadb",
+   "ms": 5110
+  },
+  {
+   "step": "site folder, config and db user",
+   "ms": 27
+  },
+  {
+   "step": "join world + clock + core credential + scheduler (one process)",
+   "ms": 1402
+  }
+ ],
+ "total_ms": 6538,
+ "loadavg_before": [
+  "1.14",
+  "1.18",
+  "1.23"
+ ],
+ "loadavg_after": [
+  "1.13",
+  "1.18",
+  "1.23"
+ ]
+}

@@ -1,0 +1,50 @@
+{
+ "record": "q4-reset-changed-x10",
+ "started_utc": "2026-11-13T23:22:03Z",
+ "script": "harness/reset.py",
+ "args": "g2-w8.sitespeed.test changed",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q4 reset in place: changed",
+ "site": "g2-w8.sitespeed.test",
+ "steps": [
+  {
+   "step": "changed tables found by CHECKSUM TABLE (live and saved)",
+   "ms": 555,
+   "changed": [
+    "tabGL Entry",
+    "tabJournal Entry",
+    "tabJournal Entry Account",
+    "tabSeries",
+    "tabUser",
+    "tabVersion"
+   ],
+   "tables_changed": 6,
+   "changed_by_update_time": 6,
+   "update_time_null": 917,
+   "same_set": true
+  },
+  {
+   "step": "changed tables emptied and filled from the saved copy",
+   "ms": 1359
+  },
+  {
+   "step": "site cache cleared (Redis keys of the site)",
+   "ms": 32,
+   "keys_cleared": 236
+  }
+ ],
+ "journal_entries_after": 10010,
+ "reset_ms": 1946,
+ "changed_tables": [
+  "tabGL Entry",
+  "tabJournal Entry",
+  "tabJournal Entry Account",
+  "tabSeries",
+  "tabUser",
+  "tabVersion"
+ ]
+}

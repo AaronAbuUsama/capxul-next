@@ -1,0 +1,22 @@
+{
+ "record": "q2-grow-x10",
+ "started_utc": "2026-11-13T23:11:05Z",
+ "script": "harness/grow.py",
+ "args": "r2-w5.sitespeed.test 0 10",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "site": "r2-w5.sitespeed.test",
+ "multiplied": {
+  "factor": 10,
+  "ms": 1161
+ },
+ "rows": {
+  "tabGL Entry": 20020,
+  "tabJournal Entry": 10010,
+  "tabJournal Entry Account": 20020,
+  "tabPayment Ledger Entry": 0
+ }
+}

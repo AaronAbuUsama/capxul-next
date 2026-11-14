@@ -1,0 +1,26 @@
+{
+ "record": "q4-reset-dump",
+ "started_utc": "2026-11-13T23:21:26Z",
+ "script": "harness/reset.py",
+ "args": "northwind-wb.sitespeed.test dump",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q4 reset in place: dump",
+ "site": "northwind-wb.sitespeed.test",
+ "steps": [
+  {
+   "step": "database dropped and loaded from the saved dump",
+   "ms": 6124
+  },
+  {
+   "step": "site cache cleared (Redis keys of the site)",
+   "ms": 30,
+   "keys_cleared": 186
+  }
+ ],
+ "journal_entries_after": 4,
+ "reset_ms": 6154
+}

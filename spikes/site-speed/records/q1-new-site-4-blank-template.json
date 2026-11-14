@@ -1,0 +1,73 @@
+{
+ "record": "q1-new-site-4-blank-template",
+ "started_utc": "2026-11-13T23:17:50Z",
+ "script": "harness/new_site.py",
+ "args": "blank-pool.sitespeed.test pool Pool Company --no-company",
+ "machine": {
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "bench_image": "cx-platform-bench:pr-sr1 (Frappe 16.54.0, ERPNext, HRMS, capxul)"
+ },
+ "question": "Q1 new company site from nothing",
+ "site": "blank-pool.sitespeed.test",
+ "world": "pool",
+ "steps": [
+  {
+   "step": "new-site",
+   "phase": "door",
+   "ms": 18048
+  },
+  {
+   "step": "install erpnext",
+   "phase": "door",
+   "ms": 43098
+  },
+  {
+   "step": "install hrms",
+   "phase": "door",
+   "ms": 29674
+  },
+  {
+   "step": "install capxul",
+   "phase": "door",
+   "ms": 2719
+  },
+  {
+   "step": "setup wizard",
+   "phase": "door",
+   "ms": 15609
+  },
+  {
+   "step": "migrate",
+   "phase": "door",
+   "ms": 7022
+  },
+  {
+   "step": "enable scheduler",
+   "phase": "door",
+   "ms": 715
+  },
+  {
+   "step": "join world",
+   "phase": "door",
+   "ms": 565
+  },
+  {
+   "step": "core user",
+   "phase": "door",
+   "ms": 1162
+  }
+ ],
+ "door_ms": 118612,
+ "total_ms": 118612,
+ "loadavg_before": [
+  "1.22",
+  "1.13",
+  "1.17"
+ ],
+ "loadavg_after": [
+  "1.29",
+  "1.16",
+  "1.18"
+ ]
+}
