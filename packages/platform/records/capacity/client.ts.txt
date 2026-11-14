@@ -1,0 +1,54 @@
+// packages/world's own client of the site door's long calls (src/site/call.ts, `doorJob`, as src/site/Points.ts and
+// Bench.ts call it) over real HTTP to the stand-in bench's two doors, as run.sh serves them: this checkout's door
+// (argv 2), which runs them as jobs, and the door before jobs (argv 3), which answers when done. On each door two
+// worlds at once make a site, keep it as a template, save, remove, claim, save, reset and take down, and every call
+// must end well. run.sh copies this file into packages/world as capacity-proof.ts, runs it and removes it. Prints one
+// JSON record.
+import * as NodeServices from "@effect/platform-node/NodeServices";
+import * as Duration from "effect/Duration";
+import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
+import * as Schema from "effect/Schema";
+import * as FetchHttpClient from "effect/http/FetchHttpClient";
+import * as HttpClientRequest from "effect/http/HttpClientRequest";
+import { readyOn, SiteState, soon, tokenFor } from "./src/site/Bench.ts";
+import { doorCall, doorJob } from "./src/site/call.ts";
+
+const [newDoor, oldDoor] = process.argv.slice(2);
+const credential = { api_key: "a".repeat(16), api_secret: "b".repeat(32) };
+const post = (path: string, body: unknown) => HttpClientRequest.post(path).pipe(HttpClientRequest.bodyJsonUnsafe(body));
+
+const world = (door: string, name: string) =>
+  Effect.gen(function* () {
+    const { token } = yield* tokenFor("local", name, 3, yield* soon);
+    const site = `northwind-${name}.pool.test`;
+    const template = `payment-drafted-3f9a0c1d-${name}`;
+    const timed = <A, E, R>(step: string, call: Effect.Effect<A, E, R>) =>
+      Effect.map(Effect.timed(call), ([took, answer]) => ({ step, ms: Math.round(Duration.toMillis(took)), answer }));
+    const asked = yield* doorCall(door, token, post("/sites", { label: "northwind", company: "Northwind", ...credential }), SiteState);
+    yield* readyOn(door, token, asked.site);
+    const steps = yield* Effect.all([
+      timed("POST /templates", doorJob(door, token, post("/templates", { template, site }), Schema.Struct({ made: Schema.Boolean }))),
+      timed("POST /world/save", doorJob(door, token, post("/world/save", { point: "p1" }), Schema.Struct({ point: Schema.String }))),
+      timed("DELETE /sites/<site>", doorJob(door, token, HttpClientRequest.delete(`/sites/${site}`), Schema.Struct({ removed: Schema.Boolean }))),
+      timed("POST /world/claim", doorJob(door, token, post("/world/claim", { template, ...credential }), Schema.Struct({ sites: Schema.Array(Schema.Struct({ site: Schema.String, state: Schema.String })) }))),
+      timed("POST /world/save again", doorJob(door, token, post("/world/save", { point: "p1" }), Schema.Struct({ point: Schema.String }))),
+      timed("POST /world/reset", doorJob(door, token, post("/world/reset", { point: "p1" }), Schema.Struct({ point: Schema.String }))),
+      timed("DELETE /world", doorJob(door, token, HttpClientRequest.delete("/world"), Schema.Struct({ removed: Schema.Array(Schema.Unknown) }))),
+    ]);
+    return steps.map(({ step, ms }) => ({ step, ms }));
+  });
+
+const both = (door: string, names: [string, string]) =>
+  Effect.map(Effect.all([world(door, names[0]), world(door, names[1])], { concurrency: 2 }), ([a, b]) => ({ [names[0]]: a, [names[1]]: b }));
+
+const program = Effect.gen(function* () {
+  return {
+    "this checkout's door, two worlds at once (calls past 2 s ran as jobs)": yield* both(newDoor, ["ca", "cb"]),
+    "the door before jobs, two worlds at once (it ignores Prefer and answers when done)": yield* both(oldDoor, ["cc", "cd"]),
+    every: "every call above ended well; a failure would have ended this program with its cause",
+  };
+});
+
+const record = await Effect.runPromise(program.pipe(Effect.provide(Layer.mergeAll(NodeServices.layer, FetchHttpClient.layer))));
+console.log(JSON.stringify(record, null, 1));

@@ -21,7 +21,31 @@ configuration and its Core: `world create` deploys no container application.
 | A world's token | `<stage>.<secret>`, one path segment, so every caller reaches a world as before, at `<door>/<token>/rpc`. `secret` is an HMAC of the world's stage, owner and expiry under the hub's admin token (`src/hub/hub.ts`), so it is stored only in the hub's registration and the world's Core, and worked out again by whoever reads the hub's admin token from the shared state. |
 | Registering a world | Its create registers it (`POST /admin/<admin>/worlds/<stage>`, `src/hub/registration.ts`) right after its name is claimed: its chain's object keeps the registration and checks every call's token and the world's expiry against it (`src/chain/admission.ts`); the hub's bucket keeps a ledger entry. |
 | Forgetting a world | Every take-down calls `POST /admin/<admin>/worlds/<stage>/forget`: the bundler's and index's containers and storage, the chain's container, every object of the world in the bucket (its saved state, its snapshots' states, then its ledger entry) and the chain object's storage and pending callbacks are removed. The world's token then reaches nothing (`404 no world is registered here`). |
+| How many worlds a hub admits | `HUB_CAPACITY`, 24, recorded in the hub's outputs at its deploy (a hub recorded before admits 10, its applications' old cap); each container application allows `HUB_CAPACITY + HUB_SPARE` (26) instances, the spare for the seconds Cloudflare still counts a destroyed world's container. A world holds its place from its claim until its name is released: see "Capacity", below. Raising it on `fleet` takes `hub up --hub fleet` again. |
 | What an idle hub costs | Its applications keep instances placed in advance but run none: Cloudflare's own count of active instances is 0 for all three a few seconds after the last world goes (`records/hub.proof.json`, `containersAfter`, 16.4 s after the last destroy), and a container is billed only while active. What is left is the Workers plan, the bucket's and the objects' storage (a world's chain state is about 3.4 MB, removed with it) and nothing per hour. |
+
+### Capacity: a world waits for room instead of dying half-way
+
+On 14 November 2026 four `world` runs at once on `fleet` all failed: one run peaks at six worlds on the hub (its own,
+four more of its first operator up to the quota of five in the journey "two operators and their worlds", and its
+second operator's), so four needed 24 while each container application allowed 10, and chains and indexes were
+refused (`Maximum number of running container instances`) after their worlds were half made. Now:
+
+| What | How |
+|---|---|
+| Admission (`src/lifecycle/claim.ts`, `admit`) | The registry's row of a world names its hub, and the insert that claims the name takes it only while the hub's rows are fewer than its capacity, in one transaction under a lock on the owner and one on the hub. Two processes cannot both take a hub's last place: `records/admission` runs two processes at once, 20 worlds on a hub of 4, on a real Postgres 16, and the hub never held more than 4 (`summary.json`). A place is held until the name is released, so a world whose take-down failed, or that expired and was not swept yet, keeps it: counting stays on the safe side. |
+| The wait | The `admit` step, before `claim`: while the hub is full the insert is tried again every `WORLD_ADMIT_EVERY` (10 s), under `WORLD_TIMEOUT_ADMIT` (15 minutes; a run's quota phase holds five places for about five minutes). It fails with `HubFull` only past that, with nothing of the world made. The step's duration is in every create's `ms` and its span `world.admit` in the platform's spans, so a run record shows each wait. |
+| The quota still refuses | The owner's quota is in the same insert and is read first: an owner at five live worlds is refused `WorldQuotaReached` at once, full hub or not (`records/admission`, 8 to 22 ms; `test/admit.test.ts`). A create waiting for room holds no row, so it is not counted against its owner. |
+| An older registry | A registry made before rows named their hub has no `hub` column: the first claim that meets that adds it and its index (`prepareRegistry`, one transaction under its own lock, since two claims at once doing it collided in `records/admission`) and tries again. `platform up` adds it too. Rows of worlds created before have no hub and are not counted. |
+
+What it costs, at most, from Cloudflare's prices (memory $0.0000025 a GiB-second, CPU $0.000020 a vCPU-second,
+disk $0.00000007 a GB-second; CPU is billed on use, so provisioned CPU is an upper bound): one world running all
+three containers is 0.8125 vCPU (1/16 + 1/4 + 1/2), 5.25 GiB (0.25 + 1 + 4) and 14 GB of disk (2 + 4 + 8), so
+$0.0585 + $0.0473 + $0.0035 = **$0.109 an hour**. A full hub of 24 is **$2.62 an hour** while every world on it is in
+use (containers stop after 10 idle minutes). A run is about 1.05 world-hours (run `run-138efc`: its own world 26
+minutes, five others about 5 minutes each, one restore), about **$0.12**, so the $10 a day across Cloudflare and
+Neon is about 80 runs of containers; the cap bounds the rate, not the day. 24 worlds is 126 GiB and 19.5 vCPU at
+once, inside the account's limits on running containers as Cloudflare documents them (not measured here).
 
 A world's branch is made by its create through Neon's API (`src/database/neon.ts`), not by the stack: Alchemy's Neon
 provider looks at a new branch's operations every 5 s, which cost 6 to 9 s of every create. The take-down deletes the
@@ -241,6 +265,13 @@ JSON-RPC's -32601 (run by hand, not recorded).
 | `site`, after `core` | Each company of `spec.companies` (`--company label=Name,...`): the door makes the site with the world's token and the world's site credential, and the step waits until every site is ready (declared timeout 8 minutes). |
 | `unsite`, before `destroy` | Every take-down (a destroy, a failed or interrupted run, a failed create, the sweeper) removes every site of the world from the bench its record names, with a token minted anew (quota 0, 15 minutes: the world's own may have expired), and checks the door holds none. If that fails, the world's Cloudflare and Neon resources are still destroyed, but its name is kept and its record is written again, since Alchemy's destroy deletes it with the resources: its owner and bench, status `unsite failed` and an expiry of now, so `list` shows it and the next sweep removes the sites and then the record. A destroy that fails is recorded the same way, as `destroy failed`, with its hub, whether or not Alchemy had deleted the record yet (`keepRemains`; `test/remains.test.ts` runs both against an in-memory state store and a bench door that answers 530, then a sweep once it is back). |
 
+A call to the site door that waits on what other worlds hold on a busy bench (a claim from a template, a save, a
+reset, a template's making, the sweep, the clock, a removal) goes through `doorJob` (`src/site/call.ts`): it asks
+with `Prefer: respond-async`, the door answers within its own wait (20 s) with the call's answer or a 202 and a job,
+and the job is polled until it ends, so no request outlasts the 100 s Cloudflare's edge allows (a `524`, which one of
+the four runs of 14 November 2026 met on a reset's claim). A door from before jobs ignores the header and answers when
+done, and the client takes either (`test/jobs.test.ts`; packages/platform `records/capacity`, `client.json`).
+
 Why here: the world owns what runs where and is the only thing that lives and dies with its sites, so making and
 removing them are world steps; reaching a site is what Core's operations will do, so that is a Core service
 (`packages/core`, `SiteDoor`), which reads the token and credential the world bound into it. The site door
@@ -332,11 +363,11 @@ session's proxy with curl; the next deploy then needs no Docker.
 |---|---|---|
 | 1. A run is one unit | `src/lifecycle/run.ts` | `withWorld` creates, runs the use, writes the record, destroys. The destroy cannot be interrupted and runs when the use fails, times out or the process is interrupted, also half-way through the create. `create` alone takes down whatever a failed create made. |
 | 2. Owner and expiry | `world.ts`, `sweep.ts` | Both are checked (the blueprint's `OperatorName`; at most `WORLD_MAX_LIFETIME`, 7 days) and written to the shared state before anything exists. Neon deletes the branch by itself at the expiry; `sweep` reads only the shared state, destroys what has expired, and keeps and reports what has no readable expiry. |
-| 2. One name, one world | `claim.ts` | The state store has no lock. A name is taken by inserting a row in a registry table on the platform's Neon branch, which Postgres makes atomic; only the holder creates. A taken name is the contract's `WorldExists`, an owner's sixth live world (`WORLD_MAX_PER_OWNER`, 5) its `WorldQuotaReached`. |
+| 2. One name, one world | `claim.ts` | The state store has no lock. A name is taken by inserting a row in a registry table on the platform's Neon branch, which Postgres makes atomic; only the holder creates. A taken name is the contract's `WorldExists`, an owner's sixth live world (`WORLD_MAX_PER_OWNER`, 5) its `WorldQuotaReached`. The same insert holds a place on the world's hub, or waits for one (Capacity, above). |
 | 3. Keeping is explicit and time-limited | `run.ts`, `world.ts` | `keepOnFailure` is a duration, at most `WORLD_MAX_KEEP` (1 day) and never past the world's expiry. A kept world has its chain saved and both containers stopped, is marked `parked`, and its recorded expiry becomes the end of the keep, so the sweeper deletes it then. |
 | 4. Destroy removes everything | `world.ts`, `account.ts`, `src/hub` | Side by side: the world forgotten on its hub (containers, objects' state, saved chain states), `alchemy destroy` of the stage, and every branch of the world, children first; then the stage's record and its name. Every proof lists both accounts before and after and compares them. Images belong to the platform and the hubs; `sweep` and `platform down` remove them once nothing accounts for them. A hub is destroyed by `hub down` or, once expired and empty, by the sweeper. |
 | 5. Not on the agent's machine | `stack/engine.ts` | Every part runs on Cloudflare and Neon; the state is the account's shared store. |
-| 6. Declared timeouts | `spec.ts`, `steps.ts`, `containers/patience.ts` | Each step runs under `WORLD_TIMEOUT_<STEP>`, and its duration is in the record however the step ended, interrupted included. A part's patience with a refused start is a declared window inside its step's timeout (`test/patience.test.ts`). |
+| 6. Declared timeouts | `spec.ts`, `steps.ts`, `containers/patience.ts` | Each step runs under `WORLD_TIMEOUT_<STEP>`, and its duration is in the record however the step ended, interrupted included; the wait for room on a hub is the `admit` step's. A part's patience with a refused start is a declared window inside its step's timeout (`test/patience.test.ts`). |
 
 Secrets: Alchemy prints and stores stack outputs in plain text, so neither the database's connection string nor the
 door's token is an output. Both are read from the resources' own state in the shared store, held as `Redacted`, and
@@ -385,7 +416,7 @@ other run's first create, in `records/reset.proof.json`, took 20.2 s before its 
 
 | Lane | Step | s | |
 |---|---|---|---|
-| | claim | 0.4 to 0.7 | The registry's row and the world's record. |
+| | claim | 0.4 to 0.7 | The registry's row and the world's record. Since admission the row is the `admit` step's, and its wait for room too (Capacity); not measured on the hub yet. |
 | chain | register | 1.1 to 1.6 | The hub's admin call: the chain's object and the ledger. |
 | chain | chain | 1.3 to 1.5 | anvil from the seed on the hub's warm application: no refused start. |
 | chain | fund, bundler | 0.7 to 0.9, 9.6 to 10.8 | The faucet; the bundler's accounts and paymaster (2.9 to 3.1), then alto's start (4.7 to 7.7) beside the cast (6.1 to 7.4). |
@@ -531,6 +562,10 @@ slower than the median. The bundler's and the chain's timeouts are unchanged.
 - The blueprint's `world.snapshot.restore` still makes a new world; the reset in place is this package's command. Making
   the operation itself rewind the world would change its claims (it now refuses a restore as the world's own name).
 - A hub's world names keep their Durable Objects where they were first made (What was learned).
+- **Admission is proven on a real Postgres on this machine (`records/admission`), not on `fleet`.** Not measured: a wait
+  for room in a real run, four runs at once with `fleet` at 24 (it admits 10 until `hub up --hub fleet` deploys the new
+  cap), and whether the account's limits on running containers allow 24 worlds' 126 GiB at once. A parked or expired
+  world keeps its place until it is swept, so a hub full of them makes creates wait.
 
 - Nothing schedules `sweep`. Until something does, a world that was forked from, a parked world and a half-created
   world wait for whoever runs it (Neon still deletes their branches at their expiry).

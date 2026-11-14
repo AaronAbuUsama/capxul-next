@@ -131,6 +131,9 @@ export const Limits = Config.all({
   maxSites: Config.Int("WORLD_MAX_SITES").pipe(Config.withDefault(3)),
 });
 
+/** How often a create on a full hub asks again for a place on it (src/lifecycle/claim.ts, `admit`). */
+export const AdmitEvery = Config.Duration("WORLD_ADMIT_EVERY").pipe(Config.withDefault(Duration.seconds(10)));
+
 const limit = (step: StepName, fallback: Duration.Duration) =>
   Config.Duration(`WORLD_TIMEOUT_${Str.toUpperCase(step)}`).pipe(Config.withDefault(fallback));
 
@@ -138,6 +141,10 @@ const limit = (step: StepName, fallback: Duration.Duration) =>
 // A step that waits on a container holds its Durable Object's patience with a refused start (src/containers/patience.ts)
 // and the time the part takes once started; test/patience.test.ts checks that each step's default holds both.
 export const Timeouts = Config.all({
+  // The name held and a place on the hub (src/lifecycle/claim.ts, `admit`), waiting while the hub is full: a world on a
+  // full hub waits for another to go. A CI run's quota-full phase holds five places for about five minutes (README,
+  // Capacity), so three such waits fit.
+  admit: limit("admit", Duration.minutes(15)),
   claim: limit("claim", Duration.seconds(45)),
   register: limit("register", Duration.seconds(30)),
   branch: limit("branch", Duration.minutes(1)),

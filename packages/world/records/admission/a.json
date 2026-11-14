@@ -1,0 +1,85 @@
+{
+ "process": "a",
+ "hub": {
+  "stage": "proof-hub",
+  "capacity": 4
+ },
+ "holdMs": 400,
+ "admitted": [
+  {
+   "world": "w-a0",
+   "askedAtMs": 0,
+   "waitedMs": 141,
+   "heldAtMs": 141,
+   "releasedAtMs": 549
+  },
+  {
+   "world": "w-a1",
+   "askedAtMs": 13,
+   "waitedMs": 106,
+   "heldAtMs": 119,
+   "releasedAtMs": 520
+  },
+  {
+   "world": "w-a2",
+   "askedAtMs": 15,
+   "waitedMs": 1381,
+   "heldAtMs": 1396,
+   "releasedAtMs": 1796
+  },
+  {
+   "world": "w-a3",
+   "askedAtMs": 17,
+   "waitedMs": 1360,
+   "heldAtMs": 1377,
+   "releasedAtMs": 1777
+  },
+  {
+   "world": "w-a4",
+   "askedAtMs": 18,
+   "waitedMs": 1376,
+   "heldAtMs": 1394,
+   "releasedAtMs": 1795
+  },
+  {
+   "world": "w-a5",
+   "askedAtMs": 20,
+   "waitedMs": 109,
+   "heldAtMs": 129,
+   "releasedAtMs": 529
+  },
+  {
+   "world": "w-a6",
+   "askedAtMs": 22,
+   "waitedMs": 548,
+   "heldAtMs": 570,
+   "releasedAtMs": 971
+  },
+  {
+   "world": "w-a7",
+   "askedAtMs": 23,
+   "waitedMs": 526,
+   "heldAtMs": 549,
+   "releasedAtMs": 949
+  },
+  {
+   "world": "w-a8",
+   "askedAtMs": 24,
+   "waitedMs": 537,
+   "heldAtMs": 561,
+   "releasedAtMs": 961
+  },
+  {
+   "world": "w-a9",
+   "askedAtMs": 27,
+   "waitedMs": 109,
+   "heldAtMs": 136,
+   "releasedAtMs": 536
+  }
+ ],
+ "quota": {
+  "sixth": "Cause([Fail(WorldQuotaReached)])",
+  "tookMs": 22
+ },
+ "waitsLogged": 39
+}
