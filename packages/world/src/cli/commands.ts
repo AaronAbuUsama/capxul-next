@@ -2,8 +2,6 @@
 // `Report` service as data; the entry file decides how they are printed. No command ever reports a connection
 // string, and the chain's address is reported without the world's token unless `--reveal` asks for it.
 import * as Arr from "effect/Array";
-import * as Context from "effect/Context";
-import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import { pipe } from "effect/Function";
 import * as Option from "effect/Option";
@@ -12,7 +10,7 @@ import * as Str from "effect/String";
 import * as Argument from "effect/cli/Argument";
 import * as Command from "effect/cli/Command";
 import * as Flag from "effect/cli/Flag";
-import { InvalidCompany, InvalidDuration, InvalidMint } from "../failures.ts";
+import { InvalidCompany, InvalidMint } from "../failures.ts";
 import { inventory } from "../lifecycle/account.ts";
 import { create, destroy, list } from "../lifecycle/operations.ts";
 import { open } from "../lifecycle/parts.ts";
@@ -24,39 +22,16 @@ import { proofNames, prove } from "../proofs/proofs.ts";
 import { servePlatformOn } from "../platform/serve.ts";
 import { IMAGE_KINDS, pinState } from "../stack/images.ts";
 import { HubStage, hubDown, hubUp, ledger, openHub } from "../hub/hub.ts";
+import { durationOf, Report } from "./report.ts";
+import { renewCommand } from "./renew.ts";
 
-/** Where a command's result goes. */
-export class Report extends Context.Service<Report, { readonly print: (value: unknown) => Effect.Effect<void> }>()(
-  "@capxul/world/cli/commands/Report",
-) {}
+export { durationOf, Report };
 
 const report = (value: unknown) =>
   Effect.gen(function* () {
     const out = yield* Report;
     yield* out.print(value);
   });
-
-const UNITS: Readonly<Record<string, (amount: number) => Duration.Duration>> = {
-  second: Duration.seconds,
-  minute: Duration.minutes,
-  hour: Duration.hours,
-  day: Duration.days,
-};
-
-/** A lifetime as people write it: "90 seconds", "30 minutes", "2 hours", "1 day". */
-export const durationOf = (given: string) => {
-  const found = /^(\d+)\s*(second|minute|hour|day)s?$/.exec(Str.trim(given));
-  const amount = Number(found?.[1]);
-  const unit = found?.[2] === undefined ? undefined : UNITS[found[2]];
-  return unit === undefined || !Number.isSafeInteger(amount)
-    ? Effect.fail(
-        InvalidDuration.make({
-          given,
-          message: `"${given}" is not a duration; write it like "2 hours" or "30 minutes"`,
-        }),
-      )
-    : Effect.succeed(unit(amount));
-};
 
 /** Mints as people write them: `0xADDRESS=AMOUNT`, comma separated, amounts in millionths of a USDC. */
 export const mintsOf = (given: string) =>
@@ -282,6 +257,7 @@ export const world = Command.make("world").pipe(
     createCommand,
     destroyCommand,
     resetCommand,
+    renewCommand,
     listCommand,
     showCommand,
     sqlCommand,

@@ -1,0 +1,20 @@
+{
+  "stage": "staging",
+  "checkedAt": "2026-11-14T15:01:58.794Z",
+  "outcome": "passed",
+  "clean": true,
+  "stacks": [
+    "CapxulBenchHost",
+    "CapxulPlatform"
+  ],
+  "resources": 34,
+  "settings": [
+    {
+      "stack": "CapxulBenchHost",
+      "fqn": "DataAttachment",
+      "status": "skipped",
+      "reason": "provider 'AWS.EC2.VolumeAttachment' does not implement read"
+    }
+  ],
+  "code": []
+}

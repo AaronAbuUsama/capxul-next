@@ -35,6 +35,8 @@ const notMadeWhy = (timings: Timings, cause: Cause.Cause<unknown>) =>
 /** What a run in one world hands its summary, however it ended. */
 export interface Ending {
   readonly run: string;
+  /** "shared world" when the journeys ran in worlds restored from a shared world (src/shared). */
+  readonly mode?: "one world" | "shared world" | undefined;
   readonly startedAt: string;
   readonly owner: string;
   /** Where records are written. */
@@ -43,6 +45,8 @@ export interface Ending {
   /** How the run ended: its journeys' run records, or why it did not finish. */
   readonly ran: Exit.Exit<ReadonlyArray<RunRecord>, unknown>;
   readonly notMade: string | null;
+  /** What the run's take-down could not do, one line each with why (teardown.ts); any of it fails the run. */
+  readonly notTakenDown: ReadonlyArray<string>;
   readonly world: string | null;
   /** The hub as the run used it; null when the run never reached it, and the hub is then the one `WORLD_HUB` names. */
   readonly used: HubUse | null;
@@ -56,7 +60,7 @@ export const noteNotMade = (timings: Timings, into: Ref.Ref<string | null>) => (
 
 /**
  * The run's summary, written to `<run>/summary.json`: its own failure is the starting worlds' (`notMade`) and the
- * run's end when it did not finish, either of which fails it.
+ * run's end when it did not finish, either of which fails it, as does anything its take-down could not do.
  */
 export const summaryOf = (ending: Ending) =>
   Effect.gen(function* () {
@@ -70,7 +74,7 @@ export const summaryOf = (ending: Ending) =>
     const summary = summarize({
       core: ending.core,
       run,
-      mode: "one world",
+      mode: ending.mode ?? "one world",
       expect: "pass",
       owner: ending.owner,
       startedAt: ending.startedAt,
@@ -81,6 +85,7 @@ export const summaryOf = (ending: Ending) =>
         hub: hub.stage,
         hubBroughtUp: hub.broughtUp,
         left: ending.left,
+        notTakenDown: ending.notTakenDown,
         timings: ending.timings,
         failure: failures.length === 0 ? null : Arr.join(failures, "\n"),
       },

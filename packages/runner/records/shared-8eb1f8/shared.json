@@ -1,0 +1,351 @@
+{
+  "kind": "shared world",
+  "run": "shared-8eb1f8",
+  "startedAt": "2026-11-14T15:00:03.633Z",
+  "outcome": "passed",
+  "failure": null,
+  "world": "shared",
+  "owner": "staging",
+  "how": "renewed",
+  "hub": {
+    "stage": "shared",
+    "expiresAt": "2026-12-14T13:38:56.900Z",
+    "broughtUp": false
+  },
+  "was": "2026-11-21T14:08:24.345Z",
+  "expiresAt": "2026-11-21T15:00:06.469Z",
+  "templates": [
+    "fresh",
+    "founded",
+    "office-holder",
+    "payment-drafted"
+  ],
+  "sites": [
+    {
+      "site": "northwind-shared.worlds.abuusama.dev",
+      "world": "shared",
+      "state": "ready",
+      "ms": 216245
+    }
+  ],
+  "shown": {
+    "world": "shared",
+    "owner": "staging",
+    "grade": "shared",
+    "state": "running",
+    "expiresAt": "2026-11-21T15:00:06.469Z",
+    "door": "https://capxulworld-core-w-shared-jkhbyh44uomeulxg.thedao.workers.dev",
+    "chainId": 84532,
+    "contracts": {
+      "usdc": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+      "hats": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "payments": "0x468241C0CFaB01eD410D8f9A281Ace9b8D4E30e3",
+      "entryPoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+      "companySafeMinter": "0x27e3faE904527BcA73C39683D2a1239020915c71",
+      "companiesHouse": "0x38d9772b87a52Ed4615E2c804414f0cDD4854F2F",
+      "companyNamespace": "capxul:devnet:company:v1"
+    },
+    "clock": {
+      "mode": "frozen",
+      "now": "2026-11-14T13:39:14.831Z"
+    },
+    "recordHead": 18,
+    "parent": null,
+    "cast": [
+      {
+        "person": "dana",
+        "email": "dana@cast.test",
+        "signer": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+        "safe": "0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c"
+      },
+      {
+        "person": "eli",
+        "email": "eli@cast.test",
+        "signer": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
+        "safe": "0x90c388a1d9bf2218204d6a5de9654b3260369be8"
+      },
+      {
+        "person": "sam",
+        "email": "sam@cast.test",
+        "signer": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
+        "safe": "0xf6aeafa0dab7b6d9fc54537ceb1550ce956a11cc"
+      },
+      {
+        "person": "pat",
+        "email": "pat@cast.test",
+        "signer": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+        "safe": null
+      },
+      {
+        "person": "olga",
+        "email": "olga@cast.test",
+        "signer": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+        "safe": "0x532a1193802e3bbab0597f713c61639f7285f2bb"
+      }
+    ],
+    "companies": [
+      {
+        "org": "org_ck4tb63berwj",
+        "handle": "northwind",
+        "name": "Northwind Trading",
+        "site": {
+          "state": "ready",
+          "url": "https://northwind-shared.worlds.abuusama.dev"
+        }
+      }
+    ]
+  },
+  "calls": [
+    {
+      "operation": "world.show",
+      "traceId": "02d0567cbe0fc4df007d12d3cf1f8189",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 2166.831,
+        "serverMs": 2030.754,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": true
+      },
+      "steps": [
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.263,
+          "ms": 65.491,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.317,
+          "ms": 2030.436,
+          "outcome": "success"
+        },
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": 0.379,
+          "ms": 69.375,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 69.173,
+          "ms": 1960.581,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 70.147,
+          "ms": 58.607,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 129.303,
+          "ms": 901.451,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.open",
+          "parent": "world.handle",
+          "startMs": 129.525,
+          "ms": 480.229,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.hub.open",
+          "startMs": 129.795,
+          "ms": 293.959,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.handle",
+          "startMs": 131.088,
+          "ms": 81.666,
+          "outcome": "success"
+        },
+        {
+          "name": "world.neon.connection",
+          "parent": "world.handle",
+          "startMs": 213.053,
+          "ms": 611.7,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.neon.connection",
+          "startMs": 213.399,
+          "ms": 610.355,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.hub.open",
+          "startMs": 424.299,
+          "ms": 185.454,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 425.43,
+          "ms": 84.324,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 510.291,
+          "ms": 99.463,
+          "outcome": "success"
+        },
+        {
+          "name": "world.hub.secret",
+          "parent": "world.handle",
+          "startMs": 610.086,
+          "ms": 0.668,
+          "outcome": "success"
+        },
+        {
+          "name": "world.engine.secret",
+          "parent": "world.handle",
+          "startMs": 824.23,
+          "ms": 206.524,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 825.404,
+          "ms": 97.35,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.engine.secret",
+          "startMs": 923.138,
+          "ms": 107.615,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 1030.879,
+          "ms": 620.874,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 1032.136,
+          "ms": 133.618,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 1032.212,
+          "ms": 134.542,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 1032.304,
+          "ms": 371.45,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 1032.636,
+          "ms": 618.117,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 1032.698,
+          "ms": 372.056,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 1033.17,
+          "ms": 617.584,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 1653.31,
+          "ms": 376.444,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 2030.754 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        }
+      ]
+    }
+  ],
+  "timings": [
+    {
+      "part": "renew",
+      "of": "shared",
+      "atMs": 2326,
+      "ms": 19405,
+      "ok": true,
+      "parts": {
+        "registry": 322,
+        "branch": 738,
+        "hub": 845,
+        "deploy": 12846,
+        "migrate": 227,
+        "core": 3231,
+        "renew": 18894
+      }
+    },
+    {
+      "part": "world.show",
+      "of": "shared",
+      "atMs": 21731,
+      "ms": 2174,
+      "ok": true
+    },
+    {
+      "part": "bench sites",
+      "of": "shared",
+      "atMs": 23905,
+      "ms": 878,
+      "ok": true
+    }
+  ]
+}

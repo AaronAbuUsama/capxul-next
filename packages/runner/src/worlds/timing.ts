@@ -20,10 +20,10 @@ import { freshName, keptFor } from "../run.ts";
 import type { Settings } from "../settings.ts";
 import { Inventory } from "../world/leftovers.ts";
 import { waitsOn } from "./makers.ts";
-import { Platform } from "./platform.ts";
+import { coreLabel, Platform } from "./platform.ts";
 import { Timing, makeTimings } from "../timings.ts";
 import { onHub } from "./hub.ts";
-import { coreLabel, destroyAll, leftOf } from "./run.ts";
+import { destroyAll, leftOf, takeDownWorlds } from "./teardown.ts";
 import { startingWorldsOf } from "./starting.ts";
 
 const Line = Schema.Struct({
@@ -66,7 +66,7 @@ export const timeStartingWorlds = (settings: Settings) =>
     const startedAt = DateTime.formatIso(yield* DateTime.now);
     const run = yield* freshName("run");
     const timings = yield* makeTimings;
-    const [lines, templates, destroyTook, destroyedAll] = yield* onHub(settings, timings, () =>
+    const [lines, templates, destroyMs, notTakenDown] = yield* onHub(settings, timings, () =>
       Effect.gen(function* () {
         const starting = yield* startingWorldsOf(settings, platform.url, timings);
         const all = Rec.values(startingWorlds);
@@ -111,15 +111,15 @@ export const timeStartingWorlds = (settings: Settings) =>
         );
         // The bench templates kept stay for the sweep (docs/roadmap.md, "Bench templates never change").
         const ones = yield* starting.templateWorlds;
-        const [took, gone] = yield* Effect.timed(destroyAll(ones));
-        return [made, ones, took, gone] as const;
+        const done = yield* takeDownWorlds(ones, timings);
+        return [made, ones, done.destroyMs, done.failed] as const;
       }),
     );
     const after = yield* leftOf(Arr.dedupe([...(yield* platform.made), ...(yield* platform.tried)]));
     const failures = [
       ...Arr.flatMap(lines, (line) => (line.outcome === "failed" ? [`${line.name}: ${line.why ?? ""}`] : [])),
       ...failuresOf(Arr.flatMap(lines, (line) => line.calls)),
-      ...(destroyedAll ? [] : ["a template world's destroy failed"]),
+      ...notTakenDown,
       ...(after === null || (after.worlds ?? []).length > 0
         ? ["the accounts still hold some of the run's worlds"]
         : []),
@@ -134,7 +134,7 @@ export const timeStartingWorlds = (settings: Settings) =>
       failure: failures.length === 0 ? null : Arr.join(failures, "\n"),
       worlds: lines,
       templates,
-      destroyMs: millis(destroyTook),
+      destroyMs,
       timings: yield* timings.all,
       after,
     };

@@ -3,7 +3,14 @@ import { describe, test } from "node:test";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
-import { classify, decide, expiryOf, leftoverRepositories, lifetimeAllowed } from "../src/lifecycle/expiry.ts";
+import {
+  classify,
+  decide,
+  expiryOf,
+  leftoverRepositories,
+  lifetimeAllowed,
+  renewalOf,
+} from "../src/lifecycle/expiry.ts";
 
 const now = DateTime.makeUnsafe("2026-11-13T10:00:00.000Z");
 const at = (output: unknown) => Effect.runSync(classify(now, output));
@@ -106,5 +113,23 @@ describe("lifetimeAllowed", () => {
   });
   test("a world that would expire at once is refused", () => {
     assert.strictEqual(lifetimeAllowed(Duration.zero, week), false);
+  });
+});
+
+const ask = (lifetime: Duration.Duration, current: string, hub = "2026-12-13T10:00:00.000Z") =>
+  renewalOf({ now, lifetime, most: Duration.days(7), current, hub });
+
+describe("renewalOf", () => {
+  test("moves the expiry to the lifetime from now", () => {
+    assert.deepStrictEqual(ask(Duration.days(7), "2026-11-14T10:00:00.000Z"), {
+      expiresAt: "2026-11-20T10:00:00.000Z",
+    });
+  });
+  test("never shortens a world, which a world restored from it may outlive", () => {
+    assert.ok("refused" in ask(Duration.hours(1), "2026-11-14T10:00:00.000Z"));
+  });
+  test("never past its hub's expiry, nor longer than the most a world may live", () => {
+    assert.ok("refused" in ask(Duration.days(7), "2026-11-14T10:00:00.000Z", "2026-11-15T10:00:00.000Z"));
+    assert.ok("refused" in ask(Duration.days(8), "2026-11-14T10:00:00.000Z"));
   });
 });
