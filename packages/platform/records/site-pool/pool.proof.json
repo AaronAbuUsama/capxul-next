@@ -1,0 +1,216 @@
+{
+ "record": "pool.proof",
+ "at_utc": "2026-11-14T05:06:21Z",
+ "outcome": "passed",
+ "step": "1.17",
+ "machine": {
+  "where": "a local stand-in bench in a Claude cloud container (bin/pool-bench.sh), not the AWS bench host",
+  "cpus": 4,
+  "mem_gib": 15.7,
+  "images": [
+   "cx-platform-door:pr-sr1",
+   "cx-platform-bench:pr-sr1",
+   "public.ecr.aws/docker/library/mariadb:11.8"
+  ],
+  "shared": "other agents' work and containers ran on the same machine"
+ },
+ "total_ms": 241461,
+ "summary": {
+  "template_ms": 2862,
+  "refill_ms": [
+   3280,
+   3003
+  ],
+  "claim_ms": {
+   "w1": {
+    "door": 1534,
+    "client": 1539,
+    "how": "pool"
+   },
+   "w2": {
+    "door": 1552,
+    "client": 1557,
+    "how": "pool"
+   },
+   "w3": {
+    "door": 4897,
+    "client": 4903,
+    "how": "clone"
+   },
+   "w4": {
+    "door": 1305,
+    "client": 1308,
+    "how": "pool"
+   }
+  },
+  "operations_ms": {
+   "w1": {
+    "doc.create": [
+     131,
+     29,
+     33
+    ],
+    "doc.submit": [
+     296,
+     55,
+     65
+    ],
+    "report.run": [
+     393,
+     15,
+     37
+    ]
+   },
+   "w2": {
+    "doc.create": [
+     184,
+     35,
+     25
+    ],
+    "doc.submit": [
+     162,
+     52,
+     61
+    ],
+    "report.run": [
+     152,
+     18,
+     72
+    ]
+   },
+   "w3": {
+    "doc.create": [
+     160,
+     27,
+     25
+    ],
+    "doc.submit": [
+     197,
+     55,
+     54
+    ],
+    "report.run": [
+     155,
+     22,
+     31
+    ]
+   },
+   "w4": {
+    "doc.create": [
+     157,
+     26,
+     34
+    ],
+    "doc.submit": [
+     186,
+     49,
+     50
+    ],
+    "report.run": [
+     126,
+     40,
+     18
+    ]
+   }
+  },
+  "save_ms": {
+   "w1": 3736,
+   "w2": 3431,
+   "w3": 3240,
+   "w4": 3017
+  },
+  "reset_ms": {
+   "w1": {
+    "door": 250,
+    "site": 248
+   },
+   "w2": {
+    "door": 83,
+    "site": 81
+   },
+   "w3": {
+    "door": 249,
+    "site": 245
+   },
+   "w4": {
+    "door": 249,
+    "site": 246
+   }
+  },
+  "second_reset_ms": 116
+ },
+ "checks": [
+  {
+   "check": "the template world's site was built from nothing",
+   "held": true
+  },
+  {
+   "check": "template founded made and its pool filled",
+   "held": true,
+   "detail": 2
+  },
+  {
+   "check": "every world's site claimed and ready",
+   "held": true,
+   "detail": []
+  },
+  {
+   "check": "three claims at once: two from the pool, one cloned",
+   "held": true,
+   "detail": [
+    "pool",
+    "pool",
+    "clone"
+   ]
+  },
+  {
+   "check": "a claim alone from a full pool",
+   "held": true,
+   "detail": "pool"
+  },
+  {
+   "check": "every claimed site answers doc.create, doc.submit and report.run",
+   "held": true
+  },
+  {
+   "check": "each world's state changed after the save",
+   "held": true
+  },
+  {
+   "check": "each site reset in place equals its saved point over HTTP",
+   "held": true,
+   "detail": {}
+  },
+  {
+   "check": "the file made after the save is gone",
+   "held": true
+  },
+  {
+   "check": "the job queued after the save was removed",
+   "held": true,
+   "detail": [
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "check": "each world's clock is back at the saved instant",
+   "held": true
+  },
+  {
+   "check": "a second change and reset of one world equals the same point",
+   "held": true,
+   "detail": {}
+  },
+  {
+   "check": "every site, point, template and pool copy removed",
+   "held": true,
+   "detail": {
+    "folders": [],
+    "dbs": []
+   }
+  }
+ ]
+}

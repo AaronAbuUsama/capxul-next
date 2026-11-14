@@ -1,0 +1,56 @@
+{
+ "record": "02-template",
+ "at_utc": "2026-11-14T05:04:51Z",
+ "made": {
+  "template": "founded",
+  "sites": [
+   {
+    "template": "founded",
+    "label": "northwind",
+    "company": "Northwind Ltd",
+    "db": "_eecc7bd2edb5c5e3",
+    "made_from": "northwind-tpl-founded.pool.test",
+    "made_by": "tpl-founded",
+    "made_at": 1794632684,
+    "ms": 2861
+   }
+  ],
+  "ms": 2862,
+  "pool_size": 2
+ },
+ "client_ms": 2864,
+ "pool_full_after_ms": 7019,
+ "templates": {
+  "templates": [
+   {
+    "template": "founded",
+    "sites": [
+     {
+      "label": "northwind",
+      "company": "Northwind Ltd",
+      "made_from": "northwind-tpl-founded.pool.test",
+      "made_by": "tpl-founded",
+      "made_at": 1794632684,
+      "ms": 2861,
+      "pool_ready": 2
+     }
+    ]
+   }
+  ],
+  "pool_size": 2,
+  "refills": [
+   {
+    "template": "founded",
+    "label": "northwind",
+    "ms": 3280,
+    "at": 1794632687
+   },
+   {
+    "template": "founded",
+    "label": "northwind",
+    "ms": 3003,
+    "at": 1794632690
+   }
+  ]
+ }
+}
