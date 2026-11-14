@@ -17,6 +17,10 @@ type Asking = Asked<"org.create">;
 
 const trimmed = (text: string | null) => (text === null ? null : Str.trim(text));
 
+/** Capital as its asset and quantity, however its amount is spelled. */
+const capitalOf = (capital: { readonly asset: string; readonly amount: string } | null) =>
+  capital === null ? null : [capital.asset, Number(capital.amount)];
+
 /** Nothing is made: the record gains nothing and world.show lists the companies it listed before. */
 const nothingMade = (what: string, before: Before): ReadonlyArray<Check> => [
   nothingRecorded(what, before),
@@ -60,7 +64,7 @@ export const orgCreate = checks<"org.create", Before>({
         "it is the company asked: its handle, its profile trimmed, its board with the founder first, members, capital",
         same(
           "the company",
-          [founded.handle, founded.profile, founded.board, founded.members, founded.capital],
+          [founded.handle, founded.profile, founded.board, founded.members, capitalOf(founded.capital)],
           [
             payload.handle,
             {
@@ -71,7 +75,7 @@ export const orgCreate = checks<"org.create", Before>({
             },
             { directors: [callerOf(asked.options), ...payload.directors], threshold: payload.threshold },
             payload.members,
-            payload.capital,
+            capitalOf(payload.capital),
           ],
         ),
       ),

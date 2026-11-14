@@ -92,7 +92,7 @@ export default class Core extends Cloudflare.Worker<Core>()(
         );
       // One pool per request, opened on the first query and closed when the request ends.
       // A stage deployed in empty-handler mode serves every operation's empty handler (src/empty-handlers.ts).
-      const handlers = Option.contains(textOf(env[ENV.handlers]), EMPTY_HANDLERS) ? ServedEmpty : Served;
+      const handlers: typeof Served = Option.contains(textOf(env[ENV.handlers]), EMPTY_HANDLERS) ? ServedEmpty : Served;
       const served = handlers.pipe(
         Layer.provideMerge(RpcSerialization.layerJson),
         Layer.provide(

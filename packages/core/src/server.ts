@@ -18,4 +18,4 @@ const middlewares = Layer.merge(TelemetryLive, Layer.merge(WorldSignInLive, Plat
 export const Served = Layer.merge(PlatformHandlers, WorldHandlers).pipe(Layer.provideMerge(middlewares));
 
 /** The same with every handler empty (src/empty-handlers.ts): what a stage deployed with `CAPXUL_HANDLERS=empty` serves. */
-export const ServedEmpty: typeof Served = EmptyHandlers.pipe(Layer.provideMerge(middlewares));
+export const ServedEmpty = EmptyHandlers.pipe(Layer.provideMerge(middlewares));
