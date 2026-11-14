@@ -40,10 +40,13 @@ info "repository $BOOTSTRAP_REPO, region $AWS_REGION, zone $PLATFORM_ZONE_NAME, 
 export CLOUDFLARE_API_TOKEN NEON_API_KEY
 
 bold "3. Looking things up (nothing is changed)"
-CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-$(cf 'accounts?per_page=50' | py 'import json,sys; r=json.load(sys.stdin)["result"]; print(r[0]["id"] if len(r) == 1 else "")')}"
-[ -n "$CLOUDFLARE_ACCOUNT_ID" ] || CLOUDFLARE_ACCOUNT_ID="$(ask "The token sees several Cloudflare accounts; which account id:")"
-PLATFORM_ZONE_ID="$(cf "zones?name=$PLATFORM_ZONE_NAME" | py 'import json,sys; r=json.load(sys.stdin)["result"]; print(r[0]["id"] if r else "")')"
-[ -n "$PLATFORM_ZONE_ID" ] || die "the Cloudflare token cannot see the zone $PLATFORM_ZONE_NAME"
+# The zone says which account it belongs to, so the account is the zone's, not a guess among the token's accounts.
+ZONE="$(cf "zones?name=$PLATFORM_ZONE_NAME" | py 'import json,sys; r=json.load(sys.stdin)["result"]; print(r[0]["id"]+" "+r[0]["account"]["id"] if r else "")')"
+[ -n "$ZONE" ] || die "the Cloudflare token cannot see the zone $PLATFORM_ZONE_NAME"
+PLATFORM_ZONE_ID="${ZONE%% *}"; ZONE_ACCOUNT="${ZONE##* }"
+CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-$ZONE_ACCOUNT}"
+[ "$CLOUDFLARE_ACCOUNT_ID" = "$ZONE_ACCOUNT" ] \
+  || die "CLOUDFLARE_ACCOUNT_ID $CLOUDFLARE_ACCOUNT_ID is not the account of $PLATFORM_ZONE_NAME ($ZONE_ACCOUNT)"
 info "Cloudflare account $CLOUDFLARE_ACCOUNT_ID, zone $PLATFORM_ZONE_NAME = $PLATFORM_ZONE_ID"
 NEON_ORG_ID="${NEON_ORG_ID:-$(neon users/me/organizations | py 'import json,sys; o=json.load(sys.stdin)["organizations"]; print(o[0]["id"] if len(o) == 1 else "")')}"
 [ -n "$NEON_ORG_ID" ] || NEON_ORG_ID="$(ask "The Neon key sees several organizations; which org id:")"
