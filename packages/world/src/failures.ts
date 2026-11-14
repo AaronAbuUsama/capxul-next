@@ -56,6 +56,17 @@ export class HubMissing extends Schema.TaggedError<HubMissing, { readonly brand:
   message: Schema.String,
 }) {}
 
+/**
+ * The hub holds as many worlds as its containers allow (src/lifecycle/claim.ts, `admit`): a create waits for room and
+ * fails with this only when none came within its declared wait. Nothing of the world was made.
+ */
+export class HubFull extends Schema.TaggedError<HubFull, { readonly brand: unique symbol }>()("HubFull", {
+  hub: Schema.String,
+  held: Schema.Finite,
+  capacity: Schema.Finite,
+  message: Schema.String,
+}) {}
+
 /** A world is not renewed: the lifetime asked for would shorten it, outlive its hub, or exceed the most allowed. */
 export class RenewRefused extends Schema.TaggedError<RenewRefused, { readonly brand: unique symbol }>()(
   "RenewRefused",

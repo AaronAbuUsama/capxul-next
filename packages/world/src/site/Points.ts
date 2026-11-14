@@ -28,7 +28,8 @@ import { SiteFailed } from "../failures.ts";
 import { Limits } from "../lifecycle/spec.ts";
 import { secretOf } from "../stack/engine.ts";
 import { nameOf } from "../stack/names.ts";
-import { doorCall, sitesOn, soon, tokenFor } from "./Bench.ts";
+import { sitesOn, soon, tokenFor } from "./Bench.ts";
+import { doorCall, doorJob } from "./call.ts";
 import type { BenchClock } from "./Saved.ts";
 
 const Point = Schema.Struct({ world: Schema.String, point: Schema.String });
@@ -60,7 +61,7 @@ export interface SitesReset {
 /** Saves every site of world `stage` on `bench` to a point named after the snapshot. */
 export const savePoint = Effect.fn("world.site.savePoint")(function* (stage: string, bench: string, snapshot: string) {
   const { door, token } = yield* tokenFor(bench, nameOf(stage), 0, yield* soon);
-  return yield* doorCall(
+  return yield* doorJob(
     door,
     token,
     HttpClientRequest.post("/world/save").pipe(HttpClientRequest.bodyJsonUnsafe({ point: snapshot })),
@@ -73,7 +74,7 @@ const removeEach = (stage: string, bench: string, sites: ReadonlyArray<string>) 
   Effect.gen(function* () {
     const { door, token } = yield* tokenFor(bench, nameOf(stage), 0, yield* soon);
     yield* Effect.forEach(sites, (site) =>
-      doorCall(door, token, HttpClientRequest.delete(`/sites/${site}`), Schema.Unknown),
+      doorJob(door, token, HttpClientRequest.delete(`/sites/${site}`), Schema.Unknown),
     );
     return sites;
   });
@@ -91,7 +92,7 @@ const claimFrom = (stage: string, bench: string, template: string, clock: BenchC
       });
     const key = yield* secretOf(stage, SITE_KEY_ID, "text");
     const secret = yield* secretOf(stage, SITE_SECRET_ID, "text");
-    const claimed = yield* doorCall(
+    const claimed = yield* doorJob(
       door,
       token,
       HttpClientRequest.post("/world/claim").pipe(
@@ -111,7 +112,7 @@ const claimFrom = (stage: string, bench: string, template: string, clock: BenchC
 const setClock = (stage: string, bench: string, clock: BenchClock) =>
   Effect.gen(function* () {
     const { door, token } = yield* tokenFor(bench, nameOf(stage), 0, yield* soon);
-    yield* doorCall(
+    yield* doorJob(
       door,
       token,
       HttpClientRequest.post("/clock").pipe(HttpClientRequest.bodyJsonUnsafe(clock)),
@@ -136,7 +137,7 @@ export const resetSites = Effect.fn("world.site.reset")(function* (
   if (companies === 0)
     return { how: "none", removed: yield* removeEach(stage, bench, now), claimed: [] } satisfies SitesReset;
   const { door, token } = yield* tokenFor(bench, nameOf(stage), 0, yield* soon);
-  const reset = yield* doorCall(
+  const reset = yield* doorJob(
     door,
     token,
     HttpClientRequest.post("/world/reset").pipe(HttpClientRequest.bodyJsonUnsafe({ point: snapshot })),
@@ -183,7 +184,7 @@ export const keepTemplate = Effect.fn("world.site.keepTemplate")(function* (
   const world = nameOf(stage);
   const { door, token } = yield* tokenFor(bench, world, 0, yield* soon);
   const source = sites.length === 1 ? { site: sites[0] } : { snapshot };
-  const kept = yield* doorCall(
+  const kept = yield* doorJob(
     door,
     token,
     HttpClientRequest.post("/templates").pipe(HttpClientRequest.bodyJsonUnsafe({ template, ...source })),

@@ -2,11 +2,11 @@ import * as assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
-import * as Rec from "effect/Record";
 import { noDurations, renderRecord, RunRecord } from "../src/lifecycle/record.ts";
 import { STEPS } from "../src/stack/names.ts";
 
 const timeouts = {
+  admit: 16,
   claim: 1,
   register: 14,
   branch: 15,
@@ -46,8 +46,8 @@ describe("RunRecord", () => {
   });
   test("every step has a duration field and a declared timeout", () => {
     for (const step of STEPS) {
-      assert.ok(Rec.has(record.ms, step));
-      assert.ok(Rec.has(record.timeouts, step));
+      assert.ok(step in record.ms);
+      assert.ok(step in record.timeouts);
     }
   });
   test("a step that did not run is null, not missing", () => {

@@ -1,0 +1,42 @@
+// A stand-in of Neon's HTTPS SQL endpoint (src/database/sql.ts) over a real Postgres on this machine, for the
+// admission proof (run.sh): `{query, params}` is one statement, `{queries}` one transaction (BEGIN ... COMMIT) on one
+// connection of a pool, as Neon runs them. A refusal answers 400 with Postgres's own message. run.sh copies this file
+// next to the pg package, runs it and removes it.
+import http from "node:http";
+import pg from "pg";
+
+const pool = new pg.Pool({ connectionString: process.argv[2], max: 50 });
+const port = Number(process.argv[3]);
+
+const run = async (body) => {
+  const client = await pool.connect();
+  try {
+    if (body.queries === undefined) return { rows: (await client.query(body.query, body.params)).rows };
+    await client.query("begin");
+    const results = [];
+    try {
+      for (const one of body.queries) results.push({ rows: (await client.query(one.query, one.params)).rows });
+      await client.query("commit");
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    }
+    return { results };
+  } finally {
+    client.release();
+  }
+};
+
+http
+  .createServer((request, response) => {
+    let text = "";
+    request.on("data", (chunk) => (text += chunk));
+    request.on("end", () =>
+      run(JSON.parse(text)).then(
+        (answer) => response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(answer)),
+        (error) =>
+          response.writeHead(400, { "content-type": "application/json" }).end(JSON.stringify({ message: error.message })),
+      ),
+    );
+  })
+  .listen(port, "127.0.0.1", () => console.log(`endpoint on ${port}`));

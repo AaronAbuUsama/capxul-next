@@ -1,0 +1,71 @@
+// One process of the admission proof (run.sh): packages/world's own `admit` and `claim` (src/lifecycle/claim.ts) on
+// the registry, a real Postgres behind a stand-in of Neon's SQL endpoint. It admits WORLDS worlds at once to hub
+// `proof-hub` (capacity CAPACITY), each of its own owner; each holds its place HOLD_MS, then gives its name back.
+// The other process does the same at the same time. Process `a` first holds five names of one owner (no hub) and
+// asks for a sixth on the full hub: it must be refused for the quota at once, not wait. run.sh copies this file into
+// packages/world as admit-proof.ts, runs it twice at once and removes it. Prints one JSON record.
+import * as NodeServices from "@effect/platform-node/NodeServices";
+import * as Arr from "effect/Array";
+import * as Clock from "effect/Clock";
+import * as Duration from "effect/Duration";
+import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
+import * as Layer from "effect/Layer";
+import * as Redacted from "effect/Redacted";
+import * as FetchHttpClient from "effect/http/FetchHttpClient";
+import * as HttpClient from "effect/http/HttpClient";
+import * as HttpClientRequest from "effect/http/HttpClientRequest";
+import { admit, claim, release } from "./src/lifecycle/claim.ts";
+
+const [who, port, worlds, capacity, holdMs] = process.argv.slice(2);
+const database = Redacted.make("postgres://proof:proof@registry.proof/admission");
+const hub = { stage: "proof-hub", capacity: Number(capacity) };
+const until = "2099-01-01T00:00:00.000Z";
+
+const one = (index: number, began: number) =>
+  Effect.gen(function* () {
+    const world = `w-${who}${index}`;
+    const asked = (yield* Clock.currentTimeMillis) - began;
+    yield* admit(database, world, `${who}-op-${index}`, until, 5, hub, Duration.millis(100), () => Effect.void);
+    const heldAt = (yield* Clock.currentTimeMillis) - began;
+    yield* Effect.sleep(Duration.millis(Number(holdMs)));
+    const releasedAt = (yield* Clock.currentTimeMillis) - began;
+    yield* release(database, world);
+    return { world, askedAtMs: asked, waitedMs: heldAt - asked, heldAtMs: heldAt, releasedAtMs: releasedAt };
+  });
+
+/** Five names of one owner, held without a hub, then a sixth asked for on the (full) hub: refused at once. */
+const quota = Effect.gen(function* () {
+  const owner = `${who}-quota`;
+  yield* Effect.forEach(Arr.makeBy(5, (i) => `w-${who}q${i}`), (world) => claim(database, world, owner, until, 5));
+  const began = yield* Clock.currentTimeMillis;
+  const sixth = yield* Effect.exit(admit(database, `w-${who}q5`, owner, until, 5, hub, Duration.millis(100), () => Effect.void));
+  const tookMs = (yield* Clock.currentTimeMillis) - began;
+  yield* Effect.forEach(Arr.makeBy(5, (i) => `w-${who}q${i}`), (world) => release(database, world));
+  return { sixth: Exit.isFailure(sixth) ? String(sixth.cause).split("\n")[0] : "admitted", tookMs };
+});
+
+const program = Effect.gen(function* () {
+  const began = yield* Clock.currentTimeMillis;
+  const [admitted, quotaCheck] = yield* Effect.all(
+    [
+      Effect.forEach(Arr.makeBy(Number(worlds), (i) => i), (i) => one(i, began), { concurrency: "unbounded" }),
+      who === "a" ? Effect.delay(quota, Duration.millis(300)) : Effect.succeed(null),
+    ],
+    { concurrency: 2 },
+  );
+  return { process: who, hub, holdMs: Number(holdMs), admitted, quota: quotaCheck };
+});
+
+const http = Layer.effect(
+  HttpClient.HttpClient,
+  Effect.map(HttpClient.HttpClient, (client) =>
+    HttpClient.mapRequest(client, (request) =>
+      HttpClientRequest.setUrl(request, `http://127.0.0.1:${port}${new URL(request.url).pathname}`),
+    ),
+  ),
+).pipe(Layer.provide(FetchHttpClient.layer));
+
+// As the `admit` step's declared timeout bounds a create's wait, two minutes bound this process's.
+const record = await Effect.runPromise(program.pipe(Effect.timeout(Duration.minutes(2)), Effect.provide(Layer.mergeAll(NodeServices.layer, http))));
+console.log(JSON.stringify(record, null, 1));
