@@ -9,14 +9,20 @@
         // Effect 4 ships these only as unstable modules, with no stable replacement: the HTTP client and server
         // (calls to the door, Neon and Cloudflare; the Workers' answers), the command line, the file system (records
         // and migrations), child processes (the proofs run the command line as a person does) and Bun's runtime,
-        // which Alchemy needs, and Rpc, with which the platform serves the blueprint's platform group (src/platform).
+        // which Alchemy needs, and Rpc, with which the platform serves the blueprint's platform group (src/platform);
+        // paths and digests too, with which a deploy fingerprints an image's inputs (src/stack/images.ts), and Node's
+        // platform services, which the tests that read files run on.
         // The catalog's exact pin of effect is the guard.
         "allowedUnstableApis": [
           "effect/http",
           "effect/cli",
           "effect/FileSystem",
+          "effect/Path",
+          "effect/PlatformError",
+          "effect/crypto",
           "effect/process",
           "@effect/platform-bun",
+          "@effect/platform-node",
           "effect/rpc"
         ]
       }

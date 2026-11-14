@@ -21,6 +21,7 @@ import type { World } from "../lifecycle/spec.ts";
 import { requireComplete, sweep } from "../lifecycle/sweep.ts";
 import { proofNames, prove } from "../proofs/proofs.ts";
 import { servePlatformOn } from "../platform/serve.ts";
+import { IMAGE_KINDS, pinState } from "../stack/images.ts";
 
 /** Where a command's result goes. */
 export class Report extends Context.Service<Report, { readonly print: (value: unknown) => Effect.Effect<void> }>()(
@@ -195,6 +196,14 @@ const platformCommand = Command.make("platform").pipe(
   ]),
 );
 
+const imagesCommand = Command.make("images", {}, () =>
+  Effect.flatMap(Effect.forEach(IMAGE_KINDS, pinState), report),
+).pipe(
+  Command.withDescription(
+    "Each image's pin, the fingerprint of its inputs now, and whether a deploy uses the pinned digest (src/stack/images.ts)",
+  ),
+);
+
 const proveCommand = Command.make(
   "prove",
   { proof: Argument.String("case").pipe(Argument.withDescription(`One of: ${proofNames}`)) },
@@ -212,6 +221,7 @@ export const world = Command.make("world").pipe(
     sweepCommand,
     inventoryCommand,
     platformCommand,
+    imagesCommand,
     proveCommand,
   ]),
 );

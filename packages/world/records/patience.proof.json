@@ -1,7 +1,7 @@
 {
-  "proof": "a refused container start is tried again within its declared window, every try recorded with its duration: worlds made one after another each record their index step and the index's start tries; a chain stopped right after a create answers the next call, its start's tries recorded, and the index comes back by itself; every world destroyed, nothing left",
+  "proof": "a refused container start is tried again within its declared window, every try recorded with its duration: worlds made one after another each record their index step and the index's start tries; a chain stopped right after a create answers the next call, its start's tries recorded, and the index, stopped by SIGTERM, comes back by itself; every world destroyed, nothing left",
   "outcome": "passed",
-  "at": "2026-11-13T17:43:18.356Z",
+  "at": "2026-11-14T00:44:39.806Z",
   "checks": [
     {
       "check": "every world's run passed",
@@ -24,6 +24,10 @@
       "held": true
     },
     {
+      "check": "every stop of the index sent Ponder SIGTERM and Ponder exited, none killed",
+      "held": true
+    },
+    {
       "check": "every world was destroyed",
       "held": true
     },
@@ -40,815 +44,587 @@
     "indexStepMs": [
       {
         "world": "p-pat-1",
-        "index": 34233,
-        "create": 98281
+        "index": 28787,
+        "create": 68335
       },
       {
         "world": "p-pat-2",
-        "index": 13530,
-        "create": 108110
+        "index": 9529,
+        "create": 48530
       },
       {
         "world": "p-pat-3",
-        "index": 38045,
-        "create": 98041
+        "index": 22040,
+        "create": 80969
       },
       {
         "world": "p-pat-4",
-        "index": 18168,
-        "create": 92454
+        "index": 31549,
+        "create": 67040
       }
     ],
     "refusals": [
       {
         "part": "index, at its create",
-        "at": "2026-11-13T17:33:05.430Z",
-        "tries": 6,
-        "refusals": 5,
-        "ms": 28938
+        "at": "2026-11-14T00:37:47.286Z",
+        "tries": 5,
+        "refusals": 4,
+        "ms": 23409
       },
       {
         "part": "index, at its create",
-        "at": "2026-11-13T17:35:49.895Z",
+        "at": "2026-11-14T00:39:38.016Z",
         "tries": 1,
         "refusals": 0,
-        "ms": 8029
+        "ms": 6679
       },
       {
         "part": "index, at its create",
-        "at": "2026-11-13T17:39:08.158Z",
-        "tries": 7,
-        "refusals": 6,
-        "ms": 32649
+        "at": "2026-11-14T00:41:26.130Z",
+        "tries": 4,
+        "refusals": 3,
+        "ms": 16720
       },
       {
         "part": "index, at its create",
-        "at": "2026-11-13T17:41:41.894Z",
-        "tries": 4,
-        "refusals": 3,
-        "ms": 15334
+        "at": "2026-11-14T00:43:35.221Z",
+        "tries": 5,
+        "refusals": 4,
+        "ms": 23939
       },
       {
         "part": "index, after the chain woke",
-        "at": "2026-11-13T17:33:37.062Z",
-        "tries": 4,
-        "refusals": 3,
-        "ms": 18615
-      },
-      {
-        "part": "index, after the chain woke",
-        "at": "2026-11-13T17:34:09.222Z",
+        "at": "2026-11-14T00:38:12.645Z",
         "tries": 1,
         "refusals": 0,
-        "ms": 6581
+        "ms": 8312
       },
       {
         "part": "index, after the chain woke",
-        "at": "2026-11-13T17:36:36.715Z",
-        "tries": 2,
-        "refusals": 1,
-        "ms": 18206
+        "at": "2026-11-14T00:38:38.448Z",
+        "tries": 1,
+        "refusals": 0,
+        "ms": 6221
       },
       {
         "part": "index, after the chain woke",
-        "at": "2026-11-13T17:37:10.528Z",
-        "tries": 2,
-        "refusals": 1,
-        "ms": 9668
+        "at": "2026-11-14T00:39:58.349Z",
+        "tries": 1,
+        "refusals": 0,
+        "ms": 7755
       },
       {
         "part": "index, after the chain woke",
-        "at": "2026-11-13T17:39:31.859Z",
+        "at": "2026-11-14T00:40:13.700Z",
+        "tries": 1,
+        "refusals": 0,
+        "ms": 8840
+      },
+      {
+        "part": "index, after the chain woke",
+        "at": "2026-11-14T00:42:07.503Z",
+        "tries": 1,
+        "refusals": 0,
+        "ms": 5799
+      },
+      {
+        "part": "index, after the chain woke",
+        "at": "2026-11-14T00:42:21.316Z",
+        "tries": 1,
+        "refusals": 0,
+        "ms": 4795
+      },
+      {
+        "part": "index, after the chain woke",
+        "at": "2026-11-14T00:43:59.007Z",
+        "tries": 1,
+        "refusals": 0,
+        "ms": 5480
+      },
+      {
+        "part": "index, after the chain woke",
+        "at": "2026-11-14T00:44:10.376Z",
+        "tries": 1,
+        "refusals": 0,
+        "ms": 6118
+      },
+      {
+        "part": "chain, after its stop",
+        "at": "2026-11-14T00:38:06.933Z",
         "tries": 3,
-        "refusals": 1,
-        "ms": 12947
+        "refusals": 2,
+        "ms": 5435
       },
       {
-        "part": "index, after the chain woke",
-        "at": "2026-11-13T17:39:58.799Z",
+        "part": "chain, after its stop",
+        "at": "2026-11-14T00:38:27.842Z",
         "tries": 4,
         "refusals": 3,
-        "ms": 18291
-      },
-      {
-        "part": "index, after the chain woke",
-        "at": "2026-11-13T17:42:10.356Z",
-        "tries": 1,
-        "refusals": 0,
-        "ms": 13020
-      },
-      {
-        "part": "index, after the chain woke",
-        "at": "2026-11-13T17:42:32.206Z",
-        "tries": 1,
-        "refusals": 0,
-        "ms": 16234
+        "ms": 10283
       },
       {
         "part": "chain, after its stop",
-        "at": "2026-11-13T17:33:26.427Z",
+        "at": "2026-11-14T00:39:56.765Z",
         "tries": 1,
         "refusals": 0,
-        "ms": 885
+        "ms": 1264
       },
       {
         "part": "chain, after its stop",
-        "at": "2026-11-13T17:34:07.382Z",
+        "at": "2026-11-14T00:40:12.441Z",
         "tries": 1,
         "refusals": 0,
-        "ms": 1476
+        "ms": 924
       },
       {
         "part": "chain, after its stop",
-        "at": "2026-11-13T17:36:33.348Z",
+        "at": "2026-11-14T00:42:06.269Z",
         "tries": 1,
         "refusals": 0,
-        "ms": 1033
+        "ms": 721
       },
       {
         "part": "chain, after its stop",
-        "at": "2026-11-13T17:37:07.426Z",
+        "at": "2026-11-14T00:42:20.591Z",
         "tries": 1,
         "refusals": 0,
-        "ms": 786
+        "ms": 440
       },
       {
         "part": "chain, after its stop",
-        "at": "2026-11-13T17:39:26.876Z",
+        "at": "2026-11-14T00:43:57.997Z",
         "tries": 1,
         "refusals": 0,
-        "ms": 637
+        "ms": 661
       },
       {
         "part": "chain, after its stop",
-        "at": "2026-11-13T17:39:47.591Z",
+        "at": "2026-11-14T00:44:08.719Z",
         "tries": 1,
         "refusals": 0,
-        "ms": 1012
-      },
-      {
-        "part": "chain, after its stop",
-        "at": "2026-11-13T17:42:09.012Z",
-        "tries": 1,
-        "refusals": 0,
-        "ms": 988
-      },
-      {
-        "part": "chain, after its stop",
-        "at": "2026-11-13T17:42:30.847Z",
-        "tries": 1,
-        "refusals": 0,
-        "ms": 1032
+        "ms": 973
       }
     ],
     "retriedStarts": [
       {
         "part": "index, at its create",
-        "at": "2026-11-13T17:33:05.430Z",
+        "at": "2026-11-14T00:37:47.286Z",
         "attempts": [
           {
-            "at": "2026-11-13T17:32:46.638Z",
-            "ms": 779,
+            "at": "2026-11-14T00:37:33.478Z",
+            "ms": 772,
             "started": true,
             "outcome": "refused",
             "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
           },
           {
-            "at": "2026-11-13T17:32:48.417Z",
-            "ms": 754,
+            "at": "2026-11-14T00:37:35.250Z",
+            "ms": 680,
             "started": true,
             "outcome": "refused",
             "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
           },
           {
-            "at": "2026-11-13T17:32:51.171Z",
-            "ms": 776,
+            "at": "2026-11-14T00:37:37.930Z",
+            "ms": 695,
             "started": true,
             "outcome": "refused",
             "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
           },
           {
-            "at": "2026-11-13T17:32:55.947Z",
-            "ms": 736,
+            "at": "2026-11-14T00:37:42.625Z",
+            "ms": 661,
             "started": true,
             "outcome": "refused",
             "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
           },
           {
-            "at": "2026-11-13T17:33:00.683Z",
-            "ms": 747,
-            "started": true,
-            "outcome": "refused",
-            "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-          },
-          {
-            "at": "2026-11-13T17:33:05.430Z",
-            "ms": 10146,
+            "at": "2026-11-14T00:37:47.286Z",
+            "ms": 9601,
             "started": true,
             "outcome": "ready",
             "message": null
           }
         ],
-        "ms": 28938,
-        "startCalls": 6,
-        "refusals": 5,
-        "healthyMs": 10146,
-        "readyMs": 15005,
+        "ms": 23409,
+        "startCalls": 5,
+        "refusals": 4,
+        "healthyMs": 9601,
+        "readyMs": 14607,
         "timeline": {
-          "processMs": 570,
-          "syncStartMs": 9570,
-          "syncEndMs": 12570,
-          "readyMs": 15005,
-          "databaseMs": 4487,
-          "databaseCalls": 85,
-          "slowestDatabaseMethods": [
-            {
-              "method": "create_trigger",
-              "ms": 1259,
-              "calls": 14
-            },
-            {
-              "method": "migrate",
-              "ms": 1213,
-              "calls": 28
-            },
-            {
-              "method": "commit_block",
-              "ms": 599,
-              "calls": 10
-            },
-            {
-              "method": "update_checkpoints",
-              "ms": 410,
-              "calls": 14
-            },
-            {
-              "method": "create_indexes",
-              "ms": 301,
-              "calls": 9
-            },
-            {
-              "method": "migrate_sync",
-              "ms": 283,
-              "calls": 1
-            }
-          ],
-          "rpcMs": 6194,
-          "rpcCalls": 32
-        }
-      },
-      {
-        "part": "index, at its create",
-        "at": "2026-11-13T17:39:08.158Z",
-        "attempts": [
-          {
-            "at": "2026-11-13T17:38:43.763Z",
-            "ms": 880,
-            "started": true,
-            "outcome": "refused",
-            "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-          },
-          {
-            "at": "2026-11-13T17:38:45.643Z",
-            "ms": 888,
-            "started": true,
-            "outcome": "refused",
-            "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-          },
-          {
-            "at": "2026-11-13T17:38:48.531Z",
-            "ms": 925,
-            "started": true,
-            "outcome": "refused",
-            "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-          },
-          {
-            "at": "2026-11-13T17:38:53.456Z",
-            "ms": 860,
-            "started": true,
-            "outcome": "refused",
-            "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-          },
-          {
-            "at": "2026-11-13T17:38:58.316Z",
-            "ms": 948,
-            "started": true,
-            "outcome": "refused",
-            "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-          },
-          {
-            "at": "2026-11-13T17:39:03.264Z",
-            "ms": 894,
-            "started": true,
-            "outcome": "refused",
-            "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-          },
-          {
-            "at": "2026-11-13T17:39:08.158Z",
-            "ms": 8254,
-            "started": true,
-            "outcome": "ready",
-            "message": null
-          }
-        ],
-        "ms": 32649,
-        "startCalls": 7,
-        "refusals": 6,
-        "healthyMs": 8254,
-        "readyMs": 13185,
-        "timeline": {
-          "processMs": 842,
-          "syncStartMs": 7842,
-          "syncEndMs": 10842,
-          "readyMs": 13185,
-          "databaseMs": 3522,
+          "processMs": 714,
+          "syncStartMs": 9714,
+          "syncEndMs": 12714,
+          "readyMs": 14607,
+          "databaseMs": 5021,
           "databaseCalls": 73,
           "slowestDatabaseMethods": [
             {
               "method": "create_trigger",
-              "ms": 1233,
+              "ms": 1795,
               "calls": 14
             },
             {
               "method": "migrate",
-              "ms": 1176,
+              "ms": 1667,
               "calls": 28
             },
             {
-              "method": "update_checkpoints",
-              "ms": 351,
-              "calls": 17
-            },
-            {
               "method": "create_indexes",
-              "ms": 286,
+              "ms": 433,
               "calls": 9
             },
             {
               "method": "migrate_sync",
-              "ms": 274,
+              "ms": 392,
               "calls": 1
             },
             {
+              "method": "update_checkpoints",
+              "ms": 365,
+              "calls": 17
+            },
+            {
               "method": "select_ready",
-              "ms": 165,
+              "ms": 305,
               "calls": 2
             }
           ],
-          "rpcMs": 7052,
-          "rpcCalls": 29
+          "rpcMs": 6036,
+          "rpcCalls": 28
         }
       },
       {
         "part": "index, at its create",
-        "at": "2026-11-13T17:41:41.894Z",
+        "at": "2026-11-14T00:41:26.130Z",
         "attempts": [
           {
-            "at": "2026-11-13T17:41:32.461Z",
-            "ms": 807,
+            "at": "2026-11-14T00:41:16.546Z",
+            "ms": 878,
             "started": true,
             "outcome": "refused",
             "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
           },
           {
-            "at": "2026-11-13T17:41:34.268Z",
-            "ms": 827,
+            "at": "2026-11-14T00:41:18.424Z",
+            "ms": 887,
             "started": true,
             "outcome": "refused",
             "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
           },
           {
-            "at": "2026-11-13T17:41:37.095Z",
-            "ms": 799,
+            "at": "2026-11-14T00:41:21.311Z",
+            "ms": 819,
             "started": true,
             "outcome": "refused",
             "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
           },
           {
-            "at": "2026-11-13T17:41:41.894Z",
-            "ms": 5901,
+            "at": "2026-11-14T00:41:26.130Z",
+            "ms": 7136,
             "started": true,
             "outcome": "ready",
             "message": null
           }
         ],
-        "ms": 15334,
+        "ms": 16720,
         "startCalls": 4,
         "refusals": 3,
-        "healthyMs": 5901,
-        "readyMs": 8406,
+        "healthyMs": 7136,
+        "readyMs": 12082,
         "timeline": {
-          "processMs": 106,
-          "syncStartMs": 6106,
-          "syncEndMs": 8106,
-          "readyMs": 8406,
-          "databaseMs": 2501,
-          "databaseCalls": 68,
+          "processMs": 870,
+          "syncStartMs": 6870,
+          "syncEndMs": 8870,
+          "readyMs": 12082,
+          "databaseMs": 4576,
+          "databaseCalls": 69,
           "slowestDatabaseMethods": [
             {
               "method": "create_trigger",
-              "ms": 894,
+              "ms": 1699,
               "calls": 14
             },
             {
               "method": "migrate",
-              "ms": 888,
+              "ms": 1580,
               "calls": 28
             },
             {
               "method": "create_indexes",
-              "ms": 214,
+              "ms": 400,
               "calls": 9
             },
             {
               "method": "migrate_sync",
-              "ms": 209,
+              "ms": 374,
               "calls": 1
             },
             {
               "method": "update_checkpoints",
-              "ms": 159,
+              "ms": 272,
               "calls": 13
             },
             {
               "method": "select_ready",
-              "ms": 106,
-              "calls": 1
-            }
-          ],
-          "rpcMs": 5626,
-          "rpcCalls": 24
-        }
-      },
-      {
-        "part": "index, after the chain woke",
-        "at": "2026-11-13T17:33:37.062Z",
-        "attempts": [
-          {
-            "at": "2026-11-13T17:33:27.684Z",
-            "ms": 786,
-            "started": true,
-            "outcome": "refused",
-            "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-          },
-          {
-            "at": "2026-11-13T17:33:29.470Z",
-            "ms": 781,
-            "started": true,
-            "outcome": "refused",
-            "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-          },
-          {
-            "at": "2026-11-13T17:33:32.251Z",
-            "ms": 811,
-            "started": true,
-            "outcome": "refused",
-            "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-          },
-          {
-            "at": "2026-11-13T17:33:37.062Z",
-            "ms": 9237,
-            "started": true,
-            "outcome": "ready",
-            "message": null
-          }
-        ],
-        "ms": 18615,
-        "startCalls": 4,
-        "refusals": 3,
-        "healthyMs": 9237,
-        "readyMs": 11859,
-        "timeline": {
-          "processMs": 938,
-          "syncStartMs": 8938,
-          "syncEndMs": 9938,
-          "readyMs": 11859,
-          "databaseMs": 3334,
-          "databaseCalls": 54,
-          "slowestDatabaseMethods": [
-            {
-              "method": "create_trigger",
-              "ms": 1226,
-              "calls": 14
-            },
-            {
-              "method": "migrate",
-              "ms": 1097,
-              "calls": 18
-            },
-            {
-              "method": "drop_trigger",
-              "ms": 452,
-              "calls": 7
-            },
-            {
-              "method": "create_indexes",
-              "ms": 290,
-              "calls": 9
-            },
-            {
-              "method": "select_ready",
-              "ms": 147,
+              "ms": 201,
               "calls": 2
-            },
-            {
-              "method": "migrate_sync",
-              "ms": 67,
-              "calls": 1
             }
           ],
-          "rpcMs": 3295,
-          "rpcCalls": 12
+          "rpcMs": 5445,
+          "rpcCalls": 25
         }
       },
       {
-        "part": "index, after the chain woke",
-        "at": "2026-11-13T17:36:36.715Z",
+        "part": "index, at its create",
+        "at": "2026-11-14T00:43:35.221Z",
         "attempts": [
           {
-            "at": "2026-11-13T17:36:34.870Z",
+            "at": "2026-11-14T00:43:20.663Z",
+            "ms": 883,
+            "started": true,
+            "outcome": "refused",
+            "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
+          },
+          {
+            "at": "2026-11-14T00:43:22.546Z",
+            "ms": 906,
+            "started": true,
+            "outcome": "refused",
+            "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
+          },
+          {
+            "at": "2026-11-14T00:43:25.452Z",
             "ms": 845,
             "started": true,
             "outcome": "refused",
             "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
           },
           {
-            "at": "2026-11-13T17:36:36.715Z",
-            "ms": 16361,
-            "started": true,
-            "outcome": "ready",
-            "message": null
-          }
-        ],
-        "ms": 18206,
-        "startCalls": 2,
-        "refusals": 1,
-        "healthyMs": 16361,
-        "readyMs": 19051,
-        "timeline": {
-          "processMs": 1285,
-          "syncStartMs": 16285,
-          "syncEndMs": 17285,
-          "readyMs": 19051,
-          "databaseMs": 3195,
-          "databaseCalls": 60,
-          "slowestDatabaseMethods": [
-            {
-              "method": "migrate",
-              "ms": 1138,
-              "calls": 24
-            },
-            {
-              "method": "create_trigger",
-              "ms": 1115,
-              "calls": 14
-            },
-            {
-              "method": "drop_trigger",
-              "ms": 389,
-              "calls": 7
-            },
-            {
-              "method": "create_indexes",
-              "ms": 255,
-              "calls": 9
-            },
-            {
-              "method": "select_ready",
-              "ms": 190,
-              "calls": 2
-            },
-            {
-              "method": "migrate_sync",
-              "ms": 58,
-              "calls": 1
-            }
-          ],
-          "rpcMs": 2379,
-          "rpcCalls": 12
-        }
-      },
-      {
-        "part": "index, after the chain woke",
-        "at": "2026-11-13T17:37:10.528Z",
-        "attempts": [
-          {
-            "at": "2026-11-13T17:37:08.559Z",
-            "ms": 969,
+            "at": "2026-11-14T00:43:30.297Z",
+            "ms": 924,
             "started": true,
             "outcome": "refused",
             "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
           },
           {
-            "at": "2026-11-13T17:37:10.528Z",
-            "ms": 7699,
+            "at": "2026-11-14T00:43:35.221Z",
+            "ms": 9381,
             "started": true,
             "outcome": "ready",
             "message": null
           }
         ],
-        "ms": 9668,
-        "startCalls": 2,
-        "refusals": 1,
-        "healthyMs": 7699,
-        "readyMs": 10188,
+        "ms": 23939,
+        "startCalls": 5,
+        "refusals": 4,
+        "healthyMs": 9381,
+        "readyMs": 16685,
         "timeline": {
-          "processMs": 472,
-          "syncStartMs": 7472,
-          "syncEndMs": 8472,
-          "readyMs": 10188,
-          "databaseMs": 3316,
-          "databaseCalls": 60,
+          "processMs": 779,
+          "syncStartMs": 9779,
+          "syncEndMs": 13779,
+          "readyMs": 16685,
+          "databaseMs": 4574,
+          "databaseCalls": 74,
           "slowestDatabaseMethods": [
             {
-              "method": "migrate",
-              "ms": 1178,
-              "calls": 24
-            },
-            {
               "method": "create_trigger",
-              "ms": 1151,
+              "ms": 1514,
               "calls": 14
             },
             {
-              "method": "drop_trigger",
-              "ms": 419,
-              "calls": 7
+              "method": "migrate",
+              "ms": 1417,
+              "calls": 28
+            },
+            {
+              "method": "update_checkpoints",
+              "ms": 604,
+              "calls": 17
             },
             {
               "method": "create_indexes",
-              "ms": 272,
+              "ms": 360,
               "calls": 9
             },
             {
-              "method": "select_ready",
-              "ms": 174,
-              "calls": 2
+              "method": "migrate_sync",
+              "ms": 335,
+              "calls": 1
             },
             {
-              "method": "migrate_sync",
-              "ms": 63,
-              "calls": 1
+              "method": "select_ready",
+              "ms": 290,
+              "calls": 3
             }
           ],
-          "rpcMs": 2186,
-          "rpcCalls": 13
+          "rpcMs": 9648,
+          "rpcCalls": 29
         }
       },
       {
-        "part": "index, after the chain woke",
-        "at": "2026-11-13T17:39:31.859Z",
+        "part": "chain, after its stop",
+        "at": "2026-11-14T00:38:06.933Z",
+        "from": "saved state",
+        "afterUnsavedStop": false,
+        "wakeMs": 5639,
         "attempts": [
           {
-            "at": "2026-11-13T17:39:27.874Z",
-            "ms": 872,
+            "at": "2026-11-14T00:38:07.039Z",
+            "ms": 1077,
             "started": true,
             "outcome": "refused",
             "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
           },
           {
-            "at": "2026-11-13T17:39:29.746Z",
-            "ms": 1113,
+            "at": "2026-11-14T00:38:09.116Z",
+            "ms": 822,
             "started": true,
-            "outcome": "not ready",
-            "message": "ContainerNotRunningError: Container is not running; call start() before using port 42069."
+            "outcome": "refused",
+            "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
           },
           {
-            "at": "2026-11-13T17:39:31.859Z",
-            "ms": 8962,
+            "at": "2026-11-14T00:38:11.938Z",
+            "ms": 536,
             "started": true,
             "outcome": "ready",
             "message": null
           }
         ],
-        "ms": 12947,
+        "ms": 5435,
         "startCalls": 3,
-        "refusals": 1,
-        "healthyMs": 8962,
-        "readyMs": 11879,
-        "timeline": {
-          "processMs": 1141,
-          "syncStartMs": 9141,
-          "syncEndMs": 9141,
-          "readyMs": 11879,
-          "databaseMs": 3056,
-          "databaseCalls": 60,
-          "slowestDatabaseMethods": [
-            {
-              "method": "migrate",
-              "ms": 1093,
-              "calls": 24
-            },
-            {
-              "method": "create_trigger",
-              "ms": 1036,
-              "calls": 14
-            },
-            {
-              "method": "drop_trigger",
-              "ms": 438,
-              "calls": 7
-            },
-            {
-              "method": "create_indexes",
-              "ms": 243,
-              "calls": 9
-            },
-            {
-              "method": "select_ready",
-              "ms": 138,
-              "calls": 2
-            },
-            {
-              "method": "migrate_sync",
-              "ms": 56,
-              "calls": 1
-            }
-          ],
-          "rpcMs": 1854,
-          "rpcCalls": 13
-        }
+        "refusals": 2
       },
       {
-        "part": "index, after the chain woke",
-        "at": "2026-11-13T17:39:58.799Z",
+        "part": "chain, after its stop",
+        "at": "2026-11-14T00:38:27.842Z",
+        "from": "saved state",
+        "afterUnsavedStop": false,
+        "wakeMs": 10473,
         "attempts": [
           {
-            "at": "2026-11-13T17:39:48.981Z",
-            "ms": 1048,
+            "at": "2026-11-14T00:38:27.907Z",
+            "ms": 1057,
             "started": true,
             "outcome": "refused",
             "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
           },
           {
-            "at": "2026-11-13T17:39:51.029Z",
-            "ms": 899,
+            "at": "2026-11-14T00:38:29.964Z",
+            "ms": 803,
             "started": true,
             "outcome": "refused",
             "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
           },
           {
-            "at": "2026-11-13T17:39:53.928Z",
-            "ms": 871,
+            "at": "2026-11-14T00:38:32.767Z",
+            "ms": 827,
             "started": true,
             "outcome": "refused",
             "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
           },
           {
-            "at": "2026-11-13T17:39:58.799Z",
-            "ms": 8473,
+            "at": "2026-11-14T00:38:37.594Z",
+            "ms": 596,
             "started": true,
             "outcome": "ready",
             "message": null
           }
         ],
-        "ms": 18291,
+        "ms": 10283,
         "startCalls": 4,
-        "refusals": 3,
-        "healthyMs": 8473,
-        "readyMs": 11237,
-        "timeline": {
-          "processMs": 1201,
-          "syncStartMs": 8201,
-          "syncEndMs": 9201,
-          "readyMs": 11237,
-          "databaseMs": 4047,
-          "databaseCalls": 54,
-          "slowestDatabaseMethods": [
-            {
-              "method": "create_trigger",
-              "ms": 1512,
-              "calls": 14
-            },
-            {
-              "method": "migrate",
-              "ms": 1313,
-              "calls": 18
-            },
-            {
-              "method": "drop_trigger",
-              "ms": 557,
-              "calls": 7
-            },
-            {
-              "method": "create_indexes",
-              "ms": 362,
-              "calls": 9
-            },
-            {
-              "method": "select_ready",
-              "ms": 161,
-              "calls": 2
-            },
-            {
-              "method": "migrate_sync",
-              "ms": 82,
-              "calls": 1
-            }
-          ],
-          "rpcMs": 2143,
-          "rpcCalls": 13
-        }
+        "refusals": 3
+      }
+    ],
+    "indexResumes": [
+      {
+        "stop": {
+          "at": "2026-11-14T00:38:03.308Z",
+          "ms": 400,
+          "ended": "exited"
+        },
+        "healthyMs": 8312,
+        "readyMs": 11095,
+        "refusals": 0,
+        "indexBackMs": 17014
+      },
+      {
+        "stop": {
+          "at": "2026-11-14T00:38:23.979Z",
+          "ms": 500,
+          "ended": "exited"
+        },
+        "healthyMs": 6221,
+        "readyMs": 8806,
+        "refusals": 0,
+        "indexBackMs": 19630
+      },
+      {
+        "stop": {
+          "at": "2026-11-14T00:39:53.195Z",
+          "ms": 200,
+          "ended": "exited"
+        },
+        "healthyMs": 7755,
+        "readyMs": 10370,
+        "refusals": 0,
+        "indexBackMs": 12166
+      },
+      {
+        "stop": {
+          "at": "2026-11-14T00:40:08.971Z",
+          "ms": 300,
+          "ended": "exited"
+        },
+        "healthyMs": 8840,
+        "readyMs": 11427,
+        "refusals": 0,
+        "indexBackMs": 12896
+      },
+      {
+        "stop": {
+          "at": "2026-11-14T00:42:02.974Z",
+          "ms": 300,
+          "ended": "exited"
+        },
+        "healthyMs": 5799,
+        "readyMs": 8533,
+        "refusals": 0,
+        "indexBackMs": 10303
+      },
+      {
+        "stop": {
+          "at": "2026-11-14T00:42:16.601Z",
+          "ms": 200,
+          "ended": "exited"
+        },
+        "healthyMs": 4795,
+        "readyMs": 7528,
+        "refusals": 0,
+        "indexBackMs": 8485
+      },
+      {
+        "stop": {
+          "at": "2026-11-14T00:43:53.478Z",
+          "ms": 200,
+          "ended": "exited"
+        },
+        "healthyMs": 5480,
+        "readyMs": 8215,
+        "refusals": 0,
+        "indexBackMs": 9465
+      },
+      {
+        "stop": {
+          "at": "2026-11-14T00:44:07.455Z",
+          "ms": 200,
+          "ended": "exited"
+        },
+        "healthyMs": 6118,
+        "readyMs": 9195,
+        "refusals": 0,
+        "indexBackMs": 11062
       }
     ],
     "worlds": [
@@ -858,28 +634,28 @@
           "world": "w-p-pat-1",
           "owner": "proof",
           "forkedFrom": "nothing",
-          "expiresAt": "2026-11-13T18:11:43.098Z",
+          "expiresAt": "2026-11-14T01:16:54.313Z",
           "outcome": "passed",
           "failure": null,
           "worldAfterwards": "destroyed",
           "keptUntil": null,
           "ms": {
-            "claim": 1251,
-            "deploy": 57417,
-            "migrate": 771,
-            "chain": 2353,
-            "fund": 617,
-            "bundler": 32430,
-            "index": 34233,
-            "core": 761,
+            "claim": 1080,
+            "deploy": 33196,
+            "migrate": 728,
+            "chain": 2897,
+            "fund": 601,
+            "bundler": 9897,
+            "index": 28787,
+            "core": 574,
             "site": null,
-            "use": 57248,
+            "use": 44772,
             "park": null,
             "unsite": 0,
-            "destroy": 19572,
-            "release": 541,
-            "create": 98281,
-            "total": 176259
+            "destroy": 15990,
+            "release": 246,
+            "create": 68335,
+            "total": 129719
           },
           "timeouts": {
             "claim": 45000,
@@ -904,311 +680,329 @@
             "ready": 200,
             "starts": [
               {
-                "at": "2026-11-13T17:33:05.430Z",
+                "at": "2026-11-14T00:37:47.286Z",
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:32:46.638Z",
-                    "ms": 779,
+                    "at": "2026-11-14T00:37:33.478Z",
+                    "ms": 772,
                     "started": true,
                     "outcome": "refused",
                     "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
                   },
                   {
-                    "at": "2026-11-13T17:32:48.417Z",
-                    "ms": 754,
+                    "at": "2026-11-14T00:37:35.250Z",
+                    "ms": 680,
                     "started": true,
                     "outcome": "refused",
                     "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
                   },
                   {
-                    "at": "2026-11-13T17:32:51.171Z",
-                    "ms": 776,
+                    "at": "2026-11-14T00:37:37.930Z",
+                    "ms": 695,
                     "started": true,
                     "outcome": "refused",
                     "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
                   },
                   {
-                    "at": "2026-11-13T17:32:55.947Z",
-                    "ms": 736,
+                    "at": "2026-11-14T00:37:42.625Z",
+                    "ms": 661,
                     "started": true,
                     "outcome": "refused",
                     "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
                   },
                   {
-                    "at": "2026-11-13T17:33:00.683Z",
-                    "ms": 747,
-                    "started": true,
-                    "outcome": "refused",
-                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-                  },
-                  {
-                    "at": "2026-11-13T17:33:05.430Z",
-                    "ms": 10146,
+                    "at": "2026-11-14T00:37:47.286Z",
+                    "ms": 9601,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 28938,
-                "startCalls": 6,
-                "refusals": 5,
-                "healthyMs": 10146,
-                "readyMs": 15005,
+                "ms": 23409,
+                "startCalls": 5,
+                "refusals": 4,
+                "healthyMs": 9601,
+                "readyMs": 14607,
                 "timeline": {
-                  "processMs": 570,
-                  "syncStartMs": 9570,
-                  "syncEndMs": 12570,
-                  "readyMs": 15005,
-                  "databaseMs": 4487,
-                  "databaseCalls": 85,
+                  "processMs": 714,
+                  "syncStartMs": 9714,
+                  "syncEndMs": 12714,
+                  "readyMs": 14607,
+                  "databaseMs": 5021,
+                  "databaseCalls": 73,
                   "slowestDatabaseMethods": [
                     {
                       "method": "create_trigger",
-                      "ms": 1259,
+                      "ms": 1795,
                       "calls": 14
                     },
                     {
                       "method": "migrate",
-                      "ms": 1213,
+                      "ms": 1667,
                       "calls": 28
                     },
                     {
-                      "method": "commit_block",
-                      "ms": 599,
-                      "calls": 10
-                    },
-                    {
-                      "method": "update_checkpoints",
-                      "ms": 410,
-                      "calls": 14
-                    },
-                    {
                       "method": "create_indexes",
-                      "ms": 301,
+                      "ms": 433,
                       "calls": 9
                     },
                     {
                       "method": "migrate_sync",
-                      "ms": 283,
+                      "ms": 392,
                       "calls": 1
+                    },
+                    {
+                      "method": "update_checkpoints",
+                      "ms": 365,
+                      "calls": 17
+                    },
+                    {
+                      "method": "select_ready",
+                      "ms": 305,
+                      "calls": 2
                     }
                   ],
-                  "rpcMs": 6194,
-                  "rpcCalls": 32
+                  "rpcMs": 6036,
+                  "rpcCalls": 28
                 }
               }
             ],
-            "gaveUp": []
+            "gaveUp": [],
+            "stops": []
           },
           "firstChainStart": {
-            "at": "2026-11-13T17:32:44.366Z",
+            "at": "2026-11-14T00:37:30.376Z",
             "from": "seed",
             "afterUnsavedStop": false,
-            "wakeMs": 634,
+            "wakeMs": 1758,
             "attempts": [
               {
-                "at": "2026-11-13T17:32:44.448Z",
-                "ms": 542,
+                "at": "2026-11-14T00:37:30.544Z",
+                "ms": 1587,
                 "started": true,
                 "outcome": "ready",
                 "message": null
               }
             ],
-            "ms": 542,
+            "ms": 1587,
             "startCalls": 1,
             "refusals": 0
           },
           "bundlerStarts": [
             {
-              "at": "2026-11-13T17:32:48.845Z",
-              "readyMs": 29785,
-              "startCalls": 7
+              "at": "2026-11-14T00:37:35.428Z",
+              "readyMs": 7589,
+              "startCalls": 2
             }
           ],
           "cycles": [
             {
               "head": "0x2dacb13",
-              "callMs": 1386,
+              "callMs": 5831,
               "wake": {
-                "at": "2026-11-13T17:33:26.427Z",
+                "at": "2026-11-14T00:38:06.933Z",
                 "from": "saved state",
                 "afterUnsavedStop": false,
-                "wakeMs": 1171,
+                "wakeMs": 5639,
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:33:26.557Z",
-                    "ms": 885,
+                    "at": "2026-11-14T00:38:07.039Z",
+                    "ms": 1077,
+                    "started": true,
+                    "outcome": "refused",
+                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
+                  },
+                  {
+                    "at": "2026-11-14T00:38:09.116Z",
+                    "ms": 822,
+                    "started": true,
+                    "outcome": "refused",
+                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
+                  },
+                  {
+                    "at": "2026-11-14T00:38:11.938Z",
+                    "ms": 536,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 885,
-                "startCalls": 1,
-                "refusals": 0
+                "ms": 5435,
+                "startCalls": 3,
+                "refusals": 2
               },
-              "indexBackMs": 22706,
+              "indexBackMs": 17014,
               "indexStart": {
-                "at": "2026-11-13T17:33:37.062Z",
+                "at": "2026-11-14T00:38:12.645Z",
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:33:27.684Z",
-                    "ms": 786,
-                    "started": true,
-                    "outcome": "refused",
-                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-                  },
-                  {
-                    "at": "2026-11-13T17:33:29.470Z",
-                    "ms": 781,
-                    "started": true,
-                    "outcome": "refused",
-                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-                  },
-                  {
-                    "at": "2026-11-13T17:33:32.251Z",
-                    "ms": 811,
-                    "started": true,
-                    "outcome": "refused",
-                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-                  },
-                  {
-                    "at": "2026-11-13T17:33:37.062Z",
-                    "ms": 9237,
+                    "at": "2026-11-14T00:38:12.645Z",
+                    "ms": 8312,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 18615,
-                "startCalls": 4,
-                "refusals": 3,
-                "healthyMs": 9237,
-                "readyMs": 11859,
+                "ms": 8312,
+                "startCalls": 1,
+                "refusals": 0,
+                "healthyMs": 8312,
+                "readyMs": 11095,
                 "timeline": {
-                  "processMs": 938,
-                  "syncStartMs": 8938,
-                  "syncEndMs": 9938,
-                  "readyMs": 11859,
-                  "databaseMs": 3334,
+                  "processMs": 355,
+                  "syncStartMs": 8355,
+                  "syncEndMs": 8355,
+                  "readyMs": 11095,
+                  "databaseMs": 4456,
                   "databaseCalls": 54,
                   "slowestDatabaseMethods": [
                     {
                       "method": "create_trigger",
-                      "ms": 1226,
+                      "ms": 1621,
                       "calls": 14
                     },
                     {
                       "method": "migrate",
-                      "ms": 1097,
+                      "ms": 1409,
                       "calls": 18
                     },
                     {
                       "method": "drop_trigger",
-                      "ms": 452,
+                      "ms": 674,
                       "calls": 7
                     },
                     {
                       "method": "create_indexes",
-                      "ms": 290,
+                      "ms": 378,
                       "calls": 9
                     },
                     {
                       "method": "select_ready",
-                      "ms": 147,
+                      "ms": 217,
                       "calls": 2
                     },
                     {
                       "method": "migrate_sync",
-                      "ms": 67,
+                      "ms": 87,
                       "calls": 1
                     }
                   ],
-                  "rpcMs": 3295,
-                  "rpcCalls": 12
+                  "rpcMs": 1934,
+                  "rpcCalls": 13
                 }
+              },
+              "indexStop": {
+                "at": "2026-11-14T00:38:03.308Z",
+                "ms": 400,
+                "ended": "exited"
               }
             },
             {
               "head": "0x2dacb13",
-              "callMs": 1969,
+              "callMs": 10732,
               "wake": {
-                "at": "2026-11-13T17:34:07.382Z",
+                "at": "2026-11-14T00:38:27.842Z",
                 "from": "saved state",
                 "afterUnsavedStop": false,
-                "wakeMs": 1708,
+                "wakeMs": 10473,
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:34:07.487Z",
-                    "ms": 1476,
+                    "at": "2026-11-14T00:38:27.907Z",
+                    "ms": 1057,
+                    "started": true,
+                    "outcome": "refused",
+                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
+                  },
+                  {
+                    "at": "2026-11-14T00:38:29.964Z",
+                    "ms": 803,
+                    "started": true,
+                    "outcome": "refused",
+                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
+                  },
+                  {
+                    "at": "2026-11-14T00:38:32.767Z",
+                    "ms": 827,
+                    "started": true,
+                    "outcome": "refused",
+                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
+                  },
+                  {
+                    "at": "2026-11-14T00:38:37.594Z",
+                    "ms": 596,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 1476,
-                "startCalls": 1,
-                "refusals": 0
+                "ms": 10283,
+                "startCalls": 4,
+                "refusals": 3
               },
-              "indexBackMs": 11281,
+              "indexBackMs": 19630,
               "indexStart": {
-                "at": "2026-11-13T17:34:09.222Z",
+                "at": "2026-11-14T00:38:38.448Z",
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:34:09.222Z",
-                    "ms": 6581,
+                    "at": "2026-11-14T00:38:38.448Z",
+                    "ms": 6221,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 6581,
+                "ms": 6221,
                 "startCalls": 1,
                 "refusals": 0,
-                "healthyMs": 6581,
-                "readyMs": 9224,
+                "healthyMs": 6221,
+                "readyMs": 8806,
                 "timeline": {
-                  "processMs": -222,
-                  "syncStartMs": 6778,
-                  "syncEndMs": 6778,
-                  "readyMs": 9224,
-                  "databaseMs": 2781,
+                  "processMs": 552,
+                  "syncStartMs": 5552,
+                  "syncEndMs": 6552,
+                  "readyMs": 8806,
+                  "databaseMs": 2516,
                   "databaseCalls": 54,
                   "slowestDatabaseMethods": [
                     {
                       "method": "create_trigger",
-                      "ms": 1002,
+                      "ms": 949,
                       "calls": 14
                     },
                     {
                       "method": "migrate",
-                      "ms": 892,
+                      "ms": 803,
                       "calls": 18
                     },
                     {
                       "method": "drop_trigger",
-                      "ms": 358,
+                      "ms": 334,
                       "calls": 7
                     },
                     {
                       "method": "create_indexes",
-                      "ms": 240,
+                      "ms": 219,
                       "calls": 9
                     },
                     {
                       "method": "select_ready",
-                      "ms": 183,
+                      "ms": 120,
                       "calls": 2
                     },
                     {
                       "method": "migrate_sync",
-                      "ms": 53,
+                      "ms": 51,
                       "calls": 1
                     }
                   ],
-                  "rpcMs": 2015,
+                  "rpcMs": 2632,
                   "rpcCalls": 13
                 }
+              },
+              "indexStop": {
+                "at": "2026-11-14T00:38:23.979Z",
+                "ms": 500,
+                "ended": "exited"
               }
             }
           ]
@@ -1221,28 +1015,28 @@
           "world": "w-p-pat-2",
           "owner": "proof",
           "forkedFrom": "nothing",
-          "expiresAt": "2026-11-13T18:14:39.362Z",
+          "expiresAt": "2026-11-14T01:19:04.037Z",
           "outcome": "passed",
           "failure": null,
           "worldAfterwards": "destroyed",
           "keptUntil": null,
           "ms": {
-            "claim": 356,
-            "deploy": 61441,
-            "migrate": 771,
-            "chain": 2856,
-            "fund": 4392,
-            "bundler": 37039,
-            "index": 13530,
-            "core": 792,
+            "claim": 376,
+            "deploy": 29018,
+            "migrate": 829,
+            "chain": 2547,
+            "fund": 638,
+            "bundler": 14057,
+            "index": 9529,
+            "core": 665,
             "site": null,
-            "use": 53465,
+            "use": 32739,
             "park": null,
             "unsite": 0,
-            "destroy": 22579,
-            "release": 308,
-            "create": 108110,
-            "total": 184803
+            "destroy": 15391,
+            "release": 241,
+            "create": 48530,
+            "total": 97143
           },
           "timeouts": {
             "claim": 45000,
@@ -1267,269 +1061,266 @@
             "ready": 200,
             "starts": [
               {
-                "at": "2026-11-13T17:35:49.895Z",
+                "at": "2026-11-14T00:39:38.016Z",
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:35:49.895Z",
-                    "ms": 8029,
+                    "at": "2026-11-14T00:39:38.016Z",
+                    "ms": 6679,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 8029,
+                "ms": 6679,
                 "startCalls": 1,
                 "refusals": 0,
-                "healthyMs": 8029,
-                "readyMs": 13031,
+                "healthyMs": 6679,
+                "readyMs": 9182,
                 "timeline": {
-                  "processMs": 105,
-                  "syncStartMs": 8105,
-                  "syncEndMs": 10105,
-                  "readyMs": 13031,
-                  "databaseMs": 4307,
-                  "databaseCalls": 69,
+                  "processMs": -16,
+                  "syncStartMs": 5984,
+                  "syncEndMs": 7984,
+                  "readyMs": 9182,
+                  "databaseMs": 2274,
+                  "databaseCalls": 68,
                   "slowestDatabaseMethods": [
                     {
-                      "method": "create_trigger",
-                      "ms": 1809,
-                      "calls": 14
-                    },
-                    {
                       "method": "migrate",
-                      "ms": 1177,
+                      "ms": 820,
                       "calls": 28
                     },
                     {
-                      "method": "migrate_sync",
-                      "ms": 545,
-                      "calls": 1
+                      "method": "create_trigger",
+                      "ms": 780,
+                      "calls": 14
                     },
                     {
                       "method": "create_indexes",
-                      "ms": 291,
+                      "ms": 202,
                       "calls": 9
                     },
                     {
+                      "method": "migrate_sync",
+                      "ms": 185,
+                      "calls": 1
+                    },
+                    {
                       "method": "update_checkpoints",
-                      "ms": 275,
+                      "ms": 151,
                       "calls": 13
                     },
                     {
                       "method": "select_ready",
-                      "ms": 170,
-                      "calls": 2
+                      "ms": 106,
+                      "calls": 1
                     }
                   ],
-                  "rpcMs": 5643,
-                  "rpcCalls": 25
+                  "rpcMs": 4981,
+                  "rpcCalls": 24
                 }
               }
             ],
-            "gaveUp": []
+            "gaveUp": [],
+            "stops": []
           },
           "firstChainStart": {
-            "at": "2026-11-13T17:35:43.508Z",
+            "at": "2026-11-14T00:39:35.430Z",
             "from": "seed",
             "afterUnsavedStop": false,
-            "wakeMs": 951,
+            "wakeMs": 1236,
             "attempts": [
               {
-                "at": "2026-11-13T17:35:43.657Z",
-                "ms": 798,
+                "at": "2026-11-14T00:39:35.465Z",
+                "ms": 1192,
                 "started": true,
                 "outcome": "ready",
                 "message": null
               }
             ],
-            "ms": 798,
+            "ms": 1192,
             "startCalls": 1,
             "refusals": 0
           },
           "bundlerStarts": [
             {
-              "at": "2026-11-13T17:35:51.950Z",
-              "readyMs": 34541,
-              "startCalls": 8
+              "at": "2026-11-14T00:39:39.966Z",
+              "readyMs": 11785,
+              "startCalls": 3
             }
           ],
           "cycles": [
             {
               "head": "0x2dacb13",
-              "callMs": 1677,
+              "callMs": 1679,
               "wake": {
-                "at": "2026-11-13T17:36:33.348Z",
+                "at": "2026-11-14T00:39:56.765Z",
                 "from": "saved state",
                 "afterUnsavedStop": false,
-                "wakeMs": 1437,
+                "wakeMs": 1512,
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:36:33.513Z",
-                    "ms": 1033,
+                    "at": "2026-11-14T00:39:56.862Z",
+                    "ms": 1264,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 1033,
+                "ms": 1264,
                 "startCalls": 1,
                 "refusals": 0
               },
-              "indexBackMs": 22679,
+              "indexBackMs": 12166,
               "indexStart": {
-                "at": "2026-11-13T17:36:36.715Z",
+                "at": "2026-11-14T00:39:58.349Z",
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:36:34.870Z",
-                    "ms": 845,
-                    "started": true,
-                    "outcome": "refused",
-                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-                  },
-                  {
-                    "at": "2026-11-13T17:36:36.715Z",
-                    "ms": 16361,
+                    "at": "2026-11-14T00:39:58.349Z",
+                    "ms": 7755,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 18206,
-                "startCalls": 2,
-                "refusals": 1,
-                "healthyMs": 16361,
-                "readyMs": 19051,
+                "ms": 7755,
+                "startCalls": 1,
+                "refusals": 0,
+                "healthyMs": 7755,
+                "readyMs": 10370,
                 "timeline": {
-                  "processMs": 1285,
-                  "syncStartMs": 16285,
-                  "syncEndMs": 17285,
-                  "readyMs": 19051,
-                  "databaseMs": 3195,
-                  "databaseCalls": 60,
+                  "processMs": 651,
+                  "syncStartMs": 7651,
+                  "syncEndMs": 8651,
+                  "readyMs": 10370,
+                  "databaseMs": 2198,
+                  "databaseCalls": 54,
                   "slowestDatabaseMethods": [
                     {
-                      "method": "migrate",
-                      "ms": 1138,
-                      "calls": 24
-                    },
-                    {
                       "method": "create_trigger",
-                      "ms": 1115,
+                      "ms": 791,
                       "calls": 14
                     },
                     {
+                      "method": "migrate",
+                      "ms": 722,
+                      "calls": 18
+                    },
+                    {
                       "method": "drop_trigger",
-                      "ms": 389,
+                      "ms": 282,
                       "calls": 7
                     },
                     {
                       "method": "create_indexes",
-                      "ms": 255,
+                      "ms": 186,
                       "calls": 9
                     },
                     {
                       "method": "select_ready",
-                      "ms": 190,
+                      "ms": 133,
                       "calls": 2
                     },
                     {
                       "method": "migrate_sync",
-                      "ms": 58,
+                      "ms": 43,
                       "calls": 1
                     }
                   ],
-                  "rpcMs": 2379,
-                  "rpcCalls": 12
+                  "rpcMs": 2057,
+                  "rpcCalls": 13
                 }
+              },
+              "indexStop": {
+                "at": "2026-11-14T00:39:53.195Z",
+                "ms": 200,
+                "ended": "exited"
               }
             },
             {
               "head": "0x2dacb13",
-              "callMs": 1283,
+              "callMs": 1392,
               "wake": {
-                "at": "2026-11-13T17:37:07.426Z",
+                "at": "2026-11-14T00:40:12.441Z",
                 "from": "saved state",
                 "afterUnsavedStop": false,
-                "wakeMs": 1060,
+                "wakeMs": 1156,
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:37:07.604Z",
-                    "ms": 786,
+                    "at": "2026-11-14T00:40:12.541Z",
+                    "ms": 924,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 786,
+                "ms": 924,
                 "startCalls": 1,
                 "refusals": 0
               },
-              "indexBackMs": 13569,
+              "indexBackMs": 12896,
               "indexStart": {
-                "at": "2026-11-13T17:37:10.528Z",
+                "at": "2026-11-14T00:40:13.700Z",
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:37:08.559Z",
-                    "ms": 969,
-                    "started": true,
-                    "outcome": "refused",
-                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-                  },
-                  {
-                    "at": "2026-11-13T17:37:10.528Z",
-                    "ms": 7699,
+                    "at": "2026-11-14T00:40:13.700Z",
+                    "ms": 8840,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 9668,
-                "startCalls": 2,
-                "refusals": 1,
-                "healthyMs": 7699,
-                "readyMs": 10188,
+                "ms": 8840,
+                "startCalls": 1,
+                "refusals": 0,
+                "healthyMs": 8840,
+                "readyMs": 11427,
                 "timeline": {
-                  "processMs": 472,
-                  "syncStartMs": 7472,
-                  "syncEndMs": 8472,
-                  "readyMs": 10188,
-                  "databaseMs": 3316,
-                  "databaseCalls": 60,
+                  "processMs": 1300,
+                  "syncStartMs": 8300,
+                  "syncEndMs": 9300,
+                  "readyMs": 11427,
+                  "databaseMs": 2314,
+                  "databaseCalls": 54,
                   "slowestDatabaseMethods": [
                     {
-                      "method": "migrate",
-                      "ms": 1178,
-                      "calls": 24
-                    },
-                    {
                       "method": "create_trigger",
-                      "ms": 1151,
+                      "ms": 837,
                       "calls": 14
                     },
                     {
+                      "method": "migrate",
+                      "ms": 760,
+                      "calls": 18
+                    },
+                    {
                       "method": "drop_trigger",
-                      "ms": 419,
+                      "ms": 316,
                       "calls": 7
                     },
                     {
                       "method": "create_indexes",
-                      "ms": 272,
+                      "ms": 200,
                       "calls": 9
                     },
                     {
                       "method": "select_ready",
-                      "ms": 174,
+                      "ms": 118,
                       "calls": 2
                     },
                     {
                       "method": "migrate_sync",
-                      "ms": 63,
+                      "ms": 47,
                       "calls": 1
                     }
                   ],
-                  "rpcMs": 2186,
+                  "rpcMs": 1852,
                   "rpcCalls": 13
                 }
+              },
+              "indexStop": {
+                "at": "2026-11-14T00:40:08.971Z",
+                "ms": 300,
+                "ended": "exited"
               }
             }
           ]
@@ -1542,28 +1333,28 @@
           "world": "w-p-pat-3",
           "owner": "proof",
           "forkedFrom": "nothing",
-          "expiresAt": "2026-11-13T18:17:44.168Z",
+          "expiresAt": "2026-11-14T01:20:41.183Z",
           "outcome": "passed",
           "failure": null,
           "worldAfterwards": "destroyed",
           "keptUntil": null,
           "ms": {
-            "claim": 860,
-            "deploy": 53822,
-            "migrate": 751,
-            "chain": 2537,
-            "fund": 925,
-            "bundler": 30113,
-            "index": 38045,
-            "core": 668,
+            "claim": 353,
+            "deploy": 30383,
+            "migrate": 780,
+            "chain": 2538,
+            "fund": 740,
+            "bundler": 45312,
+            "index": 22040,
+            "core": 456,
             "site": null,
-            "use": 48042,
+            "use": 26879,
             "park": null,
             "unsite": 0,
-            "destroy": 20693,
-            "release": 261,
-            "create": 98041,
-            "total": 167336
+            "destroy": 16253,
+            "release": 259,
+            "create": 80969,
+            "total": 124596
           },
           "timeouts": {
             "claim": 45000,
@@ -1588,332 +1379,287 @@
             "ready": 200,
             "starts": [
               {
-                "at": "2026-11-13T17:39:08.158Z",
+                "at": "2026-11-14T00:41:26.130Z",
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:38:43.763Z",
-                    "ms": 880,
+                    "at": "2026-11-14T00:41:16.546Z",
+                    "ms": 878,
                     "started": true,
                     "outcome": "refused",
                     "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
                   },
                   {
-                    "at": "2026-11-13T17:38:45.643Z",
-                    "ms": 888,
+                    "at": "2026-11-14T00:41:18.424Z",
+                    "ms": 887,
                     "started": true,
                     "outcome": "refused",
                     "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
                   },
                   {
-                    "at": "2026-11-13T17:38:48.531Z",
-                    "ms": 925,
+                    "at": "2026-11-14T00:41:21.311Z",
+                    "ms": 819,
                     "started": true,
                     "outcome": "refused",
                     "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
                   },
                   {
-                    "at": "2026-11-13T17:38:53.456Z",
-                    "ms": 860,
-                    "started": true,
-                    "outcome": "refused",
-                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-                  },
-                  {
-                    "at": "2026-11-13T17:38:58.316Z",
-                    "ms": 948,
-                    "started": true,
-                    "outcome": "refused",
-                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-                  },
-                  {
-                    "at": "2026-11-13T17:39:03.264Z",
-                    "ms": 894,
-                    "started": true,
-                    "outcome": "refused",
-                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-                  },
-                  {
-                    "at": "2026-11-13T17:39:08.158Z",
-                    "ms": 8254,
+                    "at": "2026-11-14T00:41:26.130Z",
+                    "ms": 7136,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 32649,
-                "startCalls": 7,
-                "refusals": 6,
-                "healthyMs": 8254,
-                "readyMs": 13185,
+                "ms": 16720,
+                "startCalls": 4,
+                "refusals": 3,
+                "healthyMs": 7136,
+                "readyMs": 12082,
                 "timeline": {
-                  "processMs": 842,
-                  "syncStartMs": 7842,
-                  "syncEndMs": 10842,
-                  "readyMs": 13185,
-                  "databaseMs": 3522,
-                  "databaseCalls": 73,
+                  "processMs": 870,
+                  "syncStartMs": 6870,
+                  "syncEndMs": 8870,
+                  "readyMs": 12082,
+                  "databaseMs": 4576,
+                  "databaseCalls": 69,
                   "slowestDatabaseMethods": [
                     {
                       "method": "create_trigger",
-                      "ms": 1233,
+                      "ms": 1699,
                       "calls": 14
                     },
                     {
                       "method": "migrate",
-                      "ms": 1176,
+                      "ms": 1580,
                       "calls": 28
                     },
                     {
-                      "method": "update_checkpoints",
-                      "ms": 351,
-                      "calls": 17
-                    },
-                    {
                       "method": "create_indexes",
-                      "ms": 286,
+                      "ms": 400,
                       "calls": 9
                     },
                     {
                       "method": "migrate_sync",
-                      "ms": 274,
+                      "ms": 374,
                       "calls": 1
                     },
                     {
+                      "method": "update_checkpoints",
+                      "ms": 272,
+                      "calls": 13
+                    },
+                    {
                       "method": "select_ready",
-                      "ms": 165,
+                      "ms": 201,
                       "calls": 2
                     }
                   ],
-                  "rpcMs": 7052,
-                  "rpcCalls": 29
+                  "rpcMs": 5445,
+                  "rpcCalls": 25
                 }
               }
             ],
-            "gaveUp": []
+            "gaveUp": [],
+            "stops": []
           },
           "firstChainStart": {
-            "at": "2026-11-13T17:38:41.216Z",
+            "at": "2026-11-14T00:41:13.936Z",
             "from": "seed",
             "afterUnsavedStop": false,
-            "wakeMs": 661,
+            "wakeMs": 1087,
             "attempts": [
               {
-                "at": "2026-11-13T17:38:41.266Z",
-                "ms": 591,
+                "at": "2026-11-14T00:41:13.994Z",
+                "ms": 1021,
                 "started": true,
                 "outcome": "ready",
                 "message": null
               }
             ],
-            "ms": 591,
+            "ms": 1021,
             "startCalls": 1,
             "refusals": 0
           },
           "bundlerStarts": [
             {
-              "at": "2026-11-13T17:38:45.856Z",
-              "readyMs": 27524,
-              "startCalls": 6
+              "at": "2026-11-14T00:41:55.818Z",
+              "readyMs": 5703,
+              "startCalls": 1
             }
           ],
           "cycles": [
             {
               "head": "0x2dacb13",
-              "callMs": 1134,
+              "callMs": 1347,
               "wake": {
-                "at": "2026-11-13T17:39:26.876Z",
+                "at": "2026-11-14T00:42:06.269Z",
                 "from": "saved state",
                 "afterUnsavedStop": false,
-                "wakeMs": 878,
+                "wakeMs": 1148,
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:39:26.969Z",
-                    "ms": 637,
+                    "at": "2026-11-14T00:42:06.368Z",
+                    "ms": 721,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 637,
+                "ms": 721,
                 "startCalls": 1,
                 "refusals": 0
               },
-              "indexBackMs": 17093,
+              "indexBackMs": 10303,
               "indexStart": {
-                "at": "2026-11-13T17:39:31.859Z",
+                "at": "2026-11-14T00:42:07.503Z",
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:39:27.874Z",
-                    "ms": 872,
-                    "started": true,
-                    "outcome": "refused",
-                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-                  },
-                  {
-                    "at": "2026-11-13T17:39:29.746Z",
-                    "ms": 1113,
-                    "started": true,
-                    "outcome": "not ready",
-                    "message": "ContainerNotRunningError: Container is not running; call start() before using port 42069."
-                  },
-                  {
-                    "at": "2026-11-13T17:39:31.859Z",
-                    "ms": 8962,
+                    "at": "2026-11-14T00:42:07.503Z",
+                    "ms": 5799,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 12947,
-                "startCalls": 3,
-                "refusals": 1,
-                "healthyMs": 8962,
-                "readyMs": 11879,
-                "timeline": {
-                  "processMs": 1141,
-                  "syncStartMs": 9141,
-                  "syncEndMs": 9141,
-                  "readyMs": 11879,
-                  "databaseMs": 3056,
-                  "databaseCalls": 60,
-                  "slowestDatabaseMethods": [
-                    {
-                      "method": "migrate",
-                      "ms": 1093,
-                      "calls": 24
-                    },
-                    {
-                      "method": "create_trigger",
-                      "ms": 1036,
-                      "calls": 14
-                    },
-                    {
-                      "method": "drop_trigger",
-                      "ms": 438,
-                      "calls": 7
-                    },
-                    {
-                      "method": "create_indexes",
-                      "ms": 243,
-                      "calls": 9
-                    },
-                    {
-                      "method": "select_ready",
-                      "ms": 138,
-                      "calls": 2
-                    },
-                    {
-                      "method": "migrate_sync",
-                      "ms": 56,
-                      "calls": 1
-                    }
-                  ],
-                  "rpcMs": 1854,
-                  "rpcCalls": 13
-                }
-              }
-            },
-            {
-              "head": "0x2dacb13",
-              "callMs": 1506,
-              "wake": {
-                "at": "2026-11-13T17:39:47.591Z",
-                "from": "saved state",
-                "afterUnsavedStop": false,
-                "wakeMs": 1303,
-                "attempts": [
-                  {
-                    "at": "2026-11-13T17:39:47.667Z",
-                    "ms": 1012,
-                    "started": true,
-                    "outcome": "ready",
-                    "message": null
-                  }
-                ],
-                "ms": 1012,
+                "ms": 5799,
                 "startCalls": 1,
-                "refusals": 0
-              },
-              "indexBackMs": 22696,
-              "indexStart": {
-                "at": "2026-11-13T17:39:58.799Z",
-                "attempts": [
-                  {
-                    "at": "2026-11-13T17:39:48.981Z",
-                    "ms": 1048,
-                    "started": true,
-                    "outcome": "refused",
-                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-                  },
-                  {
-                    "at": "2026-11-13T17:39:51.029Z",
-                    "ms": 899,
-                    "started": true,
-                    "outcome": "refused",
-                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-                  },
-                  {
-                    "at": "2026-11-13T17:39:53.928Z",
-                    "ms": 871,
-                    "started": true,
-                    "outcome": "refused",
-                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
-                  },
-                  {
-                    "at": "2026-11-13T17:39:58.799Z",
-                    "ms": 8473,
-                    "started": true,
-                    "outcome": "ready",
-                    "message": null
-                  }
-                ],
-                "ms": 18291,
-                "startCalls": 4,
-                "refusals": 3,
-                "healthyMs": 8473,
-                "readyMs": 11237,
+                "refusals": 0,
+                "healthyMs": 5799,
+                "readyMs": 8533,
                 "timeline": {
-                  "processMs": 1201,
-                  "syncStartMs": 8201,
-                  "syncEndMs": 9201,
-                  "readyMs": 11237,
-                  "databaseMs": 4047,
-                  "databaseCalls": 54,
+                  "processMs": 497,
+                  "syncStartMs": 5497,
+                  "syncEndMs": 6497,
+                  "readyMs": 8533,
+                  "databaseMs": 4365,
+                  "databaseCalls": 55,
                   "slowestDatabaseMethods": [
                     {
                       "method": "create_trigger",
-                      "ms": 1512,
+                      "ms": 1635,
                       "calls": 14
                     },
                     {
                       "method": "migrate",
-                      "ms": 1313,
+                      "ms": 1364,
                       "calls": 18
                     },
                     {
                       "method": "drop_trigger",
-                      "ms": 557,
+                      "ms": 609,
                       "calls": 7
                     },
                     {
                       "method": "create_indexes",
-                      "ms": 362,
+                      "ms": 381,
                       "calls": 9
                     },
                     {
                       "method": "select_ready",
-                      "ms": 161,
+                      "ms": 205,
                       "calls": 2
                     },
                     {
                       "method": "migrate_sync",
-                      "ms": 82,
+                      "ms": 86,
                       "calls": 1
                     }
                   ],
-                  "rpcMs": 2143,
+                  "rpcMs": 2102,
+                  "rpcCalls": 14
+                }
+              },
+              "indexStop": {
+                "at": "2026-11-14T00:42:02.974Z",
+                "ms": 300,
+                "ended": "exited"
+              }
+            },
+            {
+              "head": "0x2dacb13",
+              "callMs": 861,
+              "wake": {
+                "at": "2026-11-14T00:42:20.591Z",
+                "from": "saved state",
+                "afterUnsavedStop": false,
+                "wakeMs": 642,
+                "attempts": [
+                  {
+                    "at": "2026-11-14T00:42:20.679Z",
+                    "ms": 440,
+                    "started": true,
+                    "outcome": "ready",
+                    "message": null
+                  }
+                ],
+                "ms": 440,
+                "startCalls": 1,
+                "refusals": 0
+              },
+              "indexBackMs": 8485,
+              "indexStart": {
+                "at": "2026-11-14T00:42:21.316Z",
+                "attempts": [
+                  {
+                    "at": "2026-11-14T00:42:21.316Z",
+                    "ms": 4795,
+                    "started": true,
+                    "outcome": "ready",
+                    "message": null
+                  }
+                ],
+                "ms": 4795,
+                "startCalls": 1,
+                "refusals": 0,
+                "healthyMs": 4795,
+                "readyMs": 7528,
+                "timeline": {
+                  "processMs": -316,
+                  "syncStartMs": 4684,
+                  "syncEndMs": 4684,
+                  "readyMs": 7528,
+                  "databaseMs": 4089,
+                  "databaseCalls": 54,
+                  "slowestDatabaseMethods": [
+                    {
+                      "method": "create_trigger",
+                      "ms": 1526,
+                      "calls": 14
+                    },
+                    {
+                      "method": "migrate",
+                      "ms": 1289,
+                      "calls": 18
+                    },
+                    {
+                      "method": "drop_trigger",
+                      "ms": 556,
+                      "calls": 7
+                    },
+                    {
+                      "method": "create_indexes",
+                      "ms": 357,
+                      "calls": 9
+                    },
+                    {
+                      "method": "select_ready",
+                      "ms": 215,
+                      "calls": 2
+                    },
+                    {
+                      "method": "migrate_sync",
+                      "ms": 81,
+                      "calls": 1
+                    }
+                  ],
+                  "rpcMs": 1881,
                   "rpcCalls": 13
                 }
+              },
+              "indexStop": {
+                "at": "2026-11-14T00:42:16.601Z",
+                "ms": 200,
+                "ended": "exited"
               }
             }
           ]
@@ -1926,28 +1672,28 @@
           "world": "w-p-pat-4",
           "owner": "proof",
           "forkedFrom": "nothing",
-          "expiresAt": "2026-11-13T18:20:31.507Z",
+          "expiresAt": "2026-11-14T01:22:45.782Z",
           "outcome": "passed",
           "failure": null,
           "worldAfterwards": "destroyed",
           "keptUntil": null,
           "ms": {
-            "claim": 407,
-            "deploy": 56405,
-            "migrate": 761,
-            "chain": 2063,
-            "fund": 686,
-            "bundler": 31005,
-            "index": 18168,
-            "core": 611,
+            "claim": 363,
+            "deploy": 30292,
+            "migrate": 804,
+            "chain": 2108,
+            "fund": 804,
+            "bundler": 10397,
+            "index": 31549,
+            "core": 715,
             "site": null,
-            "use": 47197,
+            "use": 26923,
             "park": null,
             "unsite": 0,
-            "destroy": 22058,
-            "release": 309,
-            "create": 92454,
-            "total": 162313
+            "destroy": 15466,
+            "release": 260,
+            "create": 67040,
+            "total": 109903
           },
           "timeouts": {
             "claim": 45000,
@@ -1972,276 +1718,294 @@
             "ready": 200,
             "starts": [
               {
-                "at": "2026-11-13T17:41:41.894Z",
+                "at": "2026-11-14T00:43:35.221Z",
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:41:32.461Z",
-                    "ms": 807,
+                    "at": "2026-11-14T00:43:20.663Z",
+                    "ms": 883,
                     "started": true,
                     "outcome": "refused",
                     "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
                   },
                   {
-                    "at": "2026-11-13T17:41:34.268Z",
-                    "ms": 827,
+                    "at": "2026-11-14T00:43:22.546Z",
+                    "ms": 906,
                     "started": true,
                     "outcome": "refused",
                     "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
                   },
                   {
-                    "at": "2026-11-13T17:41:37.095Z",
-                    "ms": 799,
+                    "at": "2026-11-14T00:43:25.452Z",
+                    "ms": 845,
                     "started": true,
                     "outcome": "refused",
                     "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
                   },
                   {
-                    "at": "2026-11-13T17:41:41.894Z",
-                    "ms": 5901,
+                    "at": "2026-11-14T00:43:30.297Z",
+                    "ms": 924,
+                    "started": true,
+                    "outcome": "refused",
+                    "message": "ContainerError: There is no container instance that can be provided to this Durable Object, try again later"
+                  },
+                  {
+                    "at": "2026-11-14T00:43:35.221Z",
+                    "ms": 9381,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 15334,
-                "startCalls": 4,
-                "refusals": 3,
-                "healthyMs": 5901,
-                "readyMs": 8406,
+                "ms": 23939,
+                "startCalls": 5,
+                "refusals": 4,
+                "healthyMs": 9381,
+                "readyMs": 16685,
                 "timeline": {
-                  "processMs": 106,
-                  "syncStartMs": 6106,
-                  "syncEndMs": 8106,
-                  "readyMs": 8406,
-                  "databaseMs": 2501,
-                  "databaseCalls": 68,
+                  "processMs": 779,
+                  "syncStartMs": 9779,
+                  "syncEndMs": 13779,
+                  "readyMs": 16685,
+                  "databaseMs": 4574,
+                  "databaseCalls": 74,
                   "slowestDatabaseMethods": [
                     {
                       "method": "create_trigger",
-                      "ms": 894,
+                      "ms": 1514,
                       "calls": 14
                     },
                     {
                       "method": "migrate",
-                      "ms": 888,
+                      "ms": 1417,
                       "calls": 28
                     },
                     {
+                      "method": "update_checkpoints",
+                      "ms": 604,
+                      "calls": 17
+                    },
+                    {
                       "method": "create_indexes",
-                      "ms": 214,
+                      "ms": 360,
                       "calls": 9
                     },
                     {
                       "method": "migrate_sync",
-                      "ms": 209,
+                      "ms": 335,
                       "calls": 1
-                    },
-                    {
-                      "method": "update_checkpoints",
-                      "ms": 159,
-                      "calls": 13
                     },
                     {
                       "method": "select_ready",
-                      "ms": 106,
-                      "calls": 1
+                      "ms": 290,
+                      "calls": 3
                     }
                   ],
-                  "rpcMs": 5626,
-                  "rpcCalls": 24
+                  "rpcMs": 9648,
+                  "rpcCalls": 29
                 }
               }
             ],
-            "gaveUp": []
+            "gaveUp": [],
+            "stops": []
           },
           "firstChainStart": {
-            "at": "2026-11-13T17:41:30.284Z",
+            "at": "2026-11-14T00:43:18.307Z",
             "from": "seed",
             "afterUnsavedStop": false,
-            "wakeMs": 558,
+            "wakeMs": 814,
             "attempts": [
               {
-                "at": "2026-11-13T17:41:30.385Z",
-                "ms": 448,
+                "at": "2026-11-14T00:43:18.470Z",
+                "ms": 613,
                 "started": true,
                 "outcome": "ready",
                 "message": null
               }
             ],
-            "ms": 448,
+            "ms": 613,
             "startCalls": 1,
             "refusals": 0
           },
           "bundlerStarts": [
             {
-              "at": "2026-11-13T17:41:34.394Z",
-              "readyMs": 28784,
-              "startCalls": 6
+              "at": "2026-11-14T00:43:23.320Z",
+              "readyMs": 7450,
+              "startCalls": 1
             }
           ],
           "cycles": [
             {
               "head": "0x2dacb13",
-              "callMs": 1518,
+              "callMs": 1156,
               "wake": {
-                "at": "2026-11-13T17:42:09.012Z",
+                "at": "2026-11-14T00:43:57.997Z",
                 "from": "saved state",
                 "afterUnsavedStop": false,
-                "wakeMs": 1232,
+                "wakeMs": 924,
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:42:09.074Z",
-                    "ms": 988,
+                    "at": "2026-11-14T00:43:58.129Z",
+                    "ms": 661,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 988,
+                "ms": 661,
                 "startCalls": 1,
                 "refusals": 0
               },
-              "indexBackMs": 17321,
+              "indexBackMs": 9465,
               "indexStart": {
-                "at": "2026-11-13T17:42:10.356Z",
+                "at": "2026-11-14T00:43:59.007Z",
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:42:10.356Z",
-                    "ms": 13020,
+                    "at": "2026-11-14T00:43:59.007Z",
+                    "ms": 5480,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 13020,
+                "ms": 5480,
                 "startCalls": 1,
                 "refusals": 0,
-                "healthyMs": 13020,
-                "readyMs": 15731,
+                "healthyMs": 5480,
+                "readyMs": 8215,
                 "timeline": {
-                  "processMs": 1644,
-                  "syncStartMs": 12644,
-                  "syncEndMs": 13644,
-                  "readyMs": 15731,
-                  "databaseMs": 3655,
-                  "databaseCalls": 60,
+                  "processMs": -7,
+                  "syncStartMs": 4993,
+                  "syncEndMs": 5993,
+                  "readyMs": 8215,
+                  "databaseMs": 4995,
+                  "databaseCalls": 54,
                   "slowestDatabaseMethods": [
                     {
-                      "method": "migrate",
-                      "ms": 1283,
-                      "calls": 24
-                    },
-                    {
                       "method": "create_trigger",
-                      "ms": 1277,
+                      "ms": 1885,
                       "calls": 14
                     },
                     {
+                      "method": "migrate",
+                      "ms": 1581,
+                      "calls": 18
+                    },
+                    {
                       "method": "drop_trigger",
-                      "ms": 467,
+                      "ms": 727,
                       "calls": 7
                     },
                     {
                       "method": "create_indexes",
-                      "ms": 301,
+                      "ms": 443,
                       "calls": 9
                     },
                     {
                       "method": "select_ready",
-                      "ms": 207,
+                      "ms": 194,
                       "calls": 2
                     },
                     {
                       "method": "migrate_sync",
-                      "ms": 68,
+                      "ms": 99,
                       "calls": 1
                     }
                   ],
-                  "rpcMs": 3486,
+                  "rpcMs": 1883,
                   "rpcCalls": 13
                 }
+              },
+              "indexStop": {
+                "at": "2026-11-14T00:43:53.478Z",
+                "ms": 200,
+                "ended": "exited"
               }
             },
             {
               "head": "0x2dacb13",
-              "callMs": 1527,
+              "callMs": 1804,
               "wake": {
-                "at": "2026-11-13T17:42:30.847Z",
+                "at": "2026-11-14T00:44:08.719Z",
                 "from": "saved state",
                 "afterUnsavedStop": false,
-                "wakeMs": 1279,
+                "wakeMs": 1581,
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:42:30.917Z",
-                    "ms": 1032,
+                    "at": "2026-11-14T00:44:08.825Z",
+                    "ms": 973,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 1032,
+                "ms": 973,
                 "startCalls": 1,
                 "refusals": 0
               },
-              "indexBackMs": 20374,
+              "indexBackMs": 11062,
               "indexStart": {
-                "at": "2026-11-13T17:42:32.206Z",
+                "at": "2026-11-14T00:44:10.376Z",
                 "attempts": [
                   {
-                    "at": "2026-11-13T17:42:32.206Z",
-                    "ms": 16234,
+                    "at": "2026-11-14T00:44:10.376Z",
+                    "ms": 6118,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 16234,
+                "ms": 6118,
                 "startCalls": 1,
                 "refusals": 0,
-                "healthyMs": 16234,
-                "readyMs": 18769,
+                "healthyMs": 6118,
+                "readyMs": 9195,
                 "timeline": {
-                  "processMs": 794,
-                  "syncStartMs": 15794,
-                  "syncEndMs": 16794,
-                  "readyMs": 18769,
-                  "databaseMs": 2645,
-                  "databaseCalls": 60,
+                  "processMs": 1624,
+                  "syncStartMs": 5624,
+                  "syncEndMs": 6624,
+                  "readyMs": 9195,
+                  "databaseMs": 5522,
+                  "databaseCalls": 54,
                   "slowestDatabaseMethods": [
                     {
-                      "method": "migrate",
-                      "ms": 1008,
-                      "calls": 24
-                    },
-                    {
                       "method": "create_trigger",
-                      "ms": 848,
+                      "ms": 2128,
                       "calls": 14
                     },
                     {
+                      "method": "migrate",
+                      "ms": 1745,
+                      "calls": 18
+                    },
+                    {
                       "method": "drop_trigger",
-                      "ms": 303,
+                      "ms": 771,
                       "calls": 7
                     },
                     {
-                      "method": "select_ready",
-                      "ms": 202,
-                      "calls": 2
-                    },
-                    {
                       "method": "create_indexes",
-                      "ms": 201,
+                      "ms": 496,
                       "calls": 9
                     },
                     {
+                      "method": "select_ready",
+                      "ms": 198,
+                      "calls": 2
+                    },
+                    {
                       "method": "migrate_sync",
-                      "ms": 46,
+                      "ms": 111,
                       "calls": 1
                     }
                   ],
-                  "rpcMs": 2045,
-                  "rpcCalls": 13
+                  "rpcMs": 2239,
+                  "rpcCalls": 12
                 }
+              },
+              "indexStop": {
+                "at": "2026-11-14T00:44:07.455Z",
+                "ms": 200,
+                "ended": "exited"
               }
             }
           ]

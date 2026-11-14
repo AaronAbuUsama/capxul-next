@@ -4,7 +4,7 @@
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Effect from "effect/Effect";
 import { WorldBranch } from "../database/Db.ts";
-import { INDEX_IMAGE } from "../stack/names.ts";
+import { imageSource } from "../stack/images.ts";
 
 export const PONDER_PORT = 42069;
 
@@ -13,9 +13,8 @@ export class Ponder extends Cloudflare.Container<Ponder>()(
   Effect.gen(function* () {
     const branch = yield* WorldBranch;
     return {
-      context: `${import.meta.dirname}/../../..`,
-      dockerfile: `${import.meta.dirname}/../../ponder/Dockerfile`,
-      publish: { repository: INDEX_IMAGE },
+      // The image every world shares, pinned by digest while its inputs are unchanged (src/stack/images.ts).
+      ...(yield* imageSource("index")),
       // 1/4 vCPU and 1 GiB. The six-contract app also ran on "lite" in the spike's smaller form; this is the size
       // it was proven on here.
       instanceType: "basic" as const,

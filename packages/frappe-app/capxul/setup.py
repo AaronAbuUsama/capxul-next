@@ -112,7 +112,13 @@ def run_wizard(company_name, currency, country):
         "fy_start_date": f"{year}-01-01", "fy_end_date": f"{year}-12-31", "domain": "Services",
         "full_name": "Site Administrator", "enable_telemetry": 0,
     }
-    return setup_complete(args)
+    done = setup_complete(args)
+    # The wizard has just set the site's time zone; the job types install made were stamped in Frappe's default one.
+    from capxul.jobs import settle_jobs
+
+    settle_jobs()
+    frappe.db.commit()
+    return done
 
 
 def ensure_safe_account(company, safe_address, currency="USD"):

@@ -136,3 +136,24 @@ export const mineStart = <E, R>(call: Call<E, R>, startMs: number) =>
     yield* call("evm_setNextBlockTimestamp", [Math.floor(startMs / 1000)]);
     yield* call("evm_mine", []);
   }).pipe(Effect.mapError(failed("clock")));
+
+const Head = Schema.Struct({ timestamp: Schema.String });
+
+/**
+ * Mines a block at the world's time `worldMs`, or one second after the chain's head when that is later, so the chain's
+ * head shows the world's clock and anvil runs on from there with host time, as a running clock does. A restored
+ * world needs it: its chain's state is loaded with the snapshot's head, and anvil runs on from that head, while Core's
+ * clock reads the snapshot's time (spikes/world-speed, 6.1 and 6.3). The same as world.clock.warp's move of the chain
+ * (packages/core, src/site-ops/chain-time.ts).
+ */
+export const mineAtWorldTime = <E, R>(call: Call<E, R>, worldMs: number) =>
+  Effect.gen(function* () {
+    const head = yield* Effect.flatMap(
+      call("eth_getBlockByNumber", ["latest", false]),
+      Schema.decodeUnknownEffect(Head),
+    );
+    const next = Math.max(Math.ceil(worldMs / 1000), Number(BigInt(head.timestamp)) + 1);
+    yield* call("evm_setNextBlockTimestamp", [next]);
+    yield* call("evm_mine", []);
+    return next;
+  }).pipe(Effect.mapError(failed("clock")));

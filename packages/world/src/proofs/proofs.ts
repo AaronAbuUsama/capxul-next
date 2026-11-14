@@ -5,6 +5,7 @@ import * as Effect from "effect/Effect";
 import * as Rec from "effect/Record";
 import { ProofFailed } from "../failures.ts";
 import { bundler } from "./bundler.ts";
+import { clock } from "./clock.ts";
 import { commands } from "./commands.ts";
 import { fails, interrupted, interruptedRun, keeps, timesOut } from "./endings.ts";
 import { fresh } from "./fresh.ts";
@@ -27,6 +28,7 @@ export const PROOFS = {
   site,
   snapshot,
   patience,
+  clock,
   // Not a proof by itself: the run that `interrupted` starts as its own process and interrupts.
   "interrupted-run": interruptedRun,
 };

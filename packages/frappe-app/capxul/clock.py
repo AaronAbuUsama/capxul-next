@@ -151,12 +151,19 @@ def now():
 
 @emit
 def join_world(world):
-    """Name the world this site belongs to (done once, when the site is made or restored into a world)."""
+    """Name the world this site belongs to (done once, when the site is made or restored into a world). The site's
+    scheduled jobs are then settled on the world's time (capxul.jobs.settle_jobs): a world behind the host would otherwise find
+    every job stamped in its future."""
     from frappe.installer import update_site_config
 
     update_site_config("capxul_world", world)
     frappe.local.conf["capxul_world"] = world
+    from capxul.jobs import settle_jobs
+
+    settle_jobs()
+    frappe.db.commit()
     return world
+
 
 
 @emit

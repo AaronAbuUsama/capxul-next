@@ -1,0 +1,76 @@
+[00:25:37.829] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[00:25:43.262] INFO: world w-ewb1: claimed for builder until 2026-11-14T01:25:41.359Z
+[00:25:43.309] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[00:25:46.818] INFO: Neon: using environment variables (NEON_API_KEY).
+[00:25:47.170] INFO: Cloudflare Container read: looking up capxulworld-anvil-w-ewb1-clpnqqaxnxa4bkx4
+[00:25:47.504] INFO: Cloudflare Container read: looking up capxulworld-alto-w-ewb1-wtnegb464ts764gh
+[00:25:48.401] INFO: Cloudflare Container read: capxulworld-alto-w-ewb1-wtnegb464ts764gh not found
+[00:25:48.405] INFO: Cloudflare Container read: capxulworld-anvil-w-ewb1-clpnqqaxnxa4bkx4 not found
+[00:25:48.959] INFO: [Anvil] Cloudflare Container precreate: starting capxulworld-anvil-w-ewb1-bxx2lsmkyeuxpbly
+[00:25:48.985] INFO: [Alto] Cloudflare Container precreate: starting capxulworld-alto-w-ewb1-hxbvynnntzhilhdo
+[00:25:50.380] INFO: [Anvil] Cloudflare Container image: registry cache hit registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-anvil@sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474
+[00:25:51.277] INFO: [Anvil] Cloudflare Container create: creating application capxulworld-anvil-w-ewb1-bxx2lsmkyeuxpbly
+[00:25:53.219] INFO: [Door] Cloudflare Worker precreate: starting capxulworld-door-w-ewb1-cxlq6x63ychpvmae
+[00:25:53.220] INFO: [Door] Cloudflare Worker precreate: durable objects [{"logicalId":"Indexer","bindingName":"Indexer","className":"Indexer"},{"logicalId":"Bundler","bindingName":"Bundler","className":"Bundler"},{"logicalId":"Chain","bindingName":"Chain","className":"Chain"}]
+[00:25:55.151] INFO: [Anvil] Cloudflare Container reconcile: starting capxulworld-anvil-w-ewb1-bxx2lsmkyeuxpbly
+[00:25:56.630] INFO: [Anvil] Cloudflare Container reconcile: recreating capxulworld-anvil-w-ewb1-bxx2lsmkyeuxpbly to attach durable object binding
+[00:25:59.163] INFO: [Ponder] Cloudflare Container precreate: starting capxulworld-ponder-w-ewb1-vi6svn5l5zr47z3q
+[00:25:59.582] INFO: [Anvil] Cloudflare Container create: creating application capxulworld-anvil-w-ewb1-bxx2lsmkyeuxpbly
+[00:26:25.984] INFO: [Ponder] Cloudflare Container image: building registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder:1cc2c70a124fbe11
+[00:26:28.617] INFO: [Alto] Cloudflare Container image: building registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-alto:8c396813453e5897
+[00:26:29.699] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[00:26:35.470] INFO: [Alto] Cloudflare Container read: looking up capxulworld-alto-w-ewb1-hxbvynnntzhilhdo
+[00:26:35.566] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-ewb1-bxx2lsmkyeuxpbly
+[00:26:35.828] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-ewb1-cxlq6x63ychpvmae
+[00:26:35.968] INFO: [Alto] Cloudflare Container read: capxulworld-alto-w-ewb1-hxbvynnntzhilhdo not found
+[00:26:37.450] INFO: [world] Neon: using environment variables (NEON_API_KEY).
+[00:26:44.426] INFO: world w-ewb1: destroyed (12 resources) and its name released
+[00:26:44.426] ERROR: world w-ewb1: not created; what the create had made is destroyed
+[00:26:44.428] ERROR (#1): PlatformError: Unknown: Docker.buildx.build (buildx build --push /home/user/wt/either-way/packages --cache-from type=registry,ref=registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder:buildcache --cache-to type=inline --tag registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder:1cc2c70a124fbe11 --tag registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder:buildcache --platform linux/amd64 --file /home/user/wt/either-way/packages/world/ponder/Dockerfile): Command exited with code 1: ERROR: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?
+    at systemError (/home/user/wt/either-way/node_modules/.pnpm/@alchemy.run+docker@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__alchemy@2.0._58c11f97989e5571a75c7caab6236bb5/node_modules/@alchemy.run/docker/src/Docker.ts:1116:7)
+    at tapCont (/home/user/wt/either-way/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:1107:23)
+    at runLoop (/home/user/wt/either-way/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:486:88)
+    at evaluate (/home/user/wt/either-way/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:425:23)
+    at runInAsyncScope (node:async_hooks:207:23)
+    at evaluate (/home/user/wt/either-way/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:414:29)
+    at <anonymous> (/home/user/wt/either-way/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:846:17)
+    at <anonymous> (/home/user/wt/either-way/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:2348:17)
+    at evaluate (/home/user/wt/either-way/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:446:19)
+    at runInAsyncScope (node:async_hooks:207:23)
+    at Effect.fn (/home/user/wt/either-way/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/Pipeable.js:60:27)
+    at Effect.fn (definition) (/home/user/wt/either-way/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:139:11)
+    at provider.precreate (/home/user/wt/either-way/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:166:14)
+    at apply.resource (/home/user/wt/either-way/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:1546:12)
+    at Effect.fn (/home/user/wt/either-way/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:357:12)
+    at Effect.fn (definition) (/home/user/wt/either-way/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:448:28)
+    at apply (/home/user/wt/either-way/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:433:12)
+    at Alchemist.build (/home/user/wt/either-way/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Alchemist/Operations.ts:280:24)
+    at Alchemist.build (definition) (/home/user/wt/either-way/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Alchemist/Operations.ts:110:34)
+    at Alchemist.plan (/home/user/wt/either-way/packages/world/src/stack/engine.ts:30:27)
+PlatformError: Unknown: Docker.buildx.build (buildx build --push /home/user/wt/either-way/packages/world/images/alto --cache-from type=registry,ref=registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-alto:buildcache --cache-to type=inline --tag registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-alto:8c396813453e5897 --tag registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-alto:buildcache --platform linux/amd64 --file /home/user/wt/either-way/packages/world/images/alto/Dockerfile): Command exited with code 1: ERROR: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?
+    at systemError (/home/user/wt/either-way/node_modules/.pnpm/@alchemy.run+docker@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__alchemy@2.0._58c11f97989e5571a75c7caab6236bb5/node_modules/@alchemy.run/docker/src/Docker.ts:1116:7)
+    at tapCont (/home/user/wt/either-way/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:1107:23)
+    at runLoop (/home/user/wt/either-way/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:486:88)
+    at evaluate (/home/user/wt/either-way/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:425:23)
+    at runInAsyncScope (node:async_hooks:207:23)
+    at evaluate (/home/user/wt/either-way/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:414:29)
+    at <anonymous> (/home/user/wt/either-way/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:846:17)
+    at <anonymous> (/home/user/wt/either-way/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:2348:17)
+    at evaluate (/home/user/wt/either-way/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/internal/effect.js:446:19)
+    at runInAsyncScope (node:async_hooks:207:23)
+    at Effect.fn (/home/user/wt/either-way/node_modules/.pnpm/effect@4.1.2/node_modules/effect/dist/Pipeable.js:60:27)
+    at Effect.fn (definition) (/home/user/wt/either-way/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:139:11)
+    at provider.precreate (/home/user/wt/either-way/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:166:14)
+    at apply.resource (/home/user/wt/either-way/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:1546:12)
+    at Effect.fn (/home/user/wt/either-way/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:357:12)
+    at Effect.fn (definition) (/home/user/wt/either-way/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:448:28)
+    at apply (/home/user/wt/either-way/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Apply.ts:433:12)
+    at Alchemist.build (/home/user/wt/either-way/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Alchemist/Operations.ts:280:24)
+    at Alchemist.build (definition) (/home/user/wt/either-way/node_modules/.pnpm/alchemy@2.0.0-beta.85_@effect+platform-bun@4.1.2_effect@4.1.2__@effect+platform-node@4._46c8b597ee783376760b08f40c7c8085/node_modules/alchemy/src/Alchemist/Operations.ts:110:34)
+    at Alchemist.plan (/home/user/wt/either-way/packages/world/src/stack/engine.ts:30:27)

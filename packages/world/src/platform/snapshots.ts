@@ -2,7 +2,8 @@
 // A snapshot is a branch of the world's database, the chain's whole state saved under the snapshot's name in the
 // world's own bucket, and the platform's row of it; it belongs to its world and goes with it. A restore always makes
 // a new world: its database forks the snapshot's branch, its chain adopts the saved state, and its record continues
-// the snapshot's with its own `world_created`, naming its parent.
+// the snapshot's with its own `world_created`, naming its parent. Its clock is the snapshot's, read by Core, by its
+// sites (each restored with the same clock on the bench) and by its chain, whose next block is mined at that time.
 //
 // A world's company sites are saved with it, on its bench (src/site/Saved.ts): each site's database, backed up under
 // the snapshot's name; a restore makes each again in the new world from its backup, under its own label, and points
@@ -15,8 +16,9 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Random from "effect/Random";
 import { create as createWorld } from "../lifecycle/operations.ts";
-import { saveChain } from "../lifecycle/parts.ts";
+import { rpcControl, saveChain } from "../lifecycle/parts.ts";
 import { branchOf, dropBranch, forkable } from "./branches.ts";
+import { mineAtWorldTime } from "./cast.ts";
 import { existing, isTaken, keptOrDestroyed, tried } from "./create.ts";
 import { instantOf, readFacts, writeRestored } from "./facts.ts";
 import { tokenOf } from "./operators.ts";
@@ -138,6 +140,13 @@ export const restore = Effect.fn("platform.world.snapshot.restore")(function* (p
         worldMs: snapshot.clock_ms,
         hostMs: restoredAt,
       });
+      // One clock: the chain was loaded with the snapshot's head and runs on from it, while Core's clock now reads the
+      // snapshot's time; the chain's next block is mined at Core's time, as a warp does (proven by the clock proof).
+      const worldNow =
+        snapshot.clock_mode === "frozen"
+          ? snapshot.clock_ms
+          : snapshot.clock_ms + ((yield* Clock.currentTimeMillis) - restoredAt);
+      yield* mineAtWorldTime((method, params) => rpcControl(made.world, method, params), worldNow);
       if (snapshot.companies > 0) {
         const clock =
           snapshot.clock_mode === "frozen"
