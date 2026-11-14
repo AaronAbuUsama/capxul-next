@@ -1,0 +1,263 @@
+[00:36:45.744] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[00:36:55.395] INFO: world w-p-pat-1: claimed for proof until 2026-11-14T01:16:54.313Z
+[00:36:55.447] INFO: image capxulworld-anvil: inputs as pinned, deploying sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474
+[00:36:55.464] INFO: image capxulworld-ponder: inputs as pinned, deploying sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9
+[00:36:55.470] INFO: image capxulworld-alto: inputs as pinned, deploying sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916
+[00:36:55.491] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[00:36:59.170] INFO: Neon: using environment variables (NEON_API_KEY).
+[00:36:59.473] INFO: Cloudflare Container read: looking up capxulworld-anvil-w-p-pat-1-elh52rwgqbqu6fcc
+[00:36:59.491] INFO: Cloudflare Container read: looking up capxulworld-alto-w-p-pat-1-ftbldvcgjlupiben
+[00:37:00.381] INFO: Cloudflare Container read: capxulworld-anvil-w-p-pat-1-elh52rwgqbqu6fcc not found
+[00:37:00.550] INFO: Cloudflare Container read: capxulworld-alto-w-p-pat-1-ftbldvcgjlupiben not found
+[00:37:00.878] INFO: [Anvil] Cloudflare Container precreate: starting capxulworld-anvil-w-p-pat-1-fjejxp4x36sdn5j7
+[00:37:00.885] INFO: [Anvil] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-anvil@sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474
+[00:37:01.225] INFO: [Alto] Cloudflare Container precreate: starting capxulworld-alto-w-p-pat-1-th7v34wj7sc4azj4
+[00:37:01.226] INFO: [Alto] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-alto@sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916
+[00:37:01.831] INFO: [Anvil] Cloudflare Container create: creating application capxulworld-anvil-w-p-pat-1-fjejxp4x36sdn5j7
+[00:37:02.180] INFO: [Alto] Cloudflare Container create: creating application capxulworld-alto-w-p-pat-1-th7v34wj7sc4azj4
+[00:37:05.851] INFO: [Door] Cloudflare Worker precreate: starting capxulworld-door-w-p-pat-1-unof5mahie6hcbva
+[00:37:05.852] INFO: [Door] Cloudflare Worker precreate: durable objects [{"logicalId":"Indexer","bindingName":"Indexer","className":"Indexer"},{"logicalId":"Bundler","bindingName":"Bundler","className":"Bundler"},{"logicalId":"Chain","bindingName":"Chain","className":"Chain"}]
+[00:37:07.564] INFO: [Alto] Cloudflare Container reconcile: starting capxulworld-alto-w-p-pat-1-th7v34wj7sc4azj4
+[00:37:07.566] INFO: [Anvil] Cloudflare Container reconcile: starting capxulworld-anvil-w-p-pat-1-fjejxp4x36sdn5j7
+[00:37:09.202] INFO: [Alto] Cloudflare Container reconcile: recreating capxulworld-alto-w-p-pat-1-th7v34wj7sc4azj4 to attach durable object binding
+[00:37:09.213] INFO: [Anvil] Cloudflare Container reconcile: recreating capxulworld-anvil-w-p-pat-1-fjejxp4x36sdn5j7 to attach durable object binding
+[00:37:10.906] INFO: [Ponder] Cloudflare Container precreate: starting capxulworld-ponder-w-p-pat-1-tpw7jllfjgt7rcz3
+[00:37:10.907] INFO: [Ponder] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9
+[00:37:11.712] INFO: [Ponder] Cloudflare Container create: creating application capxulworld-ponder-w-p-pat-1-tpw7jllfjgt7rcz3
+[00:37:12.069] INFO: [Alto] Cloudflare Container create: creating application capxulworld-alto-w-p-pat-1-th7v34wj7sc4azj4
+[00:37:12.202] INFO: [Anvil] Cloudflare Container create: creating application capxulworld-anvil-w-p-pat-1-fjejxp4x36sdn5j7
+[00:37:14.399] INFO: [Door] Cloudflare Worker reconcile: starting capxulworld-door-w-p-pat-1-unof5mahie6hcbva
+[00:37:14.400] INFO: [Door] Cloudflare Worker reconcile: durable objects [{"logicalId":"Bundler","className":"Bundler"},{"logicalId":"Chain","className":"Chain"},{"logicalId":"Indexer","className":"Indexer"}]
+[00:37:14.403] INFO: [Ponder] Cloudflare Container reconcile: starting capxulworld-ponder-w-p-pat-1-tpw7jllfjgt7rcz3
+[00:37:14.766] INFO: [Door] Cloudflare Worker reconcile: existing durable object tags ["alchemy:dos:Bundler;Chain;Indexer"]
+[00:37:14.767] INFO: [Door] Cloudflare Worker reconcile: previous durable object tags ["alchemy:dos:Bundler;Chain;Indexer"]
+[00:37:14.777] INFO: [Door] Cloudflare Worker create: preparing bundle for capxulworld-door-w-p-pat-1-unof5mahie6hcbva
+[00:37:17.177] INFO: [Ponder] Cloudflare Container reconcile: recreating capxulworld-ponder-w-p-pat-1-tpw7jllfjgt7rcz3 to attach durable object binding
+[00:37:18.086] INFO: [Door] Cloudflare Worker create: uploading script for capxulworld-door-w-p-pat-1-unof5mahie6hcbva
+[00:37:18.404] INFO: [Door] Cloudflare Worker put: durable object reconciliation {"oldDoClassNameByLogicalId":{"Bundler":"Bundler","Chain":"Chain","Indexer":"Indexer"},"currentDoClassNameByLogicalId":{"Bundler":"Bundler","Chain":"Chain","Indexer":"Indexer"},"deletedClasses":[],"renamedClasses":[],"transferredClasses":[],"newSqliteClasses":[]}
+[00:37:19.081] INFO: [Ponder] Cloudflare Container create: creating application capxulworld-ponder-w-p-pat-1-tpw7jllfjgt7rcz3
+[00:37:22.185] INFO: [Core] Cloudflare Worker read: checking capxulworld-core-w-p-pat-1-vnqofnmvrneya46s
+[00:37:22.489] INFO: [Core] Cloudflare Worker reconcile: starting capxulworld-core-w-p-pat-1-vnqofnmvrneya46s
+[00:37:22.489] INFO: [Core] Cloudflare Worker reconcile: durable objects []
+[00:37:22.763] INFO: [Core] Cloudflare Worker reconcile: existing durable object tags []
+[00:37:22.763] INFO: [Core] Cloudflare Worker reconcile: previous durable object tags []
+[00:37:22.764] INFO: [Core] Cloudflare Worker create: preparing bundle for capxulworld-core-w-p-pat-1-vnqofnmvrneya46s
+[00:37:25.002] INFO: [Core] Cloudflare Worker create: uploading script for capxulworld-core-w-p-pat-1-vnqofnmvrneya46s
+[00:37:25.239] INFO: [Core] Cloudflare Worker put: durable object reconciliation {"oldDoClassNameByLogicalId":{},"currentDoClassNameByLogicalId":{},"deletedClasses":[],"renamedClasses":[],"transferredClasses":[],"newSqliteClasses":[]}
+[00:37:29.058] INFO: world w-p-pat-1: deployed
+[00:37:29.786] INFO: world w-p-pat-1: migrations applied (0001_telemetry.sql, 0002_site_ops.sql, 0003_world.sql, 0004_organizations.sql, 0005_approvals.sql)
+[00:37:32.683] INFO: world w-p-pat-1: the chain answers
+[00:37:33.284] INFO: world w-p-pat-1: test USDC at 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6, minted to 1 addresses
+[00:38:02.072] INFO: world w-p-pat-1: the index is ready
+[00:38:02.073] INFO: world w-p-pat-1: the bundler serves 0x0000000071727De22E5E9d8BAf0edAc6f37da032, paymaster 0xE2dE380E3e8281e2cc458675102c3FC2277fC5A8
+[00:38:02.648] INFO: world w-p-pat-1: Core answers
+[00:38:48.677] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[00:38:54.241] INFO: [Ponder] Cloudflare Container delete: deleting capxulworld-ponder-w-p-pat-1-tpw7jllfjgt7rcz3
+[00:38:54.244] INFO: [Alto] Cloudflare Container delete: deleting capxulworld-alto-w-p-pat-1-th7v34wj7sc4azj4
+[00:38:54.250] INFO: [Core] Cloudflare Worker delete: deleting capxulworld-core-w-p-pat-1-vnqofnmvrneya46s
+[00:38:54.497] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-p-pat-1-fjejxp4x36sdn5j7
+[00:38:55.596] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-p-pat-1-unof5mahie6hcbva
+[00:38:57.045] INFO: [world] Neon: using environment variables (NEON_API_KEY).
+[00:39:04.032] INFO: world w-p-pat-1: destroyed (12 resources) and its name released
+[00:39:04.415] INFO: world w-p-pat-2: claimed for proof until 2026-11-14T01:19:04.037Z
+[00:39:04.455] INFO: image capxulworld-anvil: inputs as pinned, deploying sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474
+[00:39:04.468] INFO: image capxulworld-ponder: inputs as pinned, deploying sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9
+[00:39:04.474] INFO: image capxulworld-alto: inputs as pinned, deploying sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916
+[00:39:04.501] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[00:39:07.735] INFO: Neon: using environment variables (NEON_API_KEY).
+[00:39:07.799] INFO: Cloudflare Container read: looking up capxulworld-alto-w-p-pat-2-cp3vt3lrdhs3hmpb
+[00:39:07.807] INFO: Cloudflare Container read: looking up capxulworld-anvil-w-p-pat-2-ck3pemtzhzar2sfp
+[00:39:08.822] INFO: Cloudflare Container read: capxulworld-anvil-w-p-pat-2-ck3pemtzhzar2sfp not found
+[00:39:08.829] INFO: Cloudflare Container read: capxulworld-alto-w-p-pat-2-cp3vt3lrdhs3hmpb not found
+[00:39:09.114] INFO: [Alto] Cloudflare Container precreate: starting capxulworld-alto-w-p-pat-2-g7qjfkfxs7jubgyi
+[00:39:09.115] INFO: [Alto] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-alto@sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916
+[00:39:09.179] INFO: [Anvil] Cloudflare Container precreate: starting capxulworld-anvil-w-p-pat-2-4o2f5u32kbcw5vce
+[00:39:09.179] INFO: [Anvil] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-anvil@sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474
+[00:39:09.973] INFO: [Anvil] Cloudflare Container create: creating application capxulworld-anvil-w-p-pat-2-4o2f5u32kbcw5vce
+[00:39:10.013] INFO: [Alto] Cloudflare Container create: creating application capxulworld-alto-w-p-pat-2-g7qjfkfxs7jubgyi
+[00:39:13.468] INFO: [Door] Cloudflare Worker precreate: starting capxulworld-door-w-p-pat-2-no6kdunhuxr3d7ge
+[00:39:13.468] INFO: [Door] Cloudflare Worker precreate: durable objects [{"logicalId":"Indexer","bindingName":"Indexer","className":"Indexer"},{"logicalId":"Bundler","bindingName":"Bundler","className":"Bundler"},{"logicalId":"Chain","bindingName":"Chain","className":"Chain"}]
+[00:39:15.069] INFO: [Anvil] Cloudflare Container reconcile: starting capxulworld-anvil-w-p-pat-2-4o2f5u32kbcw5vce
+[00:39:15.071] INFO: [Alto] Cloudflare Container reconcile: starting capxulworld-alto-w-p-pat-2-g7qjfkfxs7jubgyi
+[00:39:16.558] INFO: [Alto] Cloudflare Container reconcile: recreating capxulworld-alto-w-p-pat-2-g7qjfkfxs7jubgyi to attach durable object binding
+[00:39:16.577] INFO: [Anvil] Cloudflare Container reconcile: recreating capxulworld-anvil-w-p-pat-2-4o2f5u32kbcw5vce to attach durable object binding
+[00:39:18.369] INFO: [Alto] Cloudflare Container create: creating application capxulworld-alto-w-p-pat-2-g7qjfkfxs7jubgyi
+[00:39:18.407] INFO: [Ponder] Cloudflare Container precreate: starting capxulworld-ponder-w-p-pat-2-4vxk44rp7knhvd7p
+[00:39:18.408] INFO: [Ponder] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9
+[00:39:18.478] INFO: [Anvil] Cloudflare Container create: creating application capxulworld-anvil-w-p-pat-2-4o2f5u32kbcw5vce
+[00:39:18.940] INFO: [Ponder] Cloudflare Container create: creating application capxulworld-ponder-w-p-pat-2-4vxk44rp7knhvd7p
+[00:39:21.370] INFO: [Door] Cloudflare Worker reconcile: starting capxulworld-door-w-p-pat-2-no6kdunhuxr3d7ge
+[00:39:21.371] INFO: [Door] Cloudflare Worker reconcile: durable objects [{"logicalId":"Bundler","className":"Bundler"},{"logicalId":"Chain","className":"Chain"},{"logicalId":"Indexer","className":"Indexer"}]
+[00:39:21.375] INFO: [Ponder] Cloudflare Container reconcile: starting capxulworld-ponder-w-p-pat-2-4vxk44rp7knhvd7p
+[00:39:21.630] INFO: [Door] Cloudflare Worker reconcile: existing durable object tags ["alchemy:dos:Bundler;Chain;Indexer"]
+[00:39:21.630] INFO: [Door] Cloudflare Worker reconcile: previous durable object tags ["alchemy:dos:Bundler;Chain;Indexer"]
+[00:39:21.631] INFO: [Door] Cloudflare Worker create: preparing bundle for capxulworld-door-w-p-pat-2-no6kdunhuxr3d7ge
+[00:39:22.868] INFO: [Ponder] Cloudflare Container reconcile: recreating capxulworld-ponder-w-p-pat-2-4vxk44rp7knhvd7p to attach durable object binding
+[00:39:23.712] INFO: [Door] Cloudflare Worker create: uploading script for capxulworld-door-w-p-pat-2-no6kdunhuxr3d7ge
+[00:39:23.958] INFO: [Door] Cloudflare Worker put: durable object reconciliation {"oldDoClassNameByLogicalId":{"Bundler":"Bundler","Chain":"Chain","Indexer":"Indexer"},"currentDoClassNameByLogicalId":{"Bundler":"Bundler","Chain":"Chain","Indexer":"Indexer"},"deletedClasses":[],"renamedClasses":[],"transferredClasses":[],"newSqliteClasses":[]}
+[00:39:24.686] INFO: [Ponder] Cloudflare Container create: creating application capxulworld-ponder-w-p-pat-2-4vxk44rp7knhvd7p
+[00:39:27.183] INFO: [Core] Cloudflare Worker read: checking capxulworld-core-w-p-pat-2-n3vwvd2ptqn65t3j
+[00:39:27.413] INFO: [Core] Cloudflare Worker reconcile: starting capxulworld-core-w-p-pat-2-n3vwvd2ptqn65t3j
+[00:39:27.413] INFO: [Core] Cloudflare Worker reconcile: durable objects []
+[00:39:27.638] INFO: [Core] Cloudflare Worker reconcile: existing durable object tags []
+[00:39:27.639] INFO: [Core] Cloudflare Worker reconcile: previous durable object tags []
+[00:39:27.639] INFO: [Core] Cloudflare Worker create: preparing bundle for capxulworld-core-w-p-pat-2-n3vwvd2ptqn65t3j
+[00:39:30.075] INFO: [Core] Cloudflare Worker create: uploading script for capxulworld-core-w-p-pat-2-n3vwvd2ptqn65t3j
+[00:39:30.316] INFO: [Core] Cloudflare Worker put: durable object reconciliation {"oldDoClassNameByLogicalId":{},"currentDoClassNameByLogicalId":{},"deletedClasses":[],"renamedClasses":[],"transferredClasses":[],"newSqliteClasses":[]}
+[00:39:33.823] INFO: world w-p-pat-2: deployed
+[00:39:34.653] INFO: world w-p-pat-2: migrations applied (0001_telemetry.sql, 0002_site_ops.sql, 0003_world.sql, 0004_organizations.sql, 0005_approvals.sql)
+[00:39:37.201] INFO: world w-p-pat-2: the chain answers
+[00:39:37.840] INFO: world w-p-pat-2: test USDC at 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6, minted to 1 addresses
+[00:39:51.898] INFO: world w-p-pat-2: the index is ready
+[00:39:51.900] INFO: world w-p-pat-2: the bundler serves 0x0000000071727De22E5E9d8BAf0edAc6f37da032, paymaster 0xE2dE380E3e8281e2cc458675102c3FC2277fC5A8
+[00:39:52.566] INFO: world w-p-pat-2: Core answers
+[00:40:26.358] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[00:40:31.875] INFO: [Alto] Cloudflare Container delete: deleting capxulworld-alto-w-p-pat-2-g7qjfkfxs7jubgyi
+[00:40:31.879] INFO: [Core] Cloudflare Worker delete: deleting capxulworld-core-w-p-pat-2-n3vwvd2ptqn65t3j
+[00:40:31.903] INFO: [Ponder] Cloudflare Container delete: deleting capxulworld-ponder-w-p-pat-2-4vxk44rp7knhvd7p
+[00:40:32.287] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-p-pat-2-4o2f5u32kbcw5vce
+[00:40:32.884] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-p-pat-2-no6kdunhuxr3d7ge
+[00:40:34.419] INFO: [world] Neon: using environment variables (NEON_API_KEY).
+[00:40:41.180] INFO: world w-p-pat-2: destroyed (12 resources) and its name released
+[00:40:41.537] INFO: world w-p-pat-3: claimed for proof until 2026-11-14T01:20:41.183Z
+[00:40:41.563] INFO: image capxulworld-anvil: inputs as pinned, deploying sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474
+[00:40:41.569] INFO: image capxulworld-ponder: inputs as pinned, deploying sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9
+[00:40:41.574] INFO: image capxulworld-alto: inputs as pinned, deploying sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916
+[00:40:41.582] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[00:40:44.635] INFO: Neon: using environment variables (NEON_API_KEY).
+[00:40:44.760] INFO: Cloudflare Container read: looking up capxulworld-anvil-w-p-pat-3-xch5i65yzb4p7vup
+[00:40:44.763] INFO: Cloudflare Container read: looking up capxulworld-alto-w-p-pat-3-ktaslh3ju6qqrcck
+[00:40:45.744] INFO: Cloudflare Container read: capxulworld-alto-w-p-pat-3-ktaslh3ju6qqrcck not found
+[00:40:45.803] INFO: Cloudflare Container read: capxulworld-anvil-w-p-pat-3-xch5i65yzb4p7vup not found
+[00:40:46.107] INFO: [Alto] Cloudflare Container precreate: starting capxulworld-alto-w-p-pat-3-rdtv6kkxhcxcqnvw
+[00:40:46.108] INFO: [Alto] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-alto@sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916
+[00:40:46.111] INFO: [Anvil] Cloudflare Container precreate: starting capxulworld-anvil-w-p-pat-3-zdh454ldogg343bx
+[00:40:46.113] INFO: [Anvil] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-anvil@sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474
+[00:40:46.864] INFO: [Anvil] Cloudflare Container create: creating application capxulworld-anvil-w-p-pat-3-zdh454ldogg343bx
+[00:40:47.355] INFO: [Alto] Cloudflare Container create: creating application capxulworld-alto-w-p-pat-3-rdtv6kkxhcxcqnvw
+[00:40:50.634] INFO: [Door] Cloudflare Worker precreate: starting capxulworld-door-w-p-pat-3-7mrxjybicqjqmywr
+[00:40:50.634] INFO: [Door] Cloudflare Worker precreate: durable objects [{"logicalId":"Indexer","bindingName":"Indexer","className":"Indexer"},{"logicalId":"Bundler","bindingName":"Bundler","className":"Bundler"},{"logicalId":"Chain","bindingName":"Chain","className":"Chain"}]
+[00:40:52.413] INFO: [Anvil] Cloudflare Container reconcile: starting capxulworld-anvil-w-p-pat-3-zdh454ldogg343bx
+[00:40:52.418] INFO: [Alto] Cloudflare Container reconcile: starting capxulworld-alto-w-p-pat-3-rdtv6kkxhcxcqnvw
+[00:40:53.874] INFO: [Anvil] Cloudflare Container reconcile: recreating capxulworld-anvil-w-p-pat-3-zdh454ldogg343bx to attach durable object binding
+[00:40:53.967] INFO: [Alto] Cloudflare Container reconcile: recreating capxulworld-alto-w-p-pat-3-rdtv6kkxhcxcqnvw to attach durable object binding
+[00:40:55.082] INFO: [Ponder] Cloudflare Container precreate: starting capxulworld-ponder-w-p-pat-3-4xfbvw7m75qvilcv
+[00:40:55.083] INFO: [Ponder] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9
+[00:40:55.847] INFO: [Alto] Cloudflare Container create: creating application capxulworld-alto-w-p-pat-3-rdtv6kkxhcxcqnvw
+[00:40:55.862] INFO: [Anvil] Cloudflare Container create: creating application capxulworld-anvil-w-p-pat-3-zdh454ldogg343bx
+[00:40:56.167] INFO: [Ponder] Cloudflare Container create: creating application capxulworld-ponder-w-p-pat-3-4xfbvw7m75qvilcv
+[00:40:58.858] INFO: [Door] Cloudflare Worker reconcile: starting capxulworld-door-w-p-pat-3-7mrxjybicqjqmywr
+[00:40:58.858] INFO: [Door] Cloudflare Worker reconcile: durable objects [{"logicalId":"Bundler","className":"Bundler"},{"logicalId":"Chain","className":"Chain"},{"logicalId":"Indexer","className":"Indexer"}]
+[00:40:58.860] INFO: [Ponder] Cloudflare Container reconcile: starting capxulworld-ponder-w-p-pat-3-4xfbvw7m75qvilcv
+[00:40:59.191] INFO: [Door] Cloudflare Worker reconcile: existing durable object tags ["alchemy:dos:Bundler;Chain;Indexer"]
+[00:40:59.191] INFO: [Door] Cloudflare Worker reconcile: previous durable object tags ["alchemy:dos:Bundler;Chain;Indexer"]
+[00:40:59.192] INFO: [Door] Cloudflare Worker create: preparing bundle for capxulworld-door-w-p-pat-3-7mrxjybicqjqmywr
+[00:41:00.515] INFO: [Ponder] Cloudflare Container reconcile: recreating capxulworld-ponder-w-p-pat-3-4xfbvw7m75qvilcv to attach durable object binding
+[00:41:01.426] INFO: [Door] Cloudflare Worker create: uploading script for capxulworld-door-w-p-pat-3-7mrxjybicqjqmywr
+[00:41:01.718] INFO: [Door] Cloudflare Worker put: durable object reconciliation {"oldDoClassNameByLogicalId":{"Bundler":"Bundler","Chain":"Chain","Indexer":"Indexer"},"currentDoClassNameByLogicalId":{"Bundler":"Bundler","Chain":"Chain","Indexer":"Indexer"},"deletedClasses":[],"renamedClasses":[],"transferredClasses":[],"newSqliteClasses":[]}
+[00:41:02.602] INFO: [Ponder] Cloudflare Container create: creating application capxulworld-ponder-w-p-pat-3-4xfbvw7m75qvilcv
+[00:41:05.262] INFO: [Core] Cloudflare Worker read: checking capxulworld-core-w-p-pat-3-cvs7ey7fn3uw5rqy
+[00:41:05.506] INFO: [Core] Cloudflare Worker reconcile: starting capxulworld-core-w-p-pat-3-cvs7ey7fn3uw5rqy
+[00:41:05.506] INFO: [Core] Cloudflare Worker reconcile: durable objects []
+[00:41:05.746] INFO: [Core] Cloudflare Worker reconcile: existing durable object tags []
+[00:41:05.746] INFO: [Core] Cloudflare Worker reconcile: previous durable object tags []
+[00:41:05.747] INFO: [Core] Cloudflare Worker create: preparing bundle for capxulworld-core-w-p-pat-3-cvs7ey7fn3uw5rqy
+[00:41:08.328] INFO: [Core] Cloudflare Worker create: uploading script for capxulworld-core-w-p-pat-3-cvs7ey7fn3uw5rqy
+[00:41:08.604] INFO: [Core] Cloudflare Worker put: durable object reconciliation {"oldDoClassNameByLogicalId":{},"currentDoClassNameByLogicalId":{},"deletedClasses":[],"renamedClasses":[],"transferredClasses":[],"newSqliteClasses":[]}
+[00:41:12.317] INFO: world w-p-pat-3: deployed
+[00:41:13.097] INFO: world w-p-pat-3: migrations applied (0001_telemetry.sql, 0002_site_ops.sql, 0003_world.sql, 0004_organizations.sql, 0005_approvals.sql)
+[00:41:15.637] INFO: world w-p-pat-3: the chain answers
+[00:41:16.379] INFO: world w-p-pat-3: test USDC at 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6, minted to 1 addresses
+[00:42:01.693] INFO: world w-p-pat-3: the index is ready
+[00:42:01.694] INFO: world w-p-pat-3: the bundler serves 0x0000000071727De22E5E9d8BAf0edAc6f37da032, paymaster 0xE2dE380E3e8281e2cc458675102c3FC2277fC5A8
+[00:42:02.152] INFO: world w-p-pat-3: Core answers
+[00:42:30.145] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[00:42:36.054] INFO: [Alto] Cloudflare Container delete: deleting capxulworld-alto-w-p-pat-3-rdtv6kkxhcxcqnvw
+[00:42:36.072] INFO: [Core] Cloudflare Worker delete: deleting capxulworld-core-w-p-pat-3-cvs7ey7fn3uw5rqy
+[00:42:36.077] INFO: [Ponder] Cloudflare Container delete: deleting capxulworld-ponder-w-p-pat-3-4xfbvw7m75qvilcv
+[00:42:36.314] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-p-pat-3-zdh454ldogg343bx
+[00:42:37.177] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-p-pat-3-7mrxjybicqjqmywr
+[00:42:38.860] INFO: [world] Neon: using environment variables (NEON_API_KEY).
+[00:42:45.779] INFO: world w-p-pat-3: destroyed (12 resources) and its name released
+[00:42:46.146] INFO: world w-p-pat-4: claimed for proof until 2026-11-14T01:22:45.782Z
+[00:42:46.172] INFO: image capxulworld-anvil: inputs as pinned, deploying sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474
+[00:42:46.178] INFO: image capxulworld-ponder: inputs as pinned, deploying sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9
+[00:42:46.182] INFO: image capxulworld-alto: inputs as pinned, deploying sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916
+[00:42:46.190] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[00:42:49.211] INFO: Neon: using environment variables (NEON_API_KEY).
+[00:42:49.295] INFO: Cloudflare Container read: looking up capxulworld-anvil-w-p-pat-4-4pxmdq4ixgzydmbj
+[00:42:49.330] INFO: Cloudflare Container read: looking up capxulworld-alto-w-p-pat-4-7t5fyfgo3vky3n3k
+[00:42:50.458] INFO: Cloudflare Container read: capxulworld-alto-w-p-pat-4-7t5fyfgo3vky3n3k not found
+[00:42:50.561] INFO: Cloudflare Container read: capxulworld-anvil-w-p-pat-4-4pxmdq4ixgzydmbj not found
+[00:42:50.863] INFO: [Anvil] Cloudflare Container precreate: starting capxulworld-anvil-w-p-pat-4-zktsvorkm2hzz75e
+[00:42:50.864] INFO: [Anvil] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-anvil@sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474
+[00:42:50.900] INFO: [Alto] Cloudflare Container precreate: starting capxulworld-alto-w-p-pat-4-jiqff5h43ular32d
+[00:42:50.901] INFO: [Alto] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-alto@sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916
+[00:42:51.634] INFO: [Anvil] Cloudflare Container create: creating application capxulworld-anvil-w-p-pat-4-zktsvorkm2hzz75e
+[00:42:51.738] INFO: [Alto] Cloudflare Container create: creating application capxulworld-alto-w-p-pat-4-jiqff5h43ular32d
+[00:42:55.279] INFO: [Door] Cloudflare Worker precreate: starting capxulworld-door-w-p-pat-4-w2hinf54unvj3r3o
+[00:42:55.279] INFO: [Door] Cloudflare Worker precreate: durable objects [{"logicalId":"Indexer","bindingName":"Indexer","className":"Indexer"},{"logicalId":"Bundler","bindingName":"Bundler","className":"Bundler"},{"logicalId":"Chain","bindingName":"Chain","className":"Chain"}]
+[00:42:57.144] INFO: [Alto] Cloudflare Container reconcile: starting capxulworld-alto-w-p-pat-4-jiqff5h43ular32d
+[00:42:57.146] INFO: [Anvil] Cloudflare Container reconcile: starting capxulworld-anvil-w-p-pat-4-zktsvorkm2hzz75e
+[00:42:58.356] INFO: [Anvil] Cloudflare Container reconcile: recreating capxulworld-anvil-w-p-pat-4-zktsvorkm2hzz75e to attach durable object binding
+[00:42:58.405] INFO: [Alto] Cloudflare Container reconcile: recreating capxulworld-alto-w-p-pat-4-jiqff5h43ular32d to attach durable object binding
+[00:43:00.110] INFO: [Ponder] Cloudflare Container precreate: starting capxulworld-ponder-w-p-pat-4-3a4xuhngrhg3pjoq
+[00:43:00.111] INFO: [Ponder] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9
+[00:43:00.386] INFO: [Anvil] Cloudflare Container create: creating application capxulworld-anvil-w-p-pat-4-zktsvorkm2hzz75e
+[00:43:00.480] INFO: [Alto] Cloudflare Container create: creating application capxulworld-alto-w-p-pat-4-jiqff5h43ular32d
+[00:43:00.617] INFO: [Ponder] Cloudflare Container create: creating application capxulworld-ponder-w-p-pat-4-3a4xuhngrhg3pjoq
+[00:43:02.808] INFO: [Door] Cloudflare Worker reconcile: starting capxulworld-door-w-p-pat-4-w2hinf54unvj3r3o
+[00:43:02.809] INFO: [Door] Cloudflare Worker reconcile: durable objects [{"logicalId":"Bundler","className":"Bundler"},{"logicalId":"Chain","className":"Chain"},{"logicalId":"Indexer","className":"Indexer"}]
+[00:43:02.810] INFO: [Ponder] Cloudflare Container reconcile: starting capxulworld-ponder-w-p-pat-4-3a4xuhngrhg3pjoq
+[00:43:03.302] INFO: [Door] Cloudflare Worker reconcile: existing durable object tags ["alchemy:dos:Bundler;Chain;Indexer"]
+[00:43:03.302] INFO: [Door] Cloudflare Worker reconcile: previous durable object tags ["alchemy:dos:Bundler;Chain;Indexer"]
+[00:43:03.303] INFO: [Door] Cloudflare Worker create: preparing bundle for capxulworld-door-w-p-pat-4-w2hinf54unvj3r3o
+[00:43:04.623] INFO: [Ponder] Cloudflare Container reconcile: recreating capxulworld-ponder-w-p-pat-4-3a4xuhngrhg3pjoq to attach durable object binding
+[00:43:05.738] INFO: [Door] Cloudflare Worker create: uploading script for capxulworld-door-w-p-pat-4-w2hinf54unvj3r3o
+[00:43:06.107] INFO: [Door] Cloudflare Worker put: durable object reconciliation {"oldDoClassNameByLogicalId":{"Bundler":"Bundler","Chain":"Chain","Indexer":"Indexer"},"currentDoClassNameByLogicalId":{"Bundler":"Bundler","Chain":"Chain","Indexer":"Indexer"},"deletedClasses":[],"renamedClasses":[],"transferredClasses":[],"newSqliteClasses":[]}
+[00:43:07.032] INFO: [Ponder] Cloudflare Container create: creating application capxulworld-ponder-w-p-pat-4-3a4xuhngrhg3pjoq
+[00:43:09.970] INFO: [Core] Cloudflare Worker read: checking capxulworld-core-w-p-pat-4-yp2wnpopkglnpdhk
+[00:43:10.282] INFO: [Core] Cloudflare Worker reconcile: starting capxulworld-core-w-p-pat-4-yp2wnpopkglnpdhk
+[00:43:10.282] INFO: [Core] Cloudflare Worker reconcile: durable objects []
+[00:43:10.524] INFO: [Core] Cloudflare Worker reconcile: existing durable object tags []
+[00:43:10.524] INFO: [Core] Cloudflare Worker reconcile: previous durable object tags []
+[00:43:10.525] INFO: [Core] Cloudflare Worker create: preparing bundle for capxulworld-core-w-p-pat-4-yp2wnpopkglnpdhk
+[00:43:12.869] INFO: [Core] Cloudflare Worker create: uploading script for capxulworld-core-w-p-pat-4-yp2wnpopkglnpdhk
+[00:43:13.152] INFO: [Core] Cloudflare Worker put: durable object reconciliation {"oldDoClassNameByLogicalId":{},"currentDoClassNameByLogicalId":{},"deletedClasses":[],"renamedClasses":[],"transferredClasses":[],"newSqliteClasses":[]}
+[00:43:16.839] INFO: world w-p-pat-4: deployed
+[00:43:17.643] INFO: world w-p-pat-4: migrations applied (0001_telemetry.sql, 0002_site_ops.sql, 0003_world.sql, 0004_organizations.sql, 0005_approvals.sql)
+[00:43:19.752] INFO: world w-p-pat-4: the chain answers
+[00:43:20.556] INFO: world w-p-pat-4: test USDC at 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6, minted to 1 addresses
+[00:43:52.107] INFO: world w-p-pat-4: the index is ready
+[00:43:52.107] INFO: world w-p-pat-4: the bundler serves 0x0000000071727De22E5E9d8BAf0edAc6f37da032, paymaster 0xE2dE380E3e8281e2cc458675102c3FC2277fC5A8
+[00:43:52.822] INFO: world w-p-pat-4: Core answers
+[00:44:20.753] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[00:44:26.079] INFO: [Alto] Cloudflare Container delete: deleting capxulworld-alto-w-p-pat-4-jiqff5h43ular32d
+[00:44:26.081] INFO: [Anvil] Cloudflare Container delete: deleting capxulworld-anvil-w-p-pat-4-zktsvorkm2hzz75e
+[00:44:26.138] INFO: [Core] Cloudflare Worker delete: deleting capxulworld-core-w-p-pat-4-yp2wnpopkglnpdhk
+[00:44:26.271] INFO: [Ponder] Cloudflare Container delete: deleting capxulworld-ponder-w-p-pat-4-3a4xuhngrhg3pjoq
+[00:44:27.293] INFO: [Door] Cloudflare Worker delete: deleting capxulworld-door-w-p-pat-4-w2hinf54unvj3r3o
+[00:44:28.645] INFO: [world] Neon: using environment variables (NEON_API_KEY).
+[00:44:35.684] INFO: world w-p-pat-4: destroyed (12 resources) and its name released
+
+real	7m56.013s
+user	0m34.854s
+sys	0m6.939s

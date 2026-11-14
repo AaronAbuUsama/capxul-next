@@ -2,7 +2,7 @@
 // record their index step's duration and every try of the index's start, with where Ponder's time went once started.
 // In each, the chain is stopped right after the create, as a container that goes away is, and called again at once:
 // the call wakes it, every try of that start recorded, and the index comes back by itself without the call waiting
-// on it. Every world is destroyed and the accounts hold what they held before.
+// on it. Every stop of the index is SIGTERM, which Ponder exits on. Every world is destroyed and the accounts hold what they held before.
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
 import * as Duration from "effect/Duration";
@@ -23,7 +23,7 @@ import { check, conclude, inventoryReport, stackListing } from "./support.ts";
 
 const PROOF = "patience";
 const CLAIM =
-  "a refused container start is tried again within its declared window, every try recorded with its duration: worlds made one after another each record their index step and the index's start tries; a chain stopped right after a create answers the next call, its start's tries recorded, and the index comes back by itself; every world destroyed, nothing left";
+  "a refused container start is tried again within its declared window, every try recorded with its duration: worlds made one after another each record their index step and the index's start tries; a chain stopped right after a create answers the next call, its start's tries recorded, and the index, stopped by SIGTERM, comes back by itself; every world destroyed, nothing left";
 
 /** How many worlds are made one after another, and how often each one's chain is stopped and called again. */
 const WORLDS = ["p-pat-1", "p-pat-2", "p-pat-3", "p-pat-4"];
@@ -49,11 +49,17 @@ const IndexStart = Schema.Struct({
   readyMs: Schema.NullOr(Schema.Finite),
   timeline: Schema.NullOr(Schema.Unknown),
 });
+const IndexStop = Schema.Struct({
+  at: Schema.String,
+  ms: Schema.Finite,
+  ended: Schema.optional(Schema.Literals(["exited", "killed"])),
+});
 const IndexRecord = Schema.Struct({
   running: Schema.Boolean,
   ready: Schema.NullOr(Schema.Finite),
   starts: Schema.Array(IndexStart),
   gaveUp: Schema.Array(Schema.Unknown),
+  stops: Schema.Array(IndexStop),
 });
 const ChainStart = Schema.Struct({
   at: Schema.String,
@@ -103,6 +109,8 @@ const stopAndCall = (world: World) =>
       wake: Option.getOrNull(wake),
       indexBackMs: indexMs,
       indexStart: Option.getOrNull(Arr.last(index.starts)),
+      // How the index was stopped: on SIGTERM Ponder exits and lets go of its schema lock (src/containers/stop.ts).
+      indexStop: Option.getOrNull(Arr.last(index.stops)),
     };
   });
 
@@ -181,6 +189,11 @@ export const patience = Effect.gen(function* () {
           Arr.every(wakes, (wake) => ended(wake) && wake.from === "saved state"),
       ),
       check(
+        "every stop of the index sent Ponder SIGTERM and Ponder exited, none killed",
+        Arr.length(cycles) === WORLDS.length * STOPS &&
+          Arr.every(cycles, (cycle) => cycle.indexStop !== null && cycle.indexStop.ended === "exited"),
+      ),
+      check(
         "every world was destroyed",
         Arr.every(worlds, (one) => one.record.worldAfterwards === "destroyed"),
       ),
@@ -201,6 +214,15 @@ export const patience = Effect.gen(function* () {
         ms: start.ms,
       })),
       retriedStarts: retried,
+      // Each resume of the index after the chain woke: how it was stopped, then how long its new start took to
+      // healthy and to ready (a Ponder killed holds its schema lock, and the next waits it out).
+      indexResumes: Arr.map(cycles, (cycle) => ({
+        stop: cycle.indexStop,
+        healthyMs: cycle.indexStart?.healthyMs ?? null,
+        readyMs: cycle.indexStart?.readyMs ?? null,
+        refusals: cycle.indexStart?.refusals ?? null,
+        indexBackMs: cycle.indexBackMs,
+      })),
       worlds,
       inventory,
     },
