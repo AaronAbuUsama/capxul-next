@@ -29,6 +29,8 @@ export const ENV = {
   /** The credential of the API user the site door made on each of the world's sites (never the bench's admin). */
   siteKey: "CAPXUL_SITE_KEY",
   siteSecret: "CAPXUL_SITE_SECRET",
+  /** `empty` serves every operation's empty handler (src/empty-handlers.ts); left out, the built ones. */
+  handlers: "CAPXUL_HANDLERS",
 } as const;
 
 /** A binding as the environment holds it: a secret may arrive wrapped or as plain text. */

@@ -1,9 +1,11 @@
 # runner
 
-The scenario runner (roadmap step 1.2). It runs against a world through Core's door, applies the same generic checks
-to every call it makes, and writes one JSON run record per run. It knows no operation and no scenario by name: it
-reads the blueprint (`@capxul/blueprint`), deploys Core (`@capxul/core`) and runs the scenarios that
-`@capxul/scenarios` registers. Built from `spikes/pipeline/runner`.
+The scenario runner (roadmap steps 1.2 and 1.14). It runs against a world through Core's door, applies the same
+generic checks to every call it makes, and writes one JSON run record per run. It knows no operation and no journey
+by name: it reads the blueprint (`@capxul/blueprint`), deploys Core (`@capxul/core`) and runs the journeys that
+`@capxul/scenarios` registers (a scenario is a journey since 14 November 2026: docs/roadmap.md). Each journey's
+operations judge their own calls with their checks; the runner records every step and adds its generic checks.
+Built from `spikes/pipeline/runner`.
 
 ## Run it
 
@@ -11,14 +13,14 @@ reads the blueprint (`@capxul/blueprint`), deploys Core (`@capxul/core`) and run
 ./run.sh door                 # every blueprint operation called once through a fresh Core stage
 ./run.sh door --world=<name>  # the same, through the Core of a world `world create` made (packages/world)
 ./run.sh chain --world=<name> # the chain operations' journey (src/chain-journey.ts) through a world's Core
-./run.sh scenarios [name...]  # the registered scenarios (or those named), each in fresh private worlds (below)
+./run.sh scenarios [name...]  # the registered journeys (or those named), each in fresh private worlds (below)
 ./run.sh starting-worlds      # make every starting world the runner can make, timed, then destroy them all
 WORLD_BENCH=<platform stage> ./run.sh scenarios --core=local [name...]   # a rehearsal: Core in workerd here (below)
-./run.sh scenarios --expect=not-implemented              # each in a fresh stage; must fail on NotImplemented
+./run.sh scenarios --expect=not-implemented              # each in a fresh stage of Core's empty handlers; must fail at step 1
 ./run.sh scenarios --one-stage --expect=not-implemented  # the same, all in one fresh stage
 ```
 
-`door` exits 1 if its run failed; `scenarios` exits 1 if a scenario did not end as the run expected or a stage was
+`door` exits 1 if its run failed; `scenarios` exits 1 if a journey did not end as the run expected or a stage was
 left behind. `run.sh` runs `src/main.ts` under Bun and sets the two key variables to a
 placeholder: the session's network proxy adds the real Cloudflare and Neon keys, which never reach this machine. It
 also makes a fresh pair of door tokens for the run (`CAPXUL_DOOR_TOKEN`, `CAPXUL_PLATFORM_TOKEN`), which Core reads at
@@ -126,29 +128,41 @@ pass with Core on Cloudflare (roadmap step 1.6). What it shows is everything els
 operations against real ERPNext, the snapshots with sites, and every generic check. What it cannot show is in
 `records/` beside its runs.
 
-## A scenarios run and its summary
+## A journey's steps
+
+A journey tells the runner each step's beginning and end and each try of its operation, with what the step expected,
+what came back and every check of the operation that ran on it (`Steps` of `@capxul/scenarios`; `src/steps.ts`
+hears it). A journey's run record (`kind: "journey"`) then holds, beside `calls`:
+
+| Field | What it holds |
+|---|---|
+| `steps` | Every step of the journey's outline, in order: its operation and words, `passed`, `failed` or `not reached`, why it failed, its tries (expected, answered, each check's sentence, whether it held and what was seen), the calls it made as places in `calls` (its tries, its waits and every read it and its checks made, each with its caller and server time, its spans and its generic checks), and how long it took. A step whose call failed a generic check failed. |
+| `failedStep` | The first step that failed, its operation and why; null when none did. |
+
+## A run of the journeys and its summary
 
 `./run.sh scenarios` also writes a summary (`src/summary.ts`, `src/scenario-runs.ts`): one JSON file whose `outcome`
-is the run's, so a step's Proof can name it. It lists each scenario with how it ended, its calls (refusal, caller and
+is the run's, so a step's Proof can name it. It lists each journey with how it ended, the step that failed, each step's outcome and checks held, its calls (refusal, caller and
 server time, whether every check passed) and where its full record is, and each stage with its create and destroy
 times and what the accounts held of it afterwards. What the run expects is declared by a flag:
 
-| `--expect=` | A scenario is as expected when | For |
+| `--expect=` | A journey is as expected when | For |
 |---|---|---|
 | `pass` (default) | its run record passed (or, with `--core=local`, was `rehearsed`) | step 1.6: the thin line passes |
-| `not-implemented` | it failed on `NotImplemented`, or on an `ExpectationFailed` that names it, never passed and never died; it made a call, every call was answered `NotImplemented`, and every generic check passed on every call | step 1.5: the scenarios fail on Core's empty handlers |
+| `not-implemented` | it failed at its first step on `NotImplemented` (or an `ExpectationFailed` that names it), never passed and never died, and reached no later step; it made a call, every call was answered `NotImplemented`, and every generic check passed on every call. Its stages are deployed in Core's empty-handler mode (`CAPXUL_HANDLERS=empty`, which `run.sh` sets; packages/core, `src/empty-handlers.ts`) | step 1.14: the journeys fail on Core's empty handlers |
 
-The summary's `outcome` is `passed` exactly when every claim the blueprint declares has its scenario in the run, every
-scenario was as expected, and every stage was destroyed with nothing of it left. A run of named scenarios covers
-only some claims, so its summary fails; its exit code is still 0 when those scenarios were as expected.
+The summary's `outcome` is `passed` exactly when every registered journey is in the run, every journey was as
+expected, and every stage was destroyed with nothing of it left. A run of named journeys leaves some out, so its
+summary fails; its exit code is still 0 when those journeys were as expected. Which claims each journey and each
+operation's checks hold is `@capxul/scenarios`' `coverage.ts`; the summary counts them.
 
 | Mode | Stages | Records |
 |---|---|---|
-| a world each (`--expect=pass`, the default) | the worlds each scenario makes, and its starting world's | `records/<run>/<scenario>.json` each, and the summary beside them |
-| a stage each (`--expect=not-implemented`) | one fresh stage per scenario | `records/<stage>/<scenario>.json` each; the summary at `records/run-<6 hex>/summary.json` |
-| `--one-stage` | one fresh stage for all, created and destroyed once; each scenario still has the use timeout of one run | `records/<stage>/summary.json`, the only JSON file in its folder, and every scenario's record as one line of `records/<stage>/scenarios.jsonl` |
+| a world each (`--expect=pass`, the default) | the worlds each journey makes, and its starting world's: one world per journey for now (docs/roadmap.md, "One runner, one world"; step 1.18 makes it one world, reset in place) | `records/<run>/<journey>.json` each, and the summary beside them |
+| a stage each (`--expect=not-implemented`) | one fresh stage per journey | `records/<stage>/<journey>.json` each; the summary at `records/run-<6 hex>/summary.json` |
+| `--one-stage` | one fresh stage for all, created and destroyed once; each journey still has the use timeout of one run | `records/<stage>/summary.json`, the only JSON file in its folder, and every journey's record as one line of `records/<stage>/journeys.jsonl` |
 
-One stage is sound only when no scenario changes the stage's state, which holds against the empty handlers, so
+One stage is sound only when no journey changes the stage's state, which holds against the empty handlers, so
 `--one-stage` is refused without `--expect=not-implemented`. The generic checks are the same in both modes. A
 dashboard that reads every JSON file of a folder counts only the summary, since the scenarios' own records (whose
 `outcome` is `failed` against the empty handlers, by design) are JSON Lines.
@@ -184,6 +198,7 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | `records/w-c1/` | `./run.sh door --world=c1` on 13 November 2026 (roadmap step 1.4's first part): all twelve operations answered `NotImplemented` through the SDK at the real Core in a world made by `world create`, every check passed, the spans read from the world's own branch. `passed`. |
 | `records/core-c109b1/` | `./run.sh door` on 13 November 2026, with `doc.create`, `doc.submit`, `report.run`, `world.clock.warp` and `record.export` built (roadmap step 1.6, site-ops): the three site operations refused `OrgNotFound` (a stage has no bench), the warp and the export succeeded with their events checked, the other seven answered `NotImplemented`. `passed`; the stage destroyed and nothing left. |
 | `records/run-f2d91c/` | `./run.sh scenarios --expect=pass` of those five operations' 17 scenarios and the record.export example, a stage each, on 13 November 2026. The example passed; 15 scenarios died at `given` (the runner makes no starting world before step 1.12); record.export 1 and 4 ran in a bare stage and failed on its one-entry record, as they must without `restored` and `paid`. `failed`, as a run of some claims is; all 18 stages destroyed with nothing left. |
+| `records/run-fc53ef/` | `./run.sh scenarios --expect=not-implemented` on 14 November 2026, step 1.14's proof: the three registered journeys, a fresh stage each in Core's empty-handler mode, each failing at its first step on the `NotImplemented` its own operation answered, every call passing every check. `summary.json` is `passed`; each journey's record (`failed`, by design) is in its stage's folder (`core-e5adc4`, `core-58a818`, `core-7484a8`); `leftovers.txt` shows the accounts empty afterwards. |
 | `records/core-*/` | Further runs: one stage each, its door or scenario record, written by `./run.sh`. |
 
 ## Files
@@ -191,7 +206,8 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | File | What it holds |
 |---|---|
 | `src/main.ts` | The entry: arguments, the runs, the exit code. The only file that touches the process. |
-| `src/run.ts` | A run as a plan: the door, a scenario, and one stage from create to record. |
+| `src/run.ts` | A run as a plan: the door, a journey, and one stage from create to record. |
+| `src/steps.ts` | What the runner hears of a journey's steps, and each step as its run record keeps it. |
 | `src/in-world.ts`, `src/world/existing.ts` | A run in a world `world create` made, and the other worlds a call may be made `at`. |
 | `src/client.ts` | `Capxul` for one stage: the SDK's client at its two doors, its chain and whatever a call reaches (the second operator, another world's door), every call recorded, a call its client rejected as `rejected`. |
 | `src/given.ts` | `Given`: the facts of a scenario's starting world. `nothing`'s are the run's operators; for any other world, the declared example facts in a run that expects `not-implemented`, and a defect otherwise, until the runner makes starting worlds (step 1.12). |
@@ -199,8 +215,8 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | `src/world/` | The stage's life, its database, the warm-up and the inventory: the runner's plumbing. |
 | `src/worlds/` | A run in private worlds: the platform this process serves, the starting worlds (`starting.ts`), their makers (`makers.ts`; those with a company in `company.ts`), how a fact is encoded (`encode.ts`), the run and its timing. |
 | `src/local/` | `--core=local`: Core's bundle, its workerd, its database bridge, its chain forwarder and the host that runs one per world (above). |
-| `src/scenario-runs.ts` | A scenarios run in either mode, ending in its summary. |
-| `src/summary.ts` | The summary: what each scenario was expected to do, the claims a run must cover, the stages it must leave. |
+| `src/scenario-runs.ts` | A run of the journeys in stages, in either mode, ending in its summary. |
+| `src/summary.ts` | The summary: what each journey was expected to do, the journeys a run must hold, the stages it must leave. |
 | `src/record.ts`, `src/failure.ts` | The run record, the JSON writers, and how a run ended and a failure is worded. |
 | `test/` | The checks, the plumbing, the warm-up and the summary on made-up input. |
 
@@ -211,4 +227,5 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 - The template worlds are made once per run, not once per change to the code (decision 46): a run pays for them.
 - A local Core's database connection is not pooled: each request opens one over its own WebSocket, which Hyperdrive
   on Cloudflare would pool. Its server times are therefore not Core's on Cloudflare.
-- Runs go one at a time, and so do the scenarios of a one-stage run.
+- Runs go one at a time, and so do the journeys of a one-stage run.
+- One world per journey: a builder swaps in one world per runner, reset in place before each journey (step 1.18).

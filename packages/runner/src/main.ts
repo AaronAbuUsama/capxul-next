@@ -1,7 +1,7 @@
 // Entry: `bun src/main.ts door [--world=<name>]` or `bun src/main.ts scenarios [--one-stage] [--expect=pass|not-implemented]
-// [name...]`, through ../run.sh, which sets the environment. The door runs in its own fresh stage; the scenarios run
-// as scenario-runs.ts says, one at a time. `door --world=<name>` runs the door in a world `world create` made
-// (packages/world), which it neither creates nor destroys. Exits 1 when the door failed, or when a scenario did not end as the run
+// [name...]`, through ../run.sh, which sets the environment. The door runs in its own fresh stage; the journeys (the
+// scenarios, since 14 November 2026) run as scenario-runs.ts says, one at a time. `door --world=<name>` runs the door in a world `world create` made
+// (packages/world), which it neither creates nor destroys. Exits 1 when the door failed, or when a journey did not end as the run
 // expected or a stage was left. This is the only file of the runner that touches the process: its arguments, its exit
 // code and the Bun runtime.
 import * as BunFileSystem from "@effect/platform-bun/BunFileSystem";
@@ -9,7 +9,7 @@ import * as BunPath from "@effect/platform-bun/BunPath";
 import * as BunRuntime from "@effect/platform-bun/BunRuntime";
 import * as BunServices from "@effect/platform-bun/BunServices";
 import { SharedState } from "@capxul/world";
-import { scenarios } from "@capxul/scenarios";
+import { journeys } from "@capxul/scenarios";
 import * as Alchemist from "alchemy/Alchemist";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
@@ -20,7 +20,7 @@ import * as FetchHttpClient from "effect/http/FetchHttpClient";
 import { RunnerFailure } from "./failure.ts";
 import { runInWorld } from "./in-world.ts";
 import { chainJourney } from "./chain-journey.ts";
-import { door, runPlan, scenarioPlan, type Plan } from "./run.ts";
+import { door, journeyPlan, runPlan, type Plan } from "./run.ts";
 import { OtherWorlds } from "./world/existing.ts";
 import { localCoreHost } from "./local/host.ts";
 import { platformFor } from "./worlds/platform.ts";
@@ -43,10 +43,12 @@ const flags = Arr.filter(
   (each) => Str.startsWith("--")(each) && !Str.startsWith(WORLD_FLAG)(each) && each !== LOCAL_CORE,
 );
 const names = Arr.filter(rest, (each) => !Str.startsWith("--")(each));
+/** The journeys to run, by the names given; all of them when none is. */
+const chosenJourneys = names.length === 0 ? journeys : Arr.filter(journeys, (each) => Arr.contains(names, each.name));
 
 const usage = (message: string) => Effect.fail(RunnerFailure.make({ step: "arguments", message }));
 
-/** The mode and the expectation the flags ask for. One stage is sound only where no scenario changes state. */
+/** The mode and the expectation the flags ask for. One stage is sound only where no journey changes state. */
 const options = (): Effect.Effect<{ readonly mode: Mode; readonly expect: Expectation }, RunnerFailure> => {
   const unknown = Arr.filter(
     flags,
@@ -57,13 +59,13 @@ const options = (): Effect.Effect<{ readonly mode: Mode; readonly expect: Expect
   const expect: Expectation = Arr.contains(flags, "--expect=not-implemented") ? "not-implemented" : "pass";
   if (mode === "one stage" && expect !== "not-implemented")
     return usage(
-      "--one-stage shares one stage between scenarios, which is sound only when none changes its state: against Core's empty handlers, with --expect=not-implemented",
+      "--one-stage shares one stage between journeys, which is sound only when none changes its state: against Core's empty handlers, with --expect=not-implemented",
     );
   return Effect.succeed({ mode, expect });
 };
 
 /**
- * The plans the command asks for. A scenarios run that expects Core's empty handlers hands each scenario its
+ * The plans the command asks for. A run that expects Core's empty handlers hands each journey its
  * starting world's example facts; one that expects to pass hands only facts the runner made (given.ts).
  */
 const plans = (settings: Settings): Effect.Effect<ReadonlyArray<Plan>, RunnerFailure> => {
@@ -75,13 +77,12 @@ const plans = (settings: Settings): Effect.Effect<ReadonlyArray<Plan>, RunnerFai
   if (command === "chain")
     return flags.length === 0 && names.length === 0 ? Effect.succeed([chainJourney]) : usage(USAGE);
   if (command !== "scenarios") return usage(USAGE);
-  const chosen = names.length === 0 ? scenarios : Arr.filter(scenarios, (each) => Arr.contains(names, each.name));
-  if (chosen.length < names.length)
+  if (chosenJourneys.length < names.length)
     return Effect.fail(
-      RunnerFailure.make({ step: "arguments", message: `no scenario is named one of: ${Arr.join(names, "; ")}` }),
+      RunnerFailure.make({ step: "arguments", message: `no journey is named one of: ${Arr.join(names, "; ")}` }),
     );
   return Effect.map(options(), ({ expect }) =>
-    Arr.map(chosen, scenarioPlan(settings, expect === "not-implemented" ? "examples" : "made only")),
+    Arr.map(chosenJourneys, journeyPlan(settings, expect === "not-implemented" ? "examples" : "made only")),
   );
 };
 
@@ -95,10 +96,6 @@ const theDoor = (settings: Settings, plan: Plan = door) =>
     );
     if (record.outcome === "failed") process.exitCode = 1;
   });
-
-/** The scenarios to run, by the names given; all of them when none is. */
-const chosenScenarios =
-  names.length === 0 ? scenarios : Arr.filter(scenarios, (each) => Arr.contains(names, each.name));
 
 /**
  * A run in private worlds needs the platform, served by this process (worlds/platform.ts), and the shared state of
@@ -120,20 +117,20 @@ const theScenarios = (settings: Settings, chosen: ReadonlyArray<Plan>) =>
     const { mode, expect } = yield* options();
     const inPrivateWorlds = expect === "pass";
     const shown = inPrivateWorlds ? "a world each" : mode;
-    yield* Effect.log(`${chosen.length} scenario${chosen.length === 1 ? "" : "s"}, ${shown}, expecting ${expect}`);
+    yield* Effect.log(`${chosen.length} journey${chosen.length === 1 ? "" : "s"}, ${shown}, expecting ${expect}`);
     const summary = inPrivateWorlds
-      ? yield* inWorlds(settings, runInWorlds(chosenScenarios, settings))
+      ? yield* inWorlds(settings, runInWorlds(chosenJourneys, settings))
       : yield* runScenarios(chosen, settings, mode, expect);
-    for (const line of summary.scenarios)
+    for (const line of summary.journeys)
       yield* Effect.log(
-        `${line.asExpected ? "as expected" : "NOT as expected"}: ${line.name}${line.why === null ? "" : ` (${line.why})`}`,
+        `${line.asExpected ? "as expected" : "NOT as expected"}: ${line.name}${line.failedStep === null ? "" : ` (failed at step ${line.failedStep.step}, ${line.failedStep.operation})`}${line.why === null ? "" : ` (${line.why})`}`,
       );
     for (const stage of summary.stages)
       yield* Effect.log(
         `stage ${stage.name}: create ${stage.createMs} ms, destroy ${stage.destroyMs} ms, ${stage.afterwards}`,
       );
     yield* Effect.log(
-      `${summary.outcome}: ${summary.count.asExpected} of ${summary.count.scenarios} as expected (${summary.count.claims} of ${summary.count.declaredClaims} claims) -> ${settings.records}/${summary.run}/summary.json${summary.failure === null ? "" : `\n${summary.failure}`}`,
+      `${summary.outcome}: ${summary.count.asExpected} of ${summary.count.journeys} journeys as expected (${summary.count.registered} registered, covering ${summary.count.claims} claims) -> ${settings.records}/${summary.run}/summary.json${summary.failure === null ? "" : `\n${summary.failure}`}`,
     );
     if (!ranAsExpected(summary)) process.exitCode = 1;
   });

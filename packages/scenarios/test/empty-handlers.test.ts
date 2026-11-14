@@ -1,9 +1,8 @@
-// Step 1.5's proof (docs/roadmap.md): every registered scenario fails against Core's empty handlers, which answer
-// every call with the blueprint's NotImplemented, and none passes vacuously. Each scenario runs against a Capxul
-// whose every function fails so; it must reach the door, and fail with NotImplemented itself or with an expectation
-// that names it, never pass and never die.
+// Every journey fails against Core's empty handlers, which answer every call with the blueprint's NotImplemented,
+// at its first step, on that refusal, and none passes or dies (roadmap step 1.14; the deployed run is the runner's).
+// Each journey runs against a Capxul whose every function fails so, and is handed its starting world's example facts.
 //
-// The run record of this, records/empty-handlers.json, is written by this test: `pnpm --filter @capxul/scenarios
+// The record of this, records/empty-handlers.json, is written by this test: `pnpm --filter @capxul/scenarios
 // record` writes it, and every other run fails when the committed file differs from what the run finds, so it is
 // never edited by hand.
 import { strict as assert } from "node:assert";
@@ -16,17 +15,13 @@ import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Random from "effect/Random";
 import * as Str from "effect/String";
-import { Capxul, claimOf, Given, scenarios, type CapxulClient, type Scenario } from "../src/door.ts";
+import { Capxul, Given, journeys, Steps, type CapxulClient, type Journey } from "../src/door.ts";
 
 const RECORD = new URL("../records/empty-handlers.json", import.meta.url);
 
 const ZERO = "0x0000000000000000000000000000000000000000";
 
-/**
- * A chain on which nothing an operation does has happened, as a world's chain is while Core's handlers are empty:
- * its first block, every balance 0, no owners, no hats worn, no logs. Reads are not operations: they are not in
- * `calls`.
- */
+/** A chain on which nothing an operation does has happened. Reads are not operations: they are not in `calls`. */
 const emptyChain: CapxulClient["chain"] = {
   head: () => Effect.succeed({ number: 0, timestamp: "2026-11-13T09:00:00.000Z", hash: `0x${Str.repeat(64)("0")}` }),
   balance: () => Effect.succeed("0"),
@@ -65,67 +60,67 @@ const emptyHandlers = (calls: Array<string>): CapxulClient => {
 
 interface Result {
   readonly name: string;
-  readonly proves: { readonly operation: string; readonly claim: number; readonly says: string } | null;
   readonly given: string;
-  /** The operations the scenario called, in order, each answered NotImplemented. */
+  readonly steps: number;
+  /** The steps it began, each with what it ended with. */
+  readonly began: ReadonlyArray<{ readonly step: number; readonly operation: string; readonly failure: string | null }>;
+  /** The operations it called, in order, each answered NotImplemented. */
   readonly calls: ReadonlyArray<string>;
-  /** "failed" as it should; "passed" or "died" when it did not. */
   readonly outcome: "failed" | "passed" | "died";
-  /** The tag of what it failed with: NotImplemented, or ExpectationFailed. */
   readonly failedWith: string | null;
   readonly detail: string;
 }
 
-const run = async (each: Scenario): Promise<Result> => {
+const run = async (each: Journey): Promise<Result> => {
   const calls: Array<string> = [];
+  const began: Array<{ step: number; operation: string; failure: string | null }> = [];
+  const steps = {
+    begin: (step: number, outline: { readonly operation: string }) =>
+      Effect.sync(() => began.push({ step, operation: outline.operation, failure: null })),
+    tried: () => Effect.void,
+    end: (step: number, failure: string | null) =>
+      Effect.sync(() => {
+        for (const entry of began) if (entry.step === step) entry.failure = failure;
+      }),
+  };
   const exit = await Effect.runPromiseExit(
     each.run.pipe(
       Effect.provideService(Capxul, emptyHandlers(calls)),
-      // The starting world's example facts: what its maker would hand, had Core's handlers made it.
       Effect.provideService(Given, { world: each.given, facts: Effect.succeed(each.given.example) }),
+      Effect.provideService(Steps, steps),
       Random.withSeed(each.name),
       Effect.timeout("10 seconds"),
     ),
   );
-  const proves =
-    each.proves === null
-      ? null
-      : { ...each.proves, says: claimOf(each.proves).pipe((claim) => (claim._tag === "Some" ? claim.value.says : "")) };
-  const base = { name: each.name, proves, given: each.given.name, calls };
+  const base = { name: each.name, given: each.given.name, steps: each.outline.length, began, calls };
   if (Exit.isSuccess(exit)) return { ...base, outcome: "passed", failedWith: null, detail: "" };
   const error = Cause.findError(exit.cause);
   if (error._tag === "Failure") return { ...base, outcome: "died", failedWith: null, detail: Cause.pretty(exit.cause) };
   const failure = error.success;
-  const detail =
-    failure._tag === "ExpectationFailed"
-      ? failure.message
-      : failure._tag === "NotImplemented"
-        ? `${failure.operation} answered NotImplemented`
-        : `failed with ${failure._tag}`;
+  const detail = failure._tag === "NotImplemented" ? `${failure.operation} answered NotImplemented` : failure._tag;
   return { ...base, outcome: "failed", failedWith: failure._tag, detail };
 };
 
-const fellOnEmptyHandler = (result: Result): boolean =>
+/** Failed at its first step, the one step it began, on the NotImplemented its own operation was answered. */
+const fellAtFirstStep = (result: Result): boolean =>
   result.outcome === "failed" &&
+  result.failedWith === "NotImplemented" &&
   result.calls.length > 0 &&
-  (result.failedWith === "NotImplemented" ||
-    (result.failedWith === "ExpectationFailed" && Str.includes("NotImplemented")(result.detail)));
+  result.began.length === 1 &&
+  result.began[0]?.step === 1 &&
+  result.began[0]?.failure !== null &&
+  result.detail === `${result.began[0]?.operation} answered NotImplemented`;
 
-test("every scenario fails against the empty handlers, on the NotImplemented they answer", async () => {
+test("every journey fails at its first step against the empty handlers, on the NotImplemented they answer", async () => {
   const results: Array<Result> = [];
-  for (const each of scenarios) results.push(await run(each));
-  const wrong = Arr.filter(results, (result) => !fellOnEmptyHandler(result));
-  const byOperation: Record<string, number> = {};
-  for (const result of results)
-    if (result.proves !== null) byOperation[result.proves.operation] = (byOperation[result.proves.operation] ?? 0) + 1;
+  for (const each of journeys) results.push(await run(each));
+  const wrong = Arr.filter(results, (result) => !fellAtFirstStep(result));
   const record = {
     record: "empty-handlers",
-    step: "1.5",
-    what: "Every registered scenario run against a Capxul whose every operation fails with NotImplemented, as Core's empty handlers do. Each must reach the door and fail on the NotImplemented it is answered, never pass and never die.",
+    step: "1.14",
+    what: "Every registered journey run against a Capxul whose every operation fails with NotImplemented, as Core's empty handlers do. Each must fail at its first step, on the NotImplemented it is answered, never pass and never die.",
     outcome: wrong.length === 0 ? "passed" : "failed",
-    scenarios: results.length,
-    claims: Arr.filter(results, (result) => result.proves !== null).length,
-    byOperation,
+    journeys: results.length,
     results,
   };
   const text = `${JSON.stringify(record, null, 2)}\n`;
@@ -133,7 +128,7 @@ test("every scenario fails against the empty handlers, on the NotImplemented the
   assert.deepEqual(
     Arr.map(wrong, (result) => `${result.name}: ${result.outcome} ${result.detail}`),
     [],
-    "scenarios that did not fail on the empty handlers",
+    "journeys that did not fail at their first step on the empty handlers",
   );
   assert.equal(
     readFileSync(RECORD, "utf8"),

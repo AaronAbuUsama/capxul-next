@@ -7,7 +7,7 @@ import * as Equal from "effect/Equal";
 import * as Formatter from "effect/Formatter";
 import * as Option from "effect/Option";
 import * as Str from "effect/String";
-import { ExpectationFailed, expect } from "../scenario.ts";
+import { ExpectationFailed, expect } from "../expectation.ts";
 
 type Tagged = { readonly _tag: string };
 

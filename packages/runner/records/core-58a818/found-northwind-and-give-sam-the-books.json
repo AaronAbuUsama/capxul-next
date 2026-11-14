@@ -1,0 +1,241 @@
+{
+  "kind": "journey",
+  "name": "found Northwind and give sam the books",
+  "proves": null,
+  "given": "fresh",
+  "stage": "core-58a818",
+  "owner": "runner",
+  "startedAt": "2026-11-14T05:17:54.007Z",
+  "outcome": "failed",
+  "failure": "the run failed: {\"_tag\":\"NotImplemented\",\"operation\":\"org.create\"}",
+  "ended": {
+    "as": "failed",
+    "tag": "NotImplemented",
+    "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"org.create\"}"
+  },
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 11038
+  },
+  "calls": [
+    {
+      "operation": "record.export",
+      "traceId": "5f4f83b75035cc81d4349f70c4e43f25",
+      "at": null,
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 204.388,
+        "serverMs": 0,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "org.create",
+      "traceId": "9dbe2eb86d1130d993205470742fd52e",
+      "at": null,
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"org.create\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 204.961,
+        "serverMs": 0,
+        "budgetMs": 8000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one org.create span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "operation": "org.create",
+      "does": "founders who cannot found are refused, and nothing is made",
+      "outcome": "failed",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"org.create\"}",
+      "tries": [
+        {
+          "operation": "org.create",
+          "as": "pat",
+          "operator": "first",
+          "at": null,
+          "expected": "refused FounderNotReady",
+          "answered": "refused NotImplemented",
+          "checks": []
+        }
+      ],
+      "calls": [
+        1,
+        2
+      ],
+      "ms": 411
+    },
+    {
+      "step": 2,
+      "operation": "org.create",
+      "does": "dana founds Northwind; the same founding resumes it, and nobody founds it twice",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 3,
+      "operation": "approval.sign",
+      "does": "dana's signature of the setup is kept and eli's sends it: the board and its capital are on the chain",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 4,
+      "operation": "world.show",
+      "does": "Northwind's site becomes ready, and the world shows everything it was made with",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 5,
+      "operation": "org.member.grant",
+      "does": "dana proposes that sam keep the books; who may not ask, or be given it, is refused, and a second change waits",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 6,
+      "operation": "approval.sign",
+      "does": "dana's signature is kept and eli's executes the grant: sam's Safe wears the Books hat",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 7,
+      "operation": "doc.create",
+      "does": "sam's user reaches the site and he makes Brightside; pat, a nameless Supplier and an Employee are refused",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 8,
+      "operation": "report.run",
+      "does": "sam lists the Suppliers, only Brightside; pat, a payroll report and one that does not exist are refused",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 9,
+      "operation": "org.member.grant",
+      "does": "sam already keeps the books; dana proposes that he also manage people",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 10,
+      "operation": "approval.sign",
+      "does": "dana and eli sign: sam's Safe wears the People hat",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    }
+  ],
+  "failedStep": {
+    "step": 1,
+    "operation": "org.create",
+    "does": "founders who cannot found are refused, and nothing is made",
+    "why": "{\"_tag\":\"NotImplemented\",\"operation\":\"org.create\"}"
+  },
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [
+        "capxulcore-core-core-58a818-grv36evk6shxaqfx"
+      ],
+      "hyperdrives": [
+        "capxulcore-core-hyperdrive-core-58a818-dixwp7bff2ijilhm"
+      ],
+      "neonProjects": [
+        "CapxulCore-core-db-core-58a818-wb3bl24yjpy2h4xu"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": []
+    }
+  },
+  "ms": {
+    "create": 30727,
+    "run": 415,
+    "checks": 230,
+    "destroy": 2328
+  }
+}

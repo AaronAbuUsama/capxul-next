@@ -25,6 +25,7 @@ export const ownDeployment = Effect.gen(function* () {
   const database = yield* CoreDatabase;
   const secondOwner = yield* Config.option(Config.String(ENV.secondOwner));
   const secondToken = yield* Config.option(Config.Redacted(ENV.secondPlatformToken));
+  const handlers = yield* Config.option(Config.String(ENV.handlers));
   const second =
     Option.isSome(secondOwner) && Option.isSome(secondToken)
       ? { [ENV.secondOwner]: secondOwner.value, [ENV.secondPlatformToken]: secondToken.value }
@@ -36,6 +37,7 @@ export const ownDeployment = Effect.gen(function* () {
       [ENV.doorToken]: yield* Config.Redacted(ENV.doorToken),
       [ENV.platformToken]: yield* Config.Redacted(ENV.platformToken),
       ...second,
+      ...(Option.isSome(handlers) ? { [ENV.handlers]: handlers.value } : {}),
     },
   } satisfies Deployment;
 });

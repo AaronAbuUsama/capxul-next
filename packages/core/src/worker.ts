@@ -21,10 +21,11 @@ import * as RpcSerialization from "effect/rpc/RpcSerialization";
 import { chainRead } from "./chain.ts";
 import { COMPANIES_PATH, companiesRead } from "./platform/companies.ts";
 import { serveDoors } from "./doors.ts";
-import { ENV, identityOf } from "./env.ts";
+import { EMPTY_HANDLERS } from "./empty-handlers.ts";
+import { ENV, identityOf, textOf } from "./env.ts";
 import { HEALTH_PATH, PROBE_PATH, probeSite } from "./probe.ts";
 import { ChainOps } from "./organizations/handlers.ts";
-import { Served } from "./server.ts";
+import { Served, ServedEmpty } from "./server.ts";
 import { siteOpsLive } from "./site-ops/door.ts";
 import { SiteDoor } from "./site/SiteDoor.ts";
 import { CoreDeployment, ownDeployment } from "./stack/deployment.ts";
@@ -90,7 +91,9 @@ export default class Core extends Cloudflare.Worker<Core>()(
           ),
         );
       // One pool per request, opened on the first query and closed when the request ends.
-      const served = Served.pipe(
+      // A stage deployed in empty-handler mode serves every operation's empty handler (src/empty-handlers.ts).
+      const handlers: typeof Served = Option.contains(textOf(env[ENV.handlers]), EMPTY_HANDLERS) ? ServedEmpty : Served;
+      const served = handlers.pipe(
         Layer.provideMerge(RpcSerialization.layerJson),
         Layer.provide(
           siteOpsLive(env).pipe(Layer.provide(SiteDoor.fromEnv(env).pipe(Layer.provide(FetchHttpClient.layer)))),

@@ -1,8 +1,9 @@
-// A scenarios run in private worlds (`./run.sh scenarios`, expecting `pass`): the platform served by this process
-// (platform.ts), every scenario's starting world made for it (starting.ts), the scenario run through the door with the
-// generic checks on every call, and every world it made destroyed afterwards, whatever happened, with the accounts read
-// before and after for anything of those worlds. The template worlds are destroyed when the run ends.
-import type { Scenario } from "@capxul/scenarios";
+// A run of the journeys in private worlds (`./run.sh scenarios`, expecting `pass`): the platform served by this
+// process (platform.ts), every journey's starting world made for it (starting.ts), one world per journey for now
+// (docs/roadmap.md, "One runner, one world"), the journey run through the door with its operations' checks and the
+// generic checks on every call, and every world it made destroyed afterwards, whatever happened, with the accounts
+// read before and after for anything of those worlds. The template worlds are destroyed when the run ends.
+import type { Journey } from "@capxul/scenarios";
 import * as World from "@capxul/world";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
@@ -16,7 +17,8 @@ import { checkCall, failuresOf } from "../checks/checks.ts";
 import type { Call } from "../client.ts";
 import { describe, endedOf } from "../failure.ts";
 import { passedOr, slugOf, writeJson, RunRecord } from "../record.ts";
-import { freshName, keptFor, scenarioPlan, use } from "../run.ts";
+import { freshName, journeyPlan, keptFor, stepsFor, use } from "../run.ts";
+import { stepsOf } from "../steps.ts";
 import type { Settings } from "../settings.ts";
 import { summarize, Summary } from "../summary.ts";
 import type { Inventory } from "../world/leftovers.ts";
@@ -77,7 +79,7 @@ const checked = (calls: ReadonlyArray<Call>) =>
   });
 
 /** The scenario's starting world made for it, its world opened and waited for, and the scenario run there. */
-const work = (scenario: Scenario, settings: Settings, starting: StartingWorlds, name: string) =>
+const work = (scenario: Journey, settings: Settings, starting: StartingWorlds, name: string) =>
   Effect.gen(function* () {
     const platform = yield* Platform;
     const callsBefore = (yield* starting.made).length;
@@ -104,7 +106,7 @@ const work = (scenario: Scenario, settings: Settings, starting: StartingWorlds, 
       readiness: readiness ?? { probes: 0, relapses: 0, ms: 0 },
       warmUntil: (yield* Clock.currentTimeMillis) + Duration.toMillis(settings.warmUp),
     };
-    const plan = scenarioPlan(settings, { made: making.value.facts })(scenario);
+    const plan = journeyPlan(settings, { made: making.value.facts })(scenario);
     const inWorld = { ...settings, doorToken: world?.doorToken ?? Redacted.make("none") };
     const used = yield* Effect.exit(Effect.timeout(use(plan, inWorld)(stage), settings.worldUseTimeout));
     return { makeMs: millis(makeTook), making, madeChecked, readiness, stage: stage.name, used };
@@ -114,7 +116,7 @@ const work = (scenario: Scenario, settings: Settings, starting: StartingWorlds, 
  * One scenario in worlds made for it; its run record, which is also on disk by then. Every world made while it ran,
  * but the template worlds, is destroyed afterwards, also when it failed, died or was interrupted.
  */
-const runOne = (scenario: Scenario, settings: Settings, starting: StartingWorlds, run: string, index: number) =>
+const runOne = (scenario: Journey, settings: Settings, starting: StartingWorlds, run: string, index: number) =>
   Effect.uninterruptibleMask((restore) =>
     Effect.gen(function* () {
       const platform = yield* Platform;
@@ -161,9 +163,9 @@ const runOne = (scenario: Scenario, settings: Settings, starting: StartingWorlds
           : []),
       ];
       const record: RunRecord = {
-        kind: "scenario",
+        kind: "journey",
         name: scenario.name,
-        proves: scenario.proves,
+        proves: null,
         given: scenario.given.name,
         stage: got?.stage ?? `${run}-${index + 1}`,
         owner: settings.owner,
@@ -174,6 +176,7 @@ const runOne = (scenario: Scenario, settings: Settings, starting: StartingWorlds
         ended: value === undefined ? null : endedOf(value.run),
         readiness: got?.readiness ?? null,
         calls: value?.calls ?? [],
+        ...stepsFor({ kind: "journey" }, value?.steps ?? stepsOf(scenario.outline, [], [])),
         making: got?.madeChecked ?? [],
         afterwards: { stage: destroyed ? "destroyed" : "destroy failed", before: leftBefore, after: leftAfter },
         ms: {
@@ -191,7 +194,7 @@ const runOne = (scenario: Scenario, settings: Settings, starting: StartingWorlds
   ).pipe(Effect.withSpan("runner.world.scenario", { attributes: { scenario: scenario.name } }));
 
 /** Every scenario in worlds of its own, one at a time, and the run's summary at `<run>/summary.json`. */
-export const runInWorlds = (scenarios: ReadonlyArray<Scenario>, settings: Settings) =>
+export const runInWorlds = (scenarios: ReadonlyArray<Journey>, settings: Settings) =>
   Effect.gen(function* () {
     const platform = yield* Platform;
     const startedAt = yield* now;

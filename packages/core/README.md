@@ -22,6 +22,7 @@ of `src/handlers.ts` and `pnpm types` fails with `Property '"record.export"' is 
 | `src/door.ts` | The door: the stack, the two door paths, `serveDoors`, `Served`, `CoreRpcs`, the span types, and `migrations`. |
 | `src/doors.ts` | `serveDoors`: each request to the group its path names, `PLATFORM_PATH` or `WORLD_PATH`. |
 | `src/handlers.ts` | One handler per operation, in its blueprint group. Five are `src/site-ops/`'s; the rest are empty. |
+| `src/empty-handlers.ts` | Core's empty-handler mode: every operation of both groups answers `NotImplemented`, whatever is built. A stage deployed with `CAPXUL_HANDLERS=empty` (`src/env.ts`) serves it, so the scenario author can show every journey fails against handlers that do nothing (`./run.sh scenarios --expect=not-implemented` in packages/runner, roadmap step 1.14). A world's Core never binds it. |
 | `src/site-ops/` | The document, report, clock and record operations (below). `door.ts` is its door. |
 | `src/organizations/`, `src/approvals/`, `src/chain/`, `src/cast/` | The chain operations, org.create, org.member.grant and approval.sign (below). `organizations/handlers.ts` is what `handlers.ts` and the Worker use. |
 | `src/server.ts` | `Served`, the handlers and middlewares of both groups, and `CoreRpcs`, both groups merged for a test in memory. |

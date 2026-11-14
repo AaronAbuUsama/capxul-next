@@ -1,0 +1,221 @@
+{
+  "kind": "journey",
+  "name": "two operators and their worlds",
+  "proves": null,
+  "given": "quota-full",
+  "stage": "core-e5adc4",
+  "owner": "runner",
+  "startedAt": "2026-11-14T05:17:18.533Z",
+  "outcome": "failed",
+  "failure": "the run failed: {\"_tag\":\"NotImplemented\",\"operation\":\"world.create\"}",
+  "ended": {
+    "as": "failed",
+    "tag": "NotImplemented",
+    "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"world.create\"}"
+  },
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 10923
+  },
+  "calls": [
+    {
+      "operation": "world.show",
+      "traceId": "ff8669db7b5e58298a873f9a180146c9",
+      "at": null,
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"world.show\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 202.293,
+        "serverMs": 0,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "world.create",
+      "traceId": "34065bd1a0133b76437bf9c25d61afd7",
+      "at": null,
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"world.create\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 189.669,
+        "serverMs": 0,
+        "budgetMs": 90000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.create span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "operation": "world.create",
+      "does": "the first operator, at the limit of live worlds, is refused another",
+      "outcome": "failed",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"world.create\"}",
+      "tries": [
+        {
+          "operation": "world.create",
+          "as": null,
+          "operator": "first",
+          "at": null,
+          "expected": "refused WorldQuotaReached",
+          "answered": "refused NotImplemented",
+          "checks": []
+        }
+      ],
+      "calls": [
+        1,
+        2
+      ],
+      "ms": 396
+    },
+    {
+      "step": 2,
+      "operation": "world.create",
+      "does": "the second operator is refused a real world, and one that starts before the seeded chain",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 3,
+      "operation": "world.create",
+      "does": "the second operator opens a world halfway between the seed and host time, and cannot open it twice",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 4,
+      "operation": "world.show",
+      "does": "the platform shows the new world as it was made, the first operator's as theirs, and no world for an unknown name",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 5,
+      "operation": "record.export",
+      "does": "the owner reads the new world's record; each person of its cast is signed in at its door, and refused it",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 6,
+      "operation": "world.clock.warp",
+      "does": "dana, a person of the world, may not move its clock",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 7,
+      "operation": "world.snapshot.save",
+      "does": "only the owner saves a snapshot, of a world that exists: m3 and draft are saved, and m3 not twice",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 8,
+      "operation": "world.snapshot.restore",
+      "does": "restores that cannot be made are refused, and make nothing",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    }
+  ],
+  "failedStep": {
+    "step": 1,
+    "operation": "world.create",
+    "does": "the first operator, at the limit of live worlds, is refused another",
+    "why": "{\"_tag\":\"NotImplemented\",\"operation\":\"world.create\"}"
+  },
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [
+        "capxulcore-core-core-e5adc4-elhamrg47ui47cir"
+      ],
+      "hyperdrives": [
+        "capxulcore-core-hyperdrive-core-e5adc4-vyndkogzdwhyk2hw"
+      ],
+      "neonProjects": [
+        "CapxulCore-core-db-core-e5adc4-zit6ylakzxik4jsr"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": []
+    }
+  },
+  "ms": {
+    "create": 31506,
+    "run": 405,
+    "checks": 247,
+    "destroy": 2501
+  }
+}

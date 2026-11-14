@@ -1,0 +1,241 @@
+{
+  "kind": "journey",
+  "name": "pay Brightside and branch the books",
+  "proves": null,
+  "given": "payment-drafted",
+  "stage": "core-7484a8",
+  "owner": "runner",
+  "startedAt": "2026-11-14T05:18:28.502Z",
+  "outcome": "failed",
+  "failure": "the run failed: {\"_tag\":\"NotImplemented\",\"operation\":\"doc.create\"}",
+  "ended": {
+    "as": "failed",
+    "tag": "NotImplemented",
+    "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"doc.create\"}"
+  },
+  "readiness": {
+    "probes": 20,
+    "relapses": 0,
+    "ms": 11232
+  },
+  "calls": [
+    {
+      "operation": "record.export",
+      "traceId": "dcb8b4bd277fe018a744e51c939ea778",
+      "at": null,
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"record.export\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 210.638,
+        "serverMs": 0,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    },
+    {
+      "operation": "doc.create",
+      "traceId": "ea3e9b20c8f7821671ec23b69f6daaf8",
+      "at": null,
+      "outcome": "refusal",
+      "refusal": "NotImplemented",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"doc.create\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 180.175,
+        "serverMs": 0,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "steps": [],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one doc.create span, 0 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "operation": "doc.create",
+      "does": "sam drafts a second invoice from Brightside, and a payment of 5,000 USDC from the company Safe",
+      "outcome": "failed",
+      "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"doc.create\"}",
+      "tries": [
+        {
+          "operation": "doc.create",
+          "as": "sam",
+          "operator": "first",
+          "at": null,
+          "expected": "a success",
+          "answered": "refused NotImplemented",
+          "checks": []
+        }
+      ],
+      "calls": [
+        1,
+        2
+      ],
+      "ms": 393
+    },
+    {
+      "step": 2,
+      "operation": "doc.submit",
+      "does": "the second invoice posts and the drafted payment is held for sam; 5,000 USDC, and an invoice already posted, are refused",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 3,
+      "operation": "world.snapshot.save",
+      "does": "the operator saves m3, a template, and draft while the payment is held: the world is untouched",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 4,
+      "operation": "world.snapshot.restore",
+      "does": "the second operator may not restore draft, but restores m3 into a world of their own, holding what m3 saved",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 5,
+      "operation": "approval.sign",
+      "does": "sam pays Brightside once in the first world; wrong signatures are refused, a replay sends nothing more, and the branch does not see it",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 6,
+      "operation": "report.run",
+      "does": "the first world's books agree with its chain: the payment posted once, and the invoice is paid",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 7,
+      "operation": "doc.create",
+      "does": "sam drafts a Supplier in the branch, which the first world never sees",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 8,
+      "operation": "world.clock.warp",
+      "does": "the branch's owner warps it a week and past the held approval's expiry: its chain and site follow, its daily job runs each day, and its clock never goes back",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 9,
+      "operation": "approval.sign",
+      "does": "sam's held approval in the branch has expired: it is refused, and nothing is sent",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 10,
+      "operation": "record.export",
+      "does": "each world's record holds every event once, in order, and a range answers only what it asks",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    }
+  ],
+  "failedStep": {
+    "step": 1,
+    "operation": "doc.create",
+    "does": "sam drafts a second invoice from Brightside, and a payment of 5,000 USDC from the company Safe",
+    "why": "{\"_tag\":\"NotImplemented\",\"operation\":\"doc.create\"}"
+  },
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [
+        "capxulcore-core-core-7484a8-caewnxcz2iv4odae"
+      ],
+      "hyperdrives": [
+        "capxulcore-core-hyperdrive-core-7484a8-w3jnyd7yf3b6luzj"
+      ],
+      "neonProjects": [
+        "CapxulCore-core-db-core-7484a8-ymqyypgcjoonyit6"
+      ]
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": []
+    }
+  },
+  "ms": {
+    "create": 27479,
+    "run": 402,
+    "checks": 224,
+    "destroy": 2021
+  }
+}
