@@ -43,7 +43,9 @@ describe("stopping a container", () => {
         const { stub, done } = yield* container(null);
         const stopped = yield* stopGently(stub, Duration.millis(300));
         assert.equal(stopped.ended, "killed");
-        assert.ok(stopped.ms >= 300 && stopped.ms < 2000, `took ${stopped.ms} ms`);
+        // A timer can fire up to a millisecond or so early and `ms` is whole milliseconds, so CI measured 299 ms for a
+        // 300 ms grace: the bound allows that, and still fails a stop that did not wait out the grace.
+        assert.ok(stopped.ms >= 290 && stopped.ms < 2000, `took ${stopped.ms} ms`);
         assert.deepEqual(yield* Ref.get(done), [`signal ${SIGTERM}`, "destroy"]);
       }),
     ));
