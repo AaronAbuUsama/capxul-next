@@ -1,0 +1,35 @@
+[23:22:47.970] WARN: alchemy 2.0.0-beta.87 is available (you're on 2.0.0-beta.85). Run `bun add alchemy@2.0.0-beta.87` to upgrade.
+[23:22:47.979] INFO: Destroy · ws-fleet3
+[23:22:47.979] INFO: Importing stack module
+[23:22:48.331] INFO: Resolving stack services
+[23:22:48.331] INFO: Loading stack state
+[23:22:48.338] INFO: Computing plan
+[23:22:48.338] INFO: Plan ready (359ms)
+[23:22:48.339] INFO: Plan: 4 to delete, 7 binding changes
+[23:22:48.340] INFO: [Alto] delete
+[23:22:48.340] INFO: [Alto/BundlerBox] unbind
+[23:22:48.340] INFO: [Anvil] delete
+[23:22:48.340] INFO: [Anvil/ChainBox] unbind
+[23:22:48.340] INFO: [Hub] delete
+[23:22:48.340] INFO: [Hub/BundlerBox] unbind
+[23:22:48.340] INFO: [Hub/ChainBox] unbind
+[23:22:48.340] INFO: [Hub/HUB_TOKEN] unbind
+[23:22:48.340] INFO: [Hub/IndexBox] unbind
+[23:22:48.340] INFO: [Ponder] delete
+[23:22:48.340] INFO: [Ponder/IndexBox] unbind
+[23:22:48.340] INFO: 
+[23:22:48.347] INFO: [Hub] deleting
+[23:22:48.347] INFO: [Ponder] deleting
+[23:22:48.347] INFO: [Anvil] deleting
+[23:22:48.348] INFO: [Alto] deleting
+[23:22:48.350] INFO: [Hub] Cloudflare Worker delete: deleting capxulspikeworldspeed-hub-ws-fleet3-dmkyt3t67yzd54oy
+[23:22:48.355] INFO: [Hub] Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+[23:22:48.361] INFO: [Ponder] Cloudflare Container delete: deleting capxulspikeworldspeed-ponder-ws-fleet3-q4h3psz5oihmtl4g
+[23:22:48.363] INFO: [Anvil] Cloudflare Container delete: deleting capxulspikeworldspeed-anvil-ws-fleet3-jtnb4laczih7sody
+[23:22:48.365] INFO: [Alto] Cloudflare Container delete: deleting capxulspikeworldspeed-alto-ws-fleet3-rwugortsbcigwcdl
+[23:22:49.075] INFO: [Hub] deleted (728ms)
+[23:22:49.234] INFO: [Ponder] deleted (887ms)
+[23:22:49.235] INFO: [Anvil] deleted (888ms)
+[23:22:49.449] INFO: [Alto] deleted (1.1s)
+[23:22:49.453] INFO: 
+[23:22:49.453] INFO: Done: 4 succeeded (1.1s)

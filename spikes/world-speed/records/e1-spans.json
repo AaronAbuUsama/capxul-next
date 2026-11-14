@@ -1,0 +1,2087 @@
+{
+  "claim": "where a world create's and destroy's time goes, read from the logs' timestamps",
+  "runs": [
+    {
+      "log": "records/e1-create-wsb2.log",
+      "events": [
+        {
+          "t": 0.0,
+          "resource": "state store",
+          "phase": "open (credentials)"
+        },
+        {
+          "t": 4.255,
+          "resource": "world",
+          "phase": "claimed for spike until 2026-11-14T01:03:43.190Z"
+        },
+        {
+          "t": 4.293,
+          "resource": "state store",
+          "phase": "open (credentials)"
+        },
+        {
+          "t": 7.929,
+          "resource": "Neon",
+          "phase": "provider ready"
+        },
+        {
+          "t": 9.964,
+          "resource": "Anvil",
+          "phase": "precreate"
+        },
+        {
+          "t": 10.106,
+          "resource": "Alto",
+          "phase": "precreate"
+        },
+        {
+          "t": 11.453,
+          "resource": "Anvil",
+          "phase": "image resolved (context hashed, registry checked)"
+        },
+        {
+          "t": 12.289,
+          "resource": "Anvil",
+          "phase": "application create call"
+        },
+        {
+          "t": 15.086,
+          "resource": "Door",
+          "phase": "precreate"
+        },
+        {
+          "t": 16.877,
+          "resource": "Anvil",
+          "phase": "reconcile"
+        },
+        {
+          "t": 18.589,
+          "resource": "Anvil",
+          "phase": "recreate to attach the Durable Object"
+        },
+        {
+          "t": 19.631,
+          "resource": "Ponder",
+          "phase": "precreate"
+        },
+        {
+          "t": 22.177,
+          "resource": "Anvil",
+          "phase": "application create call"
+        },
+        {
+          "t": 30.412,
+          "resource": "Ponder",
+          "phase": "image resolved (context hashed, registry checked)"
+        },
+        {
+          "t": 31.011,
+          "resource": "Alto",
+          "phase": "image resolved (context hashed, registry checked)"
+        },
+        {
+          "t": 31.26,
+          "resource": "Ponder",
+          "phase": "application create call"
+        },
+        {
+          "t": 31.494,
+          "resource": "Alto",
+          "phase": "application create call"
+        },
+        {
+          "t": 33.531,
+          "resource": "Ponder",
+          "phase": "reconcile"
+        },
+        {
+          "t": 33.707,
+          "resource": "Door",
+          "phase": "reconcile"
+        },
+        {
+          "t": 33.708,
+          "resource": "Alto",
+          "phase": "reconcile"
+        },
+        {
+          "t": 34.102,
+          "resource": "Door",
+          "phase": "bundle"
+        },
+        {
+          "t": 38.285,
+          "resource": "Door",
+          "phase": "upload"
+        },
+        {
+          "t": 38.573,
+          "resource": "Door",
+          "phase": "durable objects put"
+        },
+        {
+          "t": 41.99,
+          "resource": "Core",
+          "phase": "reconcile"
+        },
+        {
+          "t": 42.236,
+          "resource": "Core",
+          "phase": "bundle"
+        },
+        {
+          "t": 44.52,
+          "resource": "Core",
+          "phase": "upload"
+        },
+        {
+          "t": 44.9,
+          "resource": "Core",
+          "phase": "durable objects put"
+        },
+        {
+          "t": 50.201,
+          "resource": "Ponder",
+          "phase": "recreate to attach the Durable Object"
+        },
+        {
+          "t": 51.93,
+          "resource": "Ponder",
+          "phase": "application create call"
+        },
+        {
+          "t": 60.107,
+          "resource": "Alto",
+          "phase": "recreate to attach the Durable Object"
+        },
+        {
+          "t": 61.918,
+          "resource": "Alto",
+          "phase": "application create call"
+        },
+        {
+          "t": 65.352,
+          "resource": "world",
+          "phase": "deployed"
+        },
+        {
+          "t": 66.114,
+          "resource": "world",
+          "phase": "migrations applied (0001_telemetry.sql, 0002_site_ops.sql, 0003_world.sql, 0004_organizati"
+        },
+        {
+          "t": 69.115,
+          "resource": "world",
+          "phase": "the chain answers"
+        },
+        {
+          "t": 69.558,
+          "resource": "world",
+          "phase": "test USDC at 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6, minted to 0 addresses"
+        },
+        {
+          "t": 97.899,
+          "resource": "world",
+          "phase": "the index is ready"
+        },
+        {
+          "t": 97.899,
+          "resource": "world",
+          "phase": "the bundler serves 0x0000000071727De22E5E9d8BAf0edAc6f37da032, paymaster 0xE2dE380E3e8281e"
+        },
+        {
+          "t": 98.824,
+          "resource": "world",
+          "phase": "Core answers"
+        }
+      ],
+      "spans": [
+        {
+          "resource": "state store",
+          "phase": "open (credentials)",
+          "start": 0.0,
+          "end": 4.293,
+          "s": 4.293
+        },
+        {
+          "resource": "world",
+          "phase": "claimed for spike until 2026-11-14T01:03:43.190Z",
+          "start": 4.255,
+          "end": 65.352,
+          "s": 61.097
+        },
+        {
+          "resource": "state store",
+          "phase": "open (credentials)",
+          "start": 4.293,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Neon",
+          "phase": "provider ready",
+          "start": 7.929,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Anvil",
+          "phase": "precreate",
+          "start": 9.964,
+          "end": 11.453,
+          "s": 1.489
+        },
+        {
+          "resource": "Alto",
+          "phase": "precreate",
+          "start": 10.106,
+          "end": 31.011,
+          "s": 20.905
+        },
+        {
+          "resource": "Anvil",
+          "phase": "image resolved (context hashed, registry checked)",
+          "start": 11.453,
+          "end": 12.289,
+          "s": 0.836
+        },
+        {
+          "resource": "Anvil",
+          "phase": "application create call",
+          "start": 12.289,
+          "end": 16.877,
+          "s": 4.588
+        },
+        {
+          "resource": "Door",
+          "phase": "precreate",
+          "start": 15.086,
+          "end": 33.707,
+          "s": 18.621
+        },
+        {
+          "resource": "Anvil",
+          "phase": "reconcile",
+          "start": 16.877,
+          "end": 18.589,
+          "s": 1.712
+        },
+        {
+          "resource": "Anvil",
+          "phase": "recreate to attach the Durable Object",
+          "start": 18.589,
+          "end": 22.177,
+          "s": 3.588
+        },
+        {
+          "resource": "Ponder",
+          "phase": "precreate",
+          "start": 19.631,
+          "end": 30.412,
+          "s": 10.781
+        },
+        {
+          "resource": "Anvil",
+          "phase": "application create call",
+          "start": 22.177,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Ponder",
+          "phase": "image resolved (context hashed, registry checked)",
+          "start": 30.412,
+          "end": 31.26,
+          "s": 0.848
+        },
+        {
+          "resource": "Alto",
+          "phase": "image resolved (context hashed, registry checked)",
+          "start": 31.011,
+          "end": 31.494,
+          "s": 0.483
+        },
+        {
+          "resource": "Ponder",
+          "phase": "application create call",
+          "start": 31.26,
+          "end": 33.531,
+          "s": 2.271
+        },
+        {
+          "resource": "Alto",
+          "phase": "application create call",
+          "start": 31.494,
+          "end": 33.708,
+          "s": 2.214
+        },
+        {
+          "resource": "Ponder",
+          "phase": "reconcile",
+          "start": 33.531,
+          "end": 50.201,
+          "s": 16.67
+        },
+        {
+          "resource": "Door",
+          "phase": "reconcile",
+          "start": 33.707,
+          "end": 34.102,
+          "s": 0.395
+        },
+        {
+          "resource": "Alto",
+          "phase": "reconcile",
+          "start": 33.708,
+          "end": 60.107,
+          "s": 26.399
+        },
+        {
+          "resource": "Door",
+          "phase": "bundle",
+          "start": 34.102,
+          "end": 38.285,
+          "s": 4.183
+        },
+        {
+          "resource": "Door",
+          "phase": "upload",
+          "start": 38.285,
+          "end": 38.573,
+          "s": 0.288
+        },
+        {
+          "resource": "Door",
+          "phase": "durable objects put",
+          "start": 38.573,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Core",
+          "phase": "reconcile",
+          "start": 41.99,
+          "end": 42.236,
+          "s": 0.246
+        },
+        {
+          "resource": "Core",
+          "phase": "bundle",
+          "start": 42.236,
+          "end": 44.52,
+          "s": 2.284
+        },
+        {
+          "resource": "Core",
+          "phase": "upload",
+          "start": 44.52,
+          "end": 44.9,
+          "s": 0.38
+        },
+        {
+          "resource": "Core",
+          "phase": "durable objects put",
+          "start": 44.9,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Ponder",
+          "phase": "recreate to attach the Durable Object",
+          "start": 50.201,
+          "end": 51.93,
+          "s": 1.729
+        },
+        {
+          "resource": "Ponder",
+          "phase": "application create call",
+          "start": 51.93,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Alto",
+          "phase": "recreate to attach the Durable Object",
+          "start": 60.107,
+          "end": 61.918,
+          "s": 1.811
+        },
+        {
+          "resource": "Alto",
+          "phase": "application create call",
+          "start": 61.918,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "world",
+          "phase": "deployed",
+          "start": 65.352,
+          "end": 66.114,
+          "s": 0.762
+        },
+        {
+          "resource": "world",
+          "phase": "migrations applied (0001_telemetry.sql, 0002_site_ops.sql, 0003_world.sql, 0004_organizati",
+          "start": 66.114,
+          "end": 69.115,
+          "s": 3.001
+        },
+        {
+          "resource": "world",
+          "phase": "the chain answers",
+          "start": 69.115,
+          "end": 69.558,
+          "s": 0.443
+        },
+        {
+          "resource": "world",
+          "phase": "test USDC at 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6, minted to 0 addresses",
+          "start": 69.558,
+          "end": 97.899,
+          "s": 28.341
+        },
+        {
+          "resource": "world",
+          "phase": "the index is ready",
+          "start": 97.899,
+          "end": 97.899,
+          "s": 0.0
+        },
+        {
+          "resource": "world",
+          "phase": "the bundler serves 0x0000000071727De22E5E9d8BAf0edAc6f37da032, paymaster 0xE2dE380E3e8281e",
+          "start": 97.899,
+          "end": 98.824,
+          "s": 0.925
+        },
+        {
+          "resource": "world",
+          "phase": "Core answers",
+          "start": 98.824,
+          "end": null,
+          "s": null
+        }
+      ]
+    },
+    {
+      "log": "records/e1-destroy-wsb2.log",
+      "events": [
+        {
+          "t": 0.0,
+          "resource": "state store",
+          "phase": "open (credentials)"
+        },
+        {
+          "t": 5.623,
+          "resource": "state store",
+          "phase": "open (credentials)"
+        },
+        {
+          "t": 11.839,
+          "resource": "Alto",
+          "phase": "delete"
+        },
+        {
+          "t": 11.87,
+          "resource": "Ponder",
+          "phase": "delete"
+        },
+        {
+          "t": 11.881,
+          "resource": "Anvil",
+          "phase": "delete"
+        },
+        {
+          "t": 11.887,
+          "resource": "Core",
+          "phase": "delete"
+        },
+        {
+          "t": 13.354,
+          "resource": "Door",
+          "phase": "delete"
+        },
+        {
+          "t": 15.264,
+          "resource": "Neon",
+          "phase": "provider ready"
+        },
+        {
+          "t": 22.412,
+          "resource": "world",
+          "phase": "destroyed (12 resources) and its name released"
+        }
+      ],
+      "spans": [
+        {
+          "resource": "state store",
+          "phase": "open (credentials)",
+          "start": 0.0,
+          "end": 5.623,
+          "s": 5.623
+        },
+        {
+          "resource": "state store",
+          "phase": "open (credentials)",
+          "start": 5.623,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Alto",
+          "phase": "delete",
+          "start": 11.839,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Ponder",
+          "phase": "delete",
+          "start": 11.87,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Anvil",
+          "phase": "delete",
+          "start": 11.881,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Core",
+          "phase": "delete",
+          "start": 11.887,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Door",
+          "phase": "delete",
+          "start": 13.354,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Neon",
+          "phase": "provider ready",
+          "start": 15.264,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "world",
+          "phase": "destroyed (12 resources) and its name released",
+          "start": 22.412,
+          "end": null,
+          "s": null
+        }
+      ]
+    },
+    {
+      "log": "records/e2-create-pinned-wsp1.log",
+      "events": [
+        {
+          "t": 0.0,
+          "resource": "state store",
+          "phase": "open (credentials)"
+        },
+        {
+          "t": 5.472,
+          "resource": "world",
+          "phase": "claimed for spike until 2026-11-14T01:38:20.127Z"
+        },
+        {
+          "t": 5.519,
+          "resource": "state store",
+          "phase": "open (credentials)"
+        },
+        {
+          "t": 9.246,
+          "resource": "Neon",
+          "phase": "provider ready"
+        },
+        {
+          "t": 11.234,
+          "resource": "Alto",
+          "phase": "precreate"
+        },
+        {
+          "t": 11.238,
+          "resource": "Alto",
+          "phase": "image resolved (context hashed, registry checked)"
+        },
+        {
+          "t": 11.258,
+          "resource": "Anvil",
+          "phase": "precreate"
+        },
+        {
+          "t": 11.259,
+          "resource": "Anvil",
+          "phase": "image resolved (context hashed, registry checked)"
+        },
+        {
+          "t": 12.201,
+          "resource": "Anvil",
+          "phase": "application create call"
+        },
+        {
+          "t": 12.283,
+          "resource": "Alto",
+          "phase": "application create call"
+        },
+        {
+          "t": 15.757,
+          "resource": "Door",
+          "phase": "precreate"
+        },
+        {
+          "t": 17.425,
+          "resource": "Anvil",
+          "phase": "reconcile"
+        },
+        {
+          "t": 17.427,
+          "resource": "Alto",
+          "phase": "reconcile"
+        },
+        {
+          "t": 18.83,
+          "resource": "Alto",
+          "phase": "recreate to attach the Durable Object"
+        },
+        {
+          "t": 19.179,
+          "resource": "Anvil",
+          "phase": "recreate to attach the Durable Object"
+        },
+        {
+          "t": 20.784,
+          "resource": "Ponder",
+          "phase": "precreate"
+        },
+        {
+          "t": 20.785,
+          "resource": "Ponder",
+          "phase": "image resolved (context hashed, registry checked)"
+        },
+        {
+          "t": 21.375,
+          "resource": "Alto",
+          "phase": "application create call"
+        },
+        {
+          "t": 21.578,
+          "resource": "Ponder",
+          "phase": "application create call"
+        },
+        {
+          "t": 21.909,
+          "resource": "Anvil",
+          "phase": "application create call"
+        },
+        {
+          "t": 24.132,
+          "resource": "Door",
+          "phase": "reconcile"
+        },
+        {
+          "t": 24.134,
+          "resource": "Ponder",
+          "phase": "reconcile"
+        },
+        {
+          "t": 24.442,
+          "resource": "Door",
+          "phase": "bundle"
+        },
+        {
+          "t": 27.298,
+          "resource": "Ponder",
+          "phase": "recreate to attach the Durable Object"
+        },
+        {
+          "t": 28.322,
+          "resource": "Door",
+          "phase": "upload"
+        },
+        {
+          "t": 28.666,
+          "resource": "Door",
+          "phase": "durable objects put"
+        },
+        {
+          "t": 29.969,
+          "resource": "Ponder",
+          "phase": "application create call"
+        },
+        {
+          "t": 32.236,
+          "resource": "Core",
+          "phase": "reconcile"
+        },
+        {
+          "t": 32.473,
+          "resource": "Core",
+          "phase": "bundle"
+        },
+        {
+          "t": 34.771,
+          "resource": "Core",
+          "phase": "upload"
+        },
+        {
+          "t": 35.166,
+          "resource": "Core",
+          "phase": "durable objects put"
+        },
+        {
+          "t": 38.869,
+          "resource": "world",
+          "phase": "deployed"
+        },
+        {
+          "t": 39.666,
+          "resource": "world",
+          "phase": "migrations applied (0001_telemetry.sql, 0002_site_ops.sql, 0003_world.sql, 0004_organizati"
+        },
+        {
+          "t": 41.388,
+          "resource": "world",
+          "phase": "the chain answers"
+        },
+        {
+          "t": 41.667,
+          "resource": "world",
+          "phase": "test USDC at 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6, minted to 0 addresses"
+        },
+        {
+          "t": 55.593,
+          "resource": "world",
+          "phase": "the index is ready"
+        },
+        {
+          "t": 55.593,
+          "resource": "world",
+          "phase": "the bundler serves 0x0000000071727De22E5E9d8BAf0edAc6f37da032, paymaster 0xE2dE380E3e8281e"
+        },
+        {
+          "t": 56.266,
+          "resource": "world",
+          "phase": "Core answers"
+        }
+      ],
+      "spans": [
+        {
+          "resource": "state store",
+          "phase": "open (credentials)",
+          "start": 0.0,
+          "end": 5.519,
+          "s": 5.519
+        },
+        {
+          "resource": "world",
+          "phase": "claimed for spike until 2026-11-14T01:38:20.127Z",
+          "start": 5.472,
+          "end": 38.869,
+          "s": 33.397
+        },
+        {
+          "resource": "state store",
+          "phase": "open (credentials)",
+          "start": 5.519,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Neon",
+          "phase": "provider ready",
+          "start": 9.246,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Alto",
+          "phase": "precreate",
+          "start": 11.234,
+          "end": 11.238,
+          "s": 0.004
+        },
+        {
+          "resource": "Alto",
+          "phase": "image resolved (context hashed, registry checked)",
+          "start": 11.238,
+          "end": 12.283,
+          "s": 1.045
+        },
+        {
+          "resource": "Anvil",
+          "phase": "precreate",
+          "start": 11.258,
+          "end": 11.259,
+          "s": 0.001
+        },
+        {
+          "resource": "Anvil",
+          "phase": "image resolved (context hashed, registry checked)",
+          "start": 11.259,
+          "end": 12.201,
+          "s": 0.942
+        },
+        {
+          "resource": "Anvil",
+          "phase": "application create call",
+          "start": 12.201,
+          "end": 17.425,
+          "s": 5.224
+        },
+        {
+          "resource": "Alto",
+          "phase": "application create call",
+          "start": 12.283,
+          "end": 17.427,
+          "s": 5.144
+        },
+        {
+          "resource": "Door",
+          "phase": "precreate",
+          "start": 15.757,
+          "end": 24.132,
+          "s": 8.375
+        },
+        {
+          "resource": "Anvil",
+          "phase": "reconcile",
+          "start": 17.425,
+          "end": 19.179,
+          "s": 1.754
+        },
+        {
+          "resource": "Alto",
+          "phase": "reconcile",
+          "start": 17.427,
+          "end": 18.83,
+          "s": 1.403
+        },
+        {
+          "resource": "Alto",
+          "phase": "recreate to attach the Durable Object",
+          "start": 18.83,
+          "end": 21.375,
+          "s": 2.545
+        },
+        {
+          "resource": "Anvil",
+          "phase": "recreate to attach the Durable Object",
+          "start": 19.179,
+          "end": 21.909,
+          "s": 2.73
+        },
+        {
+          "resource": "Ponder",
+          "phase": "precreate",
+          "start": 20.784,
+          "end": 20.785,
+          "s": 0.001
+        },
+        {
+          "resource": "Ponder",
+          "phase": "image resolved (context hashed, registry checked)",
+          "start": 20.785,
+          "end": 21.578,
+          "s": 0.793
+        },
+        {
+          "resource": "Alto",
+          "phase": "application create call",
+          "start": 21.375,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Ponder",
+          "phase": "application create call",
+          "start": 21.578,
+          "end": 24.134,
+          "s": 2.556
+        },
+        {
+          "resource": "Anvil",
+          "phase": "application create call",
+          "start": 21.909,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Door",
+          "phase": "reconcile",
+          "start": 24.132,
+          "end": 24.442,
+          "s": 0.31
+        },
+        {
+          "resource": "Ponder",
+          "phase": "reconcile",
+          "start": 24.134,
+          "end": 27.298,
+          "s": 3.164
+        },
+        {
+          "resource": "Door",
+          "phase": "bundle",
+          "start": 24.442,
+          "end": 28.322,
+          "s": 3.88
+        },
+        {
+          "resource": "Ponder",
+          "phase": "recreate to attach the Durable Object",
+          "start": 27.298,
+          "end": 29.969,
+          "s": 2.671
+        },
+        {
+          "resource": "Door",
+          "phase": "upload",
+          "start": 28.322,
+          "end": 28.666,
+          "s": 0.344
+        },
+        {
+          "resource": "Door",
+          "phase": "durable objects put",
+          "start": 28.666,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Ponder",
+          "phase": "application create call",
+          "start": 29.969,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Core",
+          "phase": "reconcile",
+          "start": 32.236,
+          "end": 32.473,
+          "s": 0.237
+        },
+        {
+          "resource": "Core",
+          "phase": "bundle",
+          "start": 32.473,
+          "end": 34.771,
+          "s": 2.298
+        },
+        {
+          "resource": "Core",
+          "phase": "upload",
+          "start": 34.771,
+          "end": 35.166,
+          "s": 0.395
+        },
+        {
+          "resource": "Core",
+          "phase": "durable objects put",
+          "start": 35.166,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "world",
+          "phase": "deployed",
+          "start": 38.869,
+          "end": 39.666,
+          "s": 0.797
+        },
+        {
+          "resource": "world",
+          "phase": "migrations applied (0001_telemetry.sql, 0002_site_ops.sql, 0003_world.sql, 0004_organizati",
+          "start": 39.666,
+          "end": 41.388,
+          "s": 1.722
+        },
+        {
+          "resource": "world",
+          "phase": "the chain answers",
+          "start": 41.388,
+          "end": 41.667,
+          "s": 0.279
+        },
+        {
+          "resource": "world",
+          "phase": "test USDC at 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6, minted to 0 addresses",
+          "start": 41.667,
+          "end": 55.593,
+          "s": 13.926
+        },
+        {
+          "resource": "world",
+          "phase": "the index is ready",
+          "start": 55.593,
+          "end": 55.593,
+          "s": 0.0
+        },
+        {
+          "resource": "world",
+          "phase": "the bundler serves 0x0000000071727De22E5E9d8BAf0edAc6f37da032, paymaster 0xE2dE380E3e8281e",
+          "start": 55.593,
+          "end": 56.266,
+          "s": 0.673
+        },
+        {
+          "resource": "world",
+          "phase": "Core answers",
+          "start": 56.266,
+          "end": null,
+          "s": null
+        }
+      ]
+    },
+    {
+      "log": "records/e2-create-pinned-wsp2.log",
+      "events": [
+        {
+          "t": 0.0,
+          "resource": "state store",
+          "phase": "open (credentials)"
+        },
+        {
+          "t": 6.599,
+          "resource": "world",
+          "phase": "claimed for spike until 2026-11-14T01:40:09.080Z"
+        },
+        {
+          "t": 6.648,
+          "resource": "state store",
+          "phase": "open (credentials)"
+        },
+        {
+          "t": 10.281,
+          "resource": "Neon",
+          "phase": "provider ready"
+        },
+        {
+          "t": 12.214,
+          "resource": "Alto",
+          "phase": "precreate"
+        },
+        {
+          "t": 12.218,
+          "resource": "Alto",
+          "phase": "image resolved (context hashed, registry checked)"
+        },
+        {
+          "t": 12.48,
+          "resource": "Anvil",
+          "phase": "precreate"
+        },
+        {
+          "t": 12.481,
+          "resource": "Anvil",
+          "phase": "image resolved (context hashed, registry checked)"
+        },
+        {
+          "t": 12.951,
+          "resource": "Alto",
+          "phase": "application create call"
+        },
+        {
+          "t": 13.239,
+          "resource": "Anvil",
+          "phase": "application create call"
+        },
+        {
+          "t": 16.467,
+          "resource": "Door",
+          "phase": "precreate"
+        },
+        {
+          "t": 18.265,
+          "resource": "Anvil",
+          "phase": "reconcile"
+        },
+        {
+          "t": 18.267,
+          "resource": "Alto",
+          "phase": "reconcile"
+        },
+        {
+          "t": 19.286,
+          "resource": "Anvil",
+          "phase": "recreate to attach the Durable Object"
+        },
+        {
+          "t": 19.334,
+          "resource": "Alto",
+          "phase": "recreate to attach the Durable Object"
+        },
+        {
+          "t": 21.832,
+          "resource": "Anvil",
+          "phase": "application create call"
+        },
+        {
+          "t": 22.005,
+          "resource": "Alto",
+          "phase": "application create call"
+        },
+        {
+          "t": 22.272,
+          "resource": "Ponder",
+          "phase": "precreate"
+        },
+        {
+          "t": 22.273,
+          "resource": "Ponder",
+          "phase": "image resolved (context hashed, registry checked)"
+        },
+        {
+          "t": 22.719,
+          "resource": "Ponder",
+          "phase": "application create call"
+        },
+        {
+          "t": 25.402,
+          "resource": "Door",
+          "phase": "reconcile"
+        },
+        {
+          "t": 25.404,
+          "resource": "Ponder",
+          "phase": "reconcile"
+        },
+        {
+          "t": 25.687,
+          "resource": "Door",
+          "phase": "bundle"
+        },
+        {
+          "t": 27.801,
+          "resource": "Ponder",
+          "phase": "recreate to attach the Durable Object"
+        },
+        {
+          "t": 29.842,
+          "resource": "Door",
+          "phase": "upload"
+        },
+        {
+          "t": 29.98,
+          "resource": "Ponder",
+          "phase": "application create call"
+        },
+        {
+          "t": 30.115,
+          "resource": "Door",
+          "phase": "durable objects put"
+        },
+        {
+          "t": 34.336,
+          "resource": "Core",
+          "phase": "reconcile"
+        },
+        {
+          "t": 34.607,
+          "resource": "Core",
+          "phase": "bundle"
+        },
+        {
+          "t": 36.603,
+          "resource": "Core",
+          "phase": "upload"
+        },
+        {
+          "t": 36.853,
+          "resource": "Core",
+          "phase": "durable objects put"
+        },
+        {
+          "t": 40.721,
+          "resource": "world",
+          "phase": "deployed"
+        },
+        {
+          "t": 41.469,
+          "resource": "world",
+          "phase": "migrations applied (0001_telemetry.sql, 0002_site_ops.sql, 0003_world.sql, 0004_organizati"
+        },
+        {
+          "t": 43.691,
+          "resource": "world",
+          "phase": "the chain answers"
+        },
+        {
+          "t": 43.978,
+          "resource": "world",
+          "phase": "test USDC at 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6, minted to 0 addresses"
+        },
+        {
+          "t": 57.175,
+          "resource": "world",
+          "phase": "the index is ready"
+        },
+        {
+          "t": 57.175,
+          "resource": "world",
+          "phase": "the bundler serves 0x0000000071727De22E5E9d8BAf0edAc6f37da032, paymaster 0xE2dE380E3e8281e"
+        },
+        {
+          "t": 57.686,
+          "resource": "world",
+          "phase": "Core answers"
+        }
+      ],
+      "spans": [
+        {
+          "resource": "state store",
+          "phase": "open (credentials)",
+          "start": 0.0,
+          "end": 6.648,
+          "s": 6.648
+        },
+        {
+          "resource": "world",
+          "phase": "claimed for spike until 2026-11-14T01:40:09.080Z",
+          "start": 6.599,
+          "end": 40.721,
+          "s": 34.122
+        },
+        {
+          "resource": "state store",
+          "phase": "open (credentials)",
+          "start": 6.648,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Neon",
+          "phase": "provider ready",
+          "start": 10.281,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Alto",
+          "phase": "precreate",
+          "start": 12.214,
+          "end": 12.218,
+          "s": 0.004
+        },
+        {
+          "resource": "Alto",
+          "phase": "image resolved (context hashed, registry checked)",
+          "start": 12.218,
+          "end": 12.951,
+          "s": 0.733
+        },
+        {
+          "resource": "Anvil",
+          "phase": "precreate",
+          "start": 12.48,
+          "end": 12.481,
+          "s": 0.001
+        },
+        {
+          "resource": "Anvil",
+          "phase": "image resolved (context hashed, registry checked)",
+          "start": 12.481,
+          "end": 13.239,
+          "s": 0.758
+        },
+        {
+          "resource": "Alto",
+          "phase": "application create call",
+          "start": 12.951,
+          "end": 18.267,
+          "s": 5.316
+        },
+        {
+          "resource": "Anvil",
+          "phase": "application create call",
+          "start": 13.239,
+          "end": 18.265,
+          "s": 5.026
+        },
+        {
+          "resource": "Door",
+          "phase": "precreate",
+          "start": 16.467,
+          "end": 25.402,
+          "s": 8.935
+        },
+        {
+          "resource": "Anvil",
+          "phase": "reconcile",
+          "start": 18.265,
+          "end": 19.286,
+          "s": 1.021
+        },
+        {
+          "resource": "Alto",
+          "phase": "reconcile",
+          "start": 18.267,
+          "end": 19.334,
+          "s": 1.067
+        },
+        {
+          "resource": "Anvil",
+          "phase": "recreate to attach the Durable Object",
+          "start": 19.286,
+          "end": 21.832,
+          "s": 2.546
+        },
+        {
+          "resource": "Alto",
+          "phase": "recreate to attach the Durable Object",
+          "start": 19.334,
+          "end": 22.005,
+          "s": 2.671
+        },
+        {
+          "resource": "Anvil",
+          "phase": "application create call",
+          "start": 21.832,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Alto",
+          "phase": "application create call",
+          "start": 22.005,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Ponder",
+          "phase": "precreate",
+          "start": 22.272,
+          "end": 22.273,
+          "s": 0.001
+        },
+        {
+          "resource": "Ponder",
+          "phase": "image resolved (context hashed, registry checked)",
+          "start": 22.273,
+          "end": 22.719,
+          "s": 0.446
+        },
+        {
+          "resource": "Ponder",
+          "phase": "application create call",
+          "start": 22.719,
+          "end": 25.404,
+          "s": 2.685
+        },
+        {
+          "resource": "Door",
+          "phase": "reconcile",
+          "start": 25.402,
+          "end": 25.687,
+          "s": 0.285
+        },
+        {
+          "resource": "Ponder",
+          "phase": "reconcile",
+          "start": 25.404,
+          "end": 27.801,
+          "s": 2.397
+        },
+        {
+          "resource": "Door",
+          "phase": "bundle",
+          "start": 25.687,
+          "end": 29.842,
+          "s": 4.155
+        },
+        {
+          "resource": "Ponder",
+          "phase": "recreate to attach the Durable Object",
+          "start": 27.801,
+          "end": 29.98,
+          "s": 2.179
+        },
+        {
+          "resource": "Door",
+          "phase": "upload",
+          "start": 29.842,
+          "end": 30.115,
+          "s": 0.273
+        },
+        {
+          "resource": "Ponder",
+          "phase": "application create call",
+          "start": 29.98,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Door",
+          "phase": "durable objects put",
+          "start": 30.115,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Core",
+          "phase": "reconcile",
+          "start": 34.336,
+          "end": 34.607,
+          "s": 0.271
+        },
+        {
+          "resource": "Core",
+          "phase": "bundle",
+          "start": 34.607,
+          "end": 36.603,
+          "s": 1.996
+        },
+        {
+          "resource": "Core",
+          "phase": "upload",
+          "start": 36.603,
+          "end": 36.853,
+          "s": 0.25
+        },
+        {
+          "resource": "Core",
+          "phase": "durable objects put",
+          "start": 36.853,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "world",
+          "phase": "deployed",
+          "start": 40.721,
+          "end": 41.469,
+          "s": 0.748
+        },
+        {
+          "resource": "world",
+          "phase": "migrations applied (0001_telemetry.sql, 0002_site_ops.sql, 0003_world.sql, 0004_organizati",
+          "start": 41.469,
+          "end": 43.691,
+          "s": 2.222
+        },
+        {
+          "resource": "world",
+          "phase": "the chain answers",
+          "start": 43.691,
+          "end": 43.978,
+          "s": 0.287
+        },
+        {
+          "resource": "world",
+          "phase": "test USDC at 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6, minted to 0 addresses",
+          "start": 43.978,
+          "end": 57.175,
+          "s": 13.197
+        },
+        {
+          "resource": "world",
+          "phase": "the index is ready",
+          "start": 57.175,
+          "end": 57.175,
+          "s": 0.0
+        },
+        {
+          "resource": "world",
+          "phase": "the bundler serves 0x0000000071727De22E5E9d8BAf0edAc6f37da032, paymaster 0xE2dE380E3e8281e",
+          "start": 57.175,
+          "end": 57.686,
+          "s": 0.511
+        },
+        {
+          "resource": "world",
+          "phase": "Core answers",
+          "start": 57.686,
+          "end": null,
+          "s": null
+        }
+      ]
+    },
+    {
+      "log": "records/e2-destroy-pinned-wsp1.log",
+      "events": [
+        {
+          "t": 0.0,
+          "resource": "state store",
+          "phase": "open (credentials)"
+        },
+        {
+          "t": 4.315,
+          "resource": "state store",
+          "phase": "open (credentials)"
+        },
+        {
+          "t": 9.909,
+          "resource": "Alto",
+          "phase": "delete"
+        },
+        {
+          "t": 9.916,
+          "resource": "Anvil",
+          "phase": "delete"
+        },
+        {
+          "t": 9.919,
+          "resource": "Ponder",
+          "phase": "delete"
+        },
+        {
+          "t": 9.947,
+          "resource": "Core",
+          "phase": "delete"
+        },
+        {
+          "t": 10.986,
+          "resource": "Door",
+          "phase": "delete"
+        },
+        {
+          "t": 12.201,
+          "resource": "Neon",
+          "phase": "provider ready"
+        },
+        {
+          "t": 19.209,
+          "resource": "world",
+          "phase": "destroyed (12 resources) and its name released"
+        }
+      ],
+      "spans": [
+        {
+          "resource": "state store",
+          "phase": "open (credentials)",
+          "start": 0.0,
+          "end": 4.315,
+          "s": 4.315
+        },
+        {
+          "resource": "state store",
+          "phase": "open (credentials)",
+          "start": 4.315,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Alto",
+          "phase": "delete",
+          "start": 9.909,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Anvil",
+          "phase": "delete",
+          "start": 9.916,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Ponder",
+          "phase": "delete",
+          "start": 9.919,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Core",
+          "phase": "delete",
+          "start": 9.947,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Door",
+          "phase": "delete",
+          "start": 10.986,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Neon",
+          "phase": "provider ready",
+          "start": 12.201,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "world",
+          "phase": "destroyed (12 resources) and its name released",
+          "start": 19.209,
+          "end": null,
+          "s": null
+        }
+      ]
+    },
+    {
+      "log": "records/e6-platform-serve.log",
+      "events": [
+        {
+          "t": 0.0,
+          "resource": "state store",
+          "phase": "open (credentials)"
+        },
+        {
+          "t": 22.355,
+          "resource": "world",
+          "phase": "claimed for spike until 2026-11-14T01:42:16.148Z"
+        },
+        {
+          "t": 22.398,
+          "resource": "state store",
+          "phase": "open (credentials)"
+        },
+        {
+          "t": 25.713,
+          "resource": "Neon",
+          "phase": "provider ready"
+        },
+        {
+          "t": 27.473,
+          "resource": "Anvil",
+          "phase": "precreate"
+        },
+        {
+          "t": 27.503,
+          "resource": "Alto",
+          "phase": "precreate"
+        },
+        {
+          "t": 28.838,
+          "resource": "Anvil",
+          "phase": "image resolved (context hashed, registry checked)"
+        },
+        {
+          "t": 29.728,
+          "resource": "Anvil",
+          "phase": "application create call"
+        },
+        {
+          "t": 31.981,
+          "resource": "Door",
+          "phase": "precreate"
+        },
+        {
+          "t": 33.656,
+          "resource": "Anvil",
+          "phase": "reconcile"
+        },
+        {
+          "t": 35.112,
+          "resource": "Anvil",
+          "phase": "recreate to attach the Durable Object"
+        },
+        {
+          "t": 37.014,
+          "resource": "Ponder",
+          "phase": "precreate"
+        },
+        {
+          "t": 38.046,
+          "resource": "Anvil",
+          "phase": "application create call"
+        },
+        {
+          "t": 47.031,
+          "resource": "Alto",
+          "phase": "image resolved (context hashed, registry checked)"
+        },
+        {
+          "t": 47.232,
+          "resource": "Ponder",
+          "phase": "image resolved (context hashed, registry checked)"
+        },
+        {
+          "t": 47.803,
+          "resource": "Alto",
+          "phase": "application create call"
+        },
+        {
+          "t": 47.942,
+          "resource": "Ponder",
+          "phase": "application create call"
+        },
+        {
+          "t": 50.439,
+          "resource": "Alto",
+          "phase": "reconcile"
+        },
+        {
+          "t": 50.753,
+          "resource": "Door",
+          "phase": "reconcile"
+        },
+        {
+          "t": 50.755,
+          "resource": "Ponder",
+          "phase": "reconcile"
+        },
+        {
+          "t": 51.037,
+          "resource": "Door",
+          "phase": "bundle"
+        },
+        {
+          "t": 54.777,
+          "resource": "Door",
+          "phase": "upload"
+        },
+        {
+          "t": 55.087,
+          "resource": "Door",
+          "phase": "durable objects put"
+        },
+        {
+          "t": 58.733,
+          "resource": "Core",
+          "phase": "reconcile"
+        },
+        {
+          "t": 59.032,
+          "resource": "Core",
+          "phase": "bundle"
+        },
+        {
+          "t": 60.929,
+          "resource": "Core",
+          "phase": "upload"
+        },
+        {
+          "t": 61.14,
+          "resource": "Core",
+          "phase": "durable objects put"
+        },
+        {
+          "t": 65.906,
+          "resource": "Ponder",
+          "phase": "recreate to attach the Durable Object"
+        },
+        {
+          "t": 68.418,
+          "resource": "Ponder",
+          "phase": "application create call"
+        },
+        {
+          "t": 74.121,
+          "resource": "Alto",
+          "phase": "recreate to attach the Durable Object"
+        },
+        {
+          "t": 75.872,
+          "resource": "Alto",
+          "phase": "application create call"
+        },
+        {
+          "t": 79.636,
+          "resource": "world",
+          "phase": "deployed"
+        },
+        {
+          "t": 80.43,
+          "resource": "world",
+          "phase": "migrations applied (0001_telemetry.sql, 0002_site_ops.sql, 0003_world.sql, 0004_organizati"
+        },
+        {
+          "t": 82.561,
+          "resource": "world",
+          "phase": "the chain answers"
+        },
+        {
+          "t": 82.949,
+          "resource": "world",
+          "phase": "test USDC at 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6, minted to 0 addresses"
+        },
+        {
+          "t": 111.877,
+          "resource": "world",
+          "phase": "the index is ready"
+        },
+        {
+          "t": 111.877,
+          "resource": "world",
+          "phase": "the bundler serves 0x0000000071727De22E5E9d8BAf0edAc6f37da032, paymaster 0xE2dE380E3e8281e"
+        },
+        {
+          "t": 112.602,
+          "resource": "world",
+          "phase": "Core answers"
+        }
+      ],
+      "spans": [
+        {
+          "resource": "state store",
+          "phase": "open (credentials)",
+          "start": 0.0,
+          "end": 22.398,
+          "s": 22.398
+        },
+        {
+          "resource": "world",
+          "phase": "claimed for spike until 2026-11-14T01:42:16.148Z",
+          "start": 22.355,
+          "end": 79.636,
+          "s": 57.281
+        },
+        {
+          "resource": "state store",
+          "phase": "open (credentials)",
+          "start": 22.398,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Neon",
+          "phase": "provider ready",
+          "start": 25.713,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Anvil",
+          "phase": "precreate",
+          "start": 27.473,
+          "end": 28.838,
+          "s": 1.365
+        },
+        {
+          "resource": "Alto",
+          "phase": "precreate",
+          "start": 27.503,
+          "end": 47.031,
+          "s": 19.528
+        },
+        {
+          "resource": "Anvil",
+          "phase": "image resolved (context hashed, registry checked)",
+          "start": 28.838,
+          "end": 29.728,
+          "s": 0.89
+        },
+        {
+          "resource": "Anvil",
+          "phase": "application create call",
+          "start": 29.728,
+          "end": 33.656,
+          "s": 3.928
+        },
+        {
+          "resource": "Door",
+          "phase": "precreate",
+          "start": 31.981,
+          "end": 50.753,
+          "s": 18.772
+        },
+        {
+          "resource": "Anvil",
+          "phase": "reconcile",
+          "start": 33.656,
+          "end": 35.112,
+          "s": 1.456
+        },
+        {
+          "resource": "Anvil",
+          "phase": "recreate to attach the Durable Object",
+          "start": 35.112,
+          "end": 38.046,
+          "s": 2.934
+        },
+        {
+          "resource": "Ponder",
+          "phase": "precreate",
+          "start": 37.014,
+          "end": 47.232,
+          "s": 10.218
+        },
+        {
+          "resource": "Anvil",
+          "phase": "application create call",
+          "start": 38.046,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Alto",
+          "phase": "image resolved (context hashed, registry checked)",
+          "start": 47.031,
+          "end": 47.803,
+          "s": 0.772
+        },
+        {
+          "resource": "Ponder",
+          "phase": "image resolved (context hashed, registry checked)",
+          "start": 47.232,
+          "end": 47.942,
+          "s": 0.71
+        },
+        {
+          "resource": "Alto",
+          "phase": "application create call",
+          "start": 47.803,
+          "end": 50.439,
+          "s": 2.636
+        },
+        {
+          "resource": "Ponder",
+          "phase": "application create call",
+          "start": 47.942,
+          "end": 50.755,
+          "s": 2.813
+        },
+        {
+          "resource": "Alto",
+          "phase": "reconcile",
+          "start": 50.439,
+          "end": 74.121,
+          "s": 23.682
+        },
+        {
+          "resource": "Door",
+          "phase": "reconcile",
+          "start": 50.753,
+          "end": 51.037,
+          "s": 0.284
+        },
+        {
+          "resource": "Ponder",
+          "phase": "reconcile",
+          "start": 50.755,
+          "end": 65.906,
+          "s": 15.151
+        },
+        {
+          "resource": "Door",
+          "phase": "bundle",
+          "start": 51.037,
+          "end": 54.777,
+          "s": 3.74
+        },
+        {
+          "resource": "Door",
+          "phase": "upload",
+          "start": 54.777,
+          "end": 55.087,
+          "s": 0.31
+        },
+        {
+          "resource": "Door",
+          "phase": "durable objects put",
+          "start": 55.087,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Core",
+          "phase": "reconcile",
+          "start": 58.733,
+          "end": 59.032,
+          "s": 0.299
+        },
+        {
+          "resource": "Core",
+          "phase": "bundle",
+          "start": 59.032,
+          "end": 60.929,
+          "s": 1.897
+        },
+        {
+          "resource": "Core",
+          "phase": "upload",
+          "start": 60.929,
+          "end": 61.14,
+          "s": 0.211
+        },
+        {
+          "resource": "Core",
+          "phase": "durable objects put",
+          "start": 61.14,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Ponder",
+          "phase": "recreate to attach the Durable Object",
+          "start": 65.906,
+          "end": 68.418,
+          "s": 2.512
+        },
+        {
+          "resource": "Ponder",
+          "phase": "application create call",
+          "start": 68.418,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "Alto",
+          "phase": "recreate to attach the Durable Object",
+          "start": 74.121,
+          "end": 75.872,
+          "s": 1.751
+        },
+        {
+          "resource": "Alto",
+          "phase": "application create call",
+          "start": 75.872,
+          "end": null,
+          "s": null
+        },
+        {
+          "resource": "world",
+          "phase": "deployed",
+          "start": 79.636,
+          "end": 80.43,
+          "s": 0.794
+        },
+        {
+          "resource": "world",
+          "phase": "migrations applied (0001_telemetry.sql, 0002_site_ops.sql, 0003_world.sql, 0004_organizati",
+          "start": 80.43,
+          "end": 82.561,
+          "s": 2.131
+        },
+        {
+          "resource": "world",
+          "phase": "the chain answers",
+          "start": 82.561,
+          "end": 82.949,
+          "s": 0.388
+        },
+        {
+          "resource": "world",
+          "phase": "test USDC at 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6, minted to 0 addresses",
+          "start": 82.949,
+          "end": 111.877,
+          "s": 28.928
+        },
+        {
+          "resource": "world",
+          "phase": "the index is ready",
+          "start": 111.877,
+          "end": 111.877,
+          "s": 0.0
+        },
+        {
+          "resource": "world",
+          "phase": "the bundler serves 0x0000000071727De22E5E9d8BAf0edAc6f37da032, paymaster 0xE2dE380E3e8281e",
+          "start": 111.877,
+          "end": 112.602,
+          "s": 0.725
+        },
+        {
+          "resource": "world",
+          "phase": "Core answers",
+          "start": 112.602,
+          "end": null,
+          "s": null
+        }
+      ]
+    }
+  ]
+}

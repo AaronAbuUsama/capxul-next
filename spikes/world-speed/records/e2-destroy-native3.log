@@ -1,0 +1,41 @@
+[23:22:45.534] WARN: alchemy 2.0.0-beta.87 is available (you're on 2.0.0-beta.85). Run `bun add alchemy@2.0.0-beta.87` to upgrade.
+[23:22:45.541] INFO: Destroy · ws-native3
+[23:22:45.541] INFO: Importing stack module
+[23:22:45.878] INFO: Resolving stack services
+[23:22:45.878] INFO: Loading stack state
+[23:22:45.878] INFO: Computing plan
+[23:22:45.885] INFO: Plan ready (345ms)
+[23:22:45.886] INFO: Plan: 7 to delete, 7 binding changes
+[23:22:45.887] INFO: [Alto] delete
+[23:22:45.887] INFO: [Anvil] delete
+[23:22:45.887] INFO: [Hub/BundlerBox-Containers] delete
+[23:22:45.887] INFO: [Hub/BundlerBox-Containers/Alto] unbind
+[23:22:45.887] INFO: [Hub/ChainBox-Containers] delete
+[23:22:45.887] INFO: [Hub/ChainBox-Containers/Anvil] unbind
+[23:22:45.887] INFO: [Hub] delete
+[23:22:45.887] INFO: [Hub/BundlerBox] unbind
+[23:22:45.887] INFO: [Hub/ChainBox] unbind
+[23:22:45.887] INFO: [Hub/HUB_TOKEN] unbind
+[23:22:45.887] INFO: [Hub/IndexBox] unbind
+[23:22:45.887] INFO: [Hub/IndexBox-Containers] delete
+[23:22:45.887] INFO: [Hub/IndexBox-Containers/Ponder] unbind
+[23:22:45.887] INFO: [Ponder] delete
+[23:22:45.887] INFO: 
+[23:22:45.896] INFO: [Hub/ChainBox-Containers] deleting
+[23:22:45.896] INFO: [Hub] deleting
+[23:22:45.896] INFO: [Hub/BundlerBox-Containers] deleting
+[23:22:45.896] INFO: [Hub/IndexBox-Containers] deleting
+[23:22:45.899] INFO: [Hub/ChainBox-Containers] Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+[23:22:45.903] INFO: [Hub] Cloudflare Worker delete: deleting capxulspikeworldspeed-hub-ws-native3-qht5nhrdebnujkpv
+[23:22:46.886] INFO: [Hub] deleted (989ms)
+[23:22:46.886] INFO: [Ponder] deleting
+[23:22:46.886] INFO: [Anvil] deleting
+[23:22:46.886] INFO: [Alto] deleting
+[23:22:46.889] INFO: [Alto] deleted (3ms)
+[23:22:46.889] INFO: [Ponder] deleted (3ms)
+[23:22:46.889] INFO: [Anvil] deleted (3ms)
+[23:22:47.158] INFO: [Hub/IndexBox-Containers] deleted (1.3s)
+[23:22:47.264] INFO: [Hub/ChainBox-Containers] deleted (1.4s)
+[23:22:47.288] INFO: [Hub/BundlerBox-Containers] deleted (1.4s)
+[23:22:47.291] INFO: 
+[23:22:47.291] INFO: Done: 7 succeeded (1.4s)

@@ -1,0 +1,104 @@
+{
+  "world": "wsr",
+  "snapshot": "s2",
+  "step": "mark",
+  "at": "2026-11-13T23:45:55Z",
+  "steps": [
+    {
+      "step": "fingerprint",
+      "ms": 1676.2,
+      "result": {
+        "chain": {
+          "head": 47893276,
+          "hash": "0x25224c8ebc8a5d476b7a172ee0d47ff96a814b9fce6b492569edfd52d40ebf43",
+          "timestamp": 1794699812,
+          "danaUsdc": 10000000000
+        },
+        "db": {
+          "block": "47893276",
+          "hash": "0x25224c8ebc8a5d476b7a172ee0d47ff96a814b9fce6b492569edfd52d40ebf43",
+          "transfers": 4,
+          "events": 3,
+          "clock": "{\"id\":1,\"mode\":\"running\",\"frozen_at_ms\":null,\"offset_ms\":86306741}"
+        }
+      }
+    }
+  ],
+  "fingerprint": {
+    "chain": {
+      "head": 47893276,
+      "hash": "0x25224c8ebc8a5d476b7a172ee0d47ff96a814b9fce6b492569edfd52d40ebf43",
+      "timestamp": 1794699812,
+      "danaUsdc": 10000000000
+    },
+    "db": {
+      "block": "47893276",
+      "hash": "0x25224c8ebc8a5d476b7a172ee0d47ff96a814b9fce6b492569edfd52d40ebf43",
+      "transfers": 4,
+      "events": 3,
+      "clock": "{\"id\":1,\"mode\":\"running\",\"frozen_at_ms\":null,\"offset_ms\":86306741}"
+    }
+  },
+  "show": {
+    "operation": "world.show",
+    "outcome": "success",
+    "success": {
+      "world": "wsr",
+      "owner": "spike",
+      "grade": "private",
+      "state": "running",
+      "expiresAt": "2026-11-14T01:42:16.148Z",
+      "door": "https://capxulworld-core-w-wsr-ppenm4drymuwx425.thedao.workers.dev",
+      "chainId": 84532,
+      "contracts": {
+        "usdc": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+        "hats": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+        "payments": "0x468241C0CFaB01eD410D8f9A281Ace9b8D4E30e3",
+        "entryPoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+        "companySafeMinter": "0x27e3faE904527BcA73C39683D2a1239020915c71",
+        "companiesHouse": "0x38d9772b87a52Ed4615E2c804414f0cDD4854F2F",
+        "companyNamespace": "capxul:devnet:company:v1"
+      },
+      "clock": {
+        "mode": "running",
+        "now": "2026-11-14T23:44:25.342Z"
+      },
+      "recordHead": 3,
+      "parent": null,
+      "cast": [
+        {
+          "person": "dana",
+          "email": "dana@cast.test",
+          "signer": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+          "safe": "0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c"
+        },
+        {
+          "person": "eli",
+          "email": "eli@cast.test",
+          "signer": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
+          "safe": "0x90c388a1d9bf2218204d6a5de9654b3260369be8"
+        },
+        {
+          "person": "sam",
+          "email": "sam@cast.test",
+          "signer": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
+          "safe": "0xf6aeafa0dab7b6d9fc54537ceb1550ce956a11cc"
+        },
+        {
+          "person": "pat",
+          "email": "pat@cast.test",
+          "signer": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+          "safe": null
+        },
+        {
+          "person": "olga",
+          "email": "olga@cast.test",
+          "signer": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+          "safe": "0x532a1193802e3bbab0597f713c61639f7285f2bb"
+        }
+      ],
+      "companies": []
+    }
+  },
+  "showMs": 1299.49853515625
+}

@@ -1,0 +1,743 @@
+{
+  "claim": "a world as Durable Object names on one hub plus a Neon branch: time until chain, index and bundler answer",
+  "hub": "newapp-fleet",
+  "parallel": false,
+  "instance": null,
+  "at": "2026-11-13T23:15:24Z",
+  "totalMs": 250717.60717773438,
+  "worlds": [
+    {
+      "world": "newapp-fleet-11473-0",
+      "began": "2026-11-13T23:11:13Z",
+      "chain": {
+        "status": 200,
+        "clientMs": 1401.8681640625,
+        "kind": "chain",
+        "native": false,
+        "began": "2026-11-13T23:11:14.584Z",
+        "readyMs": 696,
+        "startCalls": 1,
+        "refusals": 0,
+        "attempts": [
+          {
+            "at": 0,
+            "startCalled": true,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:8545",
+            "ms": 168
+          },
+          {
+            "at": 668,
+            "startCalled": false,
+            "outcome": "ready",
+            "ms": 28
+          }
+        ],
+        "lastDetail": "200 {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x14a34\"}",
+        "workerMs": 959
+      },
+      "chainReadyAtMs": 1402.515380859375,
+      "branch": {
+        "apiMs": 735.30419921875,
+        "operationsMs": 1939.8349609375
+      },
+      "branchReadyAtMs": 2675.695068359375,
+      "index": {
+        "status": 200,
+        "clientMs": 5989.402099609375,
+        "kind": "index",
+        "native": false,
+        "began": "2026-11-13T23:11:17.412Z",
+        "readyMs": 5532,
+        "startCalls": 1,
+        "refusals": 0,
+        "attempts": [
+          {
+            "at": 0,
+            "startCalled": true,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 833
+          },
+          {
+            "at": 1333,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 190
+          },
+          {
+            "at": 2023,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 185
+          },
+          {
+            "at": 2708,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 180
+          },
+          {
+            "at": 3388,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 185
+          },
+          {
+            "at": 4073,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 179
+          },
+          {
+            "at": 4752,
+            "startCalled": false,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+            "ms": 180
+          },
+          {
+            "at": 5432,
+            "startCalled": false,
+            "outcome": "ready",
+            "ms": 100
+          }
+        ],
+        "lastDetail": "200",
+        "workerMs": 5795
+      },
+      "indexHealthyAtMs": 9063.6162109375,
+      "indexReadyAfterHealthyMs": 2186.42919921875,
+      "indexReadyAtMs": 11250.04931640625,
+      "indexMetrics": [
+        "ponder_historical_concurrency_group_duration{group=\"extract\"} 426.6542730000001",
+        "ponder_historical_concurrency_group_duration{group=\"transform\"} 602.6204090000001",
+        "ponder_historical_extract_duration{step=\"build\"} 1.1865799999995943",
+        "ponder_historical_extract_duration{step=\"decode\"} 0.3973760000008042",
+        "ponder_historical_transform_duration{step=\"prefetch\"} 1.278888999998344",
+        "ponder_historical_transform_duration{step=\"begin\"} 98.16514700000062",
+        "ponder_historical_transform_duration{step=\"index\"} 4.019800999998552",
+        "ponder_historical_transform_duration{step=\"load\"} 298.84222299999965",
+        "ponder_historical_transform_duration{step=\"finalize\"} 100.64332900000045",
+        "ponder_historical_transform_duration{step=\"commit\"} 97.27052900000035",
+        "ponder_historical_start_timestamp_seconds{chain=\"world\"} 1794611483",
+        "ponder_historical_end_timestamp_seconds{chain=\"world\"} 1794611484",
+        "ponder_historical_total_indexing_seconds{chain=\"world\"} 29",
+        "ponder_historical_cached_indexing_seconds{chain=\"world\"} 0",
+        "ponder_historical_completed_indexing_seconds{chain=\"world\"} 29",
+        "ponder_indexing_function_duration_bucket{le=\"0.001\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.005\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.01\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.05\",event=\"Head:block\"} 0",
+        "ponder_indexing_function_duration_bucket{le=\"0.1\",event=\"Head:block\"} 1",
+        "ponder_indexing_function_duration_bucket{le=\"0.5\",event=\"Head:block\"} 6",
+        "ponder_indexing_function_duration_bucket{le=\"1\",event=\"Head:block\"} 7",
+        "ponder_indexing_function_duration_bucket{le=\"5\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"10\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"50\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"100\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"500\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"1000\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"5000\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"10000\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"50000\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"100000\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_bucket{le=\"+Inf\",event=\"Head:block\"} 8",
+        "ponder_indexing_function_duration_sum{event=\"Head:block\"} 2.5930400000006557",
+        "ponder_indexing_function_duration_count{event=\"Head:block\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"1\",table=\"indexer_progress\",method=\"flush\"} 0",
+        "ponder_indexing_cache_query_duration_bucket{le=\"5\",table=\"indexer_progress\",method=\"flush\"} 0",
+        "ponder_indexing_cache_query_duration_bucket{le=\"10\",table=\"indexer_progress\",method=\"flush\"} 0",
+        "ponder_indexing_cache_query_duration_bucket{le=\"50\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"100\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"500\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"1000\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"5000\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"10000\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"50000\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"100000\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"500000\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_bucket{le=\"+Inf\",table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_query_duration_sum{table=\"indexer_progress\",method=\"flush\"} 103.48877799999991",
+        "ponder_indexing_cache_query_duration_count{table=\"indexer_progress\",method=\"flush\"} 8",
+        "ponder_indexing_cache_requests_total{table=\"chain_logs\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_logs\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_logs\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_logs\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"transfers\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"transfers\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"transfers\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"transfers\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_payments\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_payments\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_payments\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"chain_payments\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"user_operations\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"user_operations\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"user_operations\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"user_operations\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"indexer_progress\",type=\"complete\"} 8",
+        "ponder_indexing_cache_requests_total{table=\"indexer_progress\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"indexer_progress\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"indexer_progress\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"known_safes\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"known_safes\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"known_safes\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"known_safes\",type=\"prefetch\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"hat_trees\",type=\"complete\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"hat_trees\",type=\"hit\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"hat_trees\",type=\"miss\"} 0",
+        "ponder_indexing_cache_requests_total{table=\"hat_trees\",type=\"prefetch\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_logs\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_logs\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_logs\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_logs\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"transfers\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"transfers\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"transfers\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"transfers\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_payments\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_payments\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_payments\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"chain_payments\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"user_operations\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"user_operations\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"user_operations\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"user_operations\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"indexer_progress\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"indexer_progress\",method=\"insert\"} 8",
+        "ponder_indexing_store_queries_total{table=\"indexer_progress\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"indexer_progress\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"known_safes\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"known_safes\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"known_safes\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"known_safes\",method=\"delete\"} 0",
+        "ponder_indexing_store_queries_total{table=\"hat_trees\",method=\"find\"} 0",
+        "ponder_indexing_store_queries_total{table=\"hat_trees\",method=\"insert\"} 0",
+        "ponder_indexing_store_queries_total{table=\"hat_trees\",method=\"update\"} 0",
+        "ponder_indexing_store_queries_total{table=\"hat_trees\",method=\"delete\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"1\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"5\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"10\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"50\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"100\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"500\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"1000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"5000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"10000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"50000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"100000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"500000\"} 0",
+        "ponder_indexing_store_raw_sql_duration_bucket{le=\"+Inf\"} 0",
+        "ponder_indexing_store_raw_sql_duration_sum 0",
+        "ponder_indexing_store_raw_sql_duration_count 0",
+        "ponder_historical_total_blocks{chain=\"world\"} 8",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"migrate\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"migrate\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"migrate\"} 0",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"migrate\"} 26",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"migrate\"} 26",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"migrate\"} 27",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"migrate\"} 28",
+        "ponder_database_method_duration_sum{method=\"migrate\"} 1090.3070970000003",
+        "ponder_database_method_duration_count{method=\"migrate\"} 28",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"migrate_sync\"} 0",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_sum{method=\"migrate_sync\"} 203.8653749999994",
+        "ponder_database_method_duration_count{method=\"migrate_sync\"} 1",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"update_checkpoints\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"update_checkpoints\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"update_checkpoints\"} 0",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_sum{method=\"update_checkpoints\"} 116.9889319999993",
+        "ponder_database_method_duration_count{method=\"update_checkpoints\"} 9",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"select_ready\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"select_ready\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"select_ready\"} 0",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"select_ready\"} 1",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"select_ready\"} 3",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"select_ready\"} 3",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"select_ready\"} 3",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"select_ready\"} 3",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"select_ready\"} 3",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"select_ready\"} 3",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"select_ready\"} 3",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"select_ready\"} 3",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"select_ready\"} 3",
+        "ponder_database_method_duration_sum{method=\"select_ready\"} 202.58667699999933",
+        "ponder_database_method_duration_count{method=\"select_ready\"} 3",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"create_indexes\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"create_indexes\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"create_indexes\"} 0",
+        "ponder_database_method_duration_bucket{le=\"50\",method=\"create_indexes\"} 8",
+        "ponder_database_method_duration_bucket{le=\"100\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"500\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"1000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"5000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"10000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"50000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"100000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"500000\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"+Inf\",method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_sum{method=\"create_indexes\"} 212.80340699999942",
+        "ponder_database_method_duration_count{method=\"create_indexes\"} 9",
+        "ponder_database_method_duration_bucket{le=\"1\",method=\"create_trigger\"} 0",
+        "ponder_database_method_duration_bucket{le=\"5\",method=\"create_trigger\"} 0",
+        "ponder_database_method_duration_bucket{le=\"10\",method=\"create_trigger\"} 0"
+      ],
+      "bundler": {
+        "status": 200,
+        "clientMs": 243293.40747070312,
+        "kind": "bundler",
+        "native": false,
+        "began": "2026-11-13T23:11:18.040Z",
+        "readyMs": null,
+        "startCalls": 5,
+        "refusals": 61,
+        "attempts": [
+          {
+            "at": 0,
+            "startCalled": true,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 1104
+          },
+          {
+            "at": 2104,
+            "startCalled": true,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 816
+          },
+          {
+            "at": 4920,
+            "startCalled": true,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 785
+          },
+          {
+            "at": 9705,
+            "startCalled": true,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 772
+          },
+          {
+            "at": 14477,
+            "startCalled": true,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 253
+          },
+          {
+            "at": 18730,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 22730,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 26730,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 30730,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 34730,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 38730,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 42730,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 46730,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 50730,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 54730,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 58730,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 62730,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 66730,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 1
+          },
+          {
+            "at": 70731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 74731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 78731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 82731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 86731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 90731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 94731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 98731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 102731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 106731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 110731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 114731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 118731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 122731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 126731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 130731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 134731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 138731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 142731,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 1
+          },
+          {
+            "at": 146732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 150732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 154732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 158732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 162732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 166732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 170732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 174732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 178732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 182732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 186732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 190732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 194732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 198732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 202732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 206732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 210732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 214732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 218732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 222732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 226732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 230732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 234732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          },
+          {
+            "at": 238732,
+            "startCalled": false,
+            "outcome": "refused: There is no container instance that can be provided to this Durable Object, try again later",
+            "ms": 0
+          }
+        ],
+        "lastDetail": "There is no container instance that can be provided to this Durable Object, try again later",
+        "workerMs": 243038
+      },
+      "bundlerReadyAtMs": 246898.3876953125,
+      "worldAnswersAtMs": 246898.5126953125,
+      "head": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": "0x2dacb0f"
+      },
+      "stopped": {
+        "bundler": {
+          "status": 200,
+          "answer": {
+            "forgotten": true
+          },
+          "ms": 548.955322265625
+        },
+        "index": {
+          "status": 200,
+          "answer": {
+            "forgotten": true
+          },
+          "ms": 888.442138671875
+        },
+        "chain": {
+          "status": 200,
+          "answer": {
+            "forgotten": true
+          },
+          "ms": 369.322021484375
+        }
+      },
+      "branchDeleted": {
+        "status": 200,
+        "apiMs": 331.082763671875,
+        "operationsMs": 1173.84521484375
+      }
+    }
+  ],
+  "summary": [
+    {
+      "world": "newapp-fleet-11473-0",
+      "chainReadyAtMs": 1402.515380859375,
+      "branchReadyAtMs": 2675.695068359375,
+      "indexHealthyAtMs": 9063.6162109375,
+      "indexReadyAtMs": 11250.04931640625,
+      "bundlerReadyAtMs": 246898.3876953125,
+      "worldAnswersAtMs": 246898.5126953125,
+      "error": null,
+      "chainRefusals": 0,
+      "indexRefusals": 0,
+      "bundlerRefusals": 61
+    }
+  ]
+}

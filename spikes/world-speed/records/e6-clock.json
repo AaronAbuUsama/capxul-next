@@ -1,0 +1,101 @@
+{
+  "claim": "what time a block mined after a snapshot or reset gets, against the world clock",
+  "at": "2026-11-13T23:37:17Z",
+  "world": "clk-13037",
+  "observations": [
+    {
+      "what": "seed head",
+      "number": 47893259,
+      "timestamp": 1791554819,
+      "host": 1794613039,
+      "headMinusHost": -3058220
+    },
+    {
+      "what": "after mineStart at world time 1792021039 (host - 30 days)",
+      "number": 47893260,
+      "timestamp": 1792021039,
+      "host": 1794613039,
+      "headMinusHost": -2592000
+    },
+    {
+      "what": "one more evm_mine right after",
+      "number": 47893261,
+      "timestamp": 1792021040,
+      "host": 1794613040,
+      "headMinusHost": -2592000
+    },
+    {
+      "what": "snapshot taken here",
+      "number": 47893261,
+      "timestamp": 1792021040,
+      "host": 1794613041,
+      "headMinusHost": -2592001
+    },
+    {
+      "what": "evm_mine 20 s after the snapshot, no reset",
+      "number": 47893262,
+      "timestamp": 1792021061,
+      "host": 1794613061,
+      "headMinusHost": -2592000
+    },
+    {
+      "what": "after evm_revert",
+      "number": 47893261,
+      "timestamp": 1792021040,
+      "host": 1794613062,
+      "headMinusHost": -2592022
+    },
+    {
+      "what": "evm_mine after evm_revert",
+      "number": 47893262,
+      "timestamp": 1792021062,
+      "host": 1794613062,
+      "headMinusHost": -2592000
+    },
+    {
+      "what": "after anvil_reset + anvil_loadState",
+      "number": 47893261,
+      "timestamp": 1792021040,
+      "host": 1794613064,
+      "headMinusHost": -2592024
+    },
+    {
+      "what": "evm_mine after anvil_reset + anvil_loadState",
+      "number": 47893262,
+      "timestamp": 1792021041,
+      "host": 1794613064,
+      "headMinusHost": -2592023
+    },
+    {
+      "what": "new anvil, empty, after anvil_loadState",
+      "number": 47893261,
+      "timestamp": 1792021040,
+      "host": 1794613066,
+      "headMinusHost": -2592026
+    },
+    {
+      "what": "evm_mine on the new anvil after anvil_loadState",
+      "number": 47893262,
+      "timestamp": 1792021041,
+      "host": 1794613067,
+      "headMinusHost": -2592026
+    }
+  ],
+  "worldTime": 1792021039,
+  "seed": {
+    "number": 47893259,
+    "timestamp": 1791554819
+  },
+  "snapshotHead": {
+    "number": 47893261,
+    "timestamp": 1792021040
+  },
+  "cleanup": [
+    {
+      "forgotten": true
+    },
+    {
+      "forgotten": true
+    }
+  ]
+}

@@ -1,0 +1,319 @@
+{
+  "claim": "a database copied from a running Ponder makes the next Ponder wait out the old lock",
+  "at": "2026-11-13T23:49:34Z",
+  "world": "lk-13774",
+  "steps": [
+    {
+      "step": "index start (fresh)",
+      "ms": 12299.8,
+      "result": {
+        "status": 200,
+        "healthyMs": 8653,
+        "startCalls": 1,
+        "refusals": 0,
+        "readyAfterHealthyMs": 2633,
+        "metrics": [
+          "ponder_settings_info{ordering=\"multichain\",database=\"postgres\",command=\"start\"} 1",
+          "ponder_indexing_completed_events{event=\"Payments:PaymentSent\"} 0",
+          "ponder_indexing_completed_events{event=\"Token:Transfer\"} 1",
+          "ponder_indexing_completed_events{event=\"Company:CompanySafeMinted\"} 0",
+          "ponder_indexing_completed_events{event=\"Company:CapxulSafeClaimed\"} 0",
+          "ponder_indexing_completed_events{event=\"Installer:MoneyDeployed\"} 0",
+          "ponder_indexing_completed_events{event=\"Hats:TransferSingle\"} 0",
+          "ponder_indexing_completed_events{event=\"EntryPoint:UserOperationEvent\"} 0",
+          "ponder_indexing_completed_events{event=\"Head:block\"} 10",
+          "ponder_historical_total_blocks{chain=\"world\"} 10",
+          "ponder_historical_cached_blocks{chain=\"world\"} 0",
+          "ponder_historical_completed_blocks{chain=\"world\"} 10"
+        ]
+      }
+    },
+    {
+      "step": "caught up",
+      "ms": 1500.5,
+      "result": {
+        "ms": 1500,
+        "index": {
+          "block": "47893261",
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "transfers": 1,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "live: the lock as copied",
+      "ms": 869.9,
+      "result": [
+        {
+          "locked": "1",
+          "heartbeat_age_ms": "9359"
+        }
+      ]
+    },
+    {
+      "step": "live: fork the database",
+      "ms": 2448.2,
+      "result": [
+        "br-gentle-dust-za4ytmhj",
+        {
+          "apiMs": 490.381103515625,
+          "operationsMs": 1957.72119140625
+        }
+      ]
+    },
+    {
+      "step": "live: fork's chain",
+      "ms": 1857.6,
+      "result": [
+        200,
+        true
+      ]
+    },
+    {
+      "step": "live: fork's index start",
+      "ms": 14734.8,
+      "result": {
+        "status": 200,
+        "healthyMs": 11550,
+        "startCalls": 1,
+        "refusals": 0,
+        "readyAfterHealthyMs": 2235,
+        "metrics": [
+          "ponder_settings_info{ordering=\"multichain\",database=\"postgres\",command=\"start\"} 1",
+          "ponder_indexing_completed_events{event=\"Payments:PaymentSent\"} 0",
+          "ponder_indexing_completed_events{event=\"Token:Transfer\"} 0",
+          "ponder_indexing_completed_events{event=\"Company:CompanySafeMinted\"} 0",
+          "ponder_indexing_completed_events{event=\"Company:CapxulSafeClaimed\"} 0",
+          "ponder_indexing_completed_events{event=\"Installer:MoneyDeployed\"} 0",
+          "ponder_indexing_completed_events{event=\"Hats:TransferSingle\"} 0",
+          "ponder_indexing_completed_events{event=\"EntryPoint:UserOperationEvent\"} 0",
+          "ponder_indexing_completed_events{event=\"Head:block\"} 0",
+          "ponder_historical_total_blocks{chain=\"world\"} 10",
+          "ponder_historical_cached_blocks{chain=\"world\"} 0",
+          "ponder_historical_completed_blocks{chain=\"world\"} 10"
+        ]
+      }
+    },
+    {
+      "step": "live: fork's index caught up",
+      "ms": 1453.9,
+      "result": {
+        "ms": 1454,
+        "index": {
+          "block": "47893261",
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "transfers": 1,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "SIGTERM the source's Ponder",
+      "ms": 396.0,
+      "result": {
+        "wasRunning": true,
+        "outcome": "exited",
+        "ms": 114
+      }
+    },
+    {
+      "step": "after SIGTERM: the lock as copied",
+      "ms": 814.7,
+      "result": [
+        {
+          "locked": "0",
+          "heartbeat_age_ms": "4995"
+        }
+      ]
+    },
+    {
+      "step": "after SIGTERM: fork the database",
+      "ms": 2220.7,
+      "result": [
+        "br-tiny-smoke-za53ttk7",
+        {
+          "apiMs": 425.9775390625,
+          "operationsMs": 1794.541748046875
+        }
+      ]
+    },
+    {
+      "step": "after SIGTERM: fork's chain",
+      "ms": 1927.2,
+      "result": [
+        200,
+        true
+      ]
+    },
+    {
+      "step": "after SIGTERM: fork's index start",
+      "ms": 10381.3,
+      "result": {
+        "status": 200,
+        "healthyMs": 7559,
+        "startCalls": 1,
+        "refusals": 0,
+        "readyAfterHealthyMs": 2061,
+        "metrics": [
+          "ponder_settings_info{ordering=\"multichain\",database=\"postgres\",command=\"start\"} 1",
+          "ponder_indexing_completed_events{event=\"Payments:PaymentSent\"} 0",
+          "ponder_indexing_completed_events{event=\"Token:Transfer\"} 0",
+          "ponder_indexing_completed_events{event=\"Company:CompanySafeMinted\"} 0",
+          "ponder_indexing_completed_events{event=\"Company:CapxulSafeClaimed\"} 0",
+          "ponder_indexing_completed_events{event=\"Installer:MoneyDeployed\"} 0",
+          "ponder_indexing_completed_events{event=\"Hats:TransferSingle\"} 0",
+          "ponder_indexing_completed_events{event=\"EntryPoint:UserOperationEvent\"} 0",
+          "ponder_indexing_completed_events{event=\"Head:block\"} 0",
+          "ponder_historical_total_blocks{chain=\"world\"} 10",
+          "ponder_historical_cached_blocks{chain=\"world\"} 0",
+          "ponder_historical_completed_blocks{chain=\"world\"} 10"
+        ]
+      }
+    },
+    {
+      "step": "after SIGTERM: fork's index caught up",
+      "ms": 1750.9,
+      "result": {
+        "ms": 1751,
+        "index": {
+          "block": "47893261",
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "transfers": 1,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    }
+  ],
+  "live": {
+    "lockAsCopied": [
+      {
+        "locked": "1",
+        "heartbeat_age_ms": "9359"
+      }
+    ],
+    "start": {
+      "status": 200,
+      "healthyMs": 11550,
+      "startCalls": 1,
+      "refusals": 0,
+      "readyAfterHealthyMs": 2235,
+      "metrics": [
+        "ponder_settings_info{ordering=\"multichain\",database=\"postgres\",command=\"start\"} 1",
+        "ponder_indexing_completed_events{event=\"Payments:PaymentSent\"} 0",
+        "ponder_indexing_completed_events{event=\"Token:Transfer\"} 0",
+        "ponder_indexing_completed_events{event=\"Company:CompanySafeMinted\"} 0",
+        "ponder_indexing_completed_events{event=\"Company:CapxulSafeClaimed\"} 0",
+        "ponder_indexing_completed_events{event=\"Installer:MoneyDeployed\"} 0",
+        "ponder_indexing_completed_events{event=\"Hats:TransferSingle\"} 0",
+        "ponder_indexing_completed_events{event=\"EntryPoint:UserOperationEvent\"} 0",
+        "ponder_indexing_completed_events{event=\"Head:block\"} 0",
+        "ponder_historical_total_blocks{chain=\"world\"} 10",
+        "ponder_historical_cached_blocks{chain=\"world\"} 0",
+        "ponder_historical_completed_blocks{chain=\"world\"} 10"
+      ]
+    },
+    "fromForkToCaughtUpMs": 21770,
+    "fork": {
+      "chain": {
+        "head": 47893261,
+        "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+        "timestamp": 1791554821,
+        "holderUsdc": 1000000,
+        "operatorNonce": 10
+      },
+      "index": {
+        "block": "47893261",
+        "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+        "transfers": 1,
+        "locked": "1",
+        "build": "8e5c02786c"
+      }
+    }
+  },
+  "after SIGTERM": {
+    "lockAsCopied": [
+      {
+        "locked": "0",
+        "heartbeat_age_ms": "4995"
+      }
+    ],
+    "start": {
+      "status": 200,
+      "healthyMs": 7559,
+      "startCalls": 1,
+      "refusals": 0,
+      "readyAfterHealthyMs": 2061,
+      "metrics": [
+        "ponder_settings_info{ordering=\"multichain\",database=\"postgres\",command=\"start\"} 1",
+        "ponder_indexing_completed_events{event=\"Payments:PaymentSent\"} 0",
+        "ponder_indexing_completed_events{event=\"Token:Transfer\"} 0",
+        "ponder_indexing_completed_events{event=\"Company:CompanySafeMinted\"} 0",
+        "ponder_indexing_completed_events{event=\"Company:CapxulSafeClaimed\"} 0",
+        "ponder_indexing_completed_events{event=\"Installer:MoneyDeployed\"} 0",
+        "ponder_indexing_completed_events{event=\"Hats:TransferSingle\"} 0",
+        "ponder_indexing_completed_events{event=\"EntryPoint:UserOperationEvent\"} 0",
+        "ponder_indexing_completed_events{event=\"Head:block\"} 0",
+        "ponder_historical_total_blocks{chain=\"world\"} 10",
+        "ponder_historical_cached_blocks{chain=\"world\"} 0",
+        "ponder_historical_completed_blocks{chain=\"world\"} 10"
+      ]
+    },
+    "fromForkToCaughtUpMs": 17475,
+    "fork": {
+      "chain": {
+        "head": 47893261,
+        "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+        "timestamp": 1791554821,
+        "holderUsdc": 1000000,
+        "operatorNonce": 10
+      },
+      "index": {
+        "block": "47893261",
+        "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+        "transfers": 1,
+        "locked": "1",
+        "build": "8e5c02786c"
+      }
+    }
+  },
+  "cleanup": {
+    "lk-13774-l1/index": {
+      "forgotten": true
+    },
+    "lk-13774-l1/chain": {
+      "forgotten": true
+    },
+    "lk-13774-l2/index": {
+      "forgotten": true
+    },
+    "lk-13774-l2/chain": {
+      "forgotten": true
+    },
+    "lk-13774/index": {
+      "forgotten": true
+    },
+    "lk-13774/chain": {
+      "forgotten": true
+    },
+    "br-tiny-smoke-za53ttk7": {
+      "status": 200,
+      "apiMs": 270.52685546875,
+      "operationsMs": 1027.9931640625
+    },
+    "br-gentle-dust-za4ytmhj": {
+      "status": 200,
+      "apiMs": 262.739013671875,
+      "operationsMs": 1451.7275390625
+    },
+    "br-nameless-salad-za87xpis": {
+      "status": 200,
+      "apiMs": 262.970458984375,
+      "operationsMs": 1008.419677734375
+    }
+  },
+  "leftBranches": []
+}

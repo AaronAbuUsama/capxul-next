@@ -1,0 +1,4997 @@
+{
+  "claim": "a live world reset in place to a snapshot, and its index forked with its database",
+  "world": "rs1-12496",
+  "at": "2026-11-13T23:28:16Z",
+  "steps": [
+    {
+      "step": "chain start (seed)",
+      "ms": 1508.3,
+      "result": {
+        "kind": "chain",
+        "inspected": {
+          "labels": {},
+          "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-anvil@sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474"
+        },
+        "native": false,
+        "began": "2026-11-13T23:28:20.074Z",
+        "readyMs": 955,
+        "startCalls": 1,
+        "refusals": 0,
+        "attempts": [
+          {
+            "at": 0,
+            "startCalled": true,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:8545",
+            "ms": 426
+          },
+          {
+            "at": 926,
+            "startCalled": false,
+            "outcome": "ready",
+            "ms": 29
+          }
+        ],
+        "lastDetail": "200 {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x14a34\"}",
+        "monitorEvents": [],
+        "workerMs": 1258
+      }
+    },
+    {
+      "step": "deploy test USDC",
+      "ms": 468.7,
+      "result": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6"
+    },
+    {
+      "step": "mint 1 USDC",
+      "ms": 488.1,
+      "result": "0x1"
+    },
+    {
+      "step": "index start: fresh backfill from the seed",
+      "ms": 7472.8,
+      "result": {
+        "status": 200,
+        "healthyMs": 4466,
+        "startCalls": 1,
+        "refusals": 0,
+        "readyAfterHealthyMs": 2118,
+        "metrics": [
+          "ponder_settings_info{ordering=\"multichain\",database=\"postgres\",command=\"start\"} 1",
+          "ponder_indexing_completed_events{event=\"Payments:PaymentSent\"} 0",
+          "ponder_indexing_completed_events{event=\"Token:Transfer\"} 1",
+          "ponder_indexing_completed_events{event=\"Company:CompanySafeMinted\"} 0",
+          "ponder_indexing_completed_events{event=\"Company:CapxulSafeClaimed\"} 0",
+          "ponder_indexing_completed_events{event=\"Installer:MoneyDeployed\"} 0",
+          "ponder_indexing_completed_events{event=\"Hats:TransferSingle\"} 0",
+          "ponder_indexing_completed_events{event=\"EntryPoint:UserOperationEvent\"} 0",
+          "ponder_indexing_completed_events{event=\"Head:block\"} 10",
+          "ponder_historical_total_blocks{chain=\"world\"} 10",
+          "ponder_historical_cached_blocks{chain=\"world\"} 0",
+          "ponder_historical_completed_blocks{chain=\"world\"} 10"
+        ]
+      }
+    },
+    {
+      "step": "index caught up",
+      "ms": 1401.9,
+      "result": {
+        "ms": 1402,
+        "index": {
+          "block": "47893261",
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "transfers": 1,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "fingerprint P1",
+      "ms": 1476.4,
+      "result": {
+        "chain": {
+          "head": 47893261,
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "timestamp": 1791554821,
+          "holderUsdc": 1000000,
+          "operatorNonce": 10
+        },
+        "index": {
+          "block": "47893261",
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "transfers": 1,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "neon: snapshot branch of B, no compute",
+      "ms": 1889.6,
+      "result": [
+        "br-flat-haze-zanqhov8",
+        {
+          "apiMs": 514.596435546875,
+          "operationsMs": 1374.93310546875
+        }
+      ]
+    },
+    {
+      "step": "anvil: evm_snapshot",
+      "ms": 178.6,
+      "result": "0x1"
+    },
+    {
+      "step": "anvil: anvil_dumpState",
+      "ms": 2251.6,
+      "result": {
+        "bytes": 2461626
+      }
+    },
+    {
+      "step": "mint 3 more",
+      "ms": 1041.3,
+      "result": [
+        "0x1",
+        "0x1",
+        "0x1"
+      ]
+    },
+    {
+      "step": "evm_increaseTime 1 day and mine 3",
+      "ms": 823.7,
+      "result": [
+        -2971281,
+        "0x0",
+        "0x0",
+        "0x0"
+      ]
+    },
+    {
+      "step": "index caught up",
+      "ms": 1396.2,
+      "result": {
+        "ms": 1396,
+        "index": {
+          "block": "47893267",
+          "hash": "0xef03f5a02d44e82ea01618b6488d4491fe297cde47ef533e54a9f808e7531f89",
+          "transfers": 4,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "fingerprint P2",
+      "ms": 1394.1,
+      "result": {
+        "chain": {
+          "head": 47893267,
+          "hash": "0xef03f5a02d44e82ea01618b6488d4491fe297cde47ef533e54a9f808e7531f89",
+          "timestamp": 1791641239,
+          "holderUsdc": 4000000,
+          "operatorNonce": 13
+        },
+        "index": {
+          "block": "47893267",
+          "hash": "0xef03f5a02d44e82ea01618b6488d4491fe297cde47ef533e54a9f808e7531f89",
+          "transfers": 4,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "R1 index stop (destroy)",
+      "ms": 501.5,
+      "result": {
+        "wasRunning": true,
+        "ms": 251
+      }
+    },
+    {
+      "step": "R1 neon restore B from snapshot",
+      "ms": 2278.6,
+      "result": {
+        "status": 200,
+        "apiMs": 381.949462890625,
+        "operationsMs": 1611.6826171875,
+        "answer": null,
+        "firstTry": {
+          "status": 422,
+          "apiMs": 284.67724609375,
+          "operationsMs": 0,
+          "answer": {
+            "request_id": "5d273467-33eb-4c45-a7ed-9237a776e08f",
+            "code": "",
+            "message": "Branch has children, preserve_under_name is required"
+          }
+        }
+      }
+    },
+    {
+      "step": "R1 first SQL answer after restore",
+      "ms": 1860.9,
+      "result": [
+        {
+          "one": 1
+        }
+      ]
+    },
+    {
+      "step": "R1 anvil: evm_revert",
+      "ms": 197.5,
+      "result": true
+    },
+    {
+      "step": "R1 index start (resume)",
+      "ms": 10303.5,
+      "result": {
+        "status": 200,
+        "healthyMs": 7608,
+        "startCalls": 1,
+        "refusals": 0,
+        "readyAfterHealthyMs": 2047,
+        "metrics": [
+          "ponder_settings_info{ordering=\"multichain\",database=\"postgres\",command=\"start\"} 1",
+          "ponder_indexing_completed_events{event=\"Payments:PaymentSent\"} 0",
+          "ponder_indexing_completed_events{event=\"Token:Transfer\"} 0",
+          "ponder_indexing_completed_events{event=\"Company:CompanySafeMinted\"} 0",
+          "ponder_indexing_completed_events{event=\"Company:CapxulSafeClaimed\"} 0",
+          "ponder_indexing_completed_events{event=\"Installer:MoneyDeployed\"} 0",
+          "ponder_indexing_completed_events{event=\"Hats:TransferSingle\"} 0",
+          "ponder_indexing_completed_events{event=\"EntryPoint:UserOperationEvent\"} 0",
+          "ponder_indexing_completed_events{event=\"Head:block\"} 0",
+          "ponder_historical_total_blocks{chain=\"world\"} 10",
+          "ponder_historical_cached_blocks{chain=\"world\"} 0",
+          "ponder_historical_completed_blocks{chain=\"world\"} 10"
+        ]
+      }
+    },
+    {
+      "step": "R1 index caught up",
+      "ms": 1430.6,
+      "result": {
+        "ms": 1431,
+        "index": {
+          "block": "47893261",
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "transfers": 1,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "fingerprint after R1",
+      "ms": 1639.8,
+      "result": {
+        "chain": {
+          "head": 47893261,
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "timestamp": 1791554821,
+          "holderUsdc": 1000000,
+          "operatorNonce": 10
+        },
+        "index": {
+          "block": "47893261",
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "transfers": 1,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "R1 liveness: mint after reset",
+      "ms": 328.8,
+      "result": "0x1"
+    },
+    {
+      "step": "R1 liveness: indexed",
+      "ms": 1441.5,
+      "result": {
+        "ms": 1441,
+        "index": {
+          "block": "47893262",
+          "hash": "0x60c642ab507b92513bf62ad6ee45251e9994e3413cacbe5c12b3b11b43dc2aab",
+          "transfers": 2,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "R2 index stop (SIGTERM)",
+      "ms": 351.0,
+      "result": {
+        "wasRunning": true,
+        "outcome": "exited",
+        "ms": 95
+      }
+    },
+    {
+      "step": "R2 lock after SIGTERM",
+      "ms": 841.3,
+      "result": [
+        {
+          "locked": "0"
+        }
+      ]
+    },
+    {
+      "step": "R2 neon restore B from snapshot",
+      "ms": 3625.6,
+      "result": {
+        "status": 200,
+        "apiMs": 499.270263671875,
+        "operationsMs": 3126.23583984375,
+        "answer": null
+      }
+    },
+    {
+      "step": "R2 anvil: anvil_reset",
+      "ms": 168.8,
+      "result": null
+    },
+    {
+      "step": "R2 anvil: anvil_loadState",
+      "ms": 756.3,
+      "result": true
+    },
+    {
+      "step": "R2 index start (resume)",
+      "ms": 9941.4,
+      "result": {
+        "status": 200,
+        "healthyMs": 7347,
+        "startCalls": 1,
+        "refusals": 0,
+        "readyAfterHealthyMs": 1980,
+        "metrics": [
+          "ponder_settings_info{ordering=\"multichain\",database=\"postgres\",command=\"start\"} 1",
+          "ponder_indexing_completed_events{event=\"Payments:PaymentSent\"} 0",
+          "ponder_indexing_completed_events{event=\"Token:Transfer\"} 0",
+          "ponder_indexing_completed_events{event=\"Company:CompanySafeMinted\"} 0",
+          "ponder_indexing_completed_events{event=\"Company:CapxulSafeClaimed\"} 0",
+          "ponder_indexing_completed_events{event=\"Installer:MoneyDeployed\"} 0",
+          "ponder_indexing_completed_events{event=\"Hats:TransferSingle\"} 0",
+          "ponder_indexing_completed_events{event=\"EntryPoint:UserOperationEvent\"} 0",
+          "ponder_indexing_completed_events{event=\"Head:block\"} 0",
+          "ponder_historical_total_blocks{chain=\"world\"} 10",
+          "ponder_historical_cached_blocks{chain=\"world\"} 0",
+          "ponder_historical_completed_blocks{chain=\"world\"} 10"
+        ]
+      }
+    },
+    {
+      "step": "R2 index caught up",
+      "ms": 1428.9,
+      "result": {
+        "ms": 1429,
+        "index": {
+          "block": "47893261",
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "transfers": 1,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "fingerprint after R2",
+      "ms": 1283.4,
+      "result": {
+        "chain": {
+          "head": 47893261,
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "timestamp": 1791554821,
+          "holderUsdc": 1000000,
+          "operatorNonce": 10
+        },
+        "index": {
+          "block": "47893261",
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "transfers": 1,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "R3 index stop (destroy)",
+      "ms": 1076.6,
+      "result": {
+        "wasRunning": true,
+        "ms": 781
+      }
+    },
+    {
+      "step": "R3 neon restore B from snapshot",
+      "ms": 3251.2,
+      "result": {
+        "status": 200,
+        "apiMs": 561.029541015625,
+        "operationsMs": 2690.074951171875,
+        "answer": null
+      }
+    },
+    {
+      "step": "R3 chain stop",
+      "ms": 432.9,
+      "result": {
+        "wasRunning": true,
+        "ms": 235
+      }
+    },
+    {
+      "step": "R3 chain start empty",
+      "ms": 1497.9,
+      "result": {
+        "kind": "chain",
+        "inspected": {
+          "labels": {},
+          "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-anvil@sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474"
+        },
+        "native": false,
+        "began": "2026-11-13T23:29:24.694Z",
+        "readyMs": 1253,
+        "startCalls": 1,
+        "refusals": 0,
+        "attempts": [
+          {
+            "at": 0,
+            "startCalled": true,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:8545",
+            "ms": 708
+          },
+          {
+            "at": 1208,
+            "startCalled": false,
+            "outcome": "ready",
+            "ms": 45
+          }
+        ],
+        "lastDetail": "200 {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x14a34\"}",
+        "monitorEvents": [],
+        "workerMs": 1301
+      }
+    },
+    {
+      "step": "R3 anvil: anvil_loadState",
+      "ms": 488.8,
+      "result": true
+    },
+    {
+      "step": "R3 index start (resume)",
+      "ms": 8780.5,
+      "result": {
+        "status": 200,
+        "healthyMs": 6027,
+        "startCalls": 1,
+        "refusals": 0,
+        "readyAfterHealthyMs": 2162,
+        "metrics": [
+          "ponder_settings_info{ordering=\"multichain\",database=\"postgres\",command=\"start\"} 1",
+          "ponder_indexing_completed_events{event=\"Payments:PaymentSent\"} 0",
+          "ponder_indexing_completed_events{event=\"Token:Transfer\"} 0",
+          "ponder_indexing_completed_events{event=\"Company:CompanySafeMinted\"} 0",
+          "ponder_indexing_completed_events{event=\"Company:CapxulSafeClaimed\"} 0",
+          "ponder_indexing_completed_events{event=\"Installer:MoneyDeployed\"} 0",
+          "ponder_indexing_completed_events{event=\"Hats:TransferSingle\"} 0",
+          "ponder_indexing_completed_events{event=\"EntryPoint:UserOperationEvent\"} 0",
+          "ponder_indexing_completed_events{event=\"Head:block\"} 0",
+          "ponder_historical_total_blocks{chain=\"world\"} 10",
+          "ponder_historical_cached_blocks{chain=\"world\"} 0",
+          "ponder_historical_completed_blocks{chain=\"world\"} 10"
+        ]
+      }
+    },
+    {
+      "step": "R3 index caught up",
+      "ms": 1622.6,
+      "result": {
+        "ms": 1623,
+        "index": {
+          "block": "47893261",
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "transfers": 1,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "fingerprint after R3",
+      "ms": 1399.4,
+      "result": {
+        "chain": {
+          "head": 47893261,
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "timestamp": 1791554821,
+          "holderUsdc": 1000000,
+          "operatorNonce": 10
+        },
+        "index": {
+          "block": "47893261",
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "transfers": 1,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "mint 2 more and mine (move on)",
+      "ms": 847.0,
+      "result": [
+        "0x1",
+        "0x1"
+      ]
+    },
+    {
+      "step": "index caught up",
+      "ms": 1366.9,
+      "result": {
+        "ms": 1367,
+        "index": {
+          "block": "47893263",
+          "hash": "0x38e02b2cf14a059ccc4434f682167c08e7ec0bc0665e834f19d2c04605f51762",
+          "transfers": 3,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "K index killed (destroy), chain reverted to P1 by loadState, database NOT restored",
+      "ms": 2045.5,
+      "result": [
+        {
+          "wasRunning": true,
+          "ms": 549
+        },
+        null,
+        true
+      ]
+    },
+    {
+      "step": "K index start against a chain behind its database",
+      "ms": 361541.7,
+      "result": {
+        "status": 200,
+        "healthyMs": null,
+        "startCalls": 22,
+        "refusals": 0,
+        "readyAfterHealthyMs": null,
+        "metrics": []
+      }
+    },
+    {
+      "step": "K index /status and meta",
+      "ms": 1630.9,
+      "result": {
+        "status": {
+          "error": "not running"
+        },
+        "ready": 503,
+        "index": {
+          "block": "47893263",
+          "hash": "0x38e02b2cf14a059ccc4434f682167c08e7ec0bc0665e834f19d2c04605f51762",
+          "transfers": 3,
+          "locked": "0",
+          "build": "8e5c02786c"
+        },
+        "box": {
+          "running": false,
+          "starts": [
+            {
+              "kind": "index",
+              "inspected": {
+                "labels": {},
+                "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9"
+              },
+              "native": false,
+              "began": "2026-11-13T23:28:22.503Z",
+              "readyMs": 4466,
+              "startCalls": 1,
+              "refusals": 0,
+              "attempts": [
+                {
+                  "at": 0,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 314
+                },
+                {
+                  "at": 814,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 1333,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 1853,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 2373,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 21
+                },
+                {
+                  "at": 2894,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 3412,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 3931,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 4450,
+                  "startCalled": false,
+                  "outcome": "ready",
+                  "ms": 16
+                }
+              ],
+              "lastDetail": "200",
+              "monitorEvents": []
+            },
+            {
+              "kind": "index",
+              "inspected": {
+                "labels": {},
+                "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9"
+              },
+              "native": false,
+              "began": "2026-11-13T23:28:46.396Z",
+              "readyMs": 7608,
+              "startCalls": 1,
+              "refusals": 0,
+              "attempts": [
+                {
+                  "at": 0,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 295
+                },
+                {
+                  "at": 795,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 1315,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 1834,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 2354,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 2874,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 3393,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 3913,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 4431,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 59
+                },
+                {
+                  "at": 4990,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 5510,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 6029,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 6548,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 7067,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 7585,
+                  "startCalled": false,
+                  "outcome": "ready",
+                  "ms": 23
+                }
+              ],
+              "lastDetail": "200",
+              "monitorEvents": []
+            },
+            {
+              "kind": "index",
+              "inspected": {
+                "labels": {},
+                "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9"
+              },
+              "native": false,
+              "began": "2026-11-13T23:29:07.266Z",
+              "readyMs": 7347,
+              "startCalls": 1,
+              "refusals": 0,
+              "attempts": [
+                {
+                  "at": 0,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 72
+                },
+                {
+                  "at": 572,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 21
+                },
+                {
+                  "at": 1093,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 1613,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 2133,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 2652,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 3171,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 3691,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 4211,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 4730,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 5250,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 5768,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 6287,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 6806,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 7325,
+                  "startCalled": false,
+                  "outcome": "ready",
+                  "ms": 22
+                }
+              ],
+              "lastDetail": "200",
+              "monitorEvents": []
+            },
+            {
+              "kind": "index",
+              "inspected": {
+                "labels": {},
+                "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9"
+              },
+              "native": false,
+              "began": "2026-11-13T23:29:26.664Z",
+              "readyMs": 6027,
+              "startCalls": 1,
+              "refusals": 0,
+              "attempts": [
+                {
+                  "at": 0,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 300
+                },
+                {
+                  "at": 800,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 1320,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 1839,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 2358,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 2878,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 3396,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 36
+                },
+                {
+                  "at": 3932,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 4451,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 4970,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 5489,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 6008,
+                  "startCalled": false,
+                  "outcome": "ready",
+                  "ms": 19
+                }
+              ],
+              "lastDetail": "200",
+              "monitorEvents": []
+            },
+            {
+              "kind": "index",
+              "inspected": {
+                "labels": {},
+                "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9"
+              },
+              "native": false,
+              "began": "2026-11-13T23:29:42.760Z",
+              "readyMs": null,
+              "startCalls": 22,
+              "refusals": 0,
+              "attempts": [
+                {
+                  "at": 0,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 293
+                },
+                {
+                  "at": 793,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 1311,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 1828,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 2346,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 2864,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 3383,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 3902,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 4421,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 4939,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 5458,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 5976,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 6494,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 7013,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 7532,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 8051,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 8569,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 9088,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 9607,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 10125,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 10643,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 11162,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 11680,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 12198,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 12716,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 13234,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 13752,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 14270,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 87
+                },
+                {
+                  "at": 14857,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 4644
+                },
+                {
+                  "at": 20001,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 20519,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 21038,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 21556,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 22074,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 22593,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 23112,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 23630,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 27
+                },
+                {
+                  "at": 24157,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 24676,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 25194,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 25712,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 26229,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 5381
+                },
+                {
+                  "at": 32110,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 32628,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 33146,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 33664,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 34182,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 34699,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 35218,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 35736,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 36254,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 36771,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 37289,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 5211
+                },
+                {
+                  "at": 43000,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 43520,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 44038,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 44555,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 45073,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 45591,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 46111,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 46629,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 47147,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 47666,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 48185,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 5057
+                },
+                {
+                  "at": 53742,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 54260,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 54778,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 55297,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 55816,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 56334,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 56852,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 57370,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 57888,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 58406,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 58925,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 59443,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 59960,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 60478,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 4751
+                },
+                {
+                  "at": 65729,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 66247,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 66766,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 67283,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 67802,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 68320,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 68837,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 69356,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 69874,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 70393,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 70910,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 6110
+                },
+                {
+                  "at": 77520,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 78038,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 78556,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 79074,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 37
+                },
+                {
+                  "at": 79611,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 80129,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 80647,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 81165,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 81683,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 82201,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 82720,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 83240,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 83758,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 84276,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 4800
+                },
+                {
+                  "at": 89576,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 90094,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 90611,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 91130,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 91649,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 92168,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 92685,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 93203,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 93721,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 94239,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 94758,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 5698
+                },
+                {
+                  "at": 100956,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 101475,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 101994,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 102512,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 103029,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 103547,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 104065,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 104583,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 105101,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 105619,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 106138,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 106656,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 107174,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 4907
+                },
+                {
+                  "at": 112581,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 113101,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 113619,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 114137,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 114656,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 22
+                },
+                {
+                  "at": 115178,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 115696,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 34
+                },
+                {
+                  "at": 116230,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 116748,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 117265,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 117783,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 4853
+                },
+                {
+                  "at": 123136,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 123654,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 124171,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 124688,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 125206,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 125725,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 126243,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 126761,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 127279,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 127797,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 5361
+                },
+                {
+                  "at": 133658,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 134176,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 134693,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 135211,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 135731,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 136250,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 136768,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 137288,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 137806,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 138325,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 138843,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 4653
+                },
+                {
+                  "at": 143996,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 144514,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 145032,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 145551,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 146069,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 146588,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 147106,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 147624,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 148143,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 148662,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 149180,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 5238
+                },
+                {
+                  "at": 154918,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 155436,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 155954,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 156472,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 156991,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 157509,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 158027,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 20
+                },
+                {
+                  "at": 158547,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 159064,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 159583,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 160102,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 5087
+                },
+                {
+                  "at": 165689,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 166208,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 166726,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 167245,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 167763,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 168281,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 168800,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 169318,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 169836,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 170354,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 170873,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 171392,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 171909,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 4997
+                },
+                {
+                  "at": 177406,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 177923,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 178441,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 178960,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 179478,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 179996,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 180514,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 181033,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 23
+                },
+                {
+                  "at": 181556,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 182074,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 5382
+                },
+                {
+                  "at": 187956,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 188474,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 188992,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 189510,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 190028,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 190545,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 191063,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 191581,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 192099,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 192617,
+                  "startCalled": false,
+                  "outcome": "error: The container is not running, consider calling start()",
+                  "ms": 19
+                },
+                {
+                  "at": 193136,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 4503
+                },
+                {
+                  "at": 198139,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 198656,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 199175,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 199693,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 200212,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 200729,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 201247,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 201765,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 202283,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 202801,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 203319,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 5025
+                },
+                {
+                  "at": 208844,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 209362,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 209879,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 210397,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 210915,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 211432,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 211951,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 212468,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 212986,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 213505,
+                  "startCalled": false,
+                  "outcome": "error: The container is not running, consider calling start()",
+                  "ms": 17
+                },
+                {
+                  "at": 214022,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 4828
+                },
+                {
+                  "at": 219350,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 219868,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 16
+                },
+                {
+                  "at": 220384,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 220902,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 221420,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 221937,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 222455,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 222972,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 223490,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 24
+                },
+                {
+                  "at": 224014,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 224532,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 4631
+                },
+                {
+                  "at": 229663,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 259
+                },
+                {
+                  "at": 230422,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 230940,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 16
+                },
+                {
+                  "at": 231456,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 231975,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 232492,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 19
+                },
+                {
+                  "at": 233011,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 233529,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 18
+                },
+                {
+                  "at": 234047,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 17
+                },
+                {
+                  "at": 234564,
+                  "startCalled": true,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 4871
+                },
+                {
+                  "at": 239935,
+                  "startCalled": false,
+                  "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+                  "ms": 554
+                }
+              ],
+              "lastDetail": "The container is not listening in the TCP address 10.0.0.1:42069",
+              "monitorEvents": [
+                "monitor at 14360 ms: Container exited with unexpected exit code: 1",
+                "monitor at 25953 ms: Container exited with unexpected exit code: 1",
+                "monitor at 36883 ms: Container exited with unexpected exit code: 1",
+                "monitor at 48033 ms: Container exited with unexpected exit code: 1",
+                "monitor at 60029 ms: Container exited with unexpected exit code: 1",
+                "monitor at 70742 ms: Container exited with unexpected exit code: 1",
+                "monitor at 83949 ms: Container exited with unexpected exit code: 1",
+                "monitor at 94399 ms: Container exited with unexpected exit code: 1",
+                "monitor at 106942 ms: Container exited with unexpected exit code: 1",
+                "monitor at 117343 ms: Container exited with unexpected exit code: 1",
+                "monitor at 127682 ms: Container exited with unexpected exit code: 1",
+                "monitor at 138386 ms: Container exited with unexpected exit code: 1",
+                "monitor at 148702 ms: Container exited with unexpected exit code: 1",
+                "monitor at 159754 ms: Container exited with unexpected exit code: 1",
+                "monitor at 171637 ms: Container exited with unexpected exit code: 1",
+                "monitor at 181860 ms: Container exited with unexpected exit code: 1",
+                "monitor at 192623 ms: Container exited with unexpected exit code: 1",
+                "monitor at 202991 ms: Container exited with unexpected exit code: 1",
+                "monitor at 213519 ms: Container exited with unexpected exit code: 1",
+                "monitor at 224298 ms: Container exited with unexpected exit code: 1",
+                "monitor at 234516 ms: Container exited with unexpected exit code: 1"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "restore B to the snapshot again, and start its index",
+      "ms": 3782.8,
+      "result": [
+        {
+          "wasRunning": false,
+          "ms": 0
+        },
+        {
+          "status": 200,
+          "apiMs": 440.5654296875,
+          "operationsMs": 3047.931884765625,
+          "answer": null
+        }
+      ]
+    },
+    {
+      "step": "F neon: branch of B with compute (the fork's database)",
+      "ms": 2239.1,
+      "result": [
+        "br-old-boat-za6a5a4r",
+        {
+          "apiMs": 444.123779296875,
+          "operationsMs": 1794.78857421875
+        }
+      ]
+    },
+    {
+      "step": "F chain start empty for the fork",
+      "ms": 1406.1,
+      "result": {
+        "kind": "chain",
+        "inspected": {
+          "labels": {},
+          "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-anvil@sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474"
+        },
+        "native": false,
+        "began": "2026-11-13T23:35:52.594Z",
+        "readyMs": 897,
+        "startCalls": 1,
+        "refusals": 0,
+        "attempts": [
+          {
+            "at": 0,
+            "startCalled": true,
+            "outcome": "error: The container is not listening in the TCP address 10.0.0.1:8545",
+            "ms": 363
+          },
+          {
+            "at": 863,
+            "startCalled": false,
+            "outcome": "ready",
+            "ms": 34
+          }
+        ],
+        "lastDetail": "200 {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x14a34\"}",
+        "monitorEvents": [],
+        "workerMs": 1225
+      }
+    },
+    {
+      "step": "F anvil_loadState of P1 into the fork",
+      "ms": 393.0,
+      "result": true
+    },
+    {
+      "step": "F fork's index start (resume on the forked database)",
+      "ms": 9888.8,
+      "result": {
+        "status": 200,
+        "healthyMs": 7458,
+        "startCalls": 1,
+        "refusals": 0,
+        "readyAfterHealthyMs": 1514,
+        "metrics": [
+          "ponder_settings_info{ordering=\"multichain\",database=\"postgres\",command=\"start\"} 1",
+          "ponder_indexing_completed_events{event=\"Payments:PaymentSent\"} 0",
+          "ponder_indexing_completed_events{event=\"Token:Transfer\"} 0",
+          "ponder_indexing_completed_events{event=\"Company:CompanySafeMinted\"} 0",
+          "ponder_indexing_completed_events{event=\"Company:CapxulSafeClaimed\"} 0",
+          "ponder_indexing_completed_events{event=\"Installer:MoneyDeployed\"} 0",
+          "ponder_indexing_completed_events{event=\"Hats:TransferSingle\"} 0",
+          "ponder_indexing_completed_events{event=\"EntryPoint:UserOperationEvent\"} 0",
+          "ponder_indexing_completed_events{event=\"Head:block\"} 0",
+          "ponder_historical_total_blocks{chain=\"world\"} 10",
+          "ponder_historical_cached_blocks{chain=\"world\"} 0",
+          "ponder_historical_completed_blocks{chain=\"world\"} 10"
+        ]
+      }
+    },
+    {
+      "step": "F fork's index caught up",
+      "ms": 1354.6,
+      "result": {
+        "ms": 1355,
+        "index": {
+          "block": "47893261",
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "transfers": 1,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "F fingerprint of the fork",
+      "ms": 10578.7,
+      "result": {
+        "chain": {
+          "head": 47893261,
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "timestamp": 1791554821,
+          "holderUsdc": 1000000,
+          "operatorNonce": 10
+        },
+        "index": {
+          "block": "47893261",
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "transfers": 1,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "F fork moves on: mint",
+      "ms": 410.5,
+      "result": "0x1"
+    },
+    {
+      "step": "F fork's index indexes it",
+      "ms": 1255.8,
+      "result": {
+        "ms": 1256,
+        "index": {
+          "block": "47893262",
+          "hash": "0xc690be1a0130ed96acb5bb623c139aa43978e3215890eb30c7c6606bf580425b",
+          "transfers": 2,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    }
+  ],
+  "branchCreate": {
+    "apiMs": 785.826171875,
+    "operationsMs": 1904.043212890625
+  },
+  "chainStart": {
+    "kind": "chain",
+    "inspected": {
+      "labels": {},
+      "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-anvil@sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474"
+    },
+    "native": false,
+    "began": "2026-11-13T23:28:20.074Z",
+    "readyMs": 955,
+    "startCalls": 1,
+    "refusals": 0,
+    "attempts": [
+      {
+        "at": 0,
+        "startCalled": true,
+        "outcome": "error: The container is not listening in the TCP address 10.0.0.1:8545",
+        "ms": 426
+      },
+      {
+        "at": 926,
+        "startCalled": false,
+        "outcome": "ready",
+        "ms": 29
+      }
+    ],
+    "lastDetail": "200 {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x14a34\"}",
+    "monitorEvents": [],
+    "workerMs": 1258
+  },
+  "freshBackfill": {
+    "status": 200,
+    "healthyMs": 4466,
+    "startCalls": 1,
+    "refusals": 0,
+    "readyAfterHealthyMs": 2118,
+    "metrics": [
+      "ponder_settings_info{ordering=\"multichain\",database=\"postgres\",command=\"start\"} 1",
+      "ponder_indexing_completed_events{event=\"Payments:PaymentSent\"} 0",
+      "ponder_indexing_completed_events{event=\"Token:Transfer\"} 1",
+      "ponder_indexing_completed_events{event=\"Company:CompanySafeMinted\"} 0",
+      "ponder_indexing_completed_events{event=\"Company:CapxulSafeClaimed\"} 0",
+      "ponder_indexing_completed_events{event=\"Installer:MoneyDeployed\"} 0",
+      "ponder_indexing_completed_events{event=\"Hats:TransferSingle\"} 0",
+      "ponder_indexing_completed_events{event=\"EntryPoint:UserOperationEvent\"} 0",
+      "ponder_indexing_completed_events{event=\"Head:block\"} 10",
+      "ponder_historical_total_blocks{chain=\"world\"} 10",
+      "ponder_historical_cached_blocks{chain=\"world\"} 0",
+      "ponder_historical_completed_blocks{chain=\"world\"} 10"
+    ]
+  },
+  "p2DiffersFromP1": [
+    "chain.holderUsdc: 1000000 != 4000000",
+    "chain.timestamp: 1791554821 != 1791641239",
+    "chain.hash: 0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871 != 0xef03f5a02d44e82ea01618b6488d4491fe297cde47ef533e54a9f808e7531f89",
+    "chain.head: 47893261 != 47893267",
+    "chain.operatorNonce: 10 != 13",
+    "index.transfers: 1 != 4",
+    "index.hash: 0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871 != 0xef03f5a02d44e82ea01618b6488d4491fe297cde47ef533e54a9f808e7531f89",
+    "index.block: 47893261 != 47893267"
+  ],
+  "r1IndexStart": {
+    "status": 200,
+    "healthyMs": 7608,
+    "startCalls": 1,
+    "refusals": 0,
+    "readyAfterHealthyMs": 2047,
+    "metrics": [
+      "ponder_settings_info{ordering=\"multichain\",database=\"postgres\",command=\"start\"} 1",
+      "ponder_indexing_completed_events{event=\"Payments:PaymentSent\"} 0",
+      "ponder_indexing_completed_events{event=\"Token:Transfer\"} 0",
+      "ponder_indexing_completed_events{event=\"Company:CompanySafeMinted\"} 0",
+      "ponder_indexing_completed_events{event=\"Company:CapxulSafeClaimed\"} 0",
+      "ponder_indexing_completed_events{event=\"Installer:MoneyDeployed\"} 0",
+      "ponder_indexing_completed_events{event=\"Hats:TransferSingle\"} 0",
+      "ponder_indexing_completed_events{event=\"EntryPoint:UserOperationEvent\"} 0",
+      "ponder_indexing_completed_events{event=\"Head:block\"} 0",
+      "ponder_historical_total_blocks{chain=\"world\"} 10",
+      "ponder_historical_cached_blocks{chain=\"world\"} 0",
+      "ponder_historical_completed_blocks{chain=\"world\"} 10"
+    ]
+  },
+  "r1TotalMs": 16573,
+  "r1VersusP1": [],
+  "r1LivenessIndexed": {
+    "ms": 1441,
+    "index": {
+      "block": "47893262",
+      "hash": "0x60c642ab507b92513bf62ad6ee45251e9994e3413cacbe5c12b3b11b43dc2aab",
+      "transfers": 2,
+      "locked": "1",
+      "build": "8e5c02786c"
+    }
+  },
+  "r2IndexStart": {
+    "status": 200,
+    "healthyMs": 7347,
+    "startCalls": 1,
+    "refusals": 0,
+    "readyAfterHealthyMs": 1980,
+    "metrics": [
+      "ponder_settings_info{ordering=\"multichain\",database=\"postgres\",command=\"start\"} 1",
+      "ponder_indexing_completed_events{event=\"Payments:PaymentSent\"} 0",
+      "ponder_indexing_completed_events{event=\"Token:Transfer\"} 0",
+      "ponder_indexing_completed_events{event=\"Company:CompanySafeMinted\"} 0",
+      "ponder_indexing_completed_events{event=\"Company:CapxulSafeClaimed\"} 0",
+      "ponder_indexing_completed_events{event=\"Installer:MoneyDeployed\"} 0",
+      "ponder_indexing_completed_events{event=\"Hats:TransferSingle\"} 0",
+      "ponder_indexing_completed_events{event=\"EntryPoint:UserOperationEvent\"} 0",
+      "ponder_indexing_completed_events{event=\"Head:block\"} 0",
+      "ponder_historical_total_blocks{chain=\"world\"} 10",
+      "ponder_historical_cached_blocks{chain=\"world\"} 0",
+      "ponder_historical_completed_blocks{chain=\"world\"} 10"
+    ]
+  },
+  "r2TotalMs": 17113,
+  "r2VersusP1": [],
+  "r3IndexStart": {
+    "status": 200,
+    "healthyMs": 6027,
+    "startCalls": 1,
+    "refusals": 0,
+    "readyAfterHealthyMs": 2162,
+    "metrics": [
+      "ponder_settings_info{ordering=\"multichain\",database=\"postgres\",command=\"start\"} 1",
+      "ponder_indexing_completed_events{event=\"Payments:PaymentSent\"} 0",
+      "ponder_indexing_completed_events{event=\"Token:Transfer\"} 0",
+      "ponder_indexing_completed_events{event=\"Company:CompanySafeMinted\"} 0",
+      "ponder_indexing_completed_events{event=\"Company:CapxulSafeClaimed\"} 0",
+      "ponder_indexing_completed_events{event=\"Installer:MoneyDeployed\"} 0",
+      "ponder_indexing_completed_events{event=\"Hats:TransferSingle\"} 0",
+      "ponder_indexing_completed_events{event=\"EntryPoint:UserOperationEvent\"} 0",
+      "ponder_indexing_completed_events{event=\"Head:block\"} 0",
+      "ponder_historical_total_blocks{chain=\"world\"} 10",
+      "ponder_historical_cached_blocks{chain=\"world\"} 0",
+      "ponder_historical_completed_blocks{chain=\"world\"} 10"
+    ]
+  },
+  "r3TotalMs": 17151,
+  "r3VersusP1": [],
+  "refusalIndexStart": {
+    "status": 200,
+    "healthyMs": null,
+    "startCalls": 22,
+    "refusals": 0,
+    "readyAfterHealthyMs": null,
+    "metrics": []
+  },
+  "refusalStatus": {
+    "status": {
+      "error": "not running"
+    },
+    "ready": 503,
+    "index": {
+      "block": "47893263",
+      "hash": "0x38e02b2cf14a059ccc4434f682167c08e7ec0bc0665e834f19d2c04605f51762",
+      "transfers": 3,
+      "locked": "0",
+      "build": "8e5c02786c"
+    },
+    "box": {
+      "running": false,
+      "starts": [
+        {
+          "kind": "index",
+          "inspected": {
+            "labels": {},
+            "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9"
+          },
+          "native": false,
+          "began": "2026-11-13T23:28:22.503Z",
+          "readyMs": 4466,
+          "startCalls": 1,
+          "refusals": 0,
+          "attempts": [
+            {
+              "at": 0,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 314
+            },
+            {
+              "at": 814,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 1333,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 1853,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 2373,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 21
+            },
+            {
+              "at": 2894,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 3412,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 3931,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 4450,
+              "startCalled": false,
+              "outcome": "ready",
+              "ms": 16
+            }
+          ],
+          "lastDetail": "200",
+          "monitorEvents": []
+        },
+        {
+          "kind": "index",
+          "inspected": {
+            "labels": {},
+            "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9"
+          },
+          "native": false,
+          "began": "2026-11-13T23:28:46.396Z",
+          "readyMs": 7608,
+          "startCalls": 1,
+          "refusals": 0,
+          "attempts": [
+            {
+              "at": 0,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 295
+            },
+            {
+              "at": 795,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 1315,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 1834,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 2354,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 2874,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 3393,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 3913,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 4431,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 59
+            },
+            {
+              "at": 4990,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 5510,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 6029,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 6548,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 7067,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 7585,
+              "startCalled": false,
+              "outcome": "ready",
+              "ms": 23
+            }
+          ],
+          "lastDetail": "200",
+          "monitorEvents": []
+        },
+        {
+          "kind": "index",
+          "inspected": {
+            "labels": {},
+            "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9"
+          },
+          "native": false,
+          "began": "2026-11-13T23:29:07.266Z",
+          "readyMs": 7347,
+          "startCalls": 1,
+          "refusals": 0,
+          "attempts": [
+            {
+              "at": 0,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 72
+            },
+            {
+              "at": 572,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 21
+            },
+            {
+              "at": 1093,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 1613,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 2133,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 2652,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 3171,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 3691,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 4211,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 4730,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 5250,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 5768,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 6287,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 6806,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 7325,
+              "startCalled": false,
+              "outcome": "ready",
+              "ms": 22
+            }
+          ],
+          "lastDetail": "200",
+          "monitorEvents": []
+        },
+        {
+          "kind": "index",
+          "inspected": {
+            "labels": {},
+            "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9"
+          },
+          "native": false,
+          "began": "2026-11-13T23:29:26.664Z",
+          "readyMs": 6027,
+          "startCalls": 1,
+          "refusals": 0,
+          "attempts": [
+            {
+              "at": 0,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 300
+            },
+            {
+              "at": 800,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 1320,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 1839,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 2358,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 2878,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 3396,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 36
+            },
+            {
+              "at": 3932,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 4451,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 4970,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 5489,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 6008,
+              "startCalled": false,
+              "outcome": "ready",
+              "ms": 19
+            }
+          ],
+          "lastDetail": "200",
+          "monitorEvents": []
+        },
+        {
+          "kind": "index",
+          "inspected": {
+            "labels": {},
+            "image": "registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9"
+          },
+          "native": false,
+          "began": "2026-11-13T23:29:42.760Z",
+          "readyMs": null,
+          "startCalls": 22,
+          "refusals": 0,
+          "attempts": [
+            {
+              "at": 0,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 293
+            },
+            {
+              "at": 793,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 1311,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 1828,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 2346,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 2864,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 3383,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 3902,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 4421,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 4939,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 5458,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 5976,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 6494,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 7013,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 7532,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 8051,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 8569,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 9088,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 9607,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 10125,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 10643,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 11162,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 11680,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 12198,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 12716,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 13234,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 13752,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 14270,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 87
+            },
+            {
+              "at": 14857,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 4644
+            },
+            {
+              "at": 20001,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 20519,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 21038,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 21556,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 22074,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 22593,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 23112,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 23630,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 27
+            },
+            {
+              "at": 24157,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 24676,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 25194,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 25712,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 26229,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 5381
+            },
+            {
+              "at": 32110,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 32628,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 33146,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 33664,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 34182,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 34699,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 35218,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 35736,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 36254,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 36771,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 37289,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 5211
+            },
+            {
+              "at": 43000,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 43520,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 44038,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 44555,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 45073,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 45591,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 46111,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 46629,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 47147,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 47666,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 48185,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 5057
+            },
+            {
+              "at": 53742,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 54260,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 54778,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 55297,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 55816,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 56334,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 56852,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 57370,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 57888,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 58406,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 58925,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 59443,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 59960,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 60478,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 4751
+            },
+            {
+              "at": 65729,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 66247,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 66766,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 67283,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 67802,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 68320,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 68837,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 69356,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 69874,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 70393,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 70910,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 6110
+            },
+            {
+              "at": 77520,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 78038,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 78556,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 79074,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 37
+            },
+            {
+              "at": 79611,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 80129,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 80647,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 81165,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 81683,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 82201,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 82720,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 83240,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 83758,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 84276,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 4800
+            },
+            {
+              "at": 89576,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 90094,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 90611,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 91130,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 91649,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 92168,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 92685,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 93203,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 93721,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 94239,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 94758,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 5698
+            },
+            {
+              "at": 100956,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 101475,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 101994,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 102512,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 103029,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 103547,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 104065,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 104583,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 105101,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 105619,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 106138,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 106656,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 107174,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 4907
+            },
+            {
+              "at": 112581,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 113101,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 113619,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 114137,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 114656,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 22
+            },
+            {
+              "at": 115178,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 115696,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 34
+            },
+            {
+              "at": 116230,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 116748,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 117265,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 117783,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 4853
+            },
+            {
+              "at": 123136,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 123654,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 124171,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 124688,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 125206,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 125725,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 126243,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 126761,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 127279,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 127797,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 5361
+            },
+            {
+              "at": 133658,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 134176,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 134693,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 135211,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 135731,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 136250,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 136768,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 137288,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 137806,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 138325,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 138843,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 4653
+            },
+            {
+              "at": 143996,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 144514,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 145032,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 145551,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 146069,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 146588,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 147106,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 147624,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 148143,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 148662,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 149180,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 5238
+            },
+            {
+              "at": 154918,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 155436,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 155954,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 156472,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 156991,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 157509,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 158027,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 20
+            },
+            {
+              "at": 158547,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 159064,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 159583,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 160102,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 5087
+            },
+            {
+              "at": 165689,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 166208,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 166726,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 167245,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 167763,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 168281,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 168800,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 169318,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 169836,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 170354,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 170873,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 171392,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 171909,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 4997
+            },
+            {
+              "at": 177406,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 177923,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 178441,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 178960,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 179478,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 179996,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 180514,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 181033,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 23
+            },
+            {
+              "at": 181556,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 182074,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 5382
+            },
+            {
+              "at": 187956,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 188474,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 188992,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 189510,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 190028,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 190545,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 191063,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 191581,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 192099,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 192617,
+              "startCalled": false,
+              "outcome": "error: The container is not running, consider calling start()",
+              "ms": 19
+            },
+            {
+              "at": 193136,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 4503
+            },
+            {
+              "at": 198139,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 198656,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 199175,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 199693,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 200212,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 200729,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 201247,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 201765,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 202283,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 202801,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 203319,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 5025
+            },
+            {
+              "at": 208844,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 209362,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 209879,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 210397,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 210915,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 211432,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 211951,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 212468,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 212986,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 213505,
+              "startCalled": false,
+              "outcome": "error: The container is not running, consider calling start()",
+              "ms": 17
+            },
+            {
+              "at": 214022,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 4828
+            },
+            {
+              "at": 219350,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 219868,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 16
+            },
+            {
+              "at": 220384,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 220902,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 221420,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 221937,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 222455,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 222972,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 223490,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 24
+            },
+            {
+              "at": 224014,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 224532,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 4631
+            },
+            {
+              "at": 229663,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 259
+            },
+            {
+              "at": 230422,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 230940,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 16
+            },
+            {
+              "at": 231456,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 231975,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 232492,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 19
+            },
+            {
+              "at": 233011,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 233529,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 18
+            },
+            {
+              "at": 234047,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 17
+            },
+            {
+              "at": 234564,
+              "startCalled": true,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 4871
+            },
+            {
+              "at": 239935,
+              "startCalled": false,
+              "outcome": "error: The container is not listening in the TCP address 10.0.0.1:42069",
+              "ms": 554
+            }
+          ],
+          "lastDetail": "The container is not listening in the TCP address 10.0.0.1:42069",
+          "monitorEvents": [
+            "monitor at 14360 ms: Container exited with unexpected exit code: 1",
+            "monitor at 25953 ms: Container exited with unexpected exit code: 1",
+            "monitor at 36883 ms: Container exited with unexpected exit code: 1",
+            "monitor at 48033 ms: Container exited with unexpected exit code: 1",
+            "monitor at 60029 ms: Container exited with unexpected exit code: 1",
+            "monitor at 70742 ms: Container exited with unexpected exit code: 1",
+            "monitor at 83949 ms: Container exited with unexpected exit code: 1",
+            "monitor at 94399 ms: Container exited with unexpected exit code: 1",
+            "monitor at 106942 ms: Container exited with unexpected exit code: 1",
+            "monitor at 117343 ms: Container exited with unexpected exit code: 1",
+            "monitor at 127682 ms: Container exited with unexpected exit code: 1",
+            "monitor at 138386 ms: Container exited with unexpected exit code: 1",
+            "monitor at 148702 ms: Container exited with unexpected exit code: 1",
+            "monitor at 159754 ms: Container exited with unexpected exit code: 1",
+            "monitor at 171637 ms: Container exited with unexpected exit code: 1",
+            "monitor at 181860 ms: Container exited with unexpected exit code: 1",
+            "monitor at 192623 ms: Container exited with unexpected exit code: 1",
+            "monitor at 202991 ms: Container exited with unexpected exit code: 1",
+            "monitor at 213519 ms: Container exited with unexpected exit code: 1",
+            "monitor at 224298 ms: Container exited with unexpected exit code: 1",
+            "monitor at 234516 ms: Container exited with unexpected exit code: 1"
+          ]
+        }
+      ]
+    }
+  },
+  "forkBranchCreate": {
+    "apiMs": 444.123779296875,
+    "operationsMs": 1794.78857421875
+  },
+  "forkIndexStart": {
+    "status": 200,
+    "healthyMs": 7458,
+    "startCalls": 1,
+    "refusals": 0,
+    "readyAfterHealthyMs": 1514,
+    "metrics": [
+      "ponder_settings_info{ordering=\"multichain\",database=\"postgres\",command=\"start\"} 1",
+      "ponder_indexing_completed_events{event=\"Payments:PaymentSent\"} 0",
+      "ponder_indexing_completed_events{event=\"Token:Transfer\"} 0",
+      "ponder_indexing_completed_events{event=\"Company:CompanySafeMinted\"} 0",
+      "ponder_indexing_completed_events{event=\"Company:CapxulSafeClaimed\"} 0",
+      "ponder_indexing_completed_events{event=\"Installer:MoneyDeployed\"} 0",
+      "ponder_indexing_completed_events{event=\"Hats:TransferSingle\"} 0",
+      "ponder_indexing_completed_events{event=\"EntryPoint:UserOperationEvent\"} 0",
+      "ponder_indexing_completed_events{event=\"Head:block\"} 0",
+      "ponder_historical_total_blocks{chain=\"world\"} 10",
+      "ponder_historical_cached_blocks{chain=\"world\"} 0",
+      "ponder_historical_completed_blocks{chain=\"world\"} 10"
+    ]
+  },
+  "forkVersusP1": [],
+  "forkLiveness": {
+    "ms": 1256,
+    "index": {
+      "block": "47893262",
+      "hash": "0xc690be1a0130ed96acb5bb623c139aa43978e3215890eb30c7c6606bf580425b",
+      "transfers": 2,
+      "locked": "1",
+      "build": "8e5c02786c"
+    }
+  },
+  "fingerprints": {
+    "P1": {
+      "chain": {
+        "head": 47893261,
+        "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+        "timestamp": 1791554821,
+        "holderUsdc": 1000000,
+        "operatorNonce": 10
+      },
+      "index": {
+        "block": "47893261",
+        "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+        "transfers": 1,
+        "locked": "1",
+        "build": "8e5c02786c"
+      }
+    },
+    "P2": {
+      "chain": {
+        "head": 47893267,
+        "hash": "0xef03f5a02d44e82ea01618b6488d4491fe297cde47ef533e54a9f808e7531f89",
+        "timestamp": 1791641239,
+        "holderUsdc": 4000000,
+        "operatorNonce": 13
+      },
+      "index": {
+        "block": "47893267",
+        "hash": "0xef03f5a02d44e82ea01618b6488d4491fe297cde47ef533e54a9f808e7531f89",
+        "transfers": 4,
+        "locked": "1",
+        "build": "8e5c02786c"
+      }
+    },
+    "R1": {
+      "chain": {
+        "head": 47893261,
+        "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+        "timestamp": 1791554821,
+        "holderUsdc": 1000000,
+        "operatorNonce": 10
+      },
+      "index": {
+        "block": "47893261",
+        "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+        "transfers": 1,
+        "locked": "1",
+        "build": "8e5c02786c"
+      }
+    },
+    "R2": {
+      "chain": {
+        "head": 47893261,
+        "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+        "timestamp": 1791554821,
+        "holderUsdc": 1000000,
+        "operatorNonce": 10
+      },
+      "index": {
+        "block": "47893261",
+        "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+        "transfers": 1,
+        "locked": "1",
+        "build": "8e5c02786c"
+      }
+    },
+    "R3": {
+      "chain": {
+        "head": 47893261,
+        "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+        "timestamp": 1791554821,
+        "holderUsdc": 1000000,
+        "operatorNonce": 10
+      },
+      "index": {
+        "block": "47893261",
+        "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+        "transfers": 1,
+        "locked": "1",
+        "build": "8e5c02786c"
+      }
+    },
+    "fork": {
+      "chain": {
+        "head": 47893261,
+        "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+        "timestamp": 1791554821,
+        "holderUsdc": 1000000,
+        "operatorNonce": 10
+      },
+      "index": {
+        "block": "47893261",
+        "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+        "transfers": 1,
+        "locked": "1",
+        "build": "8e5c02786c"
+      }
+    }
+  },
+  "cleanup": {
+    "rs1-12496-f/index": {
+      "forgotten": true
+    },
+    "rs1-12496-f/chain": {
+      "forgotten": true
+    },
+    "rs1-12496/index": {
+      "forgotten": true
+    },
+    "rs1-12496/chain": {
+      "forgotten": true
+    },
+    "br-raspy-pine-zagi0ht4": {
+      "status": 422,
+      "apiMs": 216.819580078125,
+      "operationsMs": 0
+    },
+    "br-old-boat-za6a5a4r": {
+      "status": 200,
+      "apiMs": 301.54736328125,
+      "operationsMs": 1039.75439453125
+    },
+    "br-flat-haze-zanqhov8": {
+      "status": 422,
+      "apiMs": 200.099609375,
+      "operationsMs": 0
+    },
+    "br-broad-unit-zaemgyp5": {
+      "status": 200,
+      "apiMs": 262.394775390625,
+      "operationsMs": 619.617919921875
+    }
+  }
+}

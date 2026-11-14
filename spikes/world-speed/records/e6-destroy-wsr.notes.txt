@@ -1,0 +1,15 @@
+What the destroy of world wsr (after the in-place reset) needed, in order, 13 November 2026 UTC:
+
+23:47:18  ./run.sh destroy wsr (e6-destroy-wsr.log) failed: dropSnapshots deleted snapshot s1's branch, then Neon refused
+          to delete s2's: "cannot delete branch that has children: br-winter-forest-zainigdn". The restore of the
+          world's branch from s2 (POST /branches/{world}/restore, source s2, preserve_under_name ws-pre-wsr) had made
+          the WORLD's branch a child of the SNAPSHOT's branch, and s2 a child of the preserved branch ws-pre-wsr.
+23:47:43  The world's branch (br-winter-forest-zainigdn) deleted through Neon's API.
+23:47:49  ./run.sh destroy wsr (e6-destroy-wsr-2.log) failed again: dropSnapshots tried s1 again (its row was still in
+          platform.snapshots) and Neon answers 422 "branch is already deleted", which dropBranch does not tolerate.
+23:48:0x  s2's branch deleted through Neon's API; the two rows of w-wsr deleted from platform.snapshots in the registry.
+23:48:24  ./run.sh destroy wsr (e6-destroy-wsr-3.log) passed: 12 resources destroyed, name released.
+23:48:3x  The preserved branch ws-pre-wsr (br-old-pond-za507p34) deleted. The project holds main and registry only.
+
+So an in-place restore changes the branch tree that take-down relies on: the world's branch must go before the
+snapshot it was restored from, and dropBranch should treat "already deleted" as done.

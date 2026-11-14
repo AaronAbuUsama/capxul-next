@@ -1,0 +1,41 @@
+[00:10:08.234] WARN: alchemy 2.0.0-beta.87 is available (you're on 2.0.0-beta.85). Run `bun add alchemy@2.0.0-beta.87` to upgrade.
+[00:10:08.248] INFO: Destroy · ws-native
+[00:10:08.248] INFO: Importing stack module
+[00:10:08.976] INFO: Resolving stack services
+[00:10:08.976] INFO: Loading stack state
+[00:10:09.110] INFO: Computing plan
+[00:10:09.111] INFO: Plan ready (863ms)
+[00:10:09.247] INFO: Plan: 7 to delete, 7 binding changes
+[00:10:09.247] INFO: [Alto] delete
+[00:10:09.248] INFO: [Anvil] delete
+[00:10:09.248] INFO: [Hub/BundlerBox-Containers] delete
+[00:10:09.248] INFO: [Hub/BundlerBox-Containers/Alto] unbind
+[00:10:09.248] INFO: [Hub/ChainBox-Containers] delete
+[00:10:09.248] INFO: [Hub/ChainBox-Containers/Anvil] unbind
+[00:10:09.248] INFO: [Hub] delete
+[00:10:09.248] INFO: [Hub/BundlerBox] unbind
+[00:10:09.248] INFO: [Hub/ChainBox] unbind
+[00:10:09.249] INFO: [Hub/HUB_TOKEN] unbind
+[00:10:09.249] INFO: [Hub/IndexBox] unbind
+[00:10:09.249] INFO: [Hub/IndexBox-Containers] delete
+[00:10:09.249] INFO: [Hub/IndexBox-Containers/Ponder] unbind
+[00:10:09.250] INFO: [Ponder] delete
+[00:10:09.250] INFO: 
+[00:10:09.274] INFO: [Hub/ChainBox-Containers] deleting
+[00:10:09.274] INFO: [Hub] deleting
+[00:10:09.274] INFO: [Hub/BundlerBox-Containers] deleting
+[00:10:09.275] INFO: [Hub/IndexBox-Containers] deleting
+[00:10:09.357] INFO: [Hub/ChainBox-Containers] Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+[00:10:09.365] INFO: [Hub] Cloudflare Worker delete: deleting capxulspikeworldspeed-hub-ws-native-xynlcmtikm47t3ra
+[00:10:11.922] INFO: [Hub/ChainBox-Containers] deleted (2.6s)
+[00:10:12.057] INFO: [Hub/IndexBox-Containers] deleted (2.8s)
+[00:10:12.057] INFO: [Hub/BundlerBox-Containers] deleted (2.8s)
+[00:10:12.142] INFO: [Hub] deleted (2.9s)
+[00:10:12.142] INFO: [Ponder] deleting
+[00:10:12.142] INFO: [Anvil] deleting
+[00:10:12.142] INFO: [Alto] deleting
+[00:10:12.755] INFO: [Ponder] deleted (613ms)
+[00:10:12.756] INFO: [Anvil] deleted (614ms)
+[00:10:12.821] INFO: [Alto] deleted (679ms)
+[00:10:12.881] INFO: 
+[00:10:12.881] INFO: Done: 7 succeeded (3.6s)

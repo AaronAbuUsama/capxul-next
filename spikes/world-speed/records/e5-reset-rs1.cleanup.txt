@@ -1,0 +1,5 @@
+The run that wrote e5-reset-rs1.json deleted its own branch B and the fork, but two deletes were refused (422):
+after a restore with preserve_under_name, Neon moves the children of B to the preserved branch, so the order the
+script used was wrong. Both were deleted by hand right after (23:43 UTC): br-flat-haze-zanqhov8 (ws-rs1-12496-s1)
+then br-raspy-pine-zagi0ht4 (ws-rs1-12496-pre-r1); the project then held only main and registry. The script now
+deletes childless branches of its own until none is left.
