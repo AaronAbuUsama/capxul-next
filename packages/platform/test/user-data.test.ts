@@ -16,7 +16,9 @@ test("the data volume is found by its id, formatted only if it has no filesystem
 });
 
 test("Docker listens on its socket and on the machine's loopback, never on another address", () => {
-  assert.match(script, /-H unix:\/\/\/var\/run\/docker\.sock -H tcp:\/\/127\.0\.0\.1:2375 /);
+  assert.match(script, /-H fd:\/\/ -H tcp:\/\/127\.0\.0\.1:2375 /);
+  // docker.service requires docker.socket on Amazon Linux: a masked socket keeps the engine from starting.
+  assert.doesNotMatch(script, /mask docker\.socket/);
   assert.doesNotMatch(script, /tcp:\/\/0\.0\.0\.0/);
   assert.match(script, /^#!\/bin\/bash\n/);
 });
