@@ -33,9 +33,20 @@ const settled = (resourceType: string, attributes: Attributes): Attributes => {
   );
 };
 
-/** Whether a resource's live attributes differ from its recorded ones only in values that settle. */
-export const onlySettlingDiffers = (resourceType: string, recorded: Attributes, live: Attributes): boolean =>
-  isDeepStrictEqual(settled(resourceType, recorded), settled(resourceType, live));
+/**
+ * The fields in which a resource's live attributes differ from its recorded ones, values that settle aside: their
+ * names only, as the report shows them (a value may be a secret). None means it has not drifted.
+ */
+export const differingFields = (
+  resourceType: string,
+  recorded: Attributes,
+  live: Attributes,
+): ReadonlyArray<string> => {
+  const before = settled(resourceType, recorded);
+  const after = settled(resourceType, live);
+  const fields = Arr.dedupe([...Rec.keys(before), ...Rec.keys(after)]);
+  return Arr.filter(fields, (field) => !isDeepStrictEqual(before[field], after[field]));
+};
 
 /** Whether Alchemy skipped a resource because a deploy did not finish (alchemy src/Drift.ts, its two reasons). */
 export const unfinished = (reason: string | undefined): boolean =>
