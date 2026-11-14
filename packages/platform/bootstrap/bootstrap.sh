@@ -24,7 +24,7 @@ case "$MODE" in apply | rotate | revoke) ;; *) die "usage: bootstrap.sh [rotate 
 bold "1. The tools on this laptop"
 for t in aws gh bun pnpm python3 curl; do command -v "$t" >/dev/null || die "$t is not installed (BOOTSTRAP.md, 'What you need')"; done
 info "aws $(aws --version 2>&1 | cut -d' ' -f1 | cut -d/ -f2), gh $(gh --version | head -1 | cut -d' ' -f3), bun $(bun --version)"
-gh auth status >/dev/null 2>&1 || die "gh is not signed in: run 'gh auth login'"
+gh auth status --active >/dev/null 2>&1 || die "gh's active account is not signed in: run 'gh auth login'"   # --active: a stale second account must not fail it
 AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text 2>/dev/null)" || die "aws is not signed in: run 'aws sso login' or 'aws configure'"
 info "AWS account $AWS_ACCOUNT_ID, as $(aws sts get-caller-identity --query Arn --output text)"
 (cd "$ROOT" && pnpm install --frozen-lockfile >/dev/null) || die "pnpm install failed in $ROOT"
