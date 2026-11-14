@@ -19,24 +19,16 @@ import { secretOf } from "../stack/engine.ts";
 import { nameOf } from "../stack/names.ts";
 import { doorCall, readyOn, soon, tokenFor } from "./Bench.ts";
 
-/**
- * A backup as the door answers it. The door makes it in the background and answers `saving` at once, then `saved` or
- * `failed` (with `error`) at `GET /world/backup/<snapshot>`; a door deployed before that answered the saved backup
- * itself, with no `state`.
- */
-const Backup = Schema.Struct({
-  world: Schema.String,
-  snapshot: Schema.String,
-  state: Schema.optional(Schema.Literals(["saving", "saved", "failed"])),
-  sites: Schema.Array(Schema.Struct({ site: Schema.String, label: Schema.String, ms: Schema.NullOr(Schema.Finite) })),
-  error: Schema.String.pipe(Schema.NullOr, Schema.optional),
+const SavedSites = Schema.Array(Schema.Struct({ site: Schema.String, label: Schema.String, ms: Schema.Finite }));
+/** A door from before the background backup answers the saved sites at once. */
+const Saved = Schema.Struct({ world: Schema.String, snapshot: Schema.String, sites: SavedSites });
+/** The door now starts the backup and answers 202: a backup can outlast the 100 s Cloudflare allows a request. */
+const Started = Schema.Struct({ state: Schema.Literal("saving") });
+const BackupState = Schema.Struct({
+  state: Schema.Literals(["saving", "saved", "failed"]),
+  sites: Schema.optional(SavedSites),
+  error: Schema.optional(Schema.String),
 });
-
-/**
- * How long a save waits for its backup. The bench makes one backup, new site or restore at a time, so a backup can
- * wait behind other worlds' sites being made from nothing (over two minutes each).
- */
-const BACKUP_WAIT = Duration.minutes(12);
 
 const Restoring = Schema.Struct({
   sites: Schema.Array(Schema.Struct({ site: Schema.String, from: Schema.String })),
@@ -45,58 +37,32 @@ const Restoring = Schema.Struct({
 /** The world's clock as the bench sets it: frozen at an instant, or running at an offset from the host's. */
 export type BenchClock = { readonly frozen_at_ms: number } | { readonly offset_ms: number };
 
-/** The backup once it is no longer `saving`: its sites when saved, its reason when it failed. */
-const settled = (backup: typeof Backup.Type): Effect.Effect<typeof Backup.Type.sites, SiteFailed> => {
-  if (backup.state === "failed")
-    return Effect.fail(SiteFailed.make({ step: "backup", message: `${backup.snapshot}: ${backup.error ?? "failed"}` }));
-  if (backup.state === "saving")
-    return Effect.fail(SiteFailed.make({ step: "waiting", message: `${backup.snapshot} is still being saved` }));
-  return Effect.succeed(backup.sites);
-};
-
-/**
- * Saves every site of world `stage` on `bench` under `snapshot`; answers what was saved. The door starts the backup
- * and answers at once (no call through Cloudflare's edge may take over 100 s); its state is then read until it is
- * saved, within `BACKUP_WAIT`.
- */
+/** Saves every site of world `stage` on `bench` under `snapshot`; answers what was saved. */
 export const saveSites = Effect.fn("world.site.save")(function* (stage: string, bench: string, snapshot: string) {
   const { door, token } = yield* tokenFor(bench, nameOf(stage), 0, yield* soon);
-  return yield* backUp(door, token, snapshot);
+  const answer = yield* doorCall(
+    door,
+    token,
+    HttpClientRequest.post("/world/backup").pipe(HttpClientRequest.bodyJsonUnsafe({ snapshot })),
+    Schema.Union([Saved, Started]),
+  );
+  if ("sites" in answer) return answer.sites;
+  // Asked again every 3 s until the backup is saved or failed, as a site being made is (Bench.ts, readyOn).
+  return yield* doorCall(door, token, HttpClientRequest.get(`/world/backup/${snapshot}`), BackupState).pipe(
+    Effect.flatMap((backup) =>
+      backup.state === "saved"
+        ? Effect.succeed(backup.sites ?? [])
+        : Effect.fail(
+            SiteFailed.make(
+              backup.state === "saving"
+                ? { step: "waiting", message: `${snapshot} is still being saved` }
+                : { step: "door", message: `backup ${snapshot}: ${backup.error ?? "failed"}` },
+            ),
+          ),
+    ),
+    Effect.retry({ while: (error) => error.step === "waiting", schedule: Schedule.spaced(Duration.seconds(3)) }),
+  );
 });
-
-/** The world's backup `snapshot` asked of the door at `door` with `token`, and waited for: its sites once saved. */
-export const backUp = (door: string, token: Redacted.Redacted, snapshot: string) =>
-  Effect.gen(function* () {
-    const asked = yield* doorCall(
-      door,
-      token,
-      HttpClientRequest.post("/world/backup").pipe(HttpClientRequest.bodyJsonUnsafe({ snapshot })),
-      Backup,
-    );
-    return yield* settled(asked).pipe(
-      Effect.catchIf(
-        (error) => error.step === "waiting",
-        () =>
-          doorCall(door, token, HttpClientRequest.get(`/world/backup/${snapshot}`), Backup).pipe(
-            Effect.flatMap(settled),
-            Effect.retry({
-              while: (error) => error.step === "waiting",
-              schedule: Schedule.spaced(Duration.seconds(2)),
-            }),
-          ),
-      ),
-      Effect.timeoutOrElse({
-        duration: BACKUP_WAIT,
-        orElse: () =>
-          Effect.fail(
-            SiteFailed.make({
-              step: "backup",
-              message: `${snapshot} was not saved within ${Duration.format(BACKUP_WAIT)}`,
-            }),
-          ),
-      }),
-    );
-  });
 
 /**
  * Makes again, in world `stage`, every site that world `from` saved as `snapshot` on `bench`, and waits until each is

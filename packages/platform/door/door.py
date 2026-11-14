@@ -29,9 +29,9 @@ GET    /world                         the token's claims and the world's sites
 ANY    /sites/<site>/api/...          a call to the site's own REST API, as the user `Authorization: token k:s` names;
                                       cookies are dropped, and any other kind of credential is refused
 POST   /clock {"frozen_at_ms": n} or {"offset_ms": n}   sets the world's clock, through one of its sites
-POST   /world/backup {"snapshot"}     starts saving every site of the world under the snapshot's name and answers 202,
-                                      `saving` (snapshots.py); it waits for the bench's other commands, off the request
-GET    /world/backup/<snapshot>       that backup: `saving`, `saved` with each site, or `failed` with why
+POST   /world/backup {"snapshot"}     starts saving every site of the world under the snapshot's name and answers
+                                      202 (snapshots.py): a backup can outlast the 100 s Cloudflare allows a request
+GET    /world/backup/<snapshot>       that backup: saving, saved (with its sites) or failed (with why)
 POST   /world/restore {"snapshot", "api_key", "api_secret", "clock"}   with the source world's token in
        `X-Capxul-Source-Token`: starts restoring every site that world saved as the snapshot into the token's world,
        each under its own label, and answers 202; each is then a site of this world like any other
@@ -62,7 +62,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import points
 import pool
 from claim import claim_world
-from snapshots import backup_state, backup_world, remove_backups, restore_world
+from snapshots import backup_state, remove_backups, restore_world, start_backup, tidy_backups
 from sites import (BENCH, DB_ROOT, DOMAIN, FORWARDED, KEY, LABEL, PORT, REGISTRY, REGISTRY_LOCK, SECRET, SITE_CALL, TOKEN, WEB,
                    Refused,
                    bench, build, entries_of, entry_path, public, read_entry, remove_site, site_of, update_entry,
@@ -203,7 +203,7 @@ class Door(BaseHTTPRequestHandler):
             if route == ("POST", "/clock"):
                 return self.answer(200, set_clock(c, body))
             if route == ("POST", "/world/backup"):
-                return self.answer(202, backup_world(c, body))
+                return self.answer(202, start_backup(c, body))
             if route == ("POST", "/world/restore"):
                 source = claims(self.headers, header="X-Capxul-Source-Token")
                 return self.answer(202, restore_world(c, source, body))
@@ -242,5 +242,6 @@ if __name__ == "__main__":
         if stale.get("state") in ("creating", "removing"):
             update_entry(stale["site"], state="failed", error="the door restarted while it was being made or removed")
     pool.tidy()
+    tidy_backups()
     print(f"door: serving on {PORT} for {DOMAIN}", flush=True)
     ThreadingHTTPServer(("0.0.0.0", PORT), Door).serve_forever()

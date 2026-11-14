@@ -4,8 +4,7 @@ into a new one. door.py checks the tokens; this does the work.
 A backup is every ready site of a world, saved under the snapshot's name: `bench backup` of its database, and what
 its own site_config.json must carry over (the encryption key, which decrypts what the site stored encrypted). It lives
 in the door's registry folder, `<REGISTRY>/backups/<world>/<snapshot>/<label>/`, and goes when the world's sites go
-(`DELETE /world`). Saving under a name already held replaces it. It is made in the background: `POST /world/backup`
-answers `saving` at once, and `GET /world/backup/<snapshot>` says when it is `saved` or `failed`.
+(`DELETE /world`). Saving under a name already held replaces it.
 
 A restore makes, for each site of a backup, a new site of the token's world with the same label: a new site whose
 database starts from the backup (`bench new-site --source-sql`), with the backup's encryption key, joined to the new
@@ -25,13 +24,10 @@ import threading
 import time
 
 from sites import (BENCH, DB_ROOT, DOMAIN, REGISTRY, REGISTRY_LOCK, Refused, BENCH_LOCK, bench, entries_of, read_entry,
-                   site_lock, update_entry, write_entry)
+                   update_entry, write_entry)
 
 SNAPSHOT = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 BACKUPS = f"{REGISTRY}/backups"
-# Each backup asked since the door started, by (world, snapshot): `saving`, then `saved` or `failed`. A backup saved
-# before is read from its folder.
-_BACKUPS, _BACKUPS_GUARD = {}, threading.Lock()
 
 # Gives the site's own API user (made by sites.make_core_user in the world the site was saved in) the new world's
 # credential. The key and secret reach it through its environment, never its arguments.
@@ -60,100 +56,97 @@ def _label_of(site, world):
     return site[: -len(suffix)] if site.endswith(suffix) else None
 
 
-def backup_world(c, body):
-    """Starts backing up every site of the token's world under `snapshot`, replacing a backup of that name, and
-    answers at once with the backup `saving`; `GET /world/backup/<snapshot>` says when it is `saved` (or `failed`).
+def _job_path(world, snapshot):
+    return f"{_snapshot_dir(world, snapshot)}.job.json"
 
-    The backup runs bench commands, one at a time across the bench (BENCH_LOCK), so it can wait behind another world's
-    site being made from nothing (over two minutes): answered on the request's path, that wait outlasted the 100 s a
-    call may take through Cloudflare's edge (HTTP 524, PR #227's CI run 43599082569). It runs in the background, as a
-    new site and a restore do.
-    """
+
+def _write_job(world, snapshot, job):
+    path = _job_path(world, snapshot)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(f"{path}.tmp", "w") as f:
+        json.dump(job, f)
+    os.rename(f"{path}.tmp", path)
+
+
+def start_backup(c, body):
+    """Starts backing up every ready site of the token's world under `snapshot` and answers at once (202): a backup
+    of a site with its files can outlast the 100 s Cloudflare allows a request through the tunnel. The caller asks
+    `backup_state` until it is `saved` or `failed`."""
     world, snapshot = c["world"], body.get("snapshot")
-    target = _snapshot_dir(world, snapshot)
-    entries = entries_of(world)
-    if any(e.get("state") != "ready" for e in entries):
+    _snapshot_dir(world, snapshot)
+    held = entries_of(world)
+    if any(e.get("state") != "ready" for e in held):
         raise Refused(409, "site-not-ready", "every site of the world must be ready to be saved")
-    with _BACKUPS_GUARD:
-        doing = _BACKUPS.get((world, snapshot))
-        if doing is not None and doing["state"] == "saving":
-            return _backup_answer(world, snapshot, doing)
-        doing = {"state": "saving", "sites": [], "error": None, "asked_at": int(time.time()), "ms": None}
-        _BACKUPS[(world, snapshot)] = doing
-    threading.Thread(target=_backup, args=(world, snapshot, target, entries), daemon=True).start()
-    return _backup_answer(world, snapshot, doing)
+    _write_job(world, snapshot, {"state": "saving", "started_at": int(time.time())})
+
+    def run():
+        started = time.monotonic()
+        try:
+            saved = _backup(world, snapshot, held)
+            job = {"state": "saved", "sites": saved, "ms": int((time.monotonic() - started) * 1000)}
+        except Refused as r:
+            job = {"state": "failed", "error": f"{r.code}: {r.detail}"[:600]}
+        except Exception as e:  # noqa: BLE001 -- recorded for the caller, never a secret
+            job = {"state": "failed", "error": repr(e)[-600:].replace(DB_ROOT, "<root>")}
+        _write_job(world, snapshot, job)
+
+    threading.Thread(target=run, daemon=True).start()
+    return {"world": world, "snapshot": snapshot, "state": "saving"}
 
 
 def backup_state(c, snapshot):
-    """The token's world's backup `snapshot`: `saving`, `saved` with its sites, or `failed` with why."""
-    world = c["world"]
-    target = _snapshot_dir(world, snapshot)
-    with _BACKUPS_GUARD:
-        doing = _BACKUPS.get((world, snapshot))
-        if doing is not None:
-            return _backup_answer(world, snapshot, dict(doing))
-    # Saved before the door last started: what the backup's folder holds.
-    saved = []
-    for path in sorted(glob.glob(f"{target}/*/meta.json")):
-        with open(path) as f:
-            meta = json.load(f)
-        dump = f"{os.path.dirname(path)}/{meta['dump']}"
-        saved.append({"site": meta["site"], "label": meta["label"], "ms": None,
-                      "bytes": os.path.getsize(dump) if os.path.exists(dump) else None})
-    if not saved:
-        raise Refused(404, "backup-not-found", f"{world} saved no site as {snapshot}")
-    return {"world": world, "snapshot": snapshot, "state": "saved", "sites": saved, "error": None, "ms": None}
-
-
-def _backup_answer(world, snapshot, doing):
-    return {"world": world, "snapshot": snapshot, "state": doing["state"], "sites": list(doing["sites"]),
-            "error": doing["error"], "ms": doing["ms"]}
-
-
-def _backup(world, snapshot, target, entries):
-    staging = f"{target}.saving-{secrets.token_hex(4)}"
-    saved, t0 = [], time.monotonic()
+    """Where the token's world's backup `snapshot` is: saving, saved (with its sites) or failed (with why)."""
     try:
-        with BENCH_LOCK:
-            try:
-                for entry in entries:
-                    with site_lock(entry["site"]):
-                        saved.append(_backup_site(entry, world, staging))
-                shutil.rmtree(target, ignore_errors=True)
-                os.makedirs(os.path.dirname(target), exist_ok=True)
-                if saved:
-                    os.rename(staging, target)
-            finally:
-                shutil.rmtree(staging, ignore_errors=True)
-        done = {"state": "saved", "sites": saved, "error": None}
-        print(f"door: {world} saved {len(saved)} sites as {snapshot}", flush=True)
-    except Exception as e:  # noqa: BLE001 -- a backup that failed says why; nothing else is told
-        detail = e.detail if isinstance(e, Refused) else repr(e)
-        done = {"state": "failed", "sites": saved, "error": detail[-600:].replace(DB_ROOT, "<root>")}
-        print(f"door: {world} backup {snapshot} failed: {done['error'][-300:]}", flush=True)
-    with _BACKUPS_GUARD:
-        _BACKUPS[(world, snapshot)] = {**done, "asked_at": None, "ms": round((time.monotonic() - t0) * 1000)}
+        with open(_job_path(c["world"], snapshot)) as f:
+            return {"world": c["world"], "snapshot": snapshot, **json.load(f)}
+    except FileNotFoundError:
+        raise Refused(404, "backup-not-found", f"{c['world']} has no backup {snapshot} under way or done") from None
 
 
-def _backup_site(entry, world, staging):
-    """`bench backup` of one site into the staging folder, and what a restore needs beside its dump."""
-    site, label = entry["site"], _label_of(entry["site"], world)
-    folder = f"{staging}/{label}"
-    os.makedirs(folder, exist_ok=True)
-    _, ms = bench("--site", site, "backup", "--backup-path", folder)
-    dumps = glob.glob(f"{folder}/*-database.sql.gz")
-    if len(dumps) != 1:
-        raise Refused(500, "backup-failed", f"{site}: {len(dumps)} database dumps")
-    with open(f"{BENCH}/sites/{site}/site_config.json") as f:
-        key = json.load(f).get("encryption_key")
-    meta = {"site": site, "label": label, "company": entry.get("company"), "dump": os.path.basename(dumps[0]),
-            "encryption_key": key, "saved_at": int(time.time())}
-    with open(f"{folder}/meta.json", "w") as f:
-        json.dump(meta, f)
-    for extra in glob.glob(f"{folder}/*"):
-        if not extra.endswith(("-database.sql.gz", "meta.json")):
-            os.remove(extra)
-    return {"site": site, "label": label, "ms": ms, "bytes": os.path.getsize(dumps[0])}
+def tidy_backups():
+    """A backup left `saving` by a door that stopped half-way is not being made any more."""
+    for path in glob.glob(f"{BACKUPS}/*/*.job.json"):
+        with open(path) as f:
+            job = json.load(f)
+        if job.get("state") == "saving":
+            with open(path, "w") as f:
+                json.dump({**job, "state": "failed", "error": "the door restarted while it was saving"}, f)
+
+
+def _backup(world, snapshot, held):
+    """Backs up every site of `held` (all ready) under `snapshot`, replacing a backup of that name."""
+    target = _snapshot_dir(world, snapshot)
+    ready = [e for e in held if e.get("state") == "ready"]
+    staging = f"{target}.saving-{secrets.token_hex(4)}"
+    saved = []
+    with BENCH_LOCK:
+        try:
+            for entry in ready:
+                site, label = entry["site"], _label_of(entry["site"], world)
+                folder = f"{staging}/{label}"
+                os.makedirs(folder, exist_ok=True)
+                _, ms = bench("--site", site, "backup", "--backup-path", folder)
+                dumps = glob.glob(f"{folder}/*-database.sql.gz")
+                if len(dumps) != 1:
+                    raise Refused(500, "backup-failed", f"{site}: {len(dumps)} database dumps")
+                with open(f"{BENCH}/sites/{site}/site_config.json") as f:
+                    key = json.load(f).get("encryption_key")
+                meta = {"site": site, "label": label, "company": entry.get("company"), "dump": os.path.basename(dumps[0]),
+                        "encryption_key": key, "saved_at": int(time.time())}
+                with open(f"{folder}/meta.json", "w") as f:
+                    json.dump(meta, f)
+                for extra in glob.glob(f"{folder}/*"):
+                    if not extra.endswith(("-database.sql.gz", "meta.json")):
+                        os.remove(extra)
+                saved.append({"site": site, "label": label, "ms": ms, "bytes": os.path.getsize(dumps[0])})
+            shutil.rmtree(target, ignore_errors=True)
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            if saved:
+                os.rename(staging, target)
+        finally:
+            shutil.rmtree(staging, ignore_errors=True)
+    print(f"door: {world} saved {len(saved)} sites as {snapshot}", flush=True)
+    return saved
 
 
 def restore_world(c, source, body):
@@ -239,6 +232,3 @@ def _restore(site, world, meta, key, secret, clock):
 
 def remove_backups(world):
     shutil.rmtree(f"{BACKUPS}/{world}", ignore_errors=True)
-    with _BACKUPS_GUARD:
-        for key in [k for k in _BACKUPS if k[0] == world]:
-            del _BACKUPS[key]

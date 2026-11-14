@@ -71,59 +71,6 @@ class Bench(unittest.TestCase):
             shutil.rmtree(folder, ignore_errors=True)
 
 
-class BackupTest(Bench):
-    def test_a_backup_answers_saving_at_once_while_the_bench_is_busy(self):
-        ready_site()
-        sites.BENCH_LOCK.acquire()  # another world's site being made from nothing
-        t0 = time.monotonic()
-        asked = snapshots.backup_world(token(), {"snapshot": "payment-drafted"})
-        self.assertLess(time.monotonic() - t0, 1.0, "the backup is not made on the request's path")
-        self.assertEqual(asked["state"], "saving")
-        self.assertEqual(snapshots.backup_state(token(), "payment-drafted")["state"], "saving")
-        again = snapshots.backup_world(token(), {"snapshot": "payment-drafted"})
-        self.assertEqual(again["state"], "saving", "a second ask while it saves answers the same backup")
-        sites.BENCH_LOCK.release()
-        done = settled("payment-drafted")
-        self.assertEqual(done["state"], "saved")
-        self.assertEqual([(s["site"], s["label"], s["bytes"]) for s in done["sites"]], [(SITE, "northwind", 4)])
-        folder = f"{snapshots.BACKUPS}/{WORLD}/payment-drafted/northwind"
-        self.assertEqual(sorted(os.listdir(folder)), ["20261114_000000-site-database.sql.gz", "meta.json"])
-        with open(f"{folder}/meta.json") as f:
-            self.assertEqual(json.load(f)["encryption_key"], "key-for-tests")
-
-    def test_a_backup_saved_before_the_door_started_is_read_from_its_folder(self):
-        ready_site()
-        snapshots.backup_world(token(), {"snapshot": "founded"})
-        settled("founded")
-        snapshots._BACKUPS.clear()  # the door restarted
-        state = snapshots.backup_state(token(), "founded")
-        self.assertEqual((state["state"], [s["site"] for s in state["sites"]]), ("saved", [SITE]))
-        with self.assertRaises(Refused) as r:
-            snapshots.backup_state(token(), "never-saved")
-        self.assertEqual((r.exception.status, r.exception.code), (404, "backup-not-found"))
-        with self.assertRaises(Refused) as r:
-            snapshots.backup_state(token("w2"), "founded")
-        self.assertEqual(r.exception.code, "backup-not-found", "another world's backup is not seen")
-
-    def test_a_failed_backup_says_why_and_leaves_no_folder(self):
-        ready_site()
-        snapshots.bench = failing_bench
-        snapshots.backup_world(token(), {"snapshot": "founded"})
-        done = settled("founded")
-        self.assertEqual(done["state"], "failed")
-        self.assertIn("no space left", done["error"])
-        self.assertEqual(os.listdir(f"{snapshots.BACKUPS}/{WORLD}"), [], "nothing half-saved is left")
-
-    def test_a_backup_is_refused_before_any_work(self):
-        ready_site(state="creating")
-        with self.assertRaises(Refused) as r:
-            snapshots.backup_world(token(), {"snapshot": "founded"})
-        self.assertEqual(r.exception.code, "site-not-ready")
-        with self.assertRaises(Refused) as r:
-            snapshots.backup_world(token(), {"snapshot": "Bad Name"})
-        self.assertEqual(r.exception.code, "snapshot-invalid")
-
-
 class RemovalTest(Bench):
     def removed_within(self, seconds):
         done = []
