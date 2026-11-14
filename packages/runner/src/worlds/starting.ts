@@ -71,6 +71,10 @@ export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (
   timings: Timings,
 ) {
   const templates = yield* Ref.make(new Map<string, Making>());
+  // What a journey of a saved starting world is handed: the world as its snapshot holds it, so without the save's own
+  // call, whose event is written after the snapshot is taken and is gone once the world is reset to it. The world
+  // made on from it (`templates`) keeps that call, as its record keeps the event.
+  const handed = yield* Ref.make(new Map<string, Making>());
   // A template whose making failed is not made again: its steps may have run half-way in the one world, so a second
   // try would meet what the first left there. Every later journey of it fails with the first failure.
   const unmade = yield* Ref.make(new Map<string, RunnerFailure>());
@@ -169,7 +173,9 @@ export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (
         run(world, steps, from),
       );
       if (fromNothing(world) && after.own !== null) yield* Ref.set(one, Option.some(after.own.world));
-      const done = Arr.contains(yield* Ref.get(toSave), world.name) ? yield* save(world, after) : after;
+      const saving = Arr.contains(yield* Ref.get(toSave), world.name);
+      const done = saving ? yield* save(world, after) : after;
+      if (saving) yield* Ref.update(handed, (all) => new Map([...all, [world.name, after]]));
       yield* Ref.update(templates, (all) => new Map([...all, [world.name, done]]));
       return done;
     }).pipe(
@@ -232,7 +238,10 @@ export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (
   const forScenario = (world: StartingWorld): Effect.Effect<Making, RunnerFailure, Needs> =>
     Effect.gen(function* () {
       if (world === startingWorlds.nothing) return nothing;
-      if (world.made === "from its template") return yield* templateOf(world);
+      if (world.made === "from its template") {
+        const template = yield* templateOf(world);
+        return (yield* Ref.get(handed)).get(world.name) ?? template;
+      }
       const from = world.from === null ? nothing : yield* forScenario(world.from);
       return yield* run(world, yield* stepsOf(world), from);
     });
