@@ -52,7 +52,10 @@ def site(tz="Europe/London"):
     with clock_module(tz) as (clock, frappe, utils, directory):
         jobs = JobTypes()
         frappe.db = jobs
-        yield clock, frappe, jobs, directory
+        try:
+            yield clock, frappe, jobs, directory
+        finally:
+            jobs.db.close()
 
 
 def settle():
