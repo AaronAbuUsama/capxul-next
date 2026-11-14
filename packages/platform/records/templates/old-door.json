@@ -1,0 +1,80 @@
+{
+ "mode": "old",
+ "door": "http://127.0.0.1:18181",
+ "steps": [
+  {
+   "at_ms": 2839,
+   "who": "A",
+   "step": "founded: its site made from nothing (POST /sites, then until ready)",
+   "status": 202
+  },
+  {
+   "at_ms": 2844,
+   "who": "A",
+   "step": "payment-drafted saved: its site kept as template payment-drafted",
+   "status": 200,
+   "ms": 3,
+   "made": "the door before says nothing",
+   "made_by": "wa"
+  },
+  {
+   "at_ms": 3854,
+   "who": "A",
+   "step": "reset to fresh: its site removed",
+   "status": 200,
+   "ms": 1009
+  },
+  {
+   "at_ms": 5662,
+   "who": "B",
+   "step": "founded: its site made from nothing (POST /sites, then until ready)",
+   "status": 202
+  },
+  {
+   "at_ms": 6170,
+   "who": "B",
+   "step": "payment-drafted saved: its site kept as template payment-drafted",
+   "status": 200,
+   "ms": 5,
+   "made": "the door before says nothing",
+   "made_by": "wb"
+  },
+  {
+   "at_ms": 6481,
+   "who": "A",
+   "step": "reset to payment-drafted: its site claimed from payment-drafted",
+   "status": 200,
+   "ms": 309,
+   "refused": null,
+   "state": "ready",
+   "copy_of_world": "wb",
+   "its_own_company_facts": false
+  },
+  {
+   "at_ms": 6486,
+   "who": "A",
+   "step": "the run's end: template payment-drafted dropped",
+   "status": 200,
+   "ms": 4
+  },
+  {
+   "at_ms": 7184,
+   "who": "B",
+   "step": "reset to fresh: its site removed",
+   "status": 200,
+   "ms": 1014
+  },
+  {
+   "at_ms": 7188,
+   "who": "B",
+   "step": "reset to payment-drafted: its site claimed from payment-drafted",
+   "status": 404,
+   "ms": 2,
+   "refused": "template-not-found",
+   "state": null,
+   "copy_of_world": null,
+   "its_own_company_facts": null
+  }
+ ],
+ "templatesLeft": []
+}

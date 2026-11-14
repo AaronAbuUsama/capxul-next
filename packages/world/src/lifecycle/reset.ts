@@ -11,9 +11,9 @@
 //   chain     anvil reset and loaded with the snapshot's state, in place (src/chain/Chain.ts, `reset`)
 //   clock     Core's clock set to read the snapshot's time now, and the chain's next block mined at that time, as a
 //             restore and a warp do (`mineAtWorldTime`); the bench's clock entry set to it too (src/site/Points.ts)
-//   sites     each company site put back to the snapshot's point on the bench, in place, or claimed from the bench's
-//             template of the snapshot's name when the point lost its sites; a snapshot of no company removes the
-//             world's sites (src/site/Points.ts)
+//   sites     each company site put back to the snapshot's point on the bench, in place, or claimed from the bench
+//             template the caller names (the one the world kept of the snapshot) when the point lost its sites; a
+//             snapshot of no company removes the world's sites (src/site/Points.ts)
 //   then      Ponder started again on the restored schema (as soon as the chain is back) and waited for until it has
 //             the chain's head; alto and Core waited for beside it
 //
@@ -65,8 +65,12 @@ const caughtUp = (world: World) =>
     return Number(indexed);
   }).pipe(Effect.retry({ schedule: Schedule.spaced("250 millis"), times: 1200 }));
 
-/** Rewinds world `name` in place to its snapshot `snapshot`, part by part, and says how long each part took. */
-export const reset = Effect.fn("world.reset")(function* (name: string, snapshot: string) {
+/**
+ * Rewinds world `name` in place to its snapshot `snapshot`, part by part, and says how long each part took. `template`
+ * is the bench template the world kept of the snapshot (`keepSitesAsTemplate`), claimed from when the point lost its
+ * sites.
+ */
+export const reset = Effect.fn("world.reset")(function* (name: string, snapshot: string, template?: string) {
   const timeout = yield* ResetTimeout;
   const stage = yield* mustExist(name);
   const output = yield* Schema.decodeUnknownEffect(WorldOutput)(yield* recordedOutput(stage));
@@ -119,6 +123,7 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
               saved.clock_mode === "frozen"
                 ? { frozen_at_ms: saved.clock_ms }
                 : { offset_ms: saved.clock_ms - clockAt },
+              Option.fromNullishOr(template),
             ),
           );
     const [indexedBlock] = yield* Effect.all(

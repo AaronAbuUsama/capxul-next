@@ -1,0 +1,61 @@
+// packages/world's own client of bench templates (src/site/Points.ts `keepTemplate`, src/site/Templates.ts
+// `templateCode`, `templateName` and `sweepTemplates`) over real HTTP to the stand-in bench's door, as run.sh serves
+// it (WORLD_BENCH=local). run.sh copies this file into packages/world as client-proof.ts, runs it and removes it.
+// Prints one JSON record.
+import * as NodeServices from "@effect/platform-node/NodeServices";
+import * as Cause from "effect/Cause";
+import * as Duration from "effect/Duration";
+import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
+import * as Layer from "effect/Layer";
+import * as Schema from "effect/Schema";
+import * as FetchHttpClient from "effect/http/FetchHttpClient";
+import * as HttpClientRequest from "effect/http/HttpClientRequest";
+import { doorCall, readyOn, SiteState, soon, tokenFor } from "./src/site/Bench.ts";
+import { keepTemplate } from "./src/site/Points.ts";
+import { sweepTemplates, templateCode, templateName } from "./src/site/Templates.ts";
+
+const CODE = ["blueprint/src", "core/src", "world/src", "runner/src/worlds"];
+const credential = { api_key: "a".repeat(16), api_secret: "b".repeat(32) };
+
+/** World `world`'s one site, made through the door and waited for. */
+const siteOf = (world: string) =>
+  Effect.gen(function* () {
+    const { door, token } = yield* tokenFor("local", world, 2, yield* soon);
+    const body = { label: "northwind", company: "Northwind", ...credential };
+    const asked = yield* doorCall(door, token, HttpClientRequest.post("/sites").pipe(HttpClientRequest.bodyJsonUnsafe(body)), SiteState);
+    return yield* readyOn(door, token, asked.site);
+  });
+
+const removeWorld = (world: string) =>
+  Effect.gen(function* () {
+    const { door, token } = yield* tokenFor("local", world, 0, yield* soon);
+    yield* doorCall(door, token, HttpClientRequest.delete("/world"), Schema.Unknown);
+  });
+
+const program = Effect.gen(function* () {
+  yield* siteOf("wd");
+  yield* siteOf("we");
+  const [codeTook, code] = yield* Effect.timed(templateCode(`${import.meta.dirname}/..`, CODE));
+  const template = yield* templateName("payment-drafted", code, "wd");
+  const first = yield* keepTemplate("w-wd", "local", template, "payment-drafted");
+  const again = yield* keepTemplate("w-wd", "local", template, "payment-drafted");
+  const other = yield* Effect.exit(keepTemplate("w-we", "local", template, "payment-drafted"));
+  const atOnce = yield* sweepTemplates(false);
+  yield* Effect.sleep("2500 millis");
+  const later = yield* sweepTemplates(false);
+  yield* removeWorld("wd");
+  yield* removeWorld("we");
+  return {
+    code: { ms: Math.round(Duration.toMillis(codeTook)), fingerprint: code },
+    template,
+    "keepTemplate, first": first,
+    "keepTemplate, again by the same world": again,
+    "keepTemplate of the same name by another world": Exit.isFailure(other) ? Cause.pretty(other.cause).split("\n")[0] : "kept",
+    "sweepTemplates at once (idle 2 s)": atOnce,
+    "sweepTemplates 2.5 s later": later,
+  };
+});
+
+const record = await Effect.runPromise(program.pipe(Effect.provide(Layer.mergeAll(NodeServices.layer, FetchHttpClient.layer))));
+console.log(JSON.stringify(record, null, 1));

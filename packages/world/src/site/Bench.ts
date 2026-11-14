@@ -72,7 +72,7 @@ const LocalBench = Config.all({
 });
 
 /** Where `bench`'s door answers and its key: from the shared state for a platform stage, else the local bench's. */
-const doorOf = (bench: string) =>
+export const doorOf = (bench: string) =>
   bench === LOCAL_BENCH
     ? Effect.map(LocalBench, (local) => ({ door: local.door, key: local.key }))
     : withState((state) =>

@@ -35,10 +35,14 @@ GET    /world/backup/<snapshot>       that backup: saving, saved (with its sites
 POST   /world/restore {"snapshot", "api_key", "api_secret", "clock"}   with the source world's token in
        `X-Capxul-Source-Token`: starts restoring every site that world saved as the snapshot into the token's world,
        each under its own label, and answers 202; each is then a site of this world like any other
-POST   /templates {"template", "site"} or {"template", "snapshot"}   makes (or replaces) a starting world's template
-       from a ready site of the token's world, or from a snapshot it saved, and fills its pool (pool.py)
-GET    /templates                     every template, its sites and how many ready copies each has
-DELETE /templates/<template>          removes a template and its pool
+POST   /templates {"template", "site"} or {"template", "snapshot"}   makes a template from a ready site of the
+       token's world, or from a snapshot it saved, and fills its pool (templates.py, pool.py); a template never
+       changes, so one that exists is answered as it is (`made: false`)
+GET    /templates                     every template, its sites, how many ready copies each has, and when it was
+                                      last used
+POST   /templates/sweep {"idle_s", "dry_run"?}   removes every template last used more than idle_s ago (at least
+                                      DOOR_TEMPLATE_MIN_IDLE_S) whose lock is free; no run removes one by name
+DELETE /templates/<template>          removes a template and its pool: for a person, never a run
 POST   /world/claim {"template", "api_key", "api_secret", "clock"?, "browser_core_url"?}   gives the token's world a
        ready copy of every site of the template, each `<label>-<world>.<domain>`, and answers when they are ready
        (about 1.1 s a site; about 4 s with the pool empty) (claim.py)
@@ -46,7 +50,7 @@ POST   /world/save {"point"}          saves every site of the world to a point, 
 POST   /world/reset {"point"}         resets every site the point saved, in place, and the world's clock entry
 GET    /world/points                  the world's points
 DELETE /world/points/<point>          removes a point
-GET    /health
+GET    /health                        {"ok": true, "app": <a hash of the apps the bench makes sites with>}
 """
 
 import glob
@@ -61,6 +65,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import points
 import pool
+import templates
 from claim import claim_world
 from snapshots import backup_state, remove_backups, restore_world, start_backup, tidy_backups
 from sites import (BENCH, DB_ROOT, DOMAIN, FORWARDED, KEY, LABEL, PORT, REGISTRY, REGISTRY_LOCK, SECRET, SITE_CALL, TOKEN, WEB,
@@ -124,7 +129,8 @@ def set_clock(c, body):
 
 
 FAST_ROUTES = {
-    ("POST", "/templates"): pool.make_template,
+    ("POST", "/templates"): templates.make_template,
+    ("POST", "/templates/sweep"): templates.sweep,
     ("POST", "/world/claim"): claim_world,
     ("POST", "/world/save"): points.save_world,
     ("POST", "/world/reset"): points.reset_world,
@@ -169,7 +175,7 @@ class Door(BaseHTTPRequestHandler):
         route = (method, self.path)
         try:
             if route == ("GET", "/health"):
-                return self.answer(200, {"ok": True})
+                return self.answer(200, {"ok": True, "app": templates.app_version()})
             m = SITE_CALL.match(self.path)
             if m:
                 return self.site_call(method, m.group(1), m.group(2))
@@ -190,7 +196,7 @@ class Door(BaseHTTPRequestHandler):
             if route == ("GET", "/templates"):
                 return self.answer(200, pool.list_templates())
             if method == "DELETE" and self.path.startswith("/templates/"):
-                return self.answer(200, pool.drop_template(self.path[len("/templates/"):]))
+                return self.answer(200, templates.drop_template(self.path[len("/templates/"):]))
             if method == "GET" and self.path.startswith("/world/backup/"):
                 return self.answer(200, backup_state(c, self.path[len("/world/backup/"):]))
             if route == ("GET", "/world/points"):
@@ -242,6 +248,7 @@ if __name__ == "__main__":
         if stale.get("state") in ("creating", "removing"):
             update_entry(stale["site"], state="failed", error="the door restarted while it was being made or removed")
     pool.tidy()
+    print(f"door: the bench's apps hash to {templates.app_version()}", flush=True)
     tidy_backups()
     print(f"door: serving on {PORT} for {DOMAIN}", flush=True)
     ThreadingHTTPServer(("0.0.0.0", PORT), Door).serve_forever()

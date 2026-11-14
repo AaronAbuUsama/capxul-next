@@ -60,8 +60,11 @@ from the shared state by whoever holds the Cloudflare key (`src/state.ts`), neve
 | `POST /world/backup {snapshot}` | Starts saving every site of the world (each must be ready) under the snapshot's name (`door/snapshots.py`) and **answers 202 `saving` at once**: `bench backup` of its database and its encryption key, in the door's registry folder; a second save of the name replaces it. Seconds per site, once the bench's other long commands let it run (it waits behind a site being made from nothing, over two minutes, which answered on the request's path outlasted Cloudflare's 100 s: HTTP 524 in PR #227's CI run 43599082569). |
 | `GET /world/backup/<snapshot>` | That backup: `saving`; `saved` with each site's `{site, label, ms, bytes}`; or `failed` with `error`. One saved before the door last started is read from its folder; none answers `backup-not-found`. |
 | `POST /world/restore {snapshot, api_key, api_secret, clock}` | With the source world's token in `X-Capxul-Source-Token` as well: makes every site that world saved as the snapshot again in the token's world, under the same label, and answers 202. Each is a new site from the backup (`bench new-site --source-sql`), with the backup's encryption key, joined to the new world (`capxul.world.rewrite`), set to its clock, its API user given the new credential, its scheduler on: about 8 s in the rehearsal, against about 95 s for a new site. Within the token's quota. |
-| `POST /templates {template, site}` or `{template, snapshot}` | Makes (or replaces) a starting world's **template**: a copy, inside MariaDB, of a ready site of the token's world (that world built it from nothing with `POST /sites` and ran the starting world's steps), or of every site in a snapshot it saved with `POST /world/backup`. `template` is the starting world's name in the blueprint (`founded`, `office-holder`, `payment-drafted`, `payment-held`, `paid`); each site keeps its label. Answers 200 when it is made (about 3 s a site), then fills its pool in the background (`door/pool.py`). Any valid token may make, replace or remove a template: they are the bench's, not a world's, and outlive the world that made them. |
-| `GET /templates`, `DELETE /templates/<template>` | Every template, its sites and how many ready copies each has in the pool, with the last refills' times; removes a template, its pool and their databases. |
+| `POST /templates {template, site}` or `{template, snapshot}` | Makes a **template**: a copy, inside MariaDB, of a ready site of the token's world (that world built it from nothing with `POST /sites` and ran the starting world's steps), or of every site in a snapshot it saved with `POST /world/backup`. `template` is a name of up to 40 of a-z, 0-9 and `-`; packages/world names it `<starting world>-<code>-<world>` ("Bench templates never change", below); each site keeps its label. Answers 200 with `made: true` when it is made (about 3 s a site), then fills its pool in the background (`door/pool.py`). **A template never changes**: when the name exists, nothing is made and the template is answered as it is, with `made: false` and each site's `made_by`; two makes of a new name at once make it once, the second waiting for the first. Any valid token may make one: they are the bench's, not a world's, and outlive the world that made them. |
+| `GET /templates` | Every whole template, its sites and how many ready copies each has in the pool, when it was last used (`used_at`, `idle_s`: made or claimed from), with the last refills' times. |
+| `POST /templates/sweep {idle_s, dry_run?}` | Removes every template last used more than `idle_s` ago (whole seconds, at least `DOOR_TEMPLATE_MIN_IDLE_S`, an hour by default; `sweep-idle-invalid` otherwise), with its pool and their databases, and skips one whose lock is held (being made, copied from with its pool empty, or refilled). Answers `{removed, kept, busy}`; `dry_run` removes nothing. packages/world's `sweep` calls it with 6 hours. |
+| `DELETE /templates/<template>` | Removes a template, its pool and their databases. For a person: no run removes a template by name. |
+| `GET /health` | `{ok: true, app}`: `app` is a hash of the apps the bench makes sites with (the capxul app's files, and every other app's `__init__.py`, which holds its version), read at the door's start, which a template's name fingerprints. |
 | `POST /world/claim {template, api_key, api_secret, clock?, browser_core_url?}` | Gives the token's world a ready copy of every site of the template, each `<label>-<world>.<domain>`, within its quota, and **answers 200 when they are ready** (about 1.4 s a site from the pool; about 4 s when the pool is empty and the copy is made from the template on the claim's path). Each copy is joined to the world (`capxul.world.rewrite`: its world, its host name, its jobs settled on the world's time), the world's clock set when `clock` (`{frozen_at_ms}` or `{offset_ms}`) is given, its API user given the world's credential, its scheduler on, all in one process (`door/claim.py`). The site then is a site of the world like one made by `POST /sites`: Core reaches it the same way. It holds the template world's company facts (org, Safe address, hats), so the world must hold the matching chain state (a restore of the same snapshot). |
 | `POST /world/save {point}` | Saves every site of the world (each must be ready) to a **point**: a copy of its database inside MariaDB with each table's checksum, its files (`public/files`, `private/files`), its site config, and once the world's entry in the bench's world clocks. About 3 s a site. A second save of the name replaces it. (`door/points.py`) |
 | `POST /world/reset {point}` | Resets every site the point saved **in place** (same name, database and credential): only the tables whose checksum differs are emptied and refilled from the saved copy in one transaction, a table made since is dropped and one dropped since made again, the files put back if any differ, the site config if it differs, the site's queued jobs removed and its cache keys in Redis cleared; then the world's clock entry put back (a frozen clock reads the saved instant again). Answers 200 with each site's steps, the tables put back and `sites_not_in_point` (sites made since, left alone). Well under a second for a small site. Refuses `point-not-found`, or `point-site-missing` if a saved site is gone or not ready. |
@@ -77,12 +80,12 @@ proof (`packages/world/records/site.proof.json`) on the stand-in stage `pr-site`
 
 The decision "Sites from a pool" (14 November 2026) as `spikes/site-speed` measured it, built into the door:
 
-- **Templates** (`door/pool.py`). One per starting world that has companies, named as the blueprint names it
-  (`packages/blueprint/src/starting-worlds.ts`: `founded`, `office-holder`, `payment-drafted`, `payment-held`, `paid`;
-  their one company is Northwind, label `northwind`). A template world makes the starting world once by its steps
-  and hands its sites over with `POST /templates {template, site}` (or `{template, snapshot}` from a saved backup).
-  A template is a database and a site folder under the door's registry: the bench neither serves nor schedules it,
-  so it never drifts.
+- **Templates** (`door/templates.py`). A starting world's company sites (`packages/blueprint/src/starting-worlds.ts`:
+  `founded`, `office-holder`, `payment-drafted`, `payment-held`, `paid`; their one company is Northwind, label
+  `northwind`). A template world makes the starting world once by its steps and hands its sites over with
+  `POST /templates {template, site}` (or `{template, snapshot}` from a saved backup). A template is a database and a
+  site folder under the door's registry: the bench neither serves nor schedules it, so it never drifts. It is made
+  once, never changed, and removed by age ("Bench templates never change", below).
 - **The pool**. `DOOR_POOL_SIZE` (default 2) ready copies of each template site: a copy of its database inside
   MariaDB with its own user, and its folder, off the top of `sites/`, so they cost disk (about 110 MiB each) and no
   CPU. Refilled in the background after every claim, one copy at a time bench-wide.
@@ -117,7 +120,7 @@ The decision "Sites from a pool" (14 November 2026) as `spikes/site-speed` measu
 | Work | Holds | So |
 |---|---|---|
 | Claim, save, reset of a site | that site's lock and one of `DOOR_FAST_SLOTS` (default 4) | Different sites, of one world or many, run at once, up to 4; the same site's calls queue |
-| Claim with the pool empty, pool refill, template made again | the template's lock | Copies from one template are made one after another; claims from the pool do not wait for them |
+| Template made, claim with the pool empty, pool refill, sweep of that template | the template's lock | Copies from one template are made one after another; claims from the pool do not wait for them; a sweep passes over a template whose lock is held. A claim marks its template used under the lock first, so a sweep never removes one being claimed from |
 | Refill | one bench-wide refill lock | One pool copy is made at a time, so refills never take more than one MariaDB copy's worth of the machine |
 | New site from nothing, restore from a backup, `bench backup` | `BENCH_LOCK`, as before | Still one at a time across the bench (each runs bench commands for up to a minute or more), and each runs **off the request's path** (202, then a status call), so none holds a call through Cloudflare's edge, whose limit is 100 s; claims, saves, resets and removals do not wait for them |
 | Removal of a site (`bench drop-site`) | that site's lock and one of `DOOR_FAST_SLOTS`; `BENCH_LOCK` too only for a site still being made from nothing or restored | A removal never waits behind another world's long command (it used to, and so could outlast the edge's 100 s) |
@@ -144,6 +147,53 @@ for 130 s), with packages/world's own client saving the world (`save.ts.txt`):
 
 Not run on `staging`: the door changes there only when `platform.yml` deploys it. Until then packages/world's save
 still takes the old door's answer.
+
+### Bench templates never change (14 November 2026)
+
+Two CI `world` runs at once broke each other on `staging`: templates were named after their starting world
+(`payment-drafted`) and any run replaced them and dropped them at its end, so one run dropped `payment-drafted` while
+another was about to claim from it ("the bench keeps no template payment-drafted to claim them from"), and `world.yml`
+ran one at a time. The decision (docs/roadmap.md, "Bench templates never change"), as built:
+
+- **Named by what it holds.** packages/world names a template `<starting world>-<code>-<world>` (its
+  `src/site/Templates.ts`): `code` fingerprints the code that makes it (the blueprint's starting worlds, Core, the
+  world package and the runner's makers) and the bench's apps (`GET /health`'s `app`), and `world` is the world whose
+  sites it copies. The world is in the name because a template's sites hold that world's company facts (the org id
+  Core drew at random, the Safe minted under it, its approvals' and payments' ids): a copy claimed into another world
+  answers `org-not-here` for that world's company. So a template can only serve the world that made it, and two runs
+  never ask for the same one.
+- **Made once, then only copied from.** The door makes a template in `<template>.making` and renames it into place
+  once whole; a make of a name that exists makes nothing (`made: false`), and two at once make it once. packages/world
+  refuses a template another world made. A half-made one left by a door that stopped is removed at its start.
+- **No run removes one.** The runner no longer drops its templates at its end. packages/world's `sweep`, which
+  `world.yml` runs after every run, asks the door to remove those unused for 6 hours (`POST /templates/sweep`); a
+  claim marks its template used, and the sweep skips one whose lock is held.
+
+`records/templates/` proves it on a stand-in bench (`run.sh`: the real `door/door.py`, `bench` replaced by
+`records/backup-async/bench-stand-in.sh`, pymysql and the bench's Python by `stand-in/`, so no MariaDB), with two runs
+A and B at once doing at the door what the runner does with its one world's site: made from nothing, kept as a
+template, removed by a reset to `fresh`, claimed back by a reset to `payment-drafted`:
+
+| | The door before, templates named after the starting world (`old-door.json`) | This door and naming (`new-door.json`) |
+|---|---|---|
+| B keeps its template while A is going | replaces A's `payment-drafted` | makes `payment-drafted-3f9a0c1d-wb`; A's `…-wa` untouched |
+| A claims its site back | 200, a copy of **B's** site (B's company facts in A's world) | 200, a copy of its own |
+| A's run ends | drops `payment-drafted` | drops nothing |
+| B claims its site back | **404 `template-not-found`**: the failure seen in CI | 200, a copy of its own |
+| Two makes of one new name at once | | one made (`made: true`), the other answered with it (`made: false`, the same database) |
+| Another world makes a name that exists | | nothing made, answered with the first world's (`made_by`), which packages/world refuses |
+| Sweeps (floor 2 s for the proof) | | `idle_s` 1 refused; idle 30 s removed nothing (one template busy refilling its pool); after a claim, idle 3 s removed the two unused and kept the one just claimed from; 3 s later removed it |
+
+`records/templates/client.json` is packages/world's own client against the same door: `templateCode` read the door's
+`app` and fingerprinted the code in under 0.1 s; `keepTemplate` made `payment-drafted-<code>-wd`, answered `made: false`
+the second time, and failed for world `we` ("made by world wd, not we"); `sweepTemplates` kept it at once and removed
+it 2.5 s later with `WORLD_TEMPLATE_IDLE` at 2 seconds.
+
+Not run on `staging`: the door changes there only when `platform.yml` deploys it. Until then the runner's new names
+already keep runs apart on the door there (a door that replaces a name nobody else uses changes nothing), but that
+door neither refuses a second make nor sweeps (packages/world's sweep says so in its report and goes on), so templates
+stay on the bench until it is deployed and the next sweep runs. Not measured: how many runs at once the bench holds;
+each still makes its company site from nothing, one at a time across the bench (`BENCH_LOCK`, two to three minutes).
 
 ### What is proven, on a local bench
 
@@ -180,8 +230,8 @@ were not timed apart. Resets are faster than the spike's 0.5 s, with MariaDB's c
   hold the matching chain state, which a world restored from the same snapshot does.
 - Not put back by a reset: a table's schema changed since the save (a migrate in between), a job already running,
   and Frappe's own 60 s cache of a site config (the reset writes the config only when it differs).
-- Templates are the bench's: any valid token may make, replace or remove one. Tokens are minted only by holders of
-  the door key.
+- Templates are the bench's: any valid token may make one or sweep them, and nothing stops a token's holder from
+  removing one with `DELETE /templates/<template>`. Tokens are minted only by holders of the door key.
 - A long pause of the world is not the door's job: it does not stop the scheduler for a world's sites.
 
 ## The drift check
@@ -266,12 +316,13 @@ no AWS keys, may not create a Cloudflare credential (a tunnel's token is one), a
 | `alchemy.run.ts`, `host.run.ts` | The platform's stack and the bench host's |
 | `src/names.ts`, `src/stage.ts` | Every name, from the stage |
 | `src/host.ts`, `src/aws.ts`, `src/user-data.ts` | The machine: the Docker context, the AWS resources, the first boot |
-| `src/bench.ts`, `src/mariadb.ts`, `bench/`, `door/`, `src/edge.ts` | The bench, its MariaDB's settings, its image, the site door (`door.py`; `sites.py`, `snapshots.py`, `pool.py`, `claim.py`, `points.py`, `db.py`; unit tests in `door/tests/`, `pnpm door:test`), the tunnel and DNS |
+| `src/bench.ts`, `src/mariadb.ts`, `bench/`, `door/`, `src/edge.ts` | The bench, its MariaDB's settings, its image, the site door (`door.py`; `sites.py`, `snapshots.py`, `templates.py`, `pool.py`, `claim.py`, `points.py`, `db.py`; unit tests in `door/tests/`, `pnpm door:test`), the tunnel and DNS |
 | `src/token.ts`, `src/state.ts`, `src/door.ts`, `src/run-mint.ts` | Site tokens, the door key from the state, the package's door |
 | `src/drift.ts`, `src/code-drift.ts`, `src/run-drift.ts`, `src/run-inventory.ts` | The drift check and the state inventory |
 | `bin/` | `run.sh` (settings), `forward.sh` (SSM), `require.sh` (CI), `rehearse.sh` and `rehearse-drift.sh`, `zone.sh`, `pool-bench.sh` |
 | `bootstrap/` | CI's access: `bootstrap.sh`, `bootstrap.run.ts`, `src/aws-policy.ts`, `src/cloudflare-policy.ts`, `BOOTSTRAP.md` |
 | `proof/`, `bin/pool-bench.sh`, `records/site-pool/` | The site pool's proof on a local bench, and its records |
+| `records/backup-async/`, `records/templates/` | Proofs on a stand-in bench (the real door, `bench` and MariaDB stood in): the background backup, and two runs at once sharing the bench's templates |
 | `records/rehearsal/` | The stand-in rehearsal of this package: transcripts, drift reports, `summary.json` |
 | `records/aws/` | The AWS path from here: the platform's plan for `staging`, and the host's plan stopping at AWS's sign-in |
 | `records/spike/` | The spike's run, moved here when the spike was deleted |
