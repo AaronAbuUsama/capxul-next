@@ -37,17 +37,17 @@ export const userData = (volumeId: string) =>
       "mount /var/lib/docker",
       "dnf install -y docker",
       "mkdir -p /etc/systemd/system/docker.service.d",
-      // The engine's own socket and a loopback listener, written out in full rather than relying on how the package's
-      // unit starts dockerd; docker.socket is masked so the engine creates its socket itself.
+      // The engine takes its unix socket from docker.socket (`-H fd://`; Amazon Linux's docker.service has
+      // Requires=docker.socket, which no drop-in can remove, so masking the socket stops the engine from starting) and
+      // adds a loopback listener for bin/forward.sh. Tried on the bench host on 14 November 2026: both answer.
       "cat >/etc/systemd/system/docker.service.d/10-capxul.conf <<'UNIT'",
       "[Unit]",
       "RequiresMountsFor=/var/lib/docker",
       "[Service]",
       "ExecStart=",
-      `ExecStart=/usr/bin/dockerd -H unix:///var/run/docker.sock -H tcp://127.0.0.1:${DOCKER_LOOPBACK_PORT} ` +
+      `ExecStart=/usr/bin/dockerd -H fd:// -H tcp://127.0.0.1:${DOCKER_LOOPBACK_PORT} ` +
         "--containerd=/run/containerd/containerd.sock $OPTIONS",
       "UNIT",
-      "systemctl mask docker.socket",
       "systemctl daemon-reload",
       "systemctl enable --now docker",
       "docker info --format '{{.ServerVersion}} {{.DockerRootDir}}'",
