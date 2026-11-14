@@ -56,8 +56,9 @@ from the shared state by whoever holds the Cloudflare key (`src/state.ts`), neve
 | `POST /sites {label, company, api_key, api_secret}` | Answers 202 and makes the site in the background (one at a time; about 93 s, more with HRMS): new site, ERPNext, HRMS, capxul, the wizard with the company, migrate, the scheduler, joining the token's world (its clock), and an API user of the site's own, `capxul-core@service.invalid`, with the key and secret the world sent and the roles `Accounts User`, `Purchase User`, `Sales User`. Never the bench's Administrator. |
 | `GET /sites/<site>`, `GET /world` | A site's state (`creating`, `ready`, `failed`) with each step's time; the world's sites. |
 | `ANY /sites/<site>/api/...` | One call to the site's own REST API, carried to web with the site's Host, as the user `Authorization: token <key>:<secret>` names. Cookies are dropped and any other credential refused; a site not ready answers `site-creating` or `site-failed`. |
-| `DELETE /sites/<site>`, `DELETE /world` | Removes a site (`bench drop-site`, its archive deleted; if that fails, its database and user dropped directly), or every site of the world and its saved backups. A token of quota 0 may do it, so the sweeper can for an expired world. |
-| `POST /world/backup {snapshot}` | Saves every site of the world (each must be ready) under the snapshot's name (`door/snapshots.py`): `bench backup` of its database and its encryption key, in the door's registry folder; a second save of the name replaces it. Seconds per site. |
+| `DELETE /sites/<site>`, `DELETE /world` | Removes a site (`bench drop-site`, its archive deleted; if that fails, its database and user dropped directly), or every site of the world and its saved backups. A token of quota 0 may do it, so the sweeper can for an expired world. A ready site's removal holds only its own lock, so it never waits behind another world's site being made; a site still being made from nothing or restored is removed once its build stops. |
+| `POST /world/backup {snapshot}` | Starts saving every site of the world (each must be ready) under the snapshot's name (`door/snapshots.py`) and **answers 202 `saving` at once**: `bench backup` of its database and its encryption key, in the door's registry folder; a second save of the name replaces it. Seconds per site, once the bench's other long commands let it run (it waits behind a site being made from nothing, over two minutes, which answered on the request's path outlasted Cloudflare's 100 s: HTTP 524 in PR #227's CI run 43599082569). |
+| `GET /world/backup/<snapshot>` | That backup: `saving`; `saved` with each site's `{site, label, ms, bytes}`; or `failed` with `error`. One saved before the door last started is read from its folder; none answers `backup-not-found`. |
 | `POST /world/restore {snapshot, api_key, api_secret, clock}` | With the source world's token in `X-Capxul-Source-Token` as well: makes every site that world saved as the snapshot again in the token's world, under the same label, and answers 202. Each is a new site from the backup (`bench new-site --source-sql`), with the backup's encryption key, joined to the new world (`capxul.world.rewrite`), set to its clock, its API user given the new credential, its scheduler on: about 8 s in the rehearsal, against about 95 s for a new site. Within the token's quota. |
 | `POST /templates {template, site}` or `{template, snapshot}` | Makes (or replaces) a starting world's **template**: a copy, inside MariaDB, of a ready site of the token's world (that world built it from nothing with `POST /sites` and ran the starting world's steps), or of every site in a snapshot it saved with `POST /world/backup`. `template` is the starting world's name in the blueprint (`founded`, `office-holder`, `payment-drafted`, `payment-held`, `paid`); each site keeps its label. Answers 200 when it is made (about 3 s a site), then fills its pool in the background (`door/pool.py`). Any valid token may make, replace or remove a template: they are the bench's, not a world's, and outlive the world that made them. |
 | `GET /templates`, `DELETE /templates/<template>` | Every template, its sites and how many ready copies each has in the pool, with the last refills' times; removes a template, its pool and their databases. |
@@ -118,11 +119,31 @@ The decision "Sites from a pool" (14 November 2026) as `spikes/site-speed` measu
 | Claim, save, reset of a site | that site's lock and one of `DOOR_FAST_SLOTS` (default 4) | Different sites, of one world or many, run at once, up to 4; the same site's calls queue |
 | Claim with the pool empty, pool refill, template made again | the template's lock | Copies from one template are made one after another; claims from the pool do not wait for them |
 | Refill | one bench-wide refill lock | One pool copy is made at a time, so refills never take more than one MariaDB copy's worth of the machine |
-| New site from nothing, restore from a backup, `bench backup`, removal | `BENCH_LOCK`, as before | Still one at a time across the bench (each runs bench commands for up to a minute); claims, saves and resets do not wait for them |
+| New site from nothing, restore from a backup, `bench backup` | `BENCH_LOCK`, as before | Still one at a time across the bench (each runs bench commands for up to a minute or more), and each runs **off the request's path** (202, then a status call), so none holds a call through Cloudflare's edge, whose limit is 100 s; claims, saves, resets and removals do not wait for them |
+| Removal of a site (`bench drop-site`) | that site's lock and one of `DOOR_FAST_SLOTS`; `BENCH_LOCK` too only for a site still being made from nothing or restored | A removal never waits behind another world's long command (it used to, and so could outlast the edge's 100 s) |
 | Registry changes, quota checks | `REGISTRY_LOCK`, as before | Held for milliseconds |
 
 Three claims at once took 1.5, 1.6 and 4.9 s (two from the pool, one copied with the pool empty), and two resets at
-once 0.25 s each. Removing a site still goes through `bench drop-site`, one at a time (about 2 s).
+once 0.25 s each. Removing a site still goes through `bench drop-site` (about 2 s).
+
+### A backup and a removal never hold a call through Cloudflare's edge (14 November 2026)
+
+PR #227's CI run 43599082569 failed with HTTP 524 on `world.snapshot.save`: a second `world.yml` run built its
+template world's site from nothing on `staging` at the same time, and `POST /world/backup` waited on the request's path
+for `BENCH_LOCK` past Cloudflare's 100 s (the CI run 43599154936 beside it failed the same way). The backup now runs in
+the background (`GET /world/backup/<snapshot>` for its state) and a ready site's removal no longer takes `BENCH_LOCK`.
+`records/backup-async/` measured both doors, this one and the one before, on a stand-in bench (`prove.py`: the real
+`door/door.py`, `bench` replaced by `bench-stand-in.sh`, whose `new-site` of another world's site holds the bench lock
+for 130 s), with packages/world's own client saving the world (`save.ts.txt`):
+
+| Call, while another world's site is made from nothing | Door before | This door |
+|---|---|---|
+| `POST /world/backup` | 200 after 132.2 s (Cloudflare answers 524 at 100 s) | 202 `saving` after 2 ms |
+| `DELETE /sites/<ready site>` | 200 after 130.5 s | 200 after 1.0 s |
+| packages/world's save (`backUp`: the POST, then `GET` until saved) | 131.4 s, one call held throughout | 130.3 s, no call over a second |
+
+Not run on `staging`: the door changes there only when `platform.yml` deploys it. Until then packages/world's save
+still takes the old door's answer.
 
 ### What is proven, on a local bench
 

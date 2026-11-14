@@ -92,6 +92,11 @@ const OneWorld = Schema.Struct({
   hubBroughtUp: Schema.Boolean,
   left: Schema.NullOr(Inventory),
   timings: Schema.Array(Timing),
+  /**
+   * What failed outside the journeys: a starting world that was not made (the part that failed, the world it acted
+   * on and why), or the run's own end when it died; null when nothing did. Any of it fails the run.
+   */
+  failure: Schema.String.pipe(Schema.NullOr, Schema.optional),
 });
 
 export const Summary = Schema.Struct({
@@ -217,7 +222,9 @@ const isGone = (stage: StageLine): boolean =>
 
 /** True when every journey ended as expected and every stage is gone, whether or not every journey was run. */
 export const ranAsExpected = (summary: Summary): boolean =>
-  Arr.every(summary.journeys, (line) => line.asExpected) && Arr.every(summary.stages, isGone);
+  Arr.every(summary.journeys, (line) => line.asExpected) &&
+  Arr.every(summary.stages, isGone) &&
+  (summary.oneWorld?.failure ?? null) === null;
 
 /** Every registered journey that no record of the run is of. */
 const notRun = (records: ReadonlyArray<RunRecord>): ReadonlyArray<string> =>
@@ -257,6 +264,7 @@ export const summarize = (input: SummaryInput): Summary => {
       : [`${missing.length} registered journeys were not in this run: ${Arr.join(missing, "; ")}`]),
     ...Arr.map(wrong, (line) => `${line.name}: ${line.why ?? ""}`),
     ...Arr.map(left, (stage) => `stage ${stage.name} is not gone: ${stage.afterwards}, ${leftWords(stage.after)}`),
+    ...(input.oneWorld?.failure === undefined || input.oneWorld.failure === null ? [] : [input.oneWorld.failure]),
     ...(input.oneWorld === undefined || (input.oneWorld.left !== null && isEmpty(input.oneWorld.left))
       ? []
       : [`the run's worlds are not all gone: ${leftWords(input.oneWorld.left)}`]),

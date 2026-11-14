@@ -1,0 +1,119 @@
+{
+  "kind": "journey",
+  "name": "two operators and their worlds",
+  "proves": null,
+  "given": "quota-full",
+  "stage": "run-f2e169-1",
+  "owner": "runner",
+  "startedAt": "2026-11-14T13:51:16.512Z",
+  "outcome": "failed",
+  "failure": "the starting world was not made: {\"_tag\":\"RunnerFailure\",\"step\":\"reset\",\"message\":\"{\\\"_tag\\\":\\\"SiteFailed\\\",\\\"step\\\":\\\"door\\\",\\\"message\\\":\\\"HTTP 502: upstream request failed\\\"}\"}",
+  "ended": null,
+  "readiness": null,
+  "calls": [],
+  "steps": [
+    {
+      "step": 1,
+      "operation": "world.create",
+      "does": "the first operator, at the limit of live worlds, is refused another",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 2,
+      "operation": "world.create",
+      "does": "the second operator is refused a real world, and one that starts before the seeded chain",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 3,
+      "operation": "world.create",
+      "does": "the second operator opens a world halfway between the seed and host time, and cannot open it twice",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 4,
+      "operation": "world.show",
+      "does": "the platform shows the new world as it was made, the first operator's as theirs, and no world for an unknown name",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 5,
+      "operation": "record.export",
+      "does": "the owner reads the new world's record; each person of its cast is signed in at its door, and refused it",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 6,
+      "operation": "world.clock.warp",
+      "does": "dana, a person of the world, may not move its clock",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 7,
+      "operation": "world.snapshot.save",
+      "does": "only the owner saves a snapshot, of a world that exists: m3 and draft are saved, and m3 not twice",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    },
+    {
+      "step": 8,
+      "operation": "world.snapshot.restore",
+      "does": "restores that cannot be made are refused, and make nothing",
+      "outcome": "not reached",
+      "failure": null,
+      "tries": [],
+      "calls": [],
+      "ms": null
+    }
+  ],
+  "failedStep": null,
+  "making": [],
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    }
+  },
+  "ms": {
+    "create": 42499,
+    "run": null,
+    "checks": null,
+    "destroy": 0
+  }
+}

@@ -31,10 +31,11 @@ CORE_USER = "capxul-core@service.invalid"
 CORE_ROLES = ["Accounts User", "Purchase User", "Sales User"]
 FORWARDED = ("Authorization", "Content-Type", "Accept", "X-Capxul-Trace", "Traceparent")
 
-# One lock for the registry (so two requests cannot both pass a quota) and one for the bench's own commands (one
-# site is made from nothing, restored from a backup, backed up or removed at a time: each is up to a minute of the
-# machine's CPU). A claim, a save and a reset run no bench command: they hold their site's own lock and one of
-# FAST's slots (each is MariaDB's work plus at most one Python process), so different sites' run at once.
+# One lock for the registry (so two requests cannot both pass a quota) and one for the bench's long commands (one
+# site is made from nothing, restored from a backup or backed up at a time: each is up to a minute or more of the
+# machine's CPU, and each runs off the request's path). A claim, a save, a reset and the removal of a site not being
+# made hold their site's own lock and one of FAST's slots (each is MariaDB's work plus at most one Python process),
+# so different sites' run at once and none waits behind a long command.
 REGISTRY_LOCK = threading.Lock()
 BENCH_LOCK = threading.Lock()
 FAST = threading.BoundedSemaphore(int(os.environ.get("DOOR_FAST_SLOTS", "4")))
@@ -193,10 +194,21 @@ def drop_database(site):
     subprocess.run(["mariadb", "-h", "mariadb", "-uroot", f"-p{DB_ROOT}", "-e", sql], capture_output=True, timeout=60)
 
 
+def _removal_locks(entry):
+    """What a removal holds. A site the bench is making from nothing or restoring holds BENCH_LOCK until its build sees
+    `removing` and stops, so its removal waits for that. Any other site's removal is one `bench drop-site` of that site
+    alone: it holds the site's own lock and one of FAST's slots, and never waits behind another world's site being made
+    (over two minutes, longer than the 100 s a call may take through Cloudflare's edge)."""
+    if entry.get("state") == "creating" and not entry.get("claimed_from"):
+        return BENCH_LOCK, site_lock(entry["site"])
+    return site_lock(entry["site"]), FAST
+
+
 def remove_site(site):
+    first, second = _removal_locks(read_entry(site) or {"site": site})
     update_entry(site, state="removing")
     t0 = time.monotonic()
-    with site_lock(site), BENCH_LOCK:
+    with first, second:
         if os.path.exists(f"{BENCH}/sites/{site}"):
             archive = tempfile.mkdtemp(prefix="dropped-", dir=f"{BENCH}/sites/.capxul-door")
             try:

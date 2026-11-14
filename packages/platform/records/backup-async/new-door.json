@@ -1,0 +1,72 @@
+{
+ "label": "n2",
+ "door": "http://127.0.0.1:18171",
+ "steps": [
+  {
+   "step": "pan2: site made (stand-in, 1 s)",
+   "status": 202,
+   "ms": 10
+  },
+  {
+   "step": "pcn2: site made (stand-in, 1 s)",
+   "status": 202,
+   "ms": 2
+  },
+  {
+   "step": "pbn2: another world's site asked, made from nothing for 130 s under the bench lock",
+   "status": 202,
+   "ms": 2
+  },
+  {
+   "step": "POST /world/backup {founded} while the bench is busy: the request alone",
+   "status": 202,
+   "ms": 2,
+   "answer": {
+    "world": "pan2",
+    "snapshot": "founded",
+    "state": "saving",
+    "sites": [],
+    "error": null,
+    "ms": null
+   }
+  },
+  {
+   "step": "DELETE /sites/<ready site> while the bench is busy",
+   "status": 200,
+   "ms": 1012,
+   "answer": {
+    "site": "northwind-pcn2.pool.test",
+    "removed": true,
+    "ms": 1009
+   }
+  },
+  {
+   "step": "world.site.save's backUp through the door (POST /world/backup, then GET until saved)",
+   "exit": 0,
+   "ms": 133060,
+   "out": "{\"saveMs\":130276,\"sites\":[{\"site\":\"northwind-pan2.pool.test\",\"label\":\"northwind\",\"ms\":2008}]}",
+   "err": ""
+  },
+  {
+   "step": "GET /world/backup/payment-drafted afterwards",
+   "status": 200,
+   "ms": 1,
+   "answer": {
+    "world": "pan2",
+    "snapshot": "payment-drafted",
+    "state": "saved",
+    "sites": [
+     {
+      "site": "northwind-pan2.pool.test",
+      "label": "northwind",
+      "ms": 2008,
+      "bytes": 25
+     }
+    ],
+    "error": null,
+    "ms": 130100
+   }
+  }
+ ],
+ "slowSiteHeldTheBenchForMs": 133664
+}

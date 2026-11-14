@@ -1,0 +1,17 @@
+// The world's backup of its sites (packages/world src/site/Saved.ts `backUp`, as world.snapshot.save calls it), over
+// real HTTP to the door at DOOR_URL with the token in TOKEN_FILE. Prints how long the first answer and the whole
+// save took.
+import { readFileSync } from "node:fs";
+import * as Effect from "effect/Effect";
+import * as Redacted from "effect/Redacted";
+import * as FetchHttpClient from "effect/http/FetchHttpClient";
+import { backUp } from "/home/user/wt/ci-524/packages/world/src/site/Saved.ts";
+
+const token = Redacted.make(readFileSync(process.env.TOKEN_FILE ?? "", "utf8").trim());
+const t0 = performance.now();
+const sites = await Effect.runPromise(
+  backUp(process.env.DOOR_URL ?? "", token, process.env.SNAPSHOT ?? "payment-drafted").pipe(
+    Effect.provide(FetchHttpClient.layer),
+  ),
+);
+console.log(JSON.stringify({ saveMs: Math.round(performance.now() - t0), sites }));

@@ -22,8 +22,9 @@ WORLD_BENCH=local POOL_SECRETS=<file> ./run.sh scenarios --core=local    # the s
 ```
 
 `door` exits 1 if its run failed; `scenarios` exits 1 if a journey did not end as the run expected or a stage was
-left behind. `run.sh` runs `src/main.ts` under Bun and sets the two key variables to a
-placeholder: the session's network proxy adds the real Cloudflare and Neon keys, which never reach this machine. It
+left behind. `run.sh` runs `src/main.ts` under Bun and, where the two key variables are unset, sets them to a
+placeholder: in an agent's container the session's network proxy adds the real Cloudflare and Neon keys, which never
+reach the machine; in CI the job's real keys are kept (`.github/workflows/world.yml`). It
 also makes a fresh pair of door tokens for the run (`CAPXUL_DOOR_TOKEN`, `CAPXUL_PLATFORM_TOKEN`), which Core reads at
 deploy and the SDK sends; they are never printed or recorded.
 
@@ -105,6 +106,12 @@ world's own operations go to its Core.
 5. **The end**: the bench templates dropped, the one world destroyed, the hub taken down, and the accounts read for
    every world the run made (`oneWorld.left`).
 
+The summary is written however the run ends, but by interruption (`src/worlds/ending.ts`): a starting world that was
+not made fails the journeys that start from it, each with why, while the others still run, and the summary's
+`oneWorld.failure` names the first timed part that failed (`save payment-drafted (w-tpl-…) failed: …`); a run that
+died says so there too (`the run did not finish: …`). Either fails the run (`outcome: "failed"`, exit 1). Before, a
+defect in making the starting worlds (a door that answered Cloudflare's 524 page) ended the run with no record at all.
+
 Every part is timed into the summary's `oneWorld.timings`, in order (`src/timings.ts`): `hub up`, `world create`,
 `make <starting world>`, `save <…>`, `bench template <…>`, each `reset` with its own parts and how it put the sites
 back, `starting world` (what is made by its steps), `journey` with each step's time, `checks`, `destroy the journey's
@@ -114,8 +121,8 @@ long it took and whether it failed, with why.
 A starting world with no maker here fails its journey naming the operations its steps call (`waitsOn`). The company
 starting worlds (`founded` to `paid`) are made by their declared steps in `src/worlds/company.ts`, each approval
 signed with the cast's keys (`CAST_KEYS`, through viem, blueprint decisions 34 and 42), each wait polling an
-operation until it answers differently (decision 27). With Core on Cloudflare they need a bench Cloudflare can reach
-(roadmap steps 1.4 and 2.1); until it exists they are rehearsed with `--core=local`.
+operation until it answers differently (decision 27). With Core on Cloudflare they need a bench Cloudflare can reach:
+the platform stage `staging` (`WORLD_BENCH=staging`, `records/run-22da37`), or a rehearsal with `--core=local`.
 
 The calls made in making a journey's starting world get the generic checks too (`making` in the run record). The
 platform's own calls are checked against what it kept (`PlatformKept`: its spans, and the events each wrote into its
@@ -225,6 +232,11 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | `records/run-ea66b6/` | `./run.sh scenarios --expect=not-implemented "found Northwind and give sam the books"` on 14 November 2026, after the journey's org.create founding was changed to be decoded as the command line decodes it: in a fresh stage of Core's empty handlers (`core-591c5d`, its record there) it still failed at step 1 on `NotImplemented`, every call passing every check, the stage destroyed and nothing left. Its summary is `failed` only because the other two journeys were not in the run. |
 | `records/run-327a7f/` | `WORLD_BENCH=local ./run.sh scenarios --core=local "found Northwind and give sam the books"` on 14 November 2026, a rehearsal: step 2's founding was sent and answered `Founded` with its bio and size trimmed, then failed org.create 1's check, which read `CompanySafeMinted` from the minter instead of Companies House (blueprint gaps.md, 9). Everything removed, nothing left. |
 | `records/run-45390e/` | The same rehearsal with that check fixed: `found Northwind and give sam the books` `rehearsed`, all ten steps and every check held (the journey 310.6 s, `oneWorld.timings`); the hub, the world and the bench removed, nothing left. Its summary is `failed` only because the other two journeys were not in the run. |
+| `records/run-7a9a59/` | `WORLD_HUB=fleet ./run.sh scenarios "two operators and their worlds"` on 14 November 2026, Core on Cloudflare (no bench): the run used the standing hub `fleet` and left it up, holding no world. The journey `passed`; the summary is `failed` only because the other two journeys were not in the run. Nothing left. |
+| `records/run-de8bea/` | `WORLD_BENCH=staging WORLD_HUB=fleet ./run.sh scenarios` on 14 November 2026: the first run with Core on Cloudflare and the company sites on the platform's AWS bench, reached through its tunnel. `two operators and their worlds` and `pay Brightside and branch the books` passed; `found Northwind and give sam the books` failed at step 7 because one `record.export` call from this container got no answer (`HttpError` after 144 ms, no server span), its six steps before it passed. `failed`; nothing left. |
+| `records/run-2166f8/` | The same run again. Two journeys passed; `pay Brightside and branch the books` failed at step 4 on the site door's HTTP 530 at 12:44 UTC: the staging tunnel was down (Cloudflare's error 1033 two minutes later), and platform.yml deployed `staging` again from 12:45. The template world's destroy then failed at `unsite`: its Cloudflare and Neon parts were removed, but its site and the bench template `payment-drafted` stayed on the bench and no world record was kept for the sweeper. Both were removed by hand through the site door afterwards. `failed`. |
+| `records/run-22da37/` | The same run a third time, on 14 November 2026 (roadmap step 1.6): all three journeys passed every step and every check, Core on Cloudflare, the sites on the staging bench, the run on the standing hub `fleet`. 20.8 minutes of timed parts in `oneWorld.timings`: world create 20.4 s; `founded` made 212.4 s (its site built on the bench), `payment-drafted` saved 26.5 s and kept as the bench's template 12.0 s; resets 32.8, 16.8 and 46.2 s; journeys 140.8, 309.9 and 271.0 s; template dropped 13.0 s, world destroyed 24.8 s. `passed`; `oneWorld.left` empty, `fleet` holding no world, and the bench holding no site of the run and no template. |
+| `records/run-f2e169/` | `WORLD_BENCH=staging WORLD_HUB=fleet ./run.sh scenarios` on 14 November 2026, with packages/world saving sites through the asynchronous backup (falling back to the old door's answer, since `staging` was not redeployed) while another builder's run made sites on `staging`: the starting worlds were made and saved (`save payment-drafted` 31.6 s, its backup answered by the old door within it), then every reset failed on `HTTP 502: upstream request failed`: a door call held past this container's network relay's 32 s while the old door's removal waited for `BENCH_LOCK`. The take-down's `unsite` failed the same way; the world's sites and point were removed through the door by hand afterwards. `failed`; the summary written and every journey's record with why. |
 | `records/core-*/` | Further runs: one stage each, its door or scenario record, written by `./run.sh`. |
 
 ## Files
@@ -239,12 +251,20 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | `src/given.ts` | `Given`: the facts of a scenario's starting world. `nothing`'s are the run's operators; for any other world, the declared example facts in a run that expects `not-implemented`, and a defect otherwise, until the runner makes starting worlds (step 1.12). |
 | `src/checks/checks.ts`, `src/checks/events.ts` | The generic checks, the timings and the steps. A builder never changes these. |
 | `src/world/` | The stage's life, its database, the warm-up and the inventory: the runner's plumbing. |
-| `src/worlds/` | A run in private worlds: the platform this process serves, the starting worlds (`starting.ts`), their makers (`makers.ts`; those with a company in `company.ts`), how a fact is encoded (`encode.ts`), the run and its timing. |
+| `src/worlds/` | A run in private worlds: the platform this process serves, the starting worlds (`starting.ts`), their makers (`makers.ts`; those with a company in `company.ts`), how a fact is encoded (`encode.ts`), the run, its summary however it ended (`ending.ts`) and its timing. |
 | `src/local/` | `--core=local`: Core's bundle, its workerd, its database bridge, its chain forwarder and the host that runs one per world (above). |
 | `src/scenario-runs.ts` | A run of the journeys in stages, in either mode, ending in its summary. |
 | `src/summary.ts` | The summary: what each journey was expected to do, the journeys a run must hold, the stages it must leave. |
 | `src/record.ts`, `src/failure.ts` | The run record, the JSON writers, and how a run ended and a failure is worded. |
 | `test/` | The checks, the plumbing, the warm-up and the summary on made-up input. |
+
+## Against a platform stage from an agent's container
+
+`WORLD_BENCH=<stage>` reads the stage's site door from the shared state: `http://<stage>-door.<domain>`, plain HTTP
+through the tunnel, since Cloudflare's free certificate covers one level only. The session's network proxy takes only
+CONNECT tunnels, and Bun sends a plain-HTTP request through a proxy in absolute form, which the proxy refuses. The runs
+above therefore set `HTTP_PROXY` to a small loopback forwarder that carries each request through a CONNECT tunnel to
+port 80. It is not in the repository. CI needs nothing of this kind.
 
 ## Not done
 

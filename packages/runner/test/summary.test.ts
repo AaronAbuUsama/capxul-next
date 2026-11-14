@@ -5,13 +5,17 @@ import { test } from "node:test";
 import { Errors, type OperationName } from "@capxul/blueprint";
 import { ExpectationFailed, journeys } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
+import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import { pipe } from "effect/Function";
+import * as Ref from "effect/Ref";
 import * as Str from "effect/String";
 import { endedOf } from "../src/failure.ts";
 import type { RunRecord } from "../src/record.ts";
 import { failedStepOf, stepsOf, type Heard } from "../src/steps.ts";
 import { ranAsExpected, summarize, type Expectation } from "../src/summary.ts";
+import { makeTimings } from "../src/timings.ts";
+import { noteNotMade } from "../src/worlds/ending.ts";
 
 const refused = (operation: string, refusal = "NotImplemented"): RunRecord["calls"][number] => ({
   operation,
@@ -179,4 +183,63 @@ test("expecting a pass, a journey passes only when its run record did", () => {
   const passed = Arr.map(every(), (each) => ({ ...each, outcome: "passed" as const, failure: null }));
   assert.equal(summary(passed, "pass").outcome, "passed");
   assert.equal(summary(every(), "pass").outcome, "failed");
+});
+
+test("a run in one world whose starting worlds were not made, or that died, fails and says why", () => {
+  const all = every();
+  const inOneWorld = (failure: string | null) =>
+    summarize({
+      run: "run-abc123",
+      mode: "a stage each",
+      expect: "not-implemented",
+      owner: "runner",
+      startedAt: "2026-11-14T00:00:00.000Z",
+      records: all,
+      pathOf: (_record, index) => `run-abc123/${index}.json`,
+      oneWorld: { world: null, hub: "fleet", hubBroughtUp: false, left: null, timings: [], failure },
+    });
+  const why = "the starting worlds were not all made: save payment-drafted (w-tpl-330ea4) failed: HTTP 524";
+  const failed = inOneWorld(why);
+  assert.equal(failed.outcome, "failed");
+  assert.ok(Str.includes(why)(failed.failure ?? ""), failed.failure ?? "");
+  assert.equal(failed.oneWorld?.failure, why);
+  assert.ok(!ranAsExpected(failed), "a run whose own part failed exits 1 even when its journeys were as expected");
+  const died = summarize({
+    run: "run-abc123",
+    mode: "one world",
+    expect: "pass",
+    owner: "runner",
+    startedAt: "2026-11-14T00:00:00.000Z",
+    records: [],
+    pathOf: (_record, index) => `run-abc123/${index}.json`,
+    oneWorld: {
+      world: null,
+      hub: "fleet",
+      hubBroughtUp: false,
+      left: null,
+      timings: [],
+      failure: "the run did not finish: boom",
+    },
+  });
+  assert.equal(died.outcome, "failed");
+  assert.ok(!ranAsExpected(died), "a run that died with no journey run is not as expected");
+});
+
+test("the starting worlds not made are named by the first part that failed, a defect included", async () => {
+  const why = await Effect.runPromise(
+    Effect.gen(function* () {
+      const timings = yield* makeTimings;
+      const into = yield* Ref.make<string | null>(null);
+      yield* timings.timed("make payment-drafted", { of: "payment-drafted" }, Effect.void);
+      const save = timings.timed("save payment-drafted", { of: "w-tpl-330ea4" }, Effect.die("SiteFailed: HTTP 524"));
+      yield* save.pipe(Effect.catchCause(noteNotMade(timings, into)));
+      return yield* Ref.get(into);
+    }),
+  );
+  assert.ok(why !== null);
+  assert.ok(
+    Str.startsWith("the starting worlds were not all made: save payment-drafted (w-tpl-330ea4) failed: ")(why),
+    why,
+  );
+  assert.ok(Str.includes("HTTP 524")(why), why);
 });
