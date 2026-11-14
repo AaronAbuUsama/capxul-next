@@ -4,7 +4,8 @@
 // Trust: GitHub Actions' OIDC tokens for this repository only, from a workflow on `master` or a pull request into
 // `master`, and nothing else. GitHub's default subject for a pull request does not name the branch it goes into, so
 // bootstrap.sh sets this repository's subject template to `repo`, `context` and `base_ref`, and the subjects read
-//   repo:<repo>:ref:refs/heads/master:base_ref:          a push to master, or a run started on master
+//   repo:<repo>:ref:refs/heads/master:base_ref           a push to master, or a run started on master (an empty
+//                                                        claim has no colon: seen in CloudTrail, 14 Nov 2026)
 //   repo:<repo>:pull_request:base_ref:master             a pull request into master
 // where <repo> is `<owner>/<name>`, or `<owner>@<owner id>/<name>@<repo id>` once GitHub's immutable subjects are on
 // (always, for a repository made or renamed after 15 July 2026; no template removes the ids). bootstrap.sh reads which
@@ -38,7 +39,7 @@ export const BENCH_IAM_PREFIX = "capxul-bench-";
  */
 export const subjects = (repo: string): Array<string> => [
   `repo:${repo}:ref:refs/heads/${TRUNK}`,
-  `repo:${repo}:ref:refs/heads/${TRUNK}:base_ref:`,
+  `repo:${repo}:ref:refs/heads/${TRUNK}:base_ref`,
   `repo:${repo}:pull_request:base_ref:${TRUNK}`,
 ];
 
