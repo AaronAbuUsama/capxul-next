@@ -96,6 +96,7 @@ export const chainJourney: Plan = {
   name: "the chain operations through a world: a company founded and set up, an officer granted",
   proves: null,
   given: null,
+  outline: [],
   calls: (target, log) =>
     // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the journey is its own program, handed the world's client
     Effect.provide(journey, capxulFor(target, log)),

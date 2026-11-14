@@ -1,0 +1,16 @@
+# What the stack CapxulCore left in the two accounts after this run's three stages (core-e5adc4, core-58a818,
+# core-7484a8), read from their APIs on 2026-11-14T05:19:11Z. The account and organization ids are left out. Expected: none of each.
+# An earlier run of the same command (run-003a4b, not kept) found its last stage's Worker still listed just after its
+# destroy, and gone a minute later: Cloudflare's listing lags a delete.
+
+## Cloudflare Worker scripts whose name holds 'capxulcore'
+none
+
+## Cloudflare Hyperdrive configurations whose name holds 'capxulcore'
+none
+
+## Neon projects whose name holds 'capxulcore'
+none
+
+## Alchemy's state on this machine for CapxulCore (packages/runner/.alchemy/state, never committed)
+0 files

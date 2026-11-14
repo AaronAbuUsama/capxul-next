@@ -1,7 +1,7 @@
 // Runs: for each one a fresh stage, the calls, the generic checks, a run record, and the stage's destruction. Nothing
 // here knows any operation or any scenario by name.
 import { operations, PLATFORM_PATH, servedBy, type OperationName } from "@capxul/blueprint";
-import { Capxul, type ExpectationFailed, type Failure, type Scenario } from "@capxul/scenarios";
+import { Capxul, type ExpectationFailed, type Failure, type Journey, type StepOutline } from "@capxul/scenarios";
 import * as Sdk from "@capxul/sdk";
 import * as Arr from "effect/Array";
 import * as DateTime from "effect/DateTime";
@@ -22,6 +22,7 @@ import { capxulFor, type Call, type Target } from "./client.ts";
 import { describe, endedOf, RunnerFailure } from "./failure.ts";
 import { givenFor, type Handing } from "./given.ts";
 import { writeRecord, type RunRecord } from "./record.ts";
+import { failedStepOf, hearing, stepsOf, type Heard, type StepRecord } from "./steps.ts";
 import type { Settings } from "./settings.ts";
 import { telemetryOf } from "./world/database.ts";
 import { isEmpty } from "./world/leftovers.ts";
@@ -29,26 +30,33 @@ import { OtherWorlds } from "./world/existing.ts";
 import { PlatformKept } from "./worlds/kept.ts";
 import { runInStage, type Lifecycle, type Stage, type StageSpec } from "./world/stage.ts";
 
-/** What a run is: its kind and name, the claim it proves, and the calls it makes through a stage's Core. */
+/** What a run is: its kind and name, its steps, and the calls it makes through a stage's Core. */
 export interface Plan {
   readonly kind: RunRecord["kind"];
   readonly name: string;
   readonly proves: RunRecord["proves"];
   readonly given: string | null;
-  /** Makes the run's calls; every one goes through `log`. Fails when the run's own expectations do not hold. */
+  /** A journey's steps, in order; none for the door. */
+  readonly outline: ReadonlyArray<StepOutline>;
+  /**
+   * Makes the run's calls; every one goes through `log`, and a journey tells `heard` of each step. Fails when the
+   * run's own expectations do not hold.
+   */
   readonly calls: (
     target: Target,
     log: Ref.Ref<ReadonlyArray<Call>>,
+    heard: Ref.Ref<ReadonlyArray<Heard>>,
   ) => Effect.Effect<void, RunFailure, HttpClient.HttpClient>;
 }
 
 /** What a run's own calls may fail with: the runner's own failure, or a scenario's. */
 export type RunFailure = RunnerFailure | ExpectationFailed | Failure;
 
-/** What one run did in its stage: how its own calls ended, each call checked, and how long each part took. */
+/** What one run did in its stage: how its own calls ended, each call checked, its steps, and how long each part took. */
 export interface Used {
   readonly run: Exit.Exit<void, RunFailure>;
   readonly calls: ReadonlyArray<CheckedCall>;
+  readonly steps: ReadonlyArray<StepRecord>;
   readonly ms: { readonly run: number; readonly checks: number };
 }
 
@@ -58,6 +66,7 @@ const millis = (took: Duration.Duration) => Math.round(Duration.toMillis(took));
 export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
   Effect.gen(function* () {
     const log = yield* Ref.make<ReadonlyArray<Call>>([]);
+    const heard = yield* Ref.make<ReadonlyArray<Heard>>([]);
     const target: Target = {
       url: stage.url,
       platformUrl: stage.platformUrl ?? `${stage.url}${PLATFORM_PATH}`,
@@ -67,12 +76,14 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
       warmUntil: stage.warmUntil,
       every: settings.probeEvery,
     };
-    const [runTook, run] = yield* plan.calls(target, log).pipe(Effect.exit, Effect.timed);
+    const [runTook, run] = yield* plan.calls(target, log, heard).pipe(Effect.exit, Effect.timed);
     const calls = yield* Ref.get(log);
     const [checksTook, kept] = yield* Effect.timed(keptFor(Option.some(stage.database), calls));
+    const checked = Arr.map(calls, (call) => checkCall(call, kept));
     return {
       run,
-      calls: Arr.map(calls, (call) => checkCall(call, kept)),
+      calls: checked,
+      steps: stepsOf(plan.outline, yield* Ref.get(heard), checked),
       ms: { run: millis(runTook), checks: millis(checksTook) },
     } satisfies Used;
   }).pipe(
@@ -149,6 +160,10 @@ const failuresIn = (lifecycle: Lifecycle<Used, RunnerFailure>): ReadonlyArray<st
   ];
 };
 
+/** A journey's steps and the first that failed, for its run record; nothing for the door. */
+export const stepsFor = (plan: Pick<Plan, "kind">, steps: ReadonlyArray<StepRecord>) =>
+  plan.kind === "journey" ? { steps, failedStep: failedStepOf(steps) } : {};
+
 /** The run record of `plan` from what became of its stage. */
 export const recordOf = (plan: Plan, startedAt: string, lifecycle: Lifecycle<Used, RunnerFailure>): RunRecord => {
   const used = lifecycle.used !== undefined && Exit.isSuccess(lifecycle.used) ? lifecycle.used.value : undefined;
@@ -166,6 +181,7 @@ export const recordOf = (plan: Plan, startedAt: string, lifecycle: Lifecycle<Use
     ended: used === undefined ? null : endedOf(used.run),
     readiness: lifecycle.readiness,
     calls: used?.calls ?? [],
+    ...stepsFor(plan, used?.steps ?? stepsOf(plan.outline, [], [])),
     afterwards: { stage: lifecycle.afterwards, before: lifecycle.found.before, after: lifecycle.found.after },
     ms: {
       create: lifecycle.ms.create,
@@ -213,6 +229,7 @@ export const door: Plan = {
   name: "every operation answers through the door",
   proves: null,
   given: null,
+  outline: [],
   calls: (target, log) =>
     // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the door run is its own program, handed its own stage's client
     Effect.provide(
@@ -243,23 +260,25 @@ export const door: Plan = {
 };
 
 /**
- * A registered scenario as a run: its `Capxul` is the stage's Core, through the recording client, and its `Given` the
- * facts the runner has of its starting world (given.ts).
+ * A registered journey as a run: its `Capxul` is the stage's Core, through the recording client, its `Given` the
+ * facts the runner has of its starting world (given.ts), and its `Steps` the runner's ear (steps.ts).
  */
-export const scenarioPlan =
+export const journeyPlan =
   (settings: Settings, handing: Handing) =>
-  (scenario: Scenario): Plan => ({
-    kind: "scenario",
-    name: scenario.name,
-    proves: scenario.proves,
-    given: scenario.given.name,
-    calls: (target, log) =>
-      // oxlint-disable-next-line effecttsgo/strict-effect-provide -- each scenario is its own program, handed its own stage's client and facts
+  (journey: Journey): Plan => ({
+    kind: "journey",
+    name: journey.name,
+    proves: null,
+    given: journey.given.name,
+    outline: journey.outline,
+    calls: (target, log, heard) =>
+      // oxlint-disable-next-line effecttsgo/strict-effect-provide -- each journey is its own program, handed its own stage's client, facts and ear
       Effect.provide(
-        scenario.run,
-        Layer.merge(
+        journey.run,
+        Layer.mergeAll(
           capxulFor(target, log),
-          givenFor(scenario.given, { first: settings.owner, second: settings.secondOwner }, handing),
+          givenFor(journey.given, { first: settings.owner, second: settings.secondOwner }, handing),
+          hearing(heard, log),
         ),
       ),
   });

@@ -12,6 +12,7 @@ import * as Str from "effect/String";
 import { CheckedCall } from "./checks/checks.ts";
 import { Ended } from "./failure.ts";
 import { Inventory } from "./world/leftovers.ts";
+import { FailedStep, StepRecord } from "./steps.ts";
 import { Readiness } from "./world/warmup.ts";
 
 /**
@@ -26,12 +27,15 @@ export type Outcome = typeof Outcome.Type;
 export const passedOr = (core: string | undefined): Outcome => (core === undefined ? "passed" : "rehearsed");
 
 export const RunRecord = Schema.Struct({
-  /** `door`: every operation called once with its blueprint example. `scenario`: one registered scenario. */
-  kind: Schema.Literals(["door", "scenario"]),
+  /**
+   * `door`: every operation called once with its blueprint example. `journey`: one registered journey. `scenario`:
+   * one of the per-claim scenarios that journeys replaced (records before 14 November 2026).
+   */
+  kind: Schema.Literals(["door", "journey", "scenario"]),
   name: Schema.String,
-  /** The claim the scenario proves; null for the door and for an example. */
+  /** The claim an old per-claim scenario proved; null for the door and for a journey. */
   proves: Schema.NullOr(Schema.Struct({ operation: Schema.String, claim: Schema.Finite })),
-  /** The starting world the scenario declares: made for it in a run in private worlds, an empty stage otherwise. */
+  /** The starting world the journey declares: made for it in a run in private worlds, an empty stage otherwise. */
   given: Schema.NullOr(Schema.String),
   /** The stage of `CapxulCore` the run used: also the name of the world its Core served. */
   stage: Schema.String,
@@ -51,7 +55,14 @@ export const RunRecord = Schema.Struct({
   /** Every call the run made, in order, with its timings, its steps and what the generic checks found. */
   calls: Schema.Array(CheckedCall),
   /**
-   * For a run in private worlds: every call made in making the scenario's starting world for it (a restore of its
+   * A journey's steps, every one of its outline: each with its operation, its tries and their operation checks, the
+   * calls it made (places in `calls`, whose timings and generic checks are there) and how long it took.
+   */
+  steps: StepRecord.pipe(Schema.Array, Schema.optional),
+  /** A journey's first step that failed, and why; null when none did. */
+  failedStep: FailedStep.pipe(Schema.NullOr, Schema.optional),
+  /**
+   * For a run in private worlds: every call made in making the journey's starting world for it (a restore of its
    * template, or its steps), checked as the scenario's own are. The template's own making is in the run's
    * starting-worlds record.
    */
@@ -80,7 +91,7 @@ export type RunRecord = typeof RunRecord.Type;
 export const slugOf = (name: string): string =>
   pipe(Str.toLowerCase(name), Str.replace(/[^a-z0-9]+/g, "-"), Str.replace(/^-+|-+$/g, ""));
 
-/** Where a run's own record goes, under the records folder: `<stage>/<door or scenario's name>.json`. */
+/** Where a run's own record goes, under the records folder: `<stage>/<door or journey's name>.json`. */
 export const recordPath = (record: RunRecord): string =>
   `${record.stage}/${record.kind === "door" ? "door" : slugOf(record.name)}.json`;
 

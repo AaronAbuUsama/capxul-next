@@ -1,13 +1,13 @@
-// Reading and writing a company's site through the operations, in the blueprint's vocabulary (`Site`): its
-// documents, its General Ledger, Trial Balance and Accounts Payable, and the company Safe's ledger account. Every
-// call names whom it acts as, and may go `at` another world's door.
+// Reading a company's site through report.run, in the blueprint's vocabulary (`Site`): its General Ledger, Trial
+// Balance and Accounts Payable, and the company Safe's ledger account. These are looks: a step's own calls go through
+// its tries. Every read names whom it acts as (a person with a user on the site), and may go `at` another door.
 import { Site, type Values } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Str from "effect/String";
 import { Capxul } from "../client.ts";
-import { answers, present } from "./expect.ts";
+import { present } from "./expect.ts";
 import { fieldOf, textOf, type Json, type Who } from "./world.ts";
 
 type Fields = typeof Values.Fields.Type;
@@ -37,7 +37,7 @@ export const ledger = (org: string, filters: Fields, who: Who) =>
 export const linesOf = (rows: ReadonlyArray<Row>, voucher: string) =>
   Arr.filter(rows, (row) => textOf(row, ROW.voucher) === voucher);
 
-const isSafeAccount = (account: string) => Str.startsWith(Site.SAFE_ACCOUNT_PREFIX)(account);
+export const isSafeAccount = (account: string) => Str.startsWith(Site.SAFE_ACCOUNT_PREFIX)(account);
 
 /** The company Safe's ledger account, as the General Ledger names it. */
 export const safeAccount = (org: string, who: Who) =>
@@ -82,35 +82,3 @@ export const trialSafeBalance = (org: string, who: Who) =>
       (row) => numberOf(fieldOf(row, ROW.closingDebit)) - numberOf(fieldOf(row, ROW.closingCredit)),
     ),
   );
-
-/** Creates a document. */
-export const create = (org: string, doctype: string, fields: Fields, who: Who) =>
-  Effect.gen(function* () {
-    const capxul = yield* Capxul;
-    return yield* capxul["doc.create"]({ org, doctype, fields }, who);
-  });
-
-/** Submits a document. */
-export const submit = (org: string, doctype: string, name: string, who: Who) =>
-  Effect.gen(function* () {
-    const capxul = yield* Capxul;
-    return yield* capxul["doc.submit"]({ org, doctype, name }, who);
-  });
-
-/** A Payment Entry from the company Safe, created and submitted: it must be held. */
-export const holdPayment = (
-  org: string,
-  payment: { readonly supplier: string; readonly invoice: string | null; readonly amount: number },
-  who: Who,
-) =>
-  Effect.gen(function* () {
-    const account = yield* safeAccount(org, who);
-    const fields = Site.paymentFields(payment.supplier, account, payment.amount, payment.invoice);
-    const created = yield* create(org, Site.DOCTYPES.paymentEntry, fields, who);
-    const held = yield* answers(
-      `doc.submit of ${created.name}`,
-      "Held",
-      submit(org, Site.DOCTYPES.paymentEntry, created.name, who),
-    );
-    return { created, held };
-  });
