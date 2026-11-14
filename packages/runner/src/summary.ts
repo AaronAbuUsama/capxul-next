@@ -29,7 +29,7 @@ export type Expectation = typeof Expectation.Type;
  * each`: every journey in fresh private worlds, its starting world made for it. `one world`: every journey in the
  * run's one world on its hub, reset in place to its starting world before it (worlds/run.ts, roadmap step 1.18).
  */
-export const Mode = Schema.Literals(["a stage each", "one stage", "a world each", "one world"]);
+export const Mode = Schema.Literals(["a stage each", "one stage", "a world each", "one world", "shared world"]);
 export type Mode = typeof Mode.Type;
 
 const NOT_IMPLEMENTED: Errors.NotImplemented["_tag"] = "NotImplemented";
@@ -91,6 +91,8 @@ const OneWorld = Schema.Struct({
   /** Whether the run brought the hub up, and so took it down at its end. */
   hubBroughtUp: Schema.Boolean,
   left: Schema.NullOr(Inventory),
+  /** What the run's take-down could not do, a line each with why (worlds/teardown.ts); `left` reads only the accounts. */
+  notTakenDown: Schema.Array(Schema.String),
   timings: Schema.Array(Timing),
   /**
    * What failed outside the journeys: a starting world that was not made (the part that failed, the world it acted
@@ -126,16 +128,16 @@ export const Summary = Schema.Struct({
   }),
   journeys: Schema.Array(JourneyLine),
   stages: Schema.Array(StageLine),
-  /**
-   * A run in one world: the world and its hub, what the accounts held afterwards of every world the run made (empty
-   * when nothing is left), and every part of the run timed in order (src/timings.ts).
-   */
+  /** A run in one world: its world and hub, what the accounts held of its worlds afterwards, every part timed. */
   oneWorld: Schema.optional(OneWorld),
 });
 export type Summary = typeof Summary.Type;
 
 const ONE_WORLD =
   "The registered journeys run through the runner in one world, made on a fleet hub by the platform this process serves, its starting worlds made in it once and saved, and the world reset in place to each journey's starting world before the journey. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world the run made, the one world included, was destroyed with nothing of it left in the accounts.";
+
+const SHARED_WORLD =
+  "The registered journeys run through the runner on a shared world that lives on (roadmap steps 2.3 and 2.4), which the run never resets or changes: before each journey whose starting world is made from a template, the shared world's template snapshot of it is restored into a new world of the run, and a starting world made by its steps is made by them. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world the run made was destroyed with nothing of it left in the accounts; the shared world is left as it was.";
 
 const WHAT: { readonly [E in Expectation]: string } = {
   pass: "The registered journeys run through the runner, each in fresh private worlds made by the platform this process serves, its starting world made for it. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world it made was destroyed with nothing of it left in the accounts.",
@@ -226,7 +228,8 @@ const isGone = (stage: StageLine): boolean =>
 export const ranAsExpected = (summary: Summary): boolean =>
   Arr.every(summary.journeys, (line) => line.asExpected) &&
   Arr.every(summary.stages, isGone) &&
-  (summary.oneWorld?.failure ?? null) === null;
+  (summary.oneWorld?.failure ?? null) === null &&
+  (summary.oneWorld?.notTakenDown ?? []).length === 0;
 
 /** Every registered journey that no record of the run is of. */
 const notRun = (records: ReadonlyArray<RunRecord>): ReadonlyArray<string> =>
@@ -270,11 +273,12 @@ export const summarize = (input: SummaryInput): Summary => {
     ...(input.oneWorld === undefined || (input.oneWorld.left !== null && isEmpty(input.oneWorld.left))
       ? []
       : [`the run's worlds are not all gone: ${leftWords(input.oneWorld.left)}`]),
+    ...Arr.map(input.oneWorld?.notTakenDown ?? [], (what) => `the run's take-down failed: ${what}`),
   ];
   return {
     kind: "journeys",
     run: input.run,
-    what: input.mode === "one world" ? ONE_WORLD : WHAT[input.expect],
+    what: input.mode === "one world" ? ONE_WORLD : input.mode === "shared world" ? SHARED_WORLD : WHAT[input.expect],
     mode: input.mode,
     expect: input.expect,
     owner: input.owner,

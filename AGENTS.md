@@ -36,8 +36,13 @@ A world is created, used and destroyed as one unit, with an owner and an expiry.
 
 ## How work flows
 
-- One piece of work, one branch, one pull request into `master`. The lead merges it when CI is green. Nothing in
-  the repository checks this.
+- Work is done on an integration branch per slice: one effort being climbed (a journey, a step of the roadmap),
+  named `slice/<name>` and cut from `master` by the lead. Each piece of work in it is one branch and one pull request
+  into that slice branch, merged by the lead when `check` (rungs 1 to 5, a few minutes) is green. A slice reaches
+  `master` by one pull request from `slice/<name>`, merged only when `check` and `world` (the thin line's journeys in a
+  fresh private world on staging, rung 6) are both green: every journey must still pass, and the slice's own journeys
+  pass or improve. Only pull requests into `master` and pushes to `master` run `world`. Agreed with Aaron on 14 November
+  2026. Nothing in the repository checks this beyond the workflows' triggers.
 - Never push to, merge into or open a pull request against `main` or `integration/build`. Never force-push. Nothing
   checks this; it is on you.
 - A builder must not change the scenarios or the runner's generic checks: those judge its work. It may change
@@ -47,7 +52,8 @@ A world is created, used and destroyed as one unit, with an owner and an expiry.
   budget stays provisional and is never enforced until it is set from measured runs, so nothing fails on speed until
   then. Nothing checks this yet.
 - CI (`.github/workflows/check.yml`, job `gate`) runs rungs 1 to 5 of the ladder on every pull request and every
-  push to `master`.
+  push to `master`. `.github/workflows/world.yml`, job `thin-line`, runs rung 6 on pull requests into `master` and
+  pushes to `master`, one run at a time on the staging bench.
 
 ## The ladder
 

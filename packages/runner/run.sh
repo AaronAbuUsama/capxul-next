@@ -18,11 +18,22 @@
 #                                 the same, with every world's Core run here in workerd next to a stand-in bench
 #                                 (WORLD_BENCH=<platform stage>, or WORLD_BENCH=local with POOL_SECRETS for
 #                                 packages/platform's bin/pool-bench.sh bench): a rehearsal, labelled so in every record
+#   ./run.sh shared               make the shared world WORLD_SHARED (default `shared`) on its own hub, or renew it
+#   ./run.sh scenarios --shared [name...]
+#                                 the journeys on that shared world: each from its template snapshots, restored into a
+#                                 world of the run; the shared world is never reset (src/shared/)
 #   ./run.sh alchemy <args...>    an alchemy command for the CapxulCore stack, e.g. alchemy state list. Never nuke.
 set -euo pipefail
 cd "$(dirname "$0")"
 export CI=true
 export CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN:-proxy-injected}" NEON_API_KEY="${NEON_API_KEY:-proxy-injected}"
+# The shared world (src/shared/) has an owner of its own, `staging`, and a hub of its own, `shared`.
+shared=false
+for arg in "$@"; do [ "$arg" = --shared ] && shared=true; done
+[ "${1:-}" = shared ] && shared=true
+if [ "$shared" = true ]; then
+  export WORLD_OWNER="${WORLD_OWNER:-staging}" WORLD_SECOND_OWNER="${WORLD_SECOND_OWNER:-staging-2}" WORLD_HUB="${WORLD_HUB:-shared}"
+fi
 export WORLD_OWNER="${WORLD_OWNER:-runner}"
 # A fresh pair of door tokens for this run's stages: Core reads them at deploy, the runner's SDK sends them. They are
 # test credentials of short-lived stages, never printed.
@@ -50,7 +61,7 @@ fi
 # The disk guard: a run in private worlds with a bench fills the disk with sites and their backups; stop before it is
 # full (RUNNER_MIN_FREE_GB, default 4).
 free_gb() { df -Pk . | awk 'NR==2 { print int($4 / 1048576) }'; }
-if [ "${1:-}" = scenarios ] || [ "${1:-}" = starting-worlds ]; then
+if [ "${1:-}" = scenarios ] || [ "${1:-}" = starting-worlds ] || [ "${1:-}" = shared ]; then
   [ "$(free_gb)" -ge "${RUNNER_MIN_FREE_GB:-4}" ] || { echo "run.sh: only $(free_gb) GB free; at least ${RUNNER_MIN_FREE_GB:-4} needed" >&2; exit 2; }
 fi
 # A run that expects Core's empty handlers deploys its stages in Core's empty-handler mode (packages/core,
@@ -58,6 +69,6 @@ fi
 for arg in "$@"; do [ "$arg" = --expect=not-implemented ] && export CAPXUL_HANDLERS=empty; done
 case "${1:-}" in
   alchemy) shift; exec bun node_modules/alchemy/bin/cli.js "$@" ;;
-  door|chain|scenarios|starting-worlds) exec bun src/main.ts "$@" ;;
-  *) echo "usage: ./run.sh door | scenarios [--one-stage] [--expect=pass|not-implemented] [--via=sdk|cli] [name...] | alchemy <args...>" >&2; exit 2 ;;
+  door|chain|scenarios|starting-worlds|shared) exec bun src/main.ts "$@" ;;
+  *) echo "usage: ./run.sh door | scenarios [--one-stage] [--expect=pass|not-implemented] [--shared] [--via=sdk|cli] [name...] | shared | alchemy <args...>" >&2; exit 2 ;;
 esac

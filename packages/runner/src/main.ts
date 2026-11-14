@@ -8,6 +8,7 @@ import * as BunFileSystem from "@effect/platform-bun/BunFileSystem";
 import * as BunPath from "@effect/platform-bun/BunPath";
 import * as BunRuntime from "@effect/platform-bun/BunRuntime";
 import * as BunServices from "@effect/platform-bun/BunServices";
+import * as World from "@capxul/world";
 import { SharedState } from "@capxul/world";
 import { journeys } from "@capxul/scenarios";
 import * as Alchemist from "alchemy/Alchemist";
@@ -25,19 +26,23 @@ import { OtherWorlds } from "./world/existing.ts";
 import { localCoreHost } from "./local/host.ts";
 import { platformFor } from "./worlds/platform.ts";
 import { runInWorlds } from "./worlds/run.ts";
+import { makeOrRenew } from "./shared/make.ts";
 import { timeStartingWorlds } from "./worlds/timing.ts";
 import { runScenarios } from "./scenario-runs.ts";
 import { Settings } from "./settings.ts";
 import { ranAsExpected, type Expectation, type Mode } from "./summary.ts";
 
 const USAGE =
-  "usage: door [--world=<name>] | chain --world=<name> | scenarios [--one-stage] [--expect=pass|not-implemented] [--core=local] [--via=sdk|cli] [name...] | starting-worlds [--core=local]";
+  "usage: door [--world=<name>] | chain --world=<name> | scenarios [--one-stage] [--expect=pass|not-implemented] [--core=local] [--shared] [--via=sdk|cli] [name...] | starting-worlds [--core=local] | shared";
 const [command, ...rest] = process.argv.slice(2);
 const WORLD_FLAG = "--world=";
 const world = Arr.findFirst(rest, Str.startsWith(WORLD_FLAG)).pipe(Option.map(Str.slice(WORLD_FLAG.length)));
 const LOCAL_CORE = "--core=local";
 /** `--core=local`: every world's Core runs here in workerd, next to a stand-in bench (src/local/host.ts). */
 const localCore = Arr.contains(rest, LOCAL_CORE);
+const SHARED = "--shared";
+/** `--shared`: the journeys run on the shared world WORLD_SHARED names, each from its templates (src/shared/). */
+const onShared = Arr.contains(rest, SHARED);
 const VIA_FLAG = "--via=";
 /** `--via=cli`: the journeys' calls go through the command line, each the `capxul` command that makes it (client.ts). */
 const via = Arr.findFirst(rest, Str.startsWith(VIA_FLAG)).pipe(Option.map(Str.slice(VIA_FLAG.length)));
@@ -47,7 +52,8 @@ const flags = Arr.filter(
     Str.startsWith("--")(each) &&
     !Str.startsWith(WORLD_FLAG)(each) &&
     !Str.startsWith(VIA_FLAG)(each) &&
-    each !== LOCAL_CORE,
+    each !== LOCAL_CORE &&
+    each !== SHARED,
 );
 const names = Arr.filter(rest, (each) => !Str.startsWith("--")(each));
 /** The journeys to run, by the names given; all of them when none is. */
@@ -77,9 +83,12 @@ const options = (): Effect.Effect<{ readonly mode: Mode; readonly expect: Expect
  */
 const plans = (settings: Settings): Effect.Effect<ReadonlyArray<Plan>, RunnerFailure> => {
   if (command === "door") return flags.length === 0 && names.length === 0 ? Effect.succeed([door]) : usage(USAGE);
+  if (localCore && (onShared || command === "shared"))
+    return usage(`a shared world's Core runs on Cloudflare: ${LOCAL_CORE} cannot be used with it; ${USAGE}`);
   if (localCore && command !== "scenarios" && command !== "starting-worlds")
     return usage(`${LOCAL_CORE} is for runs in private worlds: scenarios and starting-worlds; ${USAGE}`);
-  if (command === "starting-worlds")
+  if (onShared && command !== "scenarios") return usage(`${SHARED} is for scenarios; ${USAGE}`);
+  if (command === "starting-worlds" || command === "shared")
     return flags.length === 0 && names.length === 0 ? Effect.succeed([]) : usage(USAGE);
   if (command === "chain")
     return flags.length === 0 && names.length === 0 ? Effect.succeed([chainJourney]) : usage(USAGE);
@@ -119,17 +128,45 @@ const inWorlds = <A, E, R>(settings: Settings, run: Effect.Effect<A, E, R>) =>
     ),
   );
 
-const theScenarios = (settings: Settings, chosen: ReadonlyArray<Plan>) =>
+/**
+ * The settings of a run on the shared world: its first operator is the world's owner, signed in with the world's own
+ * operator token, read from the shared state (packages/world, `renew`), so the run may read the world as its owner.
+ */
+const onSharedWorld = (settings: Settings) =>
+  Effect.gen(function* () {
+    const shared = yield* World.open(settings.shared).pipe(
+      Effect.mapError((error) =>
+        RunnerFailure.make({
+          step: "arguments",
+          message: `no shared world ${settings.shared}: ${error._tag}; make it with ./run.sh shared`,
+        }),
+      ),
+    );
+    if (shared.owner !== settings.owner)
+      return yield* usage(`${settings.shared} belongs to ${shared.owner}: run with WORLD_OWNER=${shared.owner}`);
+    return { ...settings, platformToken: shared.operatorToken };
+  }).pipe(Effect.provide(Layer.provideMerge(SharedState.layer, BunServices.layer)));
+
+const theScenarios = (given: Settings, chosen: ReadonlyArray<Plan>) =>
   Effect.gen(function* () {
     const { mode, expect } = yield* options();
     const inPrivateWorlds = expect === "pass";
-    const shown = inPrivateWorlds ? "one world, reset before each journey" : mode;
+    yield* onShared && !inPrivateWorlds ? usage(`${SHARED} runs journeys that expect to pass; ${USAGE}`) : Effect.void;
+    const settings = onShared ? yield* onSharedWorld(given) : given;
+    const shown = onShared
+      ? `on the shared world ${settings.shared}, each from its templates`
+      : inPrivateWorlds
+        ? "one world, reset before each journey"
+        : mode;
     const through = settings.via === "cli" ? "through the command line" : "through the SDK";
     yield* Effect.log(
       `${chosen.length} journey${chosen.length === 1 ? "" : "s"}, ${shown}, ${through}, expecting ${expect}`,
     );
     const summary = inPrivateWorlds
-      ? yield* inWorlds(settings, runInWorlds(chosenJourneys, settings))
+      ? yield* inWorlds(
+          settings,
+          runInWorlds(chosenJourneys, settings, onShared ? Option.some(settings.shared) : Option.none()),
+        )
       : yield* runScenarios(chosen, settings, mode, expect);
     for (const line of summary.journeys)
       yield* Effect.log(
@@ -164,6 +201,23 @@ const withVia = (settings: Settings): Effect.Effect<Settings, RunnerFailure> => 
   return usage(`--via is sdk or cli, not ${via.value}; ${USAGE}`);
 };
 
+/** `./run.sh shared`: a shared world already there is reached as its owner with its own operator token. */
+const theSharedWorld = (given: Settings) =>
+  Effect.gen(function* () {
+    const there = yield* Effect.option(World.open(given.shared)).pipe(
+      Effect.provide(Layer.provideMerge(SharedState.layer, BunServices.layer)),
+    );
+    const settings =
+      Option.isSome(there) && there.value.owner === given.owner
+        ? { ...given, platformToken: there.value.operatorToken }
+        : given;
+    const record = yield* inWorlds(settings, makeOrRenew(settings, journeys));
+    yield* Effect.log(
+      `${record.outcome}: ${record.world} ${record.how}, owned by ${record.owner}, until ${record.expiresAt ?? "?"} on hub ${record.hub.stage}; templates ${Arr.join(record.templates, ", ")} -> ${settings.records}/${record.run}/shared.json${record.failure === null ? "" : `\n${record.failure}`}`,
+    );
+    if (record.outcome === "failed") process.exitCode = 1;
+  });
+
 const program = Effect.gen(function* () {
   const settings = yield* Effect.flatMap(Settings, withVia);
   const chosen = yield* plans(settings);
@@ -176,6 +230,7 @@ const program = Effect.gen(function* () {
   if (command === "chain" && Option.isNone(world))
     return yield* usage(`chain needs --world=<name>: a stage has no chain; ${USAGE}`);
   if (command === "starting-worlds") return yield* theStartingWorlds(settings);
+  if (command === "shared") return yield* theSharedWorld(settings);
   return yield* command === "scenarios"
     ? theScenarios(settings, chosen)
     : theDoor(settings, command === "chain" ? chainJourney : door);

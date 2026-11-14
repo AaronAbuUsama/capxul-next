@@ -7,6 +7,7 @@ import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
+import * as Predicate from "effect/Predicate";
 import * as Schema from "effect/Schema";
 import { CoreHost } from "../core/host.ts";
 import { LifetimeTooLong, SiteFailed } from "../failures.ts";
@@ -20,6 +21,7 @@ import { expiryOf, lifetimeAllowed } from "./expiry.ts";
 import { open, stop, WorldOutput } from "./parts.ts";
 import { Limits, type WorldSpec } from "./spec.ts";
 import type { Stopwatch } from "./steps.ts";
+import { describe } from "./describe.ts";
 import { checkName, checkOwner } from "./validate.ts";
 
 /** What is known about a world before anything of it exists. */
@@ -76,30 +78,72 @@ const unhostCore = (stage: string) =>
  */
 export const takeDown = (stage: string, watch: Stopwatch, holder: Option.Option<string> = Option.none()) =>
   Effect.gen(function* () {
-    // The sites go first, and their removal is not allowed to stop the destroy. If it fails, the world's record and
-    // its name are kept, so the sweeper, which reads them, removes the sites at the next sweep.
+    // The sites go first, and their removal is not allowed to stop the destroy. If it or the destroy fails, the
+    // world's remains are recorded again (`keepRemains`) and its name is kept, so the sweeper, which reads them, takes
+    // the world down again at its next sweep, its sites first.
     const recorded = yield* recordedOutput(stage);
     const bench = benchOf(recorded);
     const unsited = yield* Effect.exit(watch.step("unsite", removeSites(stage, bench)));
     yield* unhostCore(stage);
-    const removed = yield* watch.step(
-      "destroy",
-      // Its hub's part (containers, objects, saved chain states), its stack (Core, the Hyperdrive configuration, its
-      // secrets) and every branch of it (its own, its snapshots' and what in-place resets preserved, children first)
-      // do not depend on one another, so they go side by side.
-      Effect.all([forgetOnHub(stage, recorded), destroyStage(stage), dropBranches(stage)], { concurrency: 3 }).pipe(
-        Effect.map(([, resources]) => resources),
-        Effect.tap(() => (Exit.isSuccess(unsited) ? forgetStage(stage) : Effect.void)),
+    const destroyed = yield* Effect.exit(
+      watch.step(
+        "destroy",
+        // Its hub's part (containers, objects, saved chain states), its stack (Core, the Hyperdrive configuration, its
+        // secrets) and every branch of it (its own, its snapshots' and what in-place resets preserved, children first)
+        // do not depend on one another, so they go side by side.
+        Effect.all([forgetOnHub(stage, recorded), destroyStage(stage), dropBranches(stage)], { concurrency: 3 }).pipe(
+          Effect.map(([, resources]) => resources),
+        ),
       ),
     );
-    if (Exit.isFailure(unsited)) return yield* Effect.failCause(unsited.cause);
+    if (Exit.isFailure(destroyed)) {
+      yield* keepRemains(stage, recorded, "destroy failed");
+      return yield* Effect.failCause(destroyed.cause);
+    }
+    if (Exit.isFailure(unsited)) {
+      yield* keepRemains(stage, recorded, "unsite failed");
+      return yield* Effect.failCause(unsited.cause);
+    }
+    yield* forgetStage(stage);
     yield* watch.step(
       "release",
       Effect.flatMap(registry, (names) => release(names, stage, holder)),
     );
-    yield* Effect.logInfo(`world ${stage}: destroyed (${removed} resources) and its name released`);
-    return removed;
+    yield* Effect.logInfo(`world ${stage}: destroyed (${destroyed.value} resources) and its name released`);
+    return destroyed.value;
   });
+
+/** What a world's record says that its take-down needs again: who owns it, its bench, its hub. */
+const Remains = Schema.Struct({
+  owner: Schema.optionalKey(Schema.String),
+  forkedFrom: Schema.optionalKey(Schema.String),
+  bench: Schema.optionalKey(Schema.String),
+  hub: Schema.optionalKey(Schema.String),
+});
+
+/**
+ * Records what is left of a world whose take-down did not finish, due at once, so `world list` shows it and the next
+ * sweep takes it down again. Alchemy's destroy deletes the stage's record with its resources, so a destroy that went
+ * through leaves nothing for the sweeper to read: then the record is written again, with its owner, its bench and,
+ * when the destroy itself failed, its hub. A record the destroy did not reach keeps what it says. Nothing here may
+ * hide the take-down's own failure, so a failure to record is logged and nothing more.
+ */
+const keepRemains = (stage: string, recorded: unknown, status: "unsite failed" | "destroy failed") =>
+  Effect.gen(function* () {
+    const still = yield* recordedOutput(stage);
+    const remains = Option.getOrElse(Schema.decodeUnknownOption(Remains)(recorded), (): typeof Remains.Type => ({}));
+    const { hub, ...rest } = remains;
+    const base =
+      still !== undefined && Predicate.isObject(still)
+        ? still
+        : { ...rest, ...(status === "destroy failed" && hub !== undefined ? { hub } : {}), world: stage };
+    yield* recordOutput(stage, { ...base, status, expiresAt: DateTime.formatIso(yield* DateTime.now) });
+    yield* Effect.logWarning(`world ${stage}: ${status}; its record is kept, due at once, for the next sweep`);
+  }).pipe(
+    Effect.catchCause((cause) =>
+      Effect.logError(`world ${stage}: its remains could not be recorded: ${describe(cause)}`),
+    ),
+  );
 
 /**
  * Removes everything of the world from its hub: its containers, its Durable Objects' state and its saved chain states.
