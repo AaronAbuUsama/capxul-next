@@ -5,8 +5,9 @@
 // - Workers, their Durable Objects and Containers (with the container registry), R2 buckets and Hyperdrive
 //   configurations: a world's chain, index, door and Core;
 // - Cloudflare Tunnel: the platform's tunnel and its ingress;
-// - Secrets Store, read only: Alchemy's state store keeps its own bearer token there and reads it back through a
-//   preview Worker on every run;
+// - Secrets Store, edit: Alchemy's state store keeps its own bearer token there and reads it back through a preview
+//   Worker on every run; binding a secret to a Worker needs Edit, Read is refused ("Secrets store binding
+//   authorization failed");
 // - Account Settings, read only: Alchemy resolves the account.
 // One zone only, the platform's (abuusama.dev, later capxul.com): its DNS records, and reading the zone. Cloudflare
 // cannot limit a token to the names under `worlds.`; the stacks create records only there (src/names.ts).
@@ -25,7 +26,7 @@ export const ACCOUNT_PERMISSIONS: ReadonlyArray<Permission> = [
   "Workers KV Storage Write",
   "Hyperdrive Write",
   "Cloudflare Tunnel Write",
-  "Secrets Store Read",
+  "Secrets Store Write",
 ];
 
 export const ZONE_PERMISSIONS: ReadonlyArray<Permission> = ["Zone Read", "DNS Write"];
