@@ -1,8 +1,8 @@
-// The refusals of the contract about approvals. Each is declared once, here; ../errors.ts gathers them all.
+// The refusals of the domain "approvals": giving a signature an operation asked for. Each is declared once, here;
+// ../errors.ts gathers them all.
 import * as Schema from "effect/Schema";
+import type { ExitCode } from "../errors.ts";
 import { Address, ApprovalId, Hash, Instant, PersonId } from "../values.ts";
-
-// Approvals.
 
 export class ApprovalNotFound extends Schema.TaggedError<ApprovalNotFound, { readonly brand: unique symbol }>()(
   "ApprovalNotFound",
@@ -56,3 +56,21 @@ export class TransactionReverted extends Schema.TaggedError<TransactionReverted,
     reason: Schema.String,
   },
 ) {}
+
+export const refusals = {
+  ApprovalNotFound,
+  NotYourApproval,
+  SignatureInvalid,
+  ApprovalExpired,
+  ApprovalClosed,
+  TransactionReverted,
+} as const;
+
+export const exitCode: { readonly [Tag in keyof typeof refusals]: ExitCode } = {
+  ApprovalNotFound: 2,
+  NotYourApproval: 4,
+  SignatureInvalid: 2,
+  ApprovalExpired: 2,
+  ApprovalClosed: 2,
+  TransactionReverted: 5,
+};

@@ -15,20 +15,8 @@ The parts of a world, as `packages/world` builds it (roadmap step 1.3):
 - **site**: a company's Frappe site on a bench, reached through the door (roadmap step 1.4).
 - **clock**: the world's time, followed by the chain and every site.
 
-| # | Operation | Parts it needs | Starting worlds its scenarios need | Why here |
-|---|---|---|---|---|
-| 1 | `world.create` | registry, stack, database, chain, index, clock, the cast | `nothing`, `quota-full` | Nothing else can run without a world. It is `packages/world`'s create with an Rpc in front. |
-| 2 | `world.show` | registry, database | `nothing`, `founded`, `restored` | A read of what create wrote. The first claim needs `restored` and waits for step 12's operation. |
-| 3 | `record.export` | database | `fresh`, `paid`, `restored` | Reads the record, which every operation after it writes. Built early so every later scenario can read the record. |
-| 4 | `world.clock.warp` | chain, clock, site when there is one | `founded` | The chain half can be built on `fresh`; its thin line claim needs a company's site and waits for step 1.4. |
-| 5 | `org.create` | database, chain, index, signing | `fresh` | The first operation inside a world. Its third claim needs `approval.sign`. |
-| 6 | `approval.sign` | chain, index, signing | `founded`, `payment-held` | Needed to finish a founding; without it no later starting world can be made. |
-| 7 | `org.member.grant` | database, chain, index, signing | `founded`, `office-holder` | Needs a founded company and `approval.sign` to execute its proposal. |
-| 8 | `doc.create` | database, site | `office-holder`, `payment-drafted` | The first operation on a company's site: needs roadmap step 1.4 and a member with a site user. |
-| 9 | `doc.submit` | database, index, signing, site | `office-holder`, `payment-drafted`, `payment-held` | Needs documents to submit; a held payment opens a sponsored approval. |
-| 10 | `report.run` | site | `paid` | Its claims compare the books with the chain after a payment, so it needs everything before it. |
-| 11 | `world.snapshot.save` | registry, database, chain, site, clock | `fresh`, `paid`, `with-snapshot` | Copies a whole world: a branch of its database, its chain state and its sites. |
-| 12 | `world.snapshot.restore` | everything `world.create` needs, and a snapshot | `with-snapshot` | Makes a world from a snapshot, so it needs create and save. |
+Each domain's operations are in its own table, beside its sources: `src/<domain>/order.md`. Its "#" is the
+operation's step in this order, from 1 (`world.create`) to 12 (`world.snapshot.restore`) for the thin line's twelve.
 
 ## What can be built at the same time
 
