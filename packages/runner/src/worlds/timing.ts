@@ -5,7 +5,6 @@
 // the end, and the accounts are read for anything of them afterwards. A starting world the runner cannot make yet
 // says which operations its steps wait on. Every part's time is in `timings`.
 import { startingWorlds } from "@capxul/blueprint";
-import * as World from "@capxul/world";
 import * as Arr from "effect/Array";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
@@ -24,7 +23,8 @@ import { waitsOn } from "./makers.ts";
 import { Platform } from "./platform.ts";
 import { Timing, makeTimings } from "../timings.ts";
 import { onHub } from "./hub.ts";
-import { coreLabel, destroyAll, leftOf } from "./run.ts";
+import { coreLabel } from "./run.ts";
+import { destroyAll, leftOf, takeDownWorlds } from "./teardown.ts";
 import { startingWorldsOf } from "./starting.ts";
 
 const Line = Schema.Struct({
@@ -67,7 +67,7 @@ export const timeStartingWorlds = (settings: Settings) =>
     const startedAt = DateTime.formatIso(yield* DateTime.now);
     const run = yield* freshName("run");
     const timings = yield* makeTimings;
-    const [lines, templates, destroyTook, destroyedAll] = yield* onHub(settings, timings, () =>
+    const [lines, templates, destroyMs, notTakenDown] = yield* onHub(settings, timings, () =>
       Effect.gen(function* () {
         const starting = yield* startingWorldsOf(settings, platform.url, timings);
         const all = Rec.values(startingWorlds);
@@ -110,18 +110,16 @@ export const timeStartingWorlds = (settings: Settings) =>
           ),
         );
         const ones = yield* starting.templateWorlds;
-        yield* Effect.forEach(yield* starting.kept, (template) =>
-          Effect.ignore(Effect.flatMap(starting.oneWorld, (one) => World.dropSitesTemplate(one, template))),
-        );
-        const [took, gone] = yield* Effect.timed(destroyAll(ones));
-        return [made, ones, took, gone] as const;
+        const one = yield* Effect.option(starting.oneWorld);
+        const done = yield* takeDownWorlds(one, yield* starting.kept, ones, timings);
+        return [made, ones, done.destroyMs, done.failed] as const;
       }),
     );
     const after = yield* leftOf(Arr.dedupe([...(yield* platform.made), ...(yield* platform.tried)]));
     const failures = [
       ...Arr.flatMap(lines, (line) => (line.outcome === "failed" ? [`${line.name}: ${line.why ?? ""}`] : [])),
       ...failuresOf(Arr.flatMap(lines, (line) => line.calls)),
-      ...(destroyedAll ? [] : ["a template world's destroy failed"]),
+      ...notTakenDown,
       ...(after === null || (after.worlds ?? []).length > 0
         ? ["the accounts still hold some of the run's worlds"]
         : []),
@@ -136,7 +134,7 @@ export const timeStartingWorlds = (settings: Settings) =>
       failure: failures.length === 0 ? null : Arr.join(failures, "\n"),
       worlds: lines,
       templates,
-      destroyMs: millis(destroyTook),
+      destroyMs,
       timings: yield* timings.all,
       after,
     };

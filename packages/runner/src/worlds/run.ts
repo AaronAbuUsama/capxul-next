@@ -15,6 +15,7 @@ import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
+import * as Ref from "effect/Ref";
 import { checkCall, failuresOf } from "../checks/checks.ts";
 import type { Call } from "../client.ts";
 import { describe, endedOf } from "../failure.ts";
@@ -24,12 +25,12 @@ import { stepsOf } from "../steps.ts";
 import type { Settings } from "../settings.ts";
 import { summarize, Summary } from "../summary.ts";
 import { makeTimings, type Timings } from "../timings.ts";
-import type { Inventory } from "../world/leftovers.ts";
 import { answersSteadily } from "../world/warmup.ts";
 import type { Stage } from "../world/stage.ts";
 import { onHub } from "./hub.ts";
 import { Platform } from "./platform.ts";
 import { startingWorldsOf, type StartingWorlds } from "./starting.ts";
+import { destroyAll, destroyStrays, leftOf, takeDownWorlds } from "./teardown.ts";
 
 const now = Effect.map(DateTime.now, DateTime.formatIso);
 
@@ -37,43 +38,6 @@ const now = Effect.map(DateTime.now, DateTime.formatIso);
 export const coreLabel = Effect.map(World.CoreHost, (host) => Option.getOrUndefined(Option.map(host, (h) => h.label)));
 const millis = (took: Duration.Duration) => Math.round(Duration.toMillis(took));
 const NOWHERE = "http://127.0.0.1:9";
-
-/** What the accounts hold of `stages`, by name, or null when they could not be read. */
-export const leftOf = (stages: ReadonlyArray<string>) =>
-  World.inventory.pipe(
-    Effect.map((listing): Inventory | null => ({
-      workers: [],
-      hyperdrives: [],
-      neonProjects: [],
-      worlds: World.namesOfWorlds(World.ofThisStackOnly(listing), stages),
-    })),
-    Effect.catchCause((cause) => Effect.as(Effect.logWarning(`inventory not read: ${describe(cause)}`), null)),
-  );
-
-/** Destroys `stages`, the newest first, so a world restored from a snapshot goes before the world it came from. */
-export const destroyAll = (stages: ReadonlyArray<string>) =>
-  Effect.forEach(Arr.reverse(stages), (stage) =>
-    World.destroy(stage).pipe(
-      Effect.exit,
-      Effect.tap((gone) =>
-        Exit.isFailure(gone) ? Effect.logError(`world ${stage}: destroy failed: ${describe(gone.cause)}`) : Effect.void,
-      ),
-      Effect.map(Exit.isSuccess),
-    ),
-  ).pipe(Effect.map(Arr.every((gone) => gone)));
-
-/**
- * Destroys what is left of the worlds the platform tried to make but never handed over: a create that failed after
- * its claim takes its world down itself, and when that take-down fails too the world is left. Only a world one of the
- * run's operators owns is touched; one already gone is no failure.
- */
-export const destroyStrays = (stages: ReadonlyArray<string>, owners: ReadonlyArray<string>) =>
-  Effect.forEach(stages, (stage) =>
-    World.open(stage).pipe(
-      Effect.flatMap((world) => (Arr.contains(owners, world.owner) ? destroyAll([stage]) : Effect.succeed(true))),
-      Effect.orElseSucceed(() => true),
-    ),
-  ).pipe(Effect.map(Arr.every((gone) => gone)));
 
 /** The checked calls of `calls`, read from where each was kept. */
 const checked = (calls: ReadonlyArray<Call>) =>
@@ -229,21 +193,14 @@ const runOne = (
   ).pipe(Effect.withSpan("runner.world.scenario", { attributes: { scenario: scenario.name } }));
 
 /**
- * Drops the bench templates the run kept and destroys its one world, timing both; true when the world is gone.
- * Whatever ends the run, this runs.
+ * Drops the bench templates the run kept and destroys its one world, timing both; what could not be done, one line
+ * each. Whatever ends the run, this runs.
  */
 const takeDown = (starting: StartingWorlds, timings: Timings) =>
   Effect.gen(function* () {
     const one = yield* Effect.option(starting.oneWorld);
-    if (Option.isSome(one))
-      yield* Effect.forEach(yield* starting.kept, (template) =>
-        timings
-          .timed(`drop bench template ${template}`, { of: one.value }, World.dropSitesTemplate(one.value, template))
-          .pipe(Effect.ignore),
-      );
-    const stages = yield* starting.templateWorlds;
-    if (stages.length === 0) return true;
-    return yield* timings.timed("world destroy", { of: Arr.join(stages, ", ") }, destroyAll(stages));
+    const done = yield* takeDownWorlds(one, yield* starting.kept, yield* starting.templateWorlds, timings);
+    return done.failed;
   });
 
 /** Every journey in the run's one world, one at a time, and the run's summary at `<run>/summary.json`. */
@@ -253,16 +210,21 @@ export const runInWorlds = (scenarios: ReadonlyArray<Journey>, settings: Setting
     const startedAt = yield* now;
     const run = yield* freshName("run");
     const timings = yield* makeTimings;
+    const notTakenDown = yield* Ref.make<ReadonlyArray<string>>([]);
     const [records, world, hub] = yield* onHub(settings, timings, (used) =>
       Effect.gen(function* () {
         const starting = yield* startingWorldsOf(settings, platform.url, timings);
+        const takenDown = takeDown(starting, timings).pipe(
+          Effect.flatMap((failed) => Ref.set(notTakenDown, failed)),
+          Effect.catchCause((cause) => Ref.set(notTakenDown, [`the take-down did not finish: ${describe(cause)}`])),
+        );
         const outcome = yield* Effect.gen(function* () {
           // A starting world that could not be made fails the journeys of it, each with why; the rest still run.
           yield* Effect.ignore(starting.prepare(Arr.map(scenarios, (scenario) => scenario.given)));
           return yield* Effect.forEach(scenarios, (scenario, index) =>
             runOne(scenario, settings, starting, timings, run, index),
           );
-        }).pipe(Effect.ensuring(Effect.ignore(takeDown(starting, timings))));
+        }).pipe(Effect.ensuring(takenDown));
         const one = yield* Effect.option(starting.oneWorld);
         return [outcome, Option.getOrNull(one), used] as const;
       }),
@@ -277,7 +239,14 @@ export const runInWorlds = (scenarios: ReadonlyArray<Journey>, settings: Setting
       startedAt,
       records,
       pathOf: (record) => `${run}/${slugOf(record.name)}.json`,
-      oneWorld: { world, hub: hub.stage, hubBroughtUp: hub.broughtUp, left, timings: yield* timings.all },
+      oneWorld: {
+        world,
+        hub: hub.stage,
+        hubBroughtUp: hub.broughtUp,
+        left,
+        notTakenDown: yield* Ref.get(notTakenDown),
+        timings: yield* timings.all,
+      },
     });
     yield* Effect.orDie(writeJson(`${settings.records}/${run}/summary.json`, Summary, summary));
     return summary;

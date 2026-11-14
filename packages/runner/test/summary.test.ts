@@ -180,3 +180,34 @@ test("expecting a pass, a journey passes only when its run record did", () => {
   assert.equal(summary(passed, "pass").outcome, "passed");
   assert.equal(summary(every(), "pass").outcome, "failed");
 });
+
+test("a run in one world whose take-down left a template or a world's sites on the bench does not pass", () => {
+  const passed = Arr.map(every(), (each) => ({ ...each, outcome: "passed" as const, failure: null }));
+  const oneWorld = (notTakenDown: ReadonlyArray<string>) =>
+    summarize({
+      run: "run-2166f8",
+      mode: "one world",
+      expect: "pass",
+      owner: "runner",
+      startedAt: "2026-11-14T00:00:00.000Z",
+      records: passed,
+      pathOf: (each) => `run-2166f8/${each.name}.json`,
+      oneWorld: {
+        world: "tpl-2c652e",
+        hub: "rh-1",
+        hubBroughtUp: true,
+        // The accounts hold nothing of the run's worlds: the bench is not in them.
+        left: { workers: [], hyperdrives: [], neonProjects: [], worlds: [] },
+        notTakenDown,
+        timings: [],
+      },
+    });
+  assert.equal(oneWorld([]).outcome, "passed", oneWorld([]).failure ?? "");
+  const left = oneWorld([
+    'bench template payment-drafted not dropped: {"_tag":"SiteFailed","step":"door","message":"HTTP 530: error code: 1033"}',
+    'world destroy failed: {"_tag":"RunnerFailure","step":"destroy","message":"w-tpl-2c652e: SiteFailed: HTTP 530"}',
+  ]);
+  assert.equal(left.outcome, "failed");
+  assert.match(left.failure ?? "", /the run's take-down failed: bench template payment-drafted not dropped/);
+  assert.match(left.failure ?? "", /the run's take-down failed: world destroy failed: .*w-tpl-2c652e/);
+});
