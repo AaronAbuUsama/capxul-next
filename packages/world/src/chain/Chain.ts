@@ -1,21 +1,15 @@
-// One world's chain. The Durable Object is the only thing that starts and stops the anvil container, so it can
-// always save the chain's state first: a container's disk is gone the moment it stops.
-//
-//   wake:  nothing saved  -> start anvil from the seed in the image
-//          state saved    -> start anvil empty, then anvil_loadState with what was saved
-//          a refused start is tried again, with backoff, within CHAIN_START (src/containers/patience.ts)
-//   stop:  anvil_dumpState -> R2 -> destroy the container; how far anvil's clock runs from the host's is kept too
-//   clock: anvil_loadState restarts anvil's clock at the saved head, so a wake sets it back to the host's time plus
-//          the kept offset (evm_setTime): the chain's time runs on through a stop as the world's running clock does
-//   idle:  every call pushes a durable callback forward; when it fires, the chain is stopped the same way
-//   save:  while calls arrive the state is also saved every SAVE_EVERY, so a container that goes away without
-//          being stopped (a crash, the platform replacing it) costs at most that much of the chain
-//   fork:  a world made from another is handed that world's state before its first start (adopt)
-//   snap:  a snapshot saves the state now under its own name (saveAs), and a world restored from it adopts that
-//
-// The chain carries the world's index with it: the index is stopped before the chain is saved and started again
-// after the chain wakes. The bundler is stopped with it too, first; it starts again on its next call. The index's own polling is "quiet": it neither wakes the chain nor keeps it awake, or a
-// world with an index would never be idle.
+// One world's chain, on the hub (src/hub): one object per world, by the world's stage. It alone starts and stops
+// the world's anvil, so it can always save the chain's state first: a container's disk is gone when it stops.
+//   wake:  nothing saved -> anvil from the seed in the image; state saved -> anvil empty, then anvil_loadState;
+//          a refused start is tried again within CHAIN_START (src/containers/patience.ts)
+//   stop:  anvil_dumpState -> the hub's bucket -> destroy; how far anvil's clock runs from the host's is kept, and a
+//          wake sets it again (evm_setTime), since anvil_loadState restarts anvil's clock at the saved head
+//   idle and save: every call pushes a durable stop forward, and while calls arrive the state is saved every SAVE_EVERY
+//   fork, snap, reset: a world made from another adopts its state; a snapshot saves the state under its name; a reset
+//          rewinds the chain to it in place (src/lifecycle/reset.ts)
+//   world: it keeps the world's registration, checks each call's token against it (admit) and forgets it all
+// The index is stopped before the chain is saved and resumed when it wakes; the bundler is stopped with it. The
+// index's polling is "quiet": it neither wakes the chain nor keeps it awake.
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Alchemy from "alchemy";
 import * as Arr from "effect/Array";
@@ -23,16 +17,17 @@ import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Predicate from "effect/Predicate";
 import * as Ref from "effect/Ref";
-import * as Schema from "effect/Schema";
 import * as Semaphore from "effect/Semaphore";
-import * as HttpClientRequest from "effect/http/HttpClientRequest";
-import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import Bundler from "../bundler/Bundler.ts";
 import { CHAIN_START, gaveUpMessage, startPatiently } from "../containers/patience.ts";
 import { ChainFailed } from "../failures.ts";
+import { chainKey, ledgerKey, type Registration, snapshotKey } from "../hub/registration.ts";
+import { dropObjects } from "./objects.ts";
+import { PLACE } from "../hub/names.ts";
 import Indexer from "../index/Indexer.ts";
-import { describeFailure } from "../lifecycle/describe.ts";
+import { admission } from "./admission.ts";
 import { Anvil, RPC_PORT, restoreEntrypoint } from "./Anvil.ts";
+import { anvilCalls, failed } from "./calls.ts";
 import { ChainState } from "./ChainState.ts";
 import { remembered, stamp } from "../containers/record.ts";
 import { type ChainRecord, fresh, withGaveUp } from "./record.ts";
@@ -41,19 +36,6 @@ import { type ChainRecord, fresh, withGaveUp } from "./record.ts";
 const SAVE_EVERY = "20 seconds";
 /** At most one storage write for the idle stop in this many milliseconds, however busy the chain is. */
 const TOUCH_EVERY_MS = 5000;
-
-/** A stage is one world, so each class has one object, under this name. */
-export const WORLD = "world";
-
-/** anvil's answer to one call. A result that is a string is all the chain itself ever asks for. */
-const RpcAnswer = Schema.Struct({ result: Schema.optional(Schema.Unknown), error: Schema.optional(Schema.Unknown) });
-/** A block as the chain reads its time from it. */
-const Pending = Schema.Struct({ timestamp: Schema.String });
-
-const failed =
-  (step: ChainFailed["step"]) =>
-  (cause: unknown): ChainFailed =>
-    ChainFailed.make({ step, message: describeFailure(cause) });
 
 export default class Chain extends Cloudflare.DurableObject<Chain>()(
   "Chain",
@@ -68,74 +50,30 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
     // each instance.
     // @effect-diagnostics-next-line returnEffectInGen:off
     return Effect.gen(function* () {
-      const key = `anvil/${state.id.toString()}.hex`;
       const port = yield* anvil.getTcpPort(RPC_PORT);
+      const { forward, ask, call, clockOffset } = anvilCalls(port);
       const lock = yield* Semaphore.make(1);
-      const indexer = indexers.getByName(WORLD);
-      const bundler = bundlers.getByName(WORLD);
       const pushedAt = yield* Ref.make(0);
       const savePending = yield* Ref.make(false);
+
+      const { registered, register, admit } = admission(state.storage);
+      const stage = Effect.map(registered, (world) => world.stage);
+      const key = Effect.map(stage, chainKey);
+      const indexer = Effect.map(stage, (name) => indexers.getByName(name, PLACE));
+      const bundler = Effect.map(stage, (name) => bundlers.getByName(name, PLACE));
 
       const record = state.storage.get<ChainRecord>("record").pipe(Effect.map((found) => found ?? fresh));
       const remember = (change: (old: ChainRecord) => ChainRecord) =>
         record.pipe(Effect.flatMap((old) => state.storage.put("record", change(old))));
       const running = (step: ChainFailed["step"]) => anvil.running.pipe(Effect.mapError(failed(step)));
 
-      /** Sends one JSON-RPC body to anvil as it is and gives back anvil's answer as it is: the door's traffic. */
-      const forward = (body: string) =>
-        port
-          .fetch(HttpClientRequest.post("http://container/").pipe(HttpClientRequest.bodyText(body, "application/json")))
-          .pipe(
-            Effect.flatMap((response) => response.text),
-            Effect.mapError(failed("rpc")),
-          );
-
-      /** Calls one of anvil's methods for the chain's own needs and gives back its result, whatever it is. */
-      const ask = (step: ChainFailed["step"], method: string, params: ReadonlyArray<unknown> = []) =>
-        port
-          .fetch(
-            HttpClientRequest.post("http://container/").pipe(
-              HttpClientRequest.bodyJsonUnsafe({ jsonrpc: "2.0", id: 1, method, params }),
-            ),
-          )
-          .pipe(
-            Effect.flatMap(HttpClientResponse.schemaBodyJson(RpcAnswer)),
-            Effect.mapError(failed(step)),
-            Effect.flatMap((answer) =>
-              answer.error === undefined ? Effect.succeed(answer.result) : Effect.fail(failed(step)(answer.error)),
-            ),
-          );
-
-      /** The same, insisting on a string result. */
-      const call = (step: ChainFailed["step"], method: string, params: ReadonlyArray<unknown> = []) =>
-        ask(step, method, params).pipe(
-          Effect.flatMap((result) =>
-            Predicate.isString(result) || result === true
-              ? Effect.succeed(Predicate.isString(result) ? result : "true")
-              : Effect.fail(failed(step)(`${method} gave no result`)),
-          ),
-        );
-
-      /**
-       * How many seconds anvil's clock runs ahead of the host's (behind, when negative): anvil gives its pending block
-       * its own time now. A warp, a world's start block or a restore moves that clock (evm_setNextBlockTimestamp).
-       */
-      const clockOffset = Effect.gen(function* () {
-        const pending = yield* Effect.flatMap(
-          ask("save", "eth_getBlockByNumber", ["pending", false]),
-          Schema.decodeUnknownEffect(Pending),
-        ).pipe(Effect.mapError(failed("save")));
-        return Number(BigInt(pending.timestamp)) - Math.floor((yield* Clock.currentTimeMillis) / 1000);
-      });
-
-      // Cloudflare can refuse to start the container ("no container instance ... try again later"), most often just
-      // after the world is made or after its container went away, so the start is tried again within CHAIN_START
-      // (src/containers), and every try is remembered. A chain that never answers fails the call that woke it.
+      // A start Cloudflare refuses is tried again within CHAIN_START (src/containers), and every try is remembered.
+      // A chain that never answers fails the call that woke it.
       const wake = Effect.gen(function* () {
         if (yield* running("start")) return;
         const began = yield* Clock.currentTimeMillis;
         const { up: afterUnsavedStop, idleSeconds, clockOffset: offset } = yield* record;
-        const object = yield* saved.get(key).pipe(Effect.mapError(failed("restore")));
+        const object = yield* saved.get(yield* key).pipe(Effect.mapError(failed("restore")));
         const restoring = Predicate.isNotNull(object);
         // Cloudflare stops a container by itself once its Durable Object has been quiet for a while, and that stop
         // saves nothing. Its limit is put well past ours, so the idle callback below always gets there first. It is
@@ -171,7 +109,7 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
         yield* call("start", "eth_chainId");
         const wakeMs = (yield* Clock.currentTimeMillis) - began;
         // The index is started again by its own Durable Object, which never makes the chain wait on it.
-        yield* indexer.resume().pipe(Effect.mapError(failed("start")));
+        yield* (yield* indexer).resume().pipe(Effect.mapError(failed("start")));
         const from = restoring ? ("saved state" as const) : ("seed" as const);
         const start = { at: stamp(began), from, afterUnsavedStop, wakeMs, ...report };
         yield* remember((old) => ({ ...old, up: true, starts: remembered(old.starts, start) }));
@@ -182,7 +120,7 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
         const head = yield* call("save", "eth_blockNumber");
         const offset = yield* clockOffset;
         const dump = yield* call("save", "anvil_dumpState");
-        yield* saved.put(key, dump).pipe(Effect.mapError(failed("save")));
+        yield* saved.put(yield* key, dump).pipe(Effect.mapError(failed("save")));
         yield* remember((old) => ({ ...old, clockOffset: offset }));
         return { head, dump };
       });
@@ -190,8 +128,8 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
       const halt = (why: "asked" | "idle") =>
         Effect.gen(function* () {
           if (!(yield* running("stop"))) return { stopped: false as const };
-          yield* bundler.stop().pipe(Effect.mapError(failed("stop")));
-          yield* indexer.stop().pipe(Effect.mapError(failed("stop")));
+          yield* (yield* bundler).stop().pipe(Effect.mapError(failed("stop")));
+          yield* (yield* indexer).stop().pipe(Effect.mapError(failed("stop")));
           const began = yield* Clock.currentTimeMillis;
           const { head, dump } = yield* save;
           yield* anvil.destroy().pipe(Effect.mapError(failed("stop")));
@@ -226,6 +164,31 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
         yield* onSave.schedule("save", { after: SAVE_EVERY, payload: null });
       }).pipe(Effect.mapError(failed("rpc")));
 
+      /** Rewinds the chain to the state a snapshot saved: in place when it runs, or as its saved state when it does not. */
+      const reset = (snapshot: string) =>
+        Effect.gen(function* () {
+          const name = yield* stage;
+          const began = yield* Clock.currentTimeMillis;
+          const object = yield* saved.get(snapshotKey(name, snapshot)).pipe(Effect.mapError(failed("reset")));
+          if (Predicate.isNull(object))
+            return yield* ChainFailed.make({ step: "reset", message: `no chain state saved as ${snapshot}` });
+          const dump = yield* object.text().pipe(Effect.mapError(failed("reset")));
+          // alto's nonces and mempool belong to the chain as it was: it starts again on its next call.
+          yield* (yield* bundler).stop().pipe(Effect.mapError(failed("reset")));
+          const inPlace = yield* running("reset");
+          if (inPlace) {
+            yield* ask("reset", "anvil_reset", []);
+            yield* call("reset", "anvil_loadState", [dump]);
+          }
+          // The chain's own saved state is the snapshot's now, so a container that goes away comes back to it. Its
+          // clock is set by whoever reset it (the world's clock, src/lifecycle/reset.ts), so no offset is kept.
+          yield* saved.put(yield* key, dump).pipe(Effect.mapError(failed("reset")));
+          const done = { at: stamp(began), snapshot, inPlace, bytes: dump.length, ms: 0 };
+          const entry = { ...done, ms: (yield* Clock.currentTimeMillis) - began };
+          yield* remember((old) => ({ ...old, clockOffset: undefined, resets: remembered(old.resets ?? [], entry) }));
+          return entry;
+        }).pipe(lock.withPermits(1));
+
       return {
         /** One JSON-RPC body in, anvil's answer out. Starts the chain when it is stopped. */
         rpc: (body: string) => wake.pipe(Effect.andThen(touch), Effect.andThen(forward(body))),
@@ -253,13 +216,15 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
             Effect.andThen(touch),
             Effect.andThen(save),
             Effect.tap(({ dump }) =>
-              saved.put(`snapshots/${snapshot}.hex`, dump).pipe(Effect.mapError(failed("snapshot"))),
+              Effect.flatMap(stage, (name) => saved.put(snapshotKey(name, snapshot), dump)).pipe(
+                Effect.mapError(failed("snapshot")),
+              ),
             ),
             Effect.map(({ head, dump }) => ({ head, bytes: dump.length })),
           ),
         /** The chain state a snapshot saved, for a world restored from it. Never starts the chain. */
         snapshot: (snapshot: string) =>
-          saved.get(`snapshots/${snapshot}.hex`).pipe(
+          Effect.flatMap(stage, (name) => saved.get(snapshotKey(name, snapshot))).pipe(
             Effect.mapError(failed("snapshot")),
             Effect.flatMap((object) =>
               Predicate.isNull(object)
@@ -277,7 +242,7 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
                 message: "the chain has already started from its own state",
               });
             }
-            yield* saved.put(key, dump).pipe(Effect.mapError(failed("adopt")));
+            yield* saved.put(yield* key, dump).pipe(Effect.mapError(failed("adopt")));
             yield* state.storage.put("record", { ...old, adopted: true });
             return { adopted: true as const, bytes: dump.length };
           }).pipe(lock.withPermits(1)),
@@ -288,6 +253,43 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
             Effect.flatMap((up) => (up ? anvil.setInactivityTimeout((idleSeconds + 300) * 1000) : Effect.void)),
             Effect.mapError(failed("rpc")),
           ),
+        /** Keeps the world this chain belongs to, and enters it in the hub's ledger; a chain left from an older
+         * world of the same name is forgotten first. */
+        register: (world: Registration) =>
+          Effect.gen(function* () {
+            const done = yield* register(world);
+            if (!done.again)
+              yield* saved
+                .put(ledgerKey(world.stage), `owner ${world.owner}\nexpires ${world.expiresAt}\n`)
+                .pipe(Effect.mapError(failed("world")));
+            return done;
+          }),
+        /** The world's stage when `secret` is its token's and the world has not expired (./admission.ts). */
+        admit,
+        /** Rewinds the chain to a snapshot's state (above), and keeps it awake. */
+        resetTo: (snapshot: string) => reset(snapshot).pipe(Effect.tap(() => touch)),
+        /**
+         * Removes everything of the world `name` from the hub: its bundler's and index's containers and state, its
+         * chain's container, every object of it in the bucket, and this object's own storage and pending callbacks.
+         */
+        forget: (name: string) =>
+          Effect.gen(function* () {
+            yield* onIdle.cancel("stop").pipe(Effect.ignore);
+            yield* onSave.cancel("save").pipe(Effect.ignore);
+            yield* bundlers
+              .getByName(name, PLACE)
+              .forget()
+              .pipe(Effect.mapError(failed("forget")));
+            yield* indexers
+              .getByName(name, PLACE)
+              .forget()
+              .pipe(Effect.mapError(failed("forget")));
+            if (yield* running("forget")) yield* anvil.destroy().pipe(Effect.mapError(failed("forget")));
+            const objects = yield* dropObjects(saved, name).pipe(Effect.mapError(failed("forget")));
+            yield* state.storage.deleteAlarm();
+            yield* state.storage.deleteAll();
+            return { forgot: name, objects };
+          }).pipe(lock.withPermits(1)),
         /** Whether the container is up, and its starts and stops. Never starts the chain. */
         status: () => Effect.all({ running: running("rpc"), record }),
       };

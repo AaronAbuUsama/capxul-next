@@ -24,7 +24,6 @@ import { instantOf, readFacts, writeRestored } from "./facts.ts";
 import { tokenOf } from "./operators.ts";
 import { restoreSites, saveSites } from "../site/Saved.ts";
 import { refusalsOnly } from "./refusals.ts";
-import { steady } from "./steady.ts";
 import { keepSnapshot, prepareStore, snapshotOf } from "./store.ts";
 import { emitDeclared, opened, viewOf } from "./view.ts";
 
@@ -168,7 +167,6 @@ export const restore = Effect.fn("platform.world.snapshot.restore")(function* (p
         );
       }
       const { view, facts } = yield* viewOf(made.world.stage, { parent });
-      yield* steady(view.door);
       const success = { ...view, recordHead: snapshot.record_seq + 1 };
       yield* emitDeclared(
         "world.snapshot.restore",

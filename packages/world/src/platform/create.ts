@@ -7,6 +7,7 @@ import { CurrentOperator, Errors, type World as Blueprint } from "@capxul/bluepr
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
+import * as Deferred from "effect/Deferred";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -16,13 +17,12 @@ import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import { CHAIN_ID } from "../chain/Anvil.ts";
 import { CONTRACTS, SEED_HEAD, SETUP_ROOM_SECONDS } from "../chain/contracts.ts";
-import { rpc, rpcControl } from "../lifecycle/parts.ts";
+import { rpc } from "../lifecycle/parts.ts";
 import { create as createWorld, destroy } from "../lifecycle/operations.ts";
 import { mustExist } from "../lifecycle/world.ts";
 import { stageOf } from "../stack/names.ts";
-import { makeCast, mineStart } from "./cast.ts";
+import { makeCast, type Member } from "./cast.ts";
 import { refusalsOnly } from "./refusals.ts";
-import { steady } from "./steady.ts";
 import { instantOf, writeBirth } from "./facts.ts";
 import { tokenOf } from "./operators.ts";
 import { emitDeclared, viewOf } from "./view.ts";
@@ -98,28 +98,33 @@ export const create = Effect.fn("platform.world.create")(function* (payload: Cre
       earliest: instantOf(EARLIEST_MS),
     });
   yield* tried(payload.world);
+  // The cast is claimed and funded on the chain's lane of the create, beside alto's start and while the database's
+  // lane deploys Core and starts the index (src/lifecycle/up.ts).
+  const cast = yield* Deferred.make<ReadonlyArray<Member>>();
   const made = yield* createWorld({
     name: payload.world,
     owner: operator,
     lifetime: Duration.minutes(payload.lifetimeMinutes),
     operatorToken: yield* ownerToken(operator),
     atSeed: true,
+    startAtMs: startMs,
+    onChain: (world) =>
+      Effect.flatMap(
+        makeCast((method, params) => rpc(world, method, params)),
+        (members) => Deferred.succeed(cast, members),
+      ),
   }).pipe(refusalsOnly(isTaken));
   const stage = made.world.stage;
   return yield* keptOrDestroyed(
     stage,
     Effect.gen(function* () {
-      const call = (method: string, params: ReadonlyArray<unknown>) => rpc(made.world, method, params);
-      const cast = yield* makeCast(call);
-      yield* mineStart((method, params) => rpcControl(made.world, method, params), startMs);
       yield* writeBirth(made.world.database, {
         chainId: CHAIN_ID,
         contracts: CONTRACTS,
         clock: { mode: payload.clock.mode, worldMs: startMs, hostMs: yield* Clock.currentTimeMillis },
-        cast,
+        cast: yield* Deferred.await(cast),
       });
-      const { view, facts } = yield* viewOf(stage, { grade: payload.grade, parent: null });
-      yield* steady(view.door);
+      const { view, facts } = yield* viewOf(stage, { grade: payload.grade, parent: null }, made.world);
       yield* emitDeclared(
         "world.create",
         { payload, success: { ...view, recordHead: 1 } },

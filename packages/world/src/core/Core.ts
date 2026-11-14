@@ -2,8 +2,8 @@
 // world and handed the world's own facts (CoreDeployment), never its own stage's:
 //
 //   its database      the world's branch, through the world's Hyperdrive configuration (WorldDatabase)
-//   its world door    the world's token (the door's, `door-token`) and the owner operator's token (`operator-token`)
-//   its chain         a service binding to the world's door, whose `/<token>/rpc` is the chain; Core answers only
+//   its world door    the world's token on the hub (src/hub/hub.ts) and the owner operator's token (`operator-token`)
+//   its chain         a service binding to the hub's door, whose `/<token>/rpc` is the chain; Core answers only
 //                     the blueprint's reads at CHAIN_PATH
 //   its sites         the site door of the world's bench and the world's site token there, and the credential of the
 //                     API user the door makes on each of the world's sites (`site-key`, `site-secret`); none when the
@@ -18,7 +18,8 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import { fileURLToPath } from "node:url";
 import { WorldDatabase } from "../database/Db.ts";
-import Door, { DOOR_TOKEN_ID } from "../door/Door.ts";
+import * as Cloudflare from "@alchemy.run/cloudflare";
+import { HUB_STACK } from "../hub/names.ts";
 import { nameOf } from "../stack/names.ts";
 import { worldSettings } from "../stack/settings.ts";
 import type { CoreSlot } from "../stack/stack.ts";
@@ -42,9 +43,10 @@ export const defaultCore: CoreSlot = Effect.gen(function* () {
   }
   const settings = yield* worldSettings;
   const database = yield* WorldDatabase;
-  const door = yield* Door;
-  // The door's own token: the same resource the door made, yielded again by its logical id.
-  const doorToken = yield* Alchemy.Random(DOOR_TOKEN_ID, { bytes: 16 });
+  // The hub's door, whose `/<token>/rpc` is the world's chain: bound by reference to the hub's own stage.
+  const door = yield* Cloudflare.Worker.ref("Door", { stack: HUB_STACK, stage: settings.hub.stage });
+  // The world's token on the hub (src/hub/hub.ts), handed in by the create.
+  const doorToken = settings.doorToken;
   const minted = yield* Alchemy.Random(OPERATOR_TOKEN_ID, { bytes: 24 });
   // The owner operator's own token when the platform made the world (decisions.md, 36); otherwise the world's own.
   const operatorToken = Option.getOrElse(
@@ -65,10 +67,10 @@ export const defaultCore: CoreSlot = Effect.gen(function* () {
   const env = {
     [CORE_ENV.world]: nameOf(stage),
     [CORE_ENV.owner]: settings.owner,
-    [CORE_ENV.doorToken]: doorToken.text,
+    [CORE_ENV.doorToken]: doorToken,
     [CORE_ENV.platformToken]: operatorToken,
     [CORE_ENV.chain]: door,
-    [CORE_ENV.chainToken]: doorToken.text,
+    [CORE_ENV.chainToken]: doorToken,
     ...site,
   };
   const core = yield* CoreWorker.pipe(Effect.provideService(CoreDeployment, Option.some({ database, env })));

@@ -22,6 +22,7 @@ import { requireComplete, sweep } from "../lifecycle/sweep.ts";
 import { proofNames, prove } from "../proofs/proofs.ts";
 import { servePlatformOn } from "../platform/serve.ts";
 import { IMAGE_KINDS, pinState } from "../stack/images.ts";
+import { HubStage, hubDown, hubUp, ledger, openHub } from "../hub/hub.ts";
 
 /** Where a command's result goes. */
 export class Report extends Context.Service<Report, { readonly print: (value: unknown) => Effect.Effect<void> }>()(
@@ -93,10 +94,10 @@ const addresses = (world: World, reveal: boolean) => ({
   sites: world.sites,
   rpcUrl: reveal
     ? Redacted.value(world.rpcUrl)
-    : world.rpcUrl.pipe(Redacted.value, Str.replace(/\/[0-9a-f]{32}\//, "/<token: show --reveal>/")),
+    : world.rpcUrl.pipe(Redacted.value, Str.replace(/\/w-[a-z0-9-]+\.[0-9a-f]{32}\//, "/<token: show --reveal>/")),
   bundlerUrl: reveal
     ? Redacted.value(world.bundlerUrl)
-    : world.bundlerUrl.pipe(Redacted.value, Str.replace(/\/[0-9a-f]{32}\//, "/<token: show --reveal>/")),
+    : world.bundlerUrl.pipe(Redacted.value, Str.replace(/\/w-[a-z0-9-]+\.[0-9a-f]{32}\//, "/<token: show --reveal>/")),
   entryPoint: world.entryPoint,
   paymaster: world.paymaster,
   database: "reached with `sql <world> <statement>`, or in-process through the world's handle; never printed",
@@ -107,6 +108,13 @@ const reveal = Flag.Boolean("reveal").pipe(
   Flag.withDefault(false),
   Flag.withDescription("Print the chain's address with the world's token"),
 );
+
+const hubFlag = Flag.String("hub").pipe(
+  Flag.optional,
+  Flag.withDescription("The hub's stage; WORLD_HUB, or fleet, when left out"),
+);
+const hubStageOf = (given: Option.Option<string>) =>
+  Option.match(given, { onNone: () => HubStage, onSome: (stage) => Effect.succeed(stage) });
 
 const createCommand = Command.make(
   "create",
@@ -131,10 +139,12 @@ const createCommand = Command.make(
       ),
     ),
     reveal,
+    hub: hubFlag,
   },
   (input) =>
     Effect.gen(function* () {
       const made = yield* create({
+        hub: yield* hubStageOf(input.hub),
         companies: yield* companiesOf(Option.getOrElse(input.company, () => "")),
         name: input.name,
         owner: input.owner,
@@ -196,6 +206,42 @@ const platformCommand = Command.make("platform").pipe(
   ]),
 );
 
+const hubCommand = Command.make("hub").pipe(
+  Command.withDescription("The fleet hub: one container application of each kind, which every world on it shares"),
+  Command.withSubcommands([
+    Command.make(
+      "up",
+      {
+        hub: hubFlag,
+        owner: Flag.String("owner").pipe(Flag.withDescription("Who the hub belongs to")),
+        lifetime: Flag.String("lifetime").pipe(Flag.withDescription('How long the hub may exist, e.g. "7 days"')),
+      },
+      (input) =>
+        Effect.gen(function* () {
+          const stage = yield* hubStageOf(input.hub);
+          const up = yield* hubUp({ stage, owner: input.owner, lifetime: yield* durationOf(input.lifetime) });
+          yield* report(up);
+        }),
+    ).pipe(Command.withDescription("Deploy a hub, or move a live hub's expiry")),
+    Command.make("down", { hub: hubFlag }, (input) =>
+      Effect.flatMap(Effect.flatMap(hubStageOf(input.hub), hubDown), report),
+    ).pipe(Command.withDescription("Destroy a hub; refused while a world is on it")),
+    Command.make("show", { hub: hubFlag }, (input) =>
+      Effect.gen(function* () {
+        const hub = yield* openHub(yield* hubStageOf(input.hub));
+        const held = yield* ledger(hub);
+        yield* report({
+          hub: hub.stage,
+          owner: hub.owner,
+          expiresAt: hub.expiresAt,
+          doorUrl: hub.doorUrl,
+          worlds: held,
+        });
+      }),
+    ).pipe(Command.withDescription("A hub's owner, expiry, door and the worlds its ledger holds")),
+  ]),
+);
+
 const imagesCommand = Command.make("images", {}, () =>
   Effect.flatMap(Effect.forEach(IMAGE_KINDS, pinState), report),
 ).pipe(
@@ -221,6 +267,7 @@ export const world = Command.make("world").pipe(
     sweepCommand,
     inventoryCommand,
     platformCommand,
+    hubCommand,
     imagesCommand,
     proveCommand,
   ]),

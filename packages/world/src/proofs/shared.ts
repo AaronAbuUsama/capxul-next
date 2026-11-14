@@ -23,9 +23,9 @@ const outcomeOf = <A, E>(exit: Exit.Exit<A, E>) => (Exit.isSuccess(exit) ? "crea
 const cleanUp = (names: ReadonlyArray<string>) =>
   Effect.forEach(names, (name) => Effect.ignore(destroy(name)), { discard: true });
 
-/** One world's resources: two Workers, three container applications (chain, index, bundler), three Durable Object
- * namespaces, a bucket, a Hyperdrive configuration and a branch. */
-const ONE_WORLD = 11;
+/** One world's resources on the fleet hub: its Core Worker, its Hyperdrive configuration and its branch. Its chain,
+ * index and bundler are Durable Objects of the hub (src/hub), which the accounts list as the hub's. */
+const ONE_WORLD = 3;
 
 const raceSpec = (owner: string): WorldSpec => ({ name: "p-race", owner, lifetime: Duration.minutes(40) });
 

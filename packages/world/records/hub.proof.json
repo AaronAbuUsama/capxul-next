@@ -1,0 +1,609 @@
+{
+  "proof": "on the fleet hub a world is made, with Core, migrations and its cast, in under 20 s, and destroyed in a few seconds",
+  "outcome": "passed",
+  "at": "2026-11-14T05:26:50.538Z",
+  "checks": [
+    {
+      "check": "each world's chain, index and bundler answered and its Core answered, its cast made",
+      "held": true
+    },
+    {
+      "check": "each world.create took under 20 s",
+      "held": true
+    },
+    {
+      "check": "each destroy took under 8 s",
+      "held": true
+    },
+    {
+      "check": "a destroyed world's token reaches nothing on the hub",
+      "held": true
+    },
+    {
+      "check": "the hub's ledger holds none of the three",
+      "held": true
+    },
+    {
+      "check": "the hub runs no container within a minute of the worlds being gone",
+      "held": true
+    },
+    {
+      "check": "nothing of the three worlds is left in the accounts",
+      "held": true
+    }
+  ],
+  "observations": {
+    "hub": {
+      "stage": "fleet",
+      "owner": "claude-fleet",
+      "expiresAt": "2026-11-15T05:15:18.427Z",
+      "doorUrl": "https://capxulworldhub-door-fleet-jr5dpupgqdw5hvle.thedao.workers.dev"
+    },
+    "runs": [
+      {
+        "world": "p-hub1",
+        "createMs": 18697,
+        "destroyMs": 4104,
+        "destroySteps": {
+          "unsite": 0,
+          "destroy": 3747,
+          "release": 214
+        },
+        "answered": {
+          "chainId": "0x14a34",
+          "indexReady": true,
+          "entryPoints": [
+            "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+          ],
+          "core": "p-hub1",
+          "cast": [
+            {
+              "person": "dana",
+              "safe": "0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c"
+            },
+            {
+              "person": "eli",
+              "safe": "0x90c388a1d9bf2218204d6a5de9654b3260369be8"
+            },
+            {
+              "person": "sam",
+              "safe": "0xf6aeafa0dab7b6d9fc54537ceb1550ce956a11cc"
+            },
+            {
+              "person": "pat",
+              "safe": null
+            },
+            {
+              "person": "olga",
+              "safe": "0x532a1193802e3bbab0597f713c61639f7285f2bb"
+            }
+          ],
+          "recordHead": 1
+        },
+        "parts": {
+          "chain": {
+            "running": true,
+            "record": {
+              "idleSeconds": 600,
+              "up": true,
+              "adopted": false,
+              "starts": [
+                {
+                  "at": "2026-11-14T05:25:19.959Z",
+                  "from": "seed",
+                  "afterUnsavedStop": false,
+                  "wakeMs": 617,
+                  "attempts": [
+                    {
+                      "at": "2026-11-14T05:25:20.084Z",
+                      "ms": 473,
+                      "started": true,
+                      "outcome": "ready",
+                      "message": null
+                    }
+                  ],
+                  "ms": 473,
+                  "startCalls": 1,
+                  "refusals": 0
+                }
+              ],
+              "gaveUp": [],
+              "stops": [],
+              "lastSave": null
+            }
+          },
+          "index": {
+            "running": true,
+            "health": 200,
+            "ready": 200,
+            "indexed": "{\"world\":{\"id\":84532,\"block\":{\"number\":47893275,\"timestamp\":1794633917}}}",
+            "starts": [
+              {
+                "at": "2026-11-14T05:25:21.230Z",
+                "atMs": 1794633921230,
+                "healthyMs": 4974,
+                "readyMs": 7906,
+                "timeline": {
+                  "processMs": 770,
+                  "syncStartMs": 4770,
+                  "syncEndMs": 5770,
+                  "readyMs": 7906,
+                  "databaseMs": 1321,
+                  "databaseCalls": 94,
+                  "slowestDatabaseMethods": [
+                    {
+                      "method": "commit_block",
+                      "ms": 318,
+                      "calls": 14
+                    },
+                    {
+                      "method": "migrate",
+                      "ms": 293,
+                      "calls": 28
+                    },
+                    {
+                      "method": "create_trigger",
+                      "ms": 219,
+                      "calls": 14
+                    },
+                    {
+                      "method": "finalize",
+                      "ms": 162,
+                      "calls": 10
+                    },
+                    {
+                      "method": "update_checkpoints",
+                      "ms": 112,
+                      "calls": 15
+                    },
+                    {
+                      "method": "select_ready",
+                      "ms": 77,
+                      "calls": 1
+                    }
+                  ],
+                  "rpcMs": 4102,
+                  "rpcCalls": 30
+                },
+                "attempts": [
+                  {
+                    "at": "2026-11-14T05:25:21.230Z",
+                    "ms": 4974,
+                    "started": true,
+                    "outcome": "ready",
+                    "message": null
+                  }
+                ],
+                "ms": 4974,
+                "startCalls": 1,
+                "refusals": 0
+              }
+            ],
+            "gaveUp": [],
+            "stops": []
+          }
+        },
+        "tokenRefusedAfterDestroy": true,
+        "refusedWith": "{\"~effect/Cause\":\"~effect/Cause\",\"reasons\":[Fail(WorldNotReady: HTTP 404: {\"error\":\"ChainFailed: no world is registered here\"})]}"
+      },
+      {
+        "world": "p-hub2",
+        "createMs": 17318,
+        "destroyMs": 3598,
+        "destroySteps": {
+          "unsite": 0,
+          "destroy": 3245,
+          "release": 232
+        },
+        "answered": {
+          "chainId": "0x14a34",
+          "indexReady": true,
+          "entryPoints": [
+            "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+          ],
+          "core": "p-hub2",
+          "cast": [
+            {
+              "person": "dana",
+              "safe": "0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c"
+            },
+            {
+              "person": "eli",
+              "safe": "0x90c388a1d9bf2218204d6a5de9654b3260369be8"
+            },
+            {
+              "person": "sam",
+              "safe": "0xf6aeafa0dab7b6d9fc54537ceb1550ce956a11cc"
+            },
+            {
+              "person": "pat",
+              "safe": null
+            },
+            {
+              "person": "olga",
+              "safe": "0x532a1193802e3bbab0597f713c61639f7285f2bb"
+            }
+          ],
+          "recordHead": 1
+        },
+        "parts": {
+          "chain": {
+            "running": true,
+            "record": {
+              "idleSeconds": 600,
+              "up": true,
+              "adopted": false,
+              "starts": [
+                {
+                  "at": "2026-11-14T05:25:44.361Z",
+                  "from": "seed",
+                  "afterUnsavedStop": false,
+                  "wakeMs": 698,
+                  "attempts": [
+                    {
+                      "at": "2026-11-14T05:25:44.498Z",
+                      "ms": 534,
+                      "started": true,
+                      "outcome": "ready",
+                      "message": null
+                    }
+                  ],
+                  "ms": 534,
+                  "startCalls": 1,
+                  "refusals": 0
+                }
+              ],
+              "gaveUp": [],
+              "stops": [],
+              "lastSave": null
+            }
+          },
+          "index": {
+            "running": true,
+            "health": 200,
+            "ready": 200,
+            "indexed": "{\"world\":{\"id\":84532,\"block\":{\"number\":47893275,\"timestamp\":1794633942}}}",
+            "starts": [
+              {
+                "at": "2026-11-14T05:25:46.048Z",
+                "atMs": 1794633946048,
+                "healthyMs": 5603,
+                "readyMs": 8004,
+                "timeline": {
+                  "processMs": -48,
+                  "syncStartMs": 5952,
+                  "syncEndMs": 6952,
+                  "readyMs": 8004,
+                  "databaseMs": 2310,
+                  "databaseCalls": 69,
+                  "slowestDatabaseMethods": [
+                    {
+                      "method": "create_trigger",
+                      "ms": 832,
+                      "calls": 14
+                    },
+                    {
+                      "method": "migrate",
+                      "ms": 812,
+                      "calls": 28
+                    },
+                    {
+                      "method": "create_indexes",
+                      "ms": 195,
+                      "calls": 9
+                    },
+                    {
+                      "method": "migrate_sync",
+                      "ms": 191,
+                      "calls": 1
+                    },
+                    {
+                      "method": "update_checkpoints",
+                      "ms": 149,
+                      "calls": 14
+                    },
+                    {
+                      "method": "select_ready",
+                      "ms": 105,
+                      "calls": 1
+                    }
+                  ],
+                  "rpcMs": 2622,
+                  "rpcCalls": 26
+                },
+                "attempts": [
+                  {
+                    "at": "2026-11-14T05:25:46.048Z",
+                    "ms": 5603,
+                    "started": true,
+                    "outcome": "ready",
+                    "message": null
+                  }
+                ],
+                "ms": 5603,
+                "startCalls": 1,
+                "refusals": 0
+              }
+            ],
+            "gaveUp": [],
+            "stops": []
+          }
+        },
+        "tokenRefusedAfterDestroy": true,
+        "refusedWith": "{\"~effect/Cause\":\"~effect/Cause\",\"reasons\":[Fail(WorldNotReady: HTTP 404: {\"error\":\"ChainFailed: no world is registered here\"})]}"
+      },
+      {
+        "world": "p-hub3",
+        "createMs": 16349,
+        "destroyMs": 4024,
+        "destroySteps": {
+          "unsite": 0,
+          "destroy": 3548,
+          "release": 322
+        },
+        "answered": {
+          "chainId": "0x14a34",
+          "indexReady": true,
+          "entryPoints": [
+            "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+          ],
+          "core": "p-hub3",
+          "cast": [
+            {
+              "person": "dana",
+              "safe": "0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c"
+            },
+            {
+              "person": "eli",
+              "safe": "0x90c388a1d9bf2218204d6a5de9654b3260369be8"
+            },
+            {
+              "person": "sam",
+              "safe": "0xf6aeafa0dab7b6d9fc54537ceb1550ce956a11cc"
+            },
+            {
+              "person": "pat",
+              "safe": null
+            },
+            {
+              "person": "olga",
+              "safe": "0x532a1193802e3bbab0597f713c61639f7285f2bb"
+            }
+          ],
+          "recordHead": 1
+        },
+        "parts": {
+          "chain": {
+            "running": true,
+            "record": {
+              "idleSeconds": 600,
+              "up": true,
+              "adopted": false,
+              "starts": [
+                {
+                  "at": "2026-11-14T05:26:08.009Z",
+                  "from": "seed",
+                  "afterUnsavedStop": false,
+                  "wakeMs": 543,
+                  "attempts": [
+                    {
+                      "at": "2026-11-14T05:26:08.151Z",
+                      "ms": 399,
+                      "started": true,
+                      "outcome": "ready",
+                      "message": null
+                    }
+                  ],
+                  "ms": 399,
+                  "startCalls": 1,
+                  "refusals": 0
+                }
+              ],
+              "gaveUp": [],
+              "stops": [],
+              "lastSave": null
+            }
+          },
+          "index": {
+            "running": true,
+            "health": 200,
+            "ready": 200,
+            "indexed": "{\"world\":{\"id\":84532,\"block\":{\"number\":47893270,\"timestamp\":1791554830}}}",
+            "starts": [
+              {
+                "at": "2026-11-14T05:26:09.747Z",
+                "atMs": 1794633969747,
+                "healthyMs": 6862,
+                "readyMs": 11767,
+                "timeline": {
+                  "processMs": 253,
+                  "syncStartMs": 6253,
+                  "syncEndMs": 10253,
+                  "readyMs": 11767,
+                  "databaseMs": 4372,
+                  "databaseCalls": 71,
+                  "slowestDatabaseMethods": [
+                    {
+                      "method": "create_trigger",
+                      "ms": 1529,
+                      "calls": 14
+                    },
+                    {
+                      "method": "migrate",
+                      "ms": 1455,
+                      "calls": 28
+                    },
+                    {
+                      "method": "update_checkpoints",
+                      "ms": 432,
+                      "calls": 15
+                    },
+                    {
+                      "method": "create_indexes",
+                      "ms": 366,
+                      "calls": 9
+                    },
+                    {
+                      "method": "migrate_sync",
+                      "ms": 344,
+                      "calls": 1
+                    },
+                    {
+                      "method": "select_ready",
+                      "ms": 201,
+                      "calls": 2
+                    }
+                  ],
+                  "rpcMs": 3213,
+                  "rpcCalls": 28
+                },
+                "attempts": [
+                  {
+                    "at": "2026-11-14T05:26:09.747Z",
+                    "ms": 6862,
+                    "started": true,
+                    "outcome": "ready",
+                    "message": null
+                  }
+                ],
+                "ms": 6862,
+                "startCalls": 1,
+                "refusals": 0
+              }
+            ],
+            "gaveUp": [],
+            "stops": []
+          }
+        },
+        "tokenRefusedAfterDestroy": true,
+        "refusedWith": "{\"~effect/Cause\":\"~effect/Cause\",\"reasons\":[Fail(WorldNotReady: HTTP 404: {\"error\":\"ChainFailed: no world is registered here\"})]}"
+      }
+    ],
+    "createMs": [
+      18697,
+      17318,
+      16349
+    ],
+    "destroyMs": [
+      4104,
+      3598,
+      4024
+    ],
+    "containersBefore": [
+      {
+        "application": "capxulworldhub-anvil-fleet-kznndnhw2qxvuw62",
+        "maxInstances": 10,
+        "active": 0,
+        "healthy": 5,
+        "starting": 0,
+        "failed": 0
+      },
+      {
+        "application": "capxulworldhub-alto-fleet-3i3bpj2sn5h6amaq",
+        "maxInstances": 10,
+        "active": 0,
+        "healthy": 5,
+        "starting": 0,
+        "failed": 0
+      },
+      {
+        "application": "capxulworldhub-ponder-fleet-idz5swsjqhioqybc",
+        "maxInstances": 10,
+        "active": 0,
+        "healthy": 5,
+        "starting": 0,
+        "failed": 0
+      }
+    ],
+    "containersAfter": [
+      {
+        "application": "capxulworldhub-anvil-fleet-kznndnhw2qxvuw62",
+        "maxInstances": 10,
+        "active": 0,
+        "healthy": 5,
+        "starting": 0,
+        "failed": 0
+      },
+      {
+        "application": "capxulworldhub-alto-fleet-3i3bpj2sn5h6amaq",
+        "maxInstances": 10,
+        "active": 0,
+        "healthy": 5,
+        "starting": 0,
+        "failed": 0
+      },
+      {
+        "application": "capxulworldhub-ponder-fleet-idz5swsjqhioqybc",
+        "maxInstances": 10,
+        "active": 0,
+        "healthy": 5,
+        "starting": 0,
+        "failed": 0
+      }
+    ],
+    "idleAfterMs": 16479,
+    "ledgerAfter": [],
+    "inventory": {
+      "before": {
+        "workers": [
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle"
+        ],
+        "containerApplications": [
+          "capxulworldhub-anvil-fleet-kznndnhw2qxvuw62",
+          "capxulworldhub-alto-fleet-3i3bpj2sn5h6amaq",
+          "capxulworldhub-ponder-fleet-idz5swsjqhioqybc"
+        ],
+        "durableObjectNamespaces": [
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle",
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle",
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle"
+        ],
+        "r2Buckets": [
+          "capxulworldhub-chainstate-fleet-czutnea2cmlfjtjp"
+        ],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-alto",
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "after": {
+        "workers": [
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle"
+        ],
+        "containerApplications": [
+          "capxulworldhub-anvil-fleet-kznndnhw2qxvuw62",
+          "capxulworldhub-alto-fleet-3i3bpj2sn5h6amaq",
+          "capxulworldhub-ponder-fleet-idz5swsjqhioqybc"
+        ],
+        "durableObjectNamespaces": [
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle",
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle",
+          "capxulworldhub-door-fleet-jr5dpupgqdw5hvle"
+        ],
+        "r2Buckets": [
+          "capxulworldhub-chainstate-fleet-czutnea2cmlfjtjp"
+        ],
+        "hyperdriveConfigurations": [],
+        "neonBranches": [
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/registry",
+          "CapxulWorld-worlds-db-platform-sh7nntihfyy54kfq/main"
+        ],
+        "imageRepositories": [
+          "capxulworld-alto",
+          "capxulworld-anvil",
+          "capxulworld-ponder"
+        ]
+      },
+      "leftOfTheseWorlds": [],
+      "sameAsBefore": true,
+      "sameAsBeforeAccountWide": true,
+      "otherWorlds": []
+    }
+  }
+}

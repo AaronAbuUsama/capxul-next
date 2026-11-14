@@ -8,7 +8,7 @@ export { Core, CORE_MIGRATIONS, defaultCore } from "./core/Core.ts";
 export { CoreHost, type HostedCore } from "./core/host.ts";
 export type { BenchGrant } from "./stack/settings.ts";
 export { CORE_HEALTH } from "./core/health.ts";
-export { WorldBranch, WorldDatabase } from "./database/Db.ts";
+export { WorldDatabase } from "./database/Db.ts";
 export { migrate, query, statementsOf } from "./database/sql.ts";
 export * from "./failures.ts";
 export { inventory } from "./lifecycle/account.ts";

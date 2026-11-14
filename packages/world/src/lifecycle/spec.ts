@@ -3,10 +3,13 @@
 import { World } from "@capxul/blueprint";
 import * as Config from "effect/Config";
 import * as Duration from "effect/Duration";
+import type * as Effect from "effect/Effect";
+import type * as HttpClient from "effect/http/HttpClient";
 import type * as Redacted from "effect/Redacted";
 import * as Str from "effect/String";
 import type { Funded, Mint } from "../chain/faucet.ts";
 import type { query } from "../database/sql.ts";
+import type { PlatformFailed, WorldNotReady } from "../failures.ts";
 import type { StepName } from "../stack/names.ts";
 import type { SiteState } from "../site/Bench.ts";
 
@@ -29,6 +32,11 @@ export interface WorldSpec {
    * own start can be any time after that (src/platform/cast.ts). For a world made from nothing.
    */
   readonly atSeed?: boolean;
+  /**
+   * When the world starts, in epoch milliseconds: its chain's first block of its own is mined at this time, after
+   * everything that makes the world, the caller's `onChain` included (src/platform/cast.ts, `mineStart`).
+   */
+  readonly startAtMs?: number;
   /** The token of the operator who owns the world, which its Core accepts as the owner's (decisions.md, 36). */
   readonly operatorToken?: Redacted.Redacted;
   /**
@@ -45,6 +53,15 @@ export interface WorldSpec {
    * `<label>-<world>.<domain>`. Left out, none: a site takes about 100 s, and a world with no bench has none.
    */
   readonly companies?: ReadonlyArray<Company>;
+  /** The fleet hub the world lives on (src/hub); `WORLD_HUB`, or `fleet`, when left out. */
+  readonly hub?: string;
+  /**
+   * What the caller does on the world's chain while the world is made, beside the bundler and before the index and
+   * Core are waited for: the platform's cast (src/platform/create.ts). It runs after the faucet.
+   */
+  readonly onChain?: (
+    world: Pick<World, "door">,
+  ) => Effect.Effect<void, PlatformFailed | WorldNotReady, HttpClient.HttpClient>;
   /** The most the use step may take, in place of the declared default. */
   readonly useTimeout?: Duration.Duration;
   /** Where the run's record is written, outside the world. Defaults to the package's records directory. */
@@ -122,6 +139,8 @@ const limit = (step: StepName, fallback: Duration.Duration) =>
 // and the time the part takes once started; test/patience.test.ts checks that each step's default holds both.
 export const Timeouts = Config.all({
   claim: limit("claim", Duration.seconds(45)),
+  register: limit("register", Duration.seconds(30)),
+  branch: limit("branch", Duration.minutes(1)),
   deploy: limit("deploy", Duration.minutes(4)),
   migrate: limit("migrate", Duration.seconds(45)),
   // CHAIN_START, 2 minutes, and a minute for a fork or a restore to copy its source's chain state (up to 46.7 s seen).

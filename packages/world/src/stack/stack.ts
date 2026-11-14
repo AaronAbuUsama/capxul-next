@@ -1,7 +1,7 @@
 // The stack. Stage "platform" owns what worlds share (the Neon project and the registry of world names). Every
-// other stage is one world: its database (a branch of that project and a Hyperdrive configuration in front of it),
-// its chain (a Durable Object that owns an anvil container, and the bucket its state is saved to), its index (a
-// Durable Object that owns a Ponder container), its door (the Worker in front of both) and its Core.
+// other stage is one world: its database (a branch of that project and a Hyperdrive configuration in front of it)
+// and its Core. Its chain, index and bundler are not here: they are Durable Objects of the fleet hub, named by the
+// world's stage (src/hub), so a world's deploy makes no container application.
 //
 // Core is the one part the caller supplies: any Effect that yields a Worker. It is deployed and destroyed with the
 // world like every other resource, and may bind the world's database (`WorldDatabase`).
@@ -12,12 +12,12 @@ import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Neon from "@alchemy.run/neon";
 import * as Alchemy from "alchemy";
 import type { ProviderServices, StackServices } from "alchemy/Stack";
+import { State } from "alchemy/State/State";
 import type { ConfigError } from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
-import { Registry, WorldBranch, WorldDatabase, WorldsProject } from "../database/Db.ts";
-import Door from "../door/Door.ts";
+import { Registry, WorldDatabase, WorldsProject } from "../database/Db.ts";
 import { PLATFORM, STACK } from "./names.ts";
 import { worldSettings } from "./settings.ts";
 
@@ -29,11 +29,18 @@ const providers = Layer.mergeAll(Cloudflare.providers(), Neon.providers(), Alche
 /** What fills the Core slot: anything that deploys a Worker and says where it answers. */
 export type CoreSlot = Effect.Effect<{ readonly url: unknown }, ConfigError, StackServices | ProviderServices>;
 
+/** Where a stack keeps its state: the account's shared store, opened anew, or one this process already opened. */
+export type StateLayer = Layer.Layer<State, never, StackServices>;
+
+/** The shared store this process already opened, as a stack's state: opening it again costs about 3 s. */
+export const openedState = (store: Effect.Success<State["Service"]>): StateLayer =>
+  Layer.succeed(State, Effect.succeed(store));
+
 /** The stack with `core` in its Core slot. Destroy, sweep and state reads never run `core`. */
-export const worldStack = (core: CoreSlot) =>
+export const worldStack = (core: CoreSlot, state: StateLayer = Cloudflare.state()) =>
   Alchemy.Stack(
     STACK,
-    { providers, state: Cloudflare.state() },
+    { providers, state },
     Effect.gen(function* () {
       const { stage } = yield* Alchemy.Stack;
       if (stage === PLATFORM) {
@@ -42,9 +49,7 @@ export const worldStack = (core: CoreSlot) =>
         return { projectId: project.projectId, registryBranch: registry.branchId };
       }
       const settings = yield* worldSettings;
-      const branch = yield* WorldBranch;
       yield* WorldDatabase;
-      const door = yield* Door;
       const served = yield* core;
       return {
         world: stage,
@@ -52,8 +57,10 @@ export const worldStack = (core: CoreSlot) =>
         expiresAt: settings.expiresAt,
         forkedFrom: Option.getOrElse(settings.forkedFrom, () => "nothing"),
         coreUrl: served.url,
-        doorUrl: door.url,
-        branch: branch.branchId,
+        doorUrl: settings.hub.doorUrl,
+        hub: settings.hub.stage,
+        registeredUntil: settings.expiresAt,
+        branch: settings.branch.id,
         bench: Option.match(settings.bench, { onNone: () => "none", onSome: (bench) => bench.stage }),
       };
     }),

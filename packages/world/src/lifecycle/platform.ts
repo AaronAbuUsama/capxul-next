@@ -3,7 +3,8 @@ import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import { WorldsStillExist } from "../failures.ts";
-import { deployStage, destroyStage, forgetStage, recordedStages } from "../stack/engine.ts";
+import { HUB_STACK } from "../hub/names.ts";
+import { deployStage, destroyStage, forgetStage, recordedStages, recordedStagesOf } from "../stack/engine.ts";
 import { isWorldStage, PLATFORM } from "../stack/names.ts";
 import { prepareRegistry, registry } from "./claim.ts";
 import { removeLeftoverImages } from "./sweep.ts";
@@ -30,6 +31,13 @@ export const platformDown = Effect.gen(function* () {
       message: `destroy or sweep these worlds first: ${Arr.join(worlds, ", ")}`,
     });
   }
+  // The hubs run the images the platform owns: take them down first (`hub down`).
+  const hubs = Arr.map(yield* recordedStagesOf(HUB_STACK), ({ stage }) => `hub ${stage}`);
+  if (Arr.isReadonlyArrayNonEmpty(hubs))
+    return yield* WorldsStillExist.make({
+      worlds: hubs,
+      message: `take these hubs down first: ${Arr.join(hubs, ", ")}`,
+    });
   const removed = yield* destroyStage(PLATFORM);
   yield* forgetStage(PLATFORM);
   const images = yield* removeLeftoverImages([], false);
