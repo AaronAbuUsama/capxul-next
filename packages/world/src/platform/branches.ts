@@ -15,7 +15,7 @@ import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
-import { branchesOf, deleteBranch, projectId } from "../database/neon.ts";
+import { branchesOf, deleteBranch, finished, projectId } from "../database/neon.ts";
 import { PlatformFailed } from "../failures.ts";
 import { liftBranchExpiry } from "../lifecycle/account.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
@@ -52,20 +52,6 @@ const neon = (request: HttpClientRequest.HttpClientRequest, missing: "fail" | "o
     Effect.mapError(failed),
   );
 
-const Branch = Schema.Struct({ branch: Schema.Struct({ current_state: Schema.String }) });
-
-/** Waits until Neon has finished making a branch, so it can be forked and read. */
-const ready = (project: string, branch: string) =>
-  neon(HttpClientRequest.get(`${NEON}/projects/${project}/branches/${branch}`)).pipe(
-    Effect.flatMap(Schema.decodeUnknownEffect(Branch)),
-    Effect.filterOrFail(
-      (answer) => answer.branch.current_state === "ready",
-      (answer) => failed(`branch ${branch} is ${answer.branch.current_state}`),
-    ),
-    Effect.retry(Schedule.max([Schedule.spaced("1 second"), Schedule.recurs(90)])),
-    Effect.mapError(failed),
-  );
-
 /** Makes a world's branch forkable, once: its Neon expiry is taken off, and its record says so. */
 export const forkable = Effect.fn("platform.forkable")(function* (stage: string) {
   const output = yield* Schema.decodeUnknownEffect(WorldOutput)(yield* recordedOutput(stage));
@@ -86,7 +72,8 @@ export const branchOf = Effect.fn("platform.branch")(function* (parent: string, 
     ),
   );
   const created = yield* Schema.decodeUnknownEffect(Created)(answer).pipe(Effect.mapError(failed));
-  yield* ready(project, created.branch.id);
+  // Neon's operations for it, looked at every 250 ms (src/database/neon.ts).
+  yield* finished(project, answer).pipe(Effect.mapError(failed));
   return created.branch.id;
 }, Effect.mapError(failed));
 

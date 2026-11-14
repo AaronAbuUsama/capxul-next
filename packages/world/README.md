@@ -21,7 +21,7 @@ configuration and its Core: `world create` deploys no container application.
 | A world's token | `<stage>.<secret>`, one path segment, so every caller reaches a world as before, at `<door>/<token>/rpc`. `secret` is an HMAC of the world's stage, owner and expiry under the hub's admin token (`src/hub/hub.ts`), so it is stored only in the hub's registration and the world's Core, and worked out again by whoever reads the hub's admin token from the shared state. |
 | Registering a world | Its create registers it (`POST /admin/<admin>/worlds/<stage>`, `src/hub/registration.ts`) right after its name is claimed: its chain's object keeps the registration and checks every call's token and the world's expiry against it (`src/chain/admission.ts`); the hub's bucket keeps a ledger entry. |
 | Forgetting a world | Every take-down calls `POST /admin/<admin>/worlds/<stage>/forget`: the bundler's and index's containers and storage, the chain's container, every object of the world in the bucket (its saved state, its snapshots' states, then its ledger entry) and the chain object's storage and pending callbacks are removed. The world's token then reaches nothing (`404 no world is registered here`). |
-| What an idle hub costs | Its applications keep instances placed in advance but run none: Cloudflare's own count of active instances is 0 for all three a few seconds after the last world goes (`records/hub.proof.json`, `containersAfter`, 16.5 s after the last destroy), and a container is billed only while active. What is left is the Workers plan, the bucket's and the objects' storage (a world's chain state is about 3.4 MB, removed with it) and nothing per hour. |
+| What an idle hub costs | Its applications keep instances placed in advance but run none: Cloudflare's own count of active instances is 0 for all three a few seconds after the last world goes (`records/hub.proof.json`, `containersAfter`, 16.4 s after the last destroy), and a container is billed only while active. What is left is the Workers plan, the bucket's and the objects' storage (a world's chain state is about 3.4 MB, removed with it) and nothing per hour. |
 
 A world's branch is made by its create through Neon's API (`src/database/neon.ts`), not by the stack: Alchemy's Neon
 provider looks at a new branch's operations every 5 s, which cost 6 to 9 s of every create. The take-down deletes the
@@ -40,6 +40,47 @@ world's branches, children first, read from the branches themselves (`src/platfo
 | Test USDC | The contracts package's `MockERC20`, put on the chain when the world is created. Its open `mint` is the faucet. |
 | Platform | `src/platform`: the blueprint's platform group (`world.create`, `world.show`, `world.snapshot.save`, `world.snapshot.restore`), served over HTTP by the process that holds the keys (below). |
 
+## Reset in place (step 1.16)
+
+`./run.sh reset <name> --to <snapshot>` (in-process: `reset` from the package's door, `src/lifecycle/reset.ts`) rewinds
+the SAME world to one of its snapshots: its name, door, Core, token and branch id stay; nothing is deployed. The
+blueprint's `world.snapshot.restore` still makes a new world (its claims and decisions say so); the reset is the
+world's own command, for a runner that keeps one world for its run (roadmap, "One runner, one world").
+
+| Part | What | ms (`records/reset.proof.json`) |
+|---|---|---|
+| index stopped | Ponder sent SIGTERM, so it lets go of its schema lock | 359, 432 |
+| database restored | Neon's restore of the world's branch from the snapshot's, in place (same id, compute and connection string, so Hyperdrive and Core carry on) | 1297, 1356 |
+| chain reset | the chain's object: alto stopped, `anvil_reset` and `anvil_loadState` of the snapshot's state, which becomes the chain's saved state | 2165, 1814 |
+| index resumed | Ponder started again on the restored schema and chain, not waited for here | 239, 242 |
+| clock | Core's clock set to read the snapshot's time from now on (`app.clock`) | 1801, 1436 |
+| chain mined at the world's time | the next block mined at that time by the chain's object itself, next to anvil (`POST /chain/mine-at`) | 278, 1738 |
+| sites | each company site put back to the snapshot's point on the bench, then the bench's clock entry set to the world's (`src/site/Points.ts`) | none: no bench is reachable here |
+| index caught up, bundler, Core | side by side: Ponder has the chain's head; alto names the EntryPoint; Core answers | 8694, 6670 (index) |
+| **reset** | | **14836, 13690** |
+
+The spike's two hard rules hold by construction. The chain is never put back without its database: the database is
+restored first, and a reset that fails after it fails loudly, for its caller to destroy the world. A snapshot never
+carries Ponder's lock: `world.snapshot.save` stops Ponder with SIGTERM before it takes the branch and the chain's state,
+and resumes it after (`src/platform/snapshots.ts`).
+
+**One clock.** Core's clock, the chain's and the bench's entry read the snapshot's time from the reset on. A mine sent
+from the caller lagged Core's clock by up to 3 s (the slowest of its three calls through the door); the chain's object
+now works the world's time out next to anvil. Measured on Cloudflare's own clock (the chain's time and Core's clock at
+the instant the chain's object read it; this machine's clock is some hundreds of ms off Cloudflare's): 348 and 486 ms
+apart after the two resets, chain time being whole seconds.
+
+**The destroy-order bug** (spikes/world-speed, 5.10): Neon's restore makes the world's branch a child of the snapshot's,
+and the world's old state a branch of its own (`<stage>-pre-<n>`) that the world's other snapshots hang from. A reset
+deletes that branch at once when nothing hangs from it; a take-down deletes every branch of the world, children first,
+read from the branches themselves, and treats one Neon is already deleting as gone (`dropBranches`). The proof's world,
+reset twice, was destroyed in 4.5 s with nothing left.
+
+**Company sites.** The bench's door has `POST /world/save` and `POST /world/reset` (packages/platform, `door/points.py`,
+step 1.17); `world.snapshot.save` of a world with companies saves a point beside the backup, and the reset puts the
+sites back to it and sets the bench's clock entry to the world's clock (`POST /clock`), since the door puts back the
+entry as it was saved. Not yet run against a bench: none is reachable from this container (step 1.4).
+
 ## Commands
 
 `pnpm install` at the repository's root installs the package. From the root:
@@ -56,6 +97,7 @@ Inside `packages/world`, `pnpm world <command>` and `./run.sh <command>` are the
 
 ```bash
 ./run.sh show demo [--reveal]              # the world's addresses; the chain's token only with --reveal
+./run.sh reset demo --to s0                # rewind the world in place to its snapshot s0 (above)
 ./run.sh sql demo "select * from app.notes"
 ./run.sh list                              # every world in the shared state, with owner and expiry
 ./run.sh sweep [--dry-run]                 # destroy every expired world; remove what destroys leave behind
@@ -261,9 +303,10 @@ comparison of everything (`sameAsBeforeAccountWide`) and names the worlds it set
 | `bundler` | A world made by `world create`, run as the pnpm command, with its bundler and test paymaster: a Safe owned by one of Anvil's public test keys sends one UserOperation, a 25 test USDC transfer signed through the Safe4337Module and sponsored by the paymaster, to the world's bundler. It lands as one transaction in its own block, sent by the bundler's executor to the EntryPoint, with one UserOperationEvent for it; the chain reads back the Safe's and the recipient's balances, the paymaster's deposit and the Safe's nonce; the index writes the transfer. Then `world destroy`, and the accounts hold what they held before. | `bundler.proof.json` |
 | `sweep` | The sweeper, run as the command line with an empty home directory, keeps three worlds before an expiry; after it, destroys the expired one and keeps the live one and the one with no recorded expiry. | `sweep.proof.json` |
 | `snapshot` | The platform's handlers make a world with its cast (four Safes of 10,000 USDC, pat with none), save it, refuse a second save of the name (`SnapshotExists`), a save by another operator (`NotWorldOwner`), a restore of a missing snapshot (`SnapshotNotFound`), one that outlives its source (`ExpiryBeyondSource`), another operator's restore of a snapshot that is not a template (`NotWorldOwner`) and a restore as a taken name (`WorldExists`); the first world then goes on (5 USDC more to dana's Safe); the restore names its parent, its record is the first world's birth and then its own, its chain holds what was saved and not what came after, and the first world is unchanged by it. Both destroyed, snapshot branch included, nothing left. | `snapshot.proof.json` |
-| `clock` | A world on a running clock two weeks behind the host (`p-clk`), saved 40 s after its create and restored 40 s after its save (`p-clk2`): a block mined then on the restored chain reads Core's clock (the world's `app.clock`, read as Core reads it) within a second (0.78 s), and again after its chain was stopped and woken from its saved state 30 s later (0.12 s); the first world's within 0.61 s. Before the restore mined its block at the world's time, the restored chain was 19.7 s behind Core (`speed/clock-before.proof.json`); with that block but before a wake kept the chain's clock, one run was 3.7 s behind (`speed/clock-align-only.proof.json`). Both destroyed, nothing left. | `clock.proof.json` |
+| `clock` | Run again on the fleet hub, 14 November 2026, and passed. A world on a running clock two weeks behind the host (`p-clk`), saved 40 s after its create and restored 40 s after its save (`p-clk2`): a block mined then on the restored chain reads Core's clock (the world's `app.clock`, read as Core reads it) within a second (0.78 s), and again after its chain was stopped and woken from its saved state 30 s later (0.12 s); the first world's within 0.61 s. Before the restore mined its block at the world's time, the restored chain was 19.7 s behind Core (`speed/clock-before.proof.json`); with that block but before a wake kept the chain's clock, one run was 3.7 s behind (`speed/clock-align-only.proof.json`). Both destroyed, nothing left. | `clock.proof.json` |
 | `patience` | Four worlds made one after another (`p-pat-1` to `p-pat-4`), each with its index step's duration and every try of each container start. Cloudflare refused the index's first start 0 to 6 times (tries spread over up to 25 s) and its restart after a chain stop in 5 of 8 cases; each was tried again until Ponder answered. In each world the chain was stopped right after the create, twice, and called at once: every call was answered (wake 0.9 to 1.7 s, one try each; none refused), and the index came back by itself 8.5 to 19.6 s later (11 to 23 s when Ponder was killed instead of stopped: every stop is now SIGTERM, on which Ponder exited in 0.2 to 0.5 s, and its next start was ready 7.5 to 11.4 s after it was accepted, against 9.2 to 19.1 s before). All four destroyed, nothing left. | `patience.proof.json`, `p-pat-1.json` to `p-pat-4.json` |
-| `hub` | On the fleet hub, three worlds one after another, each made through the platform's `world.create` handler (its cast, its start block, its facts and `world_created` included) and destroyed before the next: each answered on every part (the chain's `eth_chainId`, the index ready, the bundler naming the EntryPoint, Core's health, four claimed Safes); each create under 20 s and each destroy under 8 s; a destroyed world's token reaches nothing on the hub; the hub's ledger holds none of them; the hub runs no container a while after; nothing of them is left in the accounts. Spans of the run in `records/hub/hub-spans.jsonl` (`WORLD_SPANS`). | `hub.proof.json`, `hub/hub-spans.jsonl`, `hub/up-*.log` (the hub's deploys) |
+| `hub` | On the fleet hub, three worlds one after another, each made through the platform's `world.create` handler (its cast, its start block, its facts and `world_created` included) and destroyed before the next: each answered on every part (the chain's `eth_chainId`, the index ready, the bundler naming the EntryPoint, Core's health, four claimed Safes); each create under 20 s and each destroy under 8 s; a destroyed world's token reaches nothing on the hub; the hub's ledger holds none of them; the hub runs no container a while after; nothing of them is left in the accounts. Spans of the run in `records/hub/hub-spans.jsonl` (`WORLD_SPANS`). | `hub.proof.json`, `hub/hub-spans.jsonl`, `hub/up-*.log` (the hub's deploys: the first from nothing, and `up-6`, the one the proofs ran on) |
+| `reset` | On the fleet hub, a world made by `world.create` on a clock three days behind, saved as `s0`, moved on (5 USDC more to dana's Safe, indexed; a second snapshot `s1`, one more record entry), left 20 s, then reset in place to `s0` twice: after each, `world.show` reads what it read at `s0` but its clock, which reads `s0`'s time since the reset; the chain and the index read `s0`'s balance and transfers; the chain's time reads Core's clock within a second; then the world is destroyed with nothing left, though its branch had become the snapshot's child. | `reset.proof.json`, `hub/reset-spans.jsonl` |
 | `site` | Run with `WORLD_BENCH=pr-site`, a stand-in bench of `packages/platform` in this container (`PLATFORM_HOST=standin`, `PLATFORM_EDGE=none`). A world made with one company gets `acme-p-site.worlds.abuusama.dev`, ready in 93.5 s (new-site 21.3, ERPNext 42.8, capxul 3.0, wizard 16.5, migrate 5.8, scheduler 0.7, join the world 0.6, the API user 1.4). Through the door, on the site's own API user: the company's record (`Acme Ltd`), its Supplier list, `get_logged_user` answering `capxul-core@service.invalid` (never Administrator), and the site's clock reading world `p-site`. A second world, `p-site2`, made inside the first's run: its token is refused for the first world's site (`403 site-not-in-world`) and it sees no site. Both destroyed: the site removed in 1.8 s with its world, the door holding no site of either, the bench's folders, the door's registry and MariaDB's databases as before, and nothing of either world in either account. Core's probe at both worlds' doors answered the site door's typed failure `unreachable` (Cloudflare's own 403 for a loopback address): **Core reaching the site is recorded, not proven** (below). | `site.proof.json`, `p-site.json`, `p-site2.json`, `site-after.txt` (the bench's platform destroyed after, the zone at 66 records before and after) |
 
 Every proof above but `site` and `hub` was run again after the patient starts (Containers, above) and passed; their
@@ -275,8 +318,9 @@ change does not touch.
 ## Timings on the fleet hub (step 1.15)
 
 From `records/hub.proof.json` (14 November 2026, from a Claude cloud container near Cloudflare's IAD, the hub in
-western Europe): `world.create` through the platform's handler, with its cast, took **18.7, 17.3 and 16.3 s**, and
-`world destroy` **4.1, 3.6 and 4.0 s**. Where a create's time goes, from its spans (`records/hub/hub-spans.jsonl`):
+western Europe): `world.create` through the platform's handler, with its cast, took **18.4, 15.7 and 16.2 s**, and
+`world destroy` **3.6, 3.9 and 3.6 s**. The first create in a process is the slowest (Core's bundle is made then; one
+other run's first create, in `records/reset.proof.json`, took 20.2 s before its view stopped being read back). Where a create's time goes, from its spans (`records/hub/hub-spans.jsonl`):
 
 | Lane | Step | s | |
 |---|---|---|---|
@@ -289,7 +333,7 @@ western Europe): `world.create` through the platform's handler, with its cast, t
 | database | index | 8.7 to 13.1 | Ponder on `standard-1`, started once the branch and the chain are there. |
 | database | deploy | 9.1 to 11.5 | Alchemy: the plan (0.5 to 0.9, the shared state store reused), the Hyperdrive configuration (2.3 to 2.6), Core's Worker (bundled and uploaded, 6 to 8). |
 | database | core | 3.1 to 3.3 | Core's health answered ten times in a row, 250 ms apart (`src/platform/steady.ts`). |
-| | facts | 0.7 to 1.1 | After the lifecycle: the world's facts, its view and `world_created` (its start block is mined at the end of the chain's lane, `startAtMs`). |
+| | facts | about 0.6 | After the lifecycle: the world's facts and `world_created`, side by side; its view is what was made, not read back (its start block is mined at the end of the chain's lane, `startAtMs`). |
 
 The critical path is the claim, the branch, Core's deploy and its steady answers; the index runs beside it. Before the
 hub a create was 95 to 102 s (below) and a destroy 13.5 to 19.5 s.
@@ -369,7 +413,7 @@ slower than the median. The bundler's and the chain's timeouts are unchanged.
   now made with `locationHint: "weur"` (`src/hub/names.ts`); a hint places an object only when it is first made, so the
   trial worlds' names `w-f1` to `w-f5` keep objects (emptied) in the US.
 - **Cloudflare's count of a hub's active containers lags.** Right after the last world was forgotten each application
-  still showed one active instance; 16.5 s later none (`records/hub.proof.json`).
+  still showed one active instance; about 16 s later none (`records/hub.proof.json`).
 
 - **Neon refuses to fork a branch that has an expiry of its own** ("Branches with an expiration date cannot have
   child branches"). A world that another is made from therefore has its Neon expiry taken off; its record says so,
@@ -417,6 +461,15 @@ slower than the median. The bundler's and the chain's timeouts are unchanged.
   `migrate` 5.4 s for 28). Placed in western Europe (`constraints.regions`), the same calls take about 3 s.
 
 ## Not done
+
+- **Only the `hub` and `reset` proofs (and `clock`) ran on the fleet hub.** The others were brought to it in code (one
+  world is 3 resources in the accounts, not 11) but their records predate it.
+- **`world.create` under 20 s holds with little room**: 15.7 to 18.4 s in the `hub` proof, once 20.2 s. What is left is
+  Core's own deploy (its bundle, 3 to 4 s of this machine's CPU, and its upload) and its steady answers; Core's bundle
+  could be made once per hub instead of once per world.
+- The blueprint's `world.snapshot.restore` still makes a new world; the reset in place is this package's command. Making
+  the operation itself rewind the world would change its claims (it now refuses a restore as the world's own name).
+- A hub's world names keep their Durable Objects where they were first made (What was learned).
 
 - Nothing schedules `sweep`. Until something does, a world that was forked from, a parked world and a half-created
   world wait for whoever runs it (Neon still deletes their branches at their expiry).

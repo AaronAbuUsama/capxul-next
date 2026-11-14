@@ -113,7 +113,7 @@ const toDoor = (world: Door, request: HttpClientRequest.HttpClientRequest) =>
   );
 
 /** One call to the world's door, its answer decoded with `schema`. A door that does not answer so is not ready. */
-const doorCall = <S extends Schema.Constraint>(
+export const doorCall = <S extends Schema.Constraint>(
   world: Door,
   part: WorldNotReady["part"],
   request: HttpClientRequest.HttpClientRequest,

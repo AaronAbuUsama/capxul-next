@@ -4,12 +4,10 @@
 //          a refused start is tried again within CHAIN_START (src/containers/patience.ts)
 //   stop:  anvil_dumpState -> the hub's bucket -> destroy; how far anvil's clock runs from the host's is kept, and a
 //          wake sets it again (evm_setTime), since anvil_loadState restarts anvil's clock at the saved head
-//   idle and save: every call pushes a durable stop forward, and while calls arrive the state is saved every SAVE_EVERY
-//   fork, snap, reset: a world made from another adopts its state; a snapshot saves the state under its name; a reset
-//          rewinds the chain to it in place (src/lifecycle/reset.ts)
-//   world: it keeps the world's registration, checks each call's token against it (admit) and forgets it all
-// The index is stopped before the chain is saved and resumed when it wakes; the bundler is stopped with it. The
-// index's polling is "quiet": it neither wakes the chain nor keeps it awake.
+//   idle, save: each call pushes a durable stop forward; while calls arrive the state is saved every SAVE_EVERY
+//   fork, snap, reset: adopt another world's state; save the state under a snapshot's name; rewind to it in place
+//   world: keeps the world's registration, checks each call's token against it (admit), forgets it all
+// The index stops before a save and resumes on a wake; the bundler stops with it. The index's polling is "quiet".
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Alchemy from "alchemy";
 import * as Arr from "effect/Array";
@@ -51,7 +49,7 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
     // @effect-diagnostics-next-line returnEffectInGen:off
     return Effect.gen(function* () {
       const port = yield* anvil.getTcpPort(RPC_PORT);
-      const { forward, ask, call, clockOffset } = anvilCalls(port);
+      const { forward, ask, call, clockOffset, mineAt, time } = anvilCalls(port);
       const lock = yield* Semaphore.make(1);
       const pushedAt = yield* Ref.make(0);
       const savePending = yield* Ref.make(false);
@@ -180,8 +178,7 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
             yield* ask("reset", "anvil_reset", []);
             yield* call("reset", "anvil_loadState", [dump]);
           }
-          // The chain's own saved state is the snapshot's now, so a container that goes away comes back to it. Its
-          // clock is set by whoever reset it (the world's clock, src/lifecycle/reset.ts), so no offset is kept.
+          // The saved state is the snapshot's now; its clock is set by the reset (src/lifecycle/reset.ts).
           yield* saved.put(yield* key, dump).pipe(Effect.mapError(failed("reset")));
           const done = { at: stamp(began), snapshot, inPlace, bytes: dump.length, ms: 0 };
           const entry = { ...done, ms: (yield* Clock.currentTimeMillis) - began };
@@ -253,8 +250,7 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
             Effect.flatMap((up) => (up ? anvil.setInactivityTimeout((idleSeconds + 300) * 1000) : Effect.void)),
             Effect.mapError(failed("rpc")),
           ),
-        /** Keeps the world this chain belongs to, and enters it in the hub's ledger; a chain left from an older
-         * world of the same name is forgotten first. */
+        /** Keeps the world this chain belongs to, and enters it in the hub's ledger. */
         register: (world: Registration) =>
           Effect.gen(function* () {
             const done = yield* register(world);
@@ -268,10 +264,10 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
         admit,
         /** Rewinds the chain to a snapshot's state (above), and keeps it awake. */
         resetTo: (snapshot: string) => reset(snapshot).pipe(Effect.tap(() => touch)),
-        /**
-         * Removes everything of the world `name` from the hub: its bundler's and index's containers and state, its
-         * chain's container, every object of it in the bucket, and this object's own storage and pending callbacks.
-         */
+        /** Mines the next block at the world's time, worked out here, next to anvil (./calls.ts, `mineAt`). */
+        mineAt: (worldMs: number, atHostMs: number | null) =>
+          wake.pipe(Effect.andThen(touch), Effect.andThen(mineAt(worldMs, atHostMs))),
+        /** Removes everything of world `name` from the hub: containers, objects' storage, bucket objects, callbacks. */
         forget: (name: string) =>
           Effect.gen(function* () {
             yield* onIdle.cancel("stop").pipe(Effect.ignore);
@@ -292,6 +288,8 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
           }).pipe(lock.withPermits(1)),
         /** Whether the container is up, and its starts and stops. Never starts the chain. */
         status: () => Effect.all({ running: running("rpc"), record }),
+        /** The chain's time and the host's, read together next to anvil (src/proofs/reset.ts). */
+        time: () => wake.pipe(Effect.andThen(time)),
       };
     });
     // The R2 binding is a layer that belongs to this Durable Object's own program, as Alchemy's bindings are written.

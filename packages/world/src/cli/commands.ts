@@ -16,6 +16,7 @@ import { InvalidCompany, InvalidDuration, InvalidMint } from "../failures.ts";
 import { inventory } from "../lifecycle/account.ts";
 import { create, destroy, list } from "../lifecycle/operations.ts";
 import { open } from "../lifecycle/parts.ts";
+import { reset } from "../lifecycle/reset.ts";
 import { platformDown, platformUp } from "../lifecycle/platform.ts";
 import type { World } from "../lifecycle/spec.ts";
 import { requireComplete, sweep } from "../lifecycle/sweep.ts";
@@ -162,6 +163,19 @@ const destroyCommand = Command.make("destroy", { name }, (input) => Effect.flatM
   Command.withDescription("Destroy a world and everything it created"),
 );
 
+const resetCommand = Command.make(
+  "reset",
+  {
+    name,
+    to: Flag.String("to").pipe(Flag.withDescription("The snapshot of the world to rewind it to, in place")),
+  },
+  (input) => Effect.flatMap(reset(input.name, input.to), report),
+).pipe(
+  Command.withDescription(
+    "Rewind a world in place to one of its snapshots: database, chain, index, sites and one clock (roadmap 1.16)",
+  ),
+);
+
 const listCommand = Command.make("list", {}, () => Effect.flatMap(list, report)).pipe(
   Command.withDescription("List every world in the shared state, with its owner and expiry"),
 );
@@ -261,6 +275,7 @@ export const world = Command.make("world").pipe(
   Command.withSubcommands([
     createCommand,
     destroyCommand,
+    resetCommand,
     listCommand,
     showCommand,
     sqlCommand,

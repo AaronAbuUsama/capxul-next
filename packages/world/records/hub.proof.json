@@ -1,7 +1,7 @@
 {
   "proof": "on the fleet hub a world is made, with Core, migrations and its cast, in under 20 s, and destroyed in a few seconds",
   "outcome": "passed",
-  "at": "2026-11-14T05:26:50.538Z",
+  "at": "2026-11-14T05:54:32.520Z",
   "checks": [
     {
       "check": "each world's chain, index and bundler answered and its Core answered, its cast made",
@@ -36,18 +36,18 @@
     "hub": {
       "stage": "fleet",
       "owner": "claude-fleet",
-      "expiresAt": "2026-11-15T05:15:18.427Z",
+      "expiresAt": "2026-11-15T05:49:35.513Z",
       "doorUrl": "https://capxulworldhub-door-fleet-jr5dpupgqdw5hvle.thedao.workers.dev"
     },
     "runs": [
       {
         "world": "p-hub1",
-        "createMs": 18697,
-        "destroyMs": 4104,
+        "createMs": 18406,
+        "destroyMs": 3643,
         "destroySteps": {
           "unsite": 0,
-          "destroy": 3747,
-          "release": 214
+          "destroy": 3290,
+          "release": 237
         },
         "answered": {
           "chainId": "0x14a34",
@@ -89,20 +89,20 @@
               "adopted": false,
               "starts": [
                 {
-                  "at": "2026-11-14T05:25:19.959Z",
+                  "at": "2026-11-14T05:53:04.262Z",
                   "from": "seed",
                   "afterUnsavedStop": false,
-                  "wakeMs": 617,
+                  "wakeMs": 597,
                   "attempts": [
                     {
-                      "at": "2026-11-14T05:25:20.084Z",
-                      "ms": 473,
+                      "at": "2026-11-14T05:53:04.386Z",
+                      "ms": 454,
                       "started": true,
                       "outcome": "ready",
                       "message": null
                     }
                   ],
-                  "ms": 473,
+                  "ms": 454,
                   "startCalls": 1,
                   "refusals": 0
                 }
@@ -116,65 +116,65 @@
             "running": true,
             "health": 200,
             "ready": 200,
-            "indexed": "{\"world\":{\"id\":84532,\"block\":{\"number\":47893275,\"timestamp\":1794633917}}}",
+            "indexed": "{\"world\":{\"id\":84532,\"block\":{\"number\":47893275,\"timestamp\":1794635582}}}",
             "starts": [
               {
-                "at": "2026-11-14T05:25:21.230Z",
-                "atMs": 1794633921230,
-                "healthyMs": 4974,
-                "readyMs": 7906,
+                "at": "2026-11-14T05:53:05.956Z",
+                "atMs": 1794635585956,
+                "healthyMs": 4347,
+                "readyMs": 6947,
                 "timeline": {
-                  "processMs": 770,
-                  "syncStartMs": 4770,
-                  "syncEndMs": 5770,
-                  "readyMs": 7906,
-                  "databaseMs": 1321,
+                  "processMs": 44,
+                  "syncStartMs": 4044,
+                  "syncEndMs": 5044,
+                  "readyMs": 6947,
+                  "databaseMs": 1269,
                   "databaseCalls": 94,
                   "slowestDatabaseMethods": [
                     {
-                      "method": "commit_block",
-                      "ms": 318,
-                      "calls": 14
-                    },
-                    {
                       "method": "migrate",
-                      "ms": 293,
+                      "ms": 361,
                       "calls": 28
                     },
                     {
                       "method": "create_trigger",
-                      "ms": 219,
+                      "ms": 249,
+                      "calls": 14
+                    },
+                    {
+                      "method": "commit_block",
+                      "ms": 236,
                       "calls": 14
                     },
                     {
                       "method": "finalize",
-                      "ms": 162,
+                      "ms": 121,
                       "calls": 10
                     },
                     {
                       "method": "update_checkpoints",
-                      "ms": 112,
+                      "ms": 99,
                       "calls": 15
                     },
                     {
-                      "method": "select_ready",
-                      "ms": 77,
+                      "method": "migrate_sync",
+                      "ms": 81,
                       "calls": 1
                     }
                   ],
-                  "rpcMs": 4102,
+                  "rpcMs": 3387,
                   "rpcCalls": 30
                 },
                 "attempts": [
                   {
-                    "at": "2026-11-14T05:25:21.230Z",
-                    "ms": 4974,
+                    "at": "2026-11-14T05:53:05.956Z",
+                    "ms": 4347,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 4974,
+                "ms": 4347,
                 "startCalls": 1,
                 "refusals": 0
               }
@@ -188,12 +188,12 @@
       },
       {
         "world": "p-hub2",
-        "createMs": 17318,
-        "destroyMs": 3598,
+        "createMs": 15711,
+        "destroyMs": 3867,
         "destroySteps": {
-          "unsite": 0,
-          "destroy": 3245,
-          "release": 232
+          "unsite": 1,
+          "destroy": 3508,
+          "release": 217
         },
         "answered": {
           "chainId": "0x14a34",
@@ -235,20 +235,20 @@
               "adopted": false,
               "starts": [
                 {
-                  "at": "2026-11-14T05:25:44.361Z",
+                  "at": "2026-11-14T05:53:28.169Z",
                   "from": "seed",
                   "afterUnsavedStop": false,
-                  "wakeMs": 698,
+                  "wakeMs": 747,
                   "attempts": [
                     {
-                      "at": "2026-11-14T05:25:44.498Z",
-                      "ms": 534,
+                      "at": "2026-11-14T05:53:28.306Z",
+                      "ms": 582,
                       "started": true,
                       "outcome": "ready",
                       "message": null
                     }
                   ],
-                  "ms": 534,
+                  "ms": 582,
                   "startCalls": 1,
                   "refusals": 0
                 }
@@ -262,65 +262,65 @@
             "running": true,
             "health": 200,
             "ready": 200,
-            "indexed": "{\"world\":{\"id\":84532,\"block\":{\"number\":47893275,\"timestamp\":1794633942}}}",
+            "indexed": "{\"world\":{\"id\":84532,\"block\":{\"number\":47893275,\"timestamp\":1794635606}}}",
             "starts": [
               {
-                "at": "2026-11-14T05:25:46.048Z",
-                "atMs": 1794633946048,
-                "healthyMs": 5603,
-                "readyMs": 8004,
+                "at": "2026-11-14T05:53:29.696Z",
+                "atMs": 1794635609696,
+                "healthyMs": 4003,
+                "readyMs": 6429,
                 "timeline": {
-                  "processMs": -48,
-                  "syncStartMs": 5952,
-                  "syncEndMs": 6952,
-                  "readyMs": 8004,
-                  "databaseMs": 2310,
-                  "databaseCalls": 69,
+                  "processMs": 304,
+                  "syncStartMs": 4304,
+                  "syncEndMs": 5304,
+                  "readyMs": 6429,
+                  "databaseMs": 2082,
+                  "databaseCalls": 67,
                   "slowestDatabaseMethods": [
                     {
-                      "method": "create_trigger",
-                      "ms": 832,
-                      "calls": 14
-                    },
-                    {
                       "method": "migrate",
-                      "ms": 812,
+                      "ms": 738,
                       "calls": 28
                     },
                     {
-                      "method": "create_indexes",
-                      "ms": 195,
-                      "calls": 9
-                    },
-                    {
-                      "method": "migrate_sync",
-                      "ms": 191,
-                      "calls": 1
-                    },
-                    {
-                      "method": "update_checkpoints",
-                      "ms": 149,
+                      "method": "create_trigger",
+                      "ms": 721,
                       "calls": 14
                     },
                     {
+                      "method": "migrate_sync",
+                      "ms": 182,
+                      "calls": 1
+                    },
+                    {
+                      "method": "create_indexes",
+                      "ms": 169,
+                      "calls": 9
+                    },
+                    {
+                      "method": "update_checkpoints",
+                      "ms": 156,
+                      "calls": 12
+                    },
+                    {
                       "method": "select_ready",
-                      "ms": 105,
+                      "ms": 93,
                       "calls": 1
                     }
                   ],
-                  "rpcMs": 2622,
-                  "rpcCalls": 26
+                  "rpcMs": 2949,
+                  "rpcCalls": 22
                 },
                 "attempts": [
                   {
-                    "at": "2026-11-14T05:25:46.048Z",
-                    "ms": 5603,
+                    "at": "2026-11-14T05:53:29.696Z",
+                    "ms": 4003,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 5603,
+                "ms": 4003,
                 "startCalls": 1,
                 "refusals": 0
               }
@@ -334,12 +334,12 @@
       },
       {
         "world": "p-hub3",
-        "createMs": 16349,
-        "destroyMs": 4024,
+        "createMs": 16214,
+        "destroyMs": 3642,
         "destroySteps": {
-          "unsite": 0,
-          "destroy": 3548,
-          "release": 322
+          "unsite": 1,
+          "destroy": 3302,
+          "release": 227
         },
         "answered": {
           "chainId": "0x14a34",
@@ -381,20 +381,20 @@
               "adopted": false,
               "starts": [
                 {
-                  "at": "2026-11-14T05:26:08.009Z",
+                  "at": "2026-11-14T05:53:50.764Z",
                   "from": "seed",
                   "afterUnsavedStop": false,
-                  "wakeMs": 543,
+                  "wakeMs": 549,
                   "attempts": [
                     {
-                      "at": "2026-11-14T05:26:08.151Z",
-                      "ms": 399,
+                      "at": "2026-11-14T05:53:50.910Z",
+                      "ms": 402,
                       "started": true,
                       "outcome": "ready",
                       "message": null
                     }
                   ],
-                  "ms": 399,
+                  "ms": 402,
                   "startCalls": 1,
                   "refusals": 0
                 }
@@ -408,65 +408,65 @@
             "running": true,
             "health": 200,
             "ready": 200,
-            "indexed": "{\"world\":{\"id\":84532,\"block\":{\"number\":47893270,\"timestamp\":1791554830}}}",
+            "indexed": "{\"world\":{\"id\":84532,\"block\":{\"number\":47893273,\"timestamp\":1791554835}}}",
             "starts": [
               {
-                "at": "2026-11-14T05:26:09.747Z",
-                "atMs": 1794633969747,
-                "healthyMs": 6862,
-                "readyMs": 11767,
+                "at": "2026-11-14T05:53:52.271Z",
+                "atMs": 1794635632271,
+                "healthyMs": 6182,
+                "readyMs": 11063,
                 "timeline": {
-                  "processMs": 253,
-                  "syncStartMs": 6253,
-                  "syncEndMs": 10253,
-                  "readyMs": 11767,
-                  "databaseMs": 4372,
-                  "databaseCalls": 71,
+                  "processMs": -271,
+                  "syncStartMs": 5729,
+                  "syncEndMs": 8729,
+                  "readyMs": 11063,
+                  "databaseMs": 4277,
+                  "databaseCalls": 69,
                   "slowestDatabaseMethods": [
                     {
                       "method": "create_trigger",
-                      "ms": 1529,
+                      "ms": 1572,
                       "calls": 14
                     },
                     {
                       "method": "migrate",
-                      "ms": 1455,
+                      "ms": 1471,
                       "calls": 28
                     },
                     {
-                      "method": "update_checkpoints",
-                      "ms": 432,
-                      "calls": 15
-                    },
-                    {
                       "method": "create_indexes",
-                      "ms": 366,
+                      "ms": 367,
                       "calls": 9
                     },
                     {
                       "method": "migrate_sync",
-                      "ms": 344,
+                      "ms": 348,
                       "calls": 1
                     },
                     {
+                      "method": "update_checkpoints",
+                      "ms": 271,
+                      "calls": 13
+                    },
+                    {
                       "method": "select_ready",
-                      "ms": 201,
+                      "ms": 200,
                       "calls": 2
                     }
                   ],
-                  "rpcMs": 3213,
-                  "rpcCalls": 28
+                  "rpcMs": 5106,
+                  "rpcCalls": 46
                 },
                 "attempts": [
                   {
-                    "at": "2026-11-14T05:26:09.747Z",
-                    "ms": 6862,
+                    "at": "2026-11-14T05:53:52.271Z",
+                    "ms": 6182,
                     "started": true,
                     "outcome": "ready",
                     "message": null
                   }
                 ],
-                "ms": 6862,
+                "ms": 6182,
                 "startCalls": 1,
                 "refusals": 0
               }
@@ -480,14 +480,14 @@
       }
     ],
     "createMs": [
-      18697,
-      17318,
-      16349
+      18406,
+      15711,
+      16214
     ],
     "destroyMs": [
-      4104,
-      3598,
-      4024
+      3643,
+      3867,
+      3642
     ],
     "containersBefore": [
       {
@@ -502,16 +502,16 @@
         "application": "capxulworldhub-alto-fleet-3i3bpj2sn5h6amaq",
         "maxInstances": 10,
         "active": 0,
-        "healthy": 5,
-        "starting": 0,
+        "healthy": 4,
+        "starting": 1,
         "failed": 0
       },
       {
         "application": "capxulworldhub-ponder-fleet-idz5swsjqhioqybc",
         "maxInstances": 10,
         "active": 0,
-        "healthy": 5,
-        "starting": 0,
+        "healthy": 4,
+        "starting": 1,
         "failed": 0
       }
     ],
@@ -536,12 +536,12 @@
         "application": "capxulworldhub-ponder-fleet-idz5swsjqhioqybc",
         "maxInstances": 10,
         "active": 0,
-        "healthy": 5,
-        "starting": 0,
+        "healthy": 4,
+        "starting": 1,
         "failed": 0
       }
     ],
-    "idleAfterMs": 16479,
+    "idleAfterMs": 16427,
     "ledgerAfter": [],
     "inventory": {
       "before": {

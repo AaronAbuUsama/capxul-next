@@ -61,7 +61,7 @@ const Block = Schema.Struct({ number: Schema.String, timestamp: Schema.String })
  * and Core's clock is read from the world's database (as Core reads it) at the host times before and after the mine.
  * `apartMs` is how far the block is outside that span of Core's time, 0 when inside it.
  */
-const chainAgainstCore = (name: string) =>
+export const chainAgainstCore = (name: string) =>
   Effect.gen(function* () {
     const world = yield* open(name);
     const head = yield* Effect.flatMap(

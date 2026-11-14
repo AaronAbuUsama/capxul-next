@@ -1,0 +1,14 @@
+[05:49:32.333] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+i Refreshing Cloudflare State Store credentials
++ Refreshing Cloudflare State Store credentials
+[05:49:35.770] INFO: image capxulworld-anvil: inputs as pinned, deploying sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474
+[05:49:35.782] INFO: image capxulworld-ponder: inputs as pinned, deploying sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9
+[05:49:35.788] INFO: image capxulworld-alto: inputs as pinned, deploying sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916
+[05:49:36.469] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+[05:49:39.705] INFO: [Door] Cloudflare Worker reconcile: starting capxulworldhub-door-fleet-jr5dpupgqdw5hvle
+[05:49:39.705] INFO: [Door] Cloudflare Worker reconcile: durable objects [{"logicalId":"Bundler","className":"Bundler"},{"logicalId":"Chain","className":"Chain"},{"logicalId":"Indexer","className":"Indexer"}]
+[05:49:39.999] INFO: [Door] Cloudflare Worker reconcile: existing durable object tags ["alchemy:dos:Bundler;Chain;Indexer"]
+[05:49:39.999] INFO: [Door] Cloudflare Worker reconcile: previous durable object tags ["alchemy:dos:Bundler;Chain;Indexer"]
+[05:49:40.010] INFO: [Door] Cloudflare Worker update: preparing bundle for capxulworldhub-door-fleet-jr5dpupgqdw5hvle
+[05:49:40.021] INFO: [Door] Cloudflare Worker update: uploading script for capxulworldhub-door-fleet-jr5dpupgqdw5hvle
+[05:49:40.274] INFO: [Door] Cloudflare Worker put: durable object reconciliation {"oldDoClassNameByLogicalId":{"Bundler":"Bundler","Chain":"Chain","Indexer":"Indexer"},"currentDoClassNameByLogicalId":{"Bundler":"Bundler","Chain":"Chain","Indexer":"Indexer"},"deletedClasses":[],"renamedClasses":[],"transferredClasses":[],"newSqliteClasses":[]}

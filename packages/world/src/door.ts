@@ -17,6 +17,7 @@ export { create, destroy, list } from "./lifecycle/operations.ts";
 export { chainAnswers, indexStatus, open, rpc, rpcHex } from "./lifecycle/parts.ts";
 export { platformDown, platformUp } from "./lifecycle/platform.ts";
 export { readRecord, RunRecord } from "./lifecycle/record.ts";
+export { reset } from "./lifecycle/reset.ts";
 export { withWorld } from "./lifecycle/run.ts";
 export { Limits, Timeouts, type World, type WorldSpec } from "./lifecycle/spec.ts";
 export { requireComplete, sweep, SweepReport } from "./lifecycle/sweep.ts";

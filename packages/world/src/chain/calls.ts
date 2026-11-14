@@ -74,5 +74,33 @@ export const anvilCalls = <R>(port: Port<R>) => {
     return Number(BigInt(pending.timestamp)) - Math.floor((yield* Clock.currentTimeMillis) / 1000);
   });
 
-  return { forward, ask, call, clockOffset };
+  /**
+   * Mines the next block at a running world's time: `worldMs` at host time `atHostMs`, read now, here, next to anvil,
+   * so the calls to get here cost the chain nothing (a reset's mine from the caller lagged Core's clock by up to 3 s,
+   * `records/reset.proof.json` before this). Never before the head's next second. Gives the block's timestamp.
+   */
+  const mineAt = (worldMs: number, atHostMs: number | null) =>
+    Effect.gen(function* () {
+      const head = yield* Effect.flatMap(
+        ask("rpc", "eth_getBlockByNumber", ["latest", false]),
+        Schema.decodeUnknownEffect(Pending),
+      ).pipe(Effect.mapError(failed("rpc")));
+      const now = yield* Clock.currentTimeMillis;
+      const worldNow = atHostMs === null ? worldMs : worldMs + (now - atHostMs);
+      const next = Math.max(Math.ceil(worldNow / 1000), Number(BigInt(head.timestamp)) + 1);
+      yield* ask("rpc", "evm_setNextBlockTimestamp", [next]);
+      yield* ask("rpc", "evm_mine", []);
+      return { minedAt: next };
+    });
+
+  /** The chain's time now, as its pending block would carry it, and the host time it was read at, here. */
+  const time = Effect.gen(function* () {
+    const pending = yield* Effect.flatMap(
+      ask("rpc", "eth_getBlockByNumber", ["pending", false]),
+      Schema.decodeUnknownEffect(Pending),
+    ).pipe(Effect.mapError(failed("rpc")));
+    return { chainSeconds: Number(BigInt(pending.timestamp)), hostMs: yield* Clock.currentTimeMillis };
+  });
+
+  return { forward, ask, call, clockOffset, mineAt, time };
 };

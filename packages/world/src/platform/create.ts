@@ -118,21 +118,38 @@ export const create = Effect.fn("platform.world.create")(function* (payload: Cre
   return yield* keptOrDestroyed(
     stage,
     Effect.gen(function* () {
-      yield* writeBirth(made.world.database, {
+      const members = yield* Deferred.await(cast);
+      const bornAtMs = yield* Clock.currentTimeMillis;
+      // The view is what was just made, not read back: the world's facts and its record's first entry are written
+      // side by side (src/platform/view.ts reads the same rows for world.show).
+      const view = {
+        world: payload.world,
+        owner: operator,
+        grade: payload.grade,
+        state: "running" as const,
+        expiresAt: made.world.expiresAt,
+        door: made.world.coreUrl,
         chainId: CHAIN_ID,
         contracts: CONTRACTS,
-        clock: { mode: payload.clock.mode, worldMs: startMs, hostMs: yield* Clock.currentTimeMillis },
-        cast: yield* Deferred.await(cast),
-      });
-      const { view, facts } = yield* viewOf(stage, { grade: payload.grade, parent: null }, made.world);
-      yield* emitDeclared(
-        "world.create",
-        { payload, success: { ...view, recordHead: 1 } },
-        stage,
-        made.world.database,
-        facts.clockMs,
+        clock: { mode: payload.clock.mode, now: instantOf(startMs) },
+        recordHead: 1,
+        parent: null,
+        cast: members,
+        companies: [],
+      };
+      yield* Effect.all(
+        [
+          writeBirth(made.world.database, {
+            chainId: CHAIN_ID,
+            contracts: CONTRACTS,
+            clock: { mode: payload.clock.mode, worldMs: startMs, hostMs: bornAtMs },
+            cast: members,
+          }),
+          emitDeclared("world.create", { payload, success: view }, stage, made.world.database, startMs),
+        ],
+        { concurrency: 2 },
       );
-      return { ...view, recordHead: 1 };
+      return view;
     }).pipe(Effect.orDie),
   );
 });

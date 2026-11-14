@@ -16,12 +16,14 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Random from "effect/Random";
 import { create as createWorld } from "../lifecycle/operations.ts";
+import { resumeIndex, stopIndex } from "../lifecycle/controls.ts";
 import { rpcControl, saveChain } from "../lifecycle/parts.ts";
 import { branchOf, dropBranch, forkable } from "./branches.ts";
 import { mineAtWorldTime } from "./cast.ts";
 import { existing, isTaken, keptOrDestroyed, tried } from "./create.ts";
 import { instantOf, readFacts, writeRestored } from "./facts.ts";
 import { tokenOf } from "./operators.ts";
+import { savePoint } from "../site/Points.ts";
 import { restoreSites, saveSites } from "../site/Saved.ts";
 import { refusalsOnly } from "./refusals.ts";
 import { keepSnapshot, prepareStore, snapshotOf } from "./store.ts";
@@ -56,14 +58,25 @@ export const save = Effect.fn("platform.world.snapshot.save")(function* (payload
       const bench = output.bench ?? "none";
       if (bench === "none") return yield* Effect.die(`${stage} has companies but no bench: its sites cannot be saved`);
       yield* saveSites(stage, bench, payload.snapshot);
+      // And a point of the bench, which an in-place reset puts the sites back to (src/site/Points.ts).
+      yield* savePoint(stage, bench, payload.snapshot);
     }
     const parent = yield* forkable(stage);
     if (Option.isSome(found)) yield* dropBranch(found.value.branch_id);
     const suffix = yield* Random.nextIntBetween(0, 0xffffff);
-    const branch = yield* branchOf(parent, `snap-${stage}-${payload.snapshot}-${suffix.toString(16)}`);
+    // Ponder is stopped with SIGTERM while the snapshot is taken, so the snapshot does not carry its schema lock (a
+    // Ponder started on a database copied while one ran waits the lock out: spikes/world-speed, 4.5) and nothing is
+    // indexed between the branch and the chain's save; it is started again right after, without waiting for it.
+    yield* stopIndex(handle);
+    const branch = yield* branchOf(parent, `snap-${stage}-${payload.snapshot}-${suffix.toString(16)}`).pipe(
+      Effect.onError(() => Effect.ignore(resumeIndex(handle))),
+    );
     // A branch the platform keeps no row of would be left behind, and Neon would refuse the world's own delete for
     // it ("cannot delete branch that has children", seen once in a rehearsal when the chain's save failed here).
-    yield* saveChain(handle, payload.snapshot).pipe(Effect.onError(() => Effect.ignore(dropBranch(branch))));
+    yield* saveChain(handle, payload.snapshot).pipe(
+      Effect.onError(() => Effect.ignore(dropBranch(branch))),
+      Effect.ensuring(Effect.ignore(resumeIndex(handle))),
+    );
     const savedAt = instantOf(hostMs);
     yield* keepSnapshot({
       stage,

@@ -10,6 +10,7 @@ import { commands } from "./commands.ts";
 import { fails, interrupted, interruptedRun, keeps, timesOut } from "./endings.ts";
 import { fresh } from "./fresh.ts";
 import { hubProof } from "./hub.ts";
+import { resetProof } from "./reset.ts";
 import { patience } from "./patience.ts";
 import { limits, race, sweeps } from "./shared.ts";
 import { site } from "./site.ts";
@@ -31,6 +32,7 @@ export const PROOFS = {
   patience,
   clock,
   hub: hubProof,
+  reset: resetProof,
   // Not a proof by itself: the run that `interrupted` starts as its own process and interrupts.
   "interrupted-run": interruptedRun,
 };

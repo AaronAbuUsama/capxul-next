@@ -16,8 +16,11 @@
 //   POST /chain/snapshot/<name>   save the chain's whole state now under a snapshot's name
 //   GET  /chain/snapshot/<name>   the state a snapshot saved, for a world restored from it
 //   POST /chain/reset/<name>      rewind the chain to the state a snapshot saved (src/lifecycle/reset.ts)
+//   GET  /chain/time      the chain's time (its pending block's) and the host's, read together next to anvil
+//   POST /chain/mine-at   mine the next block at the world's time (body: worldMs and the host time it was read at)
 //   POST /index/start     start Ponder against this door's quiet-rpc; the body, once, is the world's database
-//   POST /index/stop
+//   POST /index/stop      SIGTERM, so Ponder lets go of its schema lock
+//   POST /index/resume    start Ponder again as it was last started, without waiting for it
 //   GET  /index/status
 // The hub's own routes start with `admin/<admin token>`:
 //   GET  /worlds                   the worlds the hub holds (its ledger)
@@ -30,6 +33,7 @@ import * as Effect from "effect/Effect";
 import { pipe } from "effect/Function";
 import * as Predicate from "effect/Predicate";
 import * as Redacted from "effect/Redacted";
+import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import { HttpServerRequest, schemaBodyJson } from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
@@ -42,6 +46,7 @@ import Indexer from "../index/Indexer.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
 
 const DEFAULT_IDLE_SECONDS = 600;
+const MineAt = Schema.Struct({ worldMs: Schema.Finite, atHostMs: Schema.NullOr(Schema.Finite) });
 const SNAPSHOT_PATTERN = /^[a-z0-9][a-z0-9-]{0,30}$/;
 
 const json = (body: unknown, status = 200) => HttpServerResponse.jsonUnsafe(body, { status });
@@ -138,6 +143,12 @@ export default class Door extends Cloudflare.Worker<Door>()(
             return json(yield* chain.status());
           case "GET /chain/dump":
             return HttpServerResponse.text(yield* chain.dump());
+          case "POST /chain/mine-at": {
+            const { worldMs, atHostMs } = yield* schemaBodyJson(MineAt);
+            return json(yield* chain.mineAt(worldMs, atHostMs));
+          }
+          case "GET /chain/time":
+            return json(yield* chain.time());
           case "POST /chain/adopt":
             return json(yield* chain.adopt(yield* request.text));
           case "POST /index/start": {
@@ -146,6 +157,8 @@ export default class Door extends Cloudflare.Worker<Door>()(
           }
           case "POST /index/stop":
             return json(yield* indexer.stop());
+          case "POST /index/resume":
+            return json(yield* indexer.resume());
           case "GET /index/status":
             return json(yield* indexer.status());
           default:
