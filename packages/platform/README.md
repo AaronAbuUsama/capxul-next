@@ -59,12 +59,109 @@ from the shared state by whoever holds the Cloudflare key (`src/state.ts`), neve
 | `DELETE /sites/<site>`, `DELETE /world` | Removes a site (`bench drop-site`, its archive deleted; if that fails, its database and user dropped directly), or every site of the world and its saved backups. A token of quota 0 may do it, so the sweeper can for an expired world. |
 | `POST /world/backup {snapshot}` | Saves every site of the world (each must be ready) under the snapshot's name (`door/snapshots.py`): `bench backup` of its database and its encryption key, in the door's registry folder; a second save of the name replaces it. Seconds per site. |
 | `POST /world/restore {snapshot, api_key, api_secret, clock}` | With the source world's token in `X-Capxul-Source-Token` as well: makes every site that world saved as the snapshot again in the token's world, under the same label, and answers 202. Each is a new site from the backup (`bench new-site --source-sql`), with the backup's encryption key, joined to the new world (`capxul.world.rewrite`), set to its clock, its API user given the new credential, its scheduler on: about 8 s in the rehearsal, against about 95 s for a new site. Within the token's quota. |
+| `POST /templates {template, site}` or `{template, snapshot}` | Makes (or replaces) a starting world's **template**: a copy, inside MariaDB, of a ready site of the token's world (that world built it from nothing with `POST /sites` and ran the starting world's steps), or of every site in a snapshot it saved with `POST /world/backup`. `template` is the starting world's name in the blueprint (`founded`, `office-holder`, `payment-drafted`, `payment-held`, `paid`); each site keeps its label. Answers 200 when it is made (about 3 s a site), then fills its pool in the background (`door/pool.py`). Any valid token may make, replace or remove a template: they are the bench's, not a world's, and outlive the world that made them. |
+| `GET /templates`, `DELETE /templates/<template>` | Every template, its sites and how many ready copies each has in the pool, with the last refills' times; removes a template, its pool and their databases. |
+| `POST /world/claim {template, api_key, api_secret, clock?, browser_core_url?}` | Gives the token's world a ready copy of every site of the template, each `<label>-<world>.<domain>`, within its quota, and **answers 200 when they are ready** (about 1.4 s a site from the pool; about 4 s when the pool is empty and the copy is made from the template on the claim's path). Each copy is joined to the world (`capxul.world.rewrite`: its world, its host name, its jobs settled on the world's time), the world's clock set when `clock` (`{frozen_at_ms}` or `{offset_ms}`) is given, its API user given the world's credential, its scheduler on, all in one process (`door/claim.py`). The site then is a site of the world like one made by `POST /sites`: Core reaches it the same way. It holds the template world's company facts (org, Safe address, hats), so the world must hold the matching chain state (a restore of the same snapshot). |
+| `POST /world/save {point}` | Saves every site of the world (each must be ready) to a **point**: a copy of its database inside MariaDB with each table's checksum, its files (`public/files`, `private/files`), its site config, and once the world's entry in the bench's world clocks. About 3 s a site. A second save of the name replaces it. (`door/points.py`) |
+| `POST /world/reset {point}` | Resets every site the point saved **in place** (same name, database and credential): only the tables whose checksum differs are emptied and refilled from the saved copy in one transaction, a table made since is dropped and one dropped since made again, the files put back if any differ, the site config if it differs, the site's queued jobs removed and its cache keys in Redis cleared; then the world's clock entry put back (a frozen clock reads the saved instant again). Answers 200 with each site's steps, the tables put back and `sites_not_in_point` (sites made since, left alone). Well under a second for a small site. Refuses `point-not-found`, or `point-site-missing` if a saved site is gone or not ready. |
+| `GET /world/points`, `DELETE /world/points/<point>` | The world's points; removes one and its saved databases. `DELETE /world` removes every point of the world, `DELETE /sites/<site>` what the points saved of that site. |
 
 The platform records `doorUrl`, where a world reaches the door: `http://<stage>-door.<domain>` through the tunnel, or,
 with `PLATFORM_EDGE=none`, the host's loopback port (only the host itself reaches it).
 
 A world's site was made, read, refused to a second world and removed through this door by `packages/world`'s `site`
 proof (`packages/world/records/site.proof.json`) on the stand-in stage `pr-site`, which was then destroyed.
+
+## Sites from a pool, and reset in place (roadmap step 1.17)
+
+The decision "Sites from a pool" (14 November 2026) as `spikes/site-speed` measured it, built into the door:
+
+- **Templates** (`door/pool.py`). One per starting world that has companies, named as the blueprint names it
+  (`packages/blueprint/src/starting-worlds.ts`: `founded`, `office-holder`, `payment-drafted`, `payment-held`, `paid`;
+  their one company is Northwind, label `northwind`). A template world makes the starting world once by its steps
+  and hands its sites over with `POST /templates {template, site}` (or `{template, snapshot}` from a saved backup).
+  A template is a database and a site folder under the door's registry: the bench neither serves nor schedules it,
+  so it never drifts.
+- **The pool**. `DOOR_POOL_SIZE` (default 2) ready copies of each template site: a copy of its database inside
+  MariaDB with its own user, and its folder, off the top of `sites/`, so they cost disk (about 110 MiB each) and no
+  CPU. Refilled in the background after every claim, one copy at a time bench-wide.
+- **Claiming**. `POST /world/claim`: the copy's folder renamed to the world's site name and one bench process to join
+  it (world, host name, settled jobs, clock, API user, scheduler). An empty pool falls back to a copy from the
+  template on the claim's path.
+- **Points and resets in place** (`door/points.py`, `door/db.py`). `POST /world/save` and `POST /world/reset`, above.
+
+### For `packages/world` (step 1.16, a world reset in place)
+
+1. **Pause the world** before a save and before a reset: no Core call, no chain delivery, and the bench's scheduled
+   jobs off for its sites. The door does not pause anything. A save copies a site in one transaction, so it is one
+   moment of the site whatever runs; but a job that writes between a reset and the next read makes the site differ
+   from the point. The proof stops the bench's scheduler and worker for this; seen without it: one of four resets
+   read back a General Ledger row a background job had written.
+2. `POST /world/save {"point": "<name>"}` with the world's token: 200 `{world, point, ms, sites: [{site, ms, steps}]}`.
+   The point holds every site of the world and the world's clock entry. Name it after the snapshot it belongs to.
+3. `POST /world/reset {"point": "<name>"}`: 200 `{world, point, ms, sites: [{site, ms, steps}], clock: {entry, ms},
+   sites_not_in_point}`. Each site's `steps` say which tables were put back (`tables_changed`, `tables_dropped`,
+   `tables_made`), whether its files or site config were (`files_put_back`, `site_config_put_back`), and how many
+   queued jobs and cache keys went (`jobs_removed`, `cache_keys_cleared`). A site made after the save is listed in
+   `sites_not_in_point` and left as it is; remove it with `DELETE /sites/<site>` if the world must not hold it.
+   Refusals: `point-invalid` (400), `point-not-found` (404), `point-site-missing` (409, a saved site gone or not
+   ready), `point-site-changed` (409, the site has another database than when it was saved).
+4. The world's clock entry is put back as saved. A frozen clock reads the saved instant again. A running clock gets
+   its saved offset and rate back, so it reads the host's now plus that offset, not the instant of the save; freeze
+   the clock before saving to come back to an exact instant, or set it after the reset with `POST /clock`.
+5. Points go with `DELETE /world`; `GET /world/points` and `DELETE /world/points/<point>` list and remove them.
+
+### What runs at once, and what still waits
+
+| Work | Holds | So |
+|---|---|---|
+| Claim, save, reset of a site | that site's lock and one of `DOOR_FAST_SLOTS` (default 4) | Different sites, of one world or many, run at once, up to 4; the same site's calls queue |
+| Claim with the pool empty, pool refill, template made again | the template's lock | Copies from one template are made one after another; claims from the pool do not wait for them |
+| Refill | one bench-wide refill lock | One pool copy is made at a time, so refills never take more than one MariaDB copy's worth of the machine |
+| New site from nothing, restore from a backup, `bench backup`, removal | `BENCH_LOCK`, as before | Still one at a time across the bench (each runs bench commands for up to a minute); claims, saves and resets do not wait for them |
+| Registry changes, quota checks | `REGISTRY_LOCK`, as before | Held for milliseconds |
+
+Three claims at once took 1.5, 1.6 and 4.9 s (two from the pool, one copied with the pool empty), and two resets at
+once 0.25 s each. Removing a site still goes through `bench drop-site`, one at a time (about 2 s).
+
+### What is proven, on a local bench
+
+`proof/prove.py`, against `bin/pool-bench.sh`'s bench (the containers `src/bench.ts` declares, MariaDB with
+`src/mariadb.ts`'s settings, from the images `cx-platform-bench:pr-sr1` and `cx-platform-door:pr-sr1` already on the
+machine, this checkout's door and capxul app mounted in), on 14 November 2026: **passed**
+(`records/site-pool/pool.proof.json`, a part a file beside it). A Claude cloud container with 4 CPUs and 15.7 GiB
+that other agents shared; **not the AWS bench host**, which cannot be reached yet.
+
+| Part | Measured | Record |
+|---|---|---|
+| Template world's site from nothing (`POST /sites`), then `founded`'s company setup | 138.1 s (new-site 22.2 s, ERPNext 50.1 s, HRMS 33.8 s, wizard 16.9 s, migrate 8.2 s), setup 3.2 s | `01-template-source.json` |
+| Template `founded` made from it | 2.9 s; the pool of 2 full 7.0 s later (refills 3.3 s and 3.0 s) | `02-template.json` |
+| Claims: three at once, then one alone | 1.53 s and 1.55 s from the pool and 4.90 s copied (pool empty), at once; 1.31 s from the pool alone. Of a pooled claim, the folder rename is 0 ms and the join process the rest | `03-claim.json` |
+| The three site operations through the door, 3 rounds on each site | doc.create 25 to 184 ms, doc.submit 49 to 296 ms, report.run 15 to 393 ms (the first call of each site the slowest) | `04-operations.json` |
+| Save to a point | 3.0 to 3.7 s a site (copy 2.9 to 3.7 s, checksums 57 to 68 ms) | `05-save.json` |
+| Reset in place after 3 Journal Entries, a file, a clock change and a queued job | 0.08 to 0.25 s a site, two one after another and two at once: 7 tables put back, the file gone, 1 job removed, 584 cache keys cleared, the clock back; each site's state read over HTTP equal to the saved one | `06-reset.json` |
+| A second change (5 entries) and reset of one site to the same point | 0.12 s, equal again | `07-reset-again.json` |
+| Every world, point, template and pool copy removed | no site folder and no database left but MariaDB's own | `08-cleanup.json` |
+
+Against the spike: the claim is 1.3 to 1.6 s, not 1.1 s. The join now also settles the site's scheduled jobs on the
+world's time (`capxul.jobs.settle_jobs`, added after the spike), inside `capxul.world.rewrite`; the parts of the join
+were not timed apart. Resets are faster than the spike's 0.5 s, with MariaDB's caches sized for many sites
+(`src/mariadb.ts`) and the saved copy's checksums taken once, at the save.
+
+### Not done
+
+- A deploy of the platform with these door calls, and the AWS bench host: the door image is built by
+  `CapxulPlatform` (`door/Containerfile` copies every module), not rehearsed here; the proof mounted the code into
+  the existing images.
+- Callers: `packages/world` claims nothing yet, and makes, saves and resets no template or point (steps 1.12 and
+  1.16); the runner makes no template world (1.18).
+- A world's sites at a template are the template world's company facts (org, Safe address, hats): the world must
+  hold the matching chain state, which a world restored from the same snapshot does.
+- Not put back by a reset: a table's schema changed since the save (a migrate in between), a job already running,
+  and Frappe's own 60 s cache of a site config (the reset writes the config only when it differs).
+- Templates are the bench's: any valid token may make, replace or remove one. Tokens are minted only by holders of
+  the door key.
+- A long pause of the world is not the door's job: it does not stop the scheduler for a world's sites.
 
 ## The drift check
 
@@ -98,6 +195,8 @@ bin/run.sh bun src/run-mint.ts pr-x1 acme 1 <expires-unix> var/acme.token
 bin/run.sh bun src/run-drift.ts pr-x1 drift.json       # 0 clean, 2 drifted, 1 failed
 bin/run.sh destroy --stage pr-x1 --yes
 bin/run.sh bun src/run-inventory.ts pr-x1              # what the shared state still holds for a stage
+POOL_SECRETS=<file outside the repo> bin/pool-bench.sh up   # a local bench for the site pool (step 1.17)
+POOL_SECRETS=<same file> python3 proof/prove.py         # its proof, records into records/site-pool/; then bin/pool-bench.sh down
 bin/zone.sh                                            # the zone's record count and a print of every other record
 ```
 
@@ -146,11 +245,12 @@ no AWS keys, may not create a Cloudflare credential (a tunnel's token is one), a
 | `alchemy.run.ts`, `host.run.ts` | The platform's stack and the bench host's |
 | `src/names.ts`, `src/stage.ts` | Every name, from the stage |
 | `src/host.ts`, `src/aws.ts`, `src/user-data.ts` | The machine: the Docker context, the AWS resources, the first boot |
-| `src/bench.ts`, `src/mariadb.ts`, `bench/`, `door/`, `src/edge.ts` | The bench, its MariaDB's settings, its image, the site door, the tunnel and DNS |
+| `src/bench.ts`, `src/mariadb.ts`, `bench/`, `door/`, `src/edge.ts` | The bench, its MariaDB's settings, its image, the site door (`door.py`; `sites.py`, `snapshots.py`, `pool.py`, `claim.py`, `points.py`, `db.py`; unit tests in `door/tests/`, `pnpm door:test`), the tunnel and DNS |
 | `src/token.ts`, `src/state.ts`, `src/door.ts`, `src/run-mint.ts` | Site tokens, the door key from the state, the package's door |
 | `src/drift.ts`, `src/code-drift.ts`, `src/run-drift.ts`, `src/run-inventory.ts` | The drift check and the state inventory |
-| `bin/` | `run.sh` (settings), `forward.sh` (SSM), `require.sh` (CI), `rehearse.sh` and `rehearse-drift.sh`, `zone.sh` |
+| `bin/` | `run.sh` (settings), `forward.sh` (SSM), `require.sh` (CI), `rehearse.sh` and `rehearse-drift.sh`, `zone.sh`, `pool-bench.sh` |
 | `bootstrap/` | CI's access: `bootstrap.sh`, `bootstrap.run.ts`, `src/aws-policy.ts`, `src/cloudflare-policy.ts`, `BOOTSTRAP.md` |
+| `proof/`, `bin/pool-bench.sh`, `records/site-pool/` | The site pool's proof on a local bench, and its records |
 | `records/rehearsal/` | The stand-in rehearsal of this package: transcripts, drift reports, `summary.json` |
 | `records/aws/` | The AWS path from here: the platform's plan for `staging`, and the host's plan stopping at AWS's sign-in |
 | `records/spike/` | The spike's run, moved here when the spike was deleted |
