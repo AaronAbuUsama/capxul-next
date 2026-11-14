@@ -22,6 +22,16 @@ export const DEFAULT_INSTANCE_TYPE = "t3.large";
 export const DEFAULT_DATA_GB = 60;
 /** The device name the attachment asks for; Nitro machines show it under its volume id (user-data.ts). */
 const DATA_DEVICE = "/dev/sdf";
+/** The network's range; Alchemy's Network makes its one public subnet the first /24 of it, 10.73.0.0/24. */
+export const NETWORK_CIDR = "10.73.0.0/16";
+/**
+ * The machine's fixed private address, in the public subnet. The data disk attaches to one machine at a time, so a
+ * replacement (a new image or new user data) must remove the old machine before it makes the new one. Alchemy's
+ * Instance replaces delete-first only when the replacement keeps a fixed private address (@alchemy.run/aws
+ * src/EC2/Instance.ts, reusesFixedPrivateIp); without one it made the new machine first, whose attachment then
+ * failed with VolumeInUse (14 November 2026). The bench is down for the minutes a replacement takes.
+ */
+export const MACHINE_PRIVATE_IP = "10.73.0.10";
 
 /**
  * The pinned AWS.EC2.Instance is a Platform (it can also host a bundled program), and its type leaves the
@@ -45,7 +55,7 @@ export const BenchHost = Effect.gen(function* () {
 
   // One public subnet in one zone, an internet gateway for the way out, no NAT (a NAT gateway costs more than the
   // machine). The public address is for outbound traffic only: the security group admits nothing.
-  const network = yield* AWS.EC2.Network("Network", { cidrBlock: "10.73.0.0/16", availabilityZones: 1, tags });
+  const network = yield* AWS.EC2.Network("Network", { cidrBlock: NETWORK_CIDR, availabilityZones: 1, tags });
   const zone = network.availabilityZones[0];
   const subnetId = network.publicSubnetIds[0];
   if (zone === undefined || subnetId === undefined) return yield* Effect.die("the network has no public subnet");
@@ -87,6 +97,7 @@ export const BenchHost = Effect.gen(function* () {
       instanceType: settings.instanceType,
       subnetId,
       availabilityZone: zone,
+      privateIpAddress: MACHINE_PRIVATE_IP,
       securityGroupIds: [noInbound.groupId],
       instanceProfileName: profile.instanceProfileName,
       associatePublicIpAddress: true,
