@@ -114,7 +114,7 @@ def run_wizard(company_name, currency, country):
     }
     done = setup_complete(args)
     # The wizard has just set the site's time zone; the job types install made were stamped in Frappe's default one.
-    from capxul.clock import settle_jobs
+    from capxul.jobs import settle_jobs
 
     settle_jobs()
     frappe.db.commit()
