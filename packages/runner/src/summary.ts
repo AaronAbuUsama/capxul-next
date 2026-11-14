@@ -229,7 +229,8 @@ const isGone = (stage: StageLine): boolean =>
 export const ranAsExpected = (summary: Summary): boolean =>
   Arr.every(summary.journeys, (line) => line.asExpected) &&
   Arr.every(summary.stages, isGone) &&
-  (summary.oneWorld?.failure ?? null) === null;
+  (summary.oneWorld?.failure ?? null) === null &&
+  (summary.oneWorld?.notTakenDown ?? []).length === 0;
 
 /** Every registered journey that no record of the run is of. */
 const notRun = (records: ReadonlyArray<RunRecord>): ReadonlyArray<string> =>

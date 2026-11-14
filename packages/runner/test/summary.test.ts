@@ -274,4 +274,6 @@ test("a run in one world whose take-down left a template or a world's sites on t
   assert.equal(left.outcome, "failed");
   assert.match(left.failure ?? "", /the run's take-down failed: bench template payment-drafted not dropped/);
   assert.match(left.failure ?? "", /the run's take-down failed: world destroy failed: .*w-tpl-2c652e/);
+  assert.ok(ranAsExpected(oneWorld([])), "a run that took everything down exits 0");
+  assert.ok(!ranAsExpected(left), "a run whose take-down failed exits 1");
 });
