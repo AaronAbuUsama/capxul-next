@@ -168,8 +168,14 @@ const resetCommand = Command.make(
   {
     name,
     to: Flag.String("to").pipe(Flag.withDescription("The snapshot of the world to rewind it to, in place")),
+    template: Flag.String("template").pipe(
+      Flag.withDescription(
+        "The bench template the world kept of the snapshot, claimed from if its point lost its sites",
+      ),
+      Flag.optional,
+    ),
   },
-  (input) => Effect.flatMap(reset(input.name, input.to), report),
+  (input) => Effect.flatMap(reset(input.name, input.to, Option.getOrUndefined(input.template)), report),
 ).pipe(
   Command.withDescription(
     "Rewind a world in place to one of its snapshots: database, chain, index, sites and one clock (roadmap 1.16)",

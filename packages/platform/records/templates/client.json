@@ -1,0 +1,34 @@
+{
+ "code": {
+  "ms": 91,
+  "fingerprint": "e78e3c644e1e551d6a416fc1c65d44b74ac1603ed879c0ab147c53ba85496185"
+ },
+ "template": "payment-drafted-e78e3c64-wd",
+ "keepTemplate, first": {
+  "template": "payment-drafted-e78e3c64-wd",
+  "ms": 1,
+  "made": true
+ },
+ "keepTemplate, again by the same world": {
+  "template": "payment-drafted-e78e3c64-wd",
+  "ms": 0,
+  "made": false
+ },
+ "keepTemplate of the same name by another world": "SiteFailed: the bench template payment-drafted-e78e3c64-wd was made by world wd, not we",
+ "sweepTemplates at once (idle 2 s)": {
+  "removed": [],
+  "kept": [
+   "payment-drafted-e78e3c64-wd"
+  ],
+  "busy": [],
+  "detail": null
+ },
+ "sweepTemplates 2.5 s later": {
+  "removed": [
+   "payment-drafted-e78e3c64-wd"
+  ],
+  "kept": [],
+  "busy": [],
+  "detail": null
+ }
+}

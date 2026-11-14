@@ -9,6 +9,7 @@ import time
 
 import db
 import pool
+import templates
 from sites import (BENCH, CORE_USER, DOMAIN, FAST, REGISTRY_LOCK, SECRET, Refused, entries_of, public, read_entry,
                    site_lock, update_entry, write_entry)
 
@@ -60,12 +61,13 @@ def _clock_of(body):
 
 def claim_world(c, body):
     """Gives the token's world a ready copy of every site of the template, each under its label."""
-    template = pool._name(body.get("template"))
+    template = templates.name_of(body.get("template"))
     key, secret = body.get("api_key", ""), body.get("api_secret", "")
     if not SECRET.match(key) or not SECRET.match(secret):
         raise Refused(400, "credential-invalid", "api_key and api_secret: 10 to 64 letters and digits")
     clock = _clock_of(body)
-    metas = pool.template_sites(template)
+    # Marked used before any work, so a sweep that has not begun keeps the template (templates.py).
+    metas = templates.claimable(template)
     if not metas:
         raise Refused(404, "template-not-found", template)
     t0, claimed = time.monotonic(), []
@@ -101,8 +103,8 @@ def _claim_one(site, world, template, meta, key, secret, clock, body):
                 steps.append({"step": "pooled copy taken", "ms": db.ms_since(s0)})
                 how = "pool"
             else:
-                with pool.template_lock(template):
-                    pool._copy_site(meta["db"], meta["folder"], dest)
+                with templates.template_lock(template):
+                    pool.copy_site(meta["db"], meta["folder"], dest)
                 steps.append({"step": "copied from the template (pool empty)", "ms": db.ms_since(s0)})
                 how = "clone"
             s0 = time.monotonic()

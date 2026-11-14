@@ -85,12 +85,33 @@ entry to the world's clock (`POST /clock`), since the door puts back the entry a
 |---|---|
 | no company | removes every site the world holds, so a company founded again makes its own (`site-exists` otherwise) |
 | its point holds every one of its sites | puts them back in place (`POST /world/reset`) and removes any site made since |
-| its point lost its sites (a site removed by an earlier reset is dropped from every point by the door), or one was made again since (`point-site-missing`, `point-site-changed`) | removes the world's sites, claims them ready from the bench's template of the snapshot's name (`POST /world/claim`), and saves the point again, so the next reset is in place |
+| its point lost its sites (a site removed by an earlier reset is dropped from every point by the door), or one was made again since (`point-site-missing`, `point-site-changed`) | removes the world's sites, claims them ready from the bench template the caller names (`reset(world, snapshot, template)`, `--template` on the command line: the one the world kept of the snapshot), and saves the point again, so the next reset is in place; with no template named it fails and says so |
 
-The bench's template is kept by `keepSitesAsTemplate(world, snapshot)` (`src/lifecycle/templates.ts`, `POST
-/templates`, with a pool of ready copies) and dropped by `dropSitesTemplate`; a template is the bench's, so a world's
-destroy leaves it. The reset answers how it put the sites back (`sites`: `none`, `in place` or `claimed`, with what it
-removed and claimed). Run by the runner's one-world rehearsal against a local bench (packages/runner, step 1.18).
+The reset answers how it put the sites back (`sites`: `none`, `in place` or `claimed`, with what it removed and
+claimed). Run by the runner's one-world rehearsal against a local bench (packages/runner, step 1.18).
+
+**Bench templates never change** (docs/roadmap.md, 14 November 2026; `src/site/Templates.ts`,
+`src/lifecycle/templates.ts`, the door's `door/templates.py`). `keepSitesAsTemplate(world, snapshot, code)` keeps the
+world's sites, as its snapshot holds them, as a bench template (`POST /templates`, with a pool of ready copies) named
+
+`<starting world>-<code>-<world>`, for example `payment-drafted-3f9a0c1d-w-tpl-a1b2c3` (at most the door's 40 characters)
+
+- `code`: the first 8 hex digits of `templateCode(root, dirs)`, a sha256 over every file of the code that makes the
+  template (the runner names the blueprint's sources, Core's, this package's and its makers') and the apps the bench
+  makes sites with, as its door's `GET /health` hashes them (`app`; `unknown` for a door from before it). Changing any
+  of it names a new template.
+- `world`: the world whose sites it copies. A template's sites hold that world's company facts: the org id Core drew
+  at random, the Safe minted under it, its approvals' and payments' ids. Only a world holding that world's database
+  and chain state may claim it, which is the world itself, reset to its snapshot; a copy claimed into another world
+  answers `org-not-here` for its own company. So the world's name is part of the template's: no other run ever asks
+  for it, and two runs at once never touch each other's.
+
+The door never changes a template that exists: a second make of a name makes nothing and answers `made: false`, and
+`keepTemplate` fails if that template was made by another world. No world and no run drops a template; its destroy
+leaves it. `sweep` removes those unused for `WORLD_TEMPLATE_IDLE` (6 hours, past the 150 minutes a run's world lives),
+through the door's `POST /templates/sweep`, which never removes one in use; its report says what it removed, kept and
+found busy (`templates`), or why it could not (`detail`: no bench, or a door from before the sweep).
+`packages/platform/records/templates/client.json` runs this package's client against the real door on a stand-in bench.
 
 **A local bench.** `WORLD_BENCH=local` names a bench this machine serves itself, not a platform stage: packages/platform's
 `bin/pool-bench.sh`, from the images already built. Its door's address and key are given as `WORLD_BENCH_DOOR` and
@@ -113,10 +134,11 @@ Inside `packages/world`, `pnpm world <command>` and `./run.sh <command>` are the
 
 ```bash
 ./run.sh show demo [--reveal]              # the world's addresses; the chain's token only with --reveal
-./run.sh reset demo --to s0                # rewind the world in place to its snapshot s0 (above)
+./run.sh reset demo --to s0 [--template t] # rewind the world in place to its snapshot s0 (above)
 ./run.sh sql demo "select * from app.notes"
 ./run.sh list                              # every world in the shared state, with owner and expiry
-./run.sh sweep [--dry-run]                 # destroy every expired world; remove what destroys leave behind
+./run.sh sweep [--dry-run]                 # destroy every expired world; remove what destroys leave behind, and the
+                                           # bench templates unused for WORLD_TEMPLATE_IDLE (6 hours)
 ./run.sh inventory                         # what the two accounts hold, naming what is this stack's
 ./run.sh images                            # each image's pin and whether its inputs still match it
 ./run.sh platform down                     # refused while a world or a hub exists
