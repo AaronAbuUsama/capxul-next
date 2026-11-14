@@ -138,6 +138,9 @@ export const Bench = (context: Docker.Context) =>
         retries: 60,
       },
       restart: "unless-stopped",
+      // A replacement stops it first: give InnoDB time to flush a 1 GiB buffer pool rather than the default 10 s,
+      // after which Docker kills it and the next start runs crash recovery.
+      stopTimeout: "60 seconds",
       start: true,
     });
     const redis = yield* Docker.Container("Redis", {
