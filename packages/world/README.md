@@ -97,6 +97,28 @@ removed and claimed). Run by the runner's one-world rehearsal against a local be
 `WORLD_BENCH_KEY` (the runner's `run.sh` reads the key from the bench's secrets file and never prints it); every site
 call of the world is otherwise the same (`src/site/Bench.ts`, `tokenFor`). Only this machine reaches it.
 
+## Renewing a world (step 2.3)
+
+`./run.sh renew <name> --lifetime "7 days"` (`renew` from the package's door, `src/lifecycle/renew.ts`) keeps a world
+that is meant to last, such as the shared world (packages/runner, "A run on the shared world"): the SAME world, its
+name, branch, data, chain, sites and snapshots, given an expiry `lifetime` from now and deployed again with the code
+that runs now. A renewal never shortens a world (a world restored from it may live until its expiry), never passes its
+hub's expiry and never asks more than `WORLD_MAX_LIFETIME` from now (`renewalOf`, `test/expiry.test.ts`); a parked or
+half-made world is refused (`RenewRefused`).
+
+| Part | What |
+|---|---|
+| registry | the name's row moved, so the owner's count of live worlds reads the new expiry |
+| branch | Neon's own expiry on the world's branch lifted (Neon would delete it at the old one); the sweeper deletes the world at its recorded expiry |
+| hub | the world registered again with the new expiry: its door token is an HMAC over it, so the old token reaches nothing |
+| deploy | Core deployed again: the new door token, a site token minted anew until the new expiry, the world's own operator token, the running code; the stage's outputs then hold the new expiry |
+| migrate, core | Core's pending migrations; Core waited for until it answers steadily |
+
+A renewed world's Core accepts its own operator token (`operator-token`, which `open` hands whoever holds the
+Cloudflare key) rather than the token of the process that made it, so a world that outlives that process is reached
+the way its hub is, through the shared state. Between the hub's registration and Core's deploy, Core reaches no chain
+for some seconds; a renewal that fails half-way is run again. Declared timeout `WORLD_TIMEOUT_RENEW`, 6 minutes.
+
 ## Commands
 
 `pnpm install` at the repository's root installs the package. From the root:
@@ -114,6 +136,7 @@ Inside `packages/world`, `pnpm world <command>` and `./run.sh <command>` are the
 ```bash
 ./run.sh show demo [--reveal]              # the world's addresses; the chain's token only with --reveal
 ./run.sh reset demo --to s0                # rewind the world in place to its snapshot s0 (above)
+./run.sh renew demo --lifetime "7 days"    # a later expiry, and Core deployed again with the running code (above)
 ./run.sh sql demo "select * from app.notes"
 ./run.sh list                              # every world in the shared state, with owner and expiry
 ./run.sh sweep [--dry-run]                 # destroy every expired world; remove what destroys leave behind
