@@ -64,7 +64,7 @@ export const create: ClaimsOf = {
     claim(
       "Bio and size are stored trimmed, and an over-long bio is refused.",
       w.fresh,
-      "org.create with a bio and a size padded with spaces answers them trimmed. A bio of 281 characters is rejected by the payload's schema before it is sent: the call fails with PayloadRejected naming org.create, no company is made and the record gains no entry.",
+      "A founding typed with its bio and size padded with spaces, decoded by org.create's payload schema as the command line decodes what a person types, is answered Founded with them trimmed, and the same founding resumes it. The spaces never reach a typed payload, because the schema's typed side is trimmed text: a payload that still holds them, and a bio of 281 characters, are rejected by the payload's schema before they are sent. Each call fails with PayloadRejected naming org.create, no company is made and the record gains no entry.",
       { origin: kept("org.create/c-38c97cf2c6a5056c") },
     ),
     claim(
