@@ -193,6 +193,27 @@ def drop_database(site):
     subprocess.run(["mariadb", "-h", "mariadb", "-uroot", f"-p{DB_ROOT}", "-e", sql], capture_output=True, timeout=60)
 
 
+def start_removal(sites_to_remove, after=None):
+    """Marks each site `removing` and removes them one by one in the background, then runs `after`. Removing takes the
+    bench lock, which a site being made or saved can hold for minutes, so a caller through the tunnel would outlast
+    the 100 s Cloudflare allows; it asks GET /world (or GET /sites/<site>) until the site is gone instead. A site whose
+    removal fails stays, `failed`, with why."""
+    for site in sites_to_remove:
+        update_entry(site, state="removing")
+
+    def run():
+        for site in sites_to_remove:
+            try:
+                remove_site(site)
+            except Exception as e:  # noqa: BLE001 -- recorded on the site for the caller, never a secret
+                update_entry(site, state="failed", error=f"remove: {repr(e)[-400:]}".replace(DB_ROOT, "<root>"))
+        if after is not None:
+            after()
+
+    threading.Thread(target=run, daemon=True).start()
+    return [{"site": site, "state": "removing"} for site in sites_to_remove]
+
+
 def remove_site(site):
     update_entry(site, state="removing")
     t0 = time.monotonic()

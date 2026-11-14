@@ -27,7 +27,7 @@ import { SiteFailed } from "../failures.ts";
 import { Limits } from "../lifecycle/spec.ts";
 import { secretOf } from "../stack/engine.ts";
 import { nameOf } from "../stack/names.ts";
-import { doorCall, sitesOn, soon, tokenFor } from "./Bench.ts";
+import { doorCall, sitesOn, soon, tokenFor, untilGone } from "./Bench.ts";
 import type { BenchClock } from "./Saved.ts";
 
 const Point = Schema.Struct({ world: Schema.String, point: Schema.String });
@@ -68,6 +68,7 @@ const removeEach = (stage: string, bench: string, sites: ReadonlyArray<string>) 
     yield* Effect.forEach(sites, (site) =>
       doorCall(door, token, HttpClientRequest.delete(`/sites/${site}`), Schema.Unknown),
     );
+    yield* untilGone(door, token, sites);
     return sites;
   });
 

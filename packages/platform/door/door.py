@@ -23,8 +23,9 @@ POST   /sites {"label", "company", "api_key", "api_secret"}   starts making the 
        the site joins the token's world and gets its own API user, `capxul-core@service.invalid`, with the roles in
        CORE_ROLES and the key and secret the world sent. Never the bench's Administrator.
 GET    /sites/<site>                  the site's state: creating, ready or failed, with each step's time
-DELETE /sites/<site>                  removes the site: its database, its user and its folder
-DELETE /world                         removes every site of the token's world
+DELETE /sites/<site>                  starts removing the site (its database, its user and its folder) and answers
+                                      202; GET /sites/<site> reads `removing` until it is gone
+DELETE /world                         starts removing every site of the token's world and its backups; answers 202
 GET    /world                         the token's claims and the world's sites
 ANY    /sites/<site>/api/...          a call to the site's own REST API, as the user `Authorization: token k:s` names;
                                       cookies are dropped, and any other kind of credential is refused
@@ -65,7 +66,7 @@ from claim import claim_world
 from snapshots import backup_state, remove_backups, restore_world, start_backup, tidy_backups
 from sites import (BENCH, DB_ROOT, DOMAIN, FORWARDED, KEY, LABEL, PORT, REGISTRY, REGISTRY_LOCK, SECRET, SITE_CALL, TOKEN, WEB,
                    Refused,
-                   bench, build, entries_of, entry_path, public, read_entry, remove_site, site_of, update_entry,
+                   bench, build, entries_of, entry_path, public, read_entry, site_of, start_removal, update_entry,
                    write_entry)
 
 
@@ -177,16 +178,16 @@ class Door(BaseHTTPRequestHandler):
             if route == ("GET", "/world"):
                 return self.answer(200, {**c, "sites": [public(e) for e in entries_of(c["world"])]})
             if route == ("DELETE", "/world"):
-                gone = [remove_site(e["site"]) for e in entries_of(c["world"])]
-                remove_backups(c["world"])
-                points.drop_world_points(c["world"])
-                return self.answer(200, {"world": c["world"], "removed": gone})
+                world = c["world"]
+                points.drop_world_points(world)
+                removing = start_removal([e["site"] for e in entries_of(world)], after=lambda: remove_backups(world))
+                return self.answer(202, {"world": world, "removed": removing})
             if method in ("GET", "DELETE") and self.path.startswith("/sites/"):
                 entry = site_of(c, self.path[len("/sites/"):])
                 if method == "GET":
                     return self.answer(200, public(entry))
                 points.drop_world_points(c["world"], entry["site"])
-                return self.answer(200, remove_site(entry["site"]))
+                return self.answer(202, start_removal([entry["site"]])[0])
             if route == ("GET", "/templates"):
                 return self.answer(200, pool.list_templates())
             if method == "DELETE" and self.path.startswith("/templates/"):
@@ -239,8 +240,10 @@ if __name__ == "__main__":
     for path in glob.glob(f"{REGISTRY}/*.json"):
         with open(path) as f:
             stale = json.load(f)
-        if stale.get("state") in ("creating", "removing"):
-            update_entry(stale["site"], state="failed", error="the door restarted while it was being made or removed")
+        if stale.get("state") == "creating":
+            update_entry(stale["site"], state="failed", error="the door restarted while it was being made")
+        elif stale.get("state") == "removing":
+            start_removal([stale["site"]])
     pool.tidy()
     tidy_backups()
     print(f"door: serving on {PORT} for {DOMAIN}", flush=True)

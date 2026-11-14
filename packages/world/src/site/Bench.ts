@@ -49,8 +49,9 @@ export const SiteState = Schema.Struct({
 export type SiteState = typeof SiteState.Type;
 
 const WorldSites = Schema.Struct({ world: Schema.String, sites: Schema.Array(SiteState) });
+/** A door from before background removal answers each site removed, with its time; one since, each site removing. */
 const Removed = Schema.Struct({
-  removed: Schema.Array(Schema.Struct({ site: Schema.String, ms: Schema.Finite })),
+  removed: Schema.Array(Schema.Struct({ site: Schema.String, ms: Schema.optional(Schema.Finite) })),
 });
 
 const unix = (iso: string) => Math.floor(DateTime.toEpochMillis(DateTime.makeUnsafe(iso)) / 1000);
@@ -172,6 +173,45 @@ export const readyOn = (door: string, token: Redacted.Redacted, site: string) =>
     }),
   );
 
+/**
+ * Waits until the door holds none of `sites` of the token's world (none at all, when `sites` is undefined), asking
+ * GET /world every 3 s for at most 10 minutes: the door removes sites in the background, since removing waits on the
+ * bench lock longer than Cloudflare lets a request through the tunnel last. A site the door could not remove fails.
+ */
+export const untilGone = (door: string, token: Redacted.Redacted, sites?: ReadonlyArray<string>) =>
+  doorCall(door, token, HttpClientRequest.get("/world"), WorldSites).pipe(
+    Effect.flatMap((held) => {
+      const left = Arr.filter(held.sites, (site) => sites === undefined || Arr.contains(sites, site.site));
+      const failed = Arr.filter(left, (site) => site.state === "failed");
+      return Arr.isReadonlyArrayNonEmpty(failed)
+        ? Effect.fail(
+            SiteFailed.make({
+              step: "remove",
+              message: Arr.join(
+                Arr.map(failed, (site) => `${site.site}: ${site.error ?? "failed"}`),
+                "; ",
+              ),
+            }),
+          )
+        : Arr.isReadonlyArrayNonEmpty(left)
+          ? Effect.fail(
+              SiteFailed.make({
+                step: "waiting",
+                message: `still on the bench: ${Arr.join(
+                  Arr.map(left, (site) => site.site),
+                  ", ",
+                )}`,
+              }),
+            )
+          : Effect.void;
+    }),
+    Effect.retry({
+      while: (error) => error.step === "waiting",
+      schedule: Schedule.spaced(Duration.seconds(3)),
+      times: 200,
+    }),
+  );
+
 /** The world's sites on `bench`, as the door holds them, with a fresh token of quota 0. */
 export const sitesOn = Effect.fn("world.site.list")(function* (stage: string, bench: string) {
   const expires = yield* soon;
@@ -189,15 +229,7 @@ export const removeSites = Effect.fn("world.site.remove")(function* (stage: stri
   const expires = yield* soon;
   const { door, token } = yield* tokenFor(bench.value, nameOf(stage), 0, expires);
   const gone = yield* doorCall(door, token, HttpClientRequest.delete("/world"), Removed);
-  const left = (yield* doorCall(door, token, HttpClientRequest.get("/world"), WorldSites)).sites;
-  if (Arr.isReadonlyArrayNonEmpty(left))
-    return yield* SiteFailed.make({
-      step: "remove",
-      message: `still on the bench: ${Arr.join(
-        Arr.map(left, (site) => site.site),
-        ", ",
-      )}`,
-    });
+  yield* untilGone(door, token);
   return Arr.map(gone.removed, (site) => site.site);
 });
 
