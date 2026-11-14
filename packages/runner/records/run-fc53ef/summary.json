@@ -1,0 +1,382 @@
+{
+  "kind": "journeys",
+  "run": "run-fc53ef",
+  "what": "The registered journeys run through the runner against Core's deployed empty handlers (a stage deployed with CAPXUL_HANDLERS=empty). Passed when every registered journey was in the run, every journey failed at its first step on the NotImplemented its first step's operation was answered (never passed, never died, no later step reached), every call was answered NotImplemented and passed every generic check, and every stage was destroyed with nothing of it left in the accounts.",
+  "mode": "a stage each",
+  "expect": "not-implemented",
+  "owner": "runner",
+  "startedAt": "2026-11-14T05:17:18.532Z",
+  "outcome": "passed",
+  "failure": null,
+  "count": {
+    "journeys": 3,
+    "registered": 3,
+    "asExpected": 3,
+    "claims": 53
+  },
+  "journeys": [
+    {
+      "name": "two operators and their worlds",
+      "given": "quota-full",
+      "stage": "core-e5adc4",
+      "record": "core-e5adc4/two-operators-and-their-worlds.json",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"world.create\"}"
+      },
+      "failedStep": {
+        "step": 1,
+        "operation": "world.create",
+        "does": "the first operator, at the limit of live worlds, is refused another",
+        "why": "{\"_tag\":\"NotImplemented\",\"operation\":\"world.create\"}"
+      },
+      "steps": [
+        {
+          "step": 1,
+          "operation": "world.create",
+          "outcome": "failed",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 2,
+          "operation": "world.create",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 3,
+          "operation": "world.create",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 4,
+          "operation": "world.show",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 5,
+          "operation": "record.export",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 6,
+          "operation": "world.clock.warp",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 7,
+          "operation": "world.snapshot.save",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 8,
+          "operation": "world.snapshot.restore",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        }
+      ],
+      "calls": [
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 202.293,
+          "serverMs": 0,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.create",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 189.669,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "found Northwind and give sam the books",
+      "given": "fresh",
+      "stage": "core-58a818",
+      "record": "core-58a818/found-northwind-and-give-sam-the-books.json",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"org.create\"}"
+      },
+      "failedStep": {
+        "step": 1,
+        "operation": "org.create",
+        "does": "founders who cannot found are refused, and nothing is made",
+        "why": "{\"_tag\":\"NotImplemented\",\"operation\":\"org.create\"}"
+      },
+      "steps": [
+        {
+          "step": 1,
+          "operation": "org.create",
+          "outcome": "failed",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 2,
+          "operation": "org.create",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 3,
+          "operation": "approval.sign",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 4,
+          "operation": "world.show",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 5,
+          "operation": "org.member.grant",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 6,
+          "operation": "approval.sign",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 7,
+          "operation": "doc.create",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 8,
+          "operation": "report.run",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 9,
+          "operation": "org.member.grant",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 10,
+          "operation": "approval.sign",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        }
+      ],
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 204.388,
+          "serverMs": 0,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 204.961,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "pay Brightside and branch the books",
+      "given": "payment-drafted",
+      "stage": "core-7484a8",
+      "record": "core-7484a8/pay-brightside-and-branch-the-books.json",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "failed",
+        "tag": "NotImplemented",
+        "detail": "{\"_tag\":\"NotImplemented\",\"operation\":\"doc.create\"}"
+      },
+      "failedStep": {
+        "step": 1,
+        "operation": "doc.create",
+        "does": "sam drafts a second invoice from Brightside, and a payment of 5,000 USDC from the company Safe",
+        "why": "{\"_tag\":\"NotImplemented\",\"operation\":\"doc.create\"}"
+      },
+      "steps": [
+        {
+          "step": 1,
+          "operation": "doc.create",
+          "outcome": "failed",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 2,
+          "operation": "doc.submit",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 3,
+          "operation": "world.snapshot.save",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 4,
+          "operation": "world.snapshot.restore",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 5,
+          "operation": "approval.sign",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 6,
+          "operation": "report.run",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 7,
+          "operation": "doc.create",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 8,
+          "operation": "world.clock.warp",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 9,
+          "operation": "approval.sign",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        },
+        {
+          "step": 10,
+          "operation": "record.export",
+          "outcome": "not reached",
+          "checks": 0,
+          "checksHeld": 0
+        }
+      ],
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 210.638,
+          "serverMs": 0,
+          "checksPassed": true
+        },
+        {
+          "operation": "doc.create",
+          "outcome": "refusal",
+          "refusal": "NotImplemented",
+          "callerMs": 180.175,
+          "serverMs": 0,
+          "checksPassed": true
+        }
+      ]
+    }
+  ],
+  "stages": [
+    {
+      "name": "core-e5adc4",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 10923
+      },
+      "createMs": 31506,
+      "destroyMs": 2501,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-58a818",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 11038
+      },
+      "createMs": 30727,
+      "destroyMs": 2328,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    },
+    {
+      "name": "core-7484a8",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 11232
+      },
+      "createMs": 27479,
+      "destroyMs": 2021,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": []
+      }
+    }
+  ]
+}
