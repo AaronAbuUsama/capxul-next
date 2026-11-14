@@ -104,7 +104,7 @@ Old claims not kept:
 
 1. The Organization's Safe is Companies House's company Safe for this founder. *(thin line)*
    - In: `fresh`.
-   - Observes: org.create as dana answers a Safe. Through the door's chain RPC, chain.logs holds one CompanySafeMinted from the world's minter (`contracts.companySafeMinter`) naming that Safe, dana's personal Safe as founderSafe and the org id as company, and chain.companySafeFor of the world's Companies House owner and namespace (`contracts`), the org id and dana's Safe is the same address.
+   - Observes: org.create as dana answers a Safe. Through the door's chain RPC, chain.logs holds one CompanySafeMinted emitted by Companies House (`contracts.companiesHouse`, which runs the world's minter, `contracts.companySafeMinter`, by delegatecall, so the log is its own) naming that Safe, dana's personal Safe as founderSafe and the org id as company, and chain.companySafeFor of the world's Companies House owner and namespace (`contracts`), the org id and dana's Safe is the same address.
    - Old: `acc:org.create/c-37a24168b5b82483`, kept word for word.
 2. It answers with the Organization's id and the approvals its founding Directors must sign, before anyone has signed.
    - In: `fresh`.

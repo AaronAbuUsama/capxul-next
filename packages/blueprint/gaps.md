@@ -6,8 +6,8 @@ checks run on every call of it in every journey, and `src/coverage.ts` there nam
 each claim. Before that, each claim had a scenario of its own (step 1.5). This page lists the claims the scenario
 author could not check in full, grouped by cause, and how each was closed. Causes 1 to 6 were found by the per-claim
 scenarios on 13 November 2026 and closed by a change to the blueprint and the client (decisions.md, entries 34 to
-46); the journeys check every claim as those changes left it. Cause 7 was found by the first run of the journeys in
-one world. The points still open at the end are the blueprint's to settle.
+46); the journeys check every claim as those changes left it. Causes 7 and 9 were found by runs of the journeys
+in one world. The points still open at the end are the blueprint's to settle.
 
 ## 1. Nothing reads the chain: closed (decisions 34, 35)
 
@@ -90,6 +90,15 @@ record.export 2 said the record holds the events of every call made in making th
 from a snapshot holds only those its snapshot copied. The claim now says what record.export's checks hold: the calls
 made in the world exported left exactly their events; a call made in the world whose snapshot it was restored from
 left exactly its events or none; the journey's own calls at its door left theirs, in order.
+
+## 9. Whose log CompanySafeMinted is: closed (org.create 1, 14 November 2026)
+
+Once org.create's call was sent (cause 7), the rehearsal `packages/runner/records/run-327a7f` founded Northwind and
+failed org.create 1's check: no `CompanySafeMinted` came from `contracts.companySafeMinter`. The minter refuses a plain
+call (`CompanySafeMinter.sol`, `NotDelegateCall`): Companies House runs its `mint` by delegatecall through its Roles
+modifier, so the log is emitted by Companies House. The claim named the wrong emitter. org.create 1 now reads the log
+from `contracts.companiesHouse`, and so does org.create's check; the derived address is still read from the minter.
+The next rehearsal, `run-45390e`, held every step and check of "found Northwind".
 
 ## The brief, carried out
 

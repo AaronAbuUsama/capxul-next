@@ -22,7 +22,7 @@ export const create: ClaimsOf = {
     claim(
       "The Organization's Safe is Companies House's company Safe for this founder.",
       w.fresh,
-      "org.create as dana answers a Safe. Through the door's chain RPC, chain.logs holds one CompanySafeMinted from the world's minter (`contracts.companySafeMinter`) naming that Safe, dana's personal Safe as founderSafe and the org id as company, and chain.companySafeFor of the world's Companies House owner and namespace (`contracts`), the org id and dana's Safe is the same address.",
+      "org.create as dana answers a Safe. Through the door's chain RPC, chain.logs holds one CompanySafeMinted emitted by Companies House (`contracts.companiesHouse`, which runs the world's minter, `contracts.companySafeMinter`, by delegatecall, so the log is its own) naming that Safe, dana's personal Safe as founderSafe and the org id as company, and chain.companySafeFor of the world's Companies House owner and namespace (`contracts`), the org id and dana's Safe is the same address.",
       { origin: kept("org.create/c-37a24168b5b82483"), thinLine: true },
     ),
     claim(
