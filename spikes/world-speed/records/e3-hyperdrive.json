@@ -1,0 +1,69 @@
+{
+  "claim": "the cost of one Hyperdrive configuration per world",
+  "at": "2026-11-14T00:03:09Z",
+  "rounds": [
+    {
+      "round": 0,
+      "branch": {
+        "apiMs": 602.16455078125,
+        "operationsMs": 1882.564697265625
+      },
+      "hyperdriveCreate": {
+        "status": 200,
+        "ms": 2501,
+        "errors": null
+      },
+      "hyperdriveDelete": {
+        "status": 200,
+        "ms": 980
+      },
+      "branchDelete": {
+        "status": 200,
+        "apiMs": 257.6298828125,
+        "operationsMs": 1029.929443359375
+      }
+    },
+    {
+      "round": 1,
+      "branch": {
+        "apiMs": 425.033935546875,
+        "operationsMs": 1782.836669921875
+      },
+      "hyperdriveCreate": {
+        "status": 200,
+        "ms": 2213,
+        "errors": null
+      },
+      "hyperdriveDelete": {
+        "status": 200,
+        "ms": 1306
+      },
+      "branchDelete": {
+        "status": 200,
+        "apiMs": 272.342529296875,
+        "operationsMs": 1043.58544921875
+      }
+    },
+    {
+      "round": 2,
+      "branch": {
+        "apiMs": 442.325927734375,
+        "operationsMs": 1808.19873046875
+      },
+      "hyperdriveCreate": {
+        "status": 200,
+        "ms": 1977,
+        "errors": null
+      },
+      "hyperdriveDelete": {
+        "status": 200,
+        "ms": 1067
+      },
+      "branchDelete": {
+        "status": 200,
+        "apiMs": 259.087646484375,
+        "operationsMs": 1023.907958984375
+      }
+    }
+  ]
+}

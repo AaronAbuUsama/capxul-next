@@ -1,0 +1,72 @@
+[23:10:46.950] WARN: alchemy 2.0.0-beta.87 is available (you're on 2.0.0-beta.85). Run `bun add alchemy@2.0.0-beta.87` to upgrade.
+[23:10:46.960] INFO: Deploy · ws-native2
+[23:10:46.960] INFO: Importing stack module
+[23:10:47.357] INFO: Resolving stack services
+[23:10:47.357] INFO: Loading stack state
+[23:10:47.370] INFO: Cloudflare Container read: looking up capxulspikeworldspeed-anvil-ws-native2-cyc75bdkwmlrrttc
+[23:10:47.372] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+[23:10:47.378] INFO: Cloudflare Container read: looking up capxulspikeworldspeed-ponder-ws-native2-wnph63muxplbu4ty
+[23:10:47.379] INFO: Cloudflare Container read: looking up capxulspikeworldspeed-alto-ws-native2-t6elcyyhzi3kiohl
+[23:10:47.380] INFO: Computing plan
+[23:10:47.895] INFO: Cloudflare Container read: capxulspikeworldspeed-anvil-ws-native2-cyc75bdkwmlrrttc not found
+[23:10:48.048] INFO: Cloudflare Container read: capxulspikeworldspeed-alto-ws-native2-t6elcyyhzi3kiohl not found
+[23:10:48.079] INFO: Cloudflare Container read: capxulspikeworldspeed-ponder-ws-native2-wnph63muxplbu4ty not found
+[23:10:48.291] INFO: Plan ready (1.3s)
+[23:10:48.293] INFO: Plan: 7 to create, 7 binding changes
+[23:10:48.293] INFO: [Alto] create
+[23:10:48.293] INFO: [Anvil] create
+[23:10:48.294] INFO: [Hub/BundlerBox-Containers] create
+[23:10:48.294] INFO: [Hub/BundlerBox-Containers/Alto] create
+[23:10:48.294] INFO: [Hub/ChainBox-Containers] create
+[23:10:48.294] INFO: [Hub/ChainBox-Containers/Anvil] create
+[23:10:48.294] INFO: [Hub] create
+[23:10:48.294] INFO: [Hub/BundlerBox] create
+[23:10:48.294] INFO: [Hub/ChainBox] create
+[23:10:48.294] INFO: [Hub/HUB_TOKEN] create
+[23:10:48.294] INFO: [Hub/IndexBox] create
+[23:10:48.294] INFO: [Hub/IndexBox-Containers] create
+[23:10:48.294] INFO: [Hub/IndexBox-Containers/Ponder] create
+[23:10:48.294] INFO: [Ponder] create
+[23:10:48.294] INFO: 
+[23:10:48.314] INFO: [Anvil] Cloudflare Container reconcile: starting capxulspikeworldspeed-anvil-ws-native2-uay4rk4sv5lgzugi
+[23:10:48.326] INFO: [Alto] Cloudflare Container reconcile: starting capxulspikeworldspeed-alto-ws-native2-debndrye32g5ojka
+[23:10:48.328] INFO: [Ponder] Cloudflare Container reconcile: starting capxulspikeworldspeed-ponder-ws-native2-ahcgasmi5v5hl5zl
+[23:10:48.334] INFO: [Anvil] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-anvil@sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474
+[23:10:48.338] INFO: [Alto] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-alto@sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916
+[23:10:48.340] INFO: [Ponder] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9
+[23:10:48.343] INFO: [Anvil] creating
+[23:10:48.343] INFO: [Hub/IndexBox-Containers] pre-creating
+[23:10:48.344] INFO: [Hub/ChainBox-Containers] pre-creating
+[23:10:48.344] INFO: [Alto] creating
+[23:10:48.344] INFO: [Ponder] creating
+[23:10:48.344] INFO: [Hub/BundlerBox-Containers] pre-creating
+[23:10:48.918] INFO: [Alto] created — Prepared Alto image (0m 0s). (574ms)
+[23:10:48.939] INFO: [Ponder] created — Prepared Ponder image (0m 0s). (595ms)
+[23:10:49.076] INFO: [Anvil] created — Prepared Anvil image (0m 0s). (733ms)
+[23:10:49.380] INFO: [Hub] Cloudflare Worker precreate: starting capxulspikeworldspeed-hub-ws-native2-psfmj4b7e7rqhmcs
+[23:10:49.381] INFO: [Hub] Cloudflare Worker precreate: durable objects [{"logicalId":"BundlerBox","bindingName":"BundlerBox","className":"BundlerBox"},{"logicalId":"ChainBox","bindingName":"ChainBox","className":"ChainBox"},{"logicalId":"IndexBox","bindingName":"IndexBox","className":"IndexBox"}]
+[23:10:49.382] INFO: [Hub] pre-creating
+[23:10:51.770] INFO: [Hub] Cloudflare Worker reconcile: starting capxulspikeworldspeed-hub-ws-native2-psfmj4b7e7rqhmcs
+[23:10:51.770] INFO: [Hub] Cloudflare Worker reconcile: durable objects [{"logicalId":"BundlerBox","className":"BundlerBox"},{"logicalId":"ChainBox","className":"ChainBox"},{"logicalId":"IndexBox","className":"IndexBox"}]
+[23:10:51.771] INFO: [Hub/IndexBox-Containers] creating
+[23:10:51.771] INFO: [Hub/ChainBox-Containers] creating
+[23:10:51.771] INFO: [Hub/BundlerBox-Containers] creating
+[23:10:51.772] INFO: [Hub] creating
+[23:10:52.301] INFO: [Hub] Cloudflare Worker reconcile: existing durable object tags ["alchemy:dos:BundlerBox;ChainBox;IndexBox"]
+[23:10:52.302] INFO: [Hub] Cloudflare Worker reconcile: previous durable object tags ["alchemy:dos:BundlerBox;ChainBox;IndexBox"]
+[23:10:52.308] INFO: [Hub] Cloudflare Worker create: preparing bundle for capxulspikeworldspeed-hub-ws-native2-psfmj4b7e7rqhmcs
+[23:10:52.423] INFO: [Hub] Cloudflare Worker create: uploading script for capxulspikeworldspeed-hub-ws-native2-psfmj4b7e7rqhmcs
+[23:10:52.623] INFO: [Hub/BundlerBox-Containers] Creating container application capxulspikeworldspeed-bundlerbox-contain67gc62swc5ukchh2eyzhgrjd...
+[23:10:52.745] INFO: [Hub] Cloudflare Worker put: durable object reconciliation {"oldDoClassNameByLogicalId":{"BundlerBox":"BundlerBox","ChainBox":"ChainBox","IndexBox":"IndexBox"},"currentDoClassNameByLogicalId":{"BundlerBox":"BundlerBox","ChainBox":"ChainBox","IndexBox":"IndexBox"},"deletedClasses":[],"renamedClasses":[],"transferredClasses":[],"newSqliteClasses":[]}
+[23:10:52.786] INFO: [Hub/ChainBox-Containers] Creating container application capxulspikeworldspeed-chainbox-containerwjksztgpwjgcpg3xevyxs3pz...
+[23:10:52.826] INFO: [Hub/IndexBox-Containers] Creating container application capxulspikeworldspeed-indexbox-containerepyfebvizcaxg7fdx257o5le...
+[23:10:55.499] INFO: [Hub/BundlerBox-Containers] created (7.2s)
+[23:10:55.499] INFO: [Hub] created — Enabling workers.dev subdomain... (6.1s)
+[23:10:55.499] INFO: [Hub/IndexBox-Containers] created (7.2s)
+[23:10:55.499] INFO: [Hub/ChainBox-Containers] created (7.2s)
+[23:10:55.500] INFO: 
+[23:10:55.500] INFO: Done: 7 succeeded (7.2s)
+{
+  url: 'https://capxulspikeworldspeed-hub-ws-native2-psfmj4b7e7rqhmcs.thedao.workers.dev',
+  mode: 'native'
+}

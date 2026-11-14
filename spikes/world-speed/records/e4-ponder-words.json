@@ -1,0 +1,376 @@
+{
+  "claim": "what Ponder says when it resumes and when it refuses",
+  "at": "2026-11-14T00:00:05Z",
+  "world": "rf-14405",
+  "steps": [
+    {
+      "step": "fresh start (wrapped)",
+      "ms": 9323.1,
+      "result": {
+        "ms": 9323,
+        "healthyMs": 6039,
+        "readyAfterHealthyMs": 2303,
+        "log": [
+          "To prepare for this change:",
+          "- If you want the current behavior, explicitly use 'sslmode=verify-full'",
+          "- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'",
+          "",
+          "See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.",
+          "(Use `node --trace-warnings ...` to show where the warning was created)",
+          "00:00:18.266 INFO  Connected to database type=postgres database=ep-misty-frog-zasbtqhz-pooler.c-2.eu-west-2.aws.neon.tech:5432/neondb (209ms)",
+          "00:00:18.678 INFO  Connected to JSON-RPC chain=world hostnames=[\"capxulspikeworldspeed-hub-ws-fleet-mqvs5vgcxwgoowwm.thedao.workers.dev\"] (404ms)",
+          "00:00:19.724 INFO  Created database tables count=7 tables=[\"chain_logs\",\"transfers\",\"chain_payments\",\"user_operations\",\"indexer_progress\",\"known_safes\",\"hat_trees\"] (415ms)",
+          "00:00:19.798 INFO  Started migrating 'ponder_rpc_cache_1' schema statement_count=12",
+          "00:00:20.004 INFO  Migrated 'ponder_rpc_cache_1' schema (195ms)",
+          "00:00:20.023 INFO  Created HTTP server port=42069 hostname=0.0.0.0 (1ms)",
+          "00:00:20.023 INFO  Started returning 200 responses endpoint=/health",
+          "00:00:20.310 INFO  Started backfill indexing chain=world block_range=[47893252,47893261]",
+          "00:00:20.311 INFO  Started fetching backfill JSON-RPC data chain=world",
+          "00:00:20.845 INFO  Indexed block range chain=world event_count=1 block_range=[47893252,47893252] (68ms)",
+          "00:00:20.921 INFO  Indexed block range chain=world event_count=1 block_range=[47893253,47893253] (75ms)",
+          "00:00:20.983 INFO  Indexed block range chain=world event_count=1 block_range=[47893254,47893254] (62ms)",
+          "00:00:21.047 INFO  Indexed block range chain=world event_count=1 block_range=[47893255,47893255] (63ms)",
+          "00:00:21.109 INFO  Indexed block range chain=world event_count=1 block_range=[47893256,47893256] (62ms)",
+          "00:00:21.171 INFO  Indexed block range chain=world event_count=1 block_range=[47893257,47893257] (62ms)",
+          "00:00:21.234 INFO  Indexed block range chain=world event_count=1 block_range=[47893258,47893258] (62ms)",
+          "00:00:21.295 INFO  Indexed block range chain=world event_count=1 block_range=[47893259,47893259] (61ms)",
+          "00:00:21.358 INFO  Indexed block range chain=world event_count=1 block_range=[47893260,47893260] (62ms)",
+          "00:00:21.358 INFO  Finished fetching backfill JSON-RPC data chain=world (1s)",
+          "00:00:21.551 INFO  Indexed block range chain=world event_count=2 block_range=[47893261,47893261] (193ms)",
+          "00:00:21.552 INFO  Completed backfill indexing across all chains (1s)",
+          "00:00:21.692 INFO  Created database indexes count=3 (140ms)",
+          "(node:3) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.",
+          "00:00:21.718 WARN  Failed database query query=select_ready query_id=62cdea25 (17ms)",
+          "error: relation \"_ponder_meta\" does not exist",
+          "    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.23.1/node_modules/pg-pool/index.js:45:11",
+          "    at processTicksAndRejections (node:internal/process/task_queues:103:5)",
+          "    at file:///app/node_modules/.pnpm/drizzle-orm@0.41.0_@electric-sql+pglite@0.2.13_@opentelemetry+api@1.10.0_pg@8.23.1/node_modules/drizzle-orm/node-postgres/session.js:113:22",
+          "    at retryLogMetricErrorWrap (file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/database/queryBuilder.js:80:32)",
+          "    at file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/server/index.js:58:25",
+          "    at dispatch (file:///app/node_modules/.pnpm/hono@4.10.4/node_modules/hono/dist/compose.js:22:17)",
+          "    at cors2 (file:///app/node_modules/.pnpm/hono@4.10.4/node_modules/hono/dist/middleware/cors/index.js:79:5)",
+          "    at dispatch (file:///app/node_modules/.pnpm/hono@4.10.4/node_modules/hono/dist/compose.js:22:17)",
+          "    at file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/server/index.js:21:13",
+          "    at dispatch (file:///app/node_modules/.pnpm/hono@4.10.4/node_modules/hono/dist/compose.js:22:17)",
+          "",
+          "00:00:21.721 WARN  Failed to handle HTTP request method=GET path=/ready",
+          "NonRetryableUserError: relation \"_ponder_meta\" does not exist",
+          "    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.23.1/node_modules/pg-pool/index.js:45:11",
+          "    at processTicksAndRejections (node:internal/process/task_queues:103:5)",
+          "    at file:///app/node_modules/.pnpm/drizzle-orm@0.41.0_@electric-sql+pglite@0.2.13_@opentelemetry+api@1.10.0_pg@8.23.1/node_modules/drizzle-orm/node-postgres/session.js:113:22",
+          "    at retryLogMetricErrorWrap (file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/database/queryBuilder.js:80:32)",
+          "    at file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/server/index.js:58:25",
+          "    at dispatch (file:///app/node_modules/.pnpm/hono@4.10.4/node_modules/hono/dist/compose.js:22:17)",
+          "    at cors2 (file:///app/node_modules/.pnpm/hono@4.10.4/node_modules/hono/dist/middleware/cors/index.js:79:5)",
+          "    at dispatch (file:///app/node_modules/.pnpm/hono@4.10.4/node_modules/hono/dist/compose.js:22:17)",
+          "    at file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/server/index.js:21:13",
+          "    at dispatch (file:///app/node_modules/.pnpm/hono@4.10.4/node_modules/hono/dist/compose.js:22:17)",
+          "",
+          "Request:",
+          "  path     /ready",
+          "  method   GET",
+          "00:00:22.019 INFO  Started returning 200 responses endpoint=/ready",
+          "00:00:22.021 INFO  Started live indexing chain=world finalized_block=47893261 factory_address_count=0"
+        ]
+      }
+    },
+    {
+      "step": "caught up",
+      "ms": 1376.2,
+      "result": {
+        "ms": 1376,
+        "index": {
+          "block": "47893261",
+          "hash": "0x1283188c034f45a0b9ec83c3ea0bcf08cc113a526a92b74db1a97f133bd69871",
+          "transfers": 1,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "move on: two mints",
+      "ms": 687.2,
+      "result": [
+        "0x1",
+        "0x1"
+      ]
+    },
+    {
+      "step": "caught up",
+      "ms": 2698.2,
+      "result": {
+        "ms": 2698,
+        "index": {
+          "block": "47893263",
+          "hash": "0xaa14f111f9cd7faead7ad8e9740140699907dd369931b86ac4b3e7d0ab53598b",
+          "transfers": 3,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "kill Ponder (destroy)",
+      "ms": 561.8,
+      "result": {
+        "wasRunning": true,
+        "ms": 248
+      }
+    },
+    {
+      "step": "resume on the same database and chain (wrapped)",
+      "ms": 26276.8,
+      "result": {
+        "ms": 26277,
+        "healthyMs": 24257,
+        "readyAfterHealthyMs": 1262,
+        "log": [
+          "(node:3) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.",
+          "In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.",
+          "",
+          "To prepare for this change:",
+          "- If you want the current behavior, explicitly use 'sslmode=verify-full'",
+          "- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'",
+          "",
+          "See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.",
+          "(Use `node --trace-warnings ...` to show where the warning was created)",
+          "00:00:35.696 INFO  Connected to database type=postgres database=ep-misty-frog-zasbtqhz-pooler.c-2.eu-west-2.aws.neon.tech:5432/neondb (220ms)",
+          "00:00:35.905 INFO  Connected to JSON-RPC chain=world hostnames=[\"capxulspikeworldspeed-hub-ws-fleet-mqvs5vgcxwgoowwm.thedao.workers.dev\"] (197ms)",
+          "00:00:36.381 WARN  Schema is locked by a different Ponder app schema=ponder retry_delay=18368",
+          "00:00:54.919 INFO  Detected crash recovery build_id=8e5c02786c last_active=25s schema=ponder",
+          "(node:3) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.",
+          "00:00:55.361 INFO  Created HTTP server port=42069 hostname=0.0.0.0 (2ms)",
+          "00:00:55.361 INFO  Started returning 200 responses endpoint=/health",
+          "00:00:55.535 INFO  Started backfill indexing chain=world block_range=[47893263,47893263]",
+          "00:00:55.536 INFO  Started fetching backfill JSON-RPC data chain=world",
+          "00:00:55.925 INFO  Finished fetching backfill JSON-RPC data chain=world (389ms)",
+          "00:00:56.082 INFO  Indexed block range chain=world event_count=0 block_range=[47893263,47893263] (157ms)",
+          "00:00:56.083 INFO  Completed backfill indexing across all chains (549ms)",
+          "00:00:56.219 INFO  Created database indexes count=3 (135ms)",
+          "00:00:56.523 INFO  Started returning 200 responses endpoint=/ready",
+          "00:00:56.526 INFO  Started live indexing chain=world finalized_block=47893263 factory_address_count=0"
+        ]
+      }
+    },
+    {
+      "step": "caught up",
+      "ms": 1413.5,
+      "result": {
+        "ms": 1413,
+        "index": {
+          "block": "47893263",
+          "hash": "0xaa14f111f9cd7faead7ad8e9740140699907dd369931b86ac4b3e7d0ab53598b",
+          "transfers": 3,
+          "locked": "1",
+          "build": "8e5c02786c"
+        }
+      }
+    },
+    {
+      "step": "kill Ponder; chain back to the earlier state; database left as it is",
+      "ms": 1689.7,
+      "result": [
+        {
+          "wasRunning": true,
+          "ms": 326
+        },
+        null,
+        true
+      ]
+    },
+    {
+      "step": "start against the chain behind its database (wrapped)",
+      "ms": 81785.7,
+      "result": {
+        "ms": 81786,
+        "healthyMs": null,
+        "readyAfterHealthyMs": null,
+        "log": [
+          "(node:3) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.",
+          "In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.",
+          "",
+          "To prepare for this change:",
+          "- If you want the current behavior, explicitly use 'sslmode=verify-full'",
+          "- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'",
+          "",
+          "See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.",
+          "(Use `node --trace-warnings ...` to show where the warning was created)",
+          "00:01:04.253 INFO  Connected to database type=postgres database=ep-misty-frog-zasbtqhz-pooler.c-2.eu-west-2.aws.neon.tech:5432/neondb (168ms)",
+          "00:01:04.436 INFO  Connected to JSON-RPC chain=world hostnames=[\"capxulspikeworldspeed-hub-ws-fleet-mqvs5vgcxwgoowwm.thedao.workers.dev\"] (175ms)",
+          "00:01:04.882 WARN  Schema is locked by a different Ponder app schema=ponder retry_delay=15036",
+          "00:01:20.060 INFO  Detected crash recovery build_id=8e5c02786c last_active=25s schema=ponder",
+          "00:01:20.083 ERROR uncaughtException",
+          "MigrationError: Finalized block for chain \"84532\" cannot move backwards",
+          "    at file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/database/index.js:545:31",
+          "    at processTicksAndRejections (node:internal/process/task_queues:103:5)",
+          "    at file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/database/queryBuilder.js:249:36",
+          "    at NodePgSession.transaction (file:///app/node_modules/.pnpm/drizzle-orm@0.41.0_@electric-sql+pglite@0.2.13_@opentelemetry+api@1.10.0_pg@8.23.1/node_modules/drizzle-orm/node-postgres/session.js:172:22)",
+          "    at retryLogMetricErrorWrap (file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/database/queryBuilder.js:80:32)",
+          "    at Object.migrate (file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/database/index.js:585:26)",
+          "    at start (file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/bin/commands/start.js:171:37)",
+          "    at Command.<anonymous> (file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/bin/ponder.js:65:5)",
+          "    at Command.parseAsync (/app/node_modules/.pnpm/commander@12.1.0/node_modules/commander/lib/command.js:1092:5)",
+          "    at file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/bin/ponder.js:136:1",
+          "",
+          "00:01:20.083 WARN  Started shutdown sequence",
+          "PONDER EXITED 1"
+        ]
+      }
+    }
+  ],
+  "fresh": {
+    "ms": 9323,
+    "healthyMs": 6039,
+    "readyAfterHealthyMs": 2303,
+    "log": [
+      "To prepare for this change:",
+      "- If you want the current behavior, explicitly use 'sslmode=verify-full'",
+      "- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'",
+      "",
+      "See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.",
+      "(Use `node --trace-warnings ...` to show where the warning was created)",
+      "00:00:18.266 INFO  Connected to database type=postgres database=ep-misty-frog-zasbtqhz-pooler.c-2.eu-west-2.aws.neon.tech:5432/neondb (209ms)",
+      "00:00:18.678 INFO  Connected to JSON-RPC chain=world hostnames=[\"capxulspikeworldspeed-hub-ws-fleet-mqvs5vgcxwgoowwm.thedao.workers.dev\"] (404ms)",
+      "00:00:19.724 INFO  Created database tables count=7 tables=[\"chain_logs\",\"transfers\",\"chain_payments\",\"user_operations\",\"indexer_progress\",\"known_safes\",\"hat_trees\"] (415ms)",
+      "00:00:19.798 INFO  Started migrating 'ponder_rpc_cache_1' schema statement_count=12",
+      "00:00:20.004 INFO  Migrated 'ponder_rpc_cache_1' schema (195ms)",
+      "00:00:20.023 INFO  Created HTTP server port=42069 hostname=0.0.0.0 (1ms)",
+      "00:00:20.023 INFO  Started returning 200 responses endpoint=/health",
+      "00:00:20.310 INFO  Started backfill indexing chain=world block_range=[47893252,47893261]",
+      "00:00:20.311 INFO  Started fetching backfill JSON-RPC data chain=world",
+      "00:00:20.845 INFO  Indexed block range chain=world event_count=1 block_range=[47893252,47893252] (68ms)",
+      "00:00:20.921 INFO  Indexed block range chain=world event_count=1 block_range=[47893253,47893253] (75ms)",
+      "00:00:20.983 INFO  Indexed block range chain=world event_count=1 block_range=[47893254,47893254] (62ms)",
+      "00:00:21.047 INFO  Indexed block range chain=world event_count=1 block_range=[47893255,47893255] (63ms)",
+      "00:00:21.109 INFO  Indexed block range chain=world event_count=1 block_range=[47893256,47893256] (62ms)",
+      "00:00:21.171 INFO  Indexed block range chain=world event_count=1 block_range=[47893257,47893257] (62ms)",
+      "00:00:21.234 INFO  Indexed block range chain=world event_count=1 block_range=[47893258,47893258] (62ms)",
+      "00:00:21.295 INFO  Indexed block range chain=world event_count=1 block_range=[47893259,47893259] (61ms)",
+      "00:00:21.358 INFO  Indexed block range chain=world event_count=1 block_range=[47893260,47893260] (62ms)",
+      "00:00:21.358 INFO  Finished fetching backfill JSON-RPC data chain=world (1s)",
+      "00:00:21.551 INFO  Indexed block range chain=world event_count=2 block_range=[47893261,47893261] (193ms)",
+      "00:00:21.552 INFO  Completed backfill indexing across all chains (1s)",
+      "00:00:21.692 INFO  Created database indexes count=3 (140ms)",
+      "(node:3) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.",
+      "00:00:21.718 WARN  Failed database query query=select_ready query_id=62cdea25 (17ms)",
+      "error: relation \"_ponder_meta\" does not exist",
+      "    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.23.1/node_modules/pg-pool/index.js:45:11",
+      "    at processTicksAndRejections (node:internal/process/task_queues:103:5)",
+      "    at file:///app/node_modules/.pnpm/drizzle-orm@0.41.0_@electric-sql+pglite@0.2.13_@opentelemetry+api@1.10.0_pg@8.23.1/node_modules/drizzle-orm/node-postgres/session.js:113:22",
+      "    at retryLogMetricErrorWrap (file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/database/queryBuilder.js:80:32)",
+      "    at file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/server/index.js:58:25",
+      "    at dispatch (file:///app/node_modules/.pnpm/hono@4.10.4/node_modules/hono/dist/compose.js:22:17)",
+      "    at cors2 (file:///app/node_modules/.pnpm/hono@4.10.4/node_modules/hono/dist/middleware/cors/index.js:79:5)",
+      "    at dispatch (file:///app/node_modules/.pnpm/hono@4.10.4/node_modules/hono/dist/compose.js:22:17)",
+      "    at file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/server/index.js:21:13",
+      "    at dispatch (file:///app/node_modules/.pnpm/hono@4.10.4/node_modules/hono/dist/compose.js:22:17)",
+      "",
+      "00:00:21.721 WARN  Failed to handle HTTP request method=GET path=/ready",
+      "NonRetryableUserError: relation \"_ponder_meta\" does not exist",
+      "    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.23.1/node_modules/pg-pool/index.js:45:11",
+      "    at processTicksAndRejections (node:internal/process/task_queues:103:5)",
+      "    at file:///app/node_modules/.pnpm/drizzle-orm@0.41.0_@electric-sql+pglite@0.2.13_@opentelemetry+api@1.10.0_pg@8.23.1/node_modules/drizzle-orm/node-postgres/session.js:113:22",
+      "    at retryLogMetricErrorWrap (file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/database/queryBuilder.js:80:32)",
+      "    at file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/server/index.js:58:25",
+      "    at dispatch (file:///app/node_modules/.pnpm/hono@4.10.4/node_modules/hono/dist/compose.js:22:17)",
+      "    at cors2 (file:///app/node_modules/.pnpm/hono@4.10.4/node_modules/hono/dist/middleware/cors/index.js:79:5)",
+      "    at dispatch (file:///app/node_modules/.pnpm/hono@4.10.4/node_modules/hono/dist/compose.js:22:17)",
+      "    at file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/server/index.js:21:13",
+      "    at dispatch (file:///app/node_modules/.pnpm/hono@4.10.4/node_modules/hono/dist/compose.js:22:17)",
+      "",
+      "Request:",
+      "  path     /ready",
+      "  method   GET",
+      "00:00:22.019 INFO  Started returning 200 responses endpoint=/ready",
+      "00:00:22.021 INFO  Started live indexing chain=world finalized_block=47893261 factory_address_count=0"
+    ]
+  },
+  "resume": {
+    "ms": 26277,
+    "healthyMs": 24257,
+    "readyAfterHealthyMs": 1262,
+    "log": [
+      "(node:3) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.",
+      "In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.",
+      "",
+      "To prepare for this change:",
+      "- If you want the current behavior, explicitly use 'sslmode=verify-full'",
+      "- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'",
+      "",
+      "See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.",
+      "(Use `node --trace-warnings ...` to show where the warning was created)",
+      "00:00:35.696 INFO  Connected to database type=postgres database=ep-misty-frog-zasbtqhz-pooler.c-2.eu-west-2.aws.neon.tech:5432/neondb (220ms)",
+      "00:00:35.905 INFO  Connected to JSON-RPC chain=world hostnames=[\"capxulspikeworldspeed-hub-ws-fleet-mqvs5vgcxwgoowwm.thedao.workers.dev\"] (197ms)",
+      "00:00:36.381 WARN  Schema is locked by a different Ponder app schema=ponder retry_delay=18368",
+      "00:00:54.919 INFO  Detected crash recovery build_id=8e5c02786c last_active=25s schema=ponder",
+      "(node:3) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.",
+      "00:00:55.361 INFO  Created HTTP server port=42069 hostname=0.0.0.0 (2ms)",
+      "00:00:55.361 INFO  Started returning 200 responses endpoint=/health",
+      "00:00:55.535 INFO  Started backfill indexing chain=world block_range=[47893263,47893263]",
+      "00:00:55.536 INFO  Started fetching backfill JSON-RPC data chain=world",
+      "00:00:55.925 INFO  Finished fetching backfill JSON-RPC data chain=world (389ms)",
+      "00:00:56.082 INFO  Indexed block range chain=world event_count=0 block_range=[47893263,47893263] (157ms)",
+      "00:00:56.083 INFO  Completed backfill indexing across all chains (549ms)",
+      "00:00:56.219 INFO  Created database indexes count=3 (135ms)",
+      "00:00:56.523 INFO  Started returning 200 responses endpoint=/ready",
+      "00:00:56.526 INFO  Started live indexing chain=world finalized_block=47893263 factory_address_count=0"
+    ]
+  },
+  "refused": {
+    "ms": 81786,
+    "healthyMs": null,
+    "readyAfterHealthyMs": null,
+    "log": [
+      "(node:3) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.",
+      "In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.",
+      "",
+      "To prepare for this change:",
+      "- If you want the current behavior, explicitly use 'sslmode=verify-full'",
+      "- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'",
+      "",
+      "See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.",
+      "(Use `node --trace-warnings ...` to show where the warning was created)",
+      "00:01:04.253 INFO  Connected to database type=postgres database=ep-misty-frog-zasbtqhz-pooler.c-2.eu-west-2.aws.neon.tech:5432/neondb (168ms)",
+      "00:01:04.436 INFO  Connected to JSON-RPC chain=world hostnames=[\"capxulspikeworldspeed-hub-ws-fleet-mqvs5vgcxwgoowwm.thedao.workers.dev\"] (175ms)",
+      "00:01:04.882 WARN  Schema is locked by a different Ponder app schema=ponder retry_delay=15036",
+      "00:01:20.060 INFO  Detected crash recovery build_id=8e5c02786c last_active=25s schema=ponder",
+      "00:01:20.083 ERROR uncaughtException",
+      "MigrationError: Finalized block for chain \"84532\" cannot move backwards",
+      "    at file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/database/index.js:545:31",
+      "    at processTicksAndRejections (node:internal/process/task_queues:103:5)",
+      "    at file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/database/queryBuilder.js:249:36",
+      "    at NodePgSession.transaction (file:///app/node_modules/.pnpm/drizzle-orm@0.41.0_@electric-sql+pglite@0.2.13_@opentelemetry+api@1.10.0_pg@8.23.1/node_modules/drizzle-orm/node-postgres/session.js:172:22)",
+      "    at retryLogMetricErrorWrap (file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/database/queryBuilder.js:80:32)",
+      "    at Object.migrate (file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/database/index.js:585:26)",
+      "    at start (file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/bin/commands/start.js:171:37)",
+      "    at Command.<anonymous> (file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/bin/ponder.js:65:5)",
+      "    at Command.parseAsync (/app/node_modules/.pnpm/commander@12.1.0/node_modules/commander/lib/command.js:1092:5)",
+      "    at file:///app/node_modules/.pnpm/ponder@0.18.6_@opentelemetry+api@1.10.0_hono@4.10.4_viem@2.55.18/node_modules/ponder/dist/esm/bin/ponder.js:136:1",
+      "",
+      "00:01:20.083 WARN  Started shutdown sequence",
+      "PONDER EXITED 1"
+    ]
+  },
+  "refusedIndex": {
+    "block": "47893263",
+    "hash": "0xaa14f111f9cd7faead7ad8e9740140699907dd369931b86ac4b3e7d0ab53598b",
+    "transfers": 3,
+    "locked": "0",
+    "build": "8e5c02786c"
+  },
+  "cleanup": {
+    "index": {
+      "forgotten": true
+    },
+    "chain": {
+      "forgotten": true
+    },
+    "branch": {
+      "status": 200,
+      "apiMs": 289.288330078125,
+      "operationsMs": 1810.526611328125
+    }
+  },
+  "leftBranches": []
+}

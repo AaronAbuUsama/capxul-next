@@ -1,0 +1,81 @@
+[23:06:18.064] WARN: alchemy 2.0.0-beta.87 is available (you're on 2.0.0-beta.85). Run `bun add alchemy@2.0.0-beta.87` to upgrade.
+[23:06:18.071] INFO: Deploy · ws-fleet
+[23:06:18.072] INFO: Importing stack module
+[23:06:18.437] INFO: Resolving stack services
+[23:06:18.462] INFO: Loading stack state
+[23:06:18.471] INFO: Computing plan
+[23:06:18.477] INFO: Cloudflare Container read: looking up capxulspikeworldspeed-ponder-ws-fleet-td23gjvqdcvdltdq
+[23:06:18.479] INFO: Cloudflare: using environment variables (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN).
+[23:06:18.485] INFO: Cloudflare Container read: looking up capxulspikeworldspeed-anvil-ws-fleet-s7rrste5dqhzngoj
+[23:06:18.486] INFO: Cloudflare Container read: looking up capxulspikeworldspeed-alto-ws-fleet-pelkdmvssun7ylly
+[23:06:19.263] INFO: Cloudflare Container read: capxulspikeworldspeed-ponder-ws-fleet-td23gjvqdcvdltdq not found
+[23:06:19.265] INFO: Cloudflare Container read: capxulspikeworldspeed-anvil-ws-fleet-s7rrste5dqhzngoj not found
+[23:06:19.499] INFO: Cloudflare Container read: capxulspikeworldspeed-alto-ws-fleet-pelkdmvssun7ylly not found
+[23:06:19.502] INFO: Plan ready (1.4s)
+[23:06:19.503] INFO: Plan: 4 to create, 7 binding changes
+[23:06:19.504] INFO: [Alto] create
+[23:06:19.504] INFO: [Alto/BundlerBox] create
+[23:06:19.504] INFO: [Anvil] create
+[23:06:19.504] INFO: [Anvil/ChainBox] create
+[23:06:19.504] INFO: [Hub] create
+[23:06:19.504] INFO: [Hub/BundlerBox] create
+[23:06:19.504] INFO: [Hub/ChainBox] create
+[23:06:19.504] INFO: [Hub/HUB_TOKEN] create
+[23:06:19.504] INFO: [Hub/IndexBox] create
+[23:06:19.504] INFO: [Ponder] create
+[23:06:19.504] INFO: [Ponder/IndexBox] create
+[23:06:19.504] INFO: 
+[23:06:19.518] INFO: [Ponder] Cloudflare Container precreate: starting capxulspikeworldspeed-ponder-ws-fleet-zql4dctbe7vcvyeu
+[23:06:19.522] INFO: [Anvil] Cloudflare Container precreate: starting capxulspikeworldspeed-anvil-ws-fleet-gchzl7hkyvdugayz
+[23:06:19.524] INFO: [Ponder] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-ponder@sha256:46acfce74583a150332ef0343c34d3ecac012452d3263fbc02f10c26549dace9
+[23:06:19.526] INFO: [Alto] Cloudflare Container precreate: starting capxulspikeworldspeed-alto-ws-fleet-iy2skk2uvq354nx3
+[23:06:19.527] INFO: [Anvil] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-anvil@sha256:bb1777935f5ffaf6966cae1770807090823671b0cd2b0ea3fdc7ba88f0e15474
+[23:06:19.529] INFO: [Alto] Cloudflare Container image: using pre-pushed registry.cloudflare.com/eea3d5fc7b957f2d230f677282292385/capxulworld-alto@sha256:2980e3139ccc5b9ee40246d313c59674b7916d11ed7c701d4de7b650b191f916
+[23:06:19.530] INFO: [Ponder] pre-creating
+[23:06:19.530] INFO: [Anvil] pre-creating
+[23:06:19.530] INFO: [Alto] pre-creating
+[23:06:19.860] INFO: [Hub] Cloudflare Worker precreate: starting capxulspikeworldspeed-hub-ws-fleet-mqvs5vgcxwgoowwm
+[23:06:19.860] INFO: [Hub] Cloudflare Worker precreate: durable objects [{"logicalId":"BundlerBox","bindingName":"BundlerBox","className":"BundlerBox"},{"logicalId":"ChainBox","bindingName":"ChainBox","className":"ChainBox"},{"logicalId":"IndexBox","bindingName":"IndexBox","className":"IndexBox"}]
+[23:06:19.861] INFO: [Hub] pre-creating
+[23:06:20.216] INFO: [Ponder] Cloudflare Container create: creating application capxulspikeworldspeed-ponder-ws-fleet-zql4dctbe7vcvyeu
+[23:06:20.219] INFO: [Ponder] Pre-creating container application capxulspikeworldspeed-ponder-ws-fleet-zql4dctbe7vcvyeu...
+[23:06:20.476] INFO: [Alto] Cloudflare Container create: creating application capxulspikeworldspeed-alto-ws-fleet-iy2skk2uvq354nx3
+[23:06:20.478] INFO: [Alto] Pre-creating container application capxulspikeworldspeed-alto-ws-fleet-iy2skk2uvq354nx3...
+[23:06:20.481] INFO: [Anvil] Cloudflare Container create: creating application capxulspikeworldspeed-anvil-ws-fleet-gchzl7hkyvdugayz
+[23:06:20.482] INFO: [Anvil] Pre-creating container application capxulspikeworldspeed-anvil-ws-fleet-gchzl7hkyvdugayz...
+[23:06:22.862] INFO: [Alto] Cloudflare Container reconcile: starting capxulspikeworldspeed-alto-ws-fleet-iy2skk2uvq354nx3
+[23:06:22.863] INFO: [Alto] creating
+[23:06:23.005] INFO: [Ponder] Cloudflare Container reconcile: starting capxulspikeworldspeed-ponder-ws-fleet-zql4dctbe7vcvyeu
+[23:06:23.007] INFO: [Ponder] creating
+[23:06:23.081] INFO: [Hub] Cloudflare Worker reconcile: starting capxulspikeworldspeed-hub-ws-fleet-mqvs5vgcxwgoowwm
+[23:06:23.082] INFO: [Hub] Cloudflare Worker reconcile: durable objects [{"logicalId":"BundlerBox","className":"BundlerBox"},{"logicalId":"ChainBox","className":"ChainBox"},{"logicalId":"IndexBox","className":"IndexBox"}]
+[23:06:23.084] INFO: [Anvil] Cloudflare Container reconcile: starting capxulspikeworldspeed-anvil-ws-fleet-gchzl7hkyvdugayz
+[23:06:23.085] INFO: [Hub] creating
+[23:06:23.085] INFO: [Anvil] creating
+[23:06:23.386] INFO: [Hub] Cloudflare Worker reconcile: existing durable object tags ["alchemy:dos:BundlerBox;ChainBox;IndexBox"]
+[23:06:23.386] INFO: [Hub] Cloudflare Worker reconcile: previous durable object tags ["alchemy:dos:BundlerBox;ChainBox;IndexBox"]
+[23:06:23.392] INFO: [Hub] Cloudflare Worker create: preparing bundle for capxulspikeworldspeed-hub-ws-fleet-mqvs5vgcxwgoowwm
+[23:06:23.490] INFO: [Hub] Cloudflare Worker create: uploading script for capxulspikeworldspeed-hub-ws-fleet-mqvs5vgcxwgoowwm
+[23:06:23.723] INFO: [Hub] Cloudflare Worker put: durable object reconciliation {"oldDoClassNameByLogicalId":{"BundlerBox":"BundlerBox","ChainBox":"ChainBox","IndexBox":"IndexBox"},"currentDoClassNameByLogicalId":{"BundlerBox":"BundlerBox","ChainBox":"ChainBox","IndexBox":"IndexBox"},"deletedClasses":[],"renamedClasses":[],"transferredClasses":[],"newSqliteClasses":[]}
+[23:06:24.102] INFO: [Alto] Cloudflare Container reconcile: recreating capxulspikeworldspeed-alto-ws-fleet-iy2skk2uvq354nx3 to attach durable object binding
+[23:06:24.103] INFO: [Alto] Recreating container application capxulspikeworldspeed-alto-ws-fleet-iy2skk2uvq354nx3 with durable object binding...
+[23:06:24.180] INFO: [Ponder] Cloudflare Container reconcile: recreating capxulspikeworldspeed-ponder-ws-fleet-zql4dctbe7vcvyeu to attach durable object binding
+[23:06:24.181] INFO: [Ponder] Recreating container application capxulspikeworldspeed-ponder-ws-fleet-zql4dctbe7vcvyeu with durable object binding...
+[23:06:24.317] INFO: [Anvil] Cloudflare Container reconcile: recreating capxulspikeworldspeed-anvil-ws-fleet-gchzl7hkyvdugayz to attach durable object binding
+[23:06:24.318] INFO: [Anvil] Recreating container application capxulspikeworldspeed-anvil-ws-fleet-gchzl7hkyvdugayz with durable object binding...
+[23:06:25.770] INFO: [Alto] Cloudflare Container create: creating application capxulspikeworldspeed-alto-ws-fleet-iy2skk2uvq354nx3
+[23:06:25.772] INFO: [Alto] Creating container application capxulspikeworldspeed-alto-ws-fleet-iy2skk2uvq354nx3...
+[23:06:26.128] INFO: [Ponder] Cloudflare Container create: creating application capxulspikeworldspeed-ponder-ws-fleet-zql4dctbe7vcvyeu
+[23:06:26.129] INFO: [Ponder] Creating container application capxulspikeworldspeed-ponder-ws-fleet-zql4dctbe7vcvyeu...
+[23:06:26.139] INFO: [Anvil] Cloudflare Container create: creating application capxulspikeworldspeed-anvil-ws-fleet-gchzl7hkyvdugayz
+[23:06:26.140] INFO: [Anvil] Creating container application capxulspikeworldspeed-anvil-ws-fleet-gchzl7hkyvdugayz...
+[23:06:29.401] INFO: [Hub] created — Enabling workers.dev subdomain... (9.5s)
+[23:06:29.402] INFO: [Alto] created (9.9s)
+[23:06:29.402] INFO: [Anvil] created (9.9s)
+[23:06:29.402] INFO: [Ponder] created (9.9s)
+[23:06:29.403] INFO: 
+[23:06:29.403] INFO: Done: 4 succeeded (9.9s)
+{
+  url: 'https://capxulspikeworldspeed-hub-ws-fleet-mqvs5vgcxwgoowwm.thedao.workers.dev',
+  mode: 'fleet'
+}
