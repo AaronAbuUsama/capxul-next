@@ -1,19 +1,20 @@
-# Roadmap step 1.8: CI on master creates a private world, runs the thin line's scenarios in it, keeps the run record
-# and destroys the world, every time, even when a scenario fails or the job is cancelled (world lifecycle rule 1).
+# Roadmap step 1.8: CI on master runs the thin line's journeys in one private world, with Core on Cloudflare and the
+# company sites on the shared platform's bench (stage `staging`), keeps the run's records and destroys every world it
+# made, every time, even when a journey fails or the job is cancelled (world lifecycle rule 1).
+#
+# The run is the runner's own (packages/runner/README.md, "A run in one world"; step 1.18): `run.sh scenarios` makes
+# one world on the fleet hub, makes and saves the starting worlds, resets the world in place before each journey,
+# records everything, and takes down at its end what it made. The steps after it are the guarantee for when it could
+# not: they destroy every world this run's operators own, take down a hub of the run's own, and sweep the expired.
+#
+# The bench is reached through its Cloudflare Tunnel: Core on Cloudflare calls the sites and this job calls the site
+# door at their public names under PLATFORM_DOMAIN, and the door's address and key are read from the shared state with
+# the Cloudflare key (packages/world, src/site/Bench.ts). So the job needs no AWS.
 #
 # Gated: on a pull request or a push to master it runs only once the repository variable CAPXUL_CLOUD_READY is
-# `true`, which packages/platform/bootstrap sets last, after the Cloudflare and Neon keys are repository secrets. Until
-# then master stays green on the ladder alone, rather than red for a known reason that would hide a real one. Started
-# by hand it always runs, and from then on a missing secret fails it by name: a skipped check is not a green one.
-#
-# Where it plugs in: packages/world (step 1.3) and packages/runner (step 1.2) are being built on other branches. The
-# job is written against their documented commands:
-#   packages/world/run.sh create <name> --owner ci --lifetime "2 hours"   (packages/world/README.md, "Commands")
-#   packages/world/run.sh destroy <name>
-#   packages/world/run.sh sweep
-#   pnpm --filter @capxul/runner run scenarios -- --world <name> --records <dir>   (PLUG-IN: the runner's command, to
-#                                                                                   be confirmed when it lands)
-# Until both packages are on master, the job fails at "Require the world and the runner" and says so.
+# `true`, which packages/platform/bootstrap sets last, after the Cloudflare and Neon keys are repository secrets.
+# Started by hand it always runs, and from then on a missing secret fails it by name: a skipped check is not a green
+# one.
 name: world
 on:
   workflow_dispatch:
@@ -23,54 +24,81 @@ on:
     branches: [master]
 permissions:
   contents: read
+# One run at a time across every branch: every run uses the one staging bench, whose site templates are named after
+# the starting worlds and are any world's to replace or drop (packages/platform/README.md, "Sites from a pool"), so
+# two runs at once would take each other's. GitHub keeps one run waiting; a newer one replaces it.
 concurrency:
-  group: world-${{ github.ref }}
+  group: world-staging
   cancel-in-progress: false
 env:
   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
   CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
   NEON_ORG_ID: ${{ vars.NEON_ORG_ID }}
+  PLATFORM_DOMAIN: ${{ vars.PLATFORM_DOMAIN }}
+  # The platform stage whose bench the worlds' company sites go on.
+  WORLD_BENCH: staging
+  # The run's two operators, named after the run, so the clean-up below finds every world the run made and no other.
+  WORLD_OWNER: ci-${{ github.run_id }}-${{ github.run_attempt }}
+  WORLD_SECOND_OWNER: ci-${{ github.run_id }}-${{ github.run_attempt }}-2
 jobs:
   thin-line:
     if: github.event_name == 'workflow_dispatch' || vars.CAPXUL_CLOUD_READY == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - name: Require the cloud secrets and variables
-        run: packages/platform/bin/require.sh CLOUDFLARE_API_TOKEN NEON_API_KEY CLOUDFLARE_ACCOUNT_ID NEON_ORG_ID
-      - name: Require the world and the runner
-        run: |
-          missing=0
-          for p in world runner; do
-            if [ ! -f "packages/$p/package.json" ]; then
-              echo "::error title=packages/$p has not landed::This job creates a world with packages/world and runs the thin line through packages/runner (roadmap steps 1.3, 1.2, 1.8); packages/$p is not on this branch yet."
-              missing=1
-            fi
-          done
-          exit "$missing"
+        run: >-
+          packages/platform/bin/require.sh CLOUDFLARE_API_TOKEN NEON_API_KEY CLOUDFLARE_ACCOUNT_ID NEON_ORG_ID
+          PLATFORM_DOMAIN
       - uses: ./.github/actions/platform-setup
-      - name: Name the world
-        id: world
-        # A world's name is the blueprint's WorldName: a-z first, then a-z, 0-9 and -, at most 15.
-        run: echo "name=ci$(printf '%s' '${{ github.run_id }}' | tail -c 9)${{ github.run_attempt }}" >>"$GITHUB_OUTPUT"
-      - name: Create the world
-        run: packages/world/run.sh create "${{ steps.world.outputs.name }}" --owner ci --lifetime "2 hours"
-      - name: Run the thin line's scenarios
-        # PLUG-IN: the runner's documented command, once packages/runner lands (step 1.2).
+      - name: Require the staging bench
+        # The site door answers through the tunnel once platform.yml has deployed `staging` (roadmap step 2.2).
         run: |
-          mkdir -p "$RUNNER_TEMP/records"
-          pnpm --filter @capxul/runner run scenarios -- --world "${{ steps.world.outputs.name }}" --records "$RUNNER_TEMP/records"
+          curl -fsS --retry 3 --retry-all-errors --max-time 20 "http://$WORLD_BENCH-door.$PLATFORM_DOMAIN/health" >/dev/null || {
+            echo "::error title=No staging bench::The site door of platform stage $WORLD_BENCH does not answer at $WORLD_BENCH-door.$PLATFORM_DOMAIN; deploy it with platform.yml (roadmap step 2.2)."
+            exit 1
+          }
+      - name: Choose the hub
+        id: hub
+        # The standing hub `fleet` while it lives at least 3 hours more (the run's world lives 150 minutes and may not
+        # outlive its hub): the runner uses a hub that exists and leaves it up, and a hub is never taken down while a
+        # world is on it. Otherwise a hub of the run's own, which the runner brings up for 3 hours and takes down.
+        run: |
+          hub="ch-$(printf '%s' '${{ github.run_id }}' | tail -c 7)${{ github.run_attempt }}"
+          if packages/world/run.sh hub show --hub fleet >"$RUNNER_TEMP/fleet.json" &&
+            python3 -c 'import json, sys, datetime as d; e = d.datetime.fromisoformat(json.load(open(sys.argv[1]))["expiresAt"].replace("Z", "+00:00")); sys.exit(0 if e - d.datetime.now(d.timezone.utc) > d.timedelta(hours=3) else 1)' "$RUNNER_TEMP/fleet.json"
+          then
+            hub=fleet
+          fi
+          echo "Hub: $hub"
+          echo "WORLD_HUB=$hub" >>"$GITHUB_ENV"
+          echo "stage=$hub" >>"$GITHUB_OUTPUT"
+      - name: Run the thin line's journeys in one world
+        env:
+          RUNNER_HUB_LIFETIME: 3 hours
+        run: RUNNER_RECORDS="$RUNNER_TEMP/records" packages/runner/run.sh scenarios
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: world-${{ steps.world.outputs.name }}
+          name: world-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/records/
           if-no-files-found: warn
-      - name: Destroy the world
-        if: always() && steps.world.outputs.name != ''
-        run: packages/world/run.sh destroy "${{ steps.world.outputs.name }}"
+      - name: Destroy every world the run's operators own
+        if: always()
+        run: |
+          packages/world/run.sh list >"$RUNNER_TEMP/worlds.json"
+          left=$(python3 -c 'import json, os, sys; owners = {os.environ["WORLD_OWNER"], os.environ["WORLD_SECOND_OWNER"]}; print(" ".join(w["world"] for w in json.load(open(sys.argv[1])) if w["owner"] in owners))' "$RUNNER_TEMP/worlds.json")
+          status=0
+          for world in $left; do packages/world/run.sh destroy "$world" || status=1; done
+          exit "$status"
+      - name: Take down the run's own hub
+        if: always() && steps.hub.outputs.stage != '' && steps.hub.outputs.stage != 'fleet'
+        run: |
+          if packages/world/run.sh hub show --hub "${{ steps.hub.outputs.stage }}" >/dev/null 2>&1; then
+            packages/world/run.sh hub down --hub "${{ steps.hub.outputs.stage }}"
+          fi
       - name: Sweep worlds that outlived their expiry
-        if: always() && steps.world.outputs.name != ''
+        if: always()
         run: packages/world/run.sh sweep

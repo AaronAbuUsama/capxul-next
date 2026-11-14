@@ -22,8 +22,9 @@ WORLD_BENCH=local POOL_SECRETS=<file> ./run.sh scenarios --core=local    # the s
 ```
 
 `door` exits 1 if its run failed; `scenarios` exits 1 if a journey did not end as the run expected or a stage was
-left behind. `run.sh` runs `src/main.ts` under Bun and sets the two key variables to a
-placeholder: the session's network proxy adds the real Cloudflare and Neon keys, which never reach this machine. It
+left behind. `run.sh` runs `src/main.ts` under Bun and, where the two key variables are unset, sets them to a
+placeholder: in an agent's container the session's network proxy adds the real Cloudflare and Neon keys, which never
+reach the machine; in CI the job's real keys are kept (`.github/workflows/world.yml`). It
 also makes a fresh pair of door tokens for the run (`CAPXUL_DOOR_TOKEN`, `CAPXUL_PLATFORM_TOKEN`), which Core reads at
 deploy and the SDK sends; they are never printed or recorded.
 
