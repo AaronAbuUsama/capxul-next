@@ -23,8 +23,24 @@ type Target = { readonly _tag: "by"; readonly seconds: number } | { readonly _ta
 const Warped = Schema.Struct({ site: Schema.String, stops: Schema.Int, jobs: Schema.Int });
 
 /**
+ * The most world time one call warps a site through. A site steps through every day and runs what fell due, about
+ * 0.8 s a day on the stand-in bench (spikes/site-speed, Q5: 180 days took 147.8 s), and the call is one HTTP request
+ * through the site door, which waits 120 s for the site (packages/platform, door/door.py), and through Cloudflare's
+ * tunnel, whose edge waits 100 s for an answer. So a long warp is made as several calls of at most 14 days (about
+ * 11 s each there), which leaves the bench host room to be several times slower.
+ */
+export const WARP_STEP_MS = 14 * 24 * 3600 * 1000;
+
+/** The stretches a warp from `fromMs` to `toMs` is made in: one after another, each at most WARP_STEP_MS. */
+export const warpSteps = (fromMs: number, toMs: number): ReadonlyArray<readonly [number, number]> =>
+  Arr.map(Arr.range(0, Math.max(0, Math.ceil((toMs - fromMs) / WARP_STEP_MS) - 1)), (step) => [
+    fromMs + step * WARP_STEP_MS,
+    Math.min(toMs, fromMs + (step + 1) * WARP_STEP_MS),
+  ]);
+
+/**
  * Moves the world's clock forward: every company site first, each stepping through the days between and running what
- * fell due on each (the last one writes the world's clock on the bench), then the chain, whose next block is mined at
+ * fell due on each, in stretches of at most 14 days (the last one writes the world's clock on the bench), then the chain, whose next block is mined at
  * the new time, then the clock Core keeps. A warp to the clock's time or before it is `ClockBackwards`.
  */
 export const clockWarp = (payload: { readonly target: Target }) =>
@@ -37,19 +53,26 @@ export const clockWarp = (payload: { readonly target: Target }) =>
     if (asked <= before.nowMs)
       return yield* Errors.ClockBackwards.make({ now: instantOf(before.nowMs), asked: instantOf(asked) });
     const sites = yield* CompanySites;
-    const followed = yield* sites.everySite("warp", (index, count) => ({
-      from_ms: before.nowMs,
-      to_ms: asked,
-      frozen: before.mode === "frozen",
-      write: index === count - 1,
-    }));
-    yield* Effect.forEach(followed, (answer) => Schema.decodeUnknownEffect(Warped)(answer).pipe(Effect.orDie));
+    // Every site through one stretch, then the next (warpSteps); the world's clock on the bench is written once, by
+    // the last site at the end of the last stretch.
+    const steps = warpSteps(before.nowMs, asked);
+    const followed = yield* Effect.forEach(steps, ([from, to], step) =>
+      sites.everySite("warp", (index, count) => ({
+        from_ms: from,
+        to_ms: to,
+        frozen: before.mode === "frozen",
+        write: step === steps.length - 1 && index === count - 1,
+      })),
+    );
+    yield* Effect.forEach(Arr.flatten(followed), (answer) =>
+      Schema.decodeUnknownEffect(Warped)(answer).pipe(Effect.orDie),
+    );
     yield* Effect.flatMap(Effect.service(ChainTime), (chain) => chain.mineAt(Math.ceil(asked / 1000)));
     const after = yield* clock.moveTo(asked);
     const success = {
       from: instantOf(before.nowMs),
       clock: { mode: after.mode, now: instantOf(after.nowMs) },
-      sites: followed.length,
+      sites: Arr.match(followed, { onEmpty: () => 0, onNonEmpty: (all) => Arr.lastNonEmpty(all).length }),
     };
     yield* Effect.flatMap(Effect.service(WorldRecord), (record) => record.emit(World.clockWarp, { payload, success }));
     return success;
