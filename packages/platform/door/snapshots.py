@@ -56,18 +56,73 @@ def _label_of(site, world):
     return site[: -len(suffix)] if site.endswith(suffix) else None
 
 
-def backup_world(c, body):
-    """Backs up every ready site of the token's world under `snapshot`, replacing a backup of that name."""
-    target = _snapshot_dir(c["world"], body.get("snapshot"))
-    ready = [e for e in entries_of(c["world"]) if e.get("state") == "ready"]
-    if any(e.get("state") != "ready" for e in entries_of(c["world"])):
+def _job_path(world, snapshot):
+    return f"{_snapshot_dir(world, snapshot)}.job.json"
+
+
+def _write_job(world, snapshot, job):
+    path = _job_path(world, snapshot)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(f"{path}.tmp", "w") as f:
+        json.dump(job, f)
+    os.rename(f"{path}.tmp", path)
+
+
+def start_backup(c, body):
+    """Starts backing up every ready site of the token's world under `snapshot` and answers at once (202): a backup
+    of a site with its files can outlast the 100 s Cloudflare allows a request through the tunnel. The caller asks
+    `backup_state` until it is `saved` or `failed`."""
+    world, snapshot = c["world"], body.get("snapshot")
+    _snapshot_dir(world, snapshot)
+    held = entries_of(world)
+    if any(e.get("state") != "ready" for e in held):
         raise Refused(409, "site-not-ready", "every site of the world must be ready to be saved")
+    _write_job(world, snapshot, {"state": "saving", "started_at": int(time.time())})
+
+    def run():
+        started = time.monotonic()
+        try:
+            saved = _backup(world, snapshot, held)
+            job = {"state": "saved", "sites": saved, "ms": int((time.monotonic() - started) * 1000)}
+        except Refused as r:
+            job = {"state": "failed", "error": f"{r.code}: {r.detail}"[:600]}
+        except Exception as e:  # noqa: BLE001 -- recorded for the caller, never a secret
+            job = {"state": "failed", "error": repr(e)[-600:].replace(DB_ROOT, "<root>")}
+        _write_job(world, snapshot, job)
+
+    threading.Thread(target=run, daemon=True).start()
+    return {"world": world, "snapshot": snapshot, "state": "saving"}
+
+
+def backup_state(c, snapshot):
+    """Where the token's world's backup `snapshot` is: saving, saved (with its sites) or failed (with why)."""
+    try:
+        with open(_job_path(c["world"], snapshot)) as f:
+            return {"world": c["world"], "snapshot": snapshot, **json.load(f)}
+    except FileNotFoundError:
+        raise Refused(404, "backup-not-found", f"{c['world']} has no backup {snapshot} under way or done") from None
+
+
+def tidy_backups():
+    """A backup left `saving` by a door that stopped half-way is not being made any more."""
+    for path in glob.glob(f"{BACKUPS}/*/*.job.json"):
+        with open(path) as f:
+            job = json.load(f)
+        if job.get("state") == "saving":
+            with open(path, "w") as f:
+                json.dump({**job, "state": "failed", "error": "the door restarted while it was saving"}, f)
+
+
+def _backup(world, snapshot, held):
+    """Backs up every site of `held` (all ready) under `snapshot`, replacing a backup of that name."""
+    target = _snapshot_dir(world, snapshot)
+    ready = [e for e in held if e.get("state") == "ready"]
     staging = f"{target}.saving-{secrets.token_hex(4)}"
     saved = []
     with BENCH_LOCK:
         try:
             for entry in ready:
-                site, label = entry["site"], _label_of(entry["site"], c["world"])
+                site, label = entry["site"], _label_of(entry["site"], world)
                 folder = f"{staging}/{label}"
                 os.makedirs(folder, exist_ok=True)
                 _, ms = bench("--site", site, "backup", "--backup-path", folder)
@@ -90,8 +145,8 @@ def backup_world(c, body):
                 os.rename(staging, target)
         finally:
             shutil.rmtree(staging, ignore_errors=True)
-    print(f"door: {c['world']} saved {len(saved)} sites as {body.get('snapshot')}", flush=True)
-    return {"world": c["world"], "snapshot": body.get("snapshot"), "sites": saved}
+    print(f"door: {world} saved {len(saved)} sites as {snapshot}", flush=True)
+    return saved
 
 
 def restore_world(c, source, body):
