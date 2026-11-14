@@ -196,7 +196,7 @@ test("a run in one world whose starting worlds were not made, or that died, fail
       startedAt: "2026-11-14T00:00:00.000Z",
       records: all,
       pathOf: (_record, index) => `run-abc123/${index}.json`,
-      oneWorld: { world: null, hub: "fleet", hubBroughtUp: false, left: null, timings: [], failure },
+      oneWorld: { world: null, hub: "fleet", hubBroughtUp: false, left: null, notTakenDown: [], timings: [], failure },
     });
   const why = "the starting worlds were not all made: save payment-drafted (w-tpl-330ea4) failed: HTTP 524";
   const failed = inOneWorld(why);
@@ -217,6 +217,7 @@ test("a run in one world whose starting worlds were not made, or that died, fail
       hub: "fleet",
       hubBroughtUp: false,
       left: null,
+      notTakenDown: [],
       timings: [],
       failure: "the run did not finish: boom",
     },
@@ -242,4 +243,37 @@ test("the starting worlds not made are named by the first part that failed, a de
     why,
   );
   assert.ok(Str.includes("HTTP 524")(why), why);
+});
+
+test("a run in one world whose take-down left a template or a world's sites on the bench does not pass", () => {
+  const passed = Arr.map(every(), (each) => ({ ...each, outcome: "passed" as const, failure: null }));
+  const oneWorld = (notTakenDown: ReadonlyArray<string>) =>
+    summarize({
+      run: "run-2166f8",
+      mode: "one world",
+      expect: "pass",
+      owner: "runner",
+      startedAt: "2026-11-14T00:00:00.000Z",
+      records: passed,
+      pathOf: (each) => `run-2166f8/${each.name}.json`,
+      oneWorld: {
+        world: "tpl-2c652e",
+        hub: "rh-1",
+        hubBroughtUp: true,
+        // The accounts hold nothing of the run's worlds: the bench is not in them.
+        left: { workers: [], hyperdrives: [], neonProjects: [], worlds: [] },
+        notTakenDown,
+        timings: [],
+      },
+    });
+  assert.equal(oneWorld([]).outcome, "passed", oneWorld([]).failure ?? "");
+  const left = oneWorld([
+    'bench template payment-drafted not dropped: {"_tag":"SiteFailed","step":"door","message":"HTTP 530: error code: 1033"}',
+    'world destroy failed: {"_tag":"RunnerFailure","step":"destroy","message":"w-tpl-2c652e: SiteFailed: HTTP 530"}',
+  ]);
+  assert.equal(left.outcome, "failed");
+  assert.match(left.failure ?? "", /the run's take-down failed: bench template payment-drafted not dropped/);
+  assert.match(left.failure ?? "", /the run's take-down failed: world destroy failed: .*w-tpl-2c652e/);
+  assert.ok(ranAsExpected(oneWorld([])), "a run that took everything down exits 0");
+  assert.ok(!ranAsExpected(left), "a run whose take-down failed exits 1");
 });

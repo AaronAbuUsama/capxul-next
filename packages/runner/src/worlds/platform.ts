@@ -31,6 +31,9 @@ export class Platform extends Context.Service<
 
 const Kept = Schema.Struct({ spans: Schema.Array(SpanRow), events: Schema.Array(EventRow) });
 
+/** The label of where Core ran, when a host runs it off Cloudflare (src/local/host.ts); undefined on Cloudflare. */
+export const coreLabel = Effect.map(World.CoreHost, (host) => Option.getOrUndefined(Option.map(host, (h) => h.label)));
+
 /** The run's two operators, as the platform signs them in: the names and tokens the runner's settings hold. */
 const operators = (settings: Settings) =>
   Layer.succeed(World.Operators, {

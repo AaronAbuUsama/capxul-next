@@ -27,11 +27,11 @@ import { makeTimings, type Timings } from "../timings.ts";
 import { answersSteadily } from "../world/warmup.ts";
 import type { Stage } from "../world/stage.ts";
 import { noteNotMade, summaryOf } from "./ending.ts";
-import { coreLabel, destroyAll, destroyStrays, leftOf } from "./stages.ts";
 import { onHub, type HubUse } from "./hub.ts";
-import { Platform } from "./platform.ts";
+import { coreLabel, Platform } from "./platform.ts";
 import { sharedStartingWorldsOf, type SharedStartingWorlds } from "../shared/starting.ts";
 import { startingWorldsOf, type StartingWorlds } from "./starting.ts";
+import { destroyAll, destroyStrays, leftOf, takeDownWorlds } from "./teardown.ts";
 
 /** The starting worlds of a run: made in its one world, or restored from a shared world (shared/starting.ts). */
 type Starting = StartingWorlds | SharedStartingWorlds;
@@ -195,28 +195,21 @@ const runOne = (
   ).pipe(Effect.withSpan("runner.world.scenario", { attributes: { scenario: scenario.name } }));
 
 /**
- * Drops the bench templates the run kept and destroys its one world, timing both; true when the world is gone.
- * Whatever ends the run, this runs.
+ * Drops the bench templates the run kept and destroys its one world, timing both; what could not be done, one line
+ * each. Whatever ends the run, this runs.
  */
 const takeDown = (starting: Starting, timings: Timings) =>
   Effect.gen(function* () {
     const one = yield* Effect.option(starting.oneWorld);
-    if (Option.isSome(one))
-      yield* Effect.forEach(yield* starting.kept, (template) =>
-        timings
-          .timed(`drop bench template ${template}`, { of: one.value }, World.dropSitesTemplate(one.value, template))
-          .pipe(Effect.ignore),
-      );
-    const stages = yield* starting.templateWorlds;
-    if (stages.length === 0) return true;
-    return yield* timings.timed("world destroy", { of: Arr.join(stages, ", ") }, destroyAll(stages));
+    const done = yield* takeDownWorlds(one, yield* starting.kept, yield* starting.templateWorlds, timings);
+    return done.failed;
   });
 
 /**
  * Every journey in the run's one world, or, given a shared world, each in a world restored from its templates, one at
  * a time; and the run's summary at `<run>/summary.json`. The summary is written however the run ends but by
- * interruption: a starting world that was not made, or a run that died, is named in it with why, and its outcome is
- * `failed`.
+ * interruption: a starting world that was not made, a run that died, or a take-down that failed, is named in it with
+ * why, and its outcome is `failed`.
  */
 export const runInWorlds = (
   scenarios: ReadonlyArray<Journey>,
@@ -229,6 +222,7 @@ export const runInWorlds = (
     const run = yield* freshName("run");
     const timings = yield* makeTimings;
     const notMade = yield* Ref.make<string | null>(null);
+    const notTakenDown = yield* Ref.make<ReadonlyArray<string>>([]);
     const oneWorld = yield* Ref.make<string | null>(null);
     const hubUsed = yield* Ref.make<HubUse | null>(null);
     const ran = yield* Effect.exit(
@@ -238,6 +232,11 @@ export const runInWorlds = (
           const starting: Starting = Option.isSome(shared)
             ? yield* sharedStartingWorldsOf(settings, platform.url, timings, shared.value)
             : yield* startingWorldsOf(settings, platform.url, timings);
+          // What the take-down could not do fails the run; a take-down that itself died is named as one.
+          const takenDown = takeDown(starting, timings).pipe(
+            Effect.flatMap((failed) => Ref.set(notTakenDown, failed)),
+            Effect.catchCause((cause) => Ref.set(notTakenDown, [`the take-down did not finish: ${describe(cause)}`])),
+          );
           return yield* Effect.gen(function* () {
             // A starting world that could not be made fails the journeys of it, each with why; the rest still run.
             // The summary names it too, a defect included (a door that answered an error page, say).
@@ -248,7 +247,7 @@ export const runInWorlds = (
             return yield* Effect.forEach(scenarios, (scenario, index) =>
               runOne(scenario, settings, starting, timings, run, index),
             );
-          }).pipe(Effect.ensuring(Effect.ignore(takeDown(starting, timings))));
+          }).pipe(Effect.ensuring(takenDown));
         }),
       ),
     );
@@ -261,6 +260,7 @@ export const runInWorlds = (
       core: yield* coreLabel,
       ran,
       notMade: yield* Ref.get(notMade),
+      notTakenDown: yield* Ref.get(notTakenDown),
       world: yield* Ref.get(oneWorld),
       used: yield* Ref.get(hubUsed),
       left: yield* leftOf(Arr.dedupe([...(yield* platform.made), ...(yield* platform.tried)])),
