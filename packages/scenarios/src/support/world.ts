@@ -5,6 +5,7 @@ import { startingWorlds, World, type CallOptions, type Record as RecordOps, type
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
+import * as Order from "effect/Order";
 import * as Random from "effect/Random";
 import type * as Schema from "effect/Schema";
 import * as Str from "effect/String";
@@ -95,11 +96,20 @@ export const entriesOfCall = (after: number, who: Who = {}) =>
   Effect.gen(function* () {
     const call = yield* ThisCall;
     if (call.observed !== null) {
-      if (!call.observed.complete) return yield* failWith(`the call's trace ${call.trace} was not observed whole`);
-      return call.observed.events satisfies ReadonlyArray<CallEntry>;
+      const partial = Arr.filter(call.observed, (each) => !each.complete);
+      if (partial.length > 0)
+        return yield* failWith(
+          `the call's traces ${show(Arr.map(partial, (each) => each.trace))} were not observed whole`,
+        );
+      const events = Arr.flatMap(call.observed, (each) => each.events);
+      return Arr.sort(
+        events,
+        Order.mapInput(Order.Number, (each: CallEntry) => each.seq),
+      );
     }
     const added = yield* entriesAfter(after, who);
-    const ofCall = call.trace === null ? added : Arr.filter(added, (each) => each.trace === call.trace);
+    const ofCall =
+      call.traces.length === 0 ? added : Arr.filter(added, (each) => Arr.contains(call.traces, each.trace));
     return ofCall satisfies ReadonlyArray<CallEntry>;
   });
 
