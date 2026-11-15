@@ -8,7 +8,7 @@ import { formatUnits } from "viem";
 import { usdcOf } from "../chain/calls.ts";
 import { USDC_DECIMALS } from "../chain/seeded.ts";
 import type { Landed } from "../chain/userop.ts";
-import * as Budgets from "../domains/budgets.ts";
+import * as Budgets from "../budgets/landed.ts";
 import * as Organizations from "../organizations/landed.ts";
 import * as Payments from "./payments.ts";
 import { subjectOf, type Subject } from "./store.ts";
