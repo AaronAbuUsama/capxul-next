@@ -6,13 +6,14 @@ and archived. Whoever conducts next starts here, whatever agent they run on.
 ## Read first
 
 1. `AGENTS.md`: the rules, the ladder, "Lanes, leads and the conductor".
-2. The kit in `.claude/skills/`:
-   - `threads`: the thread types and their emojis;
+2. The kit in `.agents/skills/`, written for any agent and linked into `.claude/` for Claude Code:
+   - `threads`: the thread types, their emojis, and each agent's word for each thread action;
    - `conductor`: the loop and the merge rule;
-   - `hashtags`: Aaron's `#shortcuts`.
+   - `hashtags`: Aaron's `#shortcuts`;
+   - `reviewer`: the 🔍 review.
 
-   Also `.claude/agents/reviewer.md`, the 🔍 review. The kit is written for Claude Code: read "session" as your
-   agent's thread, and "subagent" as yours.
+   Amp's and Codex's columns in the `threads` table were written without their docs to hand. Check them in your first
+   session (does your agent list these four skills?) and fix the table in a pull request.
 3. `docs/roadmap.md`, and the design notes on `master`:
    - `docs/design/blueprint.md`: the decisions, the glossary in part 12, the layout in part 13, the path in part 5;
    - `docs/design/system.md`: what is generated and what is hand-written;
@@ -45,8 +46,8 @@ and archived. Whoever conducts next starts here, whatever agent they run on.
 - **Merge on a fresh base.** A pull request merges only when it has no conflicts and `gate` ran on a head that includes
   the current `master`; two pull requests, each green alone, broke `master` once.
 - **Review every slice.** A slice into `master` gets a 🔍 review pass first.
-- **The conductor never connects to Aaron's computer.** A session that does is limited to his trusted devices, so no
-  other thread or schedule can reach it. Work on his Mac is a 🖥️ thread he starts himself.
+- **A cloud conductor never connects to Aaron's computer.** A session that does is limited to his trusted devices, so no
+  other thread or schedule can reach it. A conductor on his Mac (Amp) does that work itself.
 - **Sessions started by a schedule have no GitHub or thread tools,** so status pages are kept by a thread that is sent
   updates.
 - **Codex review is out of credit,** so its comments are noise.
