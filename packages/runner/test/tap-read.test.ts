@@ -18,7 +18,7 @@ import * as Redacted from "effect/Redacted";
 import type { Call } from "../src/client.ts";
 import { decodeTraces } from "../src/telemetry/otlp.ts";
 import { flatSpans, type FlatSpan } from "../src/telemetry/flat.ts";
-import { observe } from "../src/telemetry/observe.ts";
+import { observationsRead, observe } from "../src/telemetry/observe.ts";
 import { sideBySide, tapFailures } from "../src/telemetry/side-by-side.ts";
 import { tapFor } from "../src/telemetry/tap.ts";
 import type { SpanRow } from "../src/world/database.ts";
@@ -232,5 +232,23 @@ test("observe with no tap answers every trace incomplete at once, with its event
       events: [{ seq: 0, event: "Happened", carried: {} }],
     });
     assert.equal(reads.count, 0);
+  }).pipe(Effect.runPromise);
+});
+
+test("the Observations read answers by who's database, its spans in start order, and dies for an unknown world", async () => {
+  await Effect.gen(function* () {
+    const call = yield* oneCall;
+    const read = yield* observationsRead(
+      (who) => Effect.succeed(who?.at === undefined ? Option.some(DATABASE) : Option.none()),
+      QUICK,
+    ).pipe(Effect.provide(standIn({ otlp: call.rows })));
+    const one = (yield* read([call.traceId])).get(call.traceId)!;
+    assert.equal(one.complete, true);
+    assert.deepEqual(
+      Arr.map(one.spans, (span) => span.name),
+      ["call.op", "database.query"],
+    );
+    const elsewhere = yield* Effect.exit(read([call.traceId], { at: "https://elsewhere.test" }));
+    assert.equal(elsewhere._tag, "Failure");
   }).pipe(Effect.runPromise);
 });
