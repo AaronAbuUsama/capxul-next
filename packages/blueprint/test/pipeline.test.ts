@@ -25,7 +25,7 @@ const DECLARED = [
   "journey.run",
   "ratchet.count",
   "run.prepare",
-  "run.run",
+  "run.start",
   "run.teardown",
   "run.verdict",
   "site.reset",
@@ -83,7 +83,7 @@ test("no piece of work is an operation, or in either Rpc group: nothing serves i
 });
 
 test("the run's breakdown sums to its budget, the run's 10 minutes, and names its parts' own budgets", () => {
-  const run = Pipeline.runRun;
+  const run = Pipeline.runStart;
   assert.equal(run.budget.ms, 10 * 60_000);
   assert.equal(shareTotal(run), run.budget.ms);
   for (const share of run.breakdown) {
