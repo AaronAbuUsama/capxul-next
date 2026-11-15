@@ -22,9 +22,12 @@ import { withPaths } from "./checks/paths.ts";
 import { capxulFor, type Call, type Target, type Via } from "./client.ts";
 import { describe, endedOf, RunnerFailure } from "./failure.ts";
 import { givenFor, type Handing } from "./given.ts";
-import { writeRecord, type Coverage, type RunRecord } from "./record.ts";
-import { failedStepOf, hearing, stepsOf, type Heard, type StepRecord } from "./steps.ts";
+import { stepsFor, viaOf, writeRecord, type Coverage, type RunRecord, type TapRecord } from "./record.ts";
+// The record's parts that worlds/run.ts builds its own record with.
+export { stepsFor, viaOf } from "./record.ts";
+import { hearing, stepsOf, type Heard, type StepRecord } from "./steps.ts";
 import type { Settings } from "./settings.ts";
+import { sideBySide, tapFailures } from "./telemetry/side-by-side.ts";
 import { telemetryOf } from "./world/database.ts";
 import { isEmpty } from "./world/leftovers.ts";
 import { OtherWorlds } from "./world/existing.ts";
@@ -62,6 +65,7 @@ export interface Used {
   /** What its calls reached of each machine (checks/paths.ts), whose `path` check each call above carries. */
   readonly coverage: Coverage;
   readonly steps: ReadonlyArray<StepRecord>;
+  readonly tap: TapRecord;
   readonly ms: { readonly run: number; readonly checks: number };
 }
 
@@ -94,6 +98,7 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
       calls: paths.calls,
       coverage: paths.coverage,
       steps: stepsOf(plan.outline, yield* Ref.get(heard), paths.calls),
+      tap: yield* sideBySide(stage.database, calls, kept),
       ms: { run: millis(runTook), checks: millis(checksTook) },
     } satisfies Used;
   }).pipe(
@@ -166,16 +171,10 @@ const failuresIn = (lifecycle: Lifecycle<Used, RunnerFailure>): ReadonlyArray<st
   return [
     ...(Exit.isFailure(used.run) ? [`the run failed: ${describe(used.run.cause)}`] : []),
     ...failuresOf(used.calls),
+    ...tapFailures(used.tap),
     ...left,
   ];
 };
-
-/** A journey's steps and the first that failed, for its run record; nothing for the door. */
-export const stepsFor = (plan: Pick<Plan, "kind">, steps: ReadonlyArray<StepRecord>) =>
-  plan.kind === "journey" ? { steps, failedStep: failedStepOf(steps) } : {};
-
-/** A run record's `via`: only a run through the command line names it. */
-export const viaOf = (via: Via | undefined) => (via === "cli" ? { via: "cli" as const } : {});
 
 /** The run record of `plan` from what became of its stage. */
 export const recordOf = (plan: Plan, startedAt: string, lifecycle: Lifecycle<Used, RunnerFailure>): RunRecord => {
@@ -195,7 +194,7 @@ export const recordOf = (plan: Plan, startedAt: string, lifecycle: Lifecycle<Use
     ended: used === undefined ? null : endedOf(used.run),
     readiness: lifecycle.readiness,
     calls: used?.calls ?? [],
-    ...(used === undefined ? {} : { coverage: used.coverage }),
+    ...(used === undefined ? {} : { coverage: used.coverage, tap: used.tap }),
     ...stepsFor(plan, used?.steps ?? stepsOf(plan.outline, [], [])),
     afterwards: { stage: lifecycle.afterwards, before: lifecycle.found.before, after: lifecycle.found.after },
     ms: {

@@ -197,3 +197,20 @@ export const decodeTraces = Schema.decodeUnknownEffect(Schema.fromJsonString(Tra
 export const decodeLogs = Schema.decodeUnknownEffect(Schema.fromJsonString(LogsExport));
 /** A `/v1/metrics` body, from its JSON text. */
 export const decodeMetrics = Schema.decodeUnknownEffect(Schema.fromJsonString(MetricsExport));
+
+// ---- The tap's rows ------------------------------------------------------------------------------------------------
+
+/** What the tap holds under one trace id (`telemetry.otlp`, core/migrations/0010): a whole body, as jsonb. */
+export const TapRow = Schema.Struct({
+  trace_id: Schema.String,
+  signal: Schema.Literals(["traces", "logs"]),
+  body: Schema.Unknown,
+});
+export type TapRow = typeof TapRow.Type;
+
+/** The tap's rows, as Neon's `/sql` endpoint answers them. */
+export const decodeTapRows = Schema.decodeUnknownEffect(Schema.Array(TapRow));
+/** A `/v1/traces` body the tap holds, already parsed. */
+export const decodeTraceBody = Schema.decodeUnknownEffect(TraceExport);
+/** A `/v1/logs` body the tap holds, already parsed. */
+export const decodeLogsBody = Schema.decodeUnknownEffect(LogsExport);
