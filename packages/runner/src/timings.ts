@@ -58,6 +58,7 @@ type Extra = Partial<Pick<Timing, "journey" | "of" | "parts" | "note" | "steps">
 export const PART_SPANS: ReadonlyArray<readonly [string, Declared]> = [
   ["hub up", workSpan(Pipeline.clusterUp)],
   ["hub down", workSpan(Pipeline.clusterDown)],
+  // Undeclared until 4.1 declares world.create's steps; capxul/declared-steps does not see a name here.
   ["world create", { name: "runner.world.create" }],
   ["world destroy", Pipeline.runTeardown.spans.worlds],
   ["make ", workSpan(Pipeline.startingPointMake)],

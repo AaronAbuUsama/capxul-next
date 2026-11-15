@@ -33,7 +33,8 @@ Effect.runPromise(
     );
     console.log(`telemetry: this job's steps export to ${found.value.url}`);
   },
-  (error: unknown) => {
-    console.log(`telemetry: the collector could not be found, so this job's steps export nothing: ${String(error)}`);
+  // A fixed line: what failed may hold the state store's answer, which is not for a public log.
+  () => {
+    console.log("telemetry: the collector could not be found, so this job's steps export nothing");
   },
 );
