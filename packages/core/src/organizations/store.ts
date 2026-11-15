@@ -56,7 +56,7 @@ interface Row {
   readonly deployment: unknown;
   readonly budget: string | null;
   readonly site: string | null;
-  /** Absent before migration 0010_organizations_site_restarts. */
+  /** Absent before migration 0011_organizations_site_restarts. */
   readonly site_restarts?: number;
 }
 
