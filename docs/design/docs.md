@@ -1,6 +1,6 @@
 # One set of docs: the plan
 
-Written by the docs session on 15 November 2026 for Aaron, on branch `design/docs`. Status: **agreed by Aaron, 15 November 2026**, except rows 9 and 18 of section 4. Nothing
+Written by the docs session on 15 November 2026 for Aaron, on branch `design/docs`. Status: **agreed by Aaron, 15 November 2026**. Nothing
 here is merged, and nothing moves until Aaron agrees and the blueprint session has recorded decision 3, the shape, in
 `docs/design/blueprint.md`. Where this plan and decision 3 differ, decision 3 wins and this plan is amended.
 
@@ -202,7 +202,7 @@ dated form wins. A doc that disagrees is fixed, not the other way round.
 | 6 | rung 6's gate | AGENTS.md: waits on 1.8 | the roadmap: 1.8 is Done | — |
 | 7 | the test rung | AGENTS.md misses `door:test` | `package.json` | the ladder table is generated from it |
 | 8 | the loop, the cap, side by side, the ratchet | AGENTS.md and the roadmap, nearly word for word | the roadmap's dated decision for the why; AGENTS.md for the rule | one says what was agreed, the other what to do |
-| 9 | where machines, steps and logs are declared | AGENTS.md: the domain's `machines.ts` and `steps.ts`; telemetry notes: each operation's own file and a `telemetry/` module | **decision 3** (the blueprint session) | the shape is its call; AGENTS.md marks the names with their step until then |
+| 9 | where machines, steps and logs are declared | AGENTS.md: the domain's `machines.ts` and `steps.ts`; telemetry notes: each operation's own file and a `telemetry/` module | **one file per operation** (Aaron, 15 November 2026) | decision 3 records it |
 | 10 | `claims.md` is generated | AGENTS.md: by `pnpm generate`; the code: by `pnpm claims`, tested in rung 5 | the code, until the move makes AGENTS.md true | — |
 | 11 | how many operations | 12 (blueprint README, sdk, cli, core tests); 16 + 4 (core); 4 platform (world); declared 23 to 26 | the blueprint's `domains.ts` | no doc states a count again; the generated index shows it |
 | 12 | Core reaches a site | world, core and platform: not proven | roadmap 1.4: Done, `run-138efc` | — |
@@ -211,7 +211,7 @@ dated form wins. A doc that disagrees is fixed, not the other way round.
 | 15 | lifecycle rules | roadmap and world README | the roadmap | the world README keeps only the map from rule to file |
 | 16 | the hosting choices | roadmap "Hosting" and the platform README | the roadmap | — |
 | 17 | a document's hash | blueprint decision 47: unsalted keccak of the Payment Entry; roadmap "Every payment settles one sealed document": salted | **salted** (Aaron, 15 November 2026) | the blueprint session amends decision 47 |
-| 18 | reject under an agreement; Escrow | roadmap: a payer may reject; Escrow stays as on `master`. invoice-ledger: no reject; Escrow becomes the held payment | **Aaron**, in the contracts thread | a roadmap decision changes only with his yes |
+| 18 | reject under an agreement; Escrow | roadmap: a payer may reject; Escrow stays as on `master`. invoice-ledger: no reject; Escrow becomes the held payment | **the invoice ledger** (Aaron, 15 November 2026: no reject; Escrow becomes the held payment) | the contracts thread rewrites the roadmap decision |
 | 19 | whether to restore in place | blueprint decision 18: never; roadmap "One runner, one world": reset in place as plumbing | both; decision 18's comment says it governs the operation, not the runner's plumbing | — |
 | 20 | world create split | roadmap 1.3: 45.8 s deploy, 46.5 s index; world-speed: 60.6 s and 25.7 s | both, as different runs | timings belong in records, not prose; the prose copies are removed |
 | 21 | Aaron's agreed rules outside the roadmap | blueprint 26 (founding with a board), 53 (the chain's budget is the only gate), answers 1–3 (7 days and 5 worlds, the faucet, "the books coming out right is the rule"); invoice-ledger's Companies House signers | `docs/decisions.md` once moved | they are promises, so they belong with the others |
@@ -321,7 +321,17 @@ waits for decision 3.
 
 **Answered by Aaron, 15 November 2026:** "i agree with the rest". All eight questions below are agreed as recommended.
 On row 17 of section 4 he answered "salted": the salted hash of the roadmap's "Every payment settles one sealed
-document" wins over blueprint decision 47. The blueprint session amends 47. Rows 9 and 18 are still open.
+document" wins over blueprint decision 47. The blueprint session amends 47.
+
+Later the same day he settled the two rows left open:
+
+- **Row 9: one file per operation** ("B"). Each domain has a generated `index.md`, `values.ts` (shared values, and
+  the events and refusals more than one operation uses), `machines.ts`, and one file per operation declaring
+  everything about it. There is no domain `steps.ts`. Decision 3 records it; AGENTS.md's "Who owns each fact" follows.
+- **Row 18: (b), and the Escrow wording.** A payer may no longer reject an invoice presented under an agreement; the
+  cap per period, pause and end are the payer's protection. Escrow becomes the held payment of the invoice ledger
+  (shape agreed 15 November 2026), still parked as a build item. The contracts thread writes both into the
+  roadmap's "Every payment settles one sealed document".
 
 1. **What proves a step, in the docs.** AGENTS.md says run records; proof-and-telemetry recommends CI verdicts, but
    decisions 1 and 2 of that note are not yet agreed. *Recommend:* the docs use the roadmap's current Proof column (a
