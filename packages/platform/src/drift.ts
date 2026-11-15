@@ -6,7 +6,7 @@
 //    missing, a new version of the tunnel's ingress, an inbound rule added to the security group, a machine resized.
 // 2. Code: for every container the platform recorded, `docker diff` against its image (src/code-drift.ts). Alchemy's
 //    container read reports the image a container was made from, not what is in it now, so code replaced inside a
-//    running container is invisible to step 1, as Worker code replaced by hand was in spikes/state.
+//    running container is invisible to step 1, as Worker code replaced by hand was to the state spike (docs/account-resources.md).
 //
 // Alchemy's verdicts in step 1 are judged by src/drift-policy.ts: values a resource changes by itself are forgiven
 // (an EBS volume's available/in-use), and a deploy that did not finish counts as drift.

@@ -15,7 +15,7 @@ time. Its spans and logs judge it once it is instrumented (roadmap item 4.7). It
 Judge one call from its record: its events, its declared spans, its deciding logs, its machine's path and its timings.
 
 - Payload: `trace`.
-- Spans: `check.call.read` (database) → `check.call.events` (container) → `check.call.spans` (container) → `check.call.logs` (container) → `check.call.path` (container) → `check.call.timings` (container).
+- Spans: `check.call.read` (database) → `check.call.events` (compute) → `check.call.spans` (compute) → `check.call.logs` (compute) → `check.call.path` (compute) → `check.call.timings` (compute).
 - Logs: `check.call.failed` (trace, check).
 - Budget: 500 ms, a target, provisional. Basis: docs/design/blueprint.md, part 3: 30 s of a run's critical path for every call's checks; a first guess per call.
 
@@ -24,7 +24,7 @@ Judge one call from its record: its events, its declared spans, its deciding log
 Read the run's telemetry back from the sink: nothing undeclared arrived, nothing was dropped, and as many records arrived as were sent.
 
 - Payload: `run`.
-- Spans: `check.confirm.read` (poll) → `check.confirm.compare` (container).
+- Spans: `check.confirm.read` (poll) → `check.confirm.compare` (compute).
 - Logs: `check.confirm.missing` (run, signal); `check.confirm.undeclared` (run, signal).
 - Budget: 60,000 ms, a target, provisional. Basis: docs/design/blueprint.md, part 3: 60 s, off the critical path unless ingest is late.
 
@@ -33,7 +33,7 @@ Read the run's telemetry back from the sink: nothing undeclared arrived, nothing
 Clear the gate's rungs in order, stopping at the first that fails.
 
 - Payload: none.
-- Spans: `check.gate.shape` (container) → `check.gate.format` (container) → `check.gate.generate` (container) → `check.gate.seed` (container) → `check.gate.lint` (container) → `check.gate.types` (container) → `check.gate.test` (container) → `check.gate.delta` (container).
+- Spans: `check.gate.shape` (compute) → `check.gate.format` (compute) → `check.gate.generate` (compute) → `check.gate.seed` (compute) → `check.gate.lint` (compute) → `check.gate.types` (compute) → `check.gate.test` (compute) → `check.gate.delta` (compute).
 - Logs: `check.gate.failed` (rung).
 - Budget: 180,000 ms, a target, provisional. Basis: docs/design/blueprint.md, part 3: 3 minutes for the job; `check` run 43710528109 on master took 2 min 39 s.
 
@@ -42,6 +42,6 @@ Clear the gate's rungs in order, stopping at the first that fails.
 Run the generic checks and measures on what a deployed stage records; a measure that got worse is a finding.
 
 - Payload: `stage`.
-- Spans: `check.watch.read` (poll) → `check.watch.compare` (container).
+- Spans: `check.watch.read` (poll) → `check.watch.compare` (compute).
 - Logs: `check.watch.worse` (stage, measure).
 - Budget: 60,000 ms, a target, provisional. Basis: off every path (docs/design/blueprint.md, part 3); a first guess.

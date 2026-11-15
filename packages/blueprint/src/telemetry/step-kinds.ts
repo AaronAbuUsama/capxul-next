@@ -14,6 +14,7 @@ export const StepKindValue = Schema.Literals([
   "deploy",
   "branch",
   "container",
+  "compute",
   "restore",
   "poll",
 ]);
@@ -30,6 +31,8 @@ export const STEP_KINDS: { readonly [Kind in StepKind]: string } = {
   deploy: "deploying or destroying a stage's workers and objects",
   branch: "a Neon branch: made, reset or deleted",
   container: "a container of ours doing its own work: an index stopped or resumed, a CI job's own process",
+  compute:
+    "work done in-process, touching nothing outside: a gate's rung, a call's checks, a ratchet's count, a verdict written",
   restore: "putting saved state back: a snapshot of a chain, a site or a database",
   poll: "asking again until something outside is ready: an endpoint answering, a site up, records arrived",
 };
@@ -44,6 +47,7 @@ export const StepKind: { readonly [Kind in StepKind]: Kind } = {
   deploy: "deploy",
   branch: "branch",
   container: "container",
+  compute: "compute",
   restore: "restore",
   poll: "poll",
 };

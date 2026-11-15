@@ -76,7 +76,7 @@ const NAMESPACES: { readonly [namespace: string]: ReadonlyArray<string> } = {
     CallCheck CheckLayer CheckName ClusterRefusal ItemCount JourneyName JourneyStep LeftBehind Measure NotCounted
     PointStep PreparePart RatchetName Rung RunId RunPart Shard ShardCount StageName StartingPointName TakeRefusal
     Trusted checkCall checkConfirm checkGate checkWatch clusterDown clusterShow clusterUp journeyRun ratchetCount
-    runPrepare runRun runTeardown runVerdict siteReset siteSave siteTake startingPointMake work worldDestroy
+    runPrepare runStart runTeardown runVerdict siteReset siteSave siteTake startingPointMake work worldDestroy
     worldRenew worldReset worldSweep
   `),
   Reports: named(`
