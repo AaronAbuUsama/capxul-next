@@ -6,7 +6,15 @@ import * as Arr from "effect/Array";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
 import * as Str from "effect/String";
-import { header, renderAbi, renderSeeded, renderSite, renderSitePackage, type Seeded } from "../src/render.ts";
+import {
+  generatedFrom,
+  header,
+  renderAbi,
+  renderSeeded,
+  renderSite,
+  renderSitePackage,
+  type Seeded,
+} from "../src/render.ts";
 import { OUTPUTS } from "../src/sources.ts";
 
 const literal = (value: unknown): string => JSON.stringify(value, null, 2);
@@ -73,7 +81,12 @@ test("the site's names are Python constants", () => {
 test("the committed generated files start with their own header", () => {
   for (const [name, output] of Rec.toEntries(OUTPUTS)) {
     const text = readFileSync(`${import.meta.dirname}/../../../${output.path}`, "utf8");
-    const comment = Str.endsWith(".py")(output.path) ? "#" : "//";
+    // JSON has no comments: a generated JSON file says so in its first field, `generated`.
+    if (Str.endsWith(".json")(output.path)) {
+      assert.equal(Str.split(text, "\n")[1], `  "generated": ${JSON.stringify(generatedFrom(name))},`, output.path);
+      continue;
+    }
+    const comment = Str.endsWith(".py")(output.path) ? "#" : Str.endsWith(".md")(output.path) ? "<!--" : "//";
     assert.equal(firstLine(text), firstLine(header(name, comment)), output.path);
   }
 });

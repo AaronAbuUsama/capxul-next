@@ -29,7 +29,11 @@ test("every page in generated/ is what the sources render, and no other page is 
     const onDisk = readFileSync(new URL(path, BLUEPRINT), "utf8");
     assert.equal(onDisk, text, `packages/blueprint/${path} is out of date: run \`pnpm claims\``);
   }
-  const pages = Arr.map(readdirSync(new URL("generated/", BLUEPRINT)), (name) => `generated/${name}`);
+  // The glossary's page and the count of its old words are `pnpm generate`'s (packages/generate), not `pnpm claims`'s.
+  const pages = Arr.filter(
+    Arr.map(readdirSync(new URL("generated/", BLUEPRINT)), (name) => `generated/${name}`),
+    (page) => !Arr.contains(["generated/glossary.md", "generated/old-words.json"], page),
+  );
   assert.deepEqual(
     Arr.sort(pages, Order.String),
     Arr.sort(

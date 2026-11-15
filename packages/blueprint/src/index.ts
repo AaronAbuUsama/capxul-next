@@ -76,6 +76,7 @@ export { MadeCall } from "./starting-points/facts.ts";
 export * as Chain from "./common/chain/chain.ts";
 export * as Site from "./common/site.ts";
 export { allClaims } from "./generated/promises.ts";
+export { glossary } from "./glossary.ts";
 export {
   Approvals,
   Board,

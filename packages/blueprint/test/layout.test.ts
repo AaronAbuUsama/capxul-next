@@ -20,7 +20,7 @@ const THING_FILES = ["values.ts", "events.ts", "refusals.ts", "lifecycle.ts", "e
 
 /** The fixed files of src/, by folder. `things/` and `generated/` are checked by their own rules. */
 const FIXED: { readonly [folder: string]: ReadonlyArray<string> } = {
-  "": ["index.ts"],
+  "": ["index.ts", "glossary.ts"],
   "common/": ["values.ts", "ids.ts", "refusals.ts", "site.ts", "chain/chain.ts", "chain/logs.ts", "chain/reads.ts"],
   "starting-points/": ["points.ts", "facts.ts"],
   "protocol/": ["paths.ts", "headers.ts", "sign-in.ts", "trace.ts"],
@@ -43,7 +43,7 @@ const misfit = (file: string): string | null => {
       : "src/generated/ holds only files `pnpm generate` writes, each saying so in its first line";
   for (const [folder, names] of Rec.toEntries(FIXED))
     if (Str.startsWith(folder)(file) && Arr.contains(names, Str.slice(folder.length)(file))) return null;
-  return "src/ holds index.ts, things/, common/, starting-points/, protocol/ and generated/, each with its own files";
+  return "src/ holds index.ts, glossary.ts, things/, common/, starting-points/, protocol/ and generated/, each with its own files";
 };
 
 test("every file under src/ fits the layout", () => {
