@@ -6,11 +6,11 @@ import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import { durationOf, mintsOf } from "../src/cli/commands.ts";
-import { LifetimeTooLong } from "../src/failures.ts";
-import { describeFailure } from "../src/lifecycle/describe.ts";
-import { checkName, checkOwner } from "../src/lifecycle/validate.ts";
-import { keptUntil } from "../src/lifecycle/world.ts";
-import { sameResources } from "../src/proofs/support.ts";
+import { LifetimeTooLong } from "../src/common/failures.ts";
+import { describeFailure } from "../src/common/describe.ts";
+import { checkName, checkOwner } from "../src/things/world/names.ts";
+import { keptUntil } from "../src/things/world/take-down.ts";
+import { sameResources } from "../src/proofs/support/conclude.ts";
 
 const now = DateTime.makeUnsafe("2026-11-13T10:00:00.000Z");
 const failed = <A, E>(effect: Effect.Effect<A, E>): boolean => effect.pipe(Effect.runSyncExit, Exit.isFailure);
