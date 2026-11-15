@@ -4,16 +4,24 @@
 // the public test mnemonic's accounts (the blueprint's `CAST_KEYS`): 4 to 8, clear of the faucet's operator (0),
 // Companies House's Directors (0 to 2), its claim service (3) and the bundler's keys (9 and 10).
 //
+// Beside them, every journey the blueprint declares has a cast of its own (roadmap step 4.11, "a cast per journey";
+// packages/blueprint, src/starting-points/cast.ts), so journeys run side by side in one world without sharing a
+// person, a Safe or its nonce: dana-j1, eli-j1, ... olga-j8, signing with the test mnemonic's accounts 28 to 88.
+//
 // Every transaction that makes a world is sent with the chain's clock set just after the seed's last block (the
 // create's `atSeed`), so the world's own start block, mined last, can be any time from `SETUP_ROOM_SECONDS` after the
 // seed to host time.
+import { Cast, Values } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
+import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
+import { mnemonicToAccount, privateKeyToAccount } from "viem/accounts";
+import { toHex } from "viem";
 import { addressOf, callData } from "../../parts/chain/abi.ts";
 import { CLAIMS, CONTRACTS } from "../../parts/chain/contracts.ts";
-import { mintAll, type Call } from "../../parts/chain/faucet.ts";
+import { FAUCET_OPERATOR, TEST_USDC, mintCall, type Call } from "../../parts/chain/faucet.ts";
 import { PlatformFailed } from "../../common/failures.ts";
 import { describeFailure } from "../../common/describe.ts";
 
@@ -32,11 +40,47 @@ export const CAST: ReadonlyArray<Person> = [
   { person: "olga", signer: "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f", claimed: true },
 ];
 
+/** The company a journey's story names: its people do not depend on it, only its handle does. */
+const COMPANY = "northwind";
+
+/** The path of the test mnemonic's accounts, without the account's own index. */
+const ACCOUNTS_PATH = "m/44'/60'/0'/0";
+
+/**
+ * The addresses of the test mnemonic's accounts at `indexes`. The mnemonic's seed is worked out once (its key
+ * stretching is most of the cost), and each account is derived from the key of their common path.
+ */
+export const signersAt = (indexes: ReadonlyArray<number>) =>
+  Effect.suspend(() => {
+    const parent = mnemonicToAccount(Values.CAST_KEYS.mnemonic, { path: ACCOUNTS_PATH }).getHdKey();
+    return Effect.forEach(indexes, (index) =>
+      Effect.map(
+        Effect.fromNullishOr(parent.deriveChild(index).privateKey),
+        (key): string => privateKeyToAccount(toHex(key)).address,
+      ),
+    );
+  }).pipe(Effect.orDie);
+
+/**
+ * Every journey's own cast, as the blueprint declares it (`Cast.JOURNEY_KEYS`, `Cast.journeyCast`), so journeys can
+ * run side by side in one world: `<role>-j<n>` for each role of journey `n`, signing with the test mnemonic's
+ * account the blueprint gives them, a Safe claimed and funded for every role that holds one.
+ */
+export const journeyPeople = Effect.fn("world.cast.journeys")(function* () {
+  const people = Arr.flatMap(Cast.JOURNEY_KEYS, (key) => Cast.journeyCast(key, COMPANY).people);
+  const signers = yield* signersAt(Arr.map(people, (each) => each.keyIndex));
+  return Arr.zipWith(people, signers, (each, signer): Person => ({
+    person: each.person,
+    signer,
+    claimed: each.claimed,
+  }));
+});
+
 /** What each claimed Safe is given from the faucet: 10,000 USDC, in the token's smallest unit. */
 export const CAST_FUNDS = 10_000_000_000n;
 
 /** A person's email, from which Companies House derives their Safe. */
-export const emailOf = (person: string): string => `${person}@cast.test`;
+export const emailOf = (person: string): string => Cast.castEmail(person);
 
 /** The cast as the world holds it: the blueprint's `CastMember`. */
 export interface Member {
@@ -57,21 +101,46 @@ const failed = (step: PlatformFailed["step"]) => (cause: unknown) =>
 const Hex = Schema.String.check(Schema.isPattern(/^0x[0-9a-fA-F]*$/));
 const Receipt = Schema.Struct({ status: Schema.String });
 
-/** Sends one transaction from an unlocked test account and insists that it succeeded. */
-const sent = <E, R>(call: Call<E, R>, transaction: Record<string, string>) =>
+/** A JSON-RPC quantity as a number of the chain's. */
+const quantity = <E, R>(answer: Effect.Effect<unknown, E, R>) =>
+  answer.pipe(Effect.flatMap(Schema.decodeUnknownEffect(Hex)), Effect.map(BigInt));
+
+/** Insists that a transaction was mined and succeeded. */
+const succeeded = <E, R>(call: Call<E, R>, hash: string) =>
   Effect.gen(function* () {
-    const hash = yield* call("eth_sendTransaction", [transaction]).pipe(
-      Effect.flatMap(Schema.decodeUnknownEffect(Hex)),
-    );
     const receipt = yield* call("eth_getTransactionReceipt", [hash]).pipe(
       Effect.flatMap(Schema.decodeUnknownEffect(Receipt)),
       Effect.retry(Schedule.max([Schedule.spaced("500 millis"), Schedule.recurs(20)])),
     );
     if (receipt.status !== "0x1") return yield* failed("cast")(`${hash} reverted`);
     return hash;
-  }).pipe(Effect.mapError(failed("cast")));
+  });
 
-/** The Safe Companies House derives for an email. */
+/** How many transactions of one sender are in flight at once. */
+const IN_FLIGHT = 16;
+
+/**
+ * Sends every transaction of one unlocked test account side by side and insists that each succeeded. Each is given
+ * its nonce, counted from the account's next one, so that none waits for another's receipt: the chain takes them in
+ * any order and mines each once the ones before it are in.
+ */
+const sendAll = Effect.fn("world.cast.send")(
+  function* <E, R>(call: Call<E, R>, from: string, transactions: ReadonlyArray<Record<string, string>>) {
+    const next = yield* quantity(call("eth_getTransactionCount", [from, "pending"]));
+    return yield* Effect.forEach(
+      transactions,
+      (transaction, index) =>
+        call("eth_sendTransaction", [{ ...transaction, from, nonce: `0x${(next + BigInt(index)).toString(16)}` }]).pipe(
+          Effect.flatMap(Schema.decodeUnknownEffect(Hex)),
+          Effect.flatMap((hash) => succeeded(call, hash)),
+        ),
+      { concurrency: IN_FLIGHT },
+    );
+  },
+  Effect.mapError(failed("cast")),
+);
+
+/** The Safe Companies House derives for an email, whether or not it is claimed yet. */
 const safeOf = <E, R>(call: Call<E, R>, email: string) =>
   call("eth_call", [
     {
@@ -88,45 +157,67 @@ const safeOf = <E, R>(call: Call<E, R>, email: string) =>
     Effect.mapBoth({ onSuccess: addressOf, onFailure: failed("cast") }),
   );
 
-/** Claims one person's Safe through Companies House's claim role and gives back its address. */
-const claim = <E, R>(call: Call<E, R>, person: Person) =>
-  Effect.gen(function* () {
-    const email = emailOf(person.person);
-    const inner = callData(CLAIM, [{ string: CLAIMS.namespace }, { string: email }, { address: person.signer }]);
-    yield* sent(call, {
-      from: CLAIMS.service,
-      to: CLAIMS.roles,
-      gas: "0x1e8480",
-      data: callData(EXEC_WITH_ROLE, [
-        { address: CLAIMS.claimer },
-        { uint: 0n },
-        { bytes: inner },
-        { uint: 1n },
-        { bytes32: CLAIMS.role },
-        { bool: true },
-      ]),
-    });
-    return yield* safeOf(call, email);
-  });
+/** The transaction that gives one person their Safe through Companies House's role for it, sent by its service. */
+const claimOf = (member: Member): Record<string, string> => ({
+  to: CLAIMS.roles,
+  gas: "0x1e8480",
+  data: callData(EXEC_WITH_ROLE, [
+    { address: CLAIMS.claimer },
+    { uint: 0n },
+    { bytes: callData(CLAIM, [{ string: CLAIMS.namespace }, { string: member.email }, { address: member.signer }]) },
+    { uint: 1n },
+    { bytes32: CLAIMS.role },
+    { bool: true },
+  ]),
+});
 
-/** Claims the cast's Safes, funds each from the faucet and gives back the cast as the world holds it. */
+/** The faucet's transaction that gives one Safe its funds. */
+const mintOf = (safe: string): Record<string, string> => ({
+  to: TEST_USDC,
+  gas: "0x30d40",
+  data: mintCall({ to: safe, amount: CAST_FUNDS }),
+});
+
+/** How many persons are read at once. */
+const READS = 16;
+
+/**
+ * Claims the Safes of the world's cast and of every journey's, funds each from the faucet and gives back the cast as
+ * the world holds it. A Safe's address depends only on its email, so every Safe is read first; then the claims (all
+ * from Companies House's service) and the mints to the Safes (all from the faucet's operator) go side by side, each sender's
+ * transactions at once.
+ */
 export const makeCast = Effect.fn("platform.cast")(function* <E, R>(call: Call<E, R>) {
-  const members = yield* Effect.forEach(CAST, (person) =>
-    Effect.map(
-      person.claimed ? Effect.map(claim(call, person), (safe): string | null => safe) : Effect.succeed(null),
-      (safe) => ({
-        person: person.person,
-        email: emailOf(person.person),
-        signer: person.signer,
-        safe,
-      }),
-    ),
+  const began = yield* Clock.currentTimeMillis;
+  const everyone = [...CAST, ...(yield* journeyPeople())];
+  const members = yield* Effect.forEach(
+    everyone,
+    (person) =>
+      Effect.map(
+        person.claimed
+          ? Effect.map(safeOf(call, emailOf(person.person)), (safe): string | null => safe)
+          : Effect.succeed(null),
+        (safe): Member => ({ person: person.person, email: emailOf(person.person), signer: person.signer, safe }),
+      ),
+    { concurrency: READS },
   );
-  const safes = Arr.flatMap(members, (member) => (member.safe === null ? [] : [member.safe]));
-  yield* mintAll(
-    call,
-    Arr.map(safes, (to) => ({ to, amount: CAST_FUNDS })),
-  ).pipe(Effect.mapError(failed("cast")));
+  const claimed = Arr.filter(members, (member) => member.safe !== null);
+  yield* Effect.all(
+    [
+      sendAll(call, CLAIMS.service, Arr.map(claimed, claimOf)),
+      sendAll(
+        call,
+        FAUCET_OPERATOR,
+        Arr.flatMap(claimed, (member) => (member.safe === null ? [] : [mintOf(member.safe)])),
+      ),
+    ],
+    { concurrency: 2 },
+  );
+  const tookMs = (yield* Clock.currentTimeMillis) - began;
+  yield* Effect.logInfo(
+    `the cast: ${members.length} persons, ${claimed.length} Safes claimed and funded in ${tookMs} ms`,
+  );
+  yield* Effect.annotateCurrentSpan({ persons: members.length, safes: claimed.length, tookMs });
   return members satisfies ReadonlyArray<Member>;
 });
 
