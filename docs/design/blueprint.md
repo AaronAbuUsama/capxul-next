@@ -745,3 +745,45 @@ exists (phase 8), existing operations are reshaped and renamed directly, with no
 author updates the journeys in the same lane. The aim is to cut over as quickly as possible: work merges fast into its
 slice, and a slice reaches `master` only when every check passes (`gate` and `world`). "Side by side, then flip, then
 retire" applies again from the first real caller.
+
+## 15. Backlog: ideas routed from the pull-request triage (15 November 2026)
+
+Routed by the conductor from the triage of the old wave-0 pull requests (`docs/design/pr-triage.md` on branch
+`design/pr-triage`, draft #285), so that none is lost when those pull requests close. Nothing here is built yet; each is
+placed where it fits, in the glossary's words.
+
+**Blueprint candidates** (each lands with its thing in the climb, C.1, or as a later delta):
+
+| # | Idea | Thing | Source |
+|---|---|---|---|
+| 1 | `approval.show` and `approval.decline`, with the event `approval_declined`: moves of the approval's lifecycle | approval | #166 |
+| 2 | `approval.sign` never sends twice: after a lost answer, the send is found by its expected hash and answers `Sent` or `AlreadySent`; a bundler rejection is a declared refusal, `BundlerRefused` | approval | #127, #140 |
+| 3 | A company approval ends by what used its Safe nonce (executed, failed, rejected or replaced), and the remaining approvals are withdrawn | approval (its lifecycle) | #106 |
+| 4 | `world.clock.warp`'s refusals `WarpFollowerFailed` and `WarpInProgress`, and warping stops at the api's own due times | clock | #176 |
+| 5 | `IndexBehind`: a read from the index answers "not yet" until the index reaches the asked block; it needs a `wait` span | common (chain reads) | #170 |
+
+**Parity journeys** (the journey author writes them when their things are climbed or built):
+
+| # | Journey | Source |
+|---|---|---|
+| 6 | J17 outside money: a Movement with a Memo keyed by its receipt ordinal, robust to reorganisations | #124, #172, #163 |
+| 7 | J23 scheduled payments: paid on its day exactly once, refused `NotDue` before it (streaming pay stays dropped) | #128, #98 |
+| 8 | J6 annotate: `activity.annotate`, checked against the site's chart, refusal `AccountNotInChart` | #94 |
+| 9 | J21 redelivered exactly once: a fault control for test worlds, as a pipeline operation | #102 |
+
+**Roadmap candidates** (brought to Aaron when the restack next opens):
+
+| # | Idea | Source |
+|---|---|---|
+| 10 | A world-time-only lint rule (no host time where world time is meant), with a ratchet | #151, #167 |
+| 11 | The site joins the trace through a W3C `traceparent`, its format generated from the blueprint's `TraceId` | #148 |
+
+**Fixes for the sites lane** (recorded here; not the blueprint's to build):
+
+| # | Fix | Source |
+|---|---|---|
+| 12 | The site service resumes a `removing` site after a restart | #229 |
+| 13 | `SiteDoor.clock` answers asynchronously, so it does not hit 524 on a busy bench | triage |
+| 14 | The CLI's world create and snapshot restore exceed Node fetch's 300 s limit (decision 8's CLI work covers it) | triage |
+
+#145 (general escrow) stays open as the reference for the escrow revisit.
