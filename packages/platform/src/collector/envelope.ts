@@ -19,9 +19,12 @@ export const STAMPED_KEYS: ReadonlyArray<string> = Rec.values(STAMPED);
 
 /** On a run's resource (the runner's): whether it may prove, and which code and CI run made it. */
 export const RUN_ATTRIBUTES = {
-  /** `true` for a run in CI, `false` from an agent's container (a boolean attribute). */
+  /** True only for a run in GitHub Actions; a run from an agent's container is never trusted. */
   trusted: "capxul.run.trusted",
+  /** The commit the code was built from. */
   revision: "vcs.ref.head.revision",
+  /** The branch it ran on. */
   ref: "vcs.ref.head.name",
+  /** The GitHub Actions run, in CI. */
   pipelineRun: "cicd.pipeline.run.id",
 } as const;

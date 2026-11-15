@@ -57,3 +57,14 @@ export const collectorBinding = (stage: string, claim: Redacted.Redacted) =>
   Effect.map(Cloudflare.Worker.ref(COLLECTOR, { stack: STACK, stage }), (worker) =>
     Cloudflare.WorkerEntrypoint(worker, { props: { [CLAIM_PROP]: Redacted.value(claim) } }),
   );
+
+export {
+  exportFromConfig,
+  exportLayer,
+  platformTelemetry,
+  PRODUCERS,
+  RunAttributes,
+  type ExportLayer,
+  type ExportOptions,
+  type Producer,
+} from "./telemetry.ts";
