@@ -1,4 +1,8 @@
-"""A site's Scheduled Job Types and the site's own time."""
+"""A site's Scheduled Job Types and the site's own time.
+
+A new site's jobs must fall due on their cadence from the site's now. The setup wizard (capxul/setup.py) and joining a
+world (capxul/clock.py) both run `settle_jobs`, which says why; tests/test_scheduler.py checks it. Why the daily job's
+type is renamed to its declared name is `clock.name_daily_job`'s docstring."""
 import frappe
 
 

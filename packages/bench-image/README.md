@@ -1,8 +1,8 @@
 # bench-image
 
-The image the hosted bench runs, and the proof that it serves a production site (task `m3b-bench-image`, decision
-`sites.bench-image`). It replaces, for hosting, the development bench the test sites used on `main` (`spikes/skeleton/frappe`):
-same apps, but pinned, built once, and run as separate production processes.
+The image the hosted bench runs, and the proof that it serves a production site. It replaces, for hosting, the
+development bench the test sites used on `main` (`spikes/skeleton/frappe`): same apps, but pinned, built once, and run
+as separate production processes.
 
 ```bash
 packages/bench-image/bin/build.sh capxul-bench:dev     # build (about 15 minutes cold); writes var/bench-image/image.json
@@ -32,8 +32,7 @@ an empty secrets file as missing, so a run cut short is safe to repeat.
 | `bin/new-site.sh` | Creates a site with every app, migrates it (the names and privacy hooks run), turns the scheduler on; safe to re-run |
 | `bin/check.sh` | The proof, below. Writes `var/bench-image/check.json` |
 
-`CAPXUL_APP_DIR` points the build at the capxul app. By default it is `packages/frappe-app` (the app's package, from
-`m2-graduate-spike`), or the spike's copy while that package has not landed.
+`CAPXUL_APP_DIR` points the build at the capxul app; by default it is `packages/frappe-app`.
 
 ## What the check proves
 
@@ -46,9 +45,5 @@ through nginx with the site picked from the Host header:
   and a wrong one is refused; the desk, its built stylesheet, the capxul app's own script and the CRM front end are
   served; a capxul method answers as the signed-in person; the socket server answers its handshake;
 - a job on the short queue and one on the long queue run and return; the scheduler is on for the site;
-- nothing reports outward (`sites.privacy`): telemetry, the update check, the CRM's first-run screen and enrichment are off;
+- nothing reports outward: telemetry, the update check, the CRM's first-run screen and enrichment are off;
 - after a restart of every container the site still answers and its assets are still served.
-
-## Before it runs on the machine
-
-See `docs/mission/sites-host/bench-image.md` for what is still to do before the sites machine runs this image.

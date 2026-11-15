@@ -4,6 +4,9 @@
 // group's middlewares in the order they were added, each around the last, so sign-in is outermost: a call refused
 // at sign-in never reaches `Telemetry`. So whichever middleware runs first opens the call's span (`measured`), and
 // any middleware inside it joins that span. Either order gives each call exactly one span named after its operation.
+//
+// Inside a Worker the clock moves only on I/O, so a span with none, such as an empty handler's, measures 0 ms
+// (spikes/pipeline).
 import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
