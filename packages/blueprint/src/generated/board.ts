@@ -5,26 +5,26 @@
 // glossary's renames (roadmap item 3.8).
 import * as RpcGroup from "effect/rpc/RpcGroup";
 import type { ClaimsOf } from "../starting-points/points.ts";
-import * as DirectorList from "../things/director/list.ts";
-import * as DirectorAdd from "../things/director/add.ts";
-import * as BoardSetThreshold from "../things/board/set-threshold.ts";
+import * as DirectorVerbsList from "../things/director/verbs/list.ts";
+import * as DirectorVerbsAdd from "../things/director/verbs/add.ts";
+import * as BoardVerbsSetThreshold from "../things/board/verbs/set-threshold.ts";
 
 export { Seats, BoardAction, BoardChange } from "../things/board/values.ts";
 export { BoardChangeProposed } from "../things/board/events.ts";
-export { Director, directorList } from "../things/director/list.ts";
-export { directorAdd } from "../things/director/add.ts";
-export { thresholdSet } from "../things/board/set-threshold.ts";
+export { Director, directorList } from "../things/director/verbs/list.ts";
+export { directorAdd } from "../things/director/verbs/add.ts";
+export { thresholdSet } from "../things/board/verbs/set-threshold.ts";
 
 /** Its operations, by name. */
 export const operations = {
-  "org.director.list": DirectorList.directorList,
-  "org.director.add": DirectorAdd.directorAdd,
-  "org.threshold.set": BoardSetThreshold.thresholdSet,
+  "org.director.list": DirectorVerbsList.directorList,
+  "org.director.add": DirectorVerbsAdd.directorAdd,
+  "org.threshold.set": BoardVerbsSetThreshold.thresholdSet,
 } as const;
 
 /** Its operations that move no thing with a lifecycle, each with why: each such verb's `stateless`. */
 export const stateless: { readonly [Name in keyof typeof operations]?: string } = {
-  "org.director.list": DirectorList.stateless,
+  "org.director.list": DirectorVerbsList.stateless,
 };
 
 /** Its machines, by name: its things' lifecycles. */
@@ -35,14 +35,14 @@ export const platformRpcs = RpcGroup.make();
 
 /** What a world's Core serves of it, through the world's door (`WorldRpcs`). */
 export const worldRpcs = RpcGroup.make(
-  DirectorList.directorList.rpc,
-  DirectorAdd.directorAdd.rpc,
-  BoardSetThreshold.thresholdSet.rpc,
+  DirectorVerbsList.directorList.rpc,
+  DirectorVerbsAdd.directorAdd.rpc,
+  BoardVerbsSetThreshold.thresholdSet.rpc,
 );
 
 /** The promises of each of its operations: each verb's `promises`. */
 export const claims: { readonly [Name in keyof typeof operations]: ClaimsOf } = {
-  "org.director.list": DirectorList.promises,
-  "org.director.add": DirectorAdd.promises,
-  "org.threshold.set": BoardSetThreshold.promises,
+  "org.director.list": DirectorVerbsList.promises,
+  "org.director.add": DirectorVerbsAdd.promises,
+  "org.threshold.set": BoardVerbsSetThreshold.promises,
 };

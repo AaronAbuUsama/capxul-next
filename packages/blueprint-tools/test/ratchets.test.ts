@@ -84,9 +84,9 @@ const verb = (name: string, operation: string, stateless: boolean) =>
 test("the scorecard marks each thing against each format and ratchet", () => {
   const layout = layoutOf([
     { path: "ticket/lifecycle.ts", text: 'export const Ticket = Machine.make({ name: "ticket" });\n' },
-    { path: "ticket/open.ts", text: verb("open", "ticket.open", false) },
-    { path: "log/read.ts", text: verb("read", "log.read", true) },
-    { path: "note/add.ts", text: verb("add", "note.add", false) },
+    { path: "ticket/verbs/open.ts", text: verb("open", "ticket.open", false) },
+    { path: "log/verbs/read.ts", text: verb("read", "log.read", true) },
+    { path: "note/verbs/add.ts", text: verb("add", "note.add", false) },
   ]);
   const machine: Format = {
     missing: (operation) => (operation === "note.add" ? ["moves nothing"] : []),
@@ -95,7 +95,7 @@ test("the scorecard marks each thing against each format and ratchet", () => {
   const text = renderScorecard({
     layout,
     formats: { machine },
-    rawSchemaFiles: ["packages/blueprint/src/things/note/add.ts"],
+    rawSchemaFiles: ["packages/blueprint/src/things/note/verbs/add.ts"],
     provisional: ["ticket.open"],
     tallies: tally(registry, made),
   });

@@ -26,7 +26,7 @@ These hold for every call of every journey, so no claim repeats them:
 
 ## The things
 
-Each thing is a folder, `src/things/<thing>/`, and each of its verbs a file there. An operation keeps its name of
+Each thing is a folder, `src/things/<thing>/`, and each of its verbs a file in its `verbs/`. An operation keeps its name of
 today until the glossary's renames (roadmap item 3.8).
 
 | Thing | Verb | Operation | Served by |
