@@ -18,7 +18,7 @@ OPERATOR = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 TOKEN = "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6"
 HOLDER = "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"
 EMPTY_ANVIL = ["anvil", "--host", "0.0.0.0", "--port", "8545", "--chain-id", "84532", "--no-request-size-limit"]
-USDC_CODE = (HERE.parent.parent / "packages/world/src/chain/test-usdc.hex").read_text().strip()
+USDC_CODE = (HERE.parent.parent / "packages/world/src/parts/chain/test-usdc.hex").read_text().strip()
 
 
 def word(hex_or_int):
