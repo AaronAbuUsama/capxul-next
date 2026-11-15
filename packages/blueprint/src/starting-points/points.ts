@@ -1,5 +1,6 @@
 // The starting worlds the thin line's journeys begin from, each declared here once and named by the promises whose
-// state it is, by import. Every one is made through the door, by the thin line's own operations, from the one before
+// state it is, by import. From `founded` on, each is made for each journey with the journey's own cast and company
+// (`parameters`; cast.ts), by its steps, so journeys side by side never share a company (roadmap step 4.11). Every one is made through the door, by the thin line's own operations, from the one before
 // it. Most are then saved as a template snapshot in the runner's one world, which is reset in place to it before a
 // journey that starts there; the rest are made by their steps for each journey (docs/decisions.md, 27 and 39;
 // docs/roadmap.md, "One runner, one world"). Either way the journey is handed the world's facts, which it reads with
@@ -11,10 +12,10 @@ import { BRIGHTSIDE, INVOICE_AMOUNT, REPORTS } from "../common/site.ts";
 import type { OperationName } from "../index.ts";
 import { examples, facts } from "./facts.ts";
 
-/** One step of making a starting world: an operation through the door, as someone, or a wait for background work. */
+/** One step of making one: an operation through the door, as someone, or a wait for background work. */
 export type Step = Language.Step<OperationName>;
 
-/** A starting world of the blueprint, whose steps name its operations. */
+/** One of the blueprint's, whose steps name its operations. */
 export type StartingWorld<Facts extends Schema.Codec<unknown, unknown> = Schema.Codec<unknown, unknown>> =
   Language.StartingWorld<Facts, OperationName>;
 
@@ -38,6 +39,7 @@ const nothing: StartingWorld<typeof facts.nothing> = {
     "The platform is deployed. No world has the name the journey uses. The journey's operator owns fewer live worlds than the limit, and a second operator exists. The facts name both operators.",
   steps: [],
   made: "by its steps",
+  parameters: [],
   facts: facts.nothing,
   example: examples.nothing,
 };
@@ -48,6 +50,7 @@ const quotaFull: StartingWorld<typeof facts.quotaFull> = {
   holds: "The journey's operator owns as many live private worlds as one owner may have.",
   steps: [step("world.create", "operator", "creates private worlds until the limit is reached", "filled")],
   made: "by its steps",
+  parameters: [],
   facts: facts.quotaFull,
   example: examples.quotaFull,
 };
@@ -66,6 +69,7 @@ const fresh: StartingWorld<typeof facts.fresh> = {
     ),
   ],
   made: "from its template",
+  parameters: [],
   facts: facts.fresh,
   example: examples.fresh,
 };
@@ -74,7 +78,7 @@ const founded: StartingWorld<typeof facts.founded> = {
   name: "founded",
   from: fresh,
   holds:
-    "Northwind (handle `northwind`), founded by dana: Directors dana and eli, 2 of 2; members sam and pat with no permission; 1,000 USDC of dana's capital in the company Safe; its site ready, with users for dana and eli.",
+    "The journey's Northwind (its handle the journey's: `Cast.castCompany(key, \"northwind\")`), founded by the journey's dana: Directors dana and eli, 2 of 2; members sam and pat with no permission; 1,000 USDC of dana's capital in the company Safe; its site ready, with users for dana and eli. Each role is played by the journey's own person (`Cast.castPerson`); so in every one made from it.",
   steps: [
     step(
       "org.create",
@@ -86,7 +90,8 @@ const founded: StartingWorld<typeof facts.founded> = {
     step("approval.sign", "eli", "signs his setup approval, which sends the setup", "setupSent"),
     step("wait", "operator", "until world.show lists northwind's site as ready"),
   ],
-  made: "from its template",
+  made: "by its steps",
+  parameters: ["cast", "company"],
   facts: facts.founded,
   example: examples.founded,
 };
@@ -106,7 +111,8 @@ const officeHolder: StartingWorld<typeof facts.officeHolder> = {
       `until report.run of the ${REPORTS.generalLedger} stops refusing with NoSiteUser; a report makes nothing`,
     ),
   ],
-  made: "from its template",
+  made: "by its steps",
+  parameters: ["cast", "company"],
   facts: facts.officeHolder,
   example: examples.officeHolder,
 };
@@ -131,7 +137,8 @@ const paymentDrafted: StartingWorld<typeof facts.paymentDrafted> = {
       "payment",
     ),
   ],
-  made: "from its template",
+  made: "by its steps",
+  parameters: ["cast", "company"],
   facts: facts.paymentDrafted,
   example: examples.paymentDrafted,
 };
@@ -141,7 +148,8 @@ const paymentHeld: StartingWorld<typeof facts.paymentHeld> = {
   from: paymentDrafted,
   holds: "The Payment Entry is submitted and held for sam's signature; nothing is posted for it yet.",
   steps: [step("doc.submit", "sam", "submits the Payment Entry, which is held", "held")],
-  made: "from its template",
+  made: "by its steps",
+  parameters: ["cast", "company"],
   facts: facts.paymentHeld,
   example: examples.paymentHeld,
 };
@@ -155,7 +163,8 @@ const paid: StartingWorld<typeof facts.paid> = {
     step("approval.sign", "sam", "signs the held payment, which sends it", "paidSent"),
     step("wait", "sam", "until report.run's General Ledger shows the Payment Entry"),
   ],
-  made: "from its template",
+  made: "by its steps",
+  parameters: ["cast", "company"],
   facts: facts.paid,
   example: examples.paid,
 };
@@ -170,6 +179,7 @@ const withSnapshot: StartingWorld<typeof facts.withSnapshot> = {
     step("world.snapshot.save", "operator", "saves draft", "draft"),
   ],
   made: "by its steps",
+  parameters: ["cast", "company"],
   facts: facts.withSnapshot,
   example: examples.withSnapshot,
 };
@@ -188,6 +198,7 @@ const restored: StartingWorld<typeof facts.restored> = {
     ),
   ],
   made: "by its steps",
+  parameters: ["cast", "company"],
   facts: facts.restored,
   example: examples.restored,
 };
