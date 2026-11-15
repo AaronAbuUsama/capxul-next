@@ -16,8 +16,11 @@ const entries = { capxul: { entries: { "packages/world/src/main.ts": "the comman
 
 tester.run("blueprint-owns-names", blueprintOwnsNames, {
   valid: [
-    { code: `class Gone extends Schema.TaggedError<Gone>()("Gone", {}) {}`, ...at("packages/blueprint/src/errors.ts") },
-    { code: `const w: StartingWorld = { name: "fresh" };`, ...at("packages/blueprint/src/starting-worlds.ts") },
+    {
+      code: `class Gone extends Schema.TaggedError<Gone>()("Gone", {}) {}`,
+      ...at("packages/blueprint/src/common/refusals.ts"),
+    },
+    { code: `const w: StartingWorld = { name: "fresh" };`, ...at("packages/blueprint/src/starting-points/points.ts") },
     {
       code: `import { Gone } from "@capxul/blueprint"; const x = Schema.Struct({});`,
       ...at("packages/world/src/a.ts"),
@@ -83,14 +86,21 @@ tester.run("import-door", importDoor, {
   valid: [
     { code: `import { x } from "./b.ts";`, ...at("packages/world/src/a.ts") },
     { code: `import { x } from "../../blueprint/src/door.ts";`, ...at("packages/world/src/a.ts") },
+    { code: `import { x } from "../../../blueprint/src/index.ts";`, ...at("packages/blueprint-tools/src/checks/a.ts") },
     { code: `import { x } from "@capxul/blueprint";`, ...at("packages/world/src/a.ts") },
     { code: `import { Effect } from "effect";`, ...at("packages/world/src/a.ts") },
     { code: `import { x } from "../errors.ts";`, ...at("packages/blueprint/src/world/a.ts") },
+    { code: `import { x } from "@capxul/blueprint-tools";`, ...at("packages/blueprint/src/things/a/b.ts") },
   ],
   invalid: [
     { code: `import { x } from "../../blueprint/src/errors.ts";`, ...at("packages/world/src/a.ts"), errors: 1 },
     { code: `export * from "../../blueprint/src/values.ts";`, ...at("packages/world/src/a.ts"), errors: 1 },
     { code: `import { x } from "@capxul/blueprint/src/errors.ts";`, ...at("packages/world/src/a.ts"), errors: 1 },
+    {
+      code: `import { x } from "../../../blueprint/src/common/values.ts";`,
+      ...at("packages/blueprint-tools/src/checks/a.ts"),
+      errors: 1,
+    },
     {
       code: `const m = import("../../../packages/world/src/stack/engine.ts");`,
       ...at("packages/blueprint/test/a.ts"),

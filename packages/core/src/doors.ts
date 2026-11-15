@@ -9,7 +9,7 @@ import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import * as RpcServer from "effect/rpc/RpcServer";
 
-// The blueprint declares the doors' paths, once (packages/blueprint/src/telemetry.ts), so Core and the SDK agree.
+// The blueprint declares the doors' paths, once (packages/blueprint/src/protocol/paths.ts), so Core and the SDK agree.
 export { PLATFORM_PATH, WORLD_PATH };
 
 // A defect in one call answers that call only; it does not end the caller's whole client.

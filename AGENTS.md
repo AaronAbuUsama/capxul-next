@@ -145,8 +145,8 @@ them by reading the diff.
 
 | Fact | Its one owner | Generated from it or checked against it |
 |---|---|---|
-| Operations, payloads, answers, refusals and exit codes, events, claims, starting worlds | The blueprint, in the operation's domain | Core's server, the SDK, the CLI, `claims.md`, the types of the scenarios' checks |
-| A thing's lifecycle (3.4) | The blueprint, the domain's `machines.ts` | The state schema, the closing refusal's `state` field, the `step` function Core moves state with, the SQL CHECK constraint (in a new migration whenever the states change: an applied migration is never edited), the diagram in `claims.md`, the runner's path check, coverage |
+| Operations, payloads, answers, refusals and exit codes, events, claims, starting worlds | The blueprint, in the verb's file under `src/things/<thing>/` | Core's server, the SDK, the CLI, the pages in `packages/blueprint/generated/`, the types of the scenarios' checks |
+| A thing's lifecycle (3.4) | The blueprint, the thing's `lifecycle.ts` | The state schema, the closing refusal's `state` field, the `step` function Core moves state with, the SQL CHECK constraint (in a new migration whenever the states change: an applied migration is never edited), the diagram in the thing's page, the runner's path check, coverage |
 | Who may call an operation (5.1) | The blueprint: roles declared once, `allowed` on each operation | Core's one standing check, the generated refusal steps |
 | An operation's steps and logs (4.1) | The blueprint, the operation's own file (3.6) | The generic checks, the waits a budget leaves out |
 | The pipeline's own work: worlds, resets, sites, starting worlds, journeys, the checks, proofs (3.6) | The blueprint, the domain `pipeline` | The runner's and the world's spans (4.7), the proof names in the roadmap |
@@ -157,7 +157,7 @@ them by reading the diff.
 | Contract addresses on the seeded chain (3.1) | `packages/contracts/deployments/devnet.json` | One generated table, imported by Core and `packages/world` |
 | The seeded chain state (3.2) | The contracts and their deploy script | `packages/contracts/state/core.json`, rebuilt by one command and checked in CI |
 | A person's account (5.2) | The blueprint: grade groups, account version, the email's normalisation, the derivation | The salt Core sends to `claim`; checked against the contract's `safeAddressFor` |
-| Capxul's own names on a company's site (3.1) | The blueprint, `src/documents/site.ts` | A generated Python module in `packages/frappe-app` |
+| Capxul's own names on a company's site (3.1) | The blueprint, `src/common/site.ts` | A generated Python module in `packages/frappe-app` |
 | What runs where, and where telemetry goes | `packages/world`, `packages/platform` | |
 | What is proven | Verdicts on `proofs` (4.5); run records until then | The roadmap's step states |
 
@@ -243,7 +243,7 @@ Run `pnpm check` before you open a pull request. It runs rungs 1 to 5 in order a
 | 2. Format | `pnpm format:check`, `pnpm generate:check`, `pnpm seed:check` | TypeScript or JavaScript under `packages/` that oxfmt would change (config: `packages/lint/oxfmt.json`); a generated file that `pnpm generate` would write differently (it builds the contracts with Foundry first, `packages/generate`); a seeded chain state (`packages/contracts/state/core.json`, `deployments/devnet.json`) that `pnpm seed` would rebuild differently |
 | 3. Lint | `pnpm lint` | Any finding of `.oxlintrc.json`, every rule an error: oxlint's correctness and suspicious rules and a few more, all of Effect's rules from `@effect/tsgo` but two (each off with its reason), and ours from `packages/lint` (below) |
 | 4. Types | `pnpm types` | A type error in any TypeScript package, or an Effect language service error or warning (`effect-tsgo tsc`) |
-| 5. Tests | `pnpm test`, then `pnpm delta:check` (and `pnpm ratchets` from 3.6) | A failing unit test in any package (`pnpm frappe:test` and `pnpm status:test` included). Foundry's tests in `packages/contracts` are not in it: CI builds only the contracts, not their tests. Then the delta check: an operation that lacks a format that exists and is not on that format's `unmigrated` list (`packages/blueprint/src/formats.ts`). From 3.6, a ratchet whose list grew |
+| 5. Tests | `pnpm test`, then `pnpm delta:check` (and `pnpm ratchets` from 3.6) | A failing unit test in any package (`pnpm frappe:test` and `pnpm status:test` included). Foundry's tests in `packages/contracts` are not in it: CI builds only the contracts, not their tests. Then the delta check: an operation that lacks a format that exists and is not on that format's `unmigrated` list (`packages/blueprint-tools/src/checks/formats.ts`). From 3.6, a ratchet whose list grew |
 | 6. Proof | `packages/runner/run.sh scenarios` (and `prove.yml` from 4.5) | A scenario that fails in a fresh world; from 3.7, a newly declared move, refusal or outcome no journey reaches. CI runs it in `.github/workflows/world.yml` once the bootstrap has given CI its Cloudflare and Neon keys (roadmap step 1.8) |
 
 Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
@@ -253,7 +253,8 @@ Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
 - `capxul/effect-only`: no `async`, `await`, `new Promise`, `try`, `throw`, `process.env`, `Date.now`, `new Date()`
   or `console` in TypeScript outside entry files. Entry files are listed in `.oxlintrc.json` under
   `settings.capxul.entries`, each with its reason.
-- `capxul/import-door`: another package is imported only through its door, `src/door.ts`, or by its bare name.
+- `capxul/import-door`: another package is imported only through its door, `src/door.ts` (`src/index.ts` in the
+  blueprint and its toolkit), or by its bare name.
 - `capxul/no-json-text`: no `JSON.parse`, `JSON.stringify`, `Schema.parseJson` or string schema documented as JSON
   outside entry files and the edges listed under `settings.capxul.jsonEdges`.
 - `capxul/owned-values`: a raw schema (`Schema.String`, `Schema.Literals`, ...) only in the blueprint's values files

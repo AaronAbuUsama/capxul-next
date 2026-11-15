@@ -28,10 +28,16 @@ const PACKAGES = `${import.meta.dirname}/../../..`;
 
 /**
  * The code that makes a starting world's sites, fingerprinted into its template's name: the starting worlds' definitions
- * (the blueprint), Core, which founds the company and writes it to its site, the world, and these makers. The bench's
- * apps are read from its door.
+ * (the blueprint, and the language its toolkit declares them in), Core, which founds the company and writes it to its
+ * site, the world, and these makers. The bench's apps are read from its door.
  */
-export const CODE = ["blueprint/src", "core/src", "world/src", "runner/src/worlds"] as const;
+export const CODE = [
+  "blueprint/src",
+  "blueprint-tools/src/language",
+  "core/src",
+  "world/src",
+  "runner/src/worlds",
+] as const;
 
 const fromNothing = (world: StartingWorld) => world.from === null || world.from === startingWorlds.nothing;
 

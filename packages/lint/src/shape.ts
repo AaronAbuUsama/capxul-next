@@ -30,6 +30,8 @@ export const TOP_LEVEL: Readonly<Record<string, string>> = {
 /** The packages that may exist, each with the reason it is there. */
 export const PACKAGES: Readonly<Record<string, string>> = {
   blueprint: "what Capxul does: operations, refusals, events and starting worlds as Effect declarations",
+  "blueprint-tools":
+    "how the blueprint is written and checked: its language, the delta check, and its indexes' and pages' render",
   world: "what runs where: the Alchemy stacks that create and destroy a world",
   contracts: "the Solidity contracts, their Foundry tests and the seeded chain state",
   "frappe-app": "the Capxul app on every hosted Frappe site",
