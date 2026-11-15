@@ -66,7 +66,7 @@ export interface Held {
  * Writes every body a request exported into `telemetry.otlp` in ONE statement, after every exporter has flushed: a
  * row per trace id a body carries, the body whole as jsonb. Traces and logs only; metrics carry no trace and stay
  * out. So a reader that sees a call's operation span in the tap sees every span and log of that request with it.
- * A failure to write is logged, never the call's.
+ * A failure to write, of any kind, is logged, never the call's.
  */
 export const writeTap = (sql: PgClient.PgClient, held: ReadonlyArray<Held>) =>
   Arr.match(
@@ -89,7 +89,10 @@ export const writeTap = (sql: PgClient.PgClient, held: ReadonlyArray<Held>) =>
           ) ids
           where ids.trace_id <> ''`.pipe(
           Effect.asVoid,
-          Effect.catch((error) => Effect.logWarning("the tap could not write to telemetry.otlp", error)),
+          // In its own scope: the write runs as the request's scope closes, and the pool would otherwise take its
+          // connection in the scope being closed, and be interrupted (found by test/export.test.ts).
+          Effect.scoped,
+          Effect.catchCause((cause) => Effect.logWarning("the tap could not write to telemetry.otlp", cause)),
         ),
     },
   );

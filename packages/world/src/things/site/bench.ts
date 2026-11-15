@@ -17,6 +17,7 @@
 // door/door.py) is the only process that makes or removes sites and the only way to one: it checks the token's world
 // against the site's on every call and carries ERPNext's REST calls on the site's own API user. A take-down whose
 // `unsite` fails keeps the world's name and record (`unsite failed`) so the next sweep finishes it (test/remains.test.ts).
+import type { Values } from "@capxul/blueprint";
 import * as Platform from "@capxul/platform";
 import * as Arr from "effect/Array";
 import * as Config from "effect/Config";
@@ -24,6 +25,7 @@ import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
+import * as Predicate from "effect/Predicate";
 import * as Redacted from "effect/Redacted";
 import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
@@ -97,23 +99,59 @@ export const tokenFor = (bench: string, world: string, quota: number, expires: n
     return { door, token };
   });
 
-/** A world's grant on `bench` until `expiresAt`: a fresh site token, as its create mints one, for a renewal. */
+/** Whose world a grant is for: its owner and grade, which its collector token names beside the world. */
+export interface GrantFor {
+  readonly owner: string;
+  readonly grade: typeof Values.Grade.Type;
+}
+
+/**
+ * A world's grant on `bench` until `expiresAt`: a fresh site token, as its create mints one (and for a renewal), and
+ * its token at the stage's collector.
+ */
 export const grantOn = Effect.fn("world.site.grantOn")(function* (
   bench: string,
   stage: string,
   expiresAt: string,
   quota: number,
+  whose: GrantFor,
 ) {
   const made = yield* tokenFor(bench, nameOf(stage), quota, unix(expiresAt));
-  return { stage: bench, door: made.door, token: made.token } satisfies BenchGrant;
+  // The world's token at the stage's collector, naming its owner, world and grade until its expiry: none for the local
+  // bench, and none for a platform stage deployed before its collector, whose Core then exports nothing.
+  const collector =
+    bench === LOCAL_BENCH
+      ? Option.none<Redacted.Redacted>()
+      : yield* withState((state) =>
+          Effect.gen(function* () {
+            const outputs: unknown = yield* state.getOutput({ stack: Platform.STACK, stage: bench });
+            if (!Predicate.hasProperty(outputs, "collectorKeyId")) return Option.none<Redacted.Redacted>();
+            const key = yield* Platform.collectorKeyIn(state, bench);
+            const token = yield* Platform.mintCollectorToken(key, {
+              operator: whose.owner,
+              world: Option.some(nameOf(stage)),
+              grade: Option.some(whose.grade),
+              expires: unix(expiresAt),
+            }).pipe(
+              // oxlint-disable-next-line effecttsgo/strict-effect-provide -- WebCrypto's HMAC is the platform's own layer, used for this one signature
+              Effect.provide(Platform.cryptoLayer),
+            );
+            return Option.some(token);
+          }),
+        );
+  return { stage: bench, door: made.door, token: made.token, collector } satisfies BenchGrant;
 });
 
 /** What a world is given on its bench when it is created; none when `WORLD_BENCH` is unset. */
-export const grant = Effect.fn("world.site.grant")(function* (stage: string, expiresAt: string, quota: number) {
+export const grant = Effect.fn("world.site.grant")(function* (
+  stage: string,
+  expiresAt: string,
+  quota: number,
+  whose: GrantFor,
+) {
   const bench = yield* BenchStage;
   if (Option.isNone(bench)) return Option.none<BenchGrant>();
-  const made = yield* tokenFor(bench.value, nameOf(stage), quota, unix(expiresAt));
-  return Option.some<BenchGrant>({ stage: bench.value, door: made.door, token: made.token });
+  return Option.some(yield* grantOn(bench.value, stage, expiresAt, quota, whose));
 });
 
 /** Makes each company's site with the world's token and waits until every one is ready. */
