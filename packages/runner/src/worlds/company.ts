@@ -85,12 +85,37 @@ const approvalOf = (approvals: ReadonlyArray<Approval>, signer: string) =>
 /** A wait for background work: one poll every two seconds, for at most ten minutes. */
 const POLL = { schedule: Schedule.spaced(Duration.seconds(2)), times: 300 } as const;
 
-const until = <A, E, R>(what: string, poll: Effect.Effect<A, E, R>, done: (answer: A) => boolean) =>
+/** Polls until `done`; an answer `stopped` gives a reason for ends the wait at once, as no later poll can be done. */
+export const until = <A, E, R>(
+  what: string,
+  poll: Effect.Effect<A, E, R>,
+  done: (answer: A) => boolean,
+  stopped: (answer: A) => Option.Option<string> = () => Option.none(),
+) =>
   poll.pipe(
-    Effect.filterOrFail(done, () => failed(`waiting for ${what}`)),
+    Effect.flatMap((answer) => {
+      if (done(answer)) return Effect.succeed(Option.none<string>());
+      const why = stopped(answer);
+      return Option.isSome(why) ? Effect.succeed(why) : Effect.fail(failed(`waiting for ${what}`));
+    }),
     Effect.retry(POLL),
     Effect.mapError(() => failed(`waited ten minutes for ${what}`)),
+    Effect.flatMap(
+      Option.match({
+        onNone: () => Effect.void,
+        onSome: (why) => Effect.fail(failed(`stopped waiting for ${what}: ${why}`)),
+      }),
+    ),
   );
+
+/** Why a wait for `org`'s site is over: a stopped site is never made again (as when the site door restarts mid-make). */
+export const siteStopped =
+  (org: string) =>
+  (view: { readonly companies: ReadonlyArray<{ readonly org: string; readonly site: { readonly state: string } }> }) =>
+    Option.map(
+      Arr.findFirst(view.companies, (company) => company.org === org && company.site.state === "stopped"),
+      (company) => `world.show lists ${company.org}'s site as stopped, which is never made again`,
+    );
 
 /** `founded`: dana founds Northwind; dana and eli sign its setup; the world shows its site ready. */
 const founded: Steps = (making) =>
@@ -105,6 +130,7 @@ const founded: Steps = (making) =>
       "world.show to list northwind's site as ready",
       must("world.show", capxul["world.show"]({ world: own.world })),
       (view) => Arr.some(view.companies, (company) => company.org === made.org && company.site.state === "ready"),
+      siteStopped(made.org),
     );
     return {
       facts: {
