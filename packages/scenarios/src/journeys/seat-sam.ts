@@ -62,6 +62,7 @@ export const seatSam = journey(
   {
     name: "seat sam on Northwind's Board",
     world: "shared",
+    worlds: 0,
     key: "seat",
     story:
       "dana, Northwind's founder, seats sam as its third Director with her signature alone, so he signs the company Safe and has a user on its site, then makes the Board need all three, and a grant is sent only by sam's signature; everyone who may not is refused.",

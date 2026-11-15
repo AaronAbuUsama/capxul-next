@@ -52,6 +52,12 @@ export interface Journey {
    * own under an owner of its own.
    */
   readonly world: "shared" | "own";
+  /**
+   * The most worlds it holds at once apart from the shared one: the worlds its starting point makes for it and those
+   * its own steps make, while they live. 0 for a `shared` journey; at least 1 for an `own` one. The runner reserves
+   * these places before it starts the journey, so journeys side by side never wait on each other for one.
+   */
+  readonly worlds: number;
   /** The starting world it begins from: one of the blueprint's. */
   readonly given: StartingWorld;
   /** Its steps, in order. */
@@ -106,12 +112,14 @@ export const outline = <const D extends Readonly<Record<string, readonly [Operat
 };
 
 /** Declares a journey: its steps run by `run`, in their order, each once. */
+/** Where a journey runs and how many worlds of its own it holds at once: none in the shared world. */
+type Where = { readonly world: "shared"; readonly worlds: 0 } | { readonly world: "own"; readonly worlds: number };
+
 export const journey = (
-  declared: {
+  declared: Where & {
     readonly name: string;
     readonly story: string;
     readonly key: JourneyKey;
-    readonly world: "shared" | "own";
     readonly given: StartingWorld;
     readonly steps: Readonly<Record<string, StepOutline & { readonly index: number }>>;
   },
@@ -126,6 +134,7 @@ export const journey = (
     story: declared.story,
     key: declared.key,
     world: declared.world,
+    worlds: declared.worlds,
     given: declared.given,
     outline: Arr.map(steps, (each) => ({ operation: each.operation, does: each.does })),
     run: Effect.gen(function* () {

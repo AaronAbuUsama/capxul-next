@@ -41,6 +41,7 @@ export const payBrightside = journey(
   {
     name: "pay Brightside",
     world: "shared",
+    worlds: 0,
     key: "pay",
     story:
       "sam's payment to Brightside is held for his signature, wrong signatures are refused, sam pays once and a replay sends nothing more, and the books agree with the chain.",
