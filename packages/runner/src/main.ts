@@ -1,8 +1,8 @@
-// Entry: `bun src/main.ts door [--world=<name>]` or `bun src/main.ts scenarios [--one-stage] [--expect=pass|not-implemented]
-// [--via=sdk|cli] [name...]`, through ../run.sh, which sets the environment. The door runs in its own fresh stage; the journeys (the
-// scenarios, since 14 November 2026) run as scenario-runs.ts says, one at a time. `door --world=<name>` runs the door in a world `world create` made
-// (packages/world), which it neither creates nor destroys. Exits 1 when the door failed, or when a journey did not end as the run
-// expected or a stage was left. This is the only file of the runner that touches the process: its arguments, its exit
+// Entry: `bun src/main.ts <command>`, through ../run.sh, which sets the environment; `USAGE` below lists every command
+// and flag. The door runs in its own fresh stage, or with `--world=<name>` in a world `world create` made (in-world.ts),
+// which it neither creates nor destroys. The journeys (the scenarios, since 14 November 2026) run one at a time: in one
+// world (worlds/run.ts), on the shared world (`--shared`, shared/), or in stages (scenario-runs.ts). Exits 1 when the
+// door failed, or when a journey did not end as the run expected or a stage was left. This is the only file of the runner that touches the process: its arguments, its exit
 // code and the Bun runtime.
 import * as BunFileSystem from "@effect/platform-bun/BunFileSystem";
 import * as BunPath from "@effect/platform-bun/BunPath";
@@ -30,6 +30,8 @@ import { makeOrRenew } from "./shared/make.ts";
 import { timeStartingWorlds } from "./worlds/timing.ts";
 import { runScenarios } from "./scenario-runs.ts";
 import { Settings } from "./settings.ts";
+import { runnerExport } from "./telemetry/export.ts";
+import { RUN_SPANS } from "./timings.ts";
 import { ranAsExpected, type Expectation, type Mode } from "./summary.ts";
 
 const USAGE =
@@ -165,7 +167,9 @@ const theScenarios = (given: Settings, chosen: ReadonlyArray<Plan>) =>
     const summary = inPrivateWorlds
       ? yield* inWorlds(
           settings,
-          runInWorlds(chosenJourneys, settings, onShared ? Option.some(settings.shared) : Option.none()),
+          runInWorlds(chosenJourneys, settings, onShared ? Option.some(settings.shared) : Option.none()).pipe(
+            Effect.withSpan(RUN_SPANS.run, { attributes: { mode: onShared ? "shared world" : "one world" } }),
+          ),
         )
       : yield* runScenarios(chosen, settings, mode, expect);
     for (const line of summary.journeys)
@@ -184,7 +188,10 @@ const theScenarios = (given: Settings, chosen: ReadonlyArray<Plan>) =>
 
 const theStartingWorlds = (settings: Settings) =>
   Effect.gen(function* () {
-    const record = yield* inWorlds(settings, timeStartingWorlds(settings));
+    const record = yield* inWorlds(
+      settings,
+      timeStartingWorlds(settings).pipe(Effect.withSpan(RUN_SPANS.run, { attributes: { mode: "starting worlds" } })),
+    );
     for (const line of record.worlds)
       yield* Effect.log(
         `${line.name} (${line.made}): ${line.outcome} in ${line.ms} ms${line.why === null ? "" : `: ${line.why}`}`,
@@ -211,7 +218,10 @@ const theSharedWorld = (given: Settings) =>
       Option.isSome(there) && there.value.owner === given.owner
         ? { ...given, platformToken: there.value.operatorToken }
         : given;
-    const record = yield* inWorlds(settings, makeOrRenew(settings, journeys));
+    const record = yield* inWorlds(
+      settings,
+      makeOrRenew(settings, journeys).pipe(Effect.withSpan(RUN_SPANS.run, { attributes: { mode: "shared" } })),
+    );
     yield* Effect.log(
       `${record.outcome}: ${record.world} ${record.how}, owned by ${record.owner}, until ${record.expiresAt ?? "?"} on hub ${record.hub.stage}; templates ${Arr.join(record.templates, ", ")} -> ${settings.records}/${record.run}/shared.json${record.failure === null ? "" : `\n${record.failure}`}`,
     );
@@ -251,6 +261,9 @@ program.pipe(
       FetchHttpClient.layer,
       // Read by every fetch from the calling fiber's context, so it is provided to the whole program.
       noFetchTimeout,
+      // OTLP export, as OpenTelemetry's standard settings ask (packages/platform, src/telemetry.ts): the run's trace,
+      // its journeys, steps and parts and the world's own spans go through it; flushed when the run ends.
+      runnerExport,
     ),
   ),
   BunRuntime.runMain,

@@ -15,7 +15,7 @@ const Reset = Schema.Struct({
   ms: Schema.Finite,
 });
 
-/** Rewinds the world's chain, in place, to the state a snapshot saved; the bundler is stopped with it. */
+/** Rewinds the world's chain, in place, to the state a snapshot saved; the bundler is kept up, its state cleared. */
 export const resetChain = (world: Door, snapshot: string) =>
   doorCall(world, "chain", HttpClientRequest.post(`/chain/reset/${snapshot}`), Reset);
 

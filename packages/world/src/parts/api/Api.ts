@@ -11,6 +11,14 @@
 //
 // Every token is an Alchemy.Random of the world's stage, kept in the shared state, bound to the Worker as a secret
 // and read back from the state (parts.ts), never an output.
+//
+// A world is ready once Core answers 200 on CORE_HEALTH; `world.create` waits for ten such answers in a row
+// (src/platform/steady.ts). A caller may fill
+// the slot itself: a host of Core off Cloudflare (host.ts), or its own CoreSlot for one run. That a world made this
+// way answers every blueprint operation at its door is the runner's door check (packages/runner/records/w-c1).
+//
+// TODO: Core's bundle is made once per world, 3 to 4 s of a create that must stay under 20 s; it could be made once
+// per hub.
 import { CORE_ENV, CoreDeployment, CoreWorker, migrations } from "@capxul/core";
 import * as Alchemy from "alchemy";
 import * as Context from "effect/Context";
@@ -23,6 +31,7 @@ import { HUB_STACK } from "../../things/cluster/values.ts";
 import { nameOf } from "../../stack/names.ts";
 import { worldSettings } from "../../stack/settings.ts";
 import type { CoreSlot } from "../../things/world/stage.ts";
+import { PrebuiltApi } from "./bundle.ts";
 import { CoreHost } from "./host.ts";
 
 /** Logical ids of the Core slot's own secrets, as the state store keys them. */
@@ -48,7 +57,8 @@ export const defaultCore: CoreSlot = Effect.gen(function* () {
   // The world's token on the hub (src/things/cluster/client.ts), handed in by the create.
   const doorToken = settings.doorToken;
   const minted = yield* Alchemy.Random(OPERATOR_TOKEN_ID, { bytes: 24 });
-  // The owner operator's own token when the platform made the world (decisions.md, 36); otherwise the world's own.
+  // The owner operator's own token when the platform made the world (packages/blueprint, src/protocol/headers.ts);
+  // otherwise the world's own.
   const operatorToken = Option.getOrElse(
     Option.map(settings.operatorToken, (token): unknown => token),
     () => minted.text,
@@ -73,7 +83,9 @@ export const defaultCore: CoreSlot = Effect.gen(function* () {
     [CORE_ENV.chainToken]: doorToken,
     ...site,
   };
-  const core = yield* CoreWorker.pipe(Effect.provideService(CoreDeployment, Option.some({ database, env })));
+  // The world's copy of Core's bundle when the deploy made one (bundle.ts); otherwise Alchemy builds Core here.
+  const prebuilt = yield* PrebuiltApi;
+  const core = yield* CoreWorker.pipe(Effect.provideService(CoreDeployment, Option.some({ database, env, prebuilt })));
   return { url: core.url };
 });
 

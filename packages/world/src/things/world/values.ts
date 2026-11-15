@@ -9,7 +9,8 @@ import type * as Redacted from "effect/Redacted";
 import * as Str from "effect/String";
 import type { Funded, Mint } from "../../parts/chain/faucet.ts";
 import type { query } from "../../parts/database/sql.ts";
-import type { PlatformFailed, WorldNotReady } from "../../common/failures.ts";
+import type { PlatformFailed, SiteFailed, WorldNotReady } from "../../common/failures.ts";
+import type { SharedState } from "../../stack/engine.ts";
 import type { StepName } from "../../stack/names.ts";
 import type { SiteState } from "../site/bench.ts";
 
@@ -37,7 +38,10 @@ export interface WorldSpec {
    * everything that makes the world, the caller's `onChain` included (src/things/world/cast.ts, `mineStart`).
    */
   readonly startAtMs?: number;
-  /** The token of the operator who owns the world, which its Core accepts as the owner's (decisions.md, 36). */
+  /**
+   * The token of the operator who owns the world, which its Core accepts as the owner's
+   * (packages/blueprint, src/protocol/headers.ts).
+   */
   readonly operatorToken?: Redacted.Redacted;
   /**
    * Keep a world whose run did not pass, stopped, for this long, so it can be looked into. Never applies to a
@@ -62,6 +66,13 @@ export interface WorldSpec {
   readonly onChain?: (
     world: Pick<World, "door">,
   ) => Effect.Effect<void, PlatformFailed | WorldNotReady, HttpClient.HttpClient>;
+  /**
+   * What the caller does once the world's deploy is done (its stack's secrets exist), beside Core's start, the
+   * migrations and the index rather than after them, as the create's `site` step: a restore's sites made again from
+   * their backup (src/account/snapshots.ts). Its failure fails the create, which takes down what it made, sites
+   * included.
+   */
+  readonly onDeployed?: (stage: string) => Effect.Effect<void, SiteFailed, HttpClient.HttpClient | SharedState>;
   /** The most the use step may take, in place of the declared default. */
   readonly useTimeout?: Duration.Duration;
   /** Where the run's record is written, outside the world. Defaults to the package's records directory. */
@@ -95,7 +106,8 @@ export interface World {
   readonly doorToken: Redacted.Redacted;
   /**
    * The token the world minted for its owner operator: Core's platform door, and the world's door as its owner
-   * (decisions.md, 36). A world the platform made binds its owner's own token instead, and this one is unused.
+   * (packages/blueprint, src/protocol/headers.ts). A world the platform made binds its owner's own token instead,
+   * and this one is unused.
    */
   readonly operatorToken: Redacted.Redacted;
   /** The chain's JSON-RPC address. It carries the world's token, so it is a secret. */

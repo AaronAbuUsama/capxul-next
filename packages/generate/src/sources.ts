@@ -1,5 +1,8 @@
 // What `pnpm generate` writes, and from what. Each output's owner is named beside it (AGENTS.md, "Who owns each
 // fact"); nothing here is a fact of its own, only where each derived file comes from and where it goes.
+import { PACKAGES, UNMAPPED } from "@capxul/lint";
+import * as Arr from "effect/Array";
+import * as Rec from "effect/Record";
 
 /** Every path here is relative to the repository's root. */
 export const CONTRACTS = "packages/contracts";
@@ -46,13 +49,61 @@ export const OUTPUTS = {
     path: "packages/frappe-app/capxul/generated/__init__.py",
     from: "packages/generate/src/sources.ts",
   },
+  glossary: { path: "packages/blueprint/generated/glossary.md", from: "packages/blueprint/src/glossary.ts" },
+  /** The rename ratchet's counts (roadmap item 3.8): the glossary's old words, counted across the repository. */
+  oldWords: {
+    path: "packages/blueprint/generated/old-words.json",
+    from: "packages/blueprint/src/glossary.ts and the files packages/blueprint-tools, src/checks/word-files.ts reads",
+  },
+} as const;
+
+/**
+ * The outputs the root's `pnpm generate` writes after `src/main.ts`, through this package's `ratchets --write`
+ * (src/ratchets.entry.ts): they count the old words main.ts has just written. Listed here so every generated file is
+ * named in one place. The blueprint's pages, `packages/blueprint/generated/index.md` and one per thing, main.ts writes
+ * from the blueprint's declarations through the toolkit's `renderPages`.
+ */
+export const WRITTEN_BY_TOOLS = {
+  ratchets: {
+    path: "packages/blueprint/generated/ratchets.json",
+    from: "packages/blueprint/src/ratchets.ts and the lists it counts (packages/lint/src/unmigrated.ts, the formats)",
+  },
+  scorecard: {
+    path: "packages/blueprint/generated/scorecard.md",
+    from: "packages/blueprint/src/things/, the formats and the ratchet lists",
+  },
 } as const;
 
 /**
  * The packages whose map `pnpm generate` writes, at `<package>/generated/index.md`: one line per file under `src/`,
  * from the comment it opens with, and one per page under `docs/`, from its title (docs/design/blueprint.md, part 7).
+ * Every package `PACKAGES` lists (packages/lint/src/shape.ts) but those on `UNMAPPED` and the blueprint, whose map
+ * is its own; `pnpm shape` fails a package with no map that is not on `UNMAPPED`.
  */
-export const MAPS: ReadonlyArray<string> = ["packages/world"];
+export const MAPS: ReadonlyArray<string> = Arr.filter(
+  Arr.map(Rec.keys(PACKAGES), (name) => `packages/${name}`),
+  (pkg) => pkg !== "packages/blueprint" && !Arr.contains(UNMAPPED, pkg),
+);
+
+/** The blocks `pnpm generate` writes inside hand-written Markdown files, each by its name. */
+export type BlockName = "packages" | "gate" | "lint-rules";
+
+/**
+ * Each block between `<!-- generated:<name> start -->` and `<!-- generated:<name> end -->` in a hand-written
+ * Markdown file, with the owner it is written from. Only the lines between the markers are the generator's.
+ */
+export const BLOCKS: ReadonlyArray<{ readonly name: BlockName; readonly file: string; readonly from: string }> = [
+  { name: "packages", file: "README.md", from: "`PACKAGES` in packages/lint/src/shape.ts" },
+  { name: "gate", file: "AGENTS.md", from: "`GATE` in packages/lint/src/gate.ts" },
+  { name: "lint-rules", file: "AGENTS.md", from: "each rule's `description` in packages/lint/src/rules/" },
+];
+
+/** The design notes' list, a whole file: one line per note under its folder, with its title and status line. */
+export const DESIGN_INDEX = {
+  folder: "docs/design",
+  path: "docs/design/README.md",
+  from: "the title and status line of each note under docs/design",
+} as const;
 
 /** The deployment record (`deployments/devnet.json`) and the seed (`state/core.json`), relative to the root. */
 export const RECORD = `${CONTRACTS}/deployments/devnet.json`;

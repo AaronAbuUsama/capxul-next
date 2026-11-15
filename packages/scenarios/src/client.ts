@@ -57,8 +57,8 @@ export class Given extends Context.Service<
 >()("@capxul/scenarios/client/Given") {}
 
 /**
- * Where a try hears the trace id of the call it makes. The client that records calls (the runner's) tells it, when a
- * try provides it, the trace id each operation call ran under: the trace Core writes the call's record entries,
+ * Where a try hears the trace id of the call it makes. The client that keeps every call (the runner's) tells it, when a
+ * try provides it, the trace id each operation call ran under: the trace the API writes the call's history entries,
  * spans and logs under. A client that does not leaves the try without one, and its checks judge as before (`ThisCall`).
  */
 export class CallTraces extends Context.Service<

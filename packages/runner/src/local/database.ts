@@ -4,6 +4,9 @@
 // connection workerd opens to it is carried, byte for byte, over a WebSocket of its own to the world's Neon endpoint.
 // The Postgres protocol inside is untouched: Core's driver authenticates with the branch's own role as it would
 // through Hyperdrive. Nothing is listened on but the loopback.
+//
+// TODO: connections are not pooled, as Hyperdrive pools them on Cloudflare: each request opens its own WebSocket, so a
+// local Core's server times are not Core's on Cloudflare.
 import * as BunSocketServer from "@effect/platform-bun/BunSocketServer";
 import * as Config from "effect/Config";
 import * as Duration from "effect/Duration";
