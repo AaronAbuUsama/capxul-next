@@ -68,7 +68,7 @@ export const emailOf = (world: View, person: string): string =>
     () => "",
   );
 
-/** The chain's latest block, through the door `who` names: where a check of what a call wrote starts reading. */
+/** The chain's latest block, through the endpoint `who` names: where a check of what a call wrote starts reading. */
 export const chainBlock = (who: Who) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
