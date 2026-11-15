@@ -42,7 +42,8 @@ so it never drifts; a test fails while it differs from its sources.
 ## The ratchets
 
 Declared in `packages/blueprint/src/ratchets.ts`; `pnpm ratchets` fails a pull request whose counted list grew over
-its committed count (`ratchets.json`, beside this page).
+its committed count (`ratchets.json`, beside this page). A ratchet gated by a command of its own is reported here
+and gated only by that command.
 
 | Ratchet | What its list holds | Count | Closes in |
 | --- | --- | --- | --- |
@@ -60,3 +61,4 @@ its committed count (`ratchets.json`, beside this page).
 | R12 Proofs by file path | Roadmap proof entries naming files instead of verdicts, for steps not yet Done. | not yet counted (4.5) | 4.5 |
 | R13 Provisional budgets | Operations whose budget is not yet set from a measured verdict. | not yet counted (4.1) | 4.1 and the measured runs |
 | R14 Own telemetry tables | Readers of app.spans and the runner's JSON records beside OTLP. | not yet counted (4.4) | 4.4 |
+| R15 Old words | The glossary's old words still written as names in code, counted per word in generated/old-words.json; its count is their total. | 7949, gated by `pnpm words` | 3.8 |

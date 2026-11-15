@@ -50,7 +50,8 @@ jobs:
       - run: pnpm test
       - run: pnpm delta:check
       - run: pnpm ratchets
-      # The rename ratchet R15 (roadmap item 3.8): no old word of the glossary may be written more often than its
+      # The rename ratchet R15 "Old words" (packages/blueprint/src/ratchets.ts; roadmap item 3.8), gated here, not by
+      # `pnpm ratchets`, which only reports its total: no old word of the glossary may be written more often than its
       # committed count, nor, on a pull request, than the base branch's, so a count raised by generating again fails.
       - if: github.event_name == 'pull_request'
         env:

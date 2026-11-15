@@ -5,7 +5,7 @@ How the blueprint is written and checked. Nothing here is a fact about Capxul: t
 
 | Where | What |
 |---|---|
-| `src/language/` | What a declaration is: `operation.ts` (a verb a door serves), `work.ts` (a verb no door serves: its spans, logs and budget), `lifecycle.ts` (a thing's life, `Machine`), `promise.ts` (what a verb promises, today `Claim`), `starting-point.ts` (a named state a journey begins from), `gather.ts` (how a generated index composes its parts) |
+| `src/language/` | What a declaration is: `operation.ts` (a verb a door serves), `work.ts` (a verb no door serves: its spans, logs and budget), `lifecycle.ts` (a thing's life, `Machine`), `promise.ts` (what a verb promises, today `Claim`), `starting-point.ts` (a named state a journey begins from), `glossary.ts` (the glossary's format: a word, what it means, the old words it replaces), `gather.ts` (how a generated index composes its parts) |
 | `src/checks/` | The delta check (`pnpm delta:check`): every verb has every format, or is on its ratchet; the formats; the declared names; the ratchets counted (`pnpm ratchets`) and the scorecard, both written inside `pnpm generate`; the count of the glossary's old words (`old-words.ts`, what of a file is code in `code-text.ts`, which files in `word-files.ts`) and its ratchet, `pnpm words` |
 | `src/render/` | How the blueprint's folders read as data (`layout.ts`, which `pnpm generate` uses to write the blueprint's indexes), and its pages, `packages/blueprint/generated/` (`pnpm claims`; the glossary's page, `glossary.ts`, is written by `pnpm generate`) |
 
