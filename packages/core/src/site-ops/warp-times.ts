@@ -1,8 +1,30 @@
 // Where a company site's warp spent its time, as the Capxul app answers it (capxul/core_api.py, `warp`), and the
-// attributes it is recorded as on the span of the site's call (site-ops/world.ts, telemetry/attributes.ts).
+// attributes it is set as on the span of the site's call (site-ops/world.ts).
+//
+// The keys are named here until the telemetry lane declares them (telemetry/attributes.ts): a span Core keeps in
+// `app.spans` holds only declared keys, so until then they reach an exporter that takes every attribute, not the record.
 import * as Arr from "effect/Array";
 import * as Schema from "effect/Schema";
-import { SPAN_ATTRIBUTES } from "../telemetry/attributes.ts";
+
+/** The keys of the attributes a warp's spans carry. */
+export const WARP_ATTRIBUTES = {
+  /** The company site a site call went to. */
+  site: "site.name",
+  /** The milliseconds the site itself spent answering, by its own clock: the rest of the span is the way there and back. */
+  siteMs: "site.ms",
+  /** The world time a stretch of a warp starts from and ends at (site-ops/world.ts, warpSteps). */
+  warpFrom: "warp.from",
+  warpTo: "warp.to",
+  /** What a site spent before its first stop: syncing its job types and setting where they are due from. */
+  warpSetupMs: "warp.setup_ms",
+  /** Each stop of a site's warp, in order: its milliseconds, and how many jobs it ran (capxul/clock.py, advance). */
+  warpStopMs: "warp.stop_ms",
+  warpStopJobs: "warp.stop_jobs",
+  /** A site's slowest jobs over every stop, the slowest first: each one's method, runs and milliseconds. */
+  warpJobs: "warp.jobs",
+  warpJobRuns: "warp.job_runs",
+  warpJobMs: "warp.job_ms",
+} as const;
 
 /**
  * A site's times for one warp: in all (`ms`), before its first stop (`setup_ms`), at each stop with the jobs it ran
@@ -27,13 +49,13 @@ export const timesOf = (times: WarpTimes): ReadonlyArray<readonly [string, unkno
     slowest === undefined ? undefined : Arr.map(slowest, of);
   return Arr.filter(
     [
-      [SPAN_ATTRIBUTES.siteMs, times.ms],
-      [SPAN_ATTRIBUTES.warpSetupMs, times.setup_ms],
-      [SPAN_ATTRIBUTES.warpStopMs, times.stop_ms],
-      [SPAN_ATTRIBUTES.warpStopJobs, times.stop_jobs],
-      [SPAN_ATTRIBUTES.warpJobs, jobs((job) => job.job)],
-      [SPAN_ATTRIBUTES.warpJobRuns, jobs((job) => job.runs)],
-      [SPAN_ATTRIBUTES.warpJobMs, jobs((job) => job.ms)],
+      [WARP_ATTRIBUTES.siteMs, times.ms],
+      [WARP_ATTRIBUTES.warpSetupMs, times.setup_ms],
+      [WARP_ATTRIBUTES.warpStopMs, times.stop_ms],
+      [WARP_ATTRIBUTES.warpStopJobs, times.stop_jobs],
+      [WARP_ATTRIBUTES.warpJobs, jobs((job) => job.job)],
+      [WARP_ATTRIBUTES.warpJobRuns, jobs((job) => job.runs)],
+      [WARP_ATTRIBUTES.warpJobMs, jobs((job) => job.ms)],
     ] as const,
     ([, value]) => value !== undefined,
   );

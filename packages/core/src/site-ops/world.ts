@@ -5,13 +5,12 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import type { SiteDoorFailed } from "../failures.ts";
-import { SPAN_ATTRIBUTES } from "../telemetry/attributes.ts";
 import { CoreIdentity } from "../telemetry/middleware.ts";
 import { ChainTime } from "./chain-time.ts";
 import { instantOf, millisOf, WorldClock } from "./clock.ts";
 import { entryOf, WorldRecord } from "./record.ts";
 import { CompanySites } from "./sites.ts";
-import { timesOf, WarpTimes } from "./warp-times.ts";
+import { timesOf, WARP_ATTRIBUTES, WarpTimes } from "./warp-times.ts";
 
 /** Refuses anyone but the world's owner: a person of the world is not its owner. */
 const ownerOnly = Effect.flatMap(
@@ -38,7 +37,7 @@ const warpSite = Effect.fn("world.clock.warp.site")(function* (
   site: string,
   call: Effect.Effect<unknown, SiteDoorFailed>,
 ) {
-  yield* Effect.annotateCurrentSpan(SPAN_ATTRIBUTES.site, site);
+  yield* Effect.annotateCurrentSpan(WARP_ATTRIBUTES.site, site);
   const answer = yield* Effect.flatMap(call, (answered) =>
     Schema.decodeUnknownEffect(Warped)(answered).pipe(Effect.orDie),
   );
@@ -52,8 +51,8 @@ const warpStretch = Effect.fn("world.clock.warp.stretch")(function* (
   frozen: boolean,
   last: boolean,
 ) {
-  yield* Effect.annotateCurrentSpan(SPAN_ATTRIBUTES.warpFrom, instantOf(from));
-  yield* Effect.annotateCurrentSpan(SPAN_ATTRIBUTES.warpTo, instantOf(to));
+  yield* Effect.annotateCurrentSpan(WARP_ATTRIBUTES.warpFrom, instantOf(from));
+  yield* Effect.annotateCurrentSpan(WARP_ATTRIBUTES.warpTo, instantOf(to));
   const sites = yield* CompanySites;
   return yield* sites.everySite(
     "warp",

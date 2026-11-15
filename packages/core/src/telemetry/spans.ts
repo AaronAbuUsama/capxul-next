@@ -29,7 +29,7 @@ export interface KeptSpan {
   readonly outcome: SpanOutcome;
   readonly durationMs: number;
   readonly endedMs: number;
-  /** The declared attributes it carries (attributes.ts), or null: a call's own span has them, and a clock warp's stretches and site calls (site-ops/world.ts). */
+  /** The declared attributes it carries (attributes.ts), or null: only a call's own span has them. */
   readonly attributes: SpanAttributes | null;
   /** True for a round trip of Core's Postgres driver, which the call's `db.query_ms` sums. */
   readonly roundTrip: boolean;

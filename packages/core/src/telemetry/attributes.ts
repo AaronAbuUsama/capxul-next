@@ -20,22 +20,6 @@ export const SPAN_ATTRIBUTES = {
   queryMs: "db.query_ms",
   /** How many Postgres round trips the call made: statements, and a transaction's BEGIN and COMMIT or ROLLBACK. */
   queryCount: "db.query_count",
-  /** The company site a span's call went to (a site of the world's bench). */
-  site: "site.name",
-  /** The milliseconds the site itself spent answering, by its own clock: the rest of the span is the way there and back. */
-  siteMs: "site.ms",
-  /** The world time a stretch of a clock warp starts from and ends at (site-ops/world.ts, warpSteps). */
-  warpFrom: "warp.from",
-  warpTo: "warp.to",
-  /** What a site spent on a warp before its first stop: syncing its job types and setting where they are due from. */
-  warpSetupMs: "warp.setup_ms",
-  /** Each stop of a site's warp, in order: its milliseconds, and how many jobs it ran (capxul/clock.py, advance). */
-  warpStopMs: "warp.stop_ms",
-  warpStopJobs: "warp.stop_jobs",
-  /** A site's slowest jobs over every stop of a warp, the slowest first: each one's method, runs and milliseconds. */
-  warpJobs: "warp.jobs",
-  warpJobRuns: "warp.job_runs",
-  warpJobMs: "warp.job_ms",
 } as const;
 
 /** The attribute effect/sql sets on every span of a database client (OpenTelemetry's `db.system.name`). */
@@ -48,16 +32,6 @@ export const SpanAttributes = Schema.Struct({
   [SPAN_ATTRIBUTES.colo]: Schema.optional(Schema.String),
   [SPAN_ATTRIBUTES.queryMs]: Schema.optional(Schema.Finite),
   [SPAN_ATTRIBUTES.queryCount]: Schema.optional(Schema.Int),
-  [SPAN_ATTRIBUTES.site]: Schema.optional(Schema.String),
-  [SPAN_ATTRIBUTES.siteMs]: Schema.optional(Schema.Finite),
-  [SPAN_ATTRIBUTES.warpFrom]: Schema.optional(Schema.String),
-  [SPAN_ATTRIBUTES.warpTo]: Schema.optional(Schema.String),
-  [SPAN_ATTRIBUTES.warpSetupMs]: Schema.optional(Schema.Finite),
-  [SPAN_ATTRIBUTES.warpStopMs]: Schema.Array(Schema.Finite).pipe(Schema.optional),
-  [SPAN_ATTRIBUTES.warpStopJobs]: Schema.Array(Schema.Int).pipe(Schema.optional),
-  [SPAN_ATTRIBUTES.warpJobs]: Schema.Array(Schema.String).pipe(Schema.optional),
-  [SPAN_ATTRIBUTES.warpJobRuns]: Schema.Array(Schema.Int).pipe(Schema.optional),
-  [SPAN_ATTRIBUTES.warpJobMs]: Schema.Array(Schema.Finite).pipe(Schema.optional),
 });
 export type SpanAttributes = typeof SpanAttributes.Type;
 
