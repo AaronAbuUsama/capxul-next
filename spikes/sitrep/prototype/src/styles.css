@@ -505,3 +505,4 @@ button.row:active, a.row:active { background: var(--fill-strong); }
 .legend i.bar-key.over { background: var(--bad); }
 .panel .back span { max-width: 240px; }
 .sidebar .brand b { color: var(--ink); }
+.lifted .navbar { background: var(--glass); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-bottom-color: var(--line); }

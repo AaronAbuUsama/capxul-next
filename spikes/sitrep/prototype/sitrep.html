@@ -511,6 +511,7 @@ button.row:active, a.row:active { background: var(--fill-strong); }
 .legend i.bar-key.over { background: var(--bad); }
 .panel .back span { max-width: 240px; }
 .sidebar .brand b { color: var(--ink); }
+.lifted .navbar { background: var(--glass); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-bottom-color: var(--line); }
 
 </style>
 <div id="app" aria-busy="true">
@@ -728,13 +729,15 @@ const openAsks = () => SNAP.needsYou.asks.map((id) => IX.asks[id]).filter((a) =>
 /* A page. `back` is the label of the page underneath; a root page has none. */
 function Page({ title, sub, back, end, children, cls, pageKey }) {
   const [scrolled, setScrolled] = useState(false);
+  const [lifted, setLifted] = useState(false);
   const ref = useRef(null);
-  useEffect(() => { if (ref.current) ref.current.scrollTop = 0; setScrolled(false); }, [pageKey]);
+  useEffect(() => { if (ref.current) ref.current.scrollTop = 0; setScrolled(false); setLifted(false); }, [pageKey]);
   const onScroll = (e) => {
-    const s = e.currentTarget.scrollTop > 36;
-    if (s !== scrolled) setScrolled(s);
+    const top = e.currentTarget.scrollTop;
+    if (top > 36 !== scrolled) setScrolled(top > 36);
+    if (top > 2 !== lifted) setLifted(top > 2);
   };
-  return html`<section ref=${ref} class=${"page " + (cls || "") + (scrolled ? " scrolled" : "")} onScroll=${onScroll} aria-label=${title}>
+  return html`<section ref=${ref} class=${"page " + (cls || "") + (scrolled ? " scrolled" : "") + (lifted ? " lifted" : "")} onScroll=${onScroll} aria-label=${title}>
     <header class="navbar">
       <div>${back ? html`<button class="back" onClick=${() => nav.pop()} aria-label=${"Back to " + back}><${Icon} n="left" /><span>${back}</span></button>` : null}</div>
       <div class="small-title" aria-hidden="true">${title}</div>
