@@ -1,6 +1,6 @@
 // The harness of the people operations' test (test/people-sql.test.ts): Core's groups served in this process against
 // a real Postgres with Core's migrations applied, with the world's cast, a frozen clock and Northwind founded as the
-// starting world `founded` keeps it (dana and eli its Directors, sam and pat its members), written straight into the
+// starting world `founded` keeps it (dana its founder, dana and eli its Directors, sam and pat its members), written straight into the
 // database. No chain and no bench: the people operations reach neither.
 import { CREDENTIAL_HEADER, PERSON_HEADER, TRACE_HEADER, WorldRpcs } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
@@ -34,8 +34,8 @@ const CAST = [
 ];
 
 /**
- * Core's groups with every service the people operations need, on the database at `url`, and a chain that is not
- * there unless one is handed in (test/support/board-chain.ts).
+ * Core's groups with every service the people operations need, on the database at `url`, and the world's chain
+ * `chain` (none by default: the people operations never reach it; board and budgets tests hand one in).
  */
 export const core = (url: string, chain: Layer.Layer<WorldChain> = WorldChain.fromEnv({})) =>
   Served.pipe(

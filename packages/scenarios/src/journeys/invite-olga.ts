@@ -1,7 +1,9 @@
-// Journey: invite olga to Northwind. Northwind's people are as founded; dana invites olga, who is in the world's cast
-// but belongs to no company, as a member; she declines, eli invites her again and she accepts, and is a member at
-// once, with nothing signed and nothing on the chain; then she can be given a permission like any member. Who may not
-// invite, whom nobody invites again, and who may not answer another's invitation are refused along the way.
+// Journey: invite olga to Northwind. Northwind's people are as founded; dana, its founder, invites olga, who is in the
+// world's cast but belongs to no company, as a member; she declines; eli, a Director but not the founder, may not
+// invite her again, so dana does, and she accepts, and is a member at once, with nothing signed and nothing on the
+// chain; then she can be given a permission like any member. For now only the founder invites (docs/roadmap.md, "Who
+// may invite"). Who may not invite, whom nobody invites again, and who may not answer another's invitation are
+// refused along the way.
 import { startingWorlds } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
@@ -22,12 +24,15 @@ const steps = outline({
   ],
   find: ["invite.list", "olga finds dana's invitation to Northwind, pending; sam has none, and nobody has rex's"],
   decline: ["invite.decline", "sam may not decline olga's invitation; olga declines it, and cannot decline it twice"],
-  again: ["org.member.invite", "eli invites olga again: her declined invitation no longer stands in the way"],
+  again: [
+    "org.member.invite",
+    "eli, a Director but not the founder, may not invite olga again; dana does: her declined invitation no longer stands in the way",
+  ],
   accept: [
     "invite.accept",
-    "olga cannot accept what she declined, nor what nobody sent, and sam may not accept hers; olga accepts eli's and is a member at once, and accepting again answers the same",
+    "olga cannot accept what she declined, nor what nobody sent, and sam may not accept hers; olga accepts dana's second and is a member at once, and accepting again answers the same",
   ],
-  mine: ["invite.list", "olga's invitations: dana's declined, then eli's accepted"],
+  mine: ["invite.list", "olga's invitations, both from dana: the first declined, then the second accepted"],
   joined: ["org.member.list", "olga sees Northwind's people, herself last as a member, as dana does"],
   member: ["org.member.invite", "olga belongs to Northwind now: inviting her again is refused"],
   grant: ["org.member.grant", "dana proposes that olga issue invoices: she is a member now, so it is proposed"],
@@ -57,7 +62,7 @@ export const inviteOlga = journey(
   {
     name: "invite olga to Northwind",
     story:
-      "dana invites olga to Northwind as a member, olga declines, eli invites her again and she accepts, and is a member at once with nothing signed, so dana can propose a permission for her; everyone who may not is refused.",
+      "dana, Northwind's founder, invites olga as a member, olga declines, eli may not invite her again but dana does and she accepts, and is a member at once with nothing signed, so dana can propose a permission for her; everyone who may not is refused.",
     given: startingWorlds.founded,
     steps,
   },
@@ -122,9 +127,11 @@ export const inviteOlga = journey(
 
     const second = yield* steps.again.run((op) =>
       Effect.gen(function* () {
-        const invited = yield* op.succeeds(invite(OLGA_EMAIL), eli);
-        yield* expect(invited.id !== first.id, `eli's invitation has the declined one's id, ${first.id}`);
-        yield* same("eli's invitation", [invited.invitedBy, invited.state], ["eli", "pending"]);
+        const notFounder = yield* op.refused("CannotManagePeople", invite(OLGA_EMAIL), eli);
+        yield* same("who may not invite", [notFounder.org, notFounder.person], [org, "eli"]);
+        const invited = yield* op.succeeds(invite(OLGA_EMAIL), dana);
+        yield* expect(invited.id !== first.id, `dana's second invitation has the declined one's id, ${first.id}`);
+        yield* same("dana's second invitation", [invited.invitedBy, invited.state], ["dana", "pending"]);
         return invited;
       }),
     );

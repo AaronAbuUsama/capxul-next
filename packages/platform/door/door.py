@@ -32,6 +32,7 @@ POST   /clock {"frozen_at_ms": n} or {"offset_ms": n}   sets the world's clock, 
 POST   /world/backup {"snapshot"}     starts saving every site of the world under the snapshot's name and answers
                                       202 (snapshots.py): a backup can outlast the 100 s Cloudflare allows a request
 GET    /world/backup/<snapshot>       that backup: saving, saved (with its sites) or failed (with why)
+DELETE /world/backup/<snapshot>       forgets that backup, once its snapshot is deleted
 POST   /world/restore {"snapshot", "api_key", "api_secret", "clock"}   with the source world's token in
        `X-Capxul-Source-Token`: starts restoring every site that world saved as the snapshot into the token's world,
        each under its own label, and answers 202; each is then a site of this world like any other
@@ -75,7 +76,7 @@ import points
 import pool
 import templates
 from claim import claim_world
-from snapshots import backup_state, remove_backups, restore_world, start_backup, tidy_backups
+from snapshots import backup_state, drop_backup, remove_backups, restore_world, start_backup, tidy_backups
 from sites import (BENCH, DB_ROOT, DOMAIN, FORWARDED, KEY, LABEL, PORT, REGISTRY, REGISTRY_LOCK, SECRET, SITE_CALL, TOKEN, WEB,
                    Refused,
                    bench, build, entries_of, entry_path, public, read_entry, remove_site, site_of, update_entry,
@@ -224,6 +225,8 @@ class Door(BaseHTTPRequestHandler):
                 return self.answer(200, templates.drop_template(self.path[len("/templates/"):]))
             if method == "GET" and self.path.startswith("/world/backup/"):
                 return self.answer(200, backup_state(c, self.path[len("/world/backup/"):]))
+            if method == "DELETE" and self.path.startswith("/world/backup/"):
+                return self.answer(200, drop_backup(c, self.path[len("/world/backup/"):]))
             if route == ("GET", "/world/points"):
                 return self.answer(200, points.list_points(c))
             if method == "DELETE" and self.path.startswith("/world/points/"):

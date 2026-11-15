@@ -46,10 +46,12 @@ export const INSTALLER = parseAbi([
 ]);
 
 export const HATS = parseAbi([
+  "function createHat(uint256 admin, string details, uint32 maxSupply, address eligibility, address toggle, bool mutable_, string imageURI) returns (uint256 newHatId)",
   "function mintHat(uint256 hatId, address wearer) returns (bool)",
   "function changeHatMaxSupply(uint256 hatId, uint32 newMaxSupply)",
   "function isWearerOfHat(address user, uint256 hatId) view returns (bool)",
   "function viewHat(uint256 hatId) view returns (string details, uint32 maxSupply, uint32 supply, address eligibility, address toggle, string imageURI, uint16 lastHatId, bool mutable_, bool active)",
+  "function buildHatId(uint256 admin, uint16 newHat) pure returns (uint256 id)",
 ]);
 
 /** The company's Signer Gate (Hats Signer Gate v2): what the wearer of its owner hat, the Shareholders' top hat, calls. */
@@ -74,5 +76,10 @@ export const ENTRY_POINT = parseAbi([
 ]);
 
 export const BUDGETS = parseAbi([
+  "struct Budget { address safe; uint256 parent; uint256 hat; address token; uint8 period; uint8 depth; bool closed; uint128 amount; uint128 childrenAmount; uint128 ownSpent; uint128 ownCommitted; uint128 spent; uint128 committed; uint64 periodIndex; }",
+  "function createChildBudget(uint256 parent, uint128 amount, uint256 hat) returns (uint256 id)",
+  "function budgetOf(uint256 id) view returns (Budget b)",
+  "function leftOf(uint256 id) view returns (uint128)",
+  "function childrenOf(uint256 id) view returns (uint256[])",
   "event BudgetCreated(address indexed safe, uint256 indexed id, uint256 indexed parent, address token, uint8 period, uint128 amount, uint256 hat)",
 ]);

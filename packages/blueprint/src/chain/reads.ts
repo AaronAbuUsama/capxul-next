@@ -6,7 +6,7 @@
 import type * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import type { CallOptions } from "../telemetry.ts";
-import { Address, Amount, Hash, HatId, Instant } from "../values.ts";
+import { Address, Amount, Hash, HatId, Instant, Uint } from "../values.ts";
 import { Log, LogName } from "./logs.ts";
 
 /** The block a read reads at: a block number, or null for the latest. */
@@ -24,6 +24,10 @@ export const FUNCTION_SIGNATURES = {
   isWearerOfHat: "function isWearerOfHat(address user, uint256 hatId) view returns (bool)",
   companySafeAddressFor:
     "function companySafeAddressFor(address owner, string namespace, string company, address founderSafe) pure returns (address)",
+  budgetOf:
+    "function budgetOf(uint256 id) view returns ((address safe, uint256 parent, uint256 hat, address token, uint8 period, uint8 depth, bool closed, uint128 amount, uint128 childrenAmount, uint128 ownSpent, uint128 ownCommitted, uint128 spent, uint128 committed, uint64 periodIndex) b)",
+  leftOf: "function leftOf(uint256 id) view returns (uint128)",
+  childrenOf: "function childrenOf(uint256 id) view returns (uint256[])",
 } as const;
 
 export interface Read<P extends Schema.Struct.Fields, A extends Schema.Codec<unknown, unknown>> {
@@ -76,6 +80,32 @@ export const reads = {
     { minter: Address, owner: Address, namespace: Schema.String, company: Schema.String, founderSafe: Address },
     Address,
     "eth_call of the minter's companySafeAddressFor(owner, namespace, company, founderSafe)",
+  ),
+  /**
+   * One budget of the Budgets contract at `budgets`, by its id, for the period running at `block`: its amounts in its
+   * token's own decimals, `period` as ICalendar codes it (0 a month, 1 a quarter, 2 a year), `parent` 0 for a top
+   * budget, and its children's ids in the order they were made. Null when no budget has the id.
+   */
+  budget: read(
+    { budgets: Address, budget: Uint, block: Block },
+    Schema.NullOr(
+      Schema.Struct({
+        safe: Address,
+        parent: Uint,
+        hat: HatId,
+        token: Address,
+        period: Schema.Int,
+        depth: Schema.Int,
+        closed: Schema.Boolean,
+        amount: Amount,
+        childrenAmount: Amount,
+        spent: Amount,
+        committed: Amount,
+        left: Amount,
+        children: Schema.Array(Uint),
+      }),
+    ),
+    "eth_call of the Budgets contract's budgetOf(id), leftOf(id) and childrenOf(id), and of the token's decimals()",
   ),
   /** One transaction as the chain included it, with every log it emitted, decoded, in order. */
   transaction: read(

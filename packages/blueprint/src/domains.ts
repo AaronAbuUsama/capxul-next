@@ -4,6 +4,7 @@
 import * as Rec from "effect/Record";
 import * as Approvals from "./approvals/domain.ts";
 import * as Board from "./board/domain.ts";
+import * as Budgets from "./budgets/domain.ts";
 import * as Documents from "./documents/domain.ts";
 import * as Organizations from "./organizations/domain.ts";
 import * as People from "./people/domain.ts";
@@ -19,6 +20,7 @@ export const domains = {
   organizations: Organizations,
   people: People,
   board: Board,
+  budgets: Budgets,
   documents: Documents,
   approvals: Approvals,
   reports: Reports,
@@ -30,4 +32,4 @@ export const domains = {
 export const namesOf = (domain: { readonly operations: { readonly [name: string]: unknown } }): ReadonlyArray<string> =>
   Rec.keys(domain.operations);
 
-export { Approvals, Board, Documents, Organizations, People, Record, Reports, World };
+export { Approvals, Board, Budgets, Documents, Organizations, People, Record, Reports, World };

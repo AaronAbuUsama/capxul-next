@@ -1,4 +1,4 @@
-// org.member.invite and org.member.list: a company's Directors invite a person by email to be a member, and its
+// org.member.invite and org.member.list: a company's founder invites a person by email to be a member, and its
 // people (and the world's owner) list who belongs. An invitation is pending at once: a Seat is off the chain and off
 // the site, so nothing is signed and nothing but Core's database and the world's record is written.
 import { Errors, type People } from "@capxul/blueprint";
@@ -28,8 +28,9 @@ export const memberInvite = Effect.fn("org.member.invite.send")(function* (invit
   const cast = yield* Cast;
   const who = yield* caller;
   const organization = yield* company(invite.org);
-  // Only a Director may invite in P1; whether the Manage-people hat may too is open.
-  if (!who.person || !Arr.contains(organization.directors, who.name))
+  // For now only the founder invites, as the company's row holds it (docs/roadmap.md, "Who may invite"); another
+  // Director is refused like anyone else. A role that grants it comes later.
+  if (!who.person || who.name !== organization.founder)
     return yield* Errors.CannotManagePeople.make({ org: invite.org, person: who.name });
   const invitee = yield* cast.withEmail(invite.email);
   if (Option.isSome(invitee) && (yield* belongs(organization, invitee.value.person)))

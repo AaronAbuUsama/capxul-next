@@ -1,5 +1,5 @@
 // What Core keeps of the domain "people" (migrations/0006_people_invitations.sql): the invitations a company's
-// Directors sent and the members who joined by accepting one. Every write is made inside the caller's transaction.
+// founder sent and the members who joined by accepting one. Every write is made inside the caller's transaction.
 import { People } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";

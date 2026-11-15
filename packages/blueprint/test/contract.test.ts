@@ -14,6 +14,7 @@ import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import * as Struct from "effect/Struct";
 import * as ApprovalsOps from "../src/approvals/operations.ts";
+import * as BudgetsOps from "../src/budgets/operations.ts";
 import { allClaims } from "../src/claims/all.ts";
 import { renderClaims } from "../src/claims/render.ts";
 import * as DocumentsOps from "../src/documents/operations.ts";
@@ -30,6 +31,7 @@ import { namesOf } from "../src/domains.ts";
 import { startingWorlds, type StartingWorld } from "../src/starting-worlds.ts";
 import * as Telemetry from "../src/telemetry.ts";
 import * as Values from "../src/values.ts";
+import * as WorldInventory from "../src/world/inventory.ts";
 import * as WorldOps from "../src/world/operations.ts";
 
 const names: ReadonlyArray<OperationName> = Rec.keys(operations);
@@ -109,12 +111,14 @@ const modules = {
   "values.ts": Values,
   "telemetry.ts": Telemetry,
   "world/operations.ts": WorldOps,
+  "world/inventory.ts": WorldInventory,
   "organizations/operations.ts": OrganizationsOps,
   "documents/operations.ts": DocumentsOps,
   "approvals/operations.ts": ApprovalsOps,
   "reports/operations.ts": ReportsOps,
   "people/operations.ts": PeopleOps,
   "board/operations.ts": BoardOps,
+  "budgets/operations.ts": BudgetsOps,
   "record/operations.ts": RecordOps,
 };
 const exported: ReadonlyArray<{ file: string; name: string; value: unknown }> = Arr.flatMap(
