@@ -34,7 +34,7 @@ test("the session is session.id and a run's shard is capxul.lane, as part 10 set
   assert.equal(Envelope.attributes.stepKind.name, "capxul.step.kind");
 });
 
-test("the step kinds are the ten part 10 lists, each named as itself", () => {
+test("the step kinds are the ten part 10 lists and `compute`, each named as itself", () => {
   assert.deepEqual(Rec.keys(StepKinds.STEP_KINDS), [
     "database",
     "site",
@@ -44,6 +44,7 @@ test("the step kinds are the ten part 10 lists, each named as itself", () => {
     "deploy",
     "branch",
     "container",
+    "compute",
     "restore",
     "poll",
   ]);
@@ -88,7 +89,7 @@ test("each monitor reads a declared dataset, and the run's fires past 1.5 times 
     assert.ok(Rec.has(Datasets.datasets, each.reads), `${each.name}: ${each.reads}`);
     for (const by of each.by) assert.ok(Rec.has(Envelope.attributes, by), `${each.name}: ${by}`);
   }
-  assert.equal(Watch.monitors.runOverTime.over, Pipeline.runRun.name);
+  assert.equal(Watch.monitors.runOverTime.over, Pipeline.runStart.name);
   assert.equal(Watch.monitors.runOverTime.threshold, 15 * 60_000);
   const metricNames = Arr.map(Rec.values(Metrics.metrics), (each) => each.name);
   for (const each of Rec.values(Watch.dashboards))

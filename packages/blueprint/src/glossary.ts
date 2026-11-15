@@ -121,10 +121,17 @@ export const glossary: ReadonlyArray<Entry> = [
   {
     word: "shard",
     meaning: "One world of a run's several.",
-    replaces: [uncounted("lane", "`lane` stays the word for a chain of roadmap items led by one lead")],
+    replaces: [words("lane", [], ["packages/runner/"])],
     scope: "user-facing",
   },
   { word: "promise", meaning: "A sentence an operation guarantees.", replaces: ["claim"], scope: "user-facing" },
+  {
+    word: "claim",
+    meaning: "Claiming a person's Safe on chain, through Companies House.",
+    replaces: [],
+    scope: "user-facing",
+    keptIn: ["CompaniesHouseClaimer.claim", "claim(string,string,address)", "capxul.claim"],
+  },
   { word: "check", meaning: "What judges one call or run, and only that.", replaces: [], scope: "internal" },
   {
     word: "gate",
