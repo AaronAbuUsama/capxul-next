@@ -39,7 +39,16 @@ export const Hash = pattern(/^0x[0-9a-f]{64}$/);
 /** A 65-byte secp256k1 signature, as hex. */
 export const Signature = pattern(/^0x[0-9a-f]{130}$/);
 
-export { ApprovalId, BoardChangeId, BudgetCreationId, ChangeId, OrgHandle, OrgId, PaymentRequestId, ProposalId } from "./ids.ts";
+export {
+  ApprovalId,
+  BoardChangeId,
+  BudgetCreationId,
+  ChangeId,
+  OrgHandle,
+  OrgId,
+  PaymentRequestId,
+  ProposalId,
+} from "./ids.ts";
 
 /** The assets a world's chain carries. */
 export const Asset = Schema.Literals(["USDC"]);
@@ -86,7 +95,12 @@ export const Approval = Schema.Struct({
  * answered. Each domain whose operations ask for approvals declares its kinds in `src/<domain>/subjects.ts`: a
  * company's setup and an officer change (organizations), a change to its Board (board), a budget's creation (budgets), a held payment (documents).
  */
-export const Subject = Schema.Union([...Organizations.subjects, ...Board.subjects, ...Budgets.subjects, ...Documents.subjects]);
+export const Subject = Schema.Union([
+  ...Organizations.subjects,
+  ...Board.subjects,
+  ...Budgets.subjects,
+  ...Documents.subjects,
+]);
 
 /**
  * How a person of the cast signs (decisions.md, 42). Their keys are among the first `accounts` of the public test
