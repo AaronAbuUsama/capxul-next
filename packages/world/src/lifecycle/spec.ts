@@ -142,8 +142,8 @@ const limit = (step: StepName, fallback: Duration.Duration) =>
 // and the time the part takes once started; test/patience.test.ts checks that each step's default holds both.
 export const Timeouts = Config.all({
   // The name held and a place on the hub (src/lifecycle/claim.ts, `admit`), waiting while the hub is full: a world on a
-  // full hub waits for another to go. A CI run's quota-full phase holds five places for about five minutes (README,
-  // Capacity), so three such waits fit.
+  // full hub waits for another to go. A CI run's quota-full phase holds five places for about five minutes (docs/cluster.md,
+  // "Capacity and admission"), so three such waits fit.
   admit: limit("admit", Duration.minutes(15)),
   claim: limit("claim", Duration.seconds(45)),
   register: limit("register", Duration.seconds(30)),
@@ -157,7 +157,7 @@ export const Timeouts = Config.all({
   // inside its Durable Object, and the paymaster's setup comes before.
   bundler: limit("bundler", Duration.minutes(5)),
   // INDEX_START, 4 minutes, for Cloudflare to accept Ponder's start, then a minute for Ponder's own start, twice the
-  // slowest of nineteen measured (29.8 s from the accepted start to ready). Was 3 minutes: see README, Timings.
+  // slowest of nineteen measured (29.8 s from the accepted start to ready). Was 3 minutes: see records/README.md.
   index: limit("index", Duration.minutes(5)),
   core: limit("core", Duration.minutes(1)),
   site: limit("site", Duration.minutes(8)),

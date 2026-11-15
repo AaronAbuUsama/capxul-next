@@ -30,6 +30,11 @@ const PACKAGES = `${import.meta.dirname}/../../..`;
  * The code that makes a starting world's sites, fingerprinted into its template's name: the starting worlds' definitions
  * (the blueprint), Core, which founds the company and writes it to its site, the world, and these makers. The bench's
  * apps are read from its door.
+ *
+ * TODO: the template worlds are made once per run, not once per change to this code, so every run
+ * pays for them: a bench template holds its run's world's company facts (its org id, the Safe minted under it). And a
+ * company a journey founds (`org.create` from `fresh`) still builds its site from nothing, about two minutes, since the
+ * bench pools templates of starting worlds, not of a bare company site.
  */
 export const CODE = ["blueprint/src", "core/src", "world/src", "runner/src/worlds"] as const;
 
@@ -192,6 +197,7 @@ export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (
     ),
   );
 
+  // TODO: a reset does not pause the bench's scheduler for the world's sites (packages/platform, "Sites from a pool").
   /** Resets the one world in place to the snapshot a journey of `world` starts from; answers the reset's account. */
   const resetFor = (world: StartingWorld, journey: string) =>
     Effect.gen(function* () {
