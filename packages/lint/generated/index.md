@@ -6,8 +6,8 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 ## `src/`
 
 - [`docs.ts`](../src/docs.ts): The docs' shape (docs/design/blueprint.md, part 7; docs/design/docs.md): what may live under docs/, where else a Markdown file may live, how long a README may be, that every relative link resolves, and that a design note states its status.
-- [`door.ts`](../src/door.ts): The lint package's door: the facts it owns that `pnpm generate` writes into the docs.
-- [`ladder.ts`](../src/ladder.ts): The ladder: the rungs `pnpm check` climbs in order, and the proof after them, each with its command and what fails it.
+- [`door.ts`](../src/door.ts): What other packages may import of the lint package: the facts it owns that `pnpm generate` writes into the docs.
+- [`gate.ts`](../src/gate.ts): The gate: the rungs `pnpm check` climbs in order, and the proof after them, each with its command and what fails it.
 - [`maps.ts`](../src/maps.ts): Every package has a map, `packages/<name>/generated/index.md`, written by `pnpm generate` (docs/design/docs.md, section 0, item 3): one line per file under its src/ and page under its docs/.
 - [`plugin.ts`](../src/plugin.ts): The capxul oxlint plugin: the repository's own lint rules.
 - [`shape.entry.ts`](../src/shape.entry.ts): Entry: `pnpm shape`.

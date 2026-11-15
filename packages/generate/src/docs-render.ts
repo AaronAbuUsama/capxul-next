@@ -30,8 +30,8 @@ export const renderPackages = (packages: Readonly<Record<string, string>>): stri
     "\n",
   );
 
-/** The ladder's table in AGENTS.md: one row per rung. */
-export const renderLadder = (
+/** The gate's table in AGENTS.md: one row per rung. */
+export const renderGate = (
   rungs: ReadonlyArray<{ readonly rung: string; readonly command: string; readonly fails: string }>,
 ): string =>
   Arr.join(

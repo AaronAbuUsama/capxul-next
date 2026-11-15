@@ -5,7 +5,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 import * as Arr from "effect/Array";
 import * as Str from "effect/String";
-import { renderDesignIndex, renderLadder, renderPackages, renderRules, statusOf, wrap } from "../src/docs-render.ts";
+import { renderDesignIndex, renderGate, renderPackages, renderRules, statusOf, wrap } from "../src/docs-render.ts";
 import { markers, renderDocs, replaceBlock } from "../src/markdown-blocks.ts";
 
 const { start, end } = markers("x");
@@ -53,7 +53,7 @@ test("the tables and the list hold each fact given", () => {
     "| Package | Why it is there |\n|---|---|\n| [`a`](packages/a) | why a |",
   );
   assert.match(
-    renderLadder([{ rung: "1. Shape", command: "`pnpm shape`", fails: "x" }]),
+    renderGate([{ rung: "1. Shape", command: "`pnpm shape`", fails: "x" }]),
     /\n\| 1\. Shape \| `pnpm shape` \| x \|$/,
   );
   assert.equal(renderRules([["capxul/a", "finds a."]]), "- `capxul/a`: finds a.");

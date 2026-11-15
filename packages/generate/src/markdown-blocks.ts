@@ -3,8 +3,8 @@
 // section 5). Pure: the entry (main.ts) gives a way to read a file and list a folder, and settles what comes back.
 import * as Arr from "effect/Array";
 import * as Str from "effect/String";
-import { LADDER, PACKAGES, RULES } from "@capxul/lint";
-import { renderDesignIndex, renderLadder, renderPackages, renderRules } from "./docs-render.ts";
+import { GATE, PACKAGES, RULES } from "@capxul/lint";
+import { renderDesignIndex, renderGate, renderPackages, renderRules } from "./docs-render.ts";
 import { BLOCKS, type BlockName, DESIGN_INDEX } from "./sources.ts";
 
 /** The two markers of a block. */
@@ -36,7 +36,7 @@ export const replaceBlock = (text: string, name: string, from: string, body: str
 /** Each block's body, from its owner. */
 const bodies: { readonly [name in BlockName]: string } = {
   packages: renderPackages(PACKAGES),
-  ladder: renderLadder(LADDER),
+  gate: renderGate(GATE),
   "lint-rules": renderRules(RULES),
 };
 

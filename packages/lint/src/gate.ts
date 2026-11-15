@@ -1,7 +1,7 @@
-// The ladder: the rungs `pnpm check` climbs in order, and the proof after them, each with its command and what fails
-// it. Declared once here; `pnpm generate` writes the table in AGENTS.md ("The ladder") from it.
+// The gate: the rungs `pnpm check` climbs in order, and the proof after them, each with its command and what fails
+// it. Declared once here; `pnpm generate` writes the rungs' table in AGENTS.md from it.
 
-/** One rung of the ladder, in the words of its row in AGENTS.md. */
+/** One rung of the gate, in the words of its row in AGENTS.md. */
 export interface Rung {
   /** Its number and name, such as `1. Shape`. */
   readonly rung: string;
@@ -12,7 +12,7 @@ export interface Rung {
 }
 
 /** The rungs, in the order they run. Rungs 1 to 5 are `pnpm check`; rung 6 is the proof in a fresh world. */
-export const LADDER: ReadonlyArray<Rung> = [
+export const GATE: ReadonlyArray<Rung> = [
   {
     rung: "1. Shape",
     command: "`pnpm shape`",

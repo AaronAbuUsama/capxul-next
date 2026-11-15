@@ -1,5 +1,5 @@
-// The lint package's door: the facts it owns that `pnpm generate` writes into the docs. The packages and their
-// reasons (the root README's map), the ladder (AGENTS.md's table), what each of our lint rules finds (the lists in
+// What other packages may import of the lint package: the facts it owns that `pnpm generate` writes into the docs. The packages and their
+// reasons (the root README's map), the gate's rungs (AGENTS.md's table), what each of our lint rules finds (the lists in
 // AGENTS.md and this package's README), the packages with no map yet, and the typed-once rules' unmigrated lists, which `pnpm ratchets`
 // (packages/blueprint-tools, src/checks/) counts as ratchets R1 to R3.
 import { description as blueprintOwnsNames } from "./rules/blueprint-owns-names.ts";
@@ -10,7 +10,7 @@ import { description as importDoor } from "./rules/import-door.ts";
 import { description as noJsonText } from "./rules/no-json-text.ts";
 import { description as ownedValues } from "./rules/owned-values.ts";
 
-export { LADDER, type Rung } from "./ladder.ts";
+export { GATE, type Rung } from "./gate.ts";
 export { MAP, UNMAPPED } from "./maps.ts";
 export { PACKAGES } from "./shape.ts";
 

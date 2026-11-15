@@ -239,8 +239,8 @@ green. Generic checks added by such a slice are written by a different agent fro
 Run `pnpm check` before you open a pull request. It runs rungs 1 to 5 in order and stops at the first that fails.
 `pnpm format` rewrites the code into shape; run it before `pnpm check`.
 
-<!-- generated:ladder start -->
-<!-- Written by `pnpm generate` from `LADDER` in packages/lint/src/ladder.ts; never edit it. -->
+<!-- generated:gate start -->
+<!-- Written by `pnpm generate` from `GATE` in packages/lint/src/gate.ts; never edit it. -->
 | Rung | Command | What fails it |
 |---|---|---|
 | 1. Shape | `pnpm shape` | An entry at the top level, a package or a file under `docs/` that `packages/lint/src/shape.ts` does not list; a package or spike with no `README.md`; a source file under `packages/` over 300 lines; the two lists of entry files in `.oxlintrc.json` naming different paths |
@@ -249,7 +249,7 @@ Run `pnpm check` before you open a pull request. It runs rungs 1 to 5 in order a
 | 4. Types | `pnpm types` | A type error in any TypeScript package, or an Effect language service error or warning (`effect-tsgo tsc`) |
 | 5. Tests | `pnpm test`, then `pnpm delta:check` and `pnpm words` (and `pnpm ratchets` from 3.6) | A failing unit test in any package (`pnpm frappe:test` and `pnpm status:test` included). Foundry's tests in `packages/contracts` are not in it: CI builds only the contracts, not their tests. Then the delta check: an operation that lacks a format that exists and is not on that format's `unmigrated` list (`packages/blueprint-tools/src/checks/formats.ts`). Then the old words: an old word of the glossary written more often than `packages/blueprint/generated/old-words.json` counts (3.8). From 3.6, a ratchet whose list grew |
 | 6. Proof | `packages/runner/run.sh scenarios` (and `prove.yml` from 4.5) | A scenario that fails in a fresh world; from 3.7, a newly declared move, refusal or outcome no journey reaches. CI runs it in `.github/workflows/world.yml` once the bootstrap has given CI its Cloudflare and Neon keys (roadmap step 1.8) |
-<!-- generated:ladder end -->
+<!-- generated:gate end -->
 
 Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
 

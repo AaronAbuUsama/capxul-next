@@ -15,6 +15,6 @@ time. Its spans and logs judge it once it is instrumented (roadmap item 4.7). It
 Count every ratchet's list; a list that grew fails, and one that shrank must be committed smaller.
 
 - Payload: none.
-- Spans: `ratchet.count.lists` (container).
+- Spans: `ratchet.count.lists` (compute).
 - Logs: `ratchet.count.grew` (ratchet, was, now).
 - Budget: 10,000 ms, a target, provisional. Basis: lint and file reads in one process; a first guess inside the gate's 3 minutes.

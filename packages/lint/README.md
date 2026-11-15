@@ -14,8 +14,8 @@ The repository's own checks, and the formatter's settings. The gate that runs th
 - `src/plugin.ts` is the `capxul` oxlint plugin; its rules are in `src/rules/`. `.oxlintrc.json` loads it. The plugin
   imports `@capxul/blueprint` for `declaredNames`, the names `capxul/declared-names` guards, so the blueprint stays
   their one owner.
-- `src/ladder.ts` declares the ladder's rungs; `src/maps.ts` checks that every package has its generated map. The
-  door, `src/door.ts`, gives them, `PACKAGES` and each rule's `description` to `pnpm generate` for the docs.
+- `src/gate.ts` declares the gate's rungs; `src/maps.ts` checks that every package has its generated map. What other
+  packages may import gives them, `PACKAGES` and each rule's `description` to `pnpm generate` for the docs.
 - `src/unmigrated.ts` holds the unmigrated lists of the three typed-once rules (below), and `src/rules/ratchet.ts`
   the ratchet they share.
 - `oxfmt.json` is oxfmt's configuration: 120 columns, the rest oxfmt's defaults (here, as the top level is closed).

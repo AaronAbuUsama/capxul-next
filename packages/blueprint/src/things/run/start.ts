@@ -1,4 +1,4 @@
-// `capxul run start` (`run.run`): one CI or container run, from its start to its verdict. Work no door serves: the
+// `capxul run start` (`run.start`): one CI or container run, from its start to its verdict. Work no door serves: the
 // runner does it. Its budget is the run's 10 minutes (docs/design/blueprint.md, part 8), broken down below: a target,
 // never a gate. A measured p95 over 1.5 times it (15 minutes) raises an architecture review (src/telemetry/watch.ts).
 import { log, span, work } from "@capxul/blueprint-tools";
@@ -9,14 +9,14 @@ import { runTeardown } from "./teardown.ts";
 import { RunId, RunPart, ShardCount, Trusted } from "./values.ts";
 import { runVerdict } from "./verdict.ts";
 
-const ci = span("run.run.ci", StepKind.container);
+const ci = span("run.start.ci", StepKind.container);
 
-export const runRun = work({
-  name: "run.run",
+export const runStart = work({
+  name: "run.start",
   does: "One CI or container run, from its start to its verdict: prepare, the journeys by shard, confirm, verdict, teardown.",
   payload: { shards: ShardCount, trusted: Trusted },
   spans: { ci },
-  logs: { partFailed: log("run.run.part_failed", { run: RunId, part: RunPart }) },
+  logs: { partFailed: log("run.start.part_failed", { run: RunId, part: RunPart }) },
   budget: {
     ms: 600_000,
     excludes: [],

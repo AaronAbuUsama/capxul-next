@@ -85,7 +85,7 @@ export const MAPS: ReadonlyArray<string> = Arr.filter(
 );
 
 /** The blocks `pnpm generate` writes inside hand-written Markdown files, each by its name. */
-export type BlockName = "packages" | "ladder" | "lint-rules";
+export type BlockName = "packages" | "gate" | "lint-rules";
 
 /**
  * Each block between `<!-- generated:<name> start -->` and `<!-- generated:<name> end -->` in a hand-written
@@ -93,7 +93,7 @@ export type BlockName = "packages" | "ladder" | "lint-rules";
  */
 export const BLOCKS: ReadonlyArray<{ readonly name: BlockName; readonly file: string; readonly from: string }> = [
   { name: "packages", file: "README.md", from: "`PACKAGES` in packages/lint/src/shape.ts" },
-  { name: "ladder", file: "AGENTS.md", from: "`LADDER` in packages/lint/src/ladder.ts" },
+  { name: "gate", file: "AGENTS.md", from: "`GATE` in packages/lint/src/gate.ts" },
   { name: "lint-rules", file: "AGENTS.md", from: "each rule's `description` in packages/lint/src/rules/" },
   {
     name: "lint-rules",
