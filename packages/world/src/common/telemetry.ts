@@ -1,5 +1,5 @@
 // The world's OTLP export (roadmap 4.4): the layer its entry (cli/main.ts) provides once, so every span, log and metric it makes is posted
-// over OTLP/HTTP JSON to `baseUrl` (the collector), under a resource naming the producer (`service.name`: "world")
+// over OTLP/HTTP JSON to `baseUrl` (the collector), under a resource naming the producer (`service.name`: "capxul-world", #301's producer)
 // and the code's revision (`service.version`). Effect's `Otlp.layerJson` from `effect/observability`; no OpenTelemetry
 // SDK.
 //

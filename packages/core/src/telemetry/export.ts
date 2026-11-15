@@ -1,5 +1,5 @@
 // Core's OTLP export (roadmap 4.4): the layer Core's Worker provides once, so every span, log and metric it makes is posted
-// over OTLP/HTTP JSON to `baseUrl` (the collector), under a resource naming the producer (`service.name`: "core")
+// over OTLP/HTTP JSON to `baseUrl` (the collector), under a resource naming the producer (`service.name`: "capxul-api", #301's producer)
 // and the code's revision (`service.version`). Effect's `Otlp.layerJson` from `effect/observability`; no OpenTelemetry
 // SDK.
 //

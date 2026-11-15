@@ -1,5 +1,5 @@
 // Core exports OTLP (roadmap 4.4): given an endpoint, its layer posts the spans of a traced effect, under a resource
-// carrying `service.name` "core" and the code's revision as `service.version`.
+// carrying `service.name` "capxul-api" and the code's revision as `service.version`.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import * as Arr from "effect/Array";
@@ -20,6 +20,9 @@ interface Traces {
 }
 
 const PROBE = "core.export.probe";
+/** The producer's name as #301 declares it (`packages/blueprint/src/telemetry/producers.ts` on `slice/blueprint`).
+ * It moves to an import from the blueprint's producers when #301 reaches master. */
+const SERVICE = "capxul-api";
 
 const exportsTheProbe = Effect.gen(function* () {
   const { posted, layer } = capturing();
@@ -40,7 +43,7 @@ const exportsTheProbe = Effect.gen(function* () {
       Option.flatMap((each) => Option.fromNullishOr(each.value.stringValue)),
       Option.getOrUndefined,
     );
-  assert.equal(attribute("service.name"), "core");
+  assert.equal(attribute("service.name"), SERVICE);
   assert.equal(attribute("service.version"), REVISION);
 });
 
