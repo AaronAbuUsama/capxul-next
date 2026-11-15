@@ -1,10 +1,12 @@
 // Where each entry's telemetry goes (src/telemetry.ts): the run's attributes from the environment, trusted only in
 // GitHub Actions, and nothing exported, with the tracer left as it was, when no endpoint is set.
 import { strict as assert } from "node:assert";
+import { createServer } from "node:http";
 import { test } from "node:test";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Option from "effect/Option";
 import { RUN_ATTRIBUTES } from "../src/collector/envelope.ts";
 import { exportFromConfig, platformTelemetry, RunAttributes } from "../src/telemetry.ts";
 
@@ -56,4 +58,26 @@ test("with no endpoint set, an entry exports nothing and keeps the tracer it had
     }).pipe(under({})),
   );
   assert.ok(same, "the tracer changed though no endpoint was set");
+});
+
+test("an entry given a collector and no endpoint posts there, with the collector's authorization header", async () => {
+  const seen: Array<{ url: string; authorization: string | undefined }> = [];
+  const server = createServer((request, response) => {
+    seen.push({ url: request.url ?? "", authorization: request.headers.authorization });
+    request.resume();
+    request.on("end", () => response.writeHead(200, { "content-type": "application/json" }).end("{}"));
+  });
+  await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+  const address = server.address();
+  const port = address !== null && typeof address === "object" ? address.port : 0;
+  const target = Option.some({ baseUrl: `http://127.0.0.1:${port}`, headers: { authorization: "Bearer c1.claim" } });
+  await Effect.runPromise(
+    Effect.void.pipe(
+      Effect.withSpan("platform.export.probe"),
+      Effect.provide(exportFromConfig(platformTelemetry, target)),
+      under({ OTEL_LOGS_EXPORTER: "none", OTEL_METRICS_EXPORTER: "none" }),
+    ),
+  );
+  await new Promise<void>((done) => server.close(() => done()));
+  assert.deepEqual(seen, [{ url: "/v1/traces", authorization: "Bearer c1.claim" }]);
 });

@@ -159,20 +159,33 @@ const Settings = Config.all({
   metrics: isOn("METRICS"),
 });
 
+/** Where an entry sends, when it knows better than the settings: a collector it found, and the claim it minted. */
+export interface Target {
+  readonly baseUrl: string;
+  readonly headers: Headers.Input;
+}
+
 /**
  * A producer's export as the standard settings ask, sent with fetch: `make` is its layer (`runnerTelemetry`, ...).
- * With no endpoint set, nothing; otherwise flushed when the entry's program ends.
+ * An endpoint set in the settings wins; otherwise `target`, when the entry found one (the runner's collector,
+ * packages/runner src/telemetry/export.ts); with neither, nothing. Flushed when the entry's program ends.
  */
-export const exportFromConfig = (make: (options: ExportOptions) => ExportLayer) =>
+export const exportFromConfig = (
+  make: (options: ExportOptions) => ExportLayer,
+  target: Option.Option<Target> = Option.none(),
+) =>
   Layer.unwrap(
     Effect.gen(function* () {
       const settings = yield* Settings;
       const run = yield* RunAttributes;
-      if (Option.isNone(settings.endpoint)) return Layer.empty;
+      const to: Option.Option<Target> = Option.isSome(settings.endpoint)
+        ? Option.some({ baseUrl: settings.endpoint.value, headers: settings.headers })
+        : target;
+      if (Option.isNone(to)) return Layer.empty;
       return make({
-        baseUrl: settings.endpoint.value,
+        baseUrl: to.value.baseUrl,
         revision: run.revision,
-        headers: settings.headers,
+        headers: to.value.headers,
         attributes: run.attributes,
         signals: { traces: settings.traces, logs: settings.logs, metrics: settings.metrics },
       });

@@ -8,7 +8,6 @@ import * as BunFileSystem from "@effect/platform-bun/BunFileSystem";
 import * as BunPath from "@effect/platform-bun/BunPath";
 import * as BunRuntime from "@effect/platform-bun/BunRuntime";
 import * as BunServices from "@effect/platform-bun/BunServices";
-import { exportFromConfig } from "@capxul/platform";
 import * as World from "@capxul/world";
 import { SharedState } from "@capxul/world";
 import { journeys } from "@capxul/scenarios";
@@ -31,7 +30,7 @@ import { makeOrRenew } from "./shared/make.ts";
 import { timeStartingWorlds } from "./worlds/timing.ts";
 import { runScenarios } from "./scenario-runs.ts";
 import { Settings } from "./settings.ts";
-import { runnerTelemetry } from "./telemetry/export.ts";
+import { runnerExport } from "./telemetry/export.ts";
 import { RUN_SPANS } from "./timings.ts";
 import { ranAsExpected, type Expectation, type Mode } from "./summary.ts";
 
@@ -264,7 +263,7 @@ program.pipe(
       noFetchTimeout,
       // OTLP export, as OpenTelemetry's standard settings ask (packages/platform, src/telemetry.ts): the run's trace,
       // its journeys, steps and parts and the world's own spans go through it; flushed when the run ends.
-      exportFromConfig(runnerTelemetry),
+      runnerExport,
     ),
   ),
   BunRuntime.runMain,
