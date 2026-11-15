@@ -177,7 +177,7 @@ step for the format and the ratchet registry; "Coverage is not a gate" changed i
 | — | Account version | Keep it as the "Account identity" decision records it: it changes only when an input of the derivation changes (the salt rule, the Safe factory, its singleton or module, the starting owner), not with the protocol's major version, so a person's Safe address survives releases that do not touch it. Replaces Aaron's first request for a salt versioned to the protocol's major version | **Agreed**, 15 November 2026 |
 | 2 | No drift as checks | The eight layers, each instrumented and budgeted (part 3); coverage option B; measured facts generated from verdict digests; the ratchet registry (part 4) | **Agreed**, 15 November 2026 |
 | 3 | The shape | Part 7, with its three choices as recommended | **Agreed**, 15 November 2026 |
-| 4 | The pipeline as operations | Part 8 | Proposed |
+| 4 | The pipeline as operations | Part 8: the operations as listed, journeys named in the blueprint, the 10-minute breakdown, lanes of worlds (option B). A budget is a target, not a gate | **Agreed**, 15 November 2026 |
 | 5 | Telemetry in the blueprint | One telemetry module as `telemetry-in-the-blueprint.md` part 3B describes, with T1 to T8 as agreed | Not started |
 | 6 | The sequence | Part 5 | **Agreed**, 15 November 2026 |
 
@@ -269,7 +269,13 @@ Run records under `packages/*/records/` are frozen from the proof lane's flip (R
 
 ## 8. The pipeline as operations, and the 10-minute run (decision 4)
 
-**Proposed, not yet agreed.**
+**Agreed with Aaron, 15 November 2026**: the operations as listed, journeys named in the blueprint, the breakdown below
+as the provisional budget, and lanes of worlds (option B), which changes "One runner, one world".
+
+**A budget is a target, not a gate** (Aaron, 15 November 2026). Nothing fails on speed. A run within striking distance
+of its budget is fine; a run far over it is a reason to look at the architecture, not to fail the work. Proposed rule
+for "far over": when the measured p95 of an operation, or of the whole run, is over 1.5 times its budget (15 minutes for
+the run), the cost job raises an architecture review as a task, naming the parts that grew.
 
 ### What is declared
 
@@ -328,3 +334,151 @@ a minute, and it changes "Bench templates never change" and the world lifecycle 
 **What this changes in the roadmap:** "One runner, one world" becomes "One runner, K worlds": a run's journeys run in
 lanes, each lane one world reset in place between its journeys, K raised by the four measures. The speed lane (stage
 3d) builds it.
+
+## 9. What it looks like
+
+**A sketch, for Aaron to see the format before it is built.** The names of the format's functions (`operation`,
+`work`, `step`, `log`) are illustrative: stage 2 settles them. What the sketch fixes is what each file holds and in
+what order things are imported.
+
+### A pipeline operation: `src/pipeline/world-reset.ts`
+
+```ts
+// world.reset: put a world back to a saved snapshot, in place, with one clock.
+import { budget, log, step, work } from "../format/door.ts";
+import { StepKind } from "../telemetry/door.ts";
+import { operator } from "../roles.ts";
+import { SnapshotName, WorldName } from "../world/values.ts";
+import { ResetPart, ResetReason } from "./values.ts";
+import { WorldReset } from "./events.ts";
+import { ResetFailed, SnapshotNotFound } from "./refusals.ts";
+
+/** Its steps, in the order a reset runs them. These names exist nowhere else: code imports them. */
+export const steps = {
+  stopIndex: step("world.reset.index.stop", StepKind.container),
+  database: step("world.reset.database", StepKind.branch),
+  chain: step("world.reset.chain", StepKind.chain),
+  clock: step("world.reset.clock", StepKind.chain),
+  sites: step("world.reset.sites", StepKind.site),
+  core: step("world.reset.core", StepKind.deploy),
+  resumeIndex: step("world.reset.index.resume", StepKind.container),
+  ready: step("world.reset.ready", StepKind.poll),
+};
+
+/** Its logs, each with a schema. `refused` is written where a refusal is decided, naming why. */
+export const logs = {
+  refused: log("world.reset.refused", { world: WorldName, snapshot: SnapshotName, reason: ResetReason }),
+  partFailed: log("world.reset.part_failed", { world: WorldName, part: ResetPart }),
+};
+
+export const worldReset = work({
+  name: "world.reset",
+  allowed: [operator.ownerOfTheWorld],
+  payload: { world: WorldName, to: SnapshotName },
+  emits: [WorldReset],
+  refusals: { SnapshotNotFound: logs.refused, ResetFailed: logs.partFailed },
+  steps: Object.values(steps),
+  budget: budget({ ms: 15_000 }), // the target; measured p95 and basis are generated, never typed
+  examples: [{ payload: { world: "w-lane-1", to: "founded" } }],
+});
+```
+
+How `packages/world` uses it. The span's name and its kind come from the declaration; lint fails an `Effect.fn` with a
+string, and the run-time check fails a reset whose record is missing a step that ran:
+
+```ts
+import { Pipeline } from "@capxul/blueprint";
+const { steps, logs } = Pipeline.worldReset;
+
+const restoreBranch = Step.fn(steps.database)(function* (world: World, to: Snapshot) {
+  // ... Neon's restore, as today
+});
+```
+
+### A product operation in the same format: `src/people/invite-accept.ts`
+
+```ts
+// invite.accept: the invitee accepts, and is a member at once.
+import * as Rpc from "effect/rpc/Rpc";
+import * as Schema from "effect/Schema";
+import { budget, claim, emit, log, operation, step } from "../format/door.ts";
+import { StepKind } from "../telemetry/door.ts";
+import { person } from "../roles.ts";
+import { NotImplemented } from "../errors/server.ts";
+import { Invitation, InvitationId, Member, RefusalRule } from "./values.ts";
+import { InvitationAccepted } from "./events.ts";
+import { InvitationClosed, InvitationNotFound, NotYourInvitation } from "./refusals.ts";
+import { Invitation as Lifecycle } from "./machines.ts";
+
+export class Accepted extends Schema.TaggedClass<Accepted>()("Accepted", { invitation: Invitation, member: Member }) {}
+export class AlreadyAccepted extends Schema.TaggedClass<AlreadyAccepted>()("AlreadyAccepted", {
+  invitation: Invitation,
+  member: Member,
+}) {}
+
+export const steps = {
+  load: step("invite.accept.load", StepKind.database),
+  write: step("invite.accept.write", StepKind.database),
+};
+export const logs = { refused: log("invite.accept.refused", { invitation: InvitationId, rule: RefusalRule }) };
+
+export const inviteAccept = operation({
+  rpc: Rpc.make("invite.accept", {
+    payload: { invitation: InvitationId },
+    success: Schema.Union([Accepted, AlreadyAccepted]),
+    error: Schema.Union([InvitationNotFound, NotYourInvitation, InvitationClosed, NotImplemented]),
+  }),
+  allowed: [person.theInvitee],
+  moves: [Lifecycle.moves.accept], // the machine's refusals from other states come with the move
+  outcomes: {
+    Accepted: [emit(InvitationAccepted, ({ success }) => ({ ...success.member, invitation: success.invitation.id }))],
+    AlreadyAccepted: [],
+  },
+  refusals: { InvitationNotFound: logs.refused, NotYourInvitation: logs.refused, InvitationClosed: logs.refused },
+  steps: Object.values(steps),
+  budget: budget({ ms: 300, excludes: ["waking a parked world"] }),
+  examples: [/* one per outcome */],
+  claims: [claim("accepting a pending invitation makes the caller a member at once", { from: "invited" })],
+});
+```
+
+Everything about `invite.accept` is in this one file. What it shares with other operations (the invitation's values,
+its events, its refusals, its machine) is one import away, in the domain's four shared files.
+
+### The generated page: `packages/blueprint/generated/pipeline/world-reset.md`
+
+```md
+<!-- Generated by pnpm generate from src/pipeline/world-reset.ts. Do not edit. -->
+# world.reset
+Put a world back to a saved snapshot, in place, with one clock.
+
+| Budget | Measured p95 | From |
+|---|---|---|
+| 15 s (target) | 14.8 s | verdict sha256:3be1… of proof journeys/thin-line |
+
+Steps: index.stop (container) → database (branch) → chain → clock (chain) → sites (site) → core (deploy)
+→ index.resume (container) → ready (poll)
+Refusals: SnapshotNotFound (logs world.reset.refused), ResetFailed (logs world.reset.part_failed)
+Allowed: the world's owner. Called by: journey, run.prepare. Ratchets touching it: none.
+```
+
+### A run, as its trace reads in Axiom
+
+```
+run                                   budget 10 min
+├─ run.prepare                        2 min
+│  ├─ world.create            lane 1  ┐
+│  ├─ world.create            lane 2  ├ at once
+│  └─ starting-world.make founded     ┘
+├─ lane 1 ─ journey "found Northwind"
+│  ├─ world.reset → index.stop, database, chain, clock, sites, core, index.resume, ready
+│  ├─ org.create          (caller span → Core's span → its declared steps)
+│  │  └─ check.call       spans · events · machine path · deciding logs · allowed
+│  └─ …
+├─ lane 2 ─ journey "pay and branch" …
+├─ check.confirm                       Axiom read back: nothing undeclared, receipts match
+├─ run.verdict                         proofs branch, check proof/journeys, archive in R2
+└─ run.teardown
+```
+
+Each line is a declared operation or step. A second not under one of them shows as unexplained time (4.2).
