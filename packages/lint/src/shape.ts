@@ -39,6 +39,8 @@ export const PACKAGES: Readonly<Record<string, string>> = {
   scenarios: "the acceptance scenarios, each proving one blueprint claim through the door",
   sdk: "the typed client of every blueprint operation, derived from the blueprint, through which callers reach Core",
   cli: "the one Capxul command line: every blueprint operation a command, called through the SDK",
+  generate:
+    "`pnpm generate`: writes every derived file from its owner, the compiled contracts, the seed and the blueprint",
 };
 
 /** The only file allowed under docs/. */
@@ -50,6 +52,8 @@ export const MAX_LINES = 300;
 /** Files whose length is checked. Vendored code is not ours to split. */
 export const SOURCE = /\.(ts|tsx|mts|js|mjs|cjs|py|sh)$/;
 export const VENDORED: ReadonlyArray<string> = ["packages/contracts/lib/"];
+/** A folder `pnpm generate` writes. Its files are as long as their owners make them; `pnpm generate:check` keeps them. */
+export const GENERATED = "/generated/";
 
 /** The two lists of entry files in .oxlintrc.json, which must name the same paths. */
 export interface EntryLists {
@@ -126,6 +130,7 @@ const tooLong = (input: ShapeInput): Array<string> =>
   pipe(
     Arr.filter(input.files, (file) => under("packages")(file) && SOURCE.test(file)),
     Arr.filter((file) => !Arr.some(VENDORED, (prefix) => Str.startsWith(prefix)(file))),
+    Arr.filter((file) => !Str.includes(GENERATED)(file)),
     Arr.filter((file) => input.lines(file) > MAX_LINES),
     Arr.map((file) => `size: "${file}" has ${input.lines(file)} lines; the limit is ${MAX_LINES}`),
   );

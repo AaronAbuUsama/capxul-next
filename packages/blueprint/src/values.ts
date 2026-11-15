@@ -39,6 +39,25 @@ export const Hash = pattern(/^0x[0-9a-f]{64}$/);
 /** A 65-byte secp256k1 signature, as hex. */
 export const Signature = pattern(/^0x[0-9a-f]{130}$/);
 
+/**
+ * How a Solidity value of a chain log reads in the blueprint, by its ABI type (src/chain/logs.ts derives each log's
+ * fields from its compiled ABI with these). A uint of up to 48 bits is a number, as viem decodes it; a wider one is a
+ * decimal string.
+ */
+export const SolidityValues = {
+  address: Address,
+  bytes32: Hash,
+  bool: Schema.Boolean,
+  string: Schema.String,
+  uint8: Schema.Int,
+  uint16: Schema.Int,
+  uint32: Schema.Int,
+  uint64: Uint,
+  uint128: Uint,
+  uint192: Uint,
+  uint256: Uint,
+} as const;
+
 export {
   ApprovalId,
   BoardChangeId,

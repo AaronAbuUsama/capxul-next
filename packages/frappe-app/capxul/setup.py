@@ -1,6 +1,7 @@
 """Install-time and site-creation-time setup. `configure_site` is idempotent (bin/new-site.sh runs it)."""
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+from capxul.generated.site import SAFE_ACCOUNT_PREFIX, WALLET_ADDRESS_FIELD
 
 DEFAULT_HAT_ROLES = {
     "admin": ["System Manager", "Accounts Manager", "Accounts User", "HR Manager", "HR User", "Purchase Manager", "Purchase User", "Purchase Master Manager",
@@ -18,9 +19,9 @@ DEFAULT_HAT_ROLES = {
 }
 
 CUSTOM_FIELDS = {
-    "Supplier": [dict(fieldname="capxul_wallet_address", label="Capxul Wallet Address", fieldtype="Data", insert_after="supplier_name")],
-    "Customer": [dict(fieldname="capxul_wallet_address", label="Capxul Wallet Address", fieldtype="Data", insert_after="customer_name")],
-    "Employee": [dict(fieldname="capxul_wallet_address", label="Capxul Wallet Address", fieldtype="Data", insert_after="employee_name")],
+    "Supplier": [dict(fieldname=WALLET_ADDRESS_FIELD, label="Capxul Wallet Address", fieldtype="Data", insert_after="supplier_name")],
+    "Customer": [dict(fieldname=WALLET_ADDRESS_FIELD, label="Capxul Wallet Address", fieldtype="Data", insert_after="customer_name")],
+    "Employee": [dict(fieldname=WALLET_ADDRESS_FIELD, label="Capxul Wallet Address", fieldtype="Data", insert_after="employee_name")],
     "GL Entry": [dict(fieldname="capxul_trace", label="Capxul Trace", fieldtype="Data", read_only=1, no_copy=1, search_index=1)],
     "Payment Entry": [
         dict(fieldname="capxul_status", label="Capxul Status", fieldtype="Data", read_only=1, no_copy=1, insert_after="posting_date"),
@@ -125,18 +126,18 @@ def ensure_safe_account(company, safe_address, currency="USD"):
     """A bank, a ledger account that stands for the Safe, and the Bank Account that ties them together. Answers the
     account's name and the Bank Account's. Idempotent."""
     abbr = frappe.db.get_value("Company", company, "abbr")
-    if not frappe.db.exists("Bank", "Capxul Safe"):
-        frappe.get_doc({"doctype": "Bank", "bank_name": "Capxul Safe"}).insert()
-    acct_name = f"Capxul Safe (USDC) - {abbr}"
+    if not frappe.db.exists("Bank", SAFE_ACCOUNT_PREFIX):
+        frappe.get_doc({"doctype": "Bank", "bank_name": SAFE_ACCOUNT_PREFIX}).insert()
+    acct_name = f"{SAFE_ACCOUNT_PREFIX} (USDC) - {abbr}"
     if not frappe.db.exists("Account", acct_name):
         parent = frappe.db.get_value("Account", {"company": company, "account_type": "Bank", "is_group": 1}) or f"Current Assets - {abbr}"
-        frappe.get_doc({"doctype": "Account", "account_name": "Capxul Safe (USDC)", "parent_account": parent, "company": company,
+        frappe.get_doc({"doctype": "Account", "account_name": f"{SAFE_ACCOUNT_PREFIX} (USDC)", "parent_account": parent, "company": company,
                         "account_type": "Bank", "account_currency": currency, "is_group": 0}).insert()
     stale = frappe.db.get_value("Bank Account", {"account": acct_name})
     if stale and not frappe.db.exists("Bank Account", {"integration_id": safe_address}):  # a site made from the template: its placeholder Safe account becomes this one
         frappe.db.set_value("Bank Account", stale, {"integration_id": safe_address, "account_name": f"Safe {safe_address[:10]}"})
     if not frappe.db.exists("Bank Account", {"integration_id": safe_address}):
-        frappe.get_doc({"doctype": "Bank Account", "account_name": f"Safe {safe_address[:10]}", "bank": "Capxul Safe", "account": acct_name,
+        frappe.get_doc({"doctype": "Bank Account", "account_name": f"Safe {safe_address[:10]}", "bank": SAFE_ACCOUNT_PREFIX, "account": acct_name,
                         "company": company, "is_company_account": 1, "is_default": 1, "integration_id": safe_address}).insert()
     ba = frappe.db.get_value("Bank Account", {"integration_id": safe_address})
     return acct_name, ba

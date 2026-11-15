@@ -5,6 +5,7 @@
 !indexer/ponder-env.d.ts
 !indexer/src
 !contracts/deployments/devnet.json
+!contracts/generated/abi.ts
 !world/ponder/package.json
 !world/ponder/node_modules
 !world/ponder/ponder.config.ts

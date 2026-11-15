@@ -1,0 +1,21 @@
+{
+  "name": "@capxul/generate",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node --experimental-strip-types --no-warnings src/main.ts",
+    "types": "effect-tsgo tsc -p .",
+    "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@capxul/blueprint": "workspace:*",
+    "effect": "catalog:",
+    "viem": "catalog:"
+  },
+  "devDependencies": {
+    "@effect/tsgo": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}
