@@ -75,6 +75,16 @@ export const renderGlossary = (glossary: ReadonlyArray<Entry>): string => {
             ],
       ),
       "",
+      "## Exact text not counted",
+      "",
+      "No writer can choose these, so an entry's old words are not counted in them. Nor in a package's name written " +
+        "as a package (`@capxul/core`, `packages/core`, `--core=local`), an import or export specifier, or an " +
+        "applied migration's file name: each changes only with what it names.",
+      "",
+      ...Arr.flatMap(glossary, (entry) =>
+        Arr.map(entry.exceptions ?? [], (each) => `- **${entry.word}**: \`${each.text}\`, ${each.why}.`),
+      ),
+      "",
     ],
     "\n",
   );
