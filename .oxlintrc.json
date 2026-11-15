@@ -54,6 +54,7 @@
       // (capxul/owned-values). Anything else the rule finds is on its unmigrated list (packages/lint/src/unmigrated.ts).
       "schemaEdges": {
         "packages/world/src/failures.ts": "the world's own infrastructure failures (a step timed out, a part not ready): faults the contract does not promise, so the blueprint does not name their fields",
+        "packages/core/src/telemetry/attributes.ts": "the attributes Core sets on a call's span (Cloudflare's colo, Postgres round trips): telemetry values the blueprint's telemetry module will declare (roadmap step 3.6)",
         "packages/core/src/failures.ts": "Core's own failure in reaching a site through its door: a fault of the infrastructure, mapped to the blueprint's refusals before it reaches a caller",
         "packages/runner/src/record.ts": "a run record is a JSON file on disk, written by the runner and read by the dashboard and the speed climb; its schema is that file's format",
         "packages/runner/src/summary.ts": "a run's summary is the JSON file a step's Proof names; its schema is that file's format",

@@ -5,6 +5,7 @@
 // operator token) and a stand-in for Neon's API that counts the connection strings it was asked for.
 import * as assert from "node:assert/strict";
 import { beforeEach, describe, test } from "node:test";
+import { startingWorlds } from "@capxul/blueprint";
 import { type CreatedResourceState, InMemoryService } from "alchemy/State";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
@@ -28,7 +29,7 @@ const output = (changes: Partial<WorldOutput> = {}): WorldOutput => ({
   world: WORLD,
   owner: "ci",
   expiresAt: FAR,
-  forkedFrom: "nothing",
+  forkedFrom: startingWorlds.nothing.name,
   coreUrl: "https://core.test",
   doorUrl: "http://hub.test",
   branch: "br-one",
