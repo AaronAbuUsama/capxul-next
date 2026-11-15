@@ -18,10 +18,11 @@ import * as Result from "effect/Result";
 import * as Str from "effect/String";
 import type * as HttpClient from "effect/http/HttpClient";
 import { checkCall, failuresOf, type CheckedCall } from "./checks/checks.ts";
+import { withPaths } from "./checks/paths.ts";
 import { capxulFor, type Call, type Target, type Via } from "./client.ts";
 import { describe, endedOf, RunnerFailure } from "./failure.ts";
 import { givenFor, type Handing } from "./given.ts";
-import { writeRecord, type RunRecord } from "./record.ts";
+import { writeRecord, type Coverage, type RunRecord } from "./record.ts";
 import { failedStepOf, hearing, stepsOf, type Heard, type StepRecord } from "./steps.ts";
 import type { Settings } from "./settings.ts";
 import { telemetryOf } from "./world/database.ts";
@@ -58,6 +59,8 @@ export type RunFailure = RunnerFailure | ExpectationFailed | Failure;
 export interface Used {
   readonly run: Exit.Exit<void, RunFailure>;
   readonly calls: ReadonlyArray<CheckedCall>;
+  /** What its calls reached of each machine (checks/paths.ts), whose `path` check each call above carries. */
+  readonly coverage: Coverage;
   readonly steps: ReadonlyArray<StepRecord>;
   readonly ms: { readonly run: number; readonly checks: number };
 }
@@ -81,11 +84,16 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
     const [runTook, run] = yield* plan.calls(target, log, heard).pipe(Effect.exit, Effect.timed);
     const calls = yield* Ref.get(log);
     const [checksTook, kept] = yield* Effect.timed(keptFor(Option.some(stage.database), calls));
-    const checked = Arr.map(calls, (call) => checkCall(call, kept));
+    const paths = withPaths(
+      calls,
+      kept,
+      Arr.map(calls, (call) => checkCall(call, kept)),
+    );
     return {
       run,
-      calls: checked,
-      steps: stepsOf(plan.outline, yield* Ref.get(heard), checked),
+      calls: paths.calls,
+      coverage: paths.coverage,
+      steps: stepsOf(plan.outline, yield* Ref.get(heard), paths.calls),
       ms: { run: millis(runTook), checks: millis(checksTook) },
     } satisfies Used;
   }).pipe(
@@ -187,6 +195,7 @@ export const recordOf = (plan: Plan, startedAt: string, lifecycle: Lifecycle<Use
     ended: used === undefined ? null : endedOf(used.run),
     readiness: lifecycle.readiness,
     calls: used?.calls ?? [],
+    ...(used === undefined ? {} : { coverage: used.coverage }),
     ...stepsFor(plan, used?.steps ?? stepsOf(plan.outline, [], [])),
     afterwards: { stage: lifecycle.afterwards, before: lifecycle.found.before, after: lifecycle.found.after },
     ms: {

@@ -13,7 +13,8 @@ import type { Kept, SpanRow } from "../world/database.ts";
 import { checkEvents } from "./events.ts";
 
 export const Check = Schema.Struct({
-  check: Schema.Literals(["span", "outcome", "events"]),
+  /** `path`: the call's events and refusal keep each thing on a path through its machine (paths.ts). */
+  check: Schema.Literals(["span", "outcome", "events", "path"]),
   /** Every check gates: a call that fails one fails its run. */
   passed: Schema.Boolean,
   detail: Schema.String,
