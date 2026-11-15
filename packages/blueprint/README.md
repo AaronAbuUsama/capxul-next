@@ -6,7 +6,8 @@ trace will share (`docs/design/blueprint.md`, parts 12 and 13):
 
     src/things/invitation/accept.ts   →   capxul invitation accept
 
-A verb's file holds everything about it: what is sent and answered, how it refuses, what it announces, its budget,
+A verb is an operation a door serves, or work no door serves (the pipeline's own: a world's reset, a run's verdict, the
+gate), which has spans, logs and a budget but no Rpc (part 8). A verb's file holds everything about it: what is sent and answered, how it refuses, what it announces, its budget,
 its examples and what it promises. The API's handlers, the SDK, the CLI, the pages and the checks are generated from
 these files or checked against them. Only facts about Capxul live here; how they are written and checked is
 `packages/blueprint-tools`.
@@ -18,6 +19,7 @@ these files or checked against them. Only facts about Capxul live here; how they
 | `src/common/` | What several things use: values, ids, refusals, the site's names (`site.ts`), the chain (`chain/`) |
 | `src/starting-points/` | The named states journeys begin from (`points.ts`), and what each hands a journey (`facts.ts`) |
 | `src/protocol/` | How a call travels: its paths, headers, sign-in and trace |
+| `src/telemetry/` | The telemetry vocabulary, one file each: the conventions' version, the envelope, the producers, the step kinds, the metrics, the datasets and what watches them (part 10) |
 | `src/generated/` | The indexes `pnpm generate` writes from the thing folders. Never edited |
 | `generated/` | The pages `pnpm claims` writes: `index.md`, the map of every thing and verb, and one page per thing. Never edited |
 | `docs/` | `build-order.md`; `decisions.md` and `gaps.md` until they are folded |

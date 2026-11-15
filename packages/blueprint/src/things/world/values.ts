@@ -12,3 +12,17 @@ export const WORLD_LIMITS = { lifetimeMinutes: 7 * 24 * 60, liveWorldsPerOwner: 
  * @internal Shared by `world create` and `snapshot restore`; not exported from the package.
  */
 export const Lifetime = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: WORLD_LIMITS.lifetimeMinutes }));
+
+/** @internal The parts of a world a reset puts back, one span each; shared by the world's work, not exported. */
+export const ResetPart = Schema.Literals(["index", "database", "chain", "clock", "sites", "api"]);
+
+/** @internal Why a world's work was refused; shared by the world's work, not exported. */
+export const WorkRefusal = Schema.Literals([
+  "no such world",
+  "no such snapshot",
+  "not the world's owner",
+  "beyond the lifetime limit",
+]);
+
+/** @internal What of a world its destroying or sweeping left behind; shared by the world's work, not exported. */
+export const WorldPart = Schema.Literals(["api", "objects", "branch", "sites", "registry"]);

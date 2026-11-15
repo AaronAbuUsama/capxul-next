@@ -89,3 +89,44 @@ Old claims not kept:
    - In: `quota-full`.
    - Observes: After the second operator restores the first operator's template `base`, world.list by the second operator holds the new world, its parent the first operator's world and `base`; the first operator's list does not hold it, and lists their world with one snapshot once `scratch` is deleted.
    - Old: none; this claim is new.
+
+## Work no door serves
+
+The pipeline's own work (docs/design/blueprint.md, part 8): no Rpc group holds it, so nothing serves it at run
+time. Its spans and logs judge it once it is instrumented (roadmap item 4.7). Its budget is a target, never a gate.
+
+### `world.destroy`
+
+Destroy one world and everything of it: its API, its objects' state, its branch, its sites and its entry in the registry.
+
+- Payload: `world`.
+- Spans: `world.destroy.api` (deploy) → `world.destroy.objects` (deploy) → `world.destroy.branch` (branch) → `world.destroy.sites` (site) → `world.destroy.registry` (database).
+- Logs: `world.destroy.refused` (world, reason); `world.destroy.left` (world, part).
+- Budget: 10,000 ms, a target, provisional. Basis: roadmap item 1.15's proof destroyed three worlds on the cluster in 3.6 to 3.9 s; a guess above that.
+
+### `world.renew`
+
+Move a world's expiry later, to the given minutes from now, within the platform's lifetime limit.
+
+- Payload: `world`, `minutes`.
+- Spans: `world.renew.registry` (database).
+- Logs: `world.renew.refused` (world, reason).
+- Budget: 1,000 ms, a target, provisional. Basis: one write to the registry; a first guess.
+
+### `world.reset`
+
+Put a world back to a saved snapshot, in place, with one clock.
+
+- Payload: `world`, `to`.
+- Spans: `world.reset.index.stop` (container) → `world.reset.database` (branch) → `world.reset.chain` (restore) → `world.reset.clock` (chain) → `world.reset.sites` (site) → `world.reset.api` (deploy) → `world.reset.index.resume` (container) → `world.reset.ready` (poll).
+- Logs: `world.reset.refused` (world, snapshot, reason); `world.reset.part_failed` (world, part).
+- Budget: 15,000 ms, a target, provisional. Basis: docs/design/blueprint.md, part 9: a first guess; a shard's 6 minutes hold its resets and its journeys.
+
+### `world.sweep`
+
+Destroy every world past its expiry, and every part of a world the registry no longer holds.
+
+- Payload: none.
+- Spans: `world.sweep.find` (database) → `world.sweep.api` (deploy) → `world.sweep.branches` (branch) → `world.sweep.sites` (site).
+- Logs: `world.sweep.swept` (world, part); `world.sweep.left` (world, part).
+- Budget: 60,000 ms, a target, provisional. Basis: a few worlds destroyed one after another, each about 4 s (roadmap item 1.15); a first guess.

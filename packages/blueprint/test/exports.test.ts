@@ -22,6 +22,7 @@ const TOP = named(`
   PlatformSignIn Record Reports Site TRACE_HEADER Telemetry Values WORLD_PATH World WorldRpcs WorldSignIn allClaims
   declare declareOutcomes declaredNames domains eventNamesOf holdsFactsOf isRefusal machines operations outcome
   refusalsOf servedBy startingWorlds
+  Conventions Datasets Envelope Metrics Pipeline Producers StepKinds Watch
 `);
 
 /** Every name each namespace the door exports holds. */
@@ -70,6 +71,13 @@ const NAMESPACES: { readonly [namespace: string]: ReadonlyArray<string> } = {
   `),
   Record: named(`
     Entry claims exportRecord machines operations platformRpcs stateless worldRpcs
+  `),
+  Pipeline: named(`
+    CallCheck CheckLayer CheckName ClusterRefusal ItemCount JourneyName JourneyStep LeftBehind Measure NotCounted
+    PointStep PreparePart RatchetName Rung RunId RunPart Shard ShardCount StageName StartingPointName TakeRefusal
+    Trusted checkCall checkConfirm checkGate checkWatch clusterDown clusterShow clusterUp journeyRun ratchetCount
+    runPrepare runRun runTeardown runVerdict siteReset siteSave siteTake startingPointMake work worldDestroy
+    worldRenew worldReset worldSweep
   `),
   Reports: named(`
     claims machines operations platformRpcs run stateless worldRpcs

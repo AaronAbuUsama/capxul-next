@@ -50,6 +50,28 @@ test("a verb that misses a part of its file is a problem the layout names", () =
   ]);
 });
 
+test("a verb that is work no door serves reads as work, named by its thing and verb, with no Rpc", () => {
+  const read = layoutOf([
+    { path: "ticket/close.ts", text: 'export const ticketClose = work({\n  name: "ticket.close",\n  does: "",\n});\n' },
+  ]);
+  assert.deepEqual(read.problems, []);
+  assert.deepEqual(
+    Arr.map(read.things[0]?.works ?? [], (each) => [each.name, each.declaration]),
+    [["ticket.close", "ticketClose"]],
+  );
+  const misnamed = layoutOf([
+    {
+      path: "ticket/close.ts",
+      text: 'export const ticketClose = work({\n  name: "ticket.shut",\n});\nconst r = Rpc.make("ticket.close", {});\n',
+    },
+  ]);
+  assert.deepEqual(misnamed.problems, [
+    "ticket/close.ts: work no door serves declares no Rpc",
+    "ticket/close.ts: its work is named `ticket.close`, not `ticket.shut`",
+    "ticket: a thing has at least one verb",
+  ]);
+});
+
 test("a name marked @internal, and the reserved ones, are not the package's", () => {
   const { things } = layoutOf([
     {

@@ -1,6 +1,7 @@
 // The blueprint's one door: every operation with its declaration, and the two Rpc groups that serve them, gathered
-// from the generated indexes (src/generated/, written by `pnpm generate` from the thing folders). Nothing in this
-// package imports infrastructure or an implementation; the language its declarations are written in is the toolkit's,
+// from the generated indexes (src/generated/, written by `pnpm generate` from the thing folders); the pipeline's own
+// work, which no Rpc group holds; and the telemetry vocabulary (src/telemetry/). Nothing in this package imports
+// infrastructure or an implementation; the language its declarations are written in is the toolkit's,
 // `@capxul/blueprint-tools`, and re-exported here where callers use it.
 import { gather, namesOf, type Operation } from "@capxul/blueprint-tools";
 import * as Arr from "effect/Array";
@@ -76,6 +77,19 @@ export { MadeCall } from "./starting-points/facts.ts";
 export * as Chain from "./common/chain/chain.ts";
 export * as Site from "./common/site.ts";
 export { allClaims } from "./generated/promises.ts";
+/**
+ * The pipeline's own work (docs/design/blueprint.md, part 8): every verb no door serves, with its spans, logs, budget
+ * and payload. No Rpc group above holds any of it.
+ */
+export * as Pipeline from "./generated/pipeline.ts";
+/** The telemetry vocabulary (docs/design/blueprint.md, part 10), one namespace per file of src/telemetry/. */
+export * as Conventions from "./telemetry/conventions.ts";
+export * as Envelope from "./telemetry/envelope.ts";
+export * as Producers from "./telemetry/producers.ts";
+export * as StepKinds from "./telemetry/step-kinds.ts";
+export * as Metrics from "./telemetry/metrics.ts";
+export * as Datasets from "./telemetry/datasets.ts";
+export * as Watch from "./telemetry/watch.ts";
 export {
   Approvals,
   Board,
