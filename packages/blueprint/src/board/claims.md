@@ -1,0 +1,96 @@
+# Acceptance claims of the domain `board`
+
+Rendered from `claims.ts` here and the declarations by `pnpm claims`. Do not edit it by hand: a test fails when
+this file and its sources differ. What the runner checks on every call, and the starting worlds a claim is in,
+are in [claims.md](../../claims.md).
+
+## Count
+
+| Operation | Claims | Old, word for word | Old, rewritten | New | Old, not kept |
+|---|---|---|---|---|---|
+| `org.director.list` | 2 | 0 | 0 | 2 | 0 |
+| `org.director.add` | 6 | 0 | 0 | 6 | 0 |
+| `org.threshold.set` | 5 | 0 | 0 | 5 | 0 |
+
+## 1. `org.director.list`
+
+- Served by: the world group.
+- Refusals: `OrgNotFound`, `NotAMember`, `NotImplemented`, and `NotSignedIn` from sign-in.
+- Emits: none.
+- Budget: 2,000 ms, provisional, excluding waking a parked world. Basis: live reads of the company Safe's owners and threshold on the world's chain, and of the world's cast.
+
+1. A company's Board as the chain holds it: its Directors, the founder first, each with the Safe that signs, and how many must sign. *(thin line)*
+   - In: `founded`.
+   - Observes: org.director.list as dana of Northwind answers dana and eli, each with the Safe of their cast entry, at threshold 2. Through the door's chain RPC those Safes are the company Safe's owners and 2 its threshold (chain.safe), and each wears the Director hat it names (chain.wears). Once sam is seated it answers dana, eli and sam at 2, as sam sees it too. It reads only: the record gains no entry.
+   - Old: none; this claim is new.
+2. Only the company's own people, and the world's owner, see it.
+   - In: `founded`.
+   - Observes: org.director.list as the world's owner answers what it answers dana. As olga, who belongs to no company, it is refused with NotAMember naming Northwind and olga; of a company nobody founded, with OrgNotFound. record.export shows no new entry.
+   - Refusals: `NotAMember`, `OrgNotFound`.
+   - Old: none; this claim is new.
+
+## 2. `org.director.add`
+
+- Served by: the world group.
+- Refusals: `OrgNotFound`, `CannotChangeBoard`, `NotAMember`, `MemberHasNoSafe`, `AlreadyADirector`, `BoardChangeWaiting`, `NotImplemented`, and `NotSignedIn` from sign-in.
+- Emits: `board_change_proposed`.
+- Budget: 4,000 ms, provisional, excluding waking a parked world. Basis: live reads of the company Safe, the Hats protocol and the Signer Gate on the world's chain, then preparing one UserOperation of the founder's Safe.
+
+1. The founder seats a member as a Director: one approval, the founder's own, and its signature alone lands it. It is never a Board proposal. *(thin line)*
+   - In: `founded`.
+   - Observes: org.director.add as dana of sam answers the change proposed, 2 Directors at 2 before and 3 at 2 after, and one approval, dana's, at her signer address. The record gains one board_change_proposed carrying only change, org and action, and the company Safe's owners are unchanged until it lands. approval.sign by dana answers Sent for the board change at once, never Collected: through the door's chain RPC its transaction is one UserOperation whose sender is dana's personal Safe, it minted the Director hat to sam's Safe (chain.hat details Director, chain.wears), and chain.safe of Northwind's Safe lists dana's, eli's and sam's Safes at threshold 2. org.member.list then lists sam among the Directors.
+   - Old: none; this claim is new.
+2. A full Board takes one more seat before the hat is minted.
+   - In: `founded`.
+   - Observes: Both seats of Northwind's Director hat are worn, by dana's and eli's Safes. In the transaction dana's signature sent, the world's Hats (`contracts.hats`) emits HatMaxSupplyChanged of the Director hat to 3 before the TransferSingle of that hat from the zero address to sam's Safe, and chain.hat reads its supply 3 of 3.
+   - Old: none; this claim is new.
+3. A new Director gets a user on the company's site, as the founding Directors have.
+   - In: `founded`.
+   - Observes: While the seat waits, report.run as sam of the General Ledger is refused with NoSiteUser, as a member with no hat is. Once it lands, report.run as sam stops refusing NoSiteUser once his user reaches the site, and answers the report; pat, a member with no hat, is still refused with NoSiteUser.
+   - Old: none; this claim is new.
+4. Only the wearer of the Shareholders' top hat, the founder until shares are issued, changes the Board: a member and a Director who did not found it are refused, and nothing is proposed.
+   - In: `founded`.
+   - Observes: org.director.add of sam as sam, a member, and as eli, a Director, is refused with CannotChangeBoard naming Northwind and the caller. record.export shows no new entry.
+   - Refusals: `CannotChangeBoard`.
+   - Old: none; this claim is new.
+5. A person who is not a member, a member with no personal Safe, a Director already, and a company nobody founded are each refused before anything is proposed.
+   - In: `founded`.
+   - Observes: org.director.add as dana of olga is refused with NotAMember naming her; of pat, who has no Safe, with MemberHasNoSafe; of eli with AlreadyADirector; of a company nobody founded with OrgNotFound. record.export shows no new entry for any of them.
+   - Refusals: `NotAMember`, `MemberHasNoSafe`, `AlreadyADirector`, `OrgNotFound`.
+   - Old: none; this claim is new.
+6. A second change to the Board is refused while one waits for the founder's signature.
+   - In: `founded`.
+   - Observes: After dana proposes seating sam and before she signs, org.director.add of sam again is refused with BoardChangeWaiting naming the change waiting. record.export shows no new entry.
+   - Refusals: `BoardChangeWaiting`.
+   - Old: none; this claim is new.
+
+## 3. `org.threshold.set`
+
+- Served by: the world group.
+- Refusals: `OrgNotFound`, `CannotChangeBoard`, `ThresholdTooHigh`, `ThresholdUnchanged`, `BoardChangeWaiting`, `NotImplemented`, and `NotSignedIn` from sign-in.
+- Emits: `board_change_proposed`.
+- Budget: 4,000 ms, provisional, excluding waking a parked world. Basis: live reads of the company Safe, the Hats protocol and the Signer Gate on the world's chain, then preparing one UserOperation of the founder's Safe.
+
+1. The founder sets how many Directors must sign: one approval, the founder's own, and its signature alone lands it; the company Safe then needs that many. *(thin line)*
+   - In: `founded`.
+   - Observes: With sam seated, org.threshold.set as dana to 3 answers the change proposed, 3 Directors at 2 before and at 3 after, and one approval, dana's. The record gains one board_change_proposed, and chain.safe still reads threshold 2. approval.sign by dana answers Sent at once: its transaction is one UserOperation of dana's Safe, chain.safe reads threshold 3 with the same three owners, and org.director.list answers 3.
+   - Old: none; this claim is new.
+2. Every proposal of the Board then needs the new threshold, and the new Director signs it.
+   - In: `founded`.
+   - Observes: After the threshold is 3, org.member.grant as dana of manage-books to sam answers one approval each for dana, eli and sam and a proposal of threshold 3. approval.sign by dana answers Collected, 1 of 3, and by eli Collected, 2 of 3, where 2 of 2 would have sent it; sam's answers Sent, and his Safe wears the Books hat (chain.wears).
+   - Old: none; this claim is new.
+3. Only the founder sets it: a Director who did not found the company is refused, and nothing is proposed.
+   - In: `founded`.
+   - Observes: org.threshold.set as sam, a Director once seated, is refused with CannotChangeBoard naming Northwind and sam. record.export shows no new entry.
+   - Refusals: `CannotChangeBoard`.
+   - Old: none; this claim is new.
+4. A threshold of none, more than the Directors, or the one the Board has, is refused, and nothing is proposed.
+   - In: `founded`.
+   - Observes: With 3 Directors at 2, a threshold of 0 is rejected by the payload's schema before it is sent (PayloadRejected naming org.threshold.set); 4 is refused with ThresholdTooHigh naming 4 and 3 Directors; 2 with ThresholdUnchanged; a company nobody founded with OrgNotFound. record.export shows no new entry for any of them.
+   - Refusals: `ThresholdTooHigh`, `ThresholdUnchanged`, `OrgNotFound`.
+   - Old: none; this claim is new.
+5. A second change to the Board is refused while one waits.
+   - In: `founded`.
+   - Observes: While the change to 3 waits for dana's signature, org.threshold.set as dana to 1 is refused with BoardChangeWaiting naming it. record.export shows no new entry.
+   - Refusals: `BoardChangeWaiting`.
+   - Old: none; this claim is new.

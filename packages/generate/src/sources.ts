@@ -18,6 +18,7 @@ export const ABIS = {
   IERC20Metadata: "IERC20Metadata.sol/IERC20Metadata.json",
   IHats: "IHats.sol/IHats.json",
   IHatsEvents: "IHatsEvents.sol/IHatsEvents.json",
+  IHatsSignerGate: "IHatsSignerGate.sol/IHatsSignerGate.json",
   IRoles: "IRoles.sol/IRoles.json",
   ISafe: "ISafe.sol/ISafe.json",
   ISafeState: "ISafeState.sol/ISafeState.json",

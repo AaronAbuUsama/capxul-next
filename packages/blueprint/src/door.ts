@@ -60,4 +60,15 @@ export * as Chain from "./chain/chain.ts";
 export * as Site from "./documents/site.ts";
 export { allClaims } from "./claims/all.ts";
 export type { Claim, ClaimsOf } from "./claims/claim.ts";
-export { Approvals, Budgets, Documents, Organizations, People, Record, Reports, World, domains } from "./domains.ts";
+export {
+  Approvals,
+  Board,
+  Budgets,
+  Documents,
+  Organizations,
+  People,
+  Record,
+  Reports,
+  World,
+  domains,
+} from "./domains.ts";

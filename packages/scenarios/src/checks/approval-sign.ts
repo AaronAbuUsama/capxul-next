@@ -1,9 +1,10 @@
-// The checks of every approval.sign (claims.md, approval.sign 1 to 5, org.create 3, org.member.grant 1): a signature
-// short of the threshold is kept and records only approval_signed; the last one needed sends one transaction, which
-// is in the chain and did not revert, and records approval_signed then approval_landed; a payment is sent from the
-// signer's own Safe as one UserOperation; a replay answers the same transaction and records nothing; a signature
-// that does not recover the signer, an unknown approval, another person's, and an expired one are each refused and
-// nothing is sent.
+// The checks of every approval.sign (claims.md, approval.sign 1 to 5, org.create 3, org.member.grant 1, and board's
+// org.director.add 1 and org.threshold.set 1): a signature short of the threshold is kept and records only
+// approval_signed; the last one needed sends one transaction, which is in the chain and did not revert, and records
+// approval_signed then approval_landed; a payment and a change to the Board are sent from the signer's own Safe as
+// one UserOperation, and a change to the Board is never kept short of a threshold; a replay answers the same
+// transaction and records nothing; a signature that does not recover the signer, an unknown approval, another
+// person's, and an expired one are each refused and nothing is sent.
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import { Capxul } from "../client.ts";
@@ -51,6 +52,31 @@ const signedBy = (asked: Asking, answer: { readonly approval: string; readonly s
     ),
   );
 
+/**
+ * A payment, and a change to the Board, are sent from the signer's own Safe as one UserOperation: a payment through
+ * the Payments contract, a change to the Board by the founder's Safe, which wears the Shareholders' top hat.
+ */
+const ownOperation = (asked: Asking, transaction: string, before: Before, kind: "payment" | "board_change"): Check =>
+  check(
+    `a ${kind === "payment" ? "payment" : "change to the Board"} is sent from the signer's own Safe, as one UserOperation`,
+    Effect.gen(function* () {
+      const capxul = yield* Capxul;
+      const signer = yield* callerIn(before, asked.options);
+      const safe = yield* present(`${signer.person}'s Safe`, signer.safe);
+      const sent = yield* capxul.chain.transaction({ transaction }, whereOf(asked.options));
+      const ops = Arr.filter(logsOf(sent.logs, "UserOperationEvent"), (log) =>
+        isAddress(log.address, before.world.contracts.entryPoint),
+      );
+      yield* same("the transaction's UserOperations", ops.length, 1);
+      for (const op of ops) yield* sameAddress("the UserOperation's sender", op.sender, safe);
+      if (kind !== "payment") return;
+      const payments = Arr.filter(logsOf(sent.logs, "PaymentSent"), (log) =>
+        isAddress(log.address, before.world.contracts.payments),
+      );
+      yield* same("the transaction's PaymentSent logs", payments.length, 1);
+    }),
+  );
+
 export const approvalSign = checks<"approval.sign", Before>({
   before: (asked) => worldBefore(asked.options),
   success: (asked, answer, before) => {
@@ -64,6 +90,10 @@ export const approvalSign = checks<"approval.sign", Before>({
             `${answer.signatures} of ${answer.threshold} signatures kept; a signature short of the threshold`,
           ),
         ),
+        check(
+          "a change to the Board is never kept short of a threshold: its one signature sends it",
+          expect(answer.subject.kind !== "board_change", `the board change ${answer.subject.id} was kept, not sent`),
+        ),
         recordGains(before, ["approval_signed"]),
       ];
     if (answer._tag === "AlreadySent")
@@ -76,30 +106,8 @@ export const approvalSign = checks<"approval.sign", Before>({
       signedBy(asked, answer),
       landed(asked, answer.transaction, answer.block),
       recordGains(before, ["approval_signed", "approval_landed"]),
-      ...(answer.subject.kind === "payment"
-        ? [
-            check(
-              "a payment is sent from the signer's own Safe, as one UserOperation",
-              Effect.gen(function* () {
-                const capxul = yield* Capxul;
-                const signer = yield* callerIn(before, asked.options);
-                const safe = yield* present(`${signer.person}'s Safe`, signer.safe);
-                const sent = yield* capxul.chain.transaction(
-                  { transaction: answer.transaction },
-                  whereOf(asked.options),
-                );
-                const ops = Arr.filter(logsOf(sent.logs, "UserOperationEvent"), (log) =>
-                  isAddress(log.address, before.world.contracts.entryPoint),
-                );
-                yield* same("the transaction's UserOperations", ops.length, 1);
-                for (const op of ops) yield* sameAddress("the UserOperation's sender", op.sender, safe);
-                const payments = Arr.filter(logsOf(sent.logs, "PaymentSent"), (log) =>
-                  isAddress(log.address, before.world.contracts.payments),
-                );
-                yield* same("the transaction's PaymentSent logs", payments.length, 1);
-              }),
-            ),
-          ]
+      ...(answer.subject.kind === "payment" || answer.subject.kind === "board_change"
+        ? [ownOperation(asked, answer.transaction, before, answer.subject.kind)]
         : []),
     ];
   },

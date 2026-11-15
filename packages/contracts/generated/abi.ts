@@ -4287,6 +4287,145 @@ export const IHatsEvents = [
   }
 ] as const;
 
+export const IHatsSignerGate = [
+  {
+    "type": "function",
+    "name": "claimSignerFor",
+    "inputs": [
+      {
+        "name": "hatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "signer",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "isValidSigner",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "valid",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "removeSigner",
+    "inputs": [
+      {
+        "name": "signer",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "safe",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "setThresholdConfig",
+    "inputs": [
+      {
+        "name": "thresholdConfig",
+        "type": "tuple",
+        "internalType": "struct IHatsSignerGate.ThresholdConfig",
+        "components": [
+          {
+            "name": "thresholdType",
+            "type": "uint8",
+            "internalType": "enum IHatsSignerGate.TargetThresholdType"
+          },
+          {
+            "name": "min",
+            "type": "uint120",
+            "internalType": "uint120"
+          },
+          {
+            "name": "target",
+            "type": "uint120",
+            "internalType": "uint120"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setUp",
+    "inputs": [
+      {
+        "name": "initializeParams",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "error",
+    "name": "CannotCallSafe",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CannotChangeModules",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientValidSignatures",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NoReentryAllowed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "StillWearsSignerHat",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ThresholdTooLow",
+    "inputs": []
+  }
+] as const;
+
 export const IRoles = [
   {
     "type": "function",
