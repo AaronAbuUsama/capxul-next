@@ -39,7 +39,7 @@ export interface WorldSpec {
   readonly startAtMs?: number;
   /**
    * The token of the operator who owns the world, which its Core accepts as the owner's
-   * (packages/blueprint/docs/decisions.md, entry 36).
+   * (packages/blueprint, src/protocol/headers.ts).
    */
   readonly operatorToken?: Redacted.Redacted;
   /**
@@ -98,7 +98,7 @@ export interface World {
   readonly doorToken: Redacted.Redacted;
   /**
    * The token the world minted for its owner operator: Core's platform door, and the world's door as its owner
-   * (packages/blueprint/docs/decisions.md, entry 36). A world the platform made binds its owner's own token instead,
+   * (packages/blueprint, src/protocol/headers.ts). A world the platform made binds its owner's own token instead,
    * and this one is unused.
    */
   readonly operatorToken: Redacted.Redacted;

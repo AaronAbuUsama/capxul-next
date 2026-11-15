@@ -1,0 +1,25 @@
+{
+  "record": "empty-handlers",
+  "step": "1.14",
+  "what": "A registered journey run against a Capxul whose every operation fails with NotImplemented, as Core's empty handlers do. It must fail at its first step, on the NotImplemented it is answered, never pass and never die.",
+  "outcome": "passed",
+  "result": {
+    "name": "no going back on an accepted invitation",
+    "given": "founded",
+    "steps": 5,
+    "began": [
+      {
+        "step": 1,
+        "operation": "invitation.send",
+        "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"invitation.send\"}"
+      }
+    ],
+    "calls": [
+      "record.export",
+      "invitation.send"
+    ],
+    "outcome": "failed",
+    "failedWith": "NotImplemented",
+    "detail": "invitation.send answered NotImplemented"
+  }
+}

@@ -1,4 +1,5 @@
-// A world's company sites in its snapshots (packages/blueprint/docs/decisions.md, entry 17): saving them with the
+// A world's company sites in its snapshots (packages/blueprint, src/things/snapshot/verbs/save.ts): saving them with
+// the
 // snapshot, and making them again in a world restored from it. The bench's site door does the work (packages/platform,
 // door/snapshots.py); this is the world's half, as Bench.ts is for making and removing sites.
 //

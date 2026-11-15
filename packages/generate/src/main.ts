@@ -4,7 +4,7 @@
 // formatted after: each is written in its final form. An entry file: it reads the disk, parses JSON, sets the exit code.
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
-import { countOldWords, type Disk, layoutOf, renderGlossary, wordFiles } from "@capxul/blueprint-tools";
+import { countOldWords, type Disk, layoutOf, renderGlossary, renderPages, wordFiles } from "@capxul/blueprint-tools";
 import * as Arr from "effect/Array";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
@@ -122,19 +122,19 @@ const settle = (outputs: ReadonlyArray<readonly [string, string]>): number => {
 // The blueprint's indexes first, from its thing folders' text alone: what follows imports the blueprint, which
 // imports these indexes, so they are made whole before it loads.
 const things = join(root, BLUEPRINT.root, "src/things");
-const blueprint = renderBlueprint(
-  layoutOf(
-    Arr.map(
-      Arr.filter(readdirSync(things, { recursive: true, encoding: "utf8" }), (path) => Str.endsWith(".ts")(path)),
-      (path) => ({ path, text: readFileSync(join(things, path), "utf8") }),
-    ),
+const layout = layoutOf(
+  Arr.map(
+    Arr.filter(readdirSync(things, { recursive: true, encoding: "utf8" }), (path) => Str.endsWith(".ts")(path)),
+    (path) => ({ path, text: readFileSync(join(things, path), "utf8") }),
   ),
 );
+const blueprint = renderBlueprint(layout);
 if (blueprint.problems.length > 0)
   throw new Error(`pnpm generate: the blueprint's things do not fit:\n${Arr.join(blueprint.problems, "\n")}`);
 const staleIndexes = settle(Arr.map(blueprint.written, ({ path, text }) => [path, text] as const));
 
-const { Site, glossary } = await import("@capxul/blueprint");
+const Blueprint = await import("@capxul/blueprint");
+const { Site, glossary } = Blueprint;
 
 /** The repository's disk, as the count of the glossary's old words reads it. */
 const disk: Disk = {
@@ -182,6 +182,8 @@ const stale =
     [OUTPUTS.sitePackage.path, renderSitePackage()],
     [OUTPUTS.glossary.path, renderGlossaryPage(renderGlossary(glossary))],
     [OUTPUTS.oldWords.path, renderOldWords(countOldWords(glossary, wordFiles(disk)), literal)],
+    // The blueprint's pages, one per thing and its index, rendered from its declarations, which it passes in.
+    ...Arr.map(renderPages(layout, Blueprint), ({ path, text }) => [`${BLUEPRINT.root}/${path}`, text] as const),
     ...docs.written,
   ]);
 if (check && stale > 0) process.exitCode = 1;

@@ -7,7 +7,7 @@ import { Invitation as InvitationMachine } from "./lifecycle.ts";
 /** An email address, in lower case, as a person signs up with it (a person of the cast: `<person>@cast.test`). */
 export const Email = Schema.String.check(Schema.isPattern(/^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/));
 
-/** An invitation, by the id `org.member.invite` answered. */
+/** An invitation, by the id `invitation.send` answered. */
 export const InvitationId = Schema.String.check(Schema.isPattern(/^inv_[a-z0-9]{6,40}$/));
 
 /**
@@ -16,6 +16,20 @@ export const InvitationId = Schema.String.check(Schema.isPattern(/^inv_[a-z0-9]{
  * by an invitation, so accepting one writes nothing to the chain.
  */
 export const InvitedRole = Schema.Literal("member");
+
+/**
+ * The rule or the state that decided a refusal of an invitation's verb, as its `refused` log names it: no such company,
+ * not the founder, a member already, invited already, no such invitation, not the invitee, or closed.
+ */
+export const RefusalRule = Schema.Literals([
+  "no-such-company",
+  "not-the-founder",
+  "already-a-member",
+  "already-invited",
+  "no-such-invitation",
+  "not-the-invitee",
+  "closed",
+]);
 
 /** Where an invitation stands: exactly the states of its machine (lifecycle.ts). */
 export const InvitationState = InvitationMachine.State;

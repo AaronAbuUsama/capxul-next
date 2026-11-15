@@ -1,18 +1,19 @@
 // `capxul director add` (today `org.director.add`): seating a member as a Director.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim } from "@capxul/blueprint-tools";
+import { verb, claim } from "@capxul/blueprint-tools";
 import { NotImplemented, OrgNotFound } from "../../../common/refusals.ts";
 import { OrgId, PersonId } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
-import { BoardChangeProposed, proposed } from "../../board/events.ts";
+import { BoardChangeProposed } from "../../board/events.ts";
+import { proposed } from "../../board/values.ts";
 import { founderApproval } from "../../board/examples.ts";
 import { BoardChangeWaiting, CannotChangeBoard } from "../../board/refusals.ts";
 import { Proposed } from "../../board/values.ts";
 import { MemberHasNoSafe, NotAMember } from "../../company/refusals.ts";
 import { AlreadyADirector } from "../refusals.ts";
 
-export const directorAdd = declare({
+export const directorAdd = verb({
   rpc: Rpc.make("org.director.add", {
     payload: { org: OrgId, person: PersonId },
     success: Proposed,

@@ -2,15 +2,17 @@
 // how fast the call must be and what that number measures, and one worked example per kind of success. A generic
 // runner reads these, so no scenario restates them. Nothing here reaches outside itself.
 //
-// This is the format of the pipeline spike (`spikes/pipeline/contract/operation.ts`), extended in three ways that
-// decisions.md explains: an operation may have several kinds of success, each with its own events (`outcomes`);
-// the budget says what it measures and whether a measurement is behind it (`budget`); and every declaration
-// carries examples, which the tests run through `carries`.
+// This is the format of the pipeline spike (`spikes/pipeline/contract/operation.ts`), extended in three ways: an
+// operation may have several kinds of success, each with its own events (`outcomes`, see `Several`); the budget says
+// what it measures and whether a measurement is behind it (`budget`); and every declaration carries examples, one
+// valid call per kind of success, which the tests run through `carries`.
 import * as Arr from "effect/Array";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import type * as Rpc from "effect/rpc/Rpc";
+import { KIND } from "./kinds.ts";
+import type { Log, Span } from "./work.ts";
 
 /** An event or an outcome is a Schema class with a literal `_tag`; the tag is its name wherever it is recorded. */
 export interface EventClass<Tag extends string = string> extends Schema.Codec<unknown, unknown> {
@@ -32,13 +34,22 @@ export interface Answered<R extends Rpc.AnyWithProps, S = SuccessOf<R>> {
   readonly success: S;
 }
 
-/** One event a successful call emits, exactly once, and what it must carry: a pure function of that call. */
+/**
+ * One event a successful call emits, exactly once, and what it must carry: a pure function of that call, so the
+ * runner computes it from what the caller saw. Where an event needs a value, the answer carries it too. Events are
+ * named for what happened, not for a machine's move. Work that finishes after the call has answered (a payment
+ * settling, a site becoming ready) is never a declared event: "exactly once per call" is decided when it answers.
+ */
 export interface Emitted<R extends Rpc.AnyWithProps, E extends EventClass, S = SuccessOf<R>> {
   readonly event: E;
   readonly carries: (call: Answered<R, S>) => Carried<E>;
 }
 
-/** The waits a budget can leave out. A call that never waits for one of these has nothing to leave out. */
+/**
+ * The waits a budget can leave out. A call that never waits for one of these has nothing to leave out: operations
+ * through a world's door are measured warm, so they leave out waking a parked world; no operation waits for a person
+ * signing; chain confirmation arises only on a public chain.
+ */
 export type Wait = "waking a parked world" | "a person signing" | "chain confirmation on a public chain";
 
 /**
@@ -91,7 +102,11 @@ export const outcome = <
   emits: emits,
 });
 
-/** An operation whose success is a union of tagged outcomes: every outcome is declared, each with its own events. */
+/**
+ * An operation whose success is a union of tagged outcomes: every outcome is declared, each with its own events, and
+ * leaving one out is a compile error. A union, not two operations, because the caller cannot choose the path (the
+ * document decides), and not one shape with optional fields, which would let an event read a field its path lacks.
+ */
 export interface Several<
   R extends Rpc.AnyWithProps,
   Outs extends { readonly [T in OutcomeTag<R>]: Outcome<T, EventClass> },
@@ -113,8 +128,15 @@ export interface Unchecked {
   readonly success: unknown;
 }
 
-export interface Operation<R extends Rpc.AnyWithProps = Rpc.AnyWithProps, Ev extends EventClass = EventClass> {
+export interface Operation<
+  R extends Rpc.AnyWithProps = Rpc.AnyWithProps,
+  Ev extends EventClass = EventClass,
+> extends Omit<Formats<Rpc.AnyWithProps>, "refusals"> {
   readonly rpc: R;
+  /** The log written where each refusal it decides is decided, by the refusal's tag. */
+  readonly refusals?: { readonly [tag: string]: Log | undefined };
+  /** Marks it as a verb's operation (`kindOf`). */
+  readonly [KIND]?: "verb";
   /** Every event any successful call may emit. Which ones a given call emits depends on its outcome. */
   readonly emits: ReadonlyArray<Ev>;
   /** Each kind of success by its tag (null for an operation with one kind) and the events it emits, in order. */
@@ -173,29 +195,85 @@ const build = <R extends Rpc.AnyWithProps>(
   };
 };
 
-/** Declares an operation with one kind of success. */
-export const declare = <R extends Rpc.AnyWithProps, const Events extends ReadonlyArray<EventClass>>(
-  declaration: Single<R, Events>,
-): Operation<R, Events[number]> =>
-  build(declaration.rpc, [{ tag: null, emits: declaration.emits }], declaration.budget, declaration.examples);
+/** The tag of each refusal an Rpc declares. */
+type RefusalTag<R extends Rpc.AnyWithProps> = R["errorSchema"]["Type"] extends infer E
+  ? E extends { readonly _tag: infer T extends string }
+    ? T
+    : never
+  : never;
 
-/** Declares an operation whose success is one of several tagged outcomes, each with its own events. */
-export const declareOutcomes = <
+/**
+ * What a verb declares beyond its Rpc, events, budget and examples, once it is in each format (docs/design/blueprint.md,
+ * parts 9 and 10): who may call it and how anyone else is refused, its spans and logs, and which log is written where
+ * each refusal it decides is decided. Each is optional until every verb has it; the delta check lists those that lack
+ * one on that format's `unmigrated` list.
+ */
+export interface Formats<R extends Rpc.AnyWithProps> {
+  /** The roles that may call it, each one of the blueprint's declared roles. */
+  readonly allowed?: ReadonlyArray<string>;
+  /** The refusal a caller of no allowed role gets, one the Rpc declares; null when no caller is refused for that. */
+  readonly refusesOthers?: EventClass | null;
+  /** Its spans, by a short name, in the order it runs them; each named `<operation>.<short>`. */
+  readonly spans?: { readonly [short: string]: Span };
+  /** Its logs, by a short name; each named `<operation>.<short>`. */
+  readonly logs?: { readonly [short: string]: Log };
+  /** The log written where each refusal it decides is decided, by the refusal's tag; one of its own logs. */
+  readonly refusals?: { readonly [T in RefusalTag<R>]?: Log };
+}
+
+/** What a verb's operation carries of its formats, exactly as declared: its spans and logs by their short names. */
+type Declares<F> = Pick<F, Extract<keyof F, "allowed" | "refusesOthers" | "spans" | "logs" | "refusals">>;
+
+/** The formats of a declaration, as the operation carries them: only those it declares. */
+type Declared = Pick<Operation, "allowed" | "refusesOthers" | "spans" | "logs" | "refusals">;
+
+const formatsOf = (declared: Declared): Declared => ({
+  ...(declared.allowed === undefined ? {} : { allowed: declared.allowed }),
+  ...(declared.refusesOthers === undefined ? {} : { refusesOthers: declared.refusesOthers }),
+  ...(declared.spans === undefined ? {} : { spans: declared.spans }),
+  ...(declared.logs === undefined ? {} : { logs: declared.logs }),
+  ...(declared.refusals === undefined ? {} : { refusals: declared.refusals }),
+});
+
+/** The shape every declaration `verb` takes has, as the implementation reads it. */
+interface Loose extends Declared {
+  readonly rpc: Rpc.AnyWithProps;
+  readonly budget: Budget;
+  readonly examples: ReadonlyArray<Unchecked>;
+  readonly emits?: Outcome<string, EventClass>["emits"];
+  readonly outcomes?: { readonly [tag: string]: Outcome<string, EventClass> };
+}
+
+/**
+ * Declares a verb's operation: one kind of success with its events (`emits`), or several tagged outcomes, each with
+ * its own (`outcomes`). It replaces `declare` and `declareOutcomes`, and marks what it makes as a verb (`kindOf`).
+ */
+export function verb<
+  R extends Rpc.AnyWithProps,
+  const Events extends ReadonlyArray<EventClass>,
+  const F extends Formats<R> = {},
+>(declaration: Single<R, Events> & F): Operation<R, Events[number]> & Declares<F>;
+export function verb<
   R extends Rpc.AnyWithProps,
   const Outs extends { readonly [T in OutcomeTag<R>]: Outcome<T, EventClass> },
->(
-  declaration: Several<R, Outs>,
-): Operation<R, Outs[keyof Outs]["emits"][number]["event"]> =>
-  build(
-    declaration.rpc,
-    Arr.map(Rec.values<string, Outcome<string, EventClass>>(declaration.outcomes), (each) => ({
-      tag: each.tag,
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- an outcome's events read only that outcome's success; `build` matches the tag before it calls them, which the compiler cannot follow.
-      emits: each.emits as never,
-    })),
-    declaration.budget,
-    declaration.examples,
-  );
+  const F extends Formats<R> = {},
+>(declaration: Several<R, Outs> & F): Operation<R, Outs[keyof Outs]["emits"][number]["event"]> & Declares<F>;
+export function verb(declaration: Loose): Operation {
+  const outcomes =
+    declaration.outcomes === undefined
+      ? // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- each `carries` is typed by the Rpc's own success in the overload above, which the implementation's signature cannot carry.
+        [{ tag: null, emits: (declaration.emits ?? []) as never }]
+      : Arr.map(Rec.values(declaration.outcomes), (each) => ({
+          tag: each.tag,
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- an outcome's events read only that outcome's success; `build` matches the tag before it calls them, which the compiler cannot follow.
+          emits: each.emits as never,
+        }));
+  return {
+    ...build(declaration.rpc, outcomes, declaration.budget, declaration.examples),
+    ...formatsOf(declaration),
+    [KIND]: "verb",
+  };
+}
 
 /** The names of the events the operation declares. */
 export const eventNamesOf = (operation: Operation): ReadonlyArray<string> =>

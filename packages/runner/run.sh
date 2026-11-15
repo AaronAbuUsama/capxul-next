@@ -41,7 +41,7 @@ export WORLD_OWNER="${WORLD_OWNER:-runner}"
 # test credentials of short-lived stages, never printed.
 token() { python3 -c "import secrets; print(secrets.token_hex(24))"; }
 export CAPXUL_DOOR_TOKEN="${CAPXUL_DOOR_TOKEN:-$(token)}" CAPXUL_PLATFORM_TOKEN="${CAPXUL_PLATFORM_TOKEN:-$(token)}"
-# The second operator's token (packages/blueprint/docs/decisions.md, entry 37): the starting world `nothing` promises a
+# The second operator's token (packages/blueprint, src/common/values.ts): the starting world `nothing` promises a
 # second operator.
 export CAPXUL_SECOND_PLATFORM_TOKEN="${CAPXUL_SECOND_PLATFORM_TOKEN:-$(token)}"
 # The second operator's name: Core reads it at deploy beside the token, so the platform accepts the second operator.

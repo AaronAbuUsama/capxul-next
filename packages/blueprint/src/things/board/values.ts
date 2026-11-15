@@ -53,3 +53,15 @@ export const Proposed = Schema.Struct({
    */
   approval: Approval,
 });
+
+/**
+ * @internal What board_change_proposed carries, for both verbs that propose a change.
+ */
+export const proposed = (event: {
+  readonly payload: { readonly org: string };
+  readonly success: typeof Proposed.Type;
+}) => ({
+  change: event.success.change.id,
+  org: event.payload.org,
+  action: event.success.change.action,
+});

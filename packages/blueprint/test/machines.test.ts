@@ -253,7 +253,7 @@ test("the invitation's machine is as the lead declared it", () => {
     { ...Invitation.start },
     {
       state: "pending",
-      by: People.memberInvite.rpc._tag,
+      by: People.invitationSend.rpc._tag,
       event: People.MemberInvited.identifier,
     },
   );
@@ -262,14 +262,14 @@ test("the invitation's machine is as the lead declared it", () => {
   assert.deepEqual(Invitation.moves.accept, {
     from: ["pending"],
     to: "accepted",
-    by: People.inviteAccept.rpc._tag,
+    by: People.invitationAccept.rpc._tag,
     event: People.InvitationAccepted.identifier,
     otherwise: { accepted: "unchanged", declined: closed },
   });
   assert.deepEqual(Invitation.moves.decline, {
     from: ["pending"],
     to: "declined",
-    by: People.inviteDecline.rpc._tag,
+    by: People.invitationDecline.rpc._tag,
     event: People.InvitationDeclined.identifier,
     otherwise: { accepted: closed, declined: closed },
   });

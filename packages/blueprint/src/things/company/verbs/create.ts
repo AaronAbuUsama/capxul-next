@@ -2,7 +2,7 @@
 import * as Arr from "effect/Array";
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declareOutcomes, outcome, claim, kept, rewritten, dropped } from "@capxul/blueprint-tools";
+import { verb, outcome, claim, kept, rewritten, dropped } from "@capxul/blueprint-tools";
 import { InsufficientBalance, NotImplemented } from "../../../common/refusals.ts";
 import { Approval, Money, OrgHandle, OrgId, PersonId } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
@@ -11,6 +11,16 @@ import { approval, northwindFounded } from "../examples.ts";
 import { FounderNotReady, FoundingChanged, HandleTaken, PersonNotFound, SetupUnfinished } from "../refusals.ts";
 import { Founded, Profile } from "../values.ts";
 
+// A company is founded in one step (Aaron, 13 November 2026): the founding Directors, the threshold, the founding
+// members and the founder's opening capital, so that with the cast and `approval.sign` every starting point is made
+// by operations alone. In test worlds the founder's Safe is funded from the test token's faucet when the cast is made;
+// the capital moves to the company Safe when the setup is signed and is booked as the founder's capital, so the
+// books agree with the chain (how is ours to choose; the books coming out right is Aaron's rule).
+//
+// The setup is sent once its threshold of Directors have signed and the founder is among them, because it spends
+// from the founder's Safe. One UserOperation moves the capital and runs the Installer's install batch, which makes
+// every founding Director's Safe a signer at the threshold (the Signer Gate as module and guard) and opens one top
+// budget whose hat is Books, the budget a held payment spends. Each officer hat starts with one seat.
 const Founding = Schema.Struct({
   handle: OrgHandle,
   profile: Profile,
@@ -50,7 +60,7 @@ const createRpc = Rpc.make("org.create", {
   ]),
 });
 
-export const create = declareOutcomes({
+export const create = verb({
   rpc: createRpc,
   outcomes: {
     Founded: outcome(createRpc, "Founded", [
@@ -112,6 +122,8 @@ export const server = "world";
 export const promises: ClaimsOf = {
   operation: create,
   claims: [
+    // The log is Companies House's: the minter refuses a plain call (`NotDelegateCall`), so Companies House runs its
+    // `mint` by delegatecall (found by rehearsal run-327a7f, 14 November 2026).
     claim(
       "The Organization's Safe is Companies House's company Safe for this founder.",
       w.fresh,
@@ -130,6 +142,7 @@ export const promises: ClaimsOf = {
         ),
       },
     ),
+    // Read where the promise is silent (R9): the Safe's owners are compared as a set.
     claim(
       "Once enough founding Directors have signed, the setup completes: the board and the capital are on the chain and the company's site becomes ready.",
       w.fresh,
@@ -154,6 +167,10 @@ export const promises: ClaimsOf = {
         ),
       },
     ),
+    // Text with spaces exists only in a payload's encoded form: `Profile`'s `bio` and `size` are `Schema.Trim`, so the
+    // command line and the server's Rpc both trim as they decode, and the SDK, which checks a payload by encoding it,
+    // rejects a typed one that still holds them. A wire-level call sending the spaces was not taken: no caller of the
+    // product sends one, and it would judge Effect's Rpc decoding, which no builder writes (14 November 2026).
     claim(
       "Bio and size are stored trimmed, and an over-long bio is refused.",
       w.fresh,

@@ -1,16 +1,24 @@
-// `capxul invitation decline` (today `invite.decline`): the invitee declines.
+// `capxul invitation decline`: the invitee declines.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim } from "@capxul/blueprint-tools";
+import { log, promise, promisesOf, span, verb } from "@capxul/blueprint-tools";
 import { NotImplemented } from "../../../common/refusals.ts";
-import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
+import { roles } from "../../../common/values.ts";
+import { startingPoints as w, type PromisesOf } from "../../../starting-points/points.ts";
+import { StepKind } from "../../../telemetry/step-kinds.ts";
 import { InvitationDeclined } from "../events.ts";
 import { invitation } from "../examples.ts";
 import { InvitationClosed, InvitationNotFound, NotYourInvitation } from "../refusals.ts";
-import { Invitation, InvitationId } from "../values.ts";
+import { Invitation, InvitationId, RefusalRule } from "../values.ts";
 
-export const inviteDecline = declare({
-  rpc: Rpc.make("invite.decline", {
+/** Its logs. */
+const logs = {
+  /** Written where it refuses, naming the rule or the state that refused. */
+  refused: log("invitation.decline.refused", { invitation: InvitationId, rule: RefusalRule }),
+};
+
+export const invitationDecline = verb({
+  rpc: Rpc.make("invitation.decline", {
     payload: { invitation: InvitationId },
     success: Invitation,
     error: Schema.Union([InvitationNotFound, NotYourInvitation, InvitationClosed, NotImplemented]),
@@ -21,6 +29,20 @@ export const inviteDecline = declare({
       carries: ({ success }) => ({ invitation: success.id, org: success.org }),
     },
   ],
+  allowed: [roles.invitee],
+  refusesOthers: NotYourInvitation,
+  spans: {
+    /** The invitation, held for the transaction, once it is known to be the caller's own. */
+    load: span("invitation.decline.load", StepKind.database),
+    /** Its move and its event, written in the same transaction. */
+    write: span("invitation.decline.write", StepKind.database),
+  },
+  logs,
+  refusals: {
+    InvitationNotFound: logs.refused,
+    NotYourInvitation: logs.refused,
+    InvitationClosed: logs.refused,
+  },
   budget: {
     excludes: ["waking a parked world"],
     provisional: true,
@@ -33,22 +55,18 @@ export const inviteDecline = declare({
 /** Who serves it: a world's Core, through the world's door (`WorldRpcs`). */
 export const server = "world";
 
-/** What `invite.decline` promises, each promise checked by the journeys. */
-export const promises: ClaimsOf = {
-  operation: inviteDecline,
-  claims: [
-    claim(
-      "The invitee declines; the invitation is closed and they do not join.",
-      w.founded,
-      "invite.decline as olga of dana's invitation answers it declined. The record gains one invitation_declined naming neither olga nor her email, and org.member.list as dana does not list her.",
-      { thinLine: true },
-    ),
-    claim(
-      "An invitation that is not the caller's, one no longer pending, and one nobody sent are each refused, and nothing changes.",
-      w.founded,
-      "invite.decline as sam of olga's invitation is refused with NotYourInvitation; as olga a second time, with InvitationClosed in state declined; of an id nobody issued, with InvitationNotFound. record.export shows no new entry.",
-      { refusals: [NotYourInvitation, InvitationClosed, InvitationNotFound] },
-    ),
-  ],
-  dropped: [],
-};
+/** What `invitation.decline` promises, each promise checked by the journeys. */
+export const promises: PromisesOf = promisesOf(invitationDecline, [
+  promise(
+    "The invitee declines; the invitation is closed and they do not join.",
+    w.founded,
+    "invitation.decline as olga of dana's invitation answers it declined. The world's history gains one invitation_declined naming neither olga nor her email, and org.member.list as dana does not list her.",
+    { thinLine: true },
+  ),
+  promise(
+    "An invitation that is not the caller's, one no longer pending, and one nobody sent are each refused, and nothing changes.",
+    w.founded,
+    "invitation.decline as sam of olga's invitation is refused with NotYourInvitation; as olga a second time, with InvitationClosed in state declined; of an id nobody issued, with InvitationNotFound. The world's history shows no new entry.",
+    { refusals: [NotYourInvitation, InvitationClosed, InvitationNotFound] },
+  ),
+]);

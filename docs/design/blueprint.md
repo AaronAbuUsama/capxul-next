@@ -125,10 +125,10 @@ behaviour: every journey stays green.
 | R2 | Names typed as strings | Declared names retyped as strings | #262's list | 3.3 |
 | R3 | Rows not decoded | Stored rows cast to hand-written types instead of decoded with the blueprint's schemas | #262's list | 3.3 |
 | R4 | Lifecycles not machines | Things with a lifecycle not yet declared as machines (site, approval, world, budget; the invitation is done by #262 and moves into the new format) | Roadmap "Other lifecycles" | 7.3 |
-| R5 | Operations not in the full format | Operations missing a part: machine moves, `allowed`, steps, logs, deciding logs, budget | Every operation | 3.5, 4.1, 5.1 |
+| R5 | Operations not in the full format | Operations on the machine format's `unmigrated` list: no machine started or moved, or a state's refusal left undeclared (who may call, steps and logs, and promises are R17 to R19, from item 3.10) | 13 operations | 3.5 |
 | R6 | Undeclared spans | Effectful functions of our own code without a declared step: Core, the world, the platform client, the runner's plumbing (176 span names) | Not counted yet | 4.1 |
 | R7 | Operations not in one file | Operations still split across `operations.ts`, `refusals.ts`, `claims.ts`, `subjects.ts`, `order.md` | Every operation | Decision 3 |
-| R8 | Long or hand-mapped docs | READMEs over one screen (60 lines); hand-written file maps; `decisions.md`, `gaps.md`, `order.md` not folded | Core, runner, platform, world READMEs (222 to 607 lines) | Decision 3 |
+| R8 | Long or hand-mapped docs | READMEs over one screen (60 lines); hand-written file maps; docs not yet folded (`build-order.md`; `decisions.md` and `gaps.md` were folded by #375) | Core, runner, platform, world READMEs (222 to 607 lines) | Decision 3 |
 | R9 | Unreached declarations | Declared moves, refusals and outcomes no journey reaches | Coverage report | If option B |
 | R10 | Non-Effect code | Non-Effect constructs outside entry files; non-Effect runtime dependencies (the two counts agreed on 13 November 2026) | Counted by lint | Phase 7 |
 | R11 | Untyped starting worlds | Starting-world steps in prose, payloads retyped in the runner | 7 starting worlds | 7.2 |
@@ -136,6 +136,10 @@ behaviour: every journey stays green.
 | R13 | Provisional budgets | Budgets not yet set from a measured verdict | Every budget | 4.1 and the measured runs |
 | R14 | Own telemetry tables | `app.spans` readers and the runner's JSON records beside OTLP | Core, runner | 4.4 |
 | R15 | Old words | The distinct names in code that still hold one of the glossary's old words, counted per word by `pnpm words` (`generated/old-words.json`): reusing an existing name adds nothing, only a new one grows the count; package names, import paths, applied migrations and listed exceptions (deployed names, foreign protocol keys) are not counted | Every package | 3.8 |
+| R16 | Names not from their path | Verbs whose operation is not named `<thing>.<verb>` from its path (part 13, amended, point 3), counted by its own `unmigrated` list | 17 names (item 3.10) | C.1, with item 3.8's renames |
+| R17 | Operations without who may call | Operations on the `allowed` format's list: no roles allowed, nor the refusal anyone else gets | 22 operations (item 3.10) | 5.1 |
+| R18 | Operations without declared steps and logs | Operations on the `spans` or `logs` format's list: no declared spans or logs, or no log where a refusal is decided | 22 operations (item 3.10) | 4.1 |
+| R19 | Promises that do not name every refusal they decide | Operations on the `promises` format's list | 8 operations (item 3.10) | C.1 |
 
 **Measures, climbed by trend, never a gate until the data sets a threshold:**
 

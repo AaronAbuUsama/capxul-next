@@ -171,7 +171,7 @@ export const attributes = {
     schema: OperationName,
     on: "an operation's span",
     setBy: "the operation's middleware",
-    example: "invite.accept",
+    example: "invitation.accept",
   }),
   operationVersion: attribute({
     name: "capxul.operation.version",

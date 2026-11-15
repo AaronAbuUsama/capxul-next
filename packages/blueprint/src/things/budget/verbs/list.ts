@@ -1,7 +1,7 @@
 // `capxul budget list` (today `org.budget.list`): every budget of a company.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim } from "@capxul/blueprint-tools";
+import { verb, claim } from "@capxul/blueprint-tools";
 import { NotImplemented, OrgNotFound } from "../../../common/refusals.ts";
 import { OrgId } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
@@ -9,7 +9,7 @@ import { NotAMember } from "../../company/refusals.ts";
 import { office, top } from "../examples.ts";
 import { Budget } from "../values.ts";
 
-export const list = declare({
+export const list = verb({
   rpc: Rpc.make("org.budget.list", {
     payload: { org: OrgId },
     success: Schema.Struct({

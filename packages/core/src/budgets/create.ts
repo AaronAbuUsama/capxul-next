@@ -1,4 +1,4 @@
-// org.budget.create: a budget is a Directors' proposal (packages/blueprint/docs/decisions.md, entry 53). The proposal
+// org.budget.create: a budget is a Directors' proposal (packages/blueprint, src/things/budget/values.ts). The proposal
 // is one company Safe transaction (../organizations/proposal.ts): a hat for the budget made under its parent's hat,
 // which the company Safe administers as the wearer of the Board's top hat; that hat minted to the holder's personal
 // Safe, its only seat; and `Budgets.createChildBudget(parent, amount, hat)`, which the company Safe may call for any of
