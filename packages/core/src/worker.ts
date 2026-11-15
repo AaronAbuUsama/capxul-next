@@ -29,6 +29,7 @@ import { Served, ServedEmpty } from "./server.ts";
 import { siteOpsLive } from "./site-ops/door.ts";
 import { SiteDoor } from "./site/SiteDoor.ts";
 import { CoreDeployment, ownDeployment } from "./stack/deployment.ts";
+import { coloOf, Placement } from "./telemetry/attributes.ts";
 import { CoreIdentity } from "./telemetry/middleware.ts";
 import { SqlSpanSink } from "./telemetry/sink.ts";
 
@@ -102,6 +103,8 @@ export default class Core extends Cloudflare.Worker<Core>()(
         Layer.provide(ChainOps.layer(env)),
         Layer.provide(database),
         Layer.provide(Layer.succeed(CoreIdentity, identity)),
+        // Which Cloudflare data centre runs this request, for every call's span (telemetry/attributes.ts).
+        Layer.provide(Layer.succeed(Placement, { colo: coloOf(request.source) })),
       );
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: each request gets its own database pool
       return yield* Effect.flatten(serveDoors).pipe(Effect.provide(served));

@@ -19,7 +19,7 @@ import { branchesOf, deleteBranch, finished, projectId } from "../database/neon.
 import { PlatformFailed } from "../failures.ts";
 import { liftBranchExpiry } from "../lifecycle/account.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
-import { WorldOutput } from "../lifecycle/parts.ts";
+import { WorldOutput } from "../lifecycle/handle.ts";
 import { recordedOutput, recordedStages, recordOutput } from "../stack/engine.ts";
 import { isWorldStage } from "../stack/names.ts";
 import { forgetSnapshots, prepareStore } from "./store.ts";

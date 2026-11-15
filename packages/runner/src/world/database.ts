@@ -11,6 +11,7 @@ import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
+import { SpanAttributes } from "@capxul/core";
 import { RunnerFailure } from "../failure.ts";
 
 const Rows = Schema.Struct({ rows: Schema.Array(Schema.Unknown) });
@@ -76,6 +77,8 @@ export const SpanRow = Schema.Struct({
   duration_ms: Schema.Finite,
   /** When the span ended, in epoch milliseconds by the Worker's clock. */
   ended_ms: Schema.Finite,
+  /** Its declared attributes (Core's `SpanAttributes`): null on every span but a call's own. */
+  attributes: SpanAttributes.pipe(Schema.NullOr, Schema.optional),
 });
 export type SpanRow = typeof SpanRow.Type;
 
@@ -101,7 +104,7 @@ export const telemetryOf = Effect.fn("database.telemetry")(function* (
   if (traceIds.length === 0) return { spans: [], events: [] } satisfies Kept;
   const spans = yield* query(
     database,
-    "select trace_id, span_id, parent_span_id, name, outcome, duration_ms, ended_ms from app.spans where trace_id = any($1) order by id",
+    "select trace_id, span_id, parent_span_id, name, outcome, duration_ms, ended_ms, attributes from app.spans where trace_id = any($1) order by id",
     [traceIds],
   );
   const events = yield* query(

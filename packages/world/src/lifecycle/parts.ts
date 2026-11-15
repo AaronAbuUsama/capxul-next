@@ -11,84 +11,14 @@ import * as Str from "effect/String";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
-import { BUNDLER_PATH, ENTRY_POINT, TEST_PAYMASTER } from "../bundler/Keys.ts";
-import { TEST_USDC } from "../chain/faucet.ts";
-import { OPERATOR_TOKEN_ID } from "../core/Core.ts";
 import { CORE_HEALTH } from "../core/health.ts";
-import { connectionOf, projectId } from "../database/neon.ts";
-import { query } from "../database/sql.ts";
-import { openHub, worldToken } from "../hub/hub.ts";
 import { WorldNotReady } from "../failures.ts";
-import { recordedOutput, secretOf } from "../stack/engine.ts";
-import { nameOf, stageOf } from "../stack/names.ts";
+import { recordedOutput } from "../stack/engine.ts";
+import { stageOf } from "../stack/names.ts";
 import { describeFailure } from "./describe.ts";
+import { handle, WorldOutput } from "./handle.ts";
 import type { World } from "./spec.ts";
 import { checkName } from "./validate.ts";
-
-/** What a deployed world's stack outputs hold. No secret is among them. */
-export const WorldOutput = Schema.Struct({
-  world: Schema.String,
-  owner: Schema.String,
-  expiresAt: Schema.String,
-  forkedFrom: Schema.String,
-  coreUrl: Schema.String,
-  doorUrl: Schema.String,
-  branch: Schema.String,
-  /** The platform stage whose bench holds the world's sites, or `none`. */
-  bench: Schema.optional(Schema.String),
-  /** The fleet hub its chain, index and bundler live on (src/hub), and the expiry its token there was made for. */
-  hub: Schema.String,
-  registeredUntil: Schema.String,
-});
-export type WorldOutput = typeof WorldOutput.Type;
-
-/** The world's two secrets: its token on its hub and its database's connection string. */
-export interface Secrets {
-  readonly token: Redacted.Redacted;
-  readonly database: Redacted.Redacted;
-}
-
-/**
- * The world's handle, built from its outputs and its secrets: the token worked out again under its hub's admin token
- * (src/hub/hub.ts) and the connection string asked of Neon, unless the caller already holds both (its create).
- */
-export const handle = Effect.fn("world.handle")(function* (output: WorldOutput, known?: Secrets) {
-  const secrets: Secrets =
-    known ??
-    (yield* Effect.all(
-      {
-        token: Effect.flatMap(openHub(output.hub), (hub) =>
-          worldToken(hub, { stage: output.world, owner: output.owner, expiresAt: output.registeredUntil }),
-        ),
-        database: Effect.flatMap(projectId, (project) => connectionOf(project, output.branch)),
-      },
-      { concurrency: 2 },
-    ));
-  const { token, database } = secrets;
-  const door = `${output.doorUrl}/${Redacted.value(token)}`;
-  const operatorToken = yield* secretOf(output.world, OPERATOR_TOKEN_ID, "text");
-  const world: World = {
-    name: nameOf(output.world),
-    stage: output.world,
-    owner: output.owner,
-    expiresAt: output.expiresAt,
-    forkedFrom: output.forkedFrom,
-    coreUrl: output.coreUrl,
-    testUsdc: TEST_USDC,
-    funded: [],
-    sites: [],
-    doorToken: token,
-    operatorToken,
-    rpcUrl: Redacted.make(`${door}/rpc`),
-    bundlerUrl: Redacted.make(`${door}${BUNDLER_PATH}`),
-    entryPoint: ENTRY_POINT,
-    paymaster: TEST_PAYMASTER,
-    door: Redacted.make(door),
-    database,
-    sql: (statement, params) => query(database, statement, params),
-  };
-  return world;
-});
 
 /** An existing world, by name, from the shared state alone. */
 export const open = Effect.fn("world.open")(function* (name: string) {

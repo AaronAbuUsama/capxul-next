@@ -93,7 +93,12 @@ const registry = (
   params: ReadonlyArray<unknown>,
 ): ReadonlyArray<unknown> | undefined => {
   const [first, second] = params;
-  if (Str.startsWith("create")(query) || Str.startsWith("insert into platform.calls")(query)) return [];
+  if (
+    Str.startsWith("create")(query) ||
+    Str.startsWith("alter table platform.")(query) ||
+    Str.startsWith("insert into platform.calls")(query)
+  )
+    return [];
   if (Str.includes("from worlds where owner = $1")(query))
     return Arr.map(
       Arr.filter(outside.claims, (claim) => claim.owner === first),

@@ -4,6 +4,7 @@
 // Measure first (AGENTS.md): every call's timings, caller side and server side, and the spans of each step are
 // recorded with the operation's budget beside them. The budget is never enforced, so no check is about speed.
 import { operations } from "@capxul/blueprint";
+import { SpanAttributes } from "@capxul/core";
 import * as Arr from "effect/Array";
 import { pipe } from "effect/Function";
 import * as Order from "effect/Order";
@@ -61,6 +62,12 @@ export const CheckedCall = Schema.Struct({
   /** Sends repeated during the call because the stage's address was not routed yet. */
   resent: Schema.Finite,
   timing: Timing,
+  /**
+   * The declared attributes of the operation's server span: the Cloudflare data centre that ran Core (`cf.colo`) and
+   * its Postgres round trips (`db.query_ms`, `db.query_count`). Recorded, never checked; absent when no span was kept
+   * or it carries none (records before them say nothing).
+   */
+  attributes: SpanAttributes.pipe(Schema.optional),
   /** Every other server span under the call's trace id, in the order they started. */
   steps: Schema.Array(Step),
   /** The names of the events recorded for the call, in the order they were written. */
@@ -96,6 +103,12 @@ export const stepsOf = (span: SpanRow, kept: ReadonlyArray<SpanRow>): ReadonlyAr
     })),
     Arr.sortBy(byStart),
   );
+};
+
+/** The operation span's attributes, for the call's record; nothing when it has none. */
+const attributesOf = (span: SpanRow | undefined): { readonly attributes?: SpanAttributes } => {
+  const attributes = span?.attributes ?? null;
+  return attributes === null ? {} : { attributes };
 };
 
 /** Applies every generic check to one call, given all that Core kept. Pure. */
@@ -145,6 +158,7 @@ export const checkCall = (call: Call, kept: Kept): CheckedCall => {
       enforced: false,
       overBudget: span === undefined ? null : span.duration_ms > operation.budget.ms,
     },
+    ...attributesOf(span),
     steps: span === undefined ? [] : stepsOf(span, kept.spans),
     events: Arr.map(events, (event) => event.event),
     checks,
