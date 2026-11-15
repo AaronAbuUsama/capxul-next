@@ -303,7 +303,7 @@ into a failed verdict.
 
 ## Part 5. Decisions
 
-1. **T1. The Axiom plan.** Personal allows 3 datasets and 30 days, which cannot hold A2. **Recommend Axiom Cloud**,
+1. **T1. The Axiom plan. Decided: Axiom Cloud is in place (Aaron, 15 November 2026).** Personal allows 3 datasets and 30 days, which cannot hold A2. **Recommend Axiom Cloud**,
    with an organisation spending limit set inside the $10 a day cap. Our volume (a run is a few thousand spans) sits
    far inside its free allowances.
 2. **T2. Datasets as in A2a**: 12 datasets in correlation groups for test, real and agents, plus Cloudflare's own.
