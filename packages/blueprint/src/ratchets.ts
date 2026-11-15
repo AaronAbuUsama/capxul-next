@@ -162,7 +162,6 @@ export const ratchets: ReadonlyArray<Ratchet> = [
       "doc.submit",
       "record.export",
       "org.member.grant",
-      "org.member.list",
       "world.snapshot.delete",
       "world.snapshot.list",
       "world.snapshot.restore",
@@ -199,7 +198,6 @@ export const ratchets: ReadonlyArray<Ratchet> = [
 const notClimbed: ReadonlyArray<OperationName> = [
   "org.create",
   "org.member.grant",
-  "org.member.list",
   "org.director.list",
   "org.director.add",
   "org.threshold.set",

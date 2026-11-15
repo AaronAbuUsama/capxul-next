@@ -216,6 +216,8 @@ export const roles = {
   person: "person",
   /** The company's founder, as its row holds it: for now the only one who manages its people. */
   founder: "founder",
+  /** A Director or a member of the company the call names. */
+  member: "member",
   /** The person an invitation was sent to: whoever signs in with its email. */
   invitee: "invitee",
 } as const;

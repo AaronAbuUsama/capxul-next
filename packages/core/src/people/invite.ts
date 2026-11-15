@@ -1,4 +1,4 @@
-// invitation.send and org.member.list: a company's founder invites a person by email to be a member, and its
+// invitation.send and member.list: a company's founder invites a person by email to be a member, and its
 // people (and the world's owner) list who belongs. An invitation is pending at once: a Seat is off the chain and off
 // the site, so nothing is signed and nothing but Core's database and the world's record is written.
 import { Errors, machines, People } from "@capxul/blueprint";
@@ -19,6 +19,7 @@ type Invite = typeof People.invitationSend.rpc.payloadSchema.Type;
 type Listing = typeof People.memberList.rpc.payloadSchema.Type;
 
 const Send = People.invitationSend;
+const List = People.memberList;
 
 /** The company, or `OrgNotFound`. */
 const company = (org: string) =>
@@ -89,14 +90,22 @@ export const invitationSend = (invite: Invite) =>
     return sent;
   });
 
-export const memberList = Effect.fn("org.member.list.read")(function* (listing: Listing) {
+export const memberList = Effect.fn(List.spans.read.name)(function* (listing: Listing) {
   const cast = yield* Cast;
   const who = yield* caller;
-  const organization = yield* company(listing.org);
+  const organization = yield* company(listing.org).pipe(
+    Effect.catchTag("OrgNotFound", (refusal) =>
+      refuse(List.refusals.OrgNotFound, { org: listing.org, rule: "no-such-company" }, refusal),
+    ),
+  );
   const roster = yield* rosterOf(organization);
   // The world's owner sees the whole world; a person sees only a company they belong to.
   if (who.person && !Arr.some(roster, (each) => each.person === who.name))
-    return yield* Errors.NotAMember.make({ org: listing.org, person: who.name });
+    return yield* refuse(
+      List.refusals.NotAMember,
+      { org: listing.org, rule: "not-a-member" },
+      Errors.NotAMember.make({ org: listing.org, person: who.name }),
+    );
   const members = yield* Effect.forEach(roster, (each) =>
     Effect.flatMap(cast.find(each.person), (listed) =>
       Option.match(listed, {

@@ -6,12 +6,12 @@
 import { strict as assert } from "node:assert";
 import { readdirSync, readFileSync } from "node:fs";
 import { test } from "node:test";
-import { layoutOf, verbsOf, type ThingFile } from "@capxul/blueprint-tools";
+import { layoutOf, Machine, verbsOf, type ThingFile } from "@capxul/blueprint-tools";
 import * as Arr from "effect/Array";
 import * as Predicate from "effect/Predicate";
 import * as Rec from "effect/Record";
 import * as Str from "effect/String";
-import { machines, operations } from "../src/index.ts";
+import { Errors, machines, operations, People } from "../src/index.ts";
 import { ratchets } from "../src/ratchets.ts";
 import { arrayOf, field } from "./format-door.ts";
 
@@ -22,8 +22,8 @@ const files: ReadonlyArray<ThingFile> = Arr.map(
 );
 const verbs = verbsOf(layoutOf(files));
 
-/** The most names R16's list may hold: today's 21 that differ, less the invitation's 4. Set by 3.10; may only fall. */
-const CEILING = 17;
+/** The most names R16's list may hold: today's 21 that differ, less the invitation's 4 and member.list. Set by 3.10; may only fall. */
+const CEILING = 16;
 
 /** The invitation's verbs, each named from its path. */
 const INVITATION = ["invitation.send", "invitation.list", "invitation.accept", "invitation.decline"];
@@ -37,7 +37,7 @@ const listed = (): ReadonlyArray<string> => {
   return Arr.filter(arrayOf(field(r16.value, "unmigrated"), "R16's `unmigrated` list"), Predicate.isString);
 };
 
-test("R16 is registered, counted, with an `unmigrated` list of at most 17 names", () => {
+test("R16 is registered, counted, with an `unmigrated` list of at most 16 names", () => {
   assert.ok(r16._tag === "Some", "src/ratchets.ts registers no R16, the names that differ from their path");
   assert.notEqual(r16.value.count, "not yet counted", "R16 is counted by its list, today");
   const list = listed();
@@ -82,10 +82,29 @@ test("R16's list holds none of the invitation's verbs: they are named from their
 
 test("the invitation's lifecycle names its operations by their path names", () => {
   const machine = machines.invitation;
-  const named = [machine.start.by, ...Arr.map(Rec.values(machine.moves), (move) => move.by)];
+  const named = [Machine.madeBy(machine.start), ...Arr.map(Rec.values(machine.moves), Machine.madeBy)];
   assert.deepEqual(
     Arr.filter(named, (name: string) => !Arr.contains(INVITATION, name)),
     [],
     "the invitation's machine is started or moved by an operation not named from its path",
   );
+});
+
+test("read by its names, the invitation's machine names each operation, event and refusal by its declaration's name", () => {
+  const Invitation = machines.invitation;
+  assert.deepEqual(Machine.named(Invitation).start, {
+    state: "pending",
+    by: People.invitationSend.rpc._tag,
+    event: People.MemberInvited.identifier,
+  });
+  assert.deepEqual(Machine.named(Invitation).moves.decline, {
+    from: ["pending"],
+    to: "declined",
+    by: People.invitationDecline.rpc._tag,
+    event: People.InvitationDeclined.identifier,
+    otherwise: {
+      accepted: { refusal: Errors.InvitationClosed.identifier },
+      declined: { refusal: Errors.InvitationClosed.identifier },
+    },
+  });
 });
