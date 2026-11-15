@@ -1,20 +1,19 @@
-// `pnpm words`, the gate of the rename ratchet R15 "Old words" (its entry in packages/blueprint/src/ratchets.ts;
+// `pnpm words`, the gate of the rename ratchet R15 "Old words", counted in distinct names (its entry in packages/blueprint/src/ratchets.ts;
 // docs/roadmap.md, item 3.8; `pnpm ratchets` only reports its total): counts every old word of the glossary
 // (old-words.ts says what counts) and fails when one grew past its committed count, in
 // packages/blueprint/generated/old-words.json, which `pnpm generate` writes. With `--base <ref>` (CI passes the pull
 // request's base branch) it fails too when a count grew past that branch's committed count, so a count raised by
-// generating again is still caught. With `--where <word>` it prints the files that hold that word, by count. An entry
+// generating again is still caught. With `--where <word>` it prints each distinct name holding that word, with the files it stands in. An entry
 // file: it reads the disk and git, parses JSON, prints and sets the exit code.
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import * as Arr from "effect/Array";
-import * as Order from "effect/Order";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import { glossary } from "../../../blueprint/src/index.ts";
-import { countFile, countOldWords, type Counts, grown, OLD_WORDS } from "./old-words.ts";
+import { countOldWords, type Counts, grown, OLD_WORDS, whereOf } from "./old-words.ts";
 import { wordFiles } from "./word-files.ts";
 
 const root = join(import.meta.dirname, "../../../..");
@@ -40,12 +39,7 @@ const now = countOldWords(glossary, files);
 
 const where = flag("--where");
 if (where !== undefined) {
-  const holding = Arr.flatMap(files, (file) => {
-    const count = countFile(glossary, file)[where] ?? 0;
-    return count > 0 ? [{ path: file.path, count }] : [];
-  });
-  const byCount = Order.flip(Order.mapInput(Order.Number, (each: { readonly count: number }) => each.count));
-  for (const { path, count } of Arr.sort(holding, byCount)) console.log(`${count}\t${path}`);
+  for (const { name, paths } of whereOf(glossary, files, where)) console.log(`${name}\t${Arr.join(paths, " ")}`);
   process.exit(0);
 }
 

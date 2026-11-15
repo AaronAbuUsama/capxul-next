@@ -63,3 +63,26 @@ Each is spelled as a word the glossary keeps for another concept, so no count ca
 A word the glossary keeps, spelled as another entry's old word, is not counted where this exact code writes it.
 
 - **claim**: `CompaniesHouseClaimer.claim`, `claim(string,string,address)`, `capxul.claim`.
+
+## Exact text not counted
+
+No writer can choose these, so an entry's old words are not counted in them. Nor in a package's name written as a package (`@capxul/core`, `packages/core`, `--core=local`), an import or export specifier, or an applied migration's file name: each changes only with what it names.
+
+- **api**: `core-db`, a resource already deployed under this name: renaming it replaces the resource.
+- **api**: `core-hyperdrive`, a resource already deployed under this name: renaming it replaces the resource.
+- **endpoint**: `DoorImage`, a resource already deployed under this name: renaming it replaces the resource.
+- **endpoint**: `DoorRecord`, a resource already deployed under this name: renaming it replaces the resource.
+- **endpoint**: `cx-platform-door`, a resource already deployed under this name: renaming it replaces the resource.
+- **account**: `CapxulPlatform`, an Alchemy stack already deployed under this name: renaming it replaces every resource in it.
+- **account**: `cx-platform-bench`, a resource already deployed under this name: renaming it replaces the resource.
+- **account**: `cx-platform-door`, a resource already deployed under this name: renaming it replaces the resource.
+- **account**: `capxul-ci-platform`, a resource already deployed under this name: renaming it replaces the resource.
+- **account**: `platform.yml`, an existing workflow file, renamed with the package.
+- **cluster**: `CapxulWorldHub`, an Alchemy stack already deployed under this name: renaming it replaces every resource in it.
+- **snapshot**: `dataPoints`, OpenTelemetry's OTLP wire format names it, not Capxul.
+- **snapshot**: `rejectedDataPoints`, OpenTelemetry's OTLP wire format names it, not Capxul.
+- **snapshot**: `metric_data_point`, OpenTelemetry's OTLP wire format names it, not Capxul.
+- **snapshot**: `data_point`, OpenTelemetry's OTLP wire format names it, not Capxul.
+- **history**: `logRecords`, OpenTelemetry's OTLP wire format names it, not Capxul.
+- **history**: `rejectedLogRecords`, OpenTelemetry's OTLP wire format names it, not Capxul.
+- **history**: `log_record`, OpenTelemetry's OTLP wire format names it, not Capxul.
