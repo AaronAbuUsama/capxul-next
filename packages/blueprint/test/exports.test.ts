@@ -21,7 +21,7 @@ const TOP = named(`
   CurrentOperator Documents Errors Machine MadeCall Organizations PERSON_HEADER PLATFORM_PATH People PlatformRpcs
   PlatformSignIn Record Reports Site TRACE_HEADER Telemetry Values WORLD_PATH World WorldRpcs WorldSignIn allClaims
   declare declareOutcomes declaredNames domains eventNamesOf holdsFactsOf isRefusal machines operations outcome
-  refusalsOf servedBy startingWorlds
+  ratchets refusalsOf servedBy startingWorlds
   Conventions Datasets Envelope Metrics Pipeline Producers StepKinds Watch
 `);
 

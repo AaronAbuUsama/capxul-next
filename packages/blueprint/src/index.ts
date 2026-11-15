@@ -77,6 +77,7 @@ export { MadeCall } from "./starting-points/facts.ts";
 export * as Chain from "./common/chain/chain.ts";
 export * as Site from "./common/site.ts";
 export { allClaims } from "./generated/promises.ts";
+export { ratchets, type Counter, type Ratchet } from "./ratchets.ts";
 /**
  * The pipeline's own work (docs/design/blueprint.md, part 8): every verb no door serves, with its spans, logs, budget
  * and payload. No Rpc group above holds any of it.

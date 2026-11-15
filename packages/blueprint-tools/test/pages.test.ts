@@ -5,8 +5,10 @@ import { readdirSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 import * as Arr from "effect/Array";
 import * as Order from "effect/Order";
+import * as Rec from "effect/Record";
 import * as Str from "effect/String";
 import { layoutOf, type ThingFile } from "../src/index.ts";
+import { OUTPUTS } from "../src/checks/ratchets.ts";
 import { renderClaims } from "../src/render/render.ts";
 
 const BLUEPRINT = new URL("../../blueprint/", import.meta.url);
@@ -23,13 +25,17 @@ test("the blueprint's things read as a layout with no problem", () => {
   assert.ok(layout.things.length > 0, "no thing was read");
 });
 
-test("every page in generated/ is what the sources render, and no other page is there", () => {
+test("every page in generated/ is what the sources render, and no other page is there but the ratchets' two", () => {
   const rendered = renderClaims(layout);
   for (const { path, text } of rendered) {
     const onDisk = readFileSync(new URL(path, BLUEPRINT), "utf8");
     assert.equal(onDisk, text, `packages/blueprint/${path} is out of date: run \`pnpm claims\``);
   }
-  const pages = Arr.map(readdirSync(new URL("generated/", BLUEPRINT)), (name) => `generated/${name}`);
+  const ratchets: ReadonlyArray<string> = Rec.values(OUTPUTS);
+  const pages = Arr.filter(
+    Arr.map(readdirSync(new URL("generated/", BLUEPRINT)), (name) => `generated/${name}`),
+    (page) => !Arr.contains(ratchets, page),
+  );
   assert.deepEqual(
     Arr.sort(pages, Order.String),
     Arr.sort(
