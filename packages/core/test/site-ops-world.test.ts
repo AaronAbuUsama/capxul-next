@@ -136,6 +136,40 @@ test("a warp's record says where its time went: a span per stretch, under it a s
       assert.equal(calls.length, 4, "each stretch through both sites");
       const stretchIds = Arr.map(stretches, (stretch) => stretch.spanId);
       assert.ok(Arr.every(calls, (one) => stretchIds.includes(one.parentSpanId ?? "")));
+      // Kept in the record (app.spans): the keys are declared (telemetry/attributes.ts).
+      assert.deepEqual(
+        Arr.map(stretches, (stretch) => stretch.attributes),
+        [
+          {
+            [WARP_ATTRIBUTES.warpFrom]: "2026-11-13T09:00:00.000Z",
+            [WARP_ATTRIBUTES.warpTo]: "2026-11-27T09:00:00.000Z",
+          },
+          {
+            [WARP_ATTRIBUTES.warpFrom]: "2026-11-27T09:00:00.000Z",
+            [WARP_ATTRIBUTES.warpTo]: "2026-12-03T09:00:00.000Z",
+          },
+        ],
+      );
+      const of = (name: string) => Arr.filter(calls, (one) => one.attributes?.[WARP_ATTRIBUTES.site] === name);
+      const times = {
+        [WARP_ATTRIBUTES.site]: "a-town.w",
+        [WARP_ATTRIBUTES.siteMs]: 1900.5,
+        [WARP_ATTRIBUTES.warpSetupMs]: 120,
+        [WARP_ATTRIBUTES.warpStopMs]: [880, 900.5],
+        [WARP_ATTRIBUTES.warpStopJobs]: [95, 95],
+        [WARP_ATTRIBUTES.warpJobs]: ["erpnext.daily_maintenance", "capxul.clock.daily"],
+        [WARP_ATTRIBUTES.warpJobRuns]: [2, 2],
+        [WARP_ATTRIBUTES.warpJobMs]: [700, 60],
+      };
+      assert.deepEqual(
+        Arr.map(of("a-town.w"), (one) => one.attributes),
+        [times, times],
+      );
+      assert.deepEqual(
+        Arr.map(of("b-town.w"), (one) => one.attributes),
+        [{ [WARP_ATTRIBUTES.site]: "b-town.w" }, { [WARP_ATTRIBUTES.site]: "b-town.w" }],
+        "a site that answers no times still names itself",
+      );
     }),
   ));
 

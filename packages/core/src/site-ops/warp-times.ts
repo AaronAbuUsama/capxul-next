@@ -1,8 +1,8 @@
 // Where a company site's warp spent its time, as the Capxul app answers it (capxul/core_api.py, `warp`), and the
 // attributes it is set as on the span of the site's call (site-ops/world.ts).
 //
-// The keys are named here until the telemetry lane declares them (telemetry/attributes.ts): a span Core keeps in
-// `app.spans` holds only declared keys, so until then they reach an exporter that takes every attribute, not the record.
+// The keys and their values' schema (WarpAttributes) are declared once here; telemetry/attributes.ts adds them to the
+// keys a span Core keeps in `app.spans` holds.
 import * as Arr from "effect/Array";
 import * as Schema from "effect/Schema";
 
@@ -31,6 +31,20 @@ export const WARP_ATTRIBUTES = {
  * (`stop_ms`, `stop_jobs`), and its slowest jobs over every stop (`slowest`). A site of an older Capxul app answers
  * none of them.
  */
+/** The values a warp's span attributes carry, under their keys. */
+export const WarpAttributes = Schema.Struct({
+  [WARP_ATTRIBUTES.site]: Schema.String.pipe(Schema.optional),
+  [WARP_ATTRIBUTES.siteMs]: Schema.Finite.pipe(Schema.optional),
+  [WARP_ATTRIBUTES.warpFrom]: Schema.String.pipe(Schema.optional),
+  [WARP_ATTRIBUTES.warpTo]: Schema.String.pipe(Schema.optional),
+  [WARP_ATTRIBUTES.warpSetupMs]: Schema.Finite.pipe(Schema.optional),
+  [WARP_ATTRIBUTES.warpStopMs]: Schema.Array(Schema.Finite).pipe(Schema.optional),
+  [WARP_ATTRIBUTES.warpStopJobs]: Schema.Array(Schema.Int).pipe(Schema.optional),
+  [WARP_ATTRIBUTES.warpJobs]: Schema.Array(Schema.String).pipe(Schema.optional),
+  [WARP_ATTRIBUTES.warpJobRuns]: Schema.Array(Schema.Int).pipe(Schema.optional),
+  [WARP_ATTRIBUTES.warpJobMs]: Schema.Array(Schema.Finite).pipe(Schema.optional),
+});
+
 export const WarpTimes = Schema.Struct({
   ms: Schema.Finite.pipe(Schema.optional),
   setup_ms: Schema.Finite.pipe(Schema.optional),
