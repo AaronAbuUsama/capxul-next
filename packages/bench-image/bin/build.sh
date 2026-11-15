@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # build.sh [tag]: build the Capxul bench image from apps.lock.json and this repository's capxul app.
-#   CAPXUL_APP_DIR   the capxul app's source (default: the spike's app until it graduates into its package)
+#   CAPXUL_APP_DIR   the capxul app's source (default: packages/frappe-app)
 #   CAPXUL_BUILD_CA  a CA bundle to trust during the build only (a TLS-inspecting proxy); passed as a secret, never a layer
 # Behind a proxy (HTTPS_PROXY set) the build uses the host network and the proxy variables, which Docker keeps out of
 # the image's history. Prints the image id and writes var/bench-image/image.json (tag, id, inputs).
