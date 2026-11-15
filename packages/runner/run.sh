@@ -51,6 +51,11 @@ export CAPXUL_WORKERD="${CAPXUL_WORKERD:-$(bun -e 'import w from "workerd"; cons
 # A run in private worlds lives on its own fleet hub (src/worlds/hub.ts): a fresh one per run unless WORLD_HUB names
 # one; a hub the run brings up it also takes down.
 export WORLD_HUB="${WORLD_HUB:-rh-$(python3 -c "import secrets; print(secrets.token_hex(3))")}"
+# WORLD_BENCH=<platform stage>: its site door is read from the shared state, `http://<stage>-door.<domain>`, plain HTTP
+# through the tunnel (Cloudflare's free certificate covers one level only). In an agent's container the network proxy
+# takes only CONNECT tunnels, and Bun sends plain HTTP through a proxy in absolute form, which it refuses: such runs set
+# HTTP_PROXY to a small loopback forwarder (not in the repository) that carries each request through a CONNECT tunnel
+# to port 80. CI needs nothing of this kind.
 # WORLD_BENCH=local: packages/platform's bin/pool-bench.sh bench on this machine, not a platform stage. Its door's
 # address and key (from its secrets file, never printed) are handed to packages/world (src/site/Bench.ts).
 if [ "${WORLD_BENCH:-}" = local ]; then
