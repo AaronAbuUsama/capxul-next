@@ -14,7 +14,16 @@ import * as Option from "effect/Option";
 import * as Predicate from "effect/Predicate";
 import * as Ref from "effect/Ref";
 import { OperationChecks, type AllChecks, type Answer, type Asked, type Check } from "./checks/format.ts";
-import { Capxul, type CapxulClient, type Failure, type Payload, type Refusal, type Success } from "./client.ts";
+import {
+  CallTraces,
+  Capxul,
+  ThisCall,
+  type CapxulClient,
+  type Failure,
+  type Payload,
+  type Refusal,
+  type Success,
+} from "./client.ts";
 import { ExpectationFailed } from "./expectation.ts";
 import { Journal, Steps, type CheckOutcome } from "./journal.ts";
 import { said, shown } from "./said.ts";
@@ -98,10 +107,10 @@ const checksOf = (all: AllChecks, name: OperationName) =>
     ) => Effect.Effect<(answer: Answer<OperationName>) => ReadonlyArray<Check>, Failed, Needs>;
   };
 
-/** Runs every check, each to its end, and says how each went. */
-const judge = (checks: ReadonlyArray<Check>) =>
+/** Runs every check of the call traced `trace`, each to its end, and says how each went. */
+const judge = (checks: ReadonlyArray<Check>, trace: string | null) =>
   Effect.forEach(checks, (each) =>
-    Effect.map(Effect.exit(each.holds), (exit): CheckOutcome => ({
+    Effect.map(Effect.exit(Effect.provideService(each.holds, ThisCall, { trace })), (exit): CheckOutcome => ({
       says: each.says,
       passed: Exit.isSuccess(exit),
       detail: Exit.isSuccess(exit) ? "" : said(exit.cause),
@@ -116,7 +125,11 @@ const attempt = (step: number, asked: Asked<OperationName>, expected: Expected, 
     const journal = yield* Journal;
     const checks = yield* OperationChecks;
     const prepared = yield* Effect.exit(checksOf(checks, asked.operation).prepare(asked));
-    const call = callOf(capxul, asked.operation)(asked.payload, asked.options);
+    // The trace of the try's last call, as the client tells it: the checks judge what that call caused.
+    const trace = yield* Ref.make<string | null>(null);
+    const call = callOf(capxul, asked.operation)(asked.payload, asked.options).pipe(
+      Effect.provideService(CallTraces, { heard: (heard) => Ref.set(trace, heard) }),
+    );
     let exit = yield* Effect.exit(call);
     for (let left = WAIT.attempts; left > 1 && repeats(again, exit); left -= 1) {
       yield* Effect.sleep(WAIT.every);
@@ -145,7 +158,7 @@ const attempt = (step: number, asked: Asked<OperationName>, expected: Expected, 
     }
     const answer = answerOf(exit, error);
     const outcomes = Exit.isSuccess(prepared)
-      ? yield* judge(prepared.value(answer))
+      ? yield* judge(prepared.value(answer), yield* Ref.get(trace))
       : [{ says: "what the checks read before the call", passed: false, detail: said(prepared.cause) }];
     yield* steps.tried(step, { ...tried, checks: outcomes });
     if (Exit.isSuccess(exit))

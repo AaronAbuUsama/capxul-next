@@ -9,7 +9,7 @@ import * as Option from "effect/Option";
 import { expect } from "../expectation.ts";
 import { asSaved, heldBefore, snapshotsOf, type Held } from "../support/inventory.ts";
 import { present, same } from "../support/expect.ts";
-import { entriesAfter, operatorName, unchangedRecord, view } from "../support/world.ts";
+import { entriesOfCall, operatorName, unchangedRecord, view } from "../support/world.ts";
 import { check, checks, type Check } from "./format.ts";
 
 /** The world existed before the call; what it was. */
@@ -58,7 +58,7 @@ export const worldSnapshotDelete = checks<"world.snapshot.delete", Option.Option
       "the record gains one entry, snapshot_deleted, carrying the world, the snapshot and the position it held",
       Effect.gen(function* () {
         const was = yield* existed(held);
-        const added = yield* entriesAfter(was.head, was.owner);
+        const added = yield* entriesOfCall(was.head, was.owner);
         yield* same(
           "the entries the delete added",
           Arr.map(added, (entry) => [entry.event, entry.carried]),
