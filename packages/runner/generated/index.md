@@ -11,6 +11,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 
 - [`chain-journey.ts`](../src/chain-journey.ts): The chain operations' journey through a world `world create` made (`./run.sh chain --world=<name>`): org.create founds northwind as dana, dana's and eli's signatures of the setup send it, a grant of manage-books to sam is proposed and executed the same way, and the chain is read back through the world's door after each landing.
 - [`client.ts`](../src/client.ts): The scenarios' `Capxul` for one stage: the SDK's client (`Sdk.layer(Capxul)`) at the stage's two doors, with every call recorded for the checks.
+- [`collector-env.entry.ts`](../src/collector-env.entry.ts): Entry, for a CI job's step (roadmap 4.7): finds the staging collector and mints the run's token from the shared state, as the runner does for itself (src/telemetry/export.ts, `collectorFound`), and hands them to the job's later steps through GitHub's `GITHUB_ENV` file, as OpenTelemetry's standard settings (OTEL_EXPORTER_OTLP_ENDPOINT, and OTEL_EXPORTER_OTLP_HEADERS with the token).
 - [`door.ts`](../src/door.ts): The package's door.
 - [`failure.ts`](../src/failure.ts): How the runner fails, and how a failure is worded in a run record: in the failure's own words, without stack frames (they name this machine's paths and say nothing about the world).
 - [`given.ts`](../src/given.ts): What a scenario is handed as its starting world's facts (`Given`).
@@ -53,6 +54,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`otlp.ts`](../src/telemetry/otlp.ts): OTLP JSON, as Effect's `OtlpSerialization.layerJson` writes it: the bodies of the trace, log and metric export requests (`/v1/traces`, `/v1/logs`, `/v1/metrics`).
 - [`parity.ts`](../src/telemetry/parity.ts): Parity between the two records of one call's spans while both exist (roadmap 4.4, side by side): `app.spans`, which Core writes today (world/database.ts), and the tap, the same spans as OTLP (tap.ts, flat.ts).
 - [`side-by-side.ts`](../src/telemetry/side-by-side.ts): Side by side (roadmap 4.4): for every call a run made through its own stage's door, the spans Core kept in `app.spans` beside the spans the tap holds of it (tap.ts), and their parity (parity.ts), for the run record.
+- [`step.ts`](../src/telemetry/step.ts): A span the runner records under a name the blueprint declares (roadmap 4.7): its name from `Pipeline`, never written here as a string, and its kind under the envelope's `capxul.step.kind`.
 - [`tap.ts`](../src/telemetry/tap.ts): The tap: in a test world, Core writes the OTLP it exports into the world's database as well (`telemetry.otlp`: the trace id, the signal, the body), and the runner reads a call's spans and logs back from it by trace id, through the same `/sql` endpoint it reads `app.spans` by (world/database.ts; roadmap 4.4; design note "Proof and telemetry", section 7).
 
 ## `src/world/`

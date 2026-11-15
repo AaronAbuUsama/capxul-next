@@ -70,7 +70,7 @@ const restoreOf =
  * What hands the starting worlds of a run on the shared world `shared`. It makes nothing in the shared world:
  * `templateWorlds` and `kept` are empty, so the run destroys only the worlds it restored and made.
  */
-export const sharedStartingWorldsOf = Effect.fn("runner.sharedStartingWorlds")(function* (
+export const sharedStartingWorldsOf = Effect.fnUntraced(function* (
   settings: Settings,
   platformUrl: string,
   timings: Timings,

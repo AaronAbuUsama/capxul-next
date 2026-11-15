@@ -5,19 +5,23 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 
 ## `src/`
 
+- [`climb.ts`](../src/climb.ts): The gate's climb (roadmap 4.7): the commands `pnpm check` runs, in order, each in the span the blueprint's pipeline declares for its rung (`Pipeline.checkGate.spans`), under one span of the gate's own work (`check.gate`), stopping at the first that fails, as `pnpm check` always has.
 - [`docs.ts`](../src/docs.ts): The docs' shape (docs/design/blueprint.md, part 7; docs/design/docs.md): what may live under docs/, where else a Markdown file may live, how long a README may be, that every relative link resolves, and that a design note states its status.
 - [`door.ts`](../src/door.ts): What other packages may import of the lint package: the facts it owns that `pnpm generate` writes into the docs.
+- [`gate.entry.ts`](../src/gate.entry.ts): `pnpm check`: the gate's rungs 1 to 5, each command run as a child process with the console passed through, in the span the blueprint declares for its rung (./climb.ts), stopping at the first that fails and exiting with its code, as the chain of `&&` it replaces did.
 - [`gate.ts`](../src/gate.ts): The gate: the rungs `pnpm check` climbs in order, and the proof after them, each with its command and what fails it.
 - [`maps.ts`](../src/maps.ts): Every package has a map, `packages/<name>/generated/index.md`, written by `pnpm generate` (docs/design/docs.md, section 0, item 3): one line per file under its src/ and page under its docs/.
 - [`plugin.ts`](../src/plugin.ts): The capxul oxlint plugin: the repository's own lint rules.
 - [`shape.entry.ts`](../src/shape.entry.ts): Entry: `pnpm shape`.
 - [`shape.ts`](../src/shape.ts): The repository's shape, as data, and the check that compares a list of files with it.
+- [`unmigrated-steps.ts`](../src/unmigrated-steps.ts): capxul/declared-steps' unmigrated list (roadmap step 4.1, ratchet R6), kept apart from src/unmigrated.ts so that neither file passes 300 lines: each file of our own code that held effectful functions with no declared step when the rule was turned on, with how many findings it may still hold.
 - [`unmigrated.ts`](../src/unmigrated.ts): The typed-once rules' unmigrated lists (docs/roadmap.md, "New formats by a ratchet"): for each rule, the files that broke it when it was turned on, each with how many findings it may still hold.
 
 ## `src/rules/`
 
 - [`blueprint-owns-names.ts`](../src/rules/blueprint-owns-names.ts): capxul/blueprint-owns-names: an operation, a refusal (a tagged error), an event or a starting world is declared once, in packages/blueprint, and imported everywhere else, so two places cannot disagree about it (docs/roadmap.md, "One source for every fact").
 - [`declared-names.ts`](../src/rules/declared-names.ts): capxul/declared-names: a name the blueprint declares (an operation, a refusal's tag, an event's or an outcome's tag, a starting world) is imported, never written again as a string, so a rename cannot leave a copy behind (docs/roadmap.md, "Typed once, by check").
+- [`declared-steps.ts`](../src/rules/declared-steps.ts): capxul/declared-steps: every effectful function of our own code is a span named by a step the blueprint declares (docs/roadmap.md, step 4.1; AGENTS.md, "Who owns each fact").
 - [`decoded-rows.ts`](../src/rules/decoded-rows.ts): capxul/decoded-rows: a row read from the database is decoded with the blueprint's schemas, never cast to a type written by hand (docs/roadmap.md, "Facts typed twice": stored rows).
 - [`effect-only.ts`](../src/rules/effect-only.ts): capxul/effect-only: TypeScript outside entry files is Effect.
 - [`import-door.ts`](../src/rules/import-door.ts): capxul/import-door: another package is imported only through its door, `src/door.ts` (`src/index.ts` in the blueprint and its toolkit, the glossary's word for it), or by its bare name `@capxul/<name>`, whose package.json points at that door.

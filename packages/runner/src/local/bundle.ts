@@ -1,6 +1,7 @@
 // Core's Worker bundle for a local Core (`--core=local`): the same build Alchemy makes when it deploys Core to
 // Cloudflare (its rolldown bundle of packages/core's Worker, wrapped in Alchemy's Worker bridge, with the
 // compatibility date and flags a deploy gives it), written to a directory once per run, for workerd to serve.
+import { Pipeline } from "@capxul/blueprint";
 import { CORE_WORKER_MAIN } from "@capxul/core";
 import { getCompatibility } from "@alchemy.run/cloudflare/Workers/Compatibility";
 import { WorkerBundle } from "@alchemy.run/cloudflare/Workers/Sources/Rolldown";
@@ -11,6 +12,7 @@ import * as Path from "effect/Path";
 import * as Predicate from "effect/Predicate";
 import * as Str from "effect/String";
 import { RunnerFailure } from "../failure.ts";
+import { stepOptions } from "../telemetry/step.ts";
 
 /** A built Core: its directory, its modules in load order (the entry first) and the runtime settings it was built for. */
 export interface CoreBundle {
@@ -23,7 +25,10 @@ export interface CoreBundle {
 const STACK = { name: "CapxulWorld", stage: "local-core" } as const;
 
 /** Builds Core into `directory` and answers what workerd needs to serve it. */
-export const buildCore = Effect.fn("runner.local.bundle")(function* (directory: string) {
+export const buildCore = Effect.fn(
+  Pipeline.runPrepare.spans.bundle.name,
+  stepOptions(Pipeline.runPrepare.spans.bundle),
+)(function* (directory: string) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const main = CORE_WORKER_MAIN;
