@@ -205,7 +205,6 @@ export const unmigrated: {
     "packages/scenarios/src/journeys/budget-sam.ts": 22,
     "packages/scenarios/src/journeys/found-northwind.ts": 36,
     "packages/scenarios/src/journeys/invite-olga.ts": 29,
-    "packages/scenarios/src/journeys/pay-and-branch.ts": 22,
     "packages/scenarios/src/journeys/seat-sam.ts": 33,
     "packages/scenarios/src/journeys/signatures.ts": 5,
     "packages/scenarios/src/journeys/two-operators.ts": 23,

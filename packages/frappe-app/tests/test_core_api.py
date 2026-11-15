@@ -225,18 +225,29 @@ class CoreApi(unittest.TestCase):
         frappe.db.set_value = lambda *a, **k: calls.append(("set_value", a))
         sys.modules["frappe.core.doctype.scheduled_job_type.scheduled_job_type"] = type(sys)("sjt")
         sys.modules["frappe.core.doctype.scheduled_job_type.scheduled_job_type"].sync_jobs = lambda: calls.append(("sync",))
-        advance = lambda f, t: calls.append(("advance", f, t)) or {"stops": 8, "jobs_run": 7}
+        cache = type("Cache", (), {"delete_value": staticmethod(lambda key: calls.append(("hooks", key)))})()
+        log = [{"stop": f"day {n}", "jobs": 1, "ms": 10.0 * n} for n in range(8)]
+        jobs = {"a.daily": [7, 140.0], "a.hourly": [8, 400.0]} | {f"a.job{n}": [1, float(n)] for n in range(20)}
+        advance = lambda f, t, synced=False: calls.append(("advance", f, t, synced)) or {
+            "stops": 8, "jobs_run": 7, "log": log, "job_ms": jobs}
         write = lambda world, offset, frozen=None: calls.append(("write", world, offset, frozen))
         with patch.object(clock, "_host_ms", lambda: 1_000_000), patch.object(clock, "site_time", lambda ms: f"site {ms}"), \
                 patch.object(clock.advance, "__wrapped__", advance), patch.object(clock.write_world, "__wrapped__", write), \
-                patch.object(clock, "world_of_site", lambda: "w1"), \
+                patch.object(clock, "world_of_site", lambda: "w1"), patch.object(clock.frappe, "cache", cache, create=True), \
                 patch.object(clock, "name_daily_job", lambda: calls.append(("name",))):
             moved = self.core(core_api.warp, 400_000, 400_000 + 7 * 86_400_000, True, True)
             self.core(core_api.warp, 400_000, 500_000, False, False)
         self.assertEqual((moved["stops"], moved["jobs"]), (8, 7))
         self.assertEqual(sql[0], ("update", ("site 400000", "site 400000")))
-        self.assertEqual(calls[:2], [("sync",), ("name",)], "the daily job's type is named after it is synced")
-        self.assertIn(("advance", -600_000, 7 * 86_400_000 - 600_000), calls)
+        self.assertEqual(calls[:3], [("hooks", "app_hooks"), ("sync",), ("name",)],
+                         "the hooks are read fresh and synced, then the daily job's type is named")
+        self.assertIn(("advance", -600_000, 7 * 86_400_000 - 600_000, True), calls, "synced once, not again by advance")
+        self.assertEqual(len([c for c in calls if c[0] == "sync"]), 2, "one sync for each of the two warps")
+        self.assertEqual((moved["stop_ms"], moved["stop_jobs"]), ([10.0 * n for n in range(8)], [1] * 8))
+        self.assertEqual(moved["slowest"][:2], [{"job": "a.hourly", "runs": 8, "ms": 400.0},
+                                                {"job": "a.daily", "runs": 7, "ms": 140.0}], "the slowest first")
+        self.assertEqual(len(moved["slowest"]), core_api.SLOWEST_JOBS)
+        self.assertGreaterEqual(moved["ms"], moved["setup_ms"])
         self.assertEqual([c for c in calls if c[0] == "write"], [("write", "w1", 7 * 86_400_000 - 600_000, 400_000 + 7 * 86_400_000)])
 
 
