@@ -1,8 +1,43 @@
 # One set of docs: the plan
 
-Written by the docs session on 15 November 2026 for Aaron, on branch `design/docs`. Status: **agreed by Aaron, 15 November 2026**. Nothing
-here is merged, and nothing moves until Aaron agrees and the blueprint session has recorded decision 3, the shape, in
-`docs/design/blueprint.md`. Where this plan and decision 3 differ, decision 3 wins and this plan is amended.
+Written by the docs session on 15 November 2026 for Aaron, on branch `design/docs`. Status: **agreed by Aaron, 15
+November 2026**. Decision 3, the shape, is now recorded in `docs/design/blueprint.md` on `design/blueprint`
+(part 7). Where it differs from this plan it wins; section 0 lists every difference. Nothing has moved yet. The
+conductor holds the moves until decision 7, the names of things, is recorded. Section 10 is the list of moves, each
+marked where a rename would change it.
+
+## 0. Where decision 3 changes this plan
+
+Read the rest of this plan with these amendments. Each one is decision 3's wording, applied.
+
+1. **Everything inside `packages/blueprint` belongs to the blueprint session**: its README, `decisions.md`, `gaps.md`,
+   the `order.md` and `claims.md` files, and the generated pages. It moves them in its stage 2a. This plan does not
+   touch them. Outside the blueprint, this plan only repoints links and comments that cite them, after 2a.
+2. **A domain's files** are `values.ts`, `events.ts`, `refusals.ts`, `machines.ts` and one `<operation>.ts` per
+   operation. Shared events and refusals go in `events.ts` and `refusals.ts`, not in `values.ts` as section 8's
+   note on row 9 said.
+3. **Maps sit in `generated/`**: `packages/<name>/generated/index.md` for each package, and
+   `packages/blueprint/generated/` for the blueprint. They replace `records/index.md` and `src/<domain>/index.md`
+   in sections 3 and 5. `pnpm shape` requires every package to have one.
+4. **How-to pages** live in `docs/guides/` for work across packages, and in `packages/<name>/docs/` for a package's
+   own tasks, one task each.
+5. **AGENTS.md holds the rules only.** The reasons go in `docs/`. This replaces "about 150 lines, rules with links".
+   The rewrite is this plan's, after the blueprint's stage 2b has landed its changes of fact (F6: "run records"
+   become verdicts and telemetry; one file per operation; `pnpm ratchets` and `pnpm delta:check`; the ratchet
+   registry).
+6. **A design note's status line** reads `open`, `agreed` or `superseded`, not `proposal`, `live` or `history`.
+7. **Run records** under `packages/*/records/` are frozen from the proof lane's flip (R12, R14) and get no new files.
+   The records index is generated once from the frozen records. Moving a spike's proof into `records/` must happen
+   before that flip, or the proof stays where it is and the Proof column names it by verdict (section 10, M19).
+8. **What proves a step** becomes verdicts and telemetry when stage 2b lands F6. Until then, section 8's answer to
+   question 1 holds.
+9. **The roadmap's decisions move to `docs/decisions.md`** after stage 2b, which adds new decisions to the roadmap's
+   table. Moving them first would mean editing the table twice.
+10. **Two more checks**: a test fails a README or operation file that lists files by hand; and every package has a
+    generated index (with a ratchet list until each has one).
+11. **Two files not covered by part 7**: `GROUNDING.md` is missing from part 7's top level. This plan keeps
+    `docs/grounding.md` and asks the blueprint session to confirm it. The new top-level `notes.md` (Aaron's notes
+    on the CLI and the names) is folded by the blueprint session into decisions 7 and 8.
 
 Aaron's ask: "one cohesive set of docs and notes that is organised around progressive disclosure and is consistent
 with itself and everything else that we're building."
@@ -367,3 +402,47 @@ These are decision 3's to settle. This plan follows whatever it records:
 - who writes the comments that replace `decisions.md` entries on the declarations;
 - decision 47 against the sealed-document decision (row 17), and the world budgets that rest on superseded spike
   numbers.
+
+## 10. The moves, marked where a rename would change them
+
+The list was prepared against today's names, at `52ef4e27` on `master` (#262 and 3.2 landed). The conductor holds every
+move until decision 7, the names of things, is recorded. The **Rename** column marks two cases: a move whose target
+path holds a name decision 7 may change (world, hub, core, door, platform, bench, site, runner, stage, shared), and a
+move that writes new text using those names. **Rename: no** means decision 7 cannot change the move. **D8** marks a
+move that decision 8 (the CLI as the one surface) may reshape. **After** names what must land first.
+
+Each move is one pull request into `slice/docs`, unless a row says otherwise.
+
+| # | Move | After | Rename |
+|---|---|---|---|
+| M1 | The shape rung: `docs/` as part 7 lists it; a README over 60 lines (R8 list); Markdown only where a doc may live; every relative link resolves; a design note's status line; generated Markdown says so on line 1; every package has `generated/index.md` (its own ratchet list). The checks name no package | decision 7 (by the conductor's hold) | no |
+| M2 | Factual fixes in place, with no path chosen: the root README's proof command and the `generate:check` comment; the pull request template ("into `slice/<name>`"); BOOTSTRAP's "The schedule"; `contracts/src/README.md`; bench-image's dead link; `world.yml`'s triggers, the operation counts, "Core reaches a site" and the duplicated rows in the world, platform, runner, core and scenarios READMEs. A rename later carries these edits with it | decision 7 | in place only; the README splits in M7–M11 rewrite most of these lines anyway, so M2 could be cut to the files M7–M11 don't touch |
+| M3 | `GROUNDING.md` to `docs/grounding.md`; links updated; `TOP_LEVEL` loses it | the blueprint session confirms `docs/grounding.md` | no |
+| M4 | The roadmap's decisions table to `docs/decisions.md`, word for word, with Aaron's decisions found elsewhere added with their own words and dates (the Companies House signers; the blueprint's 26, 53 and answers 1 to 3 come from stage 2a's fold) | stage 2b's roadmap changes; 2a's fold | no |
+| M5 | `docs/design/README.md`, generated from each note's status line | M1 | no |
+| M6 | The generator learns Markdown blocks between markers, and writes the root README's package map (from `PACKAGES`), the AGENTS.md ladder table and the lint-rule list. The mechanism is shared with stage 2b's generated indexes, so it is agreed with the blueprint session first | 2b's generator | the package map shows package names, which a rename changes; the generator follows `PACKAGES`, so it needs no edit |
+| M7 | `packages/world/README.md` (617) to one screen; `docs/` pages for the fleet's shared host, resetting a world and renewing one; module-header comments; its proofs table into `generated/index.md` | decision 7 | **yes**: world, hub, core, door, bench, site appear in paths and text |
+| M8 | `packages/platform/README.md` (405) to one screen; the site door's API beside the door's code; history beside its records; one owner for "Bench templates never change" | decision 7 | **yes**: platform, door, bench, site |
+| M9 | `packages/runner/README.md` (333) to one screen; each mode described at the top of its module; the settings table generated | decision 7 | **yes**: runner, world, stage, shared |
+| M10 | `packages/core/README.md` (221) to one screen; per-domain handler tables deleted; "What every call gets" moved into the middleware | decision 7; stage 2b (handlers may mirror one file per operation) | **yes**: core, door |
+| M11 | `packages/scenarios/README.md` (123) to one screen; the journeys table generated | decision 4's journeys named in the blueprint (2b) | low: "journey" and "scenario" may be in the glossary |
+| M12 | `packages/contracts/README.md` (112) to one screen; provenance to `deploy/PROVENANCE.md`; the seed to `state/README.md`; the authority flow to NatSpec, replaced by the invoice ledger's flow when 6.2 lands | — | no |
+| M13 | `packages/sdk/README.md` and `packages/cli/README.md`: stale counts | decision 8 | **D8**: the CLI may become the one surface, so its README is rewritten, not trimmed |
+| M14 | `packages/frappe-app/README.md`: a full module table; "Core boundary" deleted (Aaron, question 6) | decision 7 | **yes**: core, site |
+| M15 | `packages/bench-image/README.md`, `packages/indexer/README.md`: `main` wording and the dead link | decision 7 | **yes**: bench, world |
+| M16 | `packages/platform/bootstrap/BOOTSTRAP.md`: stays a runbook, listed as an exception to the Markdown placement check | decision 7 | **yes**: platform |
+| M17 | `packages/world/records/spike-bundler/README.md`: cut its dead "Run it" | — | no |
+| M18 | `.github/pull_request_template.md` | — | no (in M2) |
+| M19 | The spikes' proofs: `spikes/containers/records/` (0.6), `spikes/bench-clocks/observed*.txt` (0.8) and `spikes/pipeline/scenarios/red-records/` (0.7's runner note) move beside the package records, and the roadmap's Proof cells for 0.6 and 0.8 are repointed in the same pull request | before the proof lane's flip (R12), or skipped if the Proof column then names verdicts | **yes**: the target folders are under world, frappe-app and runner |
+| M20 | The spikes' uncaptured findings as `docs/` pages: Core's latency baseline; the account's resources left on purpose; one bench's capacity and why many companies on one site breaks the model; the clock; world speed's options and floors | decision 7 | **yes**: every page names world, bench, site, core or platform, in its path or its text |
+| M21 | The seven spikes deleted; the about 30 code comments citing spike paths updated | M19, M20 | comments only; a rename changes the files they sit in, so after decision 7 |
+| M22 | The citations of `packages/blueprint/decisions.md` outside the blueprint (core 26, world 14, runner 11, scenarios 4, frappe-app 3, and some in roadmap and READMEs) repointed to where stage 2a put each entry | stage 2a | the citing files may be renamed; after decision 7 |
+| M23 | The design notes: each lands under `docs/design/` from its own thread, with a status line | the thread's decisions in `docs/decisions.md` | no; a note is reasoning and keeps its words |
+| M24 | `AGENTS.md`: the rules only, the reasons moved to `docs/`, the ladder and lint list generated (M6) | stage 2b's changes of fact; decision 7 (the rules use the names) | **yes** |
+| M25 | The root `README.md`: one screen, the generated package map (M6) | M6, decision 7 | **yes** |
+
+Not in this list, because they are the blueprint session's: everything inside `packages/blueprint`, the roadmap's new
+decisions and steps of stage 2b, and `notes.md`.
+
+Moves that need nothing but the conductor's word: M1, M3 (with the confirmation), M5, M12, M17, M18 and M23. These
+are rename-safe. If the conductor agrees, they can go before decision 7 without risk of moving anything twice.
