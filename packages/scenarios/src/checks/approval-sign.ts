@@ -11,7 +11,7 @@ import { Capxul } from "../client.ts";
 import { expect } from "../expectation.ts";
 import { isAddress, logsOf } from "../support/chain.ts";
 import { millis, present, same, sameAddress } from "../support/expect.ts";
-import { entriesAfter, view, whereOf } from "../support/world.ts";
+import { entriesOfCall, view, whereOf } from "../support/world.ts";
 import { callerIn, callerOf, nothingRecorded, worldBefore, type Before } from "./common.ts";
 import { check, checks, type Asked, type Check } from "./format.ts";
 
@@ -21,7 +21,7 @@ type Asking = Asked<"approval.sign">;
 const recordGains = (before: Before, events: ReadonlyArray<string>): Check =>
   check(
     `the record gains ${Arr.join(events, ", then ")}`,
-    Effect.flatMap(entriesAfter(before.head, before.where), (added) =>
+    Effect.flatMap(entriesOfCall(before.head, before.where), (added) =>
       same(
         "the events the signature added",
         Arr.map(added, (each) => each.event),
