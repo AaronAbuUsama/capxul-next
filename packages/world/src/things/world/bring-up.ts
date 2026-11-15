@@ -13,6 +13,7 @@ import { setUpBundler, startBundler } from "../../parts/bundler/setup.ts";
 import { SEED_HEAD } from "../../parts/chain/contracts.ts";
 import { ensureToken, mintAll } from "../../parts/chain/faucet.ts";
 import { CORE_MIGRATIONS, SITE_KEY_ID, SITE_SECRET_ID } from "../../parts/api/Api.ts";
+import { warmCore } from "../../parts/api/bundle.ts";
 import { CoreHost } from "../../parts/api/host.ts";
 import { migrate } from "../../parts/database/sql.ts";
 import { HubMissing, WorldNotReady } from "../../common/failures.ts";
@@ -141,6 +142,8 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
       return funded;
     });
     const databaseLane = Effect.gen(function* () {
+      // Core's bundle is built (once per process) while the branch is made; the deploy waits for it (bundle.ts).
+      yield* warmCore;
       // The branch is made through Neon's API first (src/parts/database/neon.ts); the deploy adopts it by name.
       const made = yield* watch.step(
         "branch",
