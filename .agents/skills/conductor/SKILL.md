@@ -59,6 +59,8 @@ Then check `master`'s next `check` run. If it goes red, fixing it comes before a
 
 ## Keeping the view
 
+- **Aaron listens.** Every answer to him follows "Talking to Aaron" in the `threads` skill, sitreps included. Every
+  brief tells its thread the same, and that its reports to you are messages to you, not text for Aaron.
 - **After every merge, decision, new thread or archive,** update Aaron's view: what landed, what's moving, what waits on
   him, and the threads.
 - **When a thread's finish line is met,** archive it. Its notes stay on its branch.

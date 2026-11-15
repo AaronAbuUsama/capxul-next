@@ -9,6 +9,10 @@ A `#word` in Aaron's message is a command. Answer it in the shape below, short a
 the threads (read their last turns), the pull requests and `master`. A shortcut with words after it
 (`#new 🔍 the blueprint slice`) passes them on. Several shortcuts in one message are answered in order.
 
+Aaron usually speaks these and listens to the answer (the `threads` skill, "Talking to Aaron"): he may say "hashtag
+sitrep" rather than type `#sitrep`. Each shape below is said in plain sentences, with links and numbers after the
+spoken part.
+
 | Shortcut | What you give back |
 |---|---|
 | `#menu` | This table as a short list: each shortcut and what it gives back, one line each. |
