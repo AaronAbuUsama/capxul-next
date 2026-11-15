@@ -1,6 +1,6 @@
 # One set of docs: the plan
 
-Written by the docs session on 15 November 2026 for Aaron, on branch `design/docs`. Status: **proposal**. Nothing
+Written by the docs session on 15 November 2026 for Aaron, on branch `design/docs`. Status: **agreed by Aaron, 15 November 2026**, except rows 9 and 18 of section 4. Nothing
 here is merged, and nothing moves until Aaron agrees and the blueprint session has recorded decision 3, the shape, in
 `docs/design/blueprint.md`. Where this plan and decision 3 differ, decision 3 wins and this plan is amended.
 
@@ -210,7 +210,7 @@ dated form wins. A doc that disagrees is fixed, not the other way round.
 | 14 | "Bench templates never change" | world, platform and runner each explain it | the roadmap decision for the rule; `door/templates.py` for how | one owner; the others link |
 | 15 | lifecycle rules | roadmap and world README | the roadmap | the world README keeps only the map from rule to file |
 | 16 | the hosting choices | roadmap "Hosting" and the platform README | the roadmap | — |
-| 17 | a document's hash | blueprint decision 47: unsalted keccak of the Payment Entry; roadmap "Every payment settles one sealed document": salted | **the blueprint session**, with Aaron | it is a declaration; this plan only flags it |
+| 17 | a document's hash | blueprint decision 47: unsalted keccak of the Payment Entry; roadmap "Every payment settles one sealed document": salted | **salted** (Aaron, 15 November 2026) | the blueprint session amends decision 47 |
 | 18 | reject under an agreement; Escrow | roadmap: a payer may reject; Escrow stays as on `master`. invoice-ledger: no reject; Escrow becomes the held payment | **Aaron**, in the contracts thread | a roadmap decision changes only with his yes |
 | 19 | whether to restore in place | blueprint decision 18: never; roadmap "One runner, one world": reset in place as plumbing | both; decision 18's comment says it governs the operation, not the runner's plumbing | — |
 | 20 | world create split | roadmap 1.3: 45.8 s deploy, 46.5 s index; world-speed: 60.6 s and 25.7 s | both, as different runs | timings belong in records, not prose; the prose copies are removed |
@@ -318,6 +318,10 @@ Steps 1 and 2 can start as soon as Aaron agrees, before decision 3 lands, becaus
 waits for decision 3.
 
 ## 8. Questions for Aaron, each with a recommendation
+
+**Answered by Aaron, 15 November 2026:** "i agree with the rest". All eight questions below are agreed as recommended.
+On row 17 of section 4 he answered "salted": the salted hash of the roadmap's "Every payment settles one sealed
+document" wins over blueprint decision 47. The blueprint session amends 47. Rows 9 and 18 are still open.
 
 1. **What proves a step, in the docs.** AGENTS.md says run records; proof-and-telemetry recommends CI verdicts, but
    decisions 1 and 2 of that note are not yet agreed. *Recommend:* the docs use the roadmap's current Proof column (a
