@@ -1,6 +1,6 @@
 ---
 name: hashtags
-description: Aaron's #shortcuts for the conductor. Use it when his message holds a #word such as #threads, #waiting, #sitrep, #landed, #next, #decide, #new or #archive.
+description: Aaron's #shortcuts for the conductor. Use it when his message holds a #word such as #menu, #threads, #waiting, #sitrep, #landed, #next, #decide, #new or #archive.
 ---
 
 # #shortcuts
@@ -9,6 +9,7 @@ A `#word` in Aaron's message is a command. Answer it in the shape below, short a
 
 | Shortcut | What you give back |
 |---|---|
+| `#menu` | This table as a short list: each shortcut and what it gives back, one line each. |
 | `#threads` | Every active thread, one line each: `<emoji> [title](https://claude.ai/code/<session id>)`, what it's doing, and what it waits on, if anything. Then the archived ones from today, on one line. |
 | `#waiting` | Only what waits on Aaron: each prompt or question, its thread's link, and your recommendation. Prompts to approve first, then decisions. |
 | `#sitrep` | Five lines (done, moving, waiting, next milestone, `master`'s state) and the sitrep page's link. Send the 🕒 keeper an update as well. |
