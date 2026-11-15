@@ -1,6 +1,6 @@
 # Handoff: the rebuild's conductor moves to Amp (15 November 2026)
 
-Status: **current**, from the evening of 15 November 2026. The Claude Code conductor and its threads were wrapped up
+Status: **agreed**, current from the evening of 15 November 2026. The Claude Code conductor and its threads were wrapped up
 and archived. Whoever conducts next starts here, whatever agent they run on.
 
 From 17:06 UTC on 15 November 2026 the conductor is a Claude Code cloud session again (🎼 Conductor: the Capxul

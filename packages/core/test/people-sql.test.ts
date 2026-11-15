@@ -25,14 +25,14 @@ const it = <E>(name: string, body: Effect.Effect<void, E, Services>) =>
 let n = 0;
 const next = () => (n += 1);
 const invite = (email: string, by: string | undefined, org = ORG) =>
-  as(next(), by, (client, options) => client("org.member.invite", { org, email, role: "member" }, options));
+  as(next(), by, (client, options) => client("invitation.send", { org, email, role: "member" }, options));
 const list = (org: string, by: string | undefined) =>
-  as(next(), by, (client, options) => client("org.member.list", { org }, options));
-const mine = (by: string | undefined) => as(next(), by, (client, options) => client("invite.list", {}, options));
+  as(next(), by, (client, options) => client("member.list", { org }, options));
+const mine = (by: string | undefined) => as(next(), by, (client, options) => client("invitation.list", {}, options));
 const accept = (invitation: string, by: string) =>
-  as(next(), by, (client, options) => client("invite.accept", { invitation }, options));
+  as(next(), by, (client, options) => client("invitation.accept", { invitation }, options));
 const decline = (invitation: string, by: string) =>
-  as(next(), by, (client, options) => client("invite.decline", { invitation }, options));
+  as(next(), by, (client, options) => client("invitation.decline", { invitation }, options));
 const grant = (member: string) =>
   as(next(), "dana", (client, options) =>
     client("org.member.grant", { org: ORG, member, permission: "issue-invoices", note: null }, options),
@@ -58,7 +58,7 @@ const files = Arr.map(Arr.sort(Arr.filter(readdirSync(folder), Str.endsWith(".sq
 it("the world: a fresh database, the cast, and northwind founded", fresh(files));
 
 it(
-  "org.member.list: Directors in the board's order, then members; the owner sees it, an outsider is refused",
+  "member.list: Directors in the board's order, then members; the owner sees it, an outsider is refused",
   Effect.gen(function* () {
     assert.deepEqual((yield* answer(yield* list(ORG, "dana"))).members, FOUNDED);
     assert.deepEqual((yield* answer(yield* list(ORG, undefined))).members, FOUNDED);
@@ -69,7 +69,7 @@ it(
 );
 
 it(
-  "org.member.invite: who is not the founder may not invite, and who already belongs is refused, recording nothing",
+  "invitation.send: who is not the founder may not invite, and who already belongs is refused, recording nothing",
   Effect.gen(function* () {
     const refused = [
       yield* refusal(yield* invite("olga@cast.test", "sam")),
@@ -98,7 +98,7 @@ it(
 );
 
 it(
-  "org.member.invite: dana invites olga, pending at once, recording member_invited without the email; not twice",
+  "invitation.send: dana invites olga, pending at once, recording member_invited without the email; not twice",
   Effect.gen(function* () {
     const ended = yield* invite("olga@cast.test", "dana");
     const invited = yield* answer(ended);
@@ -129,7 +129,7 @@ it(
 );
 
 it(
-  "invite.list: olga lists dana's invitation; sam, the owner and nobody else list rex's",
+  "invitation.list: olga lists dana's invitation; sam, the owner and nobody else list rex's",
   Effect.gen(function* () {
     const hers = (yield* answer(yield* mine("olga"))).invitations;
     assert.deepEqual(
@@ -142,7 +142,7 @@ it(
 );
 
 it(
-  "invite.decline: sam may not, olga declines once, an id nobody issued is not found; she does not join",
+  "invitation.decline: sam may not, olga declines once, an id nobody issued is not found; she does not join",
   Effect.gen(function* () {
     const size = yield* recordSize;
     const notHis = yield* refusal(yield* decline(sent.first, "sam"));
@@ -163,7 +163,7 @@ it(
 );
 
 it(
-  "invite.accept: eli may not invite olga again, dana does; she accepts and is a member at once, once; grant sees her",
+  "invitation.accept: eli may not invite olga again, dana does; she accepts and is a member at once, once; grant sees her",
   Effect.gen(function* () {
     assert.equal((yield* refusal(yield* grant("olga")))["_tag"], "NotAMember");
     const notFounder = yield* refusal(yield* invite("olga@cast.test", "eli"));

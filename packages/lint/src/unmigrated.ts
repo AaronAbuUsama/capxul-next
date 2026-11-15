@@ -4,11 +4,13 @@
 // (a file at zero is removed). packages/lint/test/owned-values.test.ts caps each list's total; lower its CEILINGS
 // with the list. Migrating a file is separate work from the rule that found it.
 import type { Unmigrated } from "./rules/ratchet.ts";
+import { declaredSteps } from "./unmigrated-steps.ts";
 
 export const unmigrated: {
   readonly "owned-values": Unmigrated;
   readonly "declared-names": Unmigrated;
   readonly "decoded-rows": Unmigrated;
+  readonly "declared-steps": Unmigrated;
 } = {
   "owned-values": {
     "packages/blueprint-tools/test/types.ts": 7,
@@ -18,28 +20,28 @@ export const unmigrated: {
     "packages/blueprint/src/common/values.ts": 8,
     "packages/blueprint/src/starting-points/facts.ts": 2,
     "packages/blueprint/src/things/approval/refusals.ts": 2,
-    "packages/blueprint/src/things/approval/sign.ts": 1,
+    "packages/blueprint/src/things/approval/verbs/sign.ts": 1,
     "packages/blueprint/src/things/approval/values.ts": 3,
     "packages/blueprint/src/things/board/refusals.ts": 3,
     "packages/blueprint/src/things/board/values.ts": 3,
-    "packages/blueprint/src/things/budget/create.ts": 3,
+    "packages/blueprint/src/things/budget/verbs/create.ts": 3,
     "packages/blueprint/src/things/budget/values.ts": 2,
-    "packages/blueprint/src/things/clock/warp.ts": 2,
-    "packages/blueprint/src/things/company/create.ts": 2,
+    "packages/blueprint/src/things/clock/verbs/warp.ts": 2,
+    "packages/blueprint/src/things/company/verbs/create.ts": 2,
     "packages/blueprint/src/things/company/events.ts": 2,
     "packages/blueprint/src/things/company/values.ts": 4,
     "packages/blueprint/src/things/document/events.ts": 6,
     "packages/blueprint/src/things/document/refusals.ts": 3,
-    "packages/blueprint/src/things/document/submit.ts": 1,
+    "packages/blueprint/src/things/document/verbs/submit.ts": 1,
     "packages/blueprint/src/things/document/values.ts": 8,
-    "packages/blueprint/src/things/history/export.ts": 2,
-    "packages/blueprint/src/things/member/grant.ts": 1,
+    "packages/blueprint/src/things/history/verbs/export.ts": 2,
+    "packages/blueprint/src/things/member/verbs/grant.ts": 1,
     "packages/blueprint/src/things/member/values.ts": 4,
-    "packages/blueprint/src/things/report/run.ts": 5,
+    "packages/blueprint/src/things/report/verbs/run.ts": 5,
     "packages/blueprint/src/things/snapshot/events.ts": 1,
-    "packages/blueprint/src/things/snapshot/save.ts": 2,
+    "packages/blueprint/src/things/snapshot/verbs/save.ts": 2,
     "packages/blueprint/src/things/snapshot/values.ts": 3,
-    "packages/blueprint/src/things/world/list.ts": 2,
+    "packages/blueprint/src/things/world/verbs/list.ts": 2,
     "packages/blueprint/src/things/world/refusals.ts": 2,
     "packages/cli/src/input.ts": 3,
     "packages/cli/src/output.ts": 4,
@@ -132,7 +134,6 @@ export const unmigrated: {
     "packages/core/src/domains/world.ts": 7,
     "packages/core/src/organizations/found.ts": 1,
     "packages/core/src/organizations/grant.ts": 1,
-    "packages/core/src/people/invite.ts": 1,
     "packages/core/src/site-ops/memory.ts": 1,
     "packages/core/src/site-ops/record.ts": 1,
     "packages/core/test/board-sql.test.ts": 31,
@@ -204,7 +205,6 @@ export const unmigrated: {
     "packages/scenarios/src/journeys/budget-sam.ts": 22,
     "packages/scenarios/src/journeys/found-northwind.ts": 36,
     "packages/scenarios/src/journeys/invite-olga.ts": 29,
-    "packages/scenarios/src/journeys/pay-and-branch.ts": 22,
     "packages/scenarios/src/journeys/seat-sam.ts": 33,
     "packages/scenarios/src/journeys/signatures.ts": 5,
     "packages/scenarios/src/journeys/two-operators.ts": 23,
@@ -253,4 +253,5 @@ export const unmigrated: {
     "packages/core/test/support/budgets.ts": 1,
     "packages/core/test/support/people.ts": 2,
   },
+  "declared-steps": declaredSteps,
 };

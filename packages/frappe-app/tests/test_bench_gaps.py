@@ -1,4 +1,4 @@
-"""The four gaps a shared bench had (spikes/bench-clocks, README "What does not hold"), each held by a test that needs no site."""
+"""The four gaps a shared bench had (records/bench-clocks, README "What did not hold at first"), each held by a test that needs no site."""
 import contextlib
 from datetime import datetime, timezone
 import importlib.util

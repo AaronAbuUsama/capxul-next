@@ -1,31 +1,45 @@
 // The machine format (docs/roadmap.md, "Lifecycles are machines in the blueprint", step 3.4): a thing with a
 // lifecycle that callers see and refusals depend on is declared once, in its thing's `lifecycle.ts`, as its states, its
 // start, and its moves. Each move is made by one operation, sends one event, and names what happens from every state it
-// cannot start from: a declared refusal, or "unchanged". From the declaration `make` derives the state schema, the
-// refusal's `state` field, the `step` Core moves the thing with, its graph and diagram, and the SQL CHECK constraint.
-// Flat: no nested or parallel states and no guards that run code. Built from Effect's own parts, not a runtime.
+// cannot start from: a declared refusal, or "unchanged". Each operation, event and refusal is its declaration itself,
+// imported, never its name written as a string (docs/design/blueprint.md, part 7, F7): the thing's states are its
+// values' schemas, so the machine imports its verbs, events and refusals and none of them imports the machine. From
+// the declaration `make` derives the refusal's `state` field (checked: the type refuses a refused-state schema that
+// differs from the states its moves refuse from), the `step` Core moves the thing with, its graph and diagram, and the
+// SQL CHECK constraint; `named` reads it with every declaration as its name. Flat: no nested or parallel states and no
+// guards that run code. Built from Effect's own parts, not a runtime.
 import * as Arr from "effect/Array";
 import * as Graph from "effect/Graph";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
-import * as Schema from "effect/Schema";
+import type * as Schema from "effect/Schema";
+
+/** An operation that makes a start or a move: its declaration, named by its Rpc's tag. */
+export interface Maker {
+  readonly rpc: { readonly _tag: string };
+}
+
+/** An event sent, or a refusal named: its declaration, named by its tag. */
+export interface Tagged {
+  readonly identifier: string;
+}
 
 /** What a move does from a state it cannot start from: refuse with a declared refusal, or leave it as it is. */
-export type Otherwise = { readonly refusal: string } | "unchanged";
+export type Otherwise = { readonly refusal: Tagged } | "unchanged";
 
 /** How a thing comes to be: in `state`, made by the operation `by`, which sends `event`. */
 export interface Start<S extends string> {
   readonly state: S;
-  readonly by: string;
-  readonly event: string;
+  readonly by: Maker;
+  readonly event: Tagged;
 }
 
 /** One move, as declared: from the states `from` to `to`, made by `by`, sending `event`. */
 export interface Move<S extends string = string> {
   readonly from: ReadonlyArray<S>;
   readonly to: S;
-  readonly by: string;
-  readonly event: string;
+  readonly by: Maker;
+  readonly event: Tagged;
   readonly otherwise: { readonly [state: string]: Otherwise };
 }
 
@@ -44,10 +58,10 @@ type Fitting<S extends string, M extends Move> = [S] extends [M["from"][number]]
 
 /** The states a move declared as `M` refuses from, and the refusals it names. */
 type RefusingOf<M extends Move> = {
-  readonly [K in keyof M["otherwise"]]: M["otherwise"][K] extends { readonly refusal: string } ? K : never;
+  readonly [K in keyof M["otherwise"]]: M["otherwise"][K] extends { readonly refusal: Tagged } ? K : never;
 }[keyof M["otherwise"]] &
   string;
-type RefusalOf<M extends Move> = Extract<M["otherwise"][keyof M["otherwise"]], { readonly refusal: string }>["refusal"];
+type RefusalOf<M extends Move> = Extract<M["otherwise"][keyof M["otherwise"]], { readonly refusal: Tagged }>["refusal"];
 type UnchangedOf<M extends Move> = {
   readonly [K in keyof M["otherwise"]]: M["otherwise"][K] extends "unchanged" ? K : never;
 }[keyof M["otherwise"]] &
@@ -64,9 +78,9 @@ export type Stepped<M extends Move> =
 
 /** What `step` answers for any move of any machine. */
 export type AnyStepped =
-  | { readonly _tag: "Moved"; readonly to: string; readonly event: string }
+  | { readonly _tag: "Moved"; readonly to: string; readonly event: Tagged }
   | { readonly _tag: "Unchanged"; readonly state: string }
-  | { readonly _tag: "Refused"; readonly refusal: string; readonly state: string };
+  | { readonly _tag: "Refused"; readonly refusal: Tagged; readonly state: string };
 
 /** The states some move of `Moves` refuses from. */
 export type RefusedOf<Moves extends { readonly [move: string]: Move }> = {
@@ -79,6 +93,7 @@ export interface Machine<
   States extends ReadonlyArray<string>,
   First extends States[number],
   Moves extends { readonly [move: string]: Move },
+  Refused extends ReadonlyArray<string> = ReadonlyArray<RefusedOf<Moves>>,
 > {
   readonly name: Name;
   /** The field naming the thing, which every event of its start and moves and every refusal of its moves carries. */
@@ -87,11 +102,12 @@ export interface Machine<
   readonly states: States;
   readonly start: Start<First>;
   readonly moves: Moves;
-  /** The schema of its state: exactly its states. */
+  /** The schema of its state: exactly its states, its thing's values' schema. */
   readonly State: Schema.Literals<States>;
   /** The states some move is refused from, in the order declared: what a refusal's `state` field may name. */
   readonly refusedStates: ReadonlyArray<RefusedOf<Moves>>;
-  readonly RefusedState: Schema.Literals<ReadonlyArray<RefusedOf<Moves>>>;
+  /** Their schema, its thing's values' schema, which its closing refusal's `state` field is. */
+  readonly RefusedState: Schema.Literals<Refused>;
   /** Its states, and one edge per move per state it starts from, carrying the move's name. */
   readonly graph: Graph.DirectedGraph<States[number], string>;
   /** The graph as a Mermaid state diagram, for its thing's page. */
@@ -102,22 +118,42 @@ export interface Machine<
   check(column: string): string;
 }
 
-/** Builds a machine from its declaration; the type refuses a move whose `otherwise` misses or repeats a state. */
+/**
+ * Nothing when `Given`, the states a refused-state schema names, are exactly `Wanted`, those the moves refuse from;
+ * otherwise a field no schema has, naming the difference, so the declaration does not compile.
+ */
+type Exactly<Given, Wanted> = [Given] extends [Wanted]
+  ? [Wanted] extends [Given]
+    ? unknown
+    : { readonly "refused misses states its moves refuse from": Exclude<Wanted, Given> }
+  : { readonly "refused names states no move refuses from": Exclude<Given, Wanted> };
+
+/**
+ * Builds a machine from its declaration; the type refuses a move whose `otherwise` misses or repeats a state, and a
+ * `refused` schema that is not exactly the states its moves refuse from.
+ */
 export const make = <
   const Name extends string,
   const Key extends string,
   const States extends ReadonlyArray<string>,
   const First extends NoInfer<States[number]>,
   const Moves extends { readonly [move: string]: Move<NoInfer<States[number]>> },
+  const Refused extends ReadonlyArray<NoInfer<States[number]>>,
 >(declaration: {
   readonly name: Name;
   readonly key: Key;
-  readonly states: States;
+  /** Its states, in order: its thing's values' schema of them. */
+  readonly states: Schema.Literals<States>;
+  /** The states some move refuses from, in order: its thing's values' schema of them. */
+  readonly refused: Schema.Literals<Refused> & Exactly<Refused[number], NoInfer<RefusedOf<Moves>>>;
   readonly start: Start<First>;
   readonly moves: { readonly [Named in keyof Moves]: Moves[Named] & Fitting<NoInfer<States[number]>, Moves[Named]> };
-}): Machine<Name, Key, States, First, Moves> => {
+}): Machine<Name, Key, States, First, Moves, Refused> => {
   type S = States[number];
-  const { name, key, states, start } = declaration;
+  const { name, key, start } = declaration;
+  const State: Schema.Literals<States> = declaration.states;
+  const RefusedState: Schema.Literals<Refused> = declaration.refused;
+  const states = State.literals;
   const moves: Moves = declaration.moves;
   const entries = Rec.toEntries<string, Move>(moves);
   const refusedStates = Arr.filter(states, (state): state is RefusedOf<Moves> & S =>
@@ -156,9 +192,9 @@ export const make = <
     states,
     start,
     moves,
-    State: Schema.Literals(states),
+    State,
     refusedStates,
-    RefusedState: Schema.Literals(refusedStates),
+    RefusedState,
     graph,
     diagram: Arr.join(["stateDiagram-v2", `    [*] --> ${start.state}`, ...arrows], "\n"),
     step,
@@ -169,3 +205,51 @@ export const make = <
       )}))`,
   };
 };
+
+/** A start or a move with each declaration as its name: what a check, a page or a database reads. */
+export interface NamedMove {
+  readonly from: ReadonlyArray<string>;
+  readonly to: string;
+  readonly by: string;
+  readonly event: string;
+  readonly otherwise: { readonly [state: string]: { readonly refusal: string } | "unchanged" };
+}
+
+/** A machine with each declaration as its name. */
+export interface NamedMachine {
+  readonly name: string;
+  readonly key: string;
+  readonly states: ReadonlyArray<string>;
+  readonly start: { readonly state: string; readonly by: string; readonly event: string };
+  readonly moves: { readonly [move: string]: NamedMove };
+  readonly diagram: string;
+}
+
+/** What any machine shows, as `named` reads it. */
+export interface Declared {
+  readonly name: string;
+  readonly key: string;
+  readonly states: ReadonlyArray<string>;
+  readonly start: Start<string>;
+  readonly moves: { readonly [move: string]: Move };
+  readonly diagram: string;
+}
+
+/** The name of the operation that makes a start or a move. */
+export const madeBy = (made: { readonly by: Maker }): string => made.by.rpc._tag;
+
+/** `machine`, each operation, event and refusal it holds read as its name. */
+export const named = (machine: Declared): NamedMachine => ({
+  name: machine.name,
+  key: machine.key,
+  states: machine.states,
+  start: { state: machine.start.state, by: madeBy(machine.start), event: machine.start.event.identifier },
+  moves: Rec.map(machine.moves, (move) => ({
+    from: move.from,
+    to: move.to,
+    by: madeBy(move),
+    event: move.event.identifier,
+    otherwise: Rec.map(move.otherwise, (then) => (then === "unchanged" ? then : { refusal: then.refusal.identifier })),
+  })),
+  diagram: machine.diagram,
+});

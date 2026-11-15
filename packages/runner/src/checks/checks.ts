@@ -1,5 +1,12 @@
 // The generic checks, applied to every call of every run. They compare what the caller saw with what Core kept under
 // the call's trace id and with what the blueprint declares. No scenario writes them, and a builder never changes them.
+// A call passes when every one of them holds:
+//   span     exactly one server span named after the operation exists under the call's trace id; none for a call its
+//            client rejected (`PayloadRejected`), which was never sent.
+//   outcome  that span ended the way the caller saw the call end (success, refusal, defect).
+//   events   a successful call recorded exactly the events its outcome declares, each once, each carrying what the
+//            declaration computes from the call; any other call recorded none (events.ts).
+//   path     across a journey's calls, each thing's events form a path through its machine (paths.ts).
 //
 // Measure first (AGENTS.md): every call's timings, caller side and server side, and the spans of each step are
 // recorded with the operation's budget beside them. The budget is never enforced, so no check is about speed.
@@ -119,7 +126,8 @@ export const checkCall = (call: Call, kept: Kept): CheckedCall => {
   const [span] = spans.length === 1 ? spans : [];
   const events = Arr.filter(kept.events, (event) => event.trace_id === call.traceId);
   const emitted = checkEvents(call, events);
-  // A call its client rejected never left the caller (decisions.md, 43): Core must have kept no span of it at all.
+  // A call its client rejected never left the caller (packages/blueprint, src/common/refusals.ts, `PayloadRejected`):
+  // Core must have kept no span of it at all.
   const unsent = call.outcome === "rejected";
   const checks: ReadonlyArray<Check> = [
     unsent

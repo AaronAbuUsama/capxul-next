@@ -14,7 +14,8 @@ export const SnapshotName = pattern(/^[a-z0-9][a-z0-9-]{0,30}$/);
 export const OperatorName = pattern(/^[a-z][a-z0-9-]{0,39}$/);
 /**
  * Which of the platform's two operators a call signs in as: the scenario's own (`first`) or the other one the
- * starting world `nothing` promises (`second`). Their names are facts of `nothing` (decisions.md, 37).
+ * starting world `nothing` promises (`second`). Their names are the platform's, so a journey learns them from the
+ * world it is handed: they are facts of `nothing` (`operators`), and a promise can name the caller by them.
  */
 export const OperatorRole = Schema.Literals(["first", "second"]);
 /** A person in a world, by the name the world's cast gives them, such as `dana`. */
@@ -79,11 +80,12 @@ export const Asset = Schema.Literals(["USDC"]);
 export const Amount = pattern(/^(0|[1-9]\d*)(\.\d{1,6})?$/);
 export const Money = Schema.Struct({ asset: Asset, amount: Amount });
 
+/** A world's grade, in place of the old `kind` and `profile`: every grade's companies get sites. */
 export const Grade = Schema.Literals(["private", "shared", "real"]);
 export const ClockMode = Schema.Literals(["frozen", "running"]);
 export const Clock = Schema.Struct({ mode: ClockMode, /** World time. */ now: Instant });
 
-/** Where a world made from a snapshot came from. */
+/** Where a world made from a snapshot came from. A world is never restored in place: going back is a new world. */
 export const Parent = Schema.Struct({ world: WorldName, snapshot: SnapshotName, recordSeq: Seq });
 
 /** The permissions a member is granted. Each is an officer hat on the company's chain. */
@@ -109,12 +111,16 @@ export const Approval = Schema.Struct({
   /** The address the signature must recover. */
   signerAddress: Address,
   digest: Hash,
-  /** World time. */
+  /**
+   * World time: 24 hours of the world's clock after the approval is opened. The chain's own validity window is left
+   * open, since the bundler would read it against its host's clock.
+   */
   expiresAt: Instant,
 });
 
 /**
- * How a person of the cast signs (decisions.md, 42). Their keys are among the first `accounts` of the public test
+ * How a person of the cast signs: with a key, by their agent or by code, never in a browser. Their keys are among the
+ * first `accounts` of the public test
  * mnemonic every Anvil chain starts with, each known by its address (`CastMember.signer`, `Approval.signerAddress`).
  * An approval's `digest` is signed as it is: raw secp256k1 over the 32 bytes, no message prefix, `v` 27 or 28.
  */
@@ -137,6 +143,12 @@ export const Company = Schema.Struct({
   org: OrgId,
   handle: OrgHandle,
   name: Schema.String,
+  /**
+   * What each landing means for the site (its company and Safe, the clock, each Director's and member's hat, the
+   * founder's capital, a payment's posting) is queued with the landing and handed to it in order once it is ready; it
+   * reads `ready` only when it has taken everything queued and the setup has landed. Nothing runs in a Worker's
+   * background, so a site moves on when a landing finds it ready and whenever the world's companies are read.
+   */
   site: Schema.Struct({ state: Schema.Literals(["creating", "ready", "stopped"]), url: Schema.NullOr(Schema.String) }),
 });
 
@@ -182,7 +194,30 @@ export const WorldView = Schema.Struct({
   companies: Schema.Array(Company),
 });
 
-/** Any JSON value, typed as such. Never a string to be parsed later. */
+/**
+ * Any JSON value, typed as such. Never a string to be parsed later: payloads and answers are typed schemas, and the
+ * old `--filters '<json>'` and `--input <file>` have no counterpart (Aaron, 13 November 2026).
+ */
 export const Json = Schema.Json;
-/** Named JSON values: a document's fields, a report's filters, one row of a report. */
+/**
+ * Named JSON values: a document's fields, a report's filters, one row of a report. Every report answers one shape,
+ * typed columns and rows of these: reports are Frappe's, and a shape per report would copy the site's own.
+ */
 export const Fields = Schema.Record(Schema.String, Schema.Json);
+
+/**
+ * Who may call an operation (docs/roadmap.md, item 5.1), each role declared once, here. An operation names those it
+ * allows in its `allowed`, and the refusal anyone else gets in its `refusesOthers`.
+ */
+export const roles = {
+  /** The world's operator: whoever made it and runs it. */
+  operator: "operator",
+  /** Any person of the world's cast, signed in. */
+  person: "person",
+  /** The company's founder, as its row holds it: for now the only one who manages its people. */
+  founder: "founder",
+  /** A Director or a member of the company the call names. */
+  member: "member",
+  /** The person an invitation was sent to: whoever signs in with its email. */
+  invitee: "invitee",
+} as const;

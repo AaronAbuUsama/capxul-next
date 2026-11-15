@@ -71,30 +71,8 @@ drift check, whose record is the run's artifact. Pushes to `master` that touch `
 
 ### The schedule
 
-GitHub starts scheduled workflows only from the repository's default branch, which is `main` while `master` is the
-rebuild line. So `drift.yml`'s six-hourly schedule does not fire until one of these, your call:
-
-1. make `master` the default branch (the roadmap's convergence), or
-2. add this small workflow to `main`, which starts the drift check on `master` every 6 hours:
-
-```yaml
-name: drift-schedule
-on:
-  schedule:
-    - cron: "17 */6 * * *"
-permissions:
-  actions: write
-jobs:
-  start:
-    runs-on: ubuntu-latest
-    steps:
-      - run: gh workflow run drift.yml --repo "$GITHUB_REPOSITORY" --ref master
-        env:
-          GH_TOKEN: ${{ github.token }}
-```
-
-Until then, start it by hand: `gh workflow run drift.yml --ref master`. GitHub documents that a workflow started by
-hand must also exist on the default branch; if `gh workflow run` says it cannot find `drift.yml`, option 2 is needed.
+`drift.yml` runs the drift check on `staging` every 6 hours from `master`, the default branch, and on demand
+(`gh workflow run drift.yml --ref master`).
 
 ## Rotate or revoke
 

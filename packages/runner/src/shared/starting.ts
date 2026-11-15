@@ -3,9 +3,10 @@
 // use it. The shared world holds a template snapshot of each starting world its journeys start from, made once by its
 // steps when the shared world was made (shared/make.ts), with the facts its maker answered kept beside it
 // (shared/facts.ts). Before each journey whose starting world is made from a template, that snapshot is restored into
-// a new private world of the run (`world.snapshot.restore`, decisions.md 17, 18 and 27), which the run destroys after
-// the journey as it destroys every world a journey makes. A starting world made by its steps from nothing
-// (`quota-full`) needs no template, and is made by its steps as in the one world.
+// a new private world of the run (`world.snapshot.restore`, packages/blueprint, src/things/snapshot/verbs/save.ts and
+// src/things/snapshot/verbs/restore.ts and
+// 27), which the run destroys after the journey as it destroys every world a journey makes. A starting world made by
+// its steps from nothing (`quota-full`) needs no template, and is made by its steps as in the one world.
 import { startingWorlds, type StartingWorld } from "@capxul/blueprint";
 import { Capxul } from "@capxul/scenarios";
 import * as World from "@capxul/world";
@@ -69,7 +70,7 @@ const restoreOf =
  * What hands the starting worlds of a run on the shared world `shared`. It makes nothing in the shared world:
  * `templateWorlds` and `kept` are empty, so the run destroys only the worlds it restored and made.
  */
-export const sharedStartingWorldsOf = Effect.fn("runner.sharedStartingWorlds")(function* (
+export const sharedStartingWorldsOf = Effect.fnUntraced(function* (
   settings: Settings,
   platformUrl: string,
   timings: Timings,
@@ -107,7 +108,9 @@ export const sharedStartingWorldsOf = Effect.fn("runner.sharedStartingWorlds")(f
       const kept = yield* factsIn(world, template.name);
       if (Option.isNone(kept)) return yield* failed(`${own.world} holds no facts of ${template.name}`);
       // The maker's facts as the template holds them, with the run's operators, the restore's answer as the world
-      // the journey runs in (decisions.md, 39), and the restore after the calls that made the template.
+      // the journey runs in (packages/blueprint, src/starting-points/points.ts), and the restore after the calls that
+      // made
+      // the template.
       const facts = {
         ...kept.value,
         operators: nothing.facts["operators"],

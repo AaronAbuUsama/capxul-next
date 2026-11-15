@@ -1,5 +1,5 @@
 """Company sites from a pool (roadmap step 1.17; decision "Sites from a pool", 14 November 2026; measured in
-spikes/site-speed, Q3a and Q3b). door.py checks the tokens; this does the work. The templates themselves, how they are
+records/site-speed, Q3a and Q3b). door.py checks the tokens; this does the work. The templates themselves, how they are
 named, made once and removed by age, are templates.py's.
 
 The pool keeps POOL_SIZE ready copies of each template site under `<REGISTRY>/pool/<template>/<label>/<id>/`: a copy
@@ -29,7 +29,10 @@ from templates import (BLANK, MAKING, TEMPLATES, names, remove_making, template_
 COPY = re.compile(r"^[0-9a-f]{8}$")  # a ready copy's folder; one being made ends in .making
 POOL = f"{REGISTRY}/pool"
 POOL_SIZE = int(os.environ.get("DOOR_POOL_SIZE", "2"))
-BLANK_POOL_SIZE = int(os.environ.get("DOOR_BLANK_POOL_SIZE", "4"))  # one company site for each of four runs at once
+# Ready blank copies: one company site for each journey founding at once in a run's shared world (roadmap 4.8, eight by
+# default), at most BLANK_POOL_MAX, about 110 MiB of disk each.
+BLANK_POOL_MAX = 10
+BLANK_POOL_SIZE = max(0, min(int(os.environ.get("DOOR_BLANK_POOL_SIZE", "8")), BLANK_POOL_MAX))
 REFILL = threading.Lock()  # one pool copy is made at a time, bench-wide
 _guard, _refilling = threading.Lock(), set()
 REFILLS = []  # the last 50 copies made, each with its time, for GET /templates

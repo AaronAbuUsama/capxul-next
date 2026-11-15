@@ -1,4 +1,4 @@
-// The checks of every org.member.list (claims.md of people, org.member.list 1 and 2): the company asked, each person
+// The checks of every member.list (claims.md of people, member.list 1 and 2): the company asked, each person
 // once under the email of their cast entry, its Directors before its members, the caller among them when the caller is
 // a person; reading it records nothing. Someone who does not belong, and a company nobody founded, are refused.
 import * as Arr from "effect/Array";
@@ -9,7 +9,7 @@ import { emailOf } from "../support/people.ts";
 import { callerOf, nothingRecorded, worldBefore, type Before } from "./common.ts";
 import { check, checks } from "./format.ts";
 
-export const orgMemberList = checks<"org.member.list", Before>({
+export const memberList = checks<"member.list", Before>({
   before: (asked) => worldBefore(asked.options),
   success: (asked, listed, before) => [
     check("it answers the company asked", same("its org", listed.org, asked.payload.org)),
@@ -43,7 +43,7 @@ export const orgMemberList = checks<"org.member.list", Before>({
             `${callerOf(asked.options)} saw ${asked.payload.org}'s people without being among them`,
           ),
     ),
-    nothingRecorded("org.member.list", before),
+    nothingRecorded("member.list", before),
   ],
   refusals: {
     NotAMember: (asked, refused, before) => [
@@ -51,11 +51,11 @@ export const orgMemberList = checks<"org.member.list", Before>({
         "NotAMember names the company and the caller",
         same("NotAMember", [refused.org, refused.person], [asked.payload.org, callerOf(asked.options)]),
       ),
-      nothingRecorded("the refused org.member.list", before),
+      nothingRecorded("the refused member.list", before),
     ],
     OrgNotFound: (asked, refused, before) => [
       check("OrgNotFound names the company asked", same("its org", refused.org, asked.payload.org)),
-      nothingRecorded("the refused org.member.list", before),
+      nothingRecorded("the refused member.list", before),
     ],
   },
 });
