@@ -231,8 +231,9 @@ that build off every run's path. The door's API, Core and packages/world are unc
   a queued build), under a site name no request can reach (`blank-<app>.invalid`), then moves it under the registry. A
   blank of another fingerprint is never copied and is removed at the door's start, so a deploy of new apps makes a new
   blank. The sweep keeps blanks (in `kept`, with `blank: true`); no world may make or claim one.
-- **Kept warm.** `DOOR_BLANK_POOL_SIZE` (default 4) ready copies, refilled by `pool.py` after every use, one copy at a
-  time bench-wide, as every template's pool is.
+- **Kept warm.** `DOOR_BLANK_POOL_SIZE` (default 8, at most 10) ready copies, refilled by `pool.py` after every use,
+  one copy at a time bench-wide, as every template's pool is: one for each company a run founds at once in its shared
+  world (roadmap 4.8), about 110 MiB of disk each.
 - **A company's site** (`POST /sites`): a ready copy renamed to the site's name, or with the pool empty a copy made
   from the blank on the build's thread (about 3 s); an encryption key of its own when its database holds nothing
   encrypted yet; then one Python process of the bench: the setup wizard with the company, every app's `after_migrate`
