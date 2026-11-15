@@ -75,14 +75,13 @@ cite it and say what is kept and what changes.
 The spec may not end with an open list. Each of these needs a stated answer, checked against classic first, and
 confirmed by Aaron where it is his to make.
 
-1. **The claim, exactly as classic: decided by Aaron on 15 November 2026.** In classic the claim is one sponsored
-   operation sent by the email's Safe itself: its deployment, whose salt is already a hash, and an owner swap signed
-   by the bootstrap key (`infrastructure: packages/backend/src/accounts/claims/external/ownership.ts`,
-   `packages/protocol/src/evm/safe-address.ts`). The email never reaches the chain. Here
-   `CompaniesHouseClaimer.claim(namespace, email, signer)` takes the plain email
-   (`packages/contracts/src/companies-house/CompaniesHouseClaimer.sol:98`). The spec writes down classic's claim step
-   by step and what replaces the claimer. It must also say who the bootstrap owner is: classic uses a key Capxul
-   holds, and this repo made the Companies House Safe the bootstrap owner, which is why the claimer exists.
+1. **The claim.** Decided: Companies House stays the first owner and approves the swap through a narrow Roles
+   permission held by a backend key; `claim` takes the salt, never the email (`invoice-ledger.md`, "Claiming an
+   email-derived Safe"; roadmap, "Account identity"). Classic instead uses a bootstrap key as first owner
+   (`infrastructure: packages/backend/src/accounts/claims/external/ownership.ts`); read it for the operations, errors
+   and events around a claim, not for the mechanism. The spec still has to state: whether the contract folds a pinned
+   account version into the salt, so that one role is bounded to one version; and who signs for Companies House to
+   grant and revoke the role in a real world.
 2. **Who owns a held payment before the payer has claimed their account**, and who signs for it. In classic the
    bootstrap owner holds the Safe until the claim.
 3. **The signature's exact form:** the typed data signed, how a Safe's signature is verified, and what is stored on the

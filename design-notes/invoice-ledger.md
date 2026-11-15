@@ -128,6 +128,48 @@ needs no new contract. Money still arrives in the company Safe.
 Rejected: a separate "may invoice" hat (another hat to keep in step with departments); the company Safe signing (the
 Board would sign every invoice); no signature (no defence against a look-alike invoice, and no proof for an auditor).
 
+## Claiming an email-derived Safe
+
+A held payment is owned by the payer's email-derived Safe, so the design depends on how that Safe is claimed.
+
+**Decided** (Aaron, 15 November 2026, relayed by the conductor session; and `docs/roadmap.md` on `master`, "Account
+identity"): Companies House stays the first owner of every personal Safe. It approves the owner swap through a
+permission, and the email never reaches the chain. `claim` takes the salt, never the email. This replaces this note's
+earlier line that the claim be done exactly as classic, where a key Capxul holds is the first owner.
+
+**The salt** is computed off chain by Core: an HMAC of the normalised email under `capxul:person:v<N>`, with the grade
+group's pepper (roadmap, "Account identity"). Nobody without the pepper can find a real person's Safe from an email.
+
+**The role.** The mechanism exists today and is kept:
+
+- Companies House has a Roles module. A role on it, keyed `capxul.claim.<tier>` (today `capxul.claim.devnet`,
+  `packages/core/src/chain/seeded.ts:43`), has one member: a backend key that Core holds
+  (`packages/world/src/chain/contracts.ts`, `CLAIMS`).
+- The role allows exactly one thing: a delegatecall to `CompaniesHouseClaimer.claim`, sent through the Roles module's
+  `execTransactionWithRole`. The code then runs as Companies House, so the Safe accepts the swap because its caller is
+  its owner (`packages/contracts/src/companies-house/CompaniesHouseClaimer.sol`).
+- **What changes:** `claim(string namespace, string email, address signer)` becomes `claim(bytes32 salt, address
+  signer)`. `safeAddressFor` takes the salt too. The email check (`EmailNotNormalized`) leaves the contract and moves
+  to the blueprint, which owns the email's normalisation.
+
+**What the role can do.** For any salt: deploy that personal Safe if it has no code, and replace Companies House with a
+named signer as its only owner.
+
+**What it cannot do.**
+
+- Make any other call as Companies House. Minting a company Safe is a separate role (`capxul.company.<tier>`).
+- Touch a Safe that is already claimed: Companies House is no longer its owner, so the swap is refused.
+- Change who holds the role, or the Roles module itself.
+- Run the claimer outside Companies House: a plain call reverts `NotDelegateCall`.
+
+**What it is trusted with.** The key can claim any unclaimed Safe for any signer. Money waiting in an unclaimed Safe,
+or in a held payment that such a Safe owns, is therefore only as safe as this key. That is the trust root already
+accepted for the beta (ruling `aaron.claim-trust`); the role keeps it to this one act.
+
+**Granting and revoking.** Companies House, as owner of its Roles module, grants the role with `assignRoles(key holder,
+[role], [true])` and revokes it with `[false]`. Rotating the backend key is a revoke and a grant. Revoking stops new
+claims at once and changes no Safe already claimed.
+
 ## What this changes in decisions already made
 
 - **Roadmap, "Every payment settles one sealed document".** "Paid once" becomes: each payment is recorded against one
@@ -142,8 +184,5 @@ Nothing below may stay undecided. `handoff-knock-on-map.md` lists each point and
 
 - **The hat check: decided.** The payer's side checks the hat once, when it receives the invoice, and records the
   result. A hat removed later does not undo an invoice already received (Aaron, 15 November 2026).
-- **The email at claim: decided.** The claim is done exactly as classic does it (Aaron, 15 November 2026): one
-  sponsored operation sent by the email's Safe itself, its deployment with a hashed salt and an owner swap signed by
-  the bootstrap owner, so the email never reaches the chain. `CompaniesHouseClaimer.claim` here takes the email as
-  plain text and must be replaced. This is a fault on `master` today, apart from this design.
+- **The claim: decided.** See "Claiming an email-derived Safe" above.
 - **Payment kinds**, **measured gas costs**, and **invoices not issued through Capxul** (parked by Aaron).
