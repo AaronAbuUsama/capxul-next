@@ -946,6 +946,395 @@
      ],
      "additionalProperties": true
     }
+   },
+   "derived": {
+    "type": "object",
+    "properties": {
+     "sources": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "id": {
+         "type": "string",
+         "enum": [
+          "roadmap",
+          "github",
+          "conductor"
+         ]
+        },
+        "name": {
+         "type": "string",
+         "minLength": 2,
+         "maxLength": 90
+        },
+        "read": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "id",
+        "name",
+        "read"
+       ],
+       "additionalProperties": true
+      }
+     },
+     "health": {
+      "anyOf": [
+       {
+        "type": "object",
+        "properties": {
+         "master": {
+          "type": "object",
+          "properties": {
+           "state": {
+            "type": "string",
+            "enum": [
+             "green",
+             "red",
+             "running"
+            ]
+           },
+           "label": {
+            "type": "string"
+           },
+           "href": {
+            "type": "string"
+           },
+           "at": {
+            "type": "string"
+           }
+          },
+          "required": [
+           "state",
+           "label",
+           "href",
+           "at"
+          ],
+          "additionalProperties": true
+         },
+         "runs": {
+          "type": "array",
+          "items": {
+           "type": "object",
+           "properties": {
+            "slice": {
+             "type": "string"
+            },
+            "outcome": {
+             "type": "string",
+             "enum": [
+              "passed",
+              "failed"
+             ]
+            },
+            "minutes": {
+             "anyOf": [
+              {
+               "type": "number"
+              },
+              {
+               "type": "string",
+               "enum": [
+                "Infinity",
+                "-Infinity",
+                "NaN"
+               ]
+              }
+             ]
+            },
+            "at": {
+             "type": "string"
+            },
+            "href": {
+             "type": "string"
+            }
+           },
+           "required": [
+            "slice",
+            "outcome",
+            "minutes",
+            "at",
+            "href"
+           ],
+           "additionalProperties": true
+          }
+         }
+        },
+        "required": [
+         "master",
+         "runs"
+        ],
+        "additionalProperties": true
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "pulls": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "number": {
+         "type": "integer",
+         "minimum": -9007199254740991,
+         "maximum": 9007199254740991
+        },
+        "title": {
+         "type": "string",
+         "minLength": 2,
+         "maxLength": 90
+        },
+        "state": {
+         "type": "string",
+         "enum": [
+          "open",
+          "draft",
+          "merged",
+          "closed",
+          "queued",
+          "checks running",
+          "checks failed"
+         ]
+        },
+        "lane": {
+         "type": "string"
+        },
+        "href": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "number",
+        "title",
+        "state",
+        "lane",
+        "href"
+       ],
+       "additionalProperties": true
+      }
+     },
+     "landed": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "at": {
+         "type": "string"
+        },
+        "title": {
+         "type": "string",
+         "minLength": 2,
+         "maxLength": 90
+        },
+        "href": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "at",
+        "title",
+        "href"
+       ],
+       "additionalProperties": true
+      }
+     },
+     "measures": {
+      "type": "object",
+      "properties": {
+       "ratchets": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "id": {
+           "type": "string"
+          },
+          "name": {
+           "type": "string",
+           "minLength": 2,
+           "maxLength": 90
+          },
+          "holds": {
+           "type": "string",
+           "minLength": 10,
+           "maxLength": 4000
+          },
+          "closes": {
+           "type": "string"
+          },
+          "count": {
+           "anyOf": [
+            {
+             "type": "integer",
+             "minimum": -9007199254740991,
+             "maximum": 9007199254740991
+            },
+            {
+             "type": "null"
+            }
+           ]
+          },
+          "countedBy": {
+           "anyOf": [
+            {
+             "type": "string"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          },
+          "series": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "at": {
+              "type": "string"
+             },
+             "count": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+             }
+            },
+            "required": [
+             "at",
+             "count"
+            ],
+            "additionalProperties": true
+           }
+          }
+         },
+         "required": [
+          "id",
+          "name",
+          "holds",
+          "closes",
+          "count",
+          "series"
+         ],
+         "additionalProperties": true
+        }
+       },
+       "budgets": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "name": {
+           "type": "string",
+           "minLength": 2,
+           "maxLength": 90
+          },
+          "budget": {
+           "anyOf": [
+            {
+             "type": "number"
+            },
+            {
+             "type": "string",
+             "enum": [
+              "Infinity",
+              "-Infinity",
+              "NaN"
+             ]
+            }
+           ]
+          },
+          "unit": {
+           "type": "string",
+           "enum": [
+            "min",
+            "s",
+            "ms"
+           ]
+          },
+          "source": {
+           "type": "string",
+           "enum": [
+            "roadmap",
+            "github",
+            "conductor"
+           ]
+          },
+          "measured": {
+           "type": "array",
+           "items": {
+            "anyOf": [
+             {
+              "type": "number"
+             },
+             {
+              "type": "string",
+              "enum": [
+               "Infinity",
+               "-Infinity",
+               "NaN"
+              ]
+             }
+            ]
+           }
+          }
+         },
+         "required": [
+          "name",
+          "budget",
+          "unit",
+          "source",
+          "measured"
+         ],
+         "additionalProperties": true
+        }
+       },
+       "evals": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "step": {
+           "type": "string"
+          },
+          "name": {
+           "type": "string",
+           "minLength": 2,
+           "maxLength": 90
+          },
+          "what": {
+           "type": "string",
+           "minLength": 10,
+           "maxLength": 4000
+          }
+         },
+         "required": [
+          "step",
+          "name",
+          "what"
+         ],
+         "additionalProperties": true
+        }
+       }
+      },
+      "required": [
+       "ratchets",
+       "budgets",
+       "evals"
+      ],
+      "additionalProperties": true
+     }
+    },
+    "required": [
+     "sources",
+     "health",
+     "pulls",
+     "landed",
+     "measures"
+    ],
+    "additionalProperties": true
    }
   },
   "required": [
@@ -958,7 +1347,8 @@
    "asks",
    "sitreps",
    "needsYou",
-   "burn"
+   "burn",
+   "derived"
   ],
   "additionalProperties": true
  },

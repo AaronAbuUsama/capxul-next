@@ -7,6 +7,7 @@
 // allow, a reference to a thing that does not exist, or a snapshot that does not match its schema. So the page cannot
 // show a state the blueprint does not allow, and nothing on it can drift from the history that produced it.
 import * as Schema from "effect/Schema";
+import { Derived, NOTHING_DERIVED } from "./derived.ts";
 import { Actor, Instant, InvalidHistory, replay, type Allowed, type Entry, type Stamped } from "./language.ts";
 import { Ask, AskAnswered, AskOpened, AskReopened, AskWithdrawn, askAllowed } from "./things/ask.ts";
 import { Lane, LaneLanded, LaneLed, LaneOpened, laneAllowed } from "./things/lane.ts";
@@ -57,6 +58,8 @@ export const Snapshot = Schema.Struct({
   needsYou: Schema.Struct({ asks: Schema.Array(Schema.String), threads: Schema.Array(Schema.String) }),
   /** Units of work left at every change, for the burn-down. */
   burn: Schema.Array(Schema.Struct({ at: Instant, left: Schema.Int, done: Schema.Int, total: Schema.Int, what: Schema.String })),
+  /** Facts read from their owners at the refresh (health, pull requests, measures), each source with its time. */
+  derived: Derived,
 });
 export type Snapshot = typeof Snapshot.Type;
 
@@ -64,7 +67,7 @@ const STAMP = new Set(["_tag", "by", "at"]);
 const thingOf = (tag: string): ThingName => tag.slice(0, tag.indexOf("_")) as ThingName;
 
 /** The snapshot of a log, or an InvalidHistory naming the first thing wrong with it. */
-export const project = (log: ReadonlyArray<unknown>, now: string): Snapshot => {
+export const project = (log: ReadonlyArray<unknown>, now: string, derived: unknown = NOTHING_DERIVED): Snapshot => {
   const events = log.map((raw, i) => {
     try { return Schema.decodeUnknownSync(Event)(raw) as Stamped & Record<string, unknown>; }
     catch (e) { throw new InvalidHistory(`event ${i + 1} is no declared event: ${String(e).split("\n")[0]}`); }
@@ -100,6 +103,8 @@ export const project = (log: ReadonlyArray<unknown>, now: string): Snapshot => {
   for (const l of items.lane) for (const s of l.fields.steps as string[]) need(ids("step").has(s), `lane ${l.id} names step ${s}, which was never planned`);
   for (const a of items.ask) need(ids("thread").has(a.fields.from as string), `ask ${a.id} comes from thread ${String(a.fields.from)}, which never started`);
   for (const r of items.sitrep) for (const l of r.fields.lanes as string[]) need(ids("lane").has(l), `sitrep ${r.id} names lane ${l}, which was never opened`);
+  const facts = Schema.decodeUnknownSync(Derived)(derived);
+  for (const p of facts.pulls) need(ids("lane").has(p.lane), `pull request ${p.number} names lane ${p.lane}, which was never opened`);
 
   // Derived figures: milestone progress and the burn-down, from the steps' own histories.
   const unitsOf = (s: (typeof items.step)[number]) => s.fields.units as number;
@@ -119,6 +124,6 @@ export const project = (log: ReadonlyArray<unknown>, now: string): Snapshot => {
   return Schema.decodeUnknownSync(Snapshot)({
     at: now, plan, milestones, steps: items.step, lanes: items.lane, threads: items.thread, asks: items.ask, sitreps: items.sitrep,
     needsYou: { asks: items.ask.filter((a) => a.state === "open").map((a) => a.id), threads: items.thread.filter((t) => t.state === "waiting").map((t) => t.id) },
-    burn,
+    burn, derived,
   });
 };

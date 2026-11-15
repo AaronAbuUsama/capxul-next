@@ -8,9 +8,13 @@ import * as Schema from "effect/Schema";
 import { InvalidHistory } from "./language.ts";
 import { Event, Snapshot, THINGS, project } from "./view.ts";
 
+//   project   --log <events.jsonl> [--derived <derived.json>] [--now <instant>] --out <snapshot.json>: projects any log
+//             (the prototype's, spikes/sitrep/prototype/), and writes the machines' moves beside it (machines.json).
 const root = path.join(path.dirname(new URL(import.meta.url).pathname), "..");
-const log = fs.readFileSync(path.join(root, "example/events.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
-const NOW = "2026-11-15T19:05:00Z";
+const arg = (name: string) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : undefined; };
+const readLog = (file: string) => fs.readFileSync(file, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+const log = readLog(arg("log") ?? path.join(root, "example/events.jsonl"));
+const NOW = arg("now") ?? "2026-11-15T19:05:00Z";
 
 const generate = () => {
   const out = (f: string, s: string) => fs.writeFileSync(path.join(root, "generated", f), `${s.trimEnd()}\n`);
@@ -59,4 +63,22 @@ const prove = () => {
   }
 };
 
-if (process.argv[2] === "generate") generate(); else prove();
+/** Each machine's moves as data, so a page that appends a person's event applies the declared move, not its own copy. */
+const machines = () =>
+  Object.fromEntries(Object.entries(THINGS).map(([name, { machine, allowed }]) => [name, {
+    states: machine.states, start: { event: machine.start.event, state: machine.start.state },
+    moves: Object.values(machine.moves).map((m) => ({ event: m.event, from: m.from, to: m.to })), allowed,
+  }]));
+
+const projectTo = () => {
+  const out = arg("out");
+  if (out === undefined) throw new Error("project needs --out <snapshot.json>");
+  const derived = arg("derived") ? JSON.parse(fs.readFileSync(arg("derived")!, "utf8")) : undefined;
+  const snap = project(log, NOW, derived);
+  fs.writeFileSync(out, `${JSON.stringify(snap, null, 1)}\n`);
+  fs.writeFileSync(path.join(path.dirname(out), "machines.json"), `${JSON.stringify(machines(), null, 1)}\n`);
+  console.log(`projected ${log.length} events into ${out}: ${snap.steps.length} steps, ${snap.lanes.length} lanes, ${snap.asks.length} asks, ${snap.sitreps.length} sitreps`);
+};
+
+const command = process.argv[2];
+if (command === "generate") generate(); else if (command === "project") projectTo(); else prove();
