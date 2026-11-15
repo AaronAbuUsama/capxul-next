@@ -32,11 +32,11 @@ export const peopleOf = (org: string, who: Who = {}) =>
     return (yield* capxul["org.member.list"]({ org }, whereOf(who))).members;
   });
 
-/** Every invitation sent to `person`'s email, as `invite.list` answers them. */
+/** Every invitation sent to `person`'s email, as `invitation.list` answers them. */
 export const invitationsOf = (person: string, who: Who = {}) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    return (yield* capxul["invite.list"]({}, { ...whereOf(who), as: person })).invitations;
+    return (yield* capxul["invitation.list"]({}, { ...whereOf(who), as: person })).invitations;
   });
 
 /** The founder of company `org`, as its org_founded in the world's record names them. */

@@ -1,11 +1,15 @@
-// The makers of the starting worlds with a company (decisions.md, 26 to 28, 38 to 41; step 1.12): `founded`,
-// `office-holder`, `payment-drafted`, `payment-held` and `paid`, each made by its declaration's steps
-// (packages/blueprint, src/starting-worlds.ts) through the door of the world the steps run in, from the one before.
-// Every answer a step names becomes its fact, encoded as the blueprint encodes it.
+// The makers of the starting worlds with a company (packages/blueprint, src/things/company/verbs/create.ts,
+// src/starting-points/points.ts, src/things/document/verbs/submit.ts, src/starting-points/facts.ts and
+// src/common/site.ts;
+// step 1.12): `founded`, `office-holder`, `payment-drafted`, `payment-held` and `paid`, each made by its declaration's
+// steps (packages/blueprint, src/starting-points/points.ts) through the door of the world the steps run in, from the
+// one before. Every answer a step names becomes its fact, encoded as the blueprint encodes it.
 //
 // Signatures are made with the cast's keys, the blueprint's `CAST_KEYS`, as a person's agent would: the digest an
-// approval names, signed as it is (decisions.md, 23 and 42), with viem (decisions.md, 34). A wait polls an operation
-// until it answers differently (decisions.md, 27; wait.ts).
+// approval names, signed as it is (packages/blueprint, src/things/approval/values.ts and src/common/values.ts), with
+// viem
+// (packages/blueprint, src/common/chain/reads.ts). A wait polls an operation until it answers differently
+// (packages/blueprint, src/starting-points/points.ts; wait.ts).
 import { Site, Values, startingWorlds } from "@capxul/blueprint";
 import { Capxul } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
@@ -39,7 +43,10 @@ const doorOf = (making: Making) =>
     Effect.mapError(() => failed("a company's starting world is made in a world, and none was made yet")),
   );
 
-/** How `founded` founds Northwind (src/starting-worlds.ts): dana founds it with eli, 2 of 2, sam and pat, 1,000 USDC. */
+/**
+ * How `founded` founds Northwind (packages/blueprint, src/starting-points/points.ts): dana founds it with eli, 2 of 2,
+ * sam and pat, 1,000 USDC.
+ */
 const NORTHWIND = {
   handle: "northwind",
   profile: { name: "Northwind Trading", country: "NL", bio: null, size: null },

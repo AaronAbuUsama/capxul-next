@@ -1,7 +1,8 @@
-// The world's chain, read through Core's world door at the blueprint's `CHAIN_PATH` (decisions.md, 34): JSON-RPC
-// that answers only `CHAIN_READ_METHODS`, signed in as the world door is (the door token, or the owner's token), and
-// carried to the world's own chain door (packages/world) over a service binding. It reads and never writes: a
-// method outside the list is answered with JSON-RPC's own error, -32601, and never reaches the chain.
+// The world's chain, read through Core's world door at the blueprint's `CHAIN_PATH`
+// (packages/blueprint, src/common/chain/reads.ts): JSON-RPC that answers only `CHAIN_READ_METHODS`, signed in as the
+// world door is (the door token, or the owner's token), and carried to the world's own chain door (packages/world) over
+// a service binding. It reads and never writes: a method outside the list is answered with JSON-RPC's own error,
+// -32601, and never reaches the chain.
 import { CHAIN_READ_METHODS, CREDENTIAL_HEADER } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";

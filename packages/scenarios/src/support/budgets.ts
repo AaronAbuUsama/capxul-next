@@ -1,7 +1,8 @@
-// Reading a company's budgets on the world's chain through its door (decisions.md, 34): looks that the budgets
-// operations' checks and the journey "give sam a budget at Northwind" share. The chain is the only gate on spending,
-// so a budget an operation answers is held against the world's Budgets contract (`contracts.budgets`), never against
-// anything Core keeps. Every read goes to the door, and as the operator, a look at that world goes (`whereOf`).
+// Reading a company's budgets on the world's chain through its door (packages/blueprint/docs/decisions.md, entry 34):
+// looks that the budgets operations' checks and the journey "give sam a budget at Northwind" share. The chain is the
+// only gate on spending, so a budget an operation answers is held against the world's Budgets contract
+// (`contracts.budgets`), never against anything Core keeps. Every read goes to the door, and as the operator, a look at
+// that world goes (`whereOf`).
 import type { Budgets, Chain } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";

@@ -1,6 +1,7 @@
 // The makers' wait for background work (decisions.md, 27): poll an operation until it answers differently. A wait that
 // cannot end well ends at once, and one that runs out names the last thing it saw, so its record explains it (world run
 // 43759314286, 15 November 2026: a site door restarted mid-make left a site stopped, and ten minutes said nothing).
+import { Pipeline } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
 import * as Duration from "effect/Duration";
@@ -22,36 +23,33 @@ export interface Reading<A> {
 }
 
 /** Polls until `done`. An answer `stopped` ends it at once; one that runs out names the last answer or failure seen. */
-export const until = <A, E, R>(
+export const until = Effect.fn(Pipeline.startingPointMake.spans.wait.name)(function* <A, E, R>(
   what: string,
   poll: Effect.Effect<A, E, R>,
   done: (answer: A) => boolean,
   read: Reading<A>,
-) =>
-  Effect.gen(function* () {
-    const last = yield* Ref.make("no answer");
-    const once = poll.pipe(
-      Effect.tapCause((cause) => Ref.set(last, describe(cause))),
-      Effect.tap((answer) => Ref.set(last, read.seen(answer))),
-      Effect.flatMap((answer) => {
-        if (done(answer)) return Effect.succeed(Option.none<string>());
-        const why = read.stopped === undefined ? Option.none<string>() : read.stopped(answer);
-        return Option.isSome(why) ? Effect.succeed(why) : Effect.fail(failed(`waiting for ${what}`));
-      }),
-    );
-    const stop = yield* once.pipe(
-      Effect.retry(POLL),
-      Effect.catch(() =>
-        Effect.flatMap(Ref.get(last), (seen) =>
-          Effect.fail(failed(`waited ten minutes for ${what}; last saw ${seen}`)),
-        ),
-      ),
-    );
-    return yield* Option.match(stop, {
-      onNone: () => Effect.void,
-      onSome: (why) => Effect.fail(failed(`stopped waiting for ${what}: ${why}`)),
-    });
+) {
+  const last = yield* Ref.make("no answer");
+  const once = poll.pipe(
+    Effect.tapCause((cause) => Ref.set(last, describe(cause))),
+    Effect.tap((answer) => Ref.set(last, read.seen(answer))),
+    Effect.flatMap((answer) => {
+      if (done(answer)) return Effect.succeed(Option.none<string>());
+      const why = read.stopped === undefined ? Option.none<string>() : read.stopped(answer);
+      return Option.isSome(why) ? Effect.succeed(why) : Effect.fail(failed(`waiting for ${what}`));
+    }),
+  );
+  const stop = yield* once.pipe(
+    Effect.retry(POLL),
+    Effect.catch(() =>
+      Effect.flatMap(Ref.get(last), (seen) => Effect.fail(failed(`waited ten minutes for ${what}; last saw ${seen}`))),
+    ),
+  );
+  return yield* Option.match(stop, {
+    onNone: () => Effect.void,
+    onSome: (why) => Effect.fail(failed(`stopped waiting for ${what}: ${why}`)),
   });
+});
 
 /** What a failed or successful call answered, for a wait whose poll is the call's exit. */
 export const seenExit = <E>(

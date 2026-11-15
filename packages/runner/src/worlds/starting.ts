@@ -1,14 +1,15 @@
-// Starting worlds for a run in one world (roadmap step 1.18; docs/roadmap.md, "One runner, one world"; decisions.md,
-// 27 as amended by 39). The run's one world is the kept template world: `fresh`'s maker creates it, and every starting
-// world made "from its template" is made once in it, by its steps, from the one before, in the blueprint's order.
-// Each one a journey starts from is saved there as a snapshot of its own name, and a world with a company also keeps
-// its sites as a bench template (with a pool of ready copies), so a reset whose point lost its sites claims them
-// instead of building them. The template is named by the starting world, the code that made it (`CODE`) and the one
-// world, whose company facts it holds (packages/world, src/things/site-template/sweep.ts): no other run asks for it, the bench
-// never changes it, and no run drops it; the sweep removes it by age (docs/roadmap.md, "Bench templates never
-// change"). Before each journey the world is reset in place to its starting world's snapshot (`resetFor`), and a
-// starting world made "by its steps" (`quota-full`, `with-snapshot`, `restored`) is then made from there. Every call
-// made on the way is a fact of the world (`calls`) and is kept for the checks.
+// Starting worlds for a run in one world (roadmap step 1.18; docs/roadmap.md, "One runner, one world";
+// packages/blueprint, src/starting-points/points.ts). The run's one world is the kept template world:
+// `fresh`'s maker creates it, and every starting world made "from its template" is made once in it, by its steps, from
+// the one before, in the blueprint's order. Each one a journey starts from is saved there as a snapshot of its own
+// name, and a world with a company also keeps its sites as a bench template (with a pool of ready copies), so a reset
+// whose point lost its sites claims them instead of building them. The template is named by the starting world, the
+// code that made it (`CODE`) and the one world, whose company facts it holds (packages/world,
+// src/things/site-template/sweep.ts): no other run asks for it, the bench never changes it, and no run drops it; the
+// sweep removes it by age (docs/roadmap.md, "Bench templates never change"). Before each journey the world is reset in
+// place to its starting world's snapshot (`resetFor`), and a starting world made "by its steps" (`quota-full`,
+// `with-snapshot`, `restored`) is then made from there. Every call made on the way is a fact of the world (`calls`) and
+// is kept for the checks.
 import { holdsFactsOf, startingWorlds, type StartingWorld } from "@capxul/blueprint";
 import { Capxul } from "@capxul/scenarios";
 import * as World from "@capxul/world";
@@ -203,7 +204,8 @@ export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (
     ),
   );
 
-  // TODO: a reset does not pause the bench's scheduler for the world's sites (packages/platform, "Sites from a pool").
+  // TODO: a reset does not pause the bench's scheduler for the world's sites
+  // (packages/platform/docs/site-templates.md).
   /** Resets the one world in place to the snapshot a journey of `world` starts from; answers the reset's account. */
   const resetFor = (world: StartingWorld, journey: string) =>
     Effect.gen(function* () {

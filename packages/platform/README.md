@@ -11,6 +11,8 @@ roadmap's decision "Hosting" ([docs/roadmap.md](../../docs/roadmap.md), "What wa
   disk at `/var/lib/docker` that survives restarts, and a role that carries only SSM.
 - `CapxulPlatform` (`alchemy.run.ts`): through one Docker context, the bench (MariaDB, Redis, web, worker, scheduler),
   the site service, the tunnel and its connector, and two DNS names: the site service's and the wildcard for sites.
+- `CapxulPlatform`, on Cloudflare (`src/collector/`): the collector, telemetry's one way in, a Worker at its
+  workers.dev URL ([docs/collector.md](docs/collector.md)). `CapxulCollectorRehearsal` (`collector.run.ts`) is it alone.
 - `CapxulBootstrap` (`bootstrap/`): CI's access, made once by Aaron ([BOOTSTRAP.md](bootstrap/BOOTSTRAP.md)).
 
 `PLATFORM_HOST=aws` reaches the host's Docker engine through an SSM port forward (`bin/forward.sh`);
@@ -45,6 +47,7 @@ On AWS (CI, or a laptop with AWS credentials): `PLATFORM_HOST=aws bin/run.sh dep
 - The site service's API, its token and every call: [docs/site-service.md](docs/site-service.md).
 - Site templates, the pool, blank company sites, saving and resetting in place, and what runs at once:
   [docs/site-templates.md](docs/site-templates.md).
+- The collector: who may call it, what it stamps, its counts and its keys: [docs/collector.md](docs/collector.md).
 - The drift check, settings and code: the header of `src/drift.ts`; `.github/workflows/drift.yml` runs it on
   `staging` every 6 hours.
 - How each module works: the header of each file in `src/`, `door/` and `bootstrap/`.

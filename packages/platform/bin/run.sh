@@ -14,6 +14,8 @@ cd "$HERE"
 cf() { curl -sS --fail-with-body --max-time 20 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/$1"; }
 first() { python3 -c "import json,sys; r=json.load(sys.stdin)['result']; print(r[0]['id'] if r else '')"; }
 export CI=true CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN:-proxy-injected}"
+# The code's revision, on every span this process exports (packages/platform, src/telemetry.ts).
+export CODE_REVISION="${CODE_REVISION:-$(git rev-parse HEAD 2>/dev/null || echo unknown)}"
 export CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-$(cf 'accounts?per_page=5' | first)}"
 export PLATFORM_ZONE_NAME="${PLATFORM_ZONE_NAME:-abuusama.dev}" PLATFORM_DOMAIN="${PLATFORM_DOMAIN:-worlds.abuusama.dev}"
 export PLATFORM_ZONE_ID="${PLATFORM_ZONE_ID:-$(cf "zones?name=$PLATFORM_ZONE_NAME" | first)}"
