@@ -36,7 +36,14 @@ today until the glossary's renames (roadmap item 3.8).
 | [budget](budget.md) | create | `org.budget.create` | the world group |
 | [budget](budget.md) | show | `org.budget.show` | the world group |
 | [budget](budget.md) | list | `org.budget.list` | the world group |
+| [check](check.md) | call | `check.call` | none: work no door serves |
+| [check](check.md) | confirm | `check.confirm` | none: work no door serves |
+| [check](check.md) | gate | `check.gate` | none: work no door serves |
+| [check](check.md) | watch | `check.watch` | none: work no door serves |
 | [clock](clock.md) | warp | `world.clock.warp` | the world group |
+| [cluster](cluster.md) | down | `cluster.down` | none: work no door serves |
+| [cluster](cluster.md) | show | `cluster.show` | none: work no door serves |
+| [cluster](cluster.md) | up | `cluster.up` | none: work no door serves |
 | [company](company.md) | create | `org.create` | the world group |
 | [director](director.md) | list | `org.director.list` | the world group |
 | [director](director.md) | add | `org.director.add` | the world group |
@@ -47,16 +54,30 @@ today until the glossary's renames (roadmap item 3.8).
 | [invitation](invitation.md) | list | `invite.list` | the world group |
 | [invitation](invitation.md) | accept | `invite.accept` | the world group |
 | [invitation](invitation.md) | decline | `invite.decline` | the world group |
+| [journey](journey.md) | run | `journey.run` | none: work no door serves |
 | [member](member.md) | grant | `org.member.grant` | the world group |
 | [member](member.md) | list | `org.member.list` | the world group |
+| [ratchet](ratchet.md) | count | `ratchet.count` | none: work no door serves |
 | [report](report.md) | run | `report.run` | the world group |
+| [run](run.md) | prepare | `run.prepare` | none: work no door serves |
+| [run](run.md) | run | `run.run` | none: work no door serves |
+| [run](run.md) | teardown | `run.teardown` | none: work no door serves |
+| [run](run.md) | verdict | `run.verdict` | none: work no door serves |
+| [site](site.md) | reset | `site.reset` | none: work no door serves |
+| [site](site.md) | save | `site.save` | none: work no door serves |
+| [site](site.md) | take | `site.take` | none: work no door serves |
 | [snapshot](snapshot.md) | save | `world.snapshot.save` | the platform group |
 | [snapshot](snapshot.md) | restore | `world.snapshot.restore` | the platform group |
 | [snapshot](snapshot.md) | list | `world.snapshot.list` | the platform group |
 | [snapshot](snapshot.md) | delete | `world.snapshot.delete` | the platform group |
+| [starting-point](starting-point.md) | make | `starting-point.make` | none: work no door serves |
 | [world](world.md) | create | `world.create` | the platform group |
 | [world](world.md) | show | `world.show` | the platform group |
 | [world](world.md) | list | `world.list` | the platform group |
+| [world](world.md) | destroy | `world.destroy` | none: work no door serves |
+| [world](world.md) | renew | `world.renew` | none: work no door serves |
+| [world](world.md) | reset | `world.reset` | none: work no door serves |
+| [world](world.md) | sweep | `world.sweep` | none: work no door serves |
 
 ## Starting worlds
 
