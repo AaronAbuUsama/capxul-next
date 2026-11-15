@@ -16,10 +16,11 @@ import * as Str from "effect/String";
 import * as Rec from "effect/Record";
 import * as Tracer from "effect/Tracer";
 import * as Headers from "effect/http/Headers";
+import * as HttpClient from "effect/http/HttpClient";
 import * as OtlpExporter from "effect/observability/OtlpExporter";
 import type * as Rpc from "effect/rpc/Rpc";
 import { SPAN_ATTRIBUTES, SpanSink, type KeptSpan } from "../src/door.ts";
-import { exporters, SERVICE_NAME, transport, type Signal } from "../src/telemetry/export.ts";
+import { coreTelemetry, type Held, SERVICE_NAME, transport, type Signal } from "../src/telemetry/export.ts";
 import { CallTracer, measured } from "../src/telemetry/spans.ts";
 
 // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- a declared Rpc names its middlewares by their own types, which the general `AnyWithProps` a middleware is handed cannot follow
@@ -73,10 +74,13 @@ const run = (caller: Headers.Headers) =>
     const kept: Array<KeptSpan> = [];
     const tapped: Array<readonly [Signal, string]> = [];
     const sink = SpanSink.of({ keep: (spans) => Effect.sync(() => kept.push(...spans)) });
-    const tap = (signal: Signal, body: string) => Effect.sync(() => tapped.push([signal, body]));
+    const hold = (held: Held) => void tapped.push([held.signal, held.body]);
+    const client = transport(Option.none(), Option.some(hold));
     const scope = yield* Scope.make();
     const built = yield* Layer.buildWithScope(
-      exporters({ world: "w-test", revision: "abc123" }, transport(Option.none(), Option.some(tap))),
+      coreTelemetry({ baseUrl: "https://collector", revision: "abc123" }).pipe(
+        Layer.provide(Layer.succeed(HttpClient.HttpClient, client)),
+      ),
       scope,
     );
     const tracer = Context.get(built, Tracer.Tracer);

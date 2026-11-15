@@ -1,7 +1,6 @@
 // What the caller decides about a world, handed to the stack as a service around a deploy. A deploy run in-process
 // replaces the config provider with one built from the process environment, so these cannot travel as Config, and
 // nothing is ever written to the process environment.
-import type { Values } from "@capxul/blueprint";
 import * as Alchemy from "alchemy";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -11,11 +10,6 @@ import { WorldSettingsMissing } from "../common/failures.ts";
 
 export interface WorldSettings {
   readonly owner: string;
-  /**
-   * The world's grade. A world of a test grade (`private`, `shared`) gets the tap: its Core writes every OTLP body it
-   * exports into its own database too (packages/core, src/telemetry/export.ts). A `real` world gets none.
-   */
-  readonly grade: typeof Values.Grade.Type;
   /** RFC 3339. Neon deletes the world's branch by itself at this moment; the sweeper deletes the rest. */
   readonly expiresAt: string;
   /** The stage of the world this one is made from; none for a world made from nothing. */
@@ -54,7 +48,6 @@ export const WorldSettings = Context.Reference<Option.Option<WorldSettings>>("ca
 
 const blank: WorldSettings = {
   owner: "",
-  grade: "private",
   expiresAt: "",
   forkedFrom: Option.none(),
   bench: Option.none(),

@@ -98,8 +98,6 @@ export const renew = Effect.fn("world.renew")(function* (name: string, lifetime:
     yield* timed("hub", register(hub, { stage, secret, owner: output.owner, expiresAt }));
     const settings = {
       owner: output.owner,
-      // Only test grades are offered (src/account/worlds.ts refuses `real`), so a renewed world is one.
-      grade: "private" as const,
       expiresAt,
       forkedFrom: output.forkedFrom === "nothing" ? Option.none<string>() : Option.some(output.forkedFrom),
       bench: granted,

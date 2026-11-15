@@ -119,7 +119,7 @@ export default class Core extends Cloudflare.Worker<Core>()(
       );
       // Its telemetry's export, when this Core has a collector or a tap, built into the request's scope: it flushes
       // after the answer has left (src/telemetry/export.ts).
-      const exported = yield* requestExport(env, identity.world, connectionString(env));
+      const exported = yield* requestExport(env, connectionString(env));
       const doors = Option.match(exported, {
         onNone: () => Effect.flatten(serveDoors),
         onSome: (context) => Effect.provide(Effect.flatten(serveDoors), context),

@@ -4,9 +4,9 @@
 //
 // Every body the exporters make goes two ways, as the same OTLP JSON:
 //   the collector   a service binding read from the environment (`ENV.collector`); with none, nothing goes out
-//   the tap         in a test world only (`ENV.tap`, set by packages/world from the world's grade): a row of
-//                   `telemetry.otlp` in the world's database (migrations/0010_core_telemetry_otlp.sql), written
-//                   through a database pool of its own, opened and closed in the same scope after the answer
+//   the tap         in a test world only (`ENV.tap`, set by packages/world from the world's grade): its traces and
+//                   logs are held, and written after the flush into `telemetry.otlp` in the world's database
+//                   (migrations/0010_core_telemetry_otlp.sql) in one statement, through a pool of its own
 //
 // The tracer is not made ambient: only `measured` (spans.ts) uses it, as the inner tracer of a call's keeping
 // tracer, so the spans exported are the spans kept, with the same ids, names, parents and attributes, and no others.
@@ -22,6 +22,7 @@ import * as Option from "effect/Option";
 import * as Predicate from "effect/Predicate";
 import * as Str from "effect/String";
 import type * as Redacted from "effect/Redacted";
+import type * as Headers from "effect/http/Headers";
 import * as Tracer from "effect/Tracer";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientError from "effect/http/HttpClientError";
@@ -35,22 +36,15 @@ import { CallTracer } from "./spans.ts";
 /** The value of `ENV.tap` that turns the tap on. */
 export const TAP_ON = "on";
 
-/** The name every export of Core carries as its resource's `service.name`. */
-export const SERVICE_NAME = "capxul-core";
+/** Core's `service.name` on every export: the producer name the blueprint's envelope gives Core (#301). */
+export const SERVICE_NAME = "capxul-api";
 
-/** Where the exporters post: the host is never reached, the binding's own Worker answers every path. */
-const BASE_URL = "https://collector";
+/** Where the exporters post over the binding: the host is never reached, the bound Worker answers every path. */
+const BINDING_URL = "https://collector";
 
 /** OTLP's three signals, by the last part of the path each is posted to. */
 export const SIGNALS = ["traces", "logs", "metrics"] as const;
 export type Signal = (typeof SIGNALS)[number];
-
-/** The trace ids a body of each signal carries, as a JSON path into it. Metrics carry none. */
-const TRACE_IDS: Record<Signal, string | null> = {
-  traces: "$.resourceSpans[*].scopeSpans[*].spans[*].traceId",
-  logs: "$.resourceLogs[*].scopeLogs[*].logRecords[*].traceId",
-  metrics: null,
-};
 
 /** What a Worker's service binding offers: Cloudflare's `fetch`, on the bound Worker. */
 interface Fetcher {
@@ -60,29 +54,43 @@ interface Fetcher {
 const isFetcher = (value: unknown): value is Fetcher =>
   Predicate.hasProperty(value, "fetch") && Predicate.isFunction(value.fetch);
 
-/** Writes one OTLP body to `telemetry.otlp`, once per trace it carries (none for metrics: one row, no trace id). */
-export type TapWrite = (signal: Signal, body: string) => Effect.Effect<void>;
+/** One OTLP JSON body the exporters made, held for the tap. */
+export interface Held {
+  readonly signal: Signal;
+  readonly body: string;
+}
 
-/** The tap, written through `sql`: the world's database. A failure to write is logged, never the call's. */
-export const sqlTap =
-  (sql: PgClient.PgClient): TapWrite =>
-  (signal, body) => {
-    const path = TRACE_IDS[signal];
-    const statement =
-      path === null
-        ? sql`insert into telemetry.otlp (trace_id, signal, body) values (null, ${signal}, ${body}::jsonb)`
-        : sql`insert into telemetry.otlp (trace_id, signal, body)
-            select distinct ids.trace_id, ${signal}, given.body
-            from (select ${body}::jsonb as body) given
-            cross join lateral (
-              select value #>> '{}' as trace_id from jsonb_path_query(given.body, ${path}::jsonpath) as found(value)
-            ) ids
-            where ids.trace_id <> ''`;
-    return statement.pipe(
-      Effect.asVoid,
-      Effect.catch((error) => Effect.logWarning("the tap could not write to telemetry.otlp", error)),
-    );
-  };
+/**
+ * Writes every body a request exported into `telemetry.otlp` in ONE statement, after every exporter has flushed: a
+ * row per trace id a body carries, the body whole as jsonb. Traces and logs only; metrics carry no trace and stay
+ * out. So a reader that sees a call's operation span in the tap sees every span and log of that request with it.
+ * A failure to write is logged, never the call's.
+ */
+export const writeTap = (sql: PgClient.PgClient, held: ReadonlyArray<Held>) =>
+  Arr.match(
+    Arr.filter(held, (each) => each.signal !== "metrics"),
+    {
+      onEmpty: () => Effect.void,
+      onNonEmpty: (bodies) =>
+        sql`insert into telemetry.otlp (trace_id, signal, body)
+          select distinct ids.trace_id, given.signal, given.body
+          from (values ${sql.csv(Arr.map(bodies, (each) => sql`(${each.signal}, ${each.body}::jsonb)`))}) as given(signal, body)
+          cross join lateral (
+            select value #>> '{}' as trace_id
+            from jsonb_path_query(
+              given.body,
+              case given.signal
+                when 'traces' then '$.resourceSpans[*].scopeSpans[*].spans[*].traceId'::jsonpath
+                else '$.resourceLogs[*].scopeLogs[*].logRecords[*].traceId'::jsonpath
+              end
+            ) as found(value)
+          ) ids
+          where ids.trace_id <> ''`.pipe(
+          Effect.asVoid,
+          Effect.catch((error) => Effect.logWarning("the tap could not write to telemetry.otlp", error)),
+        ),
+    },
+  );
 
 const signalOf = (url: URL): Option.Option<Signal> =>
   Arr.findFirst(SIGNALS, (signal) => Str.endsWith(`/${signal}`)(url.pathname));
@@ -98,15 +106,18 @@ const transportError = (request: HttpClientRequest.HttpClientRequest, cause: unk
 
 /**
  * The client the exporters post through: each body goes to the collector over its binding, when there is one, and
- * to the tap, when it is on. With no collector, the post is answered as accepted once the tap has it.
+ * is handed to `hold`, the tap, when it is on. With no collector, the post is answered as accepted.
  */
-export const transport = (collector: Option.Option<Fetcher>, tap: Option.Option<TapWrite>): HttpClient.HttpClient =>
+export const transport = (
+  collector: Option.Option<Fetcher>,
+  hold: Option.Option<(held: Held) => void>,
+): HttpClient.HttpClient =>
   HttpClient.make((request, url) =>
     Effect.gen(function* () {
       const signal = signalOf(url);
       const body = textOfBody(request);
-      if (Option.isSome(tap) && Option.isSome(signal) && Option.isSome(body))
-        yield* tap.value(signal.value, body.value);
+      if (Option.isSome(hold) && Option.isSome(signal) && Option.isSome(body))
+        hold.value({ signal: signal.value, body: body.value });
       if (Option.isNone(collector)) return HttpClientResponse.fromWeb(request, new Response(null, { status: 204 }));
       const binding = collector.value;
       const web = yield* HttpClientRequest.toWeb(request).pipe(
@@ -120,37 +131,38 @@ export const transport = (collector: Option.Option<Fetcher>, tap: Option.Option<
     }),
   );
 
-/** Who is exporting: the resource every export carries. */
-export interface Exporting {
-  readonly world: string;
-  /** The code's revision, bound at deploy (`ENV.revision`); `unknown` when the deploy had none. */
+export interface ExportOptions {
+  /** The collector's base URL: `/v1/traces`, `/v1/logs` and `/v1/metrics` are below it. */
+  readonly baseUrl: string;
+  /** The code's revision, the resource's `service.version`. */
   readonly revision: string;
+  /** Sent with every export: the operator's platform token, for a caller outside Cloudflare. */
+  readonly headers?: Headers.Input | undefined;
 }
 
 /**
- * Effect's OTLP exporters for one request, posting through `client`. Nothing is exported before the scope closes:
- * the interval is longer than any request, and the flush runs as the scope closes, after the answer.
+ * Core's OTLP export: Effect's exporters of traces, logs and metrics, posting OTLP/JSON below `baseUrl` through the
+ * `HttpClient` it is given, under a resource naming Core (`service.name`) and the code's revision (`service.version`).
+ * Nothing is posted before its scope closes: the intervals are longer than any request, and the flush runs as the
+ * scope closes. It provides the tracer as Effect's ambient one; the Worker moves it to `CallTracer` (below).
  */
-export const exporters = (exporting: Exporting, client: HttpClient.HttpClient) =>
+export const coreTelemetry = (options: ExportOptions) =>
   Otlp.layerJson({
-    baseUrl: BASE_URL,
-    resource: {
-      serviceName: SERVICE_NAME,
-      serviceVersion: exporting.revision,
-      attributes: { "service.namespace": "capxul", "deployment.environment.name": exporting.world },
-    },
+    baseUrl: options.baseUrl,
+    headers: options.headers,
+    resource: { serviceName: SERVICE_NAME, serviceVersion: options.revision },
     loggerExportInterval: Duration.hours(1),
     metricsExportInterval: Duration.hours(1),
     tracerExportInterval: Duration.hours(1),
     shutdownTimeout: Duration.seconds(10),
-  }).pipe(Layer.provide(Layer.succeed(HttpClient.HttpClient, client)));
+  });
 
 /** What the request runs with when it exports: every service of the exporters but the tracer, and `CallTracer`. */
 const exportContext = (built: Context.Context<OtlpExporter.Flusher>) =>
   Effect.gen(function* () {
     const tracer = Context.get(built, Tracer.Tracer);
     const flusher = Context.get(built, OtlpExporter.Flusher);
-    // The flush runs first as the scope closes, then each exporter's own shutdown, then the tap's pool closes.
+    // As the scope closes: this flush first, then each exporter's own shutdown, then the tap's write and its pool.
     yield* Effect.addFinalizer(() => Effect.ignore(Effect.timeoutOption(flusher.flush, Duration.seconds(10))));
     return Context.add(Context.omit(Tracer.Tracer)(built), CallTracer, Option.some(tracer));
   });
@@ -159,25 +171,28 @@ const exportContext = (built: Context.Context<OtlpExporter.Flusher>) =>
  * The export of one request, built into the request's scope from what its environment binds: the collector, the
  * tap and the revision. With neither collector nor tap, nothing is built and nothing is exported.
  */
-export const requestExport = (
-  env: Record<string, unknown>,
-  world: string,
-  database: Effect.Effect<Redacted.Redacted>,
-) =>
+export const requestExport = (env: Record<string, unknown>, database: Effect.Effect<Redacted.Redacted>) =>
   Effect.gen(function* () {
     const bound = env[ENV.collector];
     const collector = isFetcher(bound) ? Option.some(bound) : Option.none<Fetcher>();
     const tapOn = Option.contains(textOf(env[ENV.tap]), TAP_ON);
     if (Option.isNone(collector) && !tapOn) return Option.none<Context.Context<never>>();
-    // The tap's own pool, built before the exporters so it closes after their flush.
-    const tap = tapOn
-      ? Option.some(
-          yield* Layer.build(SQL.PostgresLayer({ url: database, prepare: false })).pipe(
-            Effect.map((context) => sqlTap(Context.get(context, PgClient.PgClient))),
-          ),
-        )
-      : Option.none<TapWrite>();
+    // The tap's pool and its write are set up before the exporters, so both run after the exporters have flushed.
+    const held: Array<Held> = [];
+    if (tapOn) {
+      const sql = Context.get(
+        yield* Layer.build(SQL.PostgresLayer({ url: database, prepare: false })),
+        PgClient.PgClient,
+      );
+      yield* Effect.addFinalizer(() => writeTap(sql, held));
+    }
+    const hold = tapOn ? Option.some((each: Held) => void held.push(each)) : Option.none<(held: Held) => void>();
     const revision = Option.getOrElse(textOf(env[ENV.revision]), () => "unknown");
-    const built = yield* Layer.build(exporters({ world, revision }, transport(collector, tap)));
+    const client = transport(collector, hold);
+    const built = yield* Layer.build(
+      coreTelemetry({ baseUrl: BINDING_URL, revision }).pipe(
+        Layer.provide(Layer.succeed(HttpClient.HttpClient, client)),
+      ),
+    );
     return Option.some(yield* exportContext(built));
   });
