@@ -106,7 +106,7 @@ const Try = Schema.Struct({
   checks: Schema.Array(CheckOutcome),
 });
 
-export const StepRecord = Schema.Struct({
+export const StepResult = Schema.Struct({
   /** Its place in the journey, from 1. */
   step: Schema.Finite,
   operation: Schema.String,
@@ -124,7 +124,7 @@ export const StepRecord = Schema.Struct({
   /** How long it took, from its beginning to its end. */
   ms: Schema.NullOr(Schema.Finite),
 });
-export type StepRecord = typeof StepRecord.Type;
+export type StepResult = typeof StepResult.Type;
 
 /** The first step that failed, and why. */
 export const FailedStep = Schema.Struct({
@@ -153,7 +153,7 @@ export const stepsOf = (
   outline: ReadonlyArray<StepOutline>,
   heard: ReadonlyArray<Heard>,
   calls: ReadonlyArray<CheckedCall>,
-): ReadonlyArray<StepRecord> =>
+): ReadonlyArray<StepResult> =>
   Arr.map(outline, (step, index) => {
     const found = Arr.findFirst(heard, (each) => each.step === index + 1);
     if (Option.isNone(found))
@@ -185,7 +185,7 @@ export const stepsOf = (
   });
 
 /** The first step that failed, or null when none did. */
-export const failedStepOf = (steps: ReadonlyArray<StepRecord>): FailedStep | null =>
+export const failedStepOf = (steps: ReadonlyArray<StepResult>): FailedStep | null =>
   pipe(
     Arr.findFirst(steps, (step) => step.outcome === "failed"),
     Option.map((step) => ({

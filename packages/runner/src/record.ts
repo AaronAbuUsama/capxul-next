@@ -12,7 +12,7 @@ import * as Str from "effect/String";
 import { CheckedCall } from "./checks/checks.ts";
 import { Ended } from "./failure.ts";
 import { Inventory } from "./world/leftovers.ts";
-import { FailedStep, failedStepOf, StepRecord } from "./steps.ts";
+import { FailedStep, failedStepOf, StepResult } from "./steps.ts";
 import type { Via } from "./client.ts";
 import { Readiness } from "./world/warmup.ts";
 
@@ -121,7 +121,7 @@ export const RunRecord = Schema.Struct({
    * A journey's steps, every one of its outline: each with its operation, its tries and their operation checks, the
    * calls it made (places in `calls`, whose timings and generic checks are there) and how long it took.
    */
-  steps: StepRecord.pipe(Schema.Array, Schema.optional),
+  steps: StepResult.pipe(Schema.Array, Schema.optional),
   /** A journey's first step that failed, and why; null when none did. */
   failedStep: FailedStep.pipe(Schema.NullOr, Schema.optional),
   /**
@@ -155,7 +155,7 @@ export const RunRecord = Schema.Struct({
 export type RunRecord = typeof RunRecord.Type;
 
 /** A journey's steps and the first that failed, for its run record; nothing for the door. */
-export const stepsFor = (plan: { readonly kind: string }, steps: ReadonlyArray<StepRecord>) =>
+export const stepsFor = (plan: { readonly kind: string }, steps: ReadonlyArray<StepResult>) =>
   plan.kind === "journey" ? { steps, failedStep: failedStepOf(steps) } : {};
 
 /** A run record's `via`: only a run through the command line names it. */
