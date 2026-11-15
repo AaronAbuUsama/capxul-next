@@ -10,6 +10,17 @@ jobs:
   gate:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # A throwaway Postgres for packages/world's test/old-rows.test.ts: rows written by earlier code, moved by Core's
+    # later migrations, must still read as the platform reads a world. No other test uses it.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: pg
+        ports: ["55432:5432"]
+        options: --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
+    env:
+      CAPXUL_ROWS_DATABASE: postgres://postgres:pg@localhost:55432/postgres
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
