@@ -24,7 +24,6 @@ const count = (path: string, text: string): Counts => countFile(GLOSSARY, { path
 test("a word in an identifier counts, in any case and joined any way", () => {
   assert.equal(count("a.ts", "const widget = 1;")["widget"], 1);
   assert.equal(count("a.ts", "const myWidget = makeWidgets(WIDGET_URL);")["widget"], 3);
-  assert.equal(count("a.ts", 'import { x } from "@capxul/widget";')["widget"], 1);
   assert.equal(count("a.ts", "const sprocketHub = sprocket_hubs;")["sprocket hub"], 2);
 });
 
@@ -41,13 +40,13 @@ test("the same word in a comment does not count", () => {
 
 test("prose in a string does not count; a name in it does", () => {
   assert.equal(count("a.ts", 'fail("the widget broke");')["widget"], 0);
-  assert.equal(count("a.ts", 'fail("see packages/widget for why");')["widget"], 1);
+  assert.equal(count("a.ts", 'fail("see widget.make for why");')["widget"], 1);
   assert.equal(count("a.ts", 'const op = "widget.make";')["widget"], 1);
-  assert.equal(count("a.json", '{ "description": "a widget", "name": "@capxul/widget" }')["widget"], 1);
+  assert.equal(count("a.json", '{ "description": "a widget", "main": "widget.ts" }')["widget"], 1);
 });
 
 test("in Markdown only code counts", () => {
-  const text = "The widget is here.\n\nRun `make widget`:\n\n```sh\nwidget --fast\n```\n";
+  const text = "The widget is here.\n\nRun `make widget`:\n\n```sh\nmyWidget --fast\n```\n";
   assert.equal(count("README.md", text)["widget"], 2);
 });
 
@@ -57,7 +56,7 @@ test("an old word inside an agreed word, or one its glossary keeps, does not cou
 });
 
 test("an old word written as code counts as that exact text, outside comments", () => {
-  assert.equal(count("a.ts", 'import "./maker.ts"; // maker.ts\nconst m = "remaker.ts";')["`maker.ts`"], 1);
+  assert.equal(count("a.ts", 'load("./maker.ts"); // maker.ts\nconst m = "remaker.ts";')["`maker.ts`"], 1);
 });
 
 test("other people's names do not count", () => {
@@ -89,13 +88,113 @@ test("an old word spelled as a kept word is not counted in that word's `keptIn`"
     { word: "claim", meaning: "A Safe's.", replaces: [], scope: "internal", keptIn: ["Claimer.claim", "x.claim"] },
   ];
   const text = 'call("Claimer.claim"); call("x.claim.y"); const claim = take; const claims = myClaimer.claim;';
-  assert.equal(countFile(made, { path: "a.ts", text })["claim"], 3);
+  // `claim` (in `x.claim.y` and as a constant) and `claims`: two distinct names.
+  assert.equal(countFile(made, { path: "a.ts", text })["claim"], 2);
+});
+
+test("a package's name written as a package counts nothing; the rest of the token and other names still count", () => {
+  assert.equal(count("a.ts", 'import x from "@capxul/widget";')["widget"], 0);
+  assert.equal(count("a.ts", 'const y = "@capxul/widget/widget";')["widget"], 1);
+  assert.equal(count("a.ts", 'import "../../packages/widget/src/x.ts";')["widget"], 0);
+  assert.equal(count("README.md", "See `packages/widget/src/x.ts`.\n")["widget"], 0);
+  assert.equal(
+    count("package.json", '{ "name": "@capxul/widget", "dependencies": { "@capxul/widget": "1" } }')["widget"],
+    0,
+  );
+  assert.equal(count("a.yml", "run: pnpm --filter @capxul/widget test --widget=local\n")["widget"], 0);
+  assert.equal(count("a.ts", "const widgetClient = makeWidget(packagesWidget);")["widget"], 3);
+});
+
+test("an entry's exceptions, exact text no writer chooses, do not count; a longer name still does", () => {
+  const made: ReadonlyArray<Entry> = [
+    {
+      word: "gizmo",
+      meaning: "A part.",
+      replaces: ["widget"],
+      scope: "internal",
+      exceptions: [
+        { text: "widget-db", why: "deployed" },
+        { text: "widgetPoints", why: "foreign" },
+      ],
+    },
+  ];
+  const text = 'Neon.Project("widget-db"); m.widgetPoints; m.rejectedWidgetPoints; const widgetDb = 1;';
+  assert.equal(countFile(made, { path: "a.ts", text })["widget"], 2);
+});
+
+test("an import or export specifier counts nothing, whoever's file it names", () => {
+  const text = Arr.join(
+    [
+      'import { a } from "../widget.ts";',
+      'import "./widget/setup.ts";',
+      'export * from "./widget.ts";',
+      'export { b } from "@other-widget/x";',
+      'const c = await import("./widget.ts");',
+      'const d = "widget.ts";',
+    ],
+    "\n",
+  );
+  assert.equal(count("a.ts", text)["widget"], 1);
+  assert.equal(count("a.ts", 'import x from "./maker.ts";')["`maker.ts`"], 0);
+});
+
+test("a package.json path counts nothing, like a specifier; its other strings still do", () => {
+  const text =
+    '{ "exports": "./src/widget.ts", "main": "./widget.js", "types": "./widget.d.ts", "bin": { "widget-cli": "x" } }';
+  assert.equal(count("packages/x/package.json", text)["widget"], 1);
+});
+
+test("Markdown's generated blocks count nothing; code around them still does", () => {
+  const text = Arr.join(
+    ["Run `widgetA`.", "<!-- generated:list start -->", "- `widgetB`, `widgetC`", "<!-- generated:list end -->", ""],
+    "\n",
+  );
+  assert.equal(count("README.md", text)["widget"], 1);
+});
+
+test("an applied migration and its file name count nothing", () => {
+  assert.equal(isRead("packages/core/migrations/0009_widget_spans.sql"), false);
+  assert.equal(isRead("packages/core/src/queries/widget.sql"), true);
+  assert.equal(count("a.ts", 'const file = "0009_widget_spans.sql"; const widgetSql = 1;')["widget"], 1);
+});
+
+/** The count of `word` in one file, by the blueprint's own glossary. */
+const of = (word: string, text: string): number => countFile(glossary, { path: "a.ts", text })[word] ?? -1;
+
+/** The count of `core` in one file, by the blueprint's own glossary. */
+const real = (text: string): number => of("core", text);
+
+test("the blueprint's glossary: packages and deployed names count nothing, a chosen name still counts", () => {
+  assert.equal(real('import x from "@capxul/core";'), 0);
+  assert.equal(real('const p = "packages/core/src/x.ts";'), 0);
+  assert.equal(
+    real('yield* Neon.Project("core-db", {}); yield* Cloudflare.Hyperdrive.Connection("core-hyperdrive", {});'),
+    0,
+  );
+  assert.equal(real("const coreClient = 1;"), 1);
+  assert.equal(real('import { x } from "../core.ts";'), 0);
+  assert.equal(of("point", "metric.dataPoints; m.rejectedDataPoints; metric_data_point; data_point;"), 0);
+  assert.equal(of("record", "logs.logRecords; l.rejectedLogRecords; log_record; const stepRecord = 1;"), 1);
+  assert.equal(of("platform", 'run("platform.yml"); yield* Alchemy.Stack("CapxulPlatform");'), 0);
+});
+
+test("counted in distinct names: a repeated use adds nothing, a new name adds one, a rename lowers", () => {
+  const base = [{ path: "a.ts", text: "const widgetToken = 1; useWidget(widgetToken);" }];
+  assert.equal(countOldWords(GLOSSARY, base)["widget"], 2);
+  const repeated = [...base, { path: "b.ts", text: "useWidget(widgetToken); useWidget(widgetToken);" }];
+  assert.equal(countOldWords(GLOSSARY, repeated)["widget"], 2);
+  const added = [...base, { path: "b.ts", text: "const widgetKey = 2;" }];
+  assert.equal(countOldWords(GLOSSARY, added)["widget"], 3);
+  const renamed = [{ path: "a.ts", text: "const gizmoToken = 1; useWidget(gizmoToken);" }];
+  assert.equal(countOldWords(GLOSSARY, renamed)["widget"], 1);
+  assert.equal(count("a.ts", 'import "x"; load("./maker.ts"); load("./maker.ts");')["`maker.ts`"], 1);
 });
 
 test("counts add up across files", () => {
   const files = [
     { path: "a.ts", text: "const widget = 1;" },
     { path: "b.ts", text: "const widgets = 2; // widget" },
+    { path: "c.ts", text: "const widgets = 3;" },
   ];
   assert.equal(countOldWords(GLOSSARY, files)["widget"], 2);
 });

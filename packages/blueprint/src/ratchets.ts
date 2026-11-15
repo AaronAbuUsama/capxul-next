@@ -152,7 +152,7 @@ export const ratchets: ReadonlyArray<Ratchet> = [
     id: "R15",
     name: "Old words",
     holds:
-      "The glossary's old words still written as names in code, counted per word in generated/old-words.json; its count is their total.",
+      "The glossary's old words still written as names in code, counted per word in distinct names in generated/old-words.json; its count is their total. Distinct names: a lane that uses an existing name adds nothing; only a newly introduced name grows the count (blueprint lead, 15 Nov 2026).",
     closes: "3.8",
     count: "words:old-words",
     gate: "pnpm words",

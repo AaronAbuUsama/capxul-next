@@ -1,7 +1,7 @@
 // Which files the count of old words reads (old-words.ts): `packages/`, `AGENTS.md`, `docs/roadmap.md` and
 // `.github/`. Left out: what is not ours to rename or not a source (`node_modules`, run and proof records, generated
 // files, the contracts' vendored libraries, their build output and seeded chain state), the glossary itself, which
-// owns the old words, and Solidity (a contract's names are on its chain; renaming one is a change of the contracts).
+// owns the old words, applied migrations (`packages/<name>/migrations/*.sql`, never edited or renamed), and Solidity (a contract's names are on its chain; renaming one is a change of the contracts).
 // The design notes under `docs/design/` are not read at all. Markdown's prose is left out where it is read
 // (./code-text.ts). Pure: the caller hands it the disk (`Disk`), so the toolkit's door stays free of node:fs.
 import * as Arr from "effect/Array";
@@ -28,7 +28,8 @@ const SKIPPED_PATHS = [
 export const isRead = (path: string): boolean =>
   !Arr.some(Str.split(path, "/"), (folder) => Arr.contains(SKIPPED_FOLDERS, folder)) &&
   !Arr.some(SKIPPED_PATHS, (skipped) => Str.startsWith(skipped)(path)) &&
-  !Str.endsWith(".sol")(path);
+  !Str.endsWith(".sol")(path) &&
+  !/^packages\/[^/]+\/migrations\/[^/]+\.sql$/.test(path);
 
 /** The disk, as the count reads it, each path from the repository's root. */
 export interface Disk {
