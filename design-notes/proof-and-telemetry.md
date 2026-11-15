@@ -32,6 +32,12 @@ observation layer, the `prove-it` and observability skills).
    instrumented to match, so every second of a run is measured before anything is redesigned.
 
 This note is that plan's chapter on proof and telemetry. Section 0 is its chapter on the blueprint.
+`telemetry-in-the-blueprint.md` is its chapter on the fundamentals, Axiom, and how the blueprint owns every name
+and dataset so that drift fails CI.
+
+Answered by Aaron since: the sink is **Axiom**, with no trial (decision 4); agents run on subscriptions, so model
+cost is estimated from Claude Code's own telemetry, with no admin key (decision 6); a session is whatever drove the
+work.
 
 ## The model
 
