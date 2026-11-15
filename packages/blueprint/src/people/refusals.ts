@@ -5,7 +5,11 @@ import type { ExitCode } from "../errors.ts";
 import { OrgId, PersonId } from "../values.ts";
 import { Email, InvitationId } from "./values.ts";
 
-/** The caller may not manage the company's people: only its Directors may invite (a person of the world or not). */
+/**
+ * The caller may not manage the company's people: for now only its founder invites (a person of the world or not), so
+ * another Director, a member and anyone else is refused. A role that grants it comes later (docs/roadmap.md, "Who may
+ * invite").
+ */
 export class CannotManagePeople extends Schema.TaggedError<CannotManagePeople, { readonly brand: unique symbol }>()(
   "CannotManagePeople",
   {

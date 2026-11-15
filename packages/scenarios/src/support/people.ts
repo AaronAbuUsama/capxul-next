@@ -9,8 +9,8 @@ import * as Order from "effect/Order";
 import * as Rec from "effect/Record";
 import { Capxul } from "../client.ts";
 import { expect } from "../expectation.ts";
-import { same } from "./expect.ts";
-import { entriesAfter, objectOf, whereOf, type Json, type View, type Who } from "./world.ts";
+import { findIn, same } from "./expect.ts";
+import { entriesAfter, objectOf, recordOf, textOf, whereOf, type Json, type View, type Who } from "./world.ts";
 
 export type Invitation = typeof People.Invitation.Type;
 export type Member = typeof People.Member.Type;
@@ -27,6 +27,18 @@ export const invitationsOf = (person: string, who: Who = {}) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
     return (yield* capxul["invite.list"]({}, { ...whereOf(who), as: person })).invitations;
+  });
+
+/** The founder of company `org`, as its org_founded in the world's record names them. */
+export const founderOf = (org: string, who: Who = {}) =>
+  Effect.gen(function* () {
+    const { entries } = yield* recordOf(who);
+    const founded = yield* findIn(
+      `${org}'s org_founded in the record`,
+      entries,
+      (each) => each.event === "org_founded" && textOf(each.carried, "org") === org,
+    );
+    return textOf(founded.carried, "founder");
   });
 
 /** The person of the world's cast who signs in with `email`, if any. */

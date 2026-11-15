@@ -17,9 +17,9 @@ export const memberInvite: ClaimsOf = {
   operation: People.memberInvite,
   claims: [
     claim(
-      "A Director invites a person by email to be a member: the invitation is pending at once, and there is nothing to sign.",
+      "The founder invites a person by email to be a member: the invitation is pending at once, and there is nothing to sign.",
       w.founded,
-      "org.member.invite as dana of olga@cast.test as a member answers an invitation pending, naming Northwind, that email, the role and dana. It asks for no approval: the record gains one member_invited and nothing else, the chain's head is unchanged while the world's clock is frozen, and invite.list as olga holds the invitation, pending.",
+      "org.member.invite as dana, Northwind's founder, of olga@cast.test as a member answers an invitation pending, naming Northwind, that email, the role and dana. It asks for no approval: the record gains one member_invited and nothing else, the chain's head is unchanged while the world's clock is frozen, and invite.list as olga holds the invitation, pending.",
       {
         thinLine: true,
       },
@@ -30,15 +30,15 @@ export const memberInvite: ClaimsOf = {
       "org.member.invite as dana of rex@elsewhere.test answers an invitation pending for that email, and no person of the cast lists it with invite.list.",
     ),
     claim(
-      "Only a Director may invite; anyone else is refused, and nothing is sent.",
+      "Only the company's founder may invite; another Director, and anyone else, is refused, and nothing is sent.",
       w.founded,
-      "As sam, a member with no permission, and as olga, who is not a member, org.member.invite is refused with CannotManagePeople naming Northwind and the caller. As eli, the other Director, it answers an invitation he sent. record.export shows no new entry for a refused call.",
+      "As eli, a Director who is not the founder, as sam, a member with no permission, and as olga, who is not a member, org.member.invite is refused with CannotManagePeople naming Northwind and the caller, who is not the founder org_founded names in the record. record.export shows no new entry for a refused call. As dana, the founder, it answers an invitation she sent.",
       { refusals: [CannotManagePeople] },
     ),
     claim(
       "A person who already belongs to the company, and an email whose invitation is still pending, are refused.",
       w.founded,
-      "org.member.invite as dana of sam@cast.test (a member) and of eli@cast.test (a Director) is refused with AlreadyAMember naming the person; a second invitation of olga@cast.test while hers is pending, with AlreadyInvited naming the pending invitation. Once she has declined, eli invites her again; once she has accepted, she is refused with AlreadyAMember. A company nobody founded is refused with OrgNotFound, and an address that is not an email with PayloadRejected. record.export shows no new entry for any of them.",
+      "org.member.invite as dana of sam@cast.test (a member) and of eli@cast.test (a Director) is refused with AlreadyAMember naming the person; a second invitation of olga@cast.test while hers is pending, with AlreadyInvited naming the pending invitation. Once she has declined, dana invites her again; once she has accepted, she is refused with AlreadyAMember. A company nobody founded is refused with OrgNotFound, and an address that is not an email with PayloadRejected. record.export shows no new entry for any of them.",
       { refusals: [AlreadyAMember, AlreadyInvited, OrgNotFound] },
     ),
   ],
@@ -51,7 +51,7 @@ export const inviteList: ClaimsOf = {
     claim(
       "A person lists every invitation sent to their email, whatever its state, oldest first, and only those.",
       w.founded,
-      "invite.list as olga after dana invites her answers that invitation, pending, from dana for Northwind; after she declines it and accepts eli's, it answers both, dana's declined then eli's accepted. rex@elsewhere.test's invitation is listed to nobody of the cast. As sam it answers none. Every invitation it lists is to the caller's email, and the record gains no entry.",
+      "invite.list as olga after dana invites her answers that invitation, pending, from dana for Northwind; after she declines it and accepts dana's second, it answers both, the first declined then the second accepted. rex@elsewhere.test's invitation is listed to nobody of the cast. As sam it answers none. Every invitation it lists is to the caller's email, and the record gains no entry.",
       { thinLine: true },
     ),
   ],
@@ -64,7 +64,7 @@ export const inviteAccept: ClaimsOf = {
     claim(
       "The invitee accepts and is a member at once; nothing is signed and nothing reaches the chain or the company's site.",
       w.founded,
-      "invite.accept as olga of eli's pending invitation answers Accepted: the invitation accepted and olga a member. The record gains one invitation_accepted naming olga and nothing else, and the chain's head is unchanged while the world's clock is frozen. org.member.list then lists olga as a member, and org.member.grant as dana of issue-invoices for olga is proposed, not refused with NotAMember.",
+      "invite.accept as olga of dana's second invitation, pending, answers Accepted: the invitation accepted and olga a member. The record gains one invitation_accepted naming olga and nothing else, and the chain's head is unchanged while the world's clock is frozen. org.member.list then lists olga as a member, and org.member.grant as dana of issue-invoices for olga is proposed, not refused with NotAMember.",
       {
         thinLine: true,
       },

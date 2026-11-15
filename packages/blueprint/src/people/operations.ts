@@ -1,8 +1,9 @@
-// The concept "people": who belongs to a company, and the invitations that bring a person in. A Director invites a
-// person by email to be a member; the person who signs in with that email lists their invitations and accepts or
-// declines; once they accept they are a member at once. A member's Seat is no hat, no Safe owner and no site user
-// (ADR-0040 in infrastructure: "Inviting someone creates a Seat, not an on-chain role"), so nothing here waits for a
-// signature or writes to the chain or to a company's site. All five are served through a world's door.
+// The concept "people": who belongs to a company, and the invitations that bring a person in. The company's founder
+// invites a person by email to be a member (for now only the founder: docs/roadmap.md, "Who may invite"); the person
+// who signs in with that email lists their invitations and accepts or declines; once they accept they are a member at
+// once. A member's Seat is no hat, no Safe owner and no site user (ADR-0040 in infrastructure: "Inviting someone
+// creates a Seat, not an on-chain role"), so nothing here waits for a signature or writes to the chain or to a
+// company's site. All five are served through a world's door.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
 import {
@@ -160,11 +161,11 @@ export const inviteAccept = declareOutcomes({
   examples: [
     {
       payload: { invitation: "inv_olga02" },
-      success: Accepted.make({ invitation: invitation("inv_olga02", "accepted", "eli"), member: olga }),
+      success: Accepted.make({ invitation: invitation("inv_olga02", "accepted"), member: olga }),
     },
     {
       payload: { invitation: "inv_olga02" },
-      success: AlreadyAccepted.make({ invitation: invitation("inv_olga02", "accepted", "eli"), member: olga }),
+      success: AlreadyAccepted.make({ invitation: invitation("inv_olga02", "accepted"), member: olga }),
     },
   ],
 });
