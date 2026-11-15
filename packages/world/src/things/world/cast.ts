@@ -15,6 +15,7 @@ import { Cast, Values } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
 import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
 import { mnemonicToAccount, privateKeyToAccount } from "viem/accounts";
@@ -105,40 +106,82 @@ const Receipt = Schema.Struct({ status: Schema.String });
 const quantity = <E, R>(answer: Effect.Effect<unknown, E, R>) =>
   answer.pipe(Effect.flatMap(Schema.decodeUnknownEffect(Hex)), Effect.map(BigInt));
 
+/** One transaction of the cast, with what it is for, so a failure names it. */
+export interface Send {
+  readonly label: string;
+  readonly transaction: Record<string, string>;
+}
+
+/** A failure of the cast that names the transaction it is about. */
+const named = (send: Send, what: string) => (cause: unknown) =>
+  failed("cast")({ message: `${send.label}: ${what}: ${describeFailure(cause)}` });
+
 /** Insists that a transaction was mined and succeeded. */
-const succeeded = <E, R>(call: Call<E, R>, hash: string) =>
+const succeeded = <E, R>(call: Call<E, R>, send: Send, hash: string) =>
   Effect.gen(function* () {
     const receipt = yield* call("eth_getTransactionReceipt", [hash]).pipe(
       Effect.flatMap(Schema.decodeUnknownEffect(Receipt)),
       Effect.retry(Schedule.max([Schedule.spaced("500 millis"), Schedule.recurs(20)])),
+      Effect.mapError(named(send, `no receipt for ${hash}`)),
     );
-    if (receipt.status !== "0x1") return yield* failed("cast")(`${hash} reverted`);
+    if (receipt.status !== "0x1") return yield* failed("cast")({ message: `${send.label}: ${hash} reverted` });
     return hash;
   });
 
 /** How many transactions of one sender are in flight at once. */
 const IN_FLIGHT = 16;
 
-/**
- * Sends every transaction of one unlocked test account side by side and insists that each succeeded. Each is given
- * its nonce, counted from the account's next one, so that none waits for another's receipt: the chain takes them in
- * any order and mines each once the ones before it are in.
- */
-const sendAll = Effect.fn("world.cast.send")(
-  function* <E, R>(call: Call<E, R>, from: string, transactions: ReadonlyArray<Record<string, string>>) {
-    const next = yield* quantity(call("eth_getTransactionCount", [from, "pending"]));
-    return yield* Effect.forEach(
-      transactions,
-      (transaction, index) =>
-        call("eth_sendTransaction", [{ ...transaction, from, nonce: `0x${(next + BigInt(index)).toString(16)}` }]).pipe(
-          Effect.flatMap(Schema.decodeUnknownEffect(Hex)),
-          Effect.flatMap((hash) => succeeded(call, hash)),
-        ),
-      { concurrency: IN_FLIGHT },
+/** What the chain says when a transaction's nonce does not fit: the sign to send one at a time instead. */
+const NONCE_TROUBLE = /nonce|replacement|underpriced/i;
+
+const nonceOf = (n: bigint): string => `0x${n.toString(16)}`;
+
+/** Sends one transaction with the nonce the chain has mined up to, once those before it are in. */
+const oneByOne = <E, R>(call: Call<E, R>, from: string, send: Send) =>
+  Effect.gen(function* () {
+    const mined = yield* quantity(call("eth_getTransactionCount", [from, "latest"]));
+    return yield* call("eth_sendTransaction", [{ ...send.transaction, from, nonce: nonceOf(mined) }]).pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(Hex)),
     );
-  },
-  Effect.mapError(failed("cast")),
-);
+  }).pipe(
+    Effect.mapError(named(send, "sent one by one")),
+    Effect.tap((hash) => succeeded(call, send, hash)),
+  );
+
+/**
+ * Sends every transaction of one unlocked test account side by side and insists that each succeeded, or fails naming
+ * the one that did not. Each is given its nonce, counted from the account's next one, so that none waits for another's
+ * receipt: the chain takes them in any order and mines each once the ones before it are in. One the chain refuses for
+ * its nonce is sent again on its own, in order, once those before it are mined, rather than failing the world.
+ */
+export const sendAll = Effect.fn("world.cast.send")(function* <E, R>(
+  call: Call<E, R>,
+  from: string,
+  sends: ReadonlyArray<Send>,
+) {
+  const next = yield* quantity(call("eth_getTransactionCount", [from, "pending"])).pipe(
+    Effect.mapError((cause) => failed("cast")({ message: `${from}'s next nonce: ${describeFailure(cause)}` })),
+  );
+  const first = yield* Effect.forEach(
+    sends,
+    (send, index) =>
+      Effect.result(
+        call("eth_sendTransaction", [{ ...send.transaction, from, nonce: nonceOf(next + BigInt(index)) }]).pipe(
+          Effect.flatMap(Schema.decodeUnknownEffect(Hex)),
+        ),
+      ),
+    { concurrency: IN_FLIGHT },
+  );
+  const hashes = yield* Effect.forEach(Arr.zip(sends, first), ([send, sent]) => {
+    if (Result.isSuccess(sent)) return Effect.succeed(sent.success);
+    return NONCE_TROUBLE.test(describeFailure(sent.failure))
+      ? oneByOne(call, from, send)
+      : Effect.fail(named(send, "not sent")(sent.failure));
+  });
+  return yield* Effect.forEach(Arr.zip(sends, hashes), ([send, hash]) => succeeded(call, send, hash), {
+    concurrency: IN_FLIGHT,
+  });
+});
 
 /** The Safe Companies House derives for an email, whether or not it is claimed yet. */
 const safeOf = <E, R>(call: Call<E, R>, email: string) =>
@@ -158,24 +201,26 @@ const safeOf = <E, R>(call: Call<E, R>, email: string) =>
   );
 
 /** The transaction that gives one person their Safe through Companies House's role for it, sent by its service. */
-const claimOf = (member: Member): Record<string, string> => ({
-  to: CLAIMS.roles,
-  gas: "0x1e8480",
-  data: callData(EXEC_WITH_ROLE, [
-    { address: CLAIMS.claimer },
-    { uint: 0n },
-    { bytes: callData(CLAIM, [{ string: CLAIMS.namespace }, { string: member.email }, { address: member.signer }]) },
-    { uint: 1n },
-    { bytes32: CLAIMS.role },
-    { bool: true },
-  ]),
+const claimOf = (member: Member): Send => ({
+  label: `${member.person}'s Safe`,
+  transaction: {
+    to: CLAIMS.roles,
+    gas: "0x1e8480",
+    data: callData(EXEC_WITH_ROLE, [
+      { address: CLAIMS.claimer },
+      { uint: 0n },
+      { bytes: callData(CLAIM, [{ string: CLAIMS.namespace }, { string: member.email }, { address: member.signer }]) },
+      { uint: 1n },
+      { bytes32: CLAIMS.role },
+      { bool: true },
+    ]),
+  },
 });
 
 /** The faucet's transaction that gives one Safe its funds. */
-const mintOf = (safe: string): Record<string, string> => ({
-  to: TEST_USDC,
-  gas: "0x30d40",
-  data: mintCall({ to: safe, amount: CAST_FUNDS }),
+const mintOf = (member: Member, safe: string): Send => ({
+  label: `${member.person}'s funds`,
+  transaction: { to: TEST_USDC, gas: "0x30d40", data: mintCall({ to: safe, amount: CAST_FUNDS }) },
 });
 
 /** How many persons are read at once. */
@@ -208,7 +253,7 @@ export const makeCast = Effect.fn("platform.cast")(function* <E, R>(call: Call<E
       sendAll(
         call,
         FAUCET_OPERATOR,
-        Arr.flatMap(claimed, (member) => (member.safe === null ? [] : [mintOf(member.safe)])),
+        Arr.flatMap(claimed, (member) => (member.safe === null ? [] : [mintOf(member, member.safe)])),
       ),
     ],
     { concurrency: 2 },
