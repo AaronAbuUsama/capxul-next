@@ -2,7 +2,11 @@
 import * as Schema from "effect/Schema";
 import { Clock, Instant, Seq, SnapshotName, WorldName } from "../../common/values.ts";
 
-/** A saved snapshot, as `world.snapshot.save` answers it. */
+/**
+ * A saved snapshot, as `world.snapshot.save` answers it. Still open for R9 (src/ratchets.ts): it names no block, so
+ * `world.snapshot.restore`'s "at the snapshot's block" is checked at the latest block of both worlds, exact only
+ * because nothing moves the first world between the save and the comparison; a block number here would make it exact.
+ */
 export const Snapshot = Schema.Struct({
   world: WorldName,
   snapshot: SnapshotName,

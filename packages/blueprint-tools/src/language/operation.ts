@@ -2,10 +2,10 @@
 // how fast the call must be and what that number measures, and one worked example per kind of success. A generic
 // runner reads these, so no scenario restates them. Nothing here reaches outside itself.
 //
-// This is the format of the pipeline spike (`spikes/pipeline/contract/operation.ts`), extended in three ways that
-// decisions.md explains: an operation may have several kinds of success, each with its own events (`outcomes`);
-// the budget says what it measures and whether a measurement is behind it (`budget`); and every declaration
-// carries examples, which the tests run through `carries`.
+// This is the format of the pipeline spike (`spikes/pipeline/contract/operation.ts`), extended in three ways: an
+// operation may have several kinds of success, each with its own events (`outcomes`, see `Several`); the budget says
+// what it measures and whether a measurement is behind it (`budget`); and every declaration carries examples, one
+// valid call per kind of success, which the tests run through `carries`.
 import * as Arr from "effect/Array";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
@@ -32,13 +32,22 @@ export interface Answered<R extends Rpc.AnyWithProps, S = SuccessOf<R>> {
   readonly success: S;
 }
 
-/** One event a successful call emits, exactly once, and what it must carry: a pure function of that call. */
+/**
+ * One event a successful call emits, exactly once, and what it must carry: a pure function of that call, so the
+ * runner computes it from what the caller saw. Where an event needs a value, the answer carries it too. Events are
+ * named for what happened, not for a machine's move. Work that finishes after the call has answered (a payment
+ * settling, a site becoming ready) is never a declared event: "exactly once per call" is decided when it answers.
+ */
 export interface Emitted<R extends Rpc.AnyWithProps, E extends EventClass, S = SuccessOf<R>> {
   readonly event: E;
   readonly carries: (call: Answered<R, S>) => Carried<E>;
 }
 
-/** The waits a budget can leave out. A call that never waits for one of these has nothing to leave out. */
+/**
+ * The waits a budget can leave out. A call that never waits for one of these has nothing to leave out: operations
+ * through a world's door are measured warm, so they leave out waking a parked world; no operation waits for a person
+ * signing; chain confirmation arises only on a public chain.
+ */
 export type Wait = "waking a parked world" | "a person signing" | "chain confirmation on a public chain";
 
 /**
@@ -91,7 +100,11 @@ export const outcome = <
   emits: emits,
 });
 
-/** An operation whose success is a union of tagged outcomes: every outcome is declared, each with its own events. */
+/**
+ * An operation whose success is a union of tagged outcomes: every outcome is declared, each with its own events, and
+ * leaving one out is a compile error. A union, not two operations, because the caller cannot choose the path (the
+ * document decides), and not one shape with optional fields, which would let an event read a field its path lacks.
+ */
 export interface Several<
   R extends Rpc.AnyWithProps,
   Outs extends { readonly [T in OutcomeTag<R>]: Outcome<T, EventClass> },

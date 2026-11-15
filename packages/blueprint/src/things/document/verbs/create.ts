@@ -9,6 +9,11 @@ import { DocCreated } from "../events.ts";
 import { supplierCreated } from "../examples.ts";
 import { Created, Doctype } from "../values.ts";
 
+// It answers the document's hash: keccak-256 of its canonical JSON on the site (packages/frappe-app,
+// `capxul/canon.py`). For a Payment Entry that is the canon a payment's hold and its posting compare, so the hash
+// this answers, the hold carries and the chain's `PaymentSent` carries are one; for any other document, its stored
+// fields without what changes on every save. Which site is the company's is the site's to say (its Capxul Settings
+// `org_slug` is the org id), so Core asks the world's ready sites in turn.
 export const create = declare({
   rpc: Rpc.make("doc.create", {
     payload: {

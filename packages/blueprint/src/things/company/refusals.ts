@@ -11,6 +11,10 @@ export class PersonNotFound extends Schema.TaggedError<PersonNotFound, { readonl
   },
 ) {}
 
+/**
+ * The founder, or a founding Director, has no claimed personal Safe, so they cannot wear the Director hat; each is
+ * refused as the founder would be, named.
+ */
 export class FounderNotReady extends Schema.TaggedError<FounderNotReady, { readonly brand: unique symbol }>()(
   "FounderNotReady",
   {
