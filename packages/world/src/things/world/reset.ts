@@ -33,7 +33,7 @@ import * as Random from "effect/Random";
 import * as Ref from "effect/Ref";
 import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
-import { servesEntryPoint } from "../../parts/bundler/client.ts";
+import { AfterReset, bundlerAnswers } from "../../parts/bundler/client.ts";
 import { branchesOf, deleteBranch, projectId, restoreBranch } from "../../parts/database/neon.ts";
 import { PlatformFailed } from "../../common/failures.ts";
 import { preservedPrefix } from "../../parts/database/branches.ts";
@@ -150,12 +150,12 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
         return { minedAt: mined.minedAt, indexedBlock };
       });
       // The chain's reset kept alto up with its state cleared (src/parts/bundler/Bundler.ts, `reset`), so the bundler
-      // answers at its first look; Core and the branch Neon kept need only the database. All are waited for beside
-      // the clock and the index.
+      // answers at its first look, or within a few more when a connection through the shared hub drops (`AfterReset`);
+      // Core and the branch Neon kept need only the database. All are waited for beside the clock and the index.
       const [{ minedAt, indexedBlock }] = yield* Effect.all(
         [
           settle(),
-          timed("bundler answers", servesEntryPoint(world)),
+          timed("bundler answers", bundlerAnswers(world, AfterReset)),
           timed("core answers", coreAnswers(world)),
           timed("preserved branch dropped", dropIfChildless(project, preserved)),
         ],
