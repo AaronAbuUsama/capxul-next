@@ -1,6 +1,6 @@
 // The harness of the people operations' test (test/people-sql.test.ts): Core's groups served in this process against
 // a real Postgres with Core's migrations applied, with the world's cast, a frozen clock and Northwind founded as the
-// starting world `founded` keeps it (dana and eli its Directors, sam and pat its members), written straight into the
+// starting world `founded` keeps it (dana its founder, dana and eli its Directors, sam and pat its members), written straight into the
 // database. No chain and no bench: the people operations reach neither.
 import { CREDENTIAL_HEADER, PERSON_HEADER, TRACE_HEADER, WorldRpcs } from "@capxul/blueprint";
 import * as Arr from "effect/Array";

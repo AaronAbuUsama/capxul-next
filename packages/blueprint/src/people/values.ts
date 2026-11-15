@@ -35,7 +35,7 @@ export const Invitation = Schema.Struct({
   /** The address it was sent to. The person of the world who signs in with it is its invitee. */
   email: Email,
   role: InvitedRole,
-  /** The Director who invited. */
+  /** The person who invited: for now always the company's founder (docs/roadmap.md, "Who may invite"). */
   invitedBy: PersonId,
   state: InvitationState,
   /** World time. */

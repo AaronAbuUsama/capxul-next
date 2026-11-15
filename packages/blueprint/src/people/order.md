@@ -14,7 +14,7 @@ members, and the cast.
 | # | Operation | Parts it needs | Starting worlds its scenarios need | Why here |
 |---|---|---|---|---|
 | 13 | `org.member.list` | database | `founded` | Reads the board and members `org.create` stored; every other operation here is checked through it. |
-| 13 | `org.member.invite` | database | `founded` | Needs a founded company whose Directors invite; writes only Core's database. |
+| 13 | `org.member.invite` | database | `founded` | Needs a founded company, whose founder invites; writes only Core's database. |
 | 14 | `invite.list` | database | `founded` | Reads what `org.member.invite` wrote, by the caller's email in the cast. |
 | 14 | `invite.decline` | database | `founded` | Ends what `org.member.invite` wrote. |
 | 14 | `invite.accept` | database | `founded` | Adds the invitee to the members `org.member.grant` reads, so a member who joined by invitation can be granted a permission. |
