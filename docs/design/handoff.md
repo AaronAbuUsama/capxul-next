@@ -3,6 +3,9 @@
 Status: **current**, from the evening of 15 November 2026. The Claude Code conductor and its threads were wrapped up
 and archived. Whoever conducts next starts here, whatever agent they run on.
 
+From 17:06 UTC on 15 November 2026 the conductor is a Claude Code cloud session again (🎼 Conductor: the Capxul
+rebuild), and a 🧭 lead runs blueprint stage 2 on `slice/blueprint`.
+
 ## Read first
 
 1. `AGENTS.md`: the rules, the ladder, "Lanes, leads and the conductor".
@@ -38,8 +41,9 @@ and archived. Whoever conducts next starts here, whatever agent they run on.
 - Tokens, in Aaron's macOS Keychain and Bitwarden, never in a repository or container:
   `capxul-ingest-{test,real,agents,cloudflare}` (send-only) and `capxul-query` (read, capped at $1 an hour and $5 a day).
 - Cloudflare destinations `axiom-capxul-traces` and `axiom-capxul-logs` wait for a wrangler config.
-- Open: lock the event datasets' schemas once declared; the wrangler change; Axiom's billing page shows no payment
-  method though the $25 was paid (Aaron, before 15 December).
+- Paid: the $25 fee was debited from Aaron's account (Aaron, 15 November 2026). Axiom's billing page showing no
+  payment method is only a display matter and needs nothing.
+- Open: lock the event datasets' schemas once declared; the wrangler change.
 
 ## Lessons from 15 November
 
