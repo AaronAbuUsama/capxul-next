@@ -1,7 +1,8 @@
 // The fleet hub a run's one world lives on (packages/world, src/things/cluster; roadmap 1.15 and 1.18). The hub is the one
 // `WORLD_HUB` names, which run.sh sets to a fresh name for each run unless it is given: a hub that does not exist yet
 // is brought up for the run, with the run's owner and `RUNNER_HUB_LIFETIME`, and taken down when the run ends,
-// whatever happened, once every world on it is gone. A hub that already exists is used as it is and left up.
+// whatever happened, once every world on it is gone. A hub that already exists is used as it is and left up. With
+// RUNNER_TEARDOWN=job a hub the run brought up is left up too, for CI's teardown job to take down after the worlds.
 import * as World from "@capxul/world";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
@@ -33,14 +34,16 @@ export const onHub = <A, E, R>(settings: Settings, timings: Timings, use: (hub: 
         );
     const down = there
       ? Effect.void
-      : timings
-          .timed(
-            "hub down",
-            { of: stage },
-            World.hubDown(stage).pipe(
-              Effect.mapError((error) => RunnerFailure.make({ step: "hub", message: describe(Cause.fail(error)) })),
-            ),
-          )
-          .pipe(Effect.catchCause((cause) => Effect.logError(`hub ${stage}: down failed: ${describe(cause)}`)));
+      : settings.teardown === "job"
+        ? Effect.log(`hub ${stage}: left up for the teardown job`)
+        : timings
+            .timed(
+              "hub down",
+              { of: stage },
+              World.hubDown(stage).pipe(
+                Effect.mapError((error) => RunnerFailure.make({ step: "hub", message: describe(Cause.fail(error)) })),
+              ),
+            )
+            .pipe(Effect.catchCause((cause) => Effect.logError(`hub ${stage}: down failed: ${describe(cause)}`)));
     return yield* Effect.andThen(up, use(hub)).pipe(Effect.ensuring(down));
   });
