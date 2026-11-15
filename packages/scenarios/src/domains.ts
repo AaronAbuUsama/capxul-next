@@ -9,6 +9,7 @@ import type { Domain } from "./domain.ts";
 import * as Approvals from "./domains/approvals.ts";
 import * as Documents from "./domains/documents.ts";
 import * as Organizations from "./domains/organizations.ts";
+import * as People from "./domains/people.ts";
 import * as Record from "./domains/record.ts";
 import * as Reports from "./domains/reports.ts";
 import * as World from "./domains/world.ts";
@@ -17,6 +18,7 @@ import * as World from "./domains/world.ts";
 export const domains: { readonly [D in keyof typeof blueprint]: Domain<(typeof blueprint)[D]> } = {
   world: World,
   organizations: Organizations,
+  people: People,
   documents: Documents,
   approvals: Approvals,
   reports: Reports,

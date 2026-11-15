@@ -21,6 +21,7 @@ import { domains, operations, PlatformRpcs, WorldRpcs, type OperationName } from
 import * as Errors from "../src/errors.ts";
 import { refusalsOf, type EventClass, type Operation } from "../src/operation.ts";
 import * as OrganizationsOps from "../src/organizations/operations.ts";
+import * as PeopleOps from "../src/people/operations.ts";
 import * as RecordOps from "../src/record/operations.ts";
 import * as ReportsOps from "../src/reports/operations.ts";
 import * as Chain from "../src/chain/chain.ts";
@@ -113,6 +114,7 @@ const modules = {
   "documents/operations.ts": DocumentsOps,
   "approvals/operations.ts": ApprovalsOps,
   "reports/operations.ts": ReportsOps,
+  "people/operations.ts": PeopleOps,
   "record/operations.ts": RecordOps,
 };
 const exported: ReadonlyArray<{ file: string; name: string; value: unknown }> = Arr.flatMap(
