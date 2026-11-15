@@ -1,5 +1,5 @@
-// Which files the count of old words reads (old-words.ts): `packages/`, `AGENTS.md`, `docs/roadmap.md` and
-// `.github/`. Left out: what is not ours to rename or not a source (`node_modules`, run and proof records, generated
+// Which files the count of old words reads (old-words.ts): `packages/`, `AGENTS.md`, `docs/roadmap.md`,
+// `docs/decisions.md` and `.github/`. Left out: what is not ours to rename or not a source (`node_modules`, run and proof records, generated
 // files, the contracts' vendored libraries, their build output and seeded chain state), the glossary itself, which
 // owns the old words, applied migrations (`packages/<name>/migrations/*.sql`, never edited or renamed), and Solidity (a contract's names are on its chain; renaming one is a change of the contracts).
 // The design notes under `docs/design/` are not read at all. Markdown's prose is left out where it is read
@@ -10,7 +10,7 @@ import * as Str from "effect/String";
 import type { File } from "./old-words.ts";
 
 /** Where the count reads, from the repository's root. */
-export const ROOTS = ["packages", ".github", "AGENTS.md", "docs/roadmap.md"];
+export const ROOTS = ["packages", ".github", "AGENTS.md", "docs/roadmap.md", "docs/decisions.md"];
 
 /** A folder of this name is never read, wherever it is. */
 const SKIPPED_FOLDERS = ["node_modules", "records", "generated", ".alchemy", ".wrangler", "__pycache__", "dist"];

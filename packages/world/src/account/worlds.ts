@@ -110,6 +110,7 @@ export const create = Effect.fn("platform.world.create")(function* (payload: Cre
     owner: operator,
     lifetime: Duration.minutes(payload.lifetimeMinutes),
     operatorToken: yield* ownerToken(operator),
+    grade: payload.grade,
     atSeed: true,
     startAtMs: startMs,
     onChain: (world) =>
