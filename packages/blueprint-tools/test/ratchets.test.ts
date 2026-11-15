@@ -42,6 +42,21 @@ test("each ratchet is counted from its list, and one not yet counted has no coun
   assert.deepEqual(countsOf(counted), { R1: 5, R5: 3 });
 });
 
+test("a ratchet counted from some formats' lists counts each operation on them once", () => {
+  const some: ReadonlyArray<Ratchet> = [
+    { id: "R5", name: "Machine", holds: "operations", closes: "3.5", count: "formats:machine" },
+    { id: "R18", name: "Steps", holds: "operations", closes: "4.1", count: "formats:steps" },
+  ];
+  const lists: Lists = { ...made, formats: { machine: ["a"], spans: ["a", "b"], logs: ["b", "c"], allowed: ["d"] } };
+  assert.deepEqual(
+    Arr.map(tally(some, lists), ({ ratchet, count, items }) => [ratchet.id, count, items]),
+    [
+      ["R5", 1, ["a"]],
+      ["R18", 3, ["a", "b", "c"]],
+    ],
+  );
+});
+
 test("a ratchet with a gate of its own is reported, never committed nor failed by `pnpm ratchets`", () => {
   const grewWords = tally(registry, { ...made, oldWords: { alpha: 40, beta: 0, gamma: 2 } });
   assert.deepEqual(grown({ R1: 5, R5: 3, R15: 6 }, grewWords), []);

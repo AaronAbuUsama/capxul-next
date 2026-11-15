@@ -48,6 +48,14 @@ const formatLists = (lists: Lists): Omit<Tally, "ratchet"> => {
   return { count: items.length, items };
 };
 
+/** The lists of `formats` only: each operation on any of them once, one item each. */
+const someFormats =
+  (formats: ReadonlyArray<string>) =>
+  (lists: Lists): Omit<Tally, "ratchet"> => {
+    const items = Arr.dedupe(Arr.flatMap(formats, (format) => lists.formats[format] ?? []));
+    return { count: items.length, items };
+  };
+
 /** The old words still written: their count in all, one item per word still written. */
 const oldWordList = (lists: Lists): Omit<Tally, "ratchet"> => ({
   count: sum(Rec.values(lists.oldWords)),
@@ -66,6 +74,10 @@ const counters: { readonly [C in Counter]: (lists: Lists, ratchet: Ratchet) => O
   "lint:declared-names": (lists) => lintList(lists, "declared-names"),
   "lint:decoded-rows": (lists) => lintList(lists, "decoded-rows"),
   formats: formatLists,
+  "formats:machine": someFormats(["machine"]),
+  "formats:allowed": someFormats(["allowed"]),
+  "formats:steps": someFormats(["spans", "logs"]),
+  "formats:promises": someFormats(["promises"]),
   "words:old-words": oldWordList,
   "own-list": ownList,
 };

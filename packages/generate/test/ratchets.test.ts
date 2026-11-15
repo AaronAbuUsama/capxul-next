@@ -1,6 +1,6 @@
 // The blueprint's own ratchets counted (roadmap items 3.6 and 3.11): its registry, its committed counts and its
 // scorecard, from the lists this package gathers (src/ratchet-sources.ts) and the toolkit counts. Moved from
-// packages/blueprint-tools' tests by item 3.10, which made the toolkit import nothing of the blueprint; R16 added.
+// packages/blueprint-tools' tests by item 3.10, which made the toolkit import nothing of the blueprint; R16 to R19 added.
 // Run with `pnpm test`.
 import { strict as assert } from "node:assert";
 import { readdirSync, readFileSync } from "node:fs";
@@ -18,10 +18,10 @@ import { listsOf, scorecardInputs, talliesOf } from "../src/ratchet-sources.ts";
 const { countsOf, grown, OUTPUTS } = Ratchets;
 type Counts = Ratchets.Counts;
 
-test("the registry declares R1 to R16 once each; each counted or naming the item that will count it", () => {
+test("the registry declares R1 to R19 once each; each counted or naming the item that will count it", () => {
   assert.deepEqual(
     Arr.map(ratchets, (ratchet) => ratchet.id),
-    Arr.map(Arr.range(1, 16), (n) => `R${String(n)}`),
+    Arr.map(Arr.range(1, 19), (n) => `R${String(n)}`),
   );
   for (const ratchet of ratchets) {
     assert.ok(ratchet.holds.length > 0 && ratchet.closes.length > 0, `${ratchet.id} says what it holds and closes`);

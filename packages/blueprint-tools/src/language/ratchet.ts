@@ -5,14 +5,20 @@
 /**
  * How a ratchet is counted, by the toolkit's counter of that name: a typed-once lint rule's unmigrated list
  * (packages/lint/src/unmigrated.ts, its findings in all), the delta check's formats' unmigrated lists (the
- * blueprint's, their operations in all), the glossary's old words (generated/old-words.json, every old word's count,
- * in all), or the ratchet's own `unmigrated` list (its names in all).
+ * blueprint's, their operations in all), some of those lists only (`formats:<which>`, each operation once: the
+ * machine format's; who may call, `allowed`; the declared steps and logs, `spans` and `logs` together; the promises),
+ * the glossary's old words (generated/old-words.json, every old word's count, in all), or the ratchet's own
+ * `unmigrated` list (its names in all).
  */
 export type Counter =
   | "lint:owned-values"
   | "lint:declared-names"
   | "lint:decoded-rows"
   | "formats"
+  | "formats:machine"
+  | "formats:allowed"
+  | "formats:steps"
+  | "formats:promises"
   | "words:old-words"
   | "own-list";
 
