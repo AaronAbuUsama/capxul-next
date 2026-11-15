@@ -71,9 +71,14 @@ export class CallTraces extends Context.Service<
  * judges what this call caused by it (`support/world.ts`, `entriesOfCall`), so calls of other journeys made at the
  * same time in the same world are not its business.
  */
-export class ThisCall extends Context.Service<ThisCall, { readonly trace: string | null }>()(
-  "@capxul/scenarios/client/ThisCall",
-) {}
+export class ThisCall extends Context.Service<
+  ThisCall,
+  {
+    readonly trace: string | null;
+    /** What Core recorded under the trace, read in one batch after the call (`Observations`); null without it. */
+    readonly observed: Observed | null;
+  }
+>()("@capxul/scenarios/client/ThisCall") {}
 
 type Json = typeof Values.Json.Type;
 

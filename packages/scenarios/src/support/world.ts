@@ -63,20 +63,44 @@ export const entriesAfter = (after: number, who: Who = {}) =>
     return answer.entries;
   });
 
+/**
+ * The name of the world `who` reaches and its record's head now, read as its owner with one entry: what a check reads
+ * before a call, without reading the whole record back.
+ */
+export const headAt = (who: Who = {}) =>
+  Effect.gen(function* () {
+    const capxul = yield* Capxul;
+    const answer = yield* capxul["record.export"]({ from: 1, to: 1 }, whereOf(who));
+    return { world: answer.world, head: answer.head };
+  });
+
 /** A record's head now. */
-export const headOf = (who: Who = {}) => Effect.map(recordOf(who), (answer) => answer.head);
+export const headOf = (who: Who = {}) => Effect.map(headAt(who), (answer) => answer.head);
+
+/** An entry of the record a call wrote, as a check judges it. */
+export interface CallEntry {
+  readonly seq: number;
+  readonly event: string;
+  readonly carried: Json;
+}
 
 /**
- * The entries the call a check judges wrote: those after position `after` carrying the call's trace. Other journeys'
- * calls, made at the same time in the same world, write under traces of their own and are not the call's. When the
- * client did not tell the call's trace (`ThisCall`), every entry after `after` is taken as the call's, as when one
- * journey ran alone in its world.
+ * The entries the call a check judges wrote: those carrying the call's trace. Other journeys' calls, made at the same
+ * time in the same world, write under traces of their own and are not the call's. Read from what the run observed
+ * under the trace when it offers that (`ThisCall.observed`), else from the record after position `after`; when the
+ * client did not tell the call's trace either, every entry after `after` is taken as the call's, as when one journey
+ * ran alone in its world.
  */
 export const entriesOfCall = (after: number, who: Who = {}) =>
   Effect.gen(function* () {
     const call = yield* ThisCall;
+    if (call.observed !== null) {
+      if (!call.observed.complete) return yield* failWith(`the call's trace ${call.trace} was not observed whole`);
+      return call.observed.events satisfies ReadonlyArray<CallEntry>;
+    }
     const added = yield* entriesAfter(after, who);
-    return call.trace === null ? added : Arr.filter(added, (each) => each.trace === call.trace);
+    const ofCall = call.trace === null ? added : Arr.filter(added, (each) => each.trace === call.trace);
+    return ofCall satisfies ReadonlyArray<CallEntry>;
   });
 
 /** The call wrote no entry: what every refusal and every read must leave behind. `before` is the head before it. */
@@ -96,7 +120,7 @@ export const view = (world: string) =>
   });
 
 /** world.show of the world a call at `who` acts on: named by its own record. */
-export const viewAt = (who: Who = {}) => Effect.flatMap(recordOf(who), (record) => view(record.world));
+export const viewAt = (who: Who = {}) => Effect.flatMap(headAt(who), (record) => view(record.world));
 
 /** A person of the world's cast, by name. */
 export const castMember = (world: View, person: string) =>
