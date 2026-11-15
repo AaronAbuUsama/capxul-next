@@ -80,21 +80,16 @@ confirmed by Aaron where it is his to make.
    email-derived Safe"; roadmap, "Account identity"). Classic instead uses a bootstrap key as first owner
    (`infrastructure: packages/backend/src/accounts/claims/external/ownership.ts`); read it for the operations, errors
    and events around a claim, not for the mechanism. Its blueprint delta is in `invoice-ledger.md`, "The claim
-   permission as a blueprint delta", for roadmap step 5.2. Two things remain Aaron's: who Companies House's signers
-   are in a real world, and how a world's enrolment calls `account.claim`.
-2. **Who owns a held payment before the payer has claimed their account**, and who signs for it. In classic the
-   bootstrap owner holds the Safe until the claim.
-3. **The signature's exact form:** the typed data signed, how a Safe's signature is verified, and what is stored on the
-   seal (signer, hat, time, result of the check).
-4. **Which hat belongs to which company:** how the payer's side proves a hat is the payee company's.
-5. **Payment kinds:** whether `kind` stays detailed on chain or moves into the sealed header, and what Budgets' kind
-   check becomes.
-6. **Racing payments:** what each way in does when `paidBefore` has moved (retry, refuse, or tell the user).
+   permission as a blueprint delta", for roadmap step 5.2. Its signers, how enrolment claims, and the starting world are decided there too.
+2. to 6. **Decided** in `invoice-ledger.md`, "The remaining points, decided": the payer owns a held payment from the
+   start; the invoice signature's form and the three checks on receipt; three payment kinds on chain; a racing
+   payment is refused `InvoiceMoved`. Carry them into the spec as written; those marked recommended need Aaron's
+   sign-off.
 7. **Which invoice doctypes are sealed**, and the header fields of each.
 8. **Delivery between companies:** how the payer's site receives the payee's sealed invoice, and what Core keeps.
 9. **Tokens:** one token per invoice is assumed; say what happens when the wrong token arrives at an invoice's address
    or a held payment.
-10. **Gas:** measure the clone deploys and `pay`, and record the figures. No estimate stands in the spec.
+10. **Gas: decided.** Recorded on every chain step's span, never budgeted until measured.
 11. **Invoices not issued through Capxul.** Aaron parked this. State that it is out of scope and what the design must
     not block.
 

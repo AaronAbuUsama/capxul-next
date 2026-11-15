@@ -284,10 +284,40 @@ A new starting world is needed: today `world.create` claims every cast member's 
 What the contract alone must prove, in its own tests, because no operation can reach it: the key's role cannot make
 any call but `claim`; a plain call to `claim` reverts; a claimed Safe refuses a second swap.
 
-### Two things this delta does not decide
+### Companies House's signers
 
-- **Who Companies House's signers are in a real world, and its threshold.** That is Aaron's to name.
-- **How a world's enrolment calls `account.claim`.** Enrolment is the other half of step 5.2 and is not designed here.
+Decided by Aaron on 15 November 2026: three keys, any one of which may sign (1 of 3), machine-generated and changeable.
+
+- **Declared once.** The blueprint's `accounts` domain declares, per grade group, the number of signers (3) and the
+  threshold (1). Nothing else may state them.
+- **Test worlds** (private and shared): the three keys are generated when the world's chain state is seeded, and the
+  world's owner holds them, so a journey can sign as Companies House.
+- **Real worlds:** Aaron's key is one of the three. Capxul generates the other two and Core holds them in its secret
+  store. Any one signs.
+- **Changing them** is one more operation, `companiesHouse.signers.change {accountVersion, remove, add, threshold}`,
+  allowed to `companies-house-signer`, opened as an approval like `claimer.grant`. It sends `companies_house_signers_changed`
+  when it lands and is refused `NotCompaniesHouseSigner` for anyone else. It refuses a change that would leave fewer
+  signers than the threshold (`SignersBelowThreshold`).
+
+### How enrolment claims the account
+
+Recommended, for Aaron's sign-off. The roadmap says a person signs in once at the platform and a world enrols them.
+
+| Option | What happens | Weakness |
+|---|---|---|
+| **A. Enrolment claims (recommended)** | When a world enrols a person, Core runs `account.claim` for them as the last step of enrolment. The person does nothing | Enrolment takes one chain transaction longer |
+| B. The person claims | Enrolment only records the person. They call `account.claim` themselves | A step the person must know about, which is the ERP showing through |
+| C. Claim on first use | Core claims the first time the person signs or withdraws | Every operation that needs the Safe must handle "not claimed yet" |
+
+With A, `account.claim` stays a public operation for one reason: a retry. If the claim fails during enrolment, the
+person is enrolled with their account `unclaimed`, and they or Core call `account.claim` again. Money can arrive at the
+Safe's address before any of this, because the address is known from the email alone.
+
+### The starting world
+
+Recommended. A new starting world, `unclaimed`, made from `fresh`: it adds one signed-in person who is enrolled and
+whose account is `unclaimed`. The existing starting worlds and their claimed cast do not change, so no existing journey
+moves.
 
 ## What this changes in decisions already made
 
@@ -297,11 +327,45 @@ any call but `claim`; a plain call to `claim` reverts; a claimed Safe refuses a 
 - **Budgets changes.** Its three paying functions take an invoice and stop wrapping a nonce.
 - **Escrow stays parked as a build item**, but its shape is now set: the held payment above.
 
-## To be closed by the spec
+## The remaining points, decided
 
-Nothing below may stay undecided. `handoff-knock-on-map.md` lists each point and what must be written down.
+Each is either Aaron's own statement of 15 November 2026 or this thread's recommendation, marked as such. A
+recommendation stands once Aaron signs it off.
 
-- **The hat check: decided.** The payer's side checks the hat once, when it receives the invoice, and records the
-  result. A hat removed later does not undo an invoice already received (Aaron, 15 November 2026).
-- **The claim: decided.** See "Claiming an email-derived Safe" above.
-- **Payment kinds**, **measured gas costs**, and **invoices not issued through Capxul** (parked by Aaron).
+**Who owns a held payment before the payer has claimed (Aaron).** The payer does, from the start. The held payment's
+owner is the address of the payer's email-derived Safe, fixed when it is created. Before the claim nobody can sign for
+that Safe, so nothing can be taken back; `release` to the payee needs no signature and works throughout. Claiming gives
+the payer access to what was already theirs. The claimer role can only swap the Safe's owner, so it cannot move the
+money either.
+
+**The form of the invoice signature (recommended).**
+
+- **What is signed:** EIP-712 typed data `Invoice(address payee,address token,uint256 total,uint16 kind,bytes32
+  documentHash)` under the domain `{name: "Capxul Invoice", version: "1", chainId, verifyingContract: Payments}`. Its
+  fields are exactly those of the invoice id, so a signature commits to the id.
+- **Who signs:** the issuing member's signer, as owner of their personal Safe. It is verified by asking that Safe
+  (`isValidSignature`, ERC-1271), a read that costs nothing.
+- **What the seal stores:** the issuer's Safe, the department's budget id and its hat id, the signature, and the time
+  it was signed.
+- **What the payer's side checks, once, on receipt:** the signature is valid for the issuer's Safe; that Safe wears the
+  hat in good standing (`Hats.isWearerOfHat`, `isInGoodStanding`); and the budget with that id belongs to the payee and
+  names that hat (`Budgets.budgetOf(id)`: its `safe` is the invoice's payee and its `hat` is the hat). It stores the
+  result and the time of the check. A failed check is the refusal `InvoiceNotAuthentic {invoice, failed: signature |
+  hat | department}`, and the invoice is never offered for payment.
+
+**Payment kinds (recommended).** Three kinds on chain, the ones the contracts themselves act on: a document payment, an
+agreement collection, and an exit payout. Budgets allows the first, `payReserved` uses the second, and equity's Exits
+the third. Whether a payment is payroll, a supplier bill or an expense is in the sealed document, which Frappe already
+knows by its doctype, and is no longer public. Today's kinds 0 to 3 collapse into the first.
+
+**Racing payments (recommended).** Only one case exists: two members of the same company each sign a part-payment of
+the same invoice at the same moment. The second to land sees that the paid figure has moved and reverts. Core does not
+retry it; the member gets the refusal `InvoiceMoved {invoice, paidNow, outstanding}` and decides again. The invoice's
+address and a held payment read the figure inside their own transaction, so they cannot race. `paidBefore` stays: it is
+one comparison, and it is what stops a double-submitted payment landing twice.
+
+**Gas (Aaron).** Measured, not budgeted. Every step of kind `chain` records the gas used and the fee paid on its span,
+so every run record holds them per operation. No event carries gas. A budget is set from measured runs, as for time.
+
+**Invoices not issued through Capxul.** Out of scope, parked by Aaron. The design blocks nothing: Payments accepts any
+payee and any document hash.
