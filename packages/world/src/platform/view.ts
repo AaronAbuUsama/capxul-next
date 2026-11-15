@@ -28,7 +28,11 @@ import { noteCall } from "./store.ts";
 const failed = (step: PlatformFailed["step"]) => (cause: unknown) =>
   PlatformFailed.make({ step, message: describeFailure(cause) });
 
-const Recorded = Schema.Struct({ ...WorldOutput.fields, status: Schema.optional(Schema.String) });
+/** What a world's stage records, with its status (`parked`, or what is left of a take-down that did not finish). */
+export const Recorded = Schema.Struct({ ...WorldOutput.fields, status: Schema.optional(Schema.String) });
+
+/** A world's state as world.show answers it, from what its stage records. */
+export const stateOf = (output: typeof Recorded.Type) => (output.status === "parked" ? "parked" : "running");
 
 /** A world's handle and what its stage recorded, from the shared state. */
 export const opened = (stage: string, known?: World) =>
@@ -84,7 +88,7 @@ export const viewOf = Effect.fn("platform.view")(function* (stage: string, makin
     world: nameOf(stage),
     owner: output.owner,
     grade,
-    state: output.status === "parked" ? "parked" : "running",
+    state: stateOf(output),
     expiresAt: output.expiresAt,
     door: output.coreUrl,
     chainId: facts.chainId,
