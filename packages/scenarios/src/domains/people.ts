@@ -9,6 +9,7 @@ import { orgMemberInvite } from "../checks/org-member-invite.ts";
 import { orgMemberList } from "../checks/org-member-list.ts";
 import { at, type Domain } from "../domain.ts";
 import { inviteOlga } from "../journeys/invite-olga.ts";
+import { noGoingBack } from "../journeys/no-going-back.ts";
 
 /** The checks of each of its operations. */
 export const checks: Domain<typeof People>["checks"] = {
@@ -20,7 +21,7 @@ export const checks: Domain<typeof People>["checks"] = {
 };
 
 /** The journeys it leads, in the order they run. */
-export const journeys: Domain<typeof People>["journeys"] = [inviteOlga];
+export const journeys: Domain<typeof People>["journeys"] = [inviteOlga, noGoingBack];
 
 /** Where each claim of each of its operations is checked, in claims.md's order. */
 export const coverage: Domain<typeof People>["coverage"] = {
@@ -36,7 +37,10 @@ export const coverage: Domain<typeof People>["coverage"] = {
     at(["invite.accept"], [inviteOlga, 6]),
     at(["invite.accept"], [inviteOlga, 6]),
   ],
-  "invite.decline": [at(["invite.decline"], [inviteOlga, 4]), at(["invite.decline"], [inviteOlga, 4])],
+  "invite.decline": [
+    at(["invite.decline"], [inviteOlga, 4]),
+    at(["invite.decline"], [inviteOlga, 4], [noGoingBack, 3]),
+  ],
   "org.member.list": [
     at(["org.member.list"], [inviteOlga, 1], [inviteOlga, 8]),
     at(["org.member.list"], [inviteOlga, 1]),
