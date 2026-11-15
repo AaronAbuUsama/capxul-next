@@ -89,7 +89,6 @@ export const unmigrated: {
     "packages/world/src/lifecycle/claim.ts": 6,
     "packages/world/src/lifecycle/controls.ts": 9,
     "packages/world/src/lifecycle/expiry.ts": 4,
-    "packages/world/src/lifecycle/handle.ts": 10,
     "packages/world/src/lifecycle/parts.ts": 15,
     "packages/world/src/lifecycle/renew.ts": 1,
     "packages/world/src/lifecycle/reset.ts": 1,

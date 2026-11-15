@@ -3,9 +3,9 @@
 //
 // The handle runs against an in-memory state store (the hub's admin token, the platform's project and each world's
 // operator token) and a stand-in for Neon's API that counts the connection strings it was asked for.
+import { startingWorlds } from "@capxul/blueprint";
 import * as assert from "node:assert/strict";
 import { beforeEach, describe, test } from "node:test";
-import { startingWorlds } from "@capxul/blueprint";
 import { type CreatedResourceState, InMemoryService } from "alchemy/State";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
