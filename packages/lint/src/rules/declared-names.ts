@@ -4,10 +4,12 @@
 // compiler checks against the declarations is allowed: an object's key, a computed member (`client["world.create"]`),
 // and the tag given to Effect.catchTag, Match.tag, Match.tagStartsWith or Predicate.isTagged.
 import type { Context, ESTree } from "@oxlint/plugins";
+import * as Arr from "effect/Array";
 import { isGenerated, ratcheted, type Unmigrated } from "./ratchet.ts";
 import { matches, pathOf } from "./where.ts";
 
-const OWNER = "packages/blueprint/**";
+/** The blueprint, and its toolkit (packages/blueprint-tools), which writes and checks it. */
+const OWNERS = ["packages/blueprint/**", "packages/blueprint-tools/**"];
 
 /** Calls whose string arguments the compiler checks against the tags of the value they match. */
 const TAG_CALLS = new Set(["catchTag", "tag", "tagStartsWith", "isTagged"]);
@@ -55,7 +57,7 @@ export const declaredNames = (names: ReadonlySet<string>, listed: Unmigrated) =>
     "Names the blueprint declares are imported, never written as strings",
     listed,
     (context: Context, found) => {
-      if (matches(OWNER, pathOf(context)) || isGenerated(context)) return null;
+      if (Arr.some(OWNERS, (owner) => matches(owner, pathOf(context))) || isGenerated(context)) return null;
       const check = (node: ESTree.Node, text: string | null): void => {
         if (text !== null && names.has(text) && !exempt(node)) found({ node, message: message(text) });
       };

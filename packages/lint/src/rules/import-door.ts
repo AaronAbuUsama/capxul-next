@@ -1,11 +1,13 @@
-// capxul/import-door: another package is imported only through its door, `src/door.ts`, or by its bare name
-// `@capxul/<name>`, whose package.json points at that door. Everything else in a package is its own business.
+// capxul/import-door: another package is imported only through its door, `src/door.ts` (`src/index.ts` in the
+// blueprint and its toolkit, the glossary's word for it), or by its bare name `@capxul/<name>`, whose package.json
+// points at that door. Everything else in a package is its own business.
 import type { Context, ESTree, Rule } from "@oxlint/plugins";
 import * as Arr from "effect/Array";
 import * as Str from "effect/String";
 import { pathOf } from "./where.ts";
 
-const DOOR = "src/door.ts";
+/** The file a package's door is: today `src/door.ts`, and `src/index.ts` once renamed by the glossary. */
+const DOORS = ["src/door.ts", "src/index.ts"];
 
 /** Joins a relative specifier to the importing file's folder, resolving `.` and `..`. */
 export const resolve = (from: string, specifier: string): string =>
@@ -32,10 +34,10 @@ export const throughWall = (file: string, specifier: string): string | null => {
   const own = packageOf(file);
   const other = packageOf(target);
   if (other === null || other === own) return null;
-  const door = `packages/${other}/${DOOR}`;
-  return target === door || target === Str.replace(/\.ts$/, "")(door)
+  const doors = Arr.map(DOORS, (door) => `packages/${other}/${door}`);
+  return Arr.some(doors, (door) => target === door || target === Str.replace(/\.ts$/, "")(door))
     ? null
-    : `"${specifier}" reaches inside packages/${other}; import its door, packages/${other}/${DOOR}`;
+    : `"${specifier}" reaches inside packages/${other}; import its door, packages/${other}/${DOORS[0] ?? ""}`;
 };
 
 type WithSource = ESTree.ImportDeclaration | ESTree.ExportAllDeclaration | ESTree.ExportNamedDeclaration;
@@ -59,7 +61,7 @@ const create = (context: Context) => {
 export const importDoor: Rule = {
   meta: {
     type: "problem",
-    docs: { description: "Another package is imported only through its src/door.ts" },
+    docs: { description: "Another package is imported only through its door, src/door.ts or src/index.ts" },
   },
   create,
 };

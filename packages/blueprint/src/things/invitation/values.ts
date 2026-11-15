@@ -1,0 +1,36 @@
+// An invitation's values: what one is and where it stands. A Seat, a person's belonging to a company, is off the
+// chain and off the site (docs/build-order.md says why).
+import * as Schema from "effect/Schema";
+import { Instant, OrgHandle, OrgId, PersonId } from "../../common/values.ts";
+import { Invitation as InvitationMachine } from "./lifecycle.ts";
+
+/** An email address, in lower case, as a person signs up with it (a person of the cast: `<person>@cast.test`). */
+export const Email = Schema.String.check(Schema.isPattern(/^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/));
+
+/** An invitation, by the id `org.member.invite` answered. */
+export const InvitationId = Schema.String.check(Schema.isPattern(/^inv_[a-z0-9]{6,40}$/));
+
+/**
+ * What an invitation offers: a member's Seat. A Director is a signer of the company Safe, added by a Directors'
+ * proposal, and a permission is a hat granted by `org.member.grant` once the person is a member; neither is offered
+ * by an invitation, so accepting one writes nothing to the chain.
+ */
+export const InvitedRole = Schema.Literal("member");
+
+/** Where an invitation stands: exactly the states of its machine (lifecycle.ts). */
+export const InvitationState = InvitationMachine.State;
+
+/** One invitation, as its company's Directors and its invitee see it. */
+export const Invitation = Schema.Struct({
+  id: InvitationId,
+  org: OrgId,
+  handle: OrgHandle,
+  /** The address it was sent to. The person of the world who signs in with it is its invitee. */
+  email: Email,
+  role: InvitedRole,
+  /** The person who invited: for now always the company's founder (docs/roadmap.md, "Who may invite"). */
+  invitedBy: PersonId,
+  state: InvitationState,
+  /** World time. */
+  invitedAt: Instant,
+});

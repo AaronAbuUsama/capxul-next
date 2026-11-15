@@ -258,9 +258,28 @@ importers:
 
   packages/blueprint:
     dependencies:
+      '@capxul/blueprint-tools':
+        specifier: workspace:*
+        version: link:../blueprint-tools
       '@capxul/contracts':
         specifier: workspace:*
         version: link:../contracts
+      effect:
+        specifier: 'catalog:'
+        version: 4.1.2
+    devDependencies:
+      '@effect/tsgo':
+        specifier: 'catalog:'
+        version: 0.63.0
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.1
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+
+  packages/blueprint-tools:
+    dependencies:
       effect:
         specifier: 'catalog:'
         version: 4.1.2
@@ -353,6 +372,9 @@ importers:
       '@capxul/blueprint':
         specifier: workspace:*
         version: link:../blueprint
+      '@capxul/blueprint-tools':
+        specifier: workspace:*
+        version: link:../blueprint-tools
       effect:
         specifier: 'catalog:'
         version: 4.1.2
