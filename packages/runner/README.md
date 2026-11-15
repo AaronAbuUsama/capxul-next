@@ -111,7 +111,12 @@ world's own operations go to its Core.
    read for anything of them before and after (`afterwards.*.worlds`).
 5. **The end**: the one world destroyed, the hub taken down, and the accounts read for every world the run made
    (`oneWorld.left`). The bench templates stay: packages/world's `sweep` removes them once unused for 6 hours, which
-   `world.yml` runs after every run.
+   `world.yml` runs after every run. With `RUNNER_TEARDOWN=job`, as `world.yml` sets it, the one world and a hub the
+   run brought up are left up for CI's `teardown` job, which runs after the check has reported its verdict, always,
+   destroys every world the run's operators own and then the hub, and reads the accounts afterwards, failing by name
+   on anything of them left (its artifact `world-<run>-<attempt>-teardown`, world lifecycle rule 4). The summary
+   names the world in `oneWorld.handedOver`, and `oneWorld.left` still lists what the accounts held of it before the
+   teardown. Only what is left beyond the worlds handed over fails the run. Unset, the run takes everything down itself, as a local run should.
 
 The summary is written however the run ends, but by interruption (`src/worlds/ending.ts`): a starting world that was
 not made fails the journeys that start from it, each with why, while the others still run, and the summary's
@@ -235,7 +240,8 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | `WORLD_USE_TIMEOUT` | `3 minutes` | The calls and the checks. |
 | `WORLD_SCENARIO_TIMEOUT` | `20 minutes` | The same for a scenario in private worlds, whose calls may make worlds. |
 | `WORLD_DESTROY_TIMEOUT` | `4 minutes` | The destroy. |
-| `WORLD_READY_ANSWERS` | `20` | Answers in a row before a stage is ready. |
+| `WORLD_READY_ANSWERS` | `5` | Answers in a row before a stage is ready. A relapse (a miss after the first answer) is still counted in `readiness.relapses`; none has ever been seen, so 20 was cut to 5 (docs/design/run-time.md, option 6c). |
+| `RUNNER_TEARDOWN` | `run` | Who takes down a run in one world at its end: `run`, the run itself; `job`, CI's `teardown` job in `world.yml` (the one world and its own hub are left up for it, named in `oneWorld.handedOver`). Each journey's own worlds are destroyed after it either way. |
 | `WORLD_PROBE_EVERY` | `500 millis` | Between two probes, and between two sends of a call during the warm-up. |
 | `WORLD_WARM_UP` | `30 seconds` | How long after ready a call Cloudflare's edge answered is sent again. |
 | `RUNNER_RECORDS` | `records` | Where records are written. |
