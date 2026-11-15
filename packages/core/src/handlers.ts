@@ -5,6 +5,7 @@
 // `toLayer` takes exactly one handler per operation of its group: leave a domain out and this file no longer compiles.
 import { PlatformRpcs, WorldRpcs } from "@capxul/blueprint";
 import * as Approvals from "./domains/approvals.ts";
+import * as Board from "./domains/board.ts";
 import * as Documents from "./domains/documents.ts";
 import * as Organizations from "./domains/organizations.ts";
 import * as People from "./domains/people.ts";
@@ -19,6 +20,7 @@ export const PlatformHandlers = PlatformRpcs.toLayer({ ...World.platform });
 export const WorldHandlers = WorldRpcs.toLayer({
   ...Organizations.world,
   ...People.world,
+  ...Board.world,
   ...Documents.world,
   ...Approvals.world,
   ...Reports.world,

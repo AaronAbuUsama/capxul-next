@@ -12,7 +12,7 @@ project), and a world's Core slot (`packages/world`, `src/core/Core.ts`), where 
 world's door and the world's bench. What a deploy binds is handed to it as a `Deployment` (`src/stack/deployment.ts`);
 the running Worker reads every fact from its environment per request, by the names in `src/env.ts`.
 
-**Every handler is built.** Core builds the world group's thirteen (`src/site-ops/`, `src/organizations/` and
+**Every handler but the board's is built.** Core builds the world group's thirteen others (`src/site-ops/`, `src/organizations/` and
 `src/people/`, below); the platform group's four are `packages/world`'s (`src/platform`, blueprint decisions.md 51), so Core's own
 platform handlers are empty: each fails with the blueprint's `NotImplemented`, naming itself (entry 33). The server compiles only with one handler per operation: leave a
 domain out of `src/handlers.ts`, or an operation out of its `src/domains/` file, and `pnpm types` fails with
@@ -23,7 +23,7 @@ domain out of `src/handlers.ts`, or an operation out of its `src/domains/` file,
 | `src/door.ts` | The door: the stack, the two door paths, `serveDoors`, `Served`, `CoreRpcs`, the span types, and `migrations`. |
 | `src/doors.ts` | `serveDoors`: each request to the group its path names, `PLATFORM_PATH` or `WORLD_PATH`. |
 | `src/handlers.ts` | One handler per operation, in its blueprint group, gathered from `src/domains/`. |
-| `src/domains/` | One file per blueprint domain: its handlers, as its share of each group it serves (`platform`, `world`). The world group's come from `src/site-ops/` and `src/organizations/`; the platform group's are empty. |
+| `src/domains/` | One file per blueprint domain: its handlers, as its share of each group it serves (`platform`, `world`). The world group's come from `src/site-ops/` and `src/organizations/`; the platform group's are empty, and so are the board domain's (`src/domains/board.ts`: `org.director.list`, `org.director.add` and `org.threshold.set` answer `NotImplemented` until they are built; `src/board/landed.ts` holds the place of their subject's landing). |
 | `src/empty-handlers.ts` | Core's empty-handler mode: every operation of both groups answers `NotImplemented`, whatever is built, made from the groups' own operations. A stage deployed with `CAPXUL_HANDLERS=empty` (`src/env.ts`) serves it, so the scenario author can show every journey fails against handlers that do nothing (`./run.sh scenarios --expect=not-implemented` in packages/runner, roadmap step 1.14). A world's Core never binds it. |
 | `src/site-ops/` | The document, report, clock and record operations (below). `door.ts` is its door. |
 | `src/organizations/`, `src/approvals/`, `src/chain/`, `src/cast/` | The chain operations, org.create, org.member.grant and approval.sign (below). `organizations/handlers.ts` is what `src/domains/` and the Worker use. What a subject's landing means is its domain's (`organizations/landed.ts`, and `approvals/payments.ts` for a payment); `approvals/landed.ts` gathers them by kind. |
