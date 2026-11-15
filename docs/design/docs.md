@@ -535,14 +535,15 @@ Landed since the hand-over (15 November 2026, 19:10 UTC):
 
 Still to do:
 
-1. **M4, after the blueprint's stage 2b:** move the roadmap's decisions table to `docs/decisions.md`, word for word
-   and with its dates, and link it from the roadmap. Keep "Steps to the goal" byte-compatible, because
-   `packages/status-feed/feed.py` parses it. Add Aaron's decisions recorded elsewhere, with their own words and
-   dates: entry 26 (founding with a board) and entry 53's rule ("the chain's budget is the only gate on spending")
-   of `packages/blueprint/docs/decisions.md`, unless the blueprint lead's fold has moved them; "Answered by Aaron" 1
-   to 3; the Companies House signers, from `invoice-ledger.md` on branch `design/contracts-first-principles`. The
-   contracts thread was to rewrite "Every payment settles one sealed document" with Aaron's two answers of 15
-   November; if that has not happened, raise it, do not reword it.
+1. **M4, done 15 November 2026, but for the additions waiting on Aaron:** the roadmap's decisions table is
+   `docs/decisions.md`, word for word (59 decisions), and
+   the roadmap's section "What was decided on 13 November 2026" points to it, so every citation of "the roadmap's
+   decision" by name finds it in one step. "Steps to the goal" is unchanged; `feed.py` still reads its 66 steps.
+   `AGENTS.md` and the conductor's skill say decisions are written in `docs/decisions.md`. Waiting on Aaron, through
+   the conductor: the decisions the blueprint lead's fold found in code (entries 26, 51(b), 53, 22/23/48, answers 1 to
+   4) and the Companies House signers from `invoice-ledger.md`. The decision "Every payment settles one sealed
+   document" still says a payer may reject an invoice and Escrow stays as it is, against Aaron's two answers of 15
+   November recorded in the contracts thread; raised with the conductor, not reworded.
 2. **M24, after 2b:** `AGENTS.md` to the rules only, each rule's words kept, the reasons moved to `docs/` and
    linked. Its ladder and lint-rule list are generated blocks already. It must say that rung 1 covers the docs'
    shape (`packages/lint/src/docs.ts`) and the package maps (`packages/lint/src/maps.ts`).

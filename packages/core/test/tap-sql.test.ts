@@ -1,5 +1,6 @@
 // The tap against a real Postgres with its migration applied (migrations/0010_core_telemetry_otlp.sql): what one request
-// exports is written in one statement after the flush, a row per trace id and signal, traces and logs only, the body
+// exports, built as the Worker builds it (`requestExport`, the tap on and no collector bound), is written in one
+// statement as the request's scope closes, after the flush, a row per trace id and signal, traces and logs only, the body
 // as jsonb holding the call's operation span and its log. Runs only with CAPXUL_TEST_DATABASE (a throwaway Postgres);
 // CI has none, so it skips.
 import { strict as assert } from "node:assert";
@@ -12,24 +13,21 @@ import { WorldRpcs } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
-import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import * as Schema from "effect/Schema";
-import * as Scope from "effect/Scope";
 import * as Str from "effect/String";
-import * as Tracer from "effect/Tracer";
 import * as Headers from "effect/http/Headers";
-import * as HttpClient from "effect/http/HttpClient";
 import type * as Rpc from "effect/rpc/Rpc";
 import { SpanSink } from "../src/telemetry/sink.ts";
 import type { KeptSpan } from "../src/telemetry/spans.ts";
 
 /** Core's migrations, where the package keeps them. */
 const migrations = new URL("../migrations/", import.meta.url);
-import { apiTelemetry, type Held, transport, writeTap } from "../src/telemetry/export.ts";
-import { CallTracer, measured } from "../src/telemetry/spans.ts";
+import { ENV } from "../src/env.ts";
+import { requestExport, TAP_ON } from "../src/telemetry/export.ts";
+import { measured } from "../src/telemetry/spans.ts";
 
 const url = process.env["CAPXUL_TEST_DATABASE"];
 
@@ -54,31 +52,23 @@ test(
         const lines = Arr.filter(Str.split(text, "\n"), (line) => !Str.startsWith("--")(Str.trimStart(line)));
         for (const statement of Arr.filter(Arr.map(Str.split(Arr.join(lines, "\n"), ";"), Str.trim), Str.isNonEmpty))
           yield* sql.unsafe(statement);
-        const held: Array<Held> = [];
         const kept: Array<KeptSpan> = [];
-        const client = transport(
-          Option.none(),
-          Option.some((each: Held) => void held.push(each)),
-        );
-        const scope = yield* Scope.make();
-        const built = yield* Layer.buildWithScope(
-          apiTelemetry({ baseUrl: "https://collector", revision: "abc123" }).pipe(
-            Layer.provide(Layer.succeed(HttpClient.HttpClient, client)),
-          ),
-          scope,
-        );
         const sink = SpanSink.of({ keep: (spans) => Effect.sync(() => kept.push(...spans)) });
-        yield* measured(
-          sink,
-          { colo: Option.none() },
-          { rpc, headers: Headers.empty },
-          Effect.logInfo("refused: x"),
-        ).pipe(
-          Effect.provideService(CallTracer, Option.some(Context.get(built, Tracer.Tracer))),
-          Effect.provide(Context.omit(Tracer.Tracer)(built)),
-        );
-        yield* Scope.close(scope, Exit.void);
-        yield* writeTap(sql, held);
+        // One request as the Worker serves it: its export built from its environment (the tap on, no collector bound)
+        // into the request's own scope, whose close flushes the exporters and then writes the tap.
+        yield* Effect.gen(function* () {
+          const exported = yield* requestExport(
+            { [ENV.tap]: TAP_ON, [ENV.revision]: "abc123" },
+            Effect.succeed(Redacted.make(url ?? "")),
+          );
+          assert.ok(Option.isSome(exported), "the tap did not build the export");
+          yield* measured(
+            sink,
+            { colo: Option.none() },
+            { rpc, headers: Headers.empty },
+            Effect.logInfo("refused: x"),
+          ).pipe(Effect.provide(exported.value));
+        }).pipe(Effect.scoped);
         const traceId = kept[0]?.traceId ?? "";
         const rows = yield* sql`
           select signal,
