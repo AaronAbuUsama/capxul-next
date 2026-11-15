@@ -2,17 +2,18 @@
 // writes every derived file whose text changed, printing each one it wrote; with --check (`pnpm generate:check`) it
 // writes nothing and fails when any would change. The root scripts build the contracts first. No generated file is
 // formatted after: each is written in its final form. An entry file: it reads the disk, parses JSON, sets the exit code.
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { Site } from "@capxul/blueprint";
+import { layoutOf } from "@capxul/blueprint-tools";
 import * as Arr from "effect/Array";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import { getContractAddress } from "viem";
+import { renderBlueprint } from "./blueprint.ts";
 import { renderAbi, renderSeeded, renderSite, renderSitePackage, type Seeded } from "./render.ts";
-import { ABIS, FIRST_ACCOUNT, OUT, OUTPUTS, RECORD, SEED } from "./sources.ts";
+import { ABIS, BLUEPRINT, FIRST_ACCOUNT, OUT, OUTPUTS, RECORD, SEED } from "./sources.ts";
 
 const root = join(import.meta.dirname, "../../..");
 const literal = (value: unknown): string => JSON.stringify(value, null, 2);
@@ -87,6 +88,44 @@ const seeded: Seeded = {
   },
 };
 
+/** With --check, nothing is written: each file that generating again would change is named, and the run fails. */
+const check = process.argv.includes("--check");
+
+/** Writes each output whose text changed, or with --check names it; answers how many were stale. */
+const settle = (outputs: ReadonlyArray<readonly [string, string]>): number => {
+  const stale = Arr.filter(outputs, ([path, body]) => {
+    const file = join(root, path);
+    return !existsSync(file) || readFileSync(file, "utf8") !== body;
+  });
+  for (const [path, body] of stale) {
+    if (check) {
+      console.error(`${path} is not what generating again writes: run \`pnpm generate\` and commit it`);
+      continue;
+    }
+    mkdirSync(dirname(join(root, path)), { recursive: true });
+    writeFileSync(join(root, path), body);
+    console.log(`wrote ${path}`);
+  }
+  return stale.length;
+};
+
+// The blueprint's indexes first, from its thing folders' text alone: what follows imports the blueprint, which
+// imports these indexes, so they are made whole before it loads.
+const things = join(root, BLUEPRINT.root, "src/things");
+const blueprint = renderBlueprint(
+  layoutOf(
+    Arr.map(
+      Arr.filter(readdirSync(things, { recursive: true, encoding: "utf8" }), (path) => Str.endsWith(".ts")(path)),
+      (path) => ({ path, text: readFileSync(join(things, path), "utf8") }),
+    ),
+  ),
+);
+if (blueprint.problems.length > 0)
+  throw new Error(`pnpm generate: the blueprint's things do not fit:\n${Arr.join(blueprint.problems, "\n")}`);
+const staleIndexes = settle(Arr.map(blueprint.written, ({ path, text }) => [path, text] as const));
+
+const { Site } = await import("@capxul/blueprint");
+
 const site = {
   WALLET_ADDRESS_FIELD: Site.SUPPLIER_FIELDS.paymentAddress,
   DAILY_JOB: Site.DAILY_JOB.method,
@@ -94,27 +133,12 @@ const site = {
   SAFE_ACCOUNT_PREFIX: Site.SAFE_ACCOUNT_PREFIX,
 };
 
-const outputs: ReadonlyArray<readonly [string, string]> = [
-  [OUTPUTS.abi.path, renderAbi(abis, literal)],
-  [OUTPUTS.seeded.path, renderSeeded(seeded, literal)],
-  [OUTPUTS.site.path, renderSite(site, literal)],
-  [OUTPUTS.sitePackage.path, renderSitePackage()],
-];
-
-/** With --check, nothing is written: each file that generating again would change is named, and the run fails. */
-const check = process.argv.includes("--check");
-const stale = Arr.filter(outputs, ([path, body]) => {
-  const file = join(root, path);
-  return !existsSync(file) || readFileSync(file, "utf8") !== body;
-});
-
-for (const [path, body] of stale) {
-  if (check) {
-    console.error(`${path} is not what generating again writes: run \`pnpm generate\` and commit it`);
-    continue;
-  }
-  mkdirSync(dirname(join(root, path)), { recursive: true });
-  writeFileSync(join(root, path), body);
-  console.log(`wrote ${path}`);
-}
-if (check && stale.length > 0) process.exitCode = 1;
+const stale =
+  staleIndexes +
+  settle([
+    [OUTPUTS.abi.path, renderAbi(abis, literal)],
+    [OUTPUTS.seeded.path, renderSeeded(seeded, literal)],
+    [OUTPUTS.site.path, renderSite(site, literal)],
+    [OUTPUTS.sitePackage.path, renderSitePackage()],
+  ]);
+if (check && stale > 0) process.exitCode = 1;

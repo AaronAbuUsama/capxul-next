@@ -4,7 +4,7 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
-import { domains, PlatformRpcs, WorldRpcs } from "../src/door.ts";
+import { domains, PlatformRpcs, WorldRpcs } from "../src/index.ts";
 
 /** The thin line's twelve, by the group that serves each. A domain adds operations; none of these ever moves. */
 const THIN_LINE = {

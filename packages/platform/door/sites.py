@@ -21,7 +21,7 @@ PORT = int(os.environ.get("DOOR_PORT", "8100"))
 WEB = urlsplit(os.environ.get("WEB_URL", "http://web:8000"))
 BENCH = os.environ.get("FRAPPE_BENCH", "/home/frappe/frappe-bench")  # another only in the door's unit tests
 REGISTRY = f"{BENCH}/sites/.capxul-door"
-# The blueprint's WorldName (packages/blueprint/src/values.ts), which src/token.ts checks too.
+# The blueprint's WorldName (packages/blueprint/src/common/values.ts), which src/token.ts checks too.
 WORLD = r"[a-z][a-z0-9-]{0,13}[a-z0-9]"
 TOKEN = re.compile(rf"^v1\.({WORLD})\.([0-9]{{1,3}})\.([0-9]{{10}})\.([0-9a-f]{{64}})$")
 LABEL = re.compile(r"^[a-z0-9]{1,12}$")

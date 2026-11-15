@@ -1,6 +1,6 @@
-// Step 3.4's proof: the machine format (src/machine.ts) and the invitation's machine (src/people/machines.ts). The
-// generic tests run for every machine the door's `machines` holds, so a new machine is covered with nothing added
-// here; the invitation's own cases follow. Written before the format, by another agent than its builder (AGENTS.md,
+// Step 3.4's proof: the machine format (the toolkit's lifecycle) and the invitation's lifecycle
+// (src/things/invitation/lifecycle.ts). The generic tests run for every machine the door's `machines` holds, so a new
+// machine is covered with nothing added here; the invitation's own cases follow. Written before the format, by another agent than its builder (AGENTS.md,
 // "How a feature is built"). Run with `pnpm test`.
 import { strict as assert } from "node:assert";
 import { readdirSync, readFileSync } from "node:fs";
@@ -14,8 +14,8 @@ import * as Order from "effect/Order";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
-import { Errors, eventNamesOf, machines, operations, People, refusalsOf, type Operation } from "../src/door.ts";
-import { Invitation } from "../src/people/machines.ts";
+import { Errors, eventNamesOf, machines, operations, People, refusalsOf, type Operation } from "../src/index.ts";
+import { Invitation } from "../src/things/invitation/lifecycle.ts";
 
 type Stepped =
   | { readonly _tag: "Moved"; readonly to: string; readonly event: string }

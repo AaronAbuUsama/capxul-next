@@ -6,7 +6,8 @@ import * as Arr from "effect/Array";
 import { memberName, rootCallee } from "./names.ts";
 import { matches, pathOf } from "./where.ts";
 
-const OWNER = "packages/blueprint/**";
+/** The blueprint, and its toolkit (packages/blueprint-tools), which writes and checks it. */
+const OWNERS = ["packages/blueprint/**", "packages/blueprint-tools/**"];
 
 /** What each constructor declares, by its `Namespace.name`. */
 const DECLARES: Readonly<Record<string, string>> = {
@@ -25,7 +26,7 @@ const isStartingWorld = (type: ESTree.TSType | undefined | null): boolean =>
   type?.type === "TSTypeReference" && type.typeName.type === "Identifier" && type.typeName.name === "StartingWorld";
 
 const create = (context: Context) => {
-  if (matches(OWNER, pathOf(context))) return {};
+  if (Arr.some(OWNERS, (owner) => matches(owner, pathOf(context)))) return {};
   return {
     CallExpression: (node: ESTree.CallExpression) => {
       if (node.parent.type === "CallExpression" && node.parent.callee === node) return;

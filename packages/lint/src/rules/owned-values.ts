@@ -36,11 +36,12 @@ const RAW = new Set([
   "Json",
 ]);
 
-/** Where values are named: the blueprint's values files, its ids, and its machines. */
+/** Where values are named: the blueprint's values files (each thing's and the common ones), its ids, and its lifecycles. */
 const NAMING = [
-  "packages/blueprint/src/**/values.ts",
-  "packages/blueprint/src/ids.ts",
-  "packages/blueprint/src/**/machines.ts",
+  "packages/blueprint/src/things/**/values.ts",
+  "packages/blueprint/src/common/values.ts",
+  "packages/blueprint/src/common/ids.ts",
+  "packages/blueprint/src/things/**/lifecycle.ts",
 ];
 
 const message = (raw: string, naming: boolean): string =>
