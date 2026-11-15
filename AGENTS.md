@@ -104,7 +104,7 @@ Standing rules from Aaron, for the conductor and every lead (14 and 15 November 
 
 ## How a feature is built
 
-Agreed with Aaron on 15 November 2026 (`docs/roadmap.md`, "How a feature is built" and the decisions after it).
+Agreed with Aaron on 15 November 2026 (`docs/decisions.md`, "How a feature is built" and the decisions after it).
 Everything is about being measurable: a feature is done when run records prove it and its measures are watched, not
 when its code is written. Steps marked with a roadmap step, such as (3.4), are not built yet; until their roadmap step is Done, the reviewer checks
 them by reading the diff.
@@ -112,7 +112,7 @@ them by reading the diff.
 ### The loop
 
 1. **Idea, then decision.** An idea that changes what Capxul promises is a roadmap decision: Aaron agrees it, and it is
-   written in `docs/roadmap.md` with its date. That covers a new kind of thing with a lifecycle, a new kind of
+   written in `docs/decisions.md` with its date. That covers a new kind of thing with a lifecycle, a new kind of
    refusal, a change to the contracts, a change to existing behaviour and a new outside dependency. Anything else is
    the slice lead's call.
 2. **The blueprint delta**, written before any code and signed off by the slice lead. It declares, in

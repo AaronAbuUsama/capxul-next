@@ -33,7 +33,7 @@ thread types, their emojis, their finish lines and your agent's word for each ac
 
 ## Where the state lives
 
-- **Plan and decisions:** `docs/roadmap.md`, `docs/design/*.md`. `docs/design/handoff.md` says where each piece of work
+- **Plan and decisions:** `docs/roadmap.md`, `docs/decisions.md`, `docs/design/*.md`. `docs/design/handoff.md` says where each piece of work
   stands at the last change of conductor.
 - **Threads:** your agent's thread list, by title emoji; Claude Code cloud threads also by tag `capxul-lane`.
 - **Aaron's views:** the status dashboard and the Rebuild Sitrep page on claude.ai, which only a Claude thread can
