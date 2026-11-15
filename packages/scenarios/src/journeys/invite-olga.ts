@@ -15,26 +15,29 @@ import { invitationsOf, type Member } from "../support/people.ts";
 
 const steps = outline({
   people: [
-    "org.member.list",
+    "member.list",
     "Northwind's people as founded: dana and eli its Directors, sam and pat its members; olga, who is none of them, may not see them",
   ],
   invite: [
-    "org.member.invite",
+    "invitation.send",
     "who may not invite, and who already belongs, are refused; dana invites olga as a member, pending at once with nothing to sign, and cannot invite her twice while it waits; an email nobody has yet is invited all the same",
   ],
-  find: ["invite.list", "olga finds dana's invitation to Northwind, pending; sam has none, and nobody has rex's"],
-  decline: ["invite.decline", "sam may not decline olga's invitation; olga declines it, and cannot decline it twice"],
+  find: ["invitation.list", "olga finds dana's invitation to Northwind, pending; sam has none, and nobody has rex's"],
+  decline: [
+    "invitation.decline",
+    "sam may not decline olga's invitation; olga declines it, and cannot decline it twice",
+  ],
   again: [
-    "org.member.invite",
+    "invitation.send",
     "eli, a Director but not the founder, may not invite olga again; dana does: her declined invitation no longer stands in the way",
   ],
   accept: [
-    "invite.accept",
+    "invitation.accept",
     "olga cannot accept what she declined, nor what nobody sent, and sam may not accept hers; olga accepts dana's second and is a member at once, and accepting again answers the same",
   ],
-  mine: ["invite.list", "olga's invitations, both from dana: the first declined, then the second accepted"],
-  joined: ["org.member.list", "olga sees Northwind's people, herself last as a member, as dana does"],
-  member: ["org.member.invite", "olga belongs to Northwind now: inviting her again is refused"],
+  mine: ["invitation.list", "olga's invitations, both from dana: the first declined, then the second accepted"],
+  joined: ["member.list", "olga sees Northwind's people, herself last as a member, as dana does"],
+  member: ["invitation.send", "olga belongs to Northwind now: inviting her again is refused"],
   grant: ["org.member.grant", "dana proposes that olga issue invoices: she is a member now, so it is proposed"],
 });
 
@@ -61,6 +64,7 @@ const OLGA: Member = { person: "olga", email: OLGA_EMAIL, role: "member" };
 export const inviteOlga = journey(
   {
     name: "invite olga to Northwind",
+    world: "shared",
     story:
       "dana, Northwind's founder, invites olga as a member, olga declines, eli may not invite her again but dana does and she accepts, and is a member at once with nothing signed, so dana can propose a permission for her; everyone who may not is refused.",
     given: startingWorlds.founded,
@@ -120,7 +124,7 @@ export const inviteOlga = journey(
         const closed = yield* op.refused("InvitationClosed", { invitation: first.id }, olga);
         yield* same("the closed invitation's state", closed.state, "declined");
         yield* op.refused("InvitationNotFound", { invitation: NO_INVITATION }, olga);
-        const people = (yield* capxul["org.member.list"]({ org }, dana)).members;
+        const people = (yield* capxul["member.list"]({ org }, dana)).members;
         yield* same("Northwind's people once olga declined", people, AS_FOUNDED);
       }),
     );

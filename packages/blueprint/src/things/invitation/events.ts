@@ -6,23 +6,20 @@
 // company's site. All five are served through a world's door.
 //
 // What an invitation announces, and what each event carries.
-import * as Schema from "effect/Schema";
+import { event } from "@capxul/blueprint-tools";
 import { OrgId, PersonId } from "../../common/values.ts";
 import { InvitationId, InvitedRole } from "./values.ts";
 
 /** A company invited someone by email. It carries neither the email nor whose it is. */
-export class MemberInvited extends Schema.TaggedClass<MemberInvited, { readonly brand: unique symbol }>()(
-  "member_invited",
-  {
-    invitation: InvitationId,
-    org: OrgId,
-    role: InvitedRole,
-    by: PersonId,
-  },
-) {}
+export class MemberInvited extends event<MemberInvited, { readonly brand: unique symbol }>()("member_invited", {
+  invitation: InvitationId,
+  org: OrgId,
+  role: InvitedRole,
+  by: PersonId,
+}) {}
 
 /** An invitee accepted: from now on they are a member of the company. */
-export class InvitationAccepted extends Schema.TaggedClass<InvitationAccepted, { readonly brand: unique symbol }>()(
+export class InvitationAccepted extends event<InvitationAccepted, { readonly brand: unique symbol }>()(
   "invitation_accepted",
   {
     invitation: InvitationId,
@@ -33,7 +30,7 @@ export class InvitationAccepted extends Schema.TaggedClass<InvitationAccepted, {
 ) {}
 
 /** An invitee declined. It carries neither the email nor who declined. */
-export class InvitationDeclined extends Schema.TaggedClass<InvitationDeclined, { readonly brand: unique symbol }>()(
+export class InvitationDeclined extends event<InvitationDeclined, { readonly brand: unique symbol }>()(
   "invitation_declined",
   {
     invitation: InvitationId,

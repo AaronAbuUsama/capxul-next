@@ -25,18 +25,18 @@ import {
 export type Invitation = typeof People.Invitation.Type;
 export type Member = typeof People.Member.Type;
 
-/** The people of company `org`, as `org.member.list` answers its world's owner. */
+/** The people of company `org`, as `member.list` answers its world's owner. */
 export const peopleOf = (org: string, who: Who = {}) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    return (yield* capxul["org.member.list"]({ org }, whereOf(who))).members;
+    return (yield* capxul["member.list"]({ org }, whereOf(who))).members;
   });
 
-/** Every invitation sent to `person`'s email, as `invite.list` answers them. */
+/** Every invitation sent to `person`'s email, as `invitation.list` answers them. */
 export const invitationsOf = (person: string, who: Who = {}) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    return (yield* capxul["invite.list"]({}, { ...whereOf(who), as: person })).invitations;
+    return (yield* capxul["invitation.list"]({}, { ...whereOf(who), as: person })).invitations;
   });
 
 /** The founder of company `org`, as its org_founded in the world's record names them. */
@@ -68,7 +68,7 @@ export const emailOf = (world: View, person: string): string =>
     () => "",
   );
 
-/** The chain's latest block, through the door `who` names: where a check of what a call wrote starts reading. */
+/** The chain's latest block, through the endpoint `who` names: where a check of what a call wrote starts reading. */
 export const chainBlock = (who: Who) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;

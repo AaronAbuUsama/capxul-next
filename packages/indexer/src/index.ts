@@ -1,3 +1,4 @@
+// The Ponder handlers: each indexed event of a world's chain written into the `ponder` schema's tables.
 import { ponder } from "ponder:registry";
 import { decodeEventLog } from "viem";
 import { INSTALLER } from "../abis.ts";

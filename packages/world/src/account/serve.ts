@@ -1,5 +1,6 @@
 // `world platform serve`: the platform group served on this machine's loopback until the process is stopped, for a
-// caller on the same machine (decisions.md, 51). The runner serves it in its own process instead.
+// caller on the same machine (packages/blueprint, src/things/world/values.ts). The runner serves it in its own process
+// instead.
 import * as BunHttpServer from "@effect/platform-bun/BunHttpServer";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";

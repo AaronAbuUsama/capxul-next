@@ -1,4 +1,4 @@
-// The checks of every invite.decline (claims.md of people, invite.decline 1 and 2): the caller's pending invitation is
+// The checks of every invitation.decline (claims.md of people, invitation.decline 1 and 2): the caller's pending invitation is
 // declined and they do not join; the record gains one invitation_declined, carrying neither who declined nor the
 // email, and the chain is not written. Another's invitation, one no longer pending and one nobody sent are each
 // refused, and nothing is recorded.
@@ -12,7 +12,7 @@ import { callerOf } from "./common.ts";
 import { check, checks } from "./format.ts";
 import { answerRefusals, answeringBefore, mineBefore, type Answering } from "./invite-answer.ts";
 
-export const inviteDecline = checks<"invite.decline", Answering>({
+export const invitationDecline = checks<"invitation.decline", Answering>({
   before: (asked) => answeringBefore(asked.options),
   success: (asked, declined, before) => [
     check(

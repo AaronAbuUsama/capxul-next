@@ -1,40 +1,48 @@
-// The invitation's lifecycle (the toolkit's lifecycle format, `Machine`), declared once. Its state schema
-// (`InvitationState`, values.ts), InvitationClosed's `state` field (refusals.ts), the `step` Core moves an invitation
-// with, Core's CHECK constraint and the diagram in generated/invitation.md are all derived from it. It names its
-// operations, events and refusal by their tags, not by their declarations: those import its state schemas, so naming
-// them here would make a cycle, at load and in the types. test/machines.test.ts proves each tag is declared, by the
-// operation named.
+// The invitation's lifecycle (the toolkit's lifecycle format, `Machine`), declared once. It holds its operations,
+// events and refusal as their declarations, imported: each move is made by its verb, sends its verb's event and refuses
+// with its verb's refusal. Its states are the invitation's values (`InvitationState`, and `ClosedState`, which
+// InvitationClosed's `state` field is), so none of what it names imports it: the import cycle is gone, at load and in
+// the types. The `step` Core moves an invitation with, Core's CHECK constraint and the diagram in
+// generated/invitation.md are derived from it, and it compiles only while `ClosedState` is exactly the states its moves
+// refuse from.
 import { Machine } from "@capxul/blueprint-tools";
+import { InvitationAccepted, InvitationDeclined, MemberInvited } from "./events.ts";
+import { InvitationClosed } from "./refusals.ts";
+import { ClosedState, InvitationState } from "./values.ts";
+import { invitationAccept } from "./verbs/accept.ts";
+import { invitationDecline } from "./verbs/decline.ts";
+import { invitationSend } from "./verbs/send.ts";
 
-const closed = { refusal: "InvitationClosed" } as const;
+const closed = { refusal: InvitationClosed } as const;
 
 /**
  * An invitation is pending from the moment it is made; its invitee ends it by accepting or declining. Accepting one
- * already accepted changes nothing; anything else from a closed invitation is refused. Cancelling (`org.invite.cancel`)
+ * already accepted changes nothing; anything else from a closed invitation is refused. Cancelling (`invitation.cancel`)
  * comes with that operation, as a new move beside these.
  */
 export const Invitation = Machine.make({
   name: "invitation",
   key: "invitation",
-  states: ["pending", "accepted", "declined"],
+  states: InvitationState,
+  refused: ClosedState,
   start: {
     state: "pending",
-    by: "org.member.invite",
-    event: "member_invited",
+    by: invitationSend,
+    event: MemberInvited,
   },
   moves: {
     accept: {
       from: ["pending"],
       to: "accepted",
-      by: "invite.accept",
-      event: "invitation_accepted",
+      by: invitationAccept,
+      event: InvitationAccepted,
       otherwise: { accepted: "unchanged", declined: closed },
     },
     decline: {
       from: ["pending"],
       to: "declined",
-      by: "invite.decline",
-      event: "invitation_declined",
+      by: invitationDecline,
+      event: InvitationDeclined,
       otherwise: { accepted: closed, declined: closed },
     },
   },

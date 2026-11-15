@@ -64,7 +64,7 @@ const warpStretch = Effect.fn("world.clock.warp.stretch")(function* (
 
 /**
  * The most world time one call warps a site through. A site steps through every day and runs what fell due, about
- * 0.8 s a day on the stand-in bench (spikes/site-speed, Q5: 180 days took 147.8 s), and the call is one HTTP request
+ * 0.8 s a day on the stand-in bench (packages/platform/records/site-speed, Q5: 180 days took 147.8 s), and the call is one HTTP request
  * through the site door, which waits 120 s for the site (packages/platform, door/door.py), and through Cloudflare's
  * tunnel, whose edge waits 100 s for an answer. So a long warp is made as several calls of at most 14 days (about
  * 11 s each there), which leaves the bench host room to be several times slower.

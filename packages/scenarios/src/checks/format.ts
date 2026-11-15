@@ -19,7 +19,7 @@ import type { ExpectationFailed } from "../expectation.ts";
 import type { Journal } from "../journal.ts";
 import { same } from "../support/expect.ts";
 
-/** What a read before the call may read: the client, the starting world's facts, and the journey's own memory. */
+/** What a read before the call may read: the client, the starting point's facts, and the journey's own memory. */
 export type Looks = Capxul | Given | Journal;
 
 /** What a check may read: what a read before the call may, and the call it judges (its trace). */

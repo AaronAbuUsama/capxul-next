@@ -31,7 +31,7 @@ every part, because a snapshot holds them all.
 Each starting world is made through the door by the operations above. `fresh` to `paid` are made once per change to
 the code and saved as template snapshots in a kept template world, and a scenario gets the one it needs restored into
 a fresh private world; `quota-full`, `with-snapshot` and `restored` are made by their steps for each scenario
-(`StartingWorld.made`, decisions.md 39). Whoever makes a world keeps its facts for the scenarios (decisions.md 38).
+(`StartingWorld.made`, src/starting-points/points.ts). Whoever makes a world keeps its facts for the scenarios (src/starting-points/facts.ts).
 Until `world.snapshot.restore` exists (step 12), a scenario's starting world is made from `nothing` by running the
 steps, which is slower but needs nothing more.
 
@@ -46,18 +46,18 @@ steps, which is slower but needs nothing more.
 
 A member's Seat is off the chain and off the site. It is no hat, no Safe owner and no site user: the founding members
 of `founded` (sam and pat) have none of them, `org.member.grant` adds a hat, and only a hat brings a site user
-(decisions.md, 49 and 50). In infrastructure, ADR-0040 rules the same: "Inviting someone creates a Seat, not an
+(src/things/company/verbs/create.ts and src/common/values.ts). In infrastructure, ADR-0040 rules the same: "Inviting someone creates a Seat, not an
 on-chain role", and an invitation with no grant "has no configure, grant or cleanup command" (its organizations
 README, Invitations). So these five need only the world's database, Core's store of the company's board and
 members, and the cast.
 
 | # | Operation | Parts it needs | Starting worlds its scenarios need | Why here |
 |---|---|---|---|---|
-| 13 | `org.member.list` | database | `founded` | Reads the board and members `org.create` stored; every other operation here is checked through it. |
-| 13 | `org.member.invite` | database | `founded` | Needs a founded company, whose founder invites; writes only Core's database. |
-| 14 | `invite.list` | database | `founded` | Reads what `org.member.invite` wrote, by the caller's email in the cast. |
-| 14 | `invite.decline` | database | `founded` | Ends what `org.member.invite` wrote. |
-| 14 | `invite.accept` | database | `founded` | Adds the invitee to the members `org.member.grant` reads, so a member who joined by invitation can be granted a permission. |
+| 13 | `member.list` | database | `founded` | Reads the board and members `org.create` stored; every other operation here is checked through it. |
+| 13 | `invitation.send` | database | `founded` | Needs a founded company, whose founder invites; writes only Core's database. |
+| 14 | `invitation.list` | database | `founded` | Reads what `invitation.send` wrote, by the caller's email in the cast. |
+| 14 | `invitation.decline` | database | `founded` | Ends what `invitation.send` wrote. |
+| 14 | `invitation.accept` | database | `founded` | Adds the invitee to the members `org.member.grant` reads, so a member who joined by invitation can be granted a permission. |
 
 ## The domain `board`
 
@@ -74,7 +74,7 @@ So the Board cannot change itself. The Gate refuses every company Safe transacti
 (`CannotCallSafe`), so `addOwnerWithThreshold` and `changeThreshold` are out; `Hats.mintHat` of the Director hat is
 its admin's, the Shareholders' top hat; `setThresholdConfig` is the Gate's owner hat's, the same hat. Every change
 to the Board is one UserOperation of the founder's own Safe, which `org.director.add` and `org.threshold.set`
-prepare with one approval, the founder's, as `org.create` prepares the setup (decisions.md 48): its digest is the
+prepare with one approval, the founder's, as `org.create` prepares the setup (src/things/approval/values.ts): its digest is the
 Safe4337Module's operation hash and `approval.sign` sends it through the world's bundler at the first signature.
 
 - **Seat a Director** (`org.director.add`): `Hats.changeHatMaxSupply(directorHat, supply + 1)` when every seat is
@@ -97,7 +97,7 @@ becomes a shareholders' vote; that comes with equity.
 Director's user reaches the site.
 
 **What the Board is in Core.** `org.member.grant` asks one approval per Director at the Board's threshold, from
-Core's `app.organizations` (`directors`, `threshold`), and `org.member.list` lists the Directors from it. A seat or a
+Core's `app.organizations` (`directors`, `threshold`), and `member.list` lists the Directors from it. A seat or a
 threshold that lands updates them, so a later proposal asks the new Director and needs the new threshold.
 
 **Not here yet.** Removing a Director (`Hats.setHatWearerStatus(directorHat, safe, false, false)`, then
@@ -116,10 +116,10 @@ A budget is the chain's (packages/contracts, `src/money/Budgets.sol`): an amount
 inside its parent's, and a hat whose wearers may spend from it and from every budget below it. The chain is the only
 gate on spending, so every figure these operations answer is read from the chain, never kept; Core keeps only a
 budget's name and the creation it proposed. Founding already makes each company's top budget, of the Books hat,
-1,000,000 USDC a month (decisions.md, 49). A budget's Cost Center on the company's site comes later, in another unit:
+1,000,000 USDC a month (src/things/company/verbs/create.ts). A budget's Cost Center on the company's site comes later, in another unit:
 nothing here touches a site.
 
-Creating one is a Directors' proposal, as an officer change is (decisions.md, 48): a company Safe transaction its
+Creating one is a Directors' proposal, as an officer change is (src/things/approval/values.ts): a company Safe transaction its
 Directors approve with their own Safes, carried by Core's relayer. Its batch makes a hat for the budget under the
 company's tree, mints it to the holder's personal Safe, and calls `Budgets.createChildBudget(parent, amount, hat)`,
 which the company Safe may call for any of its budgets. The chain gives a child its parent's asset and period, so

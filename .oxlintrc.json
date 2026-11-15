@@ -32,8 +32,12 @@
       // process. Each with its reason.
       "entries": {
         "packages/lint/src/shape.entry.ts": "the shape check's command line: reads git's file list and the disk, prints, sets the exit code",
-        "packages/blueprint-tools/src/render/render.entry.ts": "pnpm claims: reads the blueprint's thing folders and writes its pages, the one place the pages' render touches the disk",
-        "packages/blueprint-tools/src/checks/delta.entry.ts": "the delta check's command line: prints each finding and sets the exit code",
+        "packages/lint/src/gate.entry.ts": "pnpm check: runs each rung's command as a child process with the console passed through, reads GATE_WORDS_BASE, sets the exit code",
+        "packages/runner/src/collector-env.entry.ts": "a CI step: mints the run's collector token and writes it and the collector's address to GitHub's GITHUB_ENV file, masking the token in the log",
+        "packages/generate/src/delta.entry.ts": "the delta check's command line: prints each finding and sets the exit code",
+        "packages/generate/src/words.entry.ts": "pnpm words, the old words' ratchet: reads the disk and the base branch's counts through git, parses them as JSON, prints, sets the exit code",
+        "packages/generate/src/ratchet-files.entry.ts": "the files pnpm ratchets counts R7, R8 and R10 from: reads the disk and git's file list, runs oxlint with effect-only alone and parses its report and each package.json as JSON, stops the run when it cannot",
+        "packages/generate/src/ratchets.entry.ts": "pnpm ratchets: reads the committed counts as JSON, prints each ratchet, writes the counts and the scorecard inside pnpm generate, sets the exit code",
         "packages/runner/src/main.ts": "the runner's command line under Bun: reads its arguments and sets the exit code",
         "packages/cli/src/bin.ts": "the capxul process: runs the command line on the process's arguments and sets its exit code",
         "packages/platform/src/run-drift.ts": "the drift check's command line: reads its arguments, prints and writes the report as JSON, sets the exit code",
@@ -49,7 +53,9 @@
         "packages/runner/src/record.ts": "run records are JSON files on disk, which the dashboard and the speed climb read",
         "packages/cli/src/input.ts": "the command line's input: a flag's JSON value and the --input file, decoded at once with the payload's schema",
         "packages/cli/src/output.ts": "the command line's output: one line of JSON per answer, encoded with the operation's own schemas",
-        "packages/world/src/common/record.ts": "run records and proof records are JSON files, written to be read by people and by scoring, and read back by the proofs; the command line prints its results as the same JSON text"
+        "packages/world/src/common/record.ts": "run records and proof records are JSON files, written to be read by people and by scoring, and read back by the proofs; the command line prints its results as the same JSON text",
+        "packages/platform/src/collector/otlp-json.ts": "the collector reads and rewrites OTLP/HTTP's JSON encoding, the producers' and the sink's format, to stamp each resource",
+        "packages/runner/src/telemetry/otlp.ts": "OTLP JSON, OpenTelemetry's wire format: the bodies the tap and the sink hold, decoded from their text at this one edge"
       },
       // Places where raw schemas describe a format of their own, not the contract's values, each with its reason
       // (capxul/owned-values). Anything else the rule finds is on its unmigrated list (packages/lint/src/unmigrated.ts).
@@ -62,7 +68,10 @@
         "packages/world/src/things/world/handle.ts": "a deployed world's stack outputs as Alchemy stores them: the format of a file outside the world, read back as it was written",
         "packages/core/src/site-ops/warp-times.ts": "where a company site's warp spent its time, as the Capxul app's Python answers it (capxul/core_api.py, warp): an outside format, decoded only to be recorded on a span",
         "packages/core/src/telemetry/attributes.ts": "the attributes of a kept span as OpenTelemetry and effect/sql set them: an outside format, decoded where it is read",
-        "packages/blueprint-tools/src/language/lifecycle.ts": "the machine format: builds each machine's state schema from the states its declaration names"
+        "packages/blueprint-tools/test/machine-types.ts": "the machine format's compile-time checks: a made-up door's state schemas, as a thing's values file declares them, never the blueprint's",
+        "packages/platform/src/collector/otlp-json.ts": "OTLP/HTTP's JSON encoding, an outside format, decoded only to stamp each resource and count its items",
+        "packages/platform/src/collector/tokens.ts": "a collector token's text is the platform's own format, as the site token's is (src/token.ts): its expiry is Unix seconds",
+        "packages/runner/src/telemetry/otlp.ts": "OTLP JSON as OpenTelemetry defines it and Effect's OtlpSerialization writes it: an outside format, decoded where the runner reads the tap and the sink"
       }
     }
   },
@@ -87,6 +96,7 @@
     "capxul/owned-values": "error",
     "capxul/declared-names": "error",
     "capxul/decoded-rows": "error",
+    "capxul/declared-steps": "error",
     "effecttsgo/abort-controller-in-effect": "error",
     "effecttsgo/acquire-release-disposable": "error",
     "effecttsgo/all-of-map-to-for-each": "error",
@@ -233,8 +243,12 @@
       // its reason; `pnpm shape` fails when the two lists differ.
       "files": [
         "packages/lint/src/shape.entry.ts",
-        "packages/blueprint-tools/src/render/render.entry.ts",
-        "packages/blueprint-tools/src/checks/delta.entry.ts",
+        "packages/lint/src/gate.entry.ts",
+        "packages/runner/src/collector-env.entry.ts",
+        "packages/generate/src/delta.entry.ts",
+        "packages/generate/src/words.entry.ts",
+        "packages/generate/src/ratchet-files.entry.ts",
+        "packages/generate/src/ratchets.entry.ts",
         "packages/runner/src/main.ts",
         "packages/cli/src/bin.ts",
         "packages/platform/src/run-drift.ts",

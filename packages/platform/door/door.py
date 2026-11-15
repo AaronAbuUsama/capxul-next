@@ -161,6 +161,19 @@ FAST_ROUTES = {
 }
 
 
+def mark_stale():
+    """A site left `creating` or `removing` by a door that stopped half-way is not being made or removed any more. One
+    being made is `interrupted`, not `failed`: nothing was wrong with it, and Core makes it again, once
+    (packages/core, src/organizations/site.ts, `afterFailure`)."""
+    for path in glob.glob(f"{REGISTRY}/*.json"):
+        with open(path) as f:
+            stale = json.load(f)
+        if stale.get("state") == "creating":
+            update_entry(stale["site"], state="interrupted", error="the door restarted while it was being made")
+        elif stale.get("state") == "removing":
+            update_entry(stale["site"], state="failed", error="the door restarted while it was being removed")
+
+
 class Door(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -272,12 +285,7 @@ class Door(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    # A site left `creating` by a door that stopped half-way is not being made any more.
-    for path in glob.glob(f"{REGISTRY}/*.json"):
-        with open(path) as f:
-            stale = json.load(f)
-        if stale.get("state") in ("creating", "removing"):
-            update_entry(stale["site"], state="failed", error="the door restarted while it was being made or removed")
+    mark_stale()
     pool.tidy()
     print(f"door: the bench's apps hash to {templates.app_version()}", flush=True)
     blank.tidy()  # the blank of these apps, made in the background once the bench is idle; others removed
