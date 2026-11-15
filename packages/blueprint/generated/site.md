@@ -42,7 +42,7 @@ Put each of a world's company sites back to its site snapshot.
 Save each of a world's company sites as a site snapshot, under the world's snapshot's name.
 
 - Payload: `world`, `snapshot`.
-- Spans: `site.save.save` (site) → `site.save.template` (site) → `site.save.ready` (poll).
+- Spans: `site.save.save` (site) → `site.save.template` (site) → `site.save.template.keep` (site) → `site.save.ready` (poll).
 - Logs: `site.save.failed` (world, snapshot, company).
 - Budget: 30,000 ms, a target, provisional. Basis: one backup per company site; a first guess.
 

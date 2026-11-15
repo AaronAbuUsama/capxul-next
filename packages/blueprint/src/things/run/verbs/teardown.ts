@@ -13,6 +13,8 @@ export const runTeardown = work({
     worlds: span("run.teardown.worlds", StepKind.deploy),
     branches: span("run.teardown.branches", StepKind.branch),
     sites: span("run.teardown.sites", StepKind.site),
+    // A stage destroyed.
+    stage: span("run.teardown.stage", StepKind.deploy),
   },
   logs: { left: log("run.teardown.left", { run: RunId, world: WorldName, part: LeftBehind }) },
   budget: {
