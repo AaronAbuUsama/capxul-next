@@ -15,20 +15,33 @@ import type { Coverage } from "../record.ts";
 import type { Kept } from "../world/database.ts";
 import type { Check, CheckedCall } from "./checks.ts";
 
-/** A machine of the blueprint, as the path check reads it (packages/blueprint/src/machine.ts). */
+/** An operation's declaration, as the path check reads it: its name is its Rpc's tag. */
+export interface PathOperation {
+  readonly rpc: { readonly _tag: string };
+}
+
+/** An event's or a refusal's declaration, as the path check reads it: its name is its schema class's identifier. */
+export interface PathDeclared {
+  readonly identifier: string;
+}
+
+/**
+ * A machine of the blueprint, as the path check reads it (packages/blueprint-tools, src/language/lifecycle.ts): its
+ * start and moves hold the declarations of their operations, events and refusals, and the check reads their names.
+ */
 export interface PathMachine {
   readonly name: string;
   /** The field every event of the thing carries naming it, and every refusal its moves declare. */
   readonly key: string;
   readonly states: ReadonlyArray<string>;
-  readonly start: { readonly state: string; readonly by: string; readonly event: string };
+  readonly start: { readonly state: string; readonly by: PathOperation; readonly event: PathDeclared };
   readonly moves: {
     readonly [move: string]: {
       readonly from: ReadonlyArray<string>;
       readonly to: string;
-      readonly by: string;
-      readonly event: string;
-      readonly otherwise: { readonly [state: string]: { readonly refusal: string } | "unchanged" };
+      readonly by: PathOperation;
+      readonly event: PathDeclared;
+      readonly otherwise: { readonly [state: string]: { readonly refusal: PathDeclared } | "unchanged" };
     };
   };
 }
@@ -64,15 +77,17 @@ const refusedPairsOf = (machine: PathMachine) =>
   Arr.flatMap(Rec.toEntries(machine.moves), ([move, declared]) =>
     Arr.flatMap(machine.states, (state) => {
       const otherwise = declared.otherwise[state];
-      return otherwise === undefined || otherwise === "unchanged" ? [] : [{ state, move, refusal: otherwise.refusal }];
+      return otherwise === undefined || otherwise === "unchanged"
+        ? []
+        : [{ state, move, refusal: otherwise.refusal.identifier }];
     }),
   );
 
 /** The machine and the start or move an event's tag belongs to. */
 const ownerOf = (against: ReadonlyArray<PathMachine>, event: string) =>
   Arr.findFirst(against, (machine): Option.Option<{ readonly machine: PathMachine; readonly move: string | null }> => {
-    if (machine.start.event === event) return Option.some({ machine, move: null });
-    const move = Arr.findFirst(Rec.toEntries(machine.moves), ([, declared]) => declared.event === event);
+    if (machine.start.event.identifier === event) return Option.some({ machine, move: null });
+    const move = Arr.findFirst(Rec.toEntries(machine.moves), ([, declared]) => declared.event.identifier === event);
     return Option.map(move, ([name]) => ({ machine, move: name }));
   });
 
@@ -98,8 +113,10 @@ export const checkPaths = (against: ReadonlyArray<PathMachine>, calls: ReadonlyA
       const at = standing.get(keyed(machine, thing));
       const named = `${machine.name} ${thing}`;
       if (move === null) {
-        if (call.operation !== machine.start.by)
-          problems.push(`${named}: ${recorded.event} sent by ${call.operation}, declared by ${machine.start.by}`);
+        if (call.operation !== machine.start.by.rpc._tag)
+          problems.push(
+            `${named}: ${recorded.event} sent by ${call.operation}, declared by ${machine.start.by.rpc._tag}`,
+          );
         if (at !== undefined) problems.push(`${named}: ${recorded.event} again, while it is ${at}`);
         else notes.push(`${named}: started ${machine.start.state}`);
         standing.set(keyed(machine, thing), machine.start.state);
@@ -108,9 +125,10 @@ export const checkPaths = (against: ReadonlyArray<PathMachine>, calls: ReadonlyA
       }
       const declared = machine.moves[move];
       if (declared === undefined) continue;
-      if (call.operation !== declared.by)
-        problems.push(`${named}: ${recorded.event} sent by ${call.operation}, declared by ${declared.by}`);
-      if (at === undefined) problems.push(`${named}: ${recorded.event} (${move}) before ${machine.start.event}`);
+      if (call.operation !== declared.by.rpc._tag)
+        problems.push(`${named}: ${recorded.event} sent by ${call.operation}, declared by ${declared.by.rpc._tag}`);
+      if (at === undefined)
+        problems.push(`${named}: ${recorded.event} (${move}) before ${machine.start.event.identifier}`);
       else if (!Arr.contains(declared.from, at))
         problems.push(
           `${named}: ${recorded.event} (${move}) starts from ${Arr.join(declared.from, " or ")}, but it is ${at}`,
@@ -122,10 +140,10 @@ export const checkPaths = (against: ReadonlyArray<PathMachine>, calls: ReadonlyA
     if (call.refusal !== null)
       for (const machine of against)
         for (const [move, declared] of Rec.toEntries(machine.moves)) {
-          if (declared.by !== call.operation) continue;
+          if (declared.by.rpc._tag !== call.operation) continue;
           const refusing = Arr.filter(
             Rec.toEntries(declared.otherwise),
-            ([, otherwise]) => otherwise !== "unchanged" && otherwise.refusal === call.refusal,
+            ([, otherwise]) => otherwise !== "unchanged" && otherwise.refusal.identifier === call.refusal,
           );
           if (refusing.length === 0) continue;
           touched = true;

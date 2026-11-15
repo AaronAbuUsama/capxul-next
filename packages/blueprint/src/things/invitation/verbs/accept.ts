@@ -96,7 +96,7 @@ export const promises: PromisesOf = promisesOf(invitationAccept, [
   promise(
     "The invitee accepts and is a member at once; nothing is signed and nothing reaches the chain or the company's site.",
     w.founded,
-    "invitation.accept as olga of dana's second invitation, pending, answers Accepted: the invitation accepted and olga a member. The world's history gains one invitation_accepted naming olga and nothing else, and the chain's head is unchanged while the world's clock is frozen. org.member.list then lists olga as a member, and org.member.grant as dana of issue-invoices for olga is proposed, not refused with NotAMember.",
+    "invitation.accept as olga of dana's second invitation, pending, answers Accepted: the invitation accepted and olga a member. The world's history gains one invitation_accepted naming olga and nothing else, and the chain's head is unchanged while the world's clock is frozen. member.list then lists olga as a member, and org.member.grant as dana of issue-invoices for olga is proposed, not refused with NotAMember.",
     { thinLine: true },
   ),
   promise(

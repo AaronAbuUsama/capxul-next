@@ -1,9 +1,8 @@
 // Step 3.4's proof: the machine format (the toolkit's lifecycle) and the invitation's lifecycle
 // (src/things/invitation/lifecycle.ts). The generic tests run for every machine the door's `machines` holds, so a new
-// machine is covered with nothing added here; the invitation's own cases follow. Written before the format, by another agent than its builder (AGENTS.md,
+// machine is covered with nothing added here; the invitation's own cases are in ./invitation-machine.test.ts. Written before the format, by another agent than its builder (AGENTS.md,
 // "How a feature is built"). Run with `pnpm test`.
 import { strict as assert } from "node:assert";
-import { readdirSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 import * as Arbitrary from "effect/Arbitrary";
 import * as Arr from "effect/Array";
@@ -14,27 +13,31 @@ import * as Order from "effect/Order";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
-import { Errors, eventNamesOf, machines, operations, People, refusalsOf, type Operation } from "../src/index.ts";
-import { Invitation } from "../src/things/invitation/lifecycle.ts";
+import { Machine } from "@capxul/blueprint-tools";
+import { Errors, eventNamesOf, machines, operations, refusalsOf, type Operation } from "../src/index.ts";
+
+/** A declaration as the generic tests read it: an operation by its Rpc's tag, an event or a refusal by its tag. */
+type Maker = { readonly rpc: { readonly _tag: string } };
+type Tagged = { readonly identifier: string };
 
 type Stepped =
-  | { readonly _tag: "Moved"; readonly to: string; readonly event: string }
+  | { readonly _tag: "Moved"; readonly to: string; readonly event: Tagged }
   | { readonly _tag: "Unchanged"; readonly state: string }
-  | { readonly _tag: "Refused"; readonly refusal: string; readonly state: string };
+  | { readonly _tag: "Refused"; readonly refusal: Tagged; readonly state: string };
 
 /** What every machine shows, as the generic tests read it. */
 interface AnyMachine {
   readonly name: string;
   readonly key: string;
   readonly states: ReadonlyArray<string>;
-  readonly start: { readonly state: string; readonly by: string; readonly event: string };
+  readonly start: { readonly state: string; readonly by: Maker; readonly event: Tagged };
   readonly moves: {
     readonly [move: string]: {
       readonly from: ReadonlyArray<string>;
       readonly to: string;
-      readonly by: string;
-      readonly event: string;
-      readonly otherwise: { readonly [state: string]: { readonly refusal: string } | "unchanged" };
+      readonly by: Maker;
+      readonly event: Tagged;
+      readonly otherwise: { readonly [state: string]: { readonly refusal: Tagged } | "unchanged" };
     };
   };
   readonly State: Schema.Top;
@@ -60,7 +63,7 @@ const eventOf = (operation: string, tag: string) =>
   Arr.findFirst(byName[operation]?.emits ?? [], (event) => event.identifier === tag);
 
 /** Whether `events` is a path the declaration allows: its start's event, then each a move from where it stands. */
-const isPath = (machine: AnyMachine, events: ReadonlyArray<string>): boolean => {
+const isPath = (machine: AnyMachine, events: ReadonlyArray<Tagged>): boolean => {
   const [first, ...rest] = events;
   if (first !== machine.start.event) return false;
   let state = machine.start.state;
@@ -122,22 +125,27 @@ test("every state is reachable from the start in `graph`, which holds one edge p
 test("the start and every move are made by a declared operation, whose declared events name theirs", () => {
   for (const machine of every)
     for (const [what, made] of [["start", machine.start] as const, ...movesOf(machine)]) {
-      const operation = byName[made.by];
-      assert.ok(operation !== undefined, `${machine.name}.${what}: ${made.by} is no operation`);
-      assert.ok(Arr.contains(eventNamesOf(operation), made.event), `${machine.name}.${what}: ${made.event}`);
+      const operation = byName[Machine.madeBy(made)];
+      assert.ok(operation !== undefined, `${machine.name}.${what}: ${Machine.madeBy(made)} is no operation`);
+      assert.strictEqual(operation, made.by, `${machine.name}.${what}: made by another declaration than its name's`);
+      const event = made.event.identifier;
+      assert.ok(Arr.contains(eventNamesOf(operation), event), `${machine.name}.${what}: ${event}`);
     }
 });
 
 test("every event of a machine carries its key, and names one start or move of one machine only", () => {
   const all = Arr.flatMap(every, (machine) => [
-    machine.start.event,
-    ...Arr.map(movesOf(machine), ([, move]) => move.event),
+    machine.start.event.identifier,
+    ...Arr.map(movesOf(machine), ([, move]) => move.event.identifier),
   ]);
   assert.equal(Arr.dedupe(all).length, all.length, `an event names two starts or moves: ${Arr.join(all, ", ")}`);
   for (const machine of every)
     for (const made of [machine.start, ...Rec.values(machine.moves)]) {
-      const event = eventOf(made.by, made.event);
-      assert.ok(Option.isSome(event) && machine.key in event.value.fields, `${made.event} carries no ${machine.key}`);
+      const event = eventOf(Machine.madeBy(made), made.event.identifier);
+      assert.ok(
+        Option.isSome(event) && event.value === made.event && machine.key in event.value.fields,
+        `${made.event.identifier} carries no ${machine.key}`,
+      );
     }
 });
 
@@ -147,15 +155,17 @@ test("every refusal a machine names is declared, by the move's operation, and ca
       for (const [state, otherwise] of Rec.toEntries(move.otherwise)) {
         if (otherwise === "unchanged") continue;
         const where = `${machine.name}.${name} from ${state}`;
-        const refusal = Rec.get(refusals, otherwise.refusal);
-        assert.ok(Option.isSome(refusal), `${where}: ${otherwise.refusal} is no refusal`);
-        const operation = byName[move.by];
+        const tag = otherwise.refusal.identifier;
+        const refusal = Rec.get(refusals, tag);
+        assert.ok(Option.isSome(refusal), `${where}: ${tag} is no refusal`);
+        assert.strictEqual(refusal.value, otherwise.refusal, `${where}: ${tag} is not the declaration of that name`);
+        const operation = byName[Machine.madeBy(move)];
         const declared = operation === undefined ? [] : Arr.map(refusalsOf(operation), (each) => each.identifier);
-        assert.ok(Arr.contains(declared, otherwise.refusal), `${where}: ${move.by} does not declare it`);
+        assert.ok(Arr.contains(declared, tag), `${where}: ${Machine.madeBy(move)} does not declare it`);
         const fields = refusal.value.fields;
-        assert.ok(fields[machine.key] !== undefined, `${where}: ${otherwise.refusal} carries no ${machine.key}`);
+        assert.ok(fields[machine.key] !== undefined, `${where}: ${tag} carries no ${machine.key}`);
         const carried = fields["state"];
-        assert.ok(carried !== undefined && Schema.is(carried)(state), `${where}: ${otherwise.refusal}.state`);
+        assert.ok(carried !== undefined && Schema.is(carried)(state), `${where}: ${tag}.state`);
       }
 });
 
@@ -168,7 +178,7 @@ test("`step` answers what the declaration says for every state and every move", 
           ? { _tag: "Moved", to: move.to, event: move.event }
           : otherwise === "unchanged"
             ? { _tag: "Unchanged", state }
-            : { _tag: "Refused", refusal: otherwise?.refusal ?? "", state };
+            : { _tag: "Refused", refusal: otherwise?.refusal ?? { identifier: "" }, state };
         assert.deepEqual({ ...machine.step(state, name) }, expected, `${machine.name}.${name} from ${state}`);
       }
 });
@@ -242,57 +252,4 @@ test("any sequence of moves, applied with `step` from the start, stays in the st
     );
     assert.equal(result._tag, "Passed", `${machine.name}: ${Arbitrary.formatCheckFailure(result) ?? ""}`);
   }
-});
-
-test("the invitation's machine is as the lead declared it", () => {
-  assert.strictEqual(machines.invitation, Invitation);
-  assert.equal(Invitation.name, "invitation");
-  assert.equal(Invitation.key, "invitation");
-  assert.deepEqual(Invitation.states, ["pending", "accepted", "declined"]);
-  assert.deepEqual(
-    { ...Invitation.start },
-    {
-      state: "pending",
-      by: People.invitationSend.rpc._tag,
-      event: People.MemberInvited.identifier,
-    },
-  );
-  assert.deepEqual(sorted(Rec.keys(Invitation.moves)), ["accept", "decline"]);
-  const closed = { refusal: Errors.InvitationClosed.identifier };
-  assert.deepEqual(Invitation.moves.accept, {
-    from: ["pending"],
-    to: "accepted",
-    by: People.invitationAccept.rpc._tag,
-    event: People.InvitationAccepted.identifier,
-    otherwise: { accepted: "unchanged", declined: closed },
-  });
-  assert.deepEqual(Invitation.moves.decline, {
-    from: ["pending"],
-    to: "declined",
-    by: People.invitationDecline.rpc._tag,
-    event: People.InvitationDeclined.identifier,
-    otherwise: { accepted: closed, declined: closed },
-  });
-  assert.deepEqual(Invitation.refusedStates, ["accepted", "declined"]);
-});
-
-test("the invitation's state and InvitationClosed's state field are derived from its machine", () => {
-  assert.strictEqual(People.InvitationState, Invitation.State);
-  assert.deepEqual(People.InvitationState.literals, Invitation.states);
-  const field: Schema.Top = Errors.InvitationClosed.fields.state;
-  assert.strictEqual(field, Invitation.RefusedState);
-  for (const state of Invitation.states)
-    assert.equal(Schema.is(field)(state), Arr.contains(Invitation.refusedStates, state), state);
-  assert.ok(!Schema.is(field)("cancelled"));
-});
-
-const MIGRATIONS = new URL("../../core/migrations/", import.meta.url);
-const read = (name: string) => readFileSync(new URL(name, MIGRATIONS), "utf8");
-
-test("the newest migration on app.invitations adds the machine's CHECK constraint; 0006 is as it was applied", () => {
-  const touching = Arr.filter(sorted(readdirSync(MIGRATIONS)), (name) => Str.includes("app.invitations")(read(name)));
-  const newest = Arr.last(touching).pipe(Option.getOrThrow);
-  assert.notEqual(newest, "0006_people_invitations.sql");
-  assert.ok(Str.includes(Invitation.check("state"))(read(newest)), `${newest} lacks ${Invitation.check("state")}`);
-  assert.ok(!/check\s*\(/i.test(read("0006_people_invitations.sql")), "0006 was edited: an applied migration is not");
 });

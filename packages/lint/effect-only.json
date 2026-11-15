@@ -1,0 +1,9 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  // capxul/effect-only alone, run by `pnpm ratchets` (packages/generate, src/ratchet-files.entry.ts) on the TypeScript
+  // .oxlintrc.json ignores but the roadmap does not exempt, to count ratchet R10's non-Effect constructs there.
+  "plugins": [],
+  "jsPlugins": ["./src/plugin.ts"],
+  "categories": { "correctness": "off", "suspicious": "off" },
+  "rules": { "capxul/effect-only": "error" }
+}

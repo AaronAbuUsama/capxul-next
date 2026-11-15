@@ -27,7 +27,7 @@ const next = () => (n += 1);
 const invite = (email: string, by: string | undefined, org = ORG) =>
   as(next(), by, (client, options) => client("invitation.send", { org, email, role: "member" }, options));
 const list = (org: string, by: string | undefined) =>
-  as(next(), by, (client, options) => client("org.member.list", { org }, options));
+  as(next(), by, (client, options) => client("member.list", { org }, options));
 const mine = (by: string | undefined) => as(next(), by, (client, options) => client("invitation.list", {}, options));
 const accept = (invitation: string, by: string) =>
   as(next(), by, (client, options) => client("invitation.accept", { invitation }, options));
@@ -58,7 +58,7 @@ const files = Arr.map(Arr.sort(Arr.filter(readdirSync(folder), Str.endsWith(".sq
 it("the world: a fresh database, the cast, and northwind founded", fresh(files));
 
 it(
-  "org.member.list: Directors in the board's order, then members; the owner sees it, an outsider is refused",
+  "member.list: Directors in the board's order, then members; the owner sees it, an outsider is refused",
   Effect.gen(function* () {
     assert.deepEqual((yield* answer(yield* list(ORG, "dana"))).members, FOUNDED);
     assert.deepEqual((yield* answer(yield* list(ORG, undefined))).members, FOUNDED);

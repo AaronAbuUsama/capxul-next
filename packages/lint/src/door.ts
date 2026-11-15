@@ -1,6 +1,7 @@
 // What other packages may import of the lint package: the facts it owns that `pnpm generate` writes into the
 // docs. The packages and their reasons (the root README's map), the gate's rungs (AGENTS.md's table), what each of
-// our lint rules finds (the list in AGENTS.md), the packages with no map yet, and the
+// our lint rules finds (the list in AGENTS.md), the packages with no map yet, the READMEs longer than a screen
+// (ratchet R8), and the
 // typed-once rules' unmigrated lists, which `pnpm ratchets` (packages/generate, src/ratchets.entry.ts) counts as
 // ratchets R1 to R3.
 
@@ -8,6 +9,7 @@ import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
 import plugin from "./plugin.ts";
 
+export { LONG_READMES } from "./docs.ts";
 export { GATE, type Rung } from "./gate.ts";
 export { MAP, UNMAPPED } from "./maps.ts";
 export { PACKAGES } from "./shape.ts";
