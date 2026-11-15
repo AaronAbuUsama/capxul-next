@@ -13,13 +13,13 @@ import type { Member } from "../support/people.ts";
 import { tag } from "../support/tags.ts";
 
 const steps = outline({
-  invite: [People.memberInvite.rpc._tag, "dana, Northwind's founder, invites olga as a member: pending at once"],
-  accept: [People.inviteAccept.rpc._tag, "olga accepts, and is a member at once"],
+  invite: [People.invitationSend.rpc._tag, "dana, Northwind's founder, invites olga as a member: pending at once"],
+  accept: [People.invitationAccept.rpc._tag, "olga accepts, and is a member at once"],
   decline: [
-    People.inviteDecline.rpc._tag,
+    People.invitationDecline.rpc._tag,
     "sam may not decline olga's invitation; olga cannot decline the invitation she accepted: it is closed, in state accepted",
   ],
-  mine: [People.inviteList.rpc._tag, "olga's invitation is still accepted: declining it changed nothing"],
+  mine: [People.invitationList.rpc._tag, "olga's invitation is still accepted: declining it changed nothing"],
   joined: [People.memberList.rpc._tag, "olga is still a member of Northwind, last, as dana sees its people"],
 });
 
