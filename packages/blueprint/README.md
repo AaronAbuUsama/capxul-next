@@ -81,6 +81,17 @@ CHECK constraint, which Core's migrations hold; a change of states is a new migr
 every machine by name, and the runner's path check reads each thing's events against it. The machines are flat: no
 nested or parallel states, and no guards that run code.
 
+## Formats and the delta check
+
+A format is a shape every operation's declaration must have once the format exists; `src/formats.ts` lists them, today
+only `machine`. An operation has the machine format when it starts or moves a machine, or when its domain's `domain.ts`
+names it in `stateless`, with a short true reason ("a read: changes nothing"): it moves no thing with a lifecycle that
+callers see and refusals depend on. Every domain exports `stateless`, `{}` when none of its operations is. `pnpm
+delta:check` (also in `pnpm check`) fails an operation that lacks a format, unless the format's `unmigrated` list in
+`src/formats.ts` names it. That list may only shrink (`CEILINGS` in `test/delta.test.ts`), a new operation is never
+added to it, and an operation that moves a thing goes on it until its machine is declared (step 7.3), never in
+`stateless`.
+
 ## Adding an operation
 
 Every hub of the blueprint is gathered from the domains, so several slices can add operations at once without editing

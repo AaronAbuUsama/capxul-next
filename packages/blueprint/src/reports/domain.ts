@@ -16,6 +16,11 @@ export const operations = {
   "report.run": Reports.run,
 } as const;
 
+/** Its operations that move no thing with a lifecycle (src/machine-format.ts), each with why. */
+export const stateless: { readonly [Name in keyof typeof operations]?: string } = {
+  "report.run": "a read: runs a report on the company's site and changes nothing",
+};
+
 /** What the platform's world service serves of it (`PlatformRpcs`). */
 export const platformRpcs = RpcGroup.make();
 

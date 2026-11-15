@@ -10,7 +10,21 @@ import { declared, machineFormat } from "./machine-format.ts";
  * a ratchet"): the list may only shrink, and a new operation is never added. The delta check fails a listed operation
  * that now complies, so it is removed from here when it is migrated.
  */
-const unmigratedMachine: ReadonlyArray<OperationName> = [];
+const unmigratedMachine: ReadonlyArray<OperationName> = [
+  "org.create",
+  "org.member.grant",
+  "org.director.add",
+  "org.threshold.set",
+  "org.budget.create",
+  "doc.create",
+  "doc.submit",
+  "approval.sign",
+  "world.create",
+  "world.clock.warp",
+  "world.snapshot.save",
+  "world.snapshot.restore",
+  "world.snapshot.delete",
+];
 
 /** Every format, by name. */
 export const formats: { readonly [format: string]: Format<OperationName> } = {

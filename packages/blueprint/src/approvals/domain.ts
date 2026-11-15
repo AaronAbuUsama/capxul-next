@@ -16,6 +16,9 @@ export const operations = {
   "approval.sign": Approvals.sign,
 } as const;
 
+/** Its operations that move no thing with a lifecycle (src/machine-format.ts), each with why: none. */
+export const stateless: { readonly [Name in keyof typeof operations]?: string } = {};
+
 /** What the platform's world service serves of it (`PlatformRpcs`). */
 export const platformRpcs = RpcGroup.make();
 
