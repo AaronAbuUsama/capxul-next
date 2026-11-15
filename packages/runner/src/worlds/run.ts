@@ -5,6 +5,7 @@
 // run through the door with its operations' checks and the generic checks on every call, and every other world it
 // made destroyed after it, whatever happened, with the accounts read before and after for anything of them. The one
 // world and the hub go when the run ends, however it ends. Every part is timed into the summary (`timings`).
+import { Pipeline } from "@capxul/blueprint";
 import type { Journey } from "@capxul/scenarios";
 import * as World from "@capxul/world";
 import * as Arr from "effect/Array";
@@ -197,7 +198,7 @@ const runOne = (
       if (Exit.isFailure(done) && Exit.hasInterrupts(done)) return yield* Effect.interrupt;
       return record;
     }),
-  ).pipe(Effect.withSpan("runner.world.scenario", { attributes: { scenario: scenario.name } }));
+  ).pipe(Effect.withSpan(Pipeline.journeyRun.name, { attributes: { scenario: scenario.name } }));
 
 /**
  * Destroys the run's one world, timed; what could not be done, one line each. Whatever ends the run, this runs. The
@@ -265,11 +266,11 @@ export const runInWorlds = (
             Effect.catchCause((cause) => Ref.set(notTakenDown, [`the take-down did not finish: ${describe(cause)}`])),
           );
           return yield* Effect.gen(function* () {
-            // A starting world that could not be made fails the journeys of it, each with why; the rest still run.
-            // The summary names it too, a defect included (a door that answered an error page, say).
+            // A starting world not made fails its journeys, each with why, and the summary names it; the rest run.
+            // `run.prepare`: the one world and its template starting worlds, made and saved before any journey.
             yield* starting
               .prepare(Arr.map(scenarios, (scenario) => scenario.given))
-              .pipe(Effect.catchCause(noteNotMade(timings, notMade)));
+              .pipe(Effect.withSpan(Pipeline.runPrepare.name), Effect.catchCause(noteNotMade(timings, notMade)));
             yield* Ref.set(oneWorld, Option.getOrNull(yield* Effect.option(starting.oneWorld)));
             return yield* Effect.forEach(scenarios, (scenario, index) =>
               runOne(scenario, settings, starting, timings, run, index),

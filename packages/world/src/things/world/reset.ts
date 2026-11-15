@@ -22,7 +22,7 @@
 //
 // What Neon kept of the world's branch as it was (`<stage>-pre-<n>`) is deleted at once when nothing hangs from it,
 // and otherwise with the world, children first (src/parts/database/branches.ts, `dropBranches`).
-import { Errors } from "@capxul/blueprint";
+import { Errors, Pipeline } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
 import * as Config from "effect/Config";
@@ -121,7 +121,7 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
               Option.fromNullishOr(template),
             ),
           );
-    const rewind = Effect.fn("world.reset.rewind")(function* () {
+    const rewind = Effect.fn(Pipeline.worldReset.spans.rewind.name)(function* () {
       yield* timed("index stopped", stopIndex(world));
       yield* timed("database restored", restoreBranch(project, output.branch, saved.branch_id, preserved));
       const chain = yield* timed("chain reset", resetChain(world, snapshot));
@@ -131,7 +131,7 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
       // Core's clock (the database) and the chain's block are apart, so they are set side by side; a frozen clock
       // reads its instant at any host time, a running one moves on from the snapshot's time. The index is waited for
       // once that block is mined, looked at every half second, not every 2 s: it is already starting.
-      const settle = Effect.fn("world.reset.settle")(function* () {
+      const settle = Effect.fn(Pipeline.worldReset.spans.settle.name)(function* () {
         const clock = { mode: saved.clock_mode, worldMs: saved.clock_ms, hostMs: clockAt };
         const [mined] = yield* Effect.all(
           [
@@ -145,7 +145,9 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
         );
         const indexedBlock = yield* timed(
           "index caught up",
-          Effect.andThen(indexReady(world, "500 millis"), caughtUp(world)),
+          Effect.andThen(indexReady(world, "500 millis"), caughtUp(world)).pipe(
+            Effect.withSpan(Pipeline.worldReset.spans.indexReady.name),
+          ),
         );
         return { minedAt: mined.minedAt, indexedBlock };
       });
@@ -155,7 +157,12 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
       const [{ minedAt, indexedBlock }] = yield* Effect.all(
         [
           settle(),
-          timed("bundler answers", bundlerAnswers(world, AfterReset)),
+          timed(
+            "bundler answers",
+            bundlerAnswers(world, AfterReset, Pipeline.worldReset.spans.bundlerServing.name).pipe(
+              Effect.withSpan(Pipeline.worldReset.spans.bundlerReady.name),
+            ),
+          ),
           timed("core answers", coreAnswers(world)),
           timed("preserved branch dropped", dropIfChildless(project, preserved)),
         ],
