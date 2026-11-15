@@ -95,11 +95,6 @@ export const BLOCKS: ReadonlyArray<{ readonly name: BlockName; readonly file: st
   { name: "packages", file: "README.md", from: "`PACKAGES` in packages/lint/src/shape.ts" },
   { name: "gate", file: "AGENTS.md", from: "`GATE` in packages/lint/src/gate.ts" },
   { name: "lint-rules", file: "AGENTS.md", from: "each rule's `description` in packages/lint/src/rules/" },
-  {
-    name: "lint-rules",
-    file: "packages/lint/README.md",
-    from: "each rule's `description` in packages/lint/src/rules/",
-  },
 ];
 
 /** The design notes' list, a whole file: one line per note under its folder, with its title and status line. */

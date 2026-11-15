@@ -21,33 +21,16 @@ The repository's own checks, and the formatter's settings. The gate that runs th
 - `oxfmt.json` is oxfmt's configuration: 120 columns, the rest oxfmt's defaults (here, as the top level is closed).
 - `test/` holds the tests: each rule runs through oxlint's own `RuleTester`, and the shape check on made-up trees.
 
-## The rules, from each one's `description` in `src/rules/`
+## The rules
 
-<!-- generated:lint-rules start -->
-<!-- Written by `pnpm generate` from each rule's `description` in packages/lint/src/rules/; never edit it. -->
-- `capxul/blueprint-owns-names`: an operation, a refusal (a tagged error), an event or a starting world is declared only
-  in `packages/blueprint`.
-- `capxul/effect-only`: no `async`, `await`, `new Promise`, `try`, `throw`, `process.env`, `Date.now`, `new Date()` or
-  `console` in TypeScript outside entry files. Entry files are listed in `.oxlintrc.json` under
-  `settings.capxul.entries`, each with its reason.
-- `capxul/import-door`: another package is imported only through its door, `src/door.ts` (`src/index.ts` in the
-  blueprint and its toolkit), or by its bare name.
-- `capxul/no-json-text`: no `JSON.parse`, `JSON.stringify`, `Schema.parseJson` or string schema documented as JSON
-  outside entry files and the edges listed under `settings.capxul.jsonEdges`.
-- `capxul/owned-values`: a raw schema (`Schema.String`, `Schema.Literals`, ...) only in the blueprint's values files,
-  machines and telemetry vocabulary, and there only as a named value, never as a field; elsewhere only in entry files
-  and the edges listed under `settings.capxul.schemaEdges`, each with its reason.
-- `capxul/declared-names`: a name the blueprint declares (an operation, a refusal, an event, an outcome, a starting
-  world) is imported, never written as a string outside the blueprint, except where the compiler checks it (an object's
-  key, a computed member, the tag given to `catchTag`, `Match.tag` or `isTagged`).
-- `capxul/decoded-rows`: no `sql<Row>` cast outside the blueprint; rows are decoded with the blueprint's schemas.
-<!-- generated:lint-rules end -->
+What each rule finds is listed once, in `AGENTS.md` ("Our lint rules"), written there by `pnpm generate` from each
+rule's `description` in `src/rules/`.
 
 ## Typed once, with a ratchet
 
-The last three come from step 3.3 (`docs/roadmap.md`, "Typed once, by check" and "New formats by a ratchet"). Each
-exempts generated files: a file whose first line is a comment starting `// Generated`, written by `pnpm generate` and
-never edited. `owned-values` also counts `ids.ts` and `Schema.Int`; `declared-names` also allows `Match.tagStartsWith`,
+`owned-values`, `declared-names` and `decoded-rows` come from step 3.3 (`docs/roadmap.md`, "Typed once, by check"
+and "New formats by a ratchet"). Each exempts generated files: a file whose first line is a comment starting
+`// Generated`, written by `pnpm generate` and never edited. `owned-values` also counts `ids.ts` and `Schema.Int`; `declared-names` also allows `Match.tagStartsWith`,
 and the rules' own tests, which hold declared names on purpose, are excepted in `.oxlintrc.json`.
 
 What each rule found when it was turned on is on its list in `src/unmigrated.ts`: a file, and how many findings it
