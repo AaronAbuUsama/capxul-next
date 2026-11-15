@@ -47,7 +47,8 @@ The repository's own checks, and the formatter's settings. The gate that runs th
 
 The last three come from step 3.3 (`docs/roadmap.md`, "Typed once, by check" and "New formats by a ratchet"). Each
 exempts generated files: a file whose first line is a comment starting `// Generated`, written by `pnpm generate` and
-never edited.
+never edited. `owned-values` also counts `ids.ts` and `Schema.Int`; `declared-names` also allows `Match.tagStartsWith`,
+and the rules' own tests, which hold declared names on purpose, are excepted in `.oxlintrc.json`.
 
 What each rule found when it was turned on is on its list in `src/unmigrated.ts`: a file, and how many findings it
 may still hold. A listed file with more findings than its count fails (the count must not grow); one with fewer fails

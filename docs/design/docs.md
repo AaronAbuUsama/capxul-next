@@ -263,14 +263,14 @@ Each generated output is listed in `OUTPUTS` in `packages/generate/src/sources.t
 `pnpm generate:check` (rung 2) fails when it is stale. Two forms:
 
 - **a whole file**, such as an index; or
-- **a block inside a hand-written file**, between `<!-- generated: <source> -->` and `<!-- end generated -->`. The
-  reader keeps one file, and the generator owns only the block. This is my recommendation for README and AGENTS.md
-  (question 5).
+- **a block inside a hand-written file**, between `<!-- generated:<name> start -->` and `<!-- generated:<name> end -->`
+  (`packages/generate/src/markdown-blocks.ts`; the form agreed with the blueprint lead on 15 November 2026). The
+  reader keeps one file, and the generator owns only the block.
 
 | Output | From | Replaces |
 |---|---|---|
 | the package map in `README.md` | `PACKAGES` and `TOP_LEVEL` in `shape.ts` | README "Where things are" |
-| the ladder table in `AGENTS.md` | the root `package.json` scripts, with a one-line reason kept beside each in the generator | AGENTS.md's ladder table |
+| the ladder table in `AGENTS.md` | `LADDER` in `packages/lint/src/ladder.ts`, which now owns the rungs' words (built: they are declared, not read from the root `package.json` scripts) | AGENTS.md's ladder table |
 | the lint-rule list in `packages/lint/README.md` | each rule's `meta.docs` in `packages/lint/src/rules/` | AGENTS.md's list |
 | `packages/blueprint/index.md` and `src/<domain>/index.md` | `domains.ts`, each domain's `operations`, `refusalsOf`, `emits`, `budget`, `allClaims`, `startingWorlds`; later `machines` (3.4), steps (4.1), `allowed` (5.1) | blueprint README's tables, `claims.md` (if decision 3 merges them), every `order.md` |
 | each domain's build order | claims' starting worlds, followed through each starting world's `steps[].operation` and `from`, then sorted | `order.md`; the "parts" column needs a new declaration, which is the blueprint session's call |
@@ -528,7 +528,10 @@ Landed since the hand-over (15 November 2026, 19:10 UTC):
   the root README's package map, the ladder and the lint-rule list in `AGENTS.md`, the lint-rule list in
   `packages/lint/README.md`, and `docs/design/README.md`. Every package has `generated/index.md`, checked by
   `packages/lint/src/maps.ts`; `UNMAPPED` (`bench-image`, `status-feed`, `blueprint-tools`) may only shrink.
-  `blueprint-tools` comes off it when its owner, the blueprint lead, chooses.
+  `blueprint-tools` comes off it when its owner, the blueprint lead, chooses. The marker form was agreed with the
+  blueprint lead; the blueprint's own pages are still written by its `pnpm claims` until its stage 2b moves them into
+  `pnpm generate`. A note's status line is read twice, by `docs-render.ts` and by `packages/lint/src/docs.ts`; one
+  owner for it is a follow-up.
 
 Still to do:
 
