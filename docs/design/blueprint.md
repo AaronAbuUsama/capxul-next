@@ -646,10 +646,33 @@ take their words from; the rename runs as a ratchet, user-facing names side by s
 | A chain of roadmap items led by one lead | lane | **lane** (kept) |
 | An integration branch for one effort | slice | **slice** (kept) |
 
-**Decision 8, the CLI as the one surface: direction agreed with Aaron, 15 November 2026.** The CLI is Capxul's one
-surface and is generated from the blueprint and the built code. The `run.sh` scripts become CLI commands. Every Frappe
-app and function becomes reachable, and a caller can act through their Safe within their authority. The design of
-each is still to come. It amends "One public surface, Frappe where it owns the data".
+**Decision 8, the CLI as the one surface: agreed with Aaron, 15 November 2026, every recommendation as offered.**
+The CLI is Capxul's one surface, generated from the blueprint and the built code. It amends "One public surface,
+Frappe where it owns the data".
+
+1. **Grammar:** `capxul <thing> <verb>`, following things then verbs. `capxul login` signs into an account;
+   `capxul use <world>` sets the current world, so `--world` may be left out; `--as <person>` acts as one of the cast.
+   Output is a readable table on a terminal and JSON when piped or with `--json`; exit codes stay the blueprint's.
+2. **The scripts become commands:** every `run.sh` job is a pipeline operation in the blueprint, and so a generated
+   command (`capxul world create|destroy|reset|renew|sweep`, `capxul snapshot …`, `capxul cluster up|down|show`,
+   `capxul sites deploy|drift`, `capxul run start --shards N`, `capxul journey run`, `capxul verdict show`). Build tools
+   that are not operations of Capxul (the bench image's build, vendoring contract libraries, the one-off credential
+   bootstrap) stay package scripts, each listed with its reason on a ratchet.
+3. **Frappe, generated from its own metadata (option B):** the blueprint declares the generic verbs once (list, get,
+   create, update, submit, cancel, amend, delete, run a report, call a function); `pnpm generate` reads every document
+   type, field, report and function of the pinned app versions and writes typed commands under each app
+   (`capxul erp purchase-invoice create`, `capxul hr leave-application submit`, `capxul crm lead list`). Permissions are
+   Frappe's own, from the caller's hat on that company's site. Capxul's own things (invoices, payments, approvals) stay
+   declared by hand. A coverage check lists every document type and function as exposed or not exposed with its
+   reason, a list that may only shrink. Rejected: declaring everything by hand (never finishes); a raw passthrough
+   (untyped, drifts).
+4. **The Safe, through a `safe` thing whose verbs are generated from the contracts' ABI (option B):**
+   `capxul safe call budgets.allocate --safe <safe> --args …`; Capxul checks the caller's roles allow that call on that
+   Safe (5.1), turns it into an approval for the Safe's signers, and sends it through the bundler at the threshold.
+   Authority is the caller's roles plus the Safe's own threshold, which the chain enforces; every call is in the
+   world's history and traced. "Nobody calls the chain directly" becomes "nobody reaches the chain except through
+   Capxul's `safe` verbs, within their roles". Rejected: signing only what Capxul proposes (too narrow); handing people
+   their key (bypasses history, checks and telemetry).
 
 **`notes.md`:** agreed with Aaron, 15 November 2026, to fold it into decisions 7 and 8 and delete the file in the
 restack.
