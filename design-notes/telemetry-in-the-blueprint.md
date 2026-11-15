@@ -306,19 +306,19 @@ into a failed verdict.
 1. **T1. The Axiom plan. Decided: Axiom Cloud is in place (Aaron, 15 November 2026).** Personal allows 3 datasets and 30 days, which cannot hold A2. **Recommend Axiom Cloud**,
    with an organisation spending limit set inside the $10 a day cap. Our volume (a run is a few thousand spans) sits
    far inside its free allowances.
-2. **T2. Datasets as in A2a**: 12 datasets in correlation groups for test, real and agents, plus Cloudflare's own.
+2. **T2. Decided as recommended (Aaron, 15 November 2026).** **Datasets as in A2a**: 12 datasets in correlation groups for test, real and agents, plus Cloudflare's own.
    **Recommend yes.**
-3. **T3. Lock the events datasets' schemas** once created, by hand in the console, and let check 5 enforce them.
+3. **T3. Decided as recommended (Aaron, 15 November 2026).** **Lock the events datasets' schemas** once created, by hand in the console, and let check 5 enforce them.
    **Recommend yes.**
-4. **T4. The envelope uses conventions first (A3b), product events go to a typed events dataset (A3c).**
+4. **T4. Decided as recommended (Aaron, 15 November 2026).** **The envelope uses conventions first (A3b), product events go to a typed events dataset (A3c).**
    **Recommend yes.**
-5. **T5. A closed vocabulary (B1a)**, and **the pipeline's work as declared operations (B2a)**. **Recommend yes.**
-6. **T6. Claude Code's telemetry on in the agents' environment**, with prompts and tool details off. **Recommend
+5. **T5. Decided as recommended (Aaron, 15 November 2026).** **A closed vocabulary (B1a)**, and **the pipeline's work as declared operations (B2a)**. **Recommend yes.**
+6. **T6. Decided as recommended (Aaron, 15 November 2026).** **Claude Code's telemetry on in the agents' environment**, with prompts and tool details off. **Recommend
    yes.** The ingest token it needs is made in Aaron's Axiom console, as an ingest-only token for the agents' datasets,
    and added by the network proxy, never put in the environment's variables.
-7. **T7. Query-cost caps on every agent's Axiom token** (for example $1 an hour and $5 a day), so agents can query
+7. **T7. Decided as recommended (Aaron, 15 November 2026).** **Query-cost caps on every agent's Axiom token** (for example $1 an hour and $5 a day), so agents can query
    freely. **Recommend yes.**
-8. **T8. Conventions' version.** Pin the newest version Axiom supports when the work starts, in one blueprint
+8. **T8. Decided as recommended (Aaron, 15 November 2026).** **Conventions' version.** Pin the newest version Axiom supports when the work starts, in one blueprint
    constant, and move it only on purpose, as a reviewed change. **Recommend yes.**
 
 Credentials, all made in Aaron's Axiom console (Helium on his Mac, which a Claude Code session there can drive with
