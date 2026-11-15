@@ -543,9 +543,18 @@ Still to do:
    4) and the Companies House signers from `invoice-ledger.md`. The decision "Every payment settles one sealed
    document" still says a payer may reject an invoice and Escrow stays as it is, against Aaron's two answers of 15
    November recorded in the contracts thread; raised with the conductor, not reworded.
-2. **M24, after 2b:** `AGENTS.md` to the rules only, each rule's words kept, the reasons moved to `docs/` and
-   linked. Its ladder and lint-rule list are generated blocks already. It must say that rung 1 covers the docs'
-   shape (`packages/lint/src/docs.ts`) and the package maps (`packages/lint/src/maps.ts`).
+2. **M24, done 15 November 2026:** `AGENTS.md` holds the rules only, each rule's words kept, and says that rung 1
+   covers the docs' shape (`packages/lint/src/docs.ts`) and the package maps (`packages/lint/src/maps.ts`). What
+   moved, and where:
+   - to `docs/guides/how-work-flows.md`: why `master` is its own line (its cut from `main`), why a builder may not
+     change its judges, why and when `world` runs, the conductor's state, the kit's contents, and why a cloud session
+     never connects to Aaron's computer;
+   - to `docs/guides/how-a-feature-is-built.md`: the three sources, the table "Who owns each fact" (word for word),
+     why the loop runs in its order, what a verdict holds, how coverage is reported, "Better over time", why changes
+     run side by side from the first caller, and why a new format reaches old work by a ratchet.
+   Its citations of decisions point to `docs/decisions.md`. Its section names that code cites ("How it is measured",
+   "Measure first", "Changing what works", "Generate", "Who owns each fact", "Standing rules", "Worlds", "The
+   ladder") are kept.
 3. **M23, the design notes:** landed by this lead, as the threads that wrote them are archived. Copied word for word
    under `docs/design/`, each with a status line: `proof-and-telemetry.md`, `telemetry-in-the-blueprint.md` and
    `invoice-ledger.md` agreed; `speed.md` superseded by `run-time.md`; `agreements-design.md` agreed as the
