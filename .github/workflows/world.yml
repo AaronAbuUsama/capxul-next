@@ -121,9 +121,11 @@ jobs:
       - name: Destroy every world the run's operators own
         if: always()
         run: |
+          mkdir -p "$RUNNER_TEMP/teardown"
           packages/world/run.sh list >"$RUNNER_TEMP/worlds.json"
           left=$(python3 -c 'import json, os, sys; owners = {os.environ["WORLD_OWNER"], os.environ["WORLD_SECOND_OWNER"]}; print(" ".join(w["world"] for w in json.load(open(sys.argv[1])) if w["owner"] in owners))' "$RUNNER_TEMP/worlds.json")
           echo "Worlds of the run's operators: ${left:-none}"
+          printf '%s\n' $left >"$RUNNER_TEMP/teardown/worlds.txt"
           status=0
           for world in $left; do
             packages/world/run.sh destroy "$world" || {
@@ -140,6 +142,7 @@ jobs:
         run: |
           hub="${HUB:-ch-$(printf '%s' '${{ github.run_id }}' | tail -c 7)${{ github.run_attempt }}}"
           [ "$hub" = fleet ] && { echo "The run used the standing hub fleet, which stays up."; exit 0; }
+          mkdir -p "$RUNNER_TEMP/teardown" && echo "$hub" >"$RUNNER_TEMP/teardown/hub.txt"
           if packages/world/run.sh hub show --hub "$hub" >/dev/null 2>&1; then
             packages/world/run.sh hub down --hub "$hub" || {
               echo "::error title=Hub not taken down::$hub: its take-down failed; its lifetime and the sweep back it up."
@@ -148,6 +151,36 @@ jobs:
           else
             echo "No hub $hub: nothing to take down."
           fi
+      - name: Read the accounts for anything of the run's worlds and hub
+        if: always()
+        # World lifecycle rule 4, as the runner's record proved it before the take-down moved here: after the destroys
+        # and the hub's take-down, the two accounts (packages/world's `inventory`, every name of the stack in them) hold
+        # nothing of a world this job destroyed or of the run's own hub. Kept as an artifact beside the run's records.
+        run: |
+          mkdir -p "$RUNNER_TEMP/teardown"
+          packages/world/run.sh inventory >"$RUNNER_TEMP/teardown/inventory.json"
+          python3 - "$RUNNER_TEMP/teardown" <<'PY'
+          import json, os, sys
+          folder = sys.argv[1]
+          def lines(name):
+              path = os.path.join(folder, name)
+              return [l.strip() for l in open(path)] if os.path.exists(path) else []
+          stages = [w if w.startswith("w-") else "w-" + w for w in lines("worlds.txt") if w] + [h for h in lines("hub.txt") if h]
+          held = json.load(open(os.path.join(folder, "inventory.json")))
+          names = [n for kind in held.values() if isinstance(kind, dict) for n in kind.get("ofThisStack", kind.get("names", []))]
+          left = sorted({n for n in names for s in stages if f"-{s}-" in n.lower() or n.lower().endswith(f"-{s}") or n.endswith(f"/{s}")})
+          json.dump({"stages": stages, "left": left}, open(os.path.join(folder, "left.json"), "w"), indent=2)
+          print(f"Looked for: {', '.join(stages) or 'nothing'}; left: {', '.join(left) or 'nothing'}")
+          for name in left:
+              print(f"::error title=Left in the accounts::{name}: the teardown destroyed its world or hub, but this remains.")
+          sys.exit(1 if left else 0)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: world-${{ github.run_id }}-${{ github.run_attempt }}-teardown
+          path: ${{ runner.temp }}/teardown/
+          if-no-files-found: warn
       - name: Sweep worlds that outlived their expiry, and bench templates unused for 6 hours
         if: always()
         run: packages/world/run.sh sweep

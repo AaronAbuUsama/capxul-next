@@ -113,9 +113,10 @@ world's own operations go to its Core.
    (`oneWorld.left`). The bench templates stay: packages/world's `sweep` removes them once unused for 6 hours, which
    `world.yml` runs after every run. With `RUNNER_TEARDOWN=job`, as `world.yml` sets it, the one world and a hub the
    run brought up are left up for CI's `teardown` job, which runs after the check has reported its verdict, always,
-   and destroys every world the run's operators own and then the hub; the summary names the world in
-   `oneWorld.handedOver`, and `oneWorld.left` still lists what the accounts held of it. Only what is left beyond the
-   worlds handed over fails the run. Unset, the run takes everything down itself, as a local run should.
+   destroys every world the run's operators own and then the hub, and reads the accounts afterwards, failing by name
+   on anything of them left (its artifact `world-<run>-<attempt>-teardown`, world lifecycle rule 4). The summary
+   names the world in `oneWorld.handedOver`, and `oneWorld.left` still lists what the accounts held of it before the
+   teardown. Only what is left beyond the worlds handed over fails the run. Unset, the run takes everything down itself, as a local run should.
 
 The summary is written however the run ends, but by interruption (`src/worlds/ending.ts`): a starting world that was
 not made fails the journeys that start from it, each with why, while the others still run, and the summary's
