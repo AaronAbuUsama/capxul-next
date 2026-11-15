@@ -7,14 +7,13 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 
 - [`account.md`](../docs/account.md): Serve the account's operations
 - [`api.md`](../docs/api.md): How a world's api is hosted and reaches its parts
-- [`cluster.md`](../docs/cluster.md): How the cluster works
-- [`commands.md`](../docs/commands.md): Make, list and destroy a world by hand
+- [`cluster.md`](../docs/cluster.md): The cluster: where every world runs, and how a world gets a place on it
 - [`containers.md`](../docs/containers.md): How a refused container start is tried again
 - [`images.md`](../docs/images.md): Pin or publish an image
 - [`lessons.md`](../docs/lessons.md): What was learned building the world
 - [`proofs.md`](../docs/proofs.md): Run a proof
-- [`renew.md`](../docs/renew.md): Renew a world
-- [`reset.md`](../docs/reset.md): Reset a world in place
+- [`renew.md`](../docs/renew.md): Renewing a world that is meant to last
+- [`reset.md`](../docs/reset.md): Resetting a world in place to one of its snapshots
 - [`sites.md`](../docs/sites.md): How a world's sites are made on the bench
 
 ## `src/account/`
