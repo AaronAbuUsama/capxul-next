@@ -17,26 +17,25 @@ export class SpanSink extends Context.Service<
 
 /**
  * Writes every span of a call to `app.spans` in one statement (`migrations/0001_telemetry.sql`). Its attributes
- * (0008) are kept as jsonb with Postgres's own JSON parameter, never as JSON text.
+ * (0009) are kept as jsonb with Postgres's own JSON parameter, never as JSON text.
  */
 export const SqlSpanSink = Layer.effect(
   SpanSink,
   Effect.gen(function* () {
     const sql = yield* PgClient.PgClient;
     return SpanSink.of({
+      // One row per span, written as its own fragment: a JSON parameter is a fragment, which goes into the statement
+      // only as part of a template, never as a value of `sql.insert` (the first world run with attributes, #122, died
+      // so on every call: "Cannot infer a PostgreSQL type").
       keep: (spans) =>
-        sql`insert into app.spans ${sql.insert(
-          Arr.map(spans, (span) => ({
-            trace_id: span.traceId,
-            span_id: span.spanId,
-            parent_span_id: span.parentSpanId,
-            name: span.name,
-            outcome: span.outcome,
-            duration_ms: span.durationMs,
-            ended_ms: span.endedMs,
-            attributes: span.attributes === null ? null : sql.json(span.attributes),
-          })),
-        )}`.pipe(Effect.asVoid, Effect.orDie),
+        sql`insert into app.spans (trace_id, span_id, parent_span_id, name, outcome, duration_ms, ended_ms, attributes)
+          values ${sql.csv(
+            Arr.map(
+              spans,
+              (span) =>
+                sql`(${span.traceId}, ${span.spanId}, ${span.parentSpanId}, ${span.name}, ${span.outcome}, ${span.durationMs}, ${span.endedMs}, ${span.attributes === null ? null : sql.json(span.attributes)})`,
+            ),
+          )}`.pipe(Effect.asVoid, Effect.orDie),
     });
   }),
 );
