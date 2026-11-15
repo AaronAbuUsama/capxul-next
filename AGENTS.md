@@ -164,7 +164,7 @@ them by reading the diff.
 These rules make "typed once" and "measured" checks rather than hopes (3.3, 4.1), each with its ratchet:
 
 - In the blueprint, a raw schema (`Schema.String`, `Schema.Literals`, `Schema.Number`, ...) appears only in a values
-  file or a machine; every field of an operation, event or refusal is a named value. Outside the blueprint, raw schemas
+  file, a machine or the telemetry vocabulary (`src/telemetry/`); every field of an operation, event or refusal is a named value. Outside the blueprint, raw schemas
   appear only in edge files listed in `.oxlintrc.json`, each with its reason, and stored rows are decoded with the
   blueprint's schemas.
 - A declared name (an operation, event, refusal, state or span) is imported, never written as a string.
@@ -226,9 +226,11 @@ fails a run.
 ### A new format reaches old work by a ratchet
 
 A new or changed operation uses a new format from the day it lands. Existing declarations are moved to it in the same
-slice where that is cheap; the rest are listed in the format's `unmigrated` list, which a test allows only to shrink,
-and the format's roadmap step closes when the list is empty. New work is born compliant; old work catches up in
-parallel and blocks nothing. Every ratchet is declared once in the blueprint's registry, and `pnpm ratchets` fails a pull
+slice where that is cheap; the rest are listed in the format's `unmigrated` list, which a test allows only to shrink.
+The format's roadmap step closes when the format exists, is proven in full on its named domain, and its ratchet is
+registered and counting today's count; it does not wait for the list to be empty. The ratchet's own lane closes when
+its list is empty (Aaron, 15 November 2026). New work is born compliant; old work catches up in parallel and blocks
+nothing. Every ratchet is declared once in the blueprint's registry, and `pnpm ratchets` fails a pull
 request whose list grew (3.6; `docs/design/blueprint.md`, part 4). A migration changes no behaviour: every journey stays
 green. Generic checks added by such a slice are written by a different agent from the one that migrates Core.
 
@@ -243,7 +245,7 @@ Run `pnpm check` before you open a pull request. It runs rungs 1 to 5 in order a
 | 2. Format | `pnpm format:check`, `pnpm generate:check`, `pnpm seed:check` | TypeScript or JavaScript under `packages/` that oxfmt would change (config: `packages/lint/oxfmt.json`); a generated file that `pnpm generate` would write differently (it builds the contracts with Foundry first, `packages/generate`); a seeded chain state (`packages/contracts/state/core.json`, `deployments/devnet.json`) that `pnpm seed` would rebuild differently |
 | 3. Lint | `pnpm lint` | Any finding of `.oxlintrc.json`, every rule an error: oxlint's correctness and suspicious rules and a few more, all of Effect's rules from `@effect/tsgo` but two (each off with its reason), and ours from `packages/lint` (below) |
 | 4. Types | `pnpm types` | A type error in any TypeScript package, or an Effect language service error or warning (`effect-tsgo tsc`) |
-| 5. Tests | `pnpm test`, then `pnpm delta:check` (and `pnpm ratchets` from 3.6) | A failing unit test in any package (`pnpm frappe:test` and `pnpm status:test` included). Foundry's tests in `packages/contracts` are not in it: CI builds only the contracts, not their tests. Then the delta check: an operation that lacks a format that exists and is not on that format's `unmigrated` list (`packages/blueprint-tools/src/checks/formats.ts`). From 3.6, a ratchet whose list grew |
+| 5. Tests | `pnpm test`, then `pnpm delta:check` and `pnpm words` (and `pnpm ratchets` from 3.6) | A failing unit test in any package (`pnpm frappe:test` and `pnpm status:test` included). Foundry's tests in `packages/contracts` are not in it: CI builds only the contracts, not their tests. Then the delta check: an operation that lacks a format that exists and is not on that format's `unmigrated` list (`packages/blueprint-tools/src/checks/formats.ts`). Then the old words: an old word of the glossary written more often than `packages/blueprint/generated/old-words.json` counts (3.8). From 3.6, a ratchet whose list grew |
 | 6. Proof | `packages/runner/run.sh scenarios` (and `prove.yml` from 4.5) | A scenario that fails in a fresh world; from 3.7, a newly declared move, refusal or outcome no journey reaches. CI runs it in `.github/workflows/world.yml` once the bootstrap has given CI its Cloudflare and Neon keys (roadmap step 1.8) |
 
 Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
@@ -257,8 +259,8 @@ Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
   blueprint and its toolkit), or by its bare name.
 - `capxul/no-json-text`: no `JSON.parse`, `JSON.stringify`, `Schema.parseJson` or string schema documented as JSON
   outside entry files and the edges listed under `settings.capxul.jsonEdges`.
-- `capxul/owned-values`: a raw schema (`Schema.String`, `Schema.Literals`, ...) only in the blueprint's values files
-  and machines, and there only as a named value, never as a field; elsewhere only in entry files and the edges listed
+- `capxul/owned-values`: a raw schema (`Schema.String`, `Schema.Literals`, ...) only in the blueprint's values files,
+  machines and telemetry vocabulary, and there only as a named value, never as a field; elsewhere only in entry files and the edges listed
   under `settings.capxul.schemaEdges`, each with its reason.
 - `capxul/declared-names`: a name the blueprint declares (an operation, a refusal, an event, an outcome, a starting
   world) is imported, never written as a string outside the blueprint, except where the compiler checks it (an

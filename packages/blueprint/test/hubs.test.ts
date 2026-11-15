@@ -9,7 +9,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
-import { Errors, operations, Values } from "../src/index.ts";
+import { Errors, operations, Pipeline, Values } from "../src/index.ts";
 
 const THINGS = fileURLToPath(new URL("../src/things/", import.meta.url));
 
@@ -46,12 +46,26 @@ test("the folders are read: the things this test knows of today are among them",
     assert.ok(Arr.contains(found, name), `src/things/${name}/refusals.ts was not found`);
 });
 
-test("every verb's declaration is in `operations`, under its Rpc's name, with its promises", async () => {
+test("every verb's declaration is in `operations`, under its Rpc's name, with its promises, or is work in `Pipeline.work`", async () => {
   const every: Readonly<Record<string, unknown>> = operations;
+  const works: Readonly<Record<string, unknown>> = Pipeline.work;
   let count = 0;
+  let workCount = 0;
   for (const thing of thingsWith(".")) {
     for (const verb of verbsOf(thing)) {
       const module = await load(thing, verb);
+      const work = Arr.filter(
+        Rec.values(module),
+        (value) => isRecord(value) && "spans" in value && "budget" in value && !("rpc" in value),
+      );
+      if (work.length > 0) {
+        assert.equal(work.length, 1, `src/things/${thing}/${verb} declares more than one piece of work`);
+        const [declared] = work;
+        const name = isRecord(declared) ? String(declared["name"]) : "";
+        assert.equal(works[name], declared, `${name} of src/things/${thing}/${verb} is not in \`Pipeline.work\``);
+        workCount += 1;
+        continue;
+      }
       const declared = Arr.filter(
         Rec.values(module),
         (value) => isRecord(value) && "rpc" in value && "budget" in value,
@@ -66,6 +80,7 @@ test("every verb's declaration is in `operations`, under its Rpc's name, with it
     }
   }
   assert.equal(count, Rec.size(operations), "an operation of `operations` is no verb's");
+  assert.equal(workCount, Rec.size(Pipeline.work), "a piece of work of `Pipeline.work` is no verb's");
 });
 
 test("every thing with a refusals.ts has each of its refusals in `Errors.refusals`", async () => {

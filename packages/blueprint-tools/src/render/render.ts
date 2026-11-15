@@ -7,6 +7,7 @@ import {
   allClaims,
   machines,
   operations,
+  Pipeline,
   servedBy,
   startingWorlds,
   type OperationName,
@@ -17,8 +18,16 @@ import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
 import { refusalsOf, type Operation } from "../language/operation.ts";
 import type { Claim, ClaimsOf } from "../language/promise.ts";
+import type { Work } from "../language/work.ts";
 import type { Layout, Thing } from "./layout.ts";
 import { machinesSection } from "./machines.ts";
+import { workSection } from "./work.ts";
+
+/** The work no door serves of `thing`, in its layout's order. */
+const worksOf = (thing: Thing): ReadonlyArray<Work> => {
+  const every: { readonly [name: string]: Work } = Pipeline.work;
+  return Arr.flatMap(thing.works, (each) => Option.toArray(Option.fromNullishOr(every[each.name])));
+};
 
 const code = (text: string) => `\`${text}\``;
 const list = (items: ReadonlyArray<string>) => (items.length === 0 ? "none" : Arr.join(items, ", "));
@@ -165,15 +174,20 @@ const map = (layout: Layout): string =>
       "",
       "| Thing | Verb | Operation | Served by |",
       "|---|---|---|---|",
-      ...Arr.flatMap(layout.things, (thing) =>
-        Arr.flatMap(namesOf(thing), (name) =>
+      ...Arr.flatMap(layout.things, (thing) => [
+        ...Arr.flatMap(namesOf(thing), (name) =>
           Arr.map(
             Arr.filter(thing.verbs, (verb) => verb.operation === name),
             (verb) =>
               `| [${thing.name}](${thing.name}.md) | ${verb.verb} | ${code(name)} | the ${servedBy(name)} group |`,
           ),
         ),
-      ),
+        ...Arr.map(
+          thing.works,
+          (each) =>
+            `| [${thing.name}](${thing.name}.md) | ${each.verb} | ${code(each.name)} | none: work no door serves |`,
+        ),
+      ]),
     ],
     "\n",
   );
@@ -204,12 +218,10 @@ const ofThing = (thing: Thing, claimed: Claimed, own: Parameters<typeof machines
       "promises. Do not edit it by hand: a test fails when this page and its sources differ. What the runner checks on",
       "every call, and the starting worlds a promise is in, are in [index.md](index.md).",
       "",
-      "## Count",
-      "",
-      summary(claimed),
-      "",
+      ...(claimed.length > 0 ? ["## Count", "", summary(claimed), ""] : []),
       ...machinesSection(own),
       ...Arr.map(claimed, ([name, of], n) => `${section(name, n, of)}\n`),
+      ...workSection(worksOf(thing)),
     ],
     "\n",
   );
