@@ -15,13 +15,14 @@ these files or checked against them. Only facts about Capxul live here; how they
 | Where | What |
 |---|---|
 | `src/index.ts` | The one file other packages import from |
+| `src/glossary.ts` | One word, one meaning: every agreed word and the old words it replaces; its page is [`generated/glossary.md`](generated/glossary.md) |
 | `src/things/<thing>/` | One thing: `values.ts`, `events.ts`, `refusals.ts`, `lifecycle.ts` where it has one, `examples.ts` (example data its verbs share, until stage 2b folds it into them), and one file per verb |
 | `src/common/` | What several things use: values, ids, refusals, the site's names (`site.ts`), the chain (`chain/`) |
 | `src/starting-points/` | The named states journeys begin from (`points.ts`), and what each hands a journey (`facts.ts`) |
 | `src/protocol/` | How a call travels: its paths, headers, sign-in and trace |
 | `src/telemetry/` | The telemetry vocabulary, one file each: the conventions' version, the envelope, the producers, the step kinds, the metrics, the datasets and what watches them (part 10) |
 | `src/generated/` | The indexes `pnpm generate` writes from the thing folders. Never edited |
-| `generated/` | The pages `pnpm claims` writes: `index.md`, the map of every thing and verb, and one page per thing. Never edited |
+| `generated/` | The pages `pnpm claims` writes: `index.md`, the map of every thing and verb, and one page per thing; and `pnpm generate`'s `glossary.md` and `old-words.json`, the count of each old word still written (`pnpm words` fails when one grows). Never edited |
 | `src/ratchets.ts` | The ratchet registry, R1 to R14: what each list holds, how it is counted, what closes it |
 | `docs/` | `build-order.md`; `decisions.md` and `gaps.md` until they are folded |
 

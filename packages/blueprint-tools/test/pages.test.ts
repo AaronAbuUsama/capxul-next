@@ -31,10 +31,11 @@ test("every page in generated/ is what the sources render, and no other page is 
     const onDisk = readFileSync(new URL(path, BLUEPRINT), "utf8");
     assert.equal(onDisk, text, `packages/blueprint/${path} is out of date: run \`pnpm claims\``);
   }
-  const ratchets: ReadonlyArray<string> = Rec.values(OUTPUTS);
+  // The glossary's page, the count of its old words and the ratchets' outputs are `pnpm generate`'s, not `pnpm claims`'s.
+  const notPages: ReadonlyArray<string> = [...Rec.values(OUTPUTS), "generated/glossary.md", "generated/old-words.json"];
   const pages = Arr.filter(
     Arr.map(readdirSync(new URL("generated/", BLUEPRINT)), (name) => `generated/${name}`),
-    (page) => !Arr.contains(ratchets, page),
+    (page) => !Arr.contains(notPages, page),
   );
   assert.deepEqual(
     Arr.sort(pages, Order.String),

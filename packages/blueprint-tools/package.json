@@ -9,7 +9,8 @@
     "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts",
     "claims": "node --experimental-strip-types --no-warnings src/render/render.entry.ts",
     "delta:check": "node --experimental-strip-types --no-warnings src/checks/delta.entry.ts",
-    "ratchets": "node --experimental-strip-types --no-warnings src/checks/ratchets.entry.ts"
+    "ratchets": "node --experimental-strip-types --no-warnings src/checks/ratchets.entry.ts",
+    "words": "node --experimental-strip-types --no-warnings src/checks/words.entry.ts"
   },
   "dependencies": {
     "effect": "catalog:"

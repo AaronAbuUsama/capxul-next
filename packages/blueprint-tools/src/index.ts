@@ -51,6 +51,22 @@ export {
   type WorkDeclaration,
 } from "./language/work.ts";
 export { gather, type Every } from "./language/gather.ts";
+export {
+  code,
+  keyOf,
+  oldWordOf,
+  uncounted,
+  words,
+  type Code,
+  type Entry,
+  type OldWord,
+  type Scope,
+  type Uncounted,
+  type Words,
+} from "./language/glossary.ts";
+export { countOldWords, grown, OLD_WORDS, type Counts } from "./checks/old-words.ts";
+export { wordFiles, type Disk } from "./checks/word-files.ts";
+export { renderGlossary } from "./render/glossary.ts";
 export { namesOf } from "./checks/declared-names.ts";
 export {
   layoutOf,

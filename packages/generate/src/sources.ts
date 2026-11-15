@@ -46,6 +46,12 @@ export const OUTPUTS = {
     path: "packages/frappe-app/capxul/generated/__init__.py",
     from: "packages/generate/src/sources.ts",
   },
+  glossary: { path: "packages/blueprint/generated/glossary.md", from: "packages/blueprint/src/glossary.ts" },
+  /** The rename ratchet's counts (roadmap item 3.8): the glossary's old words, counted across the repository. */
+  oldWords: {
+    path: "packages/blueprint/generated/old-words.json",
+    from: "packages/blueprint/src/glossary.ts and the files packages/blueprint-tools, src/checks/word-files.ts reads",
+  },
 } as const;
 
 /**

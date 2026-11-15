@@ -6,8 +6,8 @@ How the blueprint is written and checked. Nothing here is a fact about Capxul: t
 | Where | What |
 |---|---|
 | `src/language/` | What a declaration is: `operation.ts` (a verb a door serves), `work.ts` (a verb no door serves: its spans, logs and budget), `lifecycle.ts` (a thing's life, `Machine`), `promise.ts` (what a verb promises, today `Claim`), `starting-point.ts` (a named state a journey begins from), `gather.ts` (how a generated index composes its parts) |
-| `src/checks/` | The delta check (`pnpm delta:check`): every verb has every format, or is on its ratchet; the formats; the declared names; the ratchets counted (`pnpm ratchets`) and the scorecard, both written inside `pnpm generate` |
-| `src/render/` | How the blueprint's folders read as data (`layout.ts`, which `pnpm generate` uses to write the blueprint's indexes), and its pages, `packages/blueprint/generated/` (`pnpm claims`) |
+| `src/checks/` | The delta check (`pnpm delta:check`): every verb has every format, or is on its ratchet; the formats; the declared names; the ratchets counted (`pnpm ratchets`) and the scorecard, both written inside `pnpm generate`; the count of the glossary's old words (`old-words.ts`, what of a file is code in `code-text.ts`, which files in `word-files.ts`) and its ratchet, `pnpm words` |
+| `src/render/` | How the blueprint's folders read as data (`layout.ts`, which `pnpm generate` uses to write the blueprint's indexes), and its pages, `packages/blueprint/generated/` (`pnpm claims`; the glossary's page, `glossary.ts`, is written by `pnpm generate`) |
 
 The blueprint depends on this package for its language. What here reads the blueprint's own declarations (the
 formats, the delta check, the pages) imports the blueprint's door by its path, `../../../blueprint/src/index.ts`,
@@ -21,5 +21,6 @@ same reason `pnpm generate` writes the counts and the scorecard by running this 
 ```sh
 pnpm --filter @capxul/blueprint-tools claims        # rewrite packages/blueprint/generated/
 pnpm --filter @capxul/blueprint-tools delta:check   # also the root's `pnpm delta:check`
+pnpm words                                          # the old words' ratchet; `--where <word>` lists where one is
 pnpm --filter @capxul/blueprint-tools ratchets      # also the root's `pnpm ratchets`; --write and --check in `pnpm generate`
 ```
