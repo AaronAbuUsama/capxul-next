@@ -473,7 +473,7 @@ Waiting on another session:
 - M23 (the design notes): each from its own thread.
 - Anything in `packages/world`: the world-layout session.
 
-## 12. Where it stands (15 November 2026, evening)
+## 12. Where it stands (15 November 2026, 19:10 UTC)
 
 This section is the hand-over. An agent that has never seen the docs thread can carry on from it, `AGENTS.md` and
 sections 0, 3 and 10 above.
@@ -514,37 +514,45 @@ What it changed, in short:
 
 ### What is left, in order
 
-1. **Land #304.** Before merging, merge `master` into `slice/docs` again if it has moved, taking `master`'s version
-   inside `packages/world` and `packages/blueprint`. Then merge once `gate` and `world` are both green on the head.
-2. **M22, after the blueprint's stage 2a** (`docs/design/blueprint.md`, part 5): repoint every citation of
-   `packages/blueprint/decisions.md` outside the blueprint (core, runner, scenarios and frappe-app comments, the
-   roadmap, READMEs) to where 2a put each entry.
-3. **M4, after the blueprint's stage 2b:** move the roadmap's decisions table to `docs/decisions.md`, word for word
+Landed since the hand-over (15 November 2026, 19:10 UTC):
+
+- **#304** reached `master` (b55dff4), with stage 2a, #315 and #316 merged in. The docs check now allows Markdown
+  under `.agents/`, and `docs/design/handoff.md` and `run-time.md` state their status.
+- **M22**, #350 into `slice/docs`: 70 citations of the blueprint's decisions outside the blueprint now read
+  `packages/blueprint/docs/decisions.md, entry N`, and three of `src/starting-worlds.ts` read
+  `src/starting-points/points.ts`. Left on purpose: the citations in the applied migrations
+  `packages/core/migrations/0002_site_ops.sql` and `0005_approvals.sql`, which are never edited; the contracts' own
+  decisions; the roadmap's lines, which are the blueprint lead's.
+- **M5 and M6**, #352 into `slice/docs`: `pnpm generate` writes Markdown blocks between
+  `<!-- generated:<name> start -->` and `<!-- generated:<name> end -->` (`packages/generate/src/markdown-blocks.ts`):
+  the root README's package map, the ladder and the lint-rule list in `AGENTS.md`, the lint-rule list in
+  `packages/lint/README.md`, and `docs/design/README.md`. Every package has `generated/index.md`, checked by
+  `packages/lint/src/maps.ts`; `UNMAPPED` (`bench-image`, `status-feed`, `blueprint-tools`) may only shrink.
+  `blueprint-tools` comes off it when its owner, the blueprint lead, chooses.
+
+Still to do:
+
+1. **M4, after the blueprint's stage 2b:** move the roadmap's decisions table to `docs/decisions.md`, word for word
    and with its dates, and link it from the roadmap. Keep "Steps to the goal" byte-compatible, because
    `packages/status-feed/feed.py` parses it. Add Aaron's decisions recorded elsewhere, with their own words and
-   dates:
-   - founding with a board, `packages/blueprint/decisions.md` entry 26, unless 2a has already moved it;
-   - entry 53's rule, "the chain's budget is the only gate on spending";
-   - "Answered by Aaron" 1 to 3;
-   - the Companies House signers, from `invoice-ledger.md` on branch `design/contracts-first-principles`.
-   The contracts thread was to rewrite "Every payment settles one sealed document" with Aaron's two answers of
-   15 November: a payer may no longer reject an invoice presented under an agreement, and Escrow becomes the held
-   payment of the invoice ledger (shape agreed 15 November 2026), still parked as a build item. If that has not
-   happened, raise it; do not reword it yourself.
-4. **M24, after 2b:** rewrite `AGENTS.md` to the rules only, keeping each rule's words, with reasons moved to `docs/`
-   and linked. It must also say that rung 1 now covers the docs' shape (`packages/lint/src/docs.ts`).
-5. **M5 and M6, the generated maps:** a generated `docs/design/README.md`; a generated package map in the root README;
-   the ladder table in `AGENTS.md` and the lint-rule list in `packages/lint/README.md`, generated as blocks between
-   markers; `packages/<name>/generated/index.md`, with a shape check that every package has one. Agree the one
-   generator mechanism with the blueprint session first, because its stage 2b generates indexes too.
-6. **M23, the design notes:** each lands under `docs/design/` from its own thread, with a status line. The notes are
+   dates: entry 26 (founding with a board) and entry 53's rule ("the chain's budget is the only gate on spending")
+   of `packages/blueprint/docs/decisions.md`, unless the blueprint lead's fold has moved them; "Answered by Aaron" 1
+   to 3; the Companies House signers, from `invoice-ledger.md` on branch `design/contracts-first-principles`. The
+   contracts thread was to rewrite "Every payment settles one sealed document" with Aaron's two answers of 15
+   November; if that has not happened, raise it, do not reword it.
+2. **M24, after 2b:** `AGENTS.md` to the rules only, each rule's words kept, the reasons moved to `docs/` and
+   linked. Its ladder and lint-rule list are generated blocks already. It must say that rung 1 covers the docs'
+   shape (`packages/lint/src/docs.ts`) and the package maps (`packages/lint/src/maps.ts`).
+3. **M23, the design notes:** each lands under `docs/design/` from its own thread, with a status line. The notes are
    `design/proof-telemetry`, `design/speed` and `design/contracts-first-principles` (`invoice-ledger.md`, and
    `agreements-design.md` §2).
-7. **The last long READMEs:**
-   - `packages/blueprint/README.md`: the blueprint session's;
-   - `packages/world/records/spike-bundler/README.md`, `spikes/containers` and `spikes/world-speed`: the
-     world-layout session graduates them into `packages/world`, and `spikes/containers` holds item 0.6's only proof.
-   Each comes off `LONG_READMES` in the pull request that fixes it, with the test's ceiling lowered.
+4. **The last long READMEs:** `packages/world/records/spike-bundler/README.md`, `spikes/containers` and
+   `spikes/world-speed`, which the world-layout session graduates into `packages/world`; `spikes/containers` holds
+   item 0.6's only proof. Each comes off `LONG_READMES` in the pull request that fixes it, with the ceiling lowered.
+
+Where two moves landed somewhere other than section 3 says: the spikes' red records are in
+`packages/runner/records/spike-red-records/`, and the contracts' provenance, seed and authority flow are pages in
+`packages/contracts/docs/` (section 0, item 4), not `deploy/PROVENANCE.md`, `state/README.md` and NatSpec.
 
 ### Open questions and loose ends
 
