@@ -16,6 +16,8 @@ are minted by code** (`bootstrap/`) and CI signs in to AWS through GitHub's OIDC
 |---|---|---|
 | `CapxulBenchHost` | `host.run.ts`, `src/aws.ts`, `src/user-data.ts` | The machine: a `t3.large` (2 vCPU, 8 GiB) on Amazon Linux 2023 in its own VPC and public subnet, a security group with **no inbound rule**, an encrypted 60 GiB gp3 data disk mounted at `/var/lib/docker` (images, build cache and the bench's MariaDB and sites volumes all live on it and survive restarts), a role carrying only `AmazonSSMManagedInstanceCore`, IMDSv2 with a hop limit of 1 so no container can borrow that role. Docker listens on the machine's loopback only |
 | `CapxulPlatform` | `alchemy.run.ts`, `src/host.ts`, `src/bench.ts`, `src/edge.ts` | Through one Docker context: the bench image (`bench/`, pinned Frappe and ERPNext plus the capxul app) and the door's (`door/`), a network, MariaDB, Redis, the door, web, worker and scheduler; the tunnel, its ingress (`<stage>-door.<domain>` to the door, `*.<domain>` to web, anything else 404), its connector (cloudflared) on the machine, and two proxied CNAMEs, the door's and the wildcard |
+| `CapxulPlatform`, on Cloudflare | `src/collector/` | The collector: a Worker (`cx-platform-<stage>-collector`) on the zone route `<stage>-collector.<domain>/*`, a proxied AAAA record `100::` for that name, and its signing key (below, "The collector") |
+| `CapxulCollectorRehearsal` | `collector.run.ts` | The collector alone, for a rehearsal on a `pr-<x>` stage without the bench; nothing deploys it in CI |
 | `CapxulBootstrap` | `bootstrap/` | CI's access, made once by Aaron ([BOOTSTRAP.md](bootstrap/BOOTSTRAP.md)) |
 
 Two hosts, one platform stack. `PLATFORM_HOST=aws` reaches the bench host's Docker engine through an SSM port forward
@@ -310,6 +312,61 @@ were not timed apart. Resets are faster than the spike's 0.5 s, with MariaDB's c
 - Templates are the bench's: any valid token may make one or sweep them, and nothing stops a token's holder from
   removing one with `DELETE /templates/<template>`. Tokens are minted only by holders of the door key.
 - A long pause of the world is not the door's job: it does not stop the scheduler for a world's sites.
+
+## The collector (roadmap step 4.4)
+
+Telemetry's one way in for a platform stage (`docs/design/blueprint.md`, the glossary): every producer's OTLP goes
+through it to the sink. One Worker, `src/collector/worker.ts`, built on Effect's `OtlpProxy`.
+
+| Call | What |
+|---|---|
+| `POST /v1/traces`, `/v1/logs`, `/v1/metrics` | OTLP **JSON** (`OtlpSerialization.layerJson`; protobuf answers 415, a body that does not decode 400). Every resource is stamped (below), then the body goes to Axiom's edge `eu-central-1.aws.edge.axiom.co` with the ingest key and the signal's dataset in `x-axiom-dataset` (`capxul-test-traces`, `-logs`, `-metrics`). The caller gets the sink's answer, as `OtlpProxy` returns it |
+| `GET /health` | `{collector, stage}` |
+
+**Who may call, and what is stamped.** A caller holds a **claim** signed under the stage's collector key
+(`src/collector/claims.ts`): `c1.<operator>.<world or ->.<grade or ->.<expires>.<HMAC-SHA256 in hex>`. The key is an
+`Alchemy.Random` of the stage (`CollectorKey-g<n>`, `PLATFORM_COLLECTOR_KEY_GENERATION`), kept in the shared state,
+bound to the Worker as a secret and recorded by id as the output `collectorKeyId`, never as a value: whoever holds the
+Cloudflare key reads it and signs, as with the site door's key.
+
+- **A world's Core, by service binding.** packages/world signs the world's claim (its owner, world, grade and expiry)
+  when it deploys the world and puts it in the **props of Core's binding** to the collector:
+  `env: { <name>: yield* collectorBinding(stage, claim) }` (`src/door.ts`). Cloudflare hands a binding's props to the
+  collector as `ctx.props`; the deployer sets them and a request on the public route has none, so only the binding
+  path can carry a world's claim that way. A binding's claim must name a world and a grade (403
+  `binding-claim-refused` otherwise).
+- **Anyone else, on the public route** `http://<stage>-collector.<domain>` (HTTP, as the site door: the name is two
+  levels under the zone, and no certificate is made): `Authorization: Bearer <claim>`, signed for the caller's
+  operator, naming the world it drives when it drives one. None: 401 `claim-required`; not the key's, expired or
+  malformed: 403 `claim-refused`.
+
+The collector then drops whatever the caller sent under the stamped keys on every resource and writes its own
+(`src/collector/envelope.ts`): `capxul.world` and `capxul.grade` from the claim when it names them,
+`deployment.environment.name` the collector's stage, `capxul.operator` the claim's operator. So no producer can
+misstate where its records came from.
+
+**Counts.** After each answer, in `waitUntil`, the collector sends what became of the request's items to the sink's
+metrics dataset as OTLP metrics of its own, under OpenTelemetry's names for an exporter
+(`otel.sdk.exporter.span.exported`, `.log.exported`, `.metric_data_point.exported`; a delta sum, a point for what
+was kept and one for what was refused with `error.type`: the sink's status, `partial` for OTLP's partial success, or
+502/504 when it was not reached), each point carrying the caller's stamp. It also logs them as one JSON line
+(`collector counts`), which Workers Logs keeps and exports to Cloudflare's destination `axiom-capxul-logs`.
+
+**Keys.** The ingest key is a Worker secret, `SINK_KEY`, set by `platform.yml` from the CI secret `AXIOM_INGEST_TEST`.
+Neither the repository nor an agent's container holds it: a deploy from a container leaves the collector unable to
+forward (Axiom answers 401, and the counts say so). `COLLECTOR_SINK_URL` and `COLLECTOR_DATASETS` change the sink's
+base URL and the datasets' prefix, for a rehearsal.
+
+**Cloudflare's own view.** The collector, Core's Worker (packages/core) and the hub's door (packages/world) export
+Workers Logs and traces to the account's Axiom destinations `axiom-capxul-logs` and `axiom-capxul-traces`: a second
+view of the platform, never read by a check.
+
+**CI's token** needs `Workers Routes Write` on the zone for the route (`bootstrap/src/cloudflare-policy.ts`); it takes
+effect once the bootstrap is run again.
+
+`records/collector/rehearsal.json`: the collector alone on `pr-col1` from an agent's container, each refusal, the
+stamping on the public route and by service binding, Axiom's 401 without a key and the counts that said so; then
+destroyed.
 
 ## The drift check
 
