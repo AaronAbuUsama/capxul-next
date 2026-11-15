@@ -1,16 +1,17 @@
 // `capxul board set-threshold` (today `org.threshold.set`): how many Directors must sign.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim } from "@capxul/blueprint-tools";
+import { verb, claim } from "@capxul/blueprint-tools";
 import { NotImplemented, OrgNotFound } from "../../../common/refusals.ts";
 import { OrgId } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
-import { BoardChangeProposed, proposed } from "../events.ts";
+import { BoardChangeProposed } from "../events.ts";
+import { proposed } from "../values.ts";
 import { founderApproval } from "../examples.ts";
 import { BoardChangeWaiting, CannotChangeBoard, ThresholdTooHigh, ThresholdUnchanged } from "../refusals.ts";
 import { Proposed, Threshold } from "../values.ts";
 
-export const thresholdSet = declare({
+export const thresholdSet = verb({
   rpc: Rpc.make("org.threshold.set", {
     payload: {
       org: OrgId,

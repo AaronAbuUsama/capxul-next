@@ -1,7 +1,7 @@
 // What other packages may import of the lint package: the facts it owns that `pnpm generate` writes into the
 // docs. The packages and their reasons (the root README's map), the gate's rungs (AGENTS.md's table), what each of
 // our lint rules finds (the list in AGENTS.md), the packages with no map yet, and the
-// typed-once rules' unmigrated lists, which `pnpm ratchets` (packages/blueprint-tools, src/checks/) counts as
+// typed-once rules' unmigrated lists, which `pnpm ratchets` (packages/generate, src/ratchets.entry.ts) counts as
 // ratchets R1 to R3.
 
 import * as Arr from "effect/Array";

@@ -12,11 +12,10 @@ import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
-import { glossary } from "../../../blueprint/src/index.ts";
-import { countOldWords, type Counts, grown, OLD_WORDS, whereOf } from "./old-words.ts";
-import { wordFiles } from "./word-files.ts";
+import { glossary } from "@capxul/blueprint";
+import { countOldWords, type Counts, grown, OLD_WORDS, whereOf, wordFiles } from "@capxul/blueprint-tools";
 
-const root = join(import.meta.dirname, "../../../..");
+const root = join(import.meta.dirname, "../../..");
 const flag = (name: string): string | undefined => {
   const at = process.argv.indexOf(name);
   return at === -1 ? undefined : process.argv[at + 1];

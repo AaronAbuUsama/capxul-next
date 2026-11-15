@@ -5,8 +5,8 @@
 // company's site.
 import type { People } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
-import { inviteAccept, inviteDecline, inviteList } from "./answer.ts";
-import { memberInvite, memberList } from "./invite.ts";
+import { invitationAccept, invitationDecline, invitationList } from "./answer.ts";
+import { invitationSend, memberList } from "./invite.ts";
 
 type Payload<Op extends { readonly rpc: { readonly payloadSchema: { readonly Type: unknown } } }> =
   Op["rpc"]["payloadSchema"]["Type"];
@@ -16,13 +16,13 @@ const faults = { SqlError: Effect.die } as const;
 
 /** Its five handlers, by operation: the people domain's share of the world group. */
 export const peopleHandlers = {
-  "org.member.invite": (payload: Payload<typeof People.memberInvite>) =>
-    memberInvite(payload).pipe(Effect.catchTags(faults)),
-  // invite.list takes nothing: its handler is the one Effect, run for each call.
-  "invite.list": () => inviteList.pipe(Effect.catchTags(faults)),
-  "invite.accept": (payload: Payload<typeof People.inviteAccept>) =>
-    inviteAccept(payload).pipe(Effect.catchTags(faults)),
-  "invite.decline": (payload: Payload<typeof People.inviteDecline>) =>
-    inviteDecline(payload).pipe(Effect.catchTags(faults)),
+  "invitation.send": (payload: Payload<typeof People.invitationSend>) =>
+    invitationSend(payload).pipe(Effect.catchTags(faults)),
+  // invitation.list takes nothing: its handler is the one Effect, run for each call.
+  "invitation.list": () => invitationList.pipe(Effect.catchTags(faults)),
+  "invitation.accept": (payload: Payload<typeof People.invitationAccept>) =>
+    invitationAccept(payload).pipe(Effect.catchTags(faults)),
+  "invitation.decline": (payload: Payload<typeof People.invitationDecline>) =>
+    invitationDecline(payload).pipe(Effect.catchTags(faults)),
   "org.member.list": (payload: Payload<typeof People.memberList>) => memberList(payload).pipe(Effect.catchTags(faults)),
 };

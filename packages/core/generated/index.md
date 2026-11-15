@@ -85,9 +85,10 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 
 ## `src/people/`
 
-- [`answer.ts`](../src/people/answer.ts): invite.list, invite.accept and invite.decline: the person who signs in with an invitation's email lists it and answers it.
+- [`answer.ts`](../src/people/answer.ts): invitation.list, invitation.accept and invitation.decline: the person who signs in with an invitation's email lists it and answers it.
 - [`handlers.ts`](../src/people/handlers.ts): The handlers of the world group's people operations, as src/domains/people.ts names them.
-- [`invite.ts`](../src/people/invite.ts): org.member.invite and org.member.list: a company's founder invites a person by email to be a member, and its people (and the world's owner) list who belongs.
+- [`invite.ts`](../src/people/invite.ts): invitation.send and org.member.list: a company's founder invites a person by email to be a member, and its people (and the world's owner) list who belongs.
+- [`refused.ts`](../src/people/refused.ts): Where an invitation's verb refuses: it writes the log its declaration names for that refusal (the blueprint's `refusals`, each to one of its `logs`), naming the rule or the state that decided, then fails with the refusal.
 - [`roster.ts`](../src/people/roster.ts): Who belongs to a company: its Directors in the board's order, then its members, the founding ones first and then those who joined by an invitation, in the order they joined.
 - [`store.ts`](../src/people/store.ts): What Core keeps of the domain "people" (migrations/0006_people_invitations.sql): the invitations a company's founder sent and the members who joined by accepting one.
 

@@ -1,7 +1,7 @@
 // `capxul document submit` (today `doc.submit`): posting a document, or holding a payment for its signer.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declareOutcomes, outcome, claim, kept } from "@capxul/blueprint-tools";
+import { verb, outcome, claim, kept } from "@capxul/blueprint-tools";
 import {
   InsufficientBalance,
   NoSiteUser,
@@ -35,7 +35,7 @@ const submitRpc = Rpc.make("doc.submit", {
   ]),
 });
 
-export const submit = declareOutcomes({
+export const submit = verb({
   rpc: submitRpc,
   outcomes: {
     Posted: outcome(submitRpc, "Posted", [

@@ -1,7 +1,7 @@
 // `capxul document create` (today `doc.create`): a draft document on a company's site.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim, kept } from "@capxul/blueprint-tools";
+import { verb, claim, kept } from "@capxul/blueprint-tools";
 import { NoSiteUser, NotImplemented, OrgNotFound, SiteRefused, SiteUnavailable } from "../../../common/refusals.ts";
 import { Fields, OrgId } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
@@ -14,7 +14,7 @@ import { Created, Doctype } from "../values.ts";
 // this answers, the hold carries and the chain's `PaymentSent` carries are one; for any other document, its stored
 // fields without what changes on every save. Which site is the company's is the site's to say (its Capxul Settings
 // `org_slug` is the org id), so Core asks the world's ready sites in turn.
-export const create = declare({
+export const create = verb({
   rpc: Rpc.make("doc.create", {
     payload: {
       org: OrgId,

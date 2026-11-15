@@ -3,12 +3,12 @@
 // `capxul report run` (today `report.run`): running a company's report on its site.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim, kept } from "@capxul/blueprint-tools";
+import { verb, claim, kept } from "@capxul/blueprint-tools";
 import { NoSiteUser, NotImplemented, OrgNotFound, SiteRefused, SiteUnavailable } from "../../../common/refusals.ts";
 import { Fields, OrgId } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
 
-export const run = declare({
+export const run = verb({
   rpc: Rpc.make("report.run", {
     payload: {
       org: OrgId,

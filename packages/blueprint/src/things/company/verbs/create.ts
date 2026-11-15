@@ -2,7 +2,7 @@
 import * as Arr from "effect/Array";
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declareOutcomes, outcome, claim, kept, rewritten, dropped } from "@capxul/blueprint-tools";
+import { verb, outcome, claim, kept, rewritten, dropped } from "@capxul/blueprint-tools";
 import { InsufficientBalance, NotImplemented } from "../../../common/refusals.ts";
 import { Approval, Money, OrgHandle, OrgId, PersonId } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
@@ -60,7 +60,7 @@ const createRpc = Rpc.make("org.create", {
   ]),
 });
 
-export const create = declareOutcomes({
+export const create = verb({
   rpc: createRpc,
   outcomes: {
     Founded: outcome(createRpc, "Founded", [

@@ -9,7 +9,7 @@
 // `capxul history export` (today `record.export`): reading a world's record.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim, kept } from "@capxul/blueprint-tools";
+import { verb, claim, kept } from "@capxul/blueprint-tools";
 import { NotImplemented, NotWorldOwner } from "../../../common/refusals.ts";
 import { Instant, Json, Parent, Seq, WorldName } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
@@ -28,7 +28,7 @@ export const Entry = Schema.Struct({
   carried: Json,
 });
 
-export const exportRecord = declare({
+export const exportRecord = verb({
   rpc: Rpc.make("record.export", {
     payload: {
       /** The first entry wanted; null for the first. */

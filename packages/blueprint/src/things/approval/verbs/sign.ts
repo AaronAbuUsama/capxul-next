@@ -2,7 +2,7 @@
 import * as Str from "effect/String";
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declareOutcomes, outcome, claim, kept, rewritten, dropped } from "@capxul/blueprint-tools";
+import { verb, outcome, claim, kept, rewritten, dropped } from "@capxul/blueprint-tools";
 import { InsufficientBalance, NotImplemented } from "../../../common/refusals.ts";
 import { ApprovalId, Hash, Signature } from "../../../common/values.ts";
 import { Subject } from "../../../generated/subjects.ts";
@@ -51,7 +51,7 @@ const signed = ({ success }: { readonly success: Collected | Sent }) => ({
   signer: success.signer,
 });
 
-export const sign = declareOutcomes({
+export const sign = verb({
   rpc: signRpc,
   outcomes: {
     Collected: outcome(signRpc, "Collected", [{ event: ApprovalSigned, carries: signed }]),

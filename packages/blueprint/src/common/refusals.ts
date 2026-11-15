@@ -8,22 +8,27 @@
 // the call as failed. Two faults a caller can act on stay typed: `SiteUnavailable` and `TransactionReverted`. The
 // command line's own exits (usage, deadline, storage, cancelled) are not the server's, and the old codes of journeys
 // outside the thin line (gates and the waitlist, budgets' offices, payroll) were not kept.
+import { refusal } from "@capxul/blueprint-tools";
 import * as Schema from "effect/Schema";
-import type { ExitCode } from "../generated/refusals.ts";
 import { Address, Amount, Asset, OperatorName, OrgId, PersonId, WorldName } from "./values.ts";
 
 /** No caller could be established: no credential, or one this world or the platform does not know. */
-export class NotSignedIn extends Schema.TaggedError<NotSignedIn, { readonly brand: unique symbol }>()("NotSignedIn", {
-  reason: Schema.Literals(["no_credential", "unknown_caller"]),
-}) {}
+export class NotSignedIn extends refusal<NotSignedIn, { readonly brand: unique symbol }>()(
+  "NotSignedIn",
+  {
+    reason: Schema.Literals(["no_credential", "unknown_caller"]),
+  },
+  3,
+) {}
 
 /** Only the world's owner may do this; the caller is someone else (another operator, or a person of the world). */
-export class NotWorldOwner extends Schema.TaggedError<NotWorldOwner, { readonly brand: unique symbol }>()(
+export class NotWorldOwner extends refusal<NotWorldOwner, { readonly brand: unique symbol }>()(
   "NotWorldOwner",
   {
     world: WorldName,
     owner: OperatorName,
   },
+  4,
 ) {}
 
 /**
@@ -33,12 +38,13 @@ export class NotWorldOwner extends Schema.TaggedError<NotWorldOwner, { readonly 
  * operation declares it: Effect's Rpc client cannot send such a payload at all, and the caller must be able to tell
  * the rejection from a fault. `operation` is the operation's name and `issue` what the schema found.
  */
-export class PayloadRejected extends Schema.TaggedError<PayloadRejected, { readonly brand: unique symbol }>()(
+export class PayloadRejected extends refusal<PayloadRejected, { readonly brand: unique symbol }>()(
   "PayloadRejected",
   {
     operation: Schema.String,
     issue: Schema.String,
   },
+  2,
 ) {}
 
 /**
@@ -48,18 +54,23 @@ export class PayloadRejected extends Schema.TaggedError<PayloadRejected, { reado
  * with its own operation's refusals. An operation keeps it once built; a built handler never returns it.
  * `operation` is the operation's name.
  */
-export class NotImplemented extends Schema.TaggedError<NotImplemented, { readonly brand: unique symbol }>()(
+export class NotImplemented extends refusal<NotImplemented, { readonly brand: unique symbol }>()(
   "NotImplemented",
   {
     operation: Schema.String,
   },
+  6,
 ) {}
 
-export class OrgNotFound extends Schema.TaggedError<OrgNotFound, { readonly brand: unique symbol }>()("OrgNotFound", {
-  org: OrgId,
-}) {}
+export class OrgNotFound extends refusal<OrgNotFound, { readonly brand: unique symbol }>()(
+  "OrgNotFound",
+  {
+    org: OrgId,
+  },
+  2,
+) {}
 
-export class InsufficientBalance extends Schema.TaggedError<InsufficientBalance, { readonly brand: unique symbol }>()(
+export class InsufficientBalance extends refusal<InsufficientBalance, { readonly brand: unique symbol }>()(
   "InsufficientBalance",
   {
     safe: Address,
@@ -67,6 +78,7 @@ export class InsufficientBalance extends Schema.TaggedError<InsufficientBalance,
     balance: Amount,
     amount: Amount,
   },
+  2,
 ) {}
 
 // A company's site.
@@ -75,25 +87,34 @@ export class InsufficientBalance extends Schema.TaggedError<InsufficientBalance,
  * A document or report call runs as the caller's own site user, the user of their cast email; this caller has none
  * on the company's site. The world's owner, an operator, never has one, so its call names the owner.
  */
-export class NoSiteUser extends Schema.TaggedError<NoSiteUser, { readonly brand: unique symbol }>()("NoSiteUser", {
-  org: OrgId,
-  person: PersonId,
-}) {}
+export class NoSiteUser extends refusal<NoSiteUser, { readonly brand: unique symbol }>()(
+  "NoSiteUser",
+  {
+    org: OrgId,
+    person: PersonId,
+  },
+  4,
+) {}
 
-export class SiteRefused extends Schema.TaggedError<SiteRefused, { readonly brand: unique symbol }>()("SiteRefused", {
-  org: OrgId,
-  target: Schema.String,
-  reason: Schema.Literals(["permission", "validation", "not_found", "part_off"]),
-  message: Schema.String,
-}) {}
+export class SiteRefused extends refusal<SiteRefused, { readonly brand: unique symbol }>()(
+  "SiteRefused",
+  {
+    org: OrgId,
+    target: Schema.String,
+    reason: Schema.Literals(["permission", "validation", "not_found", "part_off"]),
+    message: Schema.String,
+  },
+  2,
+) {}
 
 /** The company's site cannot take the call now: a fault the caller can act on, so it stays typed. */
-export class SiteUnavailable extends Schema.TaggedError<SiteUnavailable, { readonly brand: unique symbol }>()(
+export class SiteUnavailable extends refusal<SiteUnavailable, { readonly brand: unique symbol }>()(
   "SiteUnavailable",
   {
     org: OrgId,
     state: Schema.Literals(["creating", "stopped", "unreachable"]),
   },
+  5,
 ) {}
 
 export const refusals = {
@@ -107,15 +128,3 @@ export const refusals = {
   SiteRefused,
   SiteUnavailable,
 } as const;
-
-export const exitCode: { readonly [Tag in keyof typeof refusals]: ExitCode } = {
-  NotSignedIn: 3,
-  NotWorldOwner: 4,
-  PayloadRejected: 2,
-  NotImplemented: 6,
-  OrgNotFound: 2,
-  InsufficientBalance: 2,
-  NoSiteUser: 4,
-  SiteRefused: 2,
-  SiteUnavailable: 5,
-};

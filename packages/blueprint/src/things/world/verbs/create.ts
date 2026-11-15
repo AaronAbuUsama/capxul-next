@@ -1,11 +1,12 @@
 // `capxul world create` (today `world.create`): making a world from nothing.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim, kept, rewritten, dropped } from "@capxul/blueprint-tools";
+import { verb, claim, kept, rewritten, dropped } from "@capxul/blueprint-tools";
 import { NotImplemented } from "../../../common/refusals.ts";
 import { ClockMode, Grade, Instant, WorldName, WorldView } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
-import { created, WorldCreated } from "../events.ts";
+import { WorldCreated } from "../events.ts";
+import { created } from "../values.ts";
 import { exampleWorld } from "../examples.ts";
 import { ClockBeforeSeed, GradeNotOffered, WorldExists, WorldQuotaReached } from "../refusals.ts";
 import { Lifetime } from "../values.ts";
@@ -16,7 +17,7 @@ import { Lifetime } from "../values.ts";
 // calling operator; the payload asks for a lifetime in minutes, capped by `WORLD_LIMITS`, and the answer gives the
 // expiry in host time. A world begins at host time or at a chosen time, frozen or running at rate 1 (no other rate:
 // nothing needs one, and a running clock already drifts across daylight saving), never before `ClockBeforeSeed`.
-export const create = declare({
+export const create = verb({
   rpc: Rpc.make("world.create", {
     payload: {
       world: WorldName,

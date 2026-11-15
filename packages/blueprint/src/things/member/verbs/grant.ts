@@ -2,7 +2,7 @@
 import * as Arr from "effect/Array";
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim, kept, rewritten, dropped } from "@capxul/blueprint-tools";
+import { verb, claim, kept, rewritten, dropped } from "@capxul/blueprint-tools";
 import { NotImplemented, OrgNotFound } from "../../../common/refusals.ts";
 import { OrgId, Permission, PersonId } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
@@ -14,7 +14,7 @@ import { AlreadyHeld, ChangeWaiting } from "../refusals.ts";
 import { GrantProposed } from "../values.ts";
 
 // A company whose setup has not landed is `OrgNotFound`: it has no board on the chain to propose to.
-export const memberGrant = declare({
+export const memberGrant = verb({
   rpc: Rpc.make("org.member.grant", {
     payload: {
       org: OrgId,

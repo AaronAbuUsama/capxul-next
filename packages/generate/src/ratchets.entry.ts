@@ -7,13 +7,13 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import * as Arr from "effect/Array";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
-import { layoutOf } from "../render/layout.ts";
-import { OLD_WORDS } from "./old-words.ts";
+import { layoutOf, OLD_WORDS, Ratchets, renderScorecard } from "@capxul/blueprint-tools";
 import { scorecardInputs, talliesOf } from "./ratchet-sources.ts";
-import { countText, grown, notes, OUTPUTS, settled, type Counts } from "./ratchets.ts";
-import { renderScorecard } from "./scorecard.ts";
 
-const blueprint = new URL("../../../blueprint/", import.meta.url);
+const { countText, grown, notes, OUTPUTS, settled } = Ratchets;
+type Counts = Ratchets.Counts;
+
+const blueprint = new URL("../../blueprint/", import.meta.url);
 const at = (path: string) => new URL(path, blueprint);
 
 /** A counts file (ratchets.json by ratchet id, old-words.json by word): the counts, under a line saying it is generated. */
@@ -28,7 +28,7 @@ const countsAt = (url: URL): Counts =>
 
 const committed: Counts = countsAt(at(OUTPUTS.counts));
 /** R15's list, the old words as `pnpm generate` committed them before this runs (packages/generate writes them). */
-const tallies = talliesOf(countsAt(new URL(`../../../../${OLD_WORDS}`, import.meta.url)));
+const tallies = talliesOf(countsAt(new URL(`../../../${OLD_WORDS}`, import.meta.url)));
 
 const mode = process.argv.includes("--write") ? "write" : process.argv.includes("--check") ? "check" : "count";
 
@@ -58,7 +58,7 @@ if (mode === "count") {
       `${JSON.stringify(
         {
           generated:
-            "By `pnpm generate` (packages/blueprint-tools, src/checks/ratchets.entry.ts): each counted ratchet's count, never raised by generating again. Do not edit.",
+            "By `pnpm generate` (packages/generate, src/ratchets.entry.ts): each counted ratchet's count, never raised by generating again. Do not edit.",
           counts,
         },
         null,
