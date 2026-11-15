@@ -143,12 +143,12 @@ export default class Bundler extends Cloudflare.DurableObject<Bundler>()(
       });
 
       /** alto's answer to `debug_bundler_clearState` is "ok" when it cleared; an alto started without its debug methods refuses. */
-      const clearState = send(
-        HttpClientRequest.post("http://container/").pipe(HttpClientRequest.bodyJsonUnsafe(CLEAR_STATE)),
-      ).pipe(
-        Effect.map((text) => Str.includes('"result":"ok"')(Str.replaceAll(" ", "")(text))),
-        Effect.orElseSucceed(() => false),
-      );
+      const clearState = Effect.fn("world.bundler.clearState")(function* () {
+        const text = yield* send(
+          HttpClientRequest.post("http://container/").pipe(HttpClientRequest.bodyJsonUnsafe(CLEAR_STATE)),
+        ).pipe(Effect.orElseSucceed(() => ""));
+        return Str.includes('"result":"ok"')(Str.replaceAll(" ", "")(text));
+      });
 
       return {
         /**
@@ -165,17 +165,18 @@ export default class Bundler extends Cloudflare.DurableObject<Bundler>()(
          * The chain was rewound under alto (a world's reset): a running alto is kept and its state cleared, so the
          * next call needs no start; one that will not clear is stopped, and starts on its next call.
          */
-        reset: () =>
-          Effect.gen(function* () {
-            if (!(yield* running)) return { kept: false as const, stopped: false as const };
-            const began = yield* Clock.currentTimeMillis;
-            if (yield* clearState) {
-              const clear = { at: stamp(began), ms: (yield* Clock.currentTimeMillis) - began };
-              yield* remember((old) => ({ ...old, clears: remembered(old.clears ?? [], clear) }));
-              return { kept: true as const, ...clear };
-            }
-            return { kept: false as const, ...(yield* stopAlto) };
-          }).pipe(lock.withPermits(1)),
+        reset: Effect.fn("world.bundler.reset")(function* () {
+          if (!(yield* running)) return { kept: false as const, stopped: false as const };
+          const began = yield* Clock.currentTimeMillis;
+          if (yield* clearState()) {
+            const clear = { at: stamp(began), ms: (yield* Clock.currentTimeMillis) - began };
+            yield* remember((old) => ({ ...old, clears: remembered(old.clears ?? [], clear) }));
+            yield* Effect.logInfo(`alto kept across the chain's reset, its state cleared in ${clear.ms} ms`);
+            return { kept: true as const, ...clear };
+          }
+          yield* Effect.logInfo("alto would not clear its state (no debug methods): stopped, as before");
+          return { kept: false as const, ...(yield* stopAlto) };
+        }, lock.withPermits(1)),
         /** Removes the container and everything this object keeps: the world is being forgotten (src/things/cluster). */
         forget: () =>
           Effect.gen(function* () {

@@ -121,7 +121,7 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
               Option.fromNullishOr(template),
             ),
           );
-    const worldPart = Effect.gen(function* () {
+    const rewind = Effect.fn("world.reset.rewind")(function* () {
       yield* timed("index stopped", stopIndex(world));
       yield* timed("database restored", restoreBranch(project, output.branch, saved.branch_id, preserved));
       const chain = yield* timed("chain reset", resetChain(world, snapshot));
@@ -131,7 +131,7 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
       // Core's clock (the database) and the chain's block are apart, so they are set side by side; a frozen clock
       // reads its instant at any host time, a running one moves on from the snapshot's time. The index is waited for
       // once that block is mined, looked at every half second, not every 2 s: it is already starting.
-      const settled = Effect.gen(function* () {
+      const settle = Effect.fn("world.reset.settle")(function* () {
         const clock = { mode: saved.clock_mode, worldMs: saved.clock_ms, hostMs: clockAt };
         const [mined] = yield* Effect.all(
           [
@@ -154,7 +154,7 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
       // the clock and the index.
       const [{ minedAt, indexedBlock }] = yield* Effect.all(
         [
-          settled,
+          settle(),
           timed("bundler answers", servesEntryPoint(world)),
           timed("core answers", coreAnswers(world)),
           timed("preserved branch dropped", dropIfChildless(project, preserved)),
@@ -163,7 +163,7 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
       );
       return { chain, minedAt, indexedBlock };
     });
-    const [rewound, sites] = yield* Effect.all([worldPart, sitesPart], { concurrency: 2 });
+    const [rewound, sites] = yield* Effect.all([rewind(), sitesPart], { concurrency: 2 });
     return { ...rewound, sites };
   }).pipe(
     Effect.timeoutOrElse({

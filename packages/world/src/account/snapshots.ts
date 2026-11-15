@@ -160,13 +160,14 @@ export const restore = Effect.fn("platform.world.snapshot.restore")(function* (p
   const restored = yield* Ref.make<ReadonlyArray<{ readonly site: string; readonly from: string }>>([]);
   const onDeployed =
     snapshot.companies > 0
-      ? (target: string) =>
-          restoreSites(stage, target, bench, payload.snapshot, clock).pipe(
-            Effect.mapError((error) =>
-              isSiteFailed(error) ? error : SiteFailed.make({ step: "make", message: describeFailure(error) }),
-            ),
-            Effect.flatMap((sites) => Ref.set(restored, sites)),
-          )
+      ? Effect.fn("platform.world.snapshot.restore.sites")(
+          function* (target: string) {
+            yield* Ref.set(restored, yield* restoreSites(stage, target, bench, payload.snapshot, clock));
+          },
+          Effect.mapError((error) =>
+            isSiteFailed(error) ? error : SiteFailed.make({ step: "make", message: describeFailure(error) }),
+          ),
+        )
       : undefined;
   const made = yield* createWorld({
     name: payload.as,
