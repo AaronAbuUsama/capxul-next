@@ -178,7 +178,7 @@ step for the format and the ratchet registry; "Coverage is not a gate" changed i
 | 2 | No drift as checks | The eight layers, each instrumented and budgeted (part 3); coverage option B; measured facts generated from verdict digests; the ratchet registry (part 4) | **Agreed**, 15 November 2026 |
 | 3 | The shape | Part 7, with its three choices as recommended | **Agreed**, 15 November 2026 |
 | 4 | The pipeline as operations | Part 8: the operations as listed, journeys named in the blueprint, the 10-minute breakdown, lanes of worlds (option B). A budget is a target, not a gate | **Agreed**, 15 November 2026 |
-| 5 | Telemetry in the blueprint | Part 10 | Proposed |
+| 5 | Telemetry in the blueprint | Part 10, with its five points as recommended | **Agreed**, 15 November 2026 |
 | 6 | The sequence | Part 5 | **Agreed**, 15 November 2026 |
 
 ## 7. The shape: the blueprint, the repository and its docs (decision 3)
@@ -485,7 +485,7 @@ Each line is a declared operation or step. A second not under one of them shows 
 
 ## 10. The telemetry model in the blueprint (decision 5)
 
-**Proposed, not yet agreed.** T1 to T8 of `telemetry-in-the-blueprint.md` are agreed already (Axiom Cloud; 12 datasets
+**Agreed with Aaron, 15 November 2026**, with its five points as recommended. T1 to T8 of `telemetry-in-the-blueprint.md` are agreed already (Axiom Cloud; 12 datasets
 in correlation groups; locked event schemas; conventions first for the envelope, product events in a typed events
 dataset; a closed vocabulary; the pipeline's work declared; Claude Code's telemetry on, prompts and tool details off;
 query-cost caps; one pinned conventions' version). This part says where each lives and settles what those decisions
@@ -531,3 +531,53 @@ guard).
 4. **Metric tags are a closed list per metric**, so a metric cannot grow tags nobody declared.
 5. **Refusals are not errors**, as `proof-and-telemetry.md` §4 says: a refusal leaves the span's status unset, with
    `capxul.outcome=refused` and `capxul.refusal`; only what nobody declared sets `ERROR`.
+
+## 11. The restack: what changes in the roadmap and `AGENTS.md`
+
+**Proposed for Aaron's sign-off.** Every decision above is agreed; this is their exact landing. Step numbers already
+used elsewhere (3.1 to 3.5, 4.1 to 4.3, 5.1, 5.2) keep their numbers, so no reference breaks; new steps are added
+after them.
+
+### New decisions in the roadmap's table, each dated 15 November 2026
+
+| Decision | In plain words | Amends |
+|---|---|---|
+| The blueprint's boundary | Part 2: the blueprint owns every fact two places must agree on or a check judges, unless a compiled source owns it better; never how or where | "One source for every fact" (extends) |
+| No drift, in eight layers | Part 3: generate, lint, types, delta check, self-consistency, run time, confirm, watch; each layer is declared pipeline work, instrumented and budgeted | "Three kinds of check" (extends) |
+| Coverage gates new declarations | Every newly declared move, refusal and outcome is reached by a journey before its slice merges into `master`; existing ones by ratchet R9 | `AGENTS.md`'s "coverage ... not a gate" |
+| One registry of ratchets | Part 4: every ratchet declared once, `pnpm ratchets` on every pull request, each count a metric on the dashboard | "New formats by a ratchet" (extends) |
+| Budgets are targets | Nothing fails on speed. A measured p95 over 1.5 times its budget raises an architecture review as a task. A run's budget is 10 minutes | "Measurement is declared" (makes "never enforced" permanent) |
+| The shape | Part 7: three levels; one file per operation with four shared files per domain; generated hubs, indexes and pages; one-screen READMEs; `docs/decisions.md`; `AGENTS.md` holds rules only | `AGENTS.md`'s per-domain `machines.ts` and `steps.ts` |
+| The pipeline is declared | Part 8: the pipeline's work is the blueprint domain `pipeline`; journeys are named in the blueprint | |
+| One runner, K worlds | A run's journeys run in lanes, one world each, reset in place between journeys; K starts at 2 and rises while the hub's admission waits, the site door's 5xx answers, the green rate and the daily spend hold | "One runner, one world" (replaces) |
+| Proof and telemetry | `proof-and-telemetry.md` §11's wording: emit, route, keep, confirm; proof is a CI verdict on `proofs`, notarised by a GitHub check; container runs are never proof; the sink is Axiom Cloud; CODEOWNERS on what judges the work | "Measurement is part of the contract" (run data in the sink and archive, not the repository) |
+| Telemetry in the blueprint | Part 10: `src/telemetry/`, T1 to T8, `session.id`, `capxul.lane`, declared monitors, closed metric tags, refusals are not errors | |
+
+### Steps added or changed
+
+| Step | What | Needs |
+|---|---|---|
+| 3.6 (new) | The blueprint's format (part 7, part 9): one file per operation; machines import their events and operations name their moves; hubs, indexes and pages generated; `src/telemetry/`; the `pipeline` domain declared; the ratchet registry and `pnpm ratchets`, every ratchet counted; `people` moved in full; journeys and checks written first by another agent | 3.5 |
+| 3.7 (new) | The coverage gate on new declarations, in `world.yml` at a slice's merge | 3.6 |
+| 4.1 (changed) | As written, plus: logs through Effect's `Logger`; the generic checks over OpenTelemetry spans and logs; its run-time log checks need 4.4 | 3.3 |
+| 4.2 (changed) | The explainability score covers the whole run's wall time, from the tap, written into the verdict | 4.1, 4.7 |
+| 4.3 (changed) | Reads verdicts, the sink and the cost metrics | 4.2, 4.5, 4.6 |
+| 4.4 (new) | Telemetry is OpenTelemetry: Effect's exporters, the door on `staging`, the test sink, the tap beside `app.spans`, then flipped and `app.spans` retired | 1.2 |
+| 4.5 (new) | Proof is a verdict: verdicts on `proofs`, checks as notary, the archive in R2, `prove.yml`, the Proof column by name | 4.4 |
+| 4.6 (new) | Cost measured daily per world, run, journey and lane, against the cap | 4.4 |
+| 4.7 (new) | The pipeline instrumented: every pipeline operation's steps are spans of declared steps (R6 for the world, the runner and the platform client); the gate's rungs as spans | 3.6, 4.4 |
+| 4.8 (new) | Lanes of worlds: a run in K worlds, K raised by its four measures | 4.7 |
+| 5.2 (changed) | Needs 3.6 as well | 3.2, 3.5, 3.6, 4.1, 5.1 |
+| 7.1 (changed) | Needs 3.6 as well | 3.1 to 3.6 |
+| 7.4 (new) | Ratchets R7 and R8 empty: every operation in one file, every README one screen | 3.6 |
+
+Phase 3 is Done when 3.1 to 3.7 are Done; phase 4 when 4.1 to 4.8 are.
+
+### `AGENTS.md`
+
+- "Three sources": what is proven is owned by verdicts, made only by CI; what happened is telemetry, in the sink.
+- "Who owns each fact": one file per operation; telemetry names (the blueprint); where telemetry goes (`packages/world`,
+  `packages/platform`); proofs and the verdict schema (the blueprint's `pipeline`); ratchets (the registry).
+- "How it is measured": coverage gates new declarations; budgets are targets with the 1.5× review.
+- The ladder: `pnpm ratchets` and `pnpm delta:check` in rung 5; rung 6 names `prove.yml` beside `world.yml`.
+- The rules-only rewrite of `AGENTS.md` is the docs session's, following part 7; these are changes of fact it carries.
