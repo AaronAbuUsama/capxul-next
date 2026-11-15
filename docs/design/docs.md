@@ -548,10 +548,11 @@ Still to do:
    shape (`packages/lint/src/docs.ts`) and the package maps (`packages/lint/src/maps.ts`).
 3. **M23, the design notes:** landed by this lead, as the threads that wrote them are archived. Copied word for word
    under `docs/design/`, each with a status line: `proof-and-telemetry.md`, `telemetry-in-the-blueprint.md` and
-   `invoice-ledger.md` agreed; `speed.md` superseded by `run-time.md`; `agreements-design.md` superseded by
-   `invoice-ledger.md` except its §2. Not landed, as the conductor's list left them out: the other notes on
-   `design/contracts-first-principles` (`primitive-mapping.md`, `parity-inventory.md`, `handoff-knock-on-map.md`).
-   The roadmap's decision "Every payment settles one sealed document" cites `primitive-mapping` as a design study.
+   `invoice-ledger.md` agreed; `speed.md` superseded by `run-time.md`; `agreements-design.md` agreed as the
+   study the roadmap's "Every payment settles one sealed document" cites, less its §3.2, §3.4 and §5 (replaced by
+   `invoice-ledger.md`) and §3.3 (settled by "No streaming pay"); `primitive-mapping.md` open, landed because that
+   decision cites it too. `parity-inventory.md` and `handoff-knock-on-map.md` stay on
+   `design/contracts-first-principles`.
    The roadmap's decisions still cite the notes on their branches; M4 repoints them when it moves the table.
 4. **The last long READMEs:** `packages/world/records/spike-bundler/README.md`, `spikes/containers` and
    `spikes/world-speed`, which the world-layout session graduates into `packages/world`; `spikes/containers` holds

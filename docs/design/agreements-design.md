@@ -1,6 +1,6 @@
 # Agreements, invoices and escrow: one document, one hash, one payment
 
-Status: superseded on 15 November 2026 by `invoice-ledger.md`, except its §2 (the seal and privacy model), which stands.
+Status: agreed with Aaron, 14 and 15 November 2026, as the study the roadmap's decision "Every payment settles one sealed document" cites, except its §3.2, §3.4 and §5, which `invoice-ledger.md` replaces, and its streaming (§3.3), which the decision "No streaming pay" settles.
 
 Design study of 14 November 2026, read-only. It replaces the agreement recommendation (P1-B, "no invoices; accrual journal
 entries") of `primitive-mapping.md`, which Aaron rejected. Its budgets (P3) and departments (P5) stand.

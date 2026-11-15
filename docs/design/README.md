@@ -4,11 +4,12 @@
 One note per question, each saying near its top whether it is open, agreed or superseded (`packages/lint/src/docs.ts`
 checks it).
 
-- [Agreements, invoices and escrow: one document, one hash, one payment](agreements-design.md). Status: superseded on 15 November 2026 by `invoice-ledger.md`, except its §2 (the seal and privacy model), which stands.
+- [Agreements, invoices and escrow: one document, one hash, one payment](agreements-design.md). Status: agreed with Aaron, 14 and 15 November 2026, as the study the roadmap's decision "Every payment settles one sealed document" cites, except its §3.2, §3.4 and §5, which `invoice-ledger.md` replaces, and its streaming (§3.3), which the decision "No streaming pay" settles.
 - [The blueprint: the plan](blueprint.md). No status yet.
 - [One set of docs: the plan](docs.md). Status: agreed, 15 November 2026.
 - [Handoff: the rebuild's conductor moves to Amp (15 November 2026)](handoff.md). Status: agreed, current from the evening of 15 November 2026.
 - [The invoice ledger: how money reaches a sealed document](invoice-ledger.md). Status: agreed with Aaron, 15 November 2026 (`docs/roadmap.md`, decision "The invoice ledger").
+- [On-chain primitives and Frappe records: the mapping, and the decisions it needs](primitive-mapping.md). Status: open.
 - [Proof and telemetry](proof-and-telemetry.md). Status: agreed with Aaron, 15 November 2026 (`docs/roadmap.md`, decision "Proof and telemetry").
 - [The world run in under 10 minutes, and under 5: options from first principles](run-time.md). Status: agreed with Aaron, 15 November 2026; its decisions are in `docs/roadmap.md`.
 - [Why a world run takes 36 to 50 minutes, and how to make it shorter](speed.md). Status: superseded on 15 November 2026 by `docs/design/run-time.md`.
