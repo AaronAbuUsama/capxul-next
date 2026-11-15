@@ -20,6 +20,7 @@ import { refusalsOf, type Operation } from "../language/operation.ts";
 import type { Claim, ClaimsOf } from "../language/promise.ts";
 import type { Work } from "../language/work.ts";
 import type { Layout, Thing } from "./layout.ts";
+import { glanceSection } from "./glance.ts";
 import { machinesSection } from "./machines.ts";
 import { workSection } from "./work.ts";
 
@@ -169,7 +170,7 @@ const map = (layout: Layout): string =>
     [
       "## The things",
       "",
-      "Each thing is a folder, `src/things/<thing>/`, and each of its verbs a file there. An operation keeps its name of",
+      "Each thing is a folder, `src/things/<thing>/`, and each of its verbs a file in its `verbs/`. An operation keeps its name of",
       "today until the glossary's renames (roadmap item 3.8).",
       "",
       "| Thing | Verb | Operation | Served by |",
@@ -214,10 +215,11 @@ const ofThing = (thing: Thing, claimed: Claimed, own: Parameters<typeof machines
       GENERATED,
       `# The thing ${code(thing.name)}`,
       "",
-      `Rendered from \`src/things/${thing.name}/\` by \`pnpm claims\`: each verb's file holds its declaration and its`,
-      "promises. Do not edit it by hand: a test fails when this page and its sources differ. What the runner checks on",
-      "every call, and the starting worlds a promise is in, are in [index.md](index.md).",
+      `Rendered from \`src/things/${thing.name}/\` by \`pnpm claims\`: each verb's file, in its \`verbs/\`, holds its`,
+      "declaration and its promises. Do not edit it by hand: a test fails when this page and its sources differ. What the",
+      "runner checks on every call, and the starting worlds a promise is in, are in [index.md](index.md).",
       "",
+      ...glanceSection(Arr.map(claimed, ([name]) => name)),
       ...(claimed.length > 0 ? ["## Count", "", summary(claimed), ""] : []),
       ...machinesSection(own),
       ...Arr.map(claimed, ([name, of], n) => `${section(name, n, of)}\n`),
