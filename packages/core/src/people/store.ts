@@ -1,6 +1,6 @@
 // What Core keeps of the domain "people" (migrations/0006_people_invitations.sql): the invitations a company's
 // founder sent and the members who joined by accepting one. Every write is made inside the caller's transaction.
-import { People } from "@capxul/blueprint";
+import { machines, People } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -9,6 +9,7 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { instant } from "../organizations/caller.ts";
 
 export type Invitation = typeof People.Invitation.Type;
+type State = typeof People.InvitationState.Type;
 
 interface Row {
   readonly id: string;
@@ -59,11 +60,12 @@ export const invitationsTo = Effect.fn("people.invitationsTo")(function* (email:
   return yield* Effect.forEach(rows, decode);
 });
 
-/** The company's invitation to `email` still pending, by its id, if any. */
+/** The company's invitation to `email` still in its machine's start state (pending), by its id, if any. */
 export const pendingTo = Effect.fn("people.pendingTo")(function* (org: string, email: string) {
   const sql = yield* PgClient.PgClient;
+  const pending = machines.invitation.start.state;
   const rows = yield* sql<{ readonly id: string }>`
-    select id from app.invitations where org = ${org} and email = ${email} and state = 'pending' limit 1`;
+    select id from app.invitations where org = ${org} and email = ${email} and state = ${pending} limit 1`;
   return Option.map(Arr.head(rows), (row) => row.id);
 });
 
@@ -80,15 +82,15 @@ export const insertInvitation = Effect.fn("people.invite")(function* (sent: Invi
   })}`;
 });
 
-/** Ends a pending invitation: its invitee accepted or declined it. */
+/** Moves an invitation its invitee answered, as its machine's `step` moved it, from the state it was read in. */
 export const answer = Effect.fn("people.answer")(function* (
   id: string,
-  state: "accepted" | "declined",
+  moved: { readonly from: State; readonly to: State },
   answeredMs: number,
 ) {
   const sql = yield* PgClient.PgClient;
-  yield* sql`update app.invitations set state = ${state}, answered_ms = ${answeredMs}
-    where id = ${id} and state = 'pending'`;
+  yield* sql`update app.invitations set state = ${moved.to}, answered_ms = ${answeredMs}
+    where id = ${id} and state = ${moved.from}`;
 });
 
 /** Adds the person to the company's members, by the invitation they accepted; once only. */

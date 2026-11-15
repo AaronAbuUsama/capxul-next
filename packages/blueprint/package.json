@@ -7,7 +7,8 @@
   "scripts": {
     "types": "effect-tsgo tsc -p .",
     "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts",
-    "claims": "node --experimental-strip-types --no-warnings src/claims/render.entry.ts"
+    "claims": "node --experimental-strip-types --no-warnings src/claims/render.entry.ts",
+    "delta:check": "node --experimental-strip-types --no-warnings src/delta.entry.ts"
   },
   "dependencies": {
     "@capxul/contracts": "workspace:*",

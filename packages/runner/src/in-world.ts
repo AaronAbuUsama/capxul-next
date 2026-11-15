@@ -52,6 +52,7 @@ export const runInWorld = (plan: Plan, settings: Settings, name: string) =>
         ...base,
         ended: used === undefined ? null : endedOf(used.run),
         calls: used?.calls ?? [],
+        ...(used === undefined ? {} : { coverage: used.coverage }),
         ms: {
           create: Math.round(Duration.toMillis(openTook)),
           run: used?.ms.run ?? null,

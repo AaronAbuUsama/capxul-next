@@ -1,5 +1,5 @@
 // Renders the claims from the declarations: claims.md, with what every claim shares and the starting worlds, and one
-// claims.md per domain (src/<domain>/claims.md), with each of its operations' claims, refusals, events and budget, so
+// claims.md per domain (src/<domain>/claims.md), with its machines and each of its operations' claims, refusals, events and budget, so
 // that a change to one domain renders only its own file. Pure: `render.entry.ts` writes the files, and a test
 // compares each with this.
 import * as Arr from "effect/Array";
@@ -11,6 +11,7 @@ import { refusalsOf, type Operation } from "../operation.ts";
 import { startingWorlds } from "../starting-worlds.ts";
 import { allClaims } from "./all.ts";
 import type { Claim, ClaimsOf } from "./claim.ts";
+import { machinesSection } from "./machines.ts";
 
 const code = (text: string) => `\`${text}\``;
 const list = (items: ReadonlyArray<string>) => (items.length === 0 ? "none" : Arr.join(items, ", "));
@@ -152,7 +153,7 @@ const index = (): string =>
     "\n",
   );
 
-const ofDomain = (domain: string, claimed: Claimed): string =>
+const ofDomain = (domain: string, claimed: Claimed, machines: Parameters<typeof machinesSection>[0]): string =>
   Arr.join(
     [
       `# Acceptance claims of the domain ${code(domain)}`,
@@ -165,6 +166,7 @@ const ofDomain = (domain: string, claimed: Claimed): string =>
       "",
       summary(claimed),
       "",
+      ...machinesSection(machines),
       ...Arr.map(claimed, ([name, of], n) => `${section(name, n, of)}\n`),
     ],
     "\n",
@@ -187,6 +189,7 @@ export const renderClaims = (): ReadonlyArray<Rendered> => [
         Arr.filter(Rec.keys(operations), (name) => Arr.contains(namesOf(domain), name)),
         (name) => [name, allClaims[name]] as const,
       ),
+      domain.machines,
     ),
   })),
 ];
