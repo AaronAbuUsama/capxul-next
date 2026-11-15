@@ -338,6 +338,9 @@ by side, which "One runner, one world" (14 November 2026) forbids.
 `founded` kept as a template across runs (the speed note's change 8) is not proposed: after change 1 it is worth about
 a minute, and it changes "Bench templates never change" and the world lifecycle rules.
 
+**Declined by Aaron, 15 November 2026:** keeping `founded` across runs (the speed note's change 8): "no to keeping
+founded". "Bench templates never change" stands as it is.
+
 **What this changes in the roadmap:** "One runner, one world" becomes "One runner, K worlds": a run's journeys run in
 lanes, each lane one world reset in place between its journeys, K raised by the four measures. The speed lane (stage
 3d) builds it.
