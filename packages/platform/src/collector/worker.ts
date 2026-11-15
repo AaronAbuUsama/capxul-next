@@ -118,7 +118,9 @@ export default class Collector extends Cloudflare.Worker<Collector>()(
     const zoneId = yield* Config.String("PLATFORM_ZONE_ID");
     const key = yield* Alchemy.Random(yield* collectorKeyId, { bytes: 32 });
     // platform.yml sets it from the CI secret AXIOM_INGEST_TEST. Never read in an agent's container.
-    const sinkKey = yield* Config.option(Config.Redacted("COLLECTOR_SINK_KEY"));
+    const sinkKey = Option.filter(yield* Config.option(Config.Redacted("COLLECTOR_SINK_KEY")), (k) =>
+      Str.isNonEmpty(Redacted.value(k)),
+    );
     const sinkUrl = yield* Config.String("COLLECTOR_SINK_URL").pipe(Config.withDefault(AXIOM_EDGE));
     const datasets = yield* Config.String("COLLECTOR_DATASETS").pipe(Config.withDefault("capxul-test"));
     return {
