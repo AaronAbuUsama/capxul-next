@@ -11,11 +11,11 @@ export const checkCall = work({
   payload: { trace: TraceId },
   spans: {
     read: span("check.call.read", StepKind.database),
-    events: span("check.call.events", StepKind.container),
-    spans: span("check.call.spans", StepKind.container),
-    logs: span("check.call.logs", StepKind.container),
-    path: span("check.call.path", StepKind.container),
-    timings: span("check.call.timings", StepKind.container),
+    events: span("check.call.events", StepKind.compute),
+    spans: span("check.call.spans", StepKind.compute),
+    logs: span("check.call.logs", StepKind.compute),
+    path: span("check.call.path", StepKind.compute),
+    timings: span("check.call.timings", StepKind.compute),
   },
   logs: { failed: log("check.call.failed", { trace: TraceId, check: CallCheck }) },
   budget: {

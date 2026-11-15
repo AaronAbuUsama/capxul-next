@@ -12,7 +12,7 @@ export const checkWatch = work({
   payload: { stage: StageName },
   spans: {
     read: span("check.watch.read", StepKind.poll),
-    compare: span("check.watch.compare", StepKind.container),
+    compare: span("check.watch.compare", StepKind.compute),
   },
   logs: { worse: log("check.watch.worse", { stage: StageName, measure: Measure }) },
   budget: {
