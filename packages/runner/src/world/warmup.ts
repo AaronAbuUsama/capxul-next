@@ -1,4 +1,4 @@
-// A new stage's address, while Cloudflare is still routing it (spikes/pipeline/runner/warmup.ts, where it was found).
+// A new stage's address, while Cloudflare is still routing it (found by the pipeline spike: packages/core/docs/latency.md).
 //
 // A workers.dev address does not go live everywhere at once: for some seconds after a deploy, Cloudflare's edge can
 // answer for it by itself with a 404 that is not JSON, between two answers from the Worker. So:

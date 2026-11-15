@@ -3,7 +3,7 @@
 // MariaDB and one for the sites, and one container per process: MariaDB, Redis, the door (which also writes the
 // bench's common config), web (gunicorn), the background worker and the scheduler.
 //
-// The image is the light bench first built in spikes/bench-clocks, not the hosted six-app image of
+// The image is the light bench first built by the bench clocks spike (packages/frappe-app/records/bench-clocks), not the hosted six-app image of
 // packages/bench-image (no nginx, no built assets, no HR, CRM or WhatsApp): enough for the thin line's sites. Moving
 // to the hosted image is a change of this file and of bench/.
 import * as Docker from "@alchemy.run/docker";

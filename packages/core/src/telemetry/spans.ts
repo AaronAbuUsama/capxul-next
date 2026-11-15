@@ -6,7 +6,7 @@
 // any middleware inside it joins that span. Either order gives each call exactly one span named after its operation.
 //
 // Inside a Worker the clock moves only on I/O, so a span with none, such as an empty handler's, measures 0 ms
-// (spikes/pipeline).
+// (docs/latency.md).
 import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
