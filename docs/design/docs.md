@@ -546,9 +546,14 @@ Still to do:
 2. **M24, after 2b:** `AGENTS.md` to the rules only, each rule's words kept, the reasons moved to `docs/` and
    linked. Its ladder and lint-rule list are generated blocks already. It must say that rung 1 covers the docs'
    shape (`packages/lint/src/docs.ts`) and the package maps (`packages/lint/src/maps.ts`).
-3. **M23, the design notes:** each lands under `docs/design/` from its own thread, with a status line. The notes are
-   `design/proof-telemetry`, `design/speed` and `design/contracts-first-principles` (`invoice-ledger.md`, and
-   `agreements-design.md` §2).
+3. **M23, the design notes:** landed by this lead, as the threads that wrote them are archived. Copied word for word
+   under `docs/design/`, each with a status line: `proof-and-telemetry.md`, `telemetry-in-the-blueprint.md` and
+   `invoice-ledger.md` agreed; `speed.md` superseded by `run-time.md`; `agreements-design.md` agreed as the
+   study the roadmap's "Every payment settles one sealed document" cites, less its §3.2, §3.4 and §5 (replaced by
+   `invoice-ledger.md`) and §3.3 (settled by "No streaming pay"); `primitive-mapping.md` open, landed because that
+   decision cites it too. `parity-inventory.md` and `handoff-knock-on-map.md` stay on
+   `design/contracts-first-principles`.
+   The roadmap's decisions still cite the notes on their branches; M4 repoints them when it moves the table.
 4. **The last long READMEs:** `packages/world/records/spike-bundler/README.md`, `spikes/containers` and
    `spikes/world-speed`, which the world-layout session graduates into `packages/world`; `spikes/containers` holds
    item 0.6's only proof. Each comes off `LONG_READMES` in the pull request that fixes it, with the ceiling lowered.
