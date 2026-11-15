@@ -52,6 +52,13 @@ export const HATS = parseAbi([
   "function viewHat(uint256 hatId) view returns (string details, uint32 maxSupply, uint32 supply, address eligibility, address toggle, string imageURI, uint16 lastHatId, bool mutable_, bool active)",
 ]);
 
+/** The company's Signer Gate (Hats Signer Gate v2): what the wearer of its owner hat, the Shareholders' top hat, calls. */
+export const GATE = parseAbi([
+  "struct ThresholdConfig { uint8 thresholdType; uint120 min; uint120 target; }",
+  "function claimSignerFor(uint256 hatId, address signer)",
+  "function setThresholdConfig(ThresholdConfig thresholdConfig)",
+]);
+
 const PACKED_USER_OPERATION =
   "(address sender, uint256 nonce, bytes initCode, bytes callData, bytes32 accountGasLimits, uint256 preVerificationGas, bytes32 gasFees, bytes paymasterAndData, bytes signature)";
 

@@ -126,6 +126,16 @@ export const markReady = Effect.fn("organizations.ready")(function* (org: string
   yield* sql`update app.organizations set setup = 'ready', budget = ${budget} where org = ${org}`;
 });
 
+/** The company's Board once a change to it has landed: its Directors in the order they were seated, and its threshold. */
+export const setBoard = Effect.fn("organizations.board")(function* (
+  org: string,
+  directors: ReadonlyArray<string>,
+  threshold: number,
+) {
+  const sql = yield* PgClient.PgClient;
+  yield* sql`update app.organizations set directors = ${sql.json(directors)}, threshold = ${threshold} where org = ${org}`;
+});
+
 export const setSite = Effect.fn("organizations.site")(function* (
   org: string,
   site: string | null,

@@ -33,8 +33,11 @@ const CAST = [
   { person: "olga", safe: null },
 ];
 
-/** Core's groups with every service the people operations need, on the database at `url`. */
-export const core = (url: string) =>
+/**
+ * Core's groups with every service the people operations need, on the database at `url`, and a chain that is not
+ * there unless one is handed in (test/support/board-chain.ts).
+ */
+export const core = (url: string, chain: Layer.Layer<WorldChain> = WorldChain.fromEnv({})) =>
   Served.pipe(
     Layer.provide(SqlSpanSink),
     Layer.provide(
@@ -47,11 +50,7 @@ export const core = (url: string) =>
     ),
     Layer.provideMerge(siteOpsLive({})),
     Layer.provideMerge(
-      Layer.mergeAll(
-        WorldChain.fromEnv({}),
-        SiteDoor.fromEnv({}).pipe(Layer.provide(FetchHttpClient.layer)),
-        Cast.fromDatabase,
-      ),
+      Layer.mergeAll(chain, SiteDoor.fromEnv({}).pipe(Layer.provide(FetchHttpClient.layer)), Cast.fromDatabase),
     ),
     Layer.provideMerge(PgClient.layer({ url: Redacted.make(url) })),
   );

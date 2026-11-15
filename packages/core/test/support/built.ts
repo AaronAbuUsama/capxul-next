@@ -15,6 +15,9 @@ export const BUILT: ReadonlySet<OperationName> = new Set([
   "invite.accept",
   "invite.decline",
   "org.member.list",
+  "org.director.list",
+  "org.director.add",
+  "org.threshold.set",
 ]);
 
 /** No database: a test in memory never calls a built handler far enough to reach it. */
