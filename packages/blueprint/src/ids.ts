@@ -11,3 +11,5 @@ export const ApprovalId = pattern(/^apr_[a-z0-9]{6,40}$/);
 export const ProposalId = pattern(/^prp_[a-z0-9]{6,40}$/);
 export const ChangeId = pattern(/^chg_[a-z0-9]{6,40}$/);
 export const PaymentRequestId = pattern(/^req_[a-z0-9]{6,40}$/);
+/** A proposed budget, by the id `org.budget.create` answered: the subject its Directors' approvals authorise. */
+export const BudgetCreationId = pattern(/^bcr_[a-z0-9]{6,40}$/);

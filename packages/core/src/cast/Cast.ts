@@ -25,6 +25,8 @@ export class Cast extends Context.Service<
     readonly find: (person: string) => Effect.Effect<Option.Option<CastMember>>;
     /** The person of the cast who signs in with that email, if there is one. */
     readonly withEmail: (email: string) => Effect.Effect<Option.Option<CastMember>>;
+    /** Every person of the cast, in the cast's order. */
+    readonly everyone: Effect.Effect<ReadonlyArray<CastMember>>;
   }
 >()("@capxul/core/cast/Cast") {
   /** The cast the world wrote into its database. */
@@ -43,6 +45,7 @@ export class Cast extends Context.Service<
             Effect.map(Arr.head),
             Effect.orDie,
           ),
+        everyone: sql<Row>`select person, email, signer, safe from app.cast order by position`.pipe(Effect.orDie),
       });
     }),
   );
@@ -54,6 +57,7 @@ export class Cast extends Context.Service<
       Cast.of({
         find: (person) => Effect.succeed(Arr.findFirst(members, (each) => each.person === person)),
         withEmail: (email) => Effect.succeed(Arr.findFirst(members, (each) => each.email === email)),
+        everyone: Effect.succeed(members),
       }),
     );
 }

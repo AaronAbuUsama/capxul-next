@@ -12,8 +12,8 @@ project), and a world's Core slot (`packages/world`, `src/core/Core.ts`), where 
 world's door and the world's bench. What a deploy binds is handed to it as a `Deployment` (`src/stack/deployment.ts`);
 the running Worker reads every fact from its environment per request, by the names in `src/env.ts`.
 
-**Every handler is built.** Core builds the world group's thirteen (`src/site-ops/`, `src/organizations/` and
-`src/people/`, below); the platform group's four are `packages/world`'s (`src/platform`, blueprint decisions.md 51), so Core's own
+**Every handler is built.** Core builds the world group's sixteen (`src/site-ops/`, `src/organizations/`,
+`src/people/` and `src/budgets/`, below); the platform group's four are `packages/world`'s (`src/platform`, blueprint decisions.md 51), so Core's own
 platform handlers are empty: each fails with the blueprint's `NotImplemented`, naming itself (entry 33). The server compiles only with one handler per operation: leave a
 domain out of `src/handlers.ts`, or an operation out of its `src/domains/` file, and `pnpm types` fails with
 `Property '"record.export"' is missing`.
@@ -28,6 +28,7 @@ domain out of `src/handlers.ts`, or an operation out of its `src/domains/` file,
 | `src/site-ops/` | The document, report, clock and record operations (below). `door.ts` is its door. |
 | `src/organizations/`, `src/approvals/`, `src/chain/`, `src/cast/` | The chain operations, org.create, org.member.grant and approval.sign (below). `organizations/handlers.ts` is what `src/domains/` and the Worker use. What a subject's landing means is its domain's (`organizations/landed.ts`, and `approvals/payments.ts` for a payment); `approvals/landed.ts` gathers them by kind. |
 | `src/people/` | The people operations, org.member.invite, invite.list, invite.accept, invite.decline and org.member.list (below). `people/handlers.ts` is what `src/domains/people.ts` uses; `people/roster.ts` is the one reading of who belongs to a company, which org.member.grant's member check reads too. |
+| `src/budgets/` | The budgets operations, org.budget.create, org.budget.show and org.budget.list (below), and the landing of a `budget_creation`. `budgets/handlers.ts` is what `src/domains/budgets.ts` uses; `budgets/chain.ts` is the one reading of a budget on the chain. |
 | `src/server.ts` | `Served`, the handlers and middlewares of both groups, and `CoreRpcs`, both groups merged for a test in memory. |
 | `src/telemetry/spans.ts` | One span per call, named after the operation, under the trace id of the caller's `traceparent`, with every span beneath it. |
 | `src/telemetry/sink.ts` | Where a call's spans go: `app.spans`, written after the call ends and before the answer leaves. |
@@ -41,12 +42,13 @@ domain out of `src/handlers.ts`, or an operation out of its `src/domains/` file,
 | `src/failures.ts` | Core's own failures: `SiteDoorFailed` (`unset`, `unreachable`, `refused`). |
 | `src/stack/database.ts` | A stage's database: a Neon project of its own, and Hyperdrive in front of it with its query cache off. |
 | `alchemy.run.ts` | The stack `CapxulCore`. One stage is one Core and its database. |
-| `migrations/` | The `app` schema (named by the rule in "Migrations", below): `app.spans` and `app.events` (0001); `app.clock` and `app.documents` (0002); the world's chain contracts, cast and companies (`app.world`, `app.cast`, `app.companies`, 0003); the people domain's invitations and the members who joined by one (`app.invitations`, `app.members`, `0006_people_invitations.sql`). Applied by the runner when a stage is created, and by the world when it is made. |
+| `migrations/` | The `app` schema (named by the rule in "Migrations", below): `app.spans` and `app.events` (0001); `app.clock` and `app.documents` (0002); the world's chain contracts, cast and companies (`app.world`, `app.cast`, `app.companies`, 0003); the people domain's invitations and the members who joined by one (`app.invitations`, `app.members`, `0006_people_invitations.sql`); each budget's creation and its name (`app.budget_creations`, `0007_budgets_creations.sql`). Applied by the runner when a stage is created, and by the world when it is made. |
 | `test/server.test.ts` | Core's groups in memory: all twelve answer `NotImplemented` under one span each, kept with the caller's trace id; sign-in refusals. |
 | `test/site-ops-documents.test.ts`, `test/site-ops-world.test.ts` | The five operations served in memory through Core's groups against a stand-in company site (`test/support/site-ops.ts`): what the site is asked, what Core answers, what the record keeps. |
 | `test/site-ops-sql.test.ts` | The clock, the record, the document hashes and the cast in Postgres with the migrations applied. Runs only with `CAPXUL_TEST_DATABASE` (a throwaway Postgres); skipped otherwise, as in CI. |
 | `test/chain/` | The chain operations end to end against a local stand-in of a world (`up.sh`: Anvil from the seed, the faucet's USDC, the test paymaster, alto from the world's bundler image, Postgres; `down.sh` removes it): `pnpm --filter @capxul/core chain:test`. Not in `pnpm test`, which has no chain. |
 | `test/people-sql.test.ts` | The people operations served in memory against Postgres with the migrations applied, from Northwind founded: the journey "invite olga to Northwind" step by step, each answer, refusal and event, and org.member.grant passing its member check for olga once she accepted (`test/support/people.ts`). Runs only with `CAPXUL_TEST_DATABASE`; skipped otherwise, as in CI. |
+| `test/budgets-sql.test.ts` | The budgets operations served in memory against Postgres with the migrations applied, over a stand-in chain that answers their reads (`test/support/budgets.ts`), from Northwind founded: the journey "give sam a budget at Northwind" step by step, each answer, refusal and event, the batch a creation proposes, the nonces and hats of creations waiting together, and the landing. Sends no transaction. Runs only with `CAPXUL_TEST_DATABASE`; skipped otherwise, as in CI. |
 | `test/doors.test.ts` | The SDK's own client against `serveDoors` over HTTP in this process: all twelve at their doors, the server span under the SDK's trace, wrong tokens refused, other paths 404 in JSON. |
 
 ## What every call gets
@@ -121,7 +123,9 @@ permission like a founding member.
 | Operation | What it does |
 |---|---|
 | `org.create` | Checks everything first (the founder's and every Director's claimed Safe, every person named, the handle, an unfinished founding, the capital against the founder's Safe). Then the service key mints the company Safe through Companies House's company role, under the org id, and sends the Installer's `deployMoney` (the Board's hats with Books, Invoices and People, the Director hat on every founding Director's Safe, the Signer Gate, Roles). The setup is prepared as one UserOperation of the founder's Safe (the capital, then the company Safe's install batch) and every Director gets an approval of its digest. Records `org_founded`, adds the company to `app.companies` and starts its site through `SiteDoor.make`. The same founding again answers `Resumed`. |
-| `org.member.grant` | A Director proposes: the company Safe's transaction at its next nonce (one more seat when the hat is full, then the hat minted to the member's Safe), read live from the chain. Each Director's approval is their own Safe's EIP-1271 digest of it. Records `officer_change_proposed` and `proposal_opened`. |
+| `org.member.grant` | A Director proposes: the company Safe's transaction at its next nonce, after every company transaction of the company still waiting (`organizations/proposal.ts`; one more seat when the hat is full, then the hat minted to the member's Safe), read live from the chain. Each Director's approval is their own Safe's EIP-1271 digest of it. Records `officer_change_proposed` and `proposal_opened`. |
+| `org.budget.create` | A Director proposes a budget for a holder who belongs and has a Safe, inside a budget of the company with room for it, both read live from the chain: one company Safe transaction (`organizations/proposal.ts`) that makes a hat under the parent's hat (max supply 1, the company Safe its eligibility and toggle, "Budget" its details, never the name), mints it to the holder's Safe and calls `Budgets.createChildBudget(parent, amount, hat)`. The new hat's id is the chain's next child of the parent's hat after every creation still waiting under it. Keeps the name in `app.budget_creations`; records `budget_proposed` and `proposal_opened`. Its landing names the creation's budget from the transaction's `BudgetCreated` log. Two creations proposed together that do not both fit: the second's last signature is refused `TransactionReverted` when its transaction reverts on the chain. |
+| `org.budget.show`, `org.budget.list` | A budget, or every budget of the company's tree from its top one in the order the chain made them, as `Budgets.budgetOf` and `leftOf` hold it now; its holders are the people of the cast whose Safe wears its hat. The top budget is named as its company is; any other as it was proposed. Directors, members and the world's owner may read; nothing is recorded. |
 | `approval.sign` | Checks the signer, the signature (raw secp256k1 over the digest), a subject already sent (`AlreadySent`) and the expiry in world time, keeps the signature, and once the threshold is signed (the founder among them, for a setup) sends the subject as one UserOperation through the world's bundler, sponsored by the test paymaster: the signer's own Safe's for a setup or a payment, the relayer's for a company Safe transaction. Answers once it is in a block; records `approval_signed` (and `approval_landed` when sent). |
 
 How it reaches the chain: `chain/WorldChain.ts`, the world's chain and bundler over the Worker's `CHAIN` binding to
@@ -168,7 +172,7 @@ there was, a stand-in in an agent's container, is not reachable from Cloudflare:
 
 To a domain Core already serves: its handler where its kind of work lives (`src/site-ops/`, `src/organizations/`),
 and one entry in that domain's file in `src/domains/`. A subject its approvals authorise gets an entry in its
-domain's `landings` (`organizations/landed.ts`, `approvals/payments.ts`).
+domain's `landings` (`organizations/landed.ts`, `budgets/landed.ts`, `approvals/payments.ts`).
 
 A new domain: a new file in `src/domains/`, then one import and one entry per group it serves in `src/handlers.ts`,
 and, if its approvals authorise subjects, one entry in `landings` in `src/approvals/landed.ts` (the type refuses a

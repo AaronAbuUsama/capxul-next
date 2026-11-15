@@ -1,0 +1,25 @@
+{
+  "record": "empty-handlers",
+  "step": "1.14",
+  "what": "A registered journey run against a Capxul whose every operation fails with NotImplemented, as Core's empty handlers do. It must fail at its first step, on the NotImplemented it is answered, never pass and never die.",
+  "outcome": "passed",
+  "result": {
+    "name": "give sam a budget at Northwind",
+    "given": "founded",
+    "steps": 8,
+    "began": [
+      {
+        "step": 1,
+        "operation": "org.budget.list",
+        "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"org.budget.list\"}"
+      }
+    ],
+    "calls": [
+      "record.export",
+      "org.budget.list"
+    ],
+    "outcome": "failed",
+    "failedWith": "NotImplemented",
+    "detail": "org.budget.list answered NotImplemented"
+  }
+}

@@ -1,5 +1,6 @@
 // How the journeys sign: each signer signs an approval's digest with their own key (support/signing.ts), and a
 // Directors' proposal is signed by dana, whose signature is kept, then by eli, whose signature sends it.
+import type { Values } from "@capxul/blueprint";
 import type { Payload } from "../client.ts";
 import * as Effect from "effect/Effect";
 import type { Tries } from "../tries.ts";
@@ -18,16 +19,23 @@ export const sign = (approval: Approval, by: string = approval.signerAddress) =>
 export const approvalOf = (approvals: ReadonlyArray<Approval>, signer: string) =>
   findIn(`${signer}'s approval`, approvals, (each) => each.signer === signer);
 
-/** A change proposed to the Directors: dana's signature is kept, 1 of 2; eli's sends it. Answers eli's Sent. */
-export const signedByBoard = (op: Tries<"approval.sign">, approvals: ReadonlyArray<Approval>, change: string) =>
+/** What a Directors' proposal authorises. */
+export type Subject = typeof Values.Subject.Type;
+
+/** A subject proposed to the Directors: dana's signature is kept, 1 of 2; eli's sends it. Answers eli's Sent. */
+export const signedByDirectors = (op: Tries<"approval.sign">, approvals: ReadonlyArray<Approval>, subject: Subject) =>
   Effect.gen(function* () {
     const kept = yield* op.answers("Collected", yield* sign(yield* approvalOf(approvals, "dana")), { as: "dana" });
     yield* same(
-      "the change after dana's signature",
+      `the ${subject.kind} after dana's signature`,
       [kept.signatures, kept.threshold, kept.subject],
-      [1, 2, { kind: "officer_change", id: change }],
+      [1, 2, subject],
     );
     const sent = yield* op.answers("Sent", yield* sign(yield* approvalOf(approvals, "eli")), { as: "eli" });
     yield* same("the subject eli's signature sent", sent.subject, kept.subject);
     return sent;
   });
+
+/** An officer change proposed to the Directors, signed by dana then eli. Answers eli's Sent. */
+export const signedByBoard = (op: Tries<"approval.sign">, approvals: ReadonlyArray<Approval>, change: string) =>
+  signedByDirectors(op, approvals, { kind: "officer_change", id: change });
