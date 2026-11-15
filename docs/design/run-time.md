@@ -432,6 +432,8 @@ the plumbing, and verdict before teardown (the speed lane's lead).
   is the test runner itself (GitHub's, in the United States): one crossing per call, about 880 a run, about 1 minute
   serial and much less with journeys side by side. A runner in Europe would remove that too; it is not decided, and it
   is worth raising only if the measured run needs it.
+  Fast-tracked by the conductor the same day, ahead of instrumentation, on `slice/placement` (roadmap step 4.10, no
+  `Needs`): measured by that slice's world run, from Core's recorded colo and its postgres span times.
 - **Superseded by D8:** D2 (how far lanes go) and D3 (lanes build their starting world in place). **Settled by D7:**
   D6 (a one-machine tier for pull requests): not now.
 - **Not decided, recommendation unchanged:** D4, keeping starting setups between runs, stays declined. Projected
