@@ -23,11 +23,11 @@ and archived. Whoever conducts next starts here, whatever agent they run on.
 
 | Work | Its state, durable | Next |
 |---|---|---|
-| Blueprint stage 2 (the next milestone) | `docs/design/blueprint.md`, part 5, "Where it stands"; `slice/blueprint` (#295, passed 🔍 review) and its pull requests #299, #301, #302; the triage backlog in #306 | Land 2a when `gate` and `world` are green on a head that includes `master`, then finish 2b |
+| Blueprint stage 2 (the next milestone) | `docs/design/blueprint.md`, part 5, "Where it stands"; `slice/blueprint` (#295, passed 🔍 review) and its pull requests #299, #301, #302; the triage backlog in #306 | Merge `master` into `slice/blueprint`, then land #295 (2a) when `gate` and `world` are green on that head; then #299, #301 and #302 (2b) |
 | Docs into one set | `docs/design/docs.md`, section 12, on `slice/docs`; #304 left open with its state | Continue the moves; take `master`'s version of `packages/world` |
 | World layout | Landed (#300); `docs/design/world.md`; #311 records where it stands | The comments-only follow-up named in world.md |
 | System map | Landed (#307), `docs/design/system.md`, with its build order and open questions | Follow its build order after stage 2 |
-| Old pull-request triage | `docs/design/pr-triage.md` on `design/pr-triage` (draft #285, never merged) | Aaron approved closing groups 1, 2, 3 and 5 and keeping #145; the closures wait on his word in the triage thread or on #285 |
+| Old pull-request triage | Done: 57 pull requests closed (groups 1, 2, 3 and 5), #145 kept as the escrow reference; the record is `docs/design/pr-triage.md` on `design/pr-triage` (draft #285) | Close #285 once nothing else needs the record |
 | Axiom | Set up, nothing sending yet (below) | The instrumentation lane wires it |
 
 ## Axiom
