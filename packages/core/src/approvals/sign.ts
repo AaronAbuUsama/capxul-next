@@ -1,7 +1,8 @@
-// approval.sign: a signer's signature of the digest their approval names (decisions.md, 42), checked and kept. When it
-// completes its subject (the threshold signed, the sender's owner among them) the subject is sent as one sponsored
-// UserOperation through the world's bundler, and the call answers once it is in a block (decisions.md, 24). A
-// signature of a subject already sent answers that transaction again and sends nothing (AlreadySent).
+// approval.sign: a signer's signature of the digest their approval names (packages/blueprint/docs/decisions.md, entry
+// 42), checked and kept. When it completes its subject (the threshold signed, the sender's owner among them) the
+// subject is sent as one sponsored UserOperation through the world's bundler, and the call answers once it is in a
+// block (packages/blueprint/docs/decisions.md, entry 24). A signature of a subject already sent answers that
+// transaction again and sends nothing (AlreadySent).
 import { Approvals as Ops, Errors } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as DateTime from "effect/DateTime";
