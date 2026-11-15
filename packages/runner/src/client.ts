@@ -8,7 +8,7 @@
 // have no command, still go through the SDK.
 import { CHAIN_PATH, Errors, isRefusal, operations, WORLD_PATH, type OperationName } from "@capxul/blueprint";
 import * as Cli from "@capxul/cli";
-import { Capxul, type CallOptions, type CapxulClient } from "@capxul/scenarios";
+import { CallTraces, Capxul, type CallOptions, type CapxulClient } from "@capxul/scenarios";
 import * as Sdk from "@capxul/sdk";
 import * as Cause from "effect/Cause";
 import * as Duration from "effect/Duration";
@@ -136,6 +136,9 @@ const recording = (
         failure: failureOf(exit),
       };
       yield* Ref.update(log, (calls) => [...calls, call]);
+      // The try that made the call hears its trace, so its checks judge only what this call caused (roadmap 4.11).
+      const traces = yield* Effect.serviceOption(CallTraces);
+      if (Option.isSome(traces)) yield* traces.value.heard(span.traceId);
       return yield* exit;
     }).pipe(Effect.withSpan(`runner.call ${name}`, { root: true }));
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- one function per operation, built by name from the blueprint's own list, each the recorded call of the operation it is keyed by; the compiler cannot follow the mapping
