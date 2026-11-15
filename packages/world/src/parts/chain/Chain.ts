@@ -7,7 +7,7 @@
 //   idle, save: each call pushes a durable stop forward; while calls arrive the state is saved every SAVE_EVERY
 //   fork, snap, reset: adopt another world's state; save the state under a snapshot's name; rewind to it in place
 //   world: keeps the world's registration, checks each call's token against it (admit), forgets it all
-// The index stops before a save and resumes on a wake; the bundler stops with it. The index's polling is "quiet".
+// The index stops before a save and resumes on a wake; the bundler stops with it, and is cleared, kept up, by a reset. The index's polling is "quiet".
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Alchemy from "alchemy";
 import * as Arr from "effect/Array";
@@ -171,13 +171,14 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
           if (Predicate.isNull(object))
             return yield* ChainFailed.make({ step: "reset", message: `no chain state saved as ${snapshot}` });
           const dump = yield* object.text().pipe(Effect.mapError(failed("reset")));
-          // alto's nonces and mempool belong to the chain as it was: it starts again on its next call.
-          yield* (yield* bundler).stop().pipe(Effect.mapError(failed("reset")));
           const inPlace = yield* running("reset");
           if (inPlace) {
             yield* ask("reset", "anvil_reset", []);
             yield* call("reset", "anvil_loadState", [dump]);
           }
+          // alto's mempool and reputation belong to the chain as it was: cleared, with alto kept up, once the chain
+          // is the snapshot's (src/parts/bundler/Bundler.ts, `reset`).
+          yield* (yield* bundler).reset().pipe(Effect.mapError(failed("reset")));
           // The saved state is the snapshot's now; its clock is set by the reset (src/things/world/reset.ts).
           yield* saved.put(yield* key, dump).pipe(Effect.mapError(failed("reset")));
           const done = { at: stamp(began), snapshot, inPlace, bytes: dump.length, ms: 0 };
