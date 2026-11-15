@@ -13,7 +13,7 @@ import * as Redacted from "effect/Redacted";
 import * as Str from "effect/String";
 import * as RpcTest from "effect/rpc/RpcTest";
 import type * as Scope from "effect/Scope";
-import { CoreIdentity, CoreRpcs, Served, SpanSink } from "../../src/door.ts";
+import { CoreIdentity, CoreRpcs, Served, SpanSink, type KeptSpan } from "../../src/door.ts";
 import { absent } from "./built.ts";
 import { millisOf, siteOpsInMemory, type InMemory, type TestSite } from "../../src/site-ops/door.ts";
 
@@ -46,8 +46,11 @@ export const site = (
     }),
 });
 
-/** Serves Core's groups over `world`, and calls one operation at a time as `who`, each in a trace of its own. */
-export const world = (options: InMemory) =>
+/**
+ * Serves Core's groups over `world`, and calls one operation at a time as `who`, each in a trace of its own. Every span
+ * of every call is kept in `spans` when it is given.
+ */
+export const world = ({ spans, ...options }: InMemory & { readonly spans?: Array<KeptSpan> }) =>
   Effect.gen(function* () {
     const ops = siteOpsInMemory({ clock: { mode: "frozen", frozenAtMs: START, offsetMs: 0 }, cast: CAST, ...options });
     const identity = Layer.succeed(CoreIdentity, {
@@ -56,7 +59,7 @@ export const world = (options: InMemory) =>
       doorToken: Redacted.make("door"),
       platformToken: Redacted.make("platform"),
     });
-    const sink = Layer.succeed(SpanSink, SpanSink.of({ keep: () => Effect.void }));
+    const sink = Layer.succeed(SpanSink, SpanSink.of({ keep: (kept) => Effect.sync(() => spans?.push(...kept)) }));
     const context = yield* Layer.build(
       Served.pipe(Layer.provideMerge(ops), Layer.provide(Layer.mergeAll(identity, sink, absent))),
     );
