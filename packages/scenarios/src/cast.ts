@@ -59,4 +59,4 @@ export const castFor = (key: string): Effect.Effect<Cast> =>
 export const Cast = JourneyCast;
 
 /** Every person of a cast, in the order of the roles. */
-export const peopleOf = (cast: Cast): ReadonlyArray<string> => Arr.map(ROLES, (role) => cast[role]);
+export const castPeopleOf = (cast: Cast): ReadonlyArray<string> => Arr.map(ROLES, (role) => cast[role]);
