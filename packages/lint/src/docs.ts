@@ -33,7 +33,6 @@ export const MAX_README_LINES = 60;
  * fits must come off it, one that is gone should, and test/docs.test.ts caps the list's length.
  */
 export const LONG_READMES: ReadonlyArray<string> = [
-  "packages/blueprint/README.md",
   "packages/world/records/spike-bundler/README.md",
   "spikes/containers/README.md",
   "spikes/world-speed/README.md",
@@ -85,6 +84,8 @@ const placed = (file: string): boolean =>
   file in MARKDOWN_ELSEWHERE ||
   // Claude Code reads its agents and skills from .claude/; their place is its, not ours.
   under(".claude")(file) ||
+  // The agent kit every agent reads: each skill is a SKILL.md in its own folder under .agents/skills/.
+  under(".agents")(file) ||
   // Everything inside the blueprint is the blueprint session's; its own layout check covers it.
   under("packages/blueprint")(file) ||
   Str.includes("/records/")(file) ||
