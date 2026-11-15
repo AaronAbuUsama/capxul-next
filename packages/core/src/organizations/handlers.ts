@@ -1,6 +1,7 @@
 // The handlers of the world group's chain operations, as src/handlers.ts names them: org.create, org.member.grant and
 // approval.sign. Each answers with its outcome or one of its declared refusals; a fault of the database, the chain,
-// the bundler or the bench travels as a defect (decisions.md, 10), which the runner records as a failed call.
+// the bundler or the bench travels as a defect (packages/blueprint/docs/decisions.md, entry 10), which the runner
+// records as a failed call.
 //
 // What they need is `ChainOps.layer`: the world's chain and bundler, its cast, and its bench's site door, beside the
 // database (PgClient) every Core has.
