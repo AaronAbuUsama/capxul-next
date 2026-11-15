@@ -21,11 +21,6 @@ export interface Rung {
 }
 
 const gate = Pipeline.checkGate.spans;
-/**
- * The ratchets' counts (`pnpm ratchets`, and R15's `pnpm words`) are the pipeline's `ratchet.count` work, not a rung
- * of `check.gate`: they run in its span.
- */
-const ratchets = Pipeline.ratchetCount.spans.lists;
 
 /** The commands of `pnpm check`, in order; `wordsBase` is the branch R15 compares with, on a pull request. */
 export const rungsOf = (wordsBase: string | undefined): ReadonlyArray<Rung> => [
@@ -37,8 +32,8 @@ export const rungsOf = (wordsBase: string | undefined): ReadonlyArray<Rung> => [
   { script: "types", args: [], span: gate.types },
   { script: "test", args: [], span: gate.test },
   { script: "delta:check", args: [], span: gate.delta },
-  { script: "ratchets", args: [], span: ratchets },
-  { script: "words", args: wordsBase === undefined ? [] : ["--base", wordsBase], span: ratchets },
+  { script: "ratchets", args: [], span: gate.ratchets },
+  { script: "words", args: wordsBase === undefined ? [] : ["--base", wordsBase], span: gate.words },
 ];
 
 /** Runs one command of the gate and answers its exit code. */
