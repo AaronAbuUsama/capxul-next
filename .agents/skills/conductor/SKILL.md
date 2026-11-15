@@ -36,8 +36,8 @@ thread types, their emojis, their finish lines and your agent's word for each ac
 - **Plan and decisions:** `docs/roadmap.md`, `docs/design/*.md`. `docs/design/handoff.md` says where each piece of work
   stands at the last change of conductor.
 - **Threads:** your agent's thread list, by title emoji; Claude Code cloud threads also by tag `capxul-lane`.
-- **Aaron's views:** the status dashboard and the Rebuild Sitrep page on claude.ai, which only a Claude thread can
-  update. From another agent, give Aaron the sitrep in the thread.
+- **Aaron's views:** the Rebuild Sitrep page on claude.ai (the `sitrep` skill) and the status dashboard. Only a Claude
+  agent with the artifact tools can write the sitrep. From another agent, give Aaron the sitrep in the thread.
 
 ## While threads run
 
@@ -61,8 +61,9 @@ Then check `master`'s next `check` run. If it goes red, fixing it comes before a
 
 - **Aaron listens.** Every answer to him follows "Talking to Aaron" in the `threads` skill, sitreps included. Every
   brief tells its thread the same, and that its reports to you are messages to you, not text for Aaron.
-- **After every merge, decision, new thread or archive,** update Aaron's view: what landed, what's moving, what waits on
-  him, and the threads.
+- **After every merge, decision, new thread or archive,** update the sitrep as the `sitrep` skill says: its numbers
+  from `numbers.py`, the `now` document, and a spoken sitrep when something happened that Aaron would want to hear. The
+  page is never republished for news, only for a design change.
 - **When a thread's finish line is met,** archive it. Its notes stay on its branch.
 - **Write down what you learn** where the next conductor will find it: this skill, or `AGENTS.md`, through a pull
   request.

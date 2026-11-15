@@ -55,6 +55,7 @@ export const DOCS: ReadonlyArray<string> = [
   "docs/design/blueprint.md",
   "docs/design/handoff.md",
   "docs/design/run-time.md",
+  "docs/design/sitrep.md",
   "docs/design/system.md",
   "docs/design/world.md",
 ];
