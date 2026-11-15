@@ -90,3 +90,25 @@ class PoolTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BlankPoolSizeTest(unittest.TestCase):
+    """DOOR_BLANK_POOL_SIZE: eight ready blank copies by default (roadmap 4.8), never more than BLANK_POOL_MAX."""
+
+    def sized(self, value):
+        import importlib
+        from unittest import mock
+
+        env = {k: v for k, v in os.environ.items() if k != "DOOR_BLANK_POOL_SIZE"}
+        if value is not None:
+            env["DOOR_BLANK_POOL_SIZE"] = value
+        with mock.patch.dict(os.environ, env, clear=True):
+            size = importlib.reload(pool).BLANK_POOL_SIZE
+        importlib.reload(pool)
+        return size
+
+    def test_default_and_bounds(self):
+        self.assertEqual(self.sized(None), 8)
+        self.assertEqual(self.sized("10"), 10)
+        self.assertEqual(self.sized("50"), pool.BLANK_POOL_MAX)
+        self.assertEqual(self.sized("2"), 2)
