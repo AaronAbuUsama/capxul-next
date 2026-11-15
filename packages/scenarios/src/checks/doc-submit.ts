@@ -14,7 +14,7 @@ import { Journal } from "../journal.ts";
 import { usdc } from "../support/chain.ts";
 import { same, sameAddress, sameAmount, show } from "../support/expect.ts";
 import { ledger, linesOf, numberOf } from "../support/site.ts";
-import { entriesAfter } from "../support/world.ts";
+import { entriesOfCall } from "../support/world.ts";
 import { callerIn, namesCaller, nothingRecorded, worldBefore, type Before } from "./common.ts";
 import { check, checks, type Asked } from "./format.ts";
 
@@ -67,7 +67,7 @@ export const docSubmit = checks<"doc.submit", Before>({
         ),
         check(
           "the record gains its doc_submitted",
-          Effect.flatMap(entriesAfter(before.head, before.where), (added) =>
+          Effect.flatMap(entriesOfCall(before.head, before.where), (added) =>
             same(
               "the events the submit added",
               Arr.map(added, (entry) => entry.event),
@@ -102,7 +102,7 @@ export const docSubmit = checks<"doc.submit", Before>({
       ),
       check(
         "the record gains its payment_held",
-        Effect.flatMap(entriesAfter(before.head, before.where), (added) =>
+        Effect.flatMap(entriesOfCall(before.head, before.where), (added) =>
           same(
             "the events the submit added",
             Arr.map(added, (entry) => entry.event),

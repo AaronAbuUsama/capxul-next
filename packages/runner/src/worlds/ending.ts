@@ -47,6 +47,8 @@ export interface Ending {
   readonly notMade: string | null;
   /** What the run's take-down could not do, one line each with why (teardown.ts); any of it fails the run. */
   readonly notTakenDown: ReadonlyArray<string>;
+  /** The worlds, by stage, left up on purpose for CI's teardown job (RUNNER_TEARDOWN=job); none otherwise. */
+  readonly handedOver: ReadonlyArray<string>;
   readonly world: string | null;
   /** The hub as the run used it; null when the run never reached it, and the hub is then the one `WORLD_HUB` names. */
   readonly used: HubUse | null;
@@ -86,6 +88,7 @@ export const summaryOf = (ending: Ending) =>
         hubBroughtUp: hub.broughtUp,
         left: ending.left,
         notTakenDown: ending.notTakenDown,
+        ...(ending.handedOver.length === 0 ? {} : { handedOver: ending.handedOver }),
         timings: ending.timings,
         failure: failures.length === 0 ? null : Arr.join(failures, "\n"),
       },

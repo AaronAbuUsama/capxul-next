@@ -65,6 +65,7 @@
         "packages/runner/src/summary.ts": "a run's summary is the JSON file a step's Proof names; its schema is that file's format",
         "packages/world/src/common/record.ts": "run records and proof records are JSON files outside the world; their schemas are those files' format",
         "packages/world/src/things/world/handle.ts": "a deployed world's stack outputs as Alchemy stores them: the format of a file outside the world, read back as it was written",
+        "packages/core/src/site-ops/warp-times.ts": "where a company site's warp spent its time, as the Capxul app's Python answers it (capxul/core_api.py, warp): an outside format, decoded only to be recorded on a span",
         "packages/core/src/telemetry/attributes.ts": "the attributes of a kept span as OpenTelemetry and effect/sql set them: an outside format, decoded where it is read",
         "packages/blueprint-tools/src/language/lifecycle.ts": "the machine format: builds each machine's state schema from the states its declaration names",
         "packages/platform/src/collector/otlp-json.ts": "OTLP/HTTP's JSON encoding, an outside format, decoded only to stamp each resource and count its items",
