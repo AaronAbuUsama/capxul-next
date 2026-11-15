@@ -52,7 +52,7 @@ export const COLLECTOR_ENV = {
 
 /**
  * Cloudflare's own logs and traces of the Worker, exported to the account's Axiom destinations: a second view of the
- * platform, read by people, never by a check. Core and the hub's door take the same once slice/placement lands.
+ * platform, read by people, never by a check. Core and the hub's door take the same in a later pull request.
  */
 export const CLOUDFLARE_OBSERVABILITY = {
   enabled: true,
