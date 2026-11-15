@@ -40,9 +40,9 @@ packages/world/
 | `cli/`, `common/`, `proofs/` | The command line, what all kinds share, the frozen proofs | |
 
 **What checks it.** `test/layout.test.ts` fails a file outside these folders, a thing file that is neither one of
-the four nor a verb, and a growing list of unfolded files (a ratchet: eleven files that hold more than one verb, or
-a helper that folds into one of the four). `pnpm shape` holds the README to one screen; `pnpm generate:check` holds
-the map.
+the four nor a verb, a README over one screen (60 lines), and a growing list of unfolded files (a ratchet: eleven
+files that hold more than one verb, or a helper that folds into one of the four). `pnpm generate:check` holds the
+map.
 
 ## Every move
 
