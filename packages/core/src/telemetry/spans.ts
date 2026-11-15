@@ -123,7 +123,8 @@ export const keepingTracer = (keep: (span: KeptSpan) => void, inner: Tracer.Trac
 
 /**
  * The tracer that makes each call's spans: the OTLP tracer when this Core exports (export.ts), so every span the
- * sink keeps is exported too, and only those; none, Effect's own.
+ * sink keeps is exported too, and only those. With none, the tracer of the process around the call: a process that
+ * serves calls itself and exports through its own tracer (the runner's platform) exports them too.
  */
 export const CallTracer = Context.Reference<Option.Option<Tracer.Tracer>>("capxul/core/CallTracer", {
   defaultValue: () => Option.none(),
@@ -161,7 +162,8 @@ export const measured = Effect.fnUntraced(function* <A, E, R>(
 ) {
   if (yield* Measuring) return yield* withCurrentCall(options, effect);
   const kept: Array<KeptSpan> = [];
-  const inner = Option.getOrElse(yield* CallTracer, () => nativeTracer);
+  const around = yield* Effect.tracer;
+  const inner = Option.getOrElse(yield* CallTracer, () => around);
   const caller = HttpTraceContext.w3c(options.headers);
   const annotate = (span: Tracer.Span) =>
     Effect.sync(() => {

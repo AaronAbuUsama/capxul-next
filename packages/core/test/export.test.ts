@@ -131,3 +131,33 @@ test("every export carries Core's service name and the code's revision", async (
   assert.equal(named("service.name"), SERVICE_NAME);
   assert.equal(named("service.version"), "abc123");
 });
+
+test("with no CallTracer, a call's spans are made by the tracer around it, and kept too", async () => {
+  const seen: Array<string> = [];
+  const recording = Tracer.make({
+    span: (options) => {
+      const span = new Tracer.NativeSpan(options);
+      const end = span.end.bind(span);
+      span.end = (endTime, exit) => {
+        seen.push(span.spanId);
+        end(endTime, exit);
+      };
+      return span;
+    },
+  });
+  const kept: Array<KeptSpan> = [];
+  const sink = SpanSink.of({ keep: (spans) => Effect.sync(() => kept.push(...spans)) });
+  await Effect.runPromise(
+    measured(
+      sink,
+      { colo: Option.none() },
+      { rpc, headers: Headers.empty },
+      Effect.withSpan(Effect.void, "inner.step"),
+    ).pipe(Effect.withTracer(recording)),
+  );
+  assert.equal(kept.length, 2);
+  assert.deepEqual(
+    Arr.map(kept, (span) => span.spanId),
+    seen,
+  );
+});
