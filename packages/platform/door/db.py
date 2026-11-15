@@ -1,4 +1,4 @@
-"""The door's direct hands on a site's data (roadmap step 1.17; measured in spikes/site-speed, Q3a and Q4): copying a
+"""The door's direct hands on a site's data (roadmap step 1.17; measured in records/site-speed, Q3a and Q4): copying a
 site's database inside MariaDB, finding the tables that changed against a saved copy and putting them back, and
 clearing what Redis holds for a site (its cache keys and its queued jobs). No bench process runs here: every
 statement goes to MariaDB over one root connection of the door's own, so these calls cost what MariaDB does.
