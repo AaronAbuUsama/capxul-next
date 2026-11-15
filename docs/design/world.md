@@ -220,3 +220,34 @@ Paths under `packages/world/`. Every file moved whole except `lifecycle/operatio
 **What it does not do.** No behaviour changes, no Alchemy stack changes, nothing a world creates or destroys. The
 runner fingerprints `world/src` for its starting points, so the first run after the move remakes their site
 templates once.
+
+## Where it stands (15 November 2026, evening)
+
+**Done, on `master`.** The layout above, moved with no behaviour change: #294 (this page), #296 (the move), #297 (the
+layout test, the one-screen README, the docs pages, the generated map), #300 (the slice; `world` green, the
+conductor's review a pass), #298 (every move, here) and #308 (comments that cited the old README or old paths).
+`pnpm generate` writes `packages/world/generated/index.md`; `MAPS` in `packages/generate/src/sources.ts` names the
+packages that get a map. The scripts that made the move and the explorer are in `spikes/package-move`.
+
+**Left.**
+
+1. The unfolded files: eleven, listed in `packages/world/test/layout.test.ts`, each with the file it folds into. The
+   list may only shrink; each fold is a move of functions, with no behaviour change.
+2. The rename ratchet (3.8): exported names (`hubUp`, `platformUp`, `Core`, `CoreHost`, `BenchStage`), command names
+   and the words inside comments (hub, door, Core, platform, claim, ledger) keep today's words until it runs.
+3. The docs session's slice (#304) changes the same README and three docs pages. Its merge keeps master's
+   `packages/world/README.md` and `docs/{cluster,reset,renew}.md` (the conductor's call); three comments on `master`
+   already point at its `packages/world/records/README.md`, "Before the cluster", which arrives with it.
+4. `packages/blueprint/decisions.md` and `packages/blueprint/src/world/*.ts` still name old `packages/world/src`
+   paths in comments: the blueprint lead's to change. Migrations 0003 and 0008 name them too and are never edited.
+5. The branch `work/world-readme-align` is abandoned; the network proxy refused its deletion.
+
+**Open questions, each with a recommendation.**
+
+1. Move the other packages the same way? Recommended: yes, one package per slice, each table agreed with Aaron
+   through an explorer page first; graduate `spikes/package-move` into a tool that takes a package and its table.
+   Packages whose names the glossary changes (core to api, platform to sites, scenarios to journeys) move inside first
+   and are renamed after, as a step of their own.
+2. A shared layout check: `layout.test.ts` holds rules written for this package. Recommended: once a second package
+   has a layout, move the common rules (kinds of folder, no loose files, a README of one screen) into
+   `packages/lint/src/shape.ts` and keep only each package's own kinds beside it.
