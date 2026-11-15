@@ -9,7 +9,7 @@ import type { Success } from "../client.ts";
 import { usdc } from "../support/chain.ts";
 import { present } from "../support/expect.ts";
 import { isSafeAccount, ledger, linesOf, numberOf, safeBalance } from "../support/site.ts";
-import { fieldOf, headOf, personalSafes, textOf, type View, type Who } from "../support/world.ts";
+import { fieldOf, headOf, ownView, personalSafes, textOf, type View, type Who } from "../support/world.ts";
 
 type Rows = Success<"report.run">["rows"];
 const ROW = Site.ROW_FIELDS;
@@ -40,6 +40,8 @@ export const stateOf = (world: View, org: string, companySafe: string, who: Who)
     Effect.all({
       head: headOf(who),
       books: ledger(org, {}, { ...who, as: cast.sam }),
-      safes: Effect.forEach([companySafe, ...personalSafes(world)], (safe) => usdc(world, safe, who)),
+      safes: Effect.flatMap(ownView(world), (own) =>
+        Effect.forEach([companySafe, ...personalSafes(own)], (safe) => usdc(world, safe, who)),
+      ),
     }),
   );

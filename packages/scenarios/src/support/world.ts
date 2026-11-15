@@ -8,6 +8,7 @@ import * as Option from "effect/Option";
 import * as Random from "effect/Random";
 import type * as Schema from "effect/Schema";
 import * as Str from "effect/String";
+import { castPeopleOf, JourneyCast } from "../cast.ts";
 import { Capxul, ThisCall } from "../client.ts";
 import { expect, failWith, given } from "../expectation.ts";
 import { present, refusal, same, show } from "./expect.ts";
@@ -115,6 +116,20 @@ export const company = (world: View, handle: string) =>
 /** The companies a world shows, as what identifies each. */
 export const companiesOf = (world: View) =>
   Arr.map(world.companies, (each) => ({ org: each.org, handle: each.handle, name: each.name }));
+
+/**
+ * The world's cast as the journey running sees it: its own people (`Cast`) when a journey casts, so a read made once
+ * per person reads only the journey's, never every journey's; the whole cast otherwise.
+ */
+export const ownCast = (world: View) =>
+  Effect.map(Effect.serviceOption(JourneyCast), (journey) =>
+    Option.isNone(journey)
+      ? world.cast
+      : Arr.filter(world.cast, (each) => Arr.contains(castPeopleOf(journey.value), each.person)),
+  );
+
+/** The world as the journey running sees it: its cast is the journey's own people (`ownCast`). */
+export const ownView = (world: View) => Effect.map(ownCast(world), (cast): View => ({ ...world, cast }));
 
 /** Every personal Safe of the world's cast. */
 export const personalSafes = (world: View): ReadonlyArray<string> =>

@@ -133,3 +133,35 @@ the two importing each other.
 
 `pnpm types` and `pnpm test`. `pnpm record` rewrites `records/empty-handlers/` from a run, one file per journey, and
 removes the files of journeys no longer registered; `pnpm test` fails when the committed files and a run differ.
+
+## For 4.8: what the runner's isolation check should check
+
+The journeys declare everything the check needs.
+- `Journey.key` and `Journey.world` are on the scenarios' door.
+- The journey's cast is `Cast.journeyCast(key, "northwind")` in the blueprint: its people, their emails, the accounts they sign with, and its company handle `northwind-j<n>`.
+- Every call the runner records has a trace id, a person it acts as (`as`) and a payload.
+
+**On every call of a `shared` journey:**
+1. **Acts only as its own people.** `as` is one of the journey's people, the world's owner (no `as`), or the second operator.
+2. **Names only its own people and company.** Every person a payload names is the journey's own: `members`, `directors`, `member`, `person`, `holder`, and an invite's `email` when it is a cast email. The same goes for every company it names (`org`, `handle`). The exception is a declared refusal about something nobody owns, and only when the call was refused with it:
+   - `PersonNotFound` for `zed`;
+   - `OrgNotFound` for `org_nowhere1`;
+   - `InvitationNotFound` for `inv_nobody01`;
+   - `ApprovalNotFound` for `apr_nobodyissuedthis`;
+   - an email at `elsewhere.test`.
+   Read these from the journeys' constants, never from a list kept by hand.
+
+**Over the whole run, once, from the tap and the record (the whole-run scan the telemetry lead offered):**
+3. **Every record entry belongs to its company's journey.** Each entry's trace is the trace of a call made by the journey whose company the entry names (`carried.org`, or the org of `carried.invitation` / `carried.proposal`).
+4. **Entries with no traced call are rare and explained.** Count the entries whose trace is no call's, or that carry no trace at all: an index write caused by a chain log, or a background step. Each must be explained, or it fails. This is review blind spot (2). The operation checks see only entries under their own call's traces, so a wrong side effect written under another trace, or none, shows up only here.
+5. **The chain stays inside each journey.** Every transaction of the run's blocks comes from the bundler for a user operation whose sender is one journey's Safe, or from an account the world declares as its own (faucet, Companies House, claim service). Then:
+   - each user operation's sender belongs to exactly one journey;
+   - every `CompanySafeMinted`, `BudgetCreated` and hat `TransferSingle` names only that journey's Safes and company.
+   This is review blind spot (1): `chainUntouched` checks only the journey's Safes and company, so a transaction from Core's own key, or from any account outside the journey, is caught only here.
+6. **`own` journeys never touch the shared world.** No call of an `own` journey goes to the shared world's door. Each `own` journey's worlds are owned by an owner of its own.
+
+**What the scenarios already promise, so the check can lean on it:**
+- No journey writes a person's name or a handle as text; all come from its cast or its facts.
+- Every record check judges by the call's traces, and by every attempt's trace (#348).
+- The chain checks judge by the journey's own Safes.
+- Looks are marked `Observing`; the call under test never is (#351).

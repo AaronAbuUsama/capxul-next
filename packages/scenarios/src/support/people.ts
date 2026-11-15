@@ -7,13 +7,13 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Order from "effect/Order";
 import * as Rec from "effect/Record";
-import { castPeopleOf, JourneyCast } from "../cast.ts";
 import { Capxul } from "../client.ts";
 import { companySafesOf, isAddress, logsOf } from "./chain.ts";
 import { findIn, same } from "./expect.ts";
 import {
   entriesOfCall,
   objectOf,
+  ownView,
   personalSafes,
   recordOf,
   textOf,
@@ -90,10 +90,7 @@ export const chainUntouched = (world: View, who: Who, before: number, org: strin
         Arr.filter(logs, (each) => each.block > before),
       );
     const minted = org === null ? [] : yield* companySafesOf(org, who);
-    const journey = yield* Effect.serviceOption(JourneyCast);
-    const people = Option.isSome(journey) ? castPeopleOf(journey.value) : Arr.map(world.cast, (each) => each.person);
-    const mine = Arr.filter(world.cast, (each) => Arr.contains(people, each.person));
-    const safes = [...personalSafes({ ...world, cast: mine }), ...Arr.map(minted, (each) => each.safe)];
+    const safes = [...personalSafes(yield* ownView(world)), ...Arr.map(minted, (each) => each.safe)];
     const ours = (address: string) => Arr.some(safes, (safe) => isAddress(safe, address));
     const touched = [
       ...Arr.map(

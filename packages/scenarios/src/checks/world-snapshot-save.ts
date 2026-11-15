@@ -11,6 +11,7 @@ import {
   entriesOfCall,
   operatorName,
   ownerOf,
+  ownView,
   personalSafes,
   recordOf,
   unchangedRecord,
@@ -29,7 +30,7 @@ interface Saved {
 }
 
 const balancesOf = (world: View, owner: Who) =>
-  Effect.forEach(personalSafes(world), (safe) => usdc(world, safe, owner));
+  Effect.flatMap(ownView(world), (own) => Effect.forEach(personalSafes(own), (safe) => usdc(world, safe, owner)));
 
 const before = (world: string) =>
   Effect.gen(function* () {

@@ -21,7 +21,7 @@ import * as Exit from "effect/Exit";
 import * as Order from "effect/Order";
 import * as Rec from "effect/Record";
 import * as Ref from "effect/Ref";
-import { castFor, JourneyCast } from "./cast.ts";
+import { castFor, JourneyCast, type JourneyKey } from "./cast.ts";
 import type { OperationChecks } from "./checks/format.ts";
 import type { Capxul, Failure, Given } from "./client.ts";
 import type { ExpectationFailed } from "./expectation.ts";
@@ -42,9 +42,9 @@ export interface Journey {
   readonly story: string;
   /**
    * Its key, unique among all journeys: the run casts its own people and company by it (cast.ts), so journeys side by
-   * side never share a person or a company. Lowercase letters and digits, 2 to 6.
+   * side never share a person or a company. One of the blueprint's journey keys (`Cast.JOURNEY_KEYS`).
    */
-  readonly key: string;
+  readonly key: JourneyKey;
   /** The starting world it begins from: one of the blueprint's. */
   readonly given: StartingWorld;
   /** Its steps, in order. */
@@ -103,7 +103,7 @@ export const journey = (
   declared: {
     readonly name: string;
     readonly story: string;
-    readonly key: string;
+    readonly key: JourneyKey;
     readonly given: StartingWorld;
     readonly steps: Readonly<Record<string, StepOutline & { readonly index: number }>>;
   },

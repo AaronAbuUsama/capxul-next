@@ -1,21 +1,26 @@
 // How a person of the cast signs: with their own key, never in a browser (decisions.md, 23 and 42). The cast's keys
-// are the blueprint's `CAST_KEYS`: among the first accounts of the public test mnemonic. A journey finds the key
+// are the blueprint's `CAST_KEYS`: among the first accounts of the public test mnemonic, every journey's cast's
+// among them (`Cast.castKeyIndex`). A journey finds the key
 // whose address is the one an approval names, signs its digest as it is (no prefix) and hands the signature to
 // approval.sign.
-import { Values } from "@capxul/blueprint";
+import { Cast, Values } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Str from "effect/String";
-import { mnemonicToAccount } from "viem/accounts";
+import { mnemonicToAccount, type HDAccount } from "viem/accounts";
 import { present } from "./expect.ts";
 
-/** The well-known test accounts, derived when first needed. */
-export const testAccounts = Effect.sync(() =>
-  Arr.map(Arr.range(0, Values.CAST_KEYS.accounts - 1), (addressIndex) =>
+/** Each well-known test account, by its index: the world's own and every journey's cast (`Cast.CAST_KEY_ACCOUNTS`). */
+const derive = (): ReadonlyArray<HDAccount> =>
+  Arr.map(Arr.range(0, Cast.CAST_KEY_ACCOUNTS - 1), (addressIndex) =>
     mnemonicToAccount(Values.CAST_KEYS.mnemonic, { addressIndex }),
-  ),
-);
+  );
+
+let derived: ReadonlyArray<HDAccount> | undefined;
+
+/** The well-known test accounts, derived once, when first needed. */
+export const testAccounts = Effect.sync(() => (derived ??= derive()));
 
 const lower = Str.toLowerCase;
 

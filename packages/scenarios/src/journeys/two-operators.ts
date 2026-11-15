@@ -10,7 +10,7 @@ import type { Payload } from "../client.ts";
 import { expect, given } from "../expectation.ts";
 import { journey, outline } from "../journey.ts";
 import { hostNow, millis, present, same } from "../support/expect.ts";
-import { freshName, LIMITS, operators, type View } from "../support/world.ts";
+import { freshName, LIMITS, operators, ownCast, type View } from "../support/world.ts";
 
 const LONG_AGO = "2000-01-01T00:00:00Z";
 const SECOND = 1000;
@@ -119,7 +119,7 @@ export const twoOperators = journey(
     yield* steps.record.run((op) =>
       Effect.gen(function* () {
         yield* op.succeeds(everyRecord, there);
-        for (const person of made.cast)
+        for (const person of yield* ownCast(made))
           yield* op.refused("NotWorldOwner", everyRecord, { ...there, as: person.person });
       }),
     );

@@ -11,7 +11,7 @@ import { expect } from "../expectation.ts";
 import { isAddress, logsOf } from "./chain.ts";
 import { present, same, sameAddress, sameAmount } from "./expect.ts";
 import { peopleOf } from "./people.ts";
-import { recordOf, textOf, whereOf, type View, type Who } from "./world.ts";
+import { ownCast, recordOf, textOf, whereOf, type View, type Who } from "./world.ts";
 
 export type Budget = typeof Budgets.Budget.Type;
 export type OnChain = NonNullable<Chain.ReadAnswer<"budget">>;
@@ -56,7 +56,7 @@ export const holdersOf = (world: View, hat: string, who: Who = {}) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
     const holders: Array<string> = [];
-    for (const each of world.cast)
+    for (const each of yield* ownCast(world))
       if (
         each.safe !== null &&
         (yield* capxul.chain.wears({ hats: world.contracts.hats, hat, wearer: each.safe, block: null }, whereOf(who)))
