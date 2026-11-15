@@ -1,6 +1,10 @@
 // The values the operations share: names, ids, times, money, approvals and the view of a world. Each is declared
-// here once and imported wherever it is used. Nothing here reaches outside itself.
+// here once (the ids in ids.ts, the approval subjects in their domains) and imported from here wherever it is used.
 import * as Schema from "effect/Schema";
+import * as Budgets from "./budgets/subjects.ts";
+import * as Documents from "./documents/subjects.ts";
+import { ApprovalId, OrgHandle, OrgId } from "./ids.ts";
+import * as Organizations from "./organizations/subjects.ts";
 
 const pattern = (regex: RegExp) => Schema.String.check(Schema.isPattern(regex));
 
@@ -34,12 +38,7 @@ export const Hash = pattern(/^0x[0-9a-f]{64}$/);
 /** A 65-byte secp256k1 signature, as hex. */
 export const Signature = pattern(/^0x[0-9a-f]{130}$/);
 
-export const OrgId = pattern(/^org_[a-z0-9]{6,40}$/);
-export const OrgHandle = pattern(/^[a-z][a-z0-9-]{1,30}$/);
-export const ApprovalId = pattern(/^apr_[a-z0-9]{6,40}$/);
-export const ProposalId = pattern(/^prp_[a-z0-9]{6,40}$/);
-export const ChangeId = pattern(/^chg_[a-z0-9]{6,40}$/);
-export const PaymentRequestId = pattern(/^req_[a-z0-9]{6,40}$/);
+export { ApprovalId, BudgetCreationId, ChangeId, OrgHandle, OrgId, PaymentRequestId, ProposalId } from "./ids.ts";
 
 /** The assets a world's chain carries. */
 export const Asset = Schema.Literals(["USDC"]);
@@ -83,14 +82,10 @@ export const Approval = Schema.Struct({
 
 /**
  * What an approval authorises, once enough of its kind are signed, named by the id the operation that asked for it
- * answered: a company's setup by its org id (`org.create`), an officer change by its change id
- * (`org.member.grant`), a payment by its request id (`doc.submit`'s Held).
+ * answered. Each domain whose operations ask for approvals declares its kinds in `src/<domain>/subjects.ts`: a
+ * company's setup and an officer change (organizations), a budget's creation (budgets), a held payment (documents).
  */
-export const Subject = Schema.Union([
-  Schema.Struct({ kind: Schema.Literal("org_setup"), id: OrgId }),
-  Schema.Struct({ kind: Schema.Literal("officer_change"), id: ChangeId }),
-  Schema.Struct({ kind: Schema.Literal("payment"), id: PaymentRequestId }),
-]);
+export const Subject = Schema.Union([...Organizations.subjects, ...Budgets.subjects, ...Documents.subjects]);
 
 /**
  * How a person of the cast signs (decisions.md, 42). Their keys are among the first `accounts` of the public test
@@ -128,6 +123,8 @@ export const ChainContracts = Schema.Struct({
   usdc: Address,
   hats: Address,
   payments: Address,
+  /** The Budgets contract: every company's tree of budgets, keyed by its Safe (src/budgets/). */
+  budgets: Address,
   entryPoint: Address,
   companySafeMinter: Address,
   /** The owner the minter derives every company Safe's address under (`companySafeAddressFor`'s `owner`). */

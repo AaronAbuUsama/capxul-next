@@ -1,0 +1,301 @@
+door: the bench's apps hash to 70995114dc0bf6d5
+door: serving on 18204 for pool.test
+door: "GET /health HTTP/1.1" 200 -
+door: "POST /sites HTTP/1.1" 202 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "POST /sites HTTP/1.1" 202 -
+door: "POST /sites HTTP/1.1" 202 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "POST /sites HTTP/1.1" 202 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -door:
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 - 
+"GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+"GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+"GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: blank blank-70995114dc0bf6d5 new-site 2233 ms
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door:door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+ "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door:door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+ "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door:door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+ "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door:door:door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -  "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+"GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: door:"GET /sites/northwind-wb.pool.test HTTP/1.1" 200 - 
+"GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door:door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+ "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -"GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: 
+"GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door:door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+ "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door:door:  "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -"GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+"GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door:door:  "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+"GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+"GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: door:"GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 - "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door:door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 - 
+"GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: blank blank-70995114dc0bf6d5 install erpnext 5019 ms
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -"GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door:door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+ "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door:door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+ "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: blank blank-70995114dc0bf6d5 install hrms 3387 ms
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -"GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: blank blank-70995114dc0bf6d5 install capxul 346 ms
+door: door:"GET /sites/northwind-wd.pool.test HTTP/1.1" 200 - "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door:door:  "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -"GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+
+door:door:  "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -"GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+
+door: blank blank-70995114dc0bf6d5 migrate 823 ms
+door: blank blank-70995114dc0bf6d5 made in 11809 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: pool blank-70995114dc0bf6d5/blank +1 in 332 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door:door:  "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+"GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door:door:  "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+"GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+
+door:door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 - 
+"GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -door:
+ "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: pool blank-70995114dc0bf6d5/blank +1 in 331 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door:door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+ "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: pool blank-70995114dc0bf6d5/blank +1 in 331 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -door:
+ "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: pool blank-70995114dc0bf6d5/blank +1 in 331 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+"GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test made from blank-70995114dc0bf6d5 (copy) in 3493 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wc.pool.test HTTP/1.1" 200 -
+door: northwind-wa.pool.test made from blank-70995114dc0bf6d5 (copy) in 3823 ms
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wa.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door:door:  "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+"GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+door: northwind-wb.pool.test made from blank-70995114dc0bf6d5 (copy) in 6316 ms
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -door: "GET /sites/northwind-wb.pool.test HTTP/1.1" 200 -
+
+door: northwind-wd.pool.test made from blank-70995114dc0bf6d5 (copy) in 6667 ms
+door: "GET /sites/northwind-wd.pool.test HTTP/1.1" 200 -
+door: northwind-wc.pool.test removed in 212 ms
+door: "DELETE /world HTTP/1.1" 200 -
+door: northwind-wa.pool.test removed in 211 ms
+door: "DELETE /world HTTP/1.1" 200 -
+door: northwind-wb.pool.test removed in 209 ms
+door: "DELETE /world HTTP/1.1" 200 -
+door: northwind-wd.pool.test removed in 212 ms
+door: "DELETE /world HTTP/1.1" 200 -

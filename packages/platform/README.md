@@ -53,15 +53,15 @@ from the shared state by whoever holds the Cloudflare key (`src/state.ts`), neve
 
 | Call | What |
 |---|---|
-| `POST /sites {label, company, api_key, api_secret}` | Answers 202 and makes the site in the background (one at a time; about 93 s, more with HRMS): new site, ERPNext, HRMS, capxul, the wizard with the company, migrate, the scheduler, joining the token's world (its clock), and an API user of the site's own, `capxul-core@service.invalid`, with the key and secret the world sent and the roles `Accounts User`, `Purchase User`, `Sales User`. Never the bench's Administrator. |
+| `POST /sites {label, company, api_key, api_secret}` | Answers 202 and makes the site in the background: **a copy of the bench's blank company site** (below, "Blank company sites"; seconds to take, then about 20 s to configure) with the wizard run for the company, every app's `after_migrate` hooks, joining the token's world (its clock), the scheduler, and an API user of the site's own, `capxul-core@service.invalid`, with the key and secret the world sent and the roles `Accounts User`, `Purchase User`, `Sales User`. Never the bench's Administrator. With no blank it is made from nothing as before (one at a time; 2 to 4 minutes): new site, ERPNext, HRMS, capxul, the wizard, migrate, the scheduler, joining the world, the API user. `GET /sites/<site>`'s `made_from` says which (`{template, how}`, `how` being `pool` or `copy`; none when made from nothing) |
 | `GET /sites/<site>`, `GET /world` | A site's state (`creating`, `ready`, `failed`) with each step's time; the world's sites. |
 | `ANY /sites/<site>/api/...` | One call to the site's own REST API, carried to web with the site's Host, as the user `Authorization: token <key>:<secret>` names. Cookies are dropped and any other credential refused; a site not ready answers `site-creating` or `site-failed`. |
 | `DELETE /sites/<site>`, `DELETE /world` | Removes a site (`bench drop-site`, its archive deleted; if that fails, its database and user dropped directly), or every site of the world and its saved backups. A token of quota 0 may do it, so the sweeper can for an expired world. A ready site's removal holds only its own lock, so it never waits behind another world's site being made; a site still being made from nothing or restored is removed once its build stops. |
 | `POST /world/backup {snapshot}` | Starts saving every site of the world (each must be ready) under the snapshot's name (`door/snapshots.py`) and **answers 202 `saving` at once**: `bench backup` of its database and its encryption key, in the door's registry folder; a second save of the name replaces it. Seconds per site, once the bench's other long commands let it run (it waits behind a site being made from nothing, over two minutes, which answered on the request's path outlasted Cloudflare's 100 s: HTTP 524 in PR #227's CI run 43599082569). |
 | `GET /world/backup/<snapshot>` | That backup: `saving`; `saved` with each site's `{site, label, ms, bytes}`; or `failed` with `error`. One saved before the door last started is read from its folder; none answers `backup-not-found`. |
 | `POST /world/restore {snapshot, api_key, api_secret, clock}` | With the source world's token in `X-Capxul-Source-Token` as well: makes every site that world saved as the snapshot again in the token's world, under the same label, and answers 202. Each is a new site from the backup (`bench new-site --source-sql`), with the backup's encryption key, joined to the new world (`capxul.world.rewrite`), set to its clock, its API user given the new credential, its scheduler on: about 8 s in the rehearsal, against about 95 s for a new site. Within the token's quota. |
-| `POST /templates {template, site}` or `{template, snapshot}` | Makes a **template**: a copy, inside MariaDB, of a ready site of the token's world (that world built it from nothing with `POST /sites` and ran the starting world's steps), or of every site in a snapshot it saved with `POST /world/backup`. `template` is a name of up to 40 of a-z, 0-9 and `-`; packages/world names it `<starting world>-<code>-<world>` ("Bench templates never change", below); each site keeps its label. Answers 200 with `made: true` when it is made (about 3 s a site), then fills its pool in the background (`door/pool.py`). **A template never changes**: when the name exists, nothing is made and the template is answered as it is, with `made: false` and each site's `made_by`; two makes of a new name at once make it once, the second waiting for the first. Any valid token may make one: they are the bench's, not a world's, and outlive the world that made them. |
-| `GET /templates` | Every whole template, its sites and how many ready copies each has in the pool, when it was last used (`used_at`, `idle_s`: made or claimed from), with the last refills' times. |
+| `POST /templates {template, site}` or `{template, snapshot}` | Refuses a name beginning `blank-` (`template-reserved`; so does `POST /world/claim`): those are the door's own. Makes a **template**: a copy, inside MariaDB, of a ready site of the token's world (that world built it from nothing with `POST /sites` and ran the starting world's steps), or of every site in a snapshot it saved with `POST /world/backup`. `template` is a name of up to 40 of a-z, 0-9 and `-`; packages/world names it `<starting world>-<code>-<world>` ("Bench templates never change", below); each site keeps its label. Answers 200 with `made: true` when it is made (about 3 s a site), then fills its pool in the background (`door/pool.py`). **A template never changes**: when the name exists, nothing is made and the template is answered as it is, with `made: false` and each site's `made_by`; two makes of a new name at once make it once, the second waiting for the first. Any valid token may make one: they are the bench's, not a world's, and outlive the world that made them. |
+| `GET /templates` | Every whole template (the door's blank too), its sites and how many ready copies each has in the pool, when it was last used (`used_at`, `idle_s`: made or claimed from), with the last refills' times, `pool_size`, `blank_pool_size` and `blank`: the blank's name, whether it is whole (`usable`) or being made, its make's time and steps, or its last failure. |
 | `POST /templates/sweep {idle_s, dry_run?}` | Removes every template last used more than `idle_s` ago (whole seconds, at least `DOOR_TEMPLATE_MIN_IDLE_S`, an hour by default; `sweep-idle-invalid` otherwise), with its pool and their databases, and skips one whose lock is held (being made, copied from with its pool empty, or refilled). Answers `{removed, kept, busy}`; `dry_run` removes nothing. packages/world's `sweep` calls it with 6 hours. |
 | `DELETE /templates/<template>` | Removes a template, its pool and their databases. For a person: no run removes a template by name. |
 | `GET /health` | `{ok: true, app}`: `app` is a hash of the apps the bench makes sites with (the capxul app's files, and every other app's `__init__.py`, which holds its version), read at the door's start, which a template's name fingerprints. |
@@ -217,6 +217,55 @@ door neither refuses a second make nor sweeps (packages/world's sweep says so in
 stay on the bench until it is deployed and the next sweep runs. Not measured: how many runs at once the bench holds;
 each still makes its company site from nothing, one at a time across the bench (`BENCH_LOCK`, two to three minutes).
 
+### Blank company sites (14 November 2026)
+
+Four `world` runs at once on `staging` timed out waiting for their company sites: each run's `org.create` asks the door
+for a site when its approval lands (packages/core, `src/organizations/site.ts`), and the door made each from nothing
+under `BENCH_LOCK`, one at a time, 2 to 4 minutes each, so the fourth waited behind three ("waited ten minutes for
+world.show to list northwind's site as ready"; a reset that restores sites past its 5 minutes). `door/blank.py` takes
+that build off every run's path. The door's API, Core and packages/world are unchanged:
+
+- **One blank per app fingerprint.** `blank-<app>`, where `<app>` is `GET /health`'s `app`: a site with ERPNext, HRMS
+  and capxul installed and migrated and no company (the wizard not run), kept as a template (`templates.py`: never
+  served, never changed). The door makes it in the background at its start, once `BENCH_LOCK` is free (it never jumps
+  a queued build), under a site name no request can reach (`blank-<app>.invalid`), then moves it under the registry. A
+  blank of another fingerprint is never copied and is removed at the door's start, so a deploy of new apps makes a new
+  blank. The sweep keeps blanks (in `kept`, with `blank: true`); no world may make or claim one.
+- **Kept warm.** `DOOR_BLANK_POOL_SIZE` (default 4) ready copies, refilled by `pool.py` after every use, one copy at a
+  time bench-wide, as every template's pool is.
+- **A company's site** (`POST /sites`): a ready copy renamed to the site's name, or with the pool empty a copy made
+  from the blank on the build's thread (about 3 s); an encryption key of its own when its database holds nothing
+  encrypted yet; then one Python process of the bench: the setup wizard with the company, every app's `after_migrate`
+  hooks (what the old build's `migrate` after the wizard ran), joining the world, the API user, the scheduler. It holds
+  the site's lock and one of `DOOR_FAST_SLOTS`, not `BENCH_LOCK`. Core then delivers `configure` (company and Safe),
+  the clock, grants and capital as before.
+- **Never worse.** With no blank of this fingerprint, a company waits for one being made (up to `DOOR_BLANK_WAIT_S`,
+  900 s) and otherwise is made from nothing, as before; if one is made while it waits for `BENCH_LOCK`, it is used
+  after all. A blank that failed is tried again only after `DOOR_BLANK_RETRY_S` (1800 s), and `GET /templates` says why.
+
+`records/blank-sites/` measured four companies made at once (`run.sh`: the real `door/door.py` at `origin/master` and
+this one; `bench`, the bench's Python and pymysql stood in, each command taking the time the same step took on a real
+bench in `records/site-pool/01-template-source.json`, a tenth; two CPUs, each bench process holding one; a database
+copy 3.3 s, a tenth). Times below are the stand-in's, times ten:
+
+| Four companies at once, time to ready | Door before (`old-door.json`) | This door, warm (`warm.json`) | Pool of 2 (`pool2.json`) | Asked as the door starts (`cold.json`) |
+|---|---|---|---|---|
+| How each was made | from nothing, one at a time | 4 from the pool | 2 from the pool, 2 copied | 4 copied from the blank once made |
+| Fastest, slowest | 139 s, 554 s | 30 s, 58 s | 30 s, 58 s | 154 s, 184 s |
+| Mean | 346 s | 44 s | 44 s | 169 s |
+
+The blank was made in 118 s and its pool of 4 was full 13 s later (`warm.json`, `warm_up`). Every company was ready,
+and each world was then removed. The unit tests (`door/tests/test_blank.py`) cover a pooled copy, an empty pool, no
+blank (made from nothing), a failed blank, a blank of other apps, two companies at once with one ready copy, the blank
+waiting for an idle bench while a company waits for it, the refill to its own size, and the reserved names.
+
+Not measured: a real bench. The configure process is charged what the steps it still runs took when a site was made
+from nothing (27.8 s, `migrate` counted whole), and the stand-in neither runs Frappe nor slows the bench's other work.
+Not run on a real bench: the configure process itself (the wizard and the `after_migrate` hooks in one process, in
+place of `bench execute` and `bench migrate`), a copy getting its own encryption key (the stand-in's MariaDB answers no
+rows, so the copies kept the blank's), and the blank's disk (one site's database and folder, plus 4 copies, about
+110 MiB each). Copies of a blank share its Administrator password, random and never kept, as copies of a template do.
+
 ### What is proven, on a local bench
 
 `proof/prove.py`, against `bin/pool-bench.sh`'s bench (the containers `src/bench.ts` declares, MariaDB with
@@ -247,7 +296,8 @@ were not timed apart. Resets are faster than the spike's 0.5 s, with MariaDB's c
   old door's answer, held open as before. Not measured: how long claims, saves and resets wait on `staging` with four
   runs at once, and the bench itself: sites made from nothing are still one at a time (`BENCH_LOCK`, 2 to 4 minutes
   each), so four runs' first builds queue for up to about 15 minutes, which a run's `site` step (8 minutes) and the
-  runner's 10-minute wait for a site can still exceed.
+  runner's 10-minute wait for a site can still exceed. Blank company sites (above) take that queue away once
+  `platform.yml` deploys this door; until then `staging` makes every company site from nothing.
 - A deploy of the platform with these door calls, and the AWS bench host: the door image is built by
   `CapxulPlatform` (`door/Containerfile` copies every module), not rehearsed here; the proof mounted the code into
   the existing images.
@@ -343,13 +393,13 @@ no AWS keys, may not create a Cloudflare credential (a tunnel's token is one), a
 | `alchemy.run.ts`, `host.run.ts` | The platform's stack and the bench host's |
 | `src/names.ts`, `src/stage.ts` | Every name, from the stage |
 | `src/host.ts`, `src/aws.ts`, `src/user-data.ts` | The machine: the Docker context, the AWS resources, the first boot |
-| `src/bench.ts`, `src/mariadb.ts`, `bench/`, `door/`, `src/edge.ts` | The bench, its MariaDB's settings, its image, the site door (`door.py`; `sites.py`, `snapshots.py`, `templates.py`, `pool.py`, `claim.py`, `points.py`, `db.py`, `jobs.py`; unit tests in `door/tests/`, `pnpm door:test`), the tunnel and DNS |
+| `src/bench.ts`, `src/mariadb.ts`, `bench/`, `door/`, `src/edge.ts` | The bench, its MariaDB's settings, its image, the site door (`door.py`; `sites.py`, `snapshots.py`, `templates.py`, `pool.py`, `blank.py`, `claim.py`, `points.py`, `db.py`, `jobs.py`; unit tests in `door/tests/`, `pnpm door:test`), the tunnel and DNS |
 | `src/token.ts`, `src/state.ts`, `src/door.ts`, `src/run-mint.ts` | Site tokens, the door key from the state, the package's door |
 | `src/drift.ts`, `src/code-drift.ts`, `src/run-drift.ts`, `src/run-inventory.ts` | The drift check and the state inventory |
 | `bin/` | `run.sh` (settings), `forward.sh` (SSM), `require.sh` (CI), `rehearse.sh` and `rehearse-drift.sh`, `zone.sh`, `pool-bench.sh` |
 | `bootstrap/` | CI's access: `bootstrap.sh`, `bootstrap.run.ts`, `src/aws-policy.ts`, `src/cloudflare-policy.ts`, `BOOTSTRAP.md` |
 | `proof/`, `bin/pool-bench.sh`, `records/site-pool/` | The site pool's proof on a local bench, and its records |
-| `records/backup-async/`, `records/templates/`, `records/capacity/` | Proofs on a stand-in bench (the real door, `bench` and MariaDB stood in): the background backup, two runs at once sharing the bench's templates, and four runs at once with long calls as jobs |
+| `records/backup-async/`, `records/templates/`, `records/capacity/`, `records/blank-sites/` | Proofs on a stand-in bench (the real door, `bench` and MariaDB stood in): the background backup, two runs at once sharing the bench's templates, four runs at once with long calls as jobs, and four companies at once made from the blank |
 | `records/rehearsal/` | The stand-in rehearsal of this package: transcripts, drift reports, `summary.json` |
 | `records/aws/` | The AWS path from here: the platform's plan for `staging`, and the host's plan stopping at AWS's sign-in |
 | `records/spike/` | The spike's run, moved here when the spike was deleted |

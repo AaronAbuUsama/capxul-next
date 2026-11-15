@@ -1,6 +1,7 @@
 # The site door: the bench's image (bench/Containerfile) plus door.py and its modules (sites.py, snapshots.py, pool.py,
-# claim.py, points.py, db.py, jobs.py). It runs in its own container on the bench, shares the sites volume with web, worker and
-# scheduler, and is the only process that creates, claims, saves, resets or removes sites. Its unit tests stay out.
+# blank.py, claim.py, points.py, db.py, jobs.py). It runs in its own container on the bench, shares the sites volume with
+# web, worker and scheduler, and is the only process that creates, claims, saves, resets or removes sites. Its unit tests
+# stay out.
 ARG BENCH_IMAGE
 FROM ${BENCH_IMAGE}
 COPY --chown=frappe:0 *.py /opt/door/

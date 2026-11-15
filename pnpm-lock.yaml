@@ -437,6 +437,9 @@ importers:
       '@capxul/blueprint':
         specifier: workspace:*
         version: link:../blueprint
+      '@capxul/cli':
+        specifier: workspace:*
+        version: link:../cli
       '@capxul/core':
         specifier: workspace:*
         version: link:../core
@@ -468,6 +471,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 4.20260702.1
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.1.2(effect@4.1.2)(redis@6.3.1(@opentelemetry/api@1.10.0))
       '@effect/tsgo':
         specifier: 'catalog:'
         version: 0.63.0

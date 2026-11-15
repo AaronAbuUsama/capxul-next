@@ -1,5 +1,6 @@
 // What the compiler cannot hold about the journeys: names are unique, each is 5 to 10 steps from one of the
-// blueprint's starting worlds, and between them they call every operation of the blueprint.
+// blueprint's starting worlds, and between them they call every operation of the blueprint. There are at least the
+// thin line's two or three; each slice adds its own (docs/roadmap.md, phase 3), so there is no upper bound.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { operations, startingWorlds } from "@capxul/blueprint";
@@ -18,8 +19,8 @@ test("every journey has its own name, a story and a run", () => {
   }
 });
 
-test("two or three journeys, each 5 to 10 steps from a starting world the blueprint declares", () => {
-  assert.ok(journeys.length >= 2 && journeys.length <= 3, `${journeys.length} journeys`);
+test("at least the thin line's journeys, each 5 to 10 steps from a starting world the blueprint declares", () => {
+  assert.ok(journeys.length >= 2, `${journeys.length} journeys`);
   for (const each of journeys) {
     assert.ok(each.outline.length >= 5 && each.outline.length <= 10, `${each.name} has ${each.outline.length} steps`);
     assert.ok(Arr.contains(Rec.values(startingWorlds), each.given), `${each.name} begins from an undeclared world`);

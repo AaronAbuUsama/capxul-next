@@ -21,6 +21,7 @@ import * as Exit from "effect/Exit";
 import * as Order from "effect/Order";
 import * as Rec from "effect/Record";
 import * as Ref from "effect/Ref";
+import type { OperationChecks } from "./checks/format.ts";
 import type { Capxul, Failure, Given } from "./client.ts";
 import type { ExpectationFailed } from "./expectation.ts";
 import { Journal, Steps, type Made, type StepOutline } from "./journal.ts";
@@ -43,6 +44,14 @@ export interface Journey {
   /** Its steps, in order. */
   readonly outline: ReadonlyArray<StepOutline>;
   readonly run: Effect.Effect<void, Failed, Needs>;
+}
+
+/**
+ * A journey as its file declares it: its run still needs every operation's checks, which the registry gives it
+ * (registry.ts). A domain's file (domains/) lists it, and the registry runs it as a `Journey`.
+ */
+export interface Declared extends Omit<Journey, "run"> {
+  readonly run: Effect.Effect<void, Failed, Needs | OperationChecks>;
 }
 
 /** One step: its place in the journey (from 1), its operation and its words, and how to run it. */
@@ -91,8 +100,8 @@ export const journey = (
     readonly given: StartingWorld;
     readonly steps: Readonly<Record<string, StepOutline & { readonly index: number }>>;
   },
-  run: Effect.Effect<void, Failed, Needs | Journal>,
-): Journey => {
+  run: Effect.Effect<void, Failed, Needs | OperationChecks | Journal>,
+): Declared => {
   const steps = Arr.sort(
     Rec.values(declared.steps),
     Order.mapInput(Order.Number, (each: { readonly index: number }) => each.index),

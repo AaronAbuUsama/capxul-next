@@ -1,0 +1,208 @@
+{
+ "mode": "cold",
+ "door": "http://127.0.0.1:18204",
+ "companies": {
+  "wc": {
+   "post_status": 202,
+   "post_ms": 13,
+   "time_to_ready_ms": 15425,
+   "state": "ready",
+   "made_from": {
+    "template": "blank-70995114dc0bf6d5",
+    "how": "copy"
+   },
+   "door_ms": 3492,
+   "steps": [
+    {
+     "step": "copied from the blank (pool empty)",
+     "ms": 663
+    },
+    {
+     "step": "blank's encryption key kept",
+     "ms": 0
+    },
+    {
+     "step": "frappe started",
+     "ms": 4
+    },
+    {
+     "step": "setup wizard",
+     "ms": 1699
+    },
+    {
+     "step": "after_migrate hooks",
+     "ms": 821
+    },
+    {
+     "step": "join world",
+     "ms": 84
+    },
+    {
+     "step": "core user",
+     "ms": 131
+    },
+    {
+     "step": "enable scheduler",
+     "ms": 70
+    }
+   ],
+   "error": null
+  },
+  "wa": {
+   "post_status": 202,
+   "post_ms": 12,
+   "time_to_ready_ms": 15678,
+   "state": "ready",
+   "made_from": {
+    "template": "blank-70995114dc0bf6d5",
+    "how": "copy"
+   },
+   "door_ms": 3822,
+   "steps": [
+    {
+     "step": "copied from the blank (pool empty)",
+     "ms": 994
+    },
+    {
+     "step": "blank's encryption key kept",
+     "ms": 0
+    },
+    {
+     "step": "frappe started",
+     "ms": 4
+    },
+    {
+     "step": "setup wizard",
+     "ms": 1698
+    },
+    {
+     "step": "after_migrate hooks",
+     "ms": 821
+    },
+    {
+     "step": "join world",
+     "ms": 85
+    },
+    {
+     "step": "core user",
+     "ms": 131
+    },
+    {
+     "step": "enable scheduler",
+     "ms": 70
+    }
+   ],
+   "error": null
+  },
+  "wb": {
+   "post_status": 202,
+   "post_ms": 16,
+   "time_to_ready_ms": 18192,
+   "state": "ready",
+   "made_from": {
+    "template": "blank-70995114dc0bf6d5",
+    "how": "copy"
+   },
+   "door_ms": 6315,
+   "steps": [
+    {
+     "step": "copied from the blank (pool empty)",
+     "ms": 1657
+    },
+    {
+     "step": "blank's encryption key kept",
+     "ms": 0
+    },
+    {
+     "step": "frappe started",
+     "ms": 4
+    },
+    {
+     "step": "setup wizard",
+     "ms": 1698
+    },
+    {
+     "step": "after_migrate hooks",
+     "ms": 821
+    },
+    {
+     "step": "join world",
+     "ms": 85
+    },
+    {
+     "step": "core user",
+     "ms": 132
+    },
+    {
+     "step": "enable scheduler",
+     "ms": 71
+    }
+   ],
+   "error": null
+  },
+  "wd": {
+   "post_status": 202,
+   "post_ms": 13,
+   "time_to_ready_ms": 18443,
+   "state": "ready",
+   "made_from": {
+    "template": "blank-70995114dc0bf6d5",
+    "how": "copy"
+   },
+   "door_ms": 6666,
+   "steps": [
+    {
+     "step": "copied from the blank (pool empty)",
+     "ms": 1326
+    },
+    {
+     "step": "blank's encryption key kept",
+     "ms": 0
+    },
+    {
+     "step": "frappe started",
+     "ms": 5
+    },
+    {
+     "step": "setup wizard",
+     "ms": 1698
+    },
+    {
+     "step": "after_migrate hooks",
+     "ms": 821
+    },
+    {
+     "step": "join world",
+     "ms": 85
+    },
+    {
+     "step": "core user",
+     "ms": 133
+    },
+    {
+     "step": "enable scheduler",
+     "ms": 71
+    }
+   ],
+   "error": null
+  }
+ },
+ "verdict": {
+  "every_company_ready": true,
+  "time_to_ready_ms": [
+   15425,
+   15678,
+   18192,
+   18443
+  ],
+  "slowest_ms": 18443,
+  "mean_ms": 16934,
+  "all_four_ms": 18445,
+  "how": [
+   "copy",
+   "copy",
+   "copy",
+   "copy"
+  ]
+ }
+}

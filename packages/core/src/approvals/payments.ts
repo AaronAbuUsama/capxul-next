@@ -2,9 +2,11 @@
 // of the member's own Safe, `Budgets.spend` from the company's top budget, whose hat (Books) the member's Safe
 // wears, so Budgets pays from the company Safe through its Roles and Gate, and Payments sends it with the document's
 // hash. It is prepared now, so its digest is known before doc.submit answers; approval.sign sends it with the
-// member's signature. The payment's id on the chain is what `spend` answers, read by simulating it now.
+// member's signature. The payment's id on the chain is what `spend` answers, read by simulating it now. Once it has
+// landed, the site posts the Payment Entry it holds, as the chain paid it (`landings`).
 import { Errors } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import {
   decodeFunctionResult,
@@ -18,14 +20,15 @@ import {
 import { Cast } from "../cast/Cast.ts";
 import { hexOf, usdcOf } from "../chain/calls.ts";
 import { APPROVAL_LIFETIME_MS, SEEDED, USDC_DECIMALS } from "../chain/seeded.ts";
-import { nonceKeyOf, prepare } from "../chain/userop.ts";
+import { nonceKeyOf, prepare, type Landed } from "../chain/userop.ts";
 import { WorldChain } from "../chain/WorldChain.ts";
 import { instant } from "../organizations/caller.ts";
 import { worldNow } from "../record/emit.ts";
 import { newId } from "../organizations/ids.ts";
 import * as Store from "../organizations/store.ts";
 import type { OpenedPayment, PaymentToHold } from "../site-ops/payments.ts";
-import { open } from "./store.ts";
+import { deliver } from "../organizations/site.ts";
+import { open, subjectOf } from "./store.ts";
 import { hex } from "../chain/hex.ts";
 
 const SPEND = parseAbi([
@@ -102,3 +105,27 @@ export const openPayment = Effect.fn("payment.open")(function* (payment: Payment
   );
   return { request, paymentId, approval } satisfies OpenedPayment;
 });
+
+/** The site posts the Payment Entry it holds for this hash, as the chain paid it (capxul/payments.py). */
+const paymentLanded = (id: string, landing: Landed) =>
+  Effect.gen(function* () {
+    const held = yield* subjectOf("payment", id);
+    if (held.org === null || held.about === null) return yield* Effect.void;
+    const now = yield* worldNow;
+    return yield* deliver(held.org, "paid", {
+      document_hash: held.about["documentHash"] ?? "",
+      tx_hash: landing.receipt.transactionHash,
+      amount: held.about["amount"] ?? "0",
+      to: held.about["payee"] ?? "",
+      block_time: instant(now.timestampMs),
+    });
+  });
+
+/** The landing of the documents domain's subject, a held payment (blueprint `src/documents/subjects.ts`). */
+export const landings = {
+  payment: {
+    landed: paymentLanded,
+    orgOf: (id: string) =>
+      Effect.map(subjectOf("payment", id), (held) => Option.flatMapNullishOr(Option.some(held), (each) => each.org)),
+  },
+};

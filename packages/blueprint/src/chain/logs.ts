@@ -24,6 +24,8 @@ export const LOG_SIGNATURES = {
   TransferSingle:
     "event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 amount)",
   HatMaxSupplyChanged: "event HatMaxSupplyChanged(uint256 hatId, uint32 newMaxSupply)",
+  BudgetCreated:
+    "event BudgetCreated(address indexed safe, uint256 indexed id, uint256 indexed parent, address token, uint8 period, uint128 amount, uint256 hat)",
 } as const;
 
 export type LogName = keyof typeof LOG_SIGNATURES;
@@ -34,6 +36,7 @@ export const LogName = Schema.Literals([
   "Transfer",
   "TransferSingle",
   "HatMaxSupplyChanged",
+  "BudgetCreated",
 ]);
 
 /** Companies House minted a company Safe for a founder's Safe. `company` is the Organization's id. */
@@ -89,6 +92,21 @@ export const HatMaxSupplyChanged = Schema.TaggedStruct("HatMaxSupplyChanged", {
   newMaxSupply: Schema.Int,
 });
 
+/**
+ * The Budgets contract made budget `id` for the company Safe `safe`, inside `parent` (0 for a top budget), of `amount`
+ * per `period` (ICalendar: 0 a month, 1 a quarter, 2 a year) in the token's smallest units, spent by `hat`'s wearers.
+ */
+export const BudgetCreated = Schema.TaggedStruct("BudgetCreated", {
+  ...found,
+  safe: Address,
+  id: Uint,
+  parent: Uint,
+  token: Address,
+  period: Schema.Int,
+  amount: Uint,
+  hat: Uint,
+});
+
 /** A log of a kind not declared here, by its first topic (the event's selector), if it has one. */
 export const OtherLog = Schema.TaggedStruct("Other", { ...found, topic: Schema.NullOr(Hash) });
 
@@ -100,6 +118,7 @@ export const Log = Schema.Union([
   Transfer,
   TransferSingle,
   HatMaxSupplyChanged,
+  BudgetCreated,
   OtherLog,
 ]);
 export type Log = typeof Log.Type;

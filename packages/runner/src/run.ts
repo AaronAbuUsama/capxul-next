@@ -18,7 +18,7 @@ import * as Result from "effect/Result";
 import * as Str from "effect/String";
 import type * as HttpClient from "effect/http/HttpClient";
 import { checkCall, failuresOf, type CheckedCall } from "./checks/checks.ts";
-import { capxulFor, type Call, type Target } from "./client.ts";
+import { capxulFor, type Call, type Target, type Via } from "./client.ts";
 import { describe, endedOf, RunnerFailure } from "./failure.ts";
 import { givenFor, type Handing } from "./given.ts";
 import { writeRecord, type RunRecord } from "./record.ts";
@@ -36,6 +36,8 @@ export interface Plan {
   readonly name: string;
   readonly proves: RunRecord["proves"];
   readonly given: string | null;
+  /** How its calls reach Core, when through the command line (`--via=cli`); left out, through the SDK. */
+  readonly via?: Via;
   /** A journey's steps, in order; none for the door. */
   readonly outline: ReadonlyArray<StepOutline>;
   /**
@@ -164,6 +166,9 @@ const failuresIn = (lifecycle: Lifecycle<Used, RunnerFailure>): ReadonlyArray<st
 export const stepsFor = (plan: Pick<Plan, "kind">, steps: ReadonlyArray<StepRecord>) =>
   plan.kind === "journey" ? { steps, failedStep: failedStepOf(steps) } : {};
 
+/** A run record's `via`: only a run through the command line names it. */
+export const viaOf = (via: Via | undefined) => (via === "cli" ? { via: "cli" as const } : {});
+
 /** The run record of `plan` from what became of its stage. */
 export const recordOf = (plan: Plan, startedAt: string, lifecycle: Lifecycle<Used, RunnerFailure>): RunRecord => {
   const used = lifecycle.used !== undefined && Exit.isSuccess(lifecycle.used) ? lifecycle.used.value : undefined;
@@ -177,6 +182,7 @@ export const recordOf = (plan: Plan, startedAt: string, lifecycle: Lifecycle<Use
     owner: lifecycle.owner,
     startedAt,
     outcome: failures.length === 0 ? "passed" : "failed",
+    ...viaOf(plan.via),
     failure: failures.length === 0 ? null : Arr.join(failures, "\n"),
     ended: used === undefined ? null : endedOf(used.run),
     readiness: lifecycle.readiness,
@@ -270,13 +276,14 @@ export const journeyPlan =
     name: journey.name,
     proves: null,
     given: journey.given.name,
+    via: settings.via,
     outline: journey.outline,
     calls: (target, log, heard) =>
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- each journey is its own program, handed its own stage's client, facts and ear
       Effect.provide(
         journey.run,
         Layer.mergeAll(
-          capxulFor(target, log),
+          capxulFor(target, log, settings.via),
           givenFor(journey.given, { first: settings.owner, second: settings.secondOwner }, handing),
           hearing(heard, log),
         ),

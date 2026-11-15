@@ -1,6 +1,6 @@
-// What the compiler cannot hold about the contract: twelve operations, each declared thing defined once, every
-// example's events carrying exactly their event's fields, claims that name only what their operation declares, and
-// claims.md matching its sources. Run with `pnpm test`.
+// What the compiler cannot hold about the contract: the thin line's twelve operations and every domain's in their
+// groups, each declared thing defined once, every example's events carrying exactly their event's fields, claims that
+// name only what their operation declares, and every claims.md matching its sources. Run with `pnpm test`.
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
@@ -14,30 +14,37 @@ import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import * as Struct from "effect/Struct";
 import * as ApprovalsOps from "../src/approvals/operations.ts";
+import * as BudgetsOps from "../src/budgets/operations.ts";
 import { allClaims } from "../src/claims/all.ts";
 import { renderClaims } from "../src/claims/render.ts";
 import * as DocumentsOps from "../src/documents/operations.ts";
-import { operations, PlatformRpcs, WorldRpcs, type OperationName } from "../src/door.ts";
+import { domains, operations, PlatformRpcs, WorldRpcs, type OperationName } from "../src/door.ts";
 import * as Errors from "../src/errors.ts";
 import { refusalsOf, type EventClass, type Operation } from "../src/operation.ts";
 import * as OrganizationsOps from "../src/organizations/operations.ts";
+import * as PeopleOps from "../src/people/operations.ts";
 import * as RecordOps from "../src/record/operations.ts";
 import * as ReportsOps from "../src/reports/operations.ts";
 import * as Chain from "../src/chain/chain.ts";
+import { namesOf } from "../src/domains.ts";
 import { startingWorlds, type StartingWorld } from "../src/starting-worlds.ts";
 import * as Telemetry from "../src/telemetry.ts";
 import * as Values from "../src/values.ts";
+import * as WorldInventory from "../src/world/inventory.ts";
 import * as WorldOps from "../src/world/operations.ts";
 
 const names: ReadonlyArray<OperationName> = Rec.keys(operations);
 const all: ReadonlyArray<[OperationName, Operation]> = Arr.map(names, (name) => [name, operations[name]]);
 const sorted = (items: Iterable<string>): Array<string> => Arr.sort(items, Order.String);
 
-test("the door lists exactly twelve operations, each under its own Rpc's name and served by exactly one group", () => {
-  assert.equal(names.length, 12);
+test("the door lists every domain's operations once, each under its own Rpc's name and served by exactly one group", () => {
+  const owned = Arr.flatMap(Rec.values(domains), (domain) => namesOf(domain));
+  assert.deepEqual(sorted(owned), sorted(Arr.dedupe(owned)), "two domains declare one operation");
+  assert.deepEqual(sorted(owned), sorted(names));
   for (const [name, operation] of all) assert.equal(operation.rpc._tag, name);
-  const served = sorted([...PlatformRpcs.requests.keys(), ...WorldRpcs.requests.keys()]);
-  assert.deepEqual(served, sorted(names));
+  const served = [...PlatformRpcs.requests.keys(), ...WorldRpcs.requests.keys()];
+  assert.deepEqual(sorted(served), sorted(names));
+  assert.equal(served.length, names.length, "an operation is served by both groups");
 });
 
 /** The `_tag` of a tagged success, or null. */
@@ -103,10 +110,13 @@ const modules = {
   "values.ts": Values,
   "telemetry.ts": Telemetry,
   "world/operations.ts": WorldOps,
+  "world/inventory.ts": WorldInventory,
   "organizations/operations.ts": OrganizationsOps,
   "documents/operations.ts": DocumentsOps,
   "approvals/operations.ts": ApprovalsOps,
   "reports/operations.ts": ReportsOps,
+  "people/operations.ts": PeopleOps,
+  "budgets/operations.ts": BudgetsOps,
   "record/operations.ts": RecordOps,
 };
 const exported: ReadonlyArray<{ file: string; name: string; value: unknown }> = Arr.flatMap(
@@ -176,9 +186,11 @@ test("starting worlds are declared once, and every claim and step names only dec
   }
 });
 
-test("claims.md is what the sources render", () => {
-  const onDisk = readFileSync(new URL("../claims.md", import.meta.url), "utf8");
-  assert.equal(onDisk, renderClaims(), "claims.md is out of date: run `pnpm claims`");
+test("claims.md and every domain's claims.md are what the sources render", () => {
+  for (const { path, text } of renderClaims()) {
+    const onDisk = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+    assert.equal(onDisk, text, `${path} is out of date: run \`pnpm claims\``);
+  }
 });
 
 /** The names of a schema's fields, when it is a struct. */
@@ -235,17 +247,21 @@ test("PayloadRejected is declared once and no operation's door refuses with it",
 /** The text of one cell of a Markdown table row. */
 const cell = (row: string, index: number): string => Str.split(row, "|")[index] ?? "";
 
-test("order.md names only declared starting worlds and every operation once", () => {
-  const order = readFileSync(new URL("../order.md", import.meta.url), "utf8");
-  const rows = Arr.filter(Str.split(order, "\n"), (line) => /^\| \d+ \|/.test(line));
-  assert.equal(rows.length, 12);
+test("each domain's order.md names only declared starting worlds and each of its operations once", () => {
   const declared = new Set(Arr.map(Rec.values(startingWorlds), (world) => world.name));
-  const listed = Arr.map(rows, (row) => pipe(cell(row, 2), Str.trim, Str.replaceAll("`", "")));
-  assert.deepEqual(sorted(listed), sorted(names));
-  for (const row of rows) {
-    const given = Option.getOrElse(Str.match(/`([a-z-]+)`/g)(cell(row, 4)), () => []);
-    assert.ok(given.length > 0, `no starting world in: ${row}`);
-    for (const name of given)
-      assert.ok(declared.has(Str.replaceAll("`", "")(name)), `order.md names ${name}, which is not declared`);
+  const listed: Array<string> = [];
+  for (const [folder, domain] of Rec.toEntries(domains)) {
+    const order = readFileSync(new URL(`../src/${folder}/order.md`, import.meta.url), "utf8");
+    const rows = Arr.filter(Str.split(order, "\n"), (line) => /^\| \d+ \|/.test(line));
+    const own = Arr.map(rows, (row) => pipe(cell(row, 2), Str.trim, Str.replaceAll("`", "")));
+    assert.deepEqual(sorted(own), sorted(namesOf(domain)), `src/${folder}/order.md`);
+    listed.push(...own);
+    for (const row of rows) {
+      const given = Option.getOrElse(Str.match(/`([a-z-]+)`/g)(cell(row, 4)), () => []);
+      assert.ok(given.length > 0, `no starting world in: ${row}`);
+      for (const name of given)
+        assert.ok(declared.has(Str.replaceAll("`", "")(name)), `order.md names ${name}, which is not declared`);
+    }
   }
+  assert.deepEqual(sorted(listed), sorted(names));
 });

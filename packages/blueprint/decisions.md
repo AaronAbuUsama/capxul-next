@@ -367,6 +367,21 @@ Cloudflare and Neon. Such a run proves nothing a step needs: its records say so,
 `rehearsed`, never `passed`. Found on the way, and true of the pinned Frappe: a new Scheduled Job Type is named by a
 hash, not by its method (entry 44 assumed the latter); the Capxul app names the daily job's type `clock.daily` itself.
 
+**53. What a budget is to the blueprint (BG1, 15 November 2026).** Aaron, 14 November 2026: the chain's budget is the
+only gate on spending, and a budget's Cost Center on its company's site (with, at most, an ERPNext Budget set to Warn)
+comes in a later unit. So `org.budget.show` and `org.budget.list` answer every figure as the world's Budgets contract
+holds it at the latest block, and the checks hold each against it through a new chain read, `budget` (`budgetOf`,
+`leftOf` and `childrenOf`), with the contract's address in a world's `contracts.budgets` and its `BudgetCreated` among
+the declared logs. Core keeps only a budget's name; a top budget is named as its company is. A budget's holder is
+whoever wears its hat: the holders a read answers are the people of the cast whose Safe wears it now, so the top
+budget, of the Books hat, has none in `founded`. A budget is known by its id on the chain; the creation its Directors
+approve is known by a `bcr_` id until it lands, which is the subject `budget_creation`. The chain gives a child its
+parent's asset and period, so `org.budget.create` asks neither. Its landing makes a hat for the budget and mints it to
+the holder's Safe in the same company Safe transaction as `createChildBudget`; which admin hat the new hat sits under,
+and how many may wear it, are the builder's to choose within the contracts. Not declared, because nothing yet asks for
+them: closing, reopening and changing a budget, a budget's own refusals for a parent too deep or closed, and spending
+from it, which settles one sealed document (docs/roadmap.md).
+
 ## Answered by Aaron, 13 November 2026
 
 **1. Founding a company in one step.** Yes: `org.create` takes the founding Directors, the approval threshold and the
