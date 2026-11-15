@@ -48,7 +48,7 @@ const connectionString = (env: Record<string, unknown>) =>
 // The Postgres driver opens its socket through Node's `net` and `tls`. Every deploy, each world's and staging's, runs
 // next to its database in Europe (D5, src/stack/region.ts). Exported for a deployer that builds Core's bundle itself
 // (packages/world, src/parts/api/bundle.ts), so it builds from the same entry, compatibility and placement.
-export const coreProps = () => ({
+export const workerProps = () => ({
   main: import.meta.url,
   compatibility: { flags: ["nodejs_compat"] },
   placement: API_PLACEMENT,
@@ -58,7 +58,7 @@ export default class Core extends Cloudflare.Worker<Core>()(
   "Core",
   Effect.gen(function* () {
     // Inside the running Worker the stack's files are evaluated again only to name bindings; nothing is read there.
-    if ((yield* Alchemy.ALCHEMY_PHASE) === "runtime") return coreProps();
+    if ((yield* Alchemy.ALCHEMY_PHASE) === "runtime") return workerProps();
     const given = yield* CoreDeployment;
     const deployment = Option.isSome(given) ? given.value : yield* ownDeployment;
     // A bundle the deployer built already is uploaded as it is (src/stack/deployment.ts).
@@ -66,7 +66,7 @@ export default class Core extends Cloudflare.Worker<Core>()(
       onNone: () => ({}),
       onSome: (main) => ({ main, bundle: false }),
     });
-    return { ...coreProps(), ...prebuilt, env: { ...deployment.env, [ENV.database]: deployment.database } };
+    return { ...workerProps(), ...prebuilt, env: { ...deployment.env, [ENV.database]: deployment.database } };
   }),
   Effect.succeed({
     fetch: Effect.gen(function* () {
