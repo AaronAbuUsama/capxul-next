@@ -8,9 +8,11 @@ import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
 import * as Str from "effect/String";
 import type { Format, Stray } from "./format.ts";
-import type { Otherwise } from "../language/lifecycle.ts";
 
-/** A machine, as far as the format reads it. */
+/** What a move does from a state it cannot start from, by the refusal's name (../language/lifecycle.ts, `named`). */
+type Otherwise = { readonly refusal: string } | "unchanged";
+
+/** A machine, as far as the format reads it: each operation and refusal by its name. */
 export interface MachineShape {
   readonly name: string;
   readonly states: ReadonlyArray<string>;

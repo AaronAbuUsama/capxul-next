@@ -1,5 +1,5 @@
 // Who belongs to a company: its Directors in the board's order, then its members, the founding ones first and then
-// those who joined by an invitation, in the order they joined. The one reading of membership: org.member.list answers
+// those who joined by an invitation, in the order they joined. The one reading of membership: member.list answers
 // it, invitation.send refuses whoever is in it, and org.member.grant grants a permission only to someone in it.
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";

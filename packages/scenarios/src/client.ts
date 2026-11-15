@@ -2,7 +2,7 @@
 // Core through its door. The SDK supplies it (`Sdk.layer(Capxul)`, roadmap step 1.9) and the runner records every call
 // it makes. A journey never calls Core over HTTP itself, and never sees a trace id, a span or a timing: the runner
 // keeps and checks those for every call.
-import type { CallOptions, Chain, Errors, OperationName, operations, StartingWorld } from "@capxul/blueprint";
+import type { CallOptions, Chain, Errors, OperationName, operations, StartingWorld, Values } from "@capxul/blueprint";
 import * as Context from "effect/Context";
 import type * as Effect from "effect/Effect";
 import type * as Rpc from "effect/rpc/Rpc";
@@ -74,3 +74,65 @@ export class CallTraces extends Context.Service<
 export class ThisCall extends Context.Service<ThisCall, { readonly trace: string | null }>()(
   "@capxul/scenarios/client/ThisCall",
 ) {}
+
+type Json = typeof Values.Json.Type;
+
+/** One span Core recorded under a call's trace: a declared step's, or a library's (`postgres`, HTTP). */
+export interface ObservedSpan {
+  readonly name: string;
+  readonly spanId: string;
+  readonly parentSpanId: string | null;
+  /** The span's status. A refusal leaves it unset and says `capxul.outcome` `refused` in its attributes. */
+  readonly outcome: "ok" | "error" | "unset";
+  /** When it started, in epoch milliseconds. */
+  readonly startMs: number;
+  readonly durationMs: number;
+  readonly attributes: Readonly<Record<string, Json>>;
+}
+
+/** One log Core wrote under a call's trace, such as the one where a refusal was decided. */
+export interface ObservedLog {
+  readonly level: string;
+  readonly message: string;
+  /** The span it was written in. */
+  readonly spanId: string | null;
+  /** Its declared fields. */
+  readonly fields: Readonly<Record<string, Json>>;
+  readonly atMs: number;
+}
+
+/** One entry of the world's record written under a call's trace. */
+export interface ObservedEvent {
+  readonly seq: number;
+  readonly event: string;
+  readonly carried: Json;
+}
+
+/** What Core recorded under one trace: its spans in start order, its logs and events in the order written. */
+export interface Observed {
+  readonly trace: string;
+  /**
+   * Whether the trace is whole: its operation's server span is in. A read answers incomplete rather than partial
+   * after a short wait, and a check that needs it then fails as not observed, never judging part of a call.
+   */
+  readonly complete: boolean;
+  readonly spans: ReadonlyArray<ObservedSpan>;
+  readonly logs: ReadonlyArray<ObservedLog>;
+  readonly events: ReadonlyArray<ObservedEvent>;
+}
+
+/**
+ * The runner's read of what Core recorded under calls' traces, in one batch (roadmap step 4.11, observation from
+ * telemetry): every trace asked has an entry. `who` reads another world's (a call `at` its door); left out, the run's
+ * own. A read that fails is a defect, as a chain read's is. A run without it leaves the checks reading the world through
+ * the operations, as before.
+ */
+export class Observations extends Context.Service<
+  Observations,
+  {
+    readonly read: (
+      traces: ReadonlyArray<string>,
+      who?: Pick<CallOptions, "at" | "operator">,
+    ) => Effect.Effect<ReadonlyMap<string, Observed>>;
+  }
+>()("@capxul/scenarios/client/Observations") {}

@@ -60,7 +60,7 @@ export const promises: PromisesOf = promisesOf(invitationDecline, [
   promise(
     "The invitee declines; the invitation is closed and they do not join.",
     w.founded,
-    "invitation.decline as olga of dana's invitation answers it declined. The world's history gains one invitation_declined naming neither olga nor her email, and org.member.list as dana does not list her.",
+    "invitation.decline as olga of dana's invitation answers it declined. The world's history gains one invitation_declined naming neither olga nor her email, and member.list as dana does not list her.",
     { thinLine: true },
   ),
   promise(
